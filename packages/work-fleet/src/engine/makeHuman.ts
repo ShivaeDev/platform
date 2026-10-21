@@ -15,7 +15,7 @@ export function makeHuman(state: EngineState) {
 	return Effect.fn("Fleet.makeHuman")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
 		let decision = stored.value.decision;
-		if (stored.value.stage !== "needs-human" || decision === undefined) {
+		if (stored.value.step !== "waiting" || decision === undefined) {
 			return stored;
 		}
 		stored = yield* ensurePublication(state)(stored);

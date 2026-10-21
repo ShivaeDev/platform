@@ -31,7 +31,7 @@ test("Cloud dispatch publishes a local-only criterion decision before session st
 				attempts: [],
 				decision: { attentionOwner: "orchestrator" },
 				decisionPublished: true,
-				stage: "needs-human",
+				step: "waiting",
 			});
 			expect(blocked.decision?.reason).toContain("evidence");
 			expect(blocked.decision?.reason).toContain("private/board");
@@ -44,7 +44,7 @@ test("Cloud dispatch publishes a local-only criterion decision before session st
 			expect(decision).toContain('"response_from":["orchestrator"]');
 			local.write(source("Measure repository fixtures."));
 			const launched = (yield* dispatchApproved(local.host, "one")).value;
-			expect(launched.stage).toBe("executing");
+			expect(launched.step).toBe("working");
 			expect(launched.decision).toBeUndefined();
 			expect(fixture.provider.launched).toHaveLength(1);
 		}).pipe(Effect.provide(hostLayer(local.host, local.parts)));
@@ -61,7 +61,7 @@ test("CLI dispatch launches an edited criterion after a local-only criterion blo
 					const client = yield* daemonClient(port);
 					const dispatch = Effect.promise(() => cliProcess(["dispatch", "one", "--port", String(port)]));
 					expect((yield* dispatch).code).toBe(0);
-					const blocked = yield* waitForRecord(client, "one", (record) => record.stage === "needs-human" && record.decisionPublished === true);
+					const blocked = yield* waitForRecord(client, "one", (record) => record.step === "waiting" && record.decisionPublished === true);
 					expect(blocked.attempts).toEqual([]);
 					expect(blocked.decision?.reason).toContain("private/board");
 					expect(fixture.provider.launched).toHaveLength(0);
@@ -70,7 +70,7 @@ test("CLI dispatch launches an edited criterion after a local-only criterion blo
 						code: 0,
 						stdout: expect.stringContaining("dispatch recorded; preparing and launching in the background"),
 					});
-					const launched = yield* waitForRecord(client, "one", (record) => record.stage === "executing" && record.attempts[0]?.receipt !== undefined);
+					const launched = yield* waitForRecord(client, "one", (record) => record.step === "working" && record.attempts[0]?.receipt !== undefined);
 					expect(launched.decision).toBeUndefined();
 					expect(launched.boardContext).toContain("Measure repository fixtures.");
 					expect(fixture.provider.launched).toHaveLength(1);
@@ -94,7 +94,7 @@ for (const scenario of [
 			local.write(source(scenario.text ?? "Measure private/board/notes.") + (scenario.body ?? ""));
 			return Effect.gen(function* () {
 				const launched = (yield* dispatchApproved(local.host, "one")).value;
-				expect(launched.stage).toBe("executing");
+				expect(launched.step).toBe("working");
 				expect(launched.decision).toBeUndefined();
 				expect(fixture.provider.launched).toHaveLength(1);
 			}).pipe(Effect.provide(hostLayer(local.host, local.parts)));

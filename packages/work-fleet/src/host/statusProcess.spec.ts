@@ -7,15 +7,15 @@ host.it("--board loads the host file and status filters stored work as text or J
 	const text = yield* daemon.cli(["status"]);
 	expect(text.code).toBe(0);
 	expect(text.stdout).toContain("Active (2)");
-	expect(text.stdout).toContain("  a  executing");
-	expect(text.stdout).toContain("  b  executing");
-	expect(text.stdout).toContain("Waiting on maintainer (0)\nWaiting on orchestrator (0)\nWaiting on automation (0)\nCompleted (0)");
+	expect(text.stdout).toContain("  a  working");
+	expect(text.stdout).toContain("  b  working");
+	expect(text.stdout).toContain("Waiting on you (0)\nWaiting on orchestrator (0)\nWaiting on automation (0)\nDone (0)");
 	const json = yield* daemon.cli(["status", "a", "--json"]);
 	expect(json.code).toBe(0);
 	expect(JSON.parse(json.stdout)).toEqual({
-		active: [expect.objectContaining({ stage: "executing", workId: "a" })],
+		active: [expect.objectContaining({ stage: "working", workId: "a" })],
 		completed: [],
-		record: expect.objectContaining({ prompt: expect.any(String), stage: "executing", workId: "a" }),
+		record: expect.objectContaining({ prompt: expect.any(String), step: "working", workId: "a" }),
 		waiting: { automation: [], maintainer: [], orchestrator: [] },
 	});
 });
@@ -23,15 +23,16 @@ host.it("--board loads the host file and status filters stored work as text or J
 host.it(
 	"a stored prepared dependency wait belongs to automation and offers no answer command",
 	[
-		storedWork("dependent", "prepared", {
+		storedWork("dependent", "queued", {
 			attentionOwner: "orchestrator",
 			blocker: "waiting for dependency upstream",
+			stage: "waiting",
 		}),
 	],
 	function* (daemon) {
 		const text = yield* daemon.cli(["status"]);
 		expect(text.code).toBe(0);
-		expect(text.stdout).toContain("Waiting on orchestrator (0)\nWaiting on automation (1)\n  dependent  prepared  waiting for dependency upstream");
+		expect(text.stdout).toContain("Waiting on orchestrator (0)\nWaiting on automation (1)\n  dependent  waiting  waiting for dependency upstream");
 		expect(text.stdout).not.toContain("work-fleet answer dependent");
 	},
 );

@@ -9,7 +9,7 @@ answers.it("a waiting answer converted to guidance queues once after shutdown du
 	yield* host.seedRecordedRequest(decision, TEXT, false);
 	const responseId = yield* host.publishResponse(decision, "Continue the implementation.", false);
 	yield* host.resolve(decision.id, responseId);
-	expect((yield* host.get()).stage).toBe("executing");
+	expect((yield* host.get()).step).toBe("working");
 	yield* host.stop();
 	const handoff = yield* host.pauseCompletion();
 	yield* host.start();

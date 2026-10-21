@@ -64,7 +64,7 @@ describe("stable decision codes", () => {
 				const repaired = yield* fixture.restart(
 					Fleet.pipe(Effect.flatMap((current) => current.resolve("one", decision.id, fixture.respond(decision.id, "retry")))),
 				);
-				expect(repaired.value.stage).toBe("repairing");
+				expect(repaired.value.step).toBe("repairing");
 				expect(repaired.value.prompt).toContain("Requested changes to the existing PR:");
 				expect(repaired.value.result).toEqual(stopped.value.result);
 				expect(repaired.value.review).toBeUndefined();

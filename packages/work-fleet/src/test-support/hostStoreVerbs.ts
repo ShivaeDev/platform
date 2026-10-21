@@ -45,7 +45,7 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			}
 			return engine.reads.count();
 		},
-		store: (workId: string, record: Readonly<Record<string, unknown>>) => {
+		store: (workId: string, record: Readonly<Record<string, unknown>> & { readonly stage: FleetRecord["stage"] }) => {
 			tell(`store ${workId}'s durable state`);
 			return engine.store(workId, record);
 		},

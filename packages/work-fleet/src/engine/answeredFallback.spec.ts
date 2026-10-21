@@ -35,13 +35,13 @@ postgresTests("test", "isolated")("a definitively wedged question thread continu
 				const answer = yield* answerWorker(root, decision);
 				unusableSession = decision.worker?.sessionId;
 				const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
-				expect(queued.stage).toBe("repairing");
+				expect(queued.step).toBe("repairing");
 				expect(queued.decision).toBeUndefined();
 				expect(queued.attempts.at(-1)).toMatchObject({ sessionUnusable: true, status: "failed" });
 				expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
 				now = 30_100;
 				const resumed = (yield* fixture.restart(fleet.reconcile("one"))).value;
-				expect(resumed.stage).toBe("executing");
+				expect(resumed.step).toBe("working");
 				expect(resumed.result).toEqual(result);
 				expect(resumed.preparation).toEqual(stopped.value.preparation);
 				expect(resumed.attempts.at(-1)?.receipt?.sessionId).not.toBe(unusableSession);
@@ -75,7 +75,7 @@ for (const reason of ["rejected", "ambiguous", "unavailable"] as const) {
 					fail = true;
 					yield* fleet.resolve("one", decision.id, answer.id);
 					const blocked = (yield* fixture.restart(fleet.reconcile("one"))).value;
-					expect(blocked.stage).toBe("needs-human");
+					expect(blocked.step).toBe("waiting");
 					expect(blocked.attempts).toHaveLength(2);
 					expect(blocked.attempts.at(-1)?.sessionUnusable).toBeUndefined();
 					expect(blocked.responses).toMatchObject([{ responseId: answer.id }]);

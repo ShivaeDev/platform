@@ -13,7 +13,7 @@ import { scriptedBoard } from "#test/scriptedBoard.ts";
 export const dependencySource = `---
 id: one
 kind: task
-status: planned
+status: draft
 next_action: Implement the work.
 fleet: approved
 criteria:
@@ -24,7 +24,7 @@ criteria:
 
 Implement the behavior.
 `;
-export const doneDependencySource = dependencySource.replace("status: planned", "status: done").replace("Implement the work.", "Work completed.");
+export const doneDependencySource = dependencySource.replace("status: draft", "status: done").replace("Implement the work.", "Work completed.");
 
 export function withDependencyBoard<A, E>(
 	options: EngineOptions,

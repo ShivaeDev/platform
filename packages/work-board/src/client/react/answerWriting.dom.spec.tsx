@@ -10,7 +10,7 @@ import { routedScreen } from "#test/screenTraits.ts";
 expectNoReactWarnings();
 const questionUrl = `/_board/item/${TEXT_QUESTION_ID}/`;
 const DRAFT = "Share one pool per worker.\n\nCap it at ten connections.";
-const closedQuestion = { ...textQuestionFixture, "question.md": textQuestionFixture["question.md"].replace("status: open", "status: done") };
+const closedQuestion = { ...textQuestionFixture, "question.md": textQuestionFixture["question.md"].replace("status: ready", "status: done") };
 
 screenStory.it(
 	"keeps an unsent draft readable and copyable when its question closes while the reader writes",

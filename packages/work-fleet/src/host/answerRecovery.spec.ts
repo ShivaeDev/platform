@@ -32,7 +32,7 @@ for (const release of [false, true]) {
 		}
 		const result = yield* daemon.followerExit("watcher");
 		expect(result.code).toBe(0);
-		expect(result.stdout).toContain(release ? "one released" : "one needs-human");
+		expect(result.stdout).toContain(release ? "one released" : "one waiting");
 		expect(daemon.providerStarts()).toHaveLength(1);
 	});
 }

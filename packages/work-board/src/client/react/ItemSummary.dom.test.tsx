@@ -13,7 +13,7 @@ const document: Document = {
 	file: "task.md",
 	identity: "task.fixture",
 	links: {},
-	metadata: { id: "task.fixture", kind: "task", nextAction: "Review the proof", owner: "reader", status: "active" },
+	metadata: { id: "task.fixture", kind: "task", nextAction: "Review the proof", owner: "marvin", status: "ready" },
 	modified: 0,
 	questionActions: {},
 	references: {},
@@ -38,8 +38,8 @@ const fleet: FleetItemsProjection = {
 };
 
 for (const [status, label] of [
-	["open", "Needs you"],
-	["closed", "Closed"],
+	["ready", "Needs you"],
+	["done", "Done"],
 	["done", "Done"],
 ]) {
 	screenStory.it(
@@ -50,6 +50,8 @@ for (const [status, label] of [
 					"question.md": `---
 id: question.direction
 kind: question
+scope: task
+urgency: whenever
 status: ${status}
 attention:
  - id: direction
@@ -67,8 +69,8 @@ attention:
 		],
 		function* ({ findElement, readText }) {
 			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
-			expect(findElement('.item-summary [data-status-token="needs-you"]') !== null).toBe(status === "open");
-			expect(findElement(".answer-cards") !== null).toBe(status === "open");
+			expect(findElement('.item-summary [data-status-token="needs-you"]') !== null).toBe(status === "ready");
+			expect(findElement(".answer-cards") !== null).toBe(status === "ready");
 			expect(readText(".item-summary [data-status-token]")).toBe(label);
 		},
 	);
@@ -87,8 +89,8 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 		],
 		({ findElement, readText }) => {
 			const header = findElement(".item-summary");
-			expect(header?.textContent).toContain("Owner: reader · Next action: Review the proof");
-			expect(readText("[data-status-token]", header)).toBe("Active");
+			expect(header?.textContent).toContain("Owner: marvin · Next action: Review the proof");
+			expect(readText("[data-status-token]", header)).toBe("Ready");
 			expect(findElement("svg.lucide-clipboard-list", header)).not.toBeNull();
 			expect(findElement('button[aria-label="Copy item ID"]', header)).not.toBeNull();
 			expect(readText('[data-slot="button"]:not([aria-label])')).toBe("Pin");
@@ -101,7 +103,6 @@ for (const [storyCase, value] of [undefined, { reason: "Not configured", state: 
 
 for (const [kind, label, icon] of [
 	["goal", "Goal", "svg.lucide-flag"],
-	["project", "Goal", "svg.lucide-flag"],
 	["report", "Report", "svg.lucide-file-text"],
 ] as const) {
 	screenStory.it(

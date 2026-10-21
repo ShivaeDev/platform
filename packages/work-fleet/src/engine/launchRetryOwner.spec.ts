@@ -8,13 +8,13 @@ engine.it(
 	function* (fleet) {
 		yield* fleet.prepareWork("one");
 		const queued = (yield* fleet.dispatch("one")).value;
-		expect(queued).toMatchObject({ attentionOwner: "automation", launchRetry: { retryAt: 30_100 }, stage: "prepared" });
+		expect(queued).toMatchObject({ attentionOwner: "automation", launchRetry: { retryAt: 30_100 }, step: "queued" });
 		expect(queued.decision).toBeUndefined();
 		yield* fleet.restart();
 		expect((yield* fleet.get("one")).value.attentionOwner).toBe("automation");
 
 		const waiting = yield* fleet.rpcViews();
-		expect(waiting.waiting.automation).toMatchObject([{ attentionOwner: "automation", stage: "prepared", workId: "one" }]);
+		expect(waiting.waiting.automation).toMatchObject([{ attentionOwner: "automation", stage: "waiting", workId: "one" }]);
 		expect(waiting.waiting.automation[0]?.blocker).toContain("Waiting for provider capacity");
 		expect(waiting.waiting.maintainer).toEqual([]);
 		expect(waiting.waiting.orchestrator).toEqual([]);
@@ -25,11 +25,11 @@ engine.it(
 		expect(fleet.launches()).toHaveLength(1);
 		fleet.advanceTime(30_100 - fleet.currentTime());
 		const accepted = (yield* fleet.dispatch("one")).value;
-		expect(accepted.stage).toBe("executing");
+		expect(accepted.step).toBe("working");
 		expect(accepted.launchRetry).toBeUndefined();
 		expect(accepted.attentionOwner).toBeUndefined();
 		const active = yield* fleet.rpcViews();
-		expect(active.active).toMatchObject([{ stage: "executing", workId: "one" }]);
+		expect(active.active).toMatchObject([{ stage: "working", workId: "one" }]);
 		expect(active.waiting.automation).toEqual([]);
 		expect(fleet.launches()).toHaveLength(2);
 	},

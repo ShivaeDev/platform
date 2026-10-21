@@ -1,14 +1,12 @@
 import type { MetadataDocument } from "#server/metadata/model.ts";
 
-const automation = /^(?:codex|claude|fleet|orchestrator|agent|automation|bot|copilot)(?:$|[-_. /])/iu;
-
 export function ownerNote(fields: MetadataDocument["parsed"]["fields"], maintainer: string): string | undefined {
 	const owner = fields.owner?.trim();
-	if (!(owner && fields.nextAction) || automation.test(owner)) {
+	if (!(owner && fields.nextAction) || owner === "codex" || owner === "claude") {
 		return undefined;
 	}
 	const note = personNote(fields.nextAction, fields.status);
-	return owner === maintainer ? note : `${owner} notes: ${note}`;
+	return owner === "marvin" || owner === maintainer ? note : `${owner} notes: ${note}`;
 }
 
 function personNote(action: string, status: string | undefined): string {

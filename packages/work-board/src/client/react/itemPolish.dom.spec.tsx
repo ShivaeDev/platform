@@ -29,7 +29,7 @@ for (const evidence of [false, true]) {
 	);
 }
 
-for (const file of ["done", "planned", "goal"]) {
+for (const file of ["done", "draft", "goal"]) {
 	screenStory.it(
 		`keeps owned fields quiet and unowned fields visible on ${file}`,
 		[boardScreen(itemPolishFixture(), (api) => <QueryDocument api={api} url={`/${file}.md`} />)],
@@ -38,7 +38,7 @@ for (const file of ["done", "planned", "goal"]) {
 			expect(readText()).toContain("0 of 2 criteria have recorded evidence");
 			expect(readText()).not.toContain("Unknown field fleet");
 			const diagnostics = findElement(".metadata-problems");
-			if (file === "planned") {
+			if (file === "draft") {
 				expect(diagnostics?.textContent).toContain("Unknown field flavor");
 				expect(findElements("li", diagnostics)).toHaveLength(1);
 			} else {

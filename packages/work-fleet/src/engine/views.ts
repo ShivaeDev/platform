@@ -1,9 +1,10 @@
 import { waitingOwner } from "#attention.ts";
 import { recoveryStatus } from "#engine/recoveryStatus.ts";
 import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
+import { fleetStage, waitingReason } from "#stage.ts";
 
 type ViewAttempt = Pick<Attempt, "receipt" | "briefSteers" | "stallRecovery" | "progress" | "overLimit" | "status" | "publishedRecovery" | "output">;
-type ViewRecord = Pick<FleetRecord, "workId" | "stage" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result"> & {
+type ViewRecord = Pick<FleetRecord, "workId" | "step" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result"> & {
 	readonly attempts: readonly ViewAttempt[];
 	readonly checks?: Pick<NonNullable<FleetRecord["checks"]>, "pending"> | undefined;
 	readonly report?: Pick<NonNullable<FleetRecord["report"]>, "sourcePath"> | undefined;
@@ -18,25 +19,25 @@ export function newestCompletion<A extends { readonly completedAt?: unknown; rea
 
 export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
 	const items = records
-		.filter((record) => record.stage !== "released" || waitingOwner(record) !== undefined)
+		.filter((record) => record.step !== "released" || waitingOwner(record) !== undefined)
 		.map((record) => ({
 			attentionOwner: waitingOwner(record),
 			blocker:
 				record.launchRetry === undefined
-					? (record.blocker ?? (record.stage === "completed" ? undefined : record.decision?.reason))
+					? waitingReason(record)
 					: `Waiting for provider capacity; last rejection ${new Date(record.launchRetry.rejectedAt).toISOString()}; retry after ${new Date(record.launchRetry.retryAt).toISOString()}`,
-			decision: record.stage === "completed" ? undefined : record.decision,
+			decision: record.step === "done" ? undefined : record.decision,
 			links: [...(record.report === undefined ? [] : [record.report.sourcePath]), ...(record.result?.kind === "change" ? [record.result.pr] : [])],
 			outcome: record.outcome,
 			...(launchedOverLimit(record) ? { overLimit: true } : {}),
-			recovery: recoveryStatus(record.attempts, record.stage),
+			recovery: recoveryStatus(record.attempts, record.step),
 			sessions: record.attempts.flatMap(sessionView),
-			stage: record.stage,
+			stage: fleetStage(record),
 			workId: record.workId,
 		}));
 	return {
-		active: items.filter((item) => item.stage !== "completed" && item.attentionOwner === undefined),
-		completed: items.filter((item) => item.stage === "completed" && item.attentionOwner === undefined),
+		active: items.filter((item) => item.stage !== "done" && item.attentionOwner === undefined),
+		completed: items.filter((item) => item.stage === "done" && item.attentionOwner === undefined),
 		waiting: {
 			automation: items.filter((item) => item.attentionOwner === "automation"),
 			maintainer: items.filter((item) => item.attentionOwner === "maintainer"),

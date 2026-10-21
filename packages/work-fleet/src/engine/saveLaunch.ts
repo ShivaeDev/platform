@@ -17,7 +17,7 @@ function launched(record: FleetRecord, attempt: Attempt): FleetRecord {
 		mergeReadyHead: undefined,
 		pendingAnswers: undefined,
 		pendingContinuation: undefined,
-		stage: "executing",
+		step: "working",
 	};
 }
 
@@ -29,7 +29,7 @@ export const saveLaunch = Effect.fn("Fleet.saveLaunch")(function* (
 	attempt: Attempt,
 	launch: Pick<LaunchAdmission, "quota" | "role"> & { readonly priority: BoardWork["priority"] },
 ) {
-	const implementer = stored.value.stage === "prepared";
+	const implementer = stored.value.step === "queued";
 	const priorityRepair = openSweep(record) && attempt.role === "repair";
 	const ignoreAreas = priorityRepair || (implementer && stored.value.dispatchNow?.ignoreAreas === true);
 	const admission: LaunchAdmission = {

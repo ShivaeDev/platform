@@ -9,8 +9,8 @@ export function handoffFrom(document: MetadataDocument | undefined, root: string
 	if (!document) {
 		return undefined;
 	}
-	const { id, kind, handoff } = document.parsed.fields;
-	return id && kind === "handoff" && handoff
+	const { id, handoff } = document.parsed.fields;
+	return id && handoff
 		? { context: document.parsed.body, file: document.file, handoff, id, prompt: handoffPrompt(join(root, document.file)) }
 		: undefined;
 }
@@ -18,7 +18,7 @@ export function handoffPrompt(path: string): string {
 	return `Read the handoff at ${JSON.stringify(path)}. Record receipt by editing its handoff.state and add handoff.by/note; then follow its instructions.`;
 }
 export function handoffMarkdown(id: string, handoff: HandoffRecord, context: string): string {
-	return `---\n${stringify({ handoff: Schema.encodeSync(RecordSchema)(handoff), id, kind: "handoff" })}---\n${context}`;
+	return `---\n${stringify({ handoff: Schema.encodeSync(RecordSchema)(handoff), id })}---\n${context}`;
 }
 export function matchesHandoff(record: Handoff, input: HandoffInput) {
 	const saved = record.handoff;

@@ -6,7 +6,7 @@ import { reviewAcknowledgementLost, reviewEnds, reviewerStillRunning, reviewerUs
 
 describe("independent reviewer sessions", () => {
 	engine.it(
-		"launches asynchronously with host settings and accepts only a completed verdict",
+		"launches asynchronously with host settings and accepts only a done verdict",
 		[reviewerStillRunning(), reviewerUsesHostSettings({ effort: "high", model: "host-model", serviceTier: "priority" })],
 		function* ({ fleet, prepareWork, finishWorkers, restart, providerStarts, boardWork, launches }) {
 			yield* prepareWork("one");
@@ -14,7 +14,7 @@ describe("independent reviewer sessions", () => {
 			finishWorkers();
 			const reviewing = yield* fleet.reconcile("one");
 			const attempt = reviewing.value.attempts.at(-1);
-			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.step).toBe("reviewing");
 			expect(reviewing.value.review).toBeUndefined();
 			expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", status: "running" });
 			const start = providerStarts().at(-1);
@@ -26,7 +26,7 @@ describe("independent reviewer sessions", () => {
 			finishWorkers();
 			yield* restart();
 			const completed = yield* fleet.reconcile("one");
-			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.step).toBe("done");
 			expect(completed.value.review).toMatchObject({ head: "head-one-0", receipt: attempt?.receipt, verdict: "approved" });
 			expect(launches()).toHaveLength(2);
 		},
@@ -43,7 +43,7 @@ describe("independent reviewer sessions", () => {
 			expect(lost.value.attempts.at(-1)?.receipt).toBeUndefined();
 			yield* fleet.resolve("one", lost.value.decision?.id ?? "missing", respond(lost.value.decision?.id ?? "missing", "retry"));
 			yield* restart();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(launches()).toHaveLength(2);
 		},
 	);
@@ -56,7 +56,7 @@ describe("independent reviewer sessions", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers();
 				const failed = yield* fleet.reconcile("one");
-				expect(failed.value.stage).toBe("needs-human");
+				expect(failed.value.step).toBe("waiting");
 				expect(failed.value.attentionOwner).toBe("orchestrator");
 				expect(failed.value.attempts.at(-1)?.status).toBe(reviewExecution);
 				expect(failed.value.review).toBeUndefined();
@@ -81,11 +81,11 @@ describe("independent reviewer sessions", () => {
 			const id = failed.value.decision?.id ?? "missing";
 			yield* fleet.resolve("one", id, respond(id, "retry"));
 			const retry = yield* fleet.reconcile("one");
-			expect(retry.value.stage).toBe("reviewing");
+			expect(retry.value.step).toBe("reviewing");
 			expect(retry.value.attempts.at(-1)?.receipt?.sessionId).not.toBe(original.sessionId);
 			expect(retry.value.attempts.at(-1)?.status).toBe("running");
 			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(launches()).toHaveLength(3);
 		},
 	);
@@ -100,7 +100,7 @@ describe("independent reviewer sessions", () => {
 			movePullRequestHead("second-head");
 			finishWorkers();
 			const moved = yield* fleet.reconcile("one");
-			expect(moved.value.stage).toBe("reviewing");
+			expect(moved.value.step).toBe("reviewing");
 			expect(moved.value.result?.head).toBe("second-head");
 			expect(moved.value.review?.head).toBe("first-head");
 			expect(moved.value.checks).toBeUndefined();
@@ -108,7 +108,7 @@ describe("independent reviewer sessions", () => {
 			const fresh = yield* fleet.reconcile("one");
 			expect(fresh.value.attempts.at(-1)).toMatchObject({ reviewHead: "second-head", status: "running" });
 			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(reviewedHeads()).toEqual(["first-head", "second-head"]);
 			expect(mergedHeads()).toEqual(["second-head"]);
 		},

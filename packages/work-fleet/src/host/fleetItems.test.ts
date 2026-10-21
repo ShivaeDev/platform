@@ -10,21 +10,21 @@ import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";
 import { fleetItemStore, itemRecord } from "#test/fleetItemStore.ts";
 import { healthSnapshot } from "#test/health.ts";
 
-it.effect("the daemon contract lists every unfinished stage and only completions within seven days", function* () {
+it.effect("the daemon contract lists every unfinished step and only completions within seven days", function* () {
 	yield* TestClock.adjust("10 days");
 	const now = yield* Clock.currentTimeMillis;
 	const cutoff = now - 7 * 24 * 60 * 60 * 1000;
 	const records = [
-		...(["prepared", "executing", "adopting", "reviewing", "repairing", "validating", "delivering", "needs-human", "released"] as const).map(
-			(stage) => itemRecord(stage),
+		...(["queued", "working", "adopting", "reviewing", "repairing", "validating", "delivering", "waiting", "released"] as const).map((step) =>
+			itemRecord(step),
 		),
-		itemRecord("completed", { completedAt: cutoff, workId: "boundary" }),
-		itemRecord("completed", { completedAt: now, workId: "recent" }),
-		itemRecord("completed", { completedAt: cutoff - 1, workId: "old" }),
-		itemRecord("completed", { completedAt: now + 1, workId: "future" }),
-		itemRecord("completed", { workId: "unknown" }),
-		itemRecord("prepared", { stageEnteredAt: undefined, updatedAt: undefined, workId: "legacy" }),
-		itemRecord("needs-human", {
+		itemRecord("done", { completedAt: cutoff, workId: "boundary" }),
+		itemRecord("done", { completedAt: now, workId: "recent" }),
+		itemRecord("done", { completedAt: cutoff - 1, workId: "old" }),
+		itemRecord("done", { completedAt: now + 1, workId: "future" }),
+		itemRecord("done", { workId: "unknown" }),
+		itemRecord("queued", { stageEnteredAt: undefined, updatedAt: undefined, workId: "legacy" }),
+		itemRecord("waiting", {
 			attentionOwner: "maintainer",
 			result: { head: "head", kind: "change", paths: [], pr: "https://example.invalid/pr/1" },
 			workId: "merge",
@@ -44,14 +44,14 @@ it.effect("the daemon contract lists every unfinished stage and only completions
 	const client = yield* RpcTest.makeClient(diagnostics.DiagnosticsContract.omit("daemon.$changes"), { flatten: true }).pipe(Effect.provide(handlers));
 	const result = yield* client("daemon.fleetItems", {});
 	expect(result.items.map((item) => item.workId)).toEqual([
-		"prepared",
-		"executing",
+		"queued",
+		"working",
 		"adopting",
 		"reviewing",
 		"repairing",
 		"validating",
 		"delivering",
-		"needs-human",
+		"waiting",
 		"legacy",
 		"merge",
 		"checks",
@@ -63,7 +63,7 @@ it.effect("the daemon contract lists every unfinished stage and only completions
 	expect(result.items[0]).toMatchObject({ stageEnteredAt: 100, updatedAt: 200 });
 	expect(result.items.find((item) => item.workId === "legacy")).toMatchObject({ stageEnteredAt: null, updatedAt: null });
 	expect(result.items.find((item) => item.workId === "merge")).toMatchObject({ attentionOwner: "maintainer", prUrl: "https://example.invalid/pr/1" });
-	expect(result.items.find((item) => item.workId === "needs-human")?.attentionOwner).toBe("orchestrator");
+	expect(result.items.find((item) => item.workId === "waiting")?.attentionOwner).toBe("orchestrator");
 	expect(result.items.find((item) => item.workId === "checks")?.attentionOwner).toBe("automation");
 	expect(result.items[0]?.attentionOwner).toBeUndefined();
 	yield* TestClock.adjust("1 milli");

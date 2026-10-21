@@ -6,9 +6,9 @@ import { completionMarkdown } from "#board/completionMarkdown.ts";
 const ACTION = "Done; PR #7 merged.";
 
 for (const [before, after] of [
-	["status: planned # status comment\nnext_action: Work\n", 'status: done # status comment\nnext_action: "Done; PR #7 merged."\n'],
-	["status: planned\nnext_action: | # action comment\n  Do the work.\n", 'status: done\nnext_action: "Done; PR #7 merged." # action comment\n'],
-	["status:\nnext_action:\n", 'status: done\nnext_action: "Done; PR #7 merged."\n'],
+	["status: draft # status comment\nnext_action: Work\n", 'status: done # status comment\nnext_action: "Done; PR #7 merged."\n'],
+	["status: draft\nnext_action: | # action comment\n  Do the work.\n", 'status: done\nnext_action: "Done; PR #7 merged." # action comment\n'],
+	["next_action:\n", 'next_action: "Done; PR #7 merged."\nstatus: done\n'],
 	["", 'status: done\nnext_action: "Done; PR #7 merged."\n'],
 ] as const) {
 	it(`edits only completion fields in ${JSON.stringify(before)}`, () => {
@@ -23,8 +23,8 @@ for (const [before, after] of [
 }
 
 it("preserves a BOM, CRLF, quoted keys and flow mapping bytes", () => {
-	const source = '\uFEFF---\r\n{"id": "one", "status": "planned", "next_action": "Work", "kind": "task"}\r\n---\r\nAuthored.\r\n';
-	expect(completionMarkdown(source, ACTION)).toBe(source.replace('"planned"', "done").replace('"Work"', JSON.stringify(ACTION)));
+	const source = '\uFEFF---\r\n{"id": "one", "status": "draft", "next_action": "Work", "kind": "task"}\r\n---\r\nAuthored.\r\n';
+	expect(completionMarkdown(source, ACTION)).toBe(source.replace('"draft"', "done").replace('"Work"', JSON.stringify(ACTION)));
 	const missing = "---\r\n{id: one,}\r\n---\r\nAuthored.\r\n";
 	const result = completionMarkdown(missing, ACTION);
 	expect(result).toBe(missing.replace("one,}", 'one,status: done, next_action: "Done; PR #7 merged."}'));
@@ -38,6 +38,6 @@ for (const source of ["Authored without frontmatter.", "---\nid: one\nstatus: [\
 }
 
 it("replaces aliased completion values while preserving the anchor and authored bytes", () => {
-	const source = "---\nid: one\nstatus: &status planned\nnext_action: *status\n---\nAuthored.\n";
-	expect(completionMarkdown(source, ACTION)).toBe(source.replace("planned", "done").replace("*status", JSON.stringify(ACTION)));
+	const source = "---\nid: one\nstatus: &status draft\nnext_action: *status\n---\nAuthored.\n";
+	expect(completionMarkdown(source, ACTION)).toBe(source.replace("draft", "done").replace("*status", JSON.stringify(ACTION)));
 });

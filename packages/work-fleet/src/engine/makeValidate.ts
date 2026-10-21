@@ -14,7 +14,7 @@ export function makeValidate(state: EngineState) {
 			return stored;
 		}
 		const head = result.head;
-		if (stored.value.stage === "validating") {
+		if (stored.value.step === "validating") {
 			const checks = yield* integrations.checks(work, result);
 			stored = yield* save(stored, { ...stored.value, blocker: undefined, checks });
 			if (checks.head === head && checks.pending && !checks.passed) {
@@ -24,7 +24,7 @@ export function makeValidate(state: EngineState) {
 				return yield* repairChecks(state, stored, checks);
 			}
 			yield* validateChecks(checks, head);
-			stored = yield* save(stored, { ...stored.value, blocker: undefined, checks, stage: "delivering" });
+			stored = yield* save(stored, { ...stored.value, blocker: undefined, checks, step: "delivering" });
 		}
 		return stored;
 	});
@@ -33,7 +33,7 @@ export function makeValidate(state: EngineState) {
 function repairChecks(state: EngineState, stored: Versioned<FleetRecord>, checks: Checks) {
 	const exhausted = exhaustedCheckRepairs(stored.value, checks.failedChecks ?? []);
 	return exhausted.length === 0
-		? state.save(stored, { ...stored.value, blocker: undefined, stage: "repairing" })
+		? state.save(stored, { ...stored.value, blocker: undefined, step: "repairing" })
 		: state.decision(
 				stored,
 				"checks-repair-exhausted",

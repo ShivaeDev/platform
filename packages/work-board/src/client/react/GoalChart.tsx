@@ -10,23 +10,25 @@ import {
 import { CountLabel, CriterionAxis, EmptyLabel } from "./goalChartLabels.tsx";
 
 export interface GoalChartRow {
+	readonly deferred: number;
 	readonly done: number;
+	readonly draft: number;
+	readonly dropped: number;
 	readonly empty: number;
 	readonly href: string | undefined;
-	readonly inProgress: number;
 	readonly key: string;
-	readonly needsYou: number;
-	readonly planned: number;
+	readonly ready: number;
 	readonly text: string;
 }
 
 const config = {
+	deferred: { color: "var(--status-needs-you)", label: "Deferred" },
 	done: { color: "var(--status-done)", label: "Done" },
-	inProgress: { color: "var(--status-agent-working)", label: "In progress" },
-	needsYou: { color: "var(--status-needs-you)", label: "Needs you" },
-	planned: { color: "var(--status-deferred)", label: "Planned" },
+	draft: { color: "var(--status-deferred)", label: "Draft" },
+	dropped: { color: "var(--status-deferred)", label: "Dropped" },
+	ready: { color: "var(--status-agent-working)", label: "Ready" },
 } satisfies ChartConfig;
-const series = ["done", "needsYou", "inProgress", "planned"] as const;
+const series = ["done", "deferred", "ready", "draft", "dropped"] as const;
 
 export function GoalChart({
 	height,

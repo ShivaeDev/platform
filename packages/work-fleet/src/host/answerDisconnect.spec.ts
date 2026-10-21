@@ -15,7 +15,7 @@ for (const release of [false, true]) {
 		expect(yield* host.cliAnswer("one", release ? "" : TEXT, release).pipe(Effect.timeout("5 seconds"))).toEqual({
 			code: 0,
 			stderr: "",
-			stdout: `one needs-human: ${ANSWER_RECORDED}`,
+			stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
 		});
 		const competing = yield* host.answer(TEXT, !release).pipe(Effect.flip);
 		expect(competing._tag).toBe("Conflict");

@@ -79,7 +79,7 @@ const recoveryStory = Effect.fnUntraced(function* (
 		attentionOwner: "orchestrator",
 		decision: { code: "session-stalled" },
 		decisionPublished: true,
-		stage: "needs-human",
+		step: "waiting",
 	});
 	expect(fixture.decisions).toHaveLength(1);
 	expect(server.requests.filter((request) => request.method === "turn/steer")).toHaveLength(1);

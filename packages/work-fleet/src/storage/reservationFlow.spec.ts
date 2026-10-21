@@ -15,7 +15,7 @@ integration.it(
 		const submitting = yield* store.compareAndSet(
 			"board-a",
 			prepared.version,
-			{ ...prepared.value, operationId: "operation-a", stage: "submitting" },
+			{ ...prepared.value, operationId: "operation-a", step: "submitting" },
 			{ maxExecuting: 1 },
 		);
 		const restarted = yield* openStore(namespace);
@@ -24,7 +24,7 @@ integration.it(
 		const accepted = yield* restarted.compareAndSet(
 			"board-a",
 			submitting.version,
-			{ ...submitting.value, sessionId: "session-a", stage: "running", turnId: "turn-a" },
+			{ ...submitting.value, sessionId: "session-a", step: "running", turnId: "turn-a" },
 			{ maxExecuting: 1 },
 		);
 		expect((yield* store.load("board-a"))?.value).toEqual(accepted.value);
@@ -34,8 +34,8 @@ integration.it(
 isolated.it("serializes competing writes and rejects the stale one without losing the other decision", [], function* ({ store }) {
 	const prepared = yield* store.insert(record("board-a"));
 	const results = yield* Effect.all(
-		(["terminal", "completed"] as const).map((stage) =>
-			store.compareAndSet("board-a", prepared.version, { ...prepared.value, stage }).pipe(Effect.exit),
+		(["terminal", "completed"] as const).map((step) =>
+			store.compareAndSet("board-a", prepared.version, { ...prepared.value, step }).pipe(Effect.exit),
 		),
 		{ concurrency: 2 },
 	);
@@ -49,22 +49,22 @@ integration.it("counts each foreign PR backlog separately until released", [], f
 	yield* store.reserveForeign("pr-one", { backlog: true, executing: false });
 	yield* store.reserveForeign("pr-two", { backlog: true, executing: false });
 	expect(yield* store.foreignReservations()).toHaveLength(2);
-	expect(Exit.isFailure(yield* store.insert({ ...record("board-a"), stage: "terminal" }, { maxBacklog: 2 }).pipe(Effect.exit))).toBe(true);
+	expect(Exit.isFailure(yield* store.insert({ ...record("board-a"), step: "terminal" }, { maxBacklog: 2 }).pipe(Effect.exit))).toBe(true);
 	yield* store.releaseForeign("pr-one");
-	yield* store.insert({ ...record("board-a"), stage: "terminal" }, { maxBacklog: 2 });
+	yield* store.insert({ ...record("board-a"), step: "terminal" }, { maxBacklog: 2 });
 });
 
 integration.it("Schema rejects corrupted durable records", [], function* ({ store, namespace, sql }) {
-	yield* store.insert({ ...record("board-a"), stage: "submitting" });
+	yield* store.insert({ ...record("board-a"), step: "submitting" });
 
-	yield* sql`update ${sql(`${namespace}_records`)} set stage = 'unknown' where work_id = 'board-a'`;
+	yield* sql`update ${sql(`${namespace}_records`)} set step = 'unknown' where work_id = 'board-a'`;
 	expect(Exit.isFailure(yield* store.load("board-a").pipe(Effect.exit))).toBe(true);
 });
 
 isolated.it("repository version predicate rejects a writer that races after Fleet's version check", [], function* ({ namespace }) {
 	const store = yield* competingStorage(namespace);
 	const original = yield* store.insert(record("board-a"));
-	const conflict = yield* store.compareAndSet("board-a", original.version, { ...original.value, stage: "completed" }).pipe(Effect.flip);
+	const conflict = yield* store.compareAndSet("board-a", original.version, { ...original.value, step: "completed" }).pipe(Effect.flip);
 	expect(conflict).toMatchObject({ _tag: "StorageConflict", actualVersion: 2, expectedVersion: 1, workId: "board-a" });
-	expect(yield* store.load("board-a")).toEqual({ value: { ...original.value, stage: "running" }, version: 2 });
+	expect(yield* store.load("board-a")).toEqual({ value: { ...original.value, step: "running" }, version: 2 });
 });

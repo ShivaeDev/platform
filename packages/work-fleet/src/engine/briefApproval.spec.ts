@@ -26,7 +26,7 @@ test("an approved brief edit preserves the repair session and adopts its result"
 			yield* fleet.reconcile("one");
 			finishWorkers(fixture);
 			const reviewed = yield* fleet.reconcile("one");
-			expect(reviewed.value.stage).toBe("reviewing");
+			expect(reviewed.value.step).toBe("reviewing");
 			expect(reviewed.value.result).toMatchObject({ head: "head-one-1", pr: "https://example.invalid/pr/one" });
 			expect(reviewed.value.result?.head).not.toBe(repairing.value.result?.head);
 			expect(reviewed.value.attempts[2]?.receipt?.sessionId).toBe(worker.value.attempts[0]?.receipt?.sessionId);
@@ -48,14 +48,14 @@ test("approval retains an adopted PR and observes the old reviewer before review
 			const approved = yield* fleet.dispatch("one");
 			expect(approved.value.result).toEqual(original.value.result);
 			expect(approved.value.attempts).toEqual(original.value.attempts);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 			expect(fixture.launched).toHaveLength(2);
 			finishWorkers(fixture);
 			const obsolete = yield* fleet.reconcile("one");
 			expect(obsolete.value.review).toBeUndefined();
 			expect(obsolete.value.checks).toBeUndefined();
 			const revised = yield* fleet.reconcile("one");
-			expect(revised.value.stage).toBe("reviewing");
+			expect(revised.value.step).toBe("reviewing");
 			expect(revised.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 			expect(revised.value.result).toEqual(original.value.result);
 			expect(fixture.starts.filter((entry) => entry.access !== "read-only")).toHaveLength(1);
@@ -71,7 +71,7 @@ for (const action of ["dispatch", "retry"] as const) {
 				yield* prepareWork("one");
 				const worker = yield* fleet.dispatch("one");
 				const current = `${source}\nUpdated acceptance criteria.\n`;
-				boardHttpFiles(root).write("one.md", current.replace("kind: task", "kind: task\nowner: human"));
+				boardHttpFiles(root).write("one.md", current.replace("kind: task", "kind: task\nowner: marvin"));
 				boardHttpFiles(root).move("one.md", "revised.md");
 				const stopped = yield* fleet.reconcile("one");
 				const decision = stopped.value.decision;
@@ -83,7 +83,7 @@ for (const action of ["dispatch", "retry"] as const) {
 					action === "dispatch"
 						? yield* fleet.dispatch("one")
 						: yield* fleet.resolve("one", decision.id, answerReport(root, decision.published, "retry"));
-				expect(approved.value).toMatchObject({ boardContext: current, boardRevision: briefRevision(metadataParse(current)), stage: "executing" });
+				expect(approved.value).toMatchObject({ boardContext: current, boardRevision: briefRevision(metadataParse(current)), step: "working" });
 				expect(approved.value.boardSourcePath).not.toBe(worker.value.boardSourcePath);
 				expect(approved.value.boardSourcePath).toMatch(/revised\.md$/u);
 				expect(approved.value.prompt).toContain(current);
@@ -100,17 +100,17 @@ for (const action of ["dispatch", "retry"] as const) {
 					expect(approved.value.responses).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
 					expect(boardHttpFiles(root).read(receipts[0] ?? "")).toContain('"disposition":"applied"');
 				}
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("working");
 				finishWorkers(fixture);
 				const reviewing = yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.reconcile("one"))));
-				expect(reviewing.value.stage).toBe("reviewing");
+				expect(reviewing.value.step).toBe("reviewing");
 				expect(reviewing.value.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 				expect(reviewing.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);
 				expect(reviewing.value.attempts[1]?.prompt).toContain(taskPrompt(current));
 				expect(fixture.starts.filter((entry) => entry.access !== "read-only")).toHaveLength(1);
 				finishWorkers(fixture);
 				const repairing = yield* fleet.reconcile("one");
-				expect(repairing.value.stage).toBe("executing");
+				expect(repairing.value.step).toBe("working");
 				expect(repairing.value.attempts.at(-1)).toMatchObject({
 					receipt: { sessionId: worker.value.attempts[0]?.receipt?.sessionId },
 					role: "repair",
@@ -129,7 +129,7 @@ test("retry of a context decision cannot approve a subsequent edit", () =>
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			const files = boardHttpFiles(root);
-			files.write("one.md", `${source.replace("kind: task", "kind: task\nowner: human")}\nFirst criteria edit.\n`);
+			files.write("one.md", `${source.replace("kind: task", "kind: task\nowner: marvin")}\nFirst criteria edit.\n`);
 			const decision = (yield* fleet.reconcile("one")).value.decision;
 			if (decision?.published === undefined) {
 				return yield* Effect.die("Missing decision");

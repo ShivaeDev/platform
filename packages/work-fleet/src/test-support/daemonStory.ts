@@ -105,9 +105,9 @@ export const fleetDaemon = storyKit({
 			story.tell("stop the daemon");
 			return engine.daemon.close.pipe(Effect.timeout("5 seconds"));
 		},
-		transition: (workId: string, stage: FleetRecord["stage"], decision?: FleetRecord["decision"]) => {
-			story.tell(`${workId} enters ${stage}`);
-			return storeState(engine.fixture.host, workId, { ...statusRecord(workId, stage), decision }).pipe(
+		transition: (workId: string, step: FleetRecord["step"], decision?: FleetRecord["decision"]) => {
+			story.tell(`${workId} enters ${step}`);
+			return storeState(engine.fixture.host, workId, { ...statusRecord(workId, step), decision }).pipe(
 				Effect.provideService(Reactivity.Reactivity, engine.daemon.reactivity),
 			);
 		},

@@ -55,28 +55,28 @@ export function approveBrief(state: EngineState) {
 	});
 }
 
-function resumedStage(record: FleetRecord): FleetRecord["stage"] {
-	if (record.stage === "adopting") {
+function resumedStage(record: FleetRecord): FleetRecord["step"] {
+	if (record.step === "adopting") {
 		return "adopting";
 	}
 	const latest = record.attempts.at(-1);
 	if (executing(record)) {
-		return latest?.role === "reviewer" ? "reviewing" : "executing";
+		return latest?.role === "reviewer" ? "reviewing" : "working";
 	}
 	if (latest?.role !== "reviewer" && latest?.status === "completed") {
-		return "executing";
+		return "working";
 	}
 	if (record.result !== undefined) {
 		return "reviewing";
 	}
-	return "prepared";
+	return "queued";
 }
 
 export function approveDispatchedBrief(state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork, prompt?: string) {
 	const record = stored.value;
-	return !["completed", "released"].includes(record.stage)
+	return !["done", "released"].includes(record.step)
 		&& briefChanged(record, work)
-		&& (prompt !== undefined || (record.stage !== "prepared" && record.attempts.length > 0))
+		&& (prompt !== undefined || (record.step !== "queued" && record.attempts.length > 0))
 		? approveBrief(state)(stored, work, prompt)
 		: Effect.succeed(stored);
 }
@@ -106,7 +106,7 @@ function approvedDecision(record: FleetRecord, now: number, preserve: boolean) {
 		decision: undefined,
 		decisionAcknowledged: undefined,
 		decisionPublished: undefined,
-		stage: resumedStage(record),
+		step: resumedStage(record),
 		supersededDecisions:
 			published === undefined ? record.supersededDecisions : [...(record.supersededDecisions ?? []), { published, supersededAt: now }],
 	};

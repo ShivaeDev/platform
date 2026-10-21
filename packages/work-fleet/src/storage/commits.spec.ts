@@ -10,7 +10,7 @@ test.it("record and foreign occupancy writes announce their transaction commits"
 	const hints: (readonly unknown[])[] = [];
 	yield* Effect.gen(function* () {
 		const saved = yield* store.insert(record("one"));
-		yield* store.compareAndSet("one", saved.version, { ...saved.value, stage: "running" });
+		yield* store.compareAndSet("one", saved.version, { ...saved.value, step: "running" });
 		yield* store.reserveForeign("external");
 		yield* store.reserveForeign("external", { backlog: true, executing: false });
 		yield* store.releaseForeign("external");

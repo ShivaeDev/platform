@@ -19,9 +19,10 @@ screenStory.it(
 		expect(readText(`${progress} [data-slot="progress-value"]`)).toBe("1 of 5 done");
 		expect([...findElements(`${progress} [data-goal-counts] li`)].map((entry) => [entry.dataset.status, entry.dataset.count])).toEqual([
 			["done", "1"],
-			["needs you", "0"],
-			["in progress", "0"],
-			["planned", "4"],
+			["deferred", "1"],
+			["ready", "0"],
+			["draft", "3"],
+			["dropped", "0"],
 		]);
 		yield* Effect.promise(() =>
 			eventually(() => {
@@ -37,15 +38,16 @@ screenStory.it(
 				expect(
 					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
 				).toEqual([
-					["var(--color-planned)", "508"],
+					["var(--color-draft)", "508"],
 					["var(--muted)", "508"],
 				]);
 				expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["2", "No linked work"]);
 				expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
 					"Done",
-					"Needs you",
-					"In progress",
-					"Planned",
+					"Deferred",
+					"Ready",
+					"Draft",
+					"Dropped",
 				]);
 			}),
 		);
@@ -82,7 +84,7 @@ screenStory.it(
 					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
 				).toEqual([
 					["var(--color-done)", expect.any(String)],
-					["var(--color-planned)", expect.any(String)],
+					["var(--color-draft)", expect.any(String)],
 					["var(--muted)", "508"],
 				]),
 			),
@@ -112,7 +114,7 @@ screenStory.it(
 );
 
 screenStory.it(
-	"lists linked work in the stock table with whole-row links and only used columns, ready work as planned and dropped work as done",
+	"lists linked work in the stock table with whole-row links and only used columns, ready and dropped work in their own groups",
 	[
 		boardScreen(
 			{
@@ -127,10 +129,10 @@ screenStory.it(
 	],
 	function* ({ findElement, findElements, readText, readAttribute }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-item="task.ready"]')).not.toBeNull()));
-		expect(readAttribute('[data-goal-section="progress"] [role="progressbar"]', "aria-valuetext")).toBe("2 of 7 done");
+		expect(readAttribute('[data-goal-section="progress"] [role="progressbar"]', "aria-valuetext")).toBe("1 of 7 done");
 		for (const [id, group, chip] of [
-			["task.dropped", "Done", "Dropped"],
-			["task.ready", "Planned", "Ready"],
+			["task.dropped", "Dropped", "Dropped"],
+			["task.ready", "Ready", "Ready"],
 		] as const) {
 			const row = findElement(`[data-goal-item="${id}"]`);
 			expect(row?.getAttribute("data-slot")).toBe("table-row");
@@ -139,7 +141,7 @@ screenStory.it(
 			expect(readAttribute('th[scope="row"] a', "href", row)).toBe(`/_board/item/${id}/`);
 		}
 		expect(findElement('[data-goal-group="In progress"]')).toBeNull();
-		expect([...findElements('[data-goal-group="Planned"] [data-slot="table-head"][scope="col"]')].map((head) => head.textContent)).toEqual([
+		expect([...findElements('[data-goal-group="Draft"] [data-slot="table-head"][scope="col"]')].map((head) => head.textContent)).toEqual([
 			"Work",
 			"Criteria",
 			"State",

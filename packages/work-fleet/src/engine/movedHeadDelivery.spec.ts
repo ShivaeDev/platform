@@ -28,7 +28,7 @@ for (const legacy of [false, true]) {
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
 			const reviewing = yield* fleet.reconcile("one");
-			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.step).toBe("reviewing");
 			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
@@ -56,14 +56,14 @@ for (const legacy of [false, true]) {
 				const responseId = respond(decisionId, "retry");
 				yield* restart();
 				const resolved = yield* fleet.resolve("one", decisionId, responseId);
-				expect(resolved.value.stage).toBe("delivering");
+				expect(resolved.value.step).toBe("delivering");
 			}
 			movePullRequestHead(MOVED);
 			let fresh = yield* fleet.reconcile("one");
 			if (legacy) {
 				fresh = yield* fleet.reconcile("one");
 			}
-			expect(fresh.value.stage).toBe("reviewing");
+			expect(fresh.value.step).toBe("reviewing");
 			expect(fresh.value.result).toMatchObject({ head: MOVED, paths: ["src/one.ts"], pr: PR, prNumber: 7 });
 			expect(fresh.value.resultObservations).toEqual([approved.value.result]);
 			expect(fresh.value.review).toEqual(original);
@@ -82,7 +82,7 @@ for (const legacy of [false, true]) {
 			mergePullRequest();
 			yield* restart();
 			const delivered = yield* fleet.reconcile("one");
-			expect(delivered.value.stage).toBe("completed");
+			expect(delivered.value.step).toBe("done");
 			expect(delivered.value.outcome).toEqual({ head: MOVED, revision: BASE, url: PR });
 			expect(reviewedHeads()).toEqual([HEAD, MOVED]);
 			expect(launches()).toHaveLength(3);

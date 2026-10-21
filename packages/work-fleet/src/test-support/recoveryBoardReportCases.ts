@@ -10,23 +10,23 @@ import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
 const faults = [
-	{ code: "board-failure" as const, kind: "context", reason: "Report needs nonempty completed output and the exact current Board context." },
+	{ code: "board-failure" as const, kind: "context", reason: "Report needs nonempty done output and the exact current Board context." },
 	{
 		code: "board-failure" as const,
 		kind: "publication",
-		reason: "The worker report could not be recorded on Board; retry the same completed attempt.",
+		reason: "The worker report could not be recorded on Board; retry the same done attempt.",
 	},
 	{
 		code: "board-failure" as const,
 		kind: "attachments",
-		reason: "Report attachments could not be recorded beside the result; retry the same completed attempt",
+		reason: "Report attachments could not be recorded beside the result; retry the same done attempt",
 	},
 	{
 		code: "board-failure" as const,
 		kind: "payload-file",
-		reason: "Report publication payload could not be recovered or persisted; retry the same completed attempt",
+		reason: "Report publication payload could not be recovered or persisted; retry the same done attempt",
 	},
-	{ code: "board-failure" as const, kind: "payload-content", reason: "Saved report publication payload is invalid; retain the completed attempt" },
+	{ code: "board-failure" as const, kind: "payload-content", reason: "Saved report publication payload is invalid; retain the done attempt" },
 ] as const;
 
 function blockReport(root: string, itemId: string, kind: (typeof faults)[number]["kind"]) {
@@ -58,7 +58,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 		return {
 			code: fault.code,
 			enter: Effect.fnUntraced(function* (ctx) {
-				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
+				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
 				yield* launchRecoveryWorker();
 				const fleet = yield* Fleet;
 				const record = (yield* fleet.get("one")).value;
@@ -83,7 +83,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 				reportPublicationQuery: () => Effect.succeed(false),
 			},
 			progress: (_ctx, before, after) => {
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 				expect(after.attempts.map(({ operationId, receipt, output }) => ({ operationId, output, receipt }))).toEqual(
 					before.attempts.map(({ operationId, receipt, output }) => ({ operationId, output, receipt })),
 				);

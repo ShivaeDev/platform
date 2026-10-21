@@ -20,7 +20,7 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 				checksQuery: (result) => Effect.sync(() => ({ evidence: ["Required check"], head: result.head, passed: !invalidChecks })),
 			},
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("released");
+				expect(after.step).toBe("released");
 			},
 			restore: (ctx) =>
 				Effect.sync(() => {
@@ -57,11 +57,11 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 				yield* ctx.fixture.replaceRecord({
 					...active.value,
 					attempts: active.value.attempts.map((attempt) => ({ ...attempt, output: "", receipt: undefined, status: "completed" })),
-					stage: "adopting",
+					step: "adopting",
 				});
 				yield* fleet.reconcile("one");
 			}),
-			name: "completed worker lacks receipt",
+			name: "done worker lacks receipt",
 			progress: (_ctx, before, after) => {
 				expect(after.attempts[0]?.receipt).toBeDefined();
 				expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
@@ -89,7 +89,7 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 				},
 			},
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("reviewing");
+				expect(after.step).toBe("reviewing");
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
 			restore: () =>

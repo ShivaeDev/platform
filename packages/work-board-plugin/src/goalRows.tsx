@@ -88,7 +88,7 @@ function percent(share: number): number {
 
 function barLabel(goal: WorkboardGoal): string {
 	const done = `${goal.done} of ${goal.total} done`;
-	return goal.active === 0 ? done : `${done}, ${goal.active} in progress`;
+	return goal.ready === 0 ? done : `${done}, ${goal.ready} ready`;
 }
 
 function svgBar(t: Drawn, goal: WorkboardGoal): RenderElement {
@@ -99,7 +99,7 @@ function textBar(t: Table, goal: WorkboardGoal): RenderElement {
 	const { Text } = t;
 	const filled = Math.floor(BAR_CELLS * goalShare(goal));
 	const reached = Math.floor(BAR_CELLS * startedShare(goal));
-	const active = goal.active > 0 && reached === filled && filled < BAR_CELLS ? 1 : reached - filled;
+	const active = goal.ready > 0 && reached === filled && filled < BAR_CELLS ? 1 : reached - filled;
 	return (
 		<Text>
 			<Text color={BAR_FILL}>{"▰".repeat(filled)}</Text>

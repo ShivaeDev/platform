@@ -82,7 +82,7 @@ boardStory.it(
 	[
 		projectFiles({
 			"request.md":
-				"---\nid: request\nkind: decision\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n---\n# Request",
+				"---\nid: request\nkind: question\nscope: task\nurgency: whenever\nattention:\n - id: review\n   kind: decision\n   managed: true\n   state: open\n   response_from: [maintainer]\n   reason: Review\n   unblocks: [request]\n---\n# Request",
 		}),
 	],
 	function* ({ watchProject, editFile }) {
@@ -91,9 +91,9 @@ boardStory.it(
 		for (const [file, source] of [
 			[
 				"receipt.md",
-				`---\nid: receipt\nkind: result\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n---\n# Receipt`,
+				`---\nid: receipt\nkind: report\nrequest_receipt:\n question: request\n disposition: superseded\n recordedAt: 0\n reviewedRevision: ${"a".repeat(64)}\n---\n# Receipt`,
 			],
-			["responses/invalid.md", "---\nkind: response\n---\n# Invalid"],
+			["responses/invalid.md", "---\nresponse: {}\n---\n# Invalid"],
 		]) {
 			if (!(file && source)) {
 				throw new Error("Missing source");

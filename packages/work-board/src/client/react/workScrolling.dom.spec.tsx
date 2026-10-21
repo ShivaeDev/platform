@@ -66,7 +66,7 @@ screenStory.it(
 
 const goalWork = (() => {
 	const data = nowWork(1);
-	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, kind: "project" as const } }));
+	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, kind: "goal" as const } }));
 	return { ...data, items: rows, rows };
 })();
 

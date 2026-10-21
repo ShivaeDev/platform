@@ -54,7 +54,7 @@ function registeredQuestion(document: MetadataDocument, request: Request, model:
 		|| request.kind !== "decision"
 		|| request.state !== "open"
 		|| !item
-		|| document.parsed.fields.kind !== "decision"
+		|| document.parsed.fields.kind !== "question"
 		|| document.parsed.diagnostics.length > 0
 		|| document.parsed.fields.attention?.filter((candidate) => candidate.id === request.id).length !== 1
 		|| model.unavailable.length > 0
@@ -92,7 +92,7 @@ function qualified(saved: MetadataDocument, question: string, revision: string, 
 	const receipt = saved.parsed.fields.requestReceipt;
 	if (
 		!receipt
-		|| saved.parsed.fields.kind !== "result"
+		|| saved.parsed.fields.kind !== "report"
 		|| saved.parsed.diagnostics.length > 0
 		|| !saved.parsed.fields.id
 		|| model.ids.get(saved.parsed.fields.id)?.length !== 1

@@ -8,7 +8,7 @@ boardStory.it("offers copyable source without writing project files or hiding mi
 	expect(html).toContain("never writes them for you");
 	const start = yield* rpc((client) => client("work-board.start", undefined));
 	expect(start.empty).toBe(true);
-	expect(start.templates.some((template) => template.source.includes("example.result"))).toBe(true);
+	expect(start.templates.some((template) => template.source.includes("example.report"))).toBe(true);
 	expect(files()).toEqual(["board.sock"]);
 	expect((yield* get("/missing.md")).status).toBe(404);
 	expect((yield* get("/_board/start", "outside.example")).status).toBe(403);
@@ -23,8 +23,8 @@ boardStory.it(
 		for (const template of start.templates) {
 			editFile(template.file, template.source);
 		}
-		yield* events.changed("result.md");
-		const result = yield* readDocument("result.md");
+		yield* events.changed("report.md");
+		const result = yield* readDocument("report.md");
 		expect(result.diagnostics).toEqual([]);
 		expect(result.metadata.evidence).toBeUndefined();
 		expect(yield* viewHtml("/_board/start")).toMatch(/>Templates<\/h1>/u);

@@ -65,7 +65,7 @@ export const reconcileSweepHold = Effect.fn("Fleet.reconcileSweepHold")(function
 export function holdBehindSweep(state: EngineState, stored: Versioned<FleetRecord>, sweepHold: NonNullable<FleetRecord["sweepHold"]>) {
 	const record = stored.value;
 	if (
-		!["delivering", "needs-human"].includes(record.stage)
+		!["delivering", "waiting"].includes(record.step)
 		|| executing(record)
 		|| record.result?.kind !== "change"
 		|| (record.decision?.code !== undefined && record.decision.code !== "reviewed-pr-ready")
@@ -92,7 +92,7 @@ export function holdBehindSweep(state: EngineState, stored: Versioned<FleetRecor
 			decisionPublished: undefined,
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
-			stage: "delivering",
+			step: "delivering",
 			supersededDecisions:
 				published === undefined
 					? record.supersededDecisions

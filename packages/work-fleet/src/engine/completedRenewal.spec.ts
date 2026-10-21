@@ -11,18 +11,18 @@ import { markdownWork, noChangeReported } from "#test/engineTraits.ts";
 for (const noChange of [false, true]) {
 	for (const [field, source] of [
 		["unchanged source", dependencySource],
-		["status", dependencySource.replace("status: planned", "status: done")],
+		["status", dependencySource.replace("status: draft", "status: done")],
 		["next_action", dependencySource.replace("Implement the work.", "Work completed.")],
 	] as const) {
 		engine.it(
-			`completed legacy ${noChange ? "no-change" : "merge"} work rejects preparation after ${field} and retains its outcome`,
+			`done legacy ${noChange ? "no-change" : "merge"} work rejects preparation after ${field} and retains its outcome`,
 			[markdownWork(), authoredBoardWork(dependencySource), noChangeReported(noChange)],
 			function* (fleet) {
 				yield* fleet.prepareWork("one");
 				yield* fleet.dispatch("one");
 				fleet.finishWorkers();
 				const completed = (yield* fleet.reconcile("one")).value;
-				expect(completed.stage).toBe("completed");
+				expect(completed.step).toBe("done");
 				expect(completed.outcome).toBeDefined();
 				const saved = { ...completed, boardRevision: revisionOf(dependencySource) };
 				yield* fleet.replaceStoredRecord(saved);
@@ -43,21 +43,21 @@ for (const noChange of [false, true]) {
 		["body", `${dependencySource}\nDifferent body.\n`],
 	] as const) {
 		engine.it(
-			`completed legacy ${noChange ? "no-change" : "merge"} work renews after a ${field} edit and archives its accepted outcome`,
+			`done legacy ${noChange ? "no-change" : "merge"} work renews after a ${field} edit and archives its accepted outcome`,
 			[markdownWork(), authoredBoardWork(dependencySource), noChangeReported(noChange)],
 			function* (fleet) {
 				yield* fleet.prepareWork("one");
 				yield* fleet.dispatch("one");
 				fleet.finishWorkers();
 				const completed = (yield* fleet.reconcile("one")).value;
-				expect(completed.stage).toBe("completed");
+				expect(completed.step).toBe("done");
 				expect(completed.outcome).toBeDefined();
 				const saved = { ...completed, boardRevision: revisionOf(dependencySource) };
 				yield* fleet.replaceStoredRecord(saved);
 				fleet.writeBoardWork("one.md", source);
 				yield* fleet.restart();
 				const renewed = yield* fleet.prepareWork("one");
-				expect(renewed.value.stage).toBe("prepared");
+				expect(renewed.value.step).toBe("queued");
 				expect(renewed.value.boardContext).toBe(source);
 				expect(renewed.value.boardRevision).toBe(briefRevision(metadataParse(source)));
 				expect(renewed.value.outcome).toBeUndefined();

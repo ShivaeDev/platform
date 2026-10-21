@@ -7,17 +7,18 @@ import { routedScreen } from "#test/screenTraits.ts";
 expectNoReactWarnings();
 const files = {
 	"home.md":
-		"---\nid: board.fixture\nkind: board\nitems: [task.fixture]\n---\n# Project board\n\nIntro.\n\n## Plans\n\nSection note.\n\n### Task\n\n[Read task](task.md)\n\n## Waiting\n\n### Task\n\nSecond card.\n\n---\n\nFooter.\n",
-	"question.md": "---\nid: question.fixture\nkind: question\nstatus: open\nowner: reader\n---\n# A question\n\nChoose next.\n",
+		"---\nid: board.fixture\nitems: [task.fixture]\n---\n# Project board\n\nIntro.\n\n## Plans\n\nSection note.\n\n### Task\n\n[Read task](task.md)\n\n## Waiting\n\n### Task\n\nSecond card.\n\n---\n\nFooter.\n",
+	"question.md":
+		"---\nid: question.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\nowner: marvin\n---\n# A question\n\nChoose next.\n",
 	"task.md":
-		"---\nid: task.fixture\nkind: task\nstatus: planned\nowner: reader\nnext_action: Read evidence\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# A task\n\nTask details.\n",
+		"---\nid: task.fixture\nkind: task\nstatus: draft\nowner: marvin\nnext_action: Read evidence\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# A task\n\nTask details.\n",
 };
 const routes = [
 	{ kind: "today", selector: "#needs-you", text: "A question", url: "/" },
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/home.md" },
 	{ kind: "board", selector: ".board .item", text: "Read task", url: "/_board/item/board.fixture/" },
 	{ kind: "work", selector: ".work-card[data-item='task.fixture']", text: "A task", url: "/_board/work?view=board" },
-	{ kind: "work", selector: "#work-results table", text: "A task", url: "/_board/work?view=table&owner=value%3Areader&q=task&item=task.fixture" },
+	{ kind: "work", selector: "#work-results table", text: "A task", url: "/_board/work?view=table&owner=value%3Amarvin&q=task&item=task.fixture" },
 ];
 for (const { url, selector, text, kind } of routes) {
 	screenStory.it(

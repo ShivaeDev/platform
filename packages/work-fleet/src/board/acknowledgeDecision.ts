@@ -36,7 +36,7 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 			...(input.responseId === undefined ? {} : { response: input.responseId }),
 		};
 		const id = `request-receipt.${revisionOf(JSON.stringify(requestReceipt))}`;
-		const content = `---\n${JSON.stringify({ id, kind: "result", "request_receipt": requestReceipt })}\n---\n# Managed request acknowledgement\n\nThis immutable receipt acknowledges request handling; it grants no execution, acceptance or delivery authority.\n`;
+		const content = `---\n${JSON.stringify({ id, kind: "report", "request_receipt": requestReceipt })}\n---\n# Managed request acknowledgement\n\nThis immutable receipt acknowledges request handling; it grants no execution, acceptance or delivery authority.\n`;
 		const file = `responses/${id}.md`;
 		const receiptDocument = { file, parsed: boardApi.metadataParse(content) };
 		const others = all.filter((document) => document.file !== file);
@@ -61,7 +61,7 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 function supersededReason(documents: readonly BoardDocument[], workId: string) {
 	const work = documents.filter((document) => document.parsed.fields.id === workId);
 	const status = work.length === 1 ? work[0]?.parsed.fields.status : undefined;
-	return ["done", "deferred", "superseded", "dropped"].includes(status ?? "")
+	return ["done", "deferred", "dropped"].includes(status ?? "")
 		? `Closed because Board work ${workId} is ${status}.`
 		: "Closed because this Fleet decision was superseded.";
 }

@@ -9,7 +9,7 @@ function unobserved(cycle: FleetRecord | FleetCycleSnapshot): boolean {
 }
 
 export function needsReleasedDelivery(record: FleetRecord): boolean {
-	return (record.stage === "released" && unobserved(record)) || (record.history ?? []).some(unobserved);
+	return (record.step === "released" && unobserved(record)) || (record.history ?? []).some(unobserved);
 }
 
 export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliveries")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
@@ -32,7 +32,7 @@ export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliver
 		yield* state.store.releaseForeign(result.pr);
 		return { ...cycle, mergedDelivery: delivery.success };
 	});
-	const record = stored.value.stage === "released" ? yield* observeReleasedCycle(stored.value) : stored.value;
+	const record = stored.value.step === "released" ? yield* observeReleasedCycle(stored.value) : stored.value;
 	const history = yield* Effect.forEach(record.history ?? [], observeReleasedCycle);
 	if (record === stored.value && history.every((cycle, index) => cycle === stored.value.history?.[index])) {
 		return stored;

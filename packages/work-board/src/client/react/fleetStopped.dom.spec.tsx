@@ -38,7 +38,7 @@ screenStory.it(
 		screenFiles(
 			{
 				...fleetWorkspace,
-				"tasks/delivery.md": "---\nid: task.delivery\nkind: task\nstatus: delivering\nowner: codex\n---\n# Deliver the release notes\n",
+				"tasks/delivery.md": "---\nid: task.delivery\nkind: task\nstatus: ready\nowner: codex\n---\n# Deliver the release notes\n",
 				"tasks/shipped.md": "---\nid: task.shipped\nkind: task\nstatus: done\nowner: codex\n---\n# Ship the changelog\n",
 			},
 			{ home: "home.md" },
@@ -53,11 +53,12 @@ screenStory.it(
 		expect(findElement(`${done} [data-item]`)).toBeNull();
 		expect(findElement(`${done} [aria-expanded]`)).toBeNull();
 		expect(findElements(".work-column").map((lane) => [lane.getAttribute("aria-label"), lane.querySelector(".work-count")?.textContent])).toEqual([
-			["Queued", "1"],
-			["Executing", "1"],
+			["Queued", "3"],
+			["Working", "0"],
 			["Reviewing", "0"],
-			["Delivering", "1"],
-			["Waiting on a person", "1"],
+			["Waiting on you", "1"],
+			["Waiting on orchestrator", "0"],
+			["Waiting on automation", "0"],
 			["Done in the last 7 days", undefined],
 		]);
 		expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toContain("Today, 3 need you");
@@ -74,7 +75,7 @@ screenStory.it(
 	[
 		screenFiles(
 			{
-				"active.md": "---\nid: task.active\nkind: task\nstatus: active\n---\n# Active task",
+				"active.md": "---\nid: task.active\nkind: task\nstatus: ready\n---\n# Ready task",
 				"home.md": "# Workspace notes\n",
 			},
 			{ home: "home.md" },
@@ -84,12 +85,12 @@ screenStory.it(
 	],
 	function* ({ findByRole, findElements, readText }) {
 		const progress = `#${todayIds.progress}`;
-		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Active")));
+		yield* Effect.promise(() => eventually(() => expect(readText(`${progress} [data-progress-id="task.active"]`)).toContain("Ready")));
 		expect(readText(`${progress} [data-progress-id="task.active"]`)).not.toContain("Task file");
 		const panel = findElements(`${progress} [role="status"]`).find((status) => status.textContent === STOPPED)?.parentElement;
 		expect(panel?.textContent).toContain("These show the status written in each task, not what Fleet reports.");
 		expect(panel?.contains(findByRole("button", "How to start Fleet") ?? null)).toBe(true);
-		expect(readText(`${progress} [data-progress-source="files"] a`)).toBe("Active task");
+		expect(readText(`${progress} [data-progress-source="files"] a`)).toBe("Ready task");
 	},
 );
 

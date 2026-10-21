@@ -23,7 +23,7 @@ export function releaseFinishedWork(state: EngineState, stored: Versioned<FleetR
 			outcome: undefined,
 			pendingContinuation: undefined,
 			releaseReason,
-			stage: "released",
+			step: "released",
 			supersededDecisions:
 				published === undefined
 					? record.supersededDecisions

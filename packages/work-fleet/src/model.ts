@@ -85,6 +85,7 @@ const cycleFields = {
 	reviewSkippedHead: Schema.optional(Schema.String),
 	stage: diagnostics.FleetStage,
 	stageEnteredAt: Schema.optional(diagnostics.FleetTimestamp),
+	step: Schema.Literals(["queued", "working", "adopting", "reviewing", "repairing", "validating", "delivering", "waiting", "done", "released"]),
 	supersededDecisions: Schema.optional(Schema.Array(SupersededDecision)),
 	sweep: Schema.optional(Schema.Array(Schema.String)),
 	sweepClosed: Schema.optional(Schema.Boolean),
@@ -105,7 +106,7 @@ export function executing(record: FleetRecord): boolean {
 	return record.attempts.some((attempt) => ["submitting", "accepted", "running"].includes(attempt.status));
 }
 export function backlog(record: FleetRecord): boolean {
-	return record.result?.kind === "change" && record.stage !== "completed" && record.stage !== "released";
+	return record.result?.kind === "change" && record.step !== "done" && record.step !== "released";
 }
 export const FleetView = Schema.Struct({
 	attentionOwner: Schema.optional(AttentionOwner),
@@ -126,7 +127,7 @@ export const FleetView = Schema.Struct({
 			steeredAt: Schema.optional(Schema.Number),
 		}),
 	),
-	stage: FleetRecord.fields.stage,
+	stage: diagnostics.FleetStage,
 	workId: Schema.String,
 });
 export const FleetViews = Schema.Struct({

@@ -7,7 +7,7 @@ export function attentionLanesFixture(maintainer = "maintainer"): Record<string,
 		...Object.fromEntries(Object.entries(closedInboxFixture()).filter(([file]) => file !== "question.md")),
 		...addressed,
 		"automation.md": addressed["orchestrator.md"]?.replaceAll("orchestrator", "automation") ?? "",
-		"owner.md": "---\nid: task.person\nowner: Casey\nnext_action: Read the evidence\n---\n# Human action\n",
+		"owner.md": "---\nid: task.person\nowner: marvin\nnext_action: Read the evidence\n---\n# Human action\n",
 		"unknown.md": "---\nid: note.unknown\nunknown_field: yes\n---\n# Unknown metadata\n",
 		"unresolved.md": "---\nid: note.unresolved\nrelationships:\n  - kind: depends_on\n    target: absent.item\n---\n# Missing reference\n",
 	};

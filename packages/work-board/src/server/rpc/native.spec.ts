@@ -135,5 +135,5 @@ boardStory.it("sets the Board response headers on native RPC responses", reading
 	expect(response.status).toBe(200);
 	expect(response.headers.get("cache-control")).toBe("no-store");
 	expect(response.headers.get("x-content-type-options")).toBe("nosniff");
-	expect(yield* Effect.promise(() => response.text())).toContain("example.project");
+	expect(yield* Effect.promise(() => response.text())).toContain("example.goal");
 });

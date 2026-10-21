@@ -15,7 +15,7 @@ const root = dirname(engine);
 const scenarios = recoveryCases();
 const rows = [...scenarios, ...recoveryCapacityCases, ...recoveryStories];
 const covered = new Set([...scenarios, ...recoveryStories].flatMap((scenario) => scenario.sites));
-covered.add('engine/makeState.ts: stage: "needs-human"');
+covered.add('engine/makeState.ts: step: "waiting"');
 function uncovered(sites: readonly string[]) {
 	return sites.filter((site) => !covered.has(site));
 }
@@ -34,7 +34,7 @@ describe("every published Fleet decision has a recovery", () => {
 	it("a new code or direct stuck state fails the inventory guard", () => {
 		const added = sourceDecisionSites("engine/new.ts", 'state.decision(stored, "new-code", "New reason", "Inspect");');
 		expect(uncovered([...decisionSites(root), ...added])).toEqual(['engine/new.ts: "new-code"']);
-		expect(uncovered(sourceDecisionSites("engine/new.ts", 'save(stored, {stage: "needs-human"});'))).toEqual(['engine/new.ts: stage: "needs-human"']);
+		expect(uncovered(sourceDecisionSites("engine/new.ts", 'save(stored, {step: "waiting"});'))).toEqual(['engine/new.ts: step: "waiting"']);
 	});
 	it("a wrapped decision creation call remains in the inventory", () => {
 		expect(sourceDecisionSites("engine/new.ts", 'state\n .decision(stored, "new-code", "New reason", "Inspect");')).toEqual([

@@ -17,16 +17,16 @@ test("unapproved work retains an open answer without launching another turn", ()
 			yield* fleet.dispatch("one");
 			const { decision } = yield* askWorker(fixture);
 			const answer = yield* answerWorker(root, decision);
-			const current = source.replace("fleet: approved", "fleet: draft");
+			const current = source.replace("fleet: approved", "fleet: held");
 			boardHttpFiles(root).write("one.md", current);
 			const held = yield* fleet.reconcile("one");
-			expect(held.value.stage).toBe("needs-human");
+			expect(held.value.step).toBe("waiting");
 			expect(held.value.blocker).toContain("no longer approved");
 			expect(held.value.responses).toBeUndefined();
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 			boardHttpFiles(root).write("one.md", source);
 			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.step).toBe("working");
 			expect(continued.value.attempts.at(-1)?.prompt).toContain(answer.body);
 		}),
 	));

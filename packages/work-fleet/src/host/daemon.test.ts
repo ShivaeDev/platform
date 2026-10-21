@@ -49,7 +49,7 @@ const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: 
 			});
 			const dispatched = yield* client("fleet.dispatch", { workId: "one" });
 			expect(dispatched.decision).toBeUndefined();
-			expect(dispatched.stage).toBe("executing");
+			expect(dispatched.step).toBe("working");
 			const { peak } = yield* resources.peakConnections(
 				Effect.forEach(
 					Array.from({ length: 12 }, (_, index) => index),
@@ -60,7 +60,7 @@ const resourceStory = Effect.fn("DaemonTest.resourceStory")(function* (fixture: 
 			expect(peak).toBeGreaterThan(0);
 			expect(peak).toBeLessThanOrEqual(2);
 			finishWorkers(fixture.provider);
-			expect((yield* client("fleet.reconcile", { workId: "one" })).stage).toBe("completed");
+			expect((yield* client("fleet.reconcile", { workId: "one" })).step).toBe("done");
 			expect((yield* client("fleet.views", undefined)).completed).toHaveLength(1);
 			expect(resources.providers).toBe(1);
 			expect(resources.releases).toBe(0);

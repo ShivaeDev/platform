@@ -33,7 +33,8 @@ export function prepareCommand(state: EngineState) {
 			...(input.launch === undefined ? {} : { launch: input.launch }),
 			preparation: input.preparation,
 			prompt: input.prompt,
-			stage: "prepared",
+			stage: "queued",
+			step: "queued",
 			sweep: work.sweep,
 			workId: work.workId,
 		};
@@ -57,11 +58,11 @@ export function prepareCommand(state: EngineState) {
 	});
 }
 function unusedPreparation(record: FleetRecord): boolean {
-	return record.stage === "prepared" && record.attempts.length === 0 && record.decision === undefined && (record.responses?.length ?? 0) === 0;
+	return record.step === "queued" && record.attempts.length === 0 && record.decision === undefined && (record.responses?.length ?? 0) === 0;
 }
 function refreshablePreparation(record: FleetRecord, work: BoardWork, input: PrepareWork): boolean {
 	return (
-		record.stage === "prepared"
+		record.step === "queued"
 		&& record.decision === undefined
 		&& record.result === undefined
 		&& !executing(record)
@@ -92,7 +93,7 @@ const renewable = Effect.fn("Fleet.renewable")(function* (record: FleetRecord, w
 	if (executing(record)) {
 		return yield* Effect.fail(new Forbidden({ message: "Reconcile and confirm terminal execution before renewing preparation" }));
 	}
-	if (record.stage === "completed" && !briefChanged(record, work)) {
+	if (record.step === "done" && !briefChanged(record, work)) {
 		return yield* Effect.fail(new Forbidden({ message: "Completed work needs a newly approved Board context before renewal" }));
 	}
 });

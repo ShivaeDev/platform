@@ -19,10 +19,9 @@ export interface WorkboardFlight {
 }
 
 export interface WorkboardGoal {
-	/** Started but not done: the Board's "in progress" and "needs you" counts together. */
-	active: number;
 	done: number;
 	id: string;
+	ready: number;
 	title: string;
 	total: number;
 }

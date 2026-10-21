@@ -12,7 +12,7 @@ describe("Fleet recovery", () => {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
 				const intent = yield* fleet.dispatch("one");
-				expect(intent.value.stage).toBe("executing");
+				expect(intent.value.step).toBe("working");
 				expect(intent.value.attempts[0]?.receipt).toBeUndefined();
 				yield* fixture.restart(
 					Effect.gen(function* () {
@@ -33,10 +33,10 @@ describe("Fleet recovery", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const failed = yield* fleet.reconcile("one");
-				expect(failed.value.stage).toBe("needs-human");
+				expect(failed.value.step).toBe("waiting");
 				expect(failed.value.attempts.at(-1)?.role).toBe("reviewer");
 				yield* fleet.resolve("one", failed.value.decision?.id ?? "missing", fixture.respond(failed.value.decision?.id ?? "missing", "retry"));
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		));
@@ -62,9 +62,9 @@ describe("Fleet recovery", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const failed = yield* fleet.reconcile("one");
-				expect(failed.value.stage).toBe("needs-human");
+				expect(failed.value.step).toBe("waiting");
 				yield* fleet.resolve("one", failed.value.decision?.id ?? "missing", fixture.respond(failed.value.decision?.id ?? "missing", "retry"));
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		));
@@ -76,12 +76,12 @@ describe("Fleet recovery", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const repair = yield* fleet.reconcile("one");
-				expect(repair.value.stage).toBe("executing");
+				expect(repair.value.step).toBe("working");
 				expect(repair.value.checks?.passed).toBe(false);
 				expect(fixture.decisions).toHaveLength(0);
 				finishWorkers(fixture);
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(completed.value.checks?.head).toBe("head-one-1");
 				expect(fixture.reviews).toHaveLength(2);
 			}),
@@ -97,10 +97,10 @@ describe("Fleet recovery", () => {
 				const receipt = reviewing.value.attempts.at(-1)?.receipt;
 				fixture.failedObservations.add(receipt?.turnId ?? "missing");
 				const failed = yield* fleet.reconcile("one");
-				expect(failed.value.stage).toBe("needs-human");
+				expect(failed.value.step).toBe("waiting");
 				yield* fleet.resolve("one", failed.value.decision?.id ?? "missing", fixture.respond(failed.value.decision?.id ?? "missing", "retry"));
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		));

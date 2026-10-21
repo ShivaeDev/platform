@@ -53,7 +53,7 @@ screenStory.it(
 const grouped: readonly SearchItem[] = [
 	{ href: "/_board/item/task.one/", itemKind: "task", kind: "document", match: "text", title: "Mentions it" },
 	{ href: "/plan.md", kind: "document", match: "title", title: "Named in the title" },
-	{ href: "/_board/item/project.one/", itemKind: "project", kind: "document", match: "title", title: "Goal named in the title" },
+	{ href: "/_board/item/project.one/", itemKind: "goal", kind: "document", match: "title", title: "Goal named in the title" },
 	{ href: "/_board/item/task.two/", itemKind: "task", kind: "document", match: "prefix", title: "Starts with it" },
 	{ href: "/needs.md", kind: "needs-you", title: "Waiting on you" },
 ];

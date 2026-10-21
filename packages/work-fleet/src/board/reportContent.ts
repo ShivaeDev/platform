@@ -5,7 +5,7 @@ import type { SessionObservation } from "#session/schema.ts";
 
 export function reportContent(work: BoardWork, observation: SessionObservation, kind?: "review") {
 	const { provenance, itemId } = reportIdentity(work, observation.receipt);
-	const metadata = { id: itemId, kind: "result", relationships: [{ kind: "informs", target: work.workId }] };
+	const metadata = { id: itemId, kind: "report", relationships: [{ kind: "informs", target: work.workId }] };
 	const body =
 		kind === "review"
 			? `# Fleet review\n\n${observation.output}\n\n## Reviewer receipt\n\n\`\`\`json\n${JSON.stringify(provenance)}\n\`\`\``

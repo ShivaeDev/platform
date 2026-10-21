@@ -18,10 +18,10 @@ boardStory.it(
 				{ href: "/_board/item/decision.review/#answer-card-goal", reason: "Review goal" },
 				{ href: "/_board/item/decision.review/#answer-card-task", reason: "Review task", title: "Fifth task" },
 			],
-			counts: { done: 2, "in progress": 0, "needs you": 1, planned: 2 },
+			counts: { deferred: 1, done: 2, draft: 2, dropped: 0, ready: 0 },
 			criteria: [
-				{ counts: { done: 1, "in progress": 0, "needs you": 0, planned: 1 }, evidence: 2, linked: 2 },
-				{ counts: { done: 0, "in progress": 0, "needs you": 0, planned: 1 }, evidence: 1, linked: 1 },
+				{ counts: { deferred: 0, done: 1, draft: 1, dropped: 0, ready: 0 }, evidence: 2, linked: 2 },
+				{ counts: { deferred: 1, done: 0, draft: 0, dropped: 0, ready: 0 }, evidence: 1, linked: 1 },
 			],
 			linked: 5,
 			openAsks: 2,
@@ -34,28 +34,30 @@ boardStory.it(
 		expect(result.closedGoals.map((goal) => goal.id)).toEqual(["project.closed"]);
 		expect(result.items).toHaveLength(5);
 		expect(result.items.every((item) => typeof item.modified === "number")).toBe(true);
-		editFile("second.md", goalsFixture()["second.md"]?.replace("status: planned", "status: In Review") ?? "");
+		editFile("second.md", goalsFixture()["second.md"]?.replace("status: draft", "status: ready") ?? "");
 		yield* Effect.promise(() =>
 			waitFor(() => {
 				const updated = client.registry.get(atom);
 				expect(updated._tag === "Success" && updated.value.goals.find((goal) => goal.id === "project.example")?.counts).toEqual({
+					deferred: 1,
 					done: 2,
-					"in progress": 1,
-					"needs you": 1,
-					planned: 1,
+					draft: 1,
+					dropped: 0,
+					ready: 1,
 				});
 			}),
 		);
-		editFile("goal.md", goalsFixture()["goal.md"]?.replace("status: planned", "status: completed") ?? "");
+		editFile("goal.md", goalsFixture()["goal.md"]?.replace("status: draft", "status: done") ?? "");
 		yield* Effect.promise(() =>
 			waitFor(() => {
 				const updated = client.registry.get(atom);
 				expect(updated._tag === "Success" && updated.value.goals.map((goal) => goal.id)).toEqual([]);
 				expect(updated._tag === "Success" && updated.value.closedGoals.find((goal) => goal.id === "project.example")?.counts).toEqual({
+					deferred: 1,
 					done: 2,
-					"in progress": 1,
-					"needs you": 1,
-					planned: 1,
+					draft: 1,
+					dropped: 0,
+					ready: 1,
 				});
 			}),
 		);

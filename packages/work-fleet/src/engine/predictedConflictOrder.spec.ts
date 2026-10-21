@@ -15,7 +15,7 @@ isolatedEngine.it(
 		pushWorkerBranch("one", { [MIGRATION_PATH]: 'export const migrations = {\n  "16_previous": previous,\n  "17_first_worker": first,\n};\n' });
 		finishWorkers();
 		const laterPr = yield* fleet.reconcile("one");
-		expect(laterPr.value.blocker).toBe(`waiting for predicted conflict with https://github.com/example/project/pull/1 (${MIGRATION_PATH}) to merge`);
+		expect(laterPr.value.blocker).toBe(`waiting for https://github.com/example/project/pull/1 to merge: conflicting ${MIGRATION_PATH}`);
 		expect(laterPr.value.review).toBeUndefined();
 		const earlierPr = yield* fleet.reconcile("two");
 		expect(earlierPr.value.decision?.code).toBe("reviewed-pr-ready");

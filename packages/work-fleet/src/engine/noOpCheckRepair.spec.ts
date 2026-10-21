@@ -17,11 +17,11 @@ engine.it(
 		finishWorkers();
 		yield* restart();
 		const pending = yield* fleet.reconcile("one");
-		expect(pending.value.stage).toBe("validating");
+		expect(pending.value.step).toBe("validating");
 		expect(pending.value.review).toEqual(review);
 		expect(reviewedHeads()).toEqual([ADOPTED_HEAD]);
 		checksRespond(ADOPTED_HEAD, [[checkRun({ name: "verify" })]]);
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 		expect(reviewedHeads()).toEqual([ADOPTED_HEAD]);
 	},
 );
@@ -46,7 +46,7 @@ engine.it(
 		finishWorkers();
 		yield* restart();
 		const stopped = yield* fleet.reconcile("one");
-		expect(stopped.value).toMatchObject({ decision: { code: "checks-repair-exhausted" }, stage: "needs-human" });
+		expect(stopped.value).toMatchObject({ decision: { code: "checks-repair-exhausted" }, step: "waiting" });
 		expect(stopped.value.attempts.filter((attempt) => attempt.role === "repair" && attempt.status === "completed")).toHaveLength(3);
 		expect(publishedDecisions()).toHaveLength(1);
 	},

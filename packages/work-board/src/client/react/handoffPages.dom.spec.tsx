@@ -8,7 +8,7 @@ expectNoReactWarnings();
 
 const PAGE_TITLE = "#doc [data-page-header] > h1";
 const task = {
-	"task.md": "---\nid: task.focus\nkind: task\nstatus: planned\nnext_action: Inspect focus\n---\n# Focus\n\nKeep the source readable.\n",
+	"task.md": "---\nid: task.focus\nkind: task\nstatus: draft\nnext_action: Inspect focus\n---\n# Focus\n\nKeep the source readable.\n",
 };
 
 screenStory.it(
@@ -65,7 +65,7 @@ screenStory.it(
 
 screenStory.it(
 	"titles a handoff by the item ID when the item has no heading",
-	[routedScreen({ "task.md": "---\nid: task.plain\nkind: task\nstatus: planned\n---\nNo heading here.\n" }, "/_board/handoff?item=task.plain")],
+	[routedScreen({ "task.md": "---\nid: task.plain\nkind: task\nstatus: draft\n---\nNo heading here.\n" }, "/_board/handoff?item=task.plain")],
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: task.plain")));
 		expect(findElement<HTMLTextAreaElement>('[name="goal"]')?.value).toBe("task.plain");

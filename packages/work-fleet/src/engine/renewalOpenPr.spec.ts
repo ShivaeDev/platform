@@ -84,7 +84,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 		const decisionId = denied.value.decision?.id ?? "missing";
 		const responseId = fleet.respond(decisionId, "release");
-		expect((yield* fleet.resolve("one", decisionId, responseId)).value.stage).toBe("released");
+		expect((yield* fleet.resolve("one", decisionId, responseId)).value.step).toBe("released");
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 	});
 });

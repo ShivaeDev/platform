@@ -43,7 +43,7 @@ export function sourceDecisionSites(file: string, source: string) {
 		return ts.isIdentifier(expression) && expression.text === "waitingDecision" ? node.arguments[0] : undefined;
 	}
 	function decisionField(node: ts.PropertyAssignment) {
-		if (node.name.getText(tree) === "stage" && node.initializer.getText(tree) === '"needs-human"') {
+		if (node.name.getText(tree) === "step" && node.initializer.getText(tree) === '"waiting"') {
 			return node;
 		}
 		if (node.name.getText(tree) !== "code" || !ts.isObjectLiteralExpression(node.parent)) {

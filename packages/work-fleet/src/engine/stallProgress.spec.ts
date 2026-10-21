@@ -51,7 +51,7 @@ postgresTests("test", "isolated")("a changed brief pauses a stalled worker befor
 				yield* TestClock.adjust("31 minutes");
 				fixture.editWork("one", "edited-brief");
 				const paused = yield* fleet.reconcile("one");
-				expect(paused.value).toMatchObject({ decision: { code: "fleet-stale" }, stage: "needs-human" });
+				expect(paused.value).toMatchObject({ decision: { code: "fleet-stale" }, step: "waiting" });
 				expect(server.requests.filter((request) => ["turn/steer", "turn/interrupt"].includes(request.method))).toEqual([]);
 			}),
 		);

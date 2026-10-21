@@ -5,14 +5,12 @@ import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { closedStatus } from "#browser/views/workStatus.ts";
 import { currentResponses } from "#responses/current.ts";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
-import { itemStatus } from "./itemStatus.ts";
 import { Time } from "./Time.tsx";
 
 export function DecisionOutcome({ document }: { readonly document: Document }) {
 	const id = useId();
 	const kind = document.metadata.kind;
-	const status = itemStatus(document);
-	if ((kind !== "decision" && kind !== "question") || !(status === "answered" || (closedStatus(status) && closedInSource(document)))) {
+	if (kind !== "question" || !(document.requestOutcome === "answered" || closedInSource(document))) {
 		return null;
 	}
 	const unavailable = document.requests.find((request) => request.unavailable)?.unavailable;
@@ -27,7 +25,10 @@ export function DecisionOutcome({ document }: { readonly document: Document }) {
 				Outcome
 			</h2>
 			{unavailable !== undefined && <p className="m-0 text-sm">{unavailable}</p>}
-			{unavailable === undefined && answers.length === 0 && <p className="m-0 text-sm">Closed with no answer recorded on the Board.</p>}
+			{document.metadata.answer !== undefined && <AnswerMarkdown file={document.file} source={document.metadata.answer} />}
+			{!document.metadata.answer && unavailable === undefined && answers.length === 0 && (
+				<p className="m-0 text-sm">Closed with no answer recorded on the Board.</p>
+			)}
 			{unavailable === undefined && answers.map(({ record, request }) => <RecordedAnswer key={record.id} record={record} request={request} />)}
 		</section>
 	);

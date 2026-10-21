@@ -1,10 +1,10 @@
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 
 export function todayFleetFixture(): FleetItemsProjection {
-	const stages = ["executing", "reviewing", "repairing", "adopting"] as const;
-	const otherStages = ["prepared", "validating", "delivering", "needs-human", "released"] as const;
+	const stages = ["working", "reviewing"] as const;
+	const otherStages = ["queued", "waiting", "released"] as const;
 	return {
-		completed: [{ completedAt: 100, document: null, stage: "completed", stageEnteredAt: 0, updatedAt: 100, workId: "task.delivered" }],
+		completed: [{ completedAt: 100, document: null, stage: "done", stageEnteredAt: 0, updatedAt: 100, workId: "task.delivered" }],
 		items: [
 			...Array.from({ length: 9 }, (_, index) => ({
 				document: {
@@ -13,7 +13,7 @@ export function todayFleetFixture(): FleetItemsProjection {
 					title: `Workspace task ${index}`,
 				},
 				prUrl: `https://github.com/example/project/pull/${index + 1}`,
-				stage: stages[index % stages.length] ?? "executing",
+				stage: stages[index % stages.length] ?? "working",
 				stageEnteredAt: 0,
 				updatedAt: 100,
 				workId: `task.sample.${index}`,

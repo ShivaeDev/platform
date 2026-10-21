@@ -15,13 +15,13 @@ test("applied action persists across acknowledgement failure and repeated resolv
 			const responseId = fixture.respond(decision.id, "release");
 			const fleet = yield* Fleet;
 			const applied = yield* fleet.resolve("one", decision.id, responseId);
-			expect(applied.value.stage).toBe("released");
+			expect(applied.value.step).toBe("released");
 			expect(applied.value.responses).toHaveLength(1);
 			expect(applied.value.responses?.[0]?.boardAcknowledged).toBeUndefined();
 			expect(applied.value.blocker).toContain("Board request acknowledgement pending");
 			expect(fixture.acknowledgements).toHaveLength(0);
 			const repaired = yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, responseId))));
-			expect(repaired.value.stage).toBe("released");
+			expect(repaired.value.step).toBe("released");
 			expect(repaired.value.responses).toHaveLength(1);
 			expect(repaired.value.responses?.[0]?.boardAcknowledged).toBe(true);
 			expect(repaired.value.blocker).toBeUndefined();
@@ -40,7 +40,7 @@ test("scheduler repairs a terminal released request acknowledgement after restar
 			yield* fleet.resolve("one", decision.id, fixture.respond(decision.id, "release"));
 			yield* fixture.restart(cycle);
 			const repaired = yield* fleet.get("one");
-			expect(repaired.value.stage).toBe("released");
+			expect(repaired.value.step).toBe("released");
 			expect(repaired.value.responses?.[0]?.boardAcknowledged).toBe(true);
 			expect(fixture.acknowledgements).toHaveLength(1);
 			expect(fixture.launched).toHaveLength(2);
@@ -54,12 +54,12 @@ test("renewal commits history before superseding its Board request and resumes a
 			fixture.editWork("one", "board-one-renewed");
 			fixture.approveWork("one", "board-one-renewed");
 			const renewed = yield* prepareWork("one");
-			expect(renewed.value.stage).toBe("prepared");
+			expect(renewed.value.step).toBe("queued");
 			expect(renewed.value.history?.[0]?.decision?.id).toBe(decision.id);
 			expect(renewed.value.history?.[0]?.decisionAcknowledged).toBeUndefined();
 			expect(renewed.value.blocker).toContain("Board request acknowledgement pending");
 			const repaired = yield* fixture.restart(Fleet.pipe(Effect.flatMap((fleet) => fleet.reconcile("one"))));
-			expect(repaired.value.stage).toBe("prepared");
+			expect(repaired.value.step).toBe("queued");
 			expect(repaired.value.history?.[0]?.decisionAcknowledged).toBe(true);
 			expect(fixture.acknowledgements[0]).toMatchObject({ decision: decision.published, disposition: "superseded" });
 			expect(fixture.launched).toHaveLength(2);
@@ -76,7 +76,7 @@ for (const type of ["clarify", "not_now"] as const) {
 				const first = yield* fleet.resolve("one", decision.id, responseId);
 				const repeated = yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, responseId))));
 				expect(repeated.version).toBe(first.version);
-				expect(repeated.value.stage).toBe("needs-human");
+				expect(repeated.value.step).toBe("waiting");
 				expect(repeated.value.responses).toHaveLength(1);
 				expect(repeated.value.decision?.id).toBe(decision.id);
 				expect(repeated.value.responses?.[0]?.action).toBeUndefined();
@@ -102,11 +102,11 @@ test("decision acknowledgement remains usable while unrelated review waits", fun
 			const pending = yield* fleet.dispatch("two");
 			const id = pending.value.decision?.id ?? "missing";
 			const applied = yield* fleet.resolve("two", id, fixture.respond(id, "release"));
-			expect(applied.value.stage).toBe("released");
+			expect(applied.value.step).toBe("released");
 			expect(applied.value.responses?.[0]?.boardAcknowledged).toBe(true);
-			expect((yield* fleet.get("one")).value.stage).toBe("reviewing");
+			expect((yield* fleet.get("one")).value.step).toBe("reviewing");
 			yield* Deferred.succeed(release, undefined);
-			expect((yield* Fiber.join(reviewing)).value.stage).toBe("completed");
+			expect((yield* Fiber.join(reviewing)).value.step).toBe("done");
 		}),
 	);
 });

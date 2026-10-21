@@ -16,34 +16,34 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				const prepared = yield* prepareWork("one");
-				yield* ctx.fixture.replaceRecord({ ...prepared.value, stage: "executing" });
+				yield* ctx.fixture.replaceRecord({ ...prepared.value, step: "working" });
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "execution without an intent",
 			progress: (_ctx, _before, after) => {
 				expect(after.attempts).toHaveLength(1);
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 			},
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
 			code: "fleet-invalid" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
-				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
+				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
 				yield* launchRecoveryWorker();
 				setLastObservation(ctx, { execution: "completed", output: "Findings" });
 				const stored = yield* (yield* Fleet).get("one");
 				yield* ctx.fixture.replaceRecord({
 					...stored.value,
 					attempts: stored.value.attempts.map((attempt) => ({ ...attempt, status: "failed" })),
-					stage: "adopting",
+					step: "adopting",
 				});
 				yield* (yield* Fleet).reconcile("one");
 			}),
-			name: "report without completed execution",
+			name: "report without done execution",
 			progress: (_ctx, before, after) => {
 				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 			},
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},

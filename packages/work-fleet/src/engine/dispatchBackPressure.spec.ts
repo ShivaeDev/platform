@@ -20,7 +20,7 @@ const openPullRequest = Effect.fn("BackPressureTest.openPullRequest")(function* 
 	yield* fleet.dispatch(workId);
 	finishWorkers(fixture);
 	const reviewed = yield* fleet.reconcile(workId);
-	expect(reviewed.value).toMatchObject({ result: { kind: "change" }, stage: "needs-human" });
+	expect(reviewed.value).toMatchObject({ result: { kind: "change" }, step: "waiting" });
 	expect(executing(reviewed.value)).toBe(false);
 	return reviewed;
 });
@@ -37,7 +37,7 @@ const prepareCandidates = Effect.fn("BackPressureTest.prepareCandidates")(functi
 const launchedOf = Effect.fn("BackPressureTest.launchedOf")(function* (ids: readonly string[]) {
 	const fleet = yield* Fleet;
 	const records = yield* Effect.forEach(ids, (id) => fleet.get(id));
-	return records.filter(({ value }) => value.stage === "executing").map(({ value }) => value.workId);
+	return records.filter(({ value }) => value.step === "working").map(({ value }) => value.workId);
 });
 
 const status = Effect.gen(function* () {
@@ -90,7 +90,7 @@ describe("Fleet dispatch back pressure", () => {
 					expect((yield* fleet.get("candidate-4")).value.attempts.at(-1)?.overLimit).toBe(true);
 					const head = open[0]?.value.result?.head ?? "missing";
 					merged.add(head);
-					expect((yield* fleet.reconcile("pr-1")).value.stage).toBe("completed");
+					expect((yield* fleet.reconcile("pr-1")).value.step).toBe("done");
 					yield* cycle;
 					expect(yield* launchedOf(candidates)).toEqual(["candidate-1", "candidate-4"]);
 				}),
@@ -112,14 +112,14 @@ describe("Fleet dispatch back pressure", () => {
 				expect((yield* fleet.get("two")).value).toMatchObject({
 					attentionOwner: "automation",
 					blocker: "waiting for open PRs to merge: 1 of 1",
-					stage: "prepared",
+					step: "queued",
 				});
 				finishWorkers(fixture);
 				yield* cycle;
 				const reviewed = (yield* fleet.get("one")).value;
 				expect(reviewed.attempts.map(({ role }) => role)).toEqual(["worker", "reviewer", "repair", "reviewer"]);
-				expect(reviewed.stage).toBe("needs-human");
-				expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
+				expect(reviewed.step).toBe("waiting");
+				expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], step: "queued" });
 			}),
 		));
 
@@ -135,17 +135,17 @@ describe("Fleet dispatch back pressure", () => {
 				yield* fleet.dispatch("one");
 				yield* fleet.dispatch("pr");
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("pr")).value).toMatchObject({ result: { kind: "change" }, stage: "needs-human" });
+				expect((yield* fleet.reconcile("pr")).value).toMatchObject({ result: { kind: "change" }, step: "waiting" });
 				const { decision } = yield* askWorker(fixture);
 				yield* prepareWork("two");
 				yield* fleet.dispatch("two").pipe(Effect.result);
 				expect((yield* fleet.get("two")).value.blocker).toBe("waiting for open PRs to merge: 1 of 1");
 				const answer = yield* answerWorker(root, decision);
 				const continued = (yield* fleet.reconcile("one")).value;
-				expect(continued.stage).toBe("executing");
+				expect(continued.step).toBe("working");
 				expect(continued.attempts.at(-1)?.prompt).toContain(answer.body);
 				yield* cycle;
-				expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
+				expect((yield* fleet.get("two")).value).toMatchObject({ attempts: [], step: "queued" });
 			}),
 		));
 
@@ -159,16 +159,16 @@ describe("Fleet dispatch back pressure", () => {
 				finishWorkers(fixture);
 				yield* fixture.occupy("other-host");
 				const waiting = (yield* fleet.reconcile("one")).value;
-				expect(waiting).toMatchObject({ blocker: "execution capacity is occupied (limit 1)", stage: "reviewing" });
+				expect(waiting).toMatchObject({ blocker: "execution capacity is occupied (limit 1)", step: "reviewing" });
 				yield* fixture.vacate("other-host");
 				yield* fleet.dispatch("two").pipe(Effect.result);
 				expect((yield* fleet.get("two")).value).toMatchObject({
 					blocker: "waiting for 1 review or repair launches to go first (limit 1)",
-					stage: "prepared",
+					step: "queued",
 				});
 				yield* cycle;
 				expect((yield* fleet.get("one")).value.attempts.at(-1)?.role).toBe("reviewer");
-				expect((yield* fleet.get("two")).value.stage).toBe("prepared");
+				expect((yield* fleet.get("two")).value.step).toBe("queued");
 			}),
 		));
 });

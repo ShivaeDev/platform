@@ -19,6 +19,6 @@ export function completeReport({ board, save, decision, reportInspection }: Engi
 			return yield* decision(stored, "empty-report", "Report worker returned empty output", "Retry the report worker or safely release this work");
 		}
 		const report = yield* board.report(work, { execution: "completed", output, provisioning: "unknown", receipt: latest.receipt });
-		return yield* save(stored, { ...stored.value, outcome: { evidence: [report.sourcePath] }, report, stage: "completed" });
+		return yield* save(stored, { ...stored.value, outcome: { evidence: [report.sourcePath] }, report, step: "done" });
 	});
 }

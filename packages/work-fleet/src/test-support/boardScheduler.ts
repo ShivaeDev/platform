@@ -21,7 +21,7 @@ export const boardScheduler = Effect.fn("FleetTest.boardScheduler")(function* (
 				Effect.gen(function* () {
 					lists += 1;
 					if (lists === 1) {
-						return [{ ...stored, value: { ...stored.value, stage: "executing" as const } }];
+						return [{ ...stored, value: { ...stored.value, step: "working" as const } }];
 					}
 					yield* Deferred.succeed(dispatched, undefined);
 					return [];

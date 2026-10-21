@@ -70,7 +70,7 @@ const watchCompleted = Effect.fn("StaleAcknowledgementTest.watchCompleted")(func
 		Effect.gen(function* () {
 			const watched = yield* Effect.promise(() => follower.done);
 			expect(watched.code).toBe(0);
-			expect(watched.stdout).toBe(release ? "one released" : "one completed: Existing behavior meets acceptance criteria");
+			expect(watched.stdout).toBe(release ? "one released" : "one done: Existing behavior meets acceptance criteria");
 		}),
 	);
 });
@@ -84,7 +84,7 @@ const staleStory = Effect.fn("StaleAcknowledgementTest.staleStory")(function* (
 ) {
 	const client = yield* daemonClient(port);
 	const started = yield* dispatchAndWait(client, "one");
-	expect(started.stage).toBe("executing");
+	expect(started.step).toBe("working");
 	const turn = started.attempts.at(-1)?.receipt?.turnId ?? "missing";
 	const observation = fixture.provider.observations.get(turn) ?? (yield* Effect.die("Missing worker"));
 	fixture.provider.observations.set(turn, { ...observation, execution: "completed", output: "FLEET_QUESTION: Which storage?" });
@@ -101,7 +101,7 @@ const staleStory = Effect.fn("StaleAcknowledgementTest.staleStory")(function* (
 	available();
 	finishWorkers(fixture.provider);
 	const completed = yield* client("fleet.reconcile", { workId: "one" });
-	expect(completed.stage).toBe(release ? "released" : "completed");
+	expect(completed.step).toBe(release ? "released" : "done");
 	expect(completed.blocker).toBeUndefined();
 	expect(completed.responses).toEqual([
 		{ ...response, ...(release ? { boardAcknowledged: true } : {}), boardAcknowledgementDisposition: "superseded" },
@@ -120,7 +120,7 @@ const staleStory = Effect.fn("StaleAcknowledgementTest.staleStory")(function* (
 	expect(status.stdout).toContain("Waiting on orchestrator (0)");
 	expect(status.stdout).not.toContain("acknowledgement pending");
 	if (!release) {
-		expect(status.stdout).toContain("Completed (1)\n  one  completed");
+		expect(status.stdout).toContain("Done (1)\n  one  done");
 	}
 	yield* watchCompleted(fixture.configFile, port, release);
 });

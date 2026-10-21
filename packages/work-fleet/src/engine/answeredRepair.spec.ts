@@ -44,7 +44,7 @@ for (const repair of ["review", "checks"] as const) {
 					const answer = yield* answerWorker(root, decision);
 					unusableSession = decision.worker?.sessionId;
 					const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
-					expect(queued.stage).toBe("repairing");
+					expect(queued.step).toBe("repairing");
 					expect(queued.decision).toBeUndefined();
 					expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
 					now = 30_100;
@@ -53,7 +53,7 @@ for (const repair of ["review", "checks"] as const) {
 							const resumed = yield* Fleet;
 							const continuing = (yield* resumed.reconcile("one")).value;
 							const attempt = continuing.attempts.at(-1);
-							expect(continuing.stage).toBe("executing");
+							expect(continuing.step).toBe("working");
 							expect(continuing.result).toEqual(repairing.result);
 							expect(continuing.preparation).toEqual(repairing.preparation);
 							expect(attempt?.receipt?.sessionId).not.toBe(unusableSession);
@@ -74,7 +74,7 @@ for (const repair of ["review", "checks"] as const) {
 							head = "repaired-head";
 							finishWorkers(fixture);
 							const completed = (yield* resumed.reconcile("one")).value;
-							expect(completed.stage).toBe("completed");
+							expect(completed.step).toBe("done");
 							expect(fixture.reviews).toEqual(["initial-head", "repaired-head"]);
 							expect(completed.review?.head).toBe("repaired-head");
 							expect(completed.checks).toMatchObject({ head: "repaired-head", passed: true });

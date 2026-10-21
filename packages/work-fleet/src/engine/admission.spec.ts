@@ -13,7 +13,7 @@ describe("Fleet admission path", () => {
 	});
 	engine.it("a main change to the prepared source blocks admission before provider launch", [changedMainPaths(["src/one.ts"])], function* (fleet) {
 		yield* fleet.prepareWork("one");
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("waiting");
 		expect(fleet.launches()).toHaveLength(0);
 	});
 	engine.it("work with overlapping scope and foreign PRs dispatches concurrently", [], function* (fleet) {
@@ -21,8 +21,8 @@ describe("Fleet admission path", () => {
 			yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: ["."] }), prompt: `Implement ${workId}`, workId });
 		}
 		yield* fleet.reserveForeign("human-pr");
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		expect(fleet.launches()).toHaveLength(2);
 	});
 	isolatedEngine.it("one unit of quota cannot admit two concurrent disjoint submissions", [availableQuota(1)], function* (fleet) {
@@ -38,7 +38,7 @@ describe("Fleet admission path", () => {
 		yield* fleet.prepareWork("one");
 		yield* fleet.dispatch("one").pipe(Effect.result);
 		const waiting = (yield* fleet.get("one")).value;
-		expect(waiting).toMatchObject({ attempts: [], blocker: expect.stringContaining("quota"), stage: "prepared" });
+		expect(waiting).toMatchObject({ attempts: [], blocker: expect.stringContaining("quota"), step: "queued" });
 		expect(fleet.launches()).toHaveLength(0);
 	});
 	engine.it("the production repository rejects a submission behind an area waiter", [], function* (fleet) {
@@ -51,10 +51,10 @@ describe("Fleet admission path", () => {
 		expect((yield* fleet.get("two")).value).toMatchObject({
 			attempts: [],
 			blocker: "waiting for area fleet/host queued ahead by one",
-			stage: "prepared",
+			step: "queued",
 		});
 		expect(fleet.launches()).toHaveLength(0);
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
 	});
 	engine.it("only dependents wait for accepted outcomes", [], function* (fleet) {
 		yield* fleet.prepareWork("dependent");
@@ -66,9 +66,9 @@ describe("Fleet admission path", () => {
 		yield* fleet.dispatch("one");
 		fleet.finishWorkers();
 		yield* fleet.reconcile("one");
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 	});
-	engine.it("an executing worker completes while a foreign PR backlog blocks new admission", [backlogLimit(1)], function* (fleet) {
+	engine.it("an working worker completes while a foreign PR backlog blocks new admission", [backlogLimit(1)], function* (fleet) {
 		yield* fleet.prepareWork("one");
 		yield* fleet.prepareWork("two");
 		yield* fleet.dispatch("one");
@@ -76,6 +76,6 @@ describe("Fleet admission path", () => {
 		fleet.finishWorkers();
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		expect((yield* fleet.get("two")).value.blocker).toContain("backlog");
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 	});
 });

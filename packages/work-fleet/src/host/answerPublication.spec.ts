@@ -35,7 +35,7 @@ for (const action of ["retry", "release"] as const) {
 		yield* daemon.store("one", { ...waiting, decision: { ...decision, published: { ...published, questionId, revision } } });
 		daemon.writeBoard(published.sourcePath, context.replace("## Previous recommendation template", "## Current recommendation template"));
 		const answered = yield* daemon.answer("one", "", action === "release");
-		expect(answered.stage).toBe(action === "release" ? "released" : "adopting");
+		expect(answered.step).toBe(action === "release" ? "released" : "adopting");
 		expect(answered.responses?.at(-1)).toMatchObject({
 			action,
 			boardAcknowledged: true,

@@ -35,7 +35,7 @@ export function recoveryReadCase(): RecoveryCase {
 			expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
 			expect(after.attempts[0]?.status).toBe("completed");
 			expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			expect(after.stage).toBe("reviewing");
+			expect(after.step).toBe("reviewing");
 		},
 		restore: () =>
 			Effect.sync(() => {

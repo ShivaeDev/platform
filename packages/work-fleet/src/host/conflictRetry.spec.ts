@@ -22,7 +22,7 @@ for (const body of ["", "Preserve the loading indicator."]) {
 						expect(blocked.decision?.reason).toBe(CONFLICTING_PR_REASON);
 						const response = fixture.answer(blocked, body, "orchestrator");
 						const queued = yield* client("fleet.resolve", response);
-						expect(queued.stage).toBe("repairing");
+						expect(queued.step).toBe("repairing");
 						expect(queued.review).toBeUndefined();
 						expect(queued.checks).toBeUndefined();
 						expect(queued.responses?.at(-1)).toMatchObject({ boardAcknowledged: true, responseId: response.responseId });

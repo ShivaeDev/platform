@@ -21,13 +21,13 @@ isolatedEngine.it(
 		yield* occupyExecution("busy-one");
 		yield* occupyExecution("busy-two");
 		sweepConflicts("package", true);
-		expect((yield* fleet.reconcile("package")).value.stage).toBe("repairing");
+		expect((yield* fleet.reconcile("package")).value.step).toBe("repairing");
 		sweepConflicts("catalog", true);
 		yield* restart();
 		yield* schedule();
 		expect((yield* fleet.get("catalog")).value.attempts.at(-1)).toMatchObject({ role: "repair", status: "accepted" });
 		const waiting = (yield* fleet.get("package")).value;
-		expect(waiting.stage).toBe("repairing");
+		expect(waiting.step).toBe("repairing");
 		expect(waiting.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(0);
 	},
 );

@@ -8,13 +8,13 @@ expectNoReactWarnings();
 const files = {
 	"home.md": "# Home",
 	"result.md":
-		"---\nid: result.fixture\nkind: result\nstatus: finished\nrelationships:\n - kind: implements\n   target: task.fixture\nevidence:\n - criterion: task.fixture#proof\n   source: task.md\n   outcome: observed\n---\n# A result\n\nReport limitations.\n",
+		"---\nid: result.fixture\nkind: report\nstatus: done\nrelationships:\n - kind: implements\n   target: task.fixture\nevidence:\n - criterion: task.fixture#proof\n   source: task.md\n   outcome: observed\n---\n# A result\n\nReport limitations.\n",
 	"task.md":
-		"---\nid: task.fixture\nkind: task\nstatus: planned\nnext_action: Check the proof\ncriteria:\n - id: proof\n   text: Show the result\nattention:\n - id: direction\n   kind: decision\n   reason: Choose a direction\n   state: open\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n",
+		"---\nid: task.fixture\nkind: task\nstatus: draft\nnext_action: Check the proof\ncriteria:\n - id: proof\n   text: Show the result\nattention:\n - id: direction\n   kind: decision\n   reason: Choose a direction\n   state: open\n   response_from: [maintainer]\n   unblocks: [task.fixture]\n---\n# A task\n\nTask context.\n",
 };
 const routes = [
 	{ kind: "system", selector: "[data-source=codex]", text: "Source missing", url: "/_board/system" },
-	{ kind: "start", selector: ".start-template textarea", text: "example.project", url: "/_board/start" },
+	{ kind: "start", selector: ".start-template textarea", text: "example.goal", url: "/_board/start" },
 	{ kind: "handoff", selector: "#handoff-form", text: "Agent name", url: "/_board/handoff?item=task.fixture" },
 ];
 for (const { kind, url, selector, text } of routes) {

@@ -85,12 +85,9 @@ boardStory.it(
 	},
 );
 
-boardStory.it(
-	"tells agents an answered item waits for Fleet unless another ask still needs you",
-	[deferredServing, anInbox()],
-	function* ({ readMcpItem }) {
-		expect((yield* readMcpItem(managedReceiptsFixture(), "task.context")).status).toBe("waiting-on-agents");
-		const asked = yield* readMcpItem({ ...managedReceiptsFixture(), ...openAsk() }, "task.context");
-		expect(asked.status).toBe("needs-you");
-	},
-);
+boardStory.it("reports authored status independently of answers and open asks", [deferredServing, anInbox()], function* ({ readMcpItem }) {
+	expect((yield* readMcpItem(managedReceiptsFixture(), "task.context")).status).toBe("ready");
+	const asked = yield* readMcpItem({ ...managedReceiptsFixture(), ...openAsk() }, "task.context");
+	expect(asked.status).toBe("ready");
+	expect(asked.openDecisions.some((request) => request.open)).toBe(true);
+});

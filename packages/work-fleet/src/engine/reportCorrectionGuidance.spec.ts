@@ -20,7 +20,7 @@ describe("report correction after worker guidance changes", () => {
 						Effect.gen(function* () {
 							const fleet = yield* Fleet;
 							const blocked = yield* fleet.reconcile("one");
-							expect(blocked.value.stage).toBe("needs-human");
+							expect(blocked.value.step).toBe("waiting");
 							expect(blocked.value.decision?.reason).toContain("FLEET_HEAD");
 							expect(blocked.value.attempts).toHaveLength(2);
 							expect(blocked.value.result).toBeUndefined();

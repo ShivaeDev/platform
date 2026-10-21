@@ -11,7 +11,7 @@ export function orchestratorWorkCard() {
 	const fleet = {
 		attentionOwner: "orchestrator" as const,
 		document: null,
-		stage: "executing" as const,
+		stage: "working" as const,
 		stageEnteredAt: null,
 		updatedAt: null,
 		workId: item.id,

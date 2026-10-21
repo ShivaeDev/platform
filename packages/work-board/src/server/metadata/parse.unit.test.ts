@@ -4,9 +4,9 @@ import { metadataParse } from "./parse.ts";
 describe("optional metadata", () => {
 	it("recognizes addon-owned fields without interpreting them or hiding unowned fields", () => {
 		const source =
-			"---\nid: item.fixture\nfleet: approved\nfleet-launch: { effort: low }\nfleet-deliverable: report\nfleet-priority: urgent\nflavor: sweet\n---\n# Work";
+			"---\nid: item.fixture\nfleet: approved\nfleet-launch: { effort: low }\ndelivers: report\nfleet-priority: urgent\nflavor: sweet\n---\n# Work";
 		const parsed = metadataParse(source);
-		expect(parsed.fields).toEqual({ id: "item.fixture" });
+		expect(parsed.fields).toEqual({ delivers: "report", fleet: "approved", id: "item.fixture" });
 		expect(parsed.diagnostics).toEqual([{ field: "flavor", line: 7, message: "Unknown field flavor; kept in the original frontmatter." }]);
 		expect(parsed.raw + parsed.body).toBe(source);
 	});
@@ -36,15 +36,15 @@ describe("optional metadata", () => {
 	});
 	it("decodes declared fields and records exact CRLF/BOM source lines", () => {
 		const source =
-			"\uFEFF---\r\nid: work.search\r\nkind: task\r\nstatus: in-review\r\nowner: agent\r\nnext_action: Inspect evidence\r\ncriteria:\r\n  - id: keyboard\r\n    text: Escape returns focus\r\n---\r\n# Search\r\n";
+			"\uFEFF---\r\nid: work.search\r\nkind: task\r\nstatus: ready\r\nowner: claude\r\nnext_action: Inspect evidence\r\ncriteria:\r\n  - id: keyboard\r\n    text: Escape returns focus\r\n---\r\n# Search\r\n";
 		const parsed = metadataParse(source);
 		expect(parsed.fields).toEqual({
 			criteria: [{ id: "keyboard", text: "Escape returns focus" }],
 			id: "work.search",
 			kind: "task",
 			nextAction: "Inspect evidence",
-			owner: "agent",
-			status: "in-review",
+			owner: "claude",
+			status: "ready",
 		});
 		expect(parsed.body).toBe("# Search\r\n");
 		expect(parsed.bodyLine).toBe(11);
@@ -55,9 +55,9 @@ describe("optional metadata", () => {
 		expect(parsed.raw + parsed.body).toBe(source);
 		expect(parsed.diagnostics).toEqual([]);
 	});
-	it("preserves unknown/invalid data and interprets the independent valid fields", () => {
+	it("preserves source bytes and refuses invalid vocabulary", () => {
 		const parsed = metadataParse("---\nid: work.search\nstatus: 7\ncriteria: keyboard\nrisk_budget: strict\n---\n# Readable\n");
-		expect(parsed.fields).toEqual({ id: "work.search" });
+		expect(parsed.fields).toEqual({});
 		expect(parsed.diagnostics.map((problem) => problem.field)).toEqual(["status", "criteria", "risk_budget"]);
 		expect(parsed.raw).toContain("risk_budget: strict");
 		expect(parsed.body).toBe("# Readable\n");

@@ -19,7 +19,7 @@ for (const conflicting of [false, true]) {
 					}
 					yield* client("fleet.reconcile", { workId: "one" });
 					const repaired = yield* fixture.started(client, "repair");
-					expect(repaired.stage).toBe("executing");
+					expect(repaired.step).toBe("working");
 					expect(repaired.attempts.at(-1)?.prompt).toContain("Keep the loading indicator visible.");
 					expect(repaired.attempts.at(-1)?.receipt?.sessionId).toBe(ready.attempts[0]?.receipt?.sessionId);
 					expect(repaired.responses?.at(-1)).toMatchObject({ boardAcknowledged: true, responseId: response.responseId });
@@ -46,7 +46,7 @@ for (const author of ["maintainer", "orchestrator"]) {
 						}
 						const response = fixture.answer(ready, "Preserve the empty state and add its regression test.", author);
 						const queued = yield* client("fleet.resolve", response);
-						expect(queued.stage).toBe("repairing");
+						expect(queued.step).toBe("repairing");
 						expect(queued.prompt).toContain("Preserve the empty state and add its regression test.");
 						expect(queued.checks).toBeUndefined();
 						expect(queued.review).toBeUndefined();
@@ -60,7 +60,7 @@ for (const author of ["maintainer", "orchestrator"]) {
 						yield* client("fleet.reconcile", { workId: "one" });
 						const launched = yield* fixture.started(client, "repair");
 						const repair = launched.attempts.at(-1);
-						expect(launched.stage).toBe("executing");
+						expect(launched.step).toBe("working");
 						expect(repair?.role).toBe("repair");
 						expect(repair?.receipt?.sessionId).toBe(resolved.ready.attempts[0]?.receipt?.sessionId);
 						expect(repair?.prompt).toContain("Preserve the empty state and add its regression test.");
@@ -69,7 +69,7 @@ for (const author of ["maintainer", "orchestrator"]) {
 						expect((yield* client("fleet.resolve", resolved.response)).attempts).toEqual(launched.attempts);
 						fixture.finishWorker(launched, MOVED);
 						const reviewed = yield* client("fleet.reconcile", { workId: "one" });
-						expect(reviewed.stage).toBe("needs-human");
+						expect(reviewed.step).toBe("waiting");
 						expect(reviewed.result).toMatchObject({ head: MOVED, pr: fixture.PR });
 						expect(reviewed.review).toMatchObject({ head: MOVED, verdict: "approved" });
 						expect(reviewed.checks).toMatchObject({ head: MOVED, passed: true });
@@ -108,7 +108,7 @@ test("answer text queues requested changes on the same branch and PR through dae
 			Effect.gen(function* () {
 				const ready = yield* fixture.ready(client);
 				const queued = yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" });
-				expect(queued.stage).toBe("repairing");
+				expect(queued.step).toBe("repairing");
 				expect(queued.responses?.at(-1)).toMatchObject({ action: "retry", boardAcknowledged: true });
 				yield* client("fleet.reconcile", { workId: "one" });
 				const reworked = yield* fixture.started(client, "repair");
@@ -126,7 +126,7 @@ test("answer without text retries a ready PR without requesting rework", () =>
 			Effect.gen(function* () {
 				const ready = yield* fixture.ready(client);
 				const retried = yield* answerAndWait(client, { workId: "one" });
-				expect(retried.stage).toBe("delivering");
+				expect(retried.step).toBe("delivering");
 				const waiting = yield* client("fleet.reconcile", { workId: "one" });
 				expect(waiting.decision?.code).toBe("reviewed-pr-ready");
 				expect(waiting.attempts).toEqual(ready.attempts);

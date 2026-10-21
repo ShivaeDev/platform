@@ -15,7 +15,7 @@ export const releaseMissingBoardWork = Effect.fn("Fleet.releaseMissingBoardWork"
 	error: unknown,
 ) {
 	const record = stored.value;
-	if (!missingBoardItem(error, record.workId) || ["completed", "released"].includes(record.stage) || executing(record)) {
+	if (!missingBoardItem(error, record.workId) || ["done", "released"].includes(record.step) || executing(record)) {
 		return undefined;
 	}
 	const released = yield* releaseFinishedWork(state, stored, `Board item no longer exists: ${record.workId}`);

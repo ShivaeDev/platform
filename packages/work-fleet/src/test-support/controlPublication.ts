@@ -101,7 +101,7 @@ export const controlPublication = storyKit({
 		stop: () => engine.close,
 		turns: () => engine.fixture.provider.settings.filter((call) => call.call === "turn"),
 		waitReleased: () =>
-			waitForRecord(engine.client, "one", (record) => record.stage === "released" && record.attempts[0]?.sessionCleanupComplete === true),
+			waitForRecord(engine.client, "one", (record) => record.step === "released" && record.attempts[0]?.sessionCleanupComplete === true),
 	}),
 });
 

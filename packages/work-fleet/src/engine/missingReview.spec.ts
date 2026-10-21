@@ -34,7 +34,7 @@ for (const readFailures of [false, true]) {
 				}
 			}
 			const queued = (yield* fleet.get("one")).value;
-			expect(queued.stage).toBe("reviewing");
+			expect(queued.step).toBe("reviewing");
 			expect(queued.decision).toBeUndefined();
 			expect(queued.attempts.at(-1)).toMatchObject({ operationId: missingReviewOperation(), sessionUnusable: true, status: "failed" });
 			expect(queued.attempts.at(-1)?.readRetry).toBeUndefined();
@@ -71,7 +71,7 @@ isolatedEngine.it(
 			yield* schedule();
 		}
 		const exhausted = (yield* fleet.get("one")).value;
-		expect(exhausted.stage).toBe("needs-human");
+		expect(exhausted.step).toBe("waiting");
 		expect(exhausted.decision?.reason).toContain("Provider at capacity; provider failure after 5 attempts");
 		expect(exhausted.launchRetry).toBeUndefined();
 		expect(providerStarts()).toHaveLength(6);

@@ -16,7 +16,7 @@ test("daemon relaunches a conflicting approved PR once per main revision across 
 					fixture.github.state.mergeable = "CONFLICTING";
 					yield* client("fleet.reconcile", { workId: "one" });
 					const repair = yield* fixture.started(client, "repair");
-					expect(repair.stage).toBe("executing");
+					expect(repair.step).toBe("working");
 					expect(repair.conflictRepairs).toEqual([BASE]);
 					expect(repair.review).toBeUndefined();
 					expect(repair.checks).toBeUndefined();
@@ -42,7 +42,7 @@ test("daemon relaunches a conflicting approved PR once per main revision across 
 					fixture.github.state.base = "d".repeat(40);
 					yield* client("fleet.reconcile", { workId: "one" });
 					const next = yield* fixture.started(client, "repair");
-					expect(next.stage).toBe("executing");
+					expect(next.step).toBe("working");
 					expect(next.conflictRepairs).toEqual([BASE, fixture.github.state.base]);
 					expect(repairAttempts(next)).toHaveLength(2);
 					expect(next.attempts.at(-1)?.prompt).toContain(fixture.github.state.base);

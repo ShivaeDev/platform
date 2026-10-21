@@ -15,8 +15,10 @@ ${JSON.stringify({
 		},
 	],
 	id: "decision.ship",
-	kind: "decision",
+	kind: "question",
 	relationships: [{ kind: "relates_to", target: "task.ship" }],
+	scope: "task",
+	urgency: "whenever",
 })}
 ---
 # Fleet decision for task.ship
@@ -38,7 +40,9 @@ Fleet stops watching this PR. The PR stays open.
 function decision(id: string, title: string, questions: string): string {
 	return `---
 id: decision.${id}
-kind: decision
+kind: question
+scope: task
+urgency: whenever
 attention:
   - id: direction
     kind: decision
@@ -77,8 +81,8 @@ export function todayRowsFixture(): Record<string, string> {
 		),
 		"responses/decision.ship.md": FLEET_DECISION,
 		"tasks/policy.md":
-			'---\nid: docs.policy\nkind: task\nstatus: planned\nowner: maintainer\nnext_action: "Planned: every export is supported API."\n---\n# Is every module supported API?\n',
-		"tasks/ship.md": "---\nid: task.ship\nkind: task\nstatus: active\nowner: codex\n---\n# Ship the upload fix\n",
+			'---\nid: docs.policy\nkind: task\nstatus: draft\nowner: marvin\nnext_action: "Draft: every export is supported API."\n---\n# Is every module supported API?\n',
+		"tasks/ship.md": "---\nid: task.ship\nkind: task\nstatus: ready\nowner: codex\n---\n# Ship the upload fix\n",
 	};
 }
 
@@ -105,7 +109,9 @@ export function todayContextFixture(): Record<string, string> {
 		),
 		"decisions/workaround.md": `---
 id: decision.workaround
-kind: decision
+kind: question
+scope: task
+urgency: whenever
 attention:
   - id: direction
     kind: decision

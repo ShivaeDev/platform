@@ -33,25 +33,25 @@ for (const continuous of [false, true]) {
 		continuous
 			? "watch --follow resyncs all work after an HTTP restart without repeating outcomes"
 			: "watch resyncs after the HTTP daemon restarts, preserving the selected set and printed outcomes",
-		[storedWork("a", "executing"), storedWork("b", "executing")],
+		[storedWork("a", "working"), storedWork("b", "working")],
 		function* (daemon) {
 			const port = daemon.port();
 			yield* daemon.follow("watcher", "watch", [], { follow: continuous, interval: 0.1 });
 			yield* daemon.awaitSnapshot();
-			yield* daemon.store("a", { stage: "released" });
+			yield* daemon.store("a", { stage: "released", step: "released" });
 			yield* daemon.awaitOutput("watcher", "a released\n");
 			yield* daemon.stop();
-			yield* daemon.store("b", { stage: "completed" });
-			yield* daemon.store("new", { stage: "executing" });
+			yield* daemon.store("b", { stage: "done", step: "done" });
+			yield* daemon.store("new", { stage: "working", step: "working" });
 			yield* daemon.start(port);
 			if (continuous) {
-				yield* daemon.awaitOutput("watcher", "b completed\n");
-				yield* daemon.store("new", { stage: "released" });
+				yield* daemon.awaitOutput("watcher", "b done\n");
+				yield* daemon.store("new", { stage: "released", step: "released" });
 				yield* daemon.awaitOutput("watcher", "new released\n");
-				expect(daemon.followerOutput("watcher")).toBe("a released\nb completed\nnew released\n");
+				expect(daemon.followerOutput("watcher")).toBe("a released\nb done\nnew released\n");
 				expect(daemon.followerRunning("watcher")).toBe(true);
 			} else {
-				expect(yield* daemon.followerExit("watcher")).toEqual({ code: 0, stderr: "", stdout: "a released\nb completed" });
+				expect(yield* daemon.followerExit("watcher")).toEqual({ code: 0, stderr: "", stdout: "a released\nb done" });
 			}
 		},
 		30_000,

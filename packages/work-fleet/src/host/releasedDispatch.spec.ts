@@ -8,16 +8,16 @@ import { task, withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { askWorker } from "#test/workerQuestion.ts";
 
-postgresTests("live")("release then dispatch restarts a needs-human item with an existing worker session under the same ID", function* () {
+postgresTests("live")("release then dispatch restarts a waiting item with an existing worker session under the same ID", function* () {
 	yield* withHost({ "one.md": task("one", "approved") }, {}, (fixture) =>
 		Effect.gen(function* () {
 			const first = yield* dispatchWork(fixture.host, "one", fixture.parts);
 			yield* askWorker(fixture.provider).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 			const [released] = yield* releaseWork(fixture.host, ["one"], fixture.parts);
-			expect(released?.value.stage).toBe("released");
+			expect(released?.value.step).toBe("released");
 			const dispatched = yield* dispatchWork(fixture.host, "one", fixture.parts);
-			expect(dispatched.value.stage).toBe("executing");
-			expect(dispatched.value.history?.[0]?.stage).toBe("released");
+			expect(dispatched.value.step).toBe("working");
+			expect(dispatched.value.history?.[0]?.step).toBe("released");
 			expect(dispatched.value.history?.[0]?.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 			expect(dispatched.value.attempts[0]?.receipt?.sessionId).not.toBe(first.value.attempts[0]?.receipt?.sessionId);
 			expect(dispatched.value.boardRevision).toBe(first.value.boardRevision);
@@ -26,7 +26,7 @@ postgresTests("live")("release then dispatch restarts a needs-human item with an
 				Effect.flatMap((fleet) => fleet.get("one")),
 				Effect.provide(hostLayer(fixture.host, fixture.parts)),
 			);
-			expect(current.value.stage).toBe("executing");
+			expect(current.value.step).toBe("working");
 		}),
 	);
 });

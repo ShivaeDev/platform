@@ -20,12 +20,12 @@ export function makeReview(state: EngineState) {
 	return Effect.fn("Fleet.makeReview")(function* (input: Versioned<FleetRecord>, work: BoardWork) {
 		let stored = input;
 		const result = stored.value.result;
-		if (result === undefined || stored.value.stage !== "reviewing") {
+		if (result === undefined || stored.value.step !== "reviewing") {
 			return stored;
 		}
 		yield* authorizeBriefContext(stored.value, work);
 		if (stored.value.reviewSkippedHead === result.head) {
-			return yield* save(stored, { ...stored.value, stage: "validating" });
+			return yield* save(stored, { ...stored.value, step: "validating" });
 		}
 		if (stored.value.launchRetry !== undefined && state.policy.now() < stored.value.launchRetry.retryAt) {
 			return stored;
@@ -60,7 +60,7 @@ function finishReviewObservation(state: EngineState) {
 		observation: SessionObservation,
 	) {
 		const stored = yield* makeDeliver(state)(input);
-		if (stored.value.stage === "released" || stored.value.result?.head !== result.head) {
+		if (stored.value.step === "released" || stored.value.result?.head !== result.head) {
 			return stored;
 		}
 		const currentWork = yield* state.board.get(work.workId);
@@ -99,12 +99,12 @@ function finishReview(state: EngineState) {
 		yield* validateReview(stored.value, review, result.head);
 		const reviewed = yield* save(stored, { ...stored.value, review });
 		const refreshed = yield* refreshReviewResult(state)(reviewed, work, result);
-		if (refreshed.value.result?.head !== review.head || refreshed.value.stage !== "reviewing") {
+		if (refreshed.value.result?.head !== review.head || refreshed.value.step !== "reviewing") {
 			return refreshed;
 		}
 		return yield* save(refreshed, {
 			...refreshed.value,
-			stage: review.verdict === "changes" && stored.value.reviewAdvisoryHead !== result.head ? "repairing" : "validating",
+			step: review.verdict === "changes" && stored.value.reviewAdvisoryHead !== result.head ? "repairing" : "validating",
 		});
 	});
 }

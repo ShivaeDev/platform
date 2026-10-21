@@ -8,7 +8,7 @@ export function queueAnswerCommand(state: EngineState) {
 			return yield* new BadRequest({ message: "Supply a nonempty answer of at most 32768 characters" });
 		}
 		const stored = yield* state.load(workId);
-		if (!["repairing", "executing"].includes(stored.value.stage)) {
+		if (!["repairing", "working"].includes(stored.value.step)) {
 			return yield* new Conflict({ message: "Decision changed" });
 		}
 		return yield* state.save(stored, { ...stored.value, pendingAnswers: [...(stored.value.pendingAnswers ?? []), text] });

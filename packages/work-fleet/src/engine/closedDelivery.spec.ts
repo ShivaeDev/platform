@@ -26,7 +26,7 @@ for (const scenario of ["conflicting", "moved"] as const) {
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
 			const ready = yield* fleet.reconcile("one");
-			expect(ready.value.stage).toBe("needs-human");
+			expect(ready.value.step).toBe("waiting");
 			expect(ready.value.review).toMatchObject({ head: HEAD, verdict: "approved" });
 			expect(ready.value.checks).toMatchObject({ head: HEAD, passed: true });
 			expect(executing(ready.value)).toBe(false);
@@ -39,7 +39,7 @@ for (const scenario of ["conflicting", "moved"] as const) {
 			}
 			movePullRequestHead(scenario === "moved" ? MOVED : HEAD);
 			const released = yield* fleet.reconcile("one");
-			expect(released.value.stage).toBe("released");
+			expect(released.value.step).toBe("released");
 			expect(released.value.releaseReason).toBe("Board status is done");
 			expect(released.value.outcome).toBeUndefined();
 			expect(released.value.decision).toBeUndefined();
@@ -67,7 +67,7 @@ for (const head of [HEAD, MOVED]) {
 			mergePullRequest();
 			movePullRequestHead(head);
 			const settled = yield* fleet.reconcile("one");
-			expect(settled.value.stage).toBe(head === HEAD ? "completed" : "released");
+			expect(settled.value.step).toBe(head === HEAD ? "done" : "released");
 			expect(settled.value.outcome).toEqual(head === HEAD ? { head: HEAD, revision: BASE, url: PR } : undefined);
 			expect(settled.value.releaseReason).toBe(head === HEAD ? undefined : `PR #7 merged by a human at ${head}; Fleet review covered ${HEAD}`);
 			expect(providerCalls()).toHaveLength(settings);

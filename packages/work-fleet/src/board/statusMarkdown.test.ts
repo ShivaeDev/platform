@@ -7,25 +7,19 @@ it("groups every waiting owner separately with one card per current work item", 
 	const active = statusRecord("task.active");
 	const human = {
 		attentionOwner: "maintainer" as const,
-		...statusRecord("task.human", "needs-human"),
+		...statusRecord("task.human", "waiting"),
 		decision: { id: "synthetic-decision", links: [], reason: "Delivery needs approval", recommendation: "Inspect delivery" },
 		result: { head: "synthetic-head", kind: "change", paths: [], pr: "https://example.test/pull/1" } as const,
 	};
-	const done = statusRecord("task.done", "completed");
-	const routine = statusRecord("task.routine", "needs-human");
+	const done = statusRecord("task.done", "done");
+	const routine = statusRecord("task.routine", "waiting");
 	const automation = {
 		...statusRecord("task.automation", "validating"),
 		checks: { evidence: [], head: "synthetic-head", passed: false, pending: true },
 	};
 	const source = statusMarkdown([done, human, routine, automation, statusRecord("task.released", "released"), active]);
 	const board = boardOf(source);
-	expect(board.sections.map(({ title }) => title)).toEqual([
-		"Active",
-		"Waiting on maintainer",
-		"Waiting on orchestrator",
-		"Waiting on automation",
-		"Done",
-	]);
+	expect(board.sections.map(({ title }) => title)).toEqual(["Active", "Waiting on you", "Waiting on orchestrator", "Waiting on automation", "Done"]);
 	expect(board.sections.map(({ items }) => items.length)).toEqual([1, 1, 1, 1, 1]);
 	expect(board.sections[2]?.items[0]).toContain("task.routine");
 	expect(board.sections[3]?.items[0]).toContain("task.automation");

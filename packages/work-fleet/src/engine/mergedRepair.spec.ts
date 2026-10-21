@@ -15,7 +15,7 @@ for (const failedChecks of [false, true]) {
 				yield* fleet.dispatch("one");
 				workerReports(REPORT);
 				const repairing = yield* fleet.reconcile("one");
-				expect(repairing.value.stage).toBe("executing");
+				expect(repairing.value.step).toBe("working");
 				expect(repairing.value.review?.verdict).toBe(failedChecks ? "approved" : "changes");
 				const guidance = "Keep the requested repair focused.";
 				yield* fleet.queueAnswer("one", guidance);
@@ -27,7 +27,7 @@ for (const failedChecks of [false, true]) {
 				const receipt = repairing.value.attempts.at(-1)?.receipt ?? (yield* Effect.die("Missing repair receipt"));
 				setTurnExecution(receipt, execution);
 				const released = yield* fleet.reconcile("one");
-				expect(released.value.stage).toBe("released");
+				expect(released.value.step).toBe("released");
 				expect(released.value.releaseReason).toBe(`PR #7 merged by a human at ${HEAD}; Fleet review covered ${HEAD}`);
 				expect(released.value.outcome).toBeUndefined();
 				expect(backlog(released.value)).toBe(false);

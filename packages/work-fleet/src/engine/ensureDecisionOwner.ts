@@ -8,7 +8,7 @@ export function ensureDecisionOwner(state: EngineState) {
 	return Effect.fn("Fleet.ensureDecisionOwner")(function* (stored: Versioned<FleetRecord>) {
 		const decision = stored.value.decision;
 		const owner = stored.value.attentionOwner ?? decision?.attentionOwner ?? "orchestrator";
-		if (stored.value.stage !== "needs-human" || decision === undefined || decision.attentionOwner === owner) {
+		if (stored.value.step !== "waiting" || decision === undefined || decision.attentionOwner === owner) {
 			return stored;
 		}
 		return yield* reassignCommand(state)(stored.value.workId, decision.id, owner);

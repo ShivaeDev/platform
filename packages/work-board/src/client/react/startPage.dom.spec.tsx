@@ -17,14 +17,14 @@ screenStory.it(
 			"Copy a template below.",
 			"Save it in this folder under the suggested name.",
 			"Change the example IDs to your own, and update the links that use them.",
-			"Fill in the real details. Start with the project, then the investigation and the result.",
+			"Fill in the real details. Start with the goal, then the investigation and the report.",
 		]);
 		const cards = findElements(".start-template");
-		expect(cards.map((card) => card.querySelector("h2")?.textContent)).toEqual(["Project", "Investigation", "Agent result"]);
-		expect(readText(".start-template [data-slot='card-description']")).toBe("Save as project.md");
-		yield* roles.click({ name: "Copy project template", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(readText(".start-template [data-copy-status]")).toBe("Copied. Save it as project.md.")));
-		const template = findElement<HTMLTextAreaElement>("#template-project\\.md");
+		expect(cards.map((card) => card.querySelector("h2")?.textContent)).toEqual(["Goal", "Investigation", "Report"]);
+		expect(readText(".start-template [data-slot='card-description']")).toBe("Save as goal.md");
+		yield* roles.click({ name: "Copy goal template", role: "button" });
+		yield* Effect.promise(() => eventually(() => expect(readText(".start-template [data-copy-status]")).toBe("Copied. Save it as goal.md.")));
+		const template = findElement<HTMLTextAreaElement>("#template-goal\\.md");
 		expect(yield* Effect.promise(() => navigator.clipboard.readText())).toBe(template?.value);
 	},
 );

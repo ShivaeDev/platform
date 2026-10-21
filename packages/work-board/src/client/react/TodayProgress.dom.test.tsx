@@ -12,7 +12,7 @@ screenStory.it(
 			Array.from({ length: 8 }, (_, index) => `task.sample.${index}`),
 		);
 		expect(readText('[data-progress-id="task.sample.0"]')).toBe("Workspace task 0FleetPR ↗");
-		for (const stage of ["executing", "reviewing", "repairing", "adopting"]) {
+		for (const stage of ["working", "reviewing", "working", "working"]) {
 			expect(readText()).not.toContain(stage);
 		}
 		expect(readText("[data-progress-id] a")).toBe("Workspace task 0");

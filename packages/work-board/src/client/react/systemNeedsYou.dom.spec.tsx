@@ -23,8 +23,8 @@ for (const [state, workspace, shown] of [
 				"Running / concurrency cap",
 				"Queued",
 				"Needs you",
-				"Waiting on the orchestrator",
-				"Waiting on Fleet agents",
+				"Waiting on orchestrator",
+				"Waiting on automation",
 				"Last scheduler pass",
 				"Last provider capacity rejection",
 			]);

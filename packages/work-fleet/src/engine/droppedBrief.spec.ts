@@ -12,7 +12,7 @@ engine.it(
 		expect((yield* fleet.reconcile("one")).value.decision?.code).toBe("reviewed-pr-ready");
 		const starts = providerStarts();
 		writeBoardWork("one.md", `${boardBrief().replace("kind: task", "kind: task\nstatus: dropped")}\nChanged scope.\n`);
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("released");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("released");
 		expect(providerStarts()).toEqual(starts);
 	},
 );

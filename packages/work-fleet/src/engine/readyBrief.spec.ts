@@ -29,7 +29,7 @@ for (const field of ["criteria", "body"]) {
 				const current = field === "criteria" ? original.replace("Original behavior.", "Changed behavior.") : `${original}\nChanged scope.\n`;
 				files.write("one.md", current);
 				const continued = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
-				expect(continued.value.stage).toBe("executing");
+				expect(continued.value.step).toBe("working");
 				expect(continued.value.boardContext).toBe(current);
 				expect(continued.value.boardRevision).toBe(briefRevision(metadataParse(current)));
 				expect(continued.value.result).toEqual(ready.value.result);
@@ -59,7 +59,7 @@ for (const field of ["criteria", "body"]) {
 		));
 }
 
-for (const change of ["unapproved", "owner", "done", "superseded", "deferred"]) {
+for (const change of ["unapproved", "owner", "done", "dropped", "deferred"]) {
 	test(`${change} edits to a ready brief do not resume its worker`, () =>
 		withFleetBoard({ denyDelivery: true }, (fixture, root, source) =>
 			Effect.gen(function* () {
@@ -74,8 +74,8 @@ for (const change of ["unapproved", "owner", "done", "superseded", "deferred"]) 
 				const current = changedReadyBrief(edited, change);
 				boardHttpFiles(root).write("one.md", current);
 				const held = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
-				expect(held.value.stage).toBe(["unapproved", "owner"].includes(change) ? "needs-human" : "released");
-				if (held.value.stage === "needs-human") {
+				expect(held.value.step).toBe(["unapproved", "owner"].includes(change) ? "waiting" : "released");
+				if (held.value.step === "waiting") {
 					expect(held.value.decision?.reason).toBe("Board context changed");
 				}
 				expect(held.value.boardContext).toBe(original);
@@ -87,10 +87,10 @@ for (const change of ["unapproved", "owner", "done", "superseded", "deferred"]) 
 
 function changedReadyBrief(source: string, change: string) {
 	if (change === "unapproved") {
-		return source.replace("fleet: approved", "fleet: draft");
+		return source.replace("fleet: approved", "fleet: held");
 	}
 	if (change === "owner") {
-		return source.replace("owner: codex", "owner: maintainer");
+		return source.replace("owner: codex", "owner: marvin");
 	}
 	return source.replace("kind: task", `kind: task\nstatus: ${change}`);
 }

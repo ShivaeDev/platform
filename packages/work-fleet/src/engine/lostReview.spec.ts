@@ -34,7 +34,7 @@ for (const exhausted of [false, true]) {
 				}
 				const queued = (yield* fleet.get("one")).value;
 				expect(providerReadCount()).toBe(failure * 5);
-				expect(queued.stage).toBe("reviewing");
+				expect(queued.step).toBe("reviewing");
 				expect(queued.decision).toBeUndefined();
 				expect(queued.attempts.at(-1)).toMatchObject({ role: "reviewer", sessionUnusable: true, status: "failed" });
 				expect(queued.attempts.at(-1)?.readRetry).toBeUndefined();

@@ -78,9 +78,9 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				const run = yield* withReadDaemon(fixture.host, () => Effect.promise(() => cliProcess(args, options)), {
 					parts: { ...fixture.parts, provider: hostProvider(fixture.host) },
 				});
-				expect(run).toEqual({ code: 0, stdout: "one executing" });
+				expect(run).toEqual({ code: 0, stdout: "one working" });
 				expect(errors).toBe("");
-				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: executing");
+				expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("Stage: working");
 				expect(JSON.parse(readFileSync(join(fixture.host.boardDir, "fleet/health.json"), "utf8"))).toMatchObject({
 					running: 1,
 					waiting: { automation: 0, maintainer: 0, orchestrator: 0 },
@@ -96,7 +96,7 @@ const continuationStory = Effect.fn("FleetHostTest.continuationStory")(function*
 				expect(status.active[0]?.sessions[0]?.turnId).toBe("continued-turn");
 				expect(yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 50, port, timeoutMs: 300, workId: "one" }))).toEqual({
 					code: WAIT_EXIT.timeout,
-					summary: "one still executing: wait timed out",
+					summary: "one still working: wait timed out",
 				});
 				terminal = true;
 				const completed = yield* Effect.gen(function* () {

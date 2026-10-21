@@ -8,9 +8,9 @@ import type { Versioned } from "#storage/model.ts";
 
 export const observeExecution = Effect.fn("Fleet.observeExecution")(function* (state: EngineState, input: Versioned<FleetRecord>) {
 	let stored = input;
-	if (stored.value.stage === "executing" && stored.value.attempts.at(-1)?.receipt === undefined) {
+	if (stored.value.step === "working" && stored.value.attempts.at(-1)?.receipt === undefined) {
 		stored = yield* reconcileBrief(state, stored);
-		if (stored.value.stage === "needs-human") {
+		if (stored.value.step === "waiting") {
 			return { stopped: true, stored };
 		}
 	}
@@ -18,7 +18,7 @@ export const observeExecution = Effect.fn("Fleet.observeExecution")(function* (s
 		Effect.catch((error) =>
 			Effect.gen(function* () {
 				const current = yield* state.load(stored.value.workId);
-				if (missingAcceptedTurn(error) && current.value.stage !== "needs-human") {
+				if (missingAcceptedTurn(error) && current.value.step !== "waiting") {
 					const recovered = yield* recoverMissingTurn(state, current, undefined, error.threadIdle);
 					if (recovered !== undefined) {
 						return recovered;

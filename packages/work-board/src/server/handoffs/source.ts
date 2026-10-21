@@ -27,7 +27,7 @@ export function handoffSource(root: string, realRoot: string, snapshot: Effect.E
 			}),
 		);
 		const fields = metadataParse(context).fields;
-		if (fields.id !== item || fields.kind === "question" || fields.kind === "response" || fields.kind === "handoff") {
+		if (fields.id !== item || fields.kind === "question" || fields.response !== undefined || fields.handoff !== undefined) {
 			return yield* Effect.fail(new PreconditionFailed({ message: "Choose a current project item for this handoff." }));
 		}
 		if (new TextEncoder().encode(context).length > 256 * 1024) {

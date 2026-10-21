@@ -23,7 +23,7 @@ export const waitFor = Effect.fn("FleetWait.waitFor")(function* (options: WaitOp
 		Stream.tap((state) =>
 			Effect.sync(() => {
 				if (state !== undefined) {
-					last = `${state.stage}${waitingOwner(state) === undefined ? "" : ` (waiting on ${waitingOwner(state)})`}${state.blocker === undefined ? "" : `: ${state.blocker}`}`;
+					last = `${state.stage}${waitingOwner({ ...state, step: state.stage }) === undefined ? "" : ` (waiting on ${waitingOwner({ ...state, step: state.stage })})`}${state.blocker === undefined ? "" : `: ${state.blocker}`}`;
 					outcome = settled(options.workId, state);
 				}
 			}),

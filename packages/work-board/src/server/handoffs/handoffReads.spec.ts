@@ -6,7 +6,7 @@ import { recordedReads } from "#test/readTraits.ts";
 import { aHandoffTask } from "#test/storyTraits.ts";
 
 const SOURCE =
-	"---\nid: task.keyboard\nkind: task\nstatus: in-review\nnext_action: Verify focus before changing the implementation\n---\n# Keyboard focus\n";
+	"---\nid: task.keyboard\nkind: task\nstatus: ready\nnext_action: Verify focus before changing the implementation\n---\n# Keyboard focus\n";
 
 boardStory.it(
 	"prepares a handoff by rereading only the handoff it wrote",

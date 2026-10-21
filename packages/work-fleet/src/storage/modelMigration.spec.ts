@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { legacyVocabulary } from "#test/legacyVocabulary.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
 import { isolatedStorage } from "#test/storageStory.ts";
 
@@ -14,7 +15,7 @@ test.it(
 		yield* sql`select setval(pg_get_serial_sequence(${`${namespace}_records`}, 'admission_order'), 9007199254740993, false)`;
 		const values = migrationRecords();
 		for (const [index, value] of values.entries()) {
-			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, ${index + 7}, ${JSON.stringify(value)}::jsonb)`;
+			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, ${index + 7}, ${JSON.stringify(legacyVocabulary(value))}::jsonb)`;
 		}
 		yield* sql`insert into ${sql(`${namespace}_foreign_reservations`)} (owner, executing, backlog) values ('external', false, true)`;
 		const before = yield* sql`select work_id, admission_order from ${sql(`${namespace}_records`)} order by admission_order`;
@@ -62,13 +63,13 @@ test.it(
 		if (value === undefined) {
 			return yield* Effect.die("Missing migration fixture");
 		}
-		const invalid = { ...value, mergeReadyAt: "invalid-number" };
+		const invalid = legacyVocabulary({ ...value, mergeReadyAt: "invalid-number" });
 		yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, 9, ${JSON.stringify(invalid)}::jsonb)`;
 		expect((yield* migrate(namespace).pipe(Effect.exit))._tag).toBe("Failure");
 		const rows = yield* sql`select version, payload from ${sql(`${namespace}_records`)} where work_id = ${value.workId}`;
 		expect(rows).toEqual([{ payload: invalid, version: 9 }]);
 		expect(yield* sql`select migration_id from ${sql(`${namespace}_migrations`)} where migration_id = 5`).toEqual([]);
-		yield* sql`update ${sql(`${namespace}_records`)} set payload = ${JSON.stringify(value)}::jsonb where work_id = ${value.workId}`;
+		yield* sql`update ${sql(`${namespace}_records`)} set payload = ${JSON.stringify(legacyVocabulary(value))}::jsonb where work_id = ${value.workId}`;
 		const store = yield* openFleetStore({ namespace });
 		yield* migrate(namespace);
 		expect(yield* store.load(value.workId)).toEqual({ value, version: 9 });

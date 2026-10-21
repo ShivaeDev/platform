@@ -57,7 +57,7 @@ export function newEngineState(): EngineStory {
 
 export function running(state: EngineStory) {
 	if (state.runtime === undefined) {
-		throw new Error("Fleet has not started; configure it before the engine stage finishes");
+		throw new Error("Fleet has not started; configure it before the engine step finishes");
 	}
 	return state.runtime;
 }

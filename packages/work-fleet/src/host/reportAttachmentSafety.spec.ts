@@ -10,7 +10,7 @@ import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { addedAttachment, attachmentBoard, turnDownload } from "#test/reportAttachments.ts";
 
-const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
+const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
 const cases = [
 	{ items: () => [addedAttachment("../escape", "safe")], name: "path escape", reason: "Unsafe attachment path" },
 	{
@@ -51,7 +51,7 @@ describe("Unavailable report attachments", () => {
 					const result = yield* Effect.gen(function* () {
 						return yield* (yield* Fleet).reconcile("research");
 					}).pipe(Effect.provide(hostLayer(fixture.host, parts)));
-					expect(result.value.stage).toBe("completed");
+					expect(result.value.step).toBe("done");
 					expect(result.value.decision).toBeUndefined();
 					const report = result.value.report;
 					if (report === undefined) {

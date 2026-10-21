@@ -39,14 +39,14 @@ postgresTests("test")("a wedged repair automatically starts a fresh thread on th
 				yield* fleet.reconcile("one");
 				const blocked = yield* fleet.reconcile("one");
 				expect(blocked.value.decision).toBeUndefined();
-				expect(blocked.value.stage).toBe("repairing");
+				expect(blocked.value.step).toBe("repairing");
 				expect(blocked.value.launchRetry?.retryAt).toBe(30_100);
 				expect(blocked.value.attempts.at(-1)).toMatchObject({ role: "repair", sessionUnusable: true, status: "failed" });
 				yield* fixture.restart(fleet.reconcile("one"));
 				expect(fixture.starts).toHaveLength(2);
 				now = 30_100;
 				const repair = yield* fixture.restart(fleet.reconcile("one"));
-				expect(repair.value.stage).toBe("executing");
+				expect(repair.value.step).toBe("working");
 				expect(repair.value.result).toEqual(blocked.value.result);
 				const attempt = repair.value.attempts.at(-1);
 				expect(attempt?.role).toBe("repair");

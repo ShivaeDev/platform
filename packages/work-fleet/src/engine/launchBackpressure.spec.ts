@@ -15,7 +15,7 @@ describe("Fleet launch backpressure", () => {
 				yield* fleet.prepareWork("one");
 				yield* fleet.schedule();
 				const queued = (yield* fleet.get("one")).value;
-				expect(queued.stage).toBe("prepared");
+				expect(queued.step).toBe("queued");
 				expect(queued.launchRetry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
 				expect(queued.attempts[0]).toMatchObject({ output: QUEUE_FULL, status: "failed" });
 				expect(executing(queued)).toBe(false);
@@ -24,7 +24,7 @@ describe("Fleet launch backpressure", () => {
 				expect(status).toContain("Active (0)");
 				expect(status).toContain("Waiting on automation (1)");
 				expect(status).toContain("Waiting for provider capacity; last rejection 1970-01-01T00:00:00.100Z");
-				expect(status).toContain("Waiting on maintainer (0)");
+				expect(status).toContain("Waiting on you (0)");
 				expect(status).toContain("Waiting on orchestrator (0)");
 				fleet.recoverProvider();
 				fleet.advanceTime(30_099 - fleet.currentTime());
@@ -35,7 +35,7 @@ describe("Fleet launch backpressure", () => {
 				yield* fleet.restart();
 				yield* fleet.schedule();
 				const accepted = (yield* fleet.get("one")).value;
-				expect(accepted.stage).toBe("executing");
+				expect(accepted.step).toBe("working");
 				expect(accepted.launchRetry).toBeUndefined();
 				expect(accepted.attempts.at(-1)?.receipt).toBeDefined();
 				expect(fleet.launches()).toHaveLength(rejectedCall === "turn" ? 1 : 2);
@@ -65,16 +65,16 @@ describe("Fleet launch backpressure", () => {
 		}
 		fleet.recoverProvider();
 		expect((yield* fleet.schedule()).dispatched).toHaveLength(2);
-		expect((yield* fleet.list()).map(({ value }) => value.stage)).toEqual(["executing", "executing"]);
+		expect((yield* fleet.list()).map(({ value }) => value.step)).toEqual(["working", "working"]);
 		expect(fleet.publishedDecisions()).toEqual([]);
 	});
-	engine.it("a permanent rejection reaches needs-human without stopping other launches", [permanentProviderRejection()], function* (fleet) {
+	engine.it("a permanent rejection reaches waiting without stopping other launches", [permanentProviderRejection()], function* (fleet) {
 		yield* fleet.prepareWork("one");
 		yield* fleet.prepareWork("two");
 		expect((yield* fleet.schedule()).dispatched).toHaveLength(2);
 		expect((yield* fleet.get("one")).value).toMatchObject({
 			decision: { code: "session-rejected", reason: QUEUE_FULL },
-			stage: "needs-human",
+			step: "waiting",
 		});
 		expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 		expect(fleet.publishedDecisions()).toHaveLength(2);
@@ -100,7 +100,7 @@ describe("Fleet launch backpressure", () => {
 			yield* fleet.schedule();
 			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 			const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
-			expect(status).toContain("Waiting on maintainer (1)");
+			expect(status).toContain("Waiting on you (1)");
 			expect(status).toContain("Work is no longer approved");
 			expect(status).not.toContain("Waiting for provider capacity");
 			expect(fleet.launches()).toHaveLength(1);

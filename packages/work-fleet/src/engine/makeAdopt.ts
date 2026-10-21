@@ -13,7 +13,7 @@ import type { Versioned } from "#storage/model.ts";
 export function makeAdopt(state: EngineState) {
 	const { integrations, save } = state;
 	return Effect.fn("Fleet.makeAdopt")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
-		if (stored.value.stage !== "adopting") {
+		if (stored.value.step !== "adopting") {
 			return stored;
 		}
 		yield* authorizeBriefContext(stored.value, work);
@@ -51,7 +51,7 @@ export function makeAdopt(state: EngineState) {
 			&& stored.value.review?.head === result.head
 			&& stored.value.review.verdict === "approved"
 		) {
-			return yield* save(stored, { ...stored.value, checks: undefined, result, stage: "validating" });
+			return yield* save(stored, { ...stored.value, checks: undefined, result, step: "validating" });
 		}
 		return yield* save(stored, {
 			...stored.value,

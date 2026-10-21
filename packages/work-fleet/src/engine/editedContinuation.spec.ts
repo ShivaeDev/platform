@@ -28,14 +28,14 @@ for (const action of ["continue", "answer", "daemon answer"] as const) {
 							type: "answer",
 						})
 						.pipe(Effect.flatMap((answer) => (action === "answer" ? fleet.resolve("one", decision.id, answer.id) : fleet.reconcile("one"))));
-		expect(continued.value.stage).toBe("executing");
+		expect(continued.value.step).toBe("working");
 		expect(continued.value.boardContext).toBe(edited);
 		expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(first.value.attempts[0]?.receipt?.sessionId);
 		expect(continued.value.attempts.at(-1)?.prompt).toContain("Fleet approved an edited brief");
 		expect(continued.value.attempts.at(-1)?.prompt).toContain(edited);
 		expect(continued.value.attempts.at(-1)?.prompt).toContain(action === "continue" ? "Keep working" : "Use PostgreSQL");
 		expect(continued.value.pendingAnswers).toBeUndefined();
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("working");
 	});
 }
 
@@ -78,12 +78,12 @@ isolatedEngine.it("continue retries a daemon save made during provider observati
 	expect(observed.version).toBeGreaterThan(waiting.version);
 	yield* observation.resume;
 	const continued = yield* Fiber.join(continuing);
-	expect(continued.value.stage).toBe("executing");
+	expect(continued.value.step).toBe("working");
 	expect(continued.value.history?.[0]?.blocker).toBe("Human requested clarification: response.defer");
 	expect(continued.value.attempts).toEqual([expect.objectContaining({ prompt: "Use PostgreSQL", role: "repair" })]);
 });
 
-isolatedEngine.it("unchanged needs-human reconciliation leaves storage untouched", [markdownWork()], function* (fleet) {
+isolatedEngine.it("unchanged waiting reconciliation leaves storage untouched", [markdownWork()], function* (fleet) {
 	yield* fleet.prepareWork("one");
 	yield* fleet.dispatch("one");
 	yield* fleet.workerQuestion("one", "Which storage should I use?");

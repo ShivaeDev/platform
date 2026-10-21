@@ -16,7 +16,7 @@ import { postgresTests } from "#test/postgres.ts";
 
 const test = postgresTests("live");
 const invalid = task("broken", "approved").replace("kind: task", "kind: task\nnext_action: Inspect: evidence");
-const NAMED_PROBLEM = "Board metadata is invalid: broken.md (line 4: Nested mappings are not allowed in compact mappings";
+const NAMED_PROBLEM = "Board metadata is invalid: broken.md (frontmatter: line 4: Nested mappings are not allowed in compact mappings";
 
 test("invalid unrelated metadata does not block admission and a later pass admits its repaired source", () =>
 	withHost({ "broken.md": invalid, "one.md": task("one", "approved") }, {}, (fixture) =>
@@ -26,13 +26,13 @@ test("invalid unrelated metadata does not block admission and a later pass admit
 			expect(failures[0]).toContain(NAMED_PROBLEM);
 			yield* cycle;
 			const fleet = yield* Fleet;
-			expect((yield* fleet.get("one")).value.stage).toBe("executing");
+			expect((yield* fleet.get("one")).value.step).toBe("working");
 			expect((yield* fleet.list()).map(({ value }) => value.workId)).toEqual(["one"]);
 			fixture.write("broken.md", task("broken", "approved"));
 			expect(yield* admitApproved(fixture.host)).toEqual([]);
 			yield* cycle;
-			expect((yield* fleet.get("broken")).value.stage).toBe("executing");
-			expect((yield* fleet.get("one")).value.stage).toBe("executing");
+			expect((yield* fleet.get("broken")).value.step).toBe("working");
+			expect((yield* fleet.get("one")).value.step).toBe("working");
 			expect(fixture.provider.launched).toHaveLength(2);
 		}).pipe(Effect.provide(fleetHostLayer(fixture.host, fixture.parts)), Effect.provide(NodeServices.layer)),
 	));
@@ -42,7 +42,7 @@ for (const [kind, source, diagnostic] of [
 	[
 		"invalid field",
 		task("one", "approved").replace("kind: task", "kind: task\nunexpected: value"),
-		"Board metadata is invalid: one.md (line 4: Unknown field unexpected; kept in the original frontmatter.)",
+		"Board metadata is invalid: one.md (unexpected: line 4: Unknown field unexpected; kept in the original frontmatter.)",
 	],
 ] as const) {
 	test(`unrelated errors preserve running work and its own ${kind} reaches status, logs and the published decision`, () => {
@@ -58,7 +58,7 @@ for (const [kind, source, diagnostic] of [
 				yield* cycle;
 				for (const id of ["one", "two"]) {
 					const running = (yield* fleet.get(id)).value;
-					expect(running.stage).toBe("executing");
+					expect(running.step).toBe("working");
 					expect(running.decision).toBeUndefined();
 				}
 				const after = (yield* fleet.get("one")).value;
@@ -68,10 +68,10 @@ for (const [kind, source, diagnostic] of [
 				fixture.write("one.md", source);
 				yield* cycle;
 				const stopped = (yield* fleet.get("one")).value;
-				expect(stopped.stage).toBe("needs-human");
+				expect(stopped.step).toBe("waiting");
 				expect(stopped.decision?.reason).toContain(diagnostic);
 				expect(stopped.decisionPublished).toBe(true);
-				expect((yield* fleet.get("two")).value.stage).toBe("executing");
+				expect((yield* fleet.get("two")).value.step).toBe("working");
 				const records = (yield* fleet.list()).map(({ value }) => value);
 				for (const status of [renderStatus(views(records)), statusMarkdown(records)]) {
 					expect(status).toContain(diagnostic);

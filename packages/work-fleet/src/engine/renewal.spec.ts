@@ -11,7 +11,7 @@ describe("context-bound Fleet renewal", () => {
 		const first = yield* fleet.dispatch("one");
 		fleet.editWork("one", "board-one-next");
 		fleet.finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 		fleet.approveWork("one", "board-one-next");
 		yield* fleet.restart();
 
@@ -32,7 +32,7 @@ describe("context-bound Fleet renewal", () => {
 		expect(renewed.value.checks).toBeUndefined();
 		expect(renewed.value.outcome).toBeUndefined();
 		expect(renewed.value.decision).toBeUndefined();
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
 		expect(fleet.launches()).toHaveLength(2);
 	});
 	engine.it("an authored stop observes the existing terminal turn without resuming before explicit renewal", [noChangeReported()], function* (fleet) {
@@ -43,14 +43,14 @@ describe("context-bound Fleet renewal", () => {
 		expect(stopped.value.decision?.reason).toBe("Board context changed");
 		fleet.finishWorkers();
 		const observed = yield* fleet.reconcile("one");
-		expect(observed.value.stage).toBe("needs-human");
+		expect(observed.value.step).toBe("waiting");
 		expect(observed.value.decision).toEqual(stopped.value.decision);
 		expect(observed.value.boardRevision).toBe("board-one");
 		expect(observed.value.attempts[0]?.status).toBe("completed");
 		expect(fleet.providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
 		fleet.approveWork("one", "board-one-next");
 		const renewed = yield* fleet.prepareWork("one");
-		expect(renewed.value.stage).toBe("prepared");
+		expect(renewed.value.step).toBe("queued");
 		expect(renewed.value.history?.[0]?.attempts[0]?.receipt).toEqual(stopped.value.attempts[0]?.receipt);
 	});
 	for (const lostAcknowledgement of [false, true]) {
@@ -67,12 +67,12 @@ describe("context-bound Fleet renewal", () => {
 			},
 		);
 	}
-	engine.it("completed work renews only a newly approved context and preserves outcome, review and checks", [], function* (fleet) {
+	engine.it("done work renews only a newly approved context and preserves outcome, review and checks", [], function* (fleet) {
 		yield* fleet.prepareWork("one");
 		yield* fleet.dispatch("one");
 		fleet.finishWorkers();
 		const completed = yield* fleet.reconcile("one");
-		expect(completed.value.stage).toBe("completed");
+		expect(completed.value.step).toBe("done");
 		expect(completed.value.outcome).toBeDefined();
 		expect(completed.value.review).toBeDefined();
 		expect(completed.value.checks).toBeDefined();
@@ -81,37 +81,33 @@ describe("context-bound Fleet renewal", () => {
 		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 		fleet.approveWork("one", "board-one-next");
 		const renewed = yield* fleet.prepareWork("one");
-		expect(renewed.value.stage).toBe("prepared");
+		expect(renewed.value.step).toBe("queued");
 		expect(renewed.value.history?.[0]?.outcome).toEqual(completed.value.outcome);
 		expect(renewed.value.history?.[0]?.review).toEqual(completed.value.review);
 		expect(renewed.value.history?.[0]?.checks).toEqual(completed.value.checks);
 		expect(renewed.value.history?.[0]?.boardContext).toContain("board-one");
 		expect(renewed.value.outcome).toBeUndefined();
 	});
-	engine.it(
-		"archiving completed attempts does not reset fresh observed quota or permit historic acknowledgement",
-		[availableQuota(2)],
-		function* (fleet) {
-			yield* fleet.prepareWork("one");
-			yield* fleet.dispatch("one");
-			fleet.finishWorkers();
-			const completed = yield* fleet.reconcile("one");
-			fleet.editWork("one", "board-one-next");
-			fleet.approveWork("one", "board-one-next");
-			yield* fleet.prepareWork("one");
-			const prior = completed.value.attempts[0];
-			if (prior?.receipt === undefined) {
-				return yield* Effect.die("The completed worker has no accepted receipt");
-			}
-			expect(yield* Effect.flip(fleet.acknowledgeProviderTurn(prior.operationId, prior.receipt))).toMatchObject({
-				_tag: "SessionFailure",
-				reason: "persistence",
-			});
-			expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "Forbidden" });
-			expect(fleet.launches()).toHaveLength(2);
-			expect((yield* fleet.get("one")).value.attempts).toEqual([]);
-		},
-	);
+	engine.it("archiving done attempts does not reset fresh observed quota or permit historic acknowledgement", [availableQuota(2)], function* (fleet) {
+		yield* fleet.prepareWork("one");
+		yield* fleet.dispatch("one");
+		fleet.finishWorkers();
+		const completed = yield* fleet.reconcile("one");
+		fleet.editWork("one", "board-one-next");
+		fleet.approveWork("one", "board-one-next");
+		yield* fleet.prepareWork("one");
+		const prior = completed.value.attempts[0];
+		if (prior?.receipt === undefined) {
+			return yield* Effect.die("The done worker has no accepted receipt");
+		}
+		expect(yield* Effect.flip(fleet.acknowledgeProviderTurn(prior.operationId, prior.receipt))).toMatchObject({
+			_tag: "SessionFailure",
+			reason: "persistence",
+		});
+		expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "Forbidden" });
+		expect(fleet.launches()).toHaveLength(2);
+		expect((yield* fleet.get("one")).value.attempts).toEqual([]);
+	});
 	engine.it("renewal conserves an adopted open PR backlog reservation and relaunches the same scope", [humanMergeRequired()], function* (fleet) {
 		yield* fleet.prepareWork("one");
 		yield* fleet.dispatch("one");
@@ -121,7 +117,7 @@ describe("context-bound Fleet renewal", () => {
 		expect(renewed.value.history?.[0]?.resultObservations).toEqual([denied.value.result]);
 		expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
 		expect(fleet.launches()).toHaveLength(3);
 	});
 });

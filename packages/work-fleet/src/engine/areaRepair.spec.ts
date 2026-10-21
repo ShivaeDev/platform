@@ -26,7 +26,7 @@ for (const released of [false, true]) {
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const ready = (yield* fleet.reconcile("one")).value;
-			expect(ready).toMatchObject({ mergeReadyAt: 100, stage: "needs-human" });
+			expect(ready).toMatchObject({ mergeReadyAt: 100, step: "waiting" });
 			if (released) {
 				advanceTime(5000);
 			}
@@ -34,7 +34,7 @@ for (const released of [false, true]) {
 			yield* schedule();
 			expect((yield* fleet.get("two")).value).toMatchObject({
 				attempts: [{ status: "failed" }],
-				stage: "prepared",
+				step: "queued",
 			});
 			expect((yield* fleet.get("one")).value.mergeAreasReleased).toBe(released ? true : undefined);
 			recoverProvider();
@@ -48,7 +48,7 @@ for (const released of [false, true]) {
 			yield* restart();
 			yield* schedule();
 			const repaired = (yield* fleet.get("one")).value;
-			expect(repaired.stage).toBe("executing");
+			expect(repaired.step).toBe("working");
 			expect(repaired.blocker).toBeUndefined();
 			expect(repaired.mergeAreasReleased).toBeUndefined();
 			expect(repaired.result).toEqual(ready.result);
@@ -63,7 +63,7 @@ for (const released of [false, true]) {
 			expect((yield* fleet.get("two")).value).toMatchObject({
 				attempts: [{ status: "failed" }],
 				blocker: "waiting for area fleet/host held by one",
-				stage: "prepared",
+				step: "queued",
 			});
 			expect((yield* fleet.get("one")).value.attempts.map((attempt) => attempt.operationId)).toEqual(
 				repaired.attempts.map((attempt) => attempt.operationId),

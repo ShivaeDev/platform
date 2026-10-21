@@ -13,7 +13,9 @@ const NEXT = "Waiting on question.pool. Then close goal.old, see notes/plan.md a
 const FILES = {
 	"agents.md": `---
 id: decision.size
-kind: decision
+kind: question
+scope: task
+urgency: whenever
 attention:
   - id: review
     kind: decision
@@ -24,14 +26,14 @@ attention:
 ---
 # Pool size review
 `,
-	"goal.md": "---\nid: goal.old\nkind: project\nstatus: done\n---\n# Finished goal\n",
+	"goal.md": "---\nid: goal.old\nkind: goal\nstatus: done\n---\n# Finished goal\n",
 	"home.md": "# Home",
 	"notes/plan.md": "# The pooling plan\n",
 	"other.md":
-		"---\nid: question.other\nkind: question\nstatus: open\nrelationships:\n  - kind: relates_to\n    target: goal.old\n---\n# Another question\n",
+		"---\nid: question.other\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\nrelationships:\n  - kind: relates_to\n    target: goal.old\n---\n# Another question\n",
 	"question.md":
-		"---\nid: question.pool\nkind: question\nstatus: open\nrelationships:\n  - kind: relates_to\n    target: task.pool\n---\n# Your pooling design\n\nHow should the tests share connections?\n",
-	"task.md": `---\nid: task.pool\nkind: task\nstatus: planned\nnext_action: "${NEXT}"\n---\n# Pool the scale tests\n`,
+		"---\nid: question.pool\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\nrelationships:\n  - kind: relates_to\n    target: task.pool\n---\n# Your pooling design\n\nHow should the tests share connections?\n",
+	"task.md": `---\nid: task.pool\nkind: task\nstatus: draft\nnext_action: "${NEXT}"\n---\n# Pool the scale tests\n`,
 };
 const TASK = "/_board/item/task.pool/";
 
@@ -43,7 +45,7 @@ screenStory.it(
 		const rows = [...findElements(`${HEADER} [data-waiting-on]`)];
 		expect(rows.map((row) => [row.getAttribute("data-waiting-on"), row.textContent])).toEqual([
 			["you", "Waiting on you: Your pooling designAnswer"],
-			["agents", "Waiting on agents: Pool size review"],
+			["agents", "Waiting on automation: Pool size review"],
 		]);
 		const [you, agents] = rows;
 		expect(you?.className).toContain("bg-needs-you/10");
@@ -63,7 +65,7 @@ screenStory.it(
 			{
 				...FILES,
 				"agents.md": FILES["agents.md"].replace("state: open", "state: closed"),
-				"question.md": FILES["question.md"].replace("status: open", "status: done"),
+				"question.md": FILES["question.md"].replace("status: ready", "status: done"),
 			},
 			TASK,
 			{ home: "home.md" },
@@ -87,7 +89,7 @@ screenStory.it(
 			mention.querySelector("[data-status-token]")?.textContent ?? null,
 		]);
 		expect(mentions).toEqual([
-			["question.pool", "Your pooling design", "/_board/item/question.pool/", "Open"],
+			["question.pool", "Your pooling design", "/_board/item/question.pool/", "Ready"],
 			["goal.old", "Finished goal", "/_board/item/goal.old/", "Done"],
 			["notes/plan.md", "The pooling plan", "/notes/plan.md", null],
 		]);

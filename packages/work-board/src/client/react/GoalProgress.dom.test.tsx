@@ -6,7 +6,7 @@ import { GoalProgress } from "./GoalProgress.tsx";
 for (const compact of [false, true]) {
 	screenStory.it(
 		`shows done work on the stock progress bar with a quiet done count (compact: ${compact})`,
-		[componentScreen(<GoalProgress compact={compact} counts={{ done: 31, "in progress": 5, "needs you": 2, planned: 2 }} title="A goal" />)],
+		[componentScreen(<GoalProgress compact={compact} counts={{ deferred: 2, done: 31, draft: 2, dropped: 0, ready: 5 }} title="A goal" />)],
 		({ readAttribute, readText, findElements }) => {
 			expect(findElements('[data-slot="progress"][role="progressbar"]')).toHaveLength(1);
 			expect(readAttribute('[role="progressbar"]', "aria-label")).toBe("A goal: 31 of 40 done");
@@ -21,7 +21,7 @@ for (const compact of [false, true]) {
 
 screenStory.it(
 	"shows zero linked work as an empty bar without dividing by zero",
-	[componentScreen(<GoalProgress counts={{ done: 0, "in progress": 0, "needs you": 0, planned: 0 }} title="Empty goal" />)],
+	[componentScreen(<GoalProgress counts={{ deferred: 0, done: 0, draft: 0, dropped: 0, ready: 0 }} title="Empty goal" />)],
 	({ readText, readAttribute }) => {
 		expect(readText('[data-slot="progress-value"]')).toBe("0 of 0 done");
 		expect(readAttribute('[role="progressbar"]', "aria-valuenow")).toBe("0");

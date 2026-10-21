@@ -39,7 +39,7 @@ for (const fault of ["unavailable", "hanging", "mismatch"] as const) {
 						yield* TestClock.adjust("5 seconds");
 					}
 					const released = yield* Fiber.join(resolving);
-					expect(released.value.stage).toBe("released");
+					expect(released.value.step).toBe("released");
 					expect(released.value.attempts[0]?.abandoned).toMatchObject({
 						interruptError: expect.any(String),
 						observation: { execution: "running", output: stalled.value.attempts[0]?.output },

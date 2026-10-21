@@ -10,8 +10,8 @@ export function openSweep(record: FleetRecord | FleetCycleSnapshot): boolean {
 		&& !sweepMerged(record)
 		&& record.sweepClosed !== true
 		&& record.decision?.code !== "pr-closed"
-		&& record.stage !== "completed"
-		&& (record.stage !== "released" || record.result?.kind === "change")
+		&& record.step !== "done"
+		&& (record.step !== "released" || record.result?.kind === "change")
 	);
 }
 
@@ -28,7 +28,7 @@ export function touchesSweep(sweep: FleetRecord, paths: readonly string[]): bool
 }
 
 export function sweepRepair(record: FleetRecord): boolean {
-	return openSweep(record) && record.stage === "repairing" && !executing(record);
+	return openSweep(record) && record.step === "repairing" && !executing(record);
 }
 
 export function acquiresMergeReadiness(record: FleetRecord, previous: FleetRecord | undefined): boolean {
@@ -63,7 +63,7 @@ export const checkSweeps = Effect.fn("Fleet.checkSweeps")(function* (
 	const sweep = records
 		.flatMap(sweepCycles)
 		.find((entry) => openSweep(entry) && (entry.workId !== record.workId || entry.attempts[0]?.operationId !== record.attempts[0]?.operationId));
-	if (sweep !== undefined && previous?.stage === "prepared" && record.attempts.at(-1)?.role === "worker") {
+	if (sweep !== undefined && previous?.step === "queued" && record.attempts.at(-1)?.role === "worker") {
 		return yield* Effect.fail(new StorageAdmission({ message: `waiting for sweep ${sweep.workId}` }));
 	}
 	const repair = others.find(sweepRepair);

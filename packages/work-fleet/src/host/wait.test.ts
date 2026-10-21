@@ -17,10 +17,10 @@ describe("work-fleet wait against PostgreSQL and HTTP", () => {
 });
 
 const terminalStates = Effect.fn("WaitTest.terminalStates")(function* (fixture: HostFixture) {
-	yield* storeState(fixture.host, "done", { outcome: { url: "https://example.test/pull/1" }, stage: "completed" });
-	yield* storeState(fixture.host, "stuck", { decision: { reason: "Independent review rejected the change" }, stage: "needs-human" });
-	yield* storeState(fixture.host, "gone", { stage: "released" });
-	yield* storeState(fixture.host, "busy", { blocker: "Worker is running", stage: "executing" });
+	yield* storeState(fixture.host, "done", { outcome: { url: "https://example.test/pull/1" }, stage: "done", step: "done" });
+	yield* storeState(fixture.host, "stuck", { decision: { reason: "Independent review rejected the change" }, stage: "waiting", step: "waiting" });
+	yield* storeState(fixture.host, "gone", { stage: "released", step: "released" });
+	yield* storeState(fixture.host, "busy", { blocker: "Worker is running", stage: "working", step: "working" });
 	const runs = yield* withReadDaemon(fixture.host, () =>
 		Effect.promise(() =>
 			Promise.all([
@@ -32,10 +32,10 @@ const terminalStates = Effect.fn("WaitTest.terminalStates")(function* (fixture: 
 		),
 	);
 	expect(runs).toEqual([
-		{ code: WAIT_EXIT.completed, stdout: "done completed: https://example.test/pull/1" },
-		{ code: WAIT_EXIT.waitingDecision, stdout: "stuck needs-human (waiting on orchestrator): Independent review rejected the change" },
+		{ code: WAIT_EXIT.completed, stdout: "done done: https://example.test/pull/1" },
+		{ code: WAIT_EXIT.waitingDecision, stdout: "stuck waiting (waiting on orchestrator): Independent review rejected the change" },
 		{ code: WAIT_EXIT.released, stdout: "gone released" },
-		{ code: WAIT_EXIT.timeout, stdout: "busy still executing (waiting on orchestrator): Worker is running: wait timed out" },
+		{ code: WAIT_EXIT.timeout, stdout: "busy still working (waiting on orchestrator): Worker is running: wait timed out" },
 	]);
 });
 
@@ -43,7 +43,7 @@ const lateStory = Effect.fn("WaitTest.lateStory")(function* (fixture: HostFixtur
 	yield* withFollower(fixture.configFile, "wait", ["late"], {}, (follower) =>
 		Effect.gen(function* () {
 			yield* Effect.promise(() => follower.ready);
-			yield* storeState(fixture.host, "late", { stage: "released" });
+			yield* storeState(fixture.host, "late", { stage: "released", step: "released" });
 			yield* untilOutput(follower, "late released");
 			expect(yield* Effect.promise(() => follower.done)).toMatchObject({ code: WAIT_EXIT.released, stdout: "late released" });
 		}),

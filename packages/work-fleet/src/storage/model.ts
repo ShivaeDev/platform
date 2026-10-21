@@ -39,6 +39,7 @@ const rowFields = {
 	launchRetry: Schema.NullOr(Schema.Boolean),
 	outcome: Schema.NullOr(Schema.Boolean),
 	stage: Schema.NullOr(Schema.String),
+	step: Schema.optional(Schema.NullOr(Schema.String)),
 	version: Model.Field({ select: Schema.Number, update: Schema.Number }),
 	"work_id": Schema.String,
 };

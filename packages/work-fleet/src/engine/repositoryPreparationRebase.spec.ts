@@ -16,7 +16,7 @@ for (const scenario of [
 			yield* fleet.prepare({ cwd: "/synthetic", preparation, prompt: "Implement one", workId: "one" });
 			const launched = (yield* fleet.dispatch("one")).value;
 			expect(launched.decision).toBeUndefined();
-			expect(launched.stage).toBe("executing");
+			expect(launched.step).toBe("working");
 			expect(launched.preparation).toEqual({ ...preparation, baseRevision: "current-main", observedAt: 200 });
 			expect(fleet.providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one"]);
 		},
@@ -30,7 +30,7 @@ engine.it(
 		const preparation = prepared({ contextComplete: false, ownedPaths: ["src/one.ts"] });
 		yield* fleet.prepare({ cwd: "/synthetic", preparation, prompt: "Implement one", workId: "one" });
 		const stopped = (yield* fleet.dispatch("one")).value;
-		expect(stopped).toMatchObject({ decision: { code: "incomplete-context" }, preparation, stage: "needs-human" });
+		expect(stopped).toMatchObject({ decision: { code: "incomplete-context" }, preparation, step: "waiting" });
 		expect(fleet.providerStarts()).toEqual([]);
 	},
 );

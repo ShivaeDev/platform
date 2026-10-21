@@ -15,13 +15,13 @@ test("continuing work waiting on a human merge retains the reviewed head and wor
 			const first = yield* fleet.dispatch("one");
 			finishWorkers(fixture);
 			const ready = yield* fleet.reconcile("one");
-			expect(ready.value.stage).toBe("needs-human");
+			expect(ready.value.step).toBe("waiting");
 			expect(ready.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 			expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 			expect(ready.value.review?.head).toBe(ready.value.result?.head);
 			expect(ready.value.checks).toMatchObject({ head: ready.value.result?.head, passed: true });
 			const continued = yield* fleet.continue("one", "Change again");
-			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.step).toBe("working");
 			expect(continued.value.attentionOwner).toBeUndefined();
 			expect(continued.value.history?.[0]?.attentionOwner).toBe("orchestrator");
 			expect(continued.value.result).toEqual(ready.value.result);
@@ -82,7 +82,7 @@ test("continuation does not use an archived worker from a different thread after
 			fixture.approveWork("one", "renewed-board");
 			yield* prepareWork("one");
 			fixture.rejectNextTurn();
-			expect((yield* fleet.dispatch("one")).value.stage).toBe("needs-human");
+			expect((yield* fleet.dispatch("one")).value.step).toBe("waiting");
 			expect(yield* fleet.continue("one", "Keep the current thread").pipe(Effect.flip)).toMatchObject({
 				message: "Continue requires an existing worker receipt",
 			});

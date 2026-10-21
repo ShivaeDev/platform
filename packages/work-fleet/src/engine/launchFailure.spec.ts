@@ -9,7 +9,7 @@ describe("launch failure ownership", () => {
 		function* (fleet) {
 			yield* fleet.prepareWork("one");
 			const failed = yield* fleet.dispatch("one");
-			expect(failed.value.stage).toBe("needs-human");
+			expect(failed.value.step).toBe("waiting");
 			expect(failed.value.attempts[0]).toMatchObject({ sessionId: "session-operation-1", status: "submitting" });
 			const decisionId = failed.value.decision?.id ?? "missing";
 			yield* fleet.resolve("one", decisionId, fleet.respond(decisionId, "retry"));
@@ -17,7 +17,7 @@ describe("launch failure ownership", () => {
 
 			yield* fleet.dispatch("one");
 			const recovered = yield* fleet.reconcile("one");
-			expect(recovered.value.stage).toBe("needs-human");
+			expect(recovered.value.step).toBe("waiting");
 			expect(recovered.value.attempts).toEqual(failed.value.attempts);
 			expect(fleet.launches()).toEqual(["operation-1"]);
 		},

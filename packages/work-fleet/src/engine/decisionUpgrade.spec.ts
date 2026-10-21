@@ -106,7 +106,9 @@ isolatedEngine.it(
 		expect(renewed.history?.[0]?.decisionAcknowledged).toBe(true);
 		fleet.writeBoardWork(published.sourcePath, oldSource);
 		const before = fleet.publishedDocuments();
-		expect(before.filter((entry) => entry.parsed.fields.kind === "decision").map((entry) => entry.file)).toEqual([published.sourcePath]);
+		expect(
+			before.filter((entry) => entry.parsed.fields.kind === "question" && entry.parsed.fields.question === undefined).map((entry) => entry.file),
+		).toEqual([published.sourcePath]);
 		expect(before.find((entry) => entry.file === published.sourcePath)?.parsed.fields.attention).toMatchObject([{ state: "open" }]);
 		yield* fleet.runUpgrade();
 		const after = fleet.publishedDocuments();

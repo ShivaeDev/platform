@@ -11,7 +11,7 @@ describe("report file failure decisions", () => {
 	] as const) {
 		test(`parks ${scenario} with the file and its cause`, function* () {
 			const { parked, stored, path, launched } = yield* reportFileFailureCase(scenario);
-			expect(parked.stage).toBe("needs-human");
+			expect(parked.step).toBe("waiting");
 			expect(parked.decision?.reason).toBe(`${path}: ${cause}`);
 			expect(stored.decision?.reason).toBe(`${path}: ${cause}`);
 			expect(parked.report).toBeUndefined();

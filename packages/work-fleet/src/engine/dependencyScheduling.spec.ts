@@ -18,7 +18,7 @@ engine.it(
 		expect((yield* fleet.get("dependent")).value.blocker).toContain("waiting for dependency two");
 		for (const id of ["one", "two"]) {
 			finishWorkers();
-			expect((yield* fleet.reconcile(id)).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile(id)).value.step).toBe("done");
 			yield* restart();
 			yield* schedule();
 		}
@@ -39,15 +39,15 @@ engine.it(
 		expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 		expect((yield* fleet.get("dependent")).value.blocker).toContain("not done on the Board");
 		setBoardStatus("external", "done");
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		setDependencies("two", ["one"]);
 		setBoardStatus("one", "done");
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		expect(yield* fleet.dispatch("two").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* fleet.get("two")).value.blocker).toContain("Fleet work is still active (prepared)");
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("released");
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.get("two")).value.blocker).toContain("Fleet work is still active (queued)");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("released");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 	},
 );
 
@@ -60,9 +60,9 @@ engine.it(
 		yield* prepareWork("dependent");
 		yield* prepareWork("one");
 		expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
 		finishWorkers();
 		yield* fleet.reconcile("one");
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 	},
 );

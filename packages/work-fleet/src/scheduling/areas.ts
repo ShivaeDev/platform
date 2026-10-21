@@ -22,7 +22,7 @@ export function mergeWaitExpired(record: FleetRecord, now: number, mergeWaitMs: 
 		ready !== undefined
 		&& Number.isFinite(ready)
 		&& now - ready >= mergeWaitMs
-		&& record.stage === "needs-human"
+		&& record.step === "waiting"
 		&& !executing(record)
 		&& record.result?.kind === "change"
 		&& record.mergeReadyHead === head
@@ -34,9 +34,9 @@ export function mergeWaitExpired(record: FleetRecord, now: number, mergeWaitMs: 
 
 export function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): boolean {
 	return (
-		!["completed", "released"].includes(record.stage)
+		!["done", "released"].includes(record.step)
 		&& record.attempts.length > 0
-		&& (record.stage !== "prepared" || executing(record))
+		&& (record.step !== "queued" || executing(record))
 		&& record.mergeAreasReleased !== true
 		&& !mergeWaitExpired(record, now, mergeWaitMs)
 	);
@@ -85,7 +85,7 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	}
 	const ahead = records
 		.slice(0, index)
-		.find((entry) => entry.stage === "prepared" && scheduling.waiters.includes(entry.workId) && overlappingArea(areas, entry.areas) !== undefined);
+		.find((entry) => entry.step === "queued" && scheduling.waiters.includes(entry.workId) && overlappingArea(areas, entry.areas) !== undefined);
 	if (ahead !== undefined) {
 		const queuedArea = overlappingArea(areas, ahead.areas);
 		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${queuedArea} queued ahead by ${ahead.workId}` }));
@@ -93,7 +93,5 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 });
 
 export function requeue(record: FleetRecord, previous: FleetRecord): boolean {
-	return (
-		record.stage === "prepared" && record.attempts.length === 0 && (previous.stage !== "prepared" || previous.boardRevision !== record.boardRevision)
-	);
+	return record.step === "queued" && record.attempts.length === 0 && (previous.step !== "queued" || previous.boardRevision !== record.boardRevision);
 }

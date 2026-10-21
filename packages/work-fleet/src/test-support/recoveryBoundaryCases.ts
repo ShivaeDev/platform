@@ -43,7 +43,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 				resultQuery: () => Effect.succeed({ evidence: ["Criteria already met"], head: HEAD, kind: "no-change" }),
 			},
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 				expect(after.result?.kind).toBe("no-change");
 			},
 			restore: () =>
@@ -80,7 +80,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 			name: "delivery reader unavailable",
 			options: { deliveryQuery: githubDelivery(readDelivery) },
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 			},
 			restore: () =>
 				Effect.sync(() => {

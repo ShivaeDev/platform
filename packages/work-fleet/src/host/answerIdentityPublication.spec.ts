@@ -18,7 +18,7 @@ answers.it("an interrupted response identity commit cannot publish an answer tha
 	yield* identity.release;
 	yield* host.start();
 	const current = yield* host.applied();
-	expect(current.stage).toBe("executing");
+	expect(current.step).toBe("working");
 	expect(current.pendingAnswers).toBeUndefined();
 	expect(current.responses).toHaveLength(1);
 	expect(host.providerSessions()).toBe(1);

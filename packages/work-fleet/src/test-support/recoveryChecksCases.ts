@@ -52,7 +52,7 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 			progress: (_ctx, _before, after) => {
 				expect(requests).toBe(0);
 				expect(after.checks).toBeUndefined();
-				expect(after.stage).toBe("released");
+				expect(after.step).toBe("released");
 			},
 			restore: (ctx: RecoveryContext) =>
 				Effect.sync(() => {

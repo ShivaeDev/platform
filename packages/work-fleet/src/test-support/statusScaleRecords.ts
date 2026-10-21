@@ -8,11 +8,11 @@ export function statusScaleRecords(): ReturnType<typeof statusRecord>[] {
 	return Array.from(
 		{ length: 2000 },
 		(_, index): ReturnType<typeof statusRecord> => ({
-			...statusRecord(`item-${String(index).padStart(4, "0")}`, index < 100 ? "executing" : "completed"),
+			...statusRecord(`item-${String(index).padStart(4, "0")}`, index < 100 ? "working" : "done"),
 			attempts: [{ operationId: `operation-${index}`, output, prompt, role: "worker", status: "completed", submittedAt: 1 }],
 			boardContext: context,
 			completedAt: index < 100 || index % 2 === 0 ? undefined : 1000 + index,
-			history: [{ ...Struct.omit(statusRecord("archived", "completed"), ["workId"]), archivedAt: 1, prompt }],
+			history: [{ ...Struct.omit(statusRecord("archived", "done"), ["workId"]), archivedAt: 1, prompt }],
 			prompt,
 			updatedAt: 1000 + index,
 		}),
@@ -32,7 +32,8 @@ export function statusScaleRecords(): ReturnType<typeof statusRecord>[] {
 							recommendation: "Use PostgreSQL",
 						},
 						result: { head: "synthetic-head", kind: "change", paths: ["src/example.ts"], pr: "https://github.com/example/project/pull/1" },
-						stage: "needs-human",
+						stage: "waiting",
+						step: "waiting",
 					}
 				: record,
 	);

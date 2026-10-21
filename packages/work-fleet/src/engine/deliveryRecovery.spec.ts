@@ -14,12 +14,12 @@ describe("Fleet delivery ownership", () => {
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const ambiguous = yield* fleet.reconcile("one");
-			expect(ambiguous.value.stage).toBe("delivering");
+			expect(ambiguous.value.step).toBe("delivering");
 			expect(ambiguous.value.decision).toBeUndefined();
 			expect(ambiguous.value.blocker).toContain("observation unavailable");
 			expect(ambiguous.value.attentionOwner).toBe("automation");
 			advanceTime(30_100 - currentTime());
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(mergedHeads()).toHaveLength(1);
 			expect(reviewedHeads()).toHaveLength(1);
 		},
@@ -35,7 +35,7 @@ describe("Fleet delivery ownership", () => {
 			yield* fleet.resolve("one", denied.value.decision?.id ?? "missing", respond(denied.value.decision?.id ?? "missing", "release"));
 			expect(yield* foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 			yield* fleet.prepare({ cwd: "/synthetic", preparation: prepared({ ownedPaths: ["src/one.ts"] }), prompt: "Same scope", workId: "two" });
-			expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		},
 	);
 	engine.it(

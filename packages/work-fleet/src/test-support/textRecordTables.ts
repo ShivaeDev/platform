@@ -1,13 +1,14 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { legacyColumns } from "#storage/legacyColumns.ts";
+import { legacyVocabulary } from "#test/legacyVocabulary.ts";
 import { migrateFleet } from "#test/migrateFleet.ts";
 
 export const textRecordTables = Effect.fn("FleetFixture.textRecordTables")(function* (namespace: string, records: readonly object[]) {
 	const sql = yield* SqlClient.SqlClient;
 	yield* migrateFleet(namespace, "pending_answers");
 	for (const [index, record] of records.entries()) {
-		const value: Record<string, unknown> = { ...record };
+		const value = legacyVocabulary(record);
 		const fields = Object.fromEntries(
 			Object.entries(legacyColumns).map(([name, kind]) => {
 				const field = value[name];

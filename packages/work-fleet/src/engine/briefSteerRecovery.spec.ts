@@ -62,7 +62,7 @@ postgresTests("test")("a provider without steering records the failure and keeps
 				const current = `${source}\nChanged scope.\n`;
 				boardHttpFiles(root).write("one.md", current);
 				const approved = yield* fleet.reconcile("one");
-				expect(approved.value.stage).toBe("executing");
+				expect(approved.value.step).toBe("working");
 				expect(renderStatus(views([approved.value]))).toContain("failed: Provider does not support steering");
 				finishWorkers(fixture);
 				const review = yield* fleet.reconcile("one");
@@ -98,7 +98,7 @@ postgresTests("test")("a repair turn can receive a revision already steered into
 	),
 );
 
-postgresTests("test")("an edit observed after worker completion reaches review without steering the completed turn", () =>
+postgresTests("test")("an edit observed after worker completion reaches review without steering the done turn", () =>
 	withFleetBoard({ reviewRunning: true }, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;

@@ -27,7 +27,7 @@ postgresTests("test")("a queue-full answer retries the exact response as a worke
 				const answer = yield* answerWorker(root, decision);
 				reject = true;
 				const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
-				expect(queued.stage).toBe("repairing");
+				expect(queued.step).toBe("repairing");
 				expect(queued.responses).toHaveLength(1);
 				reject = false;
 				now = 30_099;
@@ -80,7 +80,7 @@ postgresTests("test")("a queued answer continues on its existing thread after an
 				yield* fixture.restart(cycle);
 				const accepted = (yield* fleet.get("one")).value;
 				const attempt = accepted.attempts.at(-1);
-				expect(accepted.stage).toBe("executing");
+				expect(accepted.step).toBe("working");
 				expect(accepted.decision).toBeUndefined();
 				expect(accepted.boardContext).toBe(current);
 				expect(accepted.launchRetry).toBeUndefined();

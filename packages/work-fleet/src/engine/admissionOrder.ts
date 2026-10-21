@@ -9,7 +9,7 @@ const ranks: Readonly<Record<Priority, number>> = { high: 1, low: 3, normal: 2, 
 
 export function admissionOrder(state: EngineState) {
 	return Effect.fn("Fleet.admissionOrder")(function* (records: readonly Versioned<FleetRecord>[]) {
-		const prepared = records.filter(({ value }) => value.stage === "prepared");
+		const prepared = records.filter(({ value }) => value.step === "queued");
 		const ranked = yield* Effect.forEach(prepared, (entry) =>
 			retryPending(state, entry.value)
 				? Effect.succeed({ entry, rank: ranks.normal })

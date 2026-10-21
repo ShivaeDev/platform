@@ -10,17 +10,17 @@ it.live("follow prints unfamiliar codes, stages and malformed entries beside kno
 		Effect.gen(function* () {
 			yield* Effect.promise(() => server.subscribed);
 			server.send([
-				{ decision: { code: "future-decision", reason: "New decision" }, futureField: { value: true }, stage: "needs-human", workId: "new" },
-				{ decision: { code: "worker-question", reason: "Known decision" }, stage: "needs-human", workId: "known" },
-				{ futureField: true, stage: "future-stage", workId: "future" },
-				{ decision: { reason: 42 }, stage: "needs-human", workId: "malformed" },
+				{ decision: { code: "future-decision", reason: "New decision" }, futureField: { value: true }, stage: "waiting", workId: "new" },
+				{ decision: { code: "worker-question", reason: "Known decision" }, stage: "waiting", workId: "known" },
+				{ futureField: true, stage: "future-step", workId: "future" },
+				{ decision: { reason: 42 }, stage: "waiting", workId: "malformed" },
 			]);
-			yield* untilOutput(follower, "known needs-human (waiting on orchestrator): Known decision\n");
-			yield* untilOutput(follower, "new needs-human (waiting on orchestrator): New decision: future-decision\n");
-			yield* untilOutput(follower, "future future-stage\n");
-			yield* untilOutput(follower, 'malformed needs-human: {"decision":{"reason":42},"stage":"needs-human","workId":"malformed"}\n');
-			server.send([{ stage: "completed", workId: "later" }]);
-			yield* untilOutput(follower, "later completed\n");
+			yield* untilOutput(follower, "known waiting (waiting on orchestrator): Known decision\n");
+			yield* untilOutput(follower, "new waiting (waiting on orchestrator): New decision: future-decision\n");
+			yield* untilOutput(follower, "future future-step\n");
+			yield* untilOutput(follower, 'malformed waiting: {"decision":{"reason":42},"stage":"waiting","workId":"malformed"}\n');
+			server.send([{ stage: "done", workId: "later" }]);
+			yield* untilOutput(follower, "later done\n");
 			expect(follower.isRunning()).toBe(true);
 		}),
 	);

@@ -99,13 +99,16 @@ screenStory.it(
 	"marks empty Now lanes and keeps Done closed until the reader opens it",
 	[nowScreen(6, WorkNow, nowFleet(3, Effect.runSync(Clock.currentTimeMillis)))],
 	function* ({ findElements, readText, roles }) {
-		expect(readText('section[aria-label="Delivering"]')).toBe("Delivering0Nothing deliveringWork that Fleet is merging appears here.");
+		expect(readText('section[aria-label="Waiting on automation"]')).toBe(
+			"Waiting on automation0Nothing waiting on automationWork waiting on automation appears here.",
+		);
 		expect(findElements(".work-columns > section").map((lane) => lane.getAttribute("aria-label"))).toEqual([
 			"Queued",
-			"Executing",
+			"Working",
 			"Reviewing",
-			"Delivering",
-			"Waiting on a person",
+			"Waiting on you",
+			"Waiting on orchestrator",
+			"Waiting on automation",
 		]);
 		const done = { name: "Done in the last 7 days", role: "button" } as const;
 		expect(document.querySelector('section[aria-label="Done in the last 7 days"] [data-item]')).toBeNull();
@@ -178,7 +181,7 @@ screenStory.it(
 	"counts in the sidebar the same open tasks the Now lanes show",
 	[
 		screenFiles(
-			{ ...fleetWorkspace, "tasks/later.md": "---\nid: task.later\nkind: task\nstatus: planned\n---\n# Plan the later work\n" },
+			{ ...fleetWorkspace, "tasks/later.md": "---\nid: task.later\nkind: task\nstatus: draft\n---\n# Plan the later work\n" },
 			{ home: "home.md" },
 		),
 		screenFleet(fleetWorkspaceItems(Effect.runSync(Clock.currentTimeMillis))),
@@ -211,15 +214,15 @@ screenStory.it(
 		}
 		yield* Effect.promise(() => eventually(() => expect(menu("Sort by")).toBeDefined()));
 		yield* roles.click(`#${CSS.escape(menu("Owner")?.id ?? "")}`);
-		yield* roles.click({ name: "maintainer", role: "option" });
-		yield* Effect.promise(() => eventually(() => expect(workRouteParams().get("owner")).toBe("value:maintainer")));
+		yield* roles.click({ name: "marvin", role: "option" });
+		yield* Effect.promise(() => eventually(() => expect(workRouteParams().get("owner")).toBe("value:marvin")));
 		yield* Effect.promise(() =>
 			eventually(() => expect(findElements("[data-item]").map((card) => card.getAttribute("data-item"))).toEqual(["task.pricing"])),
 		);
 		yield* roles.click(`#${CSS.escape(menu("Sort by")?.id ?? "")}`);
 		yield* roles.click({ name: "Owner", role: "option" });
 		yield* Effect.promise(() =>
-			eventually(() => expect(Object.fromEntries(workRouteParams())).toEqual({ owner: "value:maintainer", sort: "owner", view: "board" })),
+			eventually(() => expect(Object.fromEntries(workRouteParams())).toEqual({ owner: "value:marvin", sort: "owner", view: "board" })),
 		);
 	},
 );

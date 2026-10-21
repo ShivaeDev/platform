@@ -8,9 +8,7 @@ boardStory.it("rejects registration retries after the durable question file is m
 	const question = yield* Effect.promise(() => workspace.register());
 	renameSync(join(workspace.notes.root, `responses/${question.id}.md`), join(workspace.notes.root, "moved.md"));
 	yield* Effect.promise(() =>
-		expect
-			.poll(async () => (await workspace.client.run(workspace.client.api.library.run({ showFleet: true }))).files)
-			.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })])),
+		expect.poll(async () => (await workspace.client.run(workspace.client.api.document.run({ url: "/moved.md" }))).metadata.id).toBe(question.id),
 	);
 	yield* Effect.promise(() =>
 		expect(workspace.register()).rejects.toMatchObject({
@@ -52,9 +50,7 @@ boardStory.it("rejects response retries after the saved reply is moved by an ext
 	yield* Effect.promise(() => workspace.client.mutate(workspace.client.responses.recordResponse.run(input)));
 	renameSync(join(workspace.notes.root, "responses/response.edge.md"), join(workspace.notes.root, "moved.md"));
 	yield* Effect.promise(() =>
-		expect
-			.poll(async () => (await workspace.client.run(workspace.client.api.library.run({ showFleet: true }))).files)
-			.toEqual(expect.arrayContaining([expect.objectContaining({ href: "/moved.md" })])),
+		expect.poll(async () => (await workspace.client.run(workspace.client.api.document.run({ url: "/moved.md" }))).metadata.id).toBe("response.edge"),
 	);
 	yield* Effect.promise(() =>
 		expect(workspace.client.mutate(workspace.client.responses.recordResponse.run(input))).rejects.toMatchObject({

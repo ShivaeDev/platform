@@ -15,7 +15,7 @@ import type { ShellApi } from "./ShellApi.ts";
 import { StatusChip } from "./StatusChip.tsx";
 import { shellIds } from "./shellIds.ts";
 
-const dots = { done: "bg-done", "in progress": "bg-agent-working", "needs you": "bg-needs-you", planned: "bg-deferred" } as const;
+const dots = { deferred: "bg-needs-you", done: "bg-done", draft: "bg-deferred", dropped: "bg-deferred", ready: "bg-agent-working" } as const;
 
 export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; readonly document: Document }) {
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -34,7 +34,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 					<Skeleton className="h-3 w-2/3" />
 				</Loading>
 			) : null}
-			{goal === undefined && !progress.pending ? <p role="status">Progress is available for uniquely identified projects.</p> : null}
+			{goal === undefined && !progress.pending ? <p role="status">Progress is available for uniquely identified goals.</p> : null}
 			{Option.isSome(progress.cause) && <p role="status">Goal progress refresh failed.</p>}
 		</section>
 	);
@@ -59,6 +59,13 @@ function GoalSummary({ goal }: { readonly goal: GoalsProjection["goals"][number]
 			</p>
 			<GoalProgress counts={goal.counts} size="large" title="Linked work" />
 			<GoalCountList counts={goal.counts} />
+			{goal.lanes?.map((lane) => (
+				<section aria-label={lane.title} key={lane.id}>
+					<a href={`/_board/item/${lane.id}/`}>{lane.title}</a>
+					<GoalProgress counts={lane.counts} title={lane.title} />
+					<GoalCountList counts={lane.counts} />
+				</section>
+			))}
 			<GoalBreakdown goal={goal} />
 		</>
 	);

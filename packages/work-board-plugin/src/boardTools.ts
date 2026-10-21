@@ -79,13 +79,12 @@ export async function overview({ ask, now }: Board) {
 }
 
 export async function item({ ask }: Board, id: string) {
-	const [document, fleet, inbox] = await ask([documentAt(identityUrl(id)), query("fleetItems"), query("inbox")]);
+	const [document, fleet] = await ask([documentAt(identityUrl(id)), query("fleetItems")]);
 	const metadata = isRecord(document) && isRecord(document.metadata) ? document.metadata : {};
 	const ready = isRecord(fleet) && fleet.state === "ready";
 	const held = ready
 		? [...records(fleet.items), ...records(fleet.completed)].find((entry) => entry.workId === id && entry.stage !== "released")
 		: undefined;
-	const waiting = records(isRecord(inbox) ? inbox.you : undefined).find((row) => row.id === id);
 	return {
 		criteria: metadata.criteria ?? [],
 		fleet: ready ? { item: held ?? null, state: "ready" } : fleet,
@@ -93,17 +92,6 @@ export async function item({ ask }: Board, id: string) {
 		openDecisions: records(isRecord(document) ? document.requests : undefined).filter((request) => request.open === true),
 		owner: metadata.owner,
 		relationships: metadata.relationships ?? [],
-		status: cardStatus(metadata, held, text(waiting?.reason)),
+		status: text(metadata.status),
 	};
-}
-
-function cardStatus(metadata: Record<string, unknown>, fleet: Record<string, unknown> | undefined, waiting: string | undefined): string | undefined {
-	if (fleet !== undefined) {
-		const stage = text(fleet.stage);
-		if (stage === "needs-human") {
-			return "needs-you";
-		}
-		return stage === "completed" ? "done" : stage;
-	}
-	return waiting === undefined ? text(metadata.status) : "needs-you";
 }

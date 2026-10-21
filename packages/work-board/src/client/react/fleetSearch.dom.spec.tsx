@@ -29,7 +29,7 @@ screenStory.it(
 			yield* Effect.promise(() => eventually(() => expect(readText("code", rows()[0])).toBe(records ? "decision.watch" : "task.watch-done")));
 			const work = rows().filter((row) => readText("code", row)?.startsWith("task."));
 			expect(work.slice(0, 2).map((row) => readText("strong", row))).toEqual(["Done watch", "Keep reviews visible"]);
-			expect(work.slice(0, 2).map((row) => readText("[data-status-token]", row))).toEqual(["Done", "Active"]);
+			expect(work.slice(0, 2).map((row) => readText("[data-status-token]", row))).toEqual(["Done", "Ready"]);
 			expect(readText("p", work[1])).toBe("The watch keeps running.");
 			expect(rows().some((row) => readText("strong", row) === "Watch notes")).toBe(true);
 			const hrefs = rows().map((row) => row.getAttribute("href"));

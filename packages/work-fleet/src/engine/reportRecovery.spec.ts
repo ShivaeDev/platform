@@ -38,9 +38,9 @@ describe("report publication recovery", () => {
 							return yield* Effect.die(new Error("Report publication failure needs a Board decision"));
 						}
 						answerReport(root, decision, "release");
-						expect((yield* fleet.reconcile("one")).value.stage).toBe("released");
+						expect((yield* fleet.reconcile("one")).value.step).toBe("released");
 						const renewed = yield* prepareWork("one");
-						expect(renewed.value.stage).toBe("prepared");
+						expect(renewed.value.step).toBe("queued");
 						expect(renewed.value.history?.[0]?.attempts[0]?.output).toBe("Archived findings.");
 						expect(fixture.launched).toHaveLength(1);
 						expect(publication.count()).toBe(1);
@@ -75,9 +75,9 @@ describe("report publication recovery", () => {
 							fixture.observations.set(id, { ...observation, execution: "completed", output: "# Complete findings\n\nEvidence.\n" });
 						}
 						const failed = yield* fleet.reconcile("one");
-						expect(failed.value.stage).toBe("needs-human");
+						expect(failed.value.step).toBe("waiting");
 						const renewal = yield* prepareWork("one").pipe(Effect.flip);
-						expect(renewal.message).toContain("Reconcile the completed report before renewing");
+						expect(renewal.message).toContain("Reconcile the report before renewing");
 						const [resultFile] = reportFiles(root);
 						expect(resultFile).toBeDefined();
 						const bytes = readFileSync(join(root, "responses", resultFile ?? "missing"), "utf8");
@@ -88,10 +88,10 @@ describe("report publication recovery", () => {
 						answerReport(root, decision, "retry");
 						available = false;
 						const completed = yield* fixture.restart(reconcileReport);
-						expect({ blocker: completed.value.blocker, decision: completed.value.decision?.reason, stage: completed.value.stage }).toEqual({
+						expect({ blocker: completed.value.blocker, decision: completed.value.decision?.reason, step: completed.value.step }).toEqual({
 							blocker: undefined,
 							decision: undefined,
-							stage: "completed",
+							step: "done",
 						});
 						expect(publication.count()).toBe(2);
 						expect(collections).toBe(1);

@@ -8,11 +8,11 @@ function revision(source: string) {
 }
 
 for (const [field, source] of [
-	["status", dependencySource.replace("status: planned", "status: done")],
+	["status", dependencySource.replace("status: draft", "status: done")],
 	["next_action", dependencySource.replace("Implement the work.", "Work completed.")],
-	["owner", dependencySource.replace("kind: task", "kind: task\nowner: another-owner")],
+	["owner", dependencySource.replace("kind: task", "kind: task\nowner: marvin")],
 	["areas", dependencySource.replace("kind: task", "kind: task\nareas: [another-area]")],
-	["approval", dependencySource.replace("fleet: approved", "fleet: pending")],
+	["approval", dependencySource.replace("fleet: approved", "fleet: held")],
 	["launch settings", dependencySource.replace("fleet: approved", "fleet: approved\nfleet-launch: { model: another-model }")],
 ] as const) {
 	it(`${field} is independent of the authored brief revision`, () => {
@@ -24,8 +24,8 @@ for (const [field, source] of [
 	["title", dependencySource.replace("# Target", "# Changed target")],
 	["criteria", dependencySource.replace("The behavior works.", "The changed behavior works.")],
 	["body", dependencySource.replace("Implement the behavior.", "Implement different behavior.")],
-	["kind", dependencySource.replace("kind: task", "kind: investigation")],
-	["deliverable", dependencySource.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report")],
+	["kind", dependencySource.replace("kind: task", "kind: report")],
+	["deliverable", dependencySource.replace("fleet: approved", "fleet: approved\ndelivers: report")],
 	["relationships", dependencySource.replace("kind: task", "kind: task\nrelationships: [{ kind: depends_on, target: before }]")],
 ] as const) {
 	it(`${field} changes the authored brief revision`, () => {
@@ -35,13 +35,13 @@ for (const [field, source] of [
 
 it("frontmatter formatting and key order preserve the parsed brief", () => {
 	const source = dependencySource
-		.replace("kind: task\nstatus: planned", "status: planned\nkind: 'task'")
+		.replace("kind: task\nstatus: draft", "status: draft\nkind: 'task'")
 		.replace("id: behavior\n    text: The behavior works.", "text: 'The behavior works.'\n    id: behavior");
 	expect(revision(source)).toBe(revision(dependencySource));
 });
 
 it("bookkeeping aliases still change identity when they change authored criteria", () => {
 	const source = dependencySource.replace("next_action: ", "next_action: &action ").replace("text: The behavior works.", "text: *action");
-	expect(revision(source.replace("status: planned", "status: done"))).toBe(revision(source));
+	expect(revision(source.replace("status: draft", "status: done"))).toBe(revision(source));
 	expect(revision(source.replace("Implement the work.", "Work completed."))).not.toBe(revision(source));
 });

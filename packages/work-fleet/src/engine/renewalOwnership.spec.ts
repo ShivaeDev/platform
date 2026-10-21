@@ -17,7 +17,7 @@ describe("renewal reconciles prior result ownership", () => {
 		expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 		expect(renewed.value.history?.[0]?.outcome).toBeUndefined();
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
-		expect((yield* fleet.dispatch("one")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
 		expect(fleet.launches()).toHaveLength(2);
 	});
 	engine.it("unknown terminal result ownership cannot be turned into a new worker", [workerResultUnavailable()], function* (fleet) {

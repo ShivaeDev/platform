@@ -60,9 +60,9 @@ function retryOrRelease(state: EngineState) {
 				return rework;
 			}
 		}
-		const stage = resolutionStage(current.value, action);
+		const step = resolutionStage(current.value, action);
 		const reportFailure =
-			action === "retry" && stage !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.code) : undefined;
+			action === "retry" && step !== "delivering" ? yield* workerReportFailure(current.value, current.value.decision?.code) : undefined;
 		if (reportFailure !== undefined) {
 			return yield* correctWorkerReport(state)(current, reportFailure, responses);
 		}
@@ -72,7 +72,7 @@ function retryOrRelease(state: EngineState) {
 			decision: undefined,
 			pendingContinuation: action === "release" ? undefined : current.value.pendingContinuation,
 			responses,
-			stage,
+			step,
 		});
 	});
 }
@@ -101,7 +101,7 @@ function retryRework(state: EngineState) {
 	});
 }
 
-function resolutionStage(record: FleetRecord, action: "retry" | "release"): FleetRecord["stage"] {
+function resolutionStage(record: FleetRecord, action: "retry" | "release"): FleetRecord["step"] {
 	if (action === "release") {
 		return "released";
 	}
@@ -109,22 +109,22 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 		return "delivering";
 	}
 	if (record.attempts.at(-1)?.status === "completed" && record.attempts.at(-1)?.receipt === undefined) {
-		return "executing";
+		return "working";
 	}
 	if (record.deliverable === "report" && !executing(record)) {
 		const latest = record.attempts.at(-1);
-		return latest?.status === "completed" && latest.output?.trim() ? "adopting" : "prepared";
+		return latest?.status === "completed" && latest.output?.trim() ? "adopting" : "queued";
 	}
 	if (record.attempts.at(-1)?.role === "reviewer") {
 		return "reviewing";
 	}
 	if (executing(record)) {
-		return "executing";
+		return "working";
 	}
 	if (record.result !== undefined) {
 		return "reviewing";
 	}
-	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "prepared";
+	return record.attempts.at(-1)?.status === "completed" ? "adopting" : "queued";
 }
 
 function deliveryRetry(record: FleetRecord) {

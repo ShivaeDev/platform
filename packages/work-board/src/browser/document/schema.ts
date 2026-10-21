@@ -58,6 +58,7 @@ export const Document = Schema.Struct({
 	references: Schema.Record(Schema.String, Schema.String),
 	requestOutcome: Schema.optional(Schema.Literals(["answered", "closed"])),
 	requests: Schema.Array(DocumentRequest),
+	rulings: Schema.optional(Schema.Array(Schema.Struct({ answer: Schema.String, href: Schema.String, title: Schema.String }))),
 	source: Schema.String,
 	unavailable: Schema.Array(Schema.String),
 	waitingOn: Schema.optional(Schema.Array(WaitingAsk)),

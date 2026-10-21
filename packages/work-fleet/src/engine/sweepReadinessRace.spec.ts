@@ -35,7 +35,7 @@ isolatedEngine.it(
 		expect(held).toMatchObject({
 			attentionOwner: "automation",
 			blocker: "Held behind sweep catalog",
-			stage: "delivering",
+			step: "delivering",
 			sweepHold: { workId: "catalog" },
 		});
 		expect(held.decision).toBeUndefined();

@@ -28,7 +28,7 @@ test("lowering concurrency in the file stops new launches while running work con
 				expect(fixture.provider.launched).toEqual([one.attempts[0]?.operationId, two.attempts[0]?.operationId]);
 				for (const running of [one, two]) {
 					const current = yield* daemon.client("fleet.get", { workId: running.workId });
-					expect(current.stage).toBe("executing");
+					expect(current.step).toBe("working");
 					expect(current.attempts).toEqual([expect.objectContaining({ operationId: running.attempts[0]?.operationId, status: "running" })]);
 				}
 			}),

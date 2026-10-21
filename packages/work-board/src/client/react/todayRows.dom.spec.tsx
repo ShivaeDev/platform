@@ -37,10 +37,10 @@ screenStory.it(
 		const rows = roles.text({ name: "Needs you", role: "list" });
 		expect(rows).toContain("Fleet asks: do you want changes before merging?");
 		expect(rows).toContain("Every export is supported API.");
-		expect(rows).toContain("Casey notes: Read the evidence");
+		expect(rows).toContain("Read the evidence");
 		expect(rows).not.toContain("Managed decision");
 		expect(rows).not.toContain("maintainer:");
-		expect(rows).not.toContain("Planned:");
+		expect(rows).not.toContain("Draft:");
 	},
 );
 

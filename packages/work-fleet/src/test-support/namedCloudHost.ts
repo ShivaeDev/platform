@@ -20,7 +20,8 @@ export function namedRecord(workId: string, attempts: readonly Attempt[], contex
 		cwd: SYNTHETIC_WORKSPACE,
 		preparation: prepared(),
 		prompt: "Synthetic work",
-		stage: "executing",
+		stage: "working",
+		step: "working",
 		workId,
 	};
 }

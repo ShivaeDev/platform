@@ -15,7 +15,6 @@ const records = [
 				state: "requested",
 			},
 			id: "handoff.fixture",
-			kind: "handoff",
 		},
 	},
 	{
@@ -32,13 +31,15 @@ const records = [
 				reviewedRevision: revision,
 				source: "task.md",
 			},
+			scope: "task",
+			urgency: "whenever",
 		},
 	},
 	{
 		explanation: "This is authored feedback, not verified acceptance.",
 		fields: {
 			id: "response.fixture",
-			kind: "response",
+
 			response: { author: "reader", question: "question.fixture", recordedAt: 0, reviewedRevision: revision, type: "answer" },
 		},
 	},
@@ -46,7 +47,7 @@ const records = [
 		explanation: "This acknowledges request handling, not execution, acceptance or delivery authority.",
 		fields: {
 			id: "receipt.fixture",
-			kind: "result",
+			kind: "report",
 			"request_receipt": { disposition: "applied", question: "question.fixture", recordedAt: 0, reviewedRevision: revision },
 		},
 	},
@@ -54,6 +55,6 @@ const records = [
 
 export const recordSourceFixture = records.map(({ explanation, fields }) => ({
 	explanation,
-	file: `${fields.kind}.md`,
+	file: `${fields.id.split(".")[0]}.md`,
 	source: `---\n${JSON.stringify(fields)}\n---\n# Recorded direction\n`,
 }));

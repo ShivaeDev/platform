@@ -6,7 +6,7 @@ import { EmptyState } from "./EmptyState.tsx";
 import { LoadingRows } from "./loading.tsx";
 
 export function SystemFleetLane({ data }: { readonly data: FleetItemsProjection | undefined }) {
-	const items = data?.state === "ready" ? data.items.filter((item) => !["completed", "released"].includes(item.stage)) : undefined;
+	const items = data?.state === "ready" ? data.items.filter((item) => !["done", "released"].includes(item.stage)) : undefined;
 	return (
 		<article aria-label="Fleet work" className="min-w-0">
 			<Card>
@@ -52,6 +52,7 @@ function FleetRow({ item }: { readonly item: Item }) {
 			</a>
 			<Badge variant="outline">{stageTime(item.stage).label}</Badge>
 			<span className="text-muted-foreground text-xs">{fleetHolder(item)}</span>
+			{item.stage === "waiting" && <span className="text-sm">{item.waitingReason}</span>}
 			{Boolean(item.prUrl) && (
 				<a aria-label={`Pull request for ${title}`} className="text-sm underline" href={item.prUrl}>
 					PR ↗

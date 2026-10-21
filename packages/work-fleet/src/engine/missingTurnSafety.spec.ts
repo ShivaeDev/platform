@@ -22,9 +22,9 @@ for (const reason of ["unavailable", "protocol", "ambiguous"] as const) {
 					const fleet = yield* Fleet;
 					yield* fleet.dispatch("one");
 					const waiting = yield* fleet.reconcile("one");
-					expect(waiting.value.stage).toBe("needs-human");
+					expect(waiting.value.step).toBe("waiting");
 					fixture.boardStatus("one", "done");
-					expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+					expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 					const decisionId = waiting.value.decision?.id ?? "missing";
 					expect((yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "release")).pipe(Effect.result))._tag).toBe("Failure");
 					expect(executing((yield* fleet.get("one")).value)).toBe(true);

@@ -60,7 +60,7 @@ function recordProblem(entry: MetadataDocument, data: Snapshot) {
 	if (entry.parsed.fields.kind === "question" && entry.parsed.fields.question && !questionFrom(entry)) {
 		return "It's marked as a question but its record doesn't match its text.";
 	}
-	const id = entry.parsed.fields.kind === "response" ? entry.parsed.fields.id : undefined;
+	const id = entry.parsed.fields.response === undefined ? undefined : entry.parsed.fields.id;
 	return id && (data.model.ids.get(id)?.length ?? 0) > 1 ? `Another file uses the same response ID, ${id}.` : undefined;
 }
 

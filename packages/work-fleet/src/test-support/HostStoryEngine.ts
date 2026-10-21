@@ -2,6 +2,7 @@ import { type Clock, Context, Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import type { HostConfig } from "#host/config.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
+import type { FleetRecord } from "#model.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import type { Follower } from "#test/followerProcess.ts";
@@ -18,7 +19,7 @@ import { storeState } from "#test/storeState.ts";
 export class HostStoryEngine {
 	files: Record<string, string> = {};
 	config: Partial<HostConfig> = {};
-	stored: Record<string, Readonly<Record<string, unknown>>> = {};
+	stored: Record<string, Readonly<Record<string, unknown>> & { readonly stage: FleetRecord["stage"] }> = {};
 	main: MainSnapshot | undefined;
 	integrations: HostFixture["parts"]["integrations"];
 	provider: HostFixture["parts"]["provider"] | undefined;
@@ -124,7 +125,7 @@ export class HostStoryEngine {
 		});
 	}
 
-	store(workId: string, record: Readonly<Record<string, unknown>>) {
+	store(workId: string, record: Readonly<Record<string, unknown>> & { readonly stage: FleetRecord["stage"] }) {
 		const effect = storeState(this.fixture.host, workId, record);
 		return this.#runtime === undefined
 			? effect.pipe(Effect.provide(hostDatabase(this.fixture.host, "fleet-story-seed", 1)))

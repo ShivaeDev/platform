@@ -6,19 +6,22 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
 for (const [stage, lane, label] of [
-	["prepared", "Queued", "Prepared"],
-	["needs-human", "Waiting on a person", "Needs you"],
-	["adopting", "Executing", "In progress"],
-	["executing", "Executing", "In progress"],
-	["reviewing", "Reviewing", "In progress"],
-	["repairing", "Reviewing", "In progress"],
-	["validating", "Reviewing", "In progress"],
-	["delivering", "Delivering", "In progress"],
+	["queued", "Queued", "Queued"],
+	["waiting", "Waiting on you", "Waiting"],
+	["working", "Working", "Working"],
+	["reviewing", "Reviewing", "Reviewing"],
 ] as const) {
 	const data = nowWork();
-	const statuses = ["done", "completed", "superseded", "deferred", "cancelled", "canceled"];
+	const statuses = ["done", "done", "dropped", "deferred", "dropped", "dropped"] as const;
 	const rows = data.rows.map((item, index) => ({ ...item, metadata: { ...item.metadata, status: statuses[index] } }));
-	const items = rows.map((item) => ({ document: null, stage, stageEnteredAt: null, updatedAt: null, workId: item.id }));
+	const items = rows.map((item) => ({
+		attentionOwner: "maintainer" as const,
+		document: null,
+		stage,
+		stageEnteredAt: null,
+		updatedAt: null,
+		workId: item.id,
+	}));
 	screenStory.it(
 		`keeps Fleet ${stage} visible in ${lane} despite inactive authored statuses`,
 		[

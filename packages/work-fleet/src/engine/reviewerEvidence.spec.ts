@@ -19,7 +19,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 			const reviewing = yield* fleet.reconcile("one");
 			const receipt = yield* turnReports(reviewing, approval);
 			const completed = yield* fleet.reconcile("one");
-			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.step).toBe("done");
 			expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
 			expect(completed.value.review?.evidence).toContain("CI job logs and artifacts unavailable: HTTP 403");
 			expect(completed.value.checks).toMatchObject({ head: "head-one-0", passed: true });
@@ -38,7 +38,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 				const original = yield* turnReports(reviewing, malformed);
 				const followUp = yield* fleet.reconcile("one");
 				const attempt = followUp.value.attempts.at(-1);
-				expect(followUp.value.stage).toBe("reviewing");
+				expect(followUp.value.step).toBe("reviewing");
 				expect(followUp.value.decision).toBeUndefined();
 				expect(followUp.value.review).toBeUndefined();
 				expect(attempt).toMatchObject({ reviewHead: "head-one-0", role: "reviewer", sessionId: original.sessionId });
@@ -51,7 +51,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 				const receipt = yield* turnReports(followUp, approval);
 				yield* restart();
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
 				expect(launches()).toHaveLength(2);
 				expect(completed.value.attempts).toHaveLength(3);
@@ -76,7 +76,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 			expect(recovered.value.attempts.at(-1)).toMatchObject({ operationId: intent?.operationId, status: "running" });
 			const receipt = yield* turnReports(recovered, approval);
 			expect(receipt.sessionId).toBe(original.sessionId);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(launches()).toHaveLength(2);
 			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
 		},
@@ -95,7 +95,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 			expect(receipt.sessionId).toBe(original.sessionId);
 			yield* restart();
 			const invalid = yield* fleet.reconcile("one");
-			expect(invalid.value.stage).toBe("needs-human");
+			expect(invalid.value.step).toBe("waiting");
 			expect(invalid.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 			expect(invalid.value.decision?.reason).toContain("malformed");
 			expect(invalid.value.review).toBeUndefined();
@@ -103,7 +103,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 			expect(invalid.value.attempts.at(-1)).toMatchObject({ output: "FLEET_REVIEW: invalid", receipt, status: "completed" });
 			expect(mergedHeads()).toHaveLength(0);
 			const unchanged = yield* fleet.reconcile("one");
-			expect(unchanged.value.stage).toBe("needs-human");
+			expect(unchanged.value.step).toBe("waiting");
 			expect(unchanged.value.outcome).toBeUndefined();
 			expect(unchanged.value.attempts).toHaveLength(3);
 			expect(launches()).toHaveLength(2);

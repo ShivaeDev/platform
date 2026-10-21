@@ -4,9 +4,9 @@ import { daemonPortIsUnreachable, fleetDaemon, unreadablePortFile } from "#test/
 fleetDaemon.it("watch without --port discovers the daemon's bound port and receives a live transition", [], function* (daemon) {
 	yield* daemon.watch(0.05);
 	yield* daemon.awaitSnapshot();
-	yield* daemon.transition("one", "completed");
-	yield* daemon.awaitOutput("one completed\n");
-	expect(daemon.output()).toBe("one completed\n");
+	yield* daemon.transition("one", "done");
+	yield* daemon.awaitOutput("one done\n");
+	expect(daemon.output()).toBe("one done\n");
 	expect(daemon.errors()).toBe("");
 });
 
@@ -14,7 +14,7 @@ fleetDaemon.it("an explicit watch port overrides a dead port file for snapshots 
 	const deadPort = daemon.port();
 	yield* daemon.restart();
 	yield* daemon.replacePort(deadPort);
-	yield* daemon.transition("one", "needs-human", {
+	yield* daemon.transition("one", "waiting", {
 		attentionOwner: "orchestrator",
 		id: "choose-next-step",
 		links: [],
@@ -23,11 +23,11 @@ fleetDaemon.it("an explicit watch port overrides a dead port file for snapshots 
 	});
 	yield* daemon.watch(0.05, { port: daemon.port() });
 	yield* daemon.awaitSnapshot();
-	const snapshot = "one needs-human (waiting on orchestrator): Choose the next step\n";
+	const snapshot = "one waiting (waiting on orchestrator): Choose the next step\n";
 	yield* daemon.awaitOutput(snapshot);
-	yield* daemon.transition("one", "completed");
-	yield* daemon.awaitOutput(`${snapshot}one completed\n`);
-	expect(daemon.output()).toBe(`${snapshot}one completed\n`);
+	yield* daemon.transition("one", "done");
+	yield* daemon.awaitOutput(`${snapshot}one done\n`);
+	expect(daemon.output()).toBe(`${snapshot}one done\n`);
 	expect(daemon.errors()).toBe("");
 });
 

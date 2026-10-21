@@ -15,8 +15,8 @@ for (const sharedArea of [false, true]) {
 			yield* prepareWork("one");
 			yield* prepareWork("two");
 			yield* schedule();
-			expect((yield* get("two")).value.stage).toBe("executing");
-			expect((yield* get("one")).value).toMatchObject({ attempts: [], stage: "prepared" });
+			expect((yield* get("two")).value.step).toBe("working");
+			expect((yield* get("one")).value).toMatchObject({ attempts: [], step: "queued" });
 			expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement two"]);
 		},
 	);
@@ -31,8 +31,8 @@ engine.it(
 			yield* prepareWork(id);
 		}
 		yield* schedule();
-		expect((yield* get("one")).value.stage).toBe("executing");
-		expect((yield* get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
+		expect((yield* get("one")).value.step).toBe("working");
+		expect((yield* get("two")).value).toMatchObject({ attempts: [], step: "queued" });
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one"]);
 	},
 );
@@ -45,12 +45,12 @@ engine.it(
 		yield* prepareWork("one");
 		yield* schedule();
 		const running = (yield* get("one")).value;
-		expect(running.stage).toBe("executing");
+		expect(running.step).toBe("working");
 		writeBoardWork("two.md", priorityTask("two", "normal"));
 		yield* prepareWork("two");
 		yield* schedule();
-		expect((yield* get("one")).value).toMatchObject({ attempts: [{ receipt: running.attempts[0]?.receipt, status: "running" }], stage: "executing" });
-		expect((yield* get("two")).value).toMatchObject({ attempts: [], stage: "prepared" });
+		expect((yield* get("one")).value).toMatchObject({ attempts: [{ receipt: running.attempts[0]?.receipt, status: "running" }], step: "working" });
+		expect((yield* get("two")).value).toMatchObject({ attempts: [], step: "queued" });
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one"]);
 	},
 );
@@ -63,12 +63,12 @@ engine.it("low work waits for dependencies and held areas", [markdownWork()], fu
 		yield* prepareWork(id);
 	}
 	yield* schedule();
-	expect((yield* get("one")).value.stage).toBe("executing");
-	expect((yield* get("two")).value).toMatchObject({ attempts: [], blocker: "waiting for area feature held by one", stage: "prepared" });
+	expect((yield* get("one")).value.step).toBe("working");
+	expect((yield* get("two")).value).toMatchObject({ attempts: [], blocker: "waiting for area feature held by one", step: "queued" });
 	expect((yield* get("three")).value).toMatchObject({
 		attempts: [],
 		blocker: expect.stringContaining("waiting for dependency one"),
-		stage: "prepared",
+		step: "queued",
 	});
 });
 
@@ -86,8 +86,8 @@ engine.it(
 		writeBoardWork("two.md", priorityTask("two", "normal"));
 		yield* prepareWork("two");
 		yield* schedule();
-		expect((yield* get("two")).value.stage).toBe("executing");
-		expect((yield* get("one")).value.stage).toBe("prepared");
+		expect((yield* get("two")).value.step).toBe("working");
+		expect((yield* get("one")).value.step).toBe("queued");
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement two"]);
 	},
 );

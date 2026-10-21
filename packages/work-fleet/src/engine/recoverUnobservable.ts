@@ -16,10 +16,10 @@ export const recoverUnobservable = Effect.fn("Fleet.recoverUnobservable")(functi
 	if (attempt?.missingSince === undefined) {
 		return undefined;
 	}
-	if (stored.value.stage !== "needs-human" && state.integrations.publication !== undefined && attempt.role !== "reviewer" && threadIdle === false) {
+	if (stored.value.step !== "waiting" && state.integrations.publication !== undefined && attempt.role !== "reviewer" && threadIdle === false) {
 		return yield* recoverMissingTurn(state, stored, undefined, threadIdle);
 	}
-	if (stored.value.stage === "needs-human" || state.policy.now() - Math.max(attempt.missingSince, attempt.progress?.at ?? 0) < VISIBILITY_GRACE_MS) {
+	if (stored.value.step === "waiting" || state.policy.now() - Math.max(attempt.missingSince, attempt.progress?.at ?? 0) < VISIBILITY_GRACE_MS) {
 		return stored;
 	}
 	if (state.integrations.publication !== undefined && attempt.role !== "reviewer") {

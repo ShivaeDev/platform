@@ -41,7 +41,7 @@ postgresTests("test", "isolated")("an observation already in flight cannot resto
 				yield* Deferred.await(entered);
 				const decisionId = stalled.value.decision?.id ?? "missing";
 				const released = yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "release"));
-				expect(released.value.stage).toBe("released");
+				expect(released.value.step).toBe("released");
 				yield* Deferred.succeed(resume, undefined);
 				yield* Fiber.join(observing);
 				const final = yield* fixture.restart(fleet.get("one"));

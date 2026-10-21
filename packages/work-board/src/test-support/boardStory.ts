@@ -5,6 +5,7 @@ import type { FileSystemWrapper } from "./board.ts";
 import { held } from "./browser.ts";
 import { fileVerbs } from "./fileVerbs.ts";
 import { livePageVerbs } from "./livePageVerbs.ts";
+import { migrationVerbs } from "./migrationVerbs.ts";
 import { nativeVerbs } from "./nativeVerbs.ts";
 import { questionnaireSource } from "./questionnaire.ts";
 import { readerVerbs } from "./readerVerbs.ts";
@@ -27,6 +28,7 @@ export const boardStory = storyKit({
 	stages: ["project", "reader"],
 	verbs: (engine, story) => ({
 		...readingVerbs(engine, story.tell),
+		...migrationVerbs(engine, story.tell),
 		...responseServiceVerbs(engine, story.tell),
 		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),

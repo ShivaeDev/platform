@@ -20,7 +20,7 @@ const preview = {
 for (const { files, unreadable, message } of [
 	{ files: {}, message: "Check the source diagnostics and retry", unreadable: true },
 	{
-		files: { "responses/broken.md": "---\nkind: response\n---\nIncomplete response" },
+		files: { "responses/broken.md": "---\nresponse: {}\n---\nIncomplete response" },
 		message: "Check the source diagnostics and retry",
 		unreadable: false,
 	},

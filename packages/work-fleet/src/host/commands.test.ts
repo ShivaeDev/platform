@@ -61,13 +61,13 @@ describe("work-fleet host against PostgreSQL", () => {
 				);
 				yield* Fiber.interrupt(runner);
 				expect(outcome.code).toBe(WAIT_EXIT.waitingDecision);
-				expect(outcome.summary).toMatch(/^a needs-human \(waiting on automation\): /u);
+				expect(outcome.summary).toMatch(/^a waiting \(waiting on automation\): /u);
 				const status = renderStatus(yield* fleetStatus(fixture.host).pipe(Effect.provide(hostDatabase(fixture.host, "work-fleet-reader", 1))));
 				expect(status).toContain("Active (0)");
-				expect(status).toContain("Waiting on automation (1)\n  a  needs-human");
+				expect(status).toContain("Waiting on automation (1)\n  a  waiting");
 				const board = readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8");
 				expect(board).toContain("## Waiting on automation\n\n### a");
-				expect(board).toContain("Stage: needs-human");
+				expect(board).toContain("Stage: waiting");
 				expect(readFileSync(join(fixture.host.boardDir, "a.md"), "utf8")).toBe(files["a.md"]);
 			}),
 		);
@@ -82,7 +82,7 @@ describe("work-fleet host against PostgreSQL", () => {
 
 				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 				const first = yield* record(fixture.host, "a", fixture.parts);
-				expect(first.stage).toBe("prepared");
+				expect(first.step).toBe("queued");
 
 				fixture.write("a.md", task("a", "approved", "Second revision."));
 				yield* admitApproved(fixture.host).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
@@ -94,7 +94,7 @@ describe("work-fleet host against PostgreSQL", () => {
 				expect(fixture.provider.launched).toHaveLength(0);
 
 				const { value } = yield* dispatchWork(fixture.host, "a", fixture.parts);
-				expect(value.stage).toBe("executing");
+				expect(value.step).toBe("working");
 				expect(value.boardRevision).not.toBe(first.boardRevision);
 				expect(fixture.provider.launched).toHaveLength(1);
 				expect(prompts(fixture.provider)).toEqual([expect.stringContaining("Second revision.")]);

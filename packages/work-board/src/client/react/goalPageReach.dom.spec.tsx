@@ -10,11 +10,11 @@ import { FleetItemsContext } from "./FleetItemsContext.ts";
 
 const PROGRESS = '[data-goal-section="progress"]';
 const quiet: Readonly<Record<string, string>> = { ...goalPageFixture(), "asks.md": "# No open asks" };
-const executing = goalFleetFixture("executing");
+const executing = goalFleetFixture("working");
 const RUN_UPDATED = 4_102_444_800_000;
 
 screenStory.it(
-	"lists several open asks behind one amber control and counts their linked work as needing you",
+	"lists several open asks behind one amber control and keeps linked work in its authored state",
 	[boardScreen(goalPageFixture(), (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ click, findElement, findElements, readGoals, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-goal-open-asks]")).not.toBeNull()));
@@ -29,10 +29,13 @@ screenStory.it(
 			"/_board/item/decision.review/#answer-card-task",
 		]);
 		const asked = ["task.fifth", "task.first"];
-		expect(goal?.counts["needs you"]).toBe(asked.length);
-		expect(readText(`${PROGRESS} [data-status="needs you"] [data-status-token]`)).toBe("Needs you");
-		expect([...findElements('[data-goal-group="Needs you"] [data-goal-item]')].map((row) => row.getAttribute("data-goal-item"))).toEqual(asked);
-		expect([...findElements('[data-goal-item="task.first"] [data-status-token]')].map((chip) => chip.textContent)).toEqual(["Planned", "Needs you"]);
+		const drafted = ["task.first", "task.fourth", "task.fifth"];
+		expect(goal?.counts.draft).toBe(drafted.length);
+		expect(readText(`${PROGRESS} [data-status=draft] [data-status-token]`)).toBe("Draft");
+		expect([...findElements('[data-goal-group="Draft"] [data-goal-item]')].map((row) => row.getAttribute("data-goal-item"))).toEqual(
+			expect.arrayContaining(asked),
+		);
+		expect([...findElements('[data-goal-item="task.first"] [data-status-token]')].map((chip) => chip.textContent)).toEqual(["Draft", "Needs you"]);
 	},
 );
 
@@ -42,19 +45,20 @@ screenStory.it(
 	function* ({ findElement, findElements, readAttribute, readGoals, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-item="task.fifth"]')).not.toBeNull()));
 		const goal = (yield* Effect.promise(readGoals))?.goals.find((entry) => entry.id === "project.example");
-		expect(goal?.counts).toEqual({ done: 1, "in progress": 0, "needs you": 0, planned: 4 });
+		expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 3, dropped: 0, ready: 0 });
 		expect(findElement("[data-goal-open-asks]")).toBeNull();
-		expect(findElements(`${PROGRESS} [data-status-token]`).map((chip) => chip.textContent)).toEqual(["Done", "Planned"]);
-		expect(findElements(`${PROGRESS} [data-quiet-count]`).map((label) => label.textContent)).toEqual(["Needs you", "In progress"]);
+		expect(findElements(`${PROGRESS} [data-status-token]`).map((chip) => chip.textContent)).toEqual(["Done", "Deferred", "Draft"]);
+		expect(findElements(`${PROGRESS} [data-quiet-count]`).map((label) => label.textContent)).toEqual(["Ready", "Dropped"]);
 		expect(findElement(`${PROGRESS} .text-needs-you`)).toBeNull();
 		expect(Object.fromEntries(goalWorkGroups.map((group) => [group, findElements(`[data-goal-group="${group}"] [data-goal-item]`).length]))).toEqual({
+			Deferred: goal?.counts.deferred,
 			Done: goal?.counts.done,
-			"In progress": goal?.counts["in progress"],
-			"Needs you": goal?.counts["needs you"],
-			Planned: goal?.counts.planned,
+			Draft: goal?.counts.draft,
+			Dropped: goal?.counts.dropped,
+			Ready: goal?.counts.ready,
 		});
 		expect(readText('[data-goal-item="task.third"] [data-status-token]')).toBe("Deferred");
-		for (const group of ["Planned", "Done"]) {
+		for (const group of ["Draft", "Done"]) {
 			expect(readAttribute(`[data-goal-group="${group}"] [data-slot="collapsible-trigger"]`, "aria-expanded")).toBe("false");
 			expect(findElement(`[data-goal-group="${group}"] [data-slot="collapsible-content"]`)?.getAttribute("hidden")).toBe("until-found");
 		}
@@ -67,18 +71,19 @@ screenStory.it(
 screenStory.it(
 	"shows who holds in-progress work and when it last changed, without adding a Tab stop to its row",
 	[
-		boardScreen({ ...quiet, "first.md": quiet["first.md"]?.replace("kind: task", "kind: task\nowner: codex") ?? "" }, (api) => (
-			<FleetItemsContext.Provider
-				value={{ ...executing, items: executing.items.map((run) => (run.workId === "task.first" ? { ...run, updatedAt: RUN_UPDATED } : run)) }}
-			>
-				<DocumentMain api={api} onPage={() => undefined} url="/goal.md" />
-			</FleetItemsContext.Provider>
-		)),
+		boardScreen(
+			{ ...quiet, "first.md": quiet["first.md"]?.replace("kind: task", "kind: task\nowner: codex").replace("status: draft", "status: ready") ?? "" },
+			(api) => (
+				<FleetItemsContext.Provider
+					value={{ ...executing, items: executing.items.map((run) => (run.workId === "task.first" ? { ...run, updatedAt: RUN_UPDATED } : run)) }}
+				>
+					<DocumentMain api={api} onPage={() => undefined} url="/goal.md" />
+				</FleetItemsContext.Provider>
+			),
+		),
 	],
 	function* ({ findElement, findElements, readTabStops, readText }) {
-		yield* Effect.promise(() =>
-			eventually(() => expect(findElement('[data-goal-group="In progress"] [data-goal-item="task.first"]')).not.toBeNull()),
-		);
+		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-group="Ready"] [data-goal-item="task.first"]')).not.toBeNull()));
 		expect(readText('[data-goal-item="task.first"] [data-goal-owner]')).toBe("codex");
 		expect(findElement('[data-goal-item="task.first"] [data-goal-updated] time')?.getAttribute("data-modified")).toBe(String(RUN_UPDATED));
 		expect(readTabStops('[data-goal-item="task.first"]')).toEqual(findElements('[data-goal-item="task.first"] a[href]'));

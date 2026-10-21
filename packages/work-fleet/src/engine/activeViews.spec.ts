@@ -21,7 +21,7 @@ for (const type of ["clarify", "not_now"] as const) {
 					const responseId = fixture.respond(decisionId, "retry", type);
 					yield* client("fleet.resolve", { decisionId, responseId, workId: "one" });
 					const item = (yield* client("fleet.views", undefined)).waiting.orchestrator[0];
-					expect(item?.stage).toBe("needs-human");
+					expect(item?.stage).toBe("waiting");
 					expect(item?.blocker).toBe(
 						type === "clarify" ? `Human requested clarification: ${responseId}` : `Human deferred this decision: ${responseId}`,
 					);
@@ -32,7 +32,7 @@ for (const type of ["clarify", "not_now"] as const) {
 		));
 }
 
-test("native Automation waiting query exposes backlog admission blockers with the prepared stage", () =>
+test("native Automation waiting query exposes backlog admission blockers with the prepared step", () =>
 	withEngine({ backlog: 1, foreignBacklog: true }, () =>
 		Effect.scoped(
 			Effect.gen(function* () {
@@ -40,7 +40,7 @@ test("native Automation waiting query exposes backlog admission blockers with th
 				const client = yield* RpcTest.makeClient(FleetContract.omit("fleet.$changes"), { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				yield* client("fleet.dispatch", { workId: "one" }).pipe(Effect.result);
 				const item = (yield* client("fleet.views", undefined)).waiting.automation[0];
-				expect(item?.stage).toBe("prepared");
+				expect(item?.stage).toBe("waiting");
 				expect(item?.blocker).toBe("backlog capacity is occupied (limit 1)");
 				expect(item?.sessions).toEqual([]);
 			}),
@@ -55,7 +55,7 @@ test("native Automation waiting query exposes the exact quota admission blocker"
 				const client = yield* RpcTest.makeClient(FleetContract.omit("fleet.$changes"), { flatten: true }).pipe(Effect.provide(fleetHandlers));
 				yield* client("fleet.dispatch", { workId: "one" }).pipe(Effect.result);
 				const result = yield* client("fleet.views", undefined);
-				expect(result.waiting.automation[0]?.stage).toBe("prepared");
+				expect(result.waiting.automation[0]?.stage).toBe("waiting");
 				expect(result.waiting.automation[0]?.blocker).toBe("Fresh available provider quota is required");
 			}),
 		),
@@ -75,7 +75,7 @@ test("native Automation waiting query preserves dependency blockers without prev
 					"dependency one: not done on the Board; no accepted outcome",
 				);
 				expect(result.waiting.orchestrator).toEqual([]);
-				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("executing");
+				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("working");
 			}),
 		),
 	));
@@ -97,7 +97,7 @@ test("native Active query clears capacity blockers after successful replacement 
 				yield* client("fleet.dispatch", { workId: "two" });
 				const result = yield* client("fleet.views", undefined);
 				expect(result.completed.find((item) => item.workId === "one")?.outcome).toBeDefined();
-				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("executing");
+				expect(result.active.find((item) => item.workId === "two")?.stage).toBe("working");
 				expect(result.active.find((item) => item.workId === "two")?.blocker).toBeUndefined();
 			}),
 		),
@@ -113,7 +113,7 @@ test("native Maintainer waiting query prioritizes its concrete decision over pre
 				fixture.editWork("dependent", "changed-context");
 				yield* client("fleet.dispatch", { workId: "dependent" });
 				const item = (yield* client("fleet.views", undefined)).waiting.maintainer[0];
-				expect(item?.stage).toBe("needs-human");
+				expect(item?.stage).toBe("waiting");
 				expect(item?.blocker).toBe("Work is no longer approved");
 				expect(item?.decision?.reason).toBe(item?.blocker);
 			}),

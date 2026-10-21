@@ -14,14 +14,14 @@ for (const archived of [false, true]) {
 			yield* fleet.reconcile("one");
 			mergePullRequest("unreviewed-head");
 			const released = (yield* fleet.reconcile("one")).value;
-			expect(released.stage).toBe("released");
+			expect(released.step).toBe("released");
 			if (archived) {
 				yield* replaceStoredRecord({
 					...released,
 					history: [{ ...released, archivedAt: 1, mergedDelivery: undefined }],
 					mergedDelivery: undefined,
 					releaseReason: undefined,
-					stage: "prepared",
+					step: "queued",
 				});
 			}
 			yield* upgradeMergedDeliveries();
@@ -33,7 +33,7 @@ for (const archived of [false, true]) {
 			});
 			editWork("one", "later-brief");
 			yield* prepareWork("dependent");
-			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		},
 	);
 }
@@ -48,7 +48,7 @@ isolatedEngine.it(
 		const ready = yield* fleet.reconcile("one");
 		const decisionId = ready.value.decision?.id ?? "missing";
 		const responseId = respond(decisionId, "release");
-		expect((yield* fleet.resolve("one", decisionId, responseId)).value.stage).toBe("released");
+		expect((yield* fleet.resolve("one", decisionId, responseId)).value.step).toBe("released");
 		yield* upgradeMergedDeliveries();
 		yield* restart();
 		expect((yield* fleet.get("one")).value.mergedDelivery).toBeUndefined();

@@ -16,7 +16,7 @@ function taskAt(stage: string, inbox: unknown) {
 	return item(
 		boardAnswering({
 			[JSON.stringify(documentAt("/_board/item/task.a/").payload)]: {
-				metadata: { criteria: [{ id: "proof" }], owner: "agent", status: "planned" },
+				metadata: { criteria: [{ id: "proof" }], owner: "codex", status: "draft" },
 				requests: [{ id: "r", open: true }],
 			},
 			"work-board.fleetItems": { completed: [], items: [{ stage, workId: "task.a" }], state: "ready" },
@@ -49,12 +49,12 @@ describe("the read-only tool answers", () => {
 	it("board_overview names each Needs you item and sums goal progress", async () => {
 		const board = boardAnswering({
 			"work-board.fleetItems": { reason: "Fleet is not configured", state: "unavailable" },
-			"work-board.goals": { goals: [{ counts: { done: 1, planned: 3 }, id: "goal.a", title: "Goal A" }] },
+			"work-board.goals": { goals: [{ counts: { done: 1, draft: 3 }, id: "goal.a", title: "Goal A" }] },
 			"work-board.inbox": INBOX,
 		});
 		expect(await overview(board)).toEqual({
 			fleet: { reason: "Fleet is not configured", state: "unavailable" },
-			goals: { done: 1, goals: [{ active: 0, done: 1, id: "goal.a", title: "Goal A", total: 4 }], total: 4 },
+			goals: { done: 1, goals: [{ done: 1, id: "goal.a", ready: 0, title: "Goal A", total: 4 }], total: 4 },
 			needsYou: { complete: true, count: 1, you: [{ id: "decision.a", reason: "Pick one", title: "Decide" }] },
 		});
 	});
@@ -72,16 +72,16 @@ describe("the read-only tool answers", () => {
 		]);
 	});
 
-	it("item takes its status from Fleet first, then Needs you, then the document", async () => {
-		expect(await taskAt("needs-human", { you: [] })).toMatchObject({
+	it("item keeps authored status separate from the Fleet stage", async () => {
+		expect(await taskAt("waiting", { you: [] })).toMatchObject({
 			criteria: [{ id: "proof" }],
 			openDecisions: [{ id: "r" }],
-			owner: "agent",
-			status: "needs-you",
+			owner: "codex",
+			status: "draft",
 		});
-		expect(await taskAt("completed", { you: [] })).toMatchObject({ status: "done" });
-		expect(await taskAt("released", { you: [{ id: "task.a", reason: "Waiting" }] })).toMatchObject({ fleet: { item: null }, status: "needs-you" });
-		expect(await taskAt("released", { you: [] })).toMatchObject({ status: "planned" });
+		expect(await taskAt("done", { you: [] })).toMatchObject({ fleet: { item: { stage: "done" } }, status: "draft" });
+		expect(await taskAt("released", { you: [{ id: "task.a", reason: "Waiting" }] })).toMatchObject({ fleet: { item: null }, status: "draft" });
+		expect(await taskAt("released", { you: [] })).toMatchObject({ status: "draft" });
 	});
 
 	it("matches answers to requests and names what the Board could not read", () => {

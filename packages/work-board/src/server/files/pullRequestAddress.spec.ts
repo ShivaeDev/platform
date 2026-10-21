@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 
 const PULLS = "https://github.com/example/project/pull/";
-const TASK = { "task.md": "---\nid: task.merge\nkind: task\nstatus: active\nnext_action: Merge #828.\n---\n# Merge the change\n" };
+const TASK = { "task.md": "---\nid: task.merge\nkind: task\nstatus: ready\nnext_action: Merge #828.\n---\n# Merge the change\n" };
 const SSH_ORIGIN =
 	'[core]\n\tbare = false\n[remote "origin"]\n\turl = git@github.com:example/project.git\n\tfetch = +refs/heads/*:refs/remotes/origin/*\n';
 const HTTPS_ORIGIN =

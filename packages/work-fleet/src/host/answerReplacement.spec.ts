@@ -95,13 +95,13 @@ const assertReplacementOutcome = Effect.fn("AnswerReplacementTest.assertReplacem
 		expect((yield* client("fleet.get", { workId: "one" })).decision).toBeUndefined();
 	}
 	if (replacement === "different-kind") {
-		expect((yield* answerAndWait(client, { release: true, workId: "one" })).stage).toBe("released");
+		expect((yield* answerAndWait(client, { release: true, workId: "one" })).step).toBe("released");
 	}
 });
 
 function replacedRecord(waiting: FleetRecord, decision: Decision, replacement: Replacement): FleetRecord {
 	if (replacement === "left-needs-human" || replacement === "repairing") {
-		return { ...waiting, blocker: REASON, decision: undefined, stage: replacement === "repairing" ? "repairing" : "validating" };
+		return { ...waiting, blocker: REASON, decision: undefined, step: replacement === "repairing" ? "repairing" : "validating" };
 	}
 	return {
 		...waiting,
@@ -120,7 +120,7 @@ function replacementResult(replacement: Replacement, decisionId: string) {
 		return { _tag: "Failure", failure: { _tag: "Conflict", message: `Decision changed: ${REASON}` } };
 	}
 	if (replacement === "repairing") {
-		return { _tag: "Success", success: { pendingAnswers: [TEXT], stage: "repairing" } };
+		return { _tag: "Success", success: { pendingAnswers: [TEXT], step: "repairing" } };
 	}
 	return {
 		_tag: "Success",

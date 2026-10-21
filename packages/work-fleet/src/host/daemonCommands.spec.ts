@@ -11,13 +11,17 @@ for (const action of ["retry", "release"] as const) {
 			const started = yield* daemon.dispatch("one");
 			daemon.finishTurn(started);
 			const waiting = yield* daemon.reconcile("one");
-			expect(waiting.stage).toBe("needs-human");
+			expect(waiting.step).toBe("waiting");
 			const published = waiting.decision?.published;
 			if (published === undefined) {
 				throw new Error("Expected a published decision");
 			}
 			const args = ["answer", "one", ...(action === "release" ? ["--release"] : []), "--config", "unused.json"];
-			expect(yield* daemon.cli(args)).toMatchObject({ code: 0, stderr: "", stdout: "one needs-human: Answer recorded; applying in the background" });
+			expect(yield* daemon.cli(args)).toMatchObject({
+				code: 0,
+				stderr: "",
+				stdout: "one waiting (waiting on automation): Answer recorded; applying in the background",
+			});
 			const current = yield* daemon.appliedAnswer("one");
 			expect(current.decision).toBeUndefined();
 			expect(current.responses).toMatchObject([
@@ -45,9 +49,9 @@ host.it(
 		yield* daemon.dispatch("one");
 		const result = yield* daemon.cli(["answer", "one", "--release"], { selection: "port" });
 		expect(result.code).toBe(1);
-		expect(result.stderr).toContain("one waits on no answer in stage executing");
-		expect(yield* daemon.answer("one").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("executing") });
-		expect((yield* daemon.get("one")).stage).toBe("executing");
+		expect(result.stderr).toContain("one waits on no answer in step working");
+		expect(yield* daemon.answer("one").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("working") });
+		expect((yield* daemon.get("one")).step).toBe("working");
 		expect(daemon.boardExists("responses")).toBe(false);
 	},
 	30_000,

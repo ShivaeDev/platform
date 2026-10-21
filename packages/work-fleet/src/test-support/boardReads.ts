@@ -35,7 +35,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 			),
 	};
 	function source(id: string, approved = true, body = "Useful work.") {
-		return `---\nid: ${id}\nkind: task\nfleet: ${approved ? "approved" : "draft"}\n---\n# ${id}\n\n${body}\n`;
+		return `---\nid: ${id}\nkind: task\nfleet: ${approved ? "approved" : "held"}\n---\n# ${id}\n\n${body}\n`;
 	}
 	function write(file: string, content: string) {
 		return fs.writeFileString(path.join(root, file), content);

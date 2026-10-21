@@ -7,7 +7,7 @@ import { routedScreen } from "#test/screenTraits.ts";
 
 expectNoReactWarnings();
 
-const PROJECT = ".start-template:has([data-template-copy='project.md'])";
+const PROJECT = ".start-template:has([data-template-copy='goal.md'])";
 
 screenStory.it(
 	"opens and selects a Start template when the clipboard refuses it",

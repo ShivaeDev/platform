@@ -16,7 +16,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 				yield* daemon.admit();
 				yield* daemon.schedule();
 				const waiting = yield* daemon.get("two");
-				expect(waiting).toMatchObject({ attempts: [], blocker: "waiting for area shared held by one", stage: "prepared" });
+				expect(waiting).toMatchObject({ attempts: [], blocker: "waiting for area shared held by one", step: "queued" });
 				const edited = two.replace("areas: [shared]", areas);
 				daemon.writeBoard("two.md", edited);
 				if (mode === "scheduler") {
@@ -26,14 +26,14 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 					yield* daemon.approve("two");
 				}
 				const launched = yield* daemon.get("two");
-				expect(launched.stage).toBe("executing");
+				expect(launched.step).toBe("working");
 				expect(launched.areas ?? []).toEqual(areas === "" ? [] : ["other"]);
 				expect(launched.blocker).toBeUndefined();
 				expect(launched.attempts).toHaveLength(1);
 				expect(launched.boardRevision).toBe(waiting.boardRevision);
 				expect(launched.boardContext).toBe(edited);
 				expect(launched.prompt).toContain(edited);
-				expect((yield* daemon.get("one")).stage).toBe("executing");
+				expect((yield* daemon.get("one")).step).toBe("working");
 				expect(daemon.providerStarts()).toHaveLength(2);
 			},
 		);
@@ -51,7 +51,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			expect(yield* daemon.get("two")).toMatchObject({
 				attempts: [],
 				blocker: expect.stringContaining("waiting for dependency one"),
-				stage: "prepared",
+				step: "queued",
 			});
 			daemon.writeBoard("two.md", independent);
 			if (mode === "scheduler") {
@@ -60,8 +60,8 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			} else {
 				yield* daemon.approve("two");
 			}
-			expect(yield* daemon.get("two")).toMatchObject({ boardContext: independent, stage: "executing" });
-			expect((yield* daemon.get("one")).stage).toBe("executing");
+			expect(yield* daemon.get("two")).toMatchObject({ boardContext: independent, step: "working" });
+			expect((yield* daemon.get("one")).step).toBe("working");
 			expect(daemon.providerStarts()).toHaveLength(2);
 		},
 	);
@@ -72,7 +72,7 @@ host.it("scheduler passes leave an unchanged area wait unwritten", [boardWork({ 
 	yield* daemon.admit();
 	yield* daemon.schedule();
 	const waiting = yield* daemon.storedRecord("two");
-	expect(waiting.value).toMatchObject({ blocker: "waiting for area shared held by one", stage: "prepared" });
+	expect(waiting.value).toMatchObject({ blocker: "waiting for area shared held by one", step: "queued" });
 	yield* daemon.schedule();
 	yield* daemon.schedule();
 	expect(yield* daemon.storedRecord("two")).toEqual(waiting);

@@ -44,18 +44,18 @@ const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork)
 });
 
 function unlaunched(record: FleetRecord) {
-	return record.stage === "prepared" && record.attempts.length === 0;
+	return record.step === "queued" && record.attempts.length === 0;
 }
 
 function stalePreparation(record: FleetRecord, work: BoardWork, main: MainSnapshot) {
 	const changed = briefChanged(record, work);
-	return record.stage === "prepared" && (unlaunched(record) || !changed) && (changed || record.preparation.baseRevision !== main.revision);
+	return record.step === "queued" && (unlaunched(record) || !changed) && (changed || record.preparation.baseRevision !== main.revision);
 }
 
 function stoppedBehindMain(record: FleetRecord) {
 	const decision = record.decision;
 	return (
-		record.stage === "needs-human"
+		record.step === "waiting"
 		&& record.attempts.length === 0
 		&& decision !== undefined
 		&& decision.worker === undefined
@@ -75,14 +75,14 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	if (!work.approved || ["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")) {
 		return;
 	}
-	if (record?.stage === "prepared" && record.launchRetry !== undefined) {
+	if (record?.step === "queued" && record.launchRetry !== undefined) {
 		return;
 	}
 	const fleet = yield* Fleet;
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
-	const reapproved = record !== undefined && approval === "explicit" && (record.stage === "released" || briefChanged(record, work));
-	const released = record?.stage === "released" && !sweepMerged(record);
+	const reapproved = record !== undefined && approval === "explicit" && (record.step === "released" || briefChanged(record, work));
+	const released = record?.step === "released" && !sweepMerged(record);
 	if (record !== undefined && !released && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}
@@ -131,7 +131,7 @@ export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function
 	}
 	yield* (yield* MainSource).refresh;
 	const existing = (yield* fleet.list()).find(({ value }) => value.workId === workId)?.value;
-	if (existing === undefined || ["completed", "released"].includes(existing.stage) || unlaunched(existing) || !briefChanged(existing, work)) {
+	if (existing === undefined || ["done", "released"].includes(existing.step) || unlaunched(existing) || !briefChanged(existing, work)) {
 		yield* prepareApproved(host, work, existing, "explicit");
 	}
 	return yield* fleet.dispatch(workId, yield* launchPrompt(host, work), now);

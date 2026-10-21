@@ -35,7 +35,7 @@ export function requestRework(state: EngineState) {
 				responses: responses ?? record.responses,
 				review: undefined,
 				reviewSkippedHead: undefined,
-				stage: "repairing",
+				step: "repairing",
 				supersededDecisions:
 					responses !== undefined || published === undefined
 						? record.supersededDecisions

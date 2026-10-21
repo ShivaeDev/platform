@@ -47,8 +47,8 @@ screenStory.it(
 	},
 );
 
-for (const status of ["done", "completed", "deferred"]) {
-	const files = { ...answerCardFixture, "guide.md": answerCardFixture["guide.md"].replace("status: blocked", `status: ${status}`) };
+for (const status of ["done", "done", "deferred"]) {
+	const files = { ...answerCardFixture, "guide.md": answerCardFixture["guide.md"].replace("status: ready", `status: ${status}`) };
 	for (const url of ["/guide.md", `/${decisionFile}`, "/_board/inbox", "/"]) {
 		screenStory.it(
 			`hides open managed asks from cards and Inbox for ${status} work at ${url}`,
@@ -67,7 +67,12 @@ for (const status of ["done", "completed", "deferred"]) {
 
 screenStory.it(
 	"omits the answer card when an authored question is closed",
-	[routedScreen({ "question.md": "---\nid: question.finished\nkind: question\nstatus: closed\n---\n# Previous question" }, "/question.md")],
+	[
+		routedScreen(
+			{ "question.md": "---\nid: question.finished\nkind: question\nscope: task\nurgency: whenever\nstatus: done\n---\n# Previous question" },
+			"/question.md",
+		),
+	],
 	function* ({ readText, findElement }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("main h1")).toBe("Previous question")));
 		expect(findElement(".answer-cards")).toBeNull();

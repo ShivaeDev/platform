@@ -91,7 +91,7 @@ test("reassignment racing resolution commits one action and the loser reports a 
 			}
 			const current = (yield* fleet.get("one")).value;
 			expect((current.responses?.length ?? 0) + (current.supersededDecisions?.length ?? 0)).toBe(1);
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(current.stage === "executing" ? 2 : 1);
+			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(current.step === "working" ? 2 : 1);
 		}),
 	);
 });

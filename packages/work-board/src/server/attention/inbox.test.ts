@@ -19,15 +19,15 @@ boardStory.it(
 	"excludes closed questions, automation labels and missing actions while disclosing ambiguous identities",
 	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
-		const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: open", "status: closed") };
+		const files: Record<string, string> = { ...inboxFixture(), "question.md": inboxQuestion.replace("status: ready", "status: done") };
 		for (const owner of ["claude", "agent-navigation", "Fleet", "bot", "copilot", "orchestrator", "automation"]) {
 			files["owner.md"] = `---\nid: task.review\nowner: ${owner}\nnext_action: Continue\n---\n# Work`;
 			expect(inboxItems(yield* readAttention(files)).some((item) => item.id === "task.review")).toBe(false);
 		}
-		files["owner.md"] = "---\nid: task.review\nowner: Casey\n---\n# Work";
+		files["owner.md"] = "---\nid: task.review\nowner: marvin\n---\n# Work";
 		expect(inboxItems(yield* readAttention(files)).some((item) => item.id === "task.review")).toBe(false);
 		files["duplicate.md"] = files["fleet.md"] ?? "";
-		expect(inboxItems(yield* readAttention(files)).map((item) => item.id)).toEqual(["task.fleet", "task.fleet"]);
+		expect(inboxItems(yield* readAttention(files)).map((item) => item.id)).toEqual([]);
 		const incomplete = yield* readAttention(files, ["unreadable.md"]);
 		expect(inboxItems(incomplete)).toEqual([]);
 	},
@@ -99,10 +99,10 @@ boardStory.it(
 		const listedFiles = fleet.documents.map((entry) => ({ modified: 0, path: entry.file }));
 		const hidden = libraryData(listedFiles, fleet, {});
 		const shown = libraryData(listedFiles, fleet, { showFleet: true });
-		expect(hidden.fleetCount).toBe(3);
+		expect(hidden.fleetCount).toBe(2);
 		for (const file of ["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]) {
 			expect(hidden.files.some((entry) => entry.path === file)).toBe(false);
-			expect(shown.files.some((entry) => entry.path === file)).toBe(true);
+			expect(shown.files.some((entry) => entry.path === file)).toBe(file !== "responses/fleet-answer.md");
 		}
 		expect(hidden.files.some((entry) => entry.path === "responses/question.md")).toBe(true);
 		expect([...fleetRecords(fleet.model)]).toEqual(["responses/decision.md", "responses/fleet-question.md", "responses/fleet-answer.md"]);

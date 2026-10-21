@@ -17,7 +17,7 @@ export const competingStorage = Effect.fn("FleetFixture.competingStorage")(funct
 			versionColumn: "version",
 		});
 		const original = yield* repository.findById("board-a");
-		yield* repository.update({ ...original, stage: "running" });
+		yield* repository.update({ ...original, step: "running" });
 		intervene = false;
 	}).pipe(Effect.provide(hostDatabase(database.url, "work-fleet-competing-writer", 1)));
 	return yield* makePostgresFleetStore(StorageRecord, {

@@ -9,10 +9,10 @@ import {
 } from "#test/continuationCapacity.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
-for (const stage of ["needs-human", "completed"] as const) {
-	const resultKind = stage === "needs-human" ? needsHumanContinuation : completedContinuation;
+for (const step of ["waiting", "done"] as const) {
+	const resultKind = step === "waiting" ? needsHumanContinuation : completedContinuation;
 	isolatedEngine.it(
-		`a queued continuation of ${stage} work stops for a changed brief and lets prepared work launch`,
+		`a queued continuation of ${step} work stops for a changed brief and lets prepared work launch`,
 		[continuationCapacity, resultKind, fourApproved],
 		function* (fleet) {
 			for (const id of ["one", "two", "three", "four"]) {
@@ -20,7 +20,7 @@ for (const stage of ["needs-human", "completed"] as const) {
 			}
 			yield* fleet.dispatch("one");
 			fleet.finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe(stage);
+			expect((yield* fleet.reconcile("one")).value.step).toBe(step);
 			yield* fleet.dispatch("two");
 			yield* fleet.dispatch("three");
 			yield* fleet.continueWork("one", "Fix the remaining case");
@@ -31,12 +31,12 @@ for (const stage of ["needs-human", "completed"] as const) {
 			expect(stopped).toMatchObject({
 				attentionOwner: "orchestrator",
 				decision: { code: "fleet-stale", reason: "Board context changed" },
-				stage: "needs-human",
+				step: "waiting",
 			});
 			expect(stopped.pendingContinuation).toBeUndefined();
 			yield* fleet.schedule();
 			expect((yield* fleet.get("one")).value.pendingContinuation).toBeUndefined();
-			expect((yield* fleet.get("four")).value.stage).toBe("executing");
+			expect((yield* fleet.get("four")).value.step).toBe("working");
 		},
 	);
 }
@@ -65,10 +65,10 @@ isolatedEngine.it(
 		fleet.providerQuota(100);
 		yield* fleet.schedule();
 		const resumed = (yield* fleet.get("one")).value;
-		expect(resumed.stage).toBe("executing");
+		expect(resumed.step).toBe("working");
 		expect(resumed.pendingContinuation).toBeUndefined();
 		expect(resumed.attempts[0]?.receipt?.sessionId).toBe(first.attempts[0]?.receipt?.sessionId);
-		expect((yield* fleet.get("four")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("four")).value.step).toBe("queued");
 	},
 );
 
@@ -88,7 +88,7 @@ isolatedEngine.it(
 		yield* fleet.finishWorker("two");
 		yield* fleet.schedule();
 		const resumed = (yield* fleet.get("one")).value;
-		expect(resumed.stage).toBe("executing");
+		expect(resumed.step).toBe("working");
 		expect(resumed.pendingContinuation).toBeUndefined();
 		expect(resumed.attempts).toHaveLength(1);
 		expect(resumed.attempts[0]).toMatchObject({
@@ -96,8 +96,8 @@ isolatedEngine.it(
 			receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
 			role: "repair",
 		});
-		expect((yield* fleet.get("two")).value.stage).toBe("completed");
-		expect((yield* fleet.get("three")).value.stage).toBe("executing");
-		expect((yield* fleet.get("four")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("two")).value.step).toBe("done");
+		expect((yield* fleet.get("three")).value.step).toBe("working");
+		expect((yield* fleet.get("four")).value.step).toBe("queued");
 	},
 );

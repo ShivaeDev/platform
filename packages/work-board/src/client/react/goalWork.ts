@@ -8,8 +8,8 @@ export type GoalRun = FleetReady["items"][number] | FleetReady["completed"][numb
 export function goalRun(item: GoalWorkItem, fleet: FleetItemsProjection | undefined): GoalRun | undefined {
 	return fleet?.state === "ready" ? [...fleet.items, ...fleet.completed].find((entry) => entry.workId === item.id) : undefined;
 }
-export function goalGroup(item: GoalWorkItem, run: GoalRun | undefined): GoalWorkGroup {
-	return goalWorkGroup(item.metadata.status, run?.stage, item.waiting !== undefined);
+export function goalGroup(item: GoalWorkItem, _run: GoalRun | undefined): GoalWorkGroup {
+	return goalWorkGroup(item.metadata.status);
 }
 
 export function targetsGoal(item: GoalWorkItem, id: string, criterion?: string) {

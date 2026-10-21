@@ -17,8 +17,8 @@ export function continueCommand(state: EngineState, launch: ReturnType<typeof ma
 			if (!message.trim()) {
 				return yield* Effect.fail(new BadRequest({ message: "Continuation needs a message" }));
 			}
-			if (!["needs-human", "completed"].includes(stored.value.stage) || executing(stored.value)) {
-				return yield* Effect.fail(new Forbidden({ message: "Continue requires terminal needs-human or completed work" }));
+			if (!["waiting", "done"].includes(stored.value.step) || executing(stored.value)) {
+				return yield* Effect.fail(new Forbidden({ message: "Continue requires terminal waiting or done work" }));
 			}
 			const latest = stored.value.attempts.findLast((attempt) => attempt.role !== "reviewer");
 			const sessionId = latest?.receipt?.sessionId ?? latest?.sessionId;

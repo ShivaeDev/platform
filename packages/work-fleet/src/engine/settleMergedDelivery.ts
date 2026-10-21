@@ -21,7 +21,7 @@ export const settleMergedDelivery = Effect.fn("Fleet.settleMergedDelivery")(func
 		&& record.checks !== undefined
 		&& Result.isSuccess(yield* validateChecks(record.checks, result.head).pipe(Effect.result));
 	return approved && delivery.head === result.head
-		? yield* state.save(stored, { ...record, blocker: undefined, mergedDelivery: delivery, outcome: delivery, stage: "completed" })
+		? yield* state.save(stored, { ...record, blocker: undefined, mergedDelivery: delivery, outcome: delivery, step: "done" })
 		: yield* releaseFinishedWork(
 				state,
 				stored,

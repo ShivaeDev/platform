@@ -2,7 +2,7 @@ import { questionId, questionMarkdown, revisionOf } from "#server/responses/reco
 
 export const questionnaireSource = `---
 id: investigation.choices
-kind: investigation
+kind: task
 attention:
   - id: direction
     kind: decision

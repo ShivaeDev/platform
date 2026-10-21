@@ -15,7 +15,7 @@ export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: Engi
 	const index = records.findIndex((entry) => entry.workId === record.workId);
 	const waiting = records
 		.slice(0, index)
-		.filter((entry) => entry.stage === "prepared" && overlappingArea(record.areas ?? [], entry.areas) !== undefined);
+		.filter((entry) => entry.step === "queued" && overlappingArea(record.areas ?? [], entry.areas) !== undefined);
 	return yield* Effect.filter(waiting, (entry) =>
 		state.board.get(entry.workId).pipe(
 			Effect.flatMap((work) =>

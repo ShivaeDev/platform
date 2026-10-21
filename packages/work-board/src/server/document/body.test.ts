@@ -13,7 +13,7 @@ boardStory.it(
 	},
 );
 for (const [name, source] of [
-	["unregistered", `---\nid: question.authored\nkind: question\n---\n${decisionContext}`],
+	["unregistered", `---\nid: question.authored\nkind: question\nscope: task\nurgency: whenever\n---\n${decisionContext}`],
 	["changed context", questionPacket.replace("Read the evidence", "Changed evidence")],
 	["damaged identity", questionPacket.replace("id: question.", "id: damaged.")],
 ] as const) {

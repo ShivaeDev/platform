@@ -29,7 +29,7 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 			diagnostics.length === 0
 				? undefined
 				: new BoardFailure({
-						message: `Board metadata is invalid: ${file} (${diagnostics.map((diagnostic) => `line ${diagnostic.line}: ${diagnostic.message}`).join("; ")})`,
+						message: `Board metadata is invalid: ${file} (${diagnostics.map((diagnostic) => `${diagnostic.field ?? "frontmatter"}: line ${diagnostic.line}: ${diagnostic.message}`).join("; ")})`,
 					}),
 	};
 });

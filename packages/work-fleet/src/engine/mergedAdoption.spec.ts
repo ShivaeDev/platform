@@ -16,7 +16,7 @@ for (const retry of [false, true]) {
 			let reviewing = yield* fleet.reconcile("one");
 			const worker = reviewing.value.attempts[0];
 			if (retry) {
-				expect(reviewing.value.stage).toBe("needs-human");
+				expect(reviewing.value.step).toBe("waiting");
 				expect(reviewing.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 				expect(reviewing.value.decision?.reason).toBe("Reported PR must be open and target the configured repository branch");
 				expect(reviewing.value.result).toBeUndefined();
@@ -28,11 +28,11 @@ for (const retry of [false, true]) {
 				yield* restart();
 				reviewing = yield* Effect.gen(function* () {
 					const resumed = yield* fleet.resolve("one", decisionId, responseId);
-					expect(resumed.value.stage).toBe("adopting");
+					expect(resumed.value.step).toBe("adopting");
 					return yield* fleet.reconcile("one");
 				});
 			}
-			expect(reviewing.value.stage).toBe("released");
+			expect(reviewing.value.step).toBe("released");
 			expect(reviewing.value.result).toMatchObject({ head: HEAD, paths: ["src/one.ts"], pr: PR, prNumber: 7 });
 			expect(reviewing.value.releaseReason).toBe(`PR #7 merged by a human at ${HEAD}; Fleet review covered nothing`);
 			expect(reviewing.value.outcome).toBeUndefined();

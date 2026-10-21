@@ -83,8 +83,9 @@ export function typedMigrationRecords(): readonly FleetRecord[] {
 			{ head: "head", kind: "change", paths: [], pr: "pr", prNumber: 2 },
 		],
 		review: { evidence: ["review"], findings: ["finding"], head: "head", receipt: migrationReceipt, repairPrompt: "repair", verdict: "changes" },
-		stage: "needs-human",
+		stage: "waiting",
 		stageEnteredAt: 8,
+		step: "waiting",
 		supersededDecisions: [
 			{
 				boardAcknowledged: true,
@@ -120,7 +121,16 @@ export function typedMigrationRecords(): readonly FleetRecord[] {
 			supersededDecisions: [],
 			workId: "empty",
 		},
-		{ attempts: [], boardRevision: "revision", cwd: "/synthetic", preparation: prepared(), prompt: "minimal", stage: "prepared", workId: "absent" },
+		{
+			attempts: [],
+			boardRevision: "revision",
+			cwd: "/synthetic",
+			preparation: prepared(),
+			prompt: "minimal",
+			stage: "queued",
+			step: "queued",
+			workId: "absent",
+		},
 	];
 }
 

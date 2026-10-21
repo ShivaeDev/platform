@@ -3,12 +3,13 @@ import { SqlClient } from "effect/sql";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import type { FleetHost } from "#host/config.ts";
+import type { FleetRecord } from "#model.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";
 import { recordInput, recordModel } from "#storage/model.ts";
 import { childTable, inputColumns, objectValue, writeChildren } from "#storage/recordChildren.ts";
 import { recordShape, type Shape } from "#storage/recordShape.ts";
 
-export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>>) {
+export function storeState(host: FleetHost, workId: string, payload: Readonly<Record<string, unknown>> & { readonly stage: FleetRecord["stage"] }) {
 	return Effect.gen(function* () {
 		const transaction = yield* makeFleetTransaction;
 		return yield* transaction(

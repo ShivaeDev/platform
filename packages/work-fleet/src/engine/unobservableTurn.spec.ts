@@ -15,13 +15,13 @@ test("a stall recovery turn becomes visible after two observation passes across 
 			for (let pass = 0; pass < 2; pass += 1) {
 				advance(1);
 				const pending = yield* fixture.restart(reconcile);
-				expect(pending.value.stage).toBe("executing");
+				expect(pending.value.step).toBe("working");
 				expect(pending.value.attempts.at(-1)?.missingSince).toBeDefined();
 				expect(pending.value.decision).toBeUndefined();
 			}
 			server.hidden.delete("turn-2");
 			const visible = yield* fleet.reconcile("one");
-			expect(visible.value.stage).toBe("executing");
+			expect(visible.value.step).toBe("working");
 			expect(visible.value.attempts.at(-1)?.missingSince).toBeUndefined();
 			expect(visible.value.attempts.at(-1)?.status).toBe("running");
 			expect(server.requests.filter((request) => request.method === "turn/start")).toHaveLength(2);
@@ -30,7 +30,7 @@ test("a stall recovery turn becomes visible after two observation passes across 
 	));
 
 for (const progressingTurn of ["turn-1", "provider-followup"]) {
-	test(`progress on ${progressingTurn} keeps an invisible acknowledged turn executing past its grace period`, () =>
+	test(`progress on ${progressingTurn} keeps an invisible acknowledged turn working past its grace period`, () =>
 		withUnobservableTurn((fixture, server, advance) =>
 			Effect.gen(function* () {
 				const fleet = yield* Fleet;
@@ -40,7 +40,7 @@ for (const progressingTurn of ["turn-1", "provider-followup"]) {
 					advance(6);
 					server.addItem();
 					const current = yield* fixture.restart(reconcile);
-					expect(current.value.stage).toBe("executing");
+					expect(current.value.step).toBe("working");
 					expect(current.value.attempts.at(-1)?.progress?.at).toBe((61 + (pass + 1) * 6) * 60_000);
 					expect(current.value.decision).toBeUndefined();
 				}
@@ -59,7 +59,7 @@ test("an invisible turn resumes once on the same thread and a second consecutive
 			expect((yield* fleet.reconcile("one")).value.attempts).toHaveLength(2);
 			advance(1);
 			const resumed = yield* fixture.restart(reconcile);
-			expect(resumed.value.stage).toBe("executing");
+			expect(resumed.value.step).toBe("working");
 			expect(resumed.value.decision).toBeUndefined();
 			expect(resumed.value.attempts.at(-1)).toMatchObject({ observationRetries: 1, receipt: { sessionId: "worker-thread", turnId: "turn-3" } });
 			expect(resumed.value.attempts[1]?.status).toBe("failed");
@@ -69,7 +69,7 @@ test("an invisible turn resumes once on the same thread and a second consecutive
 			const lost = yield* fixture.restart(reconcile);
 			expect(lost.value).toMatchObject({
 				decision: { code: "session-turn-missing", reason: expect.stringContaining("one automatic resume") },
-				stage: "needs-human",
+				step: "waiting",
 			});
 			expect(executing(lost.value)).toBe(true);
 			expect(server.requests.filter((request) => request.method === "turn/start")).toHaveLength(3);
@@ -79,7 +79,7 @@ test("an invisible turn resumes once on the same thread and a second consecutive
 			const released = yield* fixture.restart(
 				Fleet.pipe(Effect.flatMap((restarted) => restarted.resolve("one", decisionId, fixture.respond(decisionId, "release")))),
 			);
-			expect(released.value.stage).toBe("released");
+			expect(released.value.step).toBe("released");
 			expect(released.value.attempts.at(-1)?.sessionUnusable).toBe(true);
 		}),
 	));
@@ -97,7 +97,7 @@ test("observing the resumed turn resets consecutive visibility losses", () =>
 			yield* fleet.reconcile("one");
 			advance(5);
 			const resumed = yield* fixture.restart(reconcile);
-			expect(resumed.value.stage).toBe("executing");
+			expect(resumed.value.step).toBe("working");
 			expect(resumed.value.attempts.at(-1)?.receipt?.turnId).toBe("turn-4");
 			expect(fixture.decisions).toHaveLength(0);
 		}),

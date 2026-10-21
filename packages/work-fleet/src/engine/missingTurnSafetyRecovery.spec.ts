@@ -18,14 +18,14 @@ for (const receiptLost of [false, true]) {
 			loseTurn(session);
 			threadActive(session);
 			const waiting = (yield* fleet.reconcile("one")).value;
-			expect(waiting.stage).toBe("executing");
+			expect(waiting.step).toBe("working");
 			expect(waiting.blocker).toContain("thread remains active");
 			expect(yield* status()).toContain("Waiting on automation (1)");
 			expect(launches()).toHaveLength(1);
 			expect(publishedDecisions()).toEqual([]);
 			yield* restart();
 			advanceTime(299_999);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("working");
 			advanceTime(1);
 			const parked = (yield* fleet.reconcile("one")).value;
 			expect(parked.decision?.reason).toContain("thread remains active after the visibility grace period");
@@ -34,13 +34,13 @@ for (const receiptLost of [false, true]) {
 				throw new Error("Expected an active-thread decision");
 			}
 			respond(parked.decision.id, "release");
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 			respond(parked.decision.id, "retry");
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 			expect(launches()).toHaveLength(1);
 			threadIdle(session);
 			yield* restart();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("working");
 			expect(launches()).toHaveLength(2);
 		},
 	);
@@ -55,7 +55,7 @@ for (const state of ["merged", "closed"] as const) {
 			loseTurn((yield* fleet.dispatch("one")).value.attempts.at(-1)?.sessionId);
 			publishPullRequest(state);
 			const parked = (yield* fleet.reconcile("one")).value;
-			expect(parked.stage).toBe("needs-human");
+			expect(parked.step).toBe("waiting");
 			expect(parked.decision?.reason).toContain(`is ${state}`);
 			expect(launches()).toHaveLength(1);
 			if (parked.decision === undefined) {
@@ -63,7 +63,7 @@ for (const state of ["merged", "closed"] as const) {
 			}
 			respond(parked.decision.id, "retry");
 			yield* restart();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 			expect(launches()).toHaveLength(1);
 		},
 	);
@@ -88,7 +88,7 @@ for (const receiptLost of [false, true]) {
 				advanceTime(300_000);
 				yield* restart();
 				const replacement = (yield* fleet.reconcile("one")).value;
-				expect(replacement.stage).toBe("executing");
+				expect(replacement.step).toBe("working");
 				expect(replacement.decision).toBeUndefined();
 				expect(publishedDecisions()).toHaveLength(0);
 				expect(replacement.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");
@@ -109,14 +109,14 @@ for (const receiptLost of [false, true]) {
 }
 
 engine.it(
-	"a lost repair after a completed replacement rechecks the current PR and recovers automatically",
+	"a lost repair after a done replacement rechecks the current PR and recovers automatically",
 	[workerTurnsCanBeLost(), lostAcknowledgement(), reviewerStillRunning(), reviewRequestsRepairs()],
 	function* ({ fleet, prepareWork, restart, loseTurn, finishWorkers, publishPullRequest, advanceTime, publishedDecisions }) {
 		yield* prepareWork("one");
 		loseTurn((yield* fleet.dispatch("one")).value.attempts.at(-1)?.sessionId);
 		yield* fleet.reconcile("one");
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 		finishWorkers();
 		const repair = (yield* fleet.reconcile("one")).value;
 		expect(repair.attempts.at(-1)?.role).toBe("repair");
@@ -126,7 +126,7 @@ engine.it(
 		advanceTime(300_000);
 		yield* restart();
 		const recovered = (yield* fleet.reconcile("one")).value;
-		expect(recovered.stage).toBe("executing");
+		expect(recovered.step).toBe("working");
 		expect(recovered.decision).toBeUndefined();
 		expect(recovered.attempts.at(-1)?.role).toBe("repair");
 		expect(recovered.attempts.at(-1)?.sessionId).not.toBe(repair.attempts.at(-1)?.sessionId);

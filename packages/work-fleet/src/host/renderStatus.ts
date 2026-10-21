@@ -17,16 +17,16 @@ export function renderStatus(current: typeof DaemonStatus.Type, selection: { rea
 	const endpoint = `${board}${selection.port === undefined ? "" : ` --port ${selection.port}`}`;
 	const sections: readonly [string, readonly View[]][] = [
 		["Active", current.active],
-		["Waiting on maintainer", current.waiting.maintainer],
+		["Waiting on you", current.waiting.maintainer],
 		["Waiting on orchestrator", current.waiting.orchestrator],
 		["Waiting on automation", current.waiting.automation],
-		["Completed", current.completed],
+		["Done", current.completed],
 	];
 	const rendered = sections
 		.map(([title, items]) =>
 			[
 				`${title} (${items.length})`,
-				...items.map((item) => line(item, title === "Waiting on maintainer" || title === "Waiting on orchestrator", endpoint)),
+				...items.map((item) => line(item, title === "Waiting on you" || title === "Waiting on orchestrator", endpoint)),
 			].join("\n"),
 		)
 		.join("\n");

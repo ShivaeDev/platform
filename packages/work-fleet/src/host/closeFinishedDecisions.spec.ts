@@ -51,7 +51,7 @@ host.it(
 		expect(closed.stdout).toContain("6 decision(s) closed.");
 		for (const [index, publication] of publications.entries()) {
 			const item = finishedDecisionWork[index];
-			const finished = item !== undefined && ["done", "deferred", "superseded"].includes(item.status);
+			const finished = item !== undefined && ["done", "deferred", "dropped"].includes(item.status);
 			const source = fleet.readBoard(publication.sourcePath);
 			expect(board.metadataParse(source).fields.attention).toMatchObject([{ state: finished ? "closed" : "open" }]);
 			if (finished) {

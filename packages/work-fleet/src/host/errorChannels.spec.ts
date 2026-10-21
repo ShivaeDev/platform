@@ -46,7 +46,7 @@ describe("Fleet errors over daemon HTTP", () => {
 					expect(invalid.message).toBe("Continuation needs a message");
 					const denied = yield* daemonRequest(port, (client) => client("fleet.continue", { message: "Continue", workId: "one" })).pipe(Effect.flip);
 					expect(denied).toBeInstanceOf(Forbidden);
-					expect(denied.message).toBe("Continue requires terminal needs-human or completed work");
+					expect(denied.message).toBe("Continue requires terminal waiting or done work");
 					const stale = yield* daemonRequest(port, (client) =>
 						client("fleet.reassign", { attentionOwner: "orchestrator", decisionId: "old-decision", workId: "one" }),
 					).pipe(Effect.flip);

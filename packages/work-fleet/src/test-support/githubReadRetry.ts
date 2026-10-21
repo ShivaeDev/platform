@@ -21,7 +21,7 @@ export const githubReadRetry = Effect.fn("Test.githubReadRetry")(function* (fail
 			}
 			github.state.unavailableReads = failures;
 			const waiting = (yield* fleet.reconcile("one")).value;
-			expect(waiting.stage).toBe("adopting");
+			expect(waiting.step).toBe("adopting");
 			expect(waiting.decision).toBeUndefined();
 			expect(waiting.attentionOwner).toBe("automation");
 			expect(waiting.integrationRetry).toMatchObject({ failures: 1, retryAt: 30_100 });
@@ -60,7 +60,7 @@ const retryGithubReads = Effect.fn("Test.retryGithubReads")(function* (fixture: 
 const verifyReadRetryOutcome = Effect.fn("Test.verifyReadRetryOutcome")(function* (fixture: EngineFixture, result: FleetRecord, failures: number) {
 	const fleet = yield* Fleet;
 	if (failures === 1) {
-		expect(result.stage).toBe("reviewing");
+		expect(result.step).toBe("reviewing");
 		expect(result.result?.head).toBe(HEAD);
 		expect(result.integrationRetry).toBeUndefined();
 		expect(result.blocker).toBeUndefined();
@@ -68,7 +68,7 @@ const verifyReadRetryOutcome = Effect.fn("Test.verifyReadRetryOutcome")(function
 		expect(result.decision).toBeUndefined();
 		expect(fixture.decisions).toHaveLength(0);
 	} else {
-		expect(result.stage).toBe("needs-human");
+		expect(result.step).toBe("waiting");
 		expect(result.decision?.reason).toContain("read failure after 5 attempts");
 		expect(result.decisionPublished).toBe(true);
 		expect(fixture.decisions).toHaveLength(1);

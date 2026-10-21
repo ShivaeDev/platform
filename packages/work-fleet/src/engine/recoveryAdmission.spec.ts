@@ -13,7 +13,7 @@ for (const published of ["none", "pr"] as const) {
 			loseTurn(initial.attempts.at(-1)?.sessionId);
 			setProviderQuota(1);
 			const blocked = (yield* fleet.reconcile("one")).value;
-			expect(blocked.stage).toBe("executing");
+			expect(blocked.step).toBe("working");
 			expect(blocked.blocker).toContain("Fresh available provider quota");
 			expect(blocked.attempts).toHaveLength(1);
 			expect(blocked.attempts[0]?.publishedRecovery).toBeUndefined();
@@ -22,7 +22,7 @@ for (const published of ["none", "pr"] as const) {
 			yield* restart();
 			setProviderQuota(100);
 			const recovered = (yield* fleet.reconcile("one")).value;
-			expect(recovered.stage).toBe("executing");
+			expect(recovered.step).toBe("working");
 			expect(recovered.prompt).toBe(initial.prompt);
 			expect(recovered.attempts.at(-1)?.prompt?.split(initial.prompt)).toHaveLength(2);
 			expect(recovered.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");

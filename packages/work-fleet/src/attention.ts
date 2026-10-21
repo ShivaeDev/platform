@@ -11,19 +11,19 @@ export function waitingOwner(record: {
 	readonly checks?: { readonly pending?: boolean | undefined } | undefined;
 	readonly decision?: { readonly attentionOwner?: AttentionOwner | undefined } | undefined;
 	readonly launchRetry?: { readonly retryAt: number } | undefined;
-	readonly stage: string;
+	readonly step: string;
 }): AttentionOwner | undefined {
 	if (record.blocker === ANSWER_RECORDED) {
 		return "automation";
 	}
-	if (record.launchRetry !== undefined || (record.stage === "prepared" && record.blocker?.startsWith("waiting for dependency "))) {
+	if (record.launchRetry !== undefined || (record.step === "queued" && record.blocker?.startsWith("waiting for dependency "))) {
 		return "automation";
 	}
-	if (record.stage === "needs-human") {
+	if (record.step === "waiting") {
 		return record.attentionOwner ?? record.decision?.attentionOwner ?? "orchestrator";
 	}
 	if (record.blocker !== undefined) {
 		return record.attentionOwner ?? "orchestrator";
 	}
-	return record.stage === "validating" && record.checks?.pending ? "automation" : undefined;
+	return record.step === "validating" && record.checks?.pending ? "automation" : undefined;
 }

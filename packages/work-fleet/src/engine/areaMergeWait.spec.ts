@@ -18,23 +18,23 @@ engine.it(
 			decision: { attentionOwner: "orchestrator" },
 			mergeReadyAt: 100,
 			mergeReadyHead: "head-one-0",
-			stage: "needs-human",
+			step: "waiting",
 		});
 		advanceTime(1_800_000 - 1);
 		yield* fleet.reconcile("one");
 		expect((yield* fleet.get("one")).value.mergeReadyAt).toBe(100);
 		yield* fleet.dispatch("two").pipe(Effect.result);
-		expect((yield* fleet.get("two")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		advanceTime(1);
 		yield* restart();
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		expect((yield* fleet.get("one")).value).toMatchObject({
 			attentionOwner: "orchestrator",
 			decision: { attentionOwner: "orchestrator" },
-			stage: "needs-human",
+			step: "waiting",
 		});
 		mergePullRequest();
-		expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { revision: "merged" }, stage: "completed" });
+		expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { revision: "merged" }, step: "done" });
 	},
 );
 engine.it(
@@ -50,9 +50,9 @@ engine.it(
 		finishWorkers();
 		expect((yield* fleet.reconcile("one")).value.mergeReadyAt).toBe(20_000);
 		yield* fleet.dispatch("two").pipe(Effect.result);
-		expect((yield* fleet.get("two")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		advanceTime(5000);
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 	},
 );
 engine.it(
@@ -66,10 +66,10 @@ engine.it(
 		yield* fleet.dispatch("one");
 		advanceTime(20_000 - currentTime());
 		yield* fleet.dispatch("two").pipe(Effect.result);
-		expect((yield* fleet.get("two")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		finishWorkers();
 		const reviewing = yield* fleet.reconcile("one");
-		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.step).toBe("reviewing");
 		expect(reviewing.value.mergeReadyAt).toBeUndefined();
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		expect((yield* fleet.get("two")).value.blocker).toContain("held by one");

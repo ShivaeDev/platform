@@ -9,7 +9,7 @@ The agent writes a normal item file with an explicit attention request, then pre
 ````markdown
 ---
 id: review.direction
-kind: investigation
+kind: task
 attention:
   - id: experience
     kind: decision

@@ -32,7 +32,7 @@ test("CLI status groups all owners and wait names each owner without changing ex
 		Effect.gen(function* () {
 			const owners = ["maintainer", "orchestrator", "automation"] as const;
 			for (const owner of owners) {
-				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "needs-human"), attentionOwner: owner, blocker: "Synthetic blocker" });
+				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "waiting"), attentionOwner: owner, blocker: "Synthetic blocker" });
 			}
 			const [waits, text, json] = yield* withReadDaemon(
 				fixture.host,
@@ -46,11 +46,14 @@ test("CLI status groups all owners and wait names each owner without changing ex
 				{ parts: fixture.parts },
 			);
 			expect(waits).toEqual(
-				owners.map((owner) => ({ code: WAIT_EXIT.waitingDecision, stdout: `${owner} needs-human (waiting on ${owner}): Synthetic blocker` })),
+				owners.map((owner) => ({
+					code: WAIT_EXIT.waitingDecision,
+					stdout: `${owner} waiting (waiting on ${owner === "maintainer" ? "you" : owner}): Synthetic blocker`,
+				})),
 			);
 			expect(text.code).toBe(0);
 			for (const owner of owners) {
-				expect(text.stdout).toContain(`Waiting on ${owner} (1)\n  ${owner}  needs-human`);
+				expect(text.stdout).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (1)\n  ${owner}  waiting`);
 			}
 			expect(json.code).toBe(0);
 			expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual([
@@ -69,10 +72,10 @@ test("CLI status groups all owners and wait names each owner without changing ex
 test("terminal publication blockers remain grouped by owner with their original wait exit codes", function* () {
 	yield* withHost({}, {}, (fixture) =>
 		Effect.gen(function* () {
-			const stages = ["completed", "released"] as const;
-			for (const stage of stages) {
-				yield* storeState(fixture.host, stage, {
-					...statusRecord(stage, stage),
+			const stages = ["done", "released"] as const;
+			for (const step of stages) {
+				yield* storeState(fixture.host, step, {
+					...statusRecord(step, step),
 					attentionOwner: "orchestrator",
 					blocker: "Synthetic publication blocker",
 					outcome: undefined,
@@ -81,13 +84,15 @@ test("terminal publication blockers remain grouped by owner with their original 
 			const [waits, status] = yield* withReadDaemon(
 				fixture.host,
 				(port) =>
-					Effect.all([Effect.forEach(stages, (stage) => waitSummary(port, stage)), cli(port, fixture, ["status"])], { concurrency: "unbounded" }),
+					Effect.all([Effect.forEach(stages, (step) => waitSummary(port, step)), cli(port, fixture, ["status"])], { concurrency: "unbounded" }),
 				{ parts: fixture.parts },
 			);
-			expect(waits).toEqual(stages.map((stage) => ({ code: WAIT_EXIT[stage], stdout: `${stage} ${stage} (waiting on orchestrator)` })));
+			expect(waits).toEqual(
+				stages.map((step) => ({ code: WAIT_EXIT[step === "done" ? "completed" : step], stdout: `${step} ${step} (waiting on orchestrator)` })),
+			);
 			expect(status.code).toBe(0);
 			expect(status.stdout).toContain("Waiting on orchestrator (2)");
-			expect(status.stdout).toContain("  completed  completed  Synthetic publication blocker");
+			expect(status.stdout).toContain("  done  done  Synthetic publication blocker");
 			expect(status.stdout).toContain("  released  released  Synthetic publication blocker");
 		}),
 	);
@@ -111,7 +116,7 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 				["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile],
 				{ parts: fixture.parts },
 			);
-			expect(changed).toEqual({ code: 0, stdout: "one needs-human (waiting on maintainer)" });
+			expect(changed).toEqual({ code: 0, stdout: "one waiting (waiting on you): Which storage should I use? Choose PostgreSQL or SQLite." });
 			const current = yield* Effect.gen(function* () {
 				return (yield* (yield* Fleet).get("one")).value;
 			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
@@ -123,7 +128,7 @@ test("CLI reassignment publishes a new maintainer question and refreshes the gen
 			const closed = board.metadataParse(readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8"));
 			expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
 			expect(closed.body).toBe(board.metadataParse(oldSource).body);
-			expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("## Waiting on maintainer\n\n### one");
+			expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("## Waiting on you\n\n### one");
 			expect(calls).toEqual([]);
 			expect(fixture.provider.launched).toHaveLength(1);
 		}),

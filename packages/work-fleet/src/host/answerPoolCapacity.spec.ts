@@ -23,7 +23,7 @@ for (const mode of ["answer", "release", "guidance"] as const) {
 		yield* blocked;
 		const reconciliations = yield* Effect.forEach(workIds, (workId) => host.reconcile(workId).pipe(Effect.forkScoped));
 		const result = yield* host.cliAnswer("three", TEXT, mode === "release").pipe(Effect.timeout("5 seconds"));
-		expect(result).toEqual({ code: 0, stderr: "", stdout: `three ${mode === "guidance" ? "executing" : "needs-human"}: ${ANSWER_RECORDED}` });
+		expect(result).toEqual({ code: 0, stderr: "", stdout: `three waiting (waiting on automation): ${ANSWER_RECORDED}` });
 		const pending = yield* host.status();
 		expect(
 			pending.waiting.automation
@@ -45,7 +45,7 @@ for (const mode of ["answer", "release", "guidance"] as const) {
 				expect(applied.pendingAnswers).toEqual([TEXT]);
 			} else {
 				expect(applied.responses?.filter((response) => response.decisionId === decisions.get(workId))).toHaveLength(1);
-				expect(applied.stage).toBe(mode === "release" ? "released" : "executing");
+				expect(applied.step).toBe(mode === "release" ? "released" : "working");
 			}
 		}
 	});

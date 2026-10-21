@@ -28,7 +28,7 @@ for (const scenario of [
 					const fleet = yield* Fleet;
 					yield* prepareWork("one");
 					const waiting = (yield* fleet.dispatch("one")).value;
-					expect(waiting.stage).toBe("executing");
+					expect(waiting.step).toBe("working");
 					expect(waiting.attempts[0]?.readRetry).toMatchObject({ failures: 1, retryAt: 30_100 });
 					expect(waiting.decision).toBeUndefined();
 					now = 30_099;
@@ -77,7 +77,7 @@ test("timeouts exhaust the shared provider read budget and retain ownership", ()
 					yield* fixture.restart(fleet.reconcile("one"));
 				}
 				const parked = (yield* fleet.get("one")).value;
-				expect(parked.stage).toBe("needs-human");
+				expect(parked.step).toBe("waiting");
 				expect(parked.decision?.reason).toBe(
 					`${TIMEOUT}; provider read failure after 5 attempts (4 automatic retries); execution ownership retained`,
 				);

@@ -42,7 +42,7 @@ boardStory.it(
 	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
 		const files = Object.fromEntries(
-			Object.entries(inboxAudienceFixture()).map(([file, source]) => [file, source.replace("kind: decision\n", "kind: question\n")]),
+			Object.entries(inboxAudienceFixture()).map(([file, source]) => [file, source.replace("kind: question\n", "kind: question\n")]),
 		);
 		expect(inboxItems(yield* readAttention(files)).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
 	},
@@ -50,7 +50,7 @@ boardStory.it(
 
 boardStory.it("keeps unaddressed questions with no attention requests", [deferredServing, anInbox()], function* ({ readAttention }) {
 	const files = inboxAudienceFixture();
-	const source = files["unaddressed.md"]?.replace("status: open", "status: open\nattention: []") ?? "";
+	const source = files["unaddressed.md"]?.replace("status: ready", "status: ready\nattention: []") ?? "";
 	expect(inboxItems(yield* readAttention({ "question.md": source })).map((item) => item.id)).toEqual(["question.storage"]);
 });
 
@@ -59,8 +59,8 @@ boardStory.it(
 	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
 		const files = inboxAudienceFixture();
-		for (const fields of ["owner: orchestrator\nnext_action: Choose a direction", "status: needs-human"]) {
-			const source = files["orchestrator.md"]?.replace("kind: decision\n", `kind: decision\n${fields}\n`) ?? "";
+		for (const fields of ["owner: claude\nnext_action: Choose a direction", "status: ready"]) {
+			const source = files["orchestrator.md"]?.replace("kind: question\n", `kind: question\n${fields}\n`) ?? "";
 			expect(inboxItems(yield* readAttention({ ...files, "orchestrator.md": source })).map((item) => item.id)).toEqual([
 				"decision.reader",
 				"question.storage",
@@ -76,7 +76,7 @@ boardStory.it(
 		const files = inboxAudienceFixture();
 		const source =
 			files["orchestrator.md"]
-				?.replace("kind: decision\n", "kind: decision\nowner: Casey\nnext_action: Choose a direction\n")
+				?.replace("kind: question\n", "kind: question\nowner: marvin\nnext_action: Choose a direction\n")
 				.replace("state: open", "state: closed") ?? "";
 		expect(inboxItems(yield* readAttention({ ...files, "orchestrator.md": source })).map((item) => item.id)).toEqual([
 			"decision.orchestrator",

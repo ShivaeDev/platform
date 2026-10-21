@@ -19,16 +19,16 @@ function transientStory(command: "wait" | "watch") {
 				yield* advancing(untilReads(reads, 11));
 				yield* reads.restoreReads;
 				const recovered = yield* advancing(client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect));
-				expect(recovered).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
+				expect(recovered).toEqual([[{ outcome: {}, stage: "working", workId: "one" }]]);
 				yield* reads.breakReads;
 				const before = reads.count();
 				yield* invalidateOnCommit([`${fixture.host.namespace}_records`]);
 				yield* advancing(untilReads(reads, before + 11));
 				const cached = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
-				expect(cached).toEqual([[{ outcome: {}, stage: "executing", workId: "one" }]]);
+				expect(cached).toEqual([[{ outcome: {}, stage: "working", workId: "one" }]]);
 				yield* reads.restoreReads;
-				yield* storeState(fixture.host, "one", { stage: "completed" });
-				expect(yield* advancing(Effect.promise(() => follower.done))).toEqual({ code: 0, stderr: "", stdout: "one completed" });
+				yield* storeState(fixture.host, "one", { stage: "done", step: "done" });
+				expect(yield* advancing(Effect.promise(() => follower.done))).toEqual({ code: 0, stderr: "", stdout: "one done" });
 			}),
 		);
 	});
@@ -66,7 +66,7 @@ const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: Ho
 	yield* untilReads(reads, 1);
 	const ready = yield* Deferred.make<void>();
 	const second = yield* client("daemon.follow", { workIds: ["one"] }).pipe(
-		Stream.tap((states) => Effect.sync(() => expect(states).toEqual([{ outcome: {}, stage: "executing", workId: "one" }]))),
+		Stream.tap((states) => Effect.sync(() => expect(states).toEqual([{ outcome: {}, stage: "working", workId: "one" }]))),
 		Stream.tap(() => Deferred.succeed(ready, undefined)),
 		Stream.runDrain,
 		Effect.forkScoped,
@@ -81,9 +81,9 @@ const idleStory = Effect.fn("DaemonFollowTest.idleStory")(function* (fixture: Ho
 	const stopped = reads.count();
 	yield* settle;
 	expect(reads.count()).toBe(stopped);
-	yield* storeState(fixture.host, "one", { stage: "completed" });
+	yield* storeState(fixture.host, "one", { stage: "done", step: "done" });
 	const restarted = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
-	expect(restarted).toEqual([[{ outcome: {}, stage: "completed", workId: "one" }]]);
+	expect(restarted).toEqual([[{ outcome: {}, stage: "done", workId: "one" }]]);
 	expect(reads.count()).toBe(stopped + 1);
 });
 

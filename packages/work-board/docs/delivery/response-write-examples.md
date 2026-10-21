@@ -12,7 +12,7 @@ The person reviews the investigation, chooses **Respond to this request**, previ
 
 A question file has `id`, `kind: question` and `question` frontmatter. `question` contains `item`, `request`, `source`, `reviewedRevision`, `reason`, `registeredAt` and `deadline` (milliseconds). Its body preserves the exact original source bytes used for the hash. Generation identity includes item, request, reviewed hash and source path. The request and literal response-from labels follow the [attention rules](./attention-examples.md); no owner/status inference is introduced.
 
-A response has `id`, `kind: response` and `response` frontmatter, with `question`, `reviewedRevision`, `author`, `type` (`answer`, `clarify`, `not_now`) and `recordedAt`. Its body is the authored Markdown. The label is local attribution, not authentication. An answer can say no; exit 0 means receipt of a reply, not approval. Recorded feedback remains distinct from criterion-level verified acceptance.
+A response has `id` and `response` frontmatter, with `question`, `reviewedRevision`, `author`, `type` (`answer`, `clarify`, `not_now`) and `recordedAt`. Its body is the authored Markdown. The label is local attribution, not authentication. An answer can say no; exit 0 means receipt of a reply, not approval. Recorded feedback remains distinct from criterion-level verified acceptance.
 
 ## Failure and recovery
 

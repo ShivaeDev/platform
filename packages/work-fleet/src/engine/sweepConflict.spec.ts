@@ -27,7 +27,7 @@ engine.it(
 		yield* fleet.reconcile("catalog");
 		const previousReviews = reviewedHeads();
 		observeSweepPr("catalog", "merged");
-		expect((yield* fleet.reconcile("catalog")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("catalog")).value.step).toBe("done");
 		sweepConflicts("package", true);
 		yield* restart();
 		const migrating = (yield* fleet.reconcile("package")).value;

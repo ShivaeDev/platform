@@ -22,7 +22,7 @@ export function GoalWorkGroup({ criteria, goal, group, items }: Props) {
 		const run = goalRun(item, fleet);
 		return { criteria: criteria.filter((criterion) => targetsGoal(item, goal, criterion)), item, pr: run?.prUrl, updated: updatedAt(item, run) };
 	});
-	const columns = { criteria: rows.some((row) => row.criteria.length > 0), holder: group === "In progress", pr: rows.some((row) => row.pr) };
+	const columns = { criteria: rows.some((row) => row.criteria.length > 0), holder: group === "Ready", pr: rows.some((row) => row.pr) };
 	return (
 		<Table className="text-sm">
 			<TableCaption className="sr-only">{group} linked work</TableCaption>

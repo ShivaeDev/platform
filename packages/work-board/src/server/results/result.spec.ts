@@ -18,7 +18,7 @@ boardStory.it(
 		const page = yield* Effect.promise(() => fetch(board.url + REVIEW_PATH));
 		expect(page.status).toBe(200);
 		const body = yield* readResult();
-		expect(body).toContain(">In review</span>");
+		expect(body).toContain(">Ready</span>");
 		expect(body).toContain("No evidence recorded");
 		expect(body).toContain("Not recorded");
 		expect(body).toContain("File not found");

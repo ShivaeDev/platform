@@ -6,7 +6,7 @@ import { workRevision } from "#board/workRevision.ts";
 import { dependencySource } from "#test/dependencyBoard.ts";
 
 it("compares saved whole-file revisions with authored revisions through their exact source", () => {
-	const changed = dependencySource.replace("status: planned", "status: done").replace("Implement the work.", "Work completed.");
+	const changed = dependencySource.replace("status: draft", "status: done").replace("Implement the work.", "Work completed.");
 	expect(workRevision(revisionOf(dependencySource), dependencySource)).toBe(briefRevision(metadataParse(changed)));
 	expect(workRevision(revisionOf(changed), changed)).toBe(workRevision(revisionOf(dependencySource), dependencySource));
 });

@@ -10,18 +10,18 @@ isolatedEngine.it("an unexpectedly successful dispatch names the work in the sto
 	if (Exit.isFailure(outcome)) {
 		expect(Cause.pretty(outcome.cause)).toContain("Expected dispatching one to fail, but it succeeded");
 	}
-	expect((yield* fleet.get("one")).value.stage).toBe("executing");
+	expect((yield* fleet.get("one")).value.step).toBe("working");
 });
 
 isolatedEngine.it("an unexpectedly successful continuation names the work in the story failure", [sharedArea], function* (fleet) {
 	yield* fleet.prepareWork("one");
 	yield* fleet.dispatch("one");
 	fleet.finishWorkers();
-	expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+	expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 	const outcome = yield* fleet.attemptContinue("one", "Check the follow-up").pipe(Effect.exit);
 	expect(Exit.isFailure(outcome)).toBe(true);
 	if (Exit.isFailure(outcome)) {
 		expect(Cause.pretty(outcome.cause)).toContain("Expected continuing one to fail, but it succeeded");
 	}
-	expect((yield* fleet.get("one")).value.stage).toBe("executing");
+	expect((yield* fleet.get("one")).value.step).toBe("working");
 });

@@ -54,7 +54,7 @@ for (const receipt of ["lost", "known", "recovered"] as const) {
 							return yield* Effect.die("Missing migrated question");
 						}
 						const answer = yield* answerWorker(root, decision);
-						expect((yield* restarted.resolve("one", decision.id, answer.id)).value.stage).toBe("executing");
+						expect((yield* restarted.resolve("one", decision.id, answer.id)).value.step).toBe("working");
 					}).pipe(Effect.scoped),
 				);
 				expect(fixture.launched).toHaveLength(1);
@@ -91,7 +91,7 @@ for (const migrate of [false, true]) {
 					Effect.gen(function* () {
 						const restarted = yield* Fleet;
 						const continued = (yield* restarted.reconcile("one")).value;
-						expect(continued.stage).toBe("executing");
+						expect(continued.step).toBe("working");
 						expect(continued.responses).toMatchObject([{ boardAcknowledged: true, decisionId: original.id, responseId: answer.id }]);
 						expect(continued.attempts.at(-1)?.prompt).toBe(answer.body);
 						expect(continued.supersededDecisions).toBeUndefined();

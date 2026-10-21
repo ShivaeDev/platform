@@ -12,7 +12,7 @@ export function publishedDecision(document: BoardDocument) {
 	const request = fields.attention?.[0];
 	if (
 		diagnostics.length > 0
-		|| fields.kind !== "decision"
+		|| fields.kind !== "question"
 		|| !fields.id?.startsWith("decision.")
 		|| workId === undefined
 		|| !body.startsWith(`# Fleet decision for ${workId}\n`)

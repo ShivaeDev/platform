@@ -8,10 +8,10 @@ import { routedScreen } from "#test/screenTraits.ts";
 expectNoReactWarnings();
 
 screenStory.it(
-	"puts a task with an open ask for the reader in Waiting on a person, and leaves agent asks and related questions queued",
+	"puts a task with an open ask for the reader in Waiting on you, and leaves agent asks and related questions queued",
 	[routedScreen(nowAsksFixture, "/_board/work", { home: "home.md" })],
 	function* ({ findElement, findElements, readAttribute, readText }) {
-		const waiting = "[aria-label='Waiting on a person'] [data-item='task.yours']";
+		const waiting = "[aria-label='Waiting on you'] [data-item='task.yours']";
 		yield* Effect.promise(() => eventually(() => expect(findElement(waiting)).not.toBeNull()));
 		expect(readText(`${waiting} .work-owner`)).toBe("Waiting on your answer");
 		expect(readAttribute(`${waiting} [data-status-token]`, "data-status-token")).toBe("needs-you");
@@ -25,7 +25,7 @@ screenStory.it(
 
 for (const [task, chip] of [
 	["task.yours", "Needs you"],
-	["task.agent", "Waiting on agents"],
+	["task.agent", "Waiting on automation"],
 ] as const) {
 	screenStory.it(
 		`splits the header chip of ${task} by who answers its open ask, like Now and Today`,

@@ -12,7 +12,7 @@ import { postgresTests } from "#test/postgres.ts";
 describe("Fleet continuation against PostgreSQL", () => {
 	const test = postgresTests("test", "isolated");
 
-	test("continues needs-human work through native RPC and replaces the old result with the new output", () =>
+	test("continues waiting work through native RPC and replaces the old result with the new output", () =>
 		withEngine(
 			{
 				checksFailure: true,
@@ -26,10 +26,10 @@ describe("Fleet continuation against PostgreSQL", () => {
 						const first = yield* client("fleet.dispatch", { workId: "one" });
 						finishWorkers(fixture);
 						const stopped = yield* client("fleet.reconcile", { workId: "one" });
-						expect(stopped.stage).toBe("needs-human");
+						expect(stopped.step).toBe("waiting");
 						expect(stopped).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 						const continued = yield* client("fleet.continue", { message: "Fix the remaining criterion", workId: "one" });
-						expect(continued.stage).toBe("executing");
+						expect(continued.step).toBe("working");
 						expect(continued.attempts[0]).toMatchObject({
 							prompt: "Fix the remaining criterion",
 							receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
@@ -44,26 +44,26 @@ describe("Fleet continuation against PostgreSQL", () => {
 						expect(active.active[0]?.blocker).toBeUndefined();
 						finishWorkers(fixture);
 						const completed = yield* client("fleet.reconcile", { workId: "one" });
-						expect(completed.stage).toBe("completed");
+						expect(completed.step).toBe("done");
 						expect(completed.result).toMatchObject({ evidence: ["Fix the remaining criterion"] });
-						expect(settled("one", completed)?.summary).toBe("one completed: Fix the remaining criterion");
+						expect(settled("one", completed)?.summary).toBe("one done: Fix the remaining criterion");
 						expect(views([completed]).completed[0]?.outcome).toEqual({ evidence: ["Fix the remaining criterion"] });
 						expect(fixture.acknowledgements).toContainEqual(expect.objectContaining({ disposition: "superseded" }));
 					}),
 				),
 		));
 
-	test("continues completed work and reconciles a lost acknowledgement after restart without replay", () =>
+	test("continues done work and reconciles a lost acknowledgement after restart without replay", () =>
 		withEngine({ noChange: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				fixture.loseAcknowledgement();
 				const continued = yield* fleet.continue("one", "Check one more case");
-				expect(continued.value.stage).toBe("executing");
+				expect(continued.value.step).toBe("working");
 				expect(continued.value.attempts[0]).toMatchObject({ prompt: "Check one more case", sessionId: "session-operation-1", status: "submitting" });
 				expect(continued.value.attempts[0]?.receipt).toBeUndefined();
 				expect(yield* fleet.continue("one", "Do not replay").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
@@ -73,7 +73,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 						const observed = yield* restarted.reconcile("one");
 						expect(observed.value.attempts[0]?.receipt).toEqual({ sessionId: "session-operation-1", turnId: "turn-operation-3" });
 						finishWorkers(fixture);
-						expect((yield* restarted.reconcile("one")).value.stage).toBe("completed");
+						expect((yield* restarted.reconcile("one")).value.step).toBe("done");
 					}),
 				);
 				expect(fixture.settings.filter((call) => call.operationId === "operation-3")).toHaveLength(1);

@@ -30,7 +30,7 @@ for (const output of [review, "Please add a next action. FLEET_REVIEW: invalid J
 			const reviewing = yield* reconcile("one");
 			yield* turnReports(reviewing, output);
 			const ready = (yield* reconcile("one")).value;
-			expect(ready.stage).toBe("needs-human");
+			expect(ready.step).toBe("waiting");
 			expect(ready.decision?.code).toBe("reviewed-pr-ready");
 			expect(ready.review?.verdict).toBe(output === review ? "changes" : "unavailable");
 			expect(ready.checks?.passed).toBe(true);
@@ -38,7 +38,7 @@ for (const output of [review, "Please add a next action. FLEET_REVIEW: invalid J
 			expect(document).toBeDefined();
 			const path = document?.publication.sourcePath ?? "missing";
 			const published = readBoardPublication(path);
-			expect(published.fields.kind).toBe("result");
+			expect(published.fields.kind).toBe("report");
 			expect(published.fields.relationships).toEqual([{ kind: "informs", target: "one" }]);
 			expect(published.body).toContain(output);
 			if (output === review) {
@@ -57,7 +57,7 @@ for (const output of [review, "Please add a next action. FLEET_REVIEW: invalid J
 			yield* reconcile("one");
 			expect(providerStarts().map((start) => start.access)).toEqual([undefined, "read-only"]);
 			mergePullRequest();
-			expect((yield* reconcile("one")).value.stage).toBe("completed");
+			expect((yield* reconcile("one")).value.step).toBe("done");
 		},
 	);
 }

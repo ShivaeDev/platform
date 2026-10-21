@@ -10,7 +10,7 @@ import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 
 postgresTests("live")("an oversized report needs a human once across scheduler retries and host restart", () =>
-	withHost({ "research.md": "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n" }, {}, (fixture) =>
+	withHost({ "research.md": "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n" }, {}, (fixture) =>
 		Effect.gen(function* () {
 			yield* dispatchWork(fixture.host, "research", fixture.parts);
 			for (const [id, current] of fixture.provider.observations) {
@@ -19,7 +19,7 @@ postgresTests("live")("an oversized report needs a human once across scheduler r
 			const first = yield* Effect.gen(function* () {
 				return yield* (yield* Fleet).reconcile("research");
 			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			expect(first.value.stage).toBe("needs-human");
+			expect(first.value.step).toBe("waiting");
 			expect(first.value.attentionOwner).toBe("orchestrator");
 			expect(first.value.decision?.attentionOwner).toBe("orchestrator");
 			expect(first.value.decision?.reason).toContain("256 KiB context limit");

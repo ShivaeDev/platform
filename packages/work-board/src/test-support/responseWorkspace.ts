@@ -20,13 +20,15 @@ export function responseWorkspace(count = 200): Readonly<Record<string, string>>
 				},
 			],
 			id: item,
-			kind: "decision",
+			kind: "question",
 			options: [
 				{ description: "Continue with the recorded direction.", label: "Continue" },
 				{ description: "Wait for the next review.", label: "Wait" },
 			],
 			recommended: "Continue",
-			status: "in-progress",
+			scope: "task",
+			status: "ready",
+			urgency: "whenever",
 		})}---\n# Decision ${index}\n\n${"Review the recorded context and choose the next step. ".repeat(40)}\n`;
 		files[file] = source;
 		Object.assign(files, responseRecords(index, item, file, source));

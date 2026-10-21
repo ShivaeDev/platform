@@ -66,7 +66,7 @@ describe("the Board's RPC stream", () => {
 					],
 				}),
 				success("2", { items: [], state: "ready" }),
-				success("3", { goals: [{ counts: { done: 1, planned: 1 }, id: "goal.a", title: "Goal A" }] }),
+				success("3", { goals: [{ counts: { done: 1, draft: 1 }, id: "goal.a", title: "Goal A" }] }),
 				success("4", { directory: "/repo/.work", url: "http://127.0.0.1:4801" }),
 			),
 			"/repo",
@@ -82,7 +82,7 @@ describe("the Board's RPC stream", () => {
 				problem: null,
 			},
 			flights: { items: [], problem: null },
-			goals: { items: [{ active: 0, done: 1, id: "goal.a", title: "Goal A", total: 2 }], problem: null },
+			goals: { items: [{ done: 1, id: "goal.a", ready: 0, title: "Goal A", total: 2 }], problem: null },
 			kind: "ready",
 		});
 	});
@@ -126,8 +126,8 @@ describe("Fleet items and goals", () => {
 						stageEnteredAt: NOW - 60_000,
 						workId: "task.linked",
 					},
-					{ document: { metadata: { relationships: [{ kind: "implements", target: "project.x" }] } }, stage: "executing", workId: "task.loose" },
-					{ stage: "prepared", workId: "task.waiting" },
+					{ document: { metadata: { relationships: [{ kind: "implements", target: "project.x" }] } }, stage: "working", workId: "task.loose" },
+					{ stage: "queued", workId: "task.waiting" },
 				],
 				state: "ready",
 			},
@@ -144,7 +144,7 @@ describe("Fleet items and goals", () => {
 					title: "Linked",
 					workId: "task.linked",
 				},
-				{ goal: null, inStageMs: null, prUrl: null, stage: "executing", title: "task.loose", workId: "task.loose" },
+				{ goal: null, inStageMs: null, prUrl: null, stage: "working", title: "task.loose", workId: "task.loose" },
 			],
 			problem: null,
 		});
@@ -155,15 +155,15 @@ describe("Fleet items and goals", () => {
 		expect(flightsOf(null, NOW).problem).toBe("Fleet sent no items.");
 	});
 
-	it("counts done, in-progress and total tasks per goal", () => {
-		expect(
-			goalsOf({ goals: [{ counts: { accepted: 1, blocked: 1, done: 2, "in progress": 3, planned: 4, superseded: "?" }, id: "goal.a" }] }).items,
-		).toEqual([{ active: 4, done: 3, id: "goal.a", title: "goal.a", total: 11 }]);
+	it("counts done, ready and total tasks per goal", () => {
+		expect(goalsOf({ goals: [{ counts: { deferred: 1, done: 2, draft: 4, dropped: 1, ready: 3 }, id: "goal.a" }] }).items).toEqual([
+			{ done: 2, id: "goal.a", ready: 3, title: "goal.a", total: 11 },
+		]);
 	});
 
-	it("counts work that needs you as started, not done, and in the total", () => {
-		expect(goalsOf({ goals: [{ counts: { done: 2, "in progress": 1, "needs you": 3, planned: 4 }, id: "goal.b" }] }).items).toEqual([
-			{ active: 4, done: 2, id: "goal.b", title: "goal.b", total: 10 },
+	it("counts parked work in the total and ready work as active", () => {
+		expect(goalsOf({ goals: [{ counts: { deferred: 1, done: 2, draft: 4, ready: 3 }, id: "goal.b" }] }).items).toEqual([
+			{ done: 2, id: "goal.b", ready: 3, title: "goal.b", total: 10 },
 		]);
 	});
 });

@@ -69,11 +69,12 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 	);
 	expect(released, errors).toEqual({
 		code: 0,
-		stdout: "one needs-human: Answer recorded; applying in the background\ntwo needs-human: Answer recorded; applying in the background",
+		stdout:
+			"one waiting (waiting on automation): Answer recorded; applying in the background\ntwo waiting (waiting on automation): Answer recorded; applying in the background",
 	});
 	const client = yield* daemonClient(port);
 	for (const workId of ["one", "two"]) {
-		expect((yield* appliedAnswer(client, workId)).stage).toBe("released");
+		expect((yield* appliedAnswer(client, workId)).step).toBe("released");
 	}
 	expect(yield* boardAskFiles(fixture.host.boardDir)).toEqual([]);
 	expect(yield* boardAskFiles(fixture.host.boardDir, "orchestrator")).toEqual([]);
@@ -86,7 +87,7 @@ const bulkReleaseStory = Effect.fn("BulkReleaseTest.bulkReleaseStory")(function*
 		const fleet = yield* Fleet;
 		for (const id of ["one", "two"]) {
 			const current = (yield* fleet.get(id)).value;
-			expect(current.stage).toBe("released");
+			expect(current.step).toBe("released");
 			expect(current.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 		}
 	}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));

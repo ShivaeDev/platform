@@ -31,7 +31,7 @@ export const retryInterrupted = Effect.fn("CloudRestart.retryInterrupted")(funct
 			attentionOwner: "maintainer",
 			decision: { ...decision, published: publication },
 			decisionPublished: true,
-			stage: "needs-human",
+			step: "waiting",
 		});
 		return publication;
 	}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));

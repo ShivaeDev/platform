@@ -30,7 +30,7 @@ test("concurrent answers commit one continuation and recover its lost acknowledg
 				Effect.gen(function* () {
 					const restarted = yield* Fleet;
 					const recovered = yield* restarted.reconcile("one");
-					expect(recovered.value.stage).toBe("executing");
+					expect(recovered.value.step).toBe("working");
 					expect(recovered.value.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
 					yield* restarted.resolve("one", decision.id, answer.id);
 				}),
@@ -49,10 +49,10 @@ for (const type of ["clarify", "not_now"] as const) {
 				yield* fleet.dispatch("one");
 				const { decision } = yield* askWorker(fixture);
 				const deferred = yield* answerWorker(root, decision, "response.deferred", type);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 				const answer = yield* answerWorker(root, decision, "response.superseding", "answer", deferred.id);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("executing");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("working");
 				expect((yield* fleet.get("one")).value.attempts.at(-1)?.prompt).toBe(answer.body);
 				expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 			}),
@@ -69,13 +69,13 @@ test("closing the Board task supersedes competing worker answers", () =>
 			yield* answerWorker(root, decision, "response.first");
 			yield* answerWorker(root, decision, "response.second", "answer", undefined, "orchestrator");
 			const competing = yield* fleet.reconcile("one");
-			expect(competing.value.stage).toBe("needs-human");
+			expect(competing.value.step).toBe("waiting");
 			expect(competing.value.blocker).toContain("Several Board answers compete");
 			const fs = yield* FileSystem.FileSystem;
 			const path = yield* Path.Path;
 			yield* fs.writeFileString(path.join(root, "one.md"), source.replace("kind: task", "kind: task\nstatus: done\nnext_action: Work completed."));
 			const stale = yield* fleet.reconcile("one");
-			expect(stale.value.stage).toBe("released");
+			expect(stale.value.step).toBe("released");
 			expect(stale.value.releaseReason).toBe("Board status is done");
 			expect(stale.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
@@ -98,7 +98,7 @@ test("worker question publication retries the stored exact question without anot
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const recovered = yield* (yield* Fleet).reconcile("one");
-					expect(recovered.value.stage).toBe("needs-human");
+					expect(recovered.value.step).toBe("waiting");
 					expect(recovered.value.decisionPublished).toBe(true);
 					expect(recovered.value.decision?.reason).toBe(QUESTION);
 				}),

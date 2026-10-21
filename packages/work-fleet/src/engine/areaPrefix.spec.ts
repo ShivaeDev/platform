@@ -20,12 +20,12 @@ for (const [held, waiting] of [
 			expect((yield* fleet.get("two")).value.blocker).toContain("held by one");
 			expect(launches()).toHaveLength(1);
 			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 			yield* fleet.dispatch("two").pipe(Effect.result);
-			expect((yield* fleet.get("two")).value.stage).toBe("prepared");
+			expect((yield* fleet.get("two")).value.step).toBe("queued");
 			mergePullRequest();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-			expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
+			expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		},
 	);
 }
@@ -37,7 +37,7 @@ for (const other of ["work-fleet/cli", "work-fleets"]) {
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		const records = yield* Effect.all([fleet.dispatch("one"), fleet.dispatch("two")], { concurrency: "unbounded" });
-		expect(records.map(({ value }) => value.stage)).toEqual(["executing", "executing"]);
+		expect(records.map(({ value }) => value.step)).toEqual(["working", "working"]);
 		expect(launches()).toHaveLength(2);
 	});
 }
@@ -69,7 +69,7 @@ isolatedEngine.it(
 		yield* restart();
 		yield* fleet.dispatch("later").pipe(Effect.result);
 		expect((yield* fleet.get("later")).value.blocker).toContain("queued ahead by dependent");
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		yield* fleet.dispatch("later").pipe(Effect.result);
 		expect((yield* fleet.get("later")).value.blocker).toContain("held by dependent");
 		expect(providerStarts().filter((start) => start.access !== "read-only")).toHaveLength(3);

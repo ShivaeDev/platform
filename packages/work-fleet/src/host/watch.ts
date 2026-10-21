@@ -29,11 +29,13 @@ export const watchFor = Effect.fn("FleetWatch.watchFor")(function* (options: Wat
 		Stream.tap((states) =>
 			Effect.gen(function* () {
 				pending ??= new Set(states.map((state) => state.workId));
-				for (const state of [...states].sort((left, right) => order.indexOf(waitingOwner(left)) - order.indexOf(waitingOwner(right)))) {
+				for (const state of [...states].sort(
+					(left, right) => order.indexOf(waitingOwner({ ...left, step: left.stage })) - order.indexOf(waitingOwner({ ...right, step: right.stage })),
+				)) {
 					const outcome = outcomeFor(state);
 					if (
 						outcome !== undefined
-						&& !(options.follow && initialSnapshot && state.stage !== "needs-human" && !unrecognizedState(state) && state.recovery === undefined)
+						&& !(options.follow && initialSnapshot && state.stage !== "waiting" && !unrecognizedState(state) && state.recovery === undefined)
 					) {
 						yield* Console.log(outcome.summary.replace(/[\r\n]+/gu, " "));
 					}
@@ -66,7 +68,7 @@ function transitionOutcome() {
 			return undefined;
 		}
 		const key =
-			state.stage === "needs-human"
+			state.stage === "waiting"
 				? JSON.stringify([state.decision?.id, state.decision?.code, outcome.summary])
 				: JSON.stringify([state.stage, outcome.summary]);
 		if (previous.get(state.workId) === key) {

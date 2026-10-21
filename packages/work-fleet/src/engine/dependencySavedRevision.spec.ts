@@ -8,7 +8,7 @@ import { markdownWork, noChangeReported } from "#test/engineTraits.ts";
 
 for (const noChange of [false, true]) {
 	for (const [field, source, sameBrief] of [
-		["status", dependencySource.replace("status: planned", "status: done"), true],
+		["status", dependencySource.replace("status: draft", "status: done"), true],
 		["next_action", dependencySource.replace("Implement the work.", "Work completed."), true],
 		["criteria", dependencySource.replace("The behavior works.", "Different behavior."), false],
 		["body", `${dependencySource}\nDifferent body.\n`, false],
@@ -29,7 +29,7 @@ for (const noChange of [false, true]) {
 				yield* restart();
 				const dispatched = yield* fleet.dispatch("dependent").pipe(Effect.result);
 				expect(dispatched._tag).toBe(accepted ? "Success" : "Failure");
-				expect((yield* fleet.get("dependent")).value.stage).toBe(accepted ? "executing" : "prepared");
+				expect((yield* fleet.get("dependent")).value.step).toBe(accepted ? "working" : "queued");
 				expect((yield* fleet.get("one")).value).toEqual(saved);
 			},
 		);

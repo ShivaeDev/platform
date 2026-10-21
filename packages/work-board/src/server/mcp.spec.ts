@@ -8,9 +8,9 @@ import { toolValue } from "#test/mcpClient.ts";
 const project = projectFiles({
 	...goalsFixture(),
 	"ask.md":
-		"---\nid: decision.first\nkind: decision\noptions:\n - label: Continue\n   description: Keep working\nrecommended: Continue\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the next step\n   unblocks: [task.first]\n---\n# Next step",
+		"---\nid: decision.first\nkind: question\nscope: task\nurgency: whenever\noptions:\n - label: Continue\n   description: Keep working\nrecommended: Continue\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the next step\n   unblocks: [task.first]\n---\n# Next step",
 	"first.md":
-		"---\nid: task.first\nkind: task\nstatus: planned\nowner: agent\ncriteria:\n - id: proof\n   text: Show proof\nrelationships:\n - kind: implements\n   target: project.example#first\n---\n# First task",
+		"---\nid: task.first\nkind: task\nstatus: draft\nowner: claude\ncriteria:\n - id: proof\n   text: Show proof\nrelationships:\n - kind: implements\n   target: project.example#first\n---\n# First task",
 });
 
 boardStory.it(
@@ -28,7 +28,7 @@ boardStory.it(
 				completed: [],
 				items: [
 					{ prUrl: "https://github.com/example/project/pull/1", stage: "reviewing", stageEnteredAt: 0, updatedAt: 100, workId: "task.first" },
-					{ stage: "validating", stageEnteredAt: 0, updatedAt: 100, workId: "task.second" },
+					{ stage: "reviewing", stageEnteredAt: 0, updatedAt: 100, workId: "task.second" },
 				],
 			}),
 		);
@@ -49,13 +49,13 @@ boardStory.it(
 			fleet: {
 				items: [
 					{ prUrl: "https://github.com/example/project/pull/1", stage: "reviewing", workId: "task.first" },
-					{ stage: "validating", workId: "task.second" },
+					{ stage: "reviewing", workId: "task.second" },
 				],
 				state: "ready",
 			},
 			goals: {
 				goals: expect.arrayContaining([
-					expect.objectContaining({ counts: { done: 1, "in progress": 1, "needs you": 2, planned: 1 }, id: "project.example" }),
+					expect.objectContaining({ counts: { deferred: 1, done: 1, draft: 3, dropped: 0, ready: 0 }, id: "project.example" }),
 				]),
 			},
 			needsYou: { count: 4, you: expect.arrayContaining([expect.objectContaining({ id: "task.first", reason: "Choose the next step" })]) },
@@ -76,9 +76,9 @@ boardStory.it(
 			fleet: { item: { stage: "reviewing" }, state: "ready" },
 			id: "task.first",
 			openDecisions: expect.arrayContaining([expect.objectContaining({ id: "decision.first/direction", open: true })]),
-			owner: "agent",
+			owner: "claude",
 			relationships: [{ kind: "implements", target: "project.example#first" }],
-			status: "reviewing",
+			status: "draft",
 		});
 	},
 );
@@ -104,7 +104,7 @@ boardStory.it(
 	function* ({ notes: fixture, start, connectMcp, editFile }) {
 		editFile(
 			"ask.md",
-			"---\nid: decision.first\nkind: decision\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the next step\n   unblocks: [task.first]\n---\n# Next step\n\n::::question{#direction select=one}\nChoose direction.\n\n:::option{#continue}\nContinue working.\n:::\n\n::::\n",
+			"---\nid: decision.first\nkind: question\nscope: task\nurgency: whenever\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the next step\n   unblocks: [task.first]\n---\n# Next step\n\n::::question{#direction select=one}\nChoose direction.\n\n:::option{#continue}\nContinue working.\n:::\n\n::::\n",
 		);
 		const board = yield* start({ fleetPort: null });
 		const client = yield* connectMcp();
@@ -125,8 +125,8 @@ boardStory.it(
 				}),
 			]),
 		});
-		expect(toolValue(yield* client.call("item", { id: "task.first" }))).toMatchObject({ fleet: unavailable, status: "needs-you" });
-		expect(toolValue(yield* client.call("item", { id: "task.second" }))).toMatchObject({ fleet: unavailable, status: "planned" });
+		expect(toolValue(yield* client.call("item", { id: "task.first" }))).toMatchObject({ fleet: unavailable, status: "draft" });
+		expect(toolValue(yield* client.call("item", { id: "task.second" }))).toMatchObject({ fleet: unavailable, status: "draft" });
 		const missing = yield* client.call("item", { id: "task.missing" });
 		expect(missing.isError).toBe(true);
 		expect(missing.content).toEqual([expect.objectContaining({ text: expect.stringContaining("missing") })]);

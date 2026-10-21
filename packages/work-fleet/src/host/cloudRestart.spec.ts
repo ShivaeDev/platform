@@ -74,7 +74,7 @@ const interruptHost = Effect.fn("CloudRestart.interruptHost")(function* (
 		return peer("fleet.get", { workId: "synthetic-work" });
 	}
 	yield* restarted.until(() =>
-		readRecovered().pipe(Effect.map((record) => (recoverable ? record.attempts[0]?.status === "running" : record.stage === "needs-human"))),
+		readRecovered().pipe(Effect.map((record) => (recoverable ? record.attempts[0]?.status === "running" : record.step === "waiting"))),
 	);
 	const after = yield* readRecovered();
 	yield* restarted.kill;

@@ -95,16 +95,16 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		if (text.length > 32_768) {
 			return yield* new BadRequest({ message: "Supply an answer of at most 32768 characters" });
 		}
-		const queued = !release && text.trim() !== "" && ["repairing", "executing"].includes(current.stage);
-		if (!queued && (current.stage !== "needs-human" || current.decision === undefined)) {
-			return yield* new BadRequest({ message: `${workId} waits on no answer in stage ${current.stage}` });
+		const queued = !release && text.trim() !== "" && ["repairing", "working"].includes(current.step);
+		if (!queued && (current.step !== "waiting" || current.decision === undefined)) {
+			return yield* new BadRequest({ message: `${workId} waits on no answer in step ${current.step}` });
 		}
 		if (!release && current.decision?.worker !== undefined && !text.trim()) {
 			return yield* new BadRequest({ message: "Supply a nonempty answer for the worker as text or on stdin" });
 		}
 		yield* recordingStore.accept(workId, queued ? undefined : current.decision, text, release);
 		yield* start(workId);
-		return { ...current, blocker: ANSWER_RECORDED };
+		return { ...current, attentionOwner: "automation" as const, blocker: ANSWER_RECORDED, stage: "waiting" as const };
 	});
 });
 
@@ -117,6 +117,6 @@ function taken(record: FleetRecord, request: AnswerRequest) {
 	const receipts = [...(record.history ?? []).flatMap((cycle) => cycle.responses ?? []), ...(record.responses ?? [])];
 	return (
 		receipts.some((receipt) => receipt.decisionId === request.response_decision_id && receipt.responseId === request.response_id)
-		|| (record.blocker === ANSWER_RECORDED && record.stage === "needs-human" && record.decision?.id === request.response_decision_id)
+		|| (record.blocker === ANSWER_RECORDED && record.step === "waiting" && record.decision?.id === request.response_decision_id)
 	);
 }

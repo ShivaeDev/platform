@@ -38,7 +38,7 @@ screenStory.it(
 	"holds a lanes-shaped skeleton while a board document's lanes load",
 	[
 		boardScreen(
-			{ "board.md": "---\nid: board.held\nkind: board\nitems: []\n---\n# Held board\n", "home.md": "# Home" },
+			{ "board.md": "---\nid: board.held\nitems: []\n---\n# Held board\n", "home.md": "# Home" },
 			(api) => <ProjectionMain api={api} onPage={() => undefined} route="board" url="/board.md" />,
 			{ beforeIndex: () => Effect.never, home: "home.md" },
 		),
@@ -77,7 +77,7 @@ screenStory.it(
 
 screenStory.it(
 	"offers All work when the chosen board lists no work",
-	[routedScreen({ "board.md": "---\nid: board.empty\nkind: board\nitems: []\n---\n# Empty board\n" }, "/_board/work?view=board&board=board.empty")],
+	[routedScreen({ "board.md": "---\nid: board.empty\nitems: []\n---\n# Empty board\n" }, "/_board/work?view=board&board=board.empty")],
 	function* ({ readText, readAttribute }) {
 		yield* Effect.promise(() => eventually(() => expect(readText('#work-results [data-slot="empty-title"]')).toBe("No work on this board")));
 		expect(readAttribute('#work-results [data-slot="empty"] a', "href")).toBe("/_board/work?view=board&sort=title");
@@ -85,7 +85,7 @@ screenStory.it(
 );
 
 const work = {
-	"task.md": "---\nid: task.build\nkind: task\nstatus: active\n---\n# Build the page\n",
+	"task.md": "---\nid: task.build\nkind: task\nstatus: ready\n---\n# Build the page\n",
 };
 
 screenStory.it(
@@ -100,12 +100,12 @@ screenStory.it(
 );
 
 screenStory.it("names what fills each empty Now lane", [routedScreen(work, "/_board/work")], function* ({ readText, findElement }) {
-	yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Executing"]')).toContain("Build")));
-	expect(findElement('[aria-label="Executing"] [data-slot="empty"]')).toBeNull();
-	expect(readText('[aria-label="Queued"] [data-slot="empty-title"]')).toBe("Nothing queued");
-	expect(readText('[aria-label="Queued"] [data-slot="empty-description"]')).toBe("Approved work waits here until an agent starts it.");
+	yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Queued"]')).toContain("Build")));
+	expect(findElement('[aria-label="Queued"] [data-slot="empty"]')).toBeNull();
+	expect(readText('[aria-label="Working"] [data-slot="empty-title"]')).toBe("Nothing working");
+	expect(readText('[aria-label="Working"] [data-slot="empty-description"]')).toBe("Work an agent is building appears here.");
 	expect(readText('[aria-label="Reviewing"] [data-slot="empty-title"]')).toBe("Nothing in review");
-	expect(readText('[aria-label="Waiting on a person"] [data-slot="empty-title"]')).toBe("Nothing waiting on a person");
+	expect(readText('[aria-label="Waiting on you"] [data-slot="empty-title"]')).toBe("Nothing waiting on you");
 });
 
 screenStory.it("tells an empty Library what fills it", [routedScreen({}, "/_board/library")], function* ({ readText }) {
@@ -115,10 +115,10 @@ screenStory.it("tells an empty Library what fills it", [routedScreen({}, "/_boar
 
 screenStory.it(
 	"lets the reader clear Library filters that match no document",
-	[routedScreen({ ...work, "notes.md": "---\nkind: note\nstatus: done\n---\n# Closed notes\n" }, "/_board/library")],
+	[routedScreen({ ...work, "notes.md": "---\nstatus: done\n---\n# Closed notes\n" }, "/_board/library")],
 	function* ({ findElement, findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/task.md"]')).toBe("Build the page")));
-		expect(readText('#doc li:has(a[href="/task.md"]) p')).toBe("Task · Active");
+		expect(readText('#doc li:has(a[href="/task.md"]) p')).toBe("Task · Ready");
 		yield* roles.click({ name: "Kind", role: "combobox" });
 		yield* roles.click({ name: "Task", role: "option" });
 		yield* roles.click({ name: "Status", role: "combobox" });
@@ -136,7 +136,7 @@ screenStory.it(
 	"tells a goal page that it has no criteria and no linked work yet",
 	[
 		boardScreen(
-			{ "bare.md": "---\nid: project.bare\nkind: project\nstatus: planned\n---\n# Empty goal\n", "home.md": "# Home" },
+			{ "bare.md": "---\nid: project.bare\nkind: goal\nstatus: draft\n---\n# Empty goal\n", "home.md": "# Home" },
 			(api) => <DocumentMain api={api} onPage={() => undefined} url="/bare.md" />,
 			{ home: "home.md" },
 		),
@@ -192,8 +192,8 @@ screenStory.it(
 		routedScreen(
 			{
 				"README.md": "# Workspace\n",
-				"result.md": "---\nid: result.bare\nkind: result\nstatus: finished\n---\n# A bare result\n",
-				"task.md": "---\nid: task.handoff\nkind: task\nstatus: planned\n---\n# A task\n",
+				"result.md": "---\nid: result.bare\nkind: report\nstatus: done\n---\n# A bare result\n",
+				"task.md": "---\nid: task.handoff\nkind: task\nstatus: draft\n---\n# A task\n",
 			},
 			"/_board/item/result.bare/",
 		),

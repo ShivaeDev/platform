@@ -6,6 +6,6 @@ export const resultReview = Effect.fn("Fleet.resultReview")(function* (state: En
 	return {
 		reviewAdvisoryHead: policy.review === "advisory" ? head : undefined,
 		reviewSkippedHead: policy.review === false ? head : undefined,
-		stage: policy.review === false ? ("validating" as const) : ("reviewing" as const),
+		step: policy.review === false ? ("validating" as const) : ("reviewing" as const),
 	};
 });

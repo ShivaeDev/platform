@@ -4,13 +4,13 @@ import type { AdmissionLimits, Versioned } from "#storage/model.ts";
 import { STORAGE_NAMESPACE, StorageRecord } from "#test/StorageRecord.ts";
 
 export function record(workId: string): typeof StorageRecord.Type {
-	return { stage: "prepared", workId };
+	return { step: "queued", workId };
 }
 
 export function storageOptions(namespace: string) {
 	return {
-		backlog: (value: typeof StorageRecord.Type) => value.stage === "terminal",
-		executing: (value: typeof StorageRecord.Type) => value.stage === "submitting" || value.stage === "running",
+		backlog: (value: typeof StorageRecord.Type) => value.step === "terminal",
+		executing: (value: typeof StorageRecord.Type) => value.step === "submitting" || value.step === "running",
 		namespace,
 		submissions: (value: typeof StorageRecord.Type, since: number) => (value.submittedAt !== undefined && value.submittedAt >= since ? 1 : 0),
 	};
@@ -38,7 +38,7 @@ export function submitAgainstQuota(
 		{
 			...entry.value,
 			operationId: `operation-${entry.value.workId}`,
-			stage: "submitting",
+			step: "submitting",
 			submittedAt: 101,
 		},
 		limits,

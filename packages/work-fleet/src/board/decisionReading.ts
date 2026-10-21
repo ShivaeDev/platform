@@ -30,7 +30,7 @@ export function decisionReading(documents: Effect.Effect<readonly BoardDocument[
 			return { _tag: "Stale", reason: "The decision source changed, moved or became ambiguous." };
 		}
 		if (
-			document.parsed.fields.kind !== "decision"
+			document.parsed.fields.kind !== "question"
 			|| document.parsed.fields.attention?.filter((request) => request.id === receipt.request && request.state === "open").length !== 1
 			|| questionId(receipt.itemId, receipt.request, receipt.revision, receipt.sourcePath) !== receipt.questionId
 		) {

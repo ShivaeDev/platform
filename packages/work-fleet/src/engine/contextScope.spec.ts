@@ -13,8 +13,8 @@ function linked(source: string) {
 	return source.replace("kind: task\n", "kind: task\nrelationships:\n  - kind: implements\n    target: goal.example\n");
 }
 
-for (const stage of ["preparation", "execution", "review"] as const) {
-	test(`editing a linked goal and unrelated item during ${stage} leaves the current brief running`, () =>
+for (const step of ["preparation", "execution", "review"] as const) {
+	test(`editing a linked goal and unrelated item during ${step} leaves the current brief running`, () =>
 		withFleetBoard({ reviewRunning: true }, (fixture, root, source) =>
 			Effect.gen(function* () {
 				const files = boardHttpFiles(root);
@@ -23,17 +23,17 @@ for (const stage of ["preparation", "execution", "review"] as const) {
 				files.write("other.md", "---\nid: other\nkind: plan\n---\n# Unrelated plan\n");
 				const fleet = yield* Fleet;
 				const prepared = yield* prepareWork("one");
-				if (stage !== "preparation") {
+				if (step !== "preparation") {
 					yield* fleet.dispatch("one");
 				}
-				if (stage === "review") {
+				if (step === "review") {
 					finishWorkers(fixture);
-					expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+					expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 				}
 				files.write("goal.md", `${GOAL}| Active | Example |\n`);
 				files.write("other.md", "---\nid: other\nkind: plan\n---\n# Updated plan\n");
-				const running = yield* stage === "preparation" ? fleet.dispatch("one") : fleet.reconcile("one");
-				expect(running.value.stage).toBe(stage === "review" ? "reviewing" : "executing");
+				const running = yield* step === "preparation" ? fleet.dispatch("one") : fleet.reconcile("one");
+				expect(running.value.step).toBe(step === "review" ? "reviewing" : "working");
 				expect(running.value.boardRevision).toBe(prepared.value.boardRevision);
 				expect(running.value.boardContext).toBe(linked(source));
 				expect(running.value.decision).toBeUndefined();
@@ -58,7 +58,7 @@ test("an answer recorded immediately before unrelated Board edits reaches the wo
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const continued = yield* (yield* Fleet).reconcile("one");
-					expect(continued.value.stage).toBe("executing");
+					expect(continued.value.step).toBe("working");
 					expect(continued.value.boardContext).toBe(linked(source));
 					expect(continued.value.attempts.at(-1)?.prompt).toBe(answer.body);
 					expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
@@ -78,7 +78,7 @@ test("two answers from the same author continue the worker with the newest answe
 			yield* answerWorker(root, decision, "response.first", "answer", undefined, "orchestrator", "Use SQLite.");
 			const newest = yield* answerWorker(root, decision, "response.second", "answer", undefined, "orchestrator");
 			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.step).toBe("working");
 			expect(continued.value.attempts.at(-1)?.prompt).toBe(newest.body);
 			expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: newest.id }]);
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);

@@ -1,6 +1,4 @@
 import { Clock, Effect } from "effect";
-import { cardStatus } from "#browser/views/nowCard.ts";
-import type { InboxProjection } from "#browser/views/schema.ts";
 import { fileUrl } from "#files/url.ts";
 import { responseUrl } from "#responses/url.ts";
 import { identityUrl } from "#server/metadata/links.ts";
@@ -45,7 +43,6 @@ export const overview = Effect.fn("BoardMcp.overview")(function* (client: BoardC
 export const item = Effect.fn("BoardMcp.item")(function* (client: BoardClient, id: string) {
 	const document = yield* client("work-board.document", { url: identityUrl(id) });
 	const fleet = yield* client("work-board.fleetItems", undefined);
-	const inbox: InboxProjection = yield* client("work-board.inbox", undefined);
 	const held =
 		fleet.state === "ready" ? [...fleet.items, ...fleet.completed].find((entry) => entry.workId === id && entry.stage !== "released") : undefined;
 	return {
@@ -55,11 +52,6 @@ export const item = Effect.fn("BoardMcp.item")(function* (client: BoardClient, i
 		openDecisions: document.requests.filter((request) => request.open),
 		owner: document.metadata.owner,
 		relationships: document.metadata.relationships ?? [],
-		status: cardStatus(
-			document.metadata,
-			held,
-			inbox.you.find((row) => row.id === id)?.reason,
-			inbox.answered.some((row) => row.id === id),
-		),
+		status: document.metadata.status,
 	};
 });

@@ -16,18 +16,18 @@ for (const match of ["pr", "branch", "worker-branch", "unmatched"] as const) {
 		]);
 		expect(yield* fleet.admit()).toEqual([]);
 		yield* fleet.dispatch("one");
-		expect((yield* fleet.get("one")).value).toMatchObject({ blocker: expect.stringContaining("held by https://github.com/"), stage: "prepared" });
+		expect((yield* fleet.get("one")).value).toMatchObject({ blocker: expect.stringContaining("held by https://github.com/"), step: "queued" });
 		expect((yield* fleet.dispatch("two"))._tag).toBe("Success");
 		expect(fleet.launches()).toHaveLength(1);
 		fleet.prReadFails();
 		expect(yield* fleet.admit()).toHaveLength(1);
 		yield* fleet.dispatch("one");
-		expect((yield* fleet.get("one")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("one")).value.step).toBe("queued");
 		fleet.pr("closed");
 		expect(yield* fleet.admit()).toEqual([]);
 		expect(yield* fleet.reservations()).toEqual([]);
 		expect((yield* fleet.dispatch("one"))._tag).toBe("Success");
-		expect((yield* fleet.get("one")).value.stage).toBe("executing");
+		expect((yield* fleet.get("one")).value.step).toBe("working");
 		expect(fleet.launches()).toHaveLength(2);
 	});
 }

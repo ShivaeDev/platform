@@ -70,7 +70,7 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 						: stockHost.pipe(Effect.flatMap((host) => host.result(work, observation))),
 			},
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("reviewing");
+				expect(after.step).toBe("reviewing");
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
 			restore: () =>
@@ -90,7 +90,7 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 			name: "host quota reader returns an unknown shape",
 			options: { now: () => now, refreshQuota },
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("reviewing");
+				expect(after.step).toBe("reviewing");
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
 			restore: () =>

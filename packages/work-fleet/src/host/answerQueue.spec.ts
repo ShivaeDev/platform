@@ -14,25 +14,25 @@ import { withReadDaemon } from "#test/readDaemon.ts";
 const test = postgresTests("live");
 const TEXT = "Keep the loading indicator visible.";
 
-for (const stage of ["repairing", "executing"] as const) {
-	test(`answer during ${stage} survives daemon restart and reaches the next repair turn once`, () =>
-		withApprovedPrDaemon((fixture) => queueStory(fixture, stage)));
+for (const step of ["repairing", "working"] as const) {
+	test(`answer during ${step} survives daemon restart and reaches the next repair turn once`, () =>
+		withApprovedPrDaemon((fixture) => queueStory(fixture, step)));
 }
 
-const queueStory = Effect.fn("AnswerQueueTest.queueStory")(function* (fixture: ApprovedPrFixture, stage: "repairing" | "executing") {
-	const previous = yield* fixture.serve((client, port) => queueRepair(fixture, client, port, stage));
-	yield* fixture.serve((client) => deliverRepair(fixture, client, stage, previous));
+const queueStory = Effect.fn("AnswerQueueTest.queueStory")(function* (fixture: ApprovedPrFixture, step: "repairing" | "working") {
+	const previous = yield* fixture.serve((client, port) => queueRepair(fixture, client, port, step));
+	yield* fixture.serve((client) => deliverRepair(fixture, client, step, previous));
 });
 
 const queueRepair = Effect.fn("AnswerQueueTest.queueRepair")(function* (
 	fixture: ApprovedPrFixture,
 	client: PrDaemonClient,
 	port: number,
-	stage: "repairing" | "executing",
+	step: "repairing" | "working",
 ) {
 	const ready = yield* fixture.ready(client);
 	let current: FleetRecord;
-	if (stage === "executing") {
+	if (step === "working") {
 		fixture.github.state.mergeable = "CONFLICTING";
 		yield* client("fleet.reconcile", { workId: "one" });
 		current = yield* fixture.started(client, "repair");
@@ -40,10 +40,10 @@ const queueRepair = Effect.fn("AnswerQueueTest.queueRepair")(function* (
 	} else {
 		current = yield* client("fleet.resolve", fixture.answer(ready, "Preserve the empty state."));
 	}
-	expect(current.stage).toBe(stage);
+	expect(current.step).toBe(step);
 	expect(yield* Effect.promise(() => cliProcess(["answer", "one", TEXT, "--port", String(port)]))).toEqual({
 		code: 0,
-		stdout: `one ${stage}: ${ANSWER_RECORDED}`,
+		stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
 	});
 	const queued = yield* waitForRecord(client, "one", (record) => record.pendingAnswers?.length === 1);
 	expect(queued.pendingAnswers).toEqual([TEXT]);
@@ -54,10 +54,10 @@ const queueRepair = Effect.fn("AnswerQueueTest.queueRepair")(function* (
 const deliverRepair = Effect.fn("AnswerQueueTest.deliverRepair")(function* (
 	fixture: ApprovedPrFixture,
 	client: PrDaemonClient,
-	stage: "repairing" | "executing",
+	step: "repairing" | "working",
 	previous: FleetRecord,
 ) {
-	if (stage === "executing") {
+	if (step === "working") {
 		const running = yield* client("fleet.reconcile", { workId: "one" });
 		expect(running.pendingAnswers).toEqual([TEXT]);
 		expect(running.attempts.map((entry) => entry.receipt)).toEqual(previous.attempts.map((entry) => entry.receipt));
@@ -71,13 +71,13 @@ const deliverRepair = Effect.fn("AnswerQueueTest.deliverRepair")(function* (
 	}
 	expect(attempt.role).toBe("repair");
 	expect(attempt.prompt).toContain(TEXT);
-	if (stage === "repairing") {
+	if (step === "repairing") {
 		expect(attempt.prompt).toContain("Preserve the empty state.");
 	}
 	expect(attempt.receipt.sessionId).toBe(previous.attempts[0]?.receipt?.sessionId);
 	expect(fixture.provider.observations.get(attempt.receipt.turnId)?.output).toBe(attempt.prompt);
 	expect(next.pendingAnswers).toBeUndefined();
-	const count = stage === "executing" ? 2 : 1;
+	const count = step === "working" ? 2 : 1;
 	expect(repairAttempts(next)).toHaveLength(count);
 	fixture.finishWorker(next);
 	const reviewed = yield* client("fleet.reconcile", { workId: "one" });
@@ -120,7 +120,7 @@ test("queued guidance uses the current approved brief when the active turn ends"
 					fixture.write("one.md", current);
 					finishWorkers(fixture.provider);
 					const next = yield* client("fleet.reconcile", { workId: "one" });
-					expect(next.stage).toBe("executing");
+					expect(next.step).toBe("working");
 					expect(next.boardRevision).not.toBe(started.boardRevision);
 					expect(next.attempts.at(-1)?.prompt).toContain(current);
 					expect(next.attempts.at(-1)?.prompt).toContain(TEXT);

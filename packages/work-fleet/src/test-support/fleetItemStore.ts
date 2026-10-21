@@ -1,19 +1,21 @@
 import { Effect } from "effect";
 import type { FleetRepository } from "#engine/repository.ts";
 import type { FleetRecord } from "#model.ts";
+import { fleetStage } from "#stage.ts";
 import { prepared } from "#test/preparation.ts";
 
-export function itemRecord(stage: FleetRecord["stage"], overrides: Partial<FleetRecord> = {}): FleetRecord {
+export function itemRecord(step: FleetRecord["step"], overrides: Partial<FleetRecord> = {}): FleetRecord {
 	return {
 		attempts: [],
 		boardRevision: "revision",
 		cwd: "/synthetic",
 		preparation: prepared(),
 		prompt: "Synthetic work",
-		stage,
+		stage: fleetStage({ step, ...overrides }),
 		stageEnteredAt: 100,
+		step,
 		updatedAt: 200,
-		workId: stage,
+		workId: step,
 		...overrides,
 	};
 }

@@ -27,7 +27,7 @@ export const fleetStatus = Effect.fn("FleetHost.fleetStatus")(function* (host: F
 });
 
 const StatusRecord = Schema.Struct({
-	...Struct.pick(FleetRecord.fields, ["attentionOwner", "blocker", "completedAt", "outcome", "result", "stage", "updatedAt", "workId"]),
+	...Struct.pick(FleetRecord.fields, ["attentionOwner", "blocker", "completedAt", "outcome", "result", "step", "updatedAt", "workId"]),
 	attempts: Schema.Array(
 		Schema.Struct(Struct.pick(Attempt.fields, ["briefSteers", "overLimit", "progress", "publishedRecovery", "receipt", "stallRecovery", "status"])),
 	),
@@ -50,14 +50,11 @@ const statusRecords = Effect.fn("FleetHost.statusRecords")(function* (namespace:
 			const pending = new Set(requests.map((request) => request.work_id));
 			const selected = rows.filter(
 				(row) =>
-					!["completed", "released"].includes(String(row.stage))
-					|| row.blocker !== null
-					|| row.launchRetry !== null
-					|| pending.has(String(row.work_id)),
+					!["done", "released"].includes(String(row.step)) || row.blocker !== null || row.launchRetry !== null || pending.has(String(row.work_id)),
 			);
 			const selectedIds = new Set(selected.map((row) => row.work_id));
 			const finished = rows
-				.filter((row) => row.stage === "completed" && !selectedIds.has(row.work_id))
+				.filter((row) => row.step === "done" && !selectedIds.has(row.work_id))
 				.sort(newestCompletion((row) => String(row.work_id)))
 				.slice(0, RECENT_COMPLETED);
 			const records = yield* Schema.decodeUnknownEffect(Schema.Array(StatusRecord))(

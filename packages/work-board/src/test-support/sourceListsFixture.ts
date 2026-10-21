@@ -12,8 +12,10 @@ export function sourceListsFixture(status = "done"): Readonly<Record<string, str
 			},
 		],
 		id: `decision.guide.${index}`,
-		kind: "decision",
+		kind: "question",
 		relationships: [{ kind: "relates_to", target: "task.guide" }],
+		scope: "task",
+		urgency: "whenever",
 	}));
 	const task = {
 		id: "task.guide",
@@ -26,7 +28,7 @@ export function sourceListsFixture(status = "done"): Readonly<Record<string, str
 		status,
 	};
 	return {
-		"goal.md": "---\nid: project.guide\nkind: project\nstatus: active\ncriteria:\n - id: reading\n   text: Read linked work\n---\n# Finish line",
+		"goal.md": "---\nid: project.guide\nkind: goal\nstatus: ready\ncriteria:\n - id: reading\n   text: Read linked work\n---\n# Finish line",
 		"link.md": "---\nid: note.guide\n---\n# A note without status",
 		"task.md": `---\n${JSON.stringify(task)}\n---\n# Publish the guide\n\nKeep the instructions clear.`,
 		...Object.fromEntries(

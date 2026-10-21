@@ -44,7 +44,7 @@ for (const archived of [false, true]) {
 					const repairReceipt = ready.value.attempts.findLast((attempt) => attempt.role === "repair")?.receipt;
 					fixture.rejectNextTurn();
 					const failed = yield* fleet.continue("one", "Check the repaired PR again");
-					expect(failed.value.stage).toBe("needs-human");
+					expect(failed.value.step).toBe("waiting");
 					expect(failed.value.attempts.at(-1)).toMatchObject({ role: "repair", status: "failed" });
 					expect(failed.value.attempts.at(-1)?.receipt).toBeUndefined();
 					expect(failed.value.result).toEqual(ready.value.result);
@@ -60,7 +60,7 @@ for (const archived of [false, true]) {
 					yield* fixture.restart(
 						Effect.gen(function* () {
 							const restarted = yield* Fleet;
-							expect((yield* restarted.resolve("one", decisionId, responseId)).value.stage).toBe("reviewing");
+							expect((yield* restarted.resolve("one", decisionId, responseId)).value.step).toBe("reviewing");
 							const reviewed = yield* restarted.reconcile("one");
 							expect(reviewed.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 							expect(reviewed.value.review?.receipt).not.toEqual(ready.value.review?.receipt);
@@ -68,7 +68,7 @@ for (const archived of [false, true]) {
 							expect(receipts.at(-1)).toBe(repairReceipt?.turnId);
 							merged = true;
 							const delivered = yield* restarted.reconcile("one");
-							expect(delivered.value.stage).toBe("completed");
+							expect(delivered.value.step).toBe("done");
 							expect(delivered.value.outcome).toMatchObject({ head: "head-1", revision: "merge-commit" });
 						}),
 					);

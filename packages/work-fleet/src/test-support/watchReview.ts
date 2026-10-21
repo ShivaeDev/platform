@@ -32,9 +32,9 @@ const followReview = Effect.fn("WatchReviewTest.followReview")(function* (
 	if (!initialReady) {
 		yield* fixture.ready(client);
 	}
-	const line = "one needs-human (waiting on orchestrator): Reviewed PR is ready to merge\n";
+	const line = "one waiting (waiting on orchestrator): Reviewed PR is ready to merge\n";
 	yield* untilEveryOutput(followers, line);
-	expect((yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" })).stage).toBe("repairing");
+	expect((yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" })).step).toBe("repairing");
 	yield* client("fleet.reconcile", { workId: "one" });
 	fixture.finishWorker(yield* fixture.started(client, "repair"), MOVED);
 	yield* until(() => client("fleet.reconcile", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));

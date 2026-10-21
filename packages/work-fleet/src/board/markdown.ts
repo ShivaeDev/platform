@@ -39,7 +39,7 @@ const MarkdownBoard = defineService({
 				: snapshotDocument(current, workId);
 			const deliverable = fleetDeliverable(found.parsed);
 			if (deliverable !== undefined && deliverable !== "report") {
-				return yield* Effect.fail(new BoardFailure({ message: "Invalid fleet-deliverable; use report or omit the field for pull requests." }));
+				return yield* Effect.fail(new BoardFailure({ message: "Invalid delivers; use report or omit the field for pull requests." }));
 			}
 			const priority = fleetPriority(found.parsed);
 			if (priority !== undefined && !Schema.is(Priority)(priority)) {

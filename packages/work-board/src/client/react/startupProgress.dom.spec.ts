@@ -6,9 +6,9 @@ import { linkedProject } from "#test/linkedProject.ts";
 import { heldWorkspaceListing, readsOneByOne, slowRepositoryLookup } from "#test/readTraits.ts";
 
 const project = projectFiles({
-	"goals/launch.md": "---\nid: goal.launch\nkind: goal\nstatus: active\n---\n# Launch the notes\n",
+	"goals/launch.md": "---\nid: goal.launch\nkind: goal\nstatus: ready\n---\n# Launch the notes\n",
 	"plan.md": "# Plan\n\nA plain document.\n",
-	"tasks/intro.md": "---\nid: task.intro\nkind: task\nstatus: active\ngoal: goal.launch\n---\n# Write the intro\n",
+	"tasks/intro.md": "---\nid: task.intro\nkind: task\nstatus: ready\ngoal: goal.launch\n---\n# Write the intro\n",
 });
 
 describe("startup", () => {

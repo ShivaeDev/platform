@@ -88,7 +88,7 @@ test("pending checks persist automation ownership and completion clears it", () 
 				expect((yield* fleet.reconcile("one")).value.attentionOwner).toBe("automation");
 				pending = false;
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(completed.value.attentionOwner).toBeUndefined();
 			}),
 	);
@@ -122,7 +122,7 @@ test("RPC reassignment publishes maintainer ownership, supersedes the old questi
 					Effect.gen(function* () {
 						const restarted = yield* Fleet;
 						const resumed = yield* restarted.resolve("one", decision.id, answer.id);
-						expect(resumed.value.stage).toBe("executing");
+						expect(resumed.value.step).toBe("working");
 						expect(resumed.value.attentionOwner).toBeUndefined();
 					}),
 				);

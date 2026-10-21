@@ -46,10 +46,10 @@ engine.it(
 		});
 		const input = { decisionId: decision.id, responseId: answer.id, workId: "one" };
 		yield* rpcResolve(input);
-		expect((yield* rpcReconcile("one")).stage).toBe("completed");
+		expect((yield* rpcReconcile("one")).step).toBe("done");
 		expect((yield* rpcResolve(input)).responses).toHaveLength(1);
 		yield* restart();
-		expect((yield* fleet.resolve("one", decision.id, answer.id)).value.stage).toBe("completed");
+		expect((yield* fleet.resolve("one", decision.id, answer.id)).value.step).toBe("done");
 		expect((yield* fleet.get("one")).value.responses?.[0]?.questionRevision).toBe(published.revision);
 		expect(launches()).toHaveLength(2);
 		expect(readBoardWork()).toBe(
@@ -78,7 +78,7 @@ engine.it(
 			type: "answer",
 		});
 		const denied = yield* fleet.reconcile("one");
-		expect(denied.value.stage).toBe("needs-human");
+		expect(denied.value.step).toBe("waiting");
 		expect(denied.value.responses?.[0]?.responseId).toBe("response.cannot.grant");
 		expect(denied.value.decision?.id).not.toBe(blocked.value.decision?.id);
 		expect(mergedHeads()).toHaveLength(0);

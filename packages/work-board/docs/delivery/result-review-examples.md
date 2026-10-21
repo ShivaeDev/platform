@@ -1,6 +1,6 @@
 # Review returned work through ordinary Markdown records
 
-A result is an ordinary file with `kind: result`, stable identity, explicit relationships, reported evidence and prose limitations. Review brings those sources together with human direction pinned to the exact report. This file teaches the source and response contract.
+A result is an ordinary file with `kind: report`, stable identity, explicit relationships, reported evidence and prose limitations. Review brings those sources together with human direction pinned to the exact report. This file teaches the source and response contract.
 
 ## Author the task and report
 
@@ -10,7 +10,7 @@ Save this task as `items/task.md`:
 ---
 id: work.keyboard
 kind: task
-status: in-review
+status: ready
 criteria:
   - id: focus
     text: Escape restores focus to its opening control
@@ -29,7 +29,7 @@ Save the returned report as `items/result.md`:
 ```markdown
 ---
 id: result.keyboard
-kind: result
+kind: report
 status: finished
 relationships:
   - kind: implements

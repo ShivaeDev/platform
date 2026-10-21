@@ -9,7 +9,7 @@ export function documentWorkspace(count = 1600): Readonly<Record<string, string>
 			const code = index % 5 === 0 ? "```ts\nconst result = 42;\nconsole.log(result);\n```\n" : "";
 			return [
 				`document-${index}.md`,
-				`---\nid: fixture.${index}\nkind: task\nstatus: planned\ncriteria:\n - id: done\n   text: Verify this document\nrelationships:\n - kind: depends_on\n   target: fixture.${(index + 1) % count}#done\n---\n# Document ${index}\n\n${sections.join("")}${code}`,
+				`---\nid: fixture.${index}\nkind: task\nstatus: draft\ncriteria:\n - id: done\n   text: Verify this document\nrelationships:\n - kind: depends_on\n   target: fixture.${(index + 1) % count}#done\n---\n# Document ${index}\n\n${sections.join("")}${code}`,
 			];
 		}),
 	);

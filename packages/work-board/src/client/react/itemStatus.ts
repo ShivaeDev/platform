@@ -10,7 +10,7 @@ export function itemStatus(document: Document): string | undefined {
 	if (asked) {
 		return asked;
 	}
-	if (fields.kind !== "decision" && fields.kind !== "question") {
+	if (fields.kind !== "question") {
 		return fields.status;
 	}
 	return document.requestOutcome === "answered" ? "answered" : (fields.status ?? document.requestOutcome);

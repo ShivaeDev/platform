@@ -11,7 +11,7 @@ for (const failed of [false, true]) {
 		host.rejectNextTurn(new SessionFailure({ code: "session-queue-full", message: "Provider queue is full", reason: "rejected" }));
 		yield* host.answerPullRequest(ready, "Retain the existing layout.");
 		const repairing = yield* host.reconcile();
-		expect(repairing.stage).toBe("repairing");
+		expect(repairing.step).toBe("repairing");
 		expect(repairing.launchRetry).toBeDefined();
 		expect(renderStatus(yield* host.status())).toContain("Waiting for provider capacity");
 		if (failed) {
@@ -30,7 +30,7 @@ for (const failed of [false, true]) {
 		}
 		const status = yield* host.status();
 		const blocker = failed ? expect.stringMatching(/^Answer failed: /u) : ANSWER_RECORDED;
-		expect(status.waiting[failed ? "orchestrator" : "automation"]).toMatchObject([{ blocker, stage: "repairing", workId: "one" }]);
+		expect(status.waiting[failed ? "orchestrator" : "automation"]).toMatchObject([{ blocker, stage: "waiting", workId: "one" }]);
 		expect(status.waiting[failed ? "automation" : "orchestrator"]).toEqual([]);
 		expect(renderStatus(status)).not.toContain("Waiting for provider capacity");
 		const snapshots = yield* host.follow(["one"]).pipe(Stream.take(1), Stream.runCollect, Effect.timeout("500 millis"));

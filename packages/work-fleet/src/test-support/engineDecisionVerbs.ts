@@ -37,7 +37,7 @@ export function engineDecisionVerbs(state: EngineStory, tell: (line: string) => 
 			tell(`another Board item duplicates ${id}`);
 			copyFileSync(join(root(), `${id}.md`), join(root(), `${id}-duplicate.md`));
 		},
-		editBrief: () => board.writeBoardWork("one.md", `${state.source.replace("fleet: approved", "fleet: draft")}\nRequire another validation.\n`),
+		editBrief: () => board.writeBoardWork("one.md", `${state.source.replace("fleet: approved", "fleet: held")}\nRequire another validation.\n`),
 		forgetReceipts: () => {
 			tell("forget the decision supersession receipts");
 			const responses = join(root(), "responses");

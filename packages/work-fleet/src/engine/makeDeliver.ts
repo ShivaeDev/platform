@@ -18,7 +18,7 @@ export function makeDeliver(state: EngineState) {
 	return Effect.fn("Fleet.makeDeliver")(function* (stored: Versioned<FleetRecord>) {
 		const record = stored.value;
 		const result = record.result;
-		if (["completed", "released", "prepared"].includes(record.stage) || result === undefined) {
+		if (["done", "released", "queued"].includes(record.step) || result === undefined) {
 			return stored;
 		}
 		if (executing(record)) {
@@ -27,7 +27,7 @@ export function makeDeliver(state: EngineState) {
 		if (result.kind === "change") {
 			return yield* observeDelivery(state, yield* expireMergeAreas(state, stored), result);
 		}
-		return ["delivering", "needs-human"].includes(record.stage) && !deliveryPending(record) ? yield* continueDelivery(state, stored, result) : stored;
+		return ["delivering", "waiting"].includes(record.step) && !deliveryPending(record) ? yield* continueDelivery(state, stored, result) : stored;
 	});
 }
 
@@ -42,8 +42,8 @@ const continueDelivery = Effect.fn("Fleet.continueDelivery")(function* (
 	if (denied !== undefined) {
 		return denied;
 	}
-	return record.stage === "delivering"
-		? yield* state.save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, stage: "completed" })
+	return record.step === "delivering"
+		? yield* state.save(stored, { ...record, blocker: undefined, outcome: { evidence: result.evidence }, step: "done" })
 		: stored;
 });
 
@@ -95,7 +95,7 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 	}
 	if (
 		deliveryPending(record)
-		|| !["delivering", "needs-human"].includes(record.stage)
+		|| !["delivering", "waiting"].includes(record.step)
 		|| !reviewSatisfied(record, result.head)
 		|| record.checks?.passed !== true
 	) {
@@ -113,13 +113,13 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 function canObserveDeliveryFailure(record: FleetRecord, error: FleetError) {
 	return (
 		!deliveryPending(record)
-		&& (["delivering", "needs-human"].includes(record.stage)
-			|| (failureCode(error) === "pr-head-moved" && ["reviewing", "validating"].includes(record.stage) && !executing(record)))
+		&& (["delivering", "waiting"].includes(record.step)
+			|| (failureCode(error) === "pr-head-moved" && ["reviewing", "validating"].includes(record.step) && !executing(record)))
 	);
 }
 
 const releaseClosedDelivery = Effect.fn("Fleet.releaseClosedDelivery")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
-	if (stored.value.stage !== "needs-human" || executing(stored.value)) {
+	if (stored.value.step !== "waiting" || executing(stored.value)) {
 		return undefined;
 	}
 	return yield* releaseClosedPreparation(state, stored, yield* state.board.get(stored.value.workId));
@@ -131,7 +131,7 @@ const holdChangedDelivery = Effect.fn("Fleet.holdChangedDelivery")(function* (
 	observed: Result.Result<typeof Delivery.Type | undefined, FleetError>,
 ) {
 	const record = stored.value;
-	if (executing(record) || !["delivering", "needs-human"].includes(record.stage) || deliveryPending(record)) {
+	if (executing(record) || !["delivering", "waiting"].includes(record.step) || deliveryPending(record)) {
 		return undefined;
 	}
 	if (Result.isSuccess(observed) && !isChangedBriefDecision(record)) {

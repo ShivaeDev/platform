@@ -15,9 +15,9 @@ boardStory.it(
 			expect(body).toContain(text);
 		}
 		expect(body).toContain("<dt>Needs you</dt>");
-		expect(body).not.toContain("Waiting on maintainer");
-		expect(body).toContain("<dt>Waiting on the orchestrator</dt><dd><strong>3</strong>");
-		expect(body).toContain("<dt>Waiting on Fleet agents</dt><dd><strong>1</strong>");
+		expect(body).not.toContain("Waiting on you");
+		expect(body).toContain("<dt>Waiting on orchestrator</dt><dd><strong>3</strong>");
+		expect(body).toContain("<dt>Waiting on automation</dt><dd><strong>1</strong>");
 		expect((yield* getPage("/_board/system", "example.invalid")).status).toBe(403);
 	},
 );

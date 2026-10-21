@@ -18,7 +18,7 @@ export const dispatchFailure = Effect.fn("Fleet.dispatchFailure")(function* <E>(
 	}
 	const waiting = { ...current.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) };
 	// Unchanged waits must not write and wake every subscriber on every scheduler pass.
-	if (current.value.stage === "prepared" && (current.value.blocker !== waiting.blocker || current.value.attentionOwner !== waitingOwner(waiting))) {
+	if (current.value.step === "queued" && (current.value.blocker !== waiting.blocker || current.value.attentionOwner !== waitingOwner(waiting))) {
 		yield* state.save(current, waiting);
 	}
 	return yield* Effect.fail(error);

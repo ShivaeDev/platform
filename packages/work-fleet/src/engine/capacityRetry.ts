@@ -7,7 +7,7 @@ import type { Attempt, FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { busyThread, transientFailure } from "#session/transientFailure.ts";
 
-const retryStages: Readonly<Record<Attempt["role"], FleetRecord["stage"]>> = { repair: "repairing", reviewer: "reviewing", worker: "prepared" };
+const retryStages: Readonly<Record<Attempt["role"], FleetRecord["step"]>> = { repair: "repairing", reviewer: "reviewing", worker: "queued" };
 
 export const retryLostReview = Effect.fn("Fleet.retryLostReview")(function* (state: EngineState, record: FleetRecord, error: unknown) {
 	const attempt = record.attempts.at(-1);
@@ -58,7 +58,7 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 		),
 		blocker: undefined,
 		launchRetry: rejections < 5 ? { rejectedAt, rejections, retryAt: rejectedAt + delay } : undefined,
-		stage: previous.decision?.code === "worker-question" ? "repairing" : retryStages[rejected.role],
+		step: previous.decision?.code === "worker-question" ? "repairing" : retryStages[rejected.role],
 	});
 	if (rejections >= 5) {
 		yield* state.decision(

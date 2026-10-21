@@ -35,7 +35,7 @@ for (const outcome of ["merged", "closed"] as const) {
 			yield* restart();
 			for (const id of ["queued", "catalog"]) {
 				yield* fleet.dispatch(id).pipe(Effect.result);
-				expect((yield* fleet.get(id)).value).toMatchObject({ attempts: [], blocker: "waiting for sweep catalog", stage: "prepared" });
+				expect((yield* fleet.get(id)).value).toMatchObject({ attempts: [], blocker: "waiting for sweep catalog", step: "queued" });
 			}
 			observeSweepPr("catalog", outcome);
 			yield* fleet.reconcile("catalog");
@@ -45,7 +45,7 @@ for (const outcome of ["merged", "closed"] as const) {
 			if (outcome === "closed") {
 				expect(packageResult.decision?.code).toBe("reviewed-pr-ready");
 			}
-			expect((yield* fleet.dispatch("queued")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("queued")).value.step).toBe("working");
 		},
 	);
 }

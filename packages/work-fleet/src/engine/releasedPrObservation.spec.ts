@@ -23,7 +23,7 @@ for (const disposition of ["released", "renewed"] as const) {
 				yield* fleet.resolve("one", decision, fleet.respond(decision, "release"));
 			} else {
 				yield* fleet.prepareWork("one");
-				expect((yield* fleet.get("one")).value.history?.[0]?.stage).toBe("needs-human");
+				expect((yield* fleet.get("one")).value.history?.[0]?.step).toBe("waiting");
 			}
 			yield* fleet.reserveForeign(PR, ["fleet/engine"]);
 			expect(yield* fleet.foreignReservations()).toEqual([{ areas: ["fleet/engine"], backlog: true, executing: false, owner: PR }]);
@@ -40,7 +40,7 @@ for (const disposition of ["released", "renewed"] as const) {
 			}
 			yield* fleet.schedule();
 			expect(yield* fleet.foreignReservations()).toEqual([]);
-			expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		});
 	}
 }
@@ -58,6 +58,6 @@ engine.it("releasing a legacy fleet-invalid closure decision does not reserve it
 	expect(decision.code).toBe("pr-closed");
 	yield* fleet.replaceStoredRecord({ ...closed, decision: { ...decision, code: "fleet-invalid" } });
 	yield* fleet.resolve("one", decision.id, fleet.respond(decision.id, "release"));
-	expect((yield* fleet.get("one")).value.stage).toBe("released");
+	expect((yield* fleet.get("one")).value.step).toBe("released");
 	expect(yield* fleet.foreignReservations()).toEqual([]);
 });

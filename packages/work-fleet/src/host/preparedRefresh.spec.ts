@@ -26,7 +26,7 @@ for (const mode of ["admission", "dispatch", "edited dispatch"] as const) {
 				daemon.writeBoard("one.md", task("one", "approved", "Edited criteria."));
 			}
 			const dispatched = (yield* daemon.approve("one")).value;
-			expect(dispatched.stage).toBe("executing");
+			expect(dispatched.step).toBe("working");
 			expect(dispatched.decision).toBeUndefined();
 			expect(dispatched.preparation.baseRevision).toBe("main-4");
 			expect(dispatched.history ?? []).toEqual([]);
@@ -46,7 +46,7 @@ for (const dispatch of ["scheduler", "explicit"] as const) {
 			yield* daemon.approve("one");
 			yield* daemon.schedule();
 			const waiting = yield* daemon.get("two");
-			expect(waiting.stage).toBe("prepared");
+			expect(waiting.step).toBe("queued");
 			expect(waiting.blocker).toContain("waiting for area shared");
 			const edited = task("two", "approved", "Edited criteria.")
 				.replace("kind: task", "kind: task\nareas: [free]")
@@ -59,7 +59,7 @@ for (const dispatch of ["scheduler", "explicit"] as const) {
 				yield* daemon.approve("two");
 			}
 			const launched = yield* daemon.get("two");
-			expect(launched.stage).toBe("executing");
+			expect(launched.step).toBe("working");
 			expect(launched.areas).toEqual(["free"]);
 			expect(launched.boardContext).toBe(edited);
 			expect(launched.prompt).toBe(edited);

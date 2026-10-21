@@ -28,22 +28,22 @@ postgresTests("live")(
 						for (const workId of ["one", "two"]) {
 							yield* dispatchAndWait(client, workId);
 							const waiting = yield* client("fleet.reconcile", { workId });
-							expect(waiting.stage).toBe("needs-human");
+							expect(waiting.step).toBe("waiting");
 							expect(executing(waiting)).toBe(true);
 							expect(waiting.attempts[0]?.receipt).toBeDefined();
 						}
 						fixture.write("one.md", task("one", "approved").replace("kind: task", "kind: task\nstatus: done"));
 						const closed = yield* client("fleet.reconcile", { workId: "one" });
-						expect(closed.stage).toBe("released");
+						expect(closed.step).toBe("released");
 						expect(closed.releaseReason).toBe("Board status is done");
 						expect(executing(closed)).toBe(false);
-						expect((yield* client("fleet.reconcile", { workId: "two" })).stage).toBe("needs-human");
+						expect((yield* client("fleet.reconcile", { workId: "two" })).step).toBe("waiting");
 						expect(yield* Effect.promise(() => cliProcess(["answer", "--release", "two", "--port", String(port)]))).toEqual({
 							code: 0,
-							stdout: "two needs-human: Answer recorded; applying in the background",
+							stdout: "two waiting (waiting on automation): Answer recorded; applying in the background",
 						});
 						const open = yield* appliedAnswer(client, "two");
-						expect(open.stage).toBe("released");
+						expect(open.step).toBe("released");
 						expect(executing(open)).toBe(false);
 						expect(open.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 						expect(boardHttpFiles(fixture.host.boardDir).receipts()).toHaveLength(2);

@@ -19,7 +19,7 @@ const waitForChange = Effect.fn("Benchmark.waitForChange")(function* (subscripti
 	}
 });
 function source(index: number, revision = 0) {
-	return `---\nid: item.${index}\nkind: task\nstatus: planned\nowner: agent\ncriteria:\n - id: done\n   text: Verify item ${index}\nrelationships:\n - kind: depends_on\n   target: item.${(index + 1) % COUNT}#done\n---\n# Item ${index}\n\nRevision ${revision}. Read [the next item](item-${(index + 1) % COUNT}.md).\n`;
+	return `---\nid: item.${index}\nkind: task\nstatus: draft\nowner: claude\ncriteria:\n - id: done\n   text: Verify item ${index}\nrelationships:\n - kind: depends_on\n   target: item.${(index + 1) % COUNT}#done\n---\n# Item ${index}\n\nRevision ${revision}. Read [the next item](item-${(index + 1) % COUNT}.md).\n`;
 }
 const notes = folder(Object.fromEntries(Array.from({ length: COUNT }, (_, index) => [`item-${index}.md`, source(index)])));
 let reads = 0;

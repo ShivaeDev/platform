@@ -40,7 +40,7 @@ export const withReloadDaemon = Effect.fn("ConfigReloadTest.withReloadDaemon")(f
 				writeFileSync(fixture.configFile, JSON.stringify(written));
 			}),
 		editText: (text) => Effect.sync(() => writeFileSync(fixture.configFile, text)),
-		launched: (workId) => waitForRecord(client, workId, (record) => record.stage === "executing" && record.attempts.at(-1)?.receipt !== undefined),
+		launched: (workId) => waitForRecord(client, workId, (record) => record.step === "working" && record.attempts.at(-1)?.receipt !== undefined),
 		policy: Effect.suspend(() => {
 			const policy = Context.get(context, FleetPolicy);
 			return policy.current ?? Effect.succeed(policy);
@@ -52,7 +52,7 @@ export const withReloadDaemon = Effect.fn("ConfigReloadTest.withReloadDaemon")(f
 				renameSync(`${fixture.configFile}.saving`, fixture.configFile);
 			}),
 		waiting: (workId) =>
-			waitForRecord(client, workId, (record) => record.stage === "prepared" && record.attempts.length === 0 && record.blocker !== undefined),
+			waitForRecord(client, workId, (record) => record.step === "queued" && record.attempts.length === 0 && record.blocker !== undefined),
 	};
 	return yield* use(daemon);
 }, Effect.scoped);

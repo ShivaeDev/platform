@@ -54,7 +54,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			enter: finishRecoveryReview,
 			name: "ready for human merge",
 			progress: (_ctx, before, after) => {
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 				expect(after.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: before.attempts[0]?.receipt?.sessionId });
 				expect(after.attempts.at(-1)?.prompt).toContain("Resolve the report decision.");
 				expect(after.result).toEqual(before.result);
@@ -72,7 +72,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			}),
 			name: "closed PR",
 			progress: (_ctx, before, after) => {
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 			},
 			restore: (ctx) =>
@@ -113,7 +113,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			}),
 			name: "stored delivery head mismatch decision",
 			progress: (_ctx, before, after) => {
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 			},
 			restore: (ctx) =>
@@ -129,7 +129,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			options: { deliveryQuery: observeDelivery },
 			progress: (_ctx, _before, after) => {
 				expect(deliveries).toBe(1);
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 			},
 			restore: () =>
 				Effect.sync(() => {

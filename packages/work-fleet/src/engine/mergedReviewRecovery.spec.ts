@@ -23,13 +23,13 @@ engine.it(
 		yield* fleet.dispatch("one");
 		workerReports(REPORT);
 		const reviewing = yield* fleet.reconcile("one");
-		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.step).toBe("reviewing");
 		expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 		mergePullRequest();
 		legacyResultRefresh(true);
 		finishWorkers();
 		const released = yield* fleet.reconcile("one");
-		expect(released.value.stage).toBe("released");
+		expect(released.value.step).toBe("released");
 		expect(released.value.releaseReason).toBe(`PR #7 merged by a human at ${HEAD}; Fleet review covered nothing`);
 		expect(released.value.outcome).toBeUndefined();
 		expect(released.value.result).toEqual(reviewing.value.result);

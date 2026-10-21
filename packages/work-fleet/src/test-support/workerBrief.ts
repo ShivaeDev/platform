@@ -17,7 +17,7 @@ export const repositoryReadme = host.trait("observation", "the repository README
 export const goal = `---
 id: goal.navigation
 kind: goal
-status: active
+status: ready
 relationships:
   - kind: implements
     target: goal.planning

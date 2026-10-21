@@ -64,7 +64,7 @@ boardStory.it(
 );
 
 boardStory.it("indexes declared IDs/status/owner and criteria at exact source locations", readingProject, function* ({ board }) {
-	const body = yield* rpcSearch(board, "agent-navigation");
+	const body = yield* rpcSearch(board, "claude");
 	expect(body.results[0]?.href).toBe("/_board/item/work.search/");
 	expect(body.results[0]?.line).toBe(23);
 	const criteria = yield* rpcSearch(board, "Escape returns focus");

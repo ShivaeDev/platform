@@ -11,7 +11,7 @@ const decisionUrl = `/_board/item/${decisionId}/`;
 const DRAFT = "Publish after the release notes are reviewed.";
 const decision = answerCardFixture[decisionFile] ?? "";
 const closedRequest = decision.replace('"state":"open"', '"state":"closed"');
-const withdrawnRequest = decision.replace(/"attention":\[[\s\S]*?\],"id"/u, '"id"');
+const withdrawnRequest = decision.replace(/"attention":\[[\s\S]*?\],"id"/u, '"id"').replace('"kind":"question"', '"kind":"task"');
 
 const CLOSINGS = [
 	{

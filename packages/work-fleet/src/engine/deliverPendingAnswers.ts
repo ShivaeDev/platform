@@ -11,11 +11,11 @@ export const deliverPendingAnswers = Effect.fn("Fleet.deliverPendingAnswers")(fu
 	launch: ReturnType<typeof makeLaunch>,
 	stored: Versioned<FleetRecord>,
 ) {
-	if ((stored.value.pendingAnswers?.length ?? 0) === 0 || executing(stored.value) || ["completed", "released"].includes(stored.value.stage)) {
+	if ((stored.value.pendingAnswers?.length ?? 0) === 0 || executing(stored.value) || ["done", "released"].includes(stored.value.step)) {
 		return undefined;
 	}
 	const delivered = yield* makeDeliver(state)(stored);
-	if (["completed", "released"].includes(delivered.value.stage)) {
+	if (["done", "released"].includes(delivered.value.step)) {
 		return delivered;
 	}
 	const current = yield* reconcileBrief(state, delivered);
@@ -23,7 +23,7 @@ export const deliverPendingAnswers = Effect.fn("Fleet.deliverPendingAnswers")(fu
 });
 
 function deliveryPrompt(record: FleetRecord, briefChanged: boolean) {
-	if (record.stage === "repairing") {
+	if (record.step === "repairing") {
 		return record.checks?.repairPrompt ?? record.review?.repairPrompt ?? record.prompt;
 	}
 	return briefChanged ? record.prompt : "Apply the following human guidance to the existing work.";

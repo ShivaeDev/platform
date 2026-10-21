@@ -55,7 +55,7 @@ function finishedDecision(snapshot: BoardSnapshot, document: BoardDocument, work
 	const matches = snapshot.model.ids.get(decision.workId);
 	const work = matches?.length === 1 ? snapshot.files.get(matches[0]?.file ?? "") : undefined;
 	const status = work?.parsed.fields.status;
-	if (work === undefined || snapshot.problems.has(work.file) || !["done", "deferred", "superseded", "dropped"].includes(status ?? "")) {
+	if (work === undefined || snapshot.problems.has(work.file) || !["done", "deferred", "dropped"].includes(status ?? "")) {
 		return;
 	}
 	return { reason: `Closed because Board work ${decision.workId} is ${status}.`, workId: decision.workId };

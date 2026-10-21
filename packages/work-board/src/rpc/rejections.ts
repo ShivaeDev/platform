@@ -26,5 +26,5 @@ export const responseRejections = {
 export const ResponseRejection = Schema.Union(Object.values(responseRejections));
 export type ResponseRejection = typeof ResponseRejection.Type;
 
-export const documentRejections = { Conflict, InternalServerError, NotFound, ServiceUnavailable };
+export const documentRejections = { BadRequest, Conflict, InternalServerError, NotFound, ServiceUnavailable };
 export const DocumentRejection = Schema.Union(Object.values(documentRejections));

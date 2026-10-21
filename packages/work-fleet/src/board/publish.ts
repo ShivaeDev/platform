@@ -46,8 +46,11 @@ function decisionSource(itemId: string, work: BoardWork, input: Decision, copy: 
 			},
 		],
 		id: itemId,
-		kind: "decision",
+		kind: "question",
 		relationships: [{ kind: "relates_to", target: work.workId }],
+		scope: "task",
+		status: "ready",
+		urgency: "blocking",
 	};
 	const answer = decisionAnswer(copy);
 	const review =
@@ -101,7 +104,7 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 				source: sourcePath,
 			},
 		};
-		const candidate = questionMarkdown(question);
+		const candidate = questionMarkdown(question, "blocking");
 		const questionSource = yield* publish(root, realRoot, id, candidate).pipe(
 			Effect.as(candidate),
 			Effect.catchTag("Conflict", (cause) =>

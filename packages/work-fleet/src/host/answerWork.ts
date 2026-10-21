@@ -49,16 +49,16 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never
 
 function checkDecision(record: FleetRecord, original: Pick<Decision, "code" | "reason"> | undefined) {
 	const current = record.decision;
-	if (original !== undefined && (record.stage !== "needs-human" || current === undefined || !sameKind(original, current))) {
+	if (original !== undefined && (record.step !== "waiting" || current === undefined || !sameKind(original, current))) {
 		return Effect.fail(
 			new Conflict({
-				message: `Decision changed: ${record.stage === "needs-human" ? (current?.reason ?? record.blocker ?? record.stage) : (record.blocker ?? record.stage)}`,
+				message: `Decision changed: ${record.step === "waiting" ? (current?.reason ?? record.blocker ?? record.step) : (record.blocker ?? record.step)}`,
 			}),
 		);
 	}
-	return record.stage === "needs-human" && current !== undefined
+	return record.step === "waiting" && current !== undefined
 		? Effect.void
-		: Effect.fail(new BadRequest({ message: `${record.workId} waits on no answer in stage ${record.stage}` }));
+		: Effect.fail(new BadRequest({ message: `${record.workId} waits on no answer in step ${record.step}` }));
 }
 
 function sameKind(original: Pick<Decision, "code" | "reason">, current: Decision) {
@@ -86,7 +86,7 @@ const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* <E, R>(
 	yield* checkDecision(stored.value, original);
 	const decision = stored.value.decision;
 	if (decision?.published === undefined) {
-		return yield* new BadRequest({ message: `${workId} has no published question in stage ${stored.value.stage}` });
+		return yield* new BadRequest({ message: `${workId} has no published question in step ${stored.value.step}` });
 	}
 	if (!release && decision.worker !== undefined && !text.trim()) {
 		return yield* new BadRequest({ message: "Supply a nonempty answer for the worker as text or on stdin" });
@@ -114,10 +114,10 @@ const decisionConflict = Effect.fn("FleetHost.decisionConflict")(function* (
 ) {
 	const current = (yield* fleet.get(workId)).value;
 	return yield* Effect.fail(
-		current.stage !== "needs-human" || current.decision?.id !== decisionId ? new Conflict({ message: "Decision changed" }) : error,
+		current.step !== "waiting" || current.decision?.id !== decisionId ? new Conflict({ message: "Decision changed" }) : error,
 	);
 });
 
 function canQueueAnswer(record: FleetRecord, text: string, release: boolean) {
-	return !release && text.trim() !== "" && ["repairing", "executing"].includes(record.stage);
+	return !release && text.trim() !== "" && ["repairing", "working"].includes(record.step);
 }

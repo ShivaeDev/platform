@@ -41,5 +41,5 @@ export function followOutcome(state: FollowState): WaitOutcome | undefined {
 }
 
 function knownStage(stage: string) {
-	return stage === "dispatching" || Schema.is(FleetRecord.fields.stage)(stage);
+	return Schema.is(FleetRecord.fields.stage)(stage);
 }

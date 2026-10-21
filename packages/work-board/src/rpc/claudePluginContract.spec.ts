@@ -12,11 +12,11 @@ const NOW = 61_000;
 const aLaunch = projectFiles(
 	{
 		"ask.md":
-			"---\nid: decision.scope\nkind: decision\noptions:\n - label: Ship\n   description: Launch this week\n - label: Wait\n   description: Launch next month\nrecommended: Ship\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the launch scope\n   unblocks: [task.build]\n---\n# Launch scope",
+			"---\nid: decision.scope\nkind: question\nscope: task\nurgency: whenever\noptions:\n - label: Ship\n   description: Launch this week\n - label: Wait\n   description: Launch next month\nrecommended: Ship\nattention:\n - id: direction\n   kind: decision\n   state: open\n   response_from: [maintainer]\n   reason: Choose the launch scope\n   unblocks: [task.build]\n---\n# Launch scope",
 		"build.md":
-			"---\nid: task.build\nkind: task\nstatus: planned\nowner: agent\ncriteria:\n - id: proof\n   text: Show the page\nrelationships:\n - kind: implements\n   target: project.launch#page\n---\n# Build the page",
+			"---\nid: task.build\nkind: task\nstatus: ready\nowner: claude\ncriteria:\n - id: proof\n   text: Show the page\nrelationships:\n - kind: implements\n   target: project.launch#page\n---\n# Build the page",
 		"done.md": "---\nid: task.done\nkind: task\nstatus: done\nrelationships:\n - kind: implements\n   target: project.launch\n---\n# Write the plan",
-		"goal.md": "---\nid: project.launch\nkind: project\nstatus: planned\ncriteria:\n - id: page\n   text: A page exists\n---\n# Launch",
+		"goal.md": "---\nid: project.launch\nkind: goal\nstatus: draft\ncriteria:\n - id: page\n   text: A page exists\n---\n# Launch",
 	},
 	"a launch goal has done and planned work and an open decision",
 );
@@ -24,8 +24,8 @@ const aLaunch = projectFiles(
 const aBuildInFlight = fleetReports({
 	completed: [],
 	items: [
-		{ prUrl: "https://github.com/example/project/pull/7", stage: "executing", stageEnteredAt: STARTED, updatedAt: STARTED, workId: "task.build" },
-		{ stage: "prepared", stageEnteredAt: STARTED, updatedAt: STARTED, workId: "task.queued" },
+		{ prUrl: "https://github.com/example/project/pull/7", stage: "working", stageEnteredAt: STARTED, updatedAt: STARTED, workId: "task.build" },
+		{ stage: "queued", stageEnteredAt: STARTED, updatedAt: STARTED, workId: "task.queued" },
 	],
 });
 
@@ -45,14 +45,14 @@ boardStory.it(
 						goal: { id: "project.launch", title: "Launch" },
 						inStageMs: NOW - STARTED,
 						prUrl: "https://github.com/example/project/pull/7",
-						stage: "executing",
+						stage: "working",
 						title: "Build the page",
 						workId: "task.build",
 					},
 				],
 				problem: null,
 			},
-			goals: { items: [{ active: 1, done: 1, id: "project.launch", title: "Launch", total: 2 }], problem: null },
+			goals: { items: [{ done: 1, id: "project.launch", ready: 1, title: "Launch", total: 2 }], problem: null },
 			kind: "ready",
 		});
 	},
@@ -80,11 +80,11 @@ boardStory.it(
 		]);
 		expect(card).toMatchObject({
 			criteria: [{ id: "proof", text: "Show the page" }],
-			fleet: { item: { stage: "executing", workId: "task.build" }, state: "ready" },
+			fleet: { item: { stage: "working", workId: "task.build" }, state: "ready" },
 			id: "task.build",
-			owner: "agent",
+			owner: "claude",
 			relationships: [{ kind: "implements", target: "project.launch#page" }],
-			status: "executing",
+			status: "ready",
 		});
 	},
 );

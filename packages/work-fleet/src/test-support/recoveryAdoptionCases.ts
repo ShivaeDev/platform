@@ -61,7 +61,7 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 			options: { resultQuery: reader.adopt },
 			progress: (_ctx, _before, afterRecord) => {
 				if (staleReport) {
-					expect(afterRecord.stage).toBe("executing");
+					expect(afterRecord.step).toBe("working");
 					expect(afterRecord.attempts.length).toBeGreaterThan(_before.attempts.length);
 					expect(afterRecord.attempts.at(-1)?.receipt?.sessionId).toBe(_before.attempts.at(-1)?.receipt?.sessionId);
 				} else {

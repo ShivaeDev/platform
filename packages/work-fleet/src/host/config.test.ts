@@ -8,7 +8,7 @@ import { hostSql } from "#host/runtime.ts";
 import { hostBoard } from "#test/fleetHost.ts";
 
 describe("work-fleet host configuration", () => {
-	it.effect("defaults leave a hundred executing and a hundred in backlog", function* () {
+	it.effect("defaults leave a hundred working and a hundred in backlog", function* () {
 		const host = yield* loadHost(hostBoard('{ "provider": "local" }')).pipe(Effect.provide(NodeServices.layer));
 		expect(host).toMatchObject({
 			areaMergeWaitMs: 1_800_000,

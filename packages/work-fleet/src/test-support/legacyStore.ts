@@ -1,14 +1,20 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { recordJson } from "#storage/model.ts";
 import { childTable } from "#storage/recordChildren.ts";
 import { collections, recordShape } from "#storage/recordShape.ts";
+import { legacyVocabulary } from "#test/legacyVocabulary.ts";
 
 export const legacyStore = Effect.fn("FleetFixture.legacyStore")(function* (namespace: string) {
 	const sql = yield* SqlClient.SqlClient;
 	const table = `${namespace}_records`;
 	const rows = yield* sql`select * from ${sql(table)} order by admission_order`;
-	const payloads = yield* Effect.forEach(rows, (row) => recordJson(row, namespace));
+	const payloads = yield* Effect.forEach(rows, (row) =>
+		recordJson(row, namespace).pipe(
+			Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)))),
+			Effect.map((value) => JSON.stringify(legacyVocabulary(value))),
+		),
+	);
 	for (const collection of collections(recordShape()).reverse()) {
 		yield* sql`drop table ${sql(childTable(namespace, collection.path))}`;
 	}

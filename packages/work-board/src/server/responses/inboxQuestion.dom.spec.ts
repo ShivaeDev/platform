@@ -14,7 +14,7 @@ boardStory.it(
 		yield* Effect.promise(() => waitFor(() => expect(reader.responseStatus()).toContain("Answer saved")));
 		yield* Effect.promise(() => waitFor(() => expect(reader.inboxCounts()).toEqual(["0", "0"])));
 		const response = savedAnswer();
-		expect(response.fields.kind).toBe("response");
+		expect(response.fields.kind).toBeUndefined();
 		expect(response.fields.response?.answers?.[0]?.selected).toEqual(["option-1"]);
 		expect(response.fields.response?.author).toBe("Casey");
 		expect(response.body).toContain("Keep local files");

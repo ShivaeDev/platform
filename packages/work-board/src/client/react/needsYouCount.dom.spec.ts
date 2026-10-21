@@ -28,11 +28,11 @@ screenStory.it(
 	function* ({ findElements, readText }) {
 		yield* Effect.promise(() =>
 			eventually(() =>
-				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "1 marked in progress", "0 active goals"]),
+				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "2 ready tasks", "0 active goals"]),
 			),
 		);
-		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(["task.upload"]);
-		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testActive");
+		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(["task.email", "task.upload"]);
+		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testReady");
 		expect(findElements("#in-progress [role='status'] p").map((line) => line.textContent)).toEqual([
 			"Fleet isn't set up for this Board.",
 			"These show the status written in each task, not what Fleet reports.",

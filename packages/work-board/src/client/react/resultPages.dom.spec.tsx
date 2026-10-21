@@ -55,7 +55,7 @@ screenStory.it(
 	function* ({ findElement, findElements, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("[data-result-linked]")).not.toBeNull()));
 		expect(readText("[data-result-linked] a[href='/_board/item/work.keyboard/']")).toBe("Keyboard work");
-		expect(readText("[data-result-linked] [data-status-token]")).toBe("In review");
+		expect(readText("[data-result-linked] [data-status-token]")).toBe("Ready");
 		const followUp = findElements("[data-result-linked] a").find(
 			(link) => roles.accessible(link).name === "Prepare follow-up handoff for Keyboard work",
 		);
@@ -165,8 +165,8 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("#result-criteria table")).not.toBeNull()));
 		expect(findElements("#result-criteria section[aria-label]").map((section) => section.getAttribute("aria-label"))).toEqual(["Keyboard work"]);
 		expect(readText("#result-criteria section[aria-label='Keyboard work'] a")).toBe("Keyboard work");
-		expect(readText("#result-criteria section[aria-label='Keyboard work'] [data-status-token]")).toBe("In review");
-		expect(findElement("#result-criteria section[aria-label='Keyboard work'] [data-status-token] svg.lucide-loader-circle")).not.toBeNull();
+		expect(readText("#result-criteria section[aria-label='Keyboard work'] [data-status-token]")).toBe("Ready");
+		expect(findElement("#result-criteria section[aria-label='Keyboard work'] [data-status-token] svg.lucide-circle")).not.toBeNull();
 		expect(findElements("#result-criteria th").map((cell) => cell.textContent)).toEqual([
 			"Check",
 			"Evidence",

@@ -115,7 +115,7 @@ function daemonStory(fixture: HostFixture, requests: readonly WireRequest[], cur
 				}),
 			),
 		);
-		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.step).toBe("reviewing");
 		expect(reviewing.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 		expect(steers()).toHaveLength(1);
 	}).pipe(Effect.scoped);

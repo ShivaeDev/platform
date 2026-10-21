@@ -11,7 +11,7 @@ isolatedEngine.it(
 	function* (fleet) {
 		yield* fleet.prepareWork("one");
 		const prepared = fleet.readBoardWork("one.md");
-		fleet.writeBoardWork("one.md", `${prepared.replace("fleet: approved", "fleet: approved\nowner: human")}\nRevised scope for a person.\n`);
+		fleet.writeBoardWork("one.md", `${prepared.replace("fleet: approved", "fleet: approved\nowner: marvin")}\nRevised scope for a person.\n`);
 		const stopped = (yield* fleet.dispatch("one")).value;
 		expect(stopped.decision?.reason).toBe("Board context changed");
 		const card = fleet.readBoardWork(stopped.decision?.published?.sourcePath ?? "");
@@ -21,7 +21,7 @@ isolatedEngine.it(
 		fleet.writeBoardWork("one.md", prepared);
 		yield* fleet.answerPublishedDecision("one", "retry");
 		const started = (yield* fleet.dispatch("one")).value;
-		expect(started.stage).toBe("executing");
+		expect(started.step).toBe("working");
 		expect(started.attempts.map((attempt) => attempt.role)).toEqual(["worker"]);
 		expect(started.boardContext).toBe(prepared);
 	},

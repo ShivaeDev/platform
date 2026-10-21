@@ -16,18 +16,18 @@ for (const restart of [false, true]) {
 			expect((yield* fleet.get("one")).value.blocker).toBe("waiting for area shared held by three");
 			expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area shared held by three");
 			fleet.finishWorkers();
-			expect((yield* fleet.reconcile("three")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("three")).value.step).toBe("done");
 			fleet.deleteBoardItem("one");
 			if (restart) {
 				yield* fleet.restart();
 			}
 			yield* fleet.schedule();
 			const waiter = (yield* fleet.get("two")).value;
-			expect(waiter.stage).toBe("executing");
+			expect(waiter.step).toBe("working");
 			expect(waiter.blocker).toBeUndefined();
 			expect(fleet.launches()).toContain(waiter.attempts[0]?.operationId);
 			const removed = (yield* fleet.get("one")).value;
-			expect(removed.stage).toBe("released");
+			expect(removed.step).toBe("released");
 			expect(removed.releaseReason).toContain("one");
 			expect(removed.blocker).toBeUndefined();
 			const releases = fleet
@@ -45,22 +45,22 @@ isolatedEngine.it("direct dispatch ignores a deleted Board item queued ahead", [
 	yield* fleet.prepareWork("one");
 	yield* fleet.prepareWork("two");
 	fleet.deleteBoardItem("one");
-	expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+	expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 	yield* fleet.schedule();
-	expect((yield* fleet.get("one")).value.stage).toBe("released");
+	expect((yield* fleet.get("one")).value.step).toBe("released");
 });
 
 isolatedEngine.it("deleting an idle area holder releases it during reconciliation", [githubBacklog, markdownAreas], function* (fleet) {
 	yield* fleet.prepareWork("one");
 	yield* fleet.dispatch("one");
 	yield* fleet.finishWorker("one");
-	expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+	expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 	yield* fleet.prepareWork("two");
 	expect(yield* fleet.attemptDispatch("two")).toMatchObject({ _tag: "StorageAdmission" });
 	fleet.deleteBoardItem("one");
 	yield* fleet.reconcile("one");
-	expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
-	expect((yield* fleet.get("one")).value.stage).toBe("released");
+	expect((yield* fleet.dispatch("two")).value.step).toBe("working");
+	expect((yield* fleet.get("one")).value.step).toBe("released");
 });
 
 isolatedEngine.it("an ambiguous Board identity replaces stale blockers and logs each failed dispatch", [markdownAreas], function* (fleet) {
@@ -77,7 +77,7 @@ isolatedEngine.it("an ambiguous Board identity replaces stale blockers and logs 
 	yield* fleet.schedule();
 	for (const id of ["one", "two"]) {
 		const waiting = (yield* fleet.get(id)).value;
-		expect(waiting.stage).toBe("prepared");
+		expect(waiting.step).toBe("queued");
 		expect(waiting.blocker).toContain("Board identity is missing or ambiguous: one");
 		expect(waiting.blocker).not.toContain("held by");
 	}

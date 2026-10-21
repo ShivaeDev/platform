@@ -34,6 +34,7 @@ export function withAnswerRequests<A extends { readonly workId: string; readonly
 			...current,
 			attentionOwner: request.error === null ? ("automation" as const) : ("orchestrator" as const),
 			blocker: request.error === null ? ANSWER_RECORDED : `Answer failed: ${request.error}`,
+			stage: "waiting" as const,
 		};
 	});
 }
