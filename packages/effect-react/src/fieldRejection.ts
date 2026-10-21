@@ -3,29 +3,30 @@ import type { AtomRegistry } from "effect/reactivity/AtomRegistry";
 import type { Reactivity } from "effect/reactivity/Reactivity";
 import type { FieldFailure, Fields, Name, Submitter } from "@shivaedev/effect-form/shape.ts";
 
-export interface FieldRejection<N extends string> {
-	readonly field: N;
+export interface FieldRejection<TName extends string> {
+	readonly field: TName;
 	readonly message: string;
 }
 
-export type AtomServices<R> = R | Scope.Scope | AtomRegistry | Reactivity;
+export type AtomServices<TRequirements> = TRequirements | Scope.Scope | AtomRegistry | Reactivity;
 
-export type RejectField<F extends Fields, E> = (error: E) => FieldRejection<Name<F>> | undefined;
+export type RejectField<TFields extends Fields, TError> = (error: TError) => FieldRejection<Name<TFields>> | undefined;
 
-type Unmatched<F extends Fields, E> = E extends { readonly _tag: string; readonly message: string }
-	? "field" extends keyof E
-		? Exclude<E["field"], Name<F> | undefined>
+type Unmatched<TFields extends Fields, TError> = TError extends { readonly _tag: string; readonly message: string }
+	? "field" extends keyof TError
+		? Exclude<TError["field"], Name<TFields> | undefined>
 		: never
 	: never;
 
-export type FieldRejectionMapping<F extends Fields, E> = { readonly rejectField?: RejectField<F, E> } & ([Unmatched<F, E>] extends [never]
+export type FieldRejectionMapping<TFields extends Fields, TError> = { readonly rejectField?: RejectField<TFields, TError> } & ([
+	Unmatched<TFields, TError>,
+] extends [never]
 	? unknown
-	: { readonly rejectField: RejectField<F, E> });
+	: { readonly rejectField: RejectField<TFields, TError> });
 
-export const fieldRejectionOf =
-	<F extends Fields>(schema: Schema.Struct<F>) =>
-	(error: unknown): FieldRejection<Name<F>> | undefined => {
-		function isName(name: unknown): name is Name<F> {
+export function fieldRejectionOf<TFields extends Fields>(schema: Schema.Struct<TFields>) {
+	return (error: unknown): FieldRejection<Name<TFields>> | undefined => {
+		function isName(name: unknown): name is Name<TFields> {
 			return typeof name === "string" && Object.hasOwn(schema.fields, name);
 		}
 		if (!(Predicate.hasProperty(error, "_tag") && Predicate.hasProperty(error, "field") && Predicate.hasProperty(error, "message"))) {
@@ -34,16 +35,17 @@ export const fieldRejectionOf =
 		const { _tag, field, message } = error;
 		return typeof _tag === "string" && isName(field) && typeof message === "string" ? { field, message } : undefined;
 	};
+}
 
-export const rejecting = <F extends Fields, V, A, E, R>(
-	schema: Schema.Struct<F>,
-	save: (values: V) => Effect.Effect<A, E, R>,
-	reject: RejectField<F, E> | undefined,
-) => {
+export function rejecting<TFields extends Fields, TValues, TResult, TError, TRequirements>(
+	schema: Schema.Struct<TFields>,
+	save: (values: TValues) => Effect.Effect<TResult, TError, TRequirements>,
+	reject: RejectField<TFields, TError> | undefined,
+) {
 	const rejection = reject ?? fieldRejectionOf(schema);
-	return (values: V, submitter: Submitter<Name<F>>): Effect.Effect<A, E | FieldFailure, R> =>
-		Effect.catch(save(values), (error): Effect.Effect<never, E | FieldFailure> => {
+	return (values: TValues, submitter: Submitter<Name<TFields>>): Effect.Effect<TResult, TError | FieldFailure, TRequirements> =>
+		Effect.catch(save(values), (error): Effect.Effect<never, TError | FieldFailure> => {
 			const found = rejection(error);
 			return found === undefined ? Effect.fail(error) : submitter.fail(found.field, found.message);
 		});
-};
+}

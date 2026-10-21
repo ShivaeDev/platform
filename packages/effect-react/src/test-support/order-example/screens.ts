@@ -5,7 +5,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
 import { type Application, orderId } from "./applicationEngine.ts";
-import { makeOrderEditor } from "./frontend.tsx";
+import { Editor, OrderList } from "./Editor.tsx";
+import { makeClient } from "./makeClient.ts";
 
 export const activeScreens = new Set<HTMLDivElement>();
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -14,7 +15,7 @@ export function openScreens(engine: Application, editors: Readonly<Record<string
 	return Effect.acquireRelease(
 		Effect.promise(async () => {
 			window.location.href = engine.url;
-			const views = makeOrderEditor({ httpClient: NodeHttpClient.layerNodeHttp, token: token ?? undefined, url: engine.url });
+			const views = makeClient({ httpClient: NodeHttpClient.layerNodeHttp, token: token ?? undefined, url: engine.url });
 			const registry = AtomRegistry.make();
 			const container = document.createElement("div");
 			document.body.append(container);
@@ -28,9 +29,9 @@ export function openScreens(engine: Application, editors: Readonly<Record<string
 			}
 			try {
 				const panels = Object.entries(editors).map(([key, alias]) =>
-					createElement("div", { "data-editor": key, key }, createElement(views.Editor, { id: orderId(engine, alias) })),
+					createElement("div", { "data-editor": key, key }, createElement(Editor, { client: views, id: orderId(engine, alias) })),
 				);
-				const orderList = list === undefined ? null : createElement(views.OrderList, { renameId: orderId(engine, list) });
+				const orderList = list === undefined ? null : createElement(OrderList, { client: views, renameId: orderId(engine, list) });
 				const content = createElement(RegistryContext.Provider, { value: registry }, orderList, ...panels);
 				await act(async () => root.render(content));
 				for (const key of Object.keys(editors)) {

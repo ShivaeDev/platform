@@ -4,26 +4,26 @@ import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 
 const query = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
-const fields = Schema.Struct({ title: Schema.String });
+const Title = Schema.Struct({ title: Schema.String });
 const runtime = Atom.runtime(Layer.empty);
 function saveTitle(values: { readonly title: string }) {
 	return values.title.length > 0 ? Effect.succeed({ id: 1, title: values.title }) : Effect.fail("Rejected" as const);
 }
 
-export const useEditorExample = () => {
+export function useEditorExample() {
 	const editor = useEditor({
-		fields,
+		fields: Title,
 		query,
 		rejectField: (error) => (error === "Rejected" ? { field: "title", message: "Required" } : undefined),
 		runtime,
 		save: saveTitle,
-		values: (row) => ({ title: row.title }),
+		values: (record) => ({ title: record.title }),
 	});
 	const failure: Option.Option<"Rejected"> = editor.failure;
 	const row: Option.Option<{ id: number; title: string }> = editor.query.data;
 	const create = useCreate({
 		create: saveTitle,
-		fields,
+		fields: Title,
 		initialValues: { title: "" },
 		// @ts-expect-error Field rejections name a declared field.
 		rejectField: () => ({ field: "missing", message: "Unknown" }),
@@ -31,7 +31,7 @@ export const useEditorExample = () => {
 	});
 	const created: Option.Option<{ id: number; title: string }> = create.created;
 	return { created, failure, row, save: editor.save };
-};
+}
 
 class NameRejected extends Data.TaggedError("NameRejected")<{ readonly field: "title"; readonly message: string }> {}
 class StaleRejected extends Data.TaggedError("StaleRejected")<{ readonly field: "subtitle"; readonly message: string }> {}
@@ -42,28 +42,28 @@ function saveStale(values: { readonly title: string }) {
 	return Effect.fail(new StaleRejected({ field: "subtitle", message: values.title }));
 }
 
-export const useRejectionExample = () => {
-	const named = useCreate({ create: saveNamed, fields, initialValues: { title: "" }, runtime });
+export function useRejectionExample() {
+	const named = useCreate({ create: saveNamed, fields: Title, initialValues: { title: "" }, runtime });
 	// @ts-expect-error A tagged field rejection naming a field the form lacks needs an explicit rejectField.
-	const stale = useCreate({ create: saveStale, fields, initialValues: { title: "" }, runtime });
+	const stale = useCreate({ create: saveStale, fields: Title, initialValues: { title: "" }, runtime });
 	const mapped = useEditor({
-		fields,
+		fields: Title,
 		query,
 		rejectField: (error: StaleRejected) => ({ field: "title", message: error.message }),
 		runtime,
 		save: (values) => Effect.as(saveStale(values), { id: 1, title: values.title }),
-		values: (row) => ({ title: row.title }),
+		values: (record) => ({ title: record.title }),
 	});
 	// @ts-expect-error The editor applies the same constraint to its save command.
 	const unmapped = useEditor({
-		fields,
+		fields: Title,
 		query,
 		runtime,
 		save: (values) => Effect.as(saveStale(values), { id: 1, title: values.title }),
-		values: (row) => ({ title: row.title }),
+		values: (record) => ({ title: record.title }),
 	});
 	return { mapped, named, stale, unmapped };
-};
+}
 
 const perField = { field: Schema.optionalKey(Schema.String), message: Schema.String };
 class Conflict extends Schema.TaggedError<Conflict>()("Conflict", perField) {}
@@ -76,17 +76,27 @@ function saveConflict(values: { readonly title: string }) {
 	return Effect.fail(new Conflict({ message: values.title }));
 }
 
-export const useOptionalFieldExample = () => {
+export function useOptionalFieldExample() {
 	// @ts-expect-error An optional field typed wider than the form's field names needs an explicit rejectField.
-	const unmapped = useCreate({ create: saveConflict, fields, initialValues: { title: "" }, runtime });
+	const unmapped = useCreate({ create: saveConflict, fields: Title, initialValues: { title: "" }, runtime });
 	const mapped = useCreate({
 		create: saveConflict,
-		fields,
+		fields: Title,
 		initialValues: { title: "" },
 		rejectField: (error) => (error.field === "title" ? { field: "title", message: error.message } : undefined),
 		runtime,
 	});
-	const titled = useCreate({ create: () => Effect.fail(new TitleConflict({ message: "Taken" })), fields, initialValues: { title: "" }, runtime });
-	const described = useCreate({ create: () => Effect.fail(new Described({ message: "Gone" })), fields, initialValues: { title: "" }, runtime });
+	const titled = useCreate({
+		create: () => Effect.fail(new TitleConflict({ message: "Taken" })),
+		fields: Title,
+		initialValues: { title: "" },
+		runtime,
+	});
+	const described = useCreate({
+		create: () => Effect.fail(new Described({ message: "Gone" })),
+		fields: Title,
+		initialValues: { title: "" },
+		runtime,
+	});
 	return { described, mapped, titled, unmapped };
-};
+}
