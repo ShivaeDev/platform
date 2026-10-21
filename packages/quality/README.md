@@ -78,7 +78,7 @@ When a config exists, its folder is the root for paths and hook scripts. Without
 
 Quality discovers each app’s `components.json` and resolves `aliases.ui` through its TypeScript paths or package imports. That folder belongs to the shadcn CLI: source rules and Biome lint, formatting and fixes skip it by default. Neighbouring authored folders stay checked. This leaves TypeScript’s inputs unchanged, so type checking still covers the stock components.
 
-Naming rules treat numbered migration files such as `src/server/migrations/0001_create_notes.ts` as tool-owned, including in nested apps. The file must sit directly in that folder and match `NNNN_snake_case.ts`: four digits, an underscore and a lowercase name starting with a letter. Files elsewhere, files with other names and subfolders remain checked.
+Naming rules treat numbered migration files such as `src/server/migrations/0001_create_notes.ts` as tool-owned, including in nested apps. The file must sit directly in that folder and match `NNNN_snake_case.ts`: four digits, an underscore and a lowercase name starting with a letter. Files elsewhere, files with other names and subfolders remain checked. The Biome preset lets `.ts` files directly in that folder whose names start with four digits and an underscore default-export their migration Effect, because Effect's migration loader imports the default export; Biome globs cannot spell the rest of the pattern, so the naming rules still report a malformed name.
 
 `defineConfig` checks the config's types. The CLI also validates it: a broken config, unknown rule id or invalid options fails before checks run. An explicit `--config` path must exist.
 
