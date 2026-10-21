@@ -20,18 +20,21 @@ export interface Buffer<A> {
 	readonly parent: Buffer<A> | undefined;
 }
 
-export const makeBuffer = <A>(kind: Buffer<A>["kind"], parent: Buffer<A> | undefined): Buffer<A> => ({
-	changes: new Map(),
-	kind,
-	open: true,
-	parent,
-});
+export function makeBuffer<A>(kind: Buffer<A>["kind"], parent: Buffer<A> | undefined): Buffer<A> {
+	return {
+		changes: new Map(),
+		kind,
+		open: true,
+		parent,
+	};
+}
 
-export const settled = (name: string): Effect.Effect<never> =>
-	Effect.die(new Error(`${name}: changes arrived after their transaction settled; record them before the transaction body returns`));
+export function settled(name: string): Effect.Effect<never> {
+	return Effect.die(new Error(`${name}: changes arrived after their transaction settled; record them before the transaction body returns`));
+}
 
-export const add = <A>(name: string, buffer: Buffer<A>, entries: Iterable<readonly [unknown, A]>): Effect.Effect<void> =>
-	buffer.open
+export function add<A>(name: string, buffer: Buffer<A>, entries: Iterable<readonly [unknown, A]>): Effect.Effect<void> {
+	return buffer.open
 		? Effect.sync(() => {
 				for (const [key, change] of entries) {
 					if (!buffer.changes.has(key)) {
@@ -40,8 +43,9 @@ export const add = <A>(name: string, buffer: Buffer<A>, entries: Iterable<readon
 				}
 			})
 		: settled(name);
+}
 
-export const keyed = <A>(changes: Iterable<A>, keyOf: (change: A) => unknown): Map<unknown, A> => {
+export function keyed<A>(changes: Iterable<A>, keyOf: (change: A) => unknown): Map<unknown, A> {
 	const entries = new Map<unknown, A>();
 	for (const change of changes) {
 		const key = keyOf(change);
@@ -50,13 +54,13 @@ export const keyed = <A>(changes: Iterable<A>, keyOf: (change: A) => unknown): M
 		}
 	}
 	return entries;
-};
+}
 
 function transactionParent<A>(buffer: Buffer<A> | undefined): boolean {
 	return buffer !== undefined && (buffer.kind === "transaction" || transactionParent(buffer.parent));
 }
 
-export const makeFrame = <A, E = never>(options: {
+export function makeFrame<A, E = never>(options: {
 	readonly beforeCommit?: (changes: readonly A[]) => Effect.Effect<void, E>;
 	readonly name: string;
 	readonly buffer: Buffer<A>;
@@ -65,7 +69,7 @@ export const makeFrame = <A, E = never>(options: {
 	) => Effect.Effect<TValue, TError, TRequirements>;
 	readonly publish: (changes: readonly A[]) => Effect.Effect<void>;
 	readonly discard: (changes: readonly A[]) => Effect.Effect<void>;
-}): CommitFrame<E> => {
+}): CommitFrame<E> {
 	const { name, buffer } = options;
 	const settle = Effect.fn("Changes.settle")(function* (outcome: Outcome) {
 		if (!buffer.open) {
@@ -91,4 +95,4 @@ export const makeFrame = <A, E = never>(options: {
 		return options.beforeCommit?.([...buffer.changes.values()]) ?? Effect.void;
 	});
 	return { beforeCommit, provide: options.provide, settle };
-};
+}

@@ -3,6 +3,8 @@ import { mkdtempSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { Effect } from "effect";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 const packageDirectory = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -62,3 +64,19 @@ export function compileInvalidFixtures(fixtures: readonly string[]) {
 		status: result.status,
 	};
 }
+
+export const compilerStory = storyKit({
+	create: () => ({ compileInvalidFixtures, compileValidFixture }),
+	name: "service definition compiler",
+	stages: [],
+	verbs: (compiler, story) => ({
+		declarations: () => {
+			story.tell("the compiler emits the valid service declaration");
+			return Effect.sync(() => compiler.compileValidFixture());
+		},
+		invalid: (fixtures: readonly string[]) => {
+			story.tell("the compiler checks the invalid service definitions");
+			return Effect.sync(() => compiler.compileInvalidFixtures(fixtures));
+		},
+	}),
+});
