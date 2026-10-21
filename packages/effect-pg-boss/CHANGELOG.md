@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.15.2 - 2026-10-21
+
+### Changed
+
+- Require pg-boss 12.38.0 and generate applications with the matching @pg-boss/dashboard 1.12.0.
+
+### Fixed
+
+- Support schema 46 in the PostgreSQL expiry test controls, preserving native supervision and dead lettering.
+
 ## 0.15.1 - 2026-10-20
 
 ### Fixed
