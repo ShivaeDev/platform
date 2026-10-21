@@ -25,7 +25,6 @@ import { queueSql } from "#rules/stories/queueSql.ts";
 import { storySetup } from "#rules/stories/setup.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
-import { supportImports } from "#rules/stories/supportImports.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
@@ -80,7 +79,6 @@ export const builtInRules = [
 	authSql,
 	noExpect,
 	specHelpers,
-	supportImports,
 	httpStatus,
 	namedValues,
 	noLimitImports,

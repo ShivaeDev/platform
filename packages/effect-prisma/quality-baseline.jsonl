@@ -47,7 +47,6 @@
 {"path":"packages/effect-prisma/src/test-support/environment.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/test-support/postgresTesting.ts","rule":"tests/no-expect-in-support","count":8}
 {"path":"packages/effect-prisma/src/test-support/prisma-next.config.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-prisma/src/test-support/relationProbes.ts","rule":"tests/support-imports","count":2}
 {"path":"packages/effect-prisma/src/test-support/schema.sql","rule":"boundaries/auth-sql","count":1}
 {"path":"packages/effect-prisma/src/test-support/sqlite/contract.ts","rule":"biome/lint/style/noExportedImports","count":2}
 {"path":"packages/effect-prisma/src/test-support/sqlite/options.ts","rule":"boundaries/auth-sql","count":1}

@@ -2,4 +2,3 @@
 {"path":"packages/create-app/src/databaseSetup.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/create-app/src/generatedFiles.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/create-app/src/initialQualityGate.spec.ts","rule":"tests/named-values","count":5}
-{"path":"packages/create-app/src/test-support/templateSource.ts","rule":"tests/support-imports","count":2}

@@ -126,7 +126,7 @@ export default defineConfig({
 
 ### Story tests
 
-Write setup in the domain kit under `test-support/` and keep each test specific to its story. [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme) explains how to build the kit, traits and verbs over a real engine.
+Keep story kits and fixtures in `src/test-support` and keep each spec specific to its story. [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme) explains how to build the kit, traits and verbs over a real engine.
 
 Quality's `tests/story-specs` rule reports a test file that declares tests without a kit's `it`, including plain Vitest `it` and `test` declarations mixed with stories. Typecheck tests are exempt, as are test-story itself and its transitive workspace dependencies, including development, optional and peer dependencies: requiring those packages to depend on test-story would create a cycle.
 
@@ -140,8 +140,6 @@ Quality's `tests/story-setup` rule reports top-level test functions named with t
 
 Specs keep expectations visible. `tests/spec-helpers` moves all module-level helper functions out of specs and into the kit; `tests/no-expect-in-support` moves `expect` calls into the spec. `tests/named-values` rejects numeric literals passed to `toBe` or `toHaveLength` in specs: assert the observed items or give the value a domain name. `tests/no-limit-imports` rejects importing `MAX_*` constants from a `limits` module into specs, so a story proves behavior instead of copying an implementation cap.
 
-`tests/support-imports` lets a kit drive any workspace package's exported modules, including its own package's exports through package names or `#` aliases. Export blocks keep internal modules closed. `options.modules` opens additional repository-relative module paths or glob patterns, such as an app's host, schemas and queue definitions. Packages without exports still need that allowlist. Imports within test-support and imports of external packages remain available for the harness; aliases, dynamic imports and re-exports resolve through the same import graph as the other import rules.
-
 `boundaries/queue-sql` rejects SQL mentioning the private `pgboss.` schema. Apps use their queue definitions and let workers process jobs; there is no queue-purge API by design. `boundaries/auth-sql` rejects SQL accessing Better Auth's `user`, `account`, `session` and `verification` tables. Apps use platform's auth API; `options.owners` names platform's own auth implementation and its migrations. These rules inspect SQL templates, literal query calls and query variables, and inventoried `.sql` files. They do not evaluate arbitrary runtime SQL construction.
 
 `boundaries/http-status` rejects comparisons with HTTP error status numbers, switch cases and literal status-list membership outside `options.edge`. Domain code handles typed errors; the named HTTP edge translates them into transport responses. Process exit codes remain ordinary domain values.
@@ -153,7 +151,6 @@ export default defineConfig({
 	rules: {
 		"boundaries/auth-sql": { options: { owners: ["platform/auth/**", "platform/auth-migrations/**"] } },
 		"boundaries/http-status": { options: { edge: ["src/http/**"] } },
-		"tests/support-imports": { options: { modules: ["src/host.ts", "src/schemas.ts", "src/queues.ts"] } },
 	},
 });
 ```

@@ -56,11 +56,6 @@ export default defineConfig({
 		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
 		"boundaries/http-status": { options: { edge: ["packages/platform/src/server/rpc-server/**", "packages/platform/src/server/node-http/**"] } },
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
-		"tests/support-imports": {
-			options: {
-				modules: ["examples/starter/src/server/notesHost.ts", "examples/starter/src/notes.ts", "examples/starter/src/server/noteJobs.ts"],
-			},
-		},
 	},
 	sources: ["packages", "examples", "script"],
 });
