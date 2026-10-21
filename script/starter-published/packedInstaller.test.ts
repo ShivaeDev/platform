@@ -1,25 +1,35 @@
-import assert from "node:assert/strict";
-import { test as it } from "node:test";
-import { withTarballOverrides } from "#withTarballOverrides.ts";
+import { expect } from "vitest";
+import { app } from "#starter-published/test-support/app.ts";
+import { existingOverrides, noPackedDependencies } from "#starter-published/test-support/installerTraits.ts";
+import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
 
-it("nested setup, install and hook commands keep one tarball override per package", () => {
-	const tarballs = { "@shivaedev/platform": "/tmp/platform.tgz" };
-	let workspace = "packages: []\n";
-	for (const _command of ["run setup", "install", "exec quality hooks install", "run typecheck"]) {
-		workspace = withTarballOverrides(workspace, tarballs);
-		assert.equal(workspace, 'packages: []\n\noverrides:\n  "@shivaedev/platform": "file:/tmp/platform.tgz"\n');
-	}
-});
+app.it(
+	"nested setup and install commands keep one working tarball override per package",
+	[unpublishedContract],
+	function* ({ setup, install, workspace, installedQuery }) {
+		yield* setup();
+		yield* install();
+		expect(yield* workspace()).toBe('packages: []\n\noverrides:\n  "@shivaedev/effect-contract": "file:../archives/effect-contract.tgz"\n');
+		expect(yield* installedQuery()).toBe("42\n");
+	},
+);
 
-it("replacing a tarball preserves other overrides and the same package's catalog entry", () => {
-	const source =
-		'packages: []\n\noverrides:\n  "@shivaedev/platform": "file:/tmp/old.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/platform": 0.9.0\n';
-	assert.equal(
-		withTarballOverrides(source, { "@shivaedev/platform": "/tmp/new.tgz" }),
-		'packages: []\n\noverrides:\n  "@shivaedev/platform": "file:/tmp/new.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/platform": 0.9.0\n',
-	);
-});
+app.it(
+	"replacing a tarball preserves other overrides and the same package's catalog entry",
+	[unpublishedContract, existingOverrides],
+	function* ({ workspace, installedQuery }) {
+		expect(yield* workspace()).toBe(
+			'packages: []\n\noverrides:\n  "@shivaedev/effect-contract": "file:../archives/effect-contract.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/effect-contract": 0.9.0\n',
+		);
+		expect(yield* installedQuery()).toBe("42\n");
+	},
+);
 
-it("a workspace without tarballs stays unchanged", () => {
-	assert.equal(withTarballOverrides("packages: []\n", {}), "packages: []\n");
-});
+app.it(
+	"installing an app without tarballs leaves its workspace unchanged",
+	[unpublishedContract, noPackedDependencies],
+	function* ({ install, workspace }) {
+		yield* install();
+		expect(yield* workspace()).toBe("packages: []\n");
+	},
+);
