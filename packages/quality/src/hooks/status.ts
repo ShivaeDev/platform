@@ -3,8 +3,9 @@ import { access, realpath } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { Console, Effect } from "effect";
 import { GateFailed, SetupFailure } from "#failure.ts";
-import { git, gitOrFail } from "#git/command.ts";
+import { gitOrFail } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
+import { forwardingPath, globalHooksPath } from "./forwarding.ts";
 import { type HookLocation, hookLocation } from "./location.ts";
 import { isHookShim } from "./shim.ts";
 
@@ -20,11 +21,7 @@ function executable(file: string) {
 }
 
 export const globalHookStatus = Effect.fn("Hooks.globalHookStatus")(function* (location: HookLocation) {
-	const global = yield* git(location.toplevel, ["config", "--global", "--includes", "--type=path", "--get", "core.hooksPath"]);
-	if (global.code !== 0 && global.code !== 1) {
-		return yield* new SetupFailure({ message: `cannot read global core.hooksPath: ${global.stderr.trim()}` });
-	}
-	const path = global.stdout.trim();
+	const path = yield* globalHooksPath(location.toplevel);
 	const hook = resolve(location.toplevel, path, "pre-commit");
 	const target = path === "" ? undefined : yield* executable(hook);
 	const own = yield* executable(location.file);
@@ -42,6 +39,13 @@ export const hookStatus = Effect.fn("Hooks.hookStatus")(function* (cwd: string) 
 	if (text === undefined || !isHookShim(text) || (yield* executable(path)) === undefined) {
 		yield* Console.error(
 			`quality: the effective hooks path ${dirname(path)} does not run Quality's pre-commit hook.\nhelp: run \`quality hooks install\` to check commits.`,
+		);
+		return yield* new GateFailed();
+	}
+	const global = yield* globalHooksPath(cwd);
+	if (global !== "" && dirname(path) !== resolve(location.toplevel, global) && dirname(path) !== forwardingPath(location.file)) {
+		yield* Console.error(
+			"quality: the repository-local core.hooksPath hides global hooks other than pre-commit.\nhelp: run `quality hooks install` to keep all global hooks running.",
 		);
 		return yield* new GateFailed();
 	}
