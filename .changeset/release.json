@@ -3,24 +3,50 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "pg-boss-schema-46.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": patch\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Require pg-boss 12.38.0 and generate applications with the matching @pg-boss/dashboard 1.12.0.\n\n### Fixed\n\n- Support schema 46 in the PostgreSQL expiry test controls, preserving native supervision and dead lettering.\n"
+				"name": "form-module-names.md",
+				"text": "---\n\"@shivaedev/effect-form\": minor\n---\n\n### Breaking\n\n- Rename `make` to `form` in `@shivaedev/effect-form/form.ts`; change the named import and calls from `make` to `form`.\n- Move `emptyAsNull` from `@shivaedev/effect-form/optional.ts` to `@shivaedev/effect-form/emptyAsNull.ts`; change the import path and keep the `emptyAsNull` name.\n- Move `statusOf` from `@shivaedev/effect-form/status.ts` to `@shivaedev/effect-form/statusOf.ts`; change the import path and keep the `statusOf` name.\n"
+			},
+			{
+				"name": "public-story-imports.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- Let story kits import any workspace package's exported modules through package names or aliases without listing them in `tests/support-imports.options.modules`. Keep the allowlist for additional internal modules; packages without exports retain their existing boundary.\n"
+			},
+			{
+				"name": "quality-global-hooks.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Keep all global Git hooks running after `quality hooks install`, including hooks added later, and prevent recursive pre-commit chaining. Report installations that hide global hooks with a reinstall repair hint; uninstall leaves global hooks in effect.\n"
+			},
+			{
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.17",
+				"from": "0.11.18",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.18"
+				"to": "0.11.19"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-form",
+				"from": "0.5.0",
+				"name": "@shivaedev/effect-form",
+				"to": "0.6.0"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.15.1",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.15.2"
+				"directory": "packages/effect-react",
+				"from": "0.12.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.12.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.32.0",
+				"name": "@shivaedev/quality",
+				"to": "0.32.1"
 			}
 		]
 	}

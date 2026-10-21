@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.32.1 - 2026-10-21
+
+### Changed
+
+- Let story kits import any workspace package's exported modules through package names or aliases without listing them in `tests/support-imports.options.modules`. Keep the allowlist for additional internal modules; packages without exports retain their existing boundary.
+
+### Fixed
+
+- Keep all global Git hooks running after `quality hooks install`, including hooks added later, and prevent recursive pre-commit chaining. Report installations that hide global hooks with a reinstall repair hint; uninstall leaves global hooks in effect.
+
 ## 0.32.0 - 2026-10-19
 
 ### Changed
