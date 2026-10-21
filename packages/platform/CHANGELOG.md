@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.0 - 2026-10-21
+
+### Added
+
+- Expose test-only Better Auth database readouts and faults for the default auth schema so application stories do not issue SQL against provider-owned tables.
+
 ## 0.23.1 - 2026-10-19
 
 ### Fixed
