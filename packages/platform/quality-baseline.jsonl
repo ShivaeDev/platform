@@ -1,6 +1,4 @@
 {"path":"packages/platform/src/errors/roundTrip.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/errors/trpcRejections.spec.ts","rule":"tests/spec-helpers","count":1}
-{"path":"packages/platform/src/errors/trpcRejections.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/appHostBodyLimit.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/platform/src/server/appHostMigrationWait.spec.ts","rule":"tests/named-values","count":5}
 {"path":"packages/platform/src/server/appHostProxy.spec.ts","rule":"tests/named-values","count":3}
@@ -22,8 +20,6 @@
 {"path":"packages/platform/src/server/rpc-server/admin.spec.ts","rule":"tests/named-values","count":6}
 {"path":"packages/platform/src/server/rpc-server/proxy.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/redaction.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/platform/src/server/rpc-server/redaction.spec.ts","rule":"tests/spec-helpers","count":1}
-{"path":"packages/platform/src/server/rpc-server/redaction.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/sessionUser.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/platform/src/server/rpc-server/trustedProxyRanges.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/unauthenticatedRejections.spec.ts","rule":"tests/named-values","count":1}
@@ -31,4 +27,3 @@
 {"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/lint/style/noExportedImports","count":1}
 {"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/plugin","count":1}
 {"path":"packages/platform/src/test-support/auth/prisma-next.config.ts","rule":"biome/plugin","count":1}
-{"path":"packages/platform/src/test-support/rpc/sessionLifecycle.ts","rule":"boundaries/auth-sql","count":1}
