@@ -1,12 +1,12 @@
 import { getMigrations } from "better-auth/db/migration";
+import { admin } from "better-auth/plugins";
 import { Effect } from "effect";
 import { AuthMigrationDatabase } from "#server/AuthMigrationDatabase.ts";
-import { authOptions } from "#server/authOptions.ts";
 
 export default Effect.gen(function* () {
 	const database = yield* AuthMigrationDatabase;
 	yield* Effect.tryPromise(async () => {
-		const migration = await getMigrations(authOptions(database));
+		const migration = await getMigrations({ database, emailAndPassword: { enabled: true }, plugins: [admin()] });
 		await migration.runMigrations();
 	});
 });
