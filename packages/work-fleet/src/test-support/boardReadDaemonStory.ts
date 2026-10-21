@@ -2,6 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect, Layer } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { withBoardReadPass } from "#board/readPass.ts";
 import { boardReadCounts } from "#test/boardReadCounts.ts";
 import { type HostFixture, hostFixture, readHostWork, task } from "#test/fleetHost.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
@@ -25,7 +26,7 @@ export const boardReadDaemonStory = storyKit({
 		const records = yield* Effect.forEach(
 			Array.from({ length: 50 }, (_, index) => index),
 			(index) => seedRecord(fixture, index, now),
-		);
+		).pipe(withBoardReadPass);
 		yield* storeRecords(fixture.host, records).pipe(Effect.provide(hostDatabase(fixture.host, "fleet-read-seed", 1)));
 		const running: { current?: Effect.Success<ReturnType<typeof startHostDaemon>> } = {};
 		return { counts: boardReadCounts(), fixture, running };
