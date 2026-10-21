@@ -27,7 +27,7 @@ try {
     await directory.close();
   }
   await Effect.runPromise(Effect.scoped(Effect.gen(function* () {
-    const source = "---\nid: decision.example\nkind: decision\nattention:\n  - id: choose\n    kind: decision\n    state: open\n    managed: true\n    response_from: [maintainer]\n    unblocks: [decision.example]\n    reason: Choose the next step\n---\n# Next step\n";
+    const source = "---\nid: decision.example\nkind: question\nscope: task\nurgency: blocking\nattention:\n  - id: choose\n    kind: decision\n    state: open\n    managed: true\n    response_from: [maintainer]\n    unblocks: [decision.example]\n    reason: Choose the next step\n---\n# Next step\n";
     yield* publish(root, realRoot, "decision.example", source);
     const sourcePath = "responses/decision.example.md";
     assert.equal(yield* markdownPath(root, realRoot, sourcePath), join(realRoot, sourcePath));
@@ -62,7 +62,7 @@ try {
       return saved;
     }).pipe(Effect.provide(responsesLayer));
     const receipt = Schema.decodeUnknownSync(RequestReceipt)({ disposition: "applied", question: id, reviewedRevision: revision, recordedAt: 2, response: answer.id });
-    const content = `---\n${JSON.stringify({ id: "receipt.example", kind: "result", request_receipt: receipt })}\n---\nAcknowledged.\n`;
+    const content = `---\n${JSON.stringify({ id: "receipt.example", kind: "report", request_receipt: receipt })}\n---\nAcknowledged.\n`;
     yield* publish(root, realRoot, "receipt.example", content);
     yield* (changes.refresh ?? Effect.void);
     const snapshot = yield* index;
