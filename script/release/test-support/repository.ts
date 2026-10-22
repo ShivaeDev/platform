@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
@@ -7,10 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import config from "#release-config";
 import { copyRepository } from "./copyRepository.ts";
-
-function git(root: string, ...args: readonly string[]) {
-	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" });
-}
+import { git, initRepository } from "./git.ts";
 
 const write = Effect.fn("ReleaseRepository.write")(function* (root: string, relative: string, text: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -62,7 +58,7 @@ const create = Effect.fn("ReleaseRepository.create")(function* () {
 	yield* fs.symlink("AGENTS.md", join(root, "CLAUDE.md"));
 	yield* fs.symlink("../../.agents/skills/package-docs", join(root, ".claude/skills/package-docs"));
 	yield* Effect.sync(() => {
-		git(root, "init", "-b", "main");
+		initRepository(root);
 		git(root, "config", "user.email", "release@example.test");
 		git(root, "config", "user.name", "Release Stories");
 		git(root, "add", ".");
@@ -85,7 +81,7 @@ export const repository = storyKit({
 		copy: Effect.fn("ReleaseRepository.copy")(function* () {
 			yield* copyRepository(root, copy);
 			yield* Effect.sync(() => {
-				git(copy, "init", "-b", "main");
+				initRepository(copy);
 				git(copy, "config", "user.email", "release@example.test");
 				git(copy, "config", "user.name", "Release Stories");
 				git(copy, "add", ".");
