@@ -1,6 +1,6 @@
-import { execFileSync } from "node:child_process";
 import { dirname, join } from "node:path";
 import { Effect, FileSystem } from "effect";
+import { initRepository, git as repositoryGit } from "./git.ts";
 
 export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepository")(function* () {
 	const fs = yield* FileSystem.FileSystem;
@@ -9,7 +9,7 @@ export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepos
 	const origin = join(temporary, "origin.git");
 	yield* fs.makeDirectory(root);
 	function git(...args: readonly string[]) {
-		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
+		return repositoryGit(root, ...args).trim();
 	}
 	const write = Effect.fn("ReleasePrRepository.write")(function* (path: string, text: string) {
 		yield* fs.makeDirectory(dirname(join(root, path)), { recursive: true });
@@ -34,8 +34,8 @@ export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepos
 	yield* write("examples/starter/package.json", '{"name":"@shivaedev/starter","private":true,"version":"0.0.0","packageManager":"pnpm@12.13.0"}\n');
 	yield* write("examples/starter/published-versions.json", '{"@shivaedev/platform":"0.15.0"}\n');
 	yield* write(".changeset/README.md", "Pending changesets.\n");
-	git("init", "-b", "main");
-	git("init", "--bare", origin);
+	initRepository(root);
+	initRepository(origin, "--bare");
 	git("config", "user.name", "Release stories");
 	git("config", "user.email", "release@example.test");
 	git("remote", "add", "origin", origin);

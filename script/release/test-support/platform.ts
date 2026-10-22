@@ -1,4 +1,3 @@
-import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
@@ -6,19 +5,16 @@ import { Console, Effect, FileSystem } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { command } from "./command.ts";
 import { copyRepository } from "./copyRepository.ts";
+import { git, initRepository } from "./git.ts";
 
 const repository = process.cwd();
-
-function git(root: string, ...args: readonly string[]): string {
-	return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" });
-}
 
 const create = Effect.fn("ReleaseStory.create")(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const root = yield* fs.makeTempDirectoryScoped({ prefix: "platform-release-" });
 	yield* copyRepository(repository, root);
 	yield* Effect.sync(() => {
-		git(root, "init", "-b", "main");
+		initRepository(root);
 		git(root, "config", "user.email", "release@example.test");
 		git(root, "config", "user.name", "Release Stories");
 		git(root, "add", ".");
