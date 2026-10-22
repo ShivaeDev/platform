@@ -24,6 +24,15 @@ screenStory.it(
 	[routedScreen(sharedVocabularyFixture, "/ready.md")],
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement('[aria-label="Ruling"]')).not.toBeNull()));
-		expect(readText('[aria-label="Ruling"]')).toContain("Engine rulingUse the existing engine.");
+		expect(readText('[aria-label="Ruling"]')).toContain("Use the existing engine.");
+	},
+);
+
+screenStory.it(
+	"reads a standing ruling from its body without reporting a missing answer",
+	[routedScreen(sharedVocabularyFixture, "/ruling.md")],
+	function* ({ readText, findElement }) {
+		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Use the existing engine.")));
+		expect(findElement("[data-decision-outcome]")).toBeNull();
 	},
 );

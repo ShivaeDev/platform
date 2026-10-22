@@ -24,7 +24,7 @@ Board owns authored work and its revision. Fleet stores preparation, attempts an
 
 The [Board vocabulary](../work-board/README.md#work-vocabulary) defines each authored state's meaning, approval, ownership, deliverables and question fields. Fleet keeps resumable execution steps in `record.step` beneath the shared `record.stage`. Stored records, status files, CLI and MCP projections use the same stages. Every wait names its owner and reason; a predicted conflict hold names the PR to merge and the conflicting files. Fleet's database migration upgrades current and archived stages at startup.
 
-Run `work-board migrate <board dir>` before starting this version with an existing Board. Board and Fleet refuse old vocabulary and name the affected file and field. Approval remains separate from status: Fleet runs only `fleet: approved` tasks; `held` waits on a person and `manual` leaves the task to its owner. PR tasks default to `delivers: pr`; research tasks use `delivers: report`.
+Run `work-board migrate <board dir>` before starting this version with an existing Board. Board and Fleet refuse old vocabulary and name the affected file and field. Migration preserves published decision revisions, registered questions, recorded answers and request receipts across the vocabulary rewrite. Answered and settled asks retain their state; an edit to the question itself still invalidates its reviewed context. Approval remains separate from status: Fleet runs only `fleet: approved` tasks; `held` waits on a person and `manual` leaves the task to its owner. PR tasks default to `delivers: pr`; research tasks use `delivers: report`.
 
 ### Configure the host
 

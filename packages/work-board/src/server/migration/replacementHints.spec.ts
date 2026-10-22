@@ -24,11 +24,16 @@ boardStory.it(
 		expect(document.diagnostics).toEqual([]);
 		expect(document.metadata.relationships?.filter((link) => link.kind === "replaces").map((link) => link.target)).toEqual([
 			"old.already",
+			"old.done",
 			"old.dropped",
 			"old.legacy",
+			"old.multiple",
 			"old.superseded",
 		]);
 		const other = yield* rpc((client) => client("work-board.document", { url: "/other.md" }));
-		expect(other.metadata.relationships).toEqual([{ kind: "replaces", target: "old.field" }]);
+		expect(other.metadata.relationships).toEqual([
+			{ kind: "replaces", target: "old.field" },
+			{ kind: "replaces", target: "old.multiple" },
+		]);
 	},
 );

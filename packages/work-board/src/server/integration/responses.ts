@@ -8,6 +8,7 @@ import { currentResponses } from "#responses/current.ts";
 import { Responses } from "#server/Responses.ts";
 import { makeResponse } from "#server/responses/make.ts";
 import { publish } from "#server/responses/publish.ts";
+import { questionSourceMatches } from "#server/responses/questionSourceMatches.ts";
 import { readResponses } from "#server/responses/read.ts";
 import { questionFrom, questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { type WorkspaceOptions as InternalWorkspaceOptions, Workspace, WorkspaceConfig } from "#server/workspace.ts";
@@ -27,6 +28,7 @@ export const responses = {
 	questionFrom,
 	questionId,
 	questionMarkdown,
+	questionSourceMatches,
 	Reading: ReadingSchema,
 	RecordedResponse: RecordedResponseSchema,
 	Responses,

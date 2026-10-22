@@ -15,11 +15,11 @@ export const sharedVocabularyFixture = {
 	"goal.md": item("goal", "goal", "status: ready\nowner: marvin", "Platform goal"),
 	"ready.md": task("task.ready", "ready", "lane.board", "fleet: approved\nowner: codex\ndelivers: pr"),
 	"report.md": item("report", "report", "status: done\nrelationships: [{kind: informs, target: goal}]", "Delivered report"),
-	"ruling.md": item(
+	"ruling.md": `${item(
 		"question.ruling",
 		"question",
-		"status: done\nscope: standing\nurgency: whenever\nanswer: Use the existing engine.\nrelationships: [{kind: informs, target: task.ready}]",
+		"status: done\nscope: standing\nurgency: whenever\nrelationships: [{kind: informs, target: task.ready}]",
 		"Engine ruling",
-	),
+	)}\nUse the existing engine.\n`,
 	"whenever.md": item("question.a", "question", "status: ready\nscope: area\nurgency: whenever", "A later question"),
 };

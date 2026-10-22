@@ -18,17 +18,20 @@ export function rulings(document: MetadataDocument, model: MetadataModel, titles
 		) {
 			return [];
 		}
-		const answer =
-			fields.answer
-			?? index
-				.questionsFor(fields.id ?? "")
-				.flatMap((question) =>
-					index
-						.responsesFor(question)
-						.current.filter((record) => record.response.type === "answer")
-						.map((record) => record.body),
-				)
-				.join("\n\n");
+		const recorded = index
+			.questionsFor(fields.id ?? "")
+			.flatMap((question) =>
+				index
+					.responsesFor(question)
+					.current.filter((record) => record.response.type === "answer")
+					.map((record) =>
+						record.body.trim()
+							? record.body
+							: (record.response.answers ?? []).map((prompt) => prompt.text.trim() || prompt.selected.join(", ")).join("\n\n"),
+					),
+			)
+			.join("\n\n");
+		const answer = recorded || entry.parsed.body;
 		return answer ? [{ answer, href: fileUrl(entry.file), title: titles.get(entry.file) ?? entry.file }] : [];
 	});
 }

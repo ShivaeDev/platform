@@ -5,6 +5,7 @@ import { responses } from "@shivaedev/work-board/server/integration/responses.ts
 import { closePublishedDecision } from "#board/closePublishedDecision.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { type BoardSnapshot, recordBoardSource } from "#board/readPass.ts";
+import { reviewedDecision } from "#board/reviewedDecision.ts";
 import { BoardAcknowledgementStale, type BoardDecisionAcknowledgement } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
 
@@ -40,7 +41,7 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 		) {
 			return;
 		}
-		if (!source || source.parsed.fields.id !== decision.itemId || revisionOf(source.source) !== decision.revision) {
+		if (!(source && reviewedDecision(decision, source, all))) {
 			return yield* Effect.fail(
 				new BoardAcknowledgementStale({ message: "The decision source changed or moved; its request cannot be acknowledged." }),
 			);

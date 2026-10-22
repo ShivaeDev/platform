@@ -7,7 +7,7 @@ import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
 
 const { metadataModel } = board;
-const { currentResponses, questionId, readResponses, revisionOf } = responses;
+const { currentResponses, questionId, readResponses, questionSourceMatches } = responses;
 
 function currentResponse(reading: Reading): BoardDecisionReading {
 	const current = currentResponses(reading.responses);
@@ -26,7 +26,7 @@ export function decisionReading(documents: Effect.Effect<readonly BoardDocument[
 		const model = metadataModel(all);
 		const matches = model.ids.get(receipt.itemId);
 		const document = matches?.length === 1 ? all.find((entry) => entry.file === matches[0]?.file) : undefined;
-		if (!document || document.file !== receipt.sourcePath || revisionOf(document.source) !== receipt.revision) {
+		if (!document || document.file !== receipt.sourcePath) {
 			return { _tag: "Stale", reason: "The decision source changed, moved or became ambiguous." };
 		}
 		if (
@@ -45,7 +45,7 @@ export function decisionReading(documents: Effect.Effect<readonly BoardDocument[
 			|| reading.question.question.request !== receipt.request
 			|| reading.question.question.source !== receipt.sourcePath
 			|| reading.question.question.reviewedRevision !== receipt.revision
-			|| reading.question.context !== document.source
+			|| !questionSourceMatches(reading.question, document)
 		) {
 			return { _tag: "Stale", reason: "The registered question does not match the reviewed decision context." };
 		}

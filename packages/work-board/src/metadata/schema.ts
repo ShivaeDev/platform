@@ -43,7 +43,6 @@ const Evidence = Schema.Struct({
 }).pipe(Schema.encodeKeys({ checkedRevision: "checked_revision", observedAt: "observed_at" }));
 
 export const Metadata = Schema.Struct({
-	answer: Schema.optional(Text),
 	areas: Schema.optional(Schema.Array(Text)),
 	attention: Schema.optional(Schema.Array(Attention)),
 	criteria: Schema.optional(Schema.Array(Criterion)),

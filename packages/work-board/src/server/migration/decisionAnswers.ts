@@ -1,22 +1,12 @@
-import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { type MetadataDocument, metadataModel } from "#server/metadata/model.ts";
 import { decisionClosed } from "#server/migration/decisionClosed.ts";
 import { sourceHeader } from "#server/migration/sourceHeader.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import { revisionOf } from "#server/responses/records.ts";
 
-function answerText(record: RecordedResponse) {
-	return record.body.trim()
-		? record.body
-		: (record.response.answers ?? [])
-				.map((answer) => (answer.text.trim() ? answer.text : answer.selected.join(", ")))
-				.filter(Boolean)
-				.join("\n\n");
-}
-
 export function decisionAnswers(files: readonly { readonly file: string; readonly source: string }[], documents: readonly MetadataDocument[]) {
 	const index = responseIndex(metadataModel(documents));
-	const answers = new Map<string, string>();
+	const answers = new Set<string>();
 	for (const { file, source } of files) {
 		const header = sourceHeader(source);
 		const id = header?.doc.get("id");
@@ -24,18 +14,12 @@ export function decisionAnswers(files: readonly { readonly file: string; readonl
 			continue;
 		}
 		const closed = decisionClosed(header);
-		const bodies = index
+		const records = index
 			.questionsFor(id)
 			.filter((question) => question.question.source === file && (closed || question.question.reviewedRevision === revisionOf(source)))
-			.flatMap((question) =>
-				index
-					.responsesFor(question)
-					.current.filter((record) => record.response.type === "answer")
-					.map(answerText),
-			)
-			.filter((body) => body.trim() !== "");
-		if (bodies.length > 0) {
-			answers.set(id, bodies.join("\n\n"));
+			.flatMap((question) => index.responsesFor(question).current.filter((record) => record.response.type === "answer"));
+		if (records.length > 0) {
+			answers.add(id);
 		}
 	}
 	return answers;

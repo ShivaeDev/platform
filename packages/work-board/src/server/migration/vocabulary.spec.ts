@@ -10,7 +10,7 @@ boardStory.it(
 	[projectFiles(vocabularyFixture), deferredServing],
 	function* ({ migrate, notes, start, connectClient }) {
 		const output = migrate();
-		expect(output).toBe("Changed 12 files and 34 fields.\n");
+		expect(output).toBe("Changed 12 files and 33 fields.\n");
 		for (const [file, source] of Object.entries(vocabularyFixture)) {
 			const saved = readFileSync(join(notes.root, file), "utf8");
 			function body(text: string) {
@@ -28,8 +28,8 @@ boardStory.it(
 		expect(goal.diagnostics).toEqual([]);
 		expect(goal.metadata).toMatchObject({ kind: "goal", owner: "claude", status: "ready" });
 		const ruling = yield* Effect.promise(() => client.read(client.api.document.query({ url: "/_board/item/ruling/" })));
-		expect(ruling.metadata).toMatchObject({ answer: "# Ruling\n\nUse the existing engine.\n", kind: "question", scope: "standing", status: "done" });
-		expect(goal.rulings?.map((entry) => entry.answer)).toEqual([ruling.metadata.answer]);
+		expect(ruling.metadata).toMatchObject({ kind: "question", scope: "standing", status: "done" });
+		expect(goal.rulings?.map((entry) => entry.answer)).toEqual(["# Ruling\n\nUse the existing engine.\n"]);
 		const metadata: Readonly<Record<string, Readonly<Record<string, string>>>> = {
 			"decisions/ruling.md": { kind: "question", owner: "claude", scope: "standing", status: "done" },
 			"draft.md": { delivers: "report", fleet: "manual", kind: "task", owner: "codex", status: "draft" },

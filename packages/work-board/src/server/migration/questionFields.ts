@@ -46,12 +46,9 @@ export function questionFields(
 	}
 	const body = source.slice(end).replace(/^---[^\S\r\n]*\r?\n/u, "");
 	const standing = context.file.startsWith("decisions/") && body.trim() !== "";
-	const answer = standing ? body : context.answers.get(String(doc.get("id")));
-	const done = standing || (decisionClosed(header) ?? answer !== undefined);
+	const answered = context.answers.has(String(doc.get("id")));
+	const done = standing || (decisionClosed(header) ?? answered);
 	setQuestionField(header, edits, "scope", standing ? "standing" : "task");
 	setQuestionField(header, edits, "status", done ? "done" : "ready");
 	setQuestionField(header, edits, "urgency", done ? "whenever" : "blocking");
-	if (answer !== undefined) {
-		edits.set("answer", answer);
-	}
 }

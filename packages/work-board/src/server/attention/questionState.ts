@@ -1,13 +1,10 @@
 import type { Question } from "#browser/responses/schema.ts";
 import { responseUrl } from "#responses/url.ts";
-import { documentSource, type MetadataDocument, type MetadataModel } from "#server/metadata/model.ts";
+import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
+import { questionSourceMatches } from "#server/responses/questionSourceMatches.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { attentionRequests, isMaintainerRequest } from "./requests.ts";
-
-function currentSource(question: Question, document: MetadataDocument): boolean {
-	return question.question.source === document.file && question.context === documentSource(document);
-}
 
 function hasAnswer(question: Question, model: MetadataModel): boolean {
 	return responseIndex(model).responsesFor(question).answered;
@@ -21,7 +18,7 @@ export function answeredQuestion(document: MetadataDocument, model: MetadataMode
 				question.question.item === document.parsed.fields.id
 				&& (request === undefined || question.question.request === request)
 				&& model.ids.get(question.id)?.length === 1
-				&& currentSource(question, document)
+				&& questionSourceMatches(question, document)
 				&& hasAnswer(question, model),
 		);
 }
@@ -37,7 +34,7 @@ export function pendingQuestions(snapshot: Snapshot) {
 		if (
 			!(
 				source
-				&& currentSource(question, source)
+				&& questionSourceMatches(question, source)
 				&& open.some((entry) => entry.itemId === question.question.item && entry.request.id === question.question.request)
 			)
 		) {

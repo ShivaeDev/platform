@@ -5,6 +5,7 @@ import { responses } from "@shivaedev/work-board/server/integration/responses.ts
 import { decisionAnswer } from "#board/decisionAnswer.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { recordBoardSource, withBoardReadPass } from "#board/readPass.ts";
+import { reviewedDecision } from "#board/reviewedDecision.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { type DecisionCopy, decisionCopy } from "#engine/decisionCopy.ts";
 import { BoardFailure, type BoardWork, type Decision } from "#policy.ts";
@@ -70,6 +71,9 @@ export function publishBoard(root: string, realRoot: string, documents: Effect.E
 			return yield* Effect.fail(new BoardFailure({ message: "Fleet decision context exceeds Board limits or contains invalid attention metadata." }));
 		}
 		const sourcePath = `responses/${itemId}.md`;
+		if (input.published && reviewedDecision(input.published, existing, yield* documents)) {
+			return input.published;
+		}
 		const revision = revisionOf(context);
 		const id = questionId(itemId, input.id, revision, sourcePath);
 		const receipt = {

@@ -24,7 +24,7 @@ export const migrate = Effect.fn("WorkBoard.migrate")(function* (root: string) {
 	yield* scan(root);
 	const prepared = files.map(({ file, source }) => ({
 		file,
-		...migrateSource(source, { answers: new Map(), blocking: new Set(), file, replaces: [] }),
+		...migrateSource(source, { answers: new Set(), blocking: new Set(), file, replaces: [] }),
 	}));
 	const documents = yield* validateFiles(prepared);
 	const answers = decisionAnswers(files, documents);

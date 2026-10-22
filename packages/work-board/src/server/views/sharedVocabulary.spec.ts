@@ -41,7 +41,7 @@ boardStory.it(
 			{ id: "question.a", scope: "area", urgency: "whenever" },
 		]);
 		const task = yield* rpc((client) => client("work-board.document", { url: "/ready.md" }));
-		expect(task.rulings).toEqual([{ answer: "Use the existing engine.", href: "/ruling.md", title: "Engine ruling" }]);
+		expect(task.rulings).toEqual([{ answer: "# Engine ruling\n\nUse the existing engine.\n", href: "/ruling.md", title: "Engine ruling" }]);
 		const question = yield* rpc((client) => client("work-board.question", { item: "question.z", request: "answer" }));
 		yield* rpc((client) =>
 			client("work-board.answerQuestion", {

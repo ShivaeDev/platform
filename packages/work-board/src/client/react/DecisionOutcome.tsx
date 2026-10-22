@@ -19,16 +19,16 @@ export function DecisionOutcome({ document }: { readonly document: Document }) {
 			.filter((record) => record.response.type === "answer")
 			.map((record) => ({ record, request })),
 	);
+	if (document.metadata.scope === "standing" && answers.length === 0 && unavailable === undefined) {
+		return null;
+	}
 	return (
 		<section aria-labelledby={id} className="mb-6 space-y-3 rounded-lg border bg-muted/40 px-4 py-3" data-decision-outcome="">
 			<h2 className="m-0 font-medium text-muted-foreground text-sm" id={id}>
 				Outcome
 			</h2>
 			{unavailable !== undefined && <p className="m-0 text-sm">{unavailable}</p>}
-			{document.metadata.answer !== undefined && <AnswerMarkdown file={document.file} source={document.metadata.answer} />}
-			{!document.metadata.answer && unavailable === undefined && answers.length === 0 && (
-				<p className="m-0 text-sm">Closed with no answer recorded on the Board.</p>
-			)}
+			{unavailable === undefined && answers.length === 0 && <p className="m-0 text-sm">Closed with no answer recorded on the Board.</p>}
 			{unavailable === undefined && answers.map(({ record, request }) => <RecordedAnswer key={record.id} record={record} request={request} />)}
 		</section>
 	);

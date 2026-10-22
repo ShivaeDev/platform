@@ -1,6 +1,7 @@
 import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { migrate } from "@shivaedev/work-board/server/migration/migrate.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardFolder } from "#test/boardFolder.ts";
@@ -38,6 +39,10 @@ export const boardFolderStory = storyKit({
 			},
 			board,
 			files: boardHttpFiles(state.root),
+			migrate: () => {
+				story.tell("migrate the Board folder vocabulary");
+				return migrate(state.root);
+			},
 			openHttp: (...args: [home?: string, maintainer?: string, fleetPort?: number]) => {
 				story.tell("open a Board HTTP reader");
 				return boardHttp(state.root, ...args);

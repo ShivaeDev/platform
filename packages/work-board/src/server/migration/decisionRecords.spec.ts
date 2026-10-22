@@ -15,6 +15,7 @@ boardStory.it(
 				return text.slice(text.indexOf("---", 3));
 			}
 			expect(body(saved)).toBe(body(source));
+			expect(saved).not.toMatch(/^answer:/mu);
 		}
 		expect(readFileSync(join(notes.root, "responses/fleet.open.md"), "utf8")).not.toContain("answer:");
 		expect(readFileSync(join(notes.root, "responses/fleet.deferred.md"), "utf8")).not.toContain("answer:");
@@ -24,14 +25,15 @@ boardStory.it(
 			const document = yield* rpc((client) => client("work-board.document", { url: `/_board/item/${id}/` }));
 			expect(document.diagnostics).toEqual([]);
 			expect(document.metadata).toMatchObject({ kind: "question", scope: "task", status: "ready", urgency: "blocking" });
-			expect(document.metadata.answer).toBeUndefined();
+			expect(document.metadata).not.toHaveProperty("answer");
 		}
 		const answered = yield* rpc((client) => client("work-board.document", { url: "/_board/item/fleet.answered/" }));
-		expect(answered.metadata).toMatchObject({ answer: "Use the current branch.\n", kind: "question", scope: "task", status: "done" });
+		expect(answered.metadata).toMatchObject({ kind: "question", scope: "task", status: "done" });
+		expect(answered.requests?.flatMap((request) => request.responses ?? []).map((record) => record.body)).toContain("Use the current branch.\n");
 		const inbox = yield* rpc((client) => client("work-board.inbox", undefined));
 		expect(inbox.items.map((item) => item.id).sort()).toEqual(["task.deferred", "task.open", "unruled"]);
 		const ruling = yield* rpc((client) => client("work-board.document", { url: "/_board/item/storage/" }));
-		expect(ruling.metadata).toMatchObject({ answer: "# Storage ruling\n\nKeep PostgreSQL.\n", owner: "marvin", scope: "standing", status: "done" });
+		expect(ruling.metadata).toMatchObject({ owner: "marvin", scope: "standing", status: "done" });
 		const task = yield* rpc((client) => client("work-board.document", { url: "/task.md" }));
 		expect(task.rulings).toEqual([{ answer: "# Storage ruling\n\nKeep PostgreSQL.\n", href: "/decisions/storage.md", title: "Storage ruling" }]);
 		const library = yield* rpc((client) => client("work-board.library", { showFleet: true }));

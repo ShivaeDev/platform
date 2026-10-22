@@ -4,7 +4,7 @@ import { sourceEdits } from "#server/migration/sourceEdits.ts";
 import { sourceHeader } from "#server/migration/sourceHeader.ts";
 
 export interface MigrationContext {
-	readonly answers: ReadonlyMap<string, string>;
+	readonly answers: ReadonlySet<string>;
 	readonly blocking: ReadonlySet<string>;
 	readonly file: string;
 	readonly replaces: readonly string[];
