@@ -6,13 +6,33 @@ function successorsOf(data: Readonly<Record<string, unknown>>) {
 	if (typeof named === "string") {
 		return [named];
 	}
-	const hint =
-		typeof data.next_action === "string"
-			? /\b(?:Replaced by|Superseded by|Folded into)\s+(?<names>`?[a-zA-Z\d][a-zA-Z\d._-]*`?(?:(?:\s+and\s+|,\s*(?:and\s+)?|\s*&\s*)`?[a-zA-Z\d][a-zA-Z\d._-]*`?)*)/iu.exec(
-					data.next_action,
-				)?.groups?.names
-			: undefined;
-	return hint?.match(/[a-zA-Z\d][a-zA-Z\d._-]*/gu)?.filter((name) => name.toLowerCase() !== "and") ?? [];
+	if (typeof data.next_action !== "string") {
+		return [];
+	}
+	const hint = /\b(?:Replaced by|Superseded by|Folded into)\s+(?<name>`?[a-zA-Z\d][a-zA-Z\d._-]*`?)(?<rest>.*)/iu.exec(data.next_action)?.groups;
+	if (!hint?.name) {
+		return [];
+	}
+	const names = [hint.name.replaceAll("`", "")];
+	let rest = hint.rest ?? "";
+	while (rest !== "") {
+		const next = /^(?<separator>\s+and\s+|,\s*(?:and\s+)?|\s*&\s*)(?<name>`?[a-zA-Z\d][a-zA-Z\d._-]*`?)(?<rest>.*)/iu.exec(rest)?.groups;
+		if (!next?.name) {
+			break;
+		}
+		const name = next.name.replaceAll("`", "");
+		if (
+			next.separator?.startsWith(",")
+			&& !next.name.startsWith("`")
+			&& !/[._-][a-zA-Z\d]/u.test(name)
+			&& !/^(?:\.?$|,|\s+(?:and\b|&))/iu.test(next.rest ?? "")
+		) {
+			break;
+		}
+		names.push(name);
+		rest = next.rest ?? "";
+	}
+	return names;
 }
 
 export function replacements(files: readonly { readonly file: string; readonly source: string }[]) {
