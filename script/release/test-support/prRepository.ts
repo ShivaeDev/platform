@@ -22,6 +22,8 @@ export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepos
 		yield* write(`packages/${name}/package.json`, JSON.stringify({ name: `@shivaedev/${name}`, version }));
 		yield* write(`packages/${name}/CHANGELOG.md`, "# Changelog\n");
 	}
+	yield* write("package.json", '{"private":true,"packageManager":"pnpm@12.13.0+sha512.root-integrity"}\n');
+	yield* write("examples/starter/package.json", '{"name":"@shivaedev/starter","private":true,"version":"0.0.0","packageManager":"pnpm@12.13.0"}\n');
 	yield* write("examples/starter/published-versions.json", '{"@shivaedev/platform":"0.15.0"}\n');
 	yield* write(".changeset/README.md", "Pending changesets.\n");
 	git("init", "-b", "main");

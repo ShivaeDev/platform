@@ -7,6 +7,7 @@ import { ChangesetError } from "@shivaedev/changesets/error.ts";
 import type { PackageManifest } from "@shivaedev/changesets/model.ts";
 import { readWorkspace } from "@shivaedev/changesets/workspace.ts";
 import config from "#release-config";
+import { checkStarterPnpm } from "./starterPnpm.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 
@@ -65,6 +66,7 @@ export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root:
 		}
 	}
 	yield* checkStarterPins(root);
+	yield* checkStarterPnpm(root);
 	yield* checkRepository(root, config, reference);
 });
 

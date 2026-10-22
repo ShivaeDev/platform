@@ -26,6 +26,18 @@ repository.it("the pin check rejects a starter pin that differs from its workspa
 	expect(yield* check()).toBeUndefined();
 });
 
+repository.it("the pin check names a drifted pnpm pin and its repair", [], function* ({ check, read, write }) {
+	const original = yield* read("examples/starter/package.json");
+	yield* write("examples/starter/package.json", original.replace("pnpm@12.13.0", "pnpm@12.8.1"));
+	expect(yield* check()).toBe(
+		"examples/starter/package.json: pnpm pin 12.8.1 differs from root package.json pnpm version 12.13.0. Run pnpm changesets apply for a release, or set packageManager to pnpm@12.13.0 in examples/starter/package.json.",
+	);
+});
+
+repository.it("the pin check accepts the root pnpm version without its integrity suffix", [], function* ({ check }) {
+	expect(yield* check()).toBeUndefined();
+});
+
 for (const kind of ["dependencies", "optionalDependencies", "peerDependencies"]) {
 	repository.it(`the pin check rejects a missing framework pin from ${kind}`, [], function* ({ check, write }) {
 		yield* write("examples/starter/published-versions.json", '{"@shivaedev/work-fleet":"0.3.0"}\n');
