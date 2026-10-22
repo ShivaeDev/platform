@@ -3,24 +3,21 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "settle-answered-asks.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Fleet's close-finished-decisions command settles asks whose current answers were already applied, closing their attention and marking their questions done. Unconsumed answers to earlier revisions stay open.\n- Board migration stops reading successor lists at comma-separated prose, preserving item links without reporting ordinary words as unresolved successors or linking them to unrelated items.\n"
+				"name": "starter-compatible-peers.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Generate a standalone catalog aligned with the published framework peers for React, router, Vitest and happy-dom. The generated CI command checks peer dependencies before application checks so incompatible pins fail the published-starter gate.\n"
+			},
+			{
+				"name": "starter-deployment-startup.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Load only the selected web or worker application in the generated deployment-story launcher, matching the production process boundary and avoiding unnecessary web startup work in worker stories.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
-				"directory": "packages/work-board",
-				"from": "0.30.0",
-				"name": "@shivaedev/work-board",
-				"to": "0.30.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/work-fleet",
-				"from": "0.17.0",
-				"name": "@shivaedev/work-fleet",
-				"to": "0.17.1"
+				"directory": "packages/create-app",
+				"from": "0.11.21",
+				"name": "@shivaedev/create-app",
+				"to": "0.11.22"
 			}
 		]
 	}
