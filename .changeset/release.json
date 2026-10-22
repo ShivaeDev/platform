@@ -3,21 +3,17 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "starter-compatible-peers.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Generate a standalone catalog aligned with the published framework peers for React, router, Vitest and happy-dom. The generated CI command checks peer dependencies before application checks so incompatible pins fail the published-starter gate.\n"
-			},
-			{
-				"name": "starter-deployment-startup.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Load only the selected web or worker application in the generated deployment-story launcher, matching the production process boundary and avoiding unnecessary web startup work in worker stories.\n"
+				"name": "starter-catalog-alignment.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Generated apps use the same third-party catalog versions as the repository's tested starter.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.21",
+				"from": "0.11.22",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.22"
+				"to": "0.11.23"
 			}
 		]
 	}
