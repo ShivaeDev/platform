@@ -5,17 +5,17 @@ function item(id: string, fields: string, body = `# ${id}\n\nKeep **these bytes*
 }
 
 const documents = {
+	"decisions/ruling.md": item(
+		"ruling",
+		"kind: decision\nstatus: done\nscope: area\nowner: claude-code\nrelationships: [{kind: informs, target: goal}]",
+		"# Ruling\n\nUse the existing engine.\n",
+	),
 	"draft.md": item("draft", "kind: task\nstatus: planned\nowner: cloud-worker\nfleet: none\nfleet-deliverable: report"),
 	"goal.md": item("goal", "kind: project\nstatus: active\nowner: Claude"),
 	"last-owner.md": item("last-owner", "kind: task\nstatus: ready\nowner: claude-worker"),
 	"question.md": item("question", "kind: question\nstatus: open\nowner: orchestrator\nrelationships: [{kind: relates_to, target: draft}]"),
 	"replaced.md": item("replaced", "kind: task\nstatus: superseded\nowner: claude-cloud\nsuperseded_by: successor"),
 	"report.md": item("report", "kind: result\nstatus: received\nowner: Marvin"),
-	"ruling.md": item(
-		"ruling",
-		"kind: decision\nstatus: done\nscope: area\nowner: claude-code\nrelationships: [{kind: informs, target: goal}]",
-		"# Ruling\n\nUse the existing engine.\n",
-	),
 	"successor.md": item(
 		"successor",
 		"kind: task\nstatus: ready\nowner: claude-local\nrelationships:\n  - kind: implements # retain this comment\n    target: goal",

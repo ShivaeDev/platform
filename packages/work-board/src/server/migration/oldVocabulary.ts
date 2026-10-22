@@ -35,10 +35,14 @@ export const states: Readonly<Record<string, string>> = {
 export const kinds: Readonly<Record<string, string>> = { decision: "question", investigation: "task", project: "goal", result: "report" };
 
 export function oldOwner(owner: string): string | undefined {
-	if (owner === "cloud-worker") {
+	const normalized = owner.toLowerCase();
+	if (normalized === "cloud-worker" || normalized === "codex") {
 		return "codex";
 	}
-	if (owner === "Claude" || owner === "Marvin" || owner === "orchestrator" || owner.startsWith("claude-")) {
+	if (normalized === "marvin") {
+		return "marvin";
+	}
+	if (normalized === "claude" || normalized === "orchestrator" || normalized.startsWith("claude-")) {
 		return "claude";
 	}
 	return undefined;

@@ -62,7 +62,9 @@ Before starting this version on an existing Board, run:
 work-board migrate <board dir>
 ```
 
-The command rewrites vocabulary fields in place, preserves other source bytes, reports changed files and fields, and changes nothing when repeated. Invalid vocabulary is refused with its file, field and this migration command.
+The command validates the complete rewrite before changing any file. Unmappable vocabulary values stop migration with a nonzero exit and name their file, field and value. Successful migration rewrites vocabulary fields in place, preserves other source bytes, reports changed files and fields, and changes nothing when repeated. Fleet's legacy `fleet: released` becomes `held`. Owner aliases fold without case sensitivity; Marvin remains `marvin`.
+
+A legacy decision with a nonempty ruling body under `decisions/` becomes a standing, answered question with that body as its answer. Other legacy decisions become task questions: current answer records supply their answers; unanswered asks remain ready and blocking. Fleet question bodies never become rulings or answers. Replacement fields and `next_action` text such as `Replaced by task.new` or `Superseded by task.new` add a `replaces` link on the named existing successor. The command lists dropped items whose successors it cannot find. Invalid vocabulary after the upgrade is refused with its file, field and this migration command.
 
 ### 1. Once per workspace: choose the reading surface
 

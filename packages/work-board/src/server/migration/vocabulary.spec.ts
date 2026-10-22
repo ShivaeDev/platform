@@ -31,14 +31,14 @@ boardStory.it(
 		expect(ruling.metadata).toMatchObject({ answer: "# Ruling\n\nUse the existing engine.\n", kind: "question", scope: "standing", status: "done" });
 		expect(goal.rulings?.map((entry) => entry.answer)).toEqual([ruling.metadata.answer]);
 		const metadata: Readonly<Record<string, Readonly<Record<string, string>>>> = {
+			"decisions/ruling.md": { kind: "question", owner: "claude", scope: "standing", status: "done" },
 			"draft.md": { delivers: "report", fleet: "manual", kind: "task", owner: "codex", status: "draft" },
 			"flow.md": { kind: "question", owner: "claude", status: "ready" },
 			"goal.md": { kind: "goal", owner: "claude", status: "ready" },
 			"last-owner.md": { owner: "claude" },
 			"question.md": { kind: "question", owner: "claude", status: "ready" },
 			"replaced.md": { owner: "claude", status: "dropped" },
-			"report.md": { kind: "report", owner: "claude", status: "done" },
-			"ruling.md": { kind: "question", owner: "claude", scope: "standing", status: "done" },
+			"report.md": { kind: "report", owner: "marvin", status: "done" },
 			"successor.md": { owner: "claude" },
 		};
 		for (const file of Object.keys(vocabularyFixture).filter((name) => name !== "fleet/status.md")) {

@@ -1,7 +1,10 @@
 import { Effect, FileSystem, Path } from "effect";
-import { migrateSource } from "./source.ts";
-import { sourceHeader } from "./sourceHeader.ts";
-import { waitingQuestions } from "./waitingQuestions.ts";
+import { decisionAnswers } from "#server/migration/decisionAnswers.ts";
+import { replacements } from "#server/migration/replacements.ts";
+import { migrateSource } from "#server/migration/source.ts";
+import { sourceHeader } from "#server/migration/sourceHeader.ts";
+import { validateFiles } from "#server/migration/validateFiles.ts";
+import { waitingQuestions } from "#server/migration/waitingQuestions.ts";
 
 export const migrate = Effect.fn("WorkBoard.migrate")(function* (root: string) {
 	const fs = yield* FileSystem.FileSystem;
@@ -14,38 +17,30 @@ export const migrate = Effect.fn("WorkBoard.migrate")(function* (root: string) {
 			if (stat.type === "Directory") {
 				yield* scan(file);
 			} else if (/\.md$/iu.test(file)) {
-				files.push({ file, source: yield* fs.readFileString(file) });
+				files.push({ file: path.relative(root, file), source: yield* fs.readFileString(file) });
 			}
 		}
 	});
 	yield* scan(root);
+	const prepared = files.map(({ file, source }) => ({
+		file,
+		...migrateSource(source, { answers: new Map(), blocking: new Set(), file, replaces: [] }),
+	}));
+	const documents = yield* validateFiles(prepared);
+	const answers = decisionAnswers(files, documents);
 	const blocking = waitingQuestions(files);
-	const replacements = new Map<string, string[]>();
-	for (const { source } of files) {
-		const header = sourceHeader(source);
-		if (!header) {
-			continue;
-		}
-		const data = header.doc.toJS();
-		if (data.status === "superseded" && typeof (data.superseded_by ?? data.replaced_by) === "string" && typeof data.id === "string") {
-			const successor = data.superseded_by ?? data.replaced_by;
-			replacements.set(successor, [...(replacements.get(successor) ?? []), data.id]);
-		}
-	}
-	let changedFiles = 0;
-	let changedFields = 0;
-	for (const { file, source } of files) {
+	const { links, unresolved } = replacements(files);
+	const changes = files.map(({ file, source }) => {
 		const data = sourceHeader(source)?.doc.toJS();
-		const replaces = (replacements.get(data?.id) ?? []).filter(
+		const replaces = (links.get(data?.id) ?? []).filter(
 			(id) => !data.relationships?.some((link: { kind: string; target: string }) => link.kind === "replaces" && link.target === id),
 		);
-		const result = migrateSource(source, { blocking, replaces });
-		if (result.source === source) {
-			continue;
-		}
-		yield* fs.writeFileString(file, result.source);
-		changedFiles += 1;
-		changedFields += result.fields;
+		return { file, ...migrateSource(source, { answers, blocking, file, replaces }) };
+	});
+	yield* validateFiles(changes);
+	const changed = changes.filter((entry) => entry.fields > 0);
+	for (const { file, source } of changed) {
+		yield* fs.writeFileString(path.join(root, file), source);
 	}
-	return { fields: changedFields, files: changedFiles };
+	return { fields: changed.reduce((total, entry) => total + entry.fields, 0), files: changed.length, unresolved };
 });

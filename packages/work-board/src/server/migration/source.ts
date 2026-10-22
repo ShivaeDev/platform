@@ -1,10 +1,12 @@
-import { kinds, oldOwner, states } from "./oldVocabulary.ts";
-import { questionFields } from "./questionFields.ts";
-import { sourceEdits } from "./sourceEdits.ts";
-import { sourceHeader } from "./sourceHeader.ts";
+import { kinds, oldOwner, states } from "#server/migration/oldVocabulary.ts";
+import { questionFields } from "#server/migration/questionFields.ts";
+import { sourceEdits } from "#server/migration/sourceEdits.ts";
+import { sourceHeader } from "#server/migration/sourceHeader.ts";
 
 export interface MigrationContext {
+	readonly answers: ReadonlyMap<string, string>;
 	readonly blocking: ReadonlySet<string>;
+	readonly file: string;
 	readonly replaces: readonly string[];
 }
 export function migrateSource(source: string, context: MigrationContext) {
@@ -34,9 +36,9 @@ export function migrateSource(source: string, context: MigrationContext) {
 	if (responsible) {
 		edits.set("owner", responsible);
 	}
-	mapped("fleet", { draft: "held", none: "manual" });
+	mapped("fleet", { draft: "held", none: "manual", released: "held" });
 	edits.rename("fleet-deliverable", "delivers");
-	questionFields(source, header, edits, context.blocking);
+	questionFields(source, header, edits, context);
 	edits.replaces(context.replaces);
 	return edits.finish();
 }

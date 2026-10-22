@@ -1,6 +1,7 @@
 import type { RecordedResponse } from "#browser/responses/schema.ts";
 import type { Metadata } from "#metadata/schema.ts";
 import { managedRequestState } from "#server/attention/managedRequestReceipt.ts";
+import { closedItem } from "#server/attention/status.ts";
 import { identityUrl, referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -29,7 +30,12 @@ export function isMaintainerRequest(request: Request, maintainer = "maintainer")
 function requestsFor(document: MetadataDocument, snapshot: Snapshot, title: string): readonly AttentionEntry[] {
 	const { fields, lines } = document.parsed;
 	const itemId = fields.id;
-	if (!itemId || snapshot.unavailable.length > 0 || snapshot.model.ids.get(itemId)?.length !== 1) {
+	if (
+		!itemId
+		|| snapshot.unavailable.length > 0
+		|| snapshot.model.ids.get(itemId)?.length !== 1
+		|| (fields.kind === "question" && closedItem(document))
+	) {
 		return [];
 	}
 	const requests = fields.attention ?? [];
