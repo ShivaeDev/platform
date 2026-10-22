@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.23 - 2026-10-22
+
+### Fixed
+
+- Generated apps use the same third-party catalog versions as the repository's tested starter.
+
 ## 0.11.22 - 2026-10-22
 
 ### Fixed
