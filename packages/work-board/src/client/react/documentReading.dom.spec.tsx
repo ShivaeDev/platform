@@ -30,7 +30,6 @@ screenStory.it(
 
 const NOTES = `---
 id: notes.board
-kind: board
 ---
 # Workspace notes
 
@@ -84,7 +83,7 @@ const TASK: Document = {
 	file: "task.md",
 	identity: "task.fixture",
 	links: {},
-	metadata: { id: "task.fixture", kind: "task", status: "active" },
+	metadata: { id: "task.fixture", kind: "task", status: "ready" },
 	modified: 0,
 	questionActions: {},
 	references: {},
@@ -105,7 +104,7 @@ screenStory.it(
 		expect(id?.classList.contains("font-mono")).toBe(true);
 		const order = [...findElements("span, a", row)].map((element) => element.textContent);
 		expect(order.indexOf("task")).toBeLessThan(order.indexOf("task.fixture"));
-		expect(order.indexOf("Active")).toBeLessThan(order.indexOf("task.fixture"));
+		expect(order.indexOf("Ready")).toBeLessThan(order.indexOf("task.fixture"));
 		yield* roles.click({ name: "Copy item ID", role: "button" });
 		yield* Effect.promise(() => eventually(() => expect(findElement('button[aria-label="Copied item ID"]', row)).not.toBeNull()));
 		expect(writeText).toHaveBeenCalledWith("task.fixture");

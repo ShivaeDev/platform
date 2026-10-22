@@ -19,7 +19,7 @@ for (const slash of ["", "/"]) {
 			expect(result.source).not.toContain("::::question");
 			expect(result.requests[0]?.prompts?.[0]?.source).toContain("How should replies appear?");
 			expect(result.source).not.toContain("id: investigation.choices");
-			expect(result.metadata.kind).toBe("investigation");
+			expect(result.metadata.kind).toBe("task");
 			expect(result.identity).toBe("investigation.choices");
 			expect(result.links["task.md"]).toBe("/nested/task.md");
 			expect(result.links["../shots/review.png"]).toBe("/_board/attachment/shots/review.png");
@@ -96,7 +96,7 @@ boardStory.it(
 		responsesEnabled(),
 	],
 	function* ({ client, editFile }) {
-		editFile("responses/broken.md", "---\nkind: response\n---\n# Damaged record");
+		editFile("responses/broken.md", "---\nresponse: {}\n---\n# Damaged record");
 		yield* Effect.promise(async () =>
 			waitFor(async () => {
 				const result = await client.run(client.api.document.run({ url: "/nested/reading.md" }));

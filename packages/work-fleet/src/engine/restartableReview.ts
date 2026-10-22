@@ -5,7 +5,7 @@ export function restartableReview(record: FleetRecord, error: unknown): error is
 	const attempt = record.attempts.at(-1);
 	return (
 		error instanceof SessionFailure
-		&& record.stage === "reviewing"
+		&& record.step === "reviewing"
 		&& attempt?.role === "reviewer"
 		&& attempt.status === "submitting"
 		&& attempt.receipt === undefined

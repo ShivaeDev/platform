@@ -11,7 +11,7 @@ export const releaseClosedPreparation = Effect.fn("Fleet.releaseClosedPreparatio
 	stored: Versioned<FleetRecord>,
 	work: BoardWork,
 ) {
-	if (!(["prepared", "needs-human"].includes(stored.value.stage) && ["done", "superseded", "deferred", "dropped"].includes(work.status ?? ""))) {
+	if (!(["queued", "waiting"].includes(stored.value.step) && ["done", "superseded", "deferred", "dropped"].includes(work.status ?? ""))) {
 		return undefined;
 	}
 	const settled = executing(stored.value)
@@ -26,6 +26,6 @@ export const releaseClosedPreparation = Effect.fn("Fleet.releaseClosedPreparatio
 	return yield* releaseFinishedWork(
 		state,
 		settled,
-		stored.value.stage === "prepared" ? `Not launched because current Board status is ${work.status}` : `Board status is ${work.status}`,
+		stored.value.step === "queued" ? `Not launched because current Board status is ${work.status}` : `Board status is ${work.status}`,
 	);
 });

@@ -31,7 +31,7 @@ describe("report launch backpressure", () => {
 						yield* cycle;
 						const queued = (yield* fleet.get("one")).value;
 						expect(queued.attentionOwner).toBe("automation");
-						expect(queued).toMatchObject({ deliverable: "report", stage: "prepared" });
+						expect(queued).toMatchObject({ deliverable: "report", step: "queued" });
 						reject = false;
 						now = 30_099;
 						yield* fixture.restart(cycle);
@@ -46,7 +46,7 @@ describe("report launch backpressure", () => {
 						expect(observation?.output).toContain("Follow synthetic report conventions.");
 						finishWorkers(fixture);
 						const completed = (yield* fleet.reconcile("one")).value;
-						expect(completed.stage).toBe("completed");
+						expect(completed.step).toBe("done");
 						expect(completed.launchRetry).toBeUndefined();
 						expect(completed.report?.receipt).toEqual(observation?.receipt);
 						expect(views([completed]).completed[0]?.links).toEqual([completed.report?.sourcePath]);

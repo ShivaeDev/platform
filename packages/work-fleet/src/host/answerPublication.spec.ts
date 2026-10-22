@@ -33,18 +33,14 @@ for (const action of ["retry", "release"] as const) {
 			}),
 		);
 		yield* daemon.store("one", { ...waiting, decision: { ...decision, published: { ...published, questionId, revision } } });
-		daemon.writeBoard(published.sourcePath, context.replace("## Previous recommendation template", "## Current recommendation template"));
+		const currentContext = context.replace("## Previous recommendation template", "## Current recommendation template");
+		daemon.writeBoard(published.sourcePath, currentContext);
 		const answered = yield* daemon.answer("one", "", action === "release");
-		expect(answered.stage).toBe(action === "release" ? "released" : "adopting");
+		expect(answered.step).toBe(action === "release" ? "released" : "adopting");
 		expect(answered.responses?.at(-1)).toMatchObject({
 			action,
 			boardAcknowledged: true,
-			questionId: responsesApi.questionId(
-				published.itemId,
-				published.request,
-				responsesApi.revisionOf(daemon.readBoard(published.sourcePath)),
-				published.sourcePath,
-			),
+			questionId: responsesApi.questionId(published.itemId, published.request, responsesApi.revisionOf(currentContext), published.sourcePath),
 		});
 		expect(answered.responses?.at(-1)?.questionId).not.toBe(questionId);
 		expect(daemon.receiptFiles()).toHaveLength(1);

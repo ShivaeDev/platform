@@ -20,7 +20,7 @@ host.it("an answer reaches its waiting worker when another publisher registers t
 	const resumed = yield* answer.result;
 	expect(resumed.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, questionId: published.questionId }]);
 	const continued = yield* daemon.reconcile("one");
-	expect(continued.stage).toBe("executing");
+	expect(continued.step).toBe("working");
 	expect(continued.attempts.at(-1)?.prompt).toBe(text);
 	expect(continued.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts.at(-1)?.receipt?.sessionId);
 	expect(daemon.readBoard(`responses/${published.questionId}.md`)).toBe(registered);

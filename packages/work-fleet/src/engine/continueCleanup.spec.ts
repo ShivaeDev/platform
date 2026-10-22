@@ -17,11 +17,11 @@ test("retains the continued worker thread when its new result still needs a huma
 			const stopped = yield* fleet.reconcile("one");
 			const sessionId = stopped.value.attempts[0]?.receipt?.sessionId;
 			expect(sessionId).toBeDefined();
-			expect(stopped.value.stage).toBe("needs-human");
+			expect(stopped.value.step).toBe("waiting");
 			yield* fleet.continue("one", "Repair the outstanding criterion");
 			finishWorkers(fixture);
 			const continued = yield* fleet.reconcile("one");
-			expect(continued.value.stage).toBe("needs-human");
+			expect(continued.value.step).toBe("waiting");
 			expect(continued.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 			expect(continued.value.attempts[0]?.receipt?.sessionId).toBe(sessionId);
 			expect(fixture.archived).not.toContain(sessionId);
@@ -29,7 +29,7 @@ test("retains the continued worker thread when its new result still needs a huma
 		}),
 	));
 
-test("continues completed work on the same session and cleans up that session after the new completion", () =>
+test("continues done work on the same session and cleans up that session after the new completion", () =>
 	withEngine({ noChange: true }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
@@ -39,7 +39,7 @@ test("continues completed work on the same session and cleans up that session af
 			const completed = yield* fleet.reconcile("one");
 			const sessionId = completed.value.attempts[0]?.receipt?.sessionId;
 			expect(sessionId).toBeDefined();
-			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.step).toBe("done");
 			expect(fixture.archived.filter((id) => id === sessionId)).toHaveLength(1);
 			const continued = yield* fleet.continue("one", "Check one more case");
 			expect(continued.value.attempts[0]?.receipt?.sessionId).toBe(sessionId);
@@ -47,7 +47,7 @@ test("continues completed work on the same session and cleans up that session af
 			yield* fleet.reconcile("one");
 			expect(fixture.archived.filter((id) => id === sessionId)).toHaveLength(1);
 			finishWorkers(fixture);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(fixture.archived.filter((id) => id === sessionId)).toHaveLength(2);
 			expect(fixture.launched.filter((id) => id === "operation-1")).toHaveLength(1);
 		}),

@@ -52,8 +52,8 @@ boardStory.it(
 	},
 );
 
-for (const titleStatus of ["planned", "active", "done", "deferred"]) {
-	for (const passageStatus of ["planned", "active", "done", "deferred"]) {
+for (const titleStatus of ["draft", "ready", "done", "deferred"]) {
+	for (const passageStatus of ["draft", "ready", "done", "deferred"]) {
 		const { files, modified } = identityRankingFixture(titleStatus, passageStatus);
 		boardStory.it(
 			`ranks a ${titleStatus} title/ID match above a newer ${passageStatus} passage match`,

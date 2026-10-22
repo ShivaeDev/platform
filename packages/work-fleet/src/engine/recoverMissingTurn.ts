@@ -118,7 +118,7 @@ function queueRecovery(
 		launchRetry: undefined,
 		responses: answer?.responses ?? record.responses,
 		review: undefined,
-		stage: published ? "repairing" : "prepared",
+		step: published ? "repairing" : "queued",
 		supersededDecisions:
 			answer !== undefined || publishedDecision === undefined
 				? record.supersededDecisions

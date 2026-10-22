@@ -65,7 +65,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 					});
 					const dispatched = yield* client("fleet.dispatch", { workId: "one" });
 					expect(dispatched.decision).toBeUndefined();
-					expect(dispatched.stage).toBe("executing");
+					expect(dispatched.step).toBe("working");
 					const [turn, observation] = [...fixture.provider.observations.entries()][0] ?? [];
 					if (turn === undefined || observation === undefined) {
 						return yield* Effect.die("Missing worker");
@@ -75,7 +75,7 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 					if (stopped.decision?.published === undefined) {
 						return yield* Effect.die("Missing published decision");
 					}
-					expect(stopped.stage).toBe("needs-human");
+					expect(stopped.step).toBe("waiting");
 					return stopped.decision;
 				}),
 			);
@@ -91,11 +91,11 @@ export const recoveryDaemon = Effect.fn("Test.recoveryDaemon")(function* (action
 						expect.objectContaining({ action, boardAcknowledged: true, decisionId: decision.id, responseId }),
 					);
 					if (action === "release") {
-						expect(resolved.stage).toBe("released");
+						expect(resolved.step).toBe("released");
 					} else {
-						const fresh = resolved.stage === "prepared" ? yield* client("fleet.dispatch", { workId: "one" }) : resolved;
+						const fresh = resolved.step === "queued" ? yield* client("fleet.dispatch", { workId: "one" }) : resolved;
 						expect(fresh.attempts).toHaveLength(2);
-						expect(fresh.stage).toBe("executing");
+						expect(fresh.step).toBe("working");
 						expect(fresh.decision).toBeUndefined();
 					}
 				}),

@@ -28,7 +28,7 @@ for (const structured of [false, true]) {
 					const fleet = yield* Fleet;
 					yield* cycle;
 					const queued = (yield* fleet.get("one")).value;
-					expect(queued.stage).toBe("prepared");
+					expect(queued.step).toBe("queued");
 					expect(queued.launchRetry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
 					expect(executing(queued)).toBe(false);
 					expect(fixture.decisions).toHaveLength(0);
@@ -38,7 +38,7 @@ for (const structured of [false, true]) {
 					expect(fixture.launched).toHaveLength(1);
 					now = 30_100;
 					yield* fixture.restart(cycle);
-					expect((yield* fleet.get("one")).value).toMatchObject({ stage: "executing" });
+					expect((yield* fleet.get("one")).value).toMatchObject({ step: "working" });
 					expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 					expect(fixture.launched).toHaveLength(2);
 				}),
@@ -61,7 +61,7 @@ test("capacity that never clears parks after five attempts across restarts", () 
 			}
 			yield* fixture.restart(cycle);
 			const parked = (yield* fleet.get("one")).value;
-			expect(parked.stage).toBe("needs-human");
+			expect(parked.step).toBe("waiting");
 			expect(parked.launchRetry).toBeUndefined();
 			expect(parked.decision?.reason).toBe(`${MESSAGE}; provider failure after 5 attempts (4 automatic retries)`);
 			expect(parked.attempts).toHaveLength(5);
@@ -81,7 +81,7 @@ for (const rejection of ["Rejected credential", "Request refused by policy"]) {
 				yield* prepareWork("one");
 				const fleet = yield* Fleet;
 				yield* cycle;
-				expect((yield* fleet.get("one")).value).toMatchObject({ decision: { reason: rejection }, stage: "needs-human" });
+				expect((yield* fleet.get("one")).value).toMatchObject({ decision: { reason: rejection }, step: "waiting" });
 				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 				yield* fixture.restart(cycle);
 				expect(fixture.launched).toHaveLength(1);
@@ -104,14 +104,14 @@ for (const rejection of ["turn already active for thread", "Codex rejected the p
 					const fleet = yield* Fleet;
 					yield* cycle;
 					const queued = (yield* fleet.get("one")).value;
-					expect(queued.stage).toBe("prepared");
+					expect(queued.step).toBe("queued");
 					expect(queued.attempts.at(-1)?.sessionUnusable).toBe(true);
 					expect(fixture.decisions).toHaveLength(0);
 					reject = false;
 					now = 30_100;
 					yield* fixture.restart(cycle);
 					const accepted = (yield* fleet.get("one")).value;
-					expect(accepted.stage).toBe("executing");
+					expect(accepted.step).toBe("working");
 					expect(accepted.attempts.at(-1)?.receipt?.sessionId).not.toBe(queued.attempts.at(-1)?.sessionId);
 					expect(fixture.starts.at(-1)?.prompt).toContain("same branch and PR");
 					expect(fixture.launched).toHaveLength(2);

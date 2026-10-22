@@ -13,10 +13,10 @@ for (const head of ["reviewed-head", "unreviewed-head"]) {
 			expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 			yield* fleet.dispatch("one");
 			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 			mergePullRequest(head);
 			const merged = yield* fleet.reconcile("one");
-			expect(merged.value.stage).toBe(head === "reviewed-head" ? "completed" : "released");
+			expect(merged.value.step).toBe(head === "reviewed-head" ? "done" : "released");
 			expect(merged.value.mergedDelivery).toEqual({
 				head,
 				revision: "merged-revision",
@@ -28,7 +28,7 @@ for (const head of ["reviewed-head", "unreviewed-head"]) {
 			editWork("one", "changed-brief");
 			yield* restart();
 			expect((yield* fleet.get("one")).value.mergedDelivery).toEqual(merged.value.mergedDelivery);
-			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		},
 	);
 }

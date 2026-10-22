@@ -11,7 +11,7 @@ host.it("a daemon command commit reaches a CLI follower without periodic Postgre
 	const started = yield* daemon.dispatch("one");
 	daemon.finishTurn(started);
 	yield* daemon.reconcile("one");
-	yield* daemon.awaitOutput("watcher", "one needs-human");
+	yield* daemon.awaitOutput("watcher", "one waiting");
 	expect(yield* daemon.followerExit("watcher")).toMatchObject({ code: 0, stderr: "" });
 });
 

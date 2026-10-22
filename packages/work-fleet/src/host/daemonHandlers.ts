@@ -58,11 +58,11 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 		if (current === undefined) {
 			return yield* new NotFound({ message: `Unknown Board work ${workId}` });
 		}
-		if (current.stage === "released") {
+		if (current.step === "released") {
 			return current;
 		}
-		if (current.stage !== "needs-human" || executing(current)) {
-			return yield* new Forbidden({ message: "Only terminal needs-human work can be released" });
+		if (current.step !== "waiting" || executing(current)) {
+			return yield* new Forbidden({ message: "Only terminal waiting work can be released" });
 		}
 		return yield* answers(workId, "Release Fleet ownership.", true);
 	});

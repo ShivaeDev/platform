@@ -6,7 +6,7 @@ import { requestInbox } from "#server/attention/requestInbox.ts";
 import { attentionRequests, isMaintainerRequest } from "#server/attention/requests.ts";
 import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
 import { responseHistory } from "#server/responses/history.ts";
-import { questionId, revisionOf } from "#server/responses/records.ts";
+import { questionPreview } from "#server/responses/questionPreview.ts";
 import { requestSource } from "#server/responses/requestSource.ts";
 import { questionTemplate } from "#server/responses/template.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -80,16 +80,8 @@ function audienceOf(document: MetadataDocument, id: string, snapshot: Snapshot):
 }
 
 function requestDetails({ active, document, item, request: id, state }: ItemRequest, source: string, snapshot: Snapshot): DocumentRequest {
-	const reviewedRevision = revisionOf(source);
-	const preview = {
-		context: source,
-		id: questionId(item, id, reviewedRevision, document.file),
-		item,
-		reason: active?.reason ?? document.parsed.fields.attention?.find((entry) => entry.id === id)?.reason ?? "A question needs your answer",
-		request: id,
-		reviewedRevision,
-		source: document.file,
-	};
+	const reason = active?.reason ?? document.parsed.fields.attention?.find((entry) => entry.id === id)?.reason ?? "A question needs your answer";
+	const preview = questionPreview(document, id, reason, snapshot.model);
 	const request = {
 		...state,
 		options: document.parsed.fields.options,

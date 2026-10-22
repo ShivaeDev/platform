@@ -89,7 +89,7 @@ test("failed health publication leaves execution usable and retries on the next 
 			yield* prepareWork("one");
 			yield* cycle;
 			const fleet = yield* Fleet;
-			expect((yield* fleet.get("one")).value.stage).toBe("executing");
+			expect((yield* fleet.get("one")).value.step).toBe("working");
 			expect(yield* fleetHealth(root).pipe(Effect.flip)).toMatchObject({ kind: "error" });
 			expect(yield* yield* HealthSnapshot).toMatchObject({ concurrency: 8, queued: 0, running: 1 });
 			yield* Effect.sync(heal);

@@ -25,7 +25,7 @@ for (const timing of ["between passes", "while the reviewer finishes"] as const)
 					const worker = yield* fleet.dispatch("one");
 					finishWorkers(fixture);
 					if (betweenPasses) {
-						expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+						expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 					}
 					const reconciliation = betweenPasses ? undefined : yield* fleet.reconcile("one").pipe(Effect.forkChild);
 					if (!betweenPasses) {
@@ -36,7 +36,7 @@ for (const timing of ["between passes", "while the reviewer finishes"] as const)
 					finishWorkers(fixture);
 					yield* Deferred.succeed(resume, undefined);
 					const continued = reconciliation === undefined ? yield* fleet.reconcile("one") : yield* Fiber.join(reconciliation);
-					expect(continued.value.stage).toBe("reviewing");
+					expect(continued.value.step).toBe("reviewing");
 					expect(continued.value.decision).toBeUndefined();
 					expect(continued.value.review).toBeUndefined();
 					expect(continued.value.checks).toBeUndefined();

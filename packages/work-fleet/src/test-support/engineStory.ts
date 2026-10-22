@@ -36,12 +36,12 @@ const definition = {
 	layer: Layer.merge(postgresLayer, NodeServices.layer),
 	name: "fleet engine",
 	run: {
-		diagnose: (state: EngineStory) => `${state.workId} is ${state.lastRecord?.stage ?? "not observed"}`,
+		diagnose: (state: EngineStory) => `${state.workId} is ${state.lastRecord?.step ?? "not observed"}`,
 		maxSteps: 20,
 		*step(state: EngineStory, tell: (line: string) => void) {
 			const record = yield* running(state).fleet.reconcile(state.workId);
 			state.lastRecord = record.value;
-			tell(`reconcile ${state.workId}: ${record.value.stage}`);
+			tell(`reconcile ${state.workId}: ${record.value.step}`);
 		},
 	},
 	runIf: postgresEnabled,

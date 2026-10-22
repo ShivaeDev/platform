@@ -32,16 +32,16 @@ export function settled(workId: string, state: WaitState): WaitOutcome | undefin
 	if (state.blocker === ANSWER_RECORDED) {
 		return undefined;
 	}
-	const owner = waitingOwner(state);
-	const attention = owner === undefined ? "" : ` (waiting on ${owner})`;
-	if (state.stage === "completed") {
+	const owner = waitingOwner({ ...state, step: state.stage });
+	const attention = owner === undefined ? "" : ` (waiting on ${owner === "maintainer" ? "you" : owner})`;
+	if (state.stage === "done") {
 		const outcome = state.outcome?.url ?? state.outcome?.evidence?.join("; ");
-		return { code: WAIT_EXIT.completed, summary: `${workId} completed${attention}${outcome ? `: ${outcome}` : ""}` };
+		return { code: WAIT_EXIT.completed, summary: `${workId} done${attention}${outcome ? `: ${outcome}` : ""}` };
 	}
-	if (state.stage === "needs-human") {
+	if (state.stage === "waiting") {
 		return {
 			code: WAIT_EXIT.waitingDecision,
-			summary: `${workId} needs-human${attention}: ${state.blocker ?? state.decision?.reason ?? "a Board decision is pending"}`,
+			summary: `${workId} waiting${attention}: ${state.blocker ?? state.decision?.reason ?? "a Board decision is pending"}`,
 		};
 	}
 	if (state.stage === "released") {

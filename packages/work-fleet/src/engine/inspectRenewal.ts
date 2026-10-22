@@ -12,7 +12,7 @@ import type { Versioned } from "#storage/model.ts";
 export function inspectRenewal(state: EngineState) {
 	const { integrations, save } = state;
 	return Effect.fn("Fleet.inspectRenewal")(function* (stored: Versioned<FleetRecord>, work: BoardWork) {
-		if (stored.value.stage === "released") {
+		if (stored.value.step === "released") {
 			return stored;
 		}
 		if (stored.value.deliverable === "report") {
@@ -50,12 +50,12 @@ export function inspectRenewal(state: EngineState) {
 }
 
 function inspectReportRenewal(stored: Versioned<FleetRecord>) {
-	if (stored.value.stage === "released") {
+	if (stored.value.step === "released") {
 		return Effect.succeed(stored);
 	}
 	const latest = stored.value.attempts.at(-1);
 	return stored.value.report === undefined && latest?.status === "completed" && latest.output?.trim()
-		? Effect.fail(new Forbidden({ message: "Reconcile the completed report before renewing preparation" }))
+		? Effect.fail(new Forbidden({ message: "Reconcile the report before renewing preparation" }))
 		: Effect.succeed(stored);
 }
 

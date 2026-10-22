@@ -1,10 +1,12 @@
 import { Effect, FileSystem } from "effect";
-import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
+import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
+import { vocabularyMessage } from "#server/metadata/vocabulary.ts";
 import { locate } from "#server/responses/locate.ts";
 import { readingActions } from "#server/responses/readingActions.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -15,6 +17,7 @@ import { readingContext } from "./readingContext.ts";
 import { requestOutcome } from "./requestOutcome.ts";
 import { documentRequests } from "./requests.ts";
 import { fleetDecisionTitle } from "./requestTitle.ts";
+import { rulings } from "./rulings.ts";
 import { documentTargets } from "./targets.ts";
 import { waitingOn } from "./waitingOn.ts";
 
@@ -62,7 +65,7 @@ function referenceDetails(
 	]);
 }
 
-export function readDocument({ changes, home, pullRequests, root, realRoot, writable }: WorkspaceSettings) {
+export function readDocument({ changes, home, pullRequests = Effect.succeed(undefined), root, realRoot, writable }: WorkspaceSettings) {
 	return Effect.fn("WorkBoard.document")(function* (url: string, snapshot: Snapshot) {
 		const files = yield* changes.files;
 		const { file, item } = yield* selected(url, snapshot, files, home);
@@ -75,9 +78,13 @@ export function readDocument({ changes, home, pullRequests, root, realRoot, writ
 		const current = currentDocument(snapshot, file.path, source, home ?? files[0]?.path);
 		const { document } = current;
 		const { parsed } = document;
+		const vocabulary = vocabularyMessage(document);
+		if (vocabulary) {
+			return yield* Effect.fail(new BadRequest({ message: vocabulary }));
+		}
 		const { model } = current.snapshot;
 		const id = parsed.fields.id;
-		const identity = id && snapshot.unavailable.length === 0 && model.ids.get(id)?.length === 1 ? id : undefined;
+		const identity = id && referenceTarget(id, model) ? id : undefined;
 		if (item && identity !== item) {
 			return yield* Effect.fail(new NotFound({ message: "The document is missing." }));
 		}
@@ -91,7 +98,7 @@ export function readDocument({ changes, home, pullRequests, root, realRoot, writ
 		);
 		const mentions = documentMentions(parsed.fields.nextAction, document, model);
 		const requests = documentRequests(document, source, current.snapshot);
-		const pulls = yield* pullRequests ?? Effect.succeed(undefined);
+		const pulls = yield* pullRequests;
 		return {
 			...targets,
 			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
@@ -106,6 +113,7 @@ export function readDocument({ changes, home, pullRequests, root, realRoot, writ
 			references: { ...Object.fromEntries(mentions.map((mention) => [mention.token, mention.href])), ...targets.references },
 			requestOutcome: requestOutcome(document, current.snapshot),
 			requests,
+			rulings: rulings(document, model, titles),
 			source: answerBody(
 				document,
 				requests,

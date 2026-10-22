@@ -5,7 +5,7 @@ import { engine } from "#test/engineStory.ts";
 import { workerTurnDisappears } from "#test/engineTurnTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
-for (const status of ["done", "superseded", "deferred", "dropped"]) {
+for (const status of ["done", "dropped", "deferred", "dropped"]) {
 	for (const lostAcknowledgement of [false, true]) {
 		engine.it(
 			`a legacy lost turn with ${lostAcknowledgement ? "a missing" : "a recorded"} receipt releases when its Board status is ${status}`,
@@ -25,7 +25,7 @@ for (const status of ["done", "superseded", "deferred", "dropped"]) {
 				setBoardStatus("one", status);
 				yield* restart();
 				const released = yield* fleet.reconcile("one");
-				expect(released.value.stage).toBe("released");
+				expect(released.value.step).toBe("released");
 				expect(released.value.releaseReason).toBe(`Board status is ${status}`);
 				expect(released.value.outcome).toBeUndefined();
 				expect(released.value.decision).toBeUndefined();
@@ -58,8 +58,8 @@ engine.it(
 		const receipt = waiting.value.attempts[0]?.receipt ?? (yield* Effect.die("Missing worker receipt"));
 		setTurnExecution(receipt, "running");
 		setBoardStatus("one", "done");
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("needs-human");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("released");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("released");
 	},
 );

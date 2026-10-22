@@ -47,7 +47,7 @@ for (const scenario of [
 					const decisionId = stalled.value.decision?.id ?? "missing";
 					const responseId = fixture.respond(decisionId, action);
 					const resolved = yield* fixture.restart(fleet.resolve("one", decisionId, responseId));
-					expect(resolved.value.stage).toBe(action === "retry" ? "prepared" : "released");
+					expect(resolved.value.step).toBe(action === "retry" ? "queued" : "released");
 					expect(resolved.value.attempts[0]).toMatchObject({
 						abandoned: { at: now, observation: { execution: "running", output: attempt.output, receipt } },
 						sessionUnusable: true,
@@ -64,7 +64,7 @@ for (const scenario of [
 						expect(fixture.starts).toHaveLength(2);
 					} else {
 						const other = yield* prepareWork("two");
-						expect((yield* fleet.dispatch(other.value.workId)).value.stage).toBe("executing");
+						expect((yield* fleet.dispatch(other.value.workId)).value.step).toBe("working");
 					}
 					const afterLateOutput = yield* fixture.restart(fleet.reconcile("one"));
 					expect(afterLateOutput.value.attempts[0]?.output).toBeUndefined();

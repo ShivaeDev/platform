@@ -16,7 +16,7 @@ test("retry of receiptless preparation cannot authorize an edited brief", () =>
 			const fleet = yield* Fleet;
 			yield* prepareWork("one");
 			const files = boardHttpFiles(root);
-			files.write("one.md", source.replace("fleet: approved", "fleet: draft"));
+			files.write("one.md", source.replace("fleet: approved", "fleet: held"));
 			const decision = (yield* fleet.dispatch("one")).value.decision;
 			if (decision?.published === undefined) {
 				return yield* Effect.die("Missing decision");
@@ -27,7 +27,7 @@ test("retry of receiptless preparation cannot authorize an edited brief", () =>
 			const denied = yield* fleet.resolve("one", decision.id, responseId).pipe(Effect.result);
 			expect(denied._tag).toBe("Failure");
 			const prepared = yield* fleet.get("one");
-			expect(prepared.value.stage).toBe("needs-human");
+			expect(prepared.value.step).toBe("waiting");
 			expect(prepared.value.boardContext).toBe(source);
 			expect(prepared.value.decision).toEqual(decision);
 			expect(prepared.value.responses).toBeUndefined();
@@ -46,13 +46,13 @@ test("an edited brief is approved while its worker answer waits for quota", () =
 			const current = `${source}\nNew approved criteria.\n`;
 			boardHttpFiles(root).write("one.md", current);
 			const waiting = yield* fleet.reconcile("one");
-			expect(waiting.value.stage).toBe("needs-human");
+			expect(waiting.value.step).toBe("waiting");
 			expect(waiting.value.boardContext).toBe(current);
 			expect(waiting.value.responses).toBeUndefined();
 			yield* fixture.restart(
 				Effect.gen(function* () {
 					const continued = yield* (yield* Fleet).reconcile("one");
-					expect(continued.value.stage).toBe("executing");
+					expect(continued.value.step).toBe("working");
 					expect(continued.value.decision).toBeUndefined();
 					expect(continued.value.boardContext).toBe(current);
 					expect(continued.value.responses).toMatchObject([{ action: "continue", boardAcknowledged: true }]);

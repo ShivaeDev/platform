@@ -11,7 +11,7 @@ export function requestTitle(document: MetadataDocument, snapshot: Snapshot, req
 // A generated decision's own heading names the work only by ID, so its title names the work it unblocks.
 export function fleetDecisionTitle(document: MetadataDocument, model: MetadataModel, titleOf: TitleOf): string | undefined {
 	const fields = document.parsed.fields;
-	if (fields.kind !== "decision" || !fields.attention?.some((request) => request.managed)) {
+	if (fields.kind !== "question" || !fields.attention?.some((request) => request.managed)) {
 		return undefined;
 	}
 	const file = unblockedFile(document, model);

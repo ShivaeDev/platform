@@ -32,7 +32,7 @@ for (const role of ["worker", "repair"] as const) {
 					}
 					const parked = (yield* fleet.get("one")).value;
 					expect(parked.decision?.reason).toContain("provider read failure after 5 attempts");
-					expect(parked.stage).toBe("needs-human");
+					expect(parked.step).toBe("waiting");
 					expect(executing(parked)).toBe(true);
 					expect(parked.attempts).toHaveLength(1);
 					expect(parked.launchRetry).toBeUndefined();

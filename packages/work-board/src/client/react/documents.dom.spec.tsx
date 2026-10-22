@@ -10,9 +10,9 @@ expectNoReactWarnings();
 const files = {
 	"home.md": "# Home",
 	"notes/task.md":
-		"---\nid: task.fixture\nkind: task\nstatus: planned\nowner: reader\nnext_action: Read the evidence\ncriteria:\n  - id: proof\n    text: Show the result\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# Task\n\n[Result](../result.md#recorded-evidence-0)\n\n## Details\n\n### Details\n",
+		"---\nid: task.fixture\nkind: task\nstatus: draft\nowner: marvin\nnext_action: Read the evidence\ncriteria:\n  - id: proof\n    text: Show the result\nattention:\n  - id: direction\n    kind: decision\n    reason: Choose a direction\n    state: open\n    response_from: [maintainer]\n    unblocks: [task.fixture]\n---\n# Task\n\n[Result](../result.md#recorded-evidence-0)\n\n## Details\n\n### Details\n",
 	"result.md":
-		"---\nid: result.fixture\nkind: result\nevidence:\n  - criterion: task.fixture#proof\n    source: notes/task.md\n    outcome: observed\n---\n# Result\n",
+		"---\nid: result.fixture\nkind: report\nevidence:\n  - criterion: task.fixture#proof\n    source: notes/task.md\n    outcome: observed\n---\n# Result\n",
 };
 
 for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
@@ -58,7 +58,7 @@ for (const url of ["/missing.md", "/_board/item/missing/"]) {
 }
 
 const QUESTION =
-	'---\nid: question.invalid\nkind: question\n---\n# Invalid controls\n\n> ::::question{id="next" select="text"}\n> What next?\n> ::::\n';
+	'---\nid: question.invalid\nkind: question\nscope: task\nurgency: whenever\n---\n# Invalid controls\n\n> ::::question{id="next" select="text"}\n> What next?\n> ::::\n';
 screenStory.it(
 	"keeps response history readable when a question's prompt template is invalid",
 	[routedScreen({ ...files, "question.md": QUESTION }, "/question.md", undefined)],

@@ -20,9 +20,9 @@ export function recoveryCheckRepairCase(): RecoveryCase {
 			expect(stopped.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(3);
 			expect(stopped.decision?.reason).toContain("test");
 		}),
-		name: "the same check still fails after three completed repairs",
+		name: "the same check still fails after three done repairs",
 		progress: (_context, before, after) => {
-			expect(after.stage).toBe("released");
+			expect(after.step).toBe("released");
 			expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 			expect(after.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(3);
 		},

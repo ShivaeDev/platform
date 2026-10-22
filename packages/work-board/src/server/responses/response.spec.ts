@@ -12,7 +12,7 @@ import { questionFrom, questionMarkdown } from "./records.ts";
 
 const source = `---
 id: investigation.model
-kind: investigation
+kind: task
 attention:
   - id: review-model
     kind: review
@@ -157,7 +157,7 @@ boardStory.it(
 		const question = yield* register("investigation.model", "review-model");
 		editFile(
 			"responses/response.broken.md",
-			"---\nid: response.broken\nkind: response\nresponse: { type: answer }\n---\nActual feedback with incomplete provenance\n",
+			"---\nid: response.broken\nresponse: { type: answer }\n---\nActual feedback with incomplete provenance\n",
 		);
 		yield* Effect.promise(() =>
 			waitFor(() => expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("history cannot be established")),
@@ -179,7 +179,7 @@ boardStory.it(
 			},
 		};
 		editFile(`responses/${question.id}.md`, questionMarkdown(expired));
-		const broken = "---\nid: response.broken\nkind: response\nresponse: [broken\n---\nActual human feedback\n";
+		const broken = "---\nid: response.broken\nresponse: [broken\n---\nActual human feedback\n";
 		editFile("unrelated.md", broken);
 		expect((yield* Effect.promise(() => client.run(client.responses.responses.run({ question: question.id })))).responses).toEqual([]);
 		editFile("responses/response.broken.md", broken);
@@ -187,7 +187,7 @@ boardStory.it(
 			expect.poll(() => client.run(client.responses.responses.run({ question: question.id })).then(() => "Readable", String)).toContain("malformed"),
 		);
 		yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
-		editFile("responses/response.broken.md", "---\nid: response.broken\nkind: response\nActual human feedback\n");
+		editFile("responses/response.broken.md", "---\nid: response.broken\nActual human feedback\n");
 		yield* Effect.promise(() => expect(client.run(client.responses.awaitResponse.run({ question: question.id }))).rejects.toThrow("malformed"));
 		yield* Effect.promise(() => expect(client.run(client.responses.responses.run({ question: question.id }))).rejects.toThrow("malformed"));
 	},

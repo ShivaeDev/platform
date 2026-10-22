@@ -18,7 +18,7 @@ it("decodes independent explicit requests and preserves their exact source locat
 });
 
 it("does not guess requests from statuses, owners or actions", () => {
-	expect(metadataParse("---\nstatus: blocked\nowner: maintainer\nnext_action: Please review\n---\n# Item").fields.attention).toBeUndefined();
+	expect(metadataParse("---\nstatus: ready\nowner: marvin\nnext_action: Please review\n---\n# Item").fields.attention).toBeUndefined();
 	expect(metadataParse("---\nattention: []\n---\n# Item").fields.attention).toEqual([]);
 });
 

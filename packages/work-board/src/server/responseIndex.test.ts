@@ -21,7 +21,7 @@ boardStory.it(
 		yield* events.changed("responses/duplicate.md");
 		const duplicate = yield* rpc((client) => client("work-board.document", { url: "/decisions/decision-0.md" }));
 		expect(duplicate.requests[0]?.unavailable).toContain("ambiguous");
-		editFile("responses/broken.md", "---\nkind: response\n---\n# Broken");
+		editFile("responses/broken.md", "---\nresponse: {}\n---\n# Broken");
 		yield* events.changed("responses/broken.md");
 		expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).inboxCount).toBe(2);
 	},

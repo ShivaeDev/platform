@@ -2,7 +2,7 @@ export const decisionId = `decision.${"a".repeat(64)}`;
 export const decisionFile = `responses/${decisionId}.md`;
 export const DECISION_REASON = "~~~markdown\n**Which publishing path should we take?** Read the [release guide](https://example.com/releases).\n~~~";
 export const answerCardFixture = {
-	"guide.md": "---\nid: task.guide\nkind: task\nstatus: blocked\n---\n# Publish the install guide\n\nKeep the release instructions clear.",
+	"guide.md": "---\nid: task.guide\nkind: task\nstatus: ready\n---\n# Publish the install guide\n\nKeep the release instructions clear.",
 	"home.md": "# Project notes",
 	[decisionFile]: `---
 ${JSON.stringify({
@@ -18,13 +18,15 @@ ${JSON.stringify({
 		},
 	],
 	id: decisionId,
-	kind: "decision",
+	kind: "question",
 	options: [
 		{ description: "Ship the reviewed guide with this release.", label: "Publish now" },
 		{ description: "Keep the work blocked until another review.", label: "Wait for review" },
 	],
 	recommended: "Publish now",
 	relationships: [{ kind: "relates_to", target: "task.guide" }],
+	scope: "task",
+	urgency: "whenever",
 })}
 ---
 # Fleet decision for ${decisionId}
@@ -85,7 +87,9 @@ export const textQuestionFixture = {
 	"question.md": `---
 id: ${TEXT_QUESTION_ID}
 kind: question
-status: open
+scope: task
+urgency: whenever
+status: ready
 next_action: Share your pooling design, or say to park it.
 ---
 # Pooling design for the scale tests

@@ -114,7 +114,7 @@ screenStory.it(
 			{
 				"home.md": "# Home",
 				"question.md":
-					"---\nid: question.invalid\nkind: question\nstatus: open\noptions:\n - label: ''\n   description: Invalid choice\n---\n# Choose a direction\n",
+					"---\nid: question.invalid\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\noptions:\n - label: ''\n   description: Invalid choice\n---\n# Choose a direction\n",
 			},
 			"/_board/item/question.invalid/",
 		),

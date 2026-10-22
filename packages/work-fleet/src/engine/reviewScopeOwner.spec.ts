@@ -25,13 +25,13 @@ for (const timing of ["between review passes", "while the reviewer finishes"] as
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			if (timing === "between review passes") {
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 			}
 			const reconciliation = timing === "between review passes" ? undefined : yield* fleet.reconcile("one").pipe(Effect.forkChild);
 			if (!(timing === "between review passes")) {
 				yield* waitForReviewObservation();
 			}
-			writeBoardWork("one.md", boardBrief().replace("fleet: approved", "fleet: draft"));
+			writeBoardWork("one.md", boardBrief().replace("fleet: approved", "fleet: held"));
 			finishWorkers();
 			yield* resumeReviewer();
 			const stopped = reconciliation === undefined ? yield* fleet.reconcile("one") : yield* Fiber.join(reconciliation);
@@ -40,7 +40,7 @@ for (const timing of ["between review passes", "while the reviewer finishes"] as
 				attentionOwner: "maintainer",
 				decision: { attentionOwner: "maintainer", reason: "Work is no longer approved" },
 				decisionPublished: true,
-				stage: "needs-human",
+				step: "waiting",
 			});
 			const published = stopped.value.decision?.published ?? (yield* Effect.die("Missing scope approval publication"));
 			const parsed = readBoardPublication(published.sourcePath);

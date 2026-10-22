@@ -13,7 +13,7 @@ engine.it(
 		yield* fleet.dispatch("one");
 		finishWorkers();
 		const ready = yield* fleet.reconcile("one");
-		expect(ready.value.stage).toBe("needs-human");
+		expect(ready.value.step).toBe("waiting");
 		expect(ready.value.attentionOwner).toBe("orchestrator");
 		expect(ready.value.decision?.attentionOwner).toBe("orchestrator");
 		expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
@@ -26,7 +26,7 @@ engine.it(
 		yield* restart();
 		yield* schedule();
 		const accepted = yield* fleet.get("one");
-		expect(accepted.value.stage).toBe("completed");
+		expect(accepted.value.step).toBe("done");
 		expect(accepted.value.outcome).toEqual({ head: result.head, revision: "merged-revision", url: result.pr });
 		expect(backlog(accepted.value)).toBe(false);
 		const completedViews = views((yield* fleet.list()).map(({ value }) => value));
@@ -53,7 +53,7 @@ engine.it(
 		yield* restart();
 		yield* schedule();
 		const closed = yield* fleet.get("one");
-		expect(closed.value.stage).toBe("needs-human");
+		expect(closed.value.step).toBe("waiting");
 		expect(closed.value.decision?.reason).toContain("closed without merging");
 		expect(closed.value.outcome).toBeUndefined();
 		expect(backlog(closed.value)).toBe(true);
@@ -71,7 +71,7 @@ engine.it(
 		yield* fleet.reconcile("one");
 		mergePullRequest("unreviewed-head");
 		const blocked = yield* fleet.reconcile("one");
-		expect(blocked.value.stage).toBe("released");
+		expect(blocked.value.step).toBe("released");
 		expect(blocked.value.releaseReason).toBe("PR #42 merged by a human at unreviewed-head; Fleet review covered reviewed-head");
 		expect(blocked.value.outcome).toBeUndefined();
 		expect(backlog(blocked.value)).toBe(false);
@@ -88,7 +88,7 @@ for (const state of ["CLOSED", "MERGED"] as const) {
 			const waiting = yield* fleet.reconcile("one");
 			yield* replaceStoredRecord({ ...waiting.value, attempts: waiting.value.attempts.map((attempt) => ({ ...attempt, status: "completed" })) });
 			const observed = yield* fleet.reconcile("one");
-			expect(observed.value.stage).toBe(state === "CLOSED" ? "needs-human" : "released");
+			expect(observed.value.step).toBe(state === "CLOSED" ? "waiting" : "released");
 			if (state === "CLOSED") {
 				expect(observed.value.decision?.reason).toContain("closed without merging");
 			} else {

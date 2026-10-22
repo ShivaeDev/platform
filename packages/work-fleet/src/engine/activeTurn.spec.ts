@@ -27,7 +27,7 @@ test("a follow-up rejected while a steered turn is active waits and continues th
 				const continuing = yield* fleet.continue("one", "Continue after the steered turn").pipe(Effect.forkChild);
 				yield* Effect.race(provider.waiting, Fiber.join(continuing).pipe(Effect.asVoid));
 				const waiting = yield* fleet.get("one");
-				expect(waiting.value.stage).toBe("executing");
+				expect(waiting.value.step).toBe("working");
 				expect(waiting.value.attempts).toHaveLength(1);
 				expect(waiting.value.attempts[0]).toMatchObject({
 					operationId: "operation-3",
@@ -46,7 +46,7 @@ test("a follow-up rejected while a steered turn is active waits and continues th
 					}
 				}).pipe(Effect.timeout("5 seconds"));
 				const continued = yield* fleet.get("one");
-				expect(continued.value.stage).toBe("executing");
+				expect(continued.value.step).toBe("working");
 				expect(continued.value.attempts).toHaveLength(1);
 				expect(continued.value.attempts[0]?.receipt).toEqual({
 					sessionId: started.value.attempts[0]?.receipt?.sessionId,
@@ -58,7 +58,7 @@ test("a follow-up rejected while a steered turn is active waits and continues th
 				yield* fleet.reconcile("one");
 				merged = true;
 				const delivered = yield* fleet.reconcile("one");
-				expect(delivered.value.stage).toBe("completed");
+				expect(delivered.value.step).toBe("done");
 				expect(delivered.value.review?.head).toBe(delivered.value.result?.head);
 				expect(delivered.value.checks?.head).toBe(delivered.value.result?.head);
 			}),

@@ -11,7 +11,7 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 
 const test = postgresTests("test");
 
-test("an approved executing brief advances in place while removing approval still requests a decision", () =>
+test("an approved working brief advances in place while removing approval still requests a decision", () =>
 	withFleetBoard({}, (fixture, root, source) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -24,7 +24,7 @@ test("an approved executing brief advances in place while removing approval stil
 			const current = `${source.replace("kind: task", "kind: task\nowner: codex")}\nRevised acceptance criteria.\n`;
 			files.write("one.md", current);
 			const continued = yield* fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.reconcile("one"))));
-			expect(continued.value.stage).toBe("executing");
+			expect(continued.value.step).toBe("working");
 			expect(continued.value.boardRevision).toBe(briefRevision(metadataParse(current)));
 			expect(continued.value.boardRevision).not.toBe(worker.value.boardRevision);
 			expect(continued.value.boardContext).toBe(current);
@@ -35,13 +35,13 @@ test("an approved executing brief advances in place while removing approval stil
 			expect(readdirSync(root, { recursive: true }).some((file) => file.includes("decision."))).toBe(false);
 			files.write("two.md", source.replace("id: one", "id: two").replace("fleet: approved\n", ""));
 			const stopped = yield* fleet.reconcile("two");
-			expect(stopped.value.stage).toBe("needs-human");
+			expect(stopped.value.step).toBe("waiting");
 			expect(stopped.value.decision?.published).toBeDefined();
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 		}),
 	));
 
-for (const field of ["owner: human", "status: done", "status: superseded", "status: deferred", "fleet: draft"]) {
+for (const field of ["owner: marvin", "status: done", "status: dropped", "status: deferred", "fleet: held"]) {
 	test(`a changed brief with ${field} still stops for a human`, () =>
 		withFleetBoard({}, (_fixture, root, source) =>
 			Effect.gen(function* () {
@@ -51,7 +51,7 @@ for (const field of ["owner: human", "status: done", "status: superseded", "stat
 				const current = `${source.replace("fleet: approved", field.startsWith("fleet:") ? field : `fleet: approved\n${field}`)}\nRevised scope.\n`;
 				boardHttpFiles(root).write("one.md", current);
 				const stopped = yield* fleet.reconcile("one");
-				expect(stopped.value.stage).toBe("needs-human");
+				expect(stopped.value.step).toBe("waiting");
 				expect(stopped.value.decision?.reason).toBe("Board context changed");
 				expect(stopped.value.boardRevision).toBe(worker.value.boardRevision);
 				expect(stopped.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);

@@ -37,7 +37,7 @@ test("a hung active turn waits for five minutes then queues a fresh thread and r
 				}
 			});
 			expect(blocked.attentionOwner).toBe("automation");
-			expect(blocked.stage).toBe("repairing");
+			expect(blocked.step).toBe("repairing");
 			expect(blocked.decision).toBeUndefined();
 			expect(blocked.launchRetry?.retryAt).toBe(30_100);
 			expect(blocked.attempts).toHaveLength(1);
@@ -58,7 +58,7 @@ test("a hung active turn waits for five minutes then queues a fresh thread and r
 					now = 30_100;
 					const resumed = (yield* restarted.reconcile("one")).value;
 					expect(resumed.attempts.at(-1)?.receipt?.sessionId).not.toBe(blocked.history?.at(-1)?.attempts[0]?.receipt?.sessionId);
-					expect(resumed.stage).toBe("executing");
+					expect(resumed.step).toBe("working");
 					finishWorkers(fixture);
 					yield* restarted.reconcile("one");
 					const next = (yield* restarted.dispatch("two")).value;

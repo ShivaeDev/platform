@@ -9,12 +9,12 @@ host.it(
 	function* (daemon) {
 		yield* daemon.admit();
 		const admitted = yield* daemon.get("one");
-		expect(admitted).toMatchObject({ preparation: { baseRevision: "main-0", contextComplete: false, ownedPaths: ["."] }, stage: "prepared" });
+		expect(admitted).toMatchObject({ preparation: { baseRevision: "main-0", contextComplete: false, ownedPaths: ["."] }, step: "queued" });
 		daemon.moveMain({ observedAt: 2, revision: "main-1" });
 		yield* daemon.schedule();
 		const launched = yield* daemon.get("one");
 		expect(launched.decision).toBeUndefined();
-		expect(launched.stage).toBe("executing");
+		expect(launched.step).toBe("working");
 		expect(launched.preparation).toEqual({ ...admitted.preparation, baseRevision: "main-1", observedAt: 2 });
 		expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: launched.prompt })]);
 	},
@@ -30,7 +30,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			yield* daemon.store("one", { ...admitted, preparation: { ...admitted.preparation, ownedPaths: ["src/one.ts"] } });
 			daemon.moveMain({ observedAt: 2, revision: "main-1" });
 			const scoped = (yield* daemon.fleetDispatch("one")).value;
-			expect(scoped).toMatchObject({ attempts: [], decision: { code: "incomplete-context", reason: "incomplete-context" }, stage: "needs-human" });
+			expect(scoped).toMatchObject({ attempts: [], decision: { code: "incomplete-context", reason: "incomplete-context" }, step: "waiting" });
 			expect(scoped.decision?.published).toBeDefined();
 			yield* daemon.store("one", { ...scoped, preparation: admitted.preparation });
 			daemon.moveMain({ observedAt: 3, revision: "main-2" });
@@ -38,15 +38,15 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 				expect(yield* daemon.admit()).toEqual([]);
 				const reprepared = yield* daemon.get("one");
 				expect(reprepared.decision).toBeUndefined();
-				expect(reprepared).toMatchObject({ preparation: { baseRevision: "main-2", ownedPaths: ["."] }, stage: "prepared" });
-				expect(reprepared.history).toMatchObject([{ decision: { code: "incomplete-context" }, stage: "needs-human" }]);
+				expect(reprepared).toMatchObject({ preparation: { baseRevision: "main-2", ownedPaths: ["."] }, step: "queued" });
+				expect(reprepared.history).toMatchObject([{ decision: { code: "incomplete-context" }, step: "waiting" }]);
 				yield* daemon.schedule();
 			} else {
 				yield* daemon.approve("one");
 			}
 			const launched = yield* daemon.get("one");
 			expect(launched.decision).toBeUndefined();
-			expect(launched.stage).toBe("executing");
+			expect(launched.step).toBe("working");
 			expect(launched.preparation.baseRevision).toBe("main-2");
 			expect(daemon.providerStarts()).toEqual([expect.objectContaining({ prompt: launched.prompt })]);
 		},
@@ -66,7 +66,7 @@ host.it(
 		daemon.moveMain({ observedAt: 2, revision: "main-1" });
 		yield* daemon.schedule();
 		const blocked = yield* daemon.get("one");
-		expect(blocked).toMatchObject({ attempts: [], decision: { code: "incomplete-context" }, stage: "needs-human" });
+		expect(blocked).toMatchObject({ attempts: [], decision: { code: "incomplete-context" }, step: "waiting" });
 		expect(blocked.decision?.reason).toContain("Cloud workers cannot read local-only Board data");
 		daemon.moveMain({ observedAt: 3, revision: "main-2" });
 		expect(yield* daemon.admit()).toEqual([]);

@@ -11,7 +11,7 @@ for (const ready of [true, false]) {
 	const data = nowWork(3);
 	const rows = data.rows.map((item, index) => ({
 		...item,
-		metadata: { ...item.metadata, kind: (["goal", "project", "task"] as const)[index], status: "active" },
+		metadata: { ...item.metadata, kind: (["goal", "goal", "task"] as const)[index], status: "ready" as const },
 	}));
 	screenStory.it(
 		`keeps goals and projects outside Now with Fleet ready=${ready}`,
@@ -30,7 +30,7 @@ for (const ready of [true, false]) {
 
 {
 	const data = nowWork(8);
-	const statuses = ["superseded", "deferred", "done", "cancelled", "canceled", "completed", "planned", "active"];
+	const statuses = ["dropped", "deferred", "done", "dropped", "dropped", "done", "draft", "ready"] as const;
 	const rows = data.rows.map((item, index) => ({ ...item, fleetApproved: true, metadata: { ...item.metadata, status: statuses[index] } }));
 	screenStory.it(
 		"excludes inactive authored tasks without a Fleet item",
@@ -43,7 +43,7 @@ for (const ready of [true, false]) {
 
 {
 	const data = nowWork(5);
-	const statuses = ["planned", undefined, "unknown", "approved", "planned"];
+	const statuses = ["draft", undefined, "draft", "ready", "draft"] as const;
 	const rows = data.rows.map((item, index) => ({ ...item, fleetApproved: index === 4, metadata: { ...item.metadata, status: statuses[index] } }));
 	screenStory.it(
 		"queues only approved waiting tasks without a Fleet item",
@@ -54,27 +54,36 @@ for (const ready of [true, false]) {
 	);
 }
 
-for (const [stage, owner] of [
-	[undefined, undefined],
-	["needs-human", "Waiting on a person"],
-	["reviewing", "Fleet is working on this"],
+for (const [stage, owner, label] of [
+	[undefined, undefined, "Draft"],
+	["waiting", "Waiting on you", "Waiting"],
+	["reviewing", "Fleet is working on this", "Reviewing"],
 ] as const) {
 	const data = nowWork(1);
 	const item = data.rows[0];
 	if (!item) {
 		throw new Error("Missing work fixture");
 	}
-	const fleet = stage ? { document: null, stage, stageEnteredAt: null, updatedAt: null, workId: item.id } : undefined;
+	const fleet = stage
+		? {
+				attentionOwner: stage === "waiting" ? ("maintainer" as const) : undefined,
+				document: null,
+				stage,
+				stageEnteredAt: null,
+				updatedAt: null,
+				workId: item.id,
+			}
+		: undefined;
 	screenStory.it(
 		`hides absent card facts and renders one state with Fleet ${stage}`,
 		[
 			componentScreen(
-				<WorkCard fleet={fleet} item={{ ...item, metadata: { kind: "task", status: "planned" }, waiting: "Review needed" }} state={data.state} />,
+				<WorkCard fleet={fleet} item={{ ...item, metadata: { kind: "task", status: "draft" }, waiting: "Review needed" }} state={data.state} />,
 			),
 		],
 		({ findElements, readText, findElement }) => {
 			expect(findElements("[data-status-token]")).toHaveLength(1);
-			expect(readText("[data-status-token]")).toBe(stage === "reviewing" ? "Reviewing" : "Needs you");
+			expect(readText("[data-status-token]")).toBe(label);
 			expect(readText()).not.toContain("PR not recorded");
 			expect(readText(".work-owner")).toBe(owner);
 			expect(findElement(".work-stage")).toBeNull();

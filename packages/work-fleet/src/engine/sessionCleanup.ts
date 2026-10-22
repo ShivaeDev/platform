@@ -9,7 +9,7 @@ function sessionId(attempt: Attempt) {
 
 export function pendingSessionCleanup(record: FleetRecord): readonly string[] {
 	const attempts = allAttempts(record);
-	const terminal = record.pendingContinuation === undefined && ["completed", "released"].includes(record.stage);
+	const terminal = record.pendingContinuation === undefined && ["done", "released"].includes(record.step);
 	const retained = new Set(terminal ? [] : record.attempts.map(sessionId));
 	const eligible = [...(record.history ?? []).flatMap((cycle) => cycle.attempts), ...(terminal ? record.attempts : [])];
 	return [...new Set(eligible.filter((attempt) => !attempt.sessionCleanupComplete).map(sessionId))].filter(

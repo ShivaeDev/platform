@@ -19,21 +19,21 @@ screenStory.it(
 	function* ({ back, readText, roles }) {
 		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toContain("Upload result")));
 		yield* roles.click({ name: "Kind", role: "combobox" });
-		yield* roles.click({ name: "Result", role: "option" });
-		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "result", view: "recently-changed" })));
+		yield* roles.click({ name: "Report", role: "option" });
+		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "report", view: "recently-changed" })));
 		yield* roles.click({ name: "By title", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "result", view: "titles" })));
+		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "report", view: "titles" })));
 		expect(libraryTitles()).toEqual(["Second result", "Upload result"]);
 		yield* roles.enter({ name: "Find documents", role: "searchbox" }, "upload");
 		yield* roles.click({ name: "Apply", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "result", q: "upload", view: "titles" })));
+		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "report", q: "upload", view: "titles" })));
 		expect(libraryTitles()).toEqual(["Upload result"]);
 		yield* roles.click({ name: "Upload result", role: "link" });
 		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toBeUndefined()));
 		yield* Effect.promise(back);
-		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "result", q: "upload", view: "titles" })));
+		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toEqual({ kind: "report", q: "upload", view: "titles" })));
 		expect(libraryTitles()).toEqual(["Upload result"]);
-		expect(readText('#library-kind [data-slot="select-value"]')).toBe("Result");
+		expect(readText('#library-kind [data-slot="select-value"]')).toBe("Report");
 		expect(pressedView()).toBe("By title");
 		expect(roles.value({ name: "Find documents", role: "searchbox" })).toBe("upload");
 	},
@@ -41,7 +41,7 @@ screenStory.it(
 
 screenStory.it(
 	"opens a shared Library link with its filters, Fleet files and the Goal kind name",
-	[libraryScreen("/_board/library?view=titles&kind=project&fleet=1")],
+	[libraryScreen("/_board/library?view=titles&kind=goal&fleet=1")],
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toEqual(["A calm workspace"])));
 		expect(readText('#library-kind [data-slot="select-value"]')).toBe("Goal");

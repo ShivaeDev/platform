@@ -10,12 +10,13 @@ import { EmptyState } from "#client/react/EmptyState.tsx";
 import { WorkCardList } from "#client/react/WorkCardList.tsx";
 
 const emptyLanes: Readonly<Record<NowLane, { readonly title: string; readonly description: string }>> = {
-	Delivering: { description: "Work that Fleet is merging appears here.", title: "Nothing delivering" },
 	"Done in the last 7 days": { description: "Work finished in the last 7 days appears here.", title: "Nothing done this week" },
-	Executing: { description: "Work an agent is building appears here.", title: "Nothing executing" },
 	Queued: { description: "Approved work waits here until an agent starts it.", title: "Nothing queued" },
 	Reviewing: { description: "Work under review appears here.", title: "Nothing in review" },
-	"Waiting on a person": { description: "Work that needs a person's answer appears here.", title: "Nothing waiting on a person" },
+	"Waiting on automation": { description: "Work waiting on automation appears here.", title: "Nothing waiting on automation" },
+	"Waiting on orchestrator": { description: "Work waiting on the orchestrator appears here.", title: "Nothing waiting on orchestrator" },
+	"Waiting on you": { description: "Work that needs your answer appears here.", title: "Nothing waiting on you" },
+	Working: { description: "Work an agent is building appears here.", title: "Nothing working" },
 };
 
 export function WorkLane({

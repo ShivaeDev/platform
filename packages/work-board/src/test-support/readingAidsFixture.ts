@@ -2,7 +2,7 @@ export function criteriaTask(criteria: readonly string[]) {
 	return `---
 id: task.criteria
 kind: task
-status: planned
+status: draft
 criteria:
 ${criteria.map((text, index) => `  - id: c${index + 1}\n    text: "${text}"`).join("\n")}
 ---
@@ -12,12 +12,12 @@ Body.
 `;
 }
 
-export const mergedTask = {
+export const mergedTask: import("#browser/document/schema.ts").Document = {
 	diagnostics: [],
 	file: "task.md",
 	identity: "task.merged",
 	links: {},
-	metadata: { id: "task.merged", kind: "task" as const, nextAction: "Done; PR #764 merged after PR 12.", owner: "reader", status: "done" },
+	metadata: { id: "task.merged", kind: "task" as const, nextAction: "Done; PR #764 merged after PR 12.", owner: "marvin", status: "done" },
 	modified: 0,
 	questionActions: {},
 	references: {},

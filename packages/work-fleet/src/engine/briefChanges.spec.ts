@@ -36,7 +36,7 @@ for (const field of ["criteria", "body"]) {
 						expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns + (phase === "preparation" ? 1 : 0));
 						return;
 					}
-					expect(stopped.value.stage).toBe("executing");
+					expect(stopped.value.step).toBe("working");
 					expect(stopped.value.boardContext).toBe(current);
 					expect(stopped.value.boardRevision).toBe(briefRevision(metadataParse(current)));
 					expect(stopped.value.decision).toBeUndefined();
@@ -49,7 +49,7 @@ for (const field of ["criteria", "body"]) {
 }
 
 function assertRefreshedBrief(current: FleetRecord, previous: FleetRecord, source: string, phase: string) {
-	expect(current.stage).toBe(phase === "review" ? "reviewing" : "executing");
+	expect(current.step).toBe(phase === "review" ? "reviewing" : "working");
 	expect(current.boardContext).toBe(source);
 	expect(current.boardRevision).toBe(briefRevision(metadataParse(source)));
 	expect(current.decision).toBeUndefined();

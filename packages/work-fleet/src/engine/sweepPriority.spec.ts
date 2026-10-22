@@ -53,7 +53,7 @@ for (const reason of ["checks", "conflict"] as const) {
 			yield* schedule();
 			const repairing = (yield* fleet.get("catalog")).value;
 			expect(repairing.attempts.at(-1)).toMatchObject({ role: "repair", status: "accepted" });
-			expect((yield* fleet.get("package")).value.stage).toBe("executing");
+			expect((yield* fleet.get("package")).value.step).toBe("working");
 			expect((yield* fleet.get("queued")).value.attempts).toHaveLength(0);
 			sweepChecksFail("catalog", false);
 			sweepConflicts("catalog", false);
@@ -78,7 +78,7 @@ isolatedEngine.it(
 		);
 		expect(launches()).toHaveLength(1);
 		yield* fleet.dispatch("urgent").pipe(Effect.result);
-		expect((yield* fleet.get("urgent")).value).toMatchObject({ attempts: [], attentionOwner: "automation", stage: "prepared" });
+		expect((yield* fleet.get("urgent")).value).toMatchObject({ attempts: [], attentionOwner: "automation", step: "queued" });
 		expect((yield* fleet.get("urgent")).value.blocker).toMatch(/^waiting for sweep (?:catalog|rename)$/u);
 	},
 );

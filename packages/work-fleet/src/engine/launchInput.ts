@@ -21,7 +21,7 @@ export const launchInput = Effect.fn("Fleet.launchInput")(function* (
 		?? (retry?.sessionId === original?.sessionId ? retry?.sessionId : undefined)
 		?? (role === "repair" ? original?.sessionId : undefined);
 	return {
-		checkFailures: role === "repair" && record.stage === "repairing" ? record.checks?.failedChecks : undefined,
+		checkFailures: role === "repair" && record.step === "repairing" ? record.checks?.failedChecks : undefined,
 		prompt: record.launchRetry?.prompt ?? retry?.prompt,
 		role,
 		sessionId: allAttempts(record).some((attempt) => attempt.sessionUnusable && attempt.sessionId === sessionId) ? undefined : sessionId,

@@ -27,8 +27,8 @@ host.it(
 		const config = yield* waitForConfig((current) => current.settings.review === false);
 		expect(config.restartRequired).toEqual([]);
 		finishTurn(worker, REPORT);
-		expect(yield* reconcile("one")).toMatchObject({ stage: "validating" });
-		const validating = yield* waitForRecord("one", (record) => record.stage === "validating" && record.checks?.pending === true);
+		expect(yield* reconcile("one")).toMatchObject({ step: "validating" });
+		const validating = yield* waitForRecord("one", (record) => record.step === "validating" && record.checks?.pending === true);
 		expect(validating.review).toBeUndefined();
 		expect(providerStarts()).toEqual([expect.objectContaining({ operationId: worker.attempts[0]?.operationId })]);
 		yield* editConfig({ review: true });
@@ -38,7 +38,7 @@ host.it(
 		setChecksPending(false);
 		yield* reconcile("one");
 		const ready = yield* waitForRecord("one", (record) => record.decision?.code === "reviewed-pr-ready");
-		expect(ready.stage).toBe("needs-human");
+		expect(ready.step).toBe("waiting");
 		expect(ready.decision?.reason).toBe("Validated PR is ready to merge");
 		expect(ready.decision?.recommendation).toContain("Merge the green PR");
 		expect(ready.checks?.passed).toBe(true);
@@ -46,7 +46,7 @@ host.it(
 		expect(providerStarts()).toEqual([expect.objectContaining({ operationId: worker.attempts[0]?.operationId })]);
 		mergePullRequest();
 		yield* reconcile("one");
-		expect((yield* waitForRecord("one", (record) => record.stage === "completed")).outcome).toMatchObject({ head: ready.result?.head });
+		expect((yield* waitForRecord("one", (record) => record.step === "done")).outcome).toMatchObject({ head: ready.result?.head });
 	},
 );
 
@@ -62,14 +62,14 @@ for (const review of [true, undefined]) {
 			const first = yield* dispatch("one");
 			finishTurn(first, REPORT);
 			yield* reconcile("one");
-			yield* waitForRecord("one", (record) => record.stage === "validating");
+			yield* waitForRecord("one", (record) => record.step === "validating");
 			expect(providerStarts()).toEqual([expect.objectContaining({ operationId: first.attempts[0]?.operationId })]);
 			yield* editConfig({ review });
 			yield* waitForConfig((current) => current.settings.review === true);
 			const second = yield* dispatch("two");
 			finishTurn(second, REPORT);
 			yield* reconcile("two");
-			const validated = yield* waitForRecord("two", (record) => record.stage === "validating");
+			const validated = yield* waitForRecord("two", (record) => record.step === "validating");
 			expect(validated.review).toMatchObject({ head: validated.result?.head, verdict: "approved" });
 			expect(providerStarts()).toContainEqual(expect.objectContaining({ access: "read-only" }));
 		},

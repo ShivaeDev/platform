@@ -48,16 +48,16 @@ for (const { source, message } of [
 	{
 		message: "Question option labels must be unique",
 		source:
-			"---\nid: question.choices\nkind: question\noptions:\n  - label: First\n    description: First choice.\n  - label: First\n    description: Another choice.\n---\n# Choose\n",
+			"---\nid: question.choices\nkind: question\nscope: task\nurgency: whenever\noptions:\n  - label: First\n    description: First choice.\n  - label: First\n    description: Another choice.\n---\n# Choose\n",
 	},
 	{
 		message: "recommended option must name an option label",
 		source:
-			"---\nid: question.choices\nkind: question\noptions:\n  - label: First\n    description: First choice.\nrecommended: Missing\n---\n# Choose\n",
+			"---\nid: question.choices\nkind: question\nscope: task\nurgency: whenever\noptions:\n  - label: First\n    description: First choice.\nrecommended: Missing\n---\n# Choose\n",
 	},
 	{
 		message: "Use frontmatter options or Markdown question directives",
-		source: `---\nid: question.choices\nkind: question\noptions:\n  - label: First\n    description: First choice.\n---\n# Choose\n${PROMPT}`,
+		source: `---\nid: question.choices\nkind: question\nscope: task\nurgency: whenever\noptions:\n  - label: First\n    description: First choice.\n---\n# Choose\n${PROMPT}`,
 	},
 ]) {
 	boardStory.it("returns authored option failures as BadRequest through HTTP RPC", [aQuestionnaire(source)], function* ({ workspace: { client } }) {

@@ -2,6 +2,7 @@ import { Clock, Effect } from "effect";
 import { Conflict, Forbidden, PreconditionFailed, type ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { Question } from "#browser/responses/schema.ts";
 import { refreshWritten } from "#server/files/changes.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import type { WorkspaceSettings } from "#server/workspace.ts";
 import type { locate as locateQuestion } from "./locate.ts";
@@ -27,13 +28,14 @@ export function registerQuestion(
 		const data = yield* snapshot;
 		const matches = data.model.ids.get(preview.id);
 		if (matches?.length) {
-			if (matches.length !== 1 || matches[0]?.file !== `responses/${preview.id}.md`) {
+			const existing = matches[0];
+			if (matches.length !== 1 || !existing || existing.file !== `responses/${preview.id}.md`) {
 				return yield* Effect.fail(
 					new Conflict({ message: "The registered identity moved or is duplicated. Read the existing record instead of retrying a write." }),
 				);
 			}
 			const saved = (yield* read(preview.id)).question;
-			yield* publish(options.root, options.realRoot, saved.id, questionMarkdown(saved));
+			yield* publish(options.root, options.realRoot, saved.id, documentSource(existing));
 			return saved;
 		}
 		const now = yield* Clock.currentTimeMillis;

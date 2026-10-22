@@ -20,7 +20,7 @@ export function StartPage({ data }: { readonly data: StartProjection }) {
 					<li>Copy a template below.</li>
 					<li>Save it in this folder under the suggested name.</li>
 					<li>Change the example IDs to your own, and update the links that use them.</li>
-					<li>Fill in the real details. Start with the project, then the investigation and the result.</li>
+					<li>Fill in the real details. Start with the goal, then the investigation and the report.</li>
 				</ol>
 				<p className="m-0 text-muted-foreground">
 					Only record evidence for checks you actually ran. A finished agent run isn't proof on its own. Plain Markdown without frontmatter works too.

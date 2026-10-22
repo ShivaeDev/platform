@@ -82,8 +82,8 @@ export interface SnapshotDaemon {
 export function withSnapshotDaemon<A, E, R>(use: (fixture: HostFixture, daemon: SnapshotDaemon) => Effect.Effect<A, E, R>) {
 	return withHost({}, {}, (fixture) =>
 		Effect.gen(function* () {
-			yield* storeState(fixture.host, "one", { stage: "executing" });
-			yield* storeState(fixture.host, "marker", { stage: "released" });
+			yield* storeState(fixture.host, "one", { stage: "working", step: "working" });
+			yield* storeState(fixture.host, "marker", { stage: "released", step: "released" });
 			const reads = snapshotReads(fixture.host);
 			const clock = yield* TestClock.make();
 			let delivered = 0;

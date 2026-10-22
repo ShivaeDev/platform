@@ -11,7 +11,7 @@ export const reportBoard = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const root = yield* fs.makeTempDirectoryScoped();
-	yield* fs.writeFileString(path.join(root, "one.md"), "---\nid: one\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n");
+	yield* fs.writeFileString(path.join(root, "one.md"), "---\nid: one\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n");
 	return root;
 });
 

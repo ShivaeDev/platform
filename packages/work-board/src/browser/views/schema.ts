@@ -37,7 +37,9 @@ const InboxItem = Schema.Struct({
 	problem: Schema.optional(Schema.String),
 	reason: Schema.String,
 	responseFrom: Schema.optional(Schema.Array(Schema.String)),
+	scope: Metadata.to.fields.scope,
 	title: Schema.String,
+	urgency: Metadata.to.fields.urgency,
 });
 export const RecentAnswerState = Schema.Literals(["waiting", "fleet", "closed", "changed", "applied", "superseded"]);
 export type RecentAnswerState = typeof RecentAnswerState.Type;

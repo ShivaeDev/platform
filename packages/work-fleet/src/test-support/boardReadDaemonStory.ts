@@ -19,7 +19,7 @@ export const boardReadDaemonStory = storyKit({
 	clock: "live",
 	*create() {
 		const files = Object.fromEntries(
-			Array.from({ length: 300 }, (_, index) => [`item.${index}.md`, task(`item.${index}`, index >= 40 && index < 50 ? "approved" : "draft")]),
+			Array.from({ length: 300 }, (_, index) => [`item.${index}.md`, task(`item.${index}`, index >= 40 && index < 50 ? "approved" : "held")]),
 		);
 		const now = yield* Clock.currentTimeMillis;
 		const fixture = yield* hostFixture(files, { intervalSeconds: 1 });
@@ -38,7 +38,7 @@ export const boardReadDaemonStory = storyKit({
 	stages: [],
 	verbs: (engine, story) => ({
 		awaitCycles: (count: number) => {
-			story.tell(`wait for ${count} admission cycles and completed reconciliation`);
+			story.tell(`wait for ${count} admission cycles and done reconciliation`);
 			return Effect.whileLoop({
 				body: () => Effect.sleep("10 millis"),
 				step: () => undefined,
@@ -77,17 +77,17 @@ export const boardReadDaemonStory = storyKit({
 
 function recordStage(index: number) {
 	if (index < 25) {
-		return "completed";
+		return "done";
 	}
-	return index < 40 ? "released" : "executing";
+	return index < 40 ? "released" : "working";
 }
 
 const seedRecord = Effect.fn("FleetTest.seedRecord")(function* (fixture: HostFixture, index: number, now: number) {
 	const workId = `item.${index}`;
-	const stage = recordStage(index);
+	const step = recordStage(index);
 	const work = yield* readHostWork(fixture, workId);
 	const attempts =
-		stage === "executing"
+		step === "working"
 			? [
 					{
 						operationId: `operation-${index}`,
@@ -99,10 +99,10 @@ const seedRecord = Effect.fn("FleetTest.seedRecord")(function* (fixture: HostFix
 				]
 			: [];
 	return {
-		...statusRecord(workId, stage),
+		...statusRecord(workId, step),
 		attempts,
 		boardRevision: work.revision,
 		boardSourcePath: work.sourcePath,
-		...(stage === "completed" ? { result: { evidence: ["Already implemented"], head: "main-revision", kind: "no-change" as const } } : {}),
+		...(step === "done" ? { result: { evidence: ["Already implemented"], head: "main-revision", kind: "no-change" as const } } : {}),
 	};
 });

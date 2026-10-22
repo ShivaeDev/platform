@@ -9,7 +9,7 @@ import { GoalWorkGroup } from "./GoalWorkGroup.tsx";
 import { type GoalWorkItem, goalGroup, goalRun } from "./goalWork.ts";
 import { shellIds } from "./shellIds.ts";
 
-const QUIET_GROUPS: ReadonlySet<string> = new Set(["Planned", "Done"]);
+const QUIET_GROUPS: ReadonlySet<string> = new Set(["Draft", "Done", "Deferred", "Dropped"]);
 interface Props {
 	readonly criteria: readonly string[];
 	readonly goal: string;

@@ -45,7 +45,7 @@ const concurrentSteer = Effect.fnUntraced(function* (failure: boolean) {
 				yield* Deferred.succeed(release, undefined);
 				const approved = yield* Fiber.join(approving);
 				expect(approved.version).toBeGreaterThan(observed.version);
-				expect(approved.value.stage).toBe("executing");
+				expect(approved.value.step).toBe("working");
 				expect(approved.value.attempts[0]?.briefSteers).toEqual([expect.objectContaining(failure ? { error: "Steer failed" } : { steeredAt: 100 })]);
 				expect(calls).toBe(1);
 			}),

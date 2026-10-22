@@ -7,12 +7,12 @@ import { boardScreen } from "#test/screenTraits.ts";
 import { boardRouter } from "./boardRouter.ts";
 
 const files = {
-	"decision.md": "---\nid: decision\nkind: decision\n---\n# Decision record",
-	"question.md": "---\nid: question\nkind: question\n---\n# Question record",
+	"decision.md": "---\nid: decision\nkind: question\nscope: task\nurgency: whenever\n---\n# Decision record",
+	"question.md": "---\nid: question\nkind: question\nscope: task\nurgency: whenever\n---\n# Question record",
 	"receipt.md": `---\nid: receipt\nkind: task\nrequest_receipt:\n  disposition: superseded\n  question: question\n  recordedAt: 0\n  reviewedRevision: "${"a".repeat(64)}"\n---\n# Receipt record`,
-	"response.md": "---\nid: response\nkind: response\n---\n# Response record",
-	"result.md": "---\nid: result\nkind: result\n---\n# Result record",
-	"task.md": "---\nid: task\nkind: task\nstatus: active\n---\n# Work task",
+	"response.md": "---\nid: response\n---\n# Response record",
+	"result.md": "---\nid: result\nkind: report\n---\n# Result record",
+	"task.md": "---\nid: task\nkind: task\nstatus: ready\n---\n# Work task",
 };
 
 for (const query of ["", "?view=table", "?view=board"]) {

@@ -12,17 +12,17 @@ boardStory.it("counts only eligible active Inbox rows for linked work", [linkedA
 	expect(navigation.inboxCount).toBe(2);
 	expect(data.goals[0]?.openAsks).toBeLessThanOrEqual(navigation.inboxCount ?? 0);
 });
-for (const status of ["closed", "done", "dropped", "superseded", "completed", "cancelled", "canceled", "resolved", "released"]) {
+for (const status of ["done", "dropped"]) {
 	boardStory.it(
 		`retains Fleet-aware progress for a ${status} project outside active navigation`,
 		[projectFiles(closedGoalPageFixture(status)), fleetReports(goalFleetFixture())],
 		function* ({ rpc }) {
 			const data = yield* rpc((client) => client("work-board.goals", undefined));
 			const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
-			expect(goal?.counts).toEqual({ done: 3, "in progress": 0, "needs you": 2, planned: 1 });
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 2, "in progress": 0, "needs you": 1, planned: 0 });
-			expect(goal?.criteria[1]?.counts).toEqual({ done: 0, "in progress": 0, "needs you": 0, planned: 0 });
-			expect(goal?.linked).toBe(6);
+			expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 2, dropped: 0, ready: 1 });
+			expect(goal?.criteria[0]?.counts).toEqual({ deferred: 0, done: 0, draft: 1, dropped: 0, ready: 1 });
+			expect(goal?.criteria[1]?.counts).toEqual({ deferred: 0, done: 0, draft: 0, dropped: 0, ready: 0 });
+			expect(goal?.linked).toBe(5);
 			expect(data.goals.map((entry) => entry.id)).toEqual(["project.example"]);
 			expect(data.deferredGoals.map((entry) => entry.id)).toEqual(["project.empty"]);
 			expect((yield* rpc((client) => client("work-board.navigation", { current: "" }))).counts.goals).toBe(1);
@@ -51,26 +51,27 @@ boardStory.it(
 );
 
 for (const [status, group] of [
-	["dropped", "done"],
-	["ready", "planned"],
-	["planned", "planned"],
-	["active", "in progress"],
+	["dropped", "dropped"],
+	["ready", "ready"],
+	["draft", "draft"],
+	["ready", "ready"],
 ] as const) {
 	boardStory.it(
 		`counts ${status} linked work as ${group}`,
 		[
 			projectFiles({
-				"goal.md": "---\nid: project.counting\nkind: project\nstatus: active\n---\n# Counting goal",
+				"goal.md": "---\nid: project.counting\nkind: goal\nstatus: ready\n---\n# Counting goal",
 				"work.md": `---\nid: task.counted\nkind: task\nstatus: ${status}\nrelationships:\n - kind: implements\n   target: project.counting\n---\n# Counted work`,
 			}),
 		],
 		function* ({ rpc }) {
 			const data = yield* rpc((client) => client("work-board.goals", undefined));
 			expect(data.goals.find((goal) => goal.id === "project.counting")?.counts).toEqual({
+				deferred: 0,
 				done: 0,
-				"in progress": 0,
-				"needs you": 0,
-				planned: 0,
+				draft: 0,
+				dropped: 0,
+				ready: 0,
 				[group]: 1,
 			});
 		},

@@ -25,7 +25,7 @@ isolatedEngine.it(
 		yield* fleet.dispatch("one");
 		workerReports(REPORT);
 		const reviewing = yield* fleet.reconcile("one");
-		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.step).toBe("reviewing");
 		expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 		finishWorkers();
 		const approved = yield* fleet.reconcile("one");
@@ -33,7 +33,7 @@ isolatedEngine.it(
 		const moving = yield* fleet.reconcile("one").pipe(Effect.forkChild);
 		yield* waitForMovedHeadWrite();
 		const persisted = yield* fleet.get("one");
-		expect(persisted.value.stage).toBe("reviewing");
+		expect(persisted.value.step).toBe("reviewing");
 		expect(persisted.value.result?.head).toBe(MOVED);
 		expect(persisted.value.review).toEqual(approved.value.review);
 		expect(persisted.value.resultObservations).toEqual([approved.value.result]);
@@ -55,7 +55,7 @@ isolatedEngine.it(
 		mergePullRequest();
 		yield* restart();
 		const completed = yield* fleet.reconcile("one");
-		expect(completed.value.stage).toBe("completed");
+		expect(completed.value.step).toBe("done");
 		expect(completed.value.outcome).toEqual({ head: MOVED, revision: BASE, url: PR });
 		expect(completed.value.review).toMatchObject({ head: MOVED, verdict: "approved" });
 		expect(completed.value.checks).toMatchObject({ head: MOVED, passed: true });

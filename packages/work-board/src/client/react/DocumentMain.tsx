@@ -63,7 +63,7 @@ export function DocumentMain({
 	);
 }
 function decisionPacket(document: Document) {
-	return document.metadata.kind === "decision" && (document.metadata.attention?.some((request) => request.managed) ?? false);
+	return document.metadata.kind === "question" && (document.metadata.attention?.some((request) => request.managed) ?? false);
 }
 function readStatus(tag: string | undefined, failed: boolean) {
 	if (tag === "NotFound") {

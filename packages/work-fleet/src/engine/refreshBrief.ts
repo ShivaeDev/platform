@@ -12,11 +12,11 @@ import { workerBriefText } from "#prompt/task.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
-	const ready = stored.value.stage === "needs-human" && stored.value.decision?.code === "reviewed-pr-ready" && stored.value.result?.kind === "change";
+	const ready = stored.value.step === "waiting" && stored.value.decision?.code === "reviewed-pr-ready" && stored.value.result?.kind === "change";
 	const changed = briefChanged(stored.value, work) || preparedSchedulingChanged(stored.value, work);
 	if (
-		["completed", "released"].includes(stored.value.stage)
-		|| (!ready && (stored.value.stage === "needs-human" || stored.value.decision !== undefined))
+		["done", "released"].includes(stored.value.step)
+		|| (!ready && (stored.value.step === "waiting" || stored.value.decision !== undefined))
 		|| !work.approved
 		|| ["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")
 		|| !changed
@@ -50,14 +50,14 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 
 function preparedSchedulingChanged(record: FleetRecord, work: BoardWork): boolean {
 	return (
-		record.stage === "prepared"
+		record.step === "queued"
 		&& (JSON.stringify(record.areas ?? []) !== JSON.stringify(work.areas ?? [])
 			|| JSON.stringify(record.sweep ?? []) !== JSON.stringify(work.sweep ?? []))
 	);
 }
 
 export const reconcileBrief = Effect.fn("Fleet.reconcileBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
-	if (["completed", "released"].includes(stored.value.stage)) {
+	if (["done", "released"].includes(stored.value.step)) {
 		return stored;
 	}
 	const work = yield* state.board.get(stored.value.workId);

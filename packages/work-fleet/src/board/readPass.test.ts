@@ -125,7 +125,7 @@ boardReadStory.it(
 					const missing = yield* Effect.result(board.get("missing"));
 					expect(missing._tag).toBe("Failure");
 					if (missing._tag === "Failure") {
-						expect(missing.failure.message).toContain("Board metadata is invalid: invalid.md (line 3: Flow sequence");
+						expect(missing.failure.message).toContain("Board metadata is invalid: invalid.md (frontmatter: line 3: Flow sequence");
 					}
 					yield* fixture.remove("invalid.md");
 					expect((yield* board.get("item.0")).approved).toBe(true);

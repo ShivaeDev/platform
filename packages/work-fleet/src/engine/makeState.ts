@@ -43,7 +43,7 @@ export const makeState = Effect.gen(function* () {
 	function save(stored: Versioned<FleetRecord>, value: FleetRecord, admission?: LaunchAdmission): ReturnType<typeof store.compareAndSet> {
 		const record = { ...value, attentionOwner: waitingOwner(value) };
 		if (admission === undefined) {
-			if (stored.value.stage === "needs-human" && JSON.stringify(record) === JSON.stringify(stored.value)) {
+			if (stored.value.step === "waiting" && JSON.stringify(record) === JSON.stringify(stored.value)) {
 				return Effect.succeed(stored);
 			}
 			return store.compareAndSet(value.workId, stored.version, record);
@@ -79,7 +79,7 @@ export const makeState = Effect.gen(function* () {
 			decisionPublished: false,
 			launchRetry: undefined,
 			pendingContinuation: undefined,
-			stage: "needs-human",
+			step: "waiting",
 			supersededDecisions:
 				previous === undefined || superseded.some((receipt) => receipt.published.questionId === previous.questionId)
 					? stored.value.supersededDecisions

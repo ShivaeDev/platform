@@ -9,11 +9,11 @@ export function revisionOf(source: string) {
 export function questionId(item: string, request: string, revision: string, source: string) {
 	return `question.${revisionOf(JSON.stringify([item, request, revision, source]))}`;
 }
-export function questionMarkdown(record: Question): string {
-	return `---\n${stringify({ id: record.id, kind: "question", question: record.question })}---\n${record.context}`;
+export function questionMarkdown(record: Question, urgency: "blocking" | "whenever" = "whenever"): string {
+	return `---\n${stringify({ id: record.id, kind: "question", question: record.question, scope: "task", urgency })}---\n${record.context}`;
 }
 export function responseMarkdown(record: RecordedResponse): string {
-	return `---\n${stringify({ id: record.id, kind: "response", response: record.response })}---\n${record.body}`;
+	return `---\n${stringify({ id: record.id, response: record.response })}---\n${record.body}`;
 }
 export function questionFrom(document: MetadataDocument): Question | undefined {
 	const { id, kind, question } = document.parsed.fields;
@@ -26,8 +26,8 @@ export function questionFrom(document: MetadataDocument): Question | undefined {
 		: undefined;
 }
 export function responseFrom(document: MetadataDocument): RecordedResponse | undefined {
-	const { id, kind, response } = document.parsed.fields;
-	return id && kind === "response" && response ? { body: document.parsed.body, id, response } : undefined;
+	const { id, response } = document.parsed.fields;
+	return id && response ? { body: document.parsed.body, id, response } : undefined;
 }
 export function responsesFor(documents: readonly MetadataDocument[], question: Question): Reading {
 	const responses = documents.flatMap((document) => {
@@ -52,7 +52,8 @@ export function matchesResponse(record: RecordedResponse, input: DraftInput) {
 export function malformedResponse(document: MetadataDocument) {
 	const fields = document.parsed.fields;
 	return (
-		(fields.kind === "response" && !(fields.id && fields.response))
+		((fields.response !== undefined || document.parsed.diagnostics.some((problem) => problem.field === "response"))
+			&& !(fields.id && fields.response))
 		|| (document.file.startsWith("responses/") && document.parsed.diagnostics.some((problem) => problem.field === undefined))
 	);
 }

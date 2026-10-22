@@ -41,11 +41,11 @@ engine.it(
 			attempts: [],
 			attentionOwner: "automation",
 			blocker: "waiting for sweep catalog",
-			stage: "prepared",
+			step: "queued",
 		});
 		finishWorkers();
 		const held = (yield* fleet.reconcile("package")).value;
-		expect(held).toMatchObject({ attentionOwner: "automation", blocker: "Held behind sweep catalog", stage: "delivering" });
+		expect(held).toMatchObject({ attentionOwner: "automation", blocker: "Held behind sweep catalog", step: "delivering" });
 		expect(held.result?.kind).toBe("change");
 		expect(held.decision).toBeUndefined();
 		expect(held.mergeReadyAt).toBeUndefined();
@@ -57,7 +57,7 @@ engine.it(
 		yield* restart();
 		expect((yield* fleet.reconcile("package")).value.sweepHold?.context).toBe(brief);
 		observeSweepPr("catalog", "merged");
-		expect((yield* fleet.reconcile("catalog")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("catalog")).value.step).toBe("done");
 		const migrating = (yield* fleet.reconcile("package")).value;
 		expect(migrating.attempts.at(-1)).toMatchObject({ role: "repair", status: "accepted" });
 		const receivedPrompt = turnOutput(migrating.attempts.at(-1)?.receipt);
@@ -74,7 +74,7 @@ engine.it(
 		expect(reviewedHeads()).toContain(migrated.result?.head);
 		expect(migrated.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(1);
 		expect(providerStarts().filter((start) => start.access === "read-only")).toHaveLength(4);
-		expect((yield* fleet.dispatch("queued")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("queued")).value.step).toBe("working");
 	},
 );
 
@@ -99,6 +99,6 @@ engine.it(
 		const ready = (yield* fleet.reconcile("package")).value;
 		expect(ready.decision?.code).toBe("reviewed-pr-ready");
 		expect(ready.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(0);
-		expect((yield* fleet.dispatch("queued")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("queued")).value.step).toBe("working");
 	},
 );

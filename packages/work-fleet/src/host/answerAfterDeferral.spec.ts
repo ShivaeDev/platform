@@ -11,12 +11,16 @@ for (const type of ["clarify", "not_now"] as const) {
 			const { decision } = yield* host.question();
 			const deferred = yield* host.defer(decision, type);
 			const waiting = yield* host.reconcile();
-			expect(waiting.stage).toBe("needs-human");
+			expect(waiting.step).toBe("waiting");
 			expect(waiting.decision?.id).toBe(decision.id);
 			expect(waiting.responses).toMatchObject([{ decisionId: decision.id, responseId: deferred.id, type }]);
-			expect(yield* host.cliAnswer("one", TEXT, release)).toEqual({ code: 0, stderr: "", stdout: `one needs-human: ${ANSWER_RECORDED}` });
+			expect(yield* host.cliAnswer("one", TEXT, release)).toEqual({
+				code: 0,
+				stderr: "",
+				stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
+			});
 			const applied = yield* host.applied();
-			expect(applied.stage).toBe(release ? "released" : "executing");
+			expect(applied.step).toBe(release ? "released" : "working");
 			expect(applied.responses).toMatchObject([
 				{ decisionId: decision.id, responseId: deferred.id, type },
 				{ action: release ? "release" : "continue", boardAcknowledged: true, decisionId: decision.id, type: "answer" },

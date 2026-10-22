@@ -36,14 +36,16 @@ isolatedEngine.it(
 		pushWorkerBranch("two", { [MIGRATION_PATH]: 'export const migrations = {\n  "16_previous": previous,\n  "17_second": second,\n};\n' });
 		const worktree = predictionWorktree();
 		const pushed = yield* fleet.reconcile("two");
-		expect(pushed.value.stage).toBe("executing");
+		expect(pushed.value.step).toBe("working");
 		expect(pushed.value.mergePrediction?.conflicts).toEqual([expect.objectContaining({ files: [MIGRATION_PATH], wait: true })]);
 		finishWorkers();
 		const held = yield* fleet.reconcile("two");
 		expect(held.value.blocker).toBe(
-			`waiting for predicted conflict with ${first.value.result?.kind === "change" ? first.value.result.pr : "missing"} (${MIGRATION_PATH}) to merge`,
+			`waiting for ${first.value.result?.kind === "change" ? first.value.result.pr : "missing"} to merge: conflicting ${MIGRATION_PATH}`,
 		);
 		expect(held.value.attentionOwner).toBe("automation");
+		expect(held.value.stage).toBe("waiting");
+		expect(held.value.step).toBe("reviewing");
 		expect(held.value.mergePrediction?.conflicts).toEqual([
 			expect.objectContaining({
 				files: [MIGRATION_PATH],
@@ -59,9 +61,9 @@ isolatedEngine.it(
 		yield* restart();
 		expect((yield* fleet.reconcile("two")).value.blocker).toBe(held.value.blocker);
 		mergeWatchedPr("one");
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 		const resumed = yield* fleet.reconcile("two");
-		expect(resumed.value.stage).toBe("executing");
+		expect(resumed.value.step).toBe("working");
 		expect(resumed.value.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: held.value.attempts[0]?.receipt?.sessionId });
 		expect(resumed.value.attempts.at(-1)?.prompt).toContain("Fetch and merge main once");
 		expect(resumed.value.attempts.at(-1)?.prompt).toContain("https://github.com/example/project/pull/1");
@@ -80,7 +82,7 @@ isolatedEngine.it(
 			expect.stringContaining("Fetch and merge main once"),
 		]);
 		mergeWatchedPr("two");
-		expect((yield* fleet.reconcile("two")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("two")).value.step).toBe("done");
 	},
 );
 

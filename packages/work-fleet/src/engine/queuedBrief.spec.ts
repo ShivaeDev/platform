@@ -41,7 +41,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 					yield* fixture.restart(cycle);
 					const accepted = (yield* fleet.get("one")).value;
 					const attempt = accepted.attempts.at(-1);
-					expect(accepted.stage).toBe("executing");
+					expect(accepted.step).toBe("working");
 					expect(accepted.decision).toBeUndefined();
 					expect(accepted.boardContext).toBe(current);
 					expect(accepted.launchRetry).toBeUndefined();

@@ -22,10 +22,10 @@ screenStory.it(
 			return { owner: readText(".work-owner", found), stage: readText(".work-stage", found) };
 		}
 		yield* Effect.promise(() =>
-			eventually(() => expect(card("task.upload")).toEqual({ owner: "Fleet is working on this", stage: "Executing, started 4h ago" })),
+			eventually(() => expect(card("task.upload")).toEqual({ owner: "Fleet is working on this", stage: "Working, started 4h ago" })),
 		);
 		expect(card("task.guide")).toEqual({ owner: "Queued for Fleet", stage: "Queued 4h ago" });
-		expect(card("task.email")).toEqual({ owner: "Needs you", stage: "Waiting, started 4h ago" });
+		expect(card("task.email")).toEqual({ owner: "Waiting on your answer", stage: "Waiting, started 4h ago" });
 		expect(card("task.pricing")).toEqual({ owner: "Assigned to you", stage: undefined });
 		expect(findElements(".work-now .work-kind")).toHaveLength(0);
 		expect(readTabStops('[data-item="task.upload"]')).toEqual(findElements('[data-item="task.upload"] a[href]'));

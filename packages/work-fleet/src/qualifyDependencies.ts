@@ -38,25 +38,25 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 });
 
 function merged(cycle: FleetRecord | FleetCycleSnapshot): boolean {
-	return cycle.mergedDelivery !== undefined || (cycle.stage === "completed" && cycle.outcome !== undefined && "url" in cycle.outcome);
+	return cycle.mergedDelivery !== undefined || (cycle.step === "done" && cycle.outcome !== undefined && "url" in cycle.outcome);
 }
 
 function dependencyMissing(current: BoardWork, record: FleetRecord | undefined): string | undefined {
 	if (record !== undefined && [record, ...(record.history ?? [])].some(merged)) {
 		return;
 	}
-	const active = record !== undefined && record.stage !== "completed" && record.stage !== "released";
+	const active = record !== undefined && record.step !== "done" && record.step !== "released";
 	if (current.status === "done" && !active) {
 		return;
 	}
-	if (record?.stage === "completed" && record.outcome !== undefined) {
+	if (record?.step === "done" && record.outcome !== undefined) {
 		if (workRevision(record.boardRevision, record.boardContext) === workRevision(current.revision, current.context)) {
 			return;
 		}
 		return `accepted outcome covers an earlier Board revision; current revision is ${current.revision} and not done on the Board`;
 	}
 	if (active) {
-		return `Fleet work is still active (${record.stage}); no merged delivery or accepted outcome`;
+		return `Fleet work is still active (${record.step}); no merged delivery or accepted outcome`;
 	}
-	return record?.stage === "released" ? "released without a merged delivery and not done on the Board" : "not done on the Board; no accepted outcome";
+	return record?.step === "released" ? "released without a merged delivery and not done on the Board" : "not done on the Board; no accepted outcome";
 }

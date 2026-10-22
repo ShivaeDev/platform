@@ -26,7 +26,7 @@ export const queueRecovery = Effect.fn("Test.queueRecovery")(function* (call: "s
 				expect(queued).toMatchObject({
 					attentionOwner: "automation",
 					launchRetry: { rejectedAt: 100, rejections: 1, retryAt: 30_100 },
-					stage: "prepared",
+					step: "queued",
 				});
 				expect(queued.attempts[0]).toMatchObject({ output: reworded.message, status: "failed" });
 				expect(queued.decision).toBeUndefined();
@@ -38,7 +38,7 @@ export const queueRecovery = Effect.fn("Test.queueRecovery")(function* (call: "s
 				now = 30_100;
 				yield* fixture.restart(cycle);
 				const accepted = (yield* fleet.get("one")).value;
-				expect(accepted.stage).toBe("executing");
+				expect(accepted.step).toBe("working");
 				expect(accepted.launchRetry).toBeUndefined();
 				expect(accepted.attempts.at(-1)?.receipt).toBeDefined();
 				expect(fixture.launched).toHaveLength(call === "turn" ? 1 : 2);

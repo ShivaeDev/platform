@@ -72,7 +72,7 @@ const verifyRecovery = Effect.fnUntraced(function* (
 	previous: { readonly context: string; readonly receipt: SessionReceipt; readonly resolved: Versioned<FleetRecord>; readonly stalled: FleetRecord },
 ) {
 	if (action === "release") {
-		expect(previous.resolved.value.stage).toBe("released");
+		expect(previous.resolved.value.step).toBe("released");
 		return;
 	}
 	const fleet = yield* Fleet;

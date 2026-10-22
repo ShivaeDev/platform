@@ -115,7 +115,7 @@ function fleetHealth(
 		observedAt,
 		version: 2,
 		...observed,
-		queued: records.filter((record) => record.stage === "prepared").length,
+		queued: records.filter((record) => record.step === "queued").length,
 		running: records.filter(executing).length,
 		waiting: waitingCounts(records),
 	};

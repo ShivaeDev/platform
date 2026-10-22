@@ -16,8 +16,8 @@ host.it(
 		expect(approved.value.attempts.map(({ briefSteers: _steers, ...attempt }) => attempt)).toEqual(worker.value.attempts);
 		expect(approved.value.attempts[0]?.briefSteers).toHaveLength(1);
 		expect(approved.value.history ?? []).toEqual([]);
-		expect(approved.value.stage).toBe("executing");
-		expect((yield* daemon.reconcile("one")).stage).toBe("executing");
+		expect(approved.value.step).toBe("working");
+		expect((yield* daemon.reconcile("one")).step).toBe("working");
 		expect(daemon.providerStarts()).toHaveLength(1);
 		expect(daemon.providerSteers()).toEqual([
 			expect.objectContaining({ prompt: expect.stringContaining(current), receipt: worker.value.attempts[0]?.receipt }),

@@ -4,13 +4,13 @@ import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function boardCompletionAction(record: FleetRecord) {
-	if (record.stage === "completed" && record.report !== undefined) {
+	if (record.step === "done" && record.report !== undefined) {
 		return "Done; report recorded.";
 	}
-	if (record.stage === "completed" && record.result?.kind === "no-change") {
+	if (record.step === "done" && record.result?.kind === "no-change") {
 		return "Done; no change needed.";
 	}
-	if (record.stage !== "completed" && !(record.stage === "released" && /^PR #\d+ merged by a human /u.test(record.releaseReason ?? ""))) {
+	if (record.step !== "done" && !(record.step === "released" && /^PR #\d+ merged by a human /u.test(record.releaseReason ?? ""))) {
 		return;
 	}
 	if (record.result?.kind !== "change") {

@@ -5,6 +5,7 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
+import type { FleetRecord } from "#model.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
@@ -37,9 +38,9 @@ const seeding = storyKit({
 				}
 				return row.pid;
 			}),
-		seed: (workId: string, stage: string) => {
+		seed: (workId: string, stage: FleetRecord["stage"]) => {
 			story.tell(`seed ${workId} as ${stage}`);
-			return storeState(host, workId, { stage }).pipe(Effect.provideService(SqlClient.SqlClient, sql));
+			return storeState(host, workId, { stage, step: stage }).pipe(Effect.provideService(SqlClient.SqlClient, sql));
 		},
 		writers: () => sql<{ readonly pid: number; readonly writes: number }>`select pid, count(*)::integer as writes from seed_writers group by pid`,
 	}),
@@ -48,8 +49,8 @@ const seeding = storyKit({
 seeding.it("100 inserts and an overwrite share the caller's single PostgreSQL connection", [], function* ({ seed, writers, connection }) {
 	const caller = yield* connection();
 	for (let index = 0; index < 100; index += 1) {
-		yield* seed(`item-${index}`, "executing");
+		yield* seed(`item-${index}`, "working");
 	}
-	yield* seed("item-0", "completed");
+	yield* seed("item-0", "done");
 	expect(yield* writers()).toEqual([{ pid: caller, writes: 101 }]);
 });

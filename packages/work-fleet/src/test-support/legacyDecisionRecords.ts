@@ -27,4 +27,6 @@ export const codedDecisionRecord = {
 		{ decision: { ...history[3]?.decision, code: "pr-conflicting" } },
 		{ decision: { ...history[4]?.decision, code: "session-active-turn-exhausted" } },
 	],
+	stage: "waiting",
+	step: "waiting",
 };

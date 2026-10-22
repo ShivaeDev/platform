@@ -9,7 +9,7 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 
 const test = postgresTests("test");
 
-for (const status of ["planned", "deferred"]) {
+for (const status of ["draft", "deferred"]) {
 	test(`a Board HTTP release closes a changed and moved ${status} task decision without current approval`, () =>
 		withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root) =>
 			Effect.gen(function* () {
@@ -40,7 +40,7 @@ for (const status of ["planned", "deferred"]) {
 					),
 				);
 				const released = yield* fleet.reconcile("one");
-				expect(released.value.stage).toBe("released");
+				expect(released.value.step).toBe("released");
 				if (status === "deferred") {
 					expect(released.value.releaseReason).toBe("Board status is deferred");
 					expect(released.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);
@@ -80,7 +80,7 @@ test("concurrent retries cannot authorize a changed brief or consume the origina
 				{ concurrency: "unbounded" },
 			);
 			const prepared = (yield* fleet.get("one")).value;
-			expect(prepared.stage).toBe("needs-human");
+			expect(prepared.step).toBe("waiting");
 			expect(prepared.boardContext).toBe(source);
 			expect(prepared.decision).toEqual(decision);
 			expect(prepared.responses).toBeUndefined();
@@ -92,7 +92,7 @@ test("concurrent retries cannot authorize a changed brief or consume the origina
 					const denied = yield* restarted.resolve("one", decision.id, answer).pipe(Effect.result);
 					expect(denied._tag).toBe("Failure");
 					const stopped = yield* restarted.reconcile("one");
-					expect(stopped.value.stage).toBe("needs-human");
+					expect(stopped.value.step).toBe("waiting");
 					expect(stopped.value.decision?.reason).toBe("Board context changed");
 					expect(stopped.value.responses).toBeUndefined();
 				}),

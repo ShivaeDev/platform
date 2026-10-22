@@ -26,7 +26,7 @@ screenStory.it(
 		expect(readText('#needs-you [data-slot="empty-title"]')).toBe("Nothing needs you");
 		expect(findElement("#needs-you a[href='/_board/start']")).toBeNull();
 		expect(readText(`${ROWS} time`)).toBe("just now");
-		editFile("question.md", inboxQuestion.replace("status: open", "status: done"));
+		editFile("question.md", inboxQuestion.replace("status: ready", "status: done"));
 		yield* Effect.promise(refreshInbox);
 		yield* Effect.promise(() => eventually(() => expect(answeredRows()).toEqual([[STORAGE, "You chose Keep local files · It's closed now."]])));
 		editFile("question.md", `${inboxQuestion}\nThe shared drive is gone.\n`);

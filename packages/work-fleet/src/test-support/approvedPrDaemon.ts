@@ -62,7 +62,7 @@ export function approvedPrFixture(fixture: HostFixture, github: Effect.Success<R
 		const receipt = record.attempts.at(-1)?.receipt;
 		const observation = receipt === undefined ? undefined : fixture.provider.observations.get(receipt.turnId);
 		if (observation === undefined) {
-			throw new Error(`Missing worker observation: ${record.stage}, ${record.blocker ?? "no blocker"}`);
+			throw new Error(`Missing worker observation: ${record.step}, ${record.blocker ?? "no blocker"}`);
 		}
 		github.state.head = head;
 		fixture.provider.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output: REPORT.replace(HEAD, head) });

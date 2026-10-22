@@ -26,7 +26,7 @@ for (const source of ["argument", "stdin", "release"] as const) {
 			).toEqual({
 				code: 0,
 				stderr: "",
-				stdout: "one needs-human: Answer recorded; applying in the background",
+				stdout: "one waiting (waiting on automation): Answer recorded; applying in the background",
 			});
 			const queued = yield* daemon.appliedAnswer("one");
 			expect(queued.responses).toMatchObject([{ action: source === "release" ? "release" : "continue", boardAcknowledged: true }]);
@@ -44,10 +44,10 @@ for (const source of ["argument", "stdin", "release"] as const) {
 			expect(receipts).toHaveLength(1);
 			expect(daemon.readBoard(receipts[0] ?? "missing")).toContain('"disposition":"applied"');
 			if (source === "release") {
-				expect(queued.stage).toBe("released");
+				expect(queued.step).toBe("released");
 			} else {
 				const resumed = yield* daemon.reconcile("one");
-				expect(resumed.stage).toBe("executing");
+				expect(resumed.step).toBe("working");
 				expect(resumed.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts[0]?.receipt?.sessionId);
 				expect(resumed.attempts.at(-1)?.prompt).toBe(answer);
 			}

@@ -21,7 +21,7 @@ for (const release of [false, true]) {
 			yield* host.stop();
 			yield* host.start();
 			const current = yield* host.applied();
-			expect(current.stage).toBe(release ? "released" : "executing");
+			expect(current.step).toBe(release ? "released" : "working");
 			expect(current.responses).toHaveLength(2);
 			expect(current.pendingAnswers).toBeUndefined();
 			expect(host.providerSessions()).toBe(1);

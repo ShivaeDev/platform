@@ -17,7 +17,7 @@ function task(id: string, priority: string) {
 
 const stages = Effect.fn("PriorityTest.stages")(function* (ids: readonly string[]) {
 	const fleet = yield* Fleet;
-	return Object.fromEntries(yield* Effect.forEach(ids, (id) => fleet.get(id).pipe(Effect.map(({ value }) => [id, value.stage]))));
+	return Object.fromEntries(yield* Effect.forEach(ids, (id) => fleet.get(id).pipe(Effect.map(({ value }) => [id, value.step]))));
 });
 
 describe("Fleet dispatch priority", () => {
@@ -34,11 +34,11 @@ describe("Fleet dispatch priority", () => {
 				const urgent = yield* fleet.dispatch("three", undefined, { ignoreAreas: false });
 				expect(urgent.value.attempts.at(-1)).toMatchObject({ overLimit: true, role: "worker" });
 				yield* cycle;
-				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "executing", three: "executing", two: "prepared" });
+				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "working", three: "working", two: "queued" });
 				expect((yield* fleet.get("two")).value.blocker).toBe("execution capacity is occupied (limit 1)");
 				const status = renderStatus(views((yield* fleet.list()).map(({ value }) => value)));
-				expect(status).toContain("three  executing  launched over the limit");
-				expect(status).not.toContain("one  executing  launched over the limit");
+				expect(status).toContain("three  working  launched over the limit");
+				expect(status).not.toContain("one  working  launched over the limit");
 			}),
 		));
 
@@ -57,7 +57,7 @@ describe("Fleet dispatch priority", () => {
 				}
 				yield* fleet.dispatch("one");
 				yield* cycle;
-				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "executing", three: "executing", two: "prepared" });
+				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "working", three: "working", two: "queued" });
 				expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area work-fleet/scheduler held by one");
 				const forced = yield* fleet.dispatch("two", undefined, { ignoreAreas: true });
 				expect(forced.value.attempts.at(-1)).toMatchObject({ overLimit: true, role: "worker" });
@@ -79,14 +79,14 @@ describe("Fleet dispatch priority", () => {
 				expect((yield* fleet.get("two")).value).toMatchObject({
 					blocker: "waiting for area work-fleet/scheduler held by one",
 					dispatchNow: { ignoreAreas: false },
-					stage: "prepared",
+					step: "queued",
 				});
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				yield* fleet.dispatch("three");
 				const launched = yield* fleet.dispatch("two");
 				expect(launched.value.attempts.at(-1)).toMatchObject({ overLimit: true, role: "worker" });
-				expect(yield* stages(["two", "three"])).toEqual({ three: "executing", two: "executing" });
+				expect(yield* stages(["two", "three"])).toEqual({ three: "working", two: "working" });
 			}),
 		));
 
@@ -97,11 +97,11 @@ describe("Fleet dispatch priority", () => {
 				yield* prepareWork("dependent");
 				yield* prepareWork("one");
 				yield* fleet.dispatch("dependent", undefined, { ignoreAreas: true }).pipe(Effect.result);
-				expect((yield* fleet.get("dependent")).value).toMatchObject({ attempts: [], dispatchNow: { ignoreAreas: true }, stage: "prepared" });
+				expect((yield* fleet.get("dependent")).value).toMatchObject({ attempts: [], dispatchNow: { ignoreAreas: true }, step: "queued" });
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
-				expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
+				expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 			}),
 		));
 
@@ -118,10 +118,10 @@ describe("Fleet dispatch priority", () => {
 				}
 				yield* cycle;
 				expect(yield* stages(["one", "two", "three", "four"])).toEqual({
-					four: "prepared",
-					one: "prepared",
-					three: "executing",
-					two: "prepared",
+					four: "queued",
+					one: "queued",
+					three: "working",
+					two: "queued",
 				});
 			}),
 		));
@@ -139,7 +139,7 @@ describe("Fleet dispatch priority", () => {
 				const invalid = yield* prepareWork("four").pipe(Effect.flip);
 				expect(invalid.message).toContain("Invalid fleet-priority; use urgent, high, normal or low, or omit the field.");
 				yield* cycle;
-				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "prepared", three: "executing", two: "prepared" });
+				expect(yield* stages(["one", "two", "three"])).toEqual({ one: "queued", three: "working", two: "queued" });
 			}),
 		));
 });

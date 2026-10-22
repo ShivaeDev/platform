@@ -23,7 +23,7 @@ controlPublication.it(
 		yield* daemon.question();
 		yield* daemon.releasePublication();
 		yield* daemon.flush();
-		expect(daemon.status()).toContain("Stage: needs-human");
+		expect(daemon.status()).toContain("Stage: waiting");
 	},
 	90_000,
 );

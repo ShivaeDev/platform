@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { bandLine, flightGroups, goalOrder, goalShare, stageCounts, startedShare } from "#summary.ts";
 import type { WorkboardFlight, WorkboardGoal } from "#types/index.d.ts";
 
-function goal(id: string, done: number, active: number, total: number): WorkboardGoal {
-	return { active, done, id, title: id.replace("goal.", ""), total };
+function goal(id: string, done: number, ready: number, total: number): WorkboardGoal {
+	return { done, id, ready, title: id.replace("goal.", ""), total };
 }
 
 function flight(workId: string, stage: string, goalId: string | null): WorkboardFlight {
@@ -21,7 +21,7 @@ describe("the board summary", () => {
 	it("sums Needs you, In flight and goal progress, with ? for a query the Board could not answer", () => {
 		const ready = {
 			asks: { items: [{ key: "open:a", title: "A", url: null }], problem: null },
-			flights: { items: [flight("one", "executing", null)], problem: null },
+			flights: { items: [flight("one", "working", null)], problem: null },
 			goals: { items: [goal("goal.a", 3, 1, 5), goal("goal.b", 2, 0, 2)], problem: null },
 			kind: "ready" as const,
 		};
@@ -45,14 +45,14 @@ describe("the board summary", () => {
 	it("counts working stages in their fixed order and groups flights by goal, largest first and Other last", () => {
 		const flights = [
 			flight("one", "reviewing", "goal.small"),
-			flight("two", "executing", null),
-			flight("three", "executing", "goal.big"),
-			flight("four", "repairing", "goal.big"),
+			flight("two", "working", null),
+			flight("three", "working", "goal.big"),
+			flight("four", "waiting", "goal.big"),
 		];
 		expect(stageCounts(flights)).toEqual([
-			{ count: 2, stage: "executing" },
+			{ count: 2, stage: "working" },
 			{ count: 1, stage: "reviewing" },
-			{ count: 1, stage: "repairing" },
+			{ count: 1, stage: "waiting" },
 		]);
 		expect(flightGroups(flights).map((group) => [group.goal?.id ?? "Other", group.items.map((item) => item.workId)])).toEqual([
 			["goal.big", ["three", "four"]],

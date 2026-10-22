@@ -23,7 +23,7 @@ function card(item: typeof FleetView.Type): string {
 
 export function statusMarkdown(records: readonly FleetRecord[]): string {
 	const current = views(records.toSorted((left, right) => left.workId.localeCompare(right.workId)));
-	const done = views(records.filter((record) => record.stage === "completed").toSorted(newestCompletion((record) => record.workId))).completed;
+	const done = views(records.filter((record) => record.step === "done").toSorted(newestCompletion((record) => record.workId))).completed;
 	return `${[
 		STATUS_MARKER,
 		"# Fleet status",
@@ -31,7 +31,7 @@ export function statusMarkdown(records: readonly FleetRecord[]): string {
 		...(
 			[
 				["Active", current.active],
-				["Waiting on maintainer", current.waiting.maintainer],
+				["Waiting on you", current.waiting.maintainer],
 				["Waiting on orchestrator", current.waiting.orchestrator],
 				["Waiting on automation", current.waiting.automation],
 				["Done", done.slice(0, RECENT_COMPLETED)],

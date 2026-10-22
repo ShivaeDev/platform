@@ -43,7 +43,7 @@ screenStory.it(
 		expect(findElement(".document-outline")).not.toBeNull();
 	},
 );
-const QUESTION = "---\nid: question.fixture\nkind: question\nstatus: open\n---\n# A choice\n\nChoose a direction.\n";
+const QUESTION = "---\nid: question.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\n---\n# A choice\n\nChoose a direction.\n";
 screenStory.it(
 	"retains form text and focus when a hosted page query refreshes",
 	[routedScreen({ "home.md": "# Home", "question.md": QUESTION }, "/question.md", { home: "home.md", writable: true })],

@@ -9,7 +9,7 @@ import { postgresTests } from "#test/postgres.ts";
 describe("continuation launch backpressure", () => {
 	const test = postgresTests("test");
 	for (const checksFailure of [false, true]) {
-		test(`a rejected continuation from ${checksFailure ? "needs-human" : "completed"} retries its saved message on the same thread`, () => {
+		test(`a rejected continuation from ${checksFailure ? "waiting" : "completed"} retries its saved message on the same thread`, () => {
 			let now = 100;
 			let reject = false;
 			const launch = { model: "initial-model" };
@@ -29,12 +29,12 @@ describe("continuation launch backpressure", () => {
 						yield* fleet.dispatch("one");
 						finishWorkers(fixture);
 						const stopped = (yield* fleet.reconcile("one")).value;
-						expect(stopped.stage).toBe(checksFailure ? "needs-human" : "completed");
+						expect(stopped.step).toBe(checksFailure ? "waiting" : "done");
 						const sessionId = stopped.attempts[0]?.receipt?.sessionId;
 						reject = true;
 						const queued = (yield* fleet.continue("one", "Check another case")).value;
 						expect(queued.attentionOwner).toBe("automation");
-						expect(queued.stage).toBe("repairing");
+						expect(queued.step).toBe("repairing");
 						expect(queued.launchRetry?.retryAt).toBe(30_100);
 						expect(queued.history).toHaveLength(1);
 						const calls = fixture.settings.length;
@@ -46,7 +46,7 @@ describe("continuation launch backpressure", () => {
 						now = 30_100;
 						yield* fixture.restart(cycle);
 						const accepted = (yield* fleet.get("one")).value;
-						expect(accepted.stage).toBe("executing");
+						expect(accepted.step).toBe("working");
 						expect(accepted.launchRetry).toBeUndefined();
 						expect(accepted.attentionOwner).toBeUndefined();
 						expect(accepted.attempts.at(-1)).toMatchObject({
@@ -58,7 +58,7 @@ describe("continuation launch backpressure", () => {
 						expect(accepted.history).toHaveLength(1);
 						expect(fixture.launched).toHaveLength(2);
 						finishWorkers(fixture);
-						expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { evidence: ["Check another case"] }, stage: "completed" });
+						expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { evidence: ["Check another case"] }, step: "done" });
 					}),
 			);
 		});

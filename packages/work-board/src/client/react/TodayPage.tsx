@@ -51,7 +51,7 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 					<TodayNeedsYou answering={answering} api={api} complete={data.complete} identified={data.identified} />
 					{data.complete && answered.length > 0 && <Answered fleet={Option.isSome(fleetQuery.cause) ? undefined : fleet} rows={answered} />}
 					<section className="min-w-0" id={todayIds.progress}>
-						<h2 className="mt-0 mb-3 font-semibold text-lg">In progress</h2>
+						<h2 className="mt-0 mb-3 font-semibold text-lg">{progress?.source === "files" ? "Ready tasks" : "In progress"}</h2>
 						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
 					</section>
 					{data.complete && data.later.length > 0 && <Later items={data.later} />}

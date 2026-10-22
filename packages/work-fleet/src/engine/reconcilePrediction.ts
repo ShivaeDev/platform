@@ -9,7 +9,7 @@ import type { Versioned } from "#storage/model.ts";
 
 export const reconcilePrediction = Effect.fn("Fleet.reconcilePrediction")(function* (state: EngineState, stored: Versioned<FleetRecord>) {
 	const record = stored.value;
-	if (state.integrations.predict === undefined || record.stage === "adopting") {
+	if (state.integrations.predict === undefined || record.step === "adopting") {
 		return stored;
 	}
 	const pr = yield* publishedPr(state, record);
@@ -31,12 +31,12 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 	const record = stored.value;
 	const waits = prediction.conflicts.filter((conflict) => conflict.wait);
 	if (waits.length > 0) {
-		const reason = waits.map((conflict) => `${conflict.otherPr} (${conflict.files.join(", ")})`).join("; ");
+		const reason = waits.map((conflict) => `waiting for ${conflict.otherPr} to merge: conflicting ${conflict.files.join(", ")}`).join("; ");
 		return yield* state
 			.save(stored, {
 				...record,
 				attentionOwner: "automation",
-				blocker: `waiting for predicted conflict with ${reason} to merge`,
+				blocker: reason,
 				checks: undefined,
 				decision: undefined,
 				decisionAcknowledged: undefined,
@@ -46,7 +46,7 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 				mergeReadyHead: undefined,
 				predictedConflictHold: { head: prediction.head, prs: waits.map((conflict) => conflict.otherPr) },
 				review: undefined,
-				stage: "reviewing",
+				step: "reviewing",
 				supersededDecisions:
 					record.decision?.published === undefined
 						? record.supersededDecisions
@@ -82,6 +82,6 @@ function canHold(record: FleetRecord) {
 	return (
 		!executing(record)
 		&& record.result?.kind === "change"
-		&& (["reviewing", "validating", "delivering"].includes(record.stage) || record.decision?.code === "reviewed-pr-ready")
+		&& (["reviewing", "validating", "delivering"].includes(record.step) || record.decision?.code === "reviewed-pr-ready")
 	);
 }

@@ -37,7 +37,7 @@ export function recoveryActiveTurnCase(code: "session-active-turn" | "session-ac
 			expect(retry?.receipt).toBeDefined();
 			expect(retry?.operationId).not.toBe(before.attempts.at(-1)?.operationId);
 			expect(retry?.sessionId === before.attempts.at(-1)?.sessionId).toBe(false);
-			expect(after.stage).toBe("executing");
+			expect(after.step).toBe("working");
 		},
 		restore: () =>
 			Effect.sync(() => {

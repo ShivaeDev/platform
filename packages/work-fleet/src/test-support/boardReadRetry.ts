@@ -17,7 +17,7 @@ export const boardReadRecovery = Effect.fn("Test.boardReadRecovery")(function* (
 				yield* fleet.dispatch("item.0");
 				board.unreadable.add(source);
 				const waiting = (yield* fleet.reconcile("item.0")).value;
-				expect(waiting.stage).toBe("executing");
+				expect(waiting.step).toBe("working");
 				expect(waiting.decision).toBeUndefined();
 				expect(waiting.attentionOwner).toBe("automation");
 				expect(waiting.blocker).toContain(source === "." ? "Board sources could not be listed" : "Board source could not be read");
@@ -30,7 +30,7 @@ export const boardReadRecovery = Effect.fn("Test.boardReadRecovery")(function* (
 				now = 30_100;
 				yield* fixture.restart(cycle);
 				const recovered = (yield* fleet.get("item.0")).value;
-				expect(recovered.stage).toBe("executing");
+				expect(recovered.step).toBe("working");
 				expect(recovered.decision).toBeUndefined();
 				expect(recovered.integrationRetry).toBeUndefined();
 				expect(recovered.blocker).toBeUndefined();
@@ -62,7 +62,7 @@ export const boardReadExhaustion = Effect.fn("Test.boardReadExhaustion")(functio
 					}
 				}
 				const parked = (yield* fleet.get("item.0")).value;
-				expect(parked.stage).toBe("needs-human");
+				expect(parked.step).toBe("waiting");
 				expect(parked.decision?.reason).toContain("read failure after 5 attempts");
 				expect(parked.decisionPublished).toBe(false);
 				expect((yield* fleet.reconcile("item.0")).value.decision).toEqual(parked.decision);
@@ -90,7 +90,7 @@ export const boardDispatchRetry = Effect.fn("Test.boardDispatchRetry")(function*
 				yield* prepareWork("item.0");
 				board.unreadable.add(".");
 				const waiting = (yield* fleet.dispatch("item.0")).value;
-				expect(waiting.stage).toBe("prepared");
+				expect(waiting.step).toBe("queued");
 				expect(waiting.decision).toBeUndefined();
 				expect(waiting.attentionOwner).toBe("automation");
 				expect(waiting.integrationRetry).toMatchObject({ failures: 1, retryAt: 30_100 });
@@ -102,7 +102,7 @@ export const boardDispatchRetry = Effect.fn("Test.boardDispatchRetry")(function*
 				now = 30_100;
 				yield* fixture.restart(cycle);
 				const recovered = (yield* fleet.get("item.0")).value;
-				expect(recovered.stage).toBe("executing");
+				expect(recovered.step).toBe("working");
 				expect(recovered.integrationRetry).toBeUndefined();
 				expect(recovered.blocker).toBeUndefined();
 				expect(recovered.attentionOwner).toBeUndefined();

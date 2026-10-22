@@ -5,7 +5,7 @@ import { waitFor } from "#test/live.ts";
 
 const searchPalette = /^\/_board\/react-assets\/SearchPalette-[\w-]+\.js$/u;
 const workTable = /^\/_board\/react-assets\/WorkTable-[\w-]+\.js$/u;
-const files = projectFiles({ "task.md": "---\nid: task.fixture\nkind: task\nstatus: planned\nowner: reader\n---\n# A task\n" });
+const files = projectFiles({ "task.md": "---\nid: task.fixture\nkind: task\nstatus: draft\nowner: marvin\n---\n# A task\n" });
 // Only document, search, table and goal views use these, and each would add tens of kilobytes to every first page.
 const laterLibraries = ["parse5", "shiki", "@shikijs", "react-markdown", "cmdk", "@tanstack/react-table", "recharts"];
 

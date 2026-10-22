@@ -8,13 +8,13 @@ import { routedScreen } from "#test/screenTraits.ts";
 const OPEN_PACKET = 1;
 
 expectNoReactWarnings();
-for (const mode of ["managed", "registered", "needs-human"]) {
+for (const mode of ["managed", "registered", "waiting"]) {
 	let source = questionnaireSource;
 	if (mode === "managed") {
 		source = source.replace("kind: decision", "kind: decision\n    managed: true");
 	}
-	if (mode === "needs-human") {
-		source = source.replace("kind: investigation", "kind: investigation\nstatus: needs-human");
+	if (mode === "waiting") {
+		source = source.replace("kind: task", "kind: task\nstatus: ready");
 	}
 	screenStory.it(
 		`links a ${mode} packet from Today directly to its answer card`,

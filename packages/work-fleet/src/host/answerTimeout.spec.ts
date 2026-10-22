@@ -24,7 +24,7 @@ const steerRequest = Effect.fn("AnswerTimeoutTest.steerRequest")(function* (
 	const client = yield* daemonClient(port);
 	const started = yield* dispatchAndWait(client, "one");
 	const current = task("one", "approved", "Revised criteria.");
-	fixture.write("one.md", current.replace("kind: task", "kind: task\nowner: human"));
+	fixture.write("one.md", current.replace("kind: task", "kind: task\nowner: marvin"));
 	const stopped = yield* client("fleet.reconcile", { workId: "one" });
 	expect(stopped.decision?.code).toBe("fleet-stale");
 	fixture.write("one.md", current);

@@ -12,12 +12,12 @@ import { fleetReports } from "#test/storyTraits.ts";
 const item = {
 	attentionOwner: "maintainer" as const,
 	prUrl: "https://example.invalid/pr/1",
-	stage: "needs-human" as const,
+	stage: "waiting" as const,
 	stageEnteredAt: 100,
 	updatedAt: 200,
 };
 const data: FleetItems = {
-	completed: [{ ...item, completedAt: 200, stage: "completed", workId: "done" }],
+	completed: [{ ...item, completedAt: 200, stage: "done", workId: "done" }],
 	items: [
 		{ ...item, workId: "one" },
 		{ ...item, workId: "missing" },
@@ -28,7 +28,7 @@ const project = projectFiles({
 	"done.md": "---\nid: done\nkind: task\n---\n# Delivered task",
 	"duplicate-too.md": "---\nid: duplicate\n---\n# Other duplicate",
 	"duplicate.md": "---\nid: duplicate\n---\n# Duplicate",
-	"one.md": "---\nid: one\nkind: task\nstatus: planned\n---\n# First task",
+	"one.md": "---\nid: one\nkind: task\nstatus: draft\n---\n# First task",
 });
 const missing = { cause: "Not configured for the story", observedAt: 0, state: "not-configured" as const };
 function snapshot() {
@@ -47,7 +47,7 @@ boardStory.it(
 		if (result.state !== "ready") {
 			throw new Error("Fleet items were unavailable");
 		}
-		expect(result.items[0]?.document).toEqual({ file: "one.md", metadata: { id: "one", kind: "task", status: "planned" }, title: "First task" });
+		expect(result.items[0]?.document).toEqual({ file: "one.md", metadata: { id: "one", kind: "task", status: "draft" }, title: "First task" });
 		expect(result.items[1]?.document).toBeNull();
 		expect(result.items[2]?.document).toBeNull();
 		expect(result.completed[0]).toMatchObject({ completedAt: 200, document: { file: "done.md", title: "Delivered task" } });
@@ -98,14 +98,14 @@ boardStory.it(
 	"lists the tasks whose own files say they are in progress while Fleet is unavailable",
 	[
 		projectFiles({
-			"active.md": "---\nid: task.active\nkind: task\nstatus: active\nowner: codex\n---\n# Active task",
-			"delivering.md": "---\nid: task.delivering\nkind: task\nstatus: delivering\n---\n# Delivering task",
+			"active.md": "---\nid: task.active\nkind: task\nstatus: ready\nowner: codex\n---\n# Ready task",
+			"delivering.md": "---\nid: task.delivering\nkind: task\nstatus: ready\n---\n# Delivering task",
 			"done.md": "---\nid: task.done\nkind: task\nstatus: done\n---\n# Done task",
 			"dropped.md": "---\nid: task.dropped\nkind: task\nstatus: dropped\n---\n# Dropped task",
-			"merge.md": "---\nid: task.merge\nkind: task\nstatus: review\n---\n# Merge task",
-			"planned.md": "---\nid: task.planned\nkind: task\nstatus: planned\n---\n# Planned task",
-			"project.md": "---\nid: project.running\nkind: project\nstatus: active\n---\n# Running goal",
-			"review.md": "---\nid: task.review\nkind: task\nstatus: in-review\n---\n# Reviewed task",
+			"merge.md": "---\nid: task.merge\nkind: task\nstatus: ready\n---\n# Merge task",
+			"planned.md": "---\nid: task.draft\nkind: task\nstatus: draft\n---\n# Draft task",
+			"project.md": "---\nid: project.running\nkind: goal\nstatus: ready\n---\n# Running goal",
+			"review.md": "---\nid: task.review\nkind: task\nstatus: ready\n---\n# Reviewed task",
 		}),
 		deferredServing,
 	],
@@ -113,10 +113,10 @@ boardStory.it(
 		yield* start({ fleetPort: null });
 		expect(yield* rpc((client) => client("work-board.fleetItems", undefined))).toEqual({
 			authored: [
-				{ file: "active.md", status: "active", title: "Active task", workId: "task.active" },
-				{ file: "delivering.md", status: "delivering", title: "Delivering task", workId: "task.delivering" },
-				{ file: "merge.md", status: "review", title: "Merge task", workId: "task.merge" },
-				{ file: "review.md", status: "in-review", title: "Reviewed task", workId: "task.review" },
+				{ file: "active.md", status: "ready", title: "Ready task", workId: "task.active" },
+				{ file: "delivering.md", status: "ready", title: "Delivering task", workId: "task.delivering" },
+				{ file: "merge.md", status: "ready", title: "Merge task", workId: "task.merge" },
+				{ file: "review.md", status: "ready", title: "Reviewed task", workId: "task.review" },
 			],
 			reason: "Fleet isn't set up for this Board.",
 			state: "unavailable",

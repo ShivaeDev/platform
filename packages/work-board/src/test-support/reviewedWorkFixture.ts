@@ -3,7 +3,7 @@ export const reviewedDecisionId = `decision.${"c".repeat(64)}`;
 const REVIEWED_TASK = `---
 id: task.upload
 kind: task
-status: active
+status: ready
 owner: codex
 fleet: approved
 next_action: Fleet starts it now.
@@ -36,8 +36,10 @@ ${JSON.stringify({
 		},
 	],
 	id: reviewedDecisionId,
-	kind: "decision",
+	kind: "question",
 	relationships: [{ kind: "relates_to", target: "task.upload" }],
+	scope: "task",
+	urgency: "whenever",
 })}
 ---
 # Fleet decision for task.upload

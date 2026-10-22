@@ -14,25 +14,25 @@ host.it(
 		yield* daemon.schedulerPass();
 		const first = yield* daemon.get("one");
 		daemon.finishTurn(first, "FLEET_QUESTION: Which implementation should I use?");
-		expect((yield* daemon.reconcile("one")).stage).toBe("needs-human");
+		expect((yield* daemon.reconcile("one")).step).toBe("waiting");
 		yield* daemon.answer("one", undefined, true);
-		expect((yield* daemon.get("one")).stage).toBe("released");
+		expect((yield* daemon.get("one")).step).toBe("released");
 		yield* daemon.stop();
 		yield* daemon.start();
 		expect(yield* daemon.admit()).toEqual([]);
-		expect((yield* daemon.get("one")).stage).toBe("prepared");
+		expect((yield* daemon.get("one")).step).toBe("queued");
 		yield* daemon.schedule();
 		const resumed = yield* daemon.get("one");
-		expect(resumed.stage).toBe("executing");
-		expect(resumed.history?.[0]?.stage).toBe("released");
+		expect(resumed.step).toBe("working");
+		expect(resumed.history?.[0]?.step).toBe("released");
 		expect(resumed.attempts[0]?.receipt?.sessionId).not.toBe(first.attempts[0]?.receipt?.sessionId);
 		expect((yield* daemon.get("dependent")).blocker).toContain("waiting for dependency one");
 		daemon.finishTurn(resumed, REPORT);
 		expect((yield* daemon.reconcile("one")).decision?.code).toBe("reviewed-pr-ready");
 		daemon.mergePullRequest();
-		expect((yield* daemon.reconcile("one")).stage).toBe("completed");
+		expect((yield* daemon.reconcile("one")).step).toBe("done");
 		yield* daemon.schedulerPass();
-		expect((yield* daemon.get("dependent")).stage).toBe("executing");
+		expect((yield* daemon.get("dependent")).step).toBe("working");
 	},
 );
 
@@ -42,21 +42,21 @@ host.it(
 	function* (daemon) {
 		yield* daemon.schedulerPass();
 		const launched = yield* daemon.get("one");
-		expect(launched.stage).toBe("executing");
+		expect(launched.step).toBe("working");
 		daemon.finishTurn(launched, "FLEET_QUESTION: Which implementation should I use?");
-		expect((yield* daemon.reconcile("one")).stage).toBe("needs-human");
+		expect((yield* daemon.reconcile("one")).step).toBe("waiting");
 		daemon.writeBoard("one.md", one.replace("fleet: approved", "fleet: held"));
 		yield* daemon.answer("one", undefined, true);
 		const released = yield* daemon.storedRecord("one");
-		expect(released.value.stage).toBe("released");
+		expect(released.value.step).toBe("released");
 		const starts = daemon.providerStarts();
 		yield* daemon.schedulerPass();
-		expect((yield* daemon.get("one")).stage).toBe("released");
+		expect((yield* daemon.get("one")).step).toBe("released");
 		expect(daemon.providerStarts()).toEqual(starts);
 	},
 );
 
-for (const field of ["fleet: none", "status: dropped", "status: done", "status: superseded", "status: deferred"]) {
+for (const field of ["fleet: manual", "status: dropped", "status: done", "status: dropped", "status: deferred"]) {
 	const source = field.startsWith("fleet:") ? one.replace("fleet: approved", field) : one.replace("kind: task", `kind: task\n${field}`);
 	host.it(
 		`a released task with ${field} stays released on admission`,

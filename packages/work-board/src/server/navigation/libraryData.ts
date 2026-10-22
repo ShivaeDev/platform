@@ -10,13 +10,15 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 	const records = fleetRecords(snapshot.model);
 	const documents = new Map(snapshot.documents.map((document) => [document.file, document.parsed.fields]));
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
-	const all = files.map((file) => ({
-		...file,
-		href: fileUrl(file.path),
-		kind: documents.get(file.path)?.kind ?? "document",
-		status: documents.get(file.path)?.status ?? "",
-		title: titles.get(file.path) ?? file.path,
-	}));
+	const all = files
+		.filter((file) => !documents.get(file.path)?.response)
+		.map((file) => ({
+			...file,
+			href: fileUrl(file.path),
+			kind: documents.get(file.path)?.kind ?? "document",
+			status: documents.get(file.path)?.status ?? "",
+			title: titles.get(file.path) ?? file.path,
+		}));
 	const visible = all.filter(
 		(file) =>
 			(input.showFleet || !records.has(file.path))

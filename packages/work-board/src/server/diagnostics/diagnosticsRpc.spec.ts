@@ -12,8 +12,8 @@ boardStory.it(
 		for (const text of ["24% used", "4321 of 5000", "3 / 8", "Current snapshot"]) {
 			expect(body).toContain(text);
 		}
-		expect(body).toContain(`<dt>Waiting on the orchestrator</dt><dd><strong>${health.waiting.orchestrator}</strong>`);
-		expect(body).toContain(`<dt>Waiting on Fleet agents</dt><dd><strong>${health.waiting.automation}</strong>`);
+		expect(body).toContain(`<dt>Waiting on orchestrator</dt><dd><strong>${health.waiting.orchestrator}</strong>`);
+		expect(body).toContain(`<dt>Waiting on automation</dt><dd><strong>${health.waiting.automation}</strong>`);
 		expect(body).not.toContain("99 / 8");
 	},
 );

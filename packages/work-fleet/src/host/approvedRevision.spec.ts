@@ -13,7 +13,7 @@ host.it(
 		yield* daemon.admit();
 		const result = yield* daemon.fleetDispatch("one");
 		expect(result.value.boardRevision).not.toBe(first.boardRevision);
-		expect(result.value.stage).toBe("executing");
+		expect(result.value.step).toBe("working");
 		expect(result.value.decision).toBeUndefined();
 		expect(result.value.boardContext).toBe(edited);
 		expect(result.value.prompt).toBe(edited);

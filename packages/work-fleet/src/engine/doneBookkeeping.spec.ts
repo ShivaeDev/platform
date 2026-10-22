@@ -23,7 +23,7 @@ for (const wholeFileRevision of [false, true]) {
 				boardReceipts,
 				foreignReservations,
 			}) {
-				const original = boardBrief().replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.");
+				const original = boardBrief().replace("kind: task", "kind: task\nstatus: draft\nnext_action: Implement the work.");
 				writeBoardWork("one.md", original);
 				yield* prepareWork("one");
 				if (wholeFileRevision) {
@@ -44,11 +44,11 @@ for (const wholeFileRevision of [false, true]) {
 				}
 				const active = yield* fleet.get("one");
 				const turns = providerCalls().filter((call) => call.call === "turn").length;
-				writeBoardWork("one.md", original.replace("status: planned", "status: done").replace("Implement the work.", "Work completed."));
+				writeBoardWork("one.md", original.replace("status: draft", "status: done").replace("Implement the work.", "Work completed."));
 				yield* restart();
 				const preserved = yield* fleet.reconcile("one");
 				if (phase === "decision") {
-					expect(preserved.value.stage).toBe("released");
+					expect(preserved.value.step).toBe("released");
 					expect(preserved.value.releaseReason).toBe("Board status is done");
 					expect(preserved.value.decision).toBeUndefined();
 					expect(preserved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.value.decision?.published }]);
@@ -59,20 +59,20 @@ for (const wholeFileRevision of [false, true]) {
 					attempts: active.value.attempts,
 					boardContext: original,
 					boardRevision: active.value.boardRevision,
-					stage: active.value.stage,
+					step: active.value.step,
 				});
 				expect(preserved.value.decision).toEqual(active.value.decision);
 				expect(preserved.value.result).toEqual(active.value.result);
 				expect(preserved.value.outcome).toEqual(active.value.outcome);
 				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns);
 				if (phase === "preparation") {
-					expect((yield* fleet.dispatch("one")).value.stage).toBe("released");
+					expect((yield* fleet.dispatch("one")).value.step).toBe("released");
 					expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns);
 					return;
 				}
 				finishWorkers();
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(completed.value.decision).toBeUndefined();
 				expect(completed.value.boardContext).toBe(original);
 				expect(yield* foreignReservations()).toEqual([]);

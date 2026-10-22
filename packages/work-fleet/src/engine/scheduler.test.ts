@@ -5,9 +5,9 @@ import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
 import { postgresTests } from "#test/postgres.ts";
 
-const awaitStage = Effect.fn("Fleet.awaitStage")(function* (workId: string, stage: string) {
+const awaitStage = Effect.fn("Fleet.awaitStage")(function* (workId: string, step: string) {
 	const fleet = yield* Fleet;
-	while ((yield* fleet.get(workId)).value.stage !== stage) {
+	while ((yield* fleet.get(workId)).value.step !== step) {
 		yield* Effect.yieldNow;
 	}
 });
@@ -38,7 +38,7 @@ describe("Fleet autonomous scheduling", () => {
 				});
 				yield* cycle.pipe(Effect.provideService(Fleet, concurrent));
 				expect(reconciled).toEqual(["two"]);
-				expect((yield* fleet.get("one")).value.stage).toBe("executing");
+				expect((yield* fleet.get("one")).value.step).toBe("working");
 				expect(fixture.launched).toHaveLength(2);
 			}),
 		));
@@ -58,8 +58,8 @@ describe("Fleet autonomous scheduling", () => {
 				const progression = yield* fleet.reconcile("one").pipe(Effect.forkChild);
 				yield* Deferred.await(entered);
 				const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
-				yield* awaitStage("two", "executing");
-				expect((yield* fleet.get("one")).value.stage).toBe("validating");
+				yield* awaitStage("two", "working");
+				expect((yield* fleet.get("one")).value.step).toBe("validating");
 				expect(fixture.launched).toHaveLength(3);
 				while ((yield* fleet.get("two")).value.attempts[0]?.receipt === undefined) {
 					yield* Effect.yieldNow;
@@ -83,8 +83,8 @@ describe("Fleet autonomous scheduling", () => {
 				const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
 				yield* Deferred.await(entered);
 				yield* prepareWork("two");
-				yield* awaitStage("two", "executing");
-				expect((yield* fleet.get("one")).value.stage).toBe("reviewing");
+				yield* awaitStage("two", "working");
+				expect((yield* fleet.get("one")).value.step).toBe("reviewing");
 				yield* Fiber.interrupt(scheduler);
 			}),
 		);
@@ -105,9 +105,9 @@ describe("Fleet autonomous scheduling", () => {
 				expect(decision).toBeDefined();
 				expect(yield* Effect.flip(fleet.resolve("one", decision?.id ?? "missing", "response.unpublished"))).toMatchObject({ _tag: "Conflict" });
 				yield* Deferred.succeed(release, undefined);
-				expect((yield* Fiber.join(pending)).value.stage).toBe("needs-human");
+				expect((yield* Fiber.join(pending)).value.step).toBe("waiting");
 				yield* fleet.resolve("one", decision?.id ?? "missing", fixture.respond(decision?.id ?? "missing", "release"));
-				expect((yield* fleet.get("one")).value.stage).toBe("released");
+				expect((yield* fleet.get("one")).value.step).toBe("released");
 			}),
 		);
 	});

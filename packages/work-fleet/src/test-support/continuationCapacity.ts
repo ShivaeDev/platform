@@ -6,7 +6,7 @@ export const continuationCapacity = isolatedEngine.trait("configuration", "two e
 	engine.options = { ...engine.options, backlog: 4, concurrency: 2 };
 });
 
-export const completedContinuation = isolatedEngine.trait("configuration", "completed results", (engine) => {
+export const completedContinuation = isolatedEngine.trait("configuration", "done results", (engine) => {
 	engine.options = { ...engine.options, noChange: true };
 });
 

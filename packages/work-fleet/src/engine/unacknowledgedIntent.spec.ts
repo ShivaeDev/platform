@@ -15,7 +15,7 @@ const recover = Effect.fnUntraced(function* (fixture: EngineFixture, gate: Defer
 	const responseId = fixture.respond(decisionId, action);
 	const resolve = Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decisionId, responseId)));
 	const resolved = yield* fixture.restart(resolve);
-	expect(resolved.value.stage).toBe(action === "retry" ? "prepared" : "released");
+	expect(resolved.value.step).toBe(action === "retry" ? "queued" : "released");
 	expect(resolved.value.attempts[0]).toMatchObject({ status: "failed" });
 	yield* Deferred.succeed(gate, undefined);
 	yield* Effect.yieldNow;
@@ -77,12 +77,12 @@ const acknowledgementWins = Effect.fnUntraced(function* (
 	const rejected = yield* Fiber.join(retiring);
 	expect(rejected).toMatchObject({ _tag: "Failure", failure: { _tag: "Conflict" } });
 	expect((yield* fleet.get("one")).value.attempts[0]?.sessionId).toBe("session-operation-1");
-	expect((yield* fleet.get("one")).value.stage).toBe("needs-human");
+	expect((yield* fleet.get("one")).value.step).toBe("waiting");
 	while ((yield* fleet.get("one")).value.attempts[0]?.receipt === undefined) {
 		yield* Effect.yieldNow;
 	}
 	finishWorkers(fixture);
-	expect((yield* fixture.restart(resolve)).value.stage).toBe("released");
+	expect((yield* fixture.restart(resolve)).value.step).toBe("released");
 	expect(fixture.operations.size).toBe(1);
 });
 
@@ -109,7 +109,7 @@ postgresTests("live", "isolated")(
 				}),
 				sessionAcknowledgementGate: Deferred.await(gates.session),
 				writeGate: (value) =>
-					value.stage === "needs-human" && value.attempts[0]?.status === "failed"
+					value.step === "waiting" && value.attempts[0]?.status === "failed"
 						? Deferred.succeed(gates.retiring, undefined).pipe(Effect.andThen(Deferred.await(gates.commit)))
 						: Effect.void,
 			},

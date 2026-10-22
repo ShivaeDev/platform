@@ -13,7 +13,7 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 		[
 			systemScreen({
 				...fleet,
-				items: fleet.items.map((item) => (item.stage === "needs-human" ? { ...item, attentionOwner: "maintainer" as const } : item)),
+				items: fleet.items.map((item) => (item.stage === "waiting" ? { ...item, attentionOwner: "maintainer" as const } : item)),
 			}),
 		],
 		({ readText, findElement, readAttribute }) => {
@@ -22,10 +22,10 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 			expect(findElement('[data-source="github"]')).not.toBeNull();
 			expect(readText('[data-fleet-id="task.sample.0"]')).toContain("Workspace task 0");
 			expect(readAttribute('[aria-label="Pull request for Workspace task 0"]', "href")).toBe("https://github.com/example/project/pull/1");
-			for (const stage of ["Queued", "Executing", "Adopting", "Reviewing", "Repairing", "Validating", "Delivering", "Waiting"]) {
+			for (const stage of ["Queued", "Working", "Reviewing", "Waiting"]) {
 				expect(readText('[aria-label="Fleet work"]')).toContain(stage);
 			}
-			expect(readText('[data-fleet-id="task.needs-human"]')).toContain("Needs you");
+			expect(readText('[data-fleet-id="task.waiting"]')).toContain("Waiting on you");
 			expect(findElement('[data-fleet-id="task.released"]')).toBeNull();
 		},
 	);
@@ -42,7 +42,7 @@ import { todayFleetFixture } from "#test/todayFleetFixture.ts";
 		({ read, findElement, findElements }) => {
 			const row = findElement('[data-fleet-id="task.sample.0"]');
 			expect(row?.textContent).toContain("Workspace task 0");
-			expect(row?.textContent).toContain("Executing");
+			expect(row?.textContent).toContain("Working");
 			expect(findElements("a", row)).toHaveLength(1);
 			expect(findElement('[aria-label^="Pull request"]')).toBeNull();
 			expect(read().text).not.toMatch(/not recorded/iu);

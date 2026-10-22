@@ -26,14 +26,14 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		if (stored.value.pendingContinuation !== undefined) {
 			return yield* launch(stored, "repair", stored.value.pendingContinuation);
 		}
-		if (["completed", "released"].includes(stored.value.stage)) {
+		if (["done", "released"].includes(stored.value.step)) {
 			return stored;
 		}
 		stored = yield* reconcilePrediction(state, stored);
 		if (stored.value.predictedConflictHold !== undefined) {
 			return stored;
 		}
-		if (stored.value.stage === "needs-human") {
+		if (stored.value.step === "waiting") {
 			stored = yield* makeDeliver(state)(stored);
 			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(workId))) ?? stored;
 		}
@@ -55,7 +55,7 @@ function advanceObserved(state: EngineState, launch: ReturnType<typeof makeLaunc
 	return Effect.fn("Fleet.advanceObserved")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
 		stored = yield* makeDeliver(state)(stored);
-		if (stored.value.stage === "needs-human") {
+		if (stored.value.step === "waiting") {
 			stored = (yield* releaseClosedPreparation(state, stored, yield* state.board.get(stored.value.workId))) ?? stored;
 		}
 		stored = yield* reconcileBrief(state, stored);
@@ -66,12 +66,12 @@ function advanceObserved(state: EngineState, launch: ReturnType<typeof makeLaunc
 function advanceExecution(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.advanceExecution")(function* (input: Versioned<FleetRecord>) {
 		let stored = input;
-		if (["completed", "released", "prepared", "needs-human"].includes(stored.value.stage)) {
+		if (["done", "released", "queued", "waiting"].includes(stored.value.step)) {
 			return stored;
 		}
 		const work = yield* state.board.get(stored.value.workId);
 		yield* authorizeBriefContext(stored.value, work);
-		if (stored.value.stage === "adopting") {
+		if (stored.value.step === "adopting") {
 			stored = yield* makeAdopt(state)(stored, work);
 			stored = yield* reconcilePrediction(state, stored);
 		}
@@ -103,7 +103,7 @@ const advanceRepair = Effect.fn("Fleet.advanceRepair")(function* (
 	input: Versioned<FleetRecord>,
 	source: "review" | "checks",
 ) {
-	if (input.value.stage !== "repairing") {
+	if (input.value.step !== "repairing") {
 		return undefined;
 	}
 	const stored = yield* makeDeliver(state)(input);
@@ -111,5 +111,5 @@ const advanceRepair = Effect.fn("Fleet.advanceRepair")(function* (
 		source === "review"
 			? (stored.value.checks?.repairPrompt ?? stored.value.review?.repairPrompt ?? stored.value.prompt)
 			: (stored.value.checks?.repairPrompt ?? "Fix required checks");
-	return stored.value.stage === "released" ? stored : yield* launch(stored, "repair", prompt);
+	return stored.value.step === "released" ? stored : yield* launch(stored, "repair", prompt);
 });

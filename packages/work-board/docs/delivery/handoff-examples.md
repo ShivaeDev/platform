@@ -11,7 +11,6 @@ The file's frontmatter records direction and the reviewed source SHA-256. Its bo
 ```markdown
 ---
 id: handoff.search.keyboard.1
-kind: handoff
 handoff:
   item: work.search
   recipient: agent-navigation

@@ -7,7 +7,7 @@ export const indexedWorkspace: Readonly<Record<string, string>> = Object.fromEnt
 		`---
 id: fixture.${index}
 kind: task
-status: planned
+status: draft
 criteria:
  - id: done
    text: Verify this document

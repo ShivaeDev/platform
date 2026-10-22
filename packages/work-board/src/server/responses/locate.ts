@@ -1,12 +1,11 @@
 import { Effect, type FileSystem } from "effect";
 import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
-import type { QuestionPreview } from "#browser/responses/schema.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
-import { questionId, revisionOf } from "./records.ts";
+import { questionPreview } from "./questionPreview.ts";
 import { requestSource } from "./requestSource.ts";
 import { questionTemplate } from "./template.ts";
 
@@ -38,20 +37,10 @@ export function locate(root: string, realRoot: string, snapshot: Effect.Effect<S
 				}),
 			);
 		}
-		const revision = revisionOf(source);
 		yield* Effect.try({
 			catch: (cause) => new BadRequest({ message: `Invalid response template: ${cause instanceof Error ? cause.message : String(cause)}` }),
 			try: () => questionTemplate(source, request),
 		});
-		const question: QuestionPreview = {
-			context: source,
-			id: questionId(item, request, revision, entry.document.file),
-			item,
-			reason: fresh.reason,
-			request,
-			reviewedRevision: revision,
-			source: entry.document.file,
-		};
-		return question;
+		return questionPreview(current.document, request, fresh.reason, current.snapshot.model);
 	});
 }

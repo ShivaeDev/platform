@@ -25,9 +25,9 @@ postgresTests("live")("Board reads real daemon health, owner counts and Fleet's 
 	withHost({}, { concurrency: 8 }, (fixture) =>
 		Effect.gen(function* () {
 			for (const owner of ["automation", "maintainer", "orchestrator"] as const) {
-				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "needs-human"), attentionOwner: owner });
+				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "waiting"), attentionOwner: owner });
 			}
-			yield* storeState(fixture.host, "queued", statusRecord("queued", "prepared"));
+			yield* storeState(fixture.host, "queued", statusRecord("queued", "queued"));
 			let codexReads = 0;
 			const github = syntheticGithub({ remaining: 4568 });
 			github.reply("repos/example/project/pulls/7", { number: 7 });

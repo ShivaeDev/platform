@@ -12,9 +12,9 @@ export function paletteFixture(): Readonly<Record<string, string>> {
 			]),
 		),
 		...responseRecords(1, "decision.delivery.0", "records/decision-0.md", decision),
-		"closed.md": "---\nid: project.closed\nkind: project\nstatus: done\n---\n# Finished workspace\n",
-		"goal.md": "---\nid: project.workspace\nkind: project\nstatus: active\n---\n# A calmer workspace\n",
+		"closed.md": "---\nid: project.closed\nkind: goal\nstatus: done\n---\n# Finished workspace\n",
+		"goal.md": "---\nid: project.workspace\nkind: goal\nstatus: ready\n---\n# A calmer workspace\n",
 		"passage.md": "# Notes\n\nA passage about the inbox.\n",
-		"task.md": "---\nid: task.triage\nkind: task\nstatus: active\n---\n# Build the inbox\n\nKeep real work easy to find.\n",
+		"task.md": "---\nid: task.triage\nkind: task\nstatus: ready\n---\n# Build the inbox\n\nKeep real work easy to find.\n",
 	};
 }

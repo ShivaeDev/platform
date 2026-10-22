@@ -10,13 +10,13 @@ controlPublication.it("continue confirms and applies once while another launch's
 	yield* daemon.prepareLaunch();
 	yield* daemon.blockLaunchPublication();
 	const continued = yield* daemon.continue(MESSAGE);
-	expect(continued.stage).toBe("executing");
+	expect(continued.step).toBe("working");
 	expect(continued.attempts).toHaveLength(1);
 	expect(continued.attempts[0]).toMatchObject({ prompt: MESSAGE, receipt: { sessionId: original.attempts[0]?.receipt?.sessionId } });
 	expect(daemon.turns()).toHaveLength(3);
 	yield* daemon.releasePublication();
 	yield* daemon.flush();
-	expect(daemon.status()).toContain("Stage: executing");
+	expect(daemon.status()).toContain("Stage: working");
 	expect((yield* daemon.get()).attempts).toEqual(continued.attempts);
 });
 
@@ -71,5 +71,5 @@ controlPublication.it("host shutdown flushes the recorded state after cancelling
 	yield* daemon.releasePublication();
 	yield* daemon.stop();
 	const card = daemon.status().split("### one\n")[1]?.split("\n### ")[0]?.split("\n## ")[0];
-	expect(card).toContain("Stage: executing");
+	expect(card).toContain("Stage: working");
 });

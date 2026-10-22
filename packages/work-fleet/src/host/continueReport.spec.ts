@@ -8,10 +8,10 @@ import { dispatchWork } from "#test/dispatchWork.ts";
 import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 
-const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
+const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
 const test = postgresTests("live");
 
-test("manual continuation archives a completed report and adopts the continued report turn", function* () {
+test("manual continuation archives a done report and adopts the continued report turn", function* () {
 	yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 		Effect.gen(function* () {
 			yield* dispatchWork(fixture.host, "research", fixture.parts);
@@ -21,9 +21,9 @@ test("manual continuation archives a completed report and adopts the continued r
 			const execution = Effect.gen(function* () {
 				const fleet = yield* Fleet;
 				const original = yield* fleet.reconcile("research");
-				expect(original.value.stage).toBe("completed");
+				expect(original.value.step).toBe("done");
 				const continued = yield* fleet.continue("research", "Check the remaining evidence");
-				expect(continued.value.stage).toBe("executing");
+				expect(continued.value.step).toBe("working");
 				expect(continued.value.report).toBeUndefined();
 				expect(continued.value.history?.[0]?.report).toEqual(original.value.report);
 				const attempt = continued.value.attempts[0];
@@ -41,7 +41,7 @@ test("manual continuation archives a completed report and adopts the continued r
 				}
 				fixture.provider.observations.set(receipt.turnId, { ...observation, execution: "completed", output: "Updated findings." });
 				const completed = yield* fleet.reconcile("research");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				const report = completed.value.report;
 				if (report === undefined) {
 					return yield* Effect.die(new Error("Expected the continued report publication"));

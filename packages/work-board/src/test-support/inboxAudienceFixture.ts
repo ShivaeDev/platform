@@ -4,7 +4,9 @@ export function inboxAudienceFixture(maintainer = "maintainer", managed = true):
 	function addressed(id: string, responder: string) {
 		return `---
 id: decision.${id}
-kind: decision
+kind: question
+scope: task
+urgency: whenever
 attention:
   - id: direction
     kind: decision

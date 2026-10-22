@@ -26,12 +26,16 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 				)
 			)}
 			{progress?.rows.length === 0 && (
-				<EmptyState title="No work in progress">
-					{progress.source === "files" ? "No task is marked in progress." : "Fleet is not working on anything right now."}
+				<EmptyState title={progress.source === "files" ? "No ready tasks" : "No work in progress"}>
+					{progress.source === "files" ? "No task is ready." : "Fleet is not working on anything right now."}
 				</EmptyState>
 			)}
 			{progress !== undefined && progress.rows.length > 0 && (
-				<ul aria-label="In progress" className="m-0 list-none divide-y rounded-lg border border-border p-0" data-progress-source={progress.source}>
+				<ul
+					aria-label={progress.source === "files" ? "Ready tasks" : "In progress"}
+					className="m-0 list-none divide-y rounded-lg border border-border p-0"
+					data-progress-source={progress.source}
+				>
 					{progress.rows.slice(0, 8).map((item) => (
 						<ProgressRow fleet={progress.source === "fleet"} item={item} key={item.workId} />
 					))}

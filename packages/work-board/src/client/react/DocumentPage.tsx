@@ -10,11 +10,12 @@ import { GoalProgressHeader } from "./GoalProgressHeader.tsx";
 import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
 import { LazyDocumentView } from "./lazyMarkdown.tsx";
 import { ItemResultReview } from "./ResultReview.tsx";
+import { Rulings } from "./Rulings.tsx";
 import type { ShellApi } from "./ShellApi.ts";
 export function DocumentPage({ document, api }: { readonly document: Document; readonly api?: ShellApi | undefined }) {
 	const projectContent = api ? <GoalPage api={api} document={document} /> : <DocumentCriteria document={document} />;
-	const question = document.metadata.kind === "question";
-	const result = api && document.metadata.kind === "result" && document.identity ? { api, item: document.identity } : undefined;
+	const question = document.metadata.kind === "question" && !document.metadata.attention?.length;
+	const result = api && document.metadata.kind === "report" && document.identity ? { api, item: document.identity } : undefined;
 	const answer = question ? undefined : <AnswerPanel document={document} />;
 	return (
 		<LazyDocumentView
@@ -37,11 +38,16 @@ export function DocumentPage({ document, api }: { readonly document: Document; r
 			}
 			closing={<BodyCriteria document={document} />}
 			components={documentElements}
-			content={document.metadata.kind === "project" ? projectContent : <DecisionOutcome document={document} />}
+			content={document.metadata.kind === "goal" ? projectContent : <DecisionOutcome document={document} />}
 			context={<DocumentContext document={document} />}
 			document={document}
-			introduction={<ItemSummary document={document} />}
-			lead={api && document.metadata.kind === "project" ? <GoalProgressHeader api={api} document={document} /> : undefined}
+			introduction={
+				<>
+					<ItemSummary document={document} />
+					<Rulings document={document} />
+				</>
+			}
+			lead={api && document.metadata.kind === "goal" ? <GoalProgressHeader api={api} document={document} /> : undefined}
 		/>
 	);
 }

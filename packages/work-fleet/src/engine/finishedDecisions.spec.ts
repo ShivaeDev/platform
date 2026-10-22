@@ -16,12 +16,12 @@ engine.it("finishing work through Fleet closes its unanswered decision in the so
 	expect(fleet.readBoardPublication(waiting.sourcePath).fields.attention).toMatchObject([{ state: "open" }]);
 	fleet.mergePullRequest();
 	yield* fleet.schedule();
-	expect((yield* fleet.get("one")).value.stage).toBe("completed");
+	expect((yield* fleet.get("one")).value.step).toBe("done");
 	expect(fleet.readBoardPublication(waiting.sourcePath).fields.attention).toMatchObject([{ state: "closed" }]);
 	expect(fleet.readBoardWork(waiting.sourcePath)).toContain("Closed because Board work one is done.");
 });
 
-for (const status of ["done", "deferred", "superseded", "dropped"]) {
+for (const status of ["done", "deferred", "dropped", "dropped"]) {
 	engine.it(
 		`reconciliation closes an unanswered decision after work becomes ${status} outside Fleet`,
 		[githubPullRequest({}), markdownWork()],

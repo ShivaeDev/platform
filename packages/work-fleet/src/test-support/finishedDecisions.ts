@@ -1,6 +1,6 @@
 import { task } from "#test/fleetHost.ts";
 
-const statuses = ["done", "deferred", "superseded", "active", "ready", "planned"];
+const statuses = ["done", "deferred", "dropped", "ready", "draft"];
 export const finishedDecisionWork = statuses.flatMap((status) =>
 	["maintainer", "orchestrator"].map((responseFrom) => {
 		const id = `work.${status}.${responseFrom}`;
@@ -26,8 +26,10 @@ export const finishedDecisionFiles = Object.fromEntries(
 					},
 				],
 				id: `decision.${id}`,
-				kind: "decision",
+				kind: "question",
 				relationships: [{ kind: "relates_to", target: id }],
+				scope: "task",
+				urgency: "whenever",
 			})}\n---\n# Fleet decision for ${id}\n\nChoose how to continue this work.\n`,
 		],
 	]),

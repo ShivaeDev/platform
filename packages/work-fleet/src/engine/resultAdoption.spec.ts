@@ -17,7 +17,7 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
 			const reviewing = yield* fleet.reconcile("one");
-			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.step).toBe("reviewing");
 			expect(reviewing.value.result).toEqual({ head: HEAD, kind: "change", paths: ["src/one.ts"], pr: PR, prNumber: 7 });
 			yield* restart();
 			const recovered = yield* fleet.get("one");
@@ -33,14 +33,14 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 			yield* fleet.dispatch("one");
 			workerReports(NO_CHANGE);
 			const reviewing = yield* fleet.reconcile("one");
-			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.step).toBe("reviewing");
 			expect(reviewing.value.result).toEqual({ evidence: [NO_CHANGE], head: HEAD, kind: "no-change" });
 			expect(reviewing.value.outcome).toBeUndefined();
 			expect(reviewing.value.checks).toBeUndefined();
 			expect(reviewing.value.attempts.at(-1)?.receipt?.sessionId).not.toBe(reviewing.value.attempts[0]?.receipt?.sessionId);
 			finishWorkers();
 			const accepted = yield* fleet.reconcile("one");
-			expect(accepted.value.stage).toBe("completed");
+			expect(accepted.value.step).toBe("done");
 			expect(accepted.value.review?.head).toBe(HEAD);
 			expect(accepted.value.checks?.head).toBe(HEAD);
 			expect(accepted.value.outcome).toMatchObject({ evidence: [NO_CHANGE] });
@@ -62,7 +62,7 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 				const reconciled = yield* fleet.reconcile("one");
 				expect(reconciled.value.boardRevision).toBe(changedTask ? "board-one-next" : "board-one");
 				expect(reconciled.value.decision).toBeUndefined();
-				expect(reconciled.value.stage).toBe("completed");
+				expect(reconciled.value.step).toBe("done");
 				expect(reconciled.value.result).toEqual({ evidence: [NO_CHANGE], head: HEAD, kind: "no-change" });
 				expect(reconciled.value.checks?.head).toBe(HEAD);
 				expect(reconciled.value.outcome).toMatchObject({ evidence: [NO_CHANGE] });
@@ -78,7 +78,7 @@ describe("host result adoption through Fleet and PostgreSQL", () => {
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
 			const blocked = yield* fleet.reconcile("one");
-			expect(blocked.value.stage).toBe("needs-human");
+			expect(blocked.value.step).toBe("waiting");
 			expect(blocked.value.attentionOwner).toBe("orchestrator");
 			expect(blocked.value.decision?.attentionOwner).toBe("orchestrator");
 			expect(blocked.value.result).toBeUndefined();

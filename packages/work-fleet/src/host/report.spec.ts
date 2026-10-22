@@ -15,7 +15,7 @@ import { postgresTests } from "#test/postgres.ts";
 import { withReadDaemon } from "#test/readDaemon.ts";
 import { answerReport } from "#test/report.ts";
 
-const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
+const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
 const OUTPUT = "  # Findings\n\nWhole report, including whitespace.\n";
 
 const complete = Effect.fn("ReportTest.complete")(function* (fixture: HostFixture, body: string) {
@@ -56,7 +56,7 @@ describe("Fleet report host", () => {
 		yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 			Effect.gen(function* () {
 				const { value, observation } = yield* complete(fixture, OUTPUT);
-				expect(value.stage).toBe("completed");
+				expect(value.step).toBe("done");
 				const report = value.report;
 				if (report === undefined) {
 					return yield* Effect.die(new Error("Completed report needs a publication receipt"));
@@ -65,15 +65,15 @@ describe("Fleet report host", () => {
 				const content = readFileSync(join(fixture.host.boardDir, report.sourcePath), "utf8");
 				const parsed = metadataParse(content);
 				expect(parsed.diagnostics).toEqual([]);
-				expect(parsed.fields.kind).toBe("result");
+				expect(parsed.fields.kind).toBe("report");
 				expect(parsed.fields.relationships).toEqual([{ kind: "informs", target: "research" }]);
 				expect(content.endsWith(OUTPUT)).toBe(true);
 				expect(content).toContain(JSON.stringify({ ...observation?.receipt, workRevision: value.boardRevision }));
 				expect(readdirSync(join(fixture.host.boardDir, "responses"))).toHaveLength(1);
 				expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(
-					SOURCE.replace("fleet-deliverable: report\n", 'fleet-deliverable: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
+					SOURCE.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
 				);
-				yield* terminalViews(fixture, WAIT_EXIT.completed, "Completed (1)");
+				yield* terminalViews(fixture, WAIT_EXIT.completed, "Done (1)");
 			}),
 		);
 	});
@@ -81,7 +81,7 @@ describe("Fleet report host", () => {
 		yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
 			Effect.gen(function* () {
 				const { value } = yield* complete(fixture, " \n\t");
-				expect(value.stage).toBe("needs-human");
+				expect(value.step).toBe("waiting");
 				expect(value.decision?.reason).toBe("Report worker returned empty output");
 				expect(value.report).toBeUndefined();
 				expect(readdirSync(join(fixture.host.boardDir, "responses")).some((file) => file.startsWith("fleet-report."))).toBe(false);
@@ -94,7 +94,7 @@ describe("Fleet report host", () => {
 				const retried = yield* Effect.gen(function* () {
 					return yield* (yield* Fleet).reconcile("research");
 				}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-				expect(retried.value.stage).toBe("prepared");
+				expect(retried.value.step).toBe("queued");
 				yield* dispatchWork(fixture.host, "research", fixture.parts);
 				expect(fixture.provider.launched).toHaveLength(2);
 			}),

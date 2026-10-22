@@ -39,7 +39,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		const work = yield* board.get(workId);
 		stored = yield* refreshBrief(state, stored, work);
 		stored = yield* approveDispatchedBrief(state, stored, work, prompt);
-		if (stored.value.stage !== "prepared") {
+		if (stored.value.step !== "queued") {
 			return stored;
 		}
 		const released = yield* releaseClosedPreparation(state, stored, work);

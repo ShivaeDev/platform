@@ -15,7 +15,7 @@ export function snapshotStream(snapshots: Stream.Stream<States, FleetError>, ids
 				}
 				selected ??= new Set(
 					states
-						.filter((state) => state.blocker === ANSWER_RECORDED || !["completed", "needs-human", "released"].includes(state.stage))
+						.filter((state) => state.blocker === ANSWER_RECORDED || !["done", "waiting", "released"].includes(state.stage))
 						.map((state) => state.workId),
 				);
 				const selection = selected;

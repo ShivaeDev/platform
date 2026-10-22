@@ -20,7 +20,7 @@ host.it(
 				attentionOwner: "maintainer",
 				blocker: "Choose the synthetic storage option",
 				links: ["https://github.com/example/project/pull/1"],
-				stage: "needs-human",
+				stage: "waiting",
 				workId: "item-0000",
 			},
 		]);
@@ -59,11 +59,11 @@ host.it(
 		expect(new Set(attemptOutputs.map((query) => query.parameters))).toEqual(new Set([overview.active.length]));
 		yield* daemon.follow("watcher", "watch", ["item-0000"], { follow: true });
 		yield* Effect.all(
-			[daemon.requestStatus(), daemon.awaitOutput("watcher", "item-0000 needs-human (waiting on maintainer): Choose the synthetic storage option")],
+			[daemon.requestStatus(), daemon.awaitOutput("watcher", "item-0000 waiting (waiting on you): Choose the synthetic storage option")],
 			{ concurrency: "unbounded" },
 		).pipe(Effect.timeout("5 seconds"));
 		expect(daemon.followerRunning("watcher")).toBe(true);
-		expect(daemon.snapshots()).toMatchObject([[{ stage: "executing", workId: "item-0001" }]]);
+		expect(daemon.snapshots()).toMatchObject([[{ stage: "working", workId: "item-0001" }]]);
 	},
 	60_000,
 );

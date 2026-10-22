@@ -28,7 +28,7 @@ export function recoveryConflictCase(): RecoveryCase {
 		}),
 		name: "conflict remains after automatic main repair",
 		progress: (_context, before, after) => {
-			expect(after.stage).toBe("executing");
+			expect(after.step).toBe("working");
 			expect(after.attempts).toHaveLength(before.attempts.length + 1);
 			expect(after.attempts.slice(0, -1)).toEqual(before.attempts);
 			expect(after.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: before.attempts[0]?.sessionId });

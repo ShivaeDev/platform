@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 
 const decision = {
@@ -9,7 +10,7 @@ const decision = {
 	recommendation: "Configure trusted policy and retry.",
 };
 boardFolderStory.it(
-	"closes only an applied exact answer, retains source bytes, and keeps a later denied request open",
+	"closes an applied exact answer as done, retains its body, and keeps a later denied request open",
 	[folderContains("withDependency")],
 	function* ({ board, files, openHttp, askFiles }) {
 		yield* Effect.gen(function* () {
@@ -52,7 +53,9 @@ boardFolderStory.it(
 				"Failure",
 			);
 			expect(files.receipts()).toHaveLength(1);
-			expect(files.read(receipt.sourcePath)).toBe(source);
+			const closed = boardApi.metadataParse(files.read(receipt.sourcePath));
+			expect(closed.fields).toMatchObject({ attention: [{ state: "closed" }], status: "done" });
+			expect(closed.body).toBe(boardApi.metadataParse(source).body);
 			expect(yield* askFiles()).not.toContain(receipt.sourcePath);
 			const { client: current } = yield* openHttp();
 			expect(
@@ -61,7 +64,7 @@ boardFolderStory.it(
 				))._tag,
 			).toBe("Failure");
 			const sourceData = yield* Effect.tryPromise(() => current.run(current.api.document.run({ url: `/${receipt.sourcePath}` })));
-			expect(sourceData.reading?.receipts[receipt.request]?.disposition).toBe("applied");
+			expect(sourceData.requests?.find((request) => request.id === receipt.request)?.responses?.map((response) => response.id)).toContain(answer.id);
 			const next = yield* board.decision("task.one", { ...decision, id: "fleet.denied-again" });
 			const asks = yield* askFiles();
 			expect(asks).not.toContain(receipt.sourcePath);
@@ -104,6 +107,7 @@ boardFolderStory.it(
 			yield* board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 3000 });
 			const saved = files.receipts()[0];
 			expect(saved).toBeDefined();
+			files.write(receipt.sourcePath, source);
 			files.write("responses/duplicate-receipt.md", files.read(saved ?? ""));
 			expect(yield* askFiles()).toContain(receipt.sourcePath);
 			files.write("responses/duplicate-receipt.md", "# No duplicate receipt\n");

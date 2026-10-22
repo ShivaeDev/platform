@@ -18,7 +18,9 @@ function decisionFor(responseFrom: readonly string[]) {
 			},
 		],
 		id: ITEM,
-		kind: "decision",
+		kind: "question",
+		scope: "task",
+		urgency: "whenever",
 	})}\n---\n# Fleet decision for task.context\n`;
 }
 const decision = decisionFor(["maintainer"]);
@@ -63,7 +65,7 @@ export function managedReceiptsFixture(responseFrom: readonly string[] = ["maint
 
 export function requestReceipt(name: string, receipt: RequestReceipt) {
 	return {
-		[`responses/request-receipt.${name}.md`]: `---\n${JSON.stringify({ id: `request-receipt.${name}`, kind: "result", "request_receipt": receipt })}\n---\n# Managed request acknowledgement\n`,
+		[`responses/request-receipt.${name}.md`]: `---\n${JSON.stringify({ id: `request-receipt.${name}`, kind: "report", "request_receipt": receipt })}\n---\n# Managed request acknowledgement\n`,
 	};
 }
 
@@ -103,7 +105,9 @@ export function openAsk(): Record<string, string> {
 				},
 			],
 			id: "decision.scope",
-			kind: "decision",
+			kind: "question",
+			scope: "task",
+			urgency: "whenever",
 		})}\n---\n# Scope for task.context\n`,
 	};
 }

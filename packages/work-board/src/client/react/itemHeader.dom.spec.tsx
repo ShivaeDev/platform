@@ -17,7 +17,7 @@ const HEADER = ".item-summary";
 const CHIP = ".item-summary [data-status-token]";
 for (const [name, files, token, label] of [
 	["an unanswered linked decision", { ...answerCardFixture, "guide.md": ACTIVE_GUIDE }, "needs-you", "Needs you"],
-	["an answered linked decision", { ...answeredDecisionFixture(), "guide.md": ACTIVE_GUIDE }, "waiting-on-agents", "Waiting on agents"],
+	["an answered linked decision", { ...answeredDecisionFixture(), "guide.md": ACTIVE_GUIDE }, "waiting-on-agents", "Waiting on automation"],
 ] as const) {
 	screenStory.it(
 		`shows an active task's request state in its header while ${name} is open`,
@@ -58,7 +58,7 @@ screenStory.it(
 
 screenStory.it(
 	"shows when the item last changed after its ID",
-	[routedScreen({ "task.md": "---\nid: task.fresh\nkind: task\nstatus: active\n---\n# Fresh task\n" }, "/_board/item/task.fresh/")],
+	[routedScreen({ "task.md": "---\nid: task.fresh\nkind: task\nstatus: ready\n---\n# Fresh task\n" }, "/_board/item/task.fresh/")],
 	function* ({ findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
 		const updated = findElement(`${HEADER} [data-item-updated]`);
@@ -72,21 +72,19 @@ screenStory.it(
 screenStory.it(
 	"announces a status change from the file without announcing the first load",
 	[
-		routedScreen(
-			{ "home.md": "# Home", "task.md": "---\nid: task.live\nkind: task\nstatus: active\n---\n# Live task\n" },
-			"/_board/item/task.live/",
-			{ home: "home.md" },
-		),
+		routedScreen({ "home.md": "# Home", "task.md": "---\nid: task.live\nkind: task\nstatus: draft\n---\n# Live task\n" }, "/_board/item/task.live/", {
+			home: "home.md",
+		}),
 	],
 	function* ({ editFile, findElement, readText, refreshDocument }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
 		const line = findElement(`${HEADER} [role="status"]`);
 		expect(line?.textContent).toBe("");
-		editFile("task.md", "---\nid: task.live\nkind: task\nstatus: in-review\n---\n# Live task\n");
+		editFile("task.md", "---\nid: task.live\nkind: task\nstatus: ready\n---\n# Live task\n");
 		yield* Effect.promise(() => refreshDocument("/_board/item/task.live/"));
-		yield* Effect.promise(() => eventually(() => expect(readText(CHIP)).toBe("In review")));
+		yield* Effect.promise(() => eventually(() => expect(readText(CHIP)).toBe("Ready")));
 		expect(findElement(`${HEADER} [role="status"]`)).toBe(line);
-		expect(line?.textContent).toBe("Status changed: Active → In review");
+		expect(line?.textContent).toBe("Status changed: Draft → Ready");
 	},
 );
 

@@ -6,7 +6,7 @@ import { componentScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { WorkNow } from "./WorkNow.tsx";
 
-for (const status of ["superseded", "deferred", "done", "completed", "cancelled", "canceled", "active", "planned"]) {
+for (const status of ["dropped", "deferred", "done", "done", "dropped", "dropped", "ready", "draft"] as const) {
 	const data = nowWork(4);
 	const rows = data.rows.map((item) => ({ ...item, metadata: { ...item.metadata, status } }));
 	const at = Effect.runSync(Clock.currentTimeMillis);
@@ -18,11 +18,11 @@ for (const status of ["superseded", "deferred", "done", "completed", "cancelled"
 				<FleetItemsContext.Provider
 					value={{
 						completed: [
-							{ ...fleetItem, completedAt: at - 86_400_000, stage: "completed", workId: "task-0" },
-							{ ...fleetItem, completedAt: at - 691_200_000, stage: "completed", workId: "task-1" },
+							{ ...fleetItem, completedAt: at - 86_400_000, stage: "done", workId: "task-0" },
+							{ ...fleetItem, completedAt: at - 691_200_000, stage: "done", workId: "task-1" },
 						],
 						items: [
-							{ ...fleetItem, stage: "completed", workId: "task-2" },
+							{ ...fleetItem, stage: "done", workId: "task-2" },
 							{ ...fleetItem, stage: "released", workId: "task-3" },
 						],
 						state: "ready",

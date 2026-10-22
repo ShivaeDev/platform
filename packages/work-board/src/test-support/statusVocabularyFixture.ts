@@ -4,9 +4,9 @@ function task(id: string, status: string, title: string, fleet = "") {
 
 export function statusVocabularyFixture(): Record<string, string> {
 	return {
-		"goal.md": "---\nid: goal.ship\nkind: project\nstatus: active\n---\n# Ship the release\n",
+		"goal.md": "---\nid: goal.ship\nkind: goal\nstatus: ready\n---\n# Ship the release\n",
 		"home.md": "# Home\n",
-		"tasks/merge.md": task("task.merge", "review", "Merge the release branch"),
+		"tasks/merge.md": task("task.merge", "ready", "Merge the release branch"),
 		"tasks/odd.md": task("task.odd", "wip", "Odd status work"),
 		"tasks/ready.md": task("task.ready", "ready", "Approved ready work", "fleet: approved\n"),
 	};

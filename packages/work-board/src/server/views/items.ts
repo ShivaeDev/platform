@@ -12,7 +12,12 @@ export function itemsOf(snapshot: Snapshot): readonly Item[] {
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	return [...snapshot.model.ids].flatMap(([id, documents]) => {
 		const document = documents.length === 1 ? documents[0] : undefined;
-		return document ? [{ document, id, title: titles.get(document.file) ?? document.file }] : [];
+		return document
+			&& !document.parsed.diagnostics.some((problem) => /work-board migrate/u.test(problem.message))
+			&& !document.parsed.fields.response
+			&& !document.parsed.fields.handoff
+			? [{ document, id, title: titles.get(document.file) ?? document.file }]
+			: [];
 	});
 }
 function statusMatches(filter: string, status: string | undefined) {

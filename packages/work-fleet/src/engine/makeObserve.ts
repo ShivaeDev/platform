@@ -19,7 +19,7 @@ export function makeObserve(state: EngineState) {
 			return input;
 		}
 		let stored = current;
-		const paused = stored.value.stage === "needs-human";
+		const paused = stored.value.step === "waiting";
 		if (!observable(stored.value, paused)) {
 			return stored;
 		}
@@ -58,7 +58,7 @@ function observationBlocker(record: FleetRecord, attempt: Attempt) {
 }
 
 function observable(record: FleetRecord, paused: boolean) {
-	return record.stage === "executing" || (paused && executing(record));
+	return record.step === "working" || (paused && executing(record));
 }
 
 function finishObservation(state: EngineState) {
@@ -88,7 +88,7 @@ function finishObservation(state: EngineState) {
 				question.attentionOwner,
 			);
 		}
-		return yield* save(stored, { ...stored.value, stage: "adopting" });
+		return yield* save(stored, { ...stored.value, step: "adopting" });
 	});
 }
 

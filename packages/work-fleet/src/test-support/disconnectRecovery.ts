@@ -47,7 +47,7 @@ export const disconnectRecovery = Effect.fn("Test.disconnectRecovery")(function*
 			const prepared = yield* prepareWork("one");
 			yield* fixture.replaceRecord({ ...prepared.value, cwd: SYNTHETIC_WORKSPACE });
 			const waiting = (yield* fleet.dispatch("one")).value;
-			expect(waiting.stage).toBe("executing");
+			expect(waiting.step).toBe("working");
 			expect(waiting.decision).toBeUndefined();
 			expect(waiting.attentionOwner).toBe("automation");
 			expect(waiting.blocker).toContain("Codex disconnected");
@@ -68,7 +68,7 @@ export const disconnectRecovery = Effect.fn("Test.disconnectRecovery")(function*
 			for (let failedRead = 1; failedRead <= delayedReads; failedRead += 1) {
 				const retrying = (yield* fleet.get("one")).value;
 				if (failedRead === 4) {
-					expect(retrying.stage).toBe("needs-human");
+					expect(retrying.step).toBe("waiting");
 					expect(retrying.decision?.reason).toContain("read failure after 5 attempts");
 					expect(retrying.decisionPublished).toBe(true);
 					expect(fixture.decisions).toHaveLength(1);
@@ -85,7 +85,7 @@ export const disconnectRecovery = Effect.fn("Test.disconnectRecovery")(function*
 			}
 			const recovered = (yield* fleet.get("one")).value;
 			expect(recovered.decision).toBeUndefined();
-			expect(recovered.stage).toBe("executing");
+			expect(recovered.step).toBe("working");
 			expect(recovered.blocker).toBeUndefined();
 			expect(recovered.attentionOwner).toBeUndefined();
 			expect(recovered.attempts).toHaveLength(1);

@@ -6,6 +6,7 @@ import { answerText } from "#host/answerText.ts";
 import { board, clientPort, config, port } from "#host/cliOptions.ts";
 import { continuationMessage } from "#host/continuationMessage.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
+import { workSummary } from "#host/workSummary.ts";
 
 export const continueCommand = Command.make(
 	"continue",
@@ -17,11 +18,9 @@ export const continueCommand = Command.make(
 			(client) => client("fleet.continue", { message, workId: input.args[0] }),
 			`continue ${input.args[0]}`,
 		);
-		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+		yield* Console.log(workSummary(value));
 	}),
-).pipe(
-	Command.withDescription("Continue terminal needs-human or completed work on its existing worker thread; read the message from stdin if omitted"),
-);
+).pipe(Command.withDescription("Continue waiting or done work on its existing worker thread; read the message from stdin if omitted"));
 
 export const releaseCommand = Command.make(
 	"release",
@@ -33,10 +32,10 @@ export const releaseCommand = Command.make(
 			`release ${input.workIds.join(", ")}`,
 		);
 		for (const value of released) {
-			yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+			yield* Console.log(workSummary(value));
 		}
 	}),
-).pipe(Command.withDescription("Safely release terminal needs-human items and record their closing Board responses"));
+).pipe(Command.withDescription("Safely release waiting items and record their closing Board responses"));
 
 export const reassignCommand = Command.make(
 	"reassign",
@@ -54,7 +53,7 @@ export const reassignCommand = Command.make(
 			(client) => client("fleet.reassign", { attentionOwner: input.to, decisionId: input.question, workId: input.id }),
 			`reassign ${input.id}`,
 		);
-		yield* Console.log(`${value.workId} ${value.stage} (waiting on ${value.attentionOwner})`);
+		yield* Console.log(workSummary(value));
 	}),
 ).pipe(Command.withDescription("Reassign the exact waiting decision to its next actor"));
 
@@ -86,6 +85,6 @@ export const answerCommand = Command.make(
 			(client) => client("daemon.answer", { release: input.release, text, workId: input.args[0] }),
 			`answer ${input.args[0]}`,
 		);
-		yield* Console.log(`${value.workId} ${value.stage}${value.blocker === undefined ? "" : `: ${value.blocker}`}`);
+		yield* Console.log(workSummary(value));
 	}),
 ).pipe(Command.withDescription("Answer the waiting worker question or Fleet decision; read text from stdin if omitted, or use --release"));

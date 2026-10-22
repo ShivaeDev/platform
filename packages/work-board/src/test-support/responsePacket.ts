@@ -5,7 +5,9 @@ export const decisionContext = `---
 ${JSON.stringify({
 	attention: [{ id: "direction", kind: "decision", managed: true, reason: "Choose a direction", state: "open" }],
 	id: "decision.fixture",
-	kind: "decision",
+	kind: "question",
+	scope: "task",
+	urgency: "whenever",
 })}
 ---
 # Choose a direction

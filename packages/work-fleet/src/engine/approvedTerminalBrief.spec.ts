@@ -10,22 +10,22 @@ for (const action of ["retry", "release"] as const) {
 		function* (fleet) {
 			yield* fleet.prepareWork("one");
 			const first = yield* fleet.dispatch("one");
-			const edited = `${fleet.boardBrief().replace("kind: task", "kind: task\nowner: human")}\nChanged criteria.\n`;
+			const edited = `${fleet.boardBrief().replace("kind: task", "kind: task\nowner: marvin")}\nChanged criteria.\n`;
 			fleet.writeBoardWork("one.md", edited);
 			fleet.workerReports(REPORT);
 			fleet.finishWorkers();
 			const stopped = yield* fleet.reconcile("one");
-			expect(stopped.value).toMatchObject({ decision: { code: "fleet-stale" }, stage: "needs-human" });
+			expect(stopped.value).toMatchObject({ decision: { code: "fleet-stale" }, step: "waiting" });
 			yield* fleet.restart();
 			yield* fleet.answerPublishedDecision("one", action);
 			yield* fleet.reconcile("one");
 			const resumed = yield* fleet.reconcile("one");
 			if (action === "release") {
-				expect(resumed.value.stage).toBe("released");
+				expect(resumed.value.step).toBe("released");
 				expect(resumed.value.attempts.map((attempt) => attempt.operationId)).toEqual(stopped.value.attempts.map((attempt) => attempt.operationId));
 				return;
 			}
-			expect(resumed.value.stage).toBe("executing");
+			expect(resumed.value.step).toBe("working");
 			expect(resumed.value.boardContext).toBe(edited);
 			expect(resumed.value.attempts[0]?.receipt).toEqual(first.value.attempts[0]?.receipt);
 			expect(resumed.value.attempts.at(-1)).toMatchObject({

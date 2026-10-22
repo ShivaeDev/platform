@@ -15,8 +15,8 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 function assertRetryProgress(before: FleetRecord, after: FleetRecord) {
 	const priorOperations = new Set(before.attempts.map((attempt) => attempt.operationId));
 	const freshTurn = after.attempts.some((attempt) => attempt.receipt !== undefined && !priorOperations.has(attempt.operationId));
-	expect(freshTurn || ["completed", "released"].includes(after.stage)).toBe(true);
-	if (after.stage === "released") {
+	expect(freshTurn || ["done", "released"].includes(after.step)).toBe(true);
+	if (after.step === "released") {
 		expect(after.releaseReason).toContain("merged by a human");
 		expect(after.outcome).toBeUndefined();
 	}
@@ -32,7 +32,7 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	const fleet = yield* Fleet;
 	const stopped = (yield* fleet.get("one")).value;
 	const submissionCalls = context.fixture.settings.length;
-	expect(stopped.stage).toBe("needs-human");
+	expect(stopped.step).toBe("waiting");
 	const decision = stopped.decision;
 	if (decision?.published === undefined) {
 		return yield* Effect.die("Decision must be durably published");
@@ -67,10 +67,10 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 		Effect.gen(function* () {
 			const resumed = yield* Fleet;
 			let updated = yield* resumed.resolve("one", decision.id, response);
-			if (updated.value.stage === "prepared") {
+			if (updated.value.step === "queued") {
 				updated = yield* resumed.dispatch("one");
 			}
-			if (updated.value.stage !== "released") {
+			if (updated.value.step !== "released") {
 				updated = yield* resumed.reconcile("one");
 				updated = yield* resumed.reconcile("one");
 			}
@@ -79,12 +79,12 @@ const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
 	);
 	expect(recovered.value.decision?.code).not.toBe(decision.code);
 	if (action === "release") {
-		expect(recovered.value.stage).toBe("released");
+		expect(recovered.value.step).toBe("released");
 		expect(context.fixture.settings).toHaveLength(submissionCalls);
 		expect(recovered.value.attempts).toHaveLength(stopped.attempts.length);
 		expect(executing(recovered.value)).toBe(false);
 		expect(backlog(recovered.value)).toBe(false);
-		expect((yield* fleet.list()).map(({ value }) => value.stage)).toEqual(["released"]);
+		expect((yield* fleet.list()).map(({ value }) => value.step)).toEqual(["released"]);
 		if (stopped.result?.kind === "change") {
 			const owner = stopped.result.pr;
 			const reservations = yield* context.fixture.foreignReservations();

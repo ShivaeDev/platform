@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { waitsOnYou } from "#browser/document/asks.ts";
 import type { AuthoredProgress, FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
-import { heldLanes, laneOf } from "#browser/views/now.ts";
+import { laneOf } from "#browser/views/now.ts";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
@@ -19,9 +19,7 @@ function authoredProgress(snapshot: Snapshot): readonly AuthoredProgress[] {
 		const metadata = document.parsed.fields;
 		const asked = waitsOnYou({ metadata, requests: itemRequests(document, snapshot).map((request) => request.state) });
 		const lane = laneOf(metadata, undefined, false, answered.has(id) && !waiting.has(id), asked);
-		return lane !== undefined && heldLanes.has(lane) && metadata.status !== undefined
-			? [{ file: document.file, status: metadata.status, title, workId: id }]
-			: [];
+		return metadata.status === "ready" && lane !== undefined ? [{ file: document.file, status: metadata.status, title, workId: id }] : [];
 	});
 }
 
@@ -62,7 +60,7 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 			items: data.items.map((item) => ({
 				...item,
 				document: documents.get(item.workId) ?? null,
-				...(item.stage === "needs-human" && item.attentionOwner === "maintainer" && ready.has(item.workId) ? { readyToMerge: true } : {}),
+				...(item.stage === "waiting" && item.attentionOwner === "maintainer" && ready.has(item.workId) ? { readyToMerge: true } : {}),
 			})),
 			state: "ready" as const,
 		};

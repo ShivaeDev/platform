@@ -11,8 +11,8 @@ const HOUR = 3_600_000;
 const HISTORY_KEY = "work-board:library:history-fixture";
 const files = {
 	"notes/first.md": "# First\n",
-	"notes/next.md": "---\nkind: task\nstatus: in-review\n---\n# Next\n",
-	"notes/old.md": "---\nkind: decision\n---\n# Old\n",
+	"notes/next.md": "---\nkind: task\nstatus: ready\n---\n# Next\n",
+	"notes/old.md": "---\nkind: question\nscope: task\nurgency: whenever\n---\n# Old\n",
 	"notes/plan.md": "# Plan\n",
 };
 const today = new Date(Effect.runSync(Clock.currentTimeMillis)).setHours(0, 0, 0, 0);
@@ -59,9 +59,9 @@ screenStory.it(
 		]);
 		expect(roles.text({ name: "Today", role: "list" })).toMatch(/^Planread just now(?:·Document)?$/u);
 		yield* Effect.promise(() =>
-			eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).toMatch(/^Nextread .+ago·Task·In reviewFirstread .+ago·Document$/u)),
+			eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).toMatch(/^Nextread .+ago·Task·ReadyFirstread .+ago·Document$/u)),
 		);
-		expect(roles.text({ name: dated, role: "list" })).toMatch(/^Oldread .+ago·Decision$/u);
+		expect(roles.text({ name: dated, role: "list" })).toMatch(/^Oldread .+ago·Question$/u);
 		expect(roles.text({ name: "Earlier", role: "list" })).toBe("Gone (missing)");
 		expect(
 			findElements("#reading-library time", document)

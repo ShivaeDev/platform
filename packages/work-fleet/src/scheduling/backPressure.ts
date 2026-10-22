@@ -19,8 +19,8 @@ function awaitsMergeWork(record: FleetRecord): boolean {
 	return (
 		!executing(record)
 		&& (record.pendingContinuation !== undefined
-			|| ["reviewing", "repairing"].includes(record.stage)
-			|| (!["prepared", "completed", "released"].includes(record.stage) && (record.pendingAnswers?.length ?? 0) > 0))
+			|| ["reviewing", "repairing"].includes(record.step)
+			|| (!["queued", "done", "released"].includes(record.step) && (record.pendingAnswers?.length ?? 0) > 0))
 	);
 }
 

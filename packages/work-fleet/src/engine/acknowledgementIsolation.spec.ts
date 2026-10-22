@@ -59,7 +59,7 @@ test("permanently failed historical superseded acknowledgement never blocks curr
 				expect(currentId).not.toBe(previous.id);
 				const responseId = fixture.respond(currentId, "release");
 				const applied = yield* fleet.resolve("one", currentId, responseId);
-				expect(applied.value.stage).toBe("released");
+				expect(applied.value.step).toBe("released");
 				expect(applied.value.responses?.[0]?.boardAcknowledged).toBe(true);
 				expect(applied.value.history?.[0]?.decisionAcknowledged).toBeUndefined();
 				expect(applied.value.blocker).toContain(previous.published?.questionId);

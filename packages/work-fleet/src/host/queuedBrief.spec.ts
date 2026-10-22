@@ -33,7 +33,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				yield* dispatchApproved(fixture.host, "one");
 				const queued = (yield* fleet.get("one")).value;
 				const failed = queued.attempts.at(-1);
-				expect(queued.stage).toBe("prepared");
+				expect(queued.step).toBe("queued");
 				expect(queued.launchRetry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
 				expect(failed).toMatchObject({ prompt: source, role: "worker", settings: { model: "initial-model" }, status: "failed" });
 				const current = task("one", "approved", "New criteria.").replace(
@@ -55,7 +55,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 				yield* cycle;
 				const accepted = (yield* fleet.get("one")).value;
 				const attempt = accepted.attempts.at(-1);
-				expect(accepted.stage).toBe("executing");
+				expect(accepted.step).toBe("working");
 				expect(accepted.decision).toBeUndefined();
 				expect(accepted.boardContext).toBe(current);
 				expect(accepted.launchRetry).toBeUndefined();

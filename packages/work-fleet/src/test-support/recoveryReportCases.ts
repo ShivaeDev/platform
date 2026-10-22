@@ -34,10 +34,10 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 		{
 			code: "report-too-large" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
-				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
+				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
 				yield* finishRecoveryWorker(ctx, "x".repeat(256 * 1024));
 			}),
-			name: "oversized completed report",
+			name: "oversized done report",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		...[
@@ -57,7 +57,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 			(fault): RecoveryCase => ({
 				code: fault.code,
 				enter: Effect.fnUntraced(function* (ctx) {
-					writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
+					writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
 					yield* finishRecoveryWorker(ctx, "Completed findings.");
 					if (fault.check === publishedReport) {
 						closed = true;
@@ -67,7 +67,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 				name: fault.name,
 				options: { reportPublicationQuery: fault.check },
 				progress: (_ctx, before, after) => {
-					expect(after.stage).toBe("completed");
+					expect(after.step).toBe("done");
 					expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 					expect(after.report).toBeDefined();
 				},
@@ -82,20 +82,20 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 		{
 			code: "empty-report" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
-				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
+				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
 				yield* finishRecoveryWorker(ctx, "");
 			}),
 			name: "empty report",
 			progress: (_ctx, before, after) => {
 				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 			},
 			sites: ['engine/completeReport.ts: "empty-report"'],
 		},
 		{
 			code: "board-failure" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
-				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: report"));
+				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
 				yield* finishRecoveryWorker(ctx, "Completed findings.");
 			}),
 			name: "lost report publication receipt",
@@ -103,7 +103,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 				decorateBoard: (board) => ({ ...board, report: (work, observation) => board.report(work, observation).pipe(Effect.flatMap(loseReceipt)) }),
 			},
 			progress: (_ctx, before, after) => {
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
 				expect(publications).toBe(2);
 				expect(after.report).toBeDefined();

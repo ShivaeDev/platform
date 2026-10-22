@@ -40,8 +40,8 @@ export const localOnlyBoard = host.trait("configuration", "the Board lives in a 
 });
 
 // Recovery and status stories start from durable records that predate this daemon.
-export function storedWork(workId: string, stage: Parameters<typeof statusRecord>[1], fields: Readonly<Record<string, unknown>> = {}) {
-	return host.trait("configuration", `${workId} is stored in ${stage}`, (engine) => {
-		engine.stored[workId] = { ...statusRecord(workId, stage), ...fields };
+export function storedWork(workId: string, step: Parameters<typeof statusRecord>[1], fields: Readonly<Record<string, unknown>> = {}) {
+	return host.trait("configuration", `${workId} is stored in ${step}`, (engine) => {
+		engine.stored[workId] = { ...statusRecord(workId, step), ...fields };
 	});
 }

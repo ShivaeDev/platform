@@ -59,7 +59,7 @@ const refreshRequest = Effect.fn("DispatchTimeoutTest.refreshRequest")(function*
 		const failed = yield* Effect.promise(() => cliProcess(["status", "one", "--port", String(port)]));
 		expect(failed.stdout).toContain("one  dispatch failed: Git refresh unavailable");
 	} else {
-		expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("executing");
+		expect((yield* client("fleet.get", { workId: "one" })).step).toBe("working");
 		expect(fixture.provider.launched).toHaveLength(1);
 	}
 });

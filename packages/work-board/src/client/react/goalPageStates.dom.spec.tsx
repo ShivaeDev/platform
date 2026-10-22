@@ -11,7 +11,7 @@ const files = goalPageFixture();
 screenStory.it(
 	"hides empty groups and leaves evidence-free criteria quiet",
 	[
-		boardScreen({ ...files, "fifth.md": files["fifth.md"]?.replace("kind: task", "kind: task\nstatus: planned") ?? "" }, (api) => (
+		boardScreen({ ...files, "fifth.md": files["fifth.md"]?.replace("kind: task", "kind: task\nstatus: draft") ?? "" }, (api) => (
 			<FleetItemsContext.Provider value={goalFleetFixture()}>
 				<DocumentMain api={api} onPage={() => undefined} url="/goal.md" />
 			</FleetItemsContext.Provider>
@@ -19,8 +19,8 @@ screenStory.it(
 	],
 	function* ({ findElements, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5)));
-		expect(findElements('[data-goal-group="Deferred"], [data-goal-group="Not recorded"]')).toHaveLength(0);
-		expect(readText('[data-goal-item="task.fifth"] [data-status-token]')).toBe("Planned");
+		expect(findElements('[data-goal-group="Dropped"], [data-goal-group="Not recorded"]')).toHaveLength(0);
+		expect(readText('[data-goal-item="task.fifth"] [data-status-token]')).toBe("Draft");
 	},
 );
 
@@ -30,11 +30,11 @@ screenStory.it(
 	function* ({ findElements, findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5)));
 		expect(findElement('[data-goal-group="In progress"]')).toBeNull();
-		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("Planned");
-		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 planned");
+		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("Draft");
+		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 draft");
 		expect(readText('[data-goal-item="task.fifth"] td:nth-of-type(2)')).toBe("");
-		expect(findElement('[data-goal-item="task.fifth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Planned");
-		expect(findElement('[data-goal-item="task.third"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Planned");
+		expect(findElement('[data-goal-item="task.fifth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Draft");
+		expect(findElement('[data-goal-item="task.third"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Deferred");
 		expect(readText('[data-goal-item="task.third"] [data-status-token]')).toBe("Deferred");
 	},
 );
@@ -52,27 +52,26 @@ screenStory.it(
 	},
 );
 
-for (const status of ["completed", "closed"]) {
+for (const status of ["done", "dropped"]) {
 	screenStory.it(
 		`shows query-derived goal and criterion counts for a ${status} project`,
 		[boardScreen(closedGoalPageFixture(status), (api) => <DocumentMain api={api} onPage={() => undefined} url="/closed.md" />)],
-		function* ({ readText, findElements, findElement, readGoals }) {
-			yield* Effect.promise(() => eventually(() => expect(readText('[data-goal-section="progress"]')).toContain("6 linked items")));
+		function* ({ readText, findElements, readGoals }) {
+			yield* Effect.promise(() => eventually(() => expect(readText('[data-goal-section="progress"]')).toContain("5 linked items")));
 			const data = yield* Effect.promise(readGoals);
 			const goal = data?.closedGoals.find((entry) => entry.id === "project.closed");
 			expect(data?.goals.map((entry) => entry.id)).toEqual(["project.example"]);
-			expect(goal?.counts).toEqual({ done: 2, "in progress": 0, "needs you": 2, planned: 2 });
+			expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 2, dropped: 0, ready: 1 });
 			const counts = Object.fromEntries(
 				[...findElements<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [segment.dataset.status, Number(segment.dataset.count)]),
 			);
 			expect(counts).toEqual(goal?.counts);
 			expect(readText("[data-goal-open-asks]")).toBe(`${goal?.openAsks} open asks`);
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 0, "needs you": 1, planned: 1 });
-			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 done · 1 needs you · 1 planned");
+			expect(goal?.criteria[0]?.counts).toEqual({ deferred: 0, done: 0, draft: 1, dropped: 0, ready: 1 });
+			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 ready · 1 draft");
 			yield* Effect.promise(() => eventually(() => expect(readText("#criterion-second")).toBe("Second criterion")));
 			expect(findElements("[data-goal-item]")).toHaveLength(goal?.linked ?? 0);
-			expect(findElements('[data-goal-item="result.closed"]')).toHaveLength(1);
-			expect(findElement('[data-goal-item="result.closed"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Done");
+			expect(findElements('[data-goal-item="result.closed"]')).toHaveLength(0);
 		},
 	);
 }

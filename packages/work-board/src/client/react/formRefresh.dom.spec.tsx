@@ -15,7 +15,7 @@ const cases = [
 		kind: "response",
 		query: "document" as const,
 		source:
-			"---\nid: task.fixture\nkind: question\nstatus: open\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
+			"---\nid: task.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
 		url: "/_board/item/task.fixture/",
 		writable: true,
 	},
@@ -24,7 +24,7 @@ const cases = [
 		kind: "response",
 		query: "document" as const,
 		source:
-			"---\nid: task.fixture\nkind: question\nstatus: open\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
+			"---\nid: task.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\noptions:\n - label: Keep files\n   description: Keep direction local\n---\n# Which direction?\n",
 		url: "/_board/item/task.fixture/",
 		writable: true,
 	},

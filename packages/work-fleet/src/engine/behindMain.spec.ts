@@ -22,7 +22,7 @@ engine.it(
 		yield* fleet.dispatch("one");
 		workerReports(REPORT);
 		const ready = yield* fleet.reconcile("one");
-		expect(ready.value.stage).toBe("needs-human");
+		expect(ready.value.step).toBe("waiting");
 		expect(ready.value.decision?.reason).toBe("Reviewed PR is ready to merge");
 		expect(ready.value.review).toMatchObject({ head: HEAD, verdict: "approved" });
 		expect(ready.value.checks).toMatchObject({ head: HEAD, passed: true });
@@ -34,7 +34,7 @@ engine.it(
 		expect(waiting.version).toBe(ready.version);
 		mergePullRequest(undefined, "merge-revision", MOVED);
 		const delivered = yield* fleet.reconcile("one");
-		expect(delivered.value.stage).toBe("completed");
+		expect(delivered.value.step).toBe("done");
 		expect(delivered.value.outcome).toEqual({ head: HEAD, revision: "merge-revision", url: PR });
 		expect(checkedHeads()).toEqual(validationReads);
 		expect(reviewedHeads()).toEqual([HEAD]);

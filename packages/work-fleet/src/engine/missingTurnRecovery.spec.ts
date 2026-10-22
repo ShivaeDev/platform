@@ -13,7 +13,7 @@ for (const published of ["branch", "pr"] as const) {
 			const initial = (yield* fleet.dispatch("one")).value;
 			loseTurn(initial.attempts.at(-1)?.sessionId);
 			const repaired = (yield* fleet.reconcile("one")).value;
-			expect(repaired.stage).toBe("executing");
+			expect(repaired.step).toBe("working");
 			expect(repaired.attempts.at(-1)?.role).toBe("repair");
 			expect(repaired.attempts.at(-1)?.prompt).toContain(WORK_BRANCH);
 			expect(publishedDecisions()).toHaveLength(0);
@@ -35,7 +35,7 @@ for (const acknowledgementLost of [false, true]) {
 				advanceTime(300_000);
 				yield* restart();
 				const recovered = (yield* fleet.reconcile("one")).value;
-				expect(recovered.stage).toBe("executing");
+				expect(recovered.step).toBe("working");
 				expect(recovered.decision).toBeUndefined();
 				expect(publishedDecisions()).toHaveLength(0);
 				expect(launches()).toHaveLength(2);
@@ -67,7 +67,7 @@ engine.it(
 		const initial = (yield* fleet.dispatch("one")).value;
 		loseTurn(initial.attempts.at(-1)?.sessionId);
 		const waiting = (yield* fleet.reconcile("one")).value;
-		expect(waiting.stage).toBe("needs-human");
+		expect(waiting.step).toBe("waiting");
 		expect(waiting.decision?.code).toBe("session-turn-missing");
 		expect(waiting.decision?.reason).toContain("observable");
 		expect(launches()).toHaveLength(1);
@@ -78,7 +78,7 @@ engine.it(
 		respond(id, "retry");
 		yield* restart();
 		const unreadable = (yield* fleet.reconcile("one")).value;
-		expect(unreadable.stage).toBe("needs-human");
+		expect(unreadable.step).toBe("waiting");
 		expect(unreadable.decision?.id).toBe(id);
 		expect(publishedDecisions()).toHaveLength(1);
 		expect(launches()).toHaveLength(1);
@@ -86,7 +86,7 @@ engine.it(
 		publishPullRequest();
 		yield* restart();
 		const repaired = (yield* fleet.reconcile("one")).value;
-		expect(repaired.stage).toBe("executing");
+		expect(repaired.step).toBe("working");
 		expect(repaired.decision).toBeUndefined();
 		expect(repaired.attempts.at(-1)).toMatchObject({ role: "repair", status: "running" });
 		expect(repaired.attempts.at(-1)?.sessionId).not.toBe(initial.attempts.at(-1)?.sessionId);
@@ -111,7 +111,7 @@ engine.it(
 		respond(waiting.decision.id, "release");
 		yield* restart();
 		const released = (yield* fleet.reconcile("one")).value;
-		expect(released.stage).toBe("released");
+		expect(released.step).toBe("released");
 		expect(released.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 		expect(launches()).toHaveLength(1);
 	},

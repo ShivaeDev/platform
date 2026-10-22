@@ -15,7 +15,7 @@ for (const published of ["branch", "pr"] as const) {
 				loseTurn(original?.sessionId);
 				rejectNextSubmission(rejection);
 				const rejected = (yield* fleet.reconcile("one")).value;
-				expect(rejected.stage).toBe("repairing");
+				expect(rejected.step).toBe("repairing");
 				expect(rejected.decision).toBeUndefined();
 				expect(rejected.launchRetry).toMatchObject({ rejections: 1, retryAt: 30_100 });
 				expect(rejected.attempts.at(-1)).toMatchObject({ output: "Replacement capacity unavailable", role: "repair", status: "failed" });
@@ -27,7 +27,7 @@ for (const published of ["branch", "pr"] as const) {
 				advanceTime(1);
 				yield* schedule();
 				const resumed = (yield* fleet.get("one")).value;
-				expect(resumed.stage).toBe("executing");
+				expect(resumed.step).toBe("working");
 				expect(resumed.launchRetry).toBeUndefined();
 				expect(resumed.decision).toBeUndefined();
 				expect(resumed.attempts).toHaveLength(3);

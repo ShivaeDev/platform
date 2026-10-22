@@ -45,7 +45,7 @@ export const releaseExecution = Effect.fn("Fleet.releaseExecution")(function* (s
 		}
 		const recoveredReceipts = yield* releaseReceipts(state, attempt);
 		current = yield* state.load(stored.value.workId);
-		if (current.value.stage !== "needs-human" || current.value.decision?.id !== stored.value.decision?.id) {
+		if (current.value.step !== "waiting" || current.value.decision?.id !== stored.value.decision?.id) {
 			return yield* new Conflict({ message: "Decision changed" });
 		}
 		const acknowledged = current.value.attempts.find((saved) => saved.operationId === attempt.operationId) ?? attempt;

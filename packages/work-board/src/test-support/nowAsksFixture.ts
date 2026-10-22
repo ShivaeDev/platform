@@ -1,5 +1,5 @@
 function task(id: string, title: string) {
-	return `---\nid: ${id}\nkind: task\nstatus: planned\nowner: orchestrator\nfleet: approved\n---\n# ${title}\n`;
+	return `---\nid: ${id}\nkind: task\nstatus: draft\nowner: claude\nfleet: approved\n---\n# ${title}\n`;
 }
 
 function question(id: string, target: string, audience: string, link: "unblocks" | "relates_to") {
@@ -10,7 +10,9 @@ function question(id: string, target: string, audience: string, link: "unblocks"
 		id,
 		kind: "question",
 		relationships: [{ kind: "relates_to", target }],
-		status: "open",
+		scope: "task",
+		status: "ready",
+		urgency: "whenever",
 	})}\n---\n# Which path?\n`;
 }
 

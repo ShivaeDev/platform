@@ -24,7 +24,7 @@ for (const denyDelivery of [false, true]) {
 				function read() {
 					return readFileSync(join(root, "fleet/status.md"), "utf8");
 				}
-				expect(read()).toContain("Stage: executing");
+				expect(read()).toContain("Stage: working");
 				const { client } = yield* boardHttp(root, "fleet/status.md");
 				const page = client.api.board.query({ url: "/fleet/status.md" });
 				const unmount = client.registry.mount(page);
@@ -35,14 +35,14 @@ for (const denyDelivery of [false, true]) {
 				expect(initial.document.source).toContain("/_board/item/one");
 				finishWorkers(fixture);
 				yield* cycle;
-				const stage = denyDelivery ? "needs-human" : "completed";
-				expect((yield* (yield* Fleet).get("one")).value.stage).toBe(stage);
-				expect(read()).toContain(`Stage: ${stage}`);
+				const step = denyDelivery ? "waiting" : "done";
+				expect((yield* (yield* Fleet).get("one")).value.step).toBe(step);
+				expect(read()).toContain(`Stage: ${step}`);
 				expect(read()).toContain("[PR](<https://example.invalid/pr/one>)");
 				yield* Effect.gen(function* () {
 					while (true) {
 						const refreshed = client.registry.get(page);
-						if (refreshed._tag === "Success" && refreshed.value.document.source.includes(`Stage: ${stage}`)) {
+						if (refreshed._tag === "Success" && refreshed.value.document.source.includes(`Stage: ${step}`)) {
 							break;
 						}
 						yield* Effect.sleep("10 millis");
@@ -53,7 +53,7 @@ for (const denyDelivery of [false, true]) {
 		));
 }
 
-isolated("run publishes a suspended validation stage without waiting for reconciliation to finish", function* () {
+isolated("run publishes a suspended validation step without waiting for reconciliation to finish", function* () {
 	const entered = yield* Deferred.make<void>();
 	const release = yield* Deferred.make<void>();
 	const checksGate = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
@@ -65,7 +65,7 @@ isolated("run publishes a suspended validation stage without waiting for reconci
 			const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
 			yield* Deferred.await(entered);
 			yield* Effect.gen(function* () {
-				while (!readFileSync(join(root, "fleet/status.md"), "utf8").includes("Stage: validating")) {
+				while (!readFileSync(join(root, "fleet/status.md"), "utf8").includes("Stage: reviewing")) {
 					yield* Effect.sleep("10 millis");
 				}
 			}).pipe(Effect.timeout("5 seconds"));
@@ -80,11 +80,11 @@ test("a failed publication keeps execution usable and the next scheduler cycle r
 			const heal = yield* blockedStatus(root);
 			yield* prepareWork("one");
 			yield* cycle;
-			expect((yield* (yield* Fleet).get("one")).value.stage).toBe("executing");
+			expect((yield* (yield* Fleet).get("one")).value.step).toBe("working");
 			yield* Effect.sync(heal);
 			finishWorkers(fixture);
 			yield* cycle;
-			expect(readFileSync(join(root, "fleet/status.md"), "utf8")).toContain("Stage: completed");
+			expect(readFileSync(join(root, "fleet/status.md"), "utf8")).toContain("Stage: done");
 			expect(readFileSync(join(root, "one.md"), "utf8")).toBe(source);
 		}).pipe(Effect.provide(statusLayer(root).pipe(Layer.provide(NodeServices.layer)))),
 	));

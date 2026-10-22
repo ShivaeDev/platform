@@ -19,7 +19,7 @@ postgresTests("test", "isolated")("a stalled reviewer continues its own thread w
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				server.states.set("turn-1", "completed");
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("reviewing");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 				yield* TestClock.adjust("31 minutes");
 				yield* fleet.reconcile("one");
 				yield* TestClock.adjust("30 minutes");

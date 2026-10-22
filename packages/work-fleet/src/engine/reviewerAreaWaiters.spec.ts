@@ -20,7 +20,7 @@ isolatedEngine.it(
 		expect(waiting.value.blocker).toBe("waiting for area shared queued ahead by two");
 		expect(waiting.value.attempts.filter((attempt) => attempt.reviewHead === MOVED)).toEqual([]);
 		expect(fleet.launches()).toHaveLength(2);
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		expect((yield* fleet.reconcile("one")).value.blocker).toBe("waiting for area shared held by two");
 		yield* fleet.workerQuestion("two", "Should I continue?");
 		yield* fleet.reconcile("two");

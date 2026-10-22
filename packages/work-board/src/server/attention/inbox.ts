@@ -10,11 +10,12 @@ import { isMaintainerRequest } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
 
 export function openItem(document: MetadataDocument): boolean {
-	return !closedItem(document);
+	return (document.parsed.fields.kind === "report" && document.parsed.fields.status === "done") || !closedItem(document);
 }
 
 export function authoredQuestion(document: MetadataDocument): boolean {
-	return document.parsed.fields.kind === "question" && document.parsed.fields.question === undefined;
+	const fields = document.parsed.fields;
+	return fields.kind === "question" && fields.question === undefined && !fields.attention?.length;
 }
 
 export function addressedElsewhere(document: MetadataDocument, maintainer: string): boolean {
@@ -28,7 +29,7 @@ export function waitingReason(document: MetadataDocument, model: MetadataModel, 
 
 function attentionReason(document: MetadataDocument, model: MetadataModel, maintainer: string): string | undefined {
 	const fields = document.parsed.fields;
-	if (!openItem(document) || fields.kind === "response" || fields.kind === "handoff" || fields.question) {
+	if (!openItem(document) || fields.response !== undefined || fields.handoff !== undefined || fields.question) {
 		return undefined;
 	}
 	if (addressedElsewhere(document, maintainer)) {
@@ -37,10 +38,7 @@ function attentionReason(document: MetadataDocument, model: MetadataModel, maint
 	if (authoredQuestion(document) && answeredQuestion(document, model)) {
 		return undefined;
 	}
-	if (fields.status?.toLowerCase() === "needs-human") {
-		const source = /^fleet(?:$|[-_. /])/iu.test(fields.owner?.trim() ?? "") ? "Fleet needs a person" : "Needs a person";
-		return `${source}: ${fields.nextAction ?? "Review the blocked work"}`;
-	}
+
 	if (authoredQuestion(document)) {
 		return fields.nextAction ?? "A question needs your answer";
 	}
@@ -82,18 +80,24 @@ function directItems(snapshot: Snapshot, skipped: ReadonlySet<string>, reasonOf:
 				problem,
 				reason,
 				request: undefined,
+				scope: document.parsed.fields.scope,
 				title: titles.get(document.file) ?? document.file,
 				unblocks: [id ?? ""],
+				urgency: document.parsed.fields.urgency,
 			},
 		];
 	});
 }
 
 function byAge(
-	left: { readonly id: string; readonly modified: number | undefined },
-	right: { readonly id: string; readonly modified: number | undefined },
+	left: { readonly urgency?: string | undefined; readonly id: string; readonly modified: number | undefined },
+	right: { readonly urgency?: string | undefined; readonly id: string; readonly modified: number | undefined },
 ) {
-	return (left.modified ?? 0) - (right.modified ?? 0) || left.id.localeCompare(right.id);
+	return (
+		Number(right.urgency === "blocking") - Number(left.urgency === "blocking")
+		|| (left.modified ?? 0) - (right.modified ?? 0)
+		|| left.id.localeCompare(right.id)
+	);
 }
 
 export function inboxItems(snapshot: Snapshot) {

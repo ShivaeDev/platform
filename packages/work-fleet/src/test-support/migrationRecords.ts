@@ -22,7 +22,8 @@ export function migrationRecords(): readonly FleetRecord[] {
 		mergeReadyAt: 123,
 		preparation: prepared(),
 		prompt: "Synthetic migration work",
-		stage: "prepared",
+		stage: "queued",
+		step: "queued",
 		workId: "one",
 	};
 	const { workId: _workId, history: _history, ...cycle } = first;

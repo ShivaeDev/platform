@@ -31,7 +31,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 				Effect.sync(() => {
 					state.workId = workId;
 					state.lastRecord = record.value;
-					story.tell(`${label} ${workId}: ${state.lastRecord.stage}`);
+					story.tell(`${label} ${workId}: ${state.lastRecord.step}`);
 				}),
 			),
 		);
@@ -103,9 +103,9 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 				running(state).fleet = Context.get(services, Fleet);
 			}),
 
-		waitForStage: (stage: FleetRecord["stage"], workId = "one", maxSteps?: number) => {
+		waitForStage: (step: FleetRecord["step"], workId = "one", maxSteps?: number) => {
 			state.workId = workId;
-			return story.runUntil((current) => current.lastRecord?.workId === workId && current.lastRecord.stage === stage, { maxSteps });
+			return story.runUntil((current) => current.lastRecord?.workId === workId && current.lastRecord.step === step, { maxSteps });
 		},
 	};
 	return {

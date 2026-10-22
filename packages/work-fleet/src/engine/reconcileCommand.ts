@@ -44,7 +44,7 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 			return held;
 		}
 		const continuing = current.value.pendingContinuation !== undefined;
-		if (!continuing && (error instanceof StorageConflict || ["completed", "released", "needs-human"].includes(current.value.stage))) {
+		if (!continuing && (error instanceof StorageConflict || ["done", "released", "waiting"].includes(current.value.step))) {
 			return current;
 		}
 		if (capacityFailure(error)) {
@@ -71,7 +71,7 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		Effect.Error<ReturnType<typeof decision>> | Effect.Error<ReturnType<typeof load>> | Effect.Error<ReturnType<typeof refreshBrief>>
 	> {
 		let current = yield* load(workId);
-		if (current.value.stage !== "needs-human" && retryPending(state, current.value)) {
+		if (current.value.step !== "waiting" && retryPending(state, current.value)) {
 			return current;
 		}
 		if (current.value.integrationRetry !== undefined) {

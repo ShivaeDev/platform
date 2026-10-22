@@ -2,16 +2,18 @@ import { mkdirSync, readFileSync, realpathSync, rmSync, statSync, symlinkSync, w
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import type { FleetRecord } from "#model.ts";
+import { fleetStage } from "#stage.ts";
 import { prepared } from "#test/preparation.ts";
 
-export function statusRecord(workId: string, stage: FleetRecord["stage"] = "executing"): FleetRecord {
+export function statusRecord(workId: string, step: FleetRecord["step"] = "working"): FleetRecord {
 	return {
 		attempts: [],
 		boardRevision: "synthetic-revision",
 		cwd: "/synthetic-repository",
 		preparation: prepared(),
 		prompt: "Synthetic work instruction",
-		stage,
+		stage: fleetStage({ step }),
+		step,
 		workId,
 	};
 }
@@ -29,7 +31,7 @@ export const statusFolder = Effect.fn("FleetStory.statusFolder")(function* (
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const root = realpathSync(yield* fs.makeTempDirectoryScoped());
-	const task = "---\nid: task.one\nstatus: planned\n---\n# Authored task\n";
+	const task = "---\nid: task.one\nstatus: draft\n---\n# Authored task\n";
 	writeFileSync(join(root, "task.md"), task);
 	const outside = realpathSync(yield* fs.makeTempDirectoryScoped());
 	writeFileSync(join(outside, "status.md"), "Keep this source");

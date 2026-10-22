@@ -7,7 +7,7 @@ boardStory.it(
 	[projectFiles(paletteFixture())],
 	function* ({ search }) {
 		const ordinary = yield* search("inbox");
-		expect(ordinary.results[0]).toMatchObject({ id: "task.triage", itemKind: "task", status: "active", title: "Build the inbox" });
+		expect(ordinary.results[0]).toMatchObject({ id: "task.triage", itemKind: "task", status: "ready", title: "Build the inbox" });
 		expect(ordinary.results.some((entry) => entry.file.startsWith("records/") || entry.file.startsWith("responses/"))).toBe(false);
 		const all = yield* search("records: inbox");
 		expect(all.results[0]?.id).toBe("task.triage");
@@ -27,7 +27,12 @@ boardStory.it(
 
 boardStory.it(
 	"hides captured questions, responses and receipts but keeps human questions",
-	[projectFiles({ ...paletteFixture(), "human.md": "---\nid: question.human\nkind: question\n---\n# Human question\n" })],
+	[
+		projectFiles({
+			...paletteFixture(),
+			"human.md": "---\nid: question.human\nkind: question\nscope: task\nurgency: whenever\n---\n# Human question\n",
+		}),
+	],
 	function* ({ search }) {
 		for (const query of ["question", "answer", "application", "context"]) {
 			expect((yield* search(query)).results.some((entry) => entry.file.startsWith("responses/"))).toBe(false);
@@ -38,13 +43,13 @@ boardStory.it(
 );
 
 const privateFiles = {
-	"boolean.md": '# Context\n\nNeedle captured {"active":true,"ready":false}.\n',
+	"boolean.md": '# Context\n\nNeedle captured {"ready":true,"ready":false}.\n',
 	"embedded.md": '# Context\n\nCaptured data {"id": "needle", "kind": "task"} ends here.\n',
 	"json.md": '# Context\n\n{"id": "needle", "kind": "task"}\n',
 	"single-quoted.md": "# Context\n\nCaptured data {'id' : 'needle', 'kind' : 'task'} ends here.\n",
 	"spaced.md": '# Context\n\nCaptured data {"id" : "needle", "kind" : "task"} ends here.\n',
 	"unquoted.md": "# Context\n\nCaptured data {id : needle, kind : task} ends here.\n",
-	"yaml.md": "---\nid: needle\nkind: task\nstatus: active\n",
+	"yaml.md": "---\nid: needle\nkind: task\nstatus: ready\n",
 };
 boardStory.it(
 	"keeps captured data out of snippets while returning readable prose",
@@ -65,7 +70,7 @@ boardStory.it(
 	[
 		projectFiles({
 			"tasks/snippet.md":
-				'---\nid: task.snippet\nkind: task\nstatus: active\ncriteria:\n  - id: plain\n    text: "Search shows `code`, **bold**, _emphasis_, ~~old~~ and [linked](https://example.com/page) words as plain text, keeping snake_case_names and 2*3*4."\n---\n# Snippet item\n',
+				'---\nid: task.snippet\nkind: task\nstatus: ready\ncriteria:\n  - id: plain\n    text: "Search shows `code`, **bold**, _emphasis_, ~~old~~ and [linked](https://example.com/page) words as plain text, keeping snake_case_names and 2*3*4."\n---\n# Snippet item\n',
 		}),
 	],
 	function* ({ search }) {

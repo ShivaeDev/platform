@@ -13,11 +13,11 @@ for (const noChange of [false, true]) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			writeBoardWork("one.md", doneDependencySource);
 			yield* prepareWork("dependent");
 			yield* restart();
-			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		},
 	);
 }
@@ -31,11 +31,11 @@ engine.it(
 		finishWorkers();
 		yield* fleet.reconcile("one");
 		yield* prepareWork("dependent");
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		writeBoardWork("one.md", doneDependencySource);
 		finishWorkers();
 		yield* restart();
-		expect((yield* fleet.reconcile("dependent")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("dependent")).value.step).toBe("done");
 		expect(reviewedHeads()).toHaveLength(2);
 	},
 );
@@ -51,11 +51,11 @@ for (const [edit, source] of [
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			writeBoardWork("one.md", source);
 			yield* prepareWork("dependent");
 			yield* restart();
-			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		},
 	);
 }
@@ -69,16 +69,16 @@ for (const done of [false, true]) {
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			const failed = yield* fleet.reconcile("one");
-			expect(failed.value.stage).toBe("needs-human");
+			expect(failed.value.step).toBe("waiting");
 			const decisionId = failed.value.decision?.id ?? "missing";
 			const responseId = respond(decisionId, "release");
-			expect((yield* fleet.resolve("one", decisionId, responseId)).value.stage).toBe("released");
+			expect((yield* fleet.resolve("one", decisionId, responseId)).value.step).toBe("released");
 			setBoardStatus("one", done ? "done" : "planned");
 			editWork("one", "edited-brief");
 			yield* prepareWork("dependent");
 			yield* restart();
 			if (done) {
-				expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+				expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 			} else {
 				expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 				expect((yield* fleet.get("dependent")).value.blocker).toContain("released without a merged delivery");
@@ -94,7 +94,7 @@ engine.it(
 		setBoardStatus("one", "done");
 		editWork("one", "edited-brief");
 		yield* prepareWork("dependent");
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 	},
 );
 

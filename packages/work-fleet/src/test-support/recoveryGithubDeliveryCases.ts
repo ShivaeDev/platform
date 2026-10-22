@@ -28,7 +28,7 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 			options: { deliveryQuery: delivery },
 			progress: (_ctx, _before, after) => {
 				expect(reads).toBe(1);
-				expect(after.stage).toBe("completed");
+				expect(after.step).toBe("done");
 			},
 			restore: () =>
 				Effect.sync(() => {

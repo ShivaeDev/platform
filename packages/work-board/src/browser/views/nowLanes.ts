@@ -5,7 +5,7 @@ import type { FleetItemsProjection } from "./FleetItemsProjection.ts";
 import { laneOf, nowLanes } from "./now.ts";
 
 const WEEK = 604_800_000;
-export const doneLane = nowLanes[5];
+export const doneLane = nowLanes[6];
 
 interface NowRow {
 	readonly answered?: unknown;

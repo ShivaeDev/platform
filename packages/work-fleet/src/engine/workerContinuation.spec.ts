@@ -30,7 +30,7 @@ test("interruption before provider submission retains the answer intent without 
 				Effect.gen(function* () {
 					const restarted = yield* Fleet;
 					const uncertain = yield* restarted.reconcile("one");
-					expect(uncertain.value.stage).toBe("needs-human");
+					expect(uncertain.value.step).toBe("waiting");
 					expect(uncertain.value.decision?.reason).toBe("No authoritative operation receipt");
 					yield* restarted.resolve("one", decision.id, answer.id);
 				}),
@@ -50,7 +50,7 @@ test("a recorded worker answer cannot continue without fresh available quota", (
 			const { decision } = yield* askWorker(fixture);
 			yield* answerWorker(root, decision);
 			const blocked = yield* fleet.reconcile("one");
-			expect(blocked.value.stage).toBe("needs-human");
+			expect(blocked.value.step).toBe("waiting");
 			expect(blocked.value.blocker).toBe("Fresh available provider quota is required");
 			expect(blocked.value.attentionOwner).toBe("automation");
 			expect(blocked.value.responses ?? []).toHaveLength(0);
@@ -77,7 +77,7 @@ test("a recorded answer waits on automation while capacity is occupied and is ad
 			finishWorkers(fixture);
 			yield* fleet.reconcile("two");
 			const continued = (yield* fleet.reconcile("one")).value;
-			expect(continued.stage).toBe("executing");
+			expect(continued.step).toBe("working");
 			expect(continued.responses).toMatchObject([{ responseId: answer.id }]);
 			expect(continued.attempts.at(-1)?.prompt).toBe(answer.body);
 		}),

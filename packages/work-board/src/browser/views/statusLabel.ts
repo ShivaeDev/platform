@@ -1,27 +1,17 @@
 const labels: Readonly<Record<string, string>> = {
-	active: "Active",
-	adopting: "Adopting",
-	"agent-working": "Agent working",
-	blocked: "Blocked",
-	completed: "Completed",
+	answered: "Answered",
 	deferred: "Deferred",
-	delivering: "Delivering",
 	done: "Done",
-	executing: "Executing",
-	"in progress": "In progress",
-	"in-progress": "In progress",
-	"needs-human": "Needs you",
+	draft: "Draft",
+	dropped: "Dropped",
 	"needs-you": "Needs you",
-	planned: "Planned",
-	prepared: "Prepared",
-	received: "Received",
-	repairing: "Repairing",
-	review: "In review",
+	queued: "Queued",
+	ready: "Ready",
+	released: "Released",
 	reviewing: "Reviewing",
-	running: "Running",
-	superseded: "Superseded",
-	validating: "Validating",
-	"waiting-on-agents": "Waiting on agents",
+	waiting: "Waiting",
+	"waiting-on-agents": "Waiting on automation",
+	working: "Working",
 };
 
 export function statusLabel(status: string): string {
@@ -37,7 +27,7 @@ export function sentenceLabel(value: string): string {
 }
 
 export function kindLabel(kind: string): string {
-	return sentenceLabel(kind === "project" ? "goal" : kind);
+	return sentenceLabel(kind);
 }
 
 export function sameStatus(left: string, right: string): boolean {

@@ -1,10 +1,10 @@
 # Explicit attention requests
 
-Work Board reads an optional `attention` list from richer item frontmatter. Each record names one request independently of the item's arbitrary status, owner or next action. A request ID is unique within that item and uses the case-sensitive ASCII item ID syntax. Its identity is the pair (item ID, request ID).
+Work Board reads an optional `attention` list from richer item frontmatter. Each record names one request independently of the item's authored status, owner or next action. A request ID is unique within that item and uses the case-sensitive ASCII item ID syntax. Its identity is the pair (item ID, request ID).
 
 ```yaml
 id: result.search
-kind: result
+kind: report
 attention:
   - id: keyboard-review
     kind: review
@@ -42,7 +42,7 @@ This says the author requests a response; it does not prove the target cannot pr
 
 Today lists an open request only when its `response_from` includes the maintainer label, `maintainer` unless the server runs with `--maintainer <name>`, and links each row to the request's answer card at `/_board/item/<item-id>/#answer-card-<request-id>`. The `agent-navigation` blocker above stays off Today. A request drops off Today once a response of type `answer` is recorded against the item's current source path and bytes, while its authored `state` stays `open`; a managed request stays until its receipt settles it. Open maintainer requests that unblock the same items share one row, which shows the most recently modified request.
 
-Today also lists items that carry no unanswered open request when their `status` is `needs-human`, when they are authored items of kind `question` without a `question` record, or when they have a non-automation `owner` plus a `next_action`. An owner label that starts, in any letter case, with `codex`, `claude`, `fleet`, `orchestrator`, `agent`, `automation`, `bot` or `copilot`, alone or followed by `-`, `_`, `.`, a space or `/`, counts as automation. A `question` item drops off Today once it has an answer. These item rows skip closed statuses such as `done`, `closed` and `resolved`, move `status: deferred` items to Later, and skip an item whose open requests all address other labels.
+Today also lists unanswered authored questions without a captured `question` record, and items owned by `marvin` with a `next_action`. Questions with explicit requests use those requests rather than a second item row. A question leaves Today once answered. Done and dropped items leave the open queue; deferred items move to Later. Requests addressed only to other labels stay outside Today. See the [README vocabulary](../../README.md#work-vocabulary) for authored fields.
 
 ## Reading rules
 
@@ -67,7 +67,7 @@ Request text and recipients are searchable; source targets contribute backlinks.
 
 ## Ambiguity and quiet examples
 
-- `status: in-review` with `owner: maintainer`, no `next_action` and no attention list: no request and no Today row.
+- `status: ready` with `owner: marvin`, no `next_action` and no attention list: no request and no Today row.
 - `next_action: Ask Maintainer` without an `owner`, a finished run, or repeated edits: no request.
 - Two `keyboard-review` records on one item: neither wins or appears on Today; the document shows a diagnostic.
 - Two items with the same ID: do not assign either item's requests.

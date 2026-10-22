@@ -20,7 +20,7 @@ postgresTests("live")("area and dependency admission reasons reach status, wait 
 			"a.md": task("first", "approved").replace("kind: task", "kind: task\nareas: [fleet/host]"),
 			"b.md": task("second", "approved").replace("kind: task", "kind: task\nareas: [fleet/host]"),
 			"c.md": task("dependent", "approved").replace("kind: task", "kind: task\nrelationships:\n  - kind: depends_on\n    target: external"),
-			"external.md": task("external").replace("kind: task", "kind: task\nstatus: planned"),
+			"external.md": task("external").replace("kind: task", "kind: task\nstatus: draft"),
 		},
 		{},
 		(fixture) =>
@@ -49,11 +49,11 @@ postgresTests("live")("area and dependency admission reasons reach status, wait 
 					["dependent", dependencyReason],
 				] as const) {
 					const outcome = yield* withReadDaemon(fixture.host, (port) => waitFor({ intervalMs: 1, port, timeoutMs: 100, workId }));
-					expect(outcome.code).toBe(4);
+					expect(outcome.code).toBe(2);
 					expect(outcome.summary).toContain(reason);
 				}
 				fixture.write("external.md", task("external").replace("kind: task", "kind: task\nstatus: done"));
-				expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+				expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 			}).pipe(Effect.provide(fleetHostLayer(fixture.host, fixture.parts)), Effect.provide(NodeServices.layer)),
 	),
 );

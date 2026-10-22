@@ -53,12 +53,12 @@ for (const failures of [1, 3]) {
 					expect(record.attempts).toHaveLength(1);
 					expect(record.attempts[0]?.sessionId).toBe("worker-thread");
 					if (failures === 1) {
-						expect(record.stage).toBe("executing");
+						expect(record.step).toBe("working");
 						expect(record.attempts[0]?.receipt).toEqual({ sessionId: "worker-thread", turnId: "worker-turn" });
 						expect(record.decision).toBeUndefined();
 						expect(fixture.decisions).toHaveLength(0);
 					} else {
-						expect(record.stage).toBe("needs-human");
+						expect(record.step).toBe("waiting");
 						expect(record.decision).toMatchObject({ code: "session-rejected", reason: `Codex rejected the protocol request: ${GENERIC}` });
 						expect(fixture.decisions).toHaveLength(1);
 					}
@@ -99,7 +99,7 @@ for (const message of [
 					yield* prepareWork("one");
 					const fleet = yield* Fleet;
 					const rejected = (yield* fleet.dispatch("one")).value;
-					expect(rejected).toMatchObject({ decision: { reason: `Codex rejected the protocol request: ${message}` }, stage: "needs-human" });
+					expect(rejected).toMatchObject({ decision: { reason: `Codex rejected the protocol request: ${message}` }, step: "waiting" });
 					expect(fixture.decisions).toHaveLength(1);
 					expect(submissions).toBe(1);
 				}),

@@ -5,7 +5,7 @@ import { DocumentCriteria } from "./DocumentCriteria.tsx";
 export function DocumentEvidence({ document }: { readonly document: Document }) {
 	return (
 		<>
-			{document.metadata.kind !== "project" && !criteriaInBody(document) && <DocumentCriteria document={document} />}
+			{document.metadata.kind !== "goal" && !criteriaInBody(document) && <DocumentCriteria document={document} />}
 			<DocumentClaims document={document} />
 		</>
 	);

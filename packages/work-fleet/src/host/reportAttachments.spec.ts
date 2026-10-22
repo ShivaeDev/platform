@@ -10,7 +10,7 @@ import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { attachmentBoard, attachmentItems, expectReportAttachments, turnDownload } from "#test/reportAttachments.ts";
 
-const SOURCE = "---\nid: research\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
+const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
 const OUTPUT = "The report stays private to Board.";
 
 describe("Report attachments", () => {
@@ -32,7 +32,7 @@ describe("Report attachments", () => {
 						return yield* (yield* Fleet).reconcile("research");
 					}).pipe(Effect.provide(hostLayer(fixture.host, parts)));
 					const result = yield* complete;
-					expect(result.value.stage).toBe("completed");
+					expect(result.value.step).toBe("done");
 					expect(fixture.provider.archived).toEqual([observation.receipt.sessionId]);
 					const report = result.value.report;
 					if (report === undefined) {
@@ -47,7 +47,7 @@ describe("Report attachments", () => {
 					expect(fixture.provider.launched).toHaveLength(1);
 					expect(fixture.provider.settings).toHaveLength(2);
 					expect(readFileSync(join(fixture.host.boardDir, "research.md"), "utf8")).toBe(
-						SOURCE.replace("fleet-deliverable: report\n", 'fleet-deliverable: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
+						SOURCE.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
 					);
 				}),
 			);
@@ -68,12 +68,12 @@ describe("Report attachments", () => {
 						}
 						fixture.provider.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output });
 						if (output !== OUTPUT) {
-							fixture.write("research.md", SOURCE.replace("fleet-deliverable: report\n", ""));
+							fixture.write("research.md", SOURCE.replace("delivers: report\n", ""));
 						}
 						const result = yield* Effect.gen(function* () {
 							return yield* (yield* Fleet).reconcile("research");
 						}).pipe(Effect.provide(hostLayer(fixture.host, parts)));
-						expect(result.value.stage).toBe("needs-human");
+						expect(result.value.step).toBe("waiting");
 						expect(result.value.decision?.reason).toBe(PUBLISHED_REPORT);
 						expect(result.value.decision?.worker).toBeUndefined();
 						expect(result.value.report).toBeUndefined();

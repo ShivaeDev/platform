@@ -18,7 +18,7 @@ for (const [route, target, title] of [
 	screenStory.it(
 		`redirects client navigation from ${route}`,
 		[
-			boardScreen({ "note.md": "# Note", "result.md": "---\nid: result.note\nkind: result\n---\n# Returned note\n" }, (api, registry) => {
+			boardScreen({ "note.md": "# Note", "result.md": "---\nid: result.note\nkind: report\n---\n# Returned note\n" }, (api, registry) => {
 				router = boardRouter({ api, registry });
 				router.update({ context: router.options.context, history: createMemoryHistory({ initialEntries: [`/_board/${route}`] }) });
 				return <RouterProvider router={router} />;

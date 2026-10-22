@@ -24,7 +24,7 @@ const Attention = Schema.Struct({
 	unblocks: Schema.Array(Reference).check(Schema.isMinLength(1)),
 }).pipe(Schema.encodeKeys({ responseFrom: "response_from" }));
 const Criterion = Schema.Struct({ id: Identity, text: Text });
-const Relationship = Schema.Struct({ kind: Schema.Literals(["implements", "informs", "depends_on", "relates_to"]), target: Reference });
+const Relationship = Schema.Struct({ kind: Schema.Literals(["implements", "informs", "depends_on", "relates_to", "replaces"]), target: Reference });
 const Evidence = Schema.Struct({
 	checkedRevision: Schema.optional(Schema.String.check(Schema.isPattern(/^(?:[a-f\d]{40}|[a-f\d]{64})$/iu))),
 	criterion: Schema.optional(Reference),
@@ -46,26 +46,28 @@ export const Metadata = Schema.Struct({
 	areas: Schema.optional(Schema.Array(Text)),
 	attention: Schema.optional(Schema.Array(Attention)),
 	criteria: Schema.optional(Schema.Array(Criterion)),
+	delivers: Schema.optional(Schema.Literals(["pr", "report"])),
 	evidence: Schema.optional(Schema.Array(Evidence)),
+	fleet: Schema.optional(Schema.Literals(["approved", "held", "manual"])),
 	handoff: Schema.optional(HandoffRecord),
 	id: Schema.optional(Identity),
 	items: Schema.optional(Schema.Array(Identity)),
-	kind: Schema.optional(
-		Schema.Literals(["task", "investigation", "decision", "result", "project", "board", "question", "response", "handoff", "goal", "report"]),
-	),
+	kind: Schema.optional(Schema.Literals(["goal", "task", "question", "report"])),
 	nextAction: Schema.optional(Text),
 	options: Schema.optional(
 		Schema.Array(Schema.Struct({ description: Text.check(Schema.isMaxLength(8192)), label: Text.check(Schema.isMaxLength(128)) })).check(
 			Schema.isMaxLength(32),
 		),
 	),
-	owner: Schema.optional(Text),
+	owner: Schema.optional(Schema.Literals(["codex", "claude", "marvin"])),
 	question: Schema.optional(QuestionRecord),
 	recommended: Schema.optional(Text),
 	relationships: Schema.optional(Schema.Array(Relationship)),
 	requestReceipt: Schema.optional(RequestReceipt),
 	response: Schema.optional(ResponseRecord),
-	status: Schema.optional(Text),
+	scope: Schema.optional(Schema.Literals(["task", "area", "standing"])),
+	status: Schema.optional(Schema.Literals(["draft", "ready", "done", "deferred", "dropped"])),
 	sweep: Schema.optional(Schema.Array(SweepPath).check(Schema.isMinLength(1))),
+	urgency: Schema.optional(Schema.Literals(["blocking", "whenever"])),
 }).pipe(Schema.encodeKeys({ nextAction: "next_action", requestReceipt: "request_receipt" }));
 export type Metadata = typeof Metadata.Type;

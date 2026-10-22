@@ -2,11 +2,11 @@ import { expect } from "vitest";
 import { completedContinuation, continuationCapacity, fourApproved, needsHumanContinuation, singleSlot } from "#test/continuationCapacity.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
-for (const stage of ["needs-human", "completed"] as const) {
-	const resultKind = stage === "needs-human" ? needsHumanContinuation : completedContinuation;
+for (const step of ["waiting", "done"] as const) {
+	const resultKind = step === "waiting" ? needsHumanContinuation : completedContinuation;
 
 	isolatedEngine.it(
-		`a continuation of ${stage} work waits durably ahead of prepared work at full capacity`,
+		`a continuation of ${step} work waits durably ahead of prepared work at full capacity`,
 		[continuationCapacity, resultKind, fourApproved],
 		function* (fleet) {
 			for (const id of ["one", "two", "three", "four"]) {
@@ -15,7 +15,7 @@ for (const stage of ["needs-human", "completed"] as const) {
 			const first = (yield* fleet.dispatch("one")).value;
 			fleet.finishWorkers();
 			const terminal = (yield* fleet.reconcile("one")).value;
-			expect(terminal.stage).toBe(stage);
+			expect(terminal.step).toBe(step);
 			yield* fleet.dispatch("two");
 			yield* fleet.dispatch("three");
 			const queued = (yield* fleet.continueWork("one", "Fix the remaining case")).value;
@@ -23,7 +23,7 @@ for (const stage of ["needs-human", "completed"] as const) {
 				attentionOwner: "automation",
 				blocker: "Continuation queued; execution capacity is occupied (limit 2)",
 				pendingContinuation: "Fix the remaining case",
-				stage,
+				step,
 			});
 			expect(queued.attempts).toEqual(terminal.attempts);
 			expect(queued.result).toEqual(terminal.result);
@@ -41,7 +41,7 @@ for (const stage of ["needs-human", "completed"] as const) {
 			expect(yield* fleet.attemptDispatch("four")).toMatchObject({ _tag: "StorageCapacity", kind: "merge-work" });
 			yield* fleet.schedule();
 			const resumed = (yield* fleet.get("one")).value;
-			expect(resumed.stage).toBe("executing");
+			expect(resumed.step).toBe("working");
 			expect(resumed.pendingContinuation).toBeUndefined();
 			expect(resumed.attempts).toHaveLength(1);
 			expect(resumed.attempts[0]).toMatchObject({
@@ -54,8 +54,8 @@ for (const stage of ["needs-human", "completed"] as const) {
 			expect(resumed.history?.[0]).not.toHaveProperty("pendingContinuation");
 			expect(resumed.history?.[0]?.attentionOwner).toBe(terminal.attentionOwner);
 			expect(resumed.history?.[0]?.blocker).toBe(terminal.blocker);
-			expect((yield* fleet.get("three")).value.stage).toBe("executing");
-			expect((yield* fleet.get("four")).value.stage).toBe("prepared");
+			expect((yield* fleet.get("three")).value.step).toBe("working");
+			expect((yield* fleet.get("four")).value.step).toBe("queued");
 			yield* fleet.schedule();
 			const observed = (yield* fleet.get("one")).value;
 			expect(observed.attempts).toHaveLength(1);
@@ -97,7 +97,7 @@ isolatedEngine.it("releasing a queued continuation cancels its request and lets 
 	fleet.setDependencies("dependent", []);
 	yield* fleet.prepareWork("dependent");
 	yield* fleet.schedule();
-	expect((yield* fleet.get("one")).value.stage).toBe("released");
+	expect((yield* fleet.get("one")).value.step).toBe("released");
 	expect((yield* fleet.get("one")).value.history ?? []).toHaveLength(0);
-	expect((yield* fleet.get("dependent")).value.stage).toBe("executing");
+	expect((yield* fleet.get("dependent")).value.step).toBe("working");
 });

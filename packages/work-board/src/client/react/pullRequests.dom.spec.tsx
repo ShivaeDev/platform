@@ -15,15 +15,15 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Pull requests")));
 		expect(findElements("#doc section").map((section) => section.getAttribute("aria-label"))).toEqual([
 			"Ready to merge",
-			"Checks running",
-			"Being repaired",
-			"Needs a human answer",
-			"In progress",
+			"Reviewing",
+			"Working",
+			"Waiting on you",
+			"Waiting on orchestrator",
 		]);
 		const groups = findElements("#doc section").map((section) =>
 			[...section.querySelectorAll("[data-pr-work]")].map((entry) => entry.getAttribute("data-pr-work")),
 		);
-		expect(groups).toEqual([["task.ready", "task.sweep"], ["task.checks"], ["task.repair"], ["task.question", "task.orchestrator"], ["task.review"]]);
+		expect(groups).toEqual([["task.ready", "task.sweep"], ["task.checks", "task.review"], ["task.repair"], ["task.question"], ["task.orchestrator"]]);
 		const row = findElement('[data-pr-work="task.ready"]');
 		expect(row?.querySelector('a[href="https://github.com/example/project/pull/12"]')?.textContent).toBe("#12");
 		expect(row?.querySelector('a[href="/tasks/ready.md"]')?.textContent).toBe("Deliver ready");

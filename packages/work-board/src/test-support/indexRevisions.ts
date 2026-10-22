@@ -7,13 +7,13 @@ export function indexRevisions() {
 	function source(step: number) {
 		const id = random(8);
 		const target = random(8);
-		return `---\nid: item.${id}\nkind: task\nstatus: planned\nowner: agent\ncriteria:\n - id: done\n   text: Revision ${step}\nrelationships:\n - kind: depends_on\n   target: item.${target}#done\nattention:\n - id: review\n   kind: review\n   state: open\n   response_from: [maintainer]\n   reason: Review ${step}\n   unblocks: [item.${target}#done]\nevidence:\n - source: file-${random(8)}.md\n   criterion: item.${target}#done\n---\n# Revision ${step}\n\nRead [a source](file-${random(8)}.md).\n`;
+		return `---\nid: item.${id}\nkind: task\nstatus: draft\nowner: claude\ncriteria:\n - id: done\n   text: Revision ${step}\nrelationships:\n - kind: depends_on\n   target: item.${target}#done\nattention:\n - id: review\n   kind: review\n   state: open\n   response_from: [maintainer]\n   reason: Review ${step}\n   unblocks: [item.${target}#done]\nevidence:\n - source: file-${random(8)}.md\n   criterion: item.${target}#done\n---\n# Revision ${step}\n\nRead [a source](file-${random(8)}.md).\n`;
 	}
 	const files = new Set(Array.from({ length: 8 }, (_, i) => `file-${i}.md`));
 
 	const initialFiles = {
 		...Object.fromEntries([...files].map((file, i) => [file, source(i)])),
-		"board.md": "---\nid: board\nkind: board\nitems: [item.0, item.1, item.2, missing]\n---\n# Board",
+		"board.md": "---\nid: board\nitems: [item.0, item.1, item.2, missing]\n---\n# Board",
 	};
 	function movedPaths(from: string, to: string) {
 		const changed: string[] = [];

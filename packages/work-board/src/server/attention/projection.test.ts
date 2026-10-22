@@ -14,9 +14,9 @@ boardStory.it(
 		const snapshot = { ...(yield* readAttention(attentionLanesFixture("Casey"))), maintainer: "Casey" };
 		const projection = attention.projection(snapshot);
 		expect(projection.you.map((item) => item.id)).toEqual(["decision.reader", "question.storage", "task.person"]);
-		expect(projection.agents.map((item) => item.id)).toEqual(["task.planned", "decision.orchestrator", "decision.automation"]);
+		expect(projection.agents.map((item) => item.id)).toEqual(["task.draft", "decision.orchestrator", "decision.automation"]);
 		expect(projection.agents.map((item) => item.responseFrom)).toEqual([["maintainer"], ["orchestrator"], ["automation"]]);
-		expect(projection.resolved.map((item) => item.id)).toEqual(["task.done", "task.done", "task.done", "task.superseded"]);
+		expect(projection.resolved.map((item) => item.id)).toEqual(["task.done", "task.done", "task.done", "task.dropped"]);
 		expect(projection.parked.map((item) => item.id)).toEqual(["task.deferred"]);
 		expect(projection.issues.map((issue) => issue.file)).toEqual(["unknown.md", "unresolved.md"]);
 		const inbox = yield* readInbox(snapshot);
@@ -33,7 +33,7 @@ boardStory.it(
 		files["reader.md"] = files["reader.md"]?.replace("managed: true", "managed: false").replace("[maintainer]", "[orchestrator, maintainer]") ?? "";
 		files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [decision.reader]") ?? "";
 		const data = attentionProjection(yield* readAttention(files));
-		expect(data.you.map((item) => item.id)).toEqual(["task.planned", "decision.reader", "question.storage", "task.person"]);
+		expect(data.you.map((item) => item.id)).toEqual(["task.draft", "decision.reader", "question.storage", "task.person"]);
 		expect(data.agents.map((item) => item.responseFrom)).toEqual([["orchestrator"], ["automation"]]);
 		expect(data.agents[0]?.id).toBe("decision.reader");
 	},
@@ -54,7 +54,7 @@ boardStory.it(
 		const files = attentionLanesFixture();
 		files["orchestrator.md"] = files["orchestrator.md"]?.replace("unblocks: [decision.orchestrator]", "unblocks: [task.person]") ?? "";
 		const data = attentionProjection(yield* readAttention(files));
-		expect(data.you.find((item) => item.id === "task.person")?.reason).toBe("Casey notes: Read the evidence");
+		expect(data.you.find((item) => item.id === "task.person")?.reason).toBe("Read the evidence");
 		expect(data.agents.find((item) => item.id === "task.person")?.responseFrom).toEqual(["orchestrator"]);
 	},
 );

@@ -11,10 +11,10 @@ engine.it(
 		yield* reconcile("one");
 		advanceTime(31 * 60_000);
 		const steered = yield* reconcile("one");
-		expect(steered.value.stage).toBe("executing");
+		expect(steered.value.step).toBe("working");
 		expect(steered.value.decision).toBeUndefined();
 		const reviewed = yield* reconcile("one");
-		expect(reviewed.value.stage).toBe("reviewing");
+		expect(reviewed.value.step).toBe("reviewing");
 		expect(reviewed.value.attempts[0]).toMatchObject({ output: "Completed the approved work", status: "completed" });
 		expect(reviewed.value.result?.kind).toBe("change");
 		expect(reviewed.value.attempts.at(-1)?.role).toBe("reviewer");
@@ -31,7 +31,7 @@ engine.it(
 		yield* reconcile("one");
 		advanceTime(31 * 60_000);
 		const failed = yield* reconcile("one");
-		expect(failed.value.stage).toBe("needs-human");
+		expect(failed.value.step).toBe("waiting");
 		expect(failed.value.decision).toMatchObject({ code: "session-rejected", reason: expect.stringContaining("failed to steer turn: TurnMismatch") });
 		expect(publishedDecisions()).toEqual(["Codex rejected the protocol request: failed to steer turn: TurnMismatch"]);
 	},

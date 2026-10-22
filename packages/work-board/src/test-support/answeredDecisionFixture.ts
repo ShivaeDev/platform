@@ -9,10 +9,10 @@ const question = questionId(decisionId, "direction", revision, decisionFile);
 const ANSWER = "response.direction-retry";
 
 export const ANSWERED_TASK =
-	"---\nid: task.guide\nkind: task\nstatus: needs-human\nowner: fleet\nnext_action: Answer the release decision\n---\n# Publish the install guide\n";
+	"---\nid: task.guide\nkind: task\nstatus: ready\nowner: claude\nnext_action: Answer the release decision\n---\n# Publish the install guide\n";
 export const guideFleet: FleetItemsProjection = {
 	completed: [],
-	items: [{ attentionOwner: "maintainer", document: null, stage: "needs-human", stageEnteredAt: 0, updatedAt: 0, workId: "task.guide" }],
+	items: [{ attentionOwner: "maintainer", document: null, stage: "waiting", stageEnteredAt: 0, updatedAt: 0, workId: "task.guide" }],
 	state: "ready",
 };
 

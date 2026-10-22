@@ -22,7 +22,9 @@ const OPEN_ASK = {
 			{ id: "scope", kind: "decision", reason: "Confirm the guide scope", "response_from": ["maintainer"], state: "open", unblocks: ["task.guide"] },
 		],
 		id: "decision.scope",
-		kind: "decision",
+		kind: "question",
+		scope: "task",
+		urgency: "whenever",
 	})}\n---\n# Scope for the install guide\n`,
 };
 
@@ -37,7 +39,7 @@ screenStory.it(
 		expect(findElement("ul[aria-label='Needs you']")).toBeNull();
 		expect(readText("#needs-you")).toContain("Nothing needs you");
 		expect(readText(".today-strip")).toMatch(/^0 need you/u);
-		editFile("guide.md", ANSWERED_TASK.replace("status: needs-human", "status: active"));
+		editFile("guide.md", ANSWERED_TASK.replace("status: ready", "status: ready"));
 		const [[receipt, content] = []] = Object.entries(appliedReceipt());
 		editFile(receipt ?? "", content ?? "");
 		yield* Effect.promise(refreshInbox);
@@ -72,10 +74,10 @@ for (const [fleet, copy] of [
 	[false, FLEET_DOWN],
 ] as const) {
 	screenStory.it(
-		`queues the answered Now card for Fleet (Fleet ready=${fleet})`,
+		`keeps the answered Now card waiting on automation (Fleet ready=${fleet})`,
 		[...(fleet ? [screenFleet(guideFleet)] : []), routedScreen(answeredDecisionFixture(), "/_board/work", { home: "home.md" })],
 		function* ({ findElement, findElements, readAttribute, readText }) {
-			const card = "[aria-label='Queued'] [data-item='task.guide']";
+			const card = "[aria-label='Waiting on automation'] [data-item='task.guide']";
 			yield* Effect.promise(() =>
 				eventually(() => {
 					expect(findElement(card)).not.toBeNull();
@@ -84,9 +86,9 @@ for (const [fleet, copy] of [
 					);
 				}),
 			);
-			expect(findElement("[aria-label='Waiting on a person'] [data-item='task.guide']")).toBeNull();
+			expect(findElement("[aria-label='Waiting on you'] [data-item='task.guide']")).toBeNull();
 			expect(readAttribute(`${card} [data-status-token]`, "data-status-token")).toBe("waiting-on-agents");
-			expect(readText(`${card} [data-status-token]`)).toBe("Waiting on agents");
+			expect(readText(`${card} [data-status-token]`)).toBe("Waiting on automation");
 			expect(readText(`${card} .work-answer`)).toBe(copy);
 			expect(readText(`${card} .work-owner`)).toBe("Waiting for Fleet");
 		},
@@ -97,7 +99,7 @@ screenStory.it(
 	"keeps an answered Now card waiting on you while another ask on it is open",
 	[screenFleet(guideFleet), routedScreen({ ...answeredDecisionFixture(), ...OPEN_ASK }, "/_board/work", { home: "home.md" })],
 	function* ({ findElement, readAttribute }) {
-		const card = "[aria-label='Waiting on a person'] [data-item='task.guide']";
+		const card = "[aria-label='Waiting on you'] [data-item='task.guide']";
 		yield* Effect.promise(() => eventually(() => expect(findElement(card)).not.toBeNull()));
 		expect(readAttribute(`${card} [data-status-token]`, "data-status-token")).toBe("needs-you");
 		expect(findElement(`${card} .work-answer`)).toBeNull();

@@ -11,7 +11,7 @@ test("current dependency revision requires fresh accepted completion while unrel
 	withEngine({ noChange: true }, (fixture) =>
 		Effect.gen(function* () {
 			yield* prepareWork("one");
-			expect((yield* acceptDependency(fixture)).value.stage).toBe("completed");
+			expect((yield* acceptDependency(fixture)).value.step).toBe("done");
 			fixture.editWork("one", "board-one-changed");
 			fixture.approveWork("one", "board-one-changed");
 			yield* prepareWork("dependent");
@@ -19,10 +19,10 @@ test("current dependency revision requires fresh accepted completion while unrel
 			const fleet = yield* Fleet;
 			expect(yield* fleet.dispatch("dependent").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
 			expect((yield* fleet.get("dependent")).value.blocker).toContain("board-one-changed");
-			expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 			yield* prepareWork("one");
-			expect((yield* acceptDependency(fixture)).value.stage).toBe("completed");
-			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			expect((yield* acceptDependency(fixture)).value.step).toBe("done");
+			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 			expect((yield* fleet.get("dependent")).value.blocker).toBeUndefined();
 		}),
 	));
@@ -38,7 +38,7 @@ test("unavailable or ambiguous current Board dependency never reuses a historica
 			yield* fleet.dispatch("dependent").pipe(Effect.flip);
 			expect((yield* fleet.get("dependent")).value.blocker).toContain("unavailable or ambiguous");
 			fixture.unavailableWork("one", false);
-			expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+			expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 		}),
 	));
 

@@ -27,15 +27,15 @@ export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixt
 					Effect.forkScoped,
 				);
 				yield* Deferred.await(ready);
-				yield* storeState(fixture.host, "one", statusRecord("one", "completed")).pipe(
+				yield* storeState(fixture.host, "one", statusRecord("one", "done")).pipe(
 					Effect.provideService(Reactivity.Reactivity, yield* Reactivity.make),
 					Effect.provideService(SqlClient.SqlClient, sql),
 				);
 				yield* Effect.sleep("100 millis");
-				expect(received).toMatchObject([[{ stage: "executing", workId: "one" }]]);
+				expect(received).toMatchObject([[{ stage: "working", workId: "one" }]]);
 				yield* (yield* AppChanges).resync;
 				yield* until(() => Effect.succeed(received.length === 2));
-				expect(received).toMatchObject([[{ stage: "executing", workId: "one" }], [{ stage: "completed", workId: "one" }]]);
+				expect(received).toMatchObject([[{ stage: "working", workId: "one" }], [{ stage: "done", workId: "one" }]]);
 			}),
 		{ parts: fixture.parts },
 	);

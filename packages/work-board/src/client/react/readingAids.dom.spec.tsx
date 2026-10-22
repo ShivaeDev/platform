@@ -148,7 +148,7 @@ screenStory.it(
 		),
 	],
 	({ findElements, readText }) => {
-		expect(readText(".item-summary p")).toBe("Owner: reader · Next action: Done; PR #764 merged after PR 12.");
+		expect(readText(".item-summary p")).toBe("Owner: marvin · Next action: Done; PR #764 merged after PR 12.");
 		expect([...findElements(".item-summary p a")].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
 			["PR #764", "https://github.com/example/project/pull/764"],
 			["PR 12", "https://github.com/example/project/pull/12"],
@@ -170,7 +170,7 @@ for (const [name, value] of [
 			),
 		],
 		({ findElement, readText }) => {
-			expect(readText(".item-summary p")).toBe("Owner: reader · Next action: Done; PR #764 merged after PR 12.");
+			expect(readText(".item-summary p")).toBe("Owner: marvin · Next action: Done; PR #764 merged after PR 12.");
 			expect(findElement(".item-summary p a")).toBeNull();
 		},
 	);

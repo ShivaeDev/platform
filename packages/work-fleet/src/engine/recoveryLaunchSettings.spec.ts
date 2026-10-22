@@ -24,6 +24,6 @@ engine.it("persists exact worker and reviewer launch inputs, including omitted r
 	const decisionId = reviewing.value.decision?.id ?? "missing";
 	yield* fleet.resolve("one", decisionId, fleet.respond(decisionId, "retry"));
 	yield* fleet.restart();
-	expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+	expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 	expect(fleet.launches()).toHaveLength(2);
 });

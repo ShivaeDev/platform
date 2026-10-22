@@ -60,7 +60,7 @@ for (const role of ["worker", "reviewer"] as const) {
 					const lost = yield* fixture.restart(reconcile);
 					expect(lost.value).toMatchObject({
 						decision: { code: "session-turn-missing", reason: expect.stringContaining("one automatic resume") },
-						stage: "needs-human",
+						step: "waiting",
 					});
 					expect(lost.value.attempts).toHaveLength(initial.attempts.length + 2);
 					expect(fixture.settings.filter((setting) => setting.call === "turn")).toHaveLength(initial.attempts.length + 2);

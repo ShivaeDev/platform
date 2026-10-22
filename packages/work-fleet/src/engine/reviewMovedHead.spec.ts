@@ -11,7 +11,7 @@ engine.it(
 		yield* fleet.dispatch("one");
 		workerReports(REPORT);
 		const reviewing = yield* fleet.reconcile("one");
-		expect(reviewing.value.stage).toBe("reviewing");
+		expect(reviewing.value.step).toBe("reviewing");
 		expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 		movePullRequestHead(MOVED);
 		yield* fleet.reconcile("one");
@@ -21,7 +21,7 @@ engine.it(
 		yield* restart();
 		yield* fleet.reconcile("one");
 		const fresh = (yield* fleet.reconcile("one")).value;
-		expect(fresh.stage).toBe("reviewing");
+		expect(fresh.step).toBe("reviewing");
 		expect(fresh.result?.head).toBe(MOVED);
 		expect(fresh.attempts.at(-1)).toMatchObject({ reviewHead: MOVED, role: "reviewer", status: "running" });
 		expect(publishedDecisions()).toHaveLength(0);

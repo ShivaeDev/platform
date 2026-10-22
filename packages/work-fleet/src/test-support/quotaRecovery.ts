@@ -28,7 +28,7 @@ export const quotaRecovery = Effect.fn("Test.quotaRecovery")(function* () {
 				finishWorkers(fixture);
 				blocked = true;
 				const waiting = (yield* fleet.reconcile("one")).value;
-				expect(waiting).toMatchObject({ attentionOwner: "automation", blocker: reworded.message, stage: "reviewing" });
+				expect(waiting).toMatchObject({ attentionOwner: "automation", blocker: reworded.message, step: "reviewing" });
 				expect(waiting.decision).toBeUndefined();
 				expect(waiting.attempts).toHaveLength(1);
 				const resumed = yield* fixture.restart(Fleet.pipe(Effect.flatMap((current) => current.reconcile("one"))));
@@ -36,7 +36,7 @@ export const quotaRecovery = Effect.fn("Test.quotaRecovery")(function* () {
 				expect(resumed.value.updatedAt).toBeGreaterThanOrEqual(waiting.updatedAt ?? 0);
 				blocked = false;
 				const completed = yield* fixture.restart(Fleet.pipe(Effect.flatMap((current) => current.reconcile("one"))));
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(completed.value.attempts[0]?.receipt).toEqual(worker);
 				expect(completed.value.attempts).toHaveLength(2);
 				expect(fixture.decisions).toEqual([]);

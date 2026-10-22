@@ -9,7 +9,7 @@ import { withHost } from "#test/fleetHost.ts";
 import { postgresTests } from "#test/postgres.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
-const SOURCE = "---\nid: one\nkind: task\nfleet: approved\nfleet-deliverable: report\n---\n# Research\n";
+const SOURCE = "---\nid: one\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
 const test = postgresTests("live");
 
 test("report questions continue read-only research and record the final answer turn", function* () {
@@ -35,12 +35,12 @@ test("report questions continue read-only research and record the final answer t
 				}
 				fixture.provider.observations.set(receipt.turnId, { ...observation, execution: "completed", output: "# Findings after the answer\n" });
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(completed.value.report?.receipt).toEqual(receipt);
 				expect(fixture.provider.launched).toHaveLength(1);
 				const status = readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8");
 				expect(status).toContain("## Done");
-				expect(status).toContain("Stage: completed");
+				expect(status).toContain("Stage: done");
 			});
 			yield* fleetWork.pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
 		}),

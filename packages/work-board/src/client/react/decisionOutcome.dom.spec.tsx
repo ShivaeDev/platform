@@ -17,8 +17,10 @@ const AUTHORED = {
 	"seven.md": `---\n${JSON.stringify({
 		attention: [{ id: "design", kind: "decision", reason: "These choices are yours.", "response_from": ["maintainer"], state: "closed" }],
 		id: "decision.seven",
-		kind: "decision",
+		kind: "question",
+		scope: "task",
 		status: "done",
+		urgency: "whenever",
 	})}\n---\n# Seven design questions\n\nThe choices where a maintainer could go either way.\n`,
 };
 const question = questionId(decisionId, "direction", revisionOf(readyDecisionFixture[decisionFile] ?? ""), decisionFile);

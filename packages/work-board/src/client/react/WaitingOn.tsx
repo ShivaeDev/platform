@@ -38,7 +38,7 @@ function WaitingRow({ ask }: { readonly ask: WaitingAsk }) {
 				<Users aria-hidden="true" className="size-4 shrink-0" />
 			)}
 			<span className="min-w-0 flex-1">
-				<span className="font-medium">{you ? "Waiting on you" : "Waiting on agents"}:</span>{" "}
+				<span className="font-medium">{you ? "Waiting on you" : "Waiting on automation"}:</span>{" "}
 				<a className="underline underline-offset-4" href={ask.href}>
 					{ask.title}
 				</a>

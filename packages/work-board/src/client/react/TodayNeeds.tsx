@@ -79,7 +79,7 @@ function TodayRow({
 	readonly attention?: boolean;
 	readonly children?: ReactNode;
 	readonly detail?: string | undefined;
-	readonly item: Pick<Item, "href" | "modified" | "title"> & Partial<Pick<Item, "problem" | "reason">>;
+	readonly item: Pick<Item, "href" | "modified" | "title"> & Partial<Pick<Item, "problem" | "reason" | "scope" | "urgency">>;
 	readonly wrapDetail?: boolean;
 }) {
 	const text = detail ?? item.problem ?? item.reason;
@@ -105,6 +105,11 @@ function TodayRow({
 				)}
 				title={text}
 			>
+				{item.scope !== undefined && (
+					<span>
+						{item.scope} · {item.urgency} ·{" "}
+					</span>
+				)}
 				{text}
 			</p>
 		</div>

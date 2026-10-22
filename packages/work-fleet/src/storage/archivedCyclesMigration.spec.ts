@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { legacyVocabulary } from "#test/legacyVocabulary.ts";
 import { migrationRecords } from "#test/migrationRecords.ts";
 import { isolatedStorage } from "#test/storageStory.ts";
 
@@ -40,7 +41,7 @@ isolatedStorage.it(
 			{ ...record, history: undefined, workId: "absent" },
 		];
 		for (const value of values) {
-			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(value)}::jsonb)`;
+			yield* sql`insert into ${sql(`${namespace}_records`)} (work_id, version, payload) values (${value.workId}, 7, ${JSON.stringify(legacyVocabulary(value))}::jsonb)`;
 		}
 		const store = yield* openFleetStore({ namespace });
 		yield* migrate(namespace);

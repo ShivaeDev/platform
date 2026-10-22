@@ -8,7 +8,7 @@ function parsed(fleet?: string) {
 
 describe("Fleet frontmatter field", () => {
 	it("reads report deliverables as Fleet metadata while omitted fields retain the default", () => {
-		const report = metadataParse("---\nid: one\nkind: task\nfleet-deliverable: report\n---\n");
+		const report = metadataParse("---\nid: one\nkind: task\ndelivers: report\n---\n");
 
 		expect(fleetDeliverable(report)).toBe("report");
 		expect(fleetDeliverable(parsed())).toBeUndefined();

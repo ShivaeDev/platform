@@ -96,7 +96,7 @@ declare module "claude-code" {
 	type AbovePromptRender = Render<"AbovePrompt", { bodyColumns: number; hasSurvey: boolean }>;
 	interface SessionStart {
 		cwd: string;
-		isInteractive: boolean;
+		isInterready: boolean;
 	}
 	type ToolCall<T extends keyof McpToolInputs> = { tool: T; "tool_use_id": string } & McpToolInputs[T];
 	type ToolAnswer = { deny: string } | { result: unknown };

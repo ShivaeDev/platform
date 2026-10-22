@@ -51,6 +51,7 @@ export function WorkCard({
 					<PrChip url={fleet?.prUrl} />
 				</span>
 			</div>
+			{fleet?.stage === "waiting" && <p className="m-0 text-sm">{fleet.waitingReason}</p>}
 			{answered !== undefined && <p className="work-answer m-0 text-muted-foreground text-xs">{answered}</p>}
 			{holder && <p className="work-owner m-0 text-muted-foreground text-xs">{holder}</p>}
 			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && <StageTime entered={fleet.stageEnteredAt} stage={fleet.stage} />}

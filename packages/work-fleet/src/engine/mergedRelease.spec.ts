@@ -38,14 +38,14 @@ for (const scenario of ["worker question", "failing check", "changed head"] as c
 				expect(waiting.value.review?.verdict).toBe("approved");
 				expect(waiting.value.checks?.passed).toBe(false);
 			}
-			expect(waiting.value.stage).toBe("needs-human");
+			expect(waiting.value.step).toBe("waiting");
 			expect(executing(waiting.value)).toBe(false);
 			const published = waiting.value.decision?.published ?? (yield* Effect.die("Missing published decision"));
 			mergePullRequest();
 			movePullRequestHead(scenario === "changed head" ? MOVED : HEAD);
 			yield* reserveForeign(PR);
 			const released = yield* fleet.reconcile("one");
-			expect(released.value.stage).toBe("released");
+			expect(released.value.step).toBe("released");
 			expect(released.value.releaseReason).toBe(
 				`PR #7 merged by a human at ${scenario === "changed head" ? MOVED : HEAD}; Fleet review covered ${waiting.value.review?.head ?? "nothing"}`,
 			);

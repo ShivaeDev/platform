@@ -13,6 +13,7 @@ const outgoing: Readonly<Record<NonNullable<Metadata["relationships"]>[number]["
 	implements: "Implements",
 	informs: "Informs",
 	"relates_to": "Related to",
+	replaces: "Replaces",
 };
 const incoming = new Map([
 	["agent handoff", "Agent handoff"],
@@ -23,6 +24,7 @@ const incoming = new Map([
 	["evidence source", "Cited as evidence by"],
 	["implements", "Implemented by"],
 	["informs", "Informed by"],
+	["replaces", "Replaced by"],
 	["recorded response", "Recorded response"],
 	["relates_to", "Related to"],
 	["reviewed question", "Reviewed question"],

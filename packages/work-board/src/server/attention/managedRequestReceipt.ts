@@ -1,9 +1,9 @@
 import type { RequestReceipt } from "#attention/RequestReceipt.ts";
 import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
 import type { Metadata } from "#metadata/schema.ts";
-import { documentSource, type MetadataDocument, type MetadataModel } from "#server/metadata/model.ts";
+import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
-import { questionId, revisionOf } from "#server/responses/records.ts";
+import { currentQuestion } from "#server/responses/currentQuestion.ts";
 
 type Request = NonNullable<Metadata["attention"]>[number];
 
@@ -14,15 +14,6 @@ export type ManagedRequestState =
 	| { readonly _tag: "Conflicting"; readonly receipts: readonly string[] };
 
 const open: ManagedRequestState = { _tag: "Open" };
-
-function uniqueDocument(id: string, model: MetadataModel): MetadataDocument | undefined {
-	const matches = model.ids.get(id);
-	return matches?.length === 1 ? matches[0] : undefined;
-}
-
-function registeredContext(document: MetadataDocument | undefined, model: MetadataModel) {
-	return document ? responseIndex(model).questions.get(document.file) : undefined;
-}
 
 function appliedAnswer(question: string, revision: string, responseId: string | undefined, model: MetadataModel): boolean {
 	if (responseId === undefined) {
@@ -54,7 +45,7 @@ function registeredQuestion(document: MetadataDocument, request: Request, model:
 		|| request.kind !== "decision"
 		|| request.state !== "open"
 		|| !item
-		|| document.parsed.fields.kind !== "decision"
+		|| document.parsed.fields.kind !== "question"
 		|| document.parsed.diagnostics.length > 0
 		|| document.parsed.fields.attention?.filter((candidate) => candidate.id === request.id).length !== 1
 		|| model.unavailable.length > 0
@@ -62,23 +53,8 @@ function registeredQuestion(document: MetadataDocument, request: Request, model:
 	) {
 		return undefined;
 	}
-	const source = documentSource(document);
-	const revision = revisionOf(source);
-	const id = questionId(item, request.id, revision, document.file);
-	const archived = uniqueDocument(id, model);
-	const question = registeredContext(archived, model);
-	if (
-		archived?.parsed.diagnostics.length !== 0
-		|| !question
-		|| question.context !== source
-		|| question.question.source !== document.file
-		|| question.question.item !== item
-		|| question.question.request !== request.id
-		|| question.question.reviewedRevision !== revision
-	) {
-		return undefined;
-	}
-	return { id, question, revision };
+	const question = currentQuestion(document, request.id, model);
+	return question ? { id: question.id, question, revision: question.question.reviewedRevision } : undefined;
 }
 
 function currentAnswer(question: Question, model: MetadataModel): RecordedResponse | undefined {
@@ -92,7 +68,7 @@ function qualified(saved: MetadataDocument, question: string, revision: string, 
 	const receipt = saved.parsed.fields.requestReceipt;
 	if (
 		!receipt
-		|| saved.parsed.fields.kind !== "result"
+		|| saved.parsed.fields.kind !== "report"
 		|| saved.parsed.diagnostics.length > 0
 		|| !saved.parsed.fields.id
 		|| model.ids.get(saved.parsed.fields.id)?.length !== 1

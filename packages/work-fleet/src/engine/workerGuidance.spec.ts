@@ -22,7 +22,7 @@ describe("worker guidance through PostgreSQL", () => {
 					finishWorkers(fixture);
 					const checkRepair = yield* fleet.reconcile("one");
 					finishWorkers(fixture);
-					expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+					expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 					const manual = yield* fleet.continue("one", "Check another case");
 					for (const [record, role] of [
 						[first, "worker"],

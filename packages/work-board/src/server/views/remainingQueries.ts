@@ -46,7 +46,7 @@ export const remainingQueries = Effect.gen(function* () {
 				const data = yield* index;
 				const matches = data.model.ids.get(item);
 				const result = matches?.length === 1 ? matches[0] : undefined;
-				if (result?.parsed.fields.kind !== "result" || data.unavailable.length > 0) {
+				if (result?.parsed.fields.kind !== "report" || data.unavailable.length > 0) {
 					return yield* Effect.fail(
 						new Conflict({
 							message: "No single result has this ID. It may be missing, share its ID with another file, or sit in a file the Board can't read.",

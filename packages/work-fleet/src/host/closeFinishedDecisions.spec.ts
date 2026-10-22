@@ -15,7 +15,7 @@ host.it("the CLI closes an unanswered decision for dropped work", [boardWork({ "
 	const closed = yield* fleet.cli(["close-finished-decisions"]);
 	expect(closed).toMatchObject({ code: 0 });
 	expect(fleet.readBoard(decision.sourcePath)).toContain("Closed because Board work one is dropped.");
-	expect(board.metadataParse(fleet.readBoard(decision.sourcePath)).fields.attention).toMatchObject([{ state: "closed" }]);
+	expect(board.metadataParse(fleet.readBoard(decision.sourcePath)).fields).toMatchObject({ attention: [{ state: "closed" }], status: "done" });
 });
 
 host.it(
@@ -51,10 +51,11 @@ host.it(
 		expect(closed.stdout).toContain("6 decision(s) closed.");
 		for (const [index, publication] of publications.entries()) {
 			const item = finishedDecisionWork[index];
-			const finished = item !== undefined && ["done", "deferred", "superseded"].includes(item.status);
+			const finished = item !== undefined && ["done", "deferred", "dropped"].includes(item.status);
 			const source = fleet.readBoard(publication.sourcePath);
 			expect(board.metadataParse(source).fields.attention).toMatchObject([{ state: finished ? "closed" : "open" }]);
 			if (finished) {
+				expect(board.metadataParse(source).fields.status).toBe("done");
 				expect(preview.stdout).toContain(`Would close ${publication.sourcePath}: Closed because Board work ${item?.id} is ${item?.status}.`);
 				expect(source).toContain(`Closed because Board work ${item?.id} is ${item?.status}.`);
 			} else {

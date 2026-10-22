@@ -31,7 +31,7 @@ export function recoveryProviderCases(): readonly RecoveryCase[] {
 			progress: (_ctx, before, after) => {
 				expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-				expect(after.stage).toBe("reviewing");
+				expect(after.step).toBe("reviewing");
 			},
 			restore: () =>
 				Effect.sync(() => {

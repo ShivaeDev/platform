@@ -22,7 +22,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 	);
 	const progress: NonNullable<RecoveryCase["progress"]> = (_ctx, _before, after) => {
 		expect(after.attempts.at(-1)?.role).toBe("reviewer");
-		expect(after.stage).toBe("reviewing");
+		expect(after.step).toBe("reviewing");
 	};
 	function restore() {
 		return Effect.sync(() => {
@@ -44,7 +44,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 			name: "unclassified repository write failure",
 			options: {
 				writeFailure: (record) =>
-					!restored && record.stage === "reviewing"
+					!restored && record.step === "reviewing"
 						? new SqlError({ reason: new ConnectionError({ cause: new Error("Repository unavailable") }) })
 						: undefined,
 			},
@@ -57,7 +57,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 			code: "board-failure" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				yield* terminal(ctx);
-				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\nfleet-deliverable: invalid"));
+				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: invalid"));
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "production Board deliverable metadata invalid",
@@ -107,7 +107,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				yield* terminal(ctx);
 				const fleet = yield* Fleet;
 				const record = (yield* fleet.get("one")).value;
-				yield* ctx.fixture.replaceRecord({ ...record, stage: "repairing" });
+				yield* ctx.fixture.replaceRecord({ ...record, step: "repairing" });
 				yield* fleet.reconcile("one");
 			}),
 			name: "repair waits for the active worker to finish",
@@ -118,12 +118,12 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 			code: "fleet-denied" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				const record = (yield* prepareWork("one")).value;
-				yield* ctx.fixture.replaceRecord({ ...record, stage: "repairing" });
+				yield* ctx.fixture.replaceRecord({ ...record, step: "repairing" });
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "repair lacks an existing worker",
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 				expect(after.attempts).toHaveLength(1);
 			},
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],

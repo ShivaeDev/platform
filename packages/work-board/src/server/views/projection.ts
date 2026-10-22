@@ -34,7 +34,7 @@ function boardItems(board: Item, items: readonly Item[], snapshot: Snapshot) {
 }
 export function projectItems(snapshot: Snapshot, state: State): Projection {
 	const known = itemsOf(snapshot);
-	const boards = known.filter((item) => item.document.parsed.fields.kind === "board");
+	const boards = known.filter((item) => item.document.parsed.fields.items !== undefined);
 	const board = boards.find((item) => item.id === state.board);
 	const membership = board ? boardItems(board, known, snapshot) : undefined;
 	const items = (membership?.found ?? known).filter((item) => isWork(item.document.parsed.fields));

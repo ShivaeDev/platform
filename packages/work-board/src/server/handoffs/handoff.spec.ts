@@ -9,7 +9,7 @@ import { renderRemaining } from "#test/renderRemaining.tsx";
 import { aHandoffTask } from "#test/storyTraits.ts";
 
 const SOURCE =
-	"---\r\nid: task.keyboard\r\nkind: task\r\nstatus: in-review\r\nnext_action: Verify focus before changing the implementation\r\ncriteria:\r\n  - id: focus\r\n    text: Escape returns focus to the opening control\r\n---\r\n# Keyboard focus\r\n\r\nKeep the source readable.\r\n";
+	"---\r\nid: task.keyboard\r\nkind: task\r\nstatus: ready\r\nnext_action: Verify focus before changing the implementation\r\ncriteria:\r\n  - id: focus\r\n    text: Escape returns focus to the opening control\r\n---\r\n# Keyboard focus\r\n\r\nKeep the source readable.\r\n";
 
 boardStory.it(
 	"records reviewed context through native RPC without changing the task or starting an agent",
@@ -36,7 +36,7 @@ boardStory.it(
 		const draft = yield* handoffDraft();
 		const saved = yield* Effect.promise(() => client.mutate(client.handoffs.prepareHandoff.run(draft)));
 		const raw = readFileSync(join(notes.root, saved.file), "utf8")
-			.replace("state: requested", "state: acknowledged\n  by: agent-codex\n  note: Received; execution has not started.")
+			.replace("state: requested", "state: acknowledged\n  by: agent-codex\n  note: Done; execution has not started.")
 			.replace("kind: handoff", "kind: handoff\nagent_extra: ordinary file edits");
 		editFile(saved.file, raw);
 		unlinkSync(join(notes.root, draft.source));
@@ -118,7 +118,7 @@ boardStory.it(
 	function* ({ notes, client, editFile, handoffDraft }) {
 		const draft = yield* handoffDraft();
 		const saved = yield* Effect.promise(() => client.mutate(client.handoffs.prepareHandoff.run(draft)));
-		editFile("handoffs/broken.md", "---\nkind: handoff\nhandoff: [broken\n---\nFeedback\n");
+		editFile("handoffs/broken.md", "---\nhandoff: [broken\n---\nFeedback\n");
 		yield* Effect.promise(() =>
 			expect
 				.poll(() => client.run(client.handoffs.handoffs.run({ item: "task.keyboard" })))

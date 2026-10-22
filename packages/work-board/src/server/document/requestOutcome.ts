@@ -7,7 +7,7 @@ import { requestOpenInSource } from "./requests.ts";
 
 export function requestOutcome(document: MetadataDocument, snapshot: Snapshot): "answered" | "closed" | undefined {
 	const { id, kind } = document.parsed.fields;
-	if (!id || (kind !== "decision" && kind !== "question")) {
+	if (!id || kind !== "question") {
 		return undefined;
 	}
 	const index = responseIndex(snapshot.model);

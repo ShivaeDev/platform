@@ -4,10 +4,10 @@ import { routedScreen } from "./screenTraits.ts";
 const now = Date.UTC(2026, 9, 19, 12);
 const files = {
 	...inboxFixture(),
-	"goal.md": "---\nid: project.calm\nkind: project\nstatus: active\n---\n# A calm workspace\n",
+	"goal.md": "---\nid: project.calm\nkind: goal\nstatus: ready\n---\n# A calm workspace\n",
 	"notes/note.md": "# A plain note\n",
-	"results/second.md": "---\nid: fleet.second-result\nkind: result\nstatus: done\n---\n# Second result\n",
-	"results/upload.md": "---\nid: board.upload-result\nkind: result\nstatus: done\n---\n# Upload result\n",
+	"results/second.md": "---\nid: fleet.second-result\nkind: report\nstatus: done\n---\n# Second result\n",
+	"results/upload.md": "---\nid: board.upload-result\nkind: report\nstatus: done\n---\n# Upload result\n",
 };
 const modified = new Map([
 	["goal.md", now - 4 * 60 * 60 * 1000],

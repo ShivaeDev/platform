@@ -17,12 +17,12 @@ test("a repair report receives its correction on the existing worker thread with
 			expect(repair.value.attempts.at(-1)?.role).toBe("repair");
 			yield* workerReportReply(fixture, repair, "Missing repair report");
 			const correction = yield* fleet.reconcile("one");
-			expect(correction.value.stage).toBe("executing");
+			expect(correction.value.step).toBe("working");
 			expect(correction.value.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: original.sessionId });
 			expect(correction.value.attempts).toHaveLength(4);
 			expect(correction.value.history).toBeUndefined();
 			yield* workerReportReply(fixture, correction, NO_CHANGE);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(fixture.reviews).toEqual([HEAD, HEAD]);
 		}),
 	);
@@ -42,7 +42,7 @@ test("persists the correction before provider acceptance and reconciles its lost
 			yield* Deferred.await(entered);
 			const intent = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.get("one")));
 			const attempt = intent.value.attempts.at(-1);
-			expect(intent.value.stage).toBe("executing");
+			expect(intent.value.step).toBe("working");
 			expect(intent.value.attempts).toHaveLength(2);
 			expect(attempt).toMatchObject({ role: "worker", sessionId: original.sessionId, status: "submitting" });
 			expect(attempt?.prompt).toContain("Reply only with a corrected report");
@@ -59,14 +59,14 @@ test("persists the correction before provider acceptance and reconciles its lost
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
 			yield* workerReportReply(fixture, recovered, NO_CHANGE);
 			const completed = yield* fleet.reconcile("one");
-			expect(completed.value.stage).toBe("completed");
+			expect(completed.value.step).toBe("done");
 			expect(completed.value.result).toMatchObject({ head: HEAD, kind: "no-change" });
 			expect(fixture.launched).toHaveLength(2);
 		}),
 	);
 });
 
-test("a malformed human-requested retry returns to needs-human without another automatic follow-up", () =>
+test("a malformed human-requested retry returns to waiting without another automatic follow-up", () =>
 	withEngine({ resultQuery: resultFixture().adopt }, (fixture) =>
 		Effect.gen(function* () {
 			const fleet = yield* Fleet;
@@ -76,11 +76,11 @@ test("a malformed human-requested retry returns to needs-human without another a
 			const decisionId = blocked.value.decision?.id ?? "missing";
 			fixture.respond(decisionId, "retry");
 			const retry = yield* fleet.reconcile("one");
-			expect(retry.value.stage).toBe("executing");
+			expect(retry.value.step).toBe("working");
 			expect(retry.value.attempts).toHaveLength(3);
 			yield* workerReportReply(fixture, retry, `${REPORT}\nTrailing text`);
 			const malformed = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
-			expect(malformed.value.stage).toBe("needs-human");
+			expect(malformed.value.step).toBe("waiting");
 			expect(malformed.value.decision?.id).not.toBe(decisionId);
 			expect(malformed.value.attempts).toHaveLength(3);
 			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);

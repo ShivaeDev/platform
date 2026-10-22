@@ -39,6 +39,6 @@ engine.it(
 		writeBoardWork("catalog.md", sweepTask("catalog"));
 		yield* fleet.reconcile("catalog");
 		yield* fleet.dispatch("queued").pipe(Effect.result);
-		expect((yield* fleet.get("queued")).value).toMatchObject({ attempts: [], blocker: "waiting for sweep catalog", stage: "prepared" });
+		expect((yield* fleet.get("queued")).value).toMatchObject({ attempts: [], blocker: "waiting for sweep catalog", step: "queued" });
 	},
 );

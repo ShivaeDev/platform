@@ -10,7 +10,7 @@ import { statusRecord } from "#test/status.ts";
 const decision: Decision = { id: "waiting", links: [], reason: "Previous question", recommendation: "Retry" };
 
 it("pending answer application belongs to automation and is not a settled human question", () => {
-	const record = { ...statusRecord("one", "needs-human"), blocker: ANSWER_RECORDED, decision };
+	const record = { ...statusRecord("one", "waiting"), blocker: ANSWER_RECORDED, decision };
 	expect(waitingOwner(record)).toBe("automation");
 	expect(settled("one", record)).toBeUndefined();
 	expect(renderStatus(views([record]))).toContain(ANSWER_RECORDED);
@@ -18,7 +18,7 @@ it("pending answer application belongs to automation and is not a settled human 
 
 it("status and watch show an application failure ahead of the previous question", () => {
 	const record = {
-		...statusRecord("one", "needs-human"),
+		...statusRecord("one", "waiting"),
 		blocker: "Provider unavailable while applying the answer",
 		decision,
 	};

@@ -29,8 +29,8 @@ describe("native Fleet contract", () => {
 					const decisionId = view.waiting.orchestrator[0]?.decision?.id ?? "missing";
 					const responseId = fixture.respond(decisionId, "release");
 					const released = yield* client("fleet.resolve", { decisionId, responseId, workId: "one" });
-					expect(released.stage).toBe("released");
-					expect((yield* client("fleet.get", { workId: "one" })).stage).toBe("released");
+					expect(released.step).toBe("released");
+					expect((yield* client("fleet.get", { workId: "one" })).step).toBe("released");
 				}),
 			),
 		));

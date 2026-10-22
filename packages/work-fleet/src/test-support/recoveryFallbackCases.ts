@@ -62,7 +62,7 @@ export function recoveryFallbackCases(): readonly RecoveryCase[] {
 			name: `uncoded integration boundary: ${code}`,
 			options: fallbackOptions(),
 			progress: (_ctx, _before, after) => {
-				expect(after.stage).toBe("reviewing");
+				expect(after.step).toBe("reviewing");
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
 			},
 			restore: () =>

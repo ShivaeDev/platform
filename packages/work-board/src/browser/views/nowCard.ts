@@ -1,25 +1,20 @@
 import type { Metadata } from "#metadata/schema.ts";
 import { type FleetWork, waitsForFleet } from "./now.ts";
-import { heldPhase, workPhase } from "./workStatus.ts";
 
 const fleetHolders: Record<FleetWork["stage"], string> = {
-	adopting: "Fleet is working on this",
-	completed: "Fleet finished this",
-	delivering: "Fleet is working on this",
-	executing: "Fleet is working on this",
-	"needs-human": "Waiting on a person",
-	prepared: "Queued for Fleet",
+	done: "Fleet finished this",
+	queued: "Queued for Fleet",
 	released: "Fleet handed this back",
-	repairing: "Fleet is working on this",
 	reviewing: "Fleet is working on this",
-	validating: "Fleet is working on this",
+	waiting: "Waiting on automation",
+	working: "Fleet is working on this",
 };
 
 export function fleetHolder(fleet: FleetWork): string {
 	if (fleet.attentionOwner === "maintainer") {
-		return "Needs you";
+		return "Waiting on you";
 	}
-	return fleet.attentionOwner === "orchestrator" ? "Waiting on the orchestrator" : fleetHolders[fleet.stage];
+	return fleet.attentionOwner === "orchestrator" ? "Waiting on orchestrator" : fleetHolders[fleet.stage];
 }
 
 export function holderOf(metadata: Metadata, fleet: FleetWork | undefined, answered = false, asked = false): string | undefined {
@@ -32,26 +27,21 @@ export function holderOf(metadata: Metadata, fleet: FleetWork | undefined, answe
 	if (fleet) {
 		return fleetHolder(fleet);
 	}
-	if (metadata.owner === "maintainer") {
+	if (metadata.owner === "marvin") {
 		return "Assigned to you";
 	}
-	return metadata.owner === "orchestrator" ? "Assigned to the orchestrator" : undefined;
+	return metadata.owner === "claude" ? "Assigned to the orchestrator" : undefined;
 }
 
 const stageNames: Record<FleetWork["stage"], string> = {
-	adopting: "Adopting",
-	completed: "Done",
-	delivering: "Delivering",
-	executing: "Executing",
-	"needs-human": "Waiting",
-	prepared: "Queued",
-	released: "Handed back",
-	repairing: "Repairing",
+	done: "Done",
+	queued: "Queued",
+	released: "Released",
 	reviewing: "Reviewing",
-	validating: "Validating",
+	waiting: "Waiting",
+	working: "Working",
 };
-
-const notRunningStages: ReadonlySet<FleetWork["stage"]> = new Set(["completed", "prepared", "released"]);
+const notRunningStages: ReadonlySet<FleetWork["stage"]> = new Set(["done", "queued", "released"]);
 
 export function stageTime(stage: FleetWork["stage"]): { readonly label: string; readonly started: boolean } {
 	return { label: stageNames[stage], started: !notRunningStages.has(stage) };
@@ -70,13 +60,13 @@ export function cardStatus(
 	if (waitsForFleet(fleet, answered && waiting === undefined)) {
 		return "waiting-on-agents";
 	}
-	if (fleet && fleet.stage !== "needs-human") {
-		return fleet.stage === "completed" ? "done" : fleet.stage;
+	if (fleet) {
+		return fleet.stage;
 	}
-	return fleet || waiting ? "needs-you" : metadata.status;
+	return metadata.status;
 }
 
 // Now's lane titles name the stage, so a card calls held work by the one word every page uses for it.
 export function cardLabelStatus(status: string | undefined): string | undefined {
-	return heldPhase(workPhase(status)) ? "in progress" : status;
+	return status;
 }

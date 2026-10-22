@@ -38,7 +38,7 @@ export function goalShare(goal: WorkboardGoal): number {
 }
 
 export function startedShare(goal: WorkboardGoal): number {
-	return goal.total === 0 ? 0 : Math.min(1, (goal.done + goal.active) / goal.total);
+	return goal.total === 0 ? 0 : Math.min(1, (goal.done + goal.ready) / goal.total);
 }
 
 function goalRank(goal: WorkboardGoal): number {

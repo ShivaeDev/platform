@@ -14,7 +14,7 @@ export function recordResponseCommand(state: EngineState) {
 		if (receipts.some((receipt) => receipt.decisionId === decisionId && receipt.responseId === responseId)) {
 			return stored;
 		}
-		if (stored.value.stage !== "needs-human" || stored.value.decision?.id !== decisionId) {
+		if (stored.value.step !== "waiting" || stored.value.decision?.id !== decisionId) {
 			return yield* new Conflict({ message: "Decision changed" });
 		}
 		yield* readResolution(state.board, stored.value.decision, responseId);

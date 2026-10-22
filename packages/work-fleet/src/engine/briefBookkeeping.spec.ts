@@ -14,7 +14,7 @@ const test = postgresTests("test");
 
 for (const wholeFileRevision of [false, true]) {
 	for (const [field, before, after] of [
-		["status", "status: planned", "status: deferred"],
+		["status", "status: draft", "status: deferred"],
 		["next_action", "next_action: Implement the work.", "next_action: Work completed."],
 	] as const) {
 		registerBookkeepingTests(wholeFileRevision, field, before, after);
@@ -28,7 +28,7 @@ function registerBookkeepingTests(wholeFileRevision: boolean, field: string, bef
 			withFleetBoard({ noChange: true, reviewRunning: phase === "review" }, (fixture, root, source) =>
 				Effect.gen(function* () {
 					const files = boardHttpFiles(root);
-					const original = source.replace("kind: task", "kind: task\nstatus: planned\nnext_action: Implement the work.\nowner: first-owner");
+					const original = source.replace("kind: task", "kind: task\nstatus: draft\nnext_action: Implement the work.\nowner: codex");
 					files.write("one.md", original);
 					const active = yield* prepareBookkeepingPhase(fixture, phase, wholeFileRevision);
 					const changed = original.replace(before, after);
@@ -43,7 +43,7 @@ function registerBookkeepingTests(wholeFileRevision: boolean, field: string, bef
 						attempts: active.value.attempts,
 						boardContext: original,
 						boardRevision: active.value.boardRevision,
-						stage: active.value.stage,
+						step: active.value.step,
 					});
 					expect(unchanged.value.decision).toEqual(active.value.decision);
 					expect(fixture.launched).toHaveLength(active.value.attempts.length);
@@ -68,14 +68,14 @@ const finishBookkeepingPhase = Effect.fn("Fleet.finishBookkeepingPhase")(functio
 		const dispatched = yield* fleet.dispatch("one");
 		expect(dispatched.value.boardRevision).toBe(boardRevision);
 		if (field === "status") {
-			expect(dispatched.value.stage).toBe("released");
+			expect(dispatched.value.step).toBe("released");
 			expect(fixture.launched).toEqual([]);
 			return;
 		}
 	}
 	finishWorkers(fixture);
 	const completed = yield* fleet.reconcile("one");
-	expect(completed.value.stage).toBe("completed");
+	expect(completed.value.step).toBe("done");
 	expect(completed.value.decision).toBeUndefined();
 });
 
@@ -95,10 +95,10 @@ test("bookkeeping edits leave a validation decision resolvable by its original r
 			boardHttpFiles(root).write("one.md", source.replace("kind: task", "kind: task\nstatus: deferred\nnext_action: Work completed."));
 			options.checksFailure = false;
 			const resolved = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.resolve("one", decision.id, answer))));
-			expect(resolved.value.stage).toBe("reviewing");
+			expect(resolved.value.step).toBe("reviewing");
 			expect(resolved.value.decision).toBeUndefined();
 			expect(resolved.value.responses).toMatchObject([{ action: "retry", boardAcknowledged: true, responseId: answer }]);
-			expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 			expect(fixture.launched).toHaveLength(2);
 		}),
 	);
@@ -113,14 +113,14 @@ const continueBookkeepingDecision = Effect.fnUntraced(function* (
 	const decision = unchanged.decision ?? (yield* Effect.die("Missing worker question"));
 	const answer = yield* answerWorker(root, decision);
 	const continued = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("one"))));
-	expect(continued.value.stage).toBe("executing");
+	expect(continued.value.step).toBe("working");
 	expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(active.attempts[0]?.receipt?.sessionId);
 	expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
 	expect(boardHttpFiles(root).receipts()).toHaveLength(1);
 });
 
 function assertReleasedBookkeeping(current: FleetRecord, active: FleetRecord) {
-	expect(current.stage).toBe("released");
+	expect(current.step).toBe("released");
 	expect(current.releaseReason).toBe("Board status is deferred");
 	expect(current.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.decision?.published }]);
 }

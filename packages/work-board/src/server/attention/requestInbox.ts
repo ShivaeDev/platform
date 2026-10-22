@@ -62,8 +62,10 @@ function collectInbox(snapshot: Snapshot) {
 			reason: entry.request.managed ? fleetAsks(entry) : entry.request.reason,
 			request: entry.request.id,
 			responseFrom: entry.request.responseFrom,
+			scope: entry.document.parsed.fields.scope,
 			title: (target ? titles.get(target.file) : undefined) ?? entry.title,
 			unblocks: entry.request.unblocks,
+			urgency: entry.document.parsed.fields.urgency,
 		};
 	}
 	const resolved: ReturnType<typeof row>[] = [];

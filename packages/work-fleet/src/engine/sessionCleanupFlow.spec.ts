@@ -18,15 +18,15 @@ describe("Fleet session cleanup", () => {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");
 				const { decision, stopped } = yield* askWorker(fixture);
-				expect(stopped.value.stage).toBe("needs-human");
+				expect(stopped.value.step).toBe("waiting");
 				expect(fixture.archived).toEqual([]);
 				const answer = yield* answerWorker(root, decision);
 				const continued = yield* fleet.resolve("one", decision.id, answer.id);
-				expect(continued.value.stage).toBe("executing");
+				expect(continued.value.step).toBe("working");
 				expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
 				expect(fixture.archived).toEqual([]);
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				expect(fixture.archived).toHaveLength(2);
 				expect(fixture.archived.filter((id) => id === decision.worker?.sessionId)).toHaveLength(1);
 			}),
@@ -41,7 +41,7 @@ describe("Fleet session cleanup", () => {
 					expect(fixture.archived).toEqual([]);
 					finishWorkers(fixture);
 					const completed = yield* fleet.reconcile("one");
-					expect(completed.value.stage).toBe("completed");
+					expect(completed.value.step).toBe("done");
 					expect(fixture.archived).toEqual(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId));
 					expect(pendingSessionCleanup(completed.value)).toEqual([]);
 					yield* fixture.restart(fleet.reconcile("one"));
@@ -65,11 +65,11 @@ describe("Fleet session cleanup", () => {
 				expect(fixture.archived).toEqual([]);
 				finishWorkers(fixture);
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(fixture.archived).toEqual([...new Set(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId))]);
 			}),
 		));
-	test("keeps needs-human threads until an explicit safe release", () =>
+	test("keeps waiting threads until an explicit safe release", () =>
 		withEngine({ denyDelivery: true }, (fixture) =>
 			Effect.gen(function* () {
 				yield* prepareWork("one");
@@ -80,7 +80,7 @@ describe("Fleet session cleanup", () => {
 				expect(fixture.archived).toEqual([]);
 				const decisionId = denied.value.decision?.id ?? "missing";
 				const response = fixture.respond(decisionId, "release");
-				expect((yield* fleet.resolve("one", decisionId, response)).value.stage).toBe("released");
+				expect((yield* fleet.resolve("one", decisionId, response)).value.step).toBe("released");
 				expect(fixture.archived).toHaveLength(2);
 				yield* fleet.resolve("one", decisionId, response);
 				expect(fixture.archived).toHaveLength(2);
@@ -95,7 +95,7 @@ describe("Fleet session cleanup", () => {
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
 				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.stage).toBe("completed");
+				expect(completed.value.step).toBe("done");
 				expect(pendingSessionCleanup(completed.value)).toHaveLength(1);
 				expect(logs.entries).toEqual([
 					{
@@ -137,7 +137,7 @@ describe("Fleet session cleanup", () => {
 				fixture.editWork("one", "next-revision");
 				fixture.approveWork("one", "next-revision");
 				const renewed = yield* prepareWork("one");
-				expect(renewed.value.stage).toBe("prepared");
+				expect(renewed.value.step).toBe("queued");
 				expect(pendingSessionCleanup(renewed.value)).toEqual([]);
 				expect(fixture.archived).toHaveLength(2);
 				yield* fleet.dispatch("one");

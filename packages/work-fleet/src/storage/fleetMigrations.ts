@@ -14,6 +14,7 @@ import { shapeV14 } from "#storage/shapeV14.ts";
 import { shapeV17 } from "#storage/shapeV17.ts";
 import { sweeps } from "#storage/sweeps.ts";
 import { typedTables } from "#storage/typedTables.ts";
+import { vocabulary } from "#storage/vocabulary.ts";
 
 const releaseReasonColumn = { kind: "string", name: "releaseReason" } as const;
 
@@ -88,5 +89,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			}
 		}),
 		"25_advisory_reviews": advisoryReviews(namespace),
+		"26_vocabulary": vocabulary(namespace),
 	});
 });

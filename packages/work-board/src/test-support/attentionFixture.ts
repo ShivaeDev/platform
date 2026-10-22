@@ -18,12 +18,12 @@ attention:
 # Keyboard fixture
 `,
 		"attention/not-a-request.md":
-			"---\nid: ordinary.review\nstatus: in-review\nowner: maintainer\nnext_action: Ask Maintainer\n---\n# Arbitrary source labels\n",
+			"---\nid: ordinary.review\nstatus: ready\nowner: marvin\nnext_action: Ask Maintainer\n---\n# Arbitrary source labels\n",
 		"attention/review.md": `---
 id: request.search
-kind: result
-status: finished
-owner: someone-else
+kind: report
+status: done
+owner: marvin
 attention:
   - id: keyboard-review
     kind: review

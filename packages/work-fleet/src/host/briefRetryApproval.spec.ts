@@ -60,7 +60,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 					yield* cycle;
 					return (yield* (yield* Fleet).get("one")).value;
 				}).pipe(Effect.provide(Layer.fresh(runtime)));
-				expect(accepted.stage).toBe("executing");
+				expect(accepted.step).toBe("working");
 				expect(accepted.attempts[0]).toEqual(failed);
 				expect(accepted.attempts.at(-1)).toMatchObject({ prompt: withWorkerGuidance(current, workerGuidance), settings: failed?.settings });
 				expect(provider.observations.get(accepted.attempts.at(-1)?.receipt?.turnId ?? "")?.output).toBe(withWorkerGuidance(current, workerGuidance));

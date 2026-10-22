@@ -54,7 +54,7 @@ test("a PR waiting for a human merge is re-observed by conditional requests that
 				expect(github.budget.remaining).toBe(spent);
 				github.reply(PR_ENDPOINT, pullRequest(true));
 				const accepted = yield* fleet.reconcile("one");
-				expect(accepted.value.stage).toBe("completed");
+				expect(accepted.value.step).toBe("done");
 				expect(accepted.value.outcome).toEqual({ head: ADOPTED_HEAD, revision: "c".repeat(40), url: result.kind === "change" ? result.pr : "" });
 				expect(github.budget.remaining).toBe(spent - 1);
 			}),
@@ -79,7 +79,7 @@ test("a rate-limited read waits for the reset without escalating or calling GitH
 				finishWorkers(fixture);
 				const waiting = yield* fleet.reconcile("one");
 				const until = new Date(GITHUB_RESET * 1000).toISOString();
-				expect(waiting.value.stage).toBe("validating");
+				expect(waiting.value.step).toBe("validating");
 				expect(waiting.value.blocker).toBe(`GitHub is rate-limited until ${until}`);
 				expect(waiting.value.attentionOwner).toBe("automation");
 				expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
@@ -91,9 +91,7 @@ test("a rate-limited read waits for the reset without escalating or calling GitH
 				expect(github.requests).toHaveLength(1);
 				const current = yield* fleet.get("one");
 				expect(current.value.decision).toBeUndefined();
-				expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(
-					`one  validating  GitHub is rate-limited until ${until}`,
-				);
+				expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  waiting  GitHub is rate-limited until ${until}`);
 				expect(yield* api.observations()).toMatchObject([
 					{ limitedBy: "rate-limit", limitedUntil: GITHUB_RESET * 1000, remaining: 0, resource: "core" },
 				]);
@@ -119,7 +117,7 @@ test("below the 20% reserve Fleet stops calling GitHub until the reset and statu
 				finishWorkers(fixture);
 				const waiting = yield* fleet.reconcile("one");
 				const message = `GitHub paused below the 20% reserve until ${new Date(GITHUB_RESET * 1000).toISOString()}`;
-				expect(waiting.value.stage).toBe("validating");
+				expect(waiting.value.step).toBe("validating");
 				expect(waiting.value.blocker).toBe(message);
 				expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
 				expect(github.requests).toHaveLength(1);
@@ -129,7 +127,7 @@ test("below the 20% reserve Fleet stops calling GitHub until the reset and statu
 				}
 				expect(github.requests).toHaveLength(1);
 				expect((yield* fleet.get("one")).value.decision).toBeUndefined();
-				expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  validating  ${message}`);
+				expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  waiting  ${message}`);
 				expect(yield* api.observations()).toMatchObject([{ limitedBy: "reserve", limitedUntil: GITHUB_RESET * 1000, remaining: 999 }]);
 			}),
 		);

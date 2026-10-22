@@ -25,7 +25,7 @@ export const dispatchAndWait = Effect.fn("DaemonTest.dispatchAndWait")(function*
 	if (outcome.status === "failed") {
 		return yield* new ServiceUnavailable({ message: outcome.error ?? "Dispatch failed" });
 	}
-	return yield* waitForRecord(client, workId, (record) => record.stage !== "prepared" && record.attempts.at(-1)?.status !== "submitting");
+	return yield* waitForRecord(client, workId, (record) => record.step !== "queued" && record.attempts.at(-1)?.status !== "submitting");
 });
 
 export const waitForDispatch = Effect.fn("DaemonTest.waitForDispatch")(

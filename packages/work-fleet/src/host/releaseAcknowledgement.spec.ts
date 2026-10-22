@@ -17,7 +17,7 @@ answers.it("release confirms during a blocked launch and applies its accepted re
 		expect(yield* host.cliRelease("one").pipe(Effect.timeout("5 seconds"))).toEqual({
 			code: 0,
 			stderr: "",
-			stdout: `one needs-human: ${ANSWER_RECORDED}`,
+			stdout: `one waiting (waiting on automation): ${ANSWER_RECORDED}`,
 		});
 	}
 	expect((yield* host.status()).waiting.automation).toMatchObject([{ blocker: ANSWER_RECORDED, workId: "one" }]);
@@ -25,7 +25,7 @@ answers.it("release confirms during a blocked launch and applies its accepted re
 	yield* admission.release;
 	yield* Fiber.join(launch);
 	const released = yield* host.applied();
-	expect(released.stage).toBe("released");
+	expect(released.step).toBe("released");
 	expect(released.responses?.filter((response) => response.decisionId === decision.id)).toMatchObject([
 		{ action: "release", boardAcknowledged: true },
 	]);
@@ -45,5 +45,5 @@ answers.it("release reports refusal for running work or an unrecorded request", 
 	expect(host.boardReceipts()).toEqual([]);
 	yield* host.failRecording(false);
 	expect((yield* host.cliRelease("one")).code).toBe(CLI_SUCCESS);
-	expect((yield* host.applied()).stage).toBe("released");
+	expect((yield* host.applied()).step).toBe("released");
 });

@@ -24,10 +24,10 @@ engine.it(
 		expect((yield* get("two")).value).toMatchObject({
 			attempts: [],
 			blocker: expect.stringContaining("waiting for dependency three"),
-			stage: "prepared",
+			step: "queued",
 		});
-		expect((yield* get("three")).value.stage).toBe("executing");
-		expect((yield* get("one")).value).toMatchObject({ launchRetry: lowRetry, stage: "prepared" });
+		expect((yield* get("three")).value.step).toBe("working");
+		expect((yield* get("one")).value).toMatchObject({ launchRetry: lowRetry, step: "queued" });
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement three"]);
 	},
 );
@@ -52,7 +52,7 @@ engine.it(
 		}
 		yield* schedule();
 		expect((yield* get("three")).value.launchRetry).toMatchObject({ rejections: 1 });
-		expect((yield* get("four")).value).toMatchObject({ attempts: [], stage: "prepared" });
+		expect((yield* get("four")).value).toMatchObject({ attempts: [], step: "queued" });
 		expect((yield* get("one")).value.launchRetry).toEqual(lowRetry);
 		expect(providerStarts().map(({ prompt }) => prompt)).toEqual(["Implement one", "Implement three"]);
 	},

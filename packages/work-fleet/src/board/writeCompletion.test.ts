@@ -7,7 +7,7 @@ import { boardFileStory } from "#test/boardFileStory.ts";
 for (const authored of ["identity", "criterion"] as const) {
 	boardFileStory.it(`refuses completion when a YAML alias would change the authored ${authored}`, [], function* ({ completion }) {
 		const { fs, root, source } = completion;
-		const anchored = source.replace("status: planned", "status: &bookkeeping planned");
+		const anchored = source.replace("status: draft", "status: &bookkeeping planned");
 		const aliased =
 			authored === "identity"
 				? anchored.replace("id: one", "id: *bookkeeping")

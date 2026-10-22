@@ -19,7 +19,7 @@ isolatedEngine.it(
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one").pipe(Effect.result);
 		expect((yield* fleet.get("one")).value.blocker).toContain("queued ahead by two");
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 	},
 );
 isolatedEngine.it(
@@ -39,12 +39,12 @@ isolatedEngine.it(
 		expect((yield* fleet.get("two")).value).toMatchObject({
 			attentionOwner: "automation",
 			blocker: "waiting for area fleet/host held by one",
-			stage: "prepared",
+			step: "queued",
 		});
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 		const next = yield* fleet.dispatch("two");
-		expect(next.value.stage).toBe("executing");
+		expect(next.value.step).toBe("working");
 		expect(next.value.blocker).toBeUndefined();
 	},
 );
@@ -54,7 +54,7 @@ isolatedEngine.it("disjoint areas dispatch concurrently", [], function* ({ fleet
 	yield* prepareWork("one");
 	yield* prepareWork("two");
 	const dispatched = yield* Effect.all([fleet.dispatch("one"), fleet.dispatch("two")], { concurrency: "unbounded" });
-	expect(dispatched.map(({ value }) => value.stage)).toEqual(["executing", "executing"]);
+	expect(dispatched.map(({ value }) => value.step)).toEqual(["working", "working"]);
 	expect(launches()).toHaveLength(2);
 });
 isolatedEngine.it(
@@ -69,10 +69,10 @@ isolatedEngine.it(
 		finishWorkers();
 		const holder = yield* fleet.reconcile("one");
 		yield* fleet.dispatch("two").pipe(Effect.result);
-		expect((yield* fleet.get("two")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		const decision = holder.value.decision?.id ?? "missing";
-		expect((yield* fleet.resolve("one", decision, respond(decision, "release"))).value.stage).toBe("released");
-		expect((yield* fleet.dispatch("two")).value.stage).toBe("executing");
+		expect((yield* fleet.resolve("one", decision, respond(decision, "release"))).value.step).toBe("released");
+		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 	},
 );
 isolatedEngine.it(
@@ -97,13 +97,13 @@ isolatedEngine.it(
 		);
 		// Racing preparation writes can require the scheduler's next pass.
 		yield* schedule();
-		expect((yield* fleet.get("two")).value.stage).toBe("executing");
-		expect((yield* fleet.get("dependent")).value.stage).toBe("prepared");
+		expect((yield* fleet.get("two")).value.step).toBe("working");
+		expect((yield* fleet.get("dependent")).value.step).toBe("queued");
 		expect((yield* fleet.get("two")).value.attempts).toHaveLength(1);
 		finishWorkers();
 		yield* fleet.reconcile("two");
 		yield* schedule();
-		expect((yield* fleet.get("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.get("dependent")).value.step).toBe("working");
 		expect(
 			providerStarts()
 				.filter((start) => start.access !== "read-only")

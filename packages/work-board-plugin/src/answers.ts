@@ -1,23 +1,9 @@
 import type { WorkboardBlock, WorkboardFlight, WorkboardGoal } from "#types/index.d.ts";
 import { isRecord, records, text } from "./rpc.ts";
 
-export const STAGES = ["executing", "reviewing", "repairing", "adopting"] as const;
+export const STAGES = ["working", "reviewing", "waiting"] as const;
 const STAGE_NAMES: ReadonlySet<unknown> = new Set(STAGES);
-const DONE = ["done", "completed", "accepted"];
-const ACTIVE = [
-	"active",
-	"running",
-	"in-progress",
-	"in progress",
-	"agent-working",
-	"blocked",
-	"needs-human",
-	"needs you",
-	"executing",
-	"reviewing",
-	"repairing",
-	"adopting",
-];
+const DONE = ["done"];
 
 export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<string, string> = new Map()): WorkboardBlock<WorkboardFlight> {
 	if (!isRecord(value)) {
@@ -50,7 +36,7 @@ export function goalsOf(value: unknown): WorkboardBlock<WorkboardGoal> {
 	const items = rows.map((row) => {
 		const counts = isRecord(row.counts) ? Object.entries(row.counts) : [];
 		let done = 0;
-		let active = 0;
+		let ready = 0;
 		let total = 0;
 		for (const [status, count] of counts) {
 			if (typeof count !== "number") {
@@ -59,12 +45,12 @@ export function goalsOf(value: unknown): WorkboardBlock<WorkboardGoal> {
 			total += count;
 			if (DONE.includes(status)) {
 				done += count;
-			} else if (ACTIVE.includes(status)) {
-				active += count;
+			} else if (status === "ready") {
+				ready += count;
 			}
 		}
 		const id = text(row.id) ?? "goal";
-		return { active, done, id, title: text(row.title) ?? id, total };
+		return { done, id, ready, title: text(row.title) ?? id, total };
 	});
 	return { items, problem: null };
 }

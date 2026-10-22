@@ -5,14 +5,12 @@ import type { RecordedResponse } from "#browser/responses/schema.ts";
 import { closedStatus } from "#browser/views/workStatus.ts";
 import { currentResponses } from "#responses/current.ts";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
-import { itemStatus } from "./itemStatus.ts";
 import { Time } from "./Time.tsx";
 
 export function DecisionOutcome({ document }: { readonly document: Document }) {
 	const id = useId();
 	const kind = document.metadata.kind;
-	const status = itemStatus(document);
-	if ((kind !== "decision" && kind !== "question") || !(status === "answered" || (closedStatus(status) && closedInSource(document)))) {
+	if (kind !== "question" || !(document.requestOutcome === "answered" || closedInSource(document))) {
 		return null;
 	}
 	const unavailable = document.requests.find((request) => request.unavailable)?.unavailable;
@@ -21,6 +19,9 @@ export function DecisionOutcome({ document }: { readonly document: Document }) {
 			.filter((record) => record.response.type === "answer")
 			.map((record) => ({ record, request })),
 	);
+	if (document.metadata.scope === "standing" && answers.length === 0 && unavailable === undefined) {
+		return null;
+	}
 	return (
 		<section aria-labelledby={id} className="mb-6 space-y-3 rounded-lg border bg-muted/40 px-4 py-3" data-decision-outcome="">
 			<h2 className="m-0 font-medium text-muted-foreground text-sm" id={id}>

@@ -1,6 +1,6 @@
 # Optional source structure
 
-Work Board reads optional YAML frontmatter at the beginning of a Markdown file. The file remains authoritative; the in-memory identity/search index is rebuilt from readable files and invalidated by the watcher. No database, generated source files, cloud service, or migration is required. Parsing uses `yaml` and Effect Schema. The UI reads this structure and never rewrites it.
+Work Board reads optional YAML frontmatter at the beginning of a Markdown file. The file remains authoritative; the in-memory identity/search index is rebuilt from readable files and invalidated by the watcher. The index needs no database or generated source files. Parsing uses `yaml` and Effect Schema. The UI reads this structure and never rewrites it.
 
 ## Heading boards
 
@@ -28,8 +28,8 @@ Heading boards need no metadata. Section names are presentation, never inferred 
 ---
 id: work.search
 kind: task
-status: in-review
-owner: agent-navigation
+status: ready
+owner: claude
 next_action: Review keyboard and mobile evidence
 criteria:
   - id: keyboard
@@ -45,26 +45,26 @@ relationships:
 Use deterministic local matching first. Keep Markdown authoritative.
 ```
 
-Every top-level field is optional. Missing values stay blank in work details. `owner` records responsibility, without claiming authorship. `status` and `next_action` are explicit source text, and no transition rules are inferred. Now, Today and goal pages read the `status` of tasks and of items that implement a goal through one work vocabulary: `planned`, `received` and `ready` are planned; `approved` and `prepared` are queued; `active`, `running`, `in-progress`, `in progress`, `agent-working`, `executing` and `adopting` are executing; `review`, `in-review`, `in review`, `reviewing`, `repairing` and `validating` are reviewing; `delivering` is delivering; `blocked` and `waiting-on-person` wait on a person; `needs-human` and `needs-you` need you; `deferred` is deferred; and `done`, `closed`, `dropped`, `superseded`, `completed`, `cancelled`, `canceled`, `resolved` and `released` are closed. Case and surrounding spaces do not matter, and a missing status is planned. A work status outside this vocabulary is listed on System as a file problem: Now leaves the item out and its goal page counts it as planned.
+Work fields use the [shared vocabulary](../../README.md#work-vocabulary). No section heading changes an authored status.
 
 | Field | Source shape |
 | --- | --- |
 | `id` | Workspace-local, case-sensitive ID: ASCII letter/digit first, then letters/digits, `.`, `_`, or `-` |
-| `kind` | `task`, `investigation`, `decision`, `result`, `project`, `board`, `goal`, `report`, `question`, `response`, or `handoff` |
-| `status`, `owner`, `next_action` | Nonblank strings |
+| `kind`, `status`, `owner`, `scope`, `urgency`, `fleet`, `delivers` | See the [work vocabulary](../../README.md#work-vocabulary) |
+| `next_action` | Nonblank text |
 | `criteria` | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file |
-| `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, or `relates_to`; target is an item ID or `item.id#criterion-id` |
+| `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, `relates_to` or `replaces`; target is an item ID or `item.id#criterion-id` |
 | `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
 | `areas` | List of nonblank area labels; Board checks the shape and Fleet reads it for area claims |
 | `evidence` | List of records described below |
 | `attention` | List of explicit request records; [shapes and reading rules](./attention-examples.md) |
-| `options` | List of at most 32 `{ label, description }` records with unique nonblank labels of at most 128 characters and nonblank descriptions of at most 8192 characters; on a `question` or `decision` item they form one single-choice prompt and cannot be combined with question directives |
+| `options` | List of at most 32 `{ label, description }` records with unique nonblank labels of at most 128 characters and nonblank descriptions of at most 8192 characters; on a `question` item they form one single-choice prompt and cannot be combined with question directives |
 | `recommended` | The label of one `options` entry, marked **Recommended** on the answer card and on Today |
 | `question`, `response` | Optional dedicated record provenance; [anchored response contract](./response-write-examples.md) |
 | `handoff` | Optional direction/source snapshot and explicit receipt; [ordinary-file handoff contract](./handoff-examples.md) |
 | `request_receipt` | Optional immutable acknowledgement of an exact managed decision request; [response and acknowledgement rules](../../README.md#record-a-human-response) |
 
-Fleet's add-on fields `fleet`, `fleet-launch`, `fleet-deliverable` and `fleet-priority` are accepted without a diagnostic; Board leaves them uninterpreted and Fleet reads them.
+Fleet's add-on fields `fleet-launch` and `fleet-priority` are accepted without a diagnostic; Fleet interprets them. Board validates the shared approval and deliverable fields.
 
 A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. File and generated heading URLs work alongside it; pinned and recent documents refer to file paths.
 
@@ -75,8 +75,10 @@ Search includes declared ID, kind, status, owner, next action, and criteria. Res
 ```markdown
 ---
 id: decision.search-matching
-kind: decision
-status: proposed
+kind: question
+scope: task
+urgency: whenever
+status: draft
 relationships:
   - kind: informs
     target: work.search
@@ -91,7 +93,6 @@ Recommendation: A. A person's acceptance remains a separate decision.
 
 ```yaml
 id: board.navigation
-kind: board
 items: [work.search, work.reading-state]
 ```
 

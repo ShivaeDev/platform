@@ -18,7 +18,7 @@ test("released work waits visibly on the orchestrator until its Board acknowledg
 			const ready = yield* fleet.reconcile("one");
 			const decisionId = ready.value.decision?.id ?? "missing";
 			const released = yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "release"));
-			expect(released.value.stage).toBe("released");
+			expect(released.value.step).toBe("released");
 			expect(released.value.attentionOwner).toBe("orchestrator");
 			expect(views([released.value]).waiting.orchestrator).toMatchObject([{ stage: "released", workId: "one" }]);
 			expect(settled("one", released.value)).toEqual({ code: WAIT_EXIT.released, summary: "one released (waiting on orchestrator)" });

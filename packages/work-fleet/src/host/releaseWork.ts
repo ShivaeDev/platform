@@ -43,11 +43,11 @@ function releaseItem(root: string, background: boolean) {
 	return Effect.fn("FleetHost.releaseItem")(function* (workId: string) {
 		const fleet = yield* Fleet;
 		let stored = yield* fleet.get(workId);
-		if (stored.value.stage === "released") {
+		if (stored.value.step === "released") {
 			return yield* background ? Effect.succeed(stored) : fleet.reconcile(workId);
 		}
-		if (stored.value.stage !== "needs-human" || executing(stored.value)) {
-			return yield* Effect.fail(new Forbidden({ message: "Only terminal needs-human work can be released" }));
+		if (stored.value.step !== "waiting" || executing(stored.value)) {
+			return yield* Effect.fail(new Forbidden({ message: "Only terminal waiting work can be released" }));
 		}
 		if (stored.value.decision?.published === undefined) {
 			stored = yield* fleet.reconcile(workId);

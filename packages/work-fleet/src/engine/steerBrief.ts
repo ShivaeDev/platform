@@ -11,7 +11,7 @@ export function briefSteerIntent(previous: FleetRecord, record: FleetRecord, req
 	const attempt = record.attempts.at(-1);
 	if (
 		revision === workRevision(previous.boardRevision, previous.boardContext)
-		|| record.stage !== "executing"
+		|| record.step !== "working"
 		|| attempt?.receipt === undefined
 		|| attempt.role === "reviewer"
 		|| !["accepted", "running"].includes(attempt.status)

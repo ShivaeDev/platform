@@ -11,7 +11,7 @@ import { withFleetBoard } from "#test/withFleetBoard.ts";
 const test = postgresTests("test");
 
 for (const [field, source] of [
-	["status", dependencySource.replace("status: planned", "status: done")],
+	["status", dependencySource.replace("status: draft", "status: done")],
 	["next_action", dependencySource.replace("Implement the work.", "Work completed.")],
 ] as const) {
 	test(`target ${field} edits preserve its dependent's open decision and retry after restart`, () => {
@@ -32,7 +32,7 @@ for (const [field, source] of [
 				const fleet = yield* Fleet;
 				yield* fleet.dispatch("one");
 				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 				yield* prepareWork("dependent");
 				yield* fleet.dispatch("dependent");
 				blocked = true;
@@ -44,15 +44,15 @@ for (const [field, source] of [
 				}
 				files.write("one.md", source);
 				const unchanged = yield* fixture.restart(Fleet.pipe(Effect.flatMap((restarted) => restarted.reconcile("dependent"))));
-				expect(unchanged.value.stage).toBe("needs-human");
+				expect(unchanged.value.step).toBe("waiting");
 				expect(unchanged.value.decision).toEqual(decision);
 				const answer = answerReport(root, decision.published, "retry");
 				blocked = false;
 				const resolved = yield* fleet.resolve("dependent", decision.id, answer);
-				expect(resolved.value.stage).toBe("reviewing");
+				expect(resolved.value.step).toBe("reviewing");
 				expect(resolved.value.decision).toBeUndefined();
 				expect(resolved.value.attempts).toEqual(waiting.value.attempts);
-				expect((yield* fleet.reconcile("dependent")).value.stage).toBe("completed");
+				expect((yield* fleet.reconcile("dependent")).value.step).toBe("done");
 				expect(fixture.launched).toHaveLength(4);
 			}),
 		);

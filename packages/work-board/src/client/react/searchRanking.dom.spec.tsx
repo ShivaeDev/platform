@@ -9,7 +9,7 @@ import { searchScreen } from "#test/searchScreen.tsx";
 expectNoReactWarnings();
 const QUERY = '#search-dialog [role="combobox"]';
 
-const STATUS_LABELS: Readonly<Record<string, string>> = { active: "Active", deferred: "Deferred", done: "Done", planned: "Planned" };
+const STATUS_LABELS: Readonly<Record<string, string>> = { deferred: "Deferred", done: "Done", draft: "Draft", ready: "Ready" };
 
 for (const { fixture, first, id, name, queries, status } of [
 	{
@@ -18,10 +18,10 @@ for (const { fixture, first, id, name, queries, status } of [
 		id: "",
 		name: "titles before passages",
 		queries: ["watch"],
-		status: "planned",
+		status: "draft",
 	},
-	...["active", "done", "deferred"].flatMap((titleStatus) =>
-		["planned", titleStatus].map((passageStatus) => ({
+	...["ready", "done", "deferred"].flatMap((titleStatus) =>
+		["draft", titleStatus].map((passageStatus) => ({
 			first: "Inbox triage",
 			fixture: identityRankingFixture(titleStatus, passageStatus),
 			id: "task.inbox",

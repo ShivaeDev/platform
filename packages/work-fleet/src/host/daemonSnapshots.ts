@@ -38,13 +38,13 @@ function dispatchStates(states: readonly (typeof State.Type)[], requests: readon
 	const result = new Map<string, typeof State.Type>(states.map((state) => [state.workId, state]));
 	for (const request of requests) {
 		const state = result.get(request.workId);
-		if (request.status === "completed" || (request.status === "failed" && state !== undefined && state.stage !== "prepared")) {
+		if (request.status === "completed" || (request.status === "failed" && state !== undefined && state.stage !== "queued")) {
 			continue;
 		}
 		result.set(request.workId, {
 			attentionOwner: request.status === "pending" ? "automation" : "orchestrator",
 			blocker: request.status === "pending" ? "Dispatch recorded; preparing in the background" : `Dispatch failed: ${request.error}`,
-			stage: request.status === "pending" ? "dispatching" : "needs-human",
+			stage: request.status === "pending" ? "queued" : "waiting",
 			workId: request.workId,
 		});
 	}

@@ -9,7 +9,7 @@ export function reassignCommand(state: EngineState) {
 	return Effect.fn("Fleet.reassign")(
 		function* (workId: string, decisionId: string, attentionOwner: AttentionOwner) {
 			let stored = yield* state.load(workId);
-			if (stored.value.stage !== "needs-human" || stored.value.decision?.id !== decisionId) {
+			if (stored.value.step !== "waiting" || stored.value.decision?.id !== decisionId) {
 				const prior = stored.value.supersededDecisions?.find((receipt) => receipt.published.request === decisionId);
 				if (prior?.reassignedTo?.attentionOwner === attentionOwner && prior.reassignedTo.decisionId === stored.value.decision?.id) {
 					stored = yield* ensurePublication(state)(stored);

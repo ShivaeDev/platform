@@ -1,71 +1,31 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
-import { boardScreen } from "#test/screenTraits.ts";
-import { DocumentMain } from "./DocumentMain.tsx";
-import { routeQueryOptions } from "./routeQuery.ts";
+import { routedScreen } from "#test/screenTraits.ts";
 
-for (const kind of ["result", "decision", "question", "response"] as const) {
+for (const kind of ["task", "question", "report"] as const) {
 	const id = `${kind}.linked`;
-	let readProgress: () => GoalsProjection | undefined = () => undefined;
+	const ORIGINAL_TASKS = 5;
+	const expectedTasks = ORIGINAL_TASKS + (kind === "task" ? 1 : 0);
 	screenStory.it(
-		`shows an implementing ${kind} in its criterion and work group`,
+		`counts an implementing ${kind} only when it is a task`,
 		[
-			boardScreen(
+			routedScreen(
 				{
 					...goalPageFixture(),
-					"linked.md": `---
-id: ${id}
-kind: ${kind}
-status: done
-relationships:
- - kind: implements
-   target: project.example#first
- - kind: implements
-   target: project.example
----
-# Linked ${kind}`,
+					"linked.md": `---\nid: ${id}\nkind: ${kind}\n${kind === "question" ? "scope: task\nurgency: whenever\n" : ""}status: done\nrelationships:\n - kind: implements\n   target: project.example#first\n---\n# Linked ${kind}`,
 				},
-				(api, registry) => {
-					const query = api.goals.query(undefined, routeQueryOptions);
-					readProgress = () => {
-						const result = registry.get(query);
-						return result._tag === "Success" ? result.value : undefined;
-					};
-					return <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />;
-				},
+				"/goal.md",
 			),
 		],
-		function* ({ click, findElements, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(6)));
-			const goal = readProgress()?.goals.find((entry) => entry.id === "project.example");
-			expect(goal?.linked).toBe(6);
-			const counts = Object.fromEntries(
-				[...findElements<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [segment.dataset.status, Number(segment.dataset.count)]),
-			);
-			expect(counts).toEqual(goal?.counts);
-			for (const [item, group] of [
-				[id, "Done"],
-				["task.first", "Needs you"],
-				["task.second", "Planned"],
-				["task.third", "Planned"],
-				["task.fourth", "Done"],
-				["task.fifth", "Needs you"],
-			]) {
-				const rows = findElements(`[data-goal-item="${item}"]`);
-				expect(rows).toHaveLength(1);
-				expect(rows[0]?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe(group);
-			}
-			click("#criterion-first [data-slot=collapsible-trigger]");
-			const links = findElements(`#criterion-first a[href="/_board/item/${id}/"]`);
-			expect(links).toHaveLength(1);
-			expect(readText("[data-status-token]", links[0]?.parentElement)).toBe("Done");
-			expect(goal?.criteria[0]?.counts).toEqual({ done: 1, "in progress": 0, "needs you": 1, planned: 1 });
-			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 done · 1 needs you · 1 planned");
-			yield* Effect.promise(() => eventually(() => expect(readText("#criterion-second")).toBe("Second criterion")));
+		function* ({ findElements, readGoals }) {
+			yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(expectedTasks)));
+			const goal = (yield* Effect.promise(readGoals))?.goals.find((item) => item.id === "project.example");
+			expect(goal?.linked).toBe(expectedTasks);
+			expect(goal?.counts.done).toBe(kind === "task" ? 2 : 1);
+			expect(findElements(`[data-goal-item="${id}"]`)).toHaveLength(kind === "task" ? 1 : 0);
 		},
 	);
 }

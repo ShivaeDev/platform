@@ -13,7 +13,7 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 	stored: Versioned<FleetRecord>,
 	attempt: Attempt | undefined,
 ) {
-	if (stored.value.stage === "needs-human" || attempt?.receipt === undefined) {
+	if (stored.value.step === "waiting" || attempt?.receipt === undefined) {
 		return undefined;
 	}
 	const now = state.policy.now();

@@ -33,7 +33,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 			name: "criterion needs Board data unavailable under the launch policy",
 			progress: (_context, _before, after) => {
 				expect(after.attempts).toHaveLength(1);
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 			},
 			sites: ['engine/makeLaunch.ts: "incomplete-context"'],
 		},
@@ -41,13 +41,13 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 			code: "fleet-stale" as const,
 			enter: Effect.fnUntraced(function* (context) {
 				yield* prepareWork("one");
-				writeFileSync(join(context.root, "one.md"), `${context.source.replace("kind: task", "kind: task\nowner: human")}\nChanged criteria.\n`);
+				writeFileSync(join(context.root, "one.md"), `${context.source.replace("kind: task", "kind: task\nowner: marvin")}\nChanged criteria.\n`);
 				yield* (yield* Fleet).dispatch("one");
 			}),
 			name: "authored brief reassigned before dispatch",
 			progress: (_context, _before, after) => {
 				expect(after.attempts).toHaveLength(1);
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 			},
 			restore,
 			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
@@ -62,7 +62,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 			name: "approval revoked before dispatch",
 			progress: (_context, _before, after) => {
 				expect(after.attempts).toHaveLength(1);
-				expect(after.stage).toBe("executing");
+				expect(after.step).toBe("working");
 			},
 			restore,
 			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
@@ -79,7 +79,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 			progress: (_context, before, after) => {
 				expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
 				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-				expect(after.stage).toBe("reviewing");
+				expect(after.step).toBe("reviewing");
 			},
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],

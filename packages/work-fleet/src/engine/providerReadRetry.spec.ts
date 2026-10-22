@@ -54,7 +54,7 @@ for (const { lostAcknowledgement, readRetryMs } of CASES) {
 					}
 					const before = (yield* fleet.get("one")).value;
 					const queued = (yield* fleet.reconcile("one")).value;
-					expect(queued.stage).toBe("executing");
+					expect(queued.step).toBe("working");
 					expect(queued.decision).toBeUndefined();
 					expect(queued.launchRetry).toBeUndefined();
 					expect(queued.attentionOwner).toBe("automation");
@@ -75,7 +75,7 @@ for (const { lostAcknowledgement, readRetryMs } of CASES) {
 					now = secondRetry;
 					yield* fixture.restart(cycle);
 					const recovered = (yield* fleet.get("one")).value;
-					expect(recovered.stage).toBe("executing");
+					expect(recovered.step).toBe("working");
 					expect(recovered.attempts).toHaveLength(1);
 					expect(recovered.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
 					expect(recovered.attempts[0]?.receipt).toEqual(fixture.operations.get(before.attempts[0]?.operationId ?? "missing"));
@@ -84,7 +84,7 @@ for (const { lostAcknowledgement, readRetryMs } of CASES) {
 					expect(recovered.attentionOwner).toBeUndefined();
 					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(1);
 					finishWorkers(fixture);
-					expect((yield* fleet.reconcile("one")).value.stage).toBe("completed");
+					expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 					expect(fixture.launched).toHaveLength(2);
 					expect(fixture.decisions).toHaveLength(0);
 				}),

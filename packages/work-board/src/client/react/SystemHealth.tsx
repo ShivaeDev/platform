@@ -1,7 +1,7 @@
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { ObservedTime } from "./diagnosticsValues.tsx";
 
-const waitingOn = { automation: "Waiting on Fleet agents", orchestrator: "Waiting on the orchestrator" } as const;
+const waitingOn = { automation: "Waiting on automation", orchestrator: "Waiting on orchestrator" } as const;
 
 export function SystemHealth({
 	value,

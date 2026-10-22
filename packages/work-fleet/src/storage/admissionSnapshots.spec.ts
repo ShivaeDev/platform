@@ -43,14 +43,14 @@ test.it("opting out of application snapshots retains live foreign capacity and s
 		admissionNeedsRecords: () => false,
 	});
 	yield* base.reserveForeign("external", { backlog: true, executing: true });
-	expect(yield* store.insert({ ...record("one"), stage: "submitting" }, { maxExecuting: 1 }).pipe(Effect.flip)).toMatchObject({
+	expect(yield* store.insert({ ...record("one"), step: "submitting" }, { maxExecuting: 1 }).pipe(Effect.flip)).toMatchObject({
 		_tag: "StorageCapacity",
 		kind: "execution",
 	});
 	yield* base.releaseForeign("external");
-	yield* base.insert({ ...record("submitted"), stage: "submitting", submittedAt: 101 });
+	yield* base.insert({ ...record("submitted"), step: "submitting", submittedAt: 101 });
 	expect(
-		yield* store.insert({ ...record("two"), stage: "submitting", submittedAt: 101 }, { quota: { available: 1, observedAt: 100 } }).pipe(Effect.flip),
+		yield* store.insert({ ...record("two"), step: "submitting", submittedAt: 101 }, { quota: { available: 1, observedAt: 100 } }).pipe(Effect.flip),
 	).toMatchObject({ _tag: "StorageQuota", reason: "exhausted" });
 	expect((yield* base.list()).map(({ value }) => value.workId)).toEqual(["submitted"]);
 });
@@ -58,7 +58,7 @@ test.it("opting out of application snapshots retains live foreign capacity and s
 test.it("single and batch reads retain typed schema failures for invalid persisted stages", [], function* ({ store, namespace, sql }) {
 	yield* store.insert(record("one"));
 
-	yield* sql`update ${sql(`${namespace}_records`)} set stage = 'invalid-stage' where work_id = 'one'`;
+	yield* sql`update ${sql(`${namespace}_records`)} set step = 'invalid-step' where work_id = 'one'`;
 	expect(yield* store.load("one").pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
 	expect(yield* store.list().pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
 });

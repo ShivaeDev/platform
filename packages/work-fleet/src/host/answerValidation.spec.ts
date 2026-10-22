@@ -20,8 +20,8 @@ for (const worker of [false, true]) {
 				expect(rejected.responses).toEqual(waiting.responses);
 				const text = "v".repeat(32_768);
 				const answered = yield* daemon.answer("one", text, release);
-				const stage = worker ? "executing" : "adopting";
-				expect(answered.stage).toBe(release ? "released" : stage);
+				const step = worker ? "working" : "adopting";
+				expect(answered.step).toBe(release ? "released" : step);
 				expect(answered.responses?.at(-1)).toMatchObject({ boardAcknowledged: true });
 				expect(daemon.receiptFiles()).toHaveLength(1);
 				if (worker && !release) {

@@ -44,7 +44,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 				expect((yield* fleet.get("one")).value.decision).toEqual(stalled.decision);
 				const responseId = answerReport(fixture.host.boardDir, stalled.decision.published, "retry");
 				const retried = (yield* fleet.resolve("one", stalled.decision.id, responseId)).value;
-				expect(retried.stage).toBe("prepared");
+				expect(retried.step).toBe("queued");
 				expect(retried.decision).toBeUndefined();
 				const launched = yield* Effect.gen(function* () {
 					if (mode === "scheduler") {
@@ -55,7 +55,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 					}
 					return (yield* (yield* Fleet).reconcile("one")).value;
 				}).pipe(Effect.provide(Layer.fresh(runtime)));
-				expect(launched.stage).toBe("executing");
+				expect(launched.step).toBe("working");
 				expect(launched.decision).toBeUndefined();
 				expect(launched.preparation).toEqual({ ...retried.preparation, baseRevision: main.revision, observedAt: main.observedAt });
 				expect(launched.attempts.slice(0, -1)).toEqual(retried.attempts);

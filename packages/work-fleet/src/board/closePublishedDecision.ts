@@ -12,7 +12,7 @@ export function publishedDecision(document: BoardDocument) {
 	const request = fields.attention?.[0];
 	if (
 		diagnostics.length > 0
-		|| fields.kind !== "decision"
+		|| fields.kind !== "question"
 		|| !fields.id?.startsWith("decision.")
 		|| workId === undefined
 		|| !body.startsWith(`# Fleet decision for ${workId}\n`)
@@ -32,8 +32,8 @@ export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecisi
 	document: BoardDocument,
 	reason?: string,
 ) {
-	const decision = publishedDecision(document);
-	if (decision === undefined || decision.request.state !== "open") {
+	const request = document.parsed.fields.attention?.[0];
+	if (request?.state !== "open") {
 		return;
 	}
 	const header = document.parsed.raw;
@@ -42,6 +42,7 @@ export const closePublishedDecision = Effect.fn("FleetBoard.closePublishedDecisi
 	}
 	const metadata = parseDocument(header.replace(/^---\r?\n/u, "").replace(/---\r?\n?$/u, ""));
 	metadata.setIn(["attention", 0, "state"], "closed");
+	metadata.set("status", "done");
 	if (reason !== undefined) {
 		metadata.set("next_action", reason);
 	}

@@ -38,7 +38,10 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 		`restores textarea focus and selection after ${modifier}+K and Escape`,
 		[
 			chromeScreen(
-				{ "question.md": "---\nid: question.fixture\nkind: question\nstatus: open\n---\n# A choice\n\nChoose a direction.\n" },
+				{
+					"question.md":
+						"---\nid: question.fixture\nkind: question\nscope: task\nurgency: whenever\nstatus: ready\n---\n# A choice\n\nChoose a direction.\n",
+				},
 				"/question.md",
 				{ writable: true },
 			),

@@ -1,15 +1,15 @@
 export const startTemplates = [
 	{
-		file: "project.md",
-		label: "Project",
+		file: "goal.md",
+		label: "Goal",
 		source: `---
-id: example.project
-kind: project
+id: example.goal
+kind: goal
 criteria:
   - id: readable-result
     text: A reviewer can trace the result to its reasoning and recorded evidence.
 ---
-# Project
+# Goal
 
 ## Goal
 Describe the outcome and who needs it.
@@ -19,7 +19,7 @@ Name what belongs here and what must remain outside this work.
 
 ## Reading path
 - [Investigation](investigation.md)
-- [Agent result](result.md)
+- [Report](report.md)
 
 ## Acceptance
 The criterion above is a target, not a recorded pass.
@@ -31,10 +31,10 @@ Record what was checked, the source revision, and remaining limitations.
 		label: "Investigation",
 		source: `---
 id: example.investigation
-kind: investigation
+kind: task
 relationships:
   - kind: informs
-    target: example.project
+    target: example.goal
 criteria:
   - id: explained-choice
     text: Options, evidence, tradeoffs and the recommendation are explicit.
@@ -56,15 +56,15 @@ State your take and what remains uncertain.
 ## Response needed
 Name the exact question and the choices. Do not imply that a response was recorded.
 
-[Project and acceptance target](project.md)
+[Goal and acceptance target](goal.md)
 `,
 	},
 	{
-		file: "result.md",
-		label: "Agent result",
+		file: "report.md",
+		label: "Report",
 		source: `---
-id: example.result
-kind: result
+id: example.report
+kind: report
 # A supplied result status is not work acceptance or an execution receipt.
 attention:
   - id: review
@@ -72,22 +72,22 @@ attention:
     state: open
     response_from: [maintainer]
     reason: Review this exact report, its evidence and limitations.
-    unblocks: [example.project#readable-result]
+    unblocks: [example.goal#readable-result]
 relationships:
   - kind: implements
     target: example.investigation
   - kind: relates_to
-    target: example.project
+    target: example.goal
 # Add evidence only after a real observation; replace every placeholder:
 # evidence:
-#   - criterion: example.project#readable-result
+#   - criterion: example.goal#readable-result
 #     source: ./evidence/reading-check.md
 #     method: Describe the actual check.
 #     outcome: Describe the observed result and its limits.
 #     observed_at: Use the actual ISO timestamp with timezone.
 #     checked_revision: Use the actual full source commit SHA.
 ---
-# Agent result
+# Report
 
 ## Outcome and changes
 Explain what changed and why. Link the relevant source files or patch.
@@ -105,7 +105,7 @@ Name failures, skipped checks, uncertainty and any response needed.
 ## Next action
 State the next action and who needs to respond, if known.
 
-[Project and acceptance target](project.md)
+[Goal and acceptance target](goal.md)
 
 ::::question{id="verdict" select="one"}
 ### What should happen with this report?

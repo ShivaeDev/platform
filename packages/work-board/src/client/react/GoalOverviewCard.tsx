@@ -1,5 +1,6 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { GoalProgress } from "./GoalProgress.tsx";
+import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
 
 export function GoalOverviewCard({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {
 	const criteria = goal.criteria.filter((criterion) => criterion.linked > 0);
@@ -14,6 +15,14 @@ export function GoalOverviewCard({ goal }: { readonly goal: GoalsProjection["goa
 				</p>
 			) : null}
 			{goal.linked > 0 && <GoalProgress counts={goal.counts} title={goal.title} />}
+			<GoalProgressSummary counts={goal.counts} />
+			{goal.lanes?.map((lane) => (
+				<section aria-label={lane.title} key={lane.id}>
+					<a href={`/_board/item/${lane.id}/`}>{lane.title}</a>
+					<GoalProgress counts={lane.counts} title={lane.title} />
+					<GoalProgressSummary counts={lane.counts} />
+				</section>
+			))}
 			{goal.openAsks > 0 && (
 				<p className="m-0 mt-2 text-muted-foreground text-xs">
 					{goal.openAsks} open {goal.openAsks === 1 ? "ask" : "asks"}

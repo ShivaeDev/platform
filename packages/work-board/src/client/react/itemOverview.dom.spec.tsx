@@ -10,13 +10,13 @@ screenStory.it(
 	[
 		boardScreen(
 			{
-				"board.md": "---\nid: board.fixture\nkind: board\nitems: [task.fixture]\n---\n# Board",
-				"goal.md": "---\nid: goal.fixture\nkind: goal\nstatus: blocked\ncriteria:\n  - id: design\n    text: Design\n---\n# Ship the feature",
+				"board.md": "---\nid: board.fixture\nitems: [task.fixture]\n---\n# Board",
+				"goal.md": "---\nid: goal.fixture\nkind: goal\nstatus: ready\ncriteria:\n  - id: design\n    text: Design\n---\n# Ship the feature",
 				"notes.md": "# Notes\n\n[Task](task.md)",
 				"one.md": "---\nid: report.one\nstatus: done\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# One",
 				"task.md":
 					"---\nid: task.fixture\nkind: task\nrelationships:\n  - kind: implements\n    target: goal.fixture#design\ncriteria:\n  - id: proof\n    text: Visible without a click\n---\n# Readable task\n\nBody.",
-				"two.md": "---\nid: report.two\nstatus: planned\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# Two",
+				"two.md": "---\nid: report.two\nstatus: draft\nrelationships:\n  - kind: informs\n    target: task.fixture\n---\n# Two",
 			},
 			(api) => <QueryDocument api={api} url="/task.md" />,
 		),
@@ -30,7 +30,7 @@ screenStory.it(
 		expect(findElement(".item-introduction")?.classList.contains("sticky")).toBe(true);
 		const relationships = findElement('[data-context-group="links-to"]');
 		expect(relationships?.textContent).toContain("Ship the feature");
-		expect(readText("[data-status-token]", relationships)).toBe("Blocked");
+		expect(readText("[data-status-token]", relationships)).toBe("Ready");
 		expect(readAttribute("a", "href", relationships)).toBe("/_board/item/goal.fixture/#criterion-design");
 		expect([...findElements(".work-context h4")].map((node) => node.textContent).sort((a, b) => (a ?? "").localeCompare(b ?? ""))).toEqual([
 			"Informed by (2)",
@@ -39,7 +39,7 @@ screenStory.it(
 		]);
 		const backlinks = findElement('[data-context-group="linked-from"] [data-source-group="Informed by"]');
 		expect([...(findElements("a", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["One", "Two"]);
-		expect([...(findElements("[data-status-token]", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["Done", "Planned"]);
+		expect([...(findElements("[data-status-token]", backlinks) ?? [])].map((node) => node.textContent)).toEqual(["Done", "Draft"]);
 		expect(readAttribute("a", "title", backlinks)).toBe("one.md:6");
 		expect(readText('[data-context-group="linked-from"] [data-source-group="Markdown link"] a')).toBe("Notes");
 		expect(readText()).not.toContain("Context and tools");

@@ -12,7 +12,7 @@ for (const contextChanged of [false, true]) {
 			yield* fleet.dispatch("one");
 			workerReports(REPORT);
 			const reviewing = yield* fleet.reconcile("one");
-			expect(reviewing.value.stage).toBe("reviewing");
+			expect(reviewing.value.step).toBe("reviewing");
 			expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 			finishWorkers();
 			const approved = yield* fleet.reconcile("one");
@@ -23,7 +23,7 @@ for (const contextChanged of [false, true]) {
 				changePullRequestPaths(["src/one.ts", "src/outside.ts"]);
 			}
 			const held = yield* fleet.reconcile("one");
-			expect(held.value.stage).toBe("needs-human");
+			expect(held.value.step).toBe("waiting");
 			expect(held.value.decision?.reason).toBe(contextChanged ? "Board context changed" : "Result needs evidence and known reserved scope");
 			expect(held.value.attentionOwner).toBe("orchestrator");
 			expect(held.value.result).toEqual(approved.value.result);

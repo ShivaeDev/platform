@@ -19,7 +19,7 @@ host.it(
 		}
 		for (const id of WORKERS) {
 			const worker = yield* daemon.get(id);
-			expect(worker.stage).toBe("executing");
+			expect(worker.step).toBe("working");
 			expect(worker.attempts.at(-1)?.progress?.signature).toContain("progress-");
 		}
 		expect(daemon.workerContextCount()).toBeGreaterThan(CYCLES);

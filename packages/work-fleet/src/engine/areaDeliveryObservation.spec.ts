@@ -27,7 +27,7 @@ engine.it(
 		const current = yield* fleet.reconcile("two");
 		const decision = current.value.decision?.id ?? "missing";
 		yield* fleet.resolve("two", decision, respond(decision, "release"));
-		expect((yield* fleet.dispatch("dependent")).value.stage).toBe("executing");
+		expect((yield* fleet.dispatch("dependent")).value.step).toBe("working");
 	},
 );
 engine.it(

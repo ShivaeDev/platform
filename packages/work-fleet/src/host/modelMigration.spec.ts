@@ -40,10 +40,10 @@ test("daemon startup migrates populated JSONB records and continues serving read
 							prompt: "New work after migration",
 							workId: "three",
 						});
-						expect(created.stage).toBe("prepared");
+						expect(created.step).toBe("queued");
 						const dispatched = yield* client("fleet.dispatch", { workId: "three" });
 						expect(dispatched.decision?.reason).toBeUndefined();
-						expect(dispatched.stage).toBe("executing");
+						expect(dispatched.step).toBe("working");
 						expect((yield* client("fleet.get", { workId: "three" })).attempts).toHaveLength(1);
 					}),
 				{ parts: fixture.parts },

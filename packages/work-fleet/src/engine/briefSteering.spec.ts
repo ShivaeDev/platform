@@ -44,7 +44,7 @@ function briefSteering(failure: boolean) {
 				const worker = yield* fleet.dispatch("one");
 				files.write("one.md", current);
 				const approved = yield* fleet.reconcile("one");
-				expect(approved.value).toMatchObject({ boardContext: current, prompt: current, stage: "executing" });
+				expect(approved.value).toMatchObject({ boardContext: current, prompt: current, step: "working" });
 				expect(approved.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);
 				expect(approved.value.attempts[0]?.briefSteers).toEqual([
 					expect.objectContaining(failure ? { error: "Steer unavailable" } : { steeredAt: 100 }),
@@ -71,7 +71,7 @@ function briefSteering(failure: boolean) {
 				expect(calls).toBe(2);
 				finishWorkers(fixture);
 				const reviewing = yield* fleet.reconcile("one");
-				expect(reviewing.value.stage).toBe("reviewing");
+				expect(reviewing.value.step).toBe("reviewing");
 				expect(reviewing.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 				files.write("one.md", `${current}\nChanged during review.\n`);
 				yield* fleet.reconcile("one");

@@ -6,15 +6,15 @@ export function searchRankingFixture() {
 	}
 	return {
 		files: {
-			"active.md": task("active", "Active watch"),
+			"active.md": task("ready", "Active watch"),
 			"deferred.md": task("deferred", "Deferred watch"),
 			"done-body.md": task("done", "Finished", "The watch is complete."),
 			"done.md": task("done", "Done watch"),
-			"held.md": task("fleet-held", "Held watch"),
-			"needs-you.md": task("needs-you", "Watch needs you"),
-			"open-body.md": task("planned", "Keep reviews visible", "The watch keeps running."),
-			"planned.md": task("planned", "A running watch sees reviews finish"),
-			"superseded.md": task("superseded", "Superseded watch"),
+			"held.md": task("draft", "Held watch"),
+			"needs-you.md": task("ready", "Watch needs you"),
+			"open-body.md": task("draft", "Keep reviews visible", "The watch keeps running."),
+			"planned.md": task("draft", "A running watch sees reviews finish"),
+			"superseded.md": task("dropped", "Superseded watch"),
 		},
 		modified: new Map([
 			["active.md", 2000],
@@ -50,7 +50,7 @@ export function fleetRankingFixture() {
 			"done.md": "---\nid: task.watch-done\nkind: task\nstatus: done\n---\n# Done watch\n",
 			"fleet/status.md": report,
 			"notes.md": "# Notes\n\n## Watch notes\n\nWatch details.\n\nWatch updates.\n",
-			"open.md": "---\nid: task.review\nkind: task\nstatus: active\n---\n# Keep reviews visible\n\nThe watch keeps running.\n",
+			"open.md": "---\nid: task.review\nkind: task\nstatus: ready\n---\n# Keep reviews visible\n\nThe watch keeps running.\n",
 			"responses/fleet-report.2026-10-15.md": "# Archived watch report\n\nWatch context.\n",
 			"responses/fleet-report.md": report,
 		},
@@ -66,7 +66,7 @@ export function fleetRankingFixture() {
 }
 export function fleetItemRankingFixture() {
 	const { files, modified } = fleetRankingFixture();
-	const decision = (inboxFixture()["responses/decision.md"] ?? "").replace("kind: decision", "kind: decision\nstatus: active");
+	const decision = (inboxFixture()["responses/decision.md"] ?? "").replace("kind: question\n", "kind: question\nstatus: ready\n");
 	return {
 		files: {
 			...files,
@@ -87,7 +87,7 @@ export function exactRankingFixture() {
 		files: {
 			"answer-card-polish.md": task("board.answer-card-polish", "Polish the answer card", "done"),
 			"answer-card.md": task("board.answer-card", "Answering a decision is one obvious action on its page", "done"),
-			"baseline.md": task("quality.baseline", "work-fleet leaves the baseline", "planned", "The answer card helper moves into host stories."),
+			"baseline.md": task("quality.baseline", "work-fleet leaves the baseline", "draft", "The answer card helper moves into host stories."),
 		},
 		modified: new Map([
 			["answer-card.md", 1000],
@@ -100,7 +100,7 @@ export function exactRankingFixture() {
 export function crossGroupRankingFixture(mentions = 1) {
 	const mention = "Work Board moves onto client-rendered React (plan in plans/board-react.md) and keeps the connection budget.";
 	return {
-		"boards/platform.md": `---\nid: platform.work\nkind: board\n---\n# Platform work\n\n${mention}\n`,
+		"boards/platform.md": `---\nid: platform.work\nkind: goal\n---\n# Platform work\n\n${mention}\n`,
 		"notes/budget.md": "# Connection budget\n\nShared limits live elsewhere.\n",
 		"plans/board-react.md": "# Work Board on client-rendered React: slice plan\n\nSlice the move into small steps.\n",
 		...Object.fromEntries(

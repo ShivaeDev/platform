@@ -44,7 +44,7 @@ const finishAfterRestart = Effect.fn("DispatchRecoveryTest.finishAfterRestart")(
 	}
 	expect(yield* waitForDispatch(client, "one")).toMatchObject({ id: request.id, status: "completed" });
 	const record = yield* client("fleet.get", { workId: "one" });
-	expect(record.stage).toBe("executing");
+	expect(record.step).toBe("working");
 	expect(record.dispatchNow).toEqual(accepted.now === true ? { ignoreAreas: false } : undefined);
 	expect(fixture.provider.launched).toHaveLength(1);
 });
@@ -73,22 +73,22 @@ const schedulerRecovery = Effect.fn("DispatchRecoveryTest.schedulerRecovery")(fu
 ) {
 	const client = yield* daemonClient(port);
 	yield* hostScheduler(fixture.host).pipe(Effect.forkScoped);
-	yield* waitForRecord(client, "one", (record) => record.stage === "executing" && record.attempts.at(-1)?.status === "running");
+	yield* waitForRecord(client, "one", (record) => record.step === "working" && record.attempts.at(-1)?.status === "running");
 	const executing = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
 	const watched = yield* withFollower(fixture.configFile, "watch", ["one"], { port }, (follower) =>
 		Effect.gen(function* () {
 			for (const [id, observation] of fixture.provider.observations) {
 				fixture.provider.observations.set(id, { ...observation, execution: "completed", output: "Recovered findings." });
 			}
-			const completed = yield* waitForRecord(client, "one", (record) => record.stage === "completed");
+			const completed = yield* waitForRecord(client, "one", (record) => record.step === "done");
 			expect(completed.report?.sourcePath).toBeDefined();
 			return yield* Effect.promise(() => follower.done);
 		}),
 	);
 	const completed = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
-	expect(executing).toMatchObject([[{ stage: "executing", workId: "one" }]]);
-	expect(completed).toMatchObject([[{ stage: "completed", workId: "one" }]]);
-	expect(watched).toMatchObject({ code: 0, stderr: "", stdout: expect.stringContaining("one completed") });
+	expect(executing).toMatchObject([[{ stage: "working", workId: "one" }]]);
+	expect(completed).toMatchObject([[{ stage: "done", workId: "one" }]]);
+	expect(watched).toMatchObject({ code: 0, stderr: "", stdout: expect.stringContaining("one done") });
 	expect(watched.stdout).not.toContain("Dispatch failed");
 	expect(yield* client("daemon.dispatch-status", { workId: "one" })).toEqual(failed);
 	expect(fixture.provider.launched).toHaveLength(1);
@@ -101,5 +101,5 @@ const schedulerStory = Effect.fn("DispatchRecoveryTest.schedulerStory")(function
 });
 
 postgresTests("live")("watch preserves scheduler recovery and completion after a failed dispatch without another dispatch", () =>
-	withHost({ "one.md": task("one", "approved").replace("fleet: approved", "fleet: approved\nfleet-deliverable: report") }, {}, schedulerStory),
+	withHost({ "one.md": task("one", "approved").replace("fleet: approved", "fleet: approved\ndelivers: report") }, {}, schedulerStory),
 );

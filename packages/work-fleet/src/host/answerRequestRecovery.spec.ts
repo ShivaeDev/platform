@@ -16,7 +16,7 @@ for (const release of [false, true]) {
 		yield* free;
 		yield* host.start();
 		const applied = yield* host.applied();
-		expect(applied.stage).toBe(release ? "released" : "executing");
+		expect(applied.step).toBe(release ? "released" : "working");
 		expect(applied.responses?.filter((response) => response.decisionId === decision.id)).toHaveLength(1);
 		if (!release) {
 			expect(applied.attempts.at(-1)?.prompt).toBe("Use PostgreSQL.");

@@ -55,7 +55,7 @@ screenStory.it(
 	},
 );
 screenStory.it(
-	"leaves Active goals out of the sidebar while Today lists them in its main column",
+	"leaves Ready goals out of the sidebar while Today lists them in its main column",
 	[chromeScreen(goalsFixture(), "/")],
 	function* ({ click, findElement, readText }) {
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc")).toContain("Example goal")));
@@ -70,7 +70,7 @@ screenStory.it(
 	[
 		screenWorkspace("library-fixture"),
 		chromeScreen(
-			{ ...inboxFixture(), "notes/deep/other.md": "# Nested title\n", "notes/slug.md": "---\nkind: task\nstatus: active\n---\n# A readable title\n" },
+			{ ...inboxFixture(), "notes/deep/other.md": "# Nested title\n", "notes/slug.md": "---\nkind: task\nstatus: ready\n---\n# A readable title\n" },
 			"/notes/slug.md",
 		),
 	],
@@ -83,8 +83,8 @@ screenStory.it(
 		yield* roles.click({ name: "Task", role: "option" });
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull()));
 		yield* roles.click({ name: "Status", role: "combobox" });
-		yield* roles.click({ name: "Active", role: "option" });
-		yield* Effect.promise(() => eventually(() => expect(findElements("#doc li a")).toHaveLength(1)));
+		yield* roles.click({ name: "Ready", role: "option" });
+		yield* Effect.promise(() => eventually(() => expect(findElements("#doc li a")).toHaveLength(2)));
 		yield* roles.click({ name: "Reset", role: "link" });
 		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull()));
 		yield* roles.click({ name: "Include files Fleet writes (1)", role: "checkbox" });

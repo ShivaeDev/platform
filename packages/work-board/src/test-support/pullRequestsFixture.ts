@@ -4,15 +4,15 @@ export type CurrentFleet = Extract<NonNullable<BoardFixtureOptions["fleet"]>, { 
 
 export function pullRequestsFixture(at: number) {
 	const rows = [
-		["ready", "needs-human", "maintainer", 12],
-		["sweep", "needs-human", "maintainer", 13],
-		["checks", "validating", "automation", 14],
-		["repair", "repairing", "automation", 15],
-		["question", "needs-human", "maintainer", 16],
-		["orchestrator", "needs-human", "orchestrator", 17],
+		["ready", "waiting", "maintainer", 12],
+		["sweep", "waiting", "maintainer", 13],
+		["checks", "reviewing", "automation", 14],
+		["repair", "working", "automation", 15],
+		["question", "waiting", "maintainer", 16],
+		["orchestrator", "waiting", "orchestrator", 17],
 		["review", "reviewing", "automation", 18],
 		["released", "released", "automation", 19],
-		["completed", "completed", "automation", 20],
+		["done", "done", "automation", 20],
 	] as const;
 	const items = rows.map(([name, stage, attentionOwner, number]) => ({
 		attentionOwner,
@@ -29,7 +29,7 @@ export function pullRequestsFixture(at: number) {
 	const files = Object.fromEntries(
 		rows.map(([name]) => [
 			`tasks/${name}.md`,
-			`---\nid: task.${name}\nkind: task\nstatus: ${name === "ready" ? "done" : "active"}\n---\n# Deliver ${name}\n`,
+			`---\nid: task.${name}\nkind: task\nstatus: ${name === "ready" ? "done" : "ready"}\n---\n# Deliver ${name}\n`,
 		]),
 	);
 	for (const [name, reason] of [
@@ -40,7 +40,9 @@ export function pullRequestsFixture(at: number) {
 		files[`responses/${name}.md`] = `---\n${JSON.stringify({
 			attention: [{ id: "ask", kind: "decision", managed: true, reason, "response_from": ["maintainer"], state: "open", unblocks: [`task.${name}`] }],
 			id: `decision.${name}`,
-			kind: "decision",
+			kind: "question",
+			scope: "task",
+			urgency: "whenever",
 		})}\n---\n# Fleet decision\n`;
 	}
 	return { files, fleet: { completed: [], items, state: "ready" as const } };
@@ -52,7 +54,7 @@ export function mergedPullRequest(fleet: CurrentFleet, workId: string, at: numbe
 		throw new Error(`No current Fleet item ${workId}`);
 	}
 	return {
-		completed: [...fleet.completed, { ...item, completedAt: at, stage: "completed", stageEnteredAt: at }],
+		completed: [...fleet.completed, { ...item, completedAt: at, stage: "done", stageEnteredAt: at }],
 		items: fleet.items.filter((entry) => entry.workId !== workId),
 		state: "ready",
 	};

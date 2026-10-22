@@ -34,10 +34,10 @@ export const requestConflictRepair = Effect.fn("Fleet.requestConflictRepair")(fu
 		return undefined;
 	}
 	const resolved = record.decision?.code === "reviewed-pr-ready" ? yield* makeHuman(state)(stored) : stored;
-	if (resolved.value.stage === "released") {
+	if (resolved.value.step === "released") {
 		return resolved;
 	}
-	const changes = resolved.value.stage === "repairing" ? `${resolved.value.prompt}\n\n` : "";
+	const changes = resolved.value.step === "repairing" ? `${resolved.value.prompt}\n\n` : "";
 	return yield* requestRework(state)(
 		resolved,
 		`${changes}GitHub reports a conflict with main at ${mainRevision}. Fetch and merge main once, resolve the conflicts, and retain the requested changes.`,

@@ -38,7 +38,7 @@ for (const cleared of ["head", "brief"]) {
 			expect(blocked.value).toMatchObject({
 				attentionOwner: "orchestrator",
 				decision: { code: "fleet-stale", reason: "Board context changed" },
-				stage: "needs-human",
+				step: "waiting",
 			});
 			expect(blocked.value.blocker).toContain("Board context changed");
 			expect(blocked.value.blocker).toContain("PR head differs from the reviewed head");

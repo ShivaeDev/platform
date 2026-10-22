@@ -12,8 +12,8 @@ boardFileStory.it(
 		yield* folder.publish([statusRecord("task.one")]);
 		expect(folder.stat().ino).toBe(before.ino);
 		expect(folder.stat().mtimeMs).toBe(before.mtimeMs);
-		yield* folder.publish([statusRecord("task.one", "completed")]);
-		expect(folder.read()).toContain("Stage: completed");
+		yield* folder.publish([statusRecord("task.one", "done")]);
+		expect(folder.read()).toContain("Stage: done");
 		expect(folder.taskSource()).toBe(folder.task);
 	},
 );

@@ -76,7 +76,7 @@ for (const { url, kind } of routes) {
 screenStory.it(
 	"loads the new projection query when only the search parameters change",
 	[
-		routedScreen(files, "/_board/work?view=board", {
+		routedScreen({ ...files, "task.md": "---\nid: task.render\nkind: task\n---\n# Render task\n" }, "/_board/work?view=board", {
 			home: "home.md",
 		}),
 	],

@@ -46,7 +46,7 @@ postgresTests("live", "isolated")("observes the persisted answer receipt when it
 					yield* Effect.yieldNow;
 				}).pipe(Effect.orDie);
 				const continued = (yield* fleet.reconcile("one").pipe(Effect.timeout("5 seconds"))).value;
-				expect(continued.stage).toBe("executing");
+				expect(continued.step).toBe("working");
 				expect(continued.decision).toBeUndefined();
 				expect(continued.attempts.at(-1)).toMatchObject({
 					prompt: answer.body,

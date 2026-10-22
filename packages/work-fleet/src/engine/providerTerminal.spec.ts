@@ -11,7 +11,7 @@ const test = postgresTests("test");
 function terminalCapacityCase(reviewer: boolean, clears: boolean, message: string, capacity?: SessionObservation["capacity"]) {
 	let now = 100;
 	let reject = true;
-	const expectedStage = reviewer ? "completed" : "executing";
+	const expectedStage = reviewer ? "done" : "working";
 	const expectedRole = reviewer ? "reviewer" : "worker";
 	function failCapacity(observation: SessionObservation): SessionObservation {
 		const isReviewer = observation.output.includes("FLEET_REVIEW:");
@@ -49,11 +49,11 @@ function terminalCapacityCase(reviewer: boolean, clears: boolean, message: strin
 				yield* fixture.restart(cycle);
 				if (clears) {
 					expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-					expect((yield* fleet.get("one")).value.stage).toBe(expectedStage);
+					expect((yield* fleet.get("one")).value.step).toBe(expectedStage);
 					expect(fixture.decisions).toHaveLength(0);
 				} else {
 					const parked = (yield* fleet.get("one")).value;
-					expect(parked.stage).toBe("needs-human");
+					expect(parked.step).toBe("waiting");
 					expect(parked.decision?.reason).toContain(`${message}; provider failure after 5 attempts`);
 					expect(parked.attempts.filter((attempt) => attempt.role === expectedRole)).toHaveLength(5);
 				}
