@@ -38,6 +38,19 @@ repository.it("the pin check accepts the root pnpm version without its integrity
 	expect(yield* check()).toBeUndefined();
 });
 
+repository.it("applying a release repairs the pnpm pin alongside starter package pins", [], function* ({ apply, check, read, write }) {
+	const original = yield* read("examples/starter/package.json");
+	yield* write("examples/starter/package.json", original.replace("pnpm@12.13.0", "pnpm@12.8.1"));
+	yield* apply();
+	const manifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)))(
+		yield* read("examples/starter/package.json"),
+	);
+	expect(manifest).toEqual({ name: "@shivaedev/starter", packageManager: "pnpm@12.13.0", private: true, version: "0.0.0" });
+	const pins = Schema.decodeUnknownSync(Versions)(yield* read("examples/starter/published-versions.json"));
+	expect(pins["@shivaedev/platform"]).toBe("0.15.1");
+	expect(yield* check()).toBeUndefined();
+});
+
 for (const kind of ["dependencies", "optionalDependencies", "peerDependencies"]) {
 	repository.it(`the pin check rejects a missing framework pin from ${kind}`, [], function* ({ check, write }) {
 		yield* write("examples/starter/published-versions.json", '{"@shivaedev/work-fleet":"0.3.0"}\n');

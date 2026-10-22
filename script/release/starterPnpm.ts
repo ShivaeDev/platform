@@ -24,3 +24,14 @@ export const checkStarterPnpm = Effect.fn("Release.checkStarterPnpm")(function* 
 	}
 });
 
+export const alignStarterPnpm = Effect.fn("Release.alignStarterPnpm")(function* (root: string) {
+	const fs = yield* FileSystem.FileSystem;
+	const expected = yield* readPin(root, "package.json");
+	const pinned = yield* readPin(root, STARTER_PATH);
+	if (pinned.version !== expected.version) {
+		yield* fs.writeFileString(
+			join(root, STARTER_PATH),
+			pinned.text.replace(/(?<key>"packageManager"\s*:\s*")[^"]+(?<end>")/u, `$<key>pnpm@${expected.version}$<end>`),
+		);
+	}
+});
