@@ -7,6 +7,7 @@ const ENTRY = /^\s+(?=[^\s#])(?<quote>["']?)(?<name>[^"':]+)\k<quote>\s*:\s*(?<v
 interface Entry {
 	readonly line: number;
 	readonly name: string;
+	readonly namedCatalog: boolean;
 	readonly section: "catalog" | "overrides";
 	readonly value: string;
 }
@@ -24,14 +25,16 @@ function inlineHeading(line: number, key: string, rest: string): readonly Findin
 	];
 }
 
-function scan(workspace: string) {
+export function scanCatalog(workspace: string) {
 	const entries: Entry[] = [];
 	const findings: Finding[] = [];
 	let section: Entry["section"] | undefined;
+	let namedCatalog = false;
 	for (const [index, text] of workspace.split("\n").entries()) {
 		const heading = HEADING.exec(text)?.groups;
 		if (heading !== undefined) {
 			section = heading.key === "overrides" ? "overrides" : "catalog";
+			namedCatalog = heading.key === "catalogs";
 			findings.push(...inlineHeading(index + 1, heading.key ?? "", heading.rest ?? ""));
 			continue;
 		}
@@ -43,6 +46,7 @@ function scan(workspace: string) {
 			entries.push({
 				line: index + 1,
 				name: entry.name ?? "",
+				namedCatalog,
 				section,
 				value: (entry.value ?? "").replace(/\s+#.*$/u, "").replace(/^["']|["']$/gu, ""),
 			});
@@ -56,5 +60,5 @@ export async function catalog({ readText }: Pick<RuleInputs, "readText">) {
 	if (workspace === undefined) {
 		throw new Error("required input is missing: pnpm-workspace.yaml");
 	}
-	return scan(workspace);
+	return scanCatalog(workspace);
 }
