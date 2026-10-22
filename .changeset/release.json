@@ -1,66 +1,26 @@
 {
-	"date": "2026-10-21",
+	"date": "2026-10-22",
 	"plan": {
 		"changesets": [
 			{
-				"name": "create-app-clean-generated-app.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Generated applications start without Quality baseline debt or a migration lint exception, and migration `0006_auth_admin` creates the admin plugin's auth fields through Better Auth with options pinned in the migration.\n"
-			},
-			{
-				"name": "platform-auth-database-fixture.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Expose test-only Better Auth database readouts and faults for the default auth schema so application stories do not issue SQL against provider-owned tables.\n"
-			},
-			{
-				"name": "quality-migration-default-exports.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- The Biome preset lets numbered migration files in `src/server/migrations/`, including in nested apps, default-export their migration Effect, so applications drop their `noDefaultExport` exception for Effect's migration loader. Other files still may not default-export.\n"
-			},
-			{
-				"name": "test-story-exact-test-peers.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Breaking\n\n- Test-story's peers are exactly Vitest 5.0.4 and happy-dom 21.0.1. Consumers pin `vitest` to 5.0.4 and, when they run DOM stories, `happy-dom` to 21.0.1; happy-dom remains optional for applications without DOM stories.\n"
+				"name": "board-fleet-vocabulary.md",
+				"text": "---\n\"@shivaedev/work-board\": minor\n\"@shivaedev/work-fleet\": minor\n---\n\n### Breaking\n\n- Board and Fleet share four document kinds, five authored states, canonical owners, approval and deliverable fields, question scope and urgency, and six Fleet stages. Run `work-board migrate <board dir>` before starting the new version. Old vocabulary is rejected without aliases. Fleet upgrades stored stages through its database migrations. Consumers of detailed engine states use `record.step`; `record.stage` now contains the shared stage.\n- Migration validates all files before writing, reports unmappable values, preserves Fleet questions and recorded answers, retains Marvin as the maintainer, and links named replacements while listing unresolved successors.\n- Fleet ask status follows its open or closed attention state, including when earlier revisions have answers. Selection-only answers survive migration. YAML scalar styles and JSON frontmatter stay intact. Closing or acknowledging a Fleet ask marks its question done.\n\n- Vocabulary migration preserves reviewed question identities, published Fleet revisions and request receipts. Answers remain in response records and standing rulings remain in their bodies; migration writes no `answer` field. Replacement hints link every named successor, including done items and “Folded into” hints.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "patch",
-				"directory": "packages/create-app",
-				"from": "0.11.20",
-				"name": "@shivaedev/create-app",
-				"to": "0.11.21"
-			},
-			{
 				"bump": "minor",
-				"directory": "packages/platform",
-				"from": "0.23.1",
-				"name": "@shivaedev/platform",
-				"to": "0.24.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/quality",
-				"from": "0.33.0",
-				"name": "@shivaedev/quality",
-				"to": "0.33.1"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.17.0",
-				"name": "@shivaedev/test-story",
-				"to": "0.18.0"
-			},
-			{
-				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.29.0",
+				"from": "0.29.1",
 				"name": "@shivaedev/work-board",
-				"to": "0.29.1"
+				"to": "0.30.0"
 			},
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.16.0",
+				"from": "0.16.1",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.16.1"
+				"to": "0.17.0"
 			}
 		]
 	}
