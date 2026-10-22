@@ -1,12 +1,5 @@
-{"path":"script/package-check/archives.test.ts","rule":"tests/story-setup","count":4}
-{"path":"script/package-check/archives.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/package-check/server.test.ts","rule":"tests/story-specs","count":1}
 {"path":"script/quality/globalHooks.spec.ts","rule":"tests/named-values","count":29}
 {"path":"script/quality/testProjects.spec.ts","rule":"tests/named-values","count":5}
 {"path":"script/release/appliedRelease.slow.spec.ts","rule":"tests/named-values","count":6}
 {"path":"script/release/pullRequest.spec.ts","rule":"tests/named-values","count":3}
 {"path":"script/release/pullRequestStability.spec.ts","rule":"tests/named-values","count":1}
-{"path":"script/starter-published/documentation.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/starter-published/imports.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/starter-published/packedInstaller.test.ts","rule":"tests/story-specs","count":1}
-{"path":"script/starter-published/run.test.ts","rule":"tests/story-specs","count":1}

@@ -1,19 +1,32 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { documentedImports, importProbe } from "#starter-published/imports.ts";
+import { FileSystem } from "effect";
+import { writeJson } from "#package-check/io.ts";
+import { app } from "./app.ts";
 
-export function unpublishedContract() {
-	const consumer = mkdtempSync(join(tmpdir(), "published-imports-"));
-	const pkg = join(consumer, "node_modules/@shivaedev/effect-contract");
-	mkdirSync(pkg, { recursive: true });
-	writeFileSync(join(pkg, "package.json"), JSON.stringify({ exports: { "./operation.ts": "./operation.d.ts" }, type: "module" }));
-	writeFileSync(join(pkg, "operation.d.ts"), "export declare const query: unknown;\n");
-	const entries = documentedImports(
-		'```ts\nimport { query, stream } from "@shivaedev/effect-contract/operation.ts";\n```\nImport `makeLiveServer` from `@shivaedev/effect-contract/makeLiveServer.ts`.',
-		"packages/effect-contract/README.md",
-	);
-	const path = join(consumer, "imports.ts");
-	writeFileSync(path, entries.map(importProbe).join("\n"));
-	return { entries, path, remove: () => rmSync(consumer, { force: true, recursive: true }) };
-}
+export const unpublishedContract = app.trait("source", "the packed contract has query but no stream or live server", function* ({ root }) {
+	const fs = yield* FileSystem.FileSystem;
+	const source = join(root, "source");
+	yield* writeJson(join(source, "package.json"), {
+		exports: {
+			"./contract.ts": { import: "./contract.js", types: "./contract.d.ts" },
+			"./keys.ts": { import: "./keys.js", types: "./keys.d.ts" },
+			"./operation.ts": { import: "./operation.js", types: "./operation.d.ts" },
+			"./resume.ts": { import: "./resume.js", types: "./resume.d.ts" },
+		},
+		name: "@shivaedev/effect-contract",
+		type: "module",
+		version: "0.1.0",
+	});
+	for (const [path, content] of Object.entries({
+		"contract.d.ts": "export interface Contract { readonly name: string }\n",
+		"contract.js": "export {};\n",
+		"keys.d.ts": "export declare const key: string;\n",
+		"keys.js": 'export const key = "key";\n',
+		"operation.d.ts": "export declare const query: number;\nexport interface Streaming { readonly value: string }\n",
+		"operation.js": "export const query = 42;\n",
+		"resume.d.ts": "export declare const resumeSignal: string;\n",
+		"resume.js": 'export const resumeSignal = "resume";\n',
+	})) {
+		yield* fs.writeFileString(join(source, path), content);
+	}
+});

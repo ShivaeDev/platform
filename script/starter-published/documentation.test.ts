@@ -1,44 +1,27 @@
-import assert from "node:assert/strict";
-import { test as it } from "node:test";
-import { NodeFileSystem } from "@effect/platform-node";
-import { Effect } from "effect";
+import { expect } from "vitest";
+import { app } from "#starter-published/test-support/app.ts";
 import { documentationFixture } from "#starter-published/test-support/documentationFixture.ts";
-import { checkDocumentation, readDocumentation } from "./documentation.ts";
+import { unpublishedContract } from "#starter-published/test-support/unpublishedContract.ts";
 
-const versions = { "@shivaedev/effect-contract": "0.1.0" };
+app.it(
+	"rejects an unpinned package imported by a framework guide",
+	[unpublishedContract, documentationFixture('```ts\nimport { query } from "@shivaedev/unpinned/resource.ts";\n```')],
+	function* ({ documentation }) {
+		expect(yield* documentation()).toContain("docs/framework/add-a-feature.md: @shivaedev/unpinned/resource.ts needs a pinned published version");
+	},
+);
 
-it("rejects an unpinned package imported by a framework guide", async () => {
-	const fixture = documentationFixture("@shivaedev/unpinned/resource.ts");
-	try {
-		await assert.rejects(
-			Effect.runPromise(readDocumentation(fixture.root, versions).pipe(Effect.provide(NodeFileSystem.layer))),
-			/docs\/framework\/add-a-feature.md: @shivaedev\/unpinned\/resource.ts needs a pinned published version/u,
-		);
-	} finally {
-		fixture.remove();
-	}
-});
-
-it("rejects unpublished names and entry points imported by a framework guide", async () => {
-	for (const [specifier, name] of [
-		["@shivaedev/effect-contract/operation.ts", "stream"],
-		["@shivaedev/effect-contract/makeLiveServer.ts", "makeLiveServer"],
-	] as const) {
-		const fixture = documentationFixture(specifier, name);
-		try {
-			const program = Effect.gen(function* () {
-				const entries = yield* readDocumentation(fixture.root, versions);
-				yield* checkDocumentation(fixture.root, entries, versions);
-			});
-			await assert.rejects(
-				Effect.runPromise(program.pipe(Effect.provide(NodeFileSystem.layer))),
-				(error: unknown) =>
-					error instanceof Error
-					&& error.message.includes("Published documentation API check failed:")
-					&& error.message.includes(`import ${name} from ${specifier} (docs/framework/add-a-feature.md)`),
-			);
-		} finally {
-			fixture.remove();
-		}
-	}
-});
+for (const [specifier, name] of [
+	["@shivaedev/effect-contract/operation.ts", "stream"],
+	["@shivaedev/effect-contract/makeLiveServer.ts", "makeLiveServer"],
+] as const) {
+	app.it(
+		`rejects the unpublished ${name} API imported by a framework guide`,
+		[unpublishedContract, documentationFixture(`\`\`\`ts\nimport { ${name} } from "${specifier}";\n\`\`\``)],
+		function* ({ documentation }) {
+			const failure = yield* documentation();
+			expect(failure).toContain("Published documentation API check failed:");
+			expect(failure).toContain(`import ${name} from ${specifier} (docs/framework/add-a-feature.md)`);
+		},
+	);
+}
