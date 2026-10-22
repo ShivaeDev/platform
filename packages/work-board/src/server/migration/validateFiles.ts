@@ -1,10 +1,13 @@
 import { Effect } from "effect";
 import { isNode } from "yaml";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { MetadataDocument } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { sourceHeader } from "#server/migration/sourceHeader.ts";
 
-export function validateFiles(files: readonly { readonly file: string; readonly source: string }[]) {
+export function validateFiles(
+	files: readonly { readonly file: string; readonly source: string }[],
+): Effect.Effect<readonly MetadataDocument[], BadRequest> {
 	const documents = files.map(({ file, source }) => ({ file, parsed: metadataParse(source), source }));
 	const problems = documents.flatMap(({ file, parsed, source }) =>
 		parsed.diagnostics.map((problem) => {
