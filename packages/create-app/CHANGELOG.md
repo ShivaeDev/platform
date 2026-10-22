@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.11.22 - 2026-10-22
+
+### Fixed
+
+- Generate a standalone catalog aligned with the published framework peers for React, router, Vitest and happy-dom. The generated CI command checks peer dependencies before application checks so incompatible pins fail the published-starter gate.
+- Load only the selected web or worker application in the generated deployment-story launcher, matching the production process boundary and avoiding unnecessary web startup work in worker stories.
+
 ## 0.11.21 - 2026-10-21
 
 ### Fixed
