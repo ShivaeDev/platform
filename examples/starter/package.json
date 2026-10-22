@@ -10,7 +10,7 @@
 		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin.ts",
 		"build": "vite build",
 		"check:published": "env -u NODE_OPTIONS node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
-		"ci": "pnpm lint && pnpm typecheck && pnpm build && pnpm test",
+		"ci": "pnpm peers check && pnpm lint && pnpm typecheck && pnpm build && pnpm test",
 		"db:setup": "node --conditions=source --env-file-if-exists=.env.local src/server/setup-database.ts",
 		"dev": "pnpm db:setup && pnpm migrate && node --conditions=source --env-file-if-exists=.env.local src/server/dev.ts",
 		"format": "quality fix",
