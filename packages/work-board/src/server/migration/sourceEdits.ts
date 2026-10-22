@@ -1,4 +1,4 @@
-import { isScalar } from "yaml";
+import { isScalar, Scalar, stringify } from "yaml";
 import { replacementEdit } from "./replacementEdit.ts";
 import type { sourceHeader } from "./sourceHeader.ts";
 
@@ -9,15 +9,26 @@ export function sourceEdits(source: string, header: Header) {
 	const additions: string[] = [];
 	const newline = source.includes("\r\n") ? "\r\n" : "\n";
 	let fields = 0;
+	function scalar(value: string, original?: Scalar) {
+		if (value.includes("\n")) {
+			return JSON.stringify(value);
+		}
+		const node = new Scalar(value);
+		node.type = original?.type ?? Scalar.PLAIN;
+		return stringify(node, { lineWidth: 0 }).trimEnd();
+	}
+	function addition(field: string, value: string) {
+		return `${contents.flow ? JSON.stringify(field) : field}: ${value}`;
+	}
 	function set(field: string, value: string) {
 		const node = doc.get(field, true);
 		if (isScalar(node) && node.range) {
 			if (node.value === value) {
 				return;
 			}
-			edits.push({ end: offset + node.range[1], start: offset + node.range[0], text: JSON.stringify(value) });
+			edits.push({ end: offset + node.range[1], start: offset + node.range[0], text: scalar(value, node) });
 		} else {
-			additions.push(`${field}: ${JSON.stringify(value)}`);
+			additions.push(addition(field, contents.flow ? JSON.stringify(value) : scalar(value)));
 		}
 		fields += 1;
 	}
@@ -38,6 +49,8 @@ export function sourceEdits(source: string, header: Header) {
 					start = offset + before.index;
 				}
 			}
+		} else {
+			to += /^[^\S\r\n]*\r?\n/u.exec(source.slice(to))?.[0].length ?? 0;
 		}
 		edits.push({ end: to, start, text: "" });
 		fields += 1;
@@ -45,7 +58,7 @@ export function sourceEdits(source: string, header: Header) {
 	function rename(field: string, name: string) {
 		const key = contents.items.find((item) => isScalar(item.key) && item.key.value === field)?.key;
 		if (isScalar(key) && key.range) {
-			edits.push({ end: offset + key.range[1], start: offset + key.range[0], text: JSON.stringify(name) });
+			edits.push({ end: offset + key.range[1], start: offset + key.range[0], text: scalar(name, key) });
 			fields += 1;
 		}
 	}
@@ -57,7 +70,7 @@ export function sourceEdits(source: string, header: Header) {
 		if (edit) {
 			edits.push(edit);
 		} else {
-			additions.push(`relationships: ${JSON.stringify(targets.map((target) => ({ kind: "replaces", target })))}`);
+			additions.push(addition("relationships", JSON.stringify(targets.map((target) => ({ kind: "replaces", target })))));
 		}
 		fields += 1;
 	}

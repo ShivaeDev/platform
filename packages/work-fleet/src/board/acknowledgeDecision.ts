@@ -21,13 +21,6 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 		}
 		const all = current.documents.filter((document) => !current.problems.has(document.file));
 		const decision = input.decision;
-		const source = all.find((document) => document.file === decision.sourcePath);
-		if (!source || source.parsed.fields.id !== decision.itemId || revisionOf(source.source) !== decision.revision) {
-			return yield* Effect.fail(
-				new BoardAcknowledgementStale({ message: "The decision source changed or moved; its request cannot be acknowledged." }),
-			);
-		}
-		const request = source.parsed.fields.attention?.find((candidate) => candidate.id === decision.request);
 		const requestReceipt = {
 			disposition: input.disposition,
 			question: decision.questionId,
@@ -38,6 +31,20 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 		const id = `request-receipt.${revisionOf(JSON.stringify(requestReceipt))}`;
 		const content = `---\n${JSON.stringify({ id, kind: "report", "request_receipt": requestReceipt })}\n---\n# Managed request acknowledgement\n\nThis immutable receipt acknowledges request handling; it grants no execution, acceptance or delivery authority.\n`;
 		const file = `responses/${id}.md`;
+		const source = all.find((document) => document.file === decision.sourcePath);
+		const request = source?.parsed.fields.attention?.find((candidate) => candidate.id === decision.request);
+		if (
+			source?.parsed.fields.status === "done"
+			&& request?.state === "closed"
+			&& all.some((document) => document.file === file && document.source === content)
+		) {
+			return;
+		}
+		if (!source || source.parsed.fields.id !== decision.itemId || revisionOf(source.source) !== decision.revision) {
+			return yield* Effect.fail(
+				new BoardAcknowledgementStale({ message: "The decision source changed or moved; its request cannot be acknowledged." }),
+			);
+		}
 		const receiptDocument = { file, parsed: boardApi.metadataParse(content) };
 		const others = all.filter((document) => document.file !== file);
 		const acknowledged = others.some((document) => document.parsed.fields.requestReceipt?.question === decision.questionId);
@@ -51,10 +58,8 @@ export function acknowledgeDecision(root: string, realRoot: string, snapshot: Ef
 			Effect.mapError(() => new BoardFailure({ message: "The managed request acknowledgement could not be recorded on Board." })),
 		);
 		yield* recordBoardSource(realRoot, file, content, receiptDocument.parsed);
-		if (input.disposition === "superseded") {
-			const reason = supersededReason(all, decision.workId);
-			yield* closePublishedDecision(root, realRoot, source, reason);
-		}
+		const reason = input.disposition === "superseded" ? supersededReason(all, decision.workId) : undefined;
+		yield* closePublishedDecision(root, realRoot, source, reason);
 	});
 }
 

@@ -54,7 +54,7 @@ boardStory.it(
 		expect(captured.metadata.urgency).toBe("blocking");
 		const flow = yield* Effect.promise(() => client.read(client.api.document.query({ url: "/flow.md" })));
 		expect(flow.metadata).toMatchObject({ scope: "task", urgency: "whenever" });
-		expect(readFileSync(join(notes.root, "crlf.md"), "utf8")).toContain('kind: "goal" # retain comment\r\n');
+		expect(readFileSync(join(notes.root, "crlf.md"), "utf8")).toContain("kind: goal # retain comment\r\n");
 		const successor = yield* Effect.promise(() => client.read(client.api.document.query({ url: "/_board/item/successor/" })));
 		expect(successor.metadata.relationships).toContainEqual({ kind: "replaces", target: "replaced" });
 	},
