@@ -32,7 +32,7 @@ deployment.it(
 		const worker = yield* startProcess("worker");
 		yield* worker.waitingForSchema;
 		expect(yield* worker.child.isRunning).toBe(true);
-		expect(worker.logs).toEqual(["EFFECT_LOG Worker waiting for schema"]);
+		expect(worker.logs).toEqual([expect.stringContaining("Worker waiting for schema")]);
 		expect(yield* migrationTable).toEqual([{ ledger: null }]);
 		expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
 		expect(yield* worker.ready).toBe("worker");
@@ -43,10 +43,10 @@ deployment.it(
 		expect(signup.status).toBe(OK_STATUS);
 		expect(signup.cookie).toContain("session_token=");
 		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
-		expect(worker.logs.filter((line) => line.startsWith("EFFECT_LOG Worker"))).toEqual([
-			"EFFECT_LOG Worker waiting for schema",
-			"EFFECT_LOG Worker schema current",
-			"EFFECT_LOG Worker ready to take jobs",
+		expect(worker.logs.filter((line) => line.includes("Worker "))).toEqual([
+			expect.stringContaining("Worker waiting for schema"),
+			expect.stringContaining("Worker schema current"),
+			expect.stringContaining("Worker ready to take jobs"),
 		]);
 		expect(yield* worker.child.isRunning).toBe(true);
 		expect(yield* web.child.isRunning).toBe(true);

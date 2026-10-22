@@ -3,6 +3,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Deferred, Effect, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { eventually } from "@shivaedev/effect-test/eventually.ts";
 
 export async function deployPort() {
 	const server = createServer();
@@ -19,12 +20,14 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const target = new URL(Redacted.value(url));
 	target.searchParams.set("application_name", `deploy_${kind}`);
-	const entry = kind === "migrate" ? "../server/migrate.ts" : "./deployProcess.ts";
+	const entry = kind === "web" ? "../server/server.ts" : `../server/${kind}.ts`;
+	const listenPort = kind === "web" && port === 0 ? yield* Effect.promise(deployPort) : port;
+	const address = `http://127.0.0.1:${listenPort}`;
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL(entry, import.meta.url)), kind], {
+		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL(entry, import.meta.url))], {
 			env: {
 				"DATABASE_URL": target.toString(),
-				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(port) } : {}),
+				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(listenPort) } : {}),
 			},
 			extendEnv: false,
 		}),
@@ -39,11 +42,11 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		Stream.runForEach((line) =>
 			Effect.gen(function* () {
 				logs.push(line);
-				if (line === "EFFECT_LOG Worker waiting for schema") {
+				if (line.includes("Worker waiting for schema")) {
 					yield* Deferred.succeed(waitingForSchema, undefined);
 				}
-				if (line.startsWith("DEPLOY_READY ")) {
-					yield* Deferred.succeed(started, line.slice("DEPLOY_READY ".length));
+				if (line.includes("Worker ready to take jobs")) {
+					yield* Deferred.succeed(started, "worker");
 				}
 			}),
 		),
@@ -57,12 +60,23 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		Stream.runForEach((line) => Effect.sync(() => errors.push(line))),
 		Effect.forkScoped,
 	);
+	const healthy = eventually(
+		Effect.tryPromise(async (signal) => {
+			const response = await fetch(`${address}/health`, { signal });
+			await response.arrayBuffer();
+			if (!response.ok) {
+				throw new Error(`Health check returned HTTP ${response.status}`);
+			}
+			return address;
+		}).pipe(Effect.timeout("2 seconds")),
+		{ interval: "100 millis" },
+	);
 	return {
 		child,
 		errors,
 		logs,
-		ready: Deferred.await(started).pipe(Effect.timeout("20 seconds")),
-		url: `http://127.0.0.1:${port}`,
+		ready: (kind === "web" ? Effect.raceFirst(healthy, Deferred.await(started)) : Deferred.await(started)).pipe(Effect.timeout("20 seconds")),
+		url: address,
 		waitingForSchema: Deferred.await(waitingForSchema).pipe(Effect.timeout("20 seconds")),
 	};
 });
