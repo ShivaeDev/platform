@@ -22,6 +22,14 @@ export const releasePrRepository = Effect.fn("ReleasePrRepository.releasePrRepos
 		yield* write(`packages/${name}/package.json`, JSON.stringify({ name: `@shivaedev/${name}`, version }));
 		yield* write(`packages/${name}/CHANGELOG.md`, "# Changelog\n");
 	}
+	yield* write(
+		"pnpm-workspace.yaml",
+		'catalog:\n  lucide-react: 1.57.0\n  "@types/node": 24.19.2\n  root-only: 1.0.0\ncatalogs:\n  legacy:\n    lucide-react: 1.0.0\n',
+	);
+	yield* write(
+		"examples/starter/pnpm-workspace.copy.yaml",
+		'packages: []\n\ncatalog:\n  lucide-react: 1.57.0\n  "@types/node": 24.19.2 # Node types\n  starter-only: 2.0.0\n',
+	);
 	yield* write("package.json", '{"private":true,"packageManager":"pnpm@12.13.0+sha512.root-integrity"}\n');
 	yield* write("examples/starter/package.json", '{"name":"@shivaedev/starter","private":true,"version":"0.0.0","packageManager":"pnpm@12.13.0"}\n');
 	yield* write("examples/starter/published-versions.json", '{"@shivaedev/platform":"0.15.0"}\n');
