@@ -26,7 +26,7 @@ pnpm test
 pnpm ready
 ```
 
-Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose role can create disposable databases. The story kits in `src/test-support` cover real PostgreSQL and HTTP, schema upgrades, and happy-dom screen behavior. Extend those kits for new features. `pnpm ready` runs the same lint, typecheck, build and test commands as `.github/workflows/ci.yml`. Use `pnpm lint` to check the code and `pnpm format` to apply formatting and fixes.
+Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose role can create disposable databases. The story kits in `src/test-support` cover real PostgreSQL and HTTP, schema upgrades, and happy-dom screen behavior. Extend those kits for new features. `pnpm ready` runs the same peer, lint, typecheck, build and test commands as `.github/workflows/ci.yml`. Use `pnpm lint` to check the code and `pnpm format` to apply formatting and fixes.
 
 ## Build and deploy
 
