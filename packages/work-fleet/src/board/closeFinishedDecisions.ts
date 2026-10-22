@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { attention } from "@shivaedev/work-board/server/integration/attention.ts";
 import { closePublishedDecision, publishedDecision } from "#board/closePublishedDecision.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import type { BoardSnapshot } from "#board/readPass.ts";
@@ -48,8 +49,14 @@ function finishedDecision(snapshot: BoardSnapshot, document: BoardDocument, work
 		|| decision.request.state !== "open"
 		|| snapshot.problems.has(document.file)
 		|| (workId !== undefined && decision.workId !== workId)
-		|| (workId === undefined && answered.has(document.file))
 	) {
+		return;
+	}
+	const receipt = attention.managedRequestReceipt(document, decision.request, snapshot.model);
+	if (receipt?.disposition === "applied") {
+		return { reason: "Closed because Fleet applied the answer to this decision.", workId: decision.workId };
+	}
+	if (workId === undefined && answered.has(document.file)) {
 		return;
 	}
 	const matches = snapshot.model.ids.get(decision.workId);

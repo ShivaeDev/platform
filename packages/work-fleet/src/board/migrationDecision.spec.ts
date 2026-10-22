@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 import { migrationDecision } from "#test/migrationDecision.ts";
 
@@ -26,6 +27,11 @@ boardFolderStory.it(
 		expect([inbox.you.length, inbox.answered.length, inbox.agents.length, inbox.resolved.length]).toEqual([0, 0, 0, 0]);
 		expect(files.read(published.sourcePath)).not.toContain('"answer":');
 		expect(yield* migrate()).toMatchObject({ fields: 0, files: 0 });
+		if (board.closeFinishedDecisions === undefined) {
+			throw new Error("Expected the Board decision close path");
+		}
+		expect(yield* board.closeFinishedDecisions()).toMatchObject([{ sourcePath: published.sourcePath, workId: "task.one" }]);
+		expect(boardApi.metadataParse(files.read(published.sourcePath)).fields).toMatchObject({ attention: [{ state: "closed" }], status: "done" });
 		files.write(published.sourcePath, `${files.read(published.sourcePath)}\nA changed question.\n`);
 		expect((yield* board.readDecision(legacy.decision))._tag).toBe("Stale");
 	},
