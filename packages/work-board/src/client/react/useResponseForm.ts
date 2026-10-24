@@ -1,6 +1,6 @@
 import { useAtomRef } from "@effect/atom-react";
 import { Equal, Option, Schema } from "effect";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useCreate } from "@shivaedev/effect-react/client/create.ts";
 import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
@@ -26,7 +26,8 @@ function authorOf(label: ReturnType<typeof authorLabel>) {
 
 export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[], options?: Metadata["options"], supersedes?: string) {
 	const client = useFormClient();
-	const schema = responseFormSchema(prompts.length > 0);
+	const hasPrompts = prompts.length > 0;
+	const schema = useMemo(() => responseFormSchema(hasPrompts), [hasPrompts]);
 	const [preview, setPreview] = useState<ResponseInput>();
 	const [interaction, setInteraction] = useState<DraftInteraction>("draft");
 	const [attempted, setAttempted] = useState(false);
