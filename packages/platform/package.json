@@ -60,6 +60,7 @@
 		"@prisma-next/sql-contract": "catalog:",
 		"@prisma-next/sql-orm-client": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
+		"@shivaedev/effect-pg-boss": "workspace:*",
 		"@shivaedev/effect-prisma": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/effect-test-sql": "workspace:*",
@@ -73,6 +74,7 @@
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg": "catalog:",
+		"pg-boss": "catalog:",
 		"superjson": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"

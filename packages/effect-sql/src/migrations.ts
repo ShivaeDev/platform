@@ -2,9 +2,11 @@ import { Duration, Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import { advisoryXactLock } from "./advisoryXactLock.ts";
+import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
 import { transact } from "./transact.ts";
 
 export interface PostgresMigrationOptions<R> {
+	readonly components?: readonly SchemaComponent<R>[];
 	readonly loader: Migrator.Loader<R>;
 	readonly lockTimeout: Duration.Input;
 	readonly table?: string;
@@ -14,6 +16,7 @@ const migrate = Migrator.make({});
 
 export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* <R>({
 	loader,
+	components = [],
 	table = "effect_sql_migrations",
 	lockTimeout,
 }: PostgresMigrationOptions<R>) {
@@ -22,7 +25,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 	const reactivity = Option.isSome(available) ? available.value : yield* Reactivity.make;
 	const millis = Duration.toMillis(lockTimeout);
 	const timeout = millis === Number.POSITIVE_INFINITY ? "0" : `${Math.max(1, Math.ceil(millis))}ms`;
-	return yield* Effect.gen(function* () {
+	const appliedMigrations = yield* Effect.gen(function* () {
 		yield* sql`select set_config('lock_timeout', ${timeout}, true)`;
 		yield* advisoryXactLock(`effect_sql_migrations:${table}`).pipe(Effect.catchTag("AdvisoryLockOutsideTransaction", Effect.die));
 		yield* sql`create table if not exists ${sql(table)} (
@@ -45,4 +48,8 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 		}
 		return yield* migrate({ loader: Effect.succeed(current), table });
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.provideService(Reactivity.Reactivity, reactivity));
+	for (const component of components) {
+		yield* runSchemaComponent(component.name, component.apply);
+	}
+	return appliedMigrations;
 });

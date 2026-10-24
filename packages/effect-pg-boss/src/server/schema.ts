@@ -3,6 +3,7 @@ import { SqlClient } from "effect/sql";
 import type { Connection } from "effect/sql/SqlConnection";
 import { getConstructionPlans, getMigrationPlans, type MigrationPartition, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
+import type { SchemaComponent } from "@shivaedev/effect-sql/SchemaComponent.ts";
 import { type PgBossError, toPgBossError } from "#error.ts";
 import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
@@ -61,4 +62,23 @@ export function installPgBossSchema(options: PgBossSchemaOptions = {}): Effect.E
 			});
 		}).pipe(Effect.mapError((error) => toPgBossError("install", error))),
 	).pipe(Effect.uninterruptible);
+}
+
+export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent {
+	const schema = options.schema ?? "pgboss";
+	return {
+		apply: installPgBossSchema(options),
+		name: `pg-boss:${schema}`,
+		pending: Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			const table = sql`${sql(schema)}.${sql("version")}`;
+			const [installed] = yield* sql<{ name: string | null }>`select to_regclass(${table.compile()[0]})::text as name`.withoutTransform;
+			const [row] =
+				installed === undefined || installed.name === null ? [] : yield* sql<{ version: number }>`select version from ${table}`.withoutTransform;
+			const required = pgBossPackage.pgboss.schema;
+			return row === undefined || row.version < required
+				? `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`
+				: undefined;
+		}),
+	};
 }

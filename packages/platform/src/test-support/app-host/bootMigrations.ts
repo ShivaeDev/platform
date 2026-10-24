@@ -1,7 +1,8 @@
-import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Queue } from "effect";
+import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Queue, Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
+import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 import { appHost } from "#server/appHost.ts";
 import type { MigrationState } from "./migrationStory.ts";
 import { Ping, ping, pingHandlers } from "./ping.ts";
@@ -13,6 +14,17 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 	const clock = yield* Clock.Clock;
 	const sleeps = yield* Queue.unbounded<number>();
 	const pollMillis = Duration.toMillis(Duration.fromInputUnsafe(options.pollInterval ?? "10 millis"));
+	const services =
+		state.migrations.components.length === 0
+			? Layer.empty
+			: makePgBoss("@test/MigrationJobs").layer({
+					connectionString: Redacted.value(state.url),
+					jobs: [],
+					migrate: false,
+					schedule: false,
+					schema: `${state.table}_jobs`,
+					supervise: false,
+				});
 	const host = appHost({
 		application: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -21,7 +33,13 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 				Effect.sync(() => state.lifecycle.push("started")),
 				() => Effect.sync(() => state.lifecycle.push("closed")),
 			);
-			return { config: { port: 0 }, group: Ping, handlers: pingHandlers, policy: "loopback" as const };
+			return {
+				config: { port: 0 },
+				group: Ping,
+				handlers: pingHandlers,
+				policy: "loopback" as const,
+				services,
+			};
 		}),
 		config: { applicationName: state.table, databaseUrl: state.url },
 		migrations: { ...state.migrations, mode: "wait", pollInterval: "10 millis", ...options },
