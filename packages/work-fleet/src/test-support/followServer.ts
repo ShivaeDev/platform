@@ -34,9 +34,19 @@ export const followServer = Effect.fn("FollowTest.followServer")(function* () {
 		return yield* Effect.die("Expected a TCP server");
 	}
 	return {
-		fail: (message: string) => response?.end(`${JSON.stringify({ _tag: "Defect", defect: { message, name: "Error" } })}\n`),
+		fail: (message: string) => {
+			if (response === undefined) {
+				throw new Error("Subscribe before sending a follow failure");
+			}
+			response.end(`${JSON.stringify({ _tag: "Defect", defect: { message, name: "Error" } })}\n`);
+		},
 		port: address.port,
-		send: (states: readonly unknown[]) => response?.write(`${JSON.stringify({ _tag: "Chunk", requestId, values: [states] })}\n`),
+		send: (states: readonly unknown[]) => {
+			if (response === undefined) {
+				throw new Error("Subscribe before sending follow snapshots");
+			}
+			response.write(`${JSON.stringify({ _tag: "Chunk", requestId, values: [states] })}\n`);
+		},
 		subscribed: subscribed.promise,
 	};
 });

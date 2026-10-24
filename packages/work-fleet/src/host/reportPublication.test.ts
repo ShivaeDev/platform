@@ -1,11 +1,8 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { GithubApi } from "#host/githubApi.ts";
-import { makeReportPublication, reportPublication } from "#host/reportPublication.ts";
-import { githubCliApi } from "#test/githubApi.ts";
+import { githubCliHost } from "#test/githubHostStory.ts";
 
-it.live("checks exact refs and all PR pages using only GitHub GET requests", function* () {
+githubCliHost.it("checks exact refs and all PR pages using only GitHub GET requests", [], function* (github) {
 	const endpoints = new Map([
 		["repos/example/project/git/matching-refs/heads/synthetic%2Fresearch", JSON.stringify([{ ref: "refs/heads/synthetic/research-extra" }])],
 		[
@@ -13,13 +10,8 @@ it.live("checks exact refs and all PR pages using only GitHub GET requests", fun
 			JSON.stringify([{ "html_url": "https://github.com/example/project/pull/1" }]),
 		],
 	]);
-	const cli = githubCliApi(endpoints);
-	expect(
-		yield* GithubApi.pipe(
-			Effect.flatMap((github) => reportPublication(github)("example/project", "synthetic/research")),
-			Effect.provide(cli.layer),
-		),
-	).toBe(true);
+	const cli = yield* github.cli(endpoints);
+	expect(yield* cli.published("example/project", "synthetic/research")).toBe(true);
 	expect(cli.commands).toHaveLength(2);
 	for (const command of cli.commands) {
 		expect(command).toMatchObject({ args: ["api", "--include", "--method", "GET", expect.any(String)], command: "gh" });
@@ -27,8 +19,8 @@ it.live("checks exact refs and all PR pages using only GitHub GET requests", fun
 });
 
 for (const response of ["{}", "not json"]) {
-	it.effect("fails closed on malformed remote evidence", function* () {
-		expect(yield* makeReportPublication(() => Effect.succeed(response))("example/project", "synthetic/research").pipe(Effect.flip)).toMatchObject({
+	githubCliHost.it("fails closed on malformed remote evidence", [], function* (github) {
+		expect(yield* github.publication(response).pipe(Effect.flip)).toMatchObject({
 			_tag: "ServiceUnavailable",
 		});
 	});
