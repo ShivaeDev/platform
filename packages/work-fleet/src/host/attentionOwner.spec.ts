@@ -70,6 +70,8 @@ host.it("CLI reassignment publishes a new maintainer question and refreshes the 
 	const closed = board.metadataParse(daemon.readBoard(old.published.sourcePath));
 	expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
 	expect(closed.body).toBe(board.metadataParse(oldSource).body);
-	expect(daemon.readBoard("fleet/status.md")).toContain("## Waiting on you\n\n### one");
+	const group = "## Waiting on you\n\n### one";
+	const published = yield* daemon.awaitBoardSource("fleet/status.md", (source) => source.includes(group));
+	expect(published).toContain(group);
 	expect(daemon.providerLaunches()).toHaveLength(1);
 });

@@ -20,12 +20,13 @@ host.it(
 		const outcome = yield* daemon.wait("a", 15_000);
 		expect(outcome.code).toBe(WAIT_EXIT.waitingDecision);
 		expect(outcome.summary).toMatch(/^a waiting \(waiting on automation\): /u);
-		yield* daemon.reconcile("a");
 		const status = renderStatus(yield* daemon.status());
 		expect(status).toContain("Active (0)");
 		expect(status).toContain("Waiting on automation (1)\n  a  waiting");
-		expect(daemon.readBoard("fleet/status.md")).toContain("## Waiting on automation\n\n### a");
-		expect(daemon.readBoard("fleet/status.md")).toContain("Stage: waiting");
+		const group = "## Waiting on automation\n\n### a";
+		const published = yield* daemon.awaitBoardSource("fleet/status.md", (source) => source.includes(group));
+		expect(published).toContain(group);
+		expect(published).toContain("Stage: waiting");
 		expect(daemon.readBoard("a.md")).toBe(files["a.md"]);
 	},
 	40_000,
