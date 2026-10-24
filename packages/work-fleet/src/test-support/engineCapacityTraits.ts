@@ -1,3 +1,5 @@
+import { Effect } from "effect";
+import type { SessionObservation } from "#session/schema.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 
@@ -26,3 +28,25 @@ export function ambiguousProviderRejection() {
 		submissionFailure: () => new SessionFailure({ message: QUEUE_FULL, reason: "ambiguous" }),
 	}));
 }
+
+export function terminalCapacity(reviewer: boolean, message: string, capacity?: SessionObservation["capacity"]) {
+	return engineConfiguration("the terminal turn reports provider capacity", (state) => {
+		state.providerRejects = true;
+		function failCapacity(observation: SessionObservation): SessionObservation {
+			const isReviewer = observation.output.includes("FLEET_REVIEW:");
+			return state.providerRejects && isReviewer === reviewer ? { ...observation, capacity, error: message, execution: "failed" } : observation;
+		}
+		return { decorateTransport: (transport) => ({ ...transport, observe: (receipt) => transport.observe(receipt).pipe(Effect.map(failCapacity)) }) };
+	});
+}
+
+export const terminalCapacityCases = (["serverOverloaded", undefined] as const).flatMap((capacity) =>
+	[false, true].flatMap((reviewer) =>
+		[false, true].map((clears) => ({
+			capacity,
+			clears,
+			message: capacity === undefined ? "Selected model is at capacity. Please try a different model." : "Selected model is at capacity",
+			reviewer,
+		})),
+	),
+);
