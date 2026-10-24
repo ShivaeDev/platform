@@ -1,19 +1,79 @@
 {
-	"date": "2026-10-22",
+	"date": "2026-10-24",
 	"plan": {
 		"changesets": [
 			{
-				"name": "starter-catalog-alignment.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Generated apps use the same third-party catalog versions as the repository's tested starter.\n"
+				"name": "catalog-patches.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n\"@shivaedev/effect-form\": patch\n\"@shivaedev/effect-react\": patch\n\"@shivaedev/platform\": patch\n\"@shivaedev/quality\": patch\n\"@shivaedev/test-story\": patch\n\"@shivaedev/vitest-rerun\": patch\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Align published dependency and peer pins and the generated starter with React and React DOM 19.3.1, TanStack Router 1.170.45, Better Auth 1.7.10, happy-dom 21.0.3 and Vitest 5.0.5. The starter also uses pg-boss dashboard 1.12.1.\n"
+			},
+			{
+				"name": "starter-deploy-entry-points.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Run the generated app's production web and worker entry points in deployment stories, waiting for the database-backed health check and the worker's existing readiness log.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.11.22",
+				"from": "0.11.23",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.23"
+				"to": "0.11.24"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-form",
+				"from": "0.6.0",
+				"name": "@shivaedev/effect-form",
+				"to": "0.6.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-react",
+				"from": "0.12.1",
+				"name": "@shivaedev/effect-react",
+				"to": "0.12.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.24.0",
+				"name": "@shivaedev/platform",
+				"to": "0.24.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.33.1",
+				"name": "@shivaedev/quality",
+				"to": "0.33.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/test-story",
+				"from": "0.18.0",
+				"name": "@shivaedev/test-story",
+				"to": "0.18.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/vitest-rerun",
+				"from": "0.1.0",
+				"name": "@shivaedev/vitest-rerun",
+				"to": "0.1.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.30.1",
+				"name": "@shivaedev/work-board",
+				"to": "0.30.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-fleet",
+				"from": "0.17.1",
+				"name": "@shivaedev/work-fleet",
+				"to": "0.17.2"
 			}
 		]
 	}
