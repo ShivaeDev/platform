@@ -23,7 +23,7 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 			);
 			return { config: { port: 0 }, group: Ping, handlers: pingHandlers, policy: "loopback" as const };
 		}),
-		config: { applicationName: state.table, databaseUrl: state.url },
+		config: { applicationName: state.table, databaseUrl: state.hostUrl },
 		migrations: { ...state.migrations, mode: "wait", pollInterval: "10 millis", ...options },
 	});
 	const ready = yield* Deferred.make<Context.Context<Layer.Success<typeof host>>>();

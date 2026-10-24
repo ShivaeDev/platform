@@ -1,4 +1,4 @@
-import { Cause, Exit, Result } from "effect";
+import { Cause, Effect, Exit, Fiber, Result } from "effect";
 import { Migrator } from "effect/sql";
 import { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
@@ -63,12 +63,19 @@ migrationHost.it("preserves SQL failures immediately instead of waiting for sche
 migrationHost.it(
 	"interruption stops waiting and closes the database pool without starting the application",
 	[],
-	function* ({ start, connections, lifecycle }) {
-		const host = yield* start();
-		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
-		expect(yield* connections()).toBe(1);
-		yield* host.interrupt;
-		const exit = yield* host.exit;
+	function* ({ start, connections, lifecycle, holdDisconnects }) {
+		const disconnects = yield* holdDisconnects();
+		const shutdown = yield* Effect.gen(function* () {
+			const host = yield* start();
+			expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
+			expect(yield* connections()).toBe(1);
+			const pending = yield* host.interrupt.pipe(Effect.forkChild);
+			yield* disconnects.disconnecting;
+			expect(pending.pollUnsafe()).toBeUndefined();
+			return { host, pending };
+		}).pipe(Effect.ensuring(disconnects.release));
+		yield* Fiber.join(shutdown.pending);
+		const exit = yield* shutdown.host.exit;
 		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
 		expect(yield* connections()).toBe(0);
 		expect(lifecycle()).toEqual([]);

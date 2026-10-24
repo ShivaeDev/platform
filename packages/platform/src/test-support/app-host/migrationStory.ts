@@ -8,6 +8,7 @@ import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { bootMigrations } from "./bootMigrations.ts";
+import { disconnectGate } from "./disconnectGate.ts";
 import { migrationLoader } from "./migrationLoader.ts";
 
 const create = Effect.fnUntraced(function* () {
@@ -17,7 +18,7 @@ const create = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	yield* Effect.addFinalizer(() => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`.pipe(Effect.orDie));
 	const lifecycle: string[] = [];
-	return { lifecycle, migrations: { loader: migrationLoader(table), table: ledger }, table, url };
+	return { hostUrl: url, lifecycle, migrations: { loader: migrationLoader(table), table: ledger }, table, url };
 });
 
 export type MigrationState = Effect.Success<ReturnType<typeof create>>;
@@ -38,6 +39,16 @@ export const migrationHost = storyKit({
 					throw new Error("The database did not return a connection count");
 				}
 				return row.count;
+			}),
+		holdDisconnects: () =>
+			Effect.gen(function* () {
+				story.tell("hold the host's PostgreSQL disconnect acknowledgement");
+				const gate = yield* Effect.acquireRelease(
+					Effect.promise(() => disconnectGate(Redacted.value(state.url))),
+					(resource) => Effect.promise(resource.close),
+				);
+				state.hostUrl = Redacted.make(gate.url);
+				return { disconnecting: Effect.promise(() => gate.disconnecting), release: Effect.sync(gate.release) };
 			}),
 		lifecycle: () => state.lifecycle,
 		migrate: (initialOnly = false) =>
