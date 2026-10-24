@@ -6,6 +6,7 @@ import { type BrowserDraftConfig, usePersistedDraft } from "@shivaedev/effect-fo
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
 import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
 import { loadedQuery } from "#internal/loadedQuery.ts";
+import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
 import { submission } from "#submission.ts";
 import { type QueryState, useQuery } from "./resultState.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
@@ -27,9 +28,11 @@ export interface LoadedEditor<TFields extends Fields, TRow, TQueryError, TSaveEr
 	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError>;
 	readonly query: LoadedQueryState<TRow, TQueryError>;
 }
-interface Held<TFields extends Fields, TRow, TSaveError, TRuntimeError> {
+interface Held<TFields extends Fields, TRow, TSaveError, R, TRuntimeError> {
+	readonly fields: Schema.Struct<TFields>;
 	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError>;
 	readonly query: Atom.Atom<unknown>;
+	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
 	readonly values: (row: TRow) => Encoded<TFields>;
 }
 export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError>(
@@ -42,21 +45,23 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 	config: EditorConfig<TFields, TRow, TQueryError, TSaveError, R, TRuntimeError> & { readonly loaded?: TRow },
 ): Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> | LoadedEditor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> {
 	const persistedDraft = usePersistedDraft(config.persistedDraft);
+	const callbacks = useSubmissionCallbacks(config.fields, config.save, config.rejectField);
 	const query = useQuery(config.query);
 	const row = Option.orElse(query.data, () => ("loaded" in config ? Option.some(config.loaded) : Option.none()));
-	const [held, hold] = useState<Held<TFields, TRow, TSaveError, TRuntimeError> | undefined>(undefined);
-	let current = held?.query === config.query ? held : undefined;
+	const [held, hold] = useState<Held<TFields, TRow, TSaveError, R, TRuntimeError> | undefined>(undefined);
+	let current = held?.query === config.query && held.fields === config.fields && held.runtime === config.runtime ? held : undefined;
 	if (current === undefined && Option.isSome(row)) {
 		current = {
+			fields: config.fields,
 			form: submission({
+				...callbacks,
 				fields: config.fields,
 				initialValues: config.values(row.value),
 				persistedDraft,
-				rejectField: config.rejectField,
 				runtime: config.runtime,
-				save: config.save,
 			}).form,
 			query: config.query,
+			runtime: config.runtime,
 			values: config.values,
 		};
 		hold(current);

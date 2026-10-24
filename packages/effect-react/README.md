@@ -378,14 +378,24 @@ The editor's form is absent until its first row arrives. A different query atom 
 
 A successful create replaces its form with one at `initialValues`, keeping fields edited after submission began, including while an async schema decoded it. The next entry starts without the previous entry's displayed field errors. `created` holds the successful result as an `Option`.
 
+### Hook configuration between renders
+
+`useCreate` calls the latest committed render's `create`, and `useEditor` calls its latest `save`. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. Inline callbacks may close over changing props or state without replacing the form or losing edits.
+
+Changing the `fields` schema or `runtime` by reference replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
+
+`initialValues` (create), `values` (editor) and `persistedDraft` are setup options, captured when the hook first creates a form and again when `fields`, `runtime` or editor `query` changes. Successful creates reuse the captured initial values and persistence options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
+
 ### Field rejections and other failures
 
 A tagged error with string `_tag` and `message`, and a `field` naming a form field, becomes that field's message by default. Other save failures appear in `failure`. Use `rejectField` when the server uses a different shape or field name:
 
 ```ts
+const TitleFields = Schema.Struct({ title: Schema.String });
+
 const editor = useEditor({
   query,
-  fields: Schema.Struct({ title: Schema.String }),
+  fields: TitleFields,
   values: (row) => ({ title: row.title }),
   save,
   runtime,

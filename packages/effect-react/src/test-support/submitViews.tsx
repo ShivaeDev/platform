@@ -1,7 +1,7 @@
 import { RegistryContext } from "@effect/atom-react";
 import { Effect, Layer, Option, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
-import { useContext } from "react";
+import { useContext, useMemo } from "react";
 import { useField, useSubmit } from "@shivaedev/effect-form/client/react.ts";
 import { useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
@@ -13,22 +13,24 @@ export interface SubmitState {
 	readonly names: string[];
 }
 export function CreateSubmitView({ state, slow }: { readonly state: SubmitState; readonly slow: boolean }) {
-	function decoded(value: string) {
-		return Effect.as(
-			Effect.promise(() => state.decoding.promise),
-			value,
-		);
-	}
-	const Submission = Schema.Struct({
-		name: slow
-			? Schema.String.pipe(
-					Schema.decodeTo(Schema.String, {
-						decode: SchemaGetter.transformEffect(decoded),
-						encode: SchemaGetter.transform((value: string) => value),
-					}),
-				)
-			: Schema.String,
-	});
+	const Submission = useMemo(() => {
+		function decoded(value: string) {
+			return Effect.as(
+				Effect.promise(() => state.decoding.promise),
+				value,
+			);
+		}
+		return Schema.Struct({
+			name: slow
+				? Schema.String.pipe(
+						Schema.decodeTo(Schema.String, {
+							decode: SchemaGetter.transformEffect(decoded),
+							encode: SchemaGetter.transform((value: string) => value),
+						}),
+					)
+				: Schema.String,
+		});
+	}, [slow, state]);
 	const current = useCreate({
 		create: (values) => Effect.sync(() => ({ id: state.names.push(values.name), name: slow ? values.name : values.name.trim() })),
 		fields: Submission,
