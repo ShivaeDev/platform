@@ -757,7 +757,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/platform effect@4.0.4
+pnpm add @shivaedev/platform effect@4.0.5
 ```
 
 Effect is the only required peer. The peer-free implementation lives in the shared `errors/` and `rpc/` folders and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.

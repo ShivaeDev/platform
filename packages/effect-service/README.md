@@ -216,7 +216,7 @@ The definition's fields are:
 ### Install and limits
 
 ```sh
-pnpm add @shivaedev/effect-service effect@4.0.4
+pnpm add @shivaedev/effect-service effect@4.0.5
 ```
 
 `effect` is a peer dependency, and the package needs Node.js 24 or later.
