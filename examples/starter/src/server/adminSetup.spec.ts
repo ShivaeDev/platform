@@ -5,10 +5,10 @@ const SUCCESSFUL_EXIT = 0;
 const OK_STATUS = 200;
 
 adminSetup.it(
-	"an upgraded app can bootstrap its first admin with the command and sign in",
+	"a new app can bootstrap its first admin with the command and sign in",
 	[],
-	function* ({ upgradeAuth, createAdmin, startApp, signIn, session }) {
-		yield* upgradeAuth();
+	function* ({ prepareAuth, createAdmin, startApp, signIn, session }) {
+		yield* prepareAuth();
 		const bootstrap = yield* createAdmin("first-admin@app.test", "first-admin-password-123");
 		expect(bootstrap.code, bootstrap.output + bootstrap.errors).toBe(SUCCESSFUL_EXIT);
 		yield* startApp();

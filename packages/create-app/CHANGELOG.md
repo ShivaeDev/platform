@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.24 - 2026-10-24
+
+### Changed
+
+- Align published dependency and peer pins and the generated starter with React and React DOM 19.3.1, TanStack Router 1.170.45, Better Auth 1.7.10, happy-dom 21.0.3 and Vitest 5.0.5. The starter also uses pg-boss dashboard 1.12.1.
+
+### Fixed
+
+- Run the generated app's production web and worker entry points in deployment stories, waiting for the database-backed health check and the worker's existing readiness log.
+
 ## 0.11.23 - 2026-10-22
 
 ### Fixed

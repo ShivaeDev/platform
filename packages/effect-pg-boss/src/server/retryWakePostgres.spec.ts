@@ -1,7 +1,8 @@
-import { Clock, Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { expect, vi } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
+import { pausedPollClock } from "#test/pausedPollClock.ts";
 
 postgresIt("retries a failed attempt when its backoff ends, before the polling backstop", [realPostgres], function* ({ boot, native, seed, until }) {
 	const Queue = defineQueue({
@@ -10,26 +11,30 @@ postgresIt("retries a failed attempt when its backoff ends, before the polling b
 		schema: Schema.Struct({}),
 		worker: { pollingIntervalSeconds: 5 },
 	});
-	const attempts: number[] = [];
-	yield* seed(Queue, [{ data: {} }], native());
-	yield* boot([
-		Queue.handle(() =>
-			Effect.gen(function* () {
-				attempts.push(yield* Clock.currentTimeMillis);
-				if (attempts.length === 1) {
-					yield* Effect.fail(new Error("try again"));
-				}
-			}),
-		),
-	]);
+	const client = native({ clock: pausedPollClock() });
+	const wakes = vi.spyOn(client, "notifyWorker");
+	const attempts: string[] = [];
+	const [id] = yield* seed(Queue, [{ data: {} }], client);
+	yield* boot(
+		[
+			Queue.handle((_, job) =>
+				Effect.gen(function* () {
+					attempts.push(job.id);
+					if (attempts.length === 1) {
+						yield* Effect.fail(new Error("try again"));
+					}
+				}),
+			),
+		],
+		{ clientFactory: () => client },
+	);
 	yield* until(
 		Effect.sync(() => attempts.length),
 		(count) => count === 2,
 	);
-	expect(attempts).toHaveLength(2);
-	const elapsed = (attempts[1] ?? 0) - (attempts[0] ?? 0);
-	expect(elapsed).toBeGreaterThanOrEqual(1000);
-	expect(elapsed).toBeLessThan(1500);
+	expect(attempts).toEqual([id, id]);
+	const worker = client.getWipData().find((current) => current.name === Queue.name);
+	expect(wakes).toHaveBeenCalledWith(worker?.id);
 });
 
 postgresIt("cancels a pending retry wake when the worker Layer closes", [realPostgres], function* ({ boot, native, seed, untilJob }) {
@@ -62,9 +67,9 @@ postgresIt("wakes a retrying sibling while the first native worker remains busy"
 		schema: Schema.Struct({ hold: Schema.Boolean }),
 		worker: { batchSize: 1, localConcurrency: 2, pollingIntervalSeconds: 5 },
 	});
-	const client = native();
+	const client = native({ clock: pausedPollClock() });
 	const release = Promise.withResolvers<void>();
-	const attempts: number[] = [];
+	const attempts: string[] = [];
 	let holding = false;
 	const held = Effect.sync(() => {
 		holding = true;
@@ -76,11 +81,11 @@ postgresIt("wakes a retrying sibling while the first native worker remains busy"
 			}),
 		),
 	);
-	const handler = Queue.handle(({ hold }) =>
+	const handler = Queue.handle(({ hold }, job) =>
 		hold
 			? held
 			: Effect.gen(function* () {
-					attempts.push(yield* Clock.currentTimeMillis);
+					attempts.push(job.id);
 					if (attempts.length === 1) {
 						yield* Effect.fail(new Error("try again"));
 					}
@@ -103,17 +108,16 @@ postgresIt("wakes a retrying sibling while the first native worker remains busy"
 		Effect.sync(() => holding),
 		(value) => value,
 	);
-	yield* jobs.enqueue(Queue, { hold: false });
+	const id = Option.getOrThrow(yield* jobs.enqueue(Queue, { hold: false }));
 	client.notifyWorker(sibling.id);
+	const wakes = vi.spyOn(client, "notifyWorker");
 	yield* until(
 		Effect.sync(() => attempts.length),
 		(count) => count === 2,
 	);
 	expect(holding).toBe(true);
 	expect(client.getWipData().find((worker) => worker.id === first.id)?.count).toBe(1);
-	expect(attempts).toHaveLength(2);
-	const elapsed = (attempts[1] ?? 0) - (attempts[0] ?? 0);
-	expect(elapsed).toBeGreaterThanOrEqual(1000);
-	expect(elapsed).toBeLessThan(1500);
+	expect(attempts).toEqual([id, id]);
+	expect(wakes).toHaveBeenCalledWith(sibling.id);
 	release.resolve();
 });

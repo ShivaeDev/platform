@@ -1,7 +1,7 @@
 import type { ExecFileSyncOptionsWithStringEncoding } from "node:child_process";
 import { execFileSync } from "node:child_process";
 import { Effect } from "effect";
-import { expect, vi } from "vitest";
+import { vi } from "vitest";
 import { localPostgres } from "#localPostgres.ts";
 import { dockerReadiness } from "#test/dockerReadiness.ts";
 import { dockerScript } from "#test/dockerScript.ts";
@@ -14,6 +14,7 @@ vi.mock("node:child_process", async (original) => {
 export interface PostgresEngine {
 	calls: string[][];
 	contextEndpoint: string;
+	encodings: (BufferEncoding | "buffer" | null | undefined)[];
 	environment: { "DOCKER_CONTEXT"?: string | undefined; "DOCKER_HOST"?: string | undefined };
 	hostClient?: (args: readonly string[], options: ExecFileSyncOptionsWithStringEncoding) => string;
 	manager: ReturnType<typeof localPostgres>;
@@ -36,6 +37,7 @@ export function createPostgres() {
 			return {
 				calls: [],
 				contextEndpoint: "unix:///var/run/docker.sock",
+				encodings: [],
 				environment,
 				manager: localPostgres(environment, { delayMillis: 0 }),
 				mode: "script",
@@ -59,7 +61,8 @@ export function connectCli(engine: PostgresEngine) {
 		engine.mode === "readiness" ? dockerReadiness(engine.unavailableProbes, engine.realExec, (line) => engine.tell?.(line)) : undefined;
 	vi.mocked(execFileSync).mockImplementation((file, args, options) => {
 		const cliArgs = args ?? [];
-		expect(options?.encoding).toBe("utf8");
+		engine.calls.push([file, ...cliArgs]);
+		engine.encodings.push(options?.encoding);
 		const strings = { ...options, encoding: "utf8" } as const;
 		if (engine.mode === "real") {
 			return realCommand(engine, file, cliArgs, strings);
@@ -67,20 +70,11 @@ export function connectCli(engine: PostgresEngine) {
 		if (engine.startup) {
 			return engine.startup.run(file, cliArgs, strings);
 		}
-		engine.calls.push([file, ...cliArgs]);
 		if (file === "psql") {
 			throw Object.assign(new Error("spawnSync psql ENOENT"), { code: "ENOENT" });
 		}
-		expect(file).toBe("docker");
 		engine.tell?.(`Docker ${cliArgs.join(" ")}`);
 		if (cliArgs[0] === "context") {
-			expect(cliArgs).toEqual([
-				"context",
-				"inspect",
-				...(engine.environment.DOCKER_CONTEXT ? [engine.environment.DOCKER_CONTEXT] : []),
-				"--format",
-				"{{.Endpoints.docker.Host}}",
-			]);
 			return engine.contextEndpoint;
 		}
 		return engine.script?.run(cliArgs, strings) ?? "";

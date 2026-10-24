@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/vitest-rerun",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Reruns failed Vitest tests in a fresh process and reports which tests were flaky",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/vitest-rerun#readme",
 	"bugs": {

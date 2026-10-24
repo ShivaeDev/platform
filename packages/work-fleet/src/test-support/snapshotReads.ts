@@ -1,11 +1,7 @@
 import { Effect, Exit, Tracer } from "effect";
 import { SqlClient } from "effect/sql";
-import { TestClock } from "effect/testing";
 import type { FleetHost } from "#host/config.ts";
-import { type HostFixture, withHost } from "#test/fleetHost.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
-import { withReadDaemon } from "#test/readDaemon.ts";
-import { storeState } from "#test/storeState.ts";
 
 // Effect SQL records every executed statement as a span with its query text and exit, so the daemon's reads are counted where they run.
 export function snapshotReads(host: FleetHost) {
@@ -66,36 +62,3 @@ export const untilReads = Effect.fn("SnapshotTest.untilReads")(function* (reads:
 	}
 	return yield* Effect.die(new Error(`Expected ${count} snapshot reads, got ${reads.count()}`));
 });
-
-function advanceWhile<A, E, R>(clock: TestClock.TestClock, effect: Effect.Effect<A, E, R>) {
-	return Effect.raceFirst(effect, Effect.forever(clock.adjust("500 millis").pipe(Effect.andThen(Effect.sleep("10 millis")))));
-}
-
-export interface SnapshotDaemon {
-	readonly advancing: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, E, R>;
-	readonly clock: TestClock.TestClock;
-	readonly delivered: () => number;
-	readonly port: number;
-	readonly reads: SnapshotReads;
-}
-
-export function withSnapshotDaemon<A, E, R>(use: (fixture: HostFixture, daemon: SnapshotDaemon) => Effect.Effect<A, E, R>) {
-	return withHost({}, {}, (fixture) =>
-		Effect.gen(function* () {
-			yield* storeState(fixture.host, "one", { stage: "working", step: "working" });
-			yield* storeState(fixture.host, "marker", { stage: "released", step: "released" });
-			const reads = snapshotReads(fixture.host);
-			const clock = yield* TestClock.make();
-			let delivered = 0;
-			function onSnapshot() {
-				delivered += 1;
-			}
-			function daemon(port: number) {
-				return use(fixture, { advancing: (effect) => advanceWhile(clock, effect), clock, delivered: () => delivered, port, reads });
-			}
-			return yield* reads
-				.observe(withReadDaemon(fixture.host, daemon, { handlerClock: clock, onSnapshot, parts: fixture.parts }))
-				.pipe(Effect.ensuring(reads.restoreIfBroken));
-		}).pipe(Effect.scoped),
-	);
-}

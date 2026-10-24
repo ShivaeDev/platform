@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
-import { MIGRATION_FILE_PATTERN, MIGRATIONS_DIRECTORY } from "@shivaedev/effect-sql/migrationConvention.ts";
+import { MIGRATION_FILE_PATTERN } from "@shivaedev/effect-sql/migrationConvention.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { prepareFile, type Template, Versions } from "#template.ts";
 
@@ -31,7 +31,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 			if ((yield* fs.stat(join(starter, path))).type === "Directory") {
 				yield* visit(path);
 			} else {
-				if (directory === join(MIGRATIONS_DIRECTORY) && !MIGRATION_FILE_PATTERN.test(name)) {
+				if (basename(directory) === "migrations" && !MIGRATION_FILE_PATTERN.test(name)) {
 					return yield* new CreateAppError({ message: `Invalid migration filename: ${path}` });
 				}
 				const target = appPaths.get(path) ?? path;

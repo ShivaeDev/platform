@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { sqlInContainer, startContainer } from "#localContainer.ts";
 import { docker } from "#localDocker.ts";
 import { assertLocalDatabase, localServer } from "#localPostgres.ts";
@@ -14,6 +13,7 @@ export function postgresVerbs(engine: PostgresEngine, tell: (line: string) => vo
 		containerQuery: (query: string) => containerQuery(engine, new URL(`${localServer}/postgres`), query),
 		contextInspections: () => engine.calls.filter(([file, command]) => file === "docker" && command === "context"),
 		databaseUrl: (name: string) => `${localServer}/${name}`,
+		discoveryProbes: () => engine.startup?.probes(),
 		operations: () => engine.calls.filter(([file, command]) => file === "docker" && command !== "context"),
 		prepare: (values: readonly string[]) => {
 			tell("prepare the application's databases");
@@ -37,15 +37,8 @@ export function postgresVerbs(engine: PostgresEngine, tell: (line: string) => vo
 			tell("start the managed Docker container");
 			startContainer(localDocker);
 		},
-		stop: (expectedProbes?: number) =>
-			Effect.sync(() => {
-				tell("stop the story and verify every expected Docker operation ran");
-				engine.script?.done();
-				if (expectedProbes !== undefined) {
-					engine.startup?.done(expectedProbes);
-				}
-			}),
 		subprocessCalls: () => engine.calls,
+		subprocessEncodings: () => engine.encodings,
 		verifyDocker: () => {
 			tell("check the Docker daemon");
 			return localDocker(["info"]);

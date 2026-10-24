@@ -11,6 +11,7 @@ import { checkDocumentation, readDocumentation } from "#starter-published/docume
 import { generateStarter } from "#starter-published/generate.ts";
 import { installDocumentation } from "#starter-published/installDocumentation.ts";
 import { runStarter } from "#starter-published/run.ts";
+import { withoutExample } from "#starter-published/withoutExample.ts";
 
 const { values } = parseArgs({
 	options: { archives: { type: "string" }, "create-app-version": { type: "string" }, registry: { default: false, type: "boolean" } },
@@ -61,6 +62,9 @@ const program = Effect.gen(function* () {
 		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL)),
 	);
 	yield* runStarter(starter, database);
+	if (!values.registry) {
+		yield* withoutExample(starter, database);
+	}
 	yield* Effect.log("Published starter passed quality lint, typecheck, build and real PostgreSQL/authenticated HTTP round trips.");
 });
 

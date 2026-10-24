@@ -13,7 +13,8 @@ watch.it("one long-running process discovers a later PR and stops on interruptio
 	yield* h.waitForEvents(1);
 	expect(h.events()[0]).toMatchObject({ event: "merged", number: 2 });
 	yield* h.interrupt();
-	yield* h.remainsStopped();
+	const requests = [...h.requests];
+	expect(yield* h.requestsAfterPause()).toEqual(requests);
 });
 watch.it("once fails on request failure and help prints the CLI usage", [githubReplies("/pulls/1", { body: {}, status: 500 })], function* (h) {
 	expect((yield* Effect.result(h.once()))._tag).toBe("Failure");

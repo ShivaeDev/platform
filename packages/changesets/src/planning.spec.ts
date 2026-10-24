@@ -6,7 +6,7 @@ import { pending, workspace } from "#test/workspace.ts";
 workspace.it(
 	"the highest bump wins and all published dependents release transitively",
 	[pending({ [CORE]: "patch", "@test/api": "minor" })],
-	function* ({ change, cli, read }) {
+	function* ({ change, cli, packageVersion }) {
 		yield* change("breaking", { [CORE]: "minor" }, "### Breaking\n\n- A deliberate breaking change.\n");
 		const result = yield* cli("plan", "--json");
 		expect(result.status).toBe(0);
@@ -19,12 +19,9 @@ workspace.it(
 		]);
 		expect(plan.changesets.map((source) => source.name)).toEqual(["breaking.md", "feature.md"]);
 		expect((yield* cli("plan")).stdout).toContain(`${CORE}: 0.2.3 -> 0.3.0 (minor)`);
-		expect(awaitVersion(yield* read("packages/core/package.json"))).toBe("0.2.3");
+		expect(yield* packageVersion("packages/core")).toBe("0.2.3");
 	},
 );
-function awaitVersion(text: string): string {
-	return JSON.parse(text).version;
-}
 workspace.it("major releases are explicit after 1.0", [pending({ "@test/optional": "major" })], function* ({ cli }) {
 	const result = yield* cli("plan");
 	expect(result.status).toBe(0);
