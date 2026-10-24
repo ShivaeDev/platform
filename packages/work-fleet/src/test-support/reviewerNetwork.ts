@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect, Layer, Schema } from "effect";
 import { GithubApi, githubApiLayer } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
@@ -13,7 +12,7 @@ const TurnAccess = Schema.Struct({
 	approvalPolicy: Schema.Literal("never"),
 	sandboxPolicy: Schema.Struct({ networkAccess: Schema.Literal(true), type: Schema.Literal("readOnly") }),
 });
-export function reviewerNetwork() {
+export function reviewerNetwork(tell: (line: string) => void) {
 	const github = githubFixture();
 	const pr = "https://github.com/example/project/pull/7";
 	github.reply(ADOPTED_HEAD, [[checkRun()]]);
@@ -23,30 +22,26 @@ export function reviewerNetwork() {
 	const cli = githubCli(responses);
 	let output = "";
 	return {
-		inspect: Effect.gen(function* () {
-			const result = githubResult();
-			const head = yield* readCommand("gh", ["pr", "view", pr, "--json", "headRefOid"]);
-			expect(JSON.parse(head)).toEqual({ headRefOid: result.head });
-			const diff = yield* readCommand("gh", ["pr", "diff", pr]);
-			const checks = yield* GithubApi.pipe(
-				Effect.flatMap((api) => githubChecks(api)(result)),
+		answer: (head: string, evidence: readonly string[]) => {
+			tell("the reviewer provider returns its verdict");
+			output = `FLEET_REVIEW: ${JSON.stringify({ evidence, findings: [], head, verdict: "approve" })}`;
+		},
+		checks: () => {
+			tell("read the pull request checks through GitHub");
+			return GithubApi.pipe(
+				Effect.flatMap((api) => githubChecks(api)(githubResult())),
 				Effect.provide(githubApiLayer.pipe(Layer.provide(cli.layer))),
 			);
-			expect(diff).toContain("+export const answer = 42;");
-			expect(checks.passed).toBe(true);
-			output = `FLEET_REVIEW: ${JSON.stringify({ evidence: [diff, ...checks.evidence], findings: [], head: result.head, verdict: "approve" })}`;
-			expect(cli.commands).toHaveLength(5);
-			for (const command of cli.commands) {
-				expect(command).toMatchObject({ command: "gh" });
-				if (command._tag === "StandardCommand") {
-					expect(
-						command.args[0] === "pr"
-							? ["view", "diff"].includes(command.args[1] ?? "")
-							: command.args.slice(0, 4).join(" ") === "api --include --method GET",
-					).toBe(true);
-				}
-			}
-		}).pipe(Effect.provide(cli.layer)),
+		},
+		commands: () => cli.commands,
+		diff: () => {
+			tell("read the pull request diff");
+			return readCommand("gh", ["pr", "diff", pr]).pipe(Effect.provide(cli.layer));
+		},
+		head: () => {
+			tell("read the pull request head");
+			return readCommand("gh", ["pr", "view", pr, "--json", "headRefOid"]).pipe(Effect.provide(cli.layer));
+		},
 		prompt: reviewerPrompt({ result: githubResult(), task: "Prove that the exported answer is 42 and inspect CI." }),
 		reply: (request: WireRequest) => {
 			if (request.method === "turn/start") {

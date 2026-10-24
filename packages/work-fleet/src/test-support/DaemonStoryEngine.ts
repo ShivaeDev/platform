@@ -2,10 +2,12 @@ import { Context, Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import type { discoveryDaemon } from "#test/discoveryDaemon.ts";
 import type { Follower } from "#test/followerProcess.ts";
+import type { followServer } from "#test/followServer.ts";
 import { HostStoryEngine } from "#test/HostStoryEngine.ts";
 
 export class DaemonStoryEngine extends HostStoryEngine {
 	follower: Follower | undefined;
+	wire: Effect.Success<ReturnType<typeof followServer>> | undefined;
 	#daemon: Effect.Success<ReturnType<typeof discoveryDaemon>> | undefined;
 
 	get daemon() {
@@ -21,8 +23,10 @@ export class DaemonStoryEngine extends HostStoryEngine {
 				Effect.sync(() => {
 					this.#daemon = {
 						close: this.stop(),
+						nextSnapshot: this.observations.nextSnapshot,
 						port: this.running.port,
 						reactivity: Context.get(this.running.context, Reactivity.Reactivity),
+						snapshotCount: this.observations.snapshotCount,
 						subscribed: this.subscribed,
 					};
 				}),

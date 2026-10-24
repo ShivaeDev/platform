@@ -284,7 +284,7 @@ quality hooks pre-commit [--config <file>]
 ### Install, shared tooling and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/quality @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4 effect@4.0.4
+pnpm add --save-dev @shivaedev/quality @effect/platform-node@4.0.5 @effect/platform-node-shared@4.0.5 effect@4.0.5
 ```
 
 Node 24 or later is required. The CLI loads the TypeScript config through Node's native import; use erasable syntax and `.ts` extensions for relative TypeScript imports.

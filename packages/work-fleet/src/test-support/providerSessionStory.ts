@@ -42,9 +42,9 @@ function metadataReply(state: State, request: WireRequest): unknown {
 			return state.reply(request);
 	}
 }
-export const providerSessions = storyKit({
+export const providerSessionOptions = {
 	after: {
-		*configuration(state) {
+		*configuration(state: State) {
 			const fixture = yield* codexServer((request) => {
 				state.requests.push(request);
 				if (request.method === "initialized") {
@@ -78,7 +78,7 @@ export const providerSessions = storyKit({
 			);
 		},
 	},
-	clock: "live",
+	clock: "live" as const,
 	create: (): State => ({
 		cloud: false,
 		logs: captureLogs(),
@@ -90,11 +90,11 @@ export const providerSessions = storyKit({
 		requests: [],
 		sessions: undefined,
 	}),
-	inspect: (state) => ({ persisted: state.persisted, requests: state.requests }),
+	inspect: (state: State) => ({ persisted: state.persisted, requests: state.requests }),
 	layer: NodeServices.layer,
 	name: "Codex journaled sessions",
-	stages: ["configuration"],
-	verbs: (state, story) => {
+	stages: ["configuration"] as const,
+	verbs: (state: State, story: { tell: (line: string) => void }) => {
 		const sessions = state.sessions;
 		if (sessions === undefined) {
 			throw new Error("The journaled provider did not start");
@@ -121,7 +121,8 @@ export const providerSessions = storyKit({
 			},
 		};
 	},
-});
+};
+export const providerSessions = storyKit(providerSessionOptions);
 export function sessionProvider(cloud: boolean) {
 	return providerSessions.trait("configuration", `the session uses ${cloud ? "Cloud" : "local Codex"}`, (state) => {
 		state.cloud = cloud;

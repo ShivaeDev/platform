@@ -11,20 +11,22 @@ interface Delay {
 const delays = new WeakMap<HostStoryEngine, Delay>();
 
 export function configureDelayedRefresh(engine: HostStoryEngine, fail = false) {
-	engine.beforeStart = Effect.gen(function* () {
-		const delay = yield* refreshDelay(engine.fixture, fail);
-		delays.set(engine, delay);
-		Object.assign(engine.parts, delay.parts);
-	});
+	engine.beforeStart = () =>
+		Effect.gen(function* () {
+			const delay = yield* refreshDelay(engine.fixture, fail);
+			delays.set(engine, delay);
+			Object.assign(engine.parts, delay.parts);
+		});
 }
 
 export function configureDelayedAnswer(engine: HostStoryEngine, operation: "steer" | "startTurn" | "archive", fail = false) {
-	engine.beforeStart = Effect.gen(function* () {
-		const delay = yield* answerDelay(engine.fixture, operation, fail);
-		yield* Effect.addFinalizer(() => delay.release);
-		delays.set(engine, delay);
-		Object.assign(engine.parts, delay.parts);
-	});
+	engine.beforeStart = () =>
+		Effect.gen(function* () {
+			const delay = yield* answerDelay(engine.fixture, operation, fail);
+			yield* Effect.addFinalizer(() => delay.release);
+			delays.set(engine, delay);
+			Object.assign(engine.parts, delay.parts);
+		});
 }
 
 export function hostDelayVerbs(engine: HostStoryEngine) {

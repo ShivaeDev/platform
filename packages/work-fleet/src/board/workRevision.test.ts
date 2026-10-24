@@ -1,24 +1,35 @@
-import { expect, it } from "vitest";
-import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { expect } from "vitest";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
-import { briefRevision } from "#board/briefRevision.ts";
-import { workRevision } from "#board/workRevision.ts";
+import { boardReadStory } from "#test/boardReadStory.ts";
 import { dependencySource } from "#test/dependencyBoard.ts";
 
-it("compares saved whole-file revisions with authored revisions through their exact source", () => {
-	const changed = dependencySource.replace("status: draft", "status: done").replace("Implement the work.", "Work completed.");
-	expect(workRevision(revisionOf(dependencySource), dependencySource)).toBe(briefRevision(metadataParse(changed)));
-	expect(workRevision(revisionOf(changed), changed)).toBe(workRevision(revisionOf(dependencySource), dependencySource));
-});
+boardReadStory.it(
+	"compares saved whole-file revisions with authored revisions through their exact source",
+	[],
+	function* ({ board, fixture, savedRevision }) {
+		yield* fixture.write("one.md", dependencySource);
+		const original = yield* board.get("one");
+		const changed = dependencySource.replace("status: draft", "status: done").replace("Implement the work.", "Work completed.");
+		yield* fixture.write("one.md", changed);
+		expect(savedRevision(revisionOf(original.context), original.context)).toBe((yield* board.get("one")).revision);
+		expect(savedRevision(revisionOf(changed), changed)).toBe(savedRevision(revisionOf(dependencySource), dependencySource));
+	},
+);
 
-it("keeps authored edits distinct when comparing saved whole-file revisions", () => {
+boardReadStory.it("keeps authored edits distinct when comparing saved whole-file revisions", [], function* ({ board, fixture, savedRevision }) {
+	yield* fixture.write("one.md", dependencySource);
+	const original = yield* board.get("one");
 	const changed = dependencySource.replace("The behavior works.", "Different behavior.");
-	expect(workRevision(revisionOf(changed), changed)).not.toBe(workRevision(revisionOf(dependencySource), dependencySource));
+	yield* fixture.write("one.md", changed);
+	const current = yield* board.get("one");
+	expect(savedRevision(revisionOf(current.context), current.context)).not.toBe(original.revision);
 });
 
-it("retains opaque revisions and revisions whose original source is unavailable", () => {
-	const revision = revisionOf(dependencySource);
-	expect(workRevision("provider-revision", dependencySource)).toBe("provider-revision");
-	expect(workRevision(revision)).toBe(revision);
-	expect(workRevision(revision, `${dependencySource}\nDifferent body.\n`)).toBe(revision);
+boardReadStory.it("retains opaque revisions and revisions whose original source is unavailable", [], function* ({ board, fixture, savedRevision }) {
+	yield* fixture.write("one.md", dependencySource);
+	const original = yield* board.get("one");
+	const revision = revisionOf(original.context);
+	expect(savedRevision("provider-revision", original.context)).toBe("provider-revision");
+	expect(savedRevision(revision)).toBe(revision);
+	expect(savedRevision(revision, `${original.context}\nDifferent body.\n`)).toBe(revision);
 });

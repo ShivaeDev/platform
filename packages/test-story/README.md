@@ -635,7 +635,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 ### Install and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.4 effect@4.0.4 vitest@5.0.3
+pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.5 effect@4.0.5 vitest@5.0.3
 ```
 
 `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories.

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.11.0 - 2026-10-24
+
+### Added
+
+- Contracts expose `application`, a native RPC group for building application handlers without naming the reserved `$changes` stream. Middleware stays attached, and Platform hosts complete the full contract with the stream handler.
+- Generated applications build their handlers through the contract's `application` group.
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.10.0 - 2026-10-19
 
 ### Added

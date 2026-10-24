@@ -490,7 +490,7 @@ Worker registration always requests `includeMetadata: true`, including when `wor
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.37.0
+pnpm add @shivaedev/effect-pg-boss effect@4.0.5 pg-boss@12.37.0
 ```
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.

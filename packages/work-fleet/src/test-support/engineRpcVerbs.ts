@@ -16,7 +16,7 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 		return boardHttp(state.root);
 	}
 	function rpcClient() {
-		return RpcTest.makeClient(FleetContract.omit("fleet.$changes"), { flatten: true }).pipe(
+		return RpcTest.makeClient(FleetContract.application, { flatten: true }).pipe(
 			Effect.provide(fleetHandlers),
 			Effect.provideService(Fleet, running(state).fleet),
 		);

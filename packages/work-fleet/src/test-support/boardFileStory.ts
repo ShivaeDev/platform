@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Context, Effect, FileSystem, Layer } from "effect";
+import { Context, Effect, FileSystem, Layer, Ref } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { boardDocuments } from "#board/documents.ts";
 import { markdownBoard } from "#board/markdown.ts";
@@ -9,7 +9,9 @@ import { reportPayloadFile } from "#board/reportPayloadFile.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";
 import { writeHealth } from "#board/writeHealth.ts";
 import { writeStatus } from "#board/writeStatus.ts";
+import { Health } from "#engine/health.ts";
 import { exposeFailure } from "#exposeFailure.ts";
+import { healthLayer } from "#host/healthLayer.ts";
 import type { BoardWork } from "#policy.ts";
 import { BoardGateway } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -18,6 +20,7 @@ import { healthFolder } from "#test/health.ts";
 import { linkedReportBoundary } from "#test/linkedReportBoundary.ts";
 import { linkedReportPayload } from "#test/linkedReportPayload.ts";
 import { reportBoard } from "#test/report.ts";
+import { reportPublicationVerbs } from "#test/reportPublicationVerbs.ts";
 import { statusFolder } from "#test/status.ts";
 
 export const boardFileStory = storyKit({
@@ -85,7 +88,12 @@ export const boardFileStory = storyKit({
 				story.tell("publish Fleet health");
 				return writeHealth(state.health.root, state.health.root, snapshot);
 			},
+			restore: () => {
+				story.tell("reload host health after restart");
+				return Effect.flatMap(Health, Ref.get).pipe(Effect.provide(healthLayer(state.health.root)));
+			},
 		},
+		report: reportPublicationVerbs(state.reportRoot, story.tell),
 		status: {
 			...state.status,
 			publish: (records: Parameters<typeof writeStatus>[2]) => {

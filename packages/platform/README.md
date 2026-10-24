@@ -142,6 +142,8 @@ Set `config.maxConnections` on `appDatabase` or a migrated `appHost` to bound th
 
 For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a comma-separated list of proxy peer IPs or CIDR ranges (IPv4 or IPv6), or use `config.host` and `config.trustedProxy`. Only matching peers may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. Malformed addresses or ranges fail `appHost` startup with a typed `ConfigError`. NDJSON and the application's session Origin policy still apply. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
 
+Build application handlers with `Api.application.toLayer(...)` (and `Api.application.of(...)` for an Effect-built handler map), then pass the full `Api` to the host and client. `Api.application` is the native RPC group without the reserved `$changes` stream; the host supplies that handler. The explicit `Api.omit("<namespace>.$changes")` form also works.
+
 Database-backed hosts enable PostgreSQL change delivery by default and serve each contract's reserved change stream under its middleware. After a command handler succeeds, its declared invalidation keys publish without repeating keys already announced by repository commits. The handler keeps ownership of its transactions and error mapping. `config.changes.channel` overrides the app-derived default, and heartbeat and retry settings remain optional. Use the same application name or channel across web and worker processes. A worker can provide `appDatabase({ migrations, config })` without starting HTTP. See [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults and limits.
 
 ### Public client configuration
@@ -757,7 +759,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/platform effect@4.0.4
+pnpm add @shivaedev/platform effect@4.0.5
 ```
 
 Effect is the only required peer. The peer-free implementation lives in the shared `errors/` and `rpc/` folders and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.

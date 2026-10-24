@@ -57,10 +57,10 @@ export const Reassign = command("reassign", {
 export const Views = query("views", { reads: () => [fleetRecords.list], rejections, success: FleetViews });
 export const FleetContract = contract("fleet", { commands: [Prepare, Dispatch, Continue, Reconcile, Resolve, Reassign], queries: [Views, Get] });
 
-export const fleetHandlers = FleetContract.omit("fleet.$changes").toLayer(
+export const fleetHandlers = FleetContract.application.toLayer(
 	Effect.gen(function* () {
 		const fleet = yield* Fleet;
-		return FleetContract.omit("fleet.$changes").of({
+		return FleetContract.application.of({
 			"fleet.continue": ({ workId, message }) => exposeFailure(fleet.continue(workId, message).pipe(Effect.map(({ value }) => value))),
 			"fleet.dispatch": ({ workId }) => exposeFailure(fleet.dispatch(workId).pipe(Effect.map(({ value }) => value))),
 			"fleet.get": ({ workId }) => exposeFailure(fleet.get(workId).pipe(Effect.map(({ value }) => value))),

@@ -85,7 +85,7 @@ The command line is a thin wrapper over two Effect functions. `parseOptions(args
 ### Install and limits
 
 ```sh
-npm install --save-dev @shivaedev/vitest-rerun vitest@5.0.3 effect@4.0.4 @effect/platform-node@4.0.4 @effect/platform-node-shared@4.0.4
+npm install --save-dev @shivaedev/vitest-rerun vitest@5.0.3 effect@4.0.5 @effect/platform-node@4.0.5 @effect/platform-node-shared@4.0.5
 ```
 
 `vitest`, `effect` and the Effect Node platform packages are peers, so your own versions run the tests. The package needs Node 24 or later.

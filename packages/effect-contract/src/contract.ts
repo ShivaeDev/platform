@@ -30,6 +30,7 @@ export interface Contract<
 	TRpcs extends Rpc.Any = OperationRpc<TName, TQueries[number] | TCommands[number]> | ReturnType<typeof changesRpc<TName>>,
 	TStreams extends readonly StreamShape[] = readonly [],
 > extends RpcGroup.RpcGroup<TRpcs> {
+	readonly application: RpcGroup.RpcGroup<Exclude<TRpcs, { readonly _tag: `${TName}.$changes` }>>;
 	readonly declaration: Declared<TName, TQueries, TCommands, TStreams>;
 	middleware: <TM extends RpcMiddleware.AnyService>(middleware: TM) => Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, TM>, TStreams>;
 }
@@ -66,14 +67,17 @@ interface Group {
 }
 
 interface DeclaredGroup extends Group {
+	readonly application: unknown;
 	readonly declaration: AnyDeclared;
 }
 
-function withDeclaration(group: Group, declaration: AnyDeclared): DeclaredGroup {
+function withDeclaration(group: Group, application: Group, declaration: AnyDeclared): DeclaredGroup {
 	const nativeMiddleware = group.middleware.bind(group);
 	return Object.assign(group, {
+		application,
 		declaration,
-		middleware: (middleware: RpcMiddleware.AnyService) => withDeclaration(nativeMiddleware(middleware), declaration),
+		middleware: (middleware: RpcMiddleware.AnyService) =>
+			withDeclaration(nativeMiddleware(middleware), application.middleware(middleware), declaration),
 	});
 }
 
@@ -110,5 +114,6 @@ export function contract(
 			success: operation.success,
 		}).annotateMerge(annotations(operation)),
 	);
-	return withDeclaration(RpcGroup.make(...rpcs, changesRpc(name)), { commands, name, queries, streams });
+	const application = RpcGroup.make(...rpcs);
+	return withDeclaration(application.add(changesRpc(name)), application, { commands, name, queries, streams });
 }

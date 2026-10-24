@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { Effect } from "effect";
 import { hostScheduler } from "#host/commands.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
-import { waitFor } from "#host/wait.ts";
 import { boardAskFiles } from "#test/boardHttp.ts";
 import { waitForDispatch } from "#test/daemonActions.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
@@ -26,12 +25,10 @@ export function hostCommandVerbs(engine: HostStoryEngine, tell: (line: string) =
 		initializeRepository: () => execFileSync("git", ["init", "--quiet", "--initial-branch=main", engine.fixture.host.boardDir]),
 		list: () => engine.fleet.list(),
 		logs: () => engine.logs.entries,
-		providerLaunches: () => [...engine.fixture.provider.launched],
-		providerObservation: (turnId: string) => engine.fixture.provider.observations.get(turnId),
-		providerPrompts: () => [...engine.fixture.provider.observations.values()].map((observation) => observation.output),
+		providerObservation: (turnId: string) => engine.observedProvider.observations.get(turnId),
+		providerPrompts: () => [...engine.observedProvider.observations.values()].map((observation) => observation.output),
 		request,
 		startScheduler: () => hostScheduler(engine.fixture.host).pipe(Effect.provideContext(engine.running.context), Effect.forkScoped),
-		wait: (workId: string, timeoutMs = 20_000) => waitFor({ intervalMs: 50, port: engine.running.port, timeoutMs, workId }),
-		workerQuestion: (workId = "one") => askWorker(engine.fixture.provider, workId).pipe(Effect.provideContext(engine.running.context)),
+		workerQuestion: (workId = "one") => askWorker(engine.observedProvider, workId).pipe(Effect.provideContext(engine.running.context)),
 	};
 }

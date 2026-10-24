@@ -3,16 +3,14 @@ import { Effect } from "effect";
 import { readReviewerVerdict } from "#prompt/reviewer.ts";
 import type { WireRequest } from "#test/codex.ts";
 import { cloudThread, SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
-import { providerSessions, sessionProvider } from "#test/providerSessionStory.ts";
-import { reviewerNetwork } from "#test/reviewerNetwork.ts";
+import { reviewerProvider, reviewerSessions } from "#test/reviewerStory.ts";
 
 for (const provider of ["local", "cloud"] as const) {
-	providerSessions.it(
+	reviewerSessions.it(
 		`${provider} reviewer sessions read PR and CI evidence and return a verdict without network writes or escalation`,
-		[sessionProvider(provider === "cloud")],
-		function* ({ sessions: session, replyWith }) {
+		[reviewerProvider(provider === "cloud")],
+		function* ({ sessions: session, replyWith, review }) {
 			const requests: WireRequest[] = [];
-			const review = reviewerNetwork();
 			yield* replyWith((request) => {
 				requests.push(request);
 				switch (request.method) {
@@ -32,13 +30,32 @@ for (const provider of ["local", "cloud"] as const) {
 					prompt: review.prompt,
 				});
 				expect(receipt).toEqual({ sessionId: "reviewer", turnId: "review-turn" });
-				yield* review.inspect;
+				const head = JSON.parse(yield* review.head());
+				expect(head).toEqual({ headRefOid: "a".repeat(40) });
+				const diff = yield* review.diff();
+				expect(diff).toContain("+export const answer = 42;");
+				const checks = yield* review.checks();
+				expect(checks.passed).toBe(true);
+				review.answer(head.headRefOid, [diff, ...checks.evidence]);
 				const observation = yield* session.observe(receipt);
 				expect(yield* readReviewerVerdict(observation.output, receipt)).toMatchObject({
 					head: "a".repeat(40),
 					verdict: "approved",
 				});
 			});
+			const evidenceReadCommands = 5;
+			expect(review.commands()).toHaveLength(evidenceReadCommands);
+			for (const command of review.commands()) {
+				expect(command).toMatchObject({ _tag: "StandardCommand", command: "gh" });
+				if (command._tag !== "StandardCommand") {
+					throw new Error("Reviewer issued a compound command");
+				}
+				expect(
+					command.args[0] === "pr"
+						? ["view", "diff"].includes(command.args[1] ?? "")
+						: command.args.slice(0, 4).join(" ") === "api --include --method GET",
+				).toBe(true);
+			}
 			const start = requests.find((request) => request.method === "thread/start")?.params;
 			expect(start).toMatchObject(
 				provider === "cloud"

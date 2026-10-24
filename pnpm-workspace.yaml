@@ -35,12 +35,12 @@ catalog:
   class-variance-authority: 0.7.1
   lucide-react: 1.57.0
   "@biomejs/biome": 2.5.15
-  "@effect/vitest": 4.0.4
-  "@effect/atom-react": 4.0.4
-  "@effect/platform-node": 4.0.4
-  "@effect/platform-node-shared": 4.0.4
-  "@effect/sql-sqlite-node": 4.0.4
-  "@effect/sql-pg": 4.0.4
+  "@effect/vitest": 4.0.5
+  "@effect/atom-react": 4.0.5
+  "@effect/platform-node": 4.0.5
+  "@effect/platform-node-shared": 4.0.5
+  "@effect/sql-sqlite-node": 4.0.5
+  "@effect/sql-pg": 4.0.5
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
   react: 19.3.1
@@ -81,7 +81,7 @@ catalog:
   "@trpc/server": 11.19.0
   superjson: 2.2.6
   "@typescript/native": npm:typescript@7.0.2
-  effect: 4.0.4
+  effect: 4.0.5
   esbuild: 0.28.2
   better-auth: 1.7.10
   pg: 8.23.0
@@ -103,16 +103,6 @@ minimumReleaseAge: 10080
 minimumReleaseAgeExclude:
   # Framework releases must be usable together as soon as they publish.
   - "@shivaedev/*"
-  # Effect 4.0.4 fixes pooled PostgreSQL connections released with a listener
-  # or statement still open, and the migration from 4.0.0-rc.112 adopts it
-  # directly. Remove these once 4.0.4 is seven days old on 2026-10-20.
-  - effect@4.0.4
-  - "@effect/atom-react@4.0.4"
-  - "@effect/platform-node@4.0.4"
-  - "@effect/platform-node-shared@4.0.4"
-  - "@effect/sql-pg@4.0.4"
-  - "@effect/sql-sqlite-node@4.0.4"
-  - "@effect/vitest@4.0.4"
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade

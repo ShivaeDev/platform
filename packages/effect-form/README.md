@@ -299,13 +299,13 @@ The lower-level `draft.ts` (`draft`), `refs.ts` (`fromRef`, `propertyRef`) and `
 ### Install and limits
 
 ```sh
-pnpm add @shivaedev/effect-form effect@4.0.4
+pnpm add @shivaedev/effect-form effect@4.0.5
 ```
 
 For React bindings:
 
 ```sh
-pnpm add @effect/atom-react@4.0.4 react@19.3.0
+pnpm add @effect/atom-react@4.0.5 react@19.3.0
 ```
 
 The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The package needs Node 24 or newer.

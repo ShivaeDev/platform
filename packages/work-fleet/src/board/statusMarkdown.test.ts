@@ -1,9 +1,9 @@
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { boardOf } from "@shivaedev/work-board/server/render/board.ts";
-import { statusMarkdown } from "#board/statusMarkdown.ts";
+import { boardFileStory } from "#test/boardFileStory.ts";
 import { statusRecord } from "#test/status.ts";
 
-it("groups every waiting owner separately with one card per current work item", () => {
+boardFileStory.it("groups every waiting owner separately with one card per current work item", [], function* ({ status }) {
 	const active = statusRecord("task.active");
 	const human = {
 		attentionOwner: "maintainer" as const,
@@ -17,7 +17,8 @@ it("groups every waiting owner separately with one card per current work item", 
 		...statusRecord("task.automation", "validating"),
 		checks: { evidence: [], head: "synthetic-head", passed: false, pending: true },
 	};
-	const source = statusMarkdown([done, human, routine, automation, statusRecord("task.released", "released"), active]);
+	yield* status.publish([done, human, routine, automation, statusRecord("task.released", "released"), active]);
+	const source = status.read();
 	const board = boardOf(source);
 	expect(board.sections.map(({ title }) => title)).toEqual(["Active", "Waiting on you", "Waiting on orchestrator", "Waiting on automation", "Done"]);
 	expect(board.sections.map(({ items }) => items.length)).toEqual([1, 1, 1, 1, 1]);
@@ -29,20 +30,22 @@ it("groups every waiting owner separately with one card per current work item", 
 	expect(source).not.toContain("task.released");
 	expect(source).not.toContain(active.prompt);
 	expect(source).not.toContain(active.cwd);
-	expect(statusMarkdown([human, active, done, automation, routine])).toBe(source);
+	yield* status.publish([human, active, done, automation, routine]);
+	expect(status.read()).toBe(source);
 });
 
-it("keeps empty columns and treats identities, blockers and unsafe PR links as data", () => {
+boardFileStory.it("keeps empty columns and treats identities, blockers and unsafe PR links as data", [], function* ({ status }) {
 	const workId = "task.[odd]\n## Injected";
-	const source = statusMarkdown([
+	yield* status.publish([
 		{
 			...statusRecord(workId),
 			blocker: "<script>\n### Extra card",
 			result: { head: "synthetic-head", kind: "change", paths: [], pr: "javascript:alert(1)" },
 		},
 	]);
+	const source = status.read();
 	const board = boardOf(source);
-	expect(board.sections).toHaveLength(5);
+	expect(board.sections.map(({ title }) => title)).toEqual(["Active", "Waiting on you", "Waiting on orchestrator", "Waiting on automation", "Done"]);
 	expect(board.sections.map(({ items }) => items.length)).toEqual([0, 0, 1, 0, 0]);
 	expect(source).toContain(encodeURIComponent(workId));
 	expect(source).not.toContain("<script>");

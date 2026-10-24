@@ -17,9 +17,10 @@ export function configureCloudNaming(engine: HostStoryEngine, prefix?: string) {
 		states.set(engine, backend);
 		yield* configureCloud(engine, backend.handle, prefix === undefined ? {} : { threadNamePrefix: prefix });
 	});
-	engine.beforeStart = Effect.sync(() => {
-		engine.parts = { ...engine.parts, provider: hostProvider(engine.fixture.host) };
-	});
+	engine.beforeStart = () =>
+		Effect.sync(() => {
+			engine.parts = { ...engine.parts, provider: hostProvider(engine.fixture.host) };
+		});
 }
 export function cloudNamingVerbs(engine: HostStoryEngine) {
 	function state() {

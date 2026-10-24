@@ -15,21 +15,31 @@ import { daemonResync } from "#test/daemonResync.ts";
 import { fanoutCloudVerbs } from "#test/fanoutCloud.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { hostAcknowledgementVerbs } from "#test/hostAcknowledgementVerbs.ts";
 import { hostBoardVerbs } from "#test/hostBoardVerbs.ts";
 import { hostDelayVerbs } from "#test/hostCommandDelays.ts";
 import { hostCommandVerbs } from "#test/hostCommandVerbs.ts";
 import { hostConfigVerbs } from "#test/hostConfigVerbs.ts";
+import { hostDatabaseVerbs } from "#test/hostDatabaseVerbs.ts";
 import { hostDiagnosticsVerbs } from "#test/hostDiagnostics.ts";
 import { hostFollowerVerbs } from "#test/hostFollowerVerbs.ts";
 import { hostInputVerbs } from "#test/hostInputVerbs.ts";
+import { hostProviderReadouts } from "#test/hostProviderReadouts.ts";
 import { hostProviderVerbs } from "#test/hostProviderVerbs.ts";
+import { hostReportVerbs } from "#test/hostReportVerbs.ts";
 import { hostRequestVerbs } from "#test/hostRequestVerbs.ts";
+import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
+import { watchReview } from "#test/watchReview.ts";
+import { watchScheduler } from "#test/watchScheduler.ts";
 
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		...hostDatabaseVerbs(engine, tell),
+		...watchReview(engine, tell),
+		...watchScheduler(engine, tell),
 		...hostBoardVerbs(engine, tell),
 		...daemonResync(engine),
 		...daemonResourceVerbs(engine),
@@ -40,6 +50,9 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		...continuationCloudVerbs(engine),
 		...steeringCloudVerbs(engine),
 		...interruptedCloudVerbs(engine),
+		...hostProviderReadouts(engine, tell),
+		...hostScenarioVerbs(engine, tell),
+		...hostAcknowledgementVerbs(engine, tell),
 		...hostConfigVerbs(engine, tell),
 		...hostCommandVerbs(engine, tell),
 		...hostDelayVerbs(engine),
@@ -49,6 +62,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		...hostDiagnosticsVerbs(engine),
 		...hostRequestVerbs(),
 		...hostStoreVerbs(engine, tell),
+		...hostReportVerbs(engine, tell),
 		admit: () => {
 			tell("admit approved Board work");
 			return admitApproved(engine.fixture.host).pipe(Effect.provideContext(engine.running.context), Effect.provide(engine.logs.layer));

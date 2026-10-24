@@ -1,7 +1,5 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { cliProcess } from "#test/fleetCli.ts";
+import { cliStory } from "#test/cliStory.ts";
 
 describe("Fleet commands without a daemon", () => {
 	for (const [command, args] of [
@@ -15,16 +13,10 @@ describe("Fleet commands without a daemon", () => {
 		["name-threads", []],
 		["answer", ["unknown", "Retry work"]],
 	] as const) {
-		it.live(`${command} names the missing daemon and how to start it`, function* () {
+		cliStory.it(`${command} names the missing daemon and how to start it`, [], function* (cli) {
 			const port = 0;
-			let stderr = "";
-			const result = yield* Effect.promise(() =>
-				cliProcess([command, ...args, "--port", String(port)], {
-					onError: (text) => {
-						stderr += text;
-					},
-				}),
-			);
+			const result = yield* cli.run([command, ...args, "--port", String(port)]);
+			const { stderr } = result;
 			expect(result.code).toBe(1);
 			expect(stderr).toContain(`No Fleet daemon is running at 127.0.0.1:${port}`);
 			expect(stderr).toContain(`start work-fleet serve <board-dir> --port ${port}`);

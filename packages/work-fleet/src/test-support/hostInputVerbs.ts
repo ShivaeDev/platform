@@ -18,12 +18,12 @@ export function hostInputVerbs() {
 		);
 	}
 	return {
-		configurationFile: (text: string) => configurationFolder(text).pipe(Effect.map((path) => join(path, "fleet.config.json"))),
 		continuationMessage: (message?: string, chunks: readonly string[] = []) => continuationMessage(message, Readable.from(chunks)),
 		loadConfiguration: (text?: string, override?: string) => configurationFolder(text).pipe(Effect.flatMap((path) => loadHost(path, override))),
 		openDatabase: (host: FleetHost) => Layer.build(hostSql(host)).pipe(Effect.scoped),
 		spawnInvalidHost: () => configurationFolder("{").pipe(Effect.flatMap((path) => hostProcess(join(path, "fleet.config.json")))),
 		spawnMissingHost: () => hostProcess("/synthetic/missing-config.json"),
 		unavailableFleetItems,
+		writeConfigurationFile: (text: string) => configurationFolder(text).pipe(Effect.map((path) => join(path, "fleet.config.json"))),
 	};
 }

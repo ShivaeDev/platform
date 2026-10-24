@@ -455,7 +455,7 @@ Import the module that defines the name; there is no root entry.
 ### Install and database setup
 
 ```sh
-pnpm add @shivaedev/effect-sql effect@4.0.4 @effect/sql-pg@4.0.4
+pnpm add @shivaedev/effect-sql effect@4.0.5 @effect/sql-pg@4.0.5
 ```
 
 `effect` is a peer. Install the native driver your application uses; this command chooses PostgreSQL. Provide its layer, and provide native Reactivity when using `transact` or `invalidateOnCommit`:

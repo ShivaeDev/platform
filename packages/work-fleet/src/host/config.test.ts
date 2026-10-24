@@ -42,7 +42,7 @@ describe("work-fleet host configuration", () => {
 	});
 
 	configuration.it("--config overrides the board file", [], function* (daemon) {
-		const override = yield* daemon.configurationFile('{ "provider": "local", "concurrency": 7, "namespace": "fleet_override" }');
+		const override = yield* daemon.writeConfigurationFile('{ "provider": "local", "concurrency": 7, "namespace": "fleet_override" }');
 		const host = yield* daemon.loadConfiguration('{ "provider": "cloud" }', override);
 		expect(host).toMatchObject({ concurrency: 7, namespace: "fleet_override", provider: "local" });
 	});

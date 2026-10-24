@@ -7,6 +7,8 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsol
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { FleetRecord } from "#model.ts";
 import { DaemonStoryEngine } from "#test/DaemonStoryEngine.ts";
+import { daemonFollowerVerbs } from "#test/daemonFollowerVerbs.ts";
+import { daemonWireVerbs } from "#test/daemonWireVerbs.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
 import { followerProcess } from "#test/followerProcess.ts";
@@ -37,6 +39,8 @@ export const fleetDaemon = storyKit({
 	stages: ["configuration", "observation", "daemon"],
 	verbs: (engine, story) => ({
 		...hostVerbs(engine, story.tell),
+		...daemonFollowerVerbs(engine, story.tell),
+		...daemonWireVerbs(engine, story),
 		awaitError: (text: string, offset = 0) => untilError(follower(engine), text, offset),
 		awaitOutput: (text: string) => untilOutput(follower(engine), text),
 		awaitSnapshot: () =>
@@ -48,6 +52,7 @@ export const fleetDaemon = storyKit({
 					}),
 				]),
 			).pipe(Effect.timeout("5 seconds")),
+		awaitSnapshotAfter: (previous: number) => Effect.promise(() => engine.daemon.nextSnapshot(previous)).pipe(Effect.timeout("5 seconds")),
 		client: (args: readonly [string, ...string[]]) =>
 			Effect.promise(async () => {
 				story.tell(`run ${args[0]} against the fixture Board`);
@@ -96,6 +101,7 @@ export const fleetDaemon = storyKit({
 					return yield* Effect.die("Restart discovery stories require a different daemon port");
 				}
 			}),
+		snapshotCount: () => engine.daemon.snapshotCount(),
 		stop: () => {
 			story.tell("stop the daemon");
 			return engine.daemon.close.pipe(Effect.timeout("5 seconds"));

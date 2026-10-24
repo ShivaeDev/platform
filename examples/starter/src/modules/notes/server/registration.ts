@@ -2,13 +2,13 @@ import { Effect, Layer, Redacted } from "effect";
 import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes } from "#modules/notes/notes.ts";
-import { noteProducer } from "./producer.ts";
-import { NotesService } from "./Service.ts";
+import { noteProducer } from "#modules/notes/server/producer.ts";
+import { NotesService } from "#modules/notes/server/Service.ts";
 
-const handlers = Notes.omit("notes.$changes").toLayer(
+const handlers = Notes.application.toLayer(
 	Effect.gen(function* () {
 		const service = yield* NotesService;
-		return Notes.omit("notes.$changes").of({
+		return Notes.application.of({
 			"notes.create": (input) => Effect.flatMap(SessionUser, ({ id }) => service.create(input, id)),
 			"notes.delete": (input) => Effect.flatMap(SessionUser, ({ id }) => service.delete(input, id)),
 			"notes.get": (input) => Effect.flatMap(SessionUser, ({ id }) => service.get(input.id, id)),
