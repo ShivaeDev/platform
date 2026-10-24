@@ -181,7 +181,7 @@ Import from the module that defines the name; the package has no root entry.
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-changes effect@4.0.4
+pnpm add @shivaedev/effect-changes effect@4.0.5
 ```
 
 `effect` is a peer dependency, so the application's Effect version runs the channel. The package declares Node 24 or newer. The SQL example also needs the application's native SQL driver and layer; neither the channel nor its installation creates a database connection or table.

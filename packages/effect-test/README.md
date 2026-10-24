@@ -234,7 +234,7 @@ Import the module that defines the name; the package has no root entry.
 ### Install, setup and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/effect-test @effect/vitest@4.0.4 effect@4.0.4 vitest@5.0.3
+pnpm add --save-dev @shivaedev/effect-test @effect/vitest@4.0.5 effect@4.0.5 vitest@5.0.3
 ```
 
 The package declares `effect` as a peer and `@effect/vitest` as an optional peer. The Vitest runner modules require `@effect/vitest`; install it when using them. The package requires Node.js 24 or later. Use peer versions compatible with the package's `package.json`.

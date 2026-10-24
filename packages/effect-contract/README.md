@@ -387,7 +387,7 @@ A query atom takes native query options as its optional second argument, for exa
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-contract effect@4.0.4
+pnpm add @shivaedev/effect-contract effect@4.0.5
 ```
 
 `effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
