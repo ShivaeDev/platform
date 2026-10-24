@@ -8,19 +8,33 @@ import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { hostAcknowledgementVerbs } from "#test/hostAcknowledgementVerbs.ts";
 import { hostBoardVerbs } from "#test/hostBoardVerbs.ts";
 import { hostConfigVerbs } from "#test/hostConfigVerbs.ts";
+import { hostDatabaseVerbs } from "#test/hostDatabaseVerbs.ts";
 import { hostFollowerVerbs } from "#test/hostFollowerVerbs.ts";
+import { hostProviderReadouts } from "#test/hostProviderReadouts.ts";
 import { hostProviderVerbs } from "#test/hostProviderVerbs.ts";
+import { hostReportVerbs } from "#test/hostReportVerbs.ts";
+import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
+import { watchReview } from "#test/watchReview.ts";
+import { watchScheduler } from "#test/watchScheduler.ts";
 
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		...hostDatabaseVerbs(engine, tell),
+		...watchReview(engine, tell),
+		...watchScheduler(engine, tell),
 		...hostBoardVerbs(engine, tell),
+		...hostProviderReadouts(engine, tell),
+		...hostScenarioVerbs(engine, tell),
+		...hostAcknowledgementVerbs(engine, tell),
 		...hostConfigVerbs(engine, tell),
 		...hostFollowerVerbs(engine, tell),
 		...hostProviderVerbs(engine, tell),
 		...hostStoreVerbs(engine, tell),
+		...hostReportVerbs(engine, tell),
 		admit: () => {
 			tell("admit approved Board work");
 			return admitApproved(engine.fixture.host).pipe(Effect.provideContext(engine.running.context));
