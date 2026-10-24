@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import { type BrowserDraftConfig, usePersistedDraft } from "@shivaedev/effect-form/client/react.ts";
 import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@shivaedev/effect-form/shape.ts";
 import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
+import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
 import { submission } from "#submission.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 export type CreateConfig<TFields extends Fields, TCreated, TSaveError, R, TRuntimeError> = {
@@ -25,20 +26,28 @@ export function useCreate<TFields extends Fields, TCreated, TSaveError, R, TRunt
 	config: CreateConfig<TFields, TCreated, TSaveError, R, TRuntimeError>,
 ): Create<TFields, TCreated, TSaveError, TRuntimeError> {
 	const persistedDraft = usePersistedDraft(config.persistedDraft);
-	const [{ initialValues: baseline, fresh }] = useState(() => {
-		const { fields, initialValues, runtime, create, rejectField } = config;
-		return { fresh: () => submission({ fields, initialValues, persistedDraft, rejectField, runtime, save: create }), initialValues };
-	});
-	const [current, replace] = useState(fresh);
-	const [created, record] = useState<Option.Option<TCreated>>(Option.none());
+	const callbacks = useSubmissionCallbacks(config.fields, config.create, config.rejectField);
+	function initialize() {
+		const { fields, initialValues, runtime } = config;
+		function makeSubmission() {
+			return submission({ ...callbacks, fields, initialValues, persistedDraft, runtime });
+		}
+		return { baseline: initialValues, created: Option.none<TCreated>(), current: makeSubmission(), fields, fresh: makeSubmission, runtime };
+	}
+	const [held, hold] = useState(initialize);
+	let entry = held;
+	if (entry.fields !== config.fields || entry.runtime !== config.runtime) {
+		entry = initialize();
+		hold(entry);
+	}
+	const { baseline, created, current, fresh } = entry;
 	const settled = useCallback(
 		(value: TCreated) => {
 			const next = fresh();
 			next.form.values.set({ ...baseline, ...editedSince(current.form.values.value, current.submitted()) });
-			record(Option.some(value));
-			replace(next);
+			hold({ ...entry, created: Option.some(value), current: next });
 		},
-		[current, fresh, baseline],
+		[entry, current, fresh, baseline],
 	);
 	return { ...useSaveState(current.form, settled), created, form: current.form };
 }
