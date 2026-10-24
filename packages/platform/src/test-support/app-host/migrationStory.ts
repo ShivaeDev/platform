@@ -5,6 +5,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
+import type { SchemaComponent } from "@shivaedev/effect-sql/SchemaComponent.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { bootMigrations } from "./bootMigrations.ts";
@@ -17,7 +18,8 @@ const create = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	yield* Effect.addFinalizer(() => sql`drop table if exists ${sql(table)}, ${sql(ledger)}`.pipe(Effect.orDie));
 	const lifecycle: string[] = [];
-	return { lifecycle, migrations: { loader: migrationLoader(table), table: ledger }, table, url };
+	const components: SchemaComponent[] = [];
+	return { lifecycle, migrations: { components, loader: migrationLoader(table), table: ledger }, table, url };
 });
 
 export type MigrationState = Effect.Success<ReturnType<typeof create>>;
@@ -44,11 +46,16 @@ export const migrationHost = storyKit({
 			Effect.gen(function* () {
 				story.tell(`a separate process applies ${initialOnly ? "the initial migration" : "all migrations"}`);
 				const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+				const env = {
+					"DATABASE_URL": Redacted.value(state.url),
+					"HOST_JOBS_SCHEMA": state.migrations.components.length > 0 ? `${state.table}_jobs` : "",
+					"HOST_MIGRATION_TABLE": state.table,
+				};
 				const child = yield* spawner.spawn(
 					ChildProcess.make(
 						process.execPath,
 						["--conditions=source", fileURLToPath(new URL("./migrationProcess.ts", import.meta.url)), initialOnly ? "initial" : "all"],
-						{ env: { "DATABASE_URL": Redacted.value(state.url), "HOST_MIGRATION_TABLE": state.table }, extendEnv: true, stderr: "inherit" },
+						{ env, extendEnv: true, stderr: "inherit" },
 					),
 				);
 				return yield* child.exitCode;

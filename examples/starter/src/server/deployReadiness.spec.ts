@@ -24,7 +24,7 @@ deployment.it(
 		const migration = yield* Effect.gen(function* () {
 			const pending = yield* startProcess("migrate");
 			yield* schemaCreation.migrationBlocked;
-			expect(yield* migrationTable).toEqual([{ ledger: null }]);
+			expect(yield* migrationTable).toEqual([{ ledger: "app_migrations" }]);
 			expect(worker.logs).toEqual([expect.stringContaining("Worker waiting for schema")]);
 			expect(yield* worker.child.isRunning).toBe(true);
 			return pending;

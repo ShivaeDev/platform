@@ -46,6 +46,9 @@
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
 	},
+	"dependencies": {
+		"@shivaedev/effect-sql": "workspace:*"
+	},
 	"devDependencies": {
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/effect-test-sql": "workspace:*",
