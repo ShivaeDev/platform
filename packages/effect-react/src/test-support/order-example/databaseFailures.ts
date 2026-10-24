@@ -1,6 +1,5 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import { Deferred, Effect, Fiber, type Result } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import type { DatabaseEngine } from "./databaseKit.ts";
 import { acquireDatabase, acquireDatabaseWith } from "./postgres.ts";
 import { seedOrder } from "./seed.ts";
@@ -25,22 +24,24 @@ export function databaseFailures(engine: DatabaseEngine, tell: (line: string) =>
 					return yield* Effect.fail("migration setup failed");
 				});
 				const exit = yield* Effect.scoped(acquireDatabaseWith(migration)).pipe(Effect.exit);
-				expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toBe("migration setup failed");
+				return exit;
 			}),
 		setupFailsAfterRejectingSeed: () =>
 			Effect.gen(function* () {
 				tell("an impossible seed inserts nothing, then application setup fails");
+				let seed: Result.Result<Effect.Success<ReturnType<typeof seedOrder>>, Effect.Error<ReturnType<typeof seedOrder>>> | undefined;
+				let rows: readonly { readonly id: number }[] | undefined;
 				const exit = yield* Effect.scoped(
 					Effect.gen(function* () {
 						const database = yield* acquireDatabase;
 						engine.name = database.name;
-						const result = yield* seedOrder({ quantity: -1 }).pipe(Effect.provideService(SqlClient.SqlClient, database.sql), Effect.result);
-						expect(result._tag).toBe("Failure");
-						expect(yield* database.observer`select id from orders`).toEqual([]);
+						seed = yield* seedOrder({ quantity: -1 }).pipe(Effect.provideService(SqlClient.SqlClient, database.sql), Effect.result);
+
+						rows = yield* database.observer<{ readonly id: number }>`select id from orders`;
 						return yield* Effect.fail("application setup failed after database acquisition");
 					}),
 				).pipe(Effect.exit);
-				expect(exit).toEqual(Exit.fail("application setup failed after database acquisition"));
+				return { exit, rows, seed };
 			}),
 		startLongQuery: () =>
 			Effect.gen(function* () {

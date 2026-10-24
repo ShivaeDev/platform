@@ -1,15 +1,14 @@
-import { Context, Effect, Layer, Result } from "effect";
+import { Context, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { isolate, localRollback } from "./isolation.ts";
+import { isolate, rollback } from "./isolation.ts";
 import { hasPostgres, kitDatabases, StoryDatabase, workerDatabase } from "./postgres.ts";
 import { seedOrder } from "./seed.ts";
 import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
 
-export const localApp = storyKit({
-	around: isolate(localRollback),
+export const localApplication = storyKit({
+	around: isolate,
 	*create() {
 		const database = yield* StoryDatabase;
 		const supplied = yield* Effect.serviceOption(Reactivity.Reactivity);
@@ -34,28 +33,23 @@ export const localApp = storyKit({
 	runIf: hasPostgres,
 	stages: ["orders"],
 	verbs: (engine, story) => ({
-		nothingWasPublished: () => Effect.sync(() => expect(engine.changes).toEqual([])),
-		observerSeesNoOrders: () =>
+		changes: () => [...engine.changes],
+		inRollback: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
+			rollback(effect).pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql), Effect.provide(Reactivity.layer)),
+		observerOrders: () => engine.database.observer`select id from orders`,
+		rejectLocally: () => {
+			story.tell("Alice tries an invalid nested save");
+			return engine.service.save("alice", { id: engine.id, name: "Rejected", quantity: -1 }).pipe(Effect.result);
+		},
+		saveLocally: () => {
+			story.tell("Alice saves the order inside the story transaction");
+			return engine.service.save("alice", { id: engine.id, name: "Local save", quantity: 12 });
+		},
+		seedLocalOrder: () =>
 			Effect.gen(function* () {
-				expect(yield* engine.database.observer`select id from orders`).toEqual([]);
+				story.tell("Alice seeds an order inside the story transaction");
+				engine.id = (yield* seedOrder().pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql))).id;
 			}),
-		rejectLocally: () =>
-			Effect.gen(function* () {
-				story.tell("Alice's invalid nested save is rejected");
-				const result = yield* engine.service.save("alice", { id: engine.id, name: "Rejected", quantity: -1 }).pipe(Effect.result);
-				expect(Result.isFailure(result) && result.failure).toMatchObject({ _tag: "OrderValidation" });
-			}),
-		saveLocally: () =>
-			Effect.gen(function* () {
-				story.tell("Alice saves the order inside the story transaction");
-				const saved = yield* engine.service.save("alice", { id: engine.id, name: "Local save", quantity: 12 });
-				expect(saved).toMatchObject({ name: "Local save", quantity: 12 });
-			}),
-		sharesWorkerDatabase: () => Effect.sync(() => expect(kitDatabases.has(engine.database.name)).toBe(true)),
+		sharesWorkerDatabase: () => kitDatabases.has(engine.database.name),
 	}),
 });
-export function localOrder() {
-	return localApp.trait("orders", "Alice seeds an order inside the story transaction", function* (engine) {
-		engine.id = (yield* seedOrder().pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql))).id;
-	});
-}

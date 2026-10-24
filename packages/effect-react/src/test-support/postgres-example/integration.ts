@@ -1,13 +1,11 @@
-import { Clock } from "effect";
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { isolate, wholeStack } from "#test/order-example/isolation.ts";
+import { isolate } from "#test/order-example/isolation.ts";
 import { hasPostgres, workerDatabase } from "#test/order-example/postgres.ts";
 import { createLiveEngine } from "./liveEngine.ts";
 import { liveVerbs } from "./liveVerbs.ts";
 
-export const app = storyKit({
-	around: isolate(wholeStack),
+export const integration = storyKit({
+	around: isolate,
 	clock: "live",
 	create: () => createLiveEngine,
 	inspect: (engine) => ({
@@ -19,13 +17,6 @@ export const app = storyKit({
 	layer: workerDatabase,
 	name: "composed orders",
 	runIf: hasPostgres,
-	stages: ["database", "commit", "editors"],
+	stages: ["commit", "editors"],
 	verbs: (engine, story) => liveVerbs(engine, story.tell),
 });
-
-export function realPostgres() {
-	return app.trait("database", "the reference feature uses a leased disposable PostgreSQL database", function* ({ database }) {
-		expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
-		expect(database.sql).not.toBe(database.observer);
-	});
-}

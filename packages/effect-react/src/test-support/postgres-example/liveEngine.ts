@@ -1,8 +1,9 @@
 import { Deferred, Effect } from "effect";
 import { databaseUrl, StoryDatabase } from "#test/order-example/postgres.ts";
 import { Rejected } from "./contract.ts";
+import { makeClient } from "./makeClient.ts";
 import { type ServerOptions, startServer } from "./server.ts";
-import { mountView } from "./view.tsx";
+import { call, mountView } from "./view.tsx";
 
 function start(name: string, options: ServerOptions) {
 	return Effect.acquireRelease(
@@ -36,9 +37,14 @@ function start(name: string, options: ServerOptions) {
 	);
 }
 
+export function rejectedSave(url: string) {
+	const client = makeClient(url, "alice-session");
+	return call(client, client.api.save.run({ id: 1, name: "Rolled back", quantity: 999 }).pipe(Effect.result));
+}
+
 export const createLiveEngine = Effect.gen(function* () {
 	const database = yield* StoryDatabase;
-	const saving: { pending?: Promise<unknown> } = {};
+	const saving: { pending?: Promise<Awaited<ReturnType<typeof rejectedSave>>> } = {};
 	const gate = { entered: yield* Deferred.make<void>(), held: false, rejected: false, released: yield* Deferred.make<void>() };
 	const server = yield* start(database.name, {
 		beforeCommit: Effect.gen(function* () {

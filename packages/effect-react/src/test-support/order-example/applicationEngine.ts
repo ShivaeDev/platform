@@ -29,6 +29,10 @@ export interface Screen {
 
 export const createApplication = Effect.gen(function* () {
 	const database = yield* StoryDatabase;
+	const databaseSetup = {
+		migrations: yield* database.observer`select migration_id from effect_sql_migrations`,
+		orders: yield* database.observer`select id from orders`,
+	};
 	const reactivity = Context.get(yield* Layer.build(Reactivity.layer), Reactivity.Reactivity);
 	const changes: unknown[] = [];
 	const unregister = reactivity.registerUnsafe(["orders"], () => changes.push("orders"));
@@ -65,15 +69,14 @@ export const createApplication = Effect.gen(function* () {
 	yield* Effect.addFinalizer(() => Deferred.succeed(saves.released, undefined));
 	const alice = yield* client(server.url, "alice-session");
 	const bob = yield* client(server.url, "bob-session");
-	const observations: Record<string, unknown> = {};
 	return {
 		alice,
 		bob,
 		changes,
 		connect: (token?: string) => client(server.url, token),
 		database,
+		databaseSetup,
 		gets,
-		observations,
 		orders: new Map<string, Order>(),
 		saves,
 		screens: new Map<string, Screen>(),

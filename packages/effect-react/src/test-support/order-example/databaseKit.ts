@@ -1,7 +1,6 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Exit, Layer, Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseFailures } from "./databaseFailures.ts";
 import { overlappingStories } from "./overlappingStories.ts";
@@ -39,33 +38,32 @@ export const databases = storyKit({
 				yield* Scope.close(lease.scope, Exit.void);
 				engine.leases.delete(name);
 			}),
-		databaseWasDropped: () =>
+		database: () =>
 			Effect.gen(function* () {
-				story.tell("the last lease dropped the database");
-				expect(engine.name).toMatch(/^platform_story_/u);
-				expect(yield* engine.observer`select datname from pg_database where datname = ${engine.name}`).toEqual([]);
+				story.tell("read the database catalog after releasing a lease");
+				return { name: engine.name, rows: yield* engine.observer`select datname from pg_database where datname = ${engine.name}` };
 			}),
-		leasesShareDatabase: () =>
+		leaseDatabases: () =>
 			Effect.gen(function* () {
 				story.tell("the two leases share a database and have usable pools");
-				const names = new Set<string>();
+				const names: string[] = [];
 				for (const { database } of engine.leases.values()) {
-					names.add(database.name);
+					names.push(database.name);
 					yield* database.sql`select 1`;
 					yield* database.observer`select 1`;
 				}
-				expect(names.size).toBe(1);
+				return names;
 			}),
-		migrationLedgerIsPreserved: (name: string) =>
+		migrationLedger: (name: string) =>
 			Effect.gen(function* () {
 				story.tell(`the ${name} lease keeps its migration ledger`);
 				const lease = engine.leases.get(name);
 				if (lease === undefined) {
 					return yield* Effect.die(`Missing lease ${name}`);
 				}
-				expect(yield* lease.database.observer`select migration_id from effect_sql_migrations`).toEqual([{ "migration_id": 1 }]);
+				return yield* lease.database.observer`select migration_id from effect_sql_migrations`;
 			}),
-		overlappingStoriesKeepTheirRows: () => overlappingStories(story.tell),
+		overlappingStories: () => overlappingStories(story.tell),
 	}),
 });
 export function twoLeasesAreOpen() {
