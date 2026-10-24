@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.12.0 - 2026-10-24
+
+### Added
+
+- Contracts expose `application`, a native RPC group for building application handlers without naming the reserved `$changes` stream. Middleware stays attached, and Platform hosts complete the full contract with the stream handler.
+- Generated applications build their handlers through the contract's `application` group.
+- Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+- New apps get the notes example as one removable module and fresh migrations. Apps already generated are unaffected.
+- Generate apps with Railway 3.16.0.
+
+### Fixed
+
+- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.
+
 ## 0.11.24 - 2026-10-24
 
 ### Changed

@@ -1,90 +1,50 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { NodeServices } from "@effect/platform-node";
 import { expect } from "@effect/vitest";
-import { Deferred, Effect, Fiber, Layer } from "effect";
-import { cycle, run } from "#engine/scheduler.ts";
-import { Fleet } from "#fleet.ts";
-import { statusLayer } from "#host/statusLayer.ts";
-import { boardHttp } from "#test/boardHttp.ts";
-import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { blockedStatus } from "#test/status.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
-
-const test = postgresTests("live");
-const isolated = postgresTests("live", "isolated");
+import { humanMergeRequired } from "#test/engineTraits.ts";
+import { publicationStory, publishedBoard, suspendedValidation } from "#test/publicationStory.ts";
 
 for (const denyDelivery of [false, true]) {
-	test(`scheduler publication follows ${denyDelivery ? "human intervention" : "completion"} and leaves authored status untouched`, () =>
-		withFleetBoard({ denyDelivery }, (fixture, root, source) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				yield* cycle;
-				function read() {
-					return readFileSync(join(root, "fleet/status.md"), "utf8");
-				}
-				expect(read()).toContain("Stage: working");
-				const { client } = yield* boardHttp(root, "fleet/status.md");
-				const page = client.api.board.query({ url: "/fleet/status.md" });
-				const unmount = client.registry.mount(page);
-				yield* Effect.addFinalizer(() => Effect.sync(unmount));
-				const initial = yield* Effect.tryPromise(() => client.read(page));
-				expect(initial.document.reading?.board).toBe(true);
-				expect(initial.counts).toEqual(expect.arrayContaining([expect.objectContaining({ count: 1, title: "Active" })]));
-				expect(initial.document.source).toContain("/_board/item/one");
-				finishWorkers(fixture);
-				yield* cycle;
-				const step = denyDelivery ? "waiting" : "done";
-				expect((yield* (yield* Fleet).get("one")).value.step).toBe(step);
-				expect(read()).toContain(`Stage: ${step}`);
-				expect(read()).toContain("[PR](<https://example.invalid/pr/one>)");
-				yield* Effect.gen(function* () {
-					while (true) {
-						const refreshed = client.registry.get(page);
-						if (refreshed._tag === "Success" && refreshed.value.document.source.includes(`Stage: ${step}`)) {
-							break;
-						}
-						yield* Effect.sleep("10 millis");
-					}
-				}).pipe(Effect.timeout("5 seconds"));
-				expect(readFileSync(join(root, "one.md"), "utf8")).toBe(source);
-			}).pipe(Effect.provide(statusLayer(root).pipe(Layer.provide(NodeServices.layer)))),
-		));
-}
-
-isolated("run publishes a suspended validation step without waiting for reconciliation to finish", function* () {
-	const entered = yield* Deferred.make<void>();
-	const release = yield* Deferred.make<void>();
-	const checksGate = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
-	yield* withFleetBoard({ checksGate }, (fixture, root) =>
-		Effect.gen(function* () {
-			yield* prepareWork("one");
-			yield* cycle;
-			finishWorkers(fixture);
-			const scheduler = yield* Effect.scoped(run(Effect.sleep("5 millis"))).pipe(Effect.forkChild);
-			yield* Deferred.await(entered);
-			yield* Effect.gen(function* () {
-				while (!readFileSync(join(root, "fleet/status.md"), "utf8").includes("Stage: reviewing")) {
-					yield* Effect.sleep("10 millis");
-				}
-			}).pipe(Effect.timeout("5 seconds"));
-			yield* Fiber.interrupt(scheduler);
-		}).pipe(Effect.provide(statusLayer(root).pipe(Layer.provide(NodeServices.layer)))),
+	publicationStory.it(
+		`scheduler publication follows ${denyDelivery ? "human intervention" : "completion"} and leaves authored status untouched`,
+		[publishedBoard, humanMergeRequired(denyDelivery)],
+		function* (fleet) {
+			yield* fleet.prepareWork("one");
+			yield* fleet.schedule();
+			expect(fleet.publications.status()).toContain("Stage: working");
+			const board = yield* fleet.publications.boardPage();
+			const initial = yield* fleet.publications.readPage(board);
+			expect(initial.document.reading?.board).toBe(true);
+			expect(initial.counts).toEqual(expect.arrayContaining([expect.objectContaining({ count: 1, title: "Active" })]));
+			expect(initial.document.source).toContain("/_board/item/one");
+			fleet.finishWorkers();
+			yield* fleet.schedule();
+			const step = denyDelivery ? "waiting" : "done";
+			expect((yield* fleet.get("one")).value.step).toBe(step);
+			expect(fleet.publications.status()).toContain(`Stage: ${step}`);
+			expect(fleet.publications.status()).toContain("[PR](<https://example.invalid/pr/one>)");
+			const refreshed = yield* fleet.publications.awaitPage(board, step);
+			expect(refreshed.document.source).toContain(`Stage: ${step}`);
+			expect(fleet.publications.task()).toBe(fleet.publications.source());
+		},
 	);
+}
+publicationStory.it(
+	"run publishes a suspended validation step without waiting for reconciliation to finish",
+	[publishedBoard, suspendedValidation],
+	function* (fleet) {
+		yield* fleet.prepareWork("one");
+		yield* fleet.schedule();
+		fleet.finishWorkers();
+		expect(yield* fleet.publications.runUntilValidationPublished()).toContain("Stage: reviewing");
+	},
+);
+publicationStory.it("a failed publication keeps execution usable and the next scheduler cycle repairs the view", [publishedBoard], function* (fleet) {
+	yield* fleet.publications.blockStatus();
+	yield* fleet.prepareWork("one");
+	yield* fleet.schedule();
+	expect((yield* fleet.get("one")).value.step).toBe("working");
+	fleet.publications.restoreStatus();
+	fleet.finishWorkers();
+	yield* fleet.schedule();
+	expect(fleet.publications.status()).toContain("Stage: done");
+	expect(fleet.publications.task()).toBe(fleet.publications.source());
 });
-
-test("a failed publication keeps execution usable and the next scheduler cycle repairs the view", () =>
-	withFleetBoard({}, (fixture, root, source) =>
-		Effect.gen(function* () {
-			const heal = yield* blockedStatus(root);
-			yield* prepareWork("one");
-			yield* cycle;
-			expect((yield* (yield* Fleet).get("one")).value.step).toBe("working");
-			yield* Effect.sync(heal);
-			finishWorkers(fixture);
-			yield* cycle;
-			expect(readFileSync(join(root, "fleet/status.md"), "utf8")).toContain("Stage: done");
-			expect(readFileSync(join(root, "one.md"), "utf8")).toBe(source);
-		}).pipe(Effect.provide(statusLayer(root).pipe(Layer.provide(NodeServices.layer)))),
-	));

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.3 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
+### Fixed
+
+- Call the latest create, save and field-rejection callbacks across React renders while preserving the draft. Replace forms when their schema or runtime identity changes, and document which options are captured for a form lifetime.
+
 ## 0.12.2 - 2026-10-24
 
 ### Changed

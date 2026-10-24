@@ -5,12 +5,13 @@ import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestT
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { Fleet } from "#fleet.ts";
 import { createEngine } from "#test/createEngine.ts";
+import { enginePublicationLayer } from "#test/enginePublicationLayer.ts";
 import { type EngineStory, newEngineState, running } from "#test/engineState.ts";
 import { engineVerbs } from "#test/engineVerbs.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { createFleetBoard } from "#test/withFleetBoard.ts";
 
-const definition = {
+export const engineDefinition = {
 	after: {
 		*configuration(state: EngineStory) {
 			const board = state.markdown ? yield* createFleetBoard(state.options) : undefined;
@@ -18,7 +19,10 @@ const definition = {
 			state.source = board?.source ?? "";
 			const runtime = yield* createEngine(state.options, board?.board ?? state.board);
 			const services = yield* Layer.build(runtime.fleetLayer);
-			state.runtime = { ...runtime, fleet: Context.get(services, Fleet) };
+			if (state.publishViews) {
+				state.publicationContext = yield* Layer.build(enginePublicationLayer(runtime, state.root));
+			}
+			state.runtime = { ...runtime, fleet: Context.get(state.publicationContext ?? services, Fleet) };
 		},
 	},
 	create: newEngineState,
@@ -49,5 +53,5 @@ const definition = {
 	verbs: engineVerbs,
 };
 
-export const engine = storyKit({ ...definition, around: withTestTransaction });
-export const isolatedEngine = storyKit({ ...definition, around: withIsolatedDatabase });
+export const engine = storyKit({ ...engineDefinition, around: withTestTransaction });
+export const isolatedEngine = storyKit({ ...engineDefinition, around: withIsolatedDatabase });

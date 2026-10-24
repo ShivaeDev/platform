@@ -1,14 +1,7 @@
-import { readdirSync, readFileSync } from "node:fs";
-import { join } from "node:path";
-import { describe, expect } from "@effect/vitest";
+import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
-import { hostLayer } from "#host/commands.ts";
 import { REPORT_LIMITS } from "#reportLimits.ts";
-import { dispatchWork } from "#test/dispatchWork.ts";
-import { withHost } from "#test/fleetHost.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { addedAttachment, attachmentBoard, turnDownload } from "#test/reportAttachments.ts";
+import { addedAttachment } from "#test/reportAttachments.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
 const cases = [
@@ -32,41 +25,35 @@ const cases = [
 	{ items: () => [], name: "unavailable server", reason: "Synthetic attachment retrieval unavailable", reject: true },
 ];
 
-describe("Unavailable report attachments", () => {
-	const test = postgresTests("live");
-	for (const scenario of cases) {
-		test(`publishes report text and records ${scenario.name} without attachments`, function* () {
-			const download = yield* turnDownload(scenario.items(), scenario.reject);
-			yield* withHost({ "research.md": SOURCE }, {}, (fixture) =>
-				Effect.gen(function* () {
-					const collector = attachmentBoard(fixture.host.boardDir, download);
-					const parts = { ...fixture.parts, board: collector.board };
-					yield* dispatchWork(fixture.host, "research", parts);
-					const observation = [...fixture.provider.observations.values()][0];
-					if (observation === undefined) {
-						return yield* Effect.die(new Error("No report worker"));
-					}
-					const output = "Report with attachments\nFLEET_ATTACHMENT: file.txt";
-					fixture.provider.observations.set(observation.receipt.turnId, { ...observation, execution: "completed", output });
-					const result = yield* Effect.gen(function* () {
-						return yield* (yield* Fleet).reconcile("research");
-					}).pipe(Effect.provide(hostLayer(fixture.host, parts)));
-					expect(result.value.step).toBe("done");
-					expect(result.value.decision).toBeUndefined();
-					const report = result.value.report;
-					if (report === undefined) {
-						return yield* Effect.die(new Error("No report result"));
-					}
-					const content = readFileSync(join(fixture.host.boardDir, report.sourcePath), "utf8");
-					expect(content).toContain(output);
-					expect(content).toContain("## Unavailable attachments");
-					expect(content).toContain(scenario.reason);
-					expect(fixture.provider.archived).toEqual([observation.receipt.sessionId]);
-					expect(readdirSync(join(fixture.host.boardDir, "responses")).filter((file) => file.startsWith("fleet-report."))).toEqual([
-						`${report.itemId}.md`,
-					]);
-				}),
-			);
-		});
-	}
-});
+import { reportDownload } from "#test/hostReportTraits.ts";
+import { boardWork, host } from "#test/hostStory.ts";
+
+for (const scenario of cases) {
+	host.it(
+		`publishes report text and records ${scenario.name} without attachments`,
+		[boardWork({ "research.md": SOURCE }), reportDownload(scenario.items(), "none", scenario.reject)],
+		function* (daemon) {
+			const started = yield* daemon.approve("research");
+			const observation = daemon.providerObservations()[0];
+			if (observation === undefined) {
+				throw new Error("No report worker");
+			}
+			const output = "Report with attachments\nFLEET_ATTACHMENT: file.txt";
+			daemon.finishTurn(started.value, output);
+			const result = yield* daemon.reconcile("research");
+
+			expect(result.step).toBe("done");
+			expect(result.decision).toBeUndefined();
+			const report = result.report;
+			if (report === undefined) {
+				return yield* Effect.die(new Error("No report result"));
+			}
+			const content = daemon.readBoard(report.sourcePath);
+			expect(content).toContain(output);
+			expect(content).toContain("## Unavailable attachments");
+			expect(content).toContain(scenario.reason);
+			expect(daemon.providerArchives()).toEqual([observation.receipt.sessionId]);
+			expect(daemon.boardFiles("responses").filter((file) => file.startsWith("fleet-report."))).toEqual([`${report.itemId}.md`]);
+		},
+	);
+}

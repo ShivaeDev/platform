@@ -4,8 +4,8 @@ import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
 import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 import { appHost } from "#server/appHost.ts";
-import type { MigrationState } from "./migrationStory.ts";
-import { Ping, ping, pingHandlers } from "./ping.ts";
+import type { MigrationState } from "#test/app-host/migrationStory.ts";
+import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 
 export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(function* (
 	state: MigrationState,
@@ -41,7 +41,7 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 				services,
 			};
 		}),
-		config: { applicationName: state.table, databaseUrl: state.url },
+		config: { applicationName: state.table, databaseUrl: state.hostUrl },
 		migrations: { ...state.migrations, mode: "wait", pollInterval: "10 millis", ...options },
 	});
 	const ready = yield* Deferred.make<Context.Context<Layer.Success<typeof host>>>();
