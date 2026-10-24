@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { requireThat } from "#package-check/io.ts";
 
-export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: string, database: string) {
+export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: string, database: string, script: "ci" | "ready" = "ci") {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-	yield* Effect.log("Generated app: pnpm run ci");
+	yield* Effect.log(`Generated app: pnpm run ${script}`);
 	const code = yield* spawner.exitCode(
-		ChildProcess.make("pnpm", ["run", "ci"], {
+		ChildProcess.make("pnpm", ["run", script], {
 			cwd,
 			env: { "TEST_DATABASE_URL": database },
 			extendEnv: true,
@@ -14,5 +14,5 @@ export const runStarter = Effect.fn("Published.runStarter")(function* (cwd: stri
 			stdout: "inherit",
 		}),
 	);
-	yield* requireThat(code === 0, `Generated app: pnpm run ci failed (exit ${code}).`);
+	yield* requireThat(code === 0, `Generated app: pnpm run ${script} failed (exit ${code}).`);
 });

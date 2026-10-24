@@ -18,7 +18,13 @@ export function* createEngine() {
 		cpSync(fileURLToPath(new URL("../../package.json", import.meta.url)), join(cliFolder, "package.json"));
 		symlinkSync(fileURLToPath(new URL("../../node_modules", import.meta.url)), join(cliFolder, "node_modules"));
 	});
-	const environment: string[] = [];
+	const environment: string[] = [
+		"GIT_CONFIG_COUNT=2",
+		"GIT_CONFIG_KEY_0=maintenance.auto",
+		"GIT_CONFIG_VALUE_0=false",
+		"GIT_CONFIG_KEY_1=gc.auto",
+		"GIT_CONFIG_VALUE_1=0",
+	];
 	const options: NonNullable<Parameters<typeof appFolder>[1]> = {};
 	return {
 		cli: join(cliFolder, "src/cli.ts"),

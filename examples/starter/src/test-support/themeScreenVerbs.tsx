@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { act } from "react";
 import { vi } from "vitest";
 import { ThemeToggle } from "#client/ThemeToggle.tsx";
-import { acquireScreen, type ScreenSurface, screenView } from "./screenState.ts";
+import { acquireScreen, type ScreenSurface, screenView } from "#test-support/screenState.ts";
 
 export function themeScreenVerbs(engine: ScreenSurface, tell: (line: string) => void) {
 	let systemDark = false;

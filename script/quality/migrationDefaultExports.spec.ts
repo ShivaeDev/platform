@@ -12,6 +12,7 @@ migrationFiles.it(
 		presetFiles([
 			{ content: MIGRATION, path: "src/server/migrations/0001_create_notes.ts" },
 			{ content: MIGRATION, path: "apps/web/src/server/migrations/0020_add_labels.ts" },
+			{ content: MIGRATION, path: "src/modules/labels/server/migrations/0002_create_labels.ts" },
 			{ content: MIGRATION, path: "src/server/migrations/0002-create-labels.ts" },
 			{ content: MIGRATION, path: "src/server/migrations/00003_create_labels.ts" },
 			{ content: MIGRATION, path: "src/server/migrations/helpers/0005_add_labels.ts" },

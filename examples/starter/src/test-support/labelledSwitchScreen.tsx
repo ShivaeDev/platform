@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { acquireScreen } from "#test-support/screenState.ts";
 import { SwitchScreen } from "./SwitchScreen.tsx";
-import { acquireScreen } from "./screenState.ts";
 import { screens } from "./screens.ts";
 
 export function labelledSwitchScreen(label: string, disabled = false) {

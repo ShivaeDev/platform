@@ -986,6 +986,9 @@ importers:
         specifier: workspace:*
         version: link:../effect-changes
     devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.4(effect@4.0.4)(redis@6.2.1(@opentelemetry/api@1.9.1))
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.4(effect@4.0.4)

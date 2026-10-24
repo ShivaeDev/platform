@@ -54,7 +54,7 @@ export function runtimeOf(inputs: RuleInputs, packages: readonly WorkspacePackag
 		if (!adopted.has(owner)) {
 			return executable.has(owner) ? "server" : undefined;
 		}
-		const local = posix.relative(owner, path);
+		const local = posix.relative(owner, path).replace(/^src\/modules\/[^/]+\//u, "src/");
 		if (local.startsWith("src/client/")) {
 			return "client";
 		}
