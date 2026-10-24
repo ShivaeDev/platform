@@ -1,14 +1,12 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deployChild, deployPort } from "#test-support/deployChild.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { deploymentProcesses } from "./deploymentProcesses.ts";
-import { deploymentSchema } from "./deploymentSchema.ts";
-import { storedNotes } from "./storedNotes.ts";
+import { migrationTable } from "./migrationTable.ts";
 
 export const deployment = storyKit({
 	around: withIsolatedDatabase,
@@ -19,8 +17,6 @@ export const deployment = storyKit({
 	stages: ["schema"],
 	verbs: (_engine, story) => ({
 		...deploymentProcesses(story.tell),
-		...deploymentSchema(story.tell),
-		...storedNotes(story.tell),
 		migrate: Effect.fn("DeploymentStory.migrate")(function* () {
 			story.tell("run the secret-free deployment migration command");
 			const database = yield* PostgresTestDatabase;
@@ -29,13 +25,7 @@ export const deployment = storyKit({
 			story.tell([...migration.logs, ...migration.errors].join("\n"));
 			return code;
 		}),
+		migrationTable,
 		port: Effect.promise(deployPort),
 	}),
 });
-
-export function conflictingNotesTable() {
-	return deployment.trait("schema", "an existing notes table conflicts with the first migration", function* () {
-		const sql = yield* SqlClient.SqlClient;
-		yield* sql`create table notes (title text)`;
-	});
-}

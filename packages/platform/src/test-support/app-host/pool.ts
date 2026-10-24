@@ -1,3 +1,4 @@
+import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Context, Deferred, Effect, Fiber, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -58,6 +59,7 @@ export const pool = storyKit({
 					const holder = yield* heldTransaction(sql, state, release, acquired).pipe(Effect.forkScoped);
 					return yield* Effect.raceFirst(Deferred.await(acquired), Fiber.join(holder).pipe(Effect.andThen(Effect.die("Transaction ended early"))));
 				}),
+			nativeQueryFailure: () => client()`select pg_terminate_backend(pg_backend_pid())`.pipe(Effect.flip),
 			query: () => {
 				story.tell("query through the application pool");
 				return client()<{ pid: number }>`select pg_backend_pid() as pid`;
@@ -69,6 +71,19 @@ export const pool = storyKit({
 				}
 				story.tell(`release backend ${pid}`);
 				return Deferred.succeed(release, undefined);
+			},
+			terminate: (pid: number) => {
+				story.tell(`terminate idle application backend ${pid}`);
+				return Effect.scoped(
+					Effect.gen(function* () {
+						const url = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+						yield* Effect.gen(function* () {
+							const admin = yield* SqlClient.SqlClient;
+							yield* admin`select pg_terminate_backend(${pid}, 5000)`;
+						}).pipe(Effect.provide(PgClient.layer({ url })));
+						yield* Effect.promise(() => new Promise<void>((resolve) => setImmediate(resolve)));
+					}),
+				);
 			},
 		};
 	},

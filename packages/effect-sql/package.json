@@ -49,6 +49,7 @@
 		"@shivaedev/effect-changes": "workspace:*"
 	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
 		"@shivaedev/effect-test": "workspace:*",

@@ -1,5 +1,5 @@
 import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
-import { noteWorker } from "./noteWorker.ts";
+import { applicationWorker } from "./applicationWorker.ts";
 
-NodeRuntime.runMain(Layer.launch(noteWorker()));
+NodeRuntime.runMain(Layer.launch(applicationWorker()));

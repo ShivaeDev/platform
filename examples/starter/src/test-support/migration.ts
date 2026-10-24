@@ -1,8 +1,7 @@
 import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { migrationUpgrade } from "@shivaedev/effect-test-sql/server/migrationUpgrade.ts";
+import { migrationSteps } from "@shivaedev/effect-test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -13,33 +12,22 @@ import { postgres } from "#test-support/postgres.ts";
 export const migration = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	create: () => ({ upTo: 0 }),
+	create: () => ({}),
 	layer: postgres,
-	name: "notes migration",
+	name: "app authentication schema",
 	stages: ["schema"],
-	verbs: (engine, story) => ({
+	verbs: (_engine, story) => ({
 		migrate: Effect.fn("AppStory.migrate")(function* () {
 			story.tell("apply every numbered application migration");
 			const database = yield* PostgresTestDatabase;
 			const pool = yield* authDatabase(database.url);
-			yield* migratePostgres({ ...migrations(pool), lockTimeout: "5 seconds" });
+			const steps = yield* migrationSteps({ ...migrations(pool), lockTimeout: "5 seconds" });
+			yield* steps.migrateTo("0001_auth");
 		}),
 		pendingAuthMigrations: Effect.fn("AppStory.pendingAuthMigrations")(function* () {
 			const database = yield* PostgresTestDatabase;
 			const pool = yield* authDatabase(database.url);
 			return yield* Effect.tryPromise(() => getMigrations(authOptions(pool)));
 		}),
-		upgrade: Effect.fn("AppStory.upgrade")(function* () {
-			story.tell(`upgrade the notes schema from migration ${engine.upTo}`);
-			const database = yield* PostgresTestDatabase;
-			const pool = yield* authDatabase(database.url);
-			return yield* migrationUpgrade({ migrations: { ...migrations(pool), lockTimeout: "5 seconds" }, table: "notes", upTo: engine.upTo });
-		}),
 	}),
 });
-
-export function beforeVersionedNotes() {
-	return migration.trait("schema", "the notes schema predates versioned writes", (engine) => {
-		engine.upTo = 4;
-	});
-}
