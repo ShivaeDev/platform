@@ -1,10 +1,10 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import type { DaemonEngine } from "#test/daemonStory.ts";
+import type { DaemonStoryEngine } from "#test/DaemonStoryEngine.ts";
 import { type FollowOptions, followerProcess } from "#test/followerProcess.ts";
 import { storeState } from "#test/storeState.ts";
 
-export function daemonFollowerVerbs(engine: DaemonEngine, tell: (line: string) => void) {
+export function daemonFollowerVerbs(engine: DaemonStoryEngine, tell: (line: string) => void) {
 	return {
 		follow: (command: "wait" | "watch", ids: readonly string[], options: FollowOptions = {}) =>
 			Effect.gen(function* () {

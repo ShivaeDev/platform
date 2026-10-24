@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import type { DaemonEngine } from "#test/daemonStory.ts";
+import type { DaemonStoryEngine } from "#test/DaemonStoryEngine.ts";
 import { followServer } from "#test/followServer.ts";
 
-export function daemonWireVerbs(engine: DaemonEngine, story: { tell: (line: string) => void }) {
+export function daemonWireVerbs(engine: DaemonStoryEngine, story: { tell: (line: string) => void }) {
 	return {
 		awaitWire: () => {
 			if (engine.wire === undefined) {
