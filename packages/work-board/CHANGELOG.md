@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.30.3 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.30.2 - 2026-10-24
 
 ### Changed
