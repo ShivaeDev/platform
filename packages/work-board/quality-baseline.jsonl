@@ -15,8 +15,6 @@
 {"path":"packages/work-board/src/client/react/palette.dom.spec.tsx","rule":"tests/named-values","count":2}
 {"path":"packages/work-board/src/client/react/projections.dom.spec.tsx","rule":"tests/named-values","count":3}
 {"path":"packages/work-board/src/client/react/questionnaireDrafts.dom.spec.tsx","rule":"tests/named-values","count":4}
-{"path":"packages/work-board/src/client/react/readerLink.dom.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-board/src/client/react/retryPage.ts","rule":"boundaries/http-status","count":1}
 {"path":"packages/work-board/src/client/react/sidebarLibrary.dom.spec.tsx","rule":"tests/named-values","count":4}
 {"path":"packages/work-board/src/client/react/sourceLists.dom.spec.tsx","rule":"tests/named-values","count":3}
 {"path":"packages/work-board/src/client/react/todayOverview.dom.spec.tsx","rule":"tests/named-values","count":2}

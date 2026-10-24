@@ -36,7 +36,15 @@ export function DocumentMain({
 	const terminal = failure?._tag === "Conflict" || failure?._tag === "NotFound";
 	const data = terminal ? undefined : (fresh ?? (retained?.url === url ? retained.data : undefined));
 	const status = readStatus(failure?._tag, Option.isSome(query.cause));
-	const hostRef = useDocumentPage({ data, onPage, pending: query.pending, status, title: documentTitle(url), url });
+	const hostRef = useDocumentPage({
+		data,
+		failure: Option.getOrUndefined(query.cause),
+		onPage,
+		pending: query.pending,
+		status,
+		title: documentTitle(url),
+		url,
+	});
 	if (data?.reading?.board) {
 		return <ProjectionMain api={api} onPage={onPage} route="board" url={url} />;
 	}

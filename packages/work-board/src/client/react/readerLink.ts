@@ -1,6 +1,6 @@
-export function readerLink(target: URL) {
+export function readerLink(target: URL, origin: string) {
 	return (
-		target.origin === location.origin
+		target.origin === origin
 		&& (target.pathname === "/"
 			|| /^\/_board\/(?:library|goals|system|diagnostics|handoff|result|start|changes|inbox|overview|work|pull-requests)$/u.test(target.pathname)
 			|| target.pathname.startsWith("/_board/item/")
