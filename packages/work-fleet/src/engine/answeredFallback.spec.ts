@@ -1,86 +1,86 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
-import { prepareWork } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
-import { answerWorker, askWorker, QUESTION } from "#test/workerQuestion.ts";
+import { exhaustedQuestionThread, failedAnswerSubmission } from "#test/answeredFallbackTraits.ts";
+import { engine, isolatedEngine } from "#test/engineStory.ts";
+import { markdownWork } from "#test/engineTraits.ts";
+import { QUESTION } from "#test/workerQuestion.ts";
 
-postgresTests("test", "isolated")("a definitively wedged question thread continues with its answer and existing PR after restart", () => {
+{
 	let now = 100;
 	let unusableSession: string | undefined;
 	const rejection = new SessionFailure({ code: "session-active-turn-exhausted", message: "Thread cannot accept another turn", reason: "rejected" });
-	return withFleetBoard(
-		{
-			decorateTransport: (transport) => ({
-				...transport,
-				startTurn: (input) => (input.sessionId === unusableSession ? Effect.fail(rejection) : transport.startTurn(input)),
-			}),
-			now: () => now,
+	isolatedEngine.it(
+		"a definitively wedged question thread continues with its answer and existing PR after restart",
+		[markdownWork(), exhaustedQuestionThread({ now: () => now, rejection: () => rejection, unusableSession: () => unusableSession })],
+		function* ({ replaceStoredRecord, answerWorker, launches, providerStarts, workerQuestion, prepareWork, restart, fleet }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			yield* workerQuestion("one", QUESTION);
+			const stopped = yield* fleet.reconcile("one");
+			const decision = stopped.value.decision;
+			if (decision?.published === undefined) {
+				return yield* Effect.die("Missing published worker question");
+			}
+			const result = { head: "existing-head", kind: "change" as const, paths: ["src/one.ts"], pr: "https://github.com/example/repository/pull/1" };
+			yield* replaceStoredRecord({ ...stopped.value, result });
+			const answer = yield* answerWorker(decision);
+			unusableSession = decision.worker?.sessionId;
+			const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
+			expect(queued.step).toBe("repairing");
+			expect(queued.decision).toBeUndefined();
+			expect(queued.attempts.at(-1)).toMatchObject({ sessionUnusable: true, status: "failed" });
+			expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
+			now = 30_100;
+			const resumed = (yield* Effect.gen(function* () {
+				yield* restart();
+				return yield* fleet.reconcile("one");
+			})).value;
+			expect(resumed.step).toBe("working");
+			expect(resumed.result).toEqual(result);
+			expect(resumed.preparation).toEqual(stopped.value.preparation);
+			expect(resumed.attempts.at(-1)?.receipt?.sessionId).not.toBe(unusableSession);
+			expect(providerStarts().at(-1)?.prompt).toContain(stopped.value.prompt);
+			expect(providerStarts().at(-1)?.prompt).toContain(QUESTION);
+			expect(providerStarts().at(-1)?.prompt).toContain(answer.body);
+			expect(providerStarts().at(-1)?.prompt).toContain(result.pr);
+			expect(providerStarts().at(-1)?.prompt).toContain("same branch");
+			expect(launches()).toHaveLength(2);
+			yield* fleet.resolve("one", decision.id, answer.id);
+			expect((yield* fleet.get("one")).value.attempts).toEqual(resumed.attempts);
 		},
-		(fixture, root) =>
-			Effect.gen(function* () {
-				const fleet = yield* Fleet;
-				yield* prepareWork("one");
-				yield* fleet.dispatch("one");
-				const { decision, stopped } = yield* askWorker(fixture);
-				const result = {
-					head: "existing-head",
-					kind: "change" as const,
-					paths: ["src/one.ts"],
-					pr: "https://github.com/example/repository/pull/1",
-				};
-				yield* fixture.replaceRecord({ ...stopped.value, result });
-				const answer = yield* answerWorker(root, decision);
-				unusableSession = decision.worker?.sessionId;
-				const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
-				expect(queued.step).toBe("repairing");
-				expect(queued.decision).toBeUndefined();
-				expect(queued.attempts.at(-1)).toMatchObject({ sessionUnusable: true, status: "failed" });
-				expect(queued.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
-				now = 30_100;
-				const resumed = (yield* fixture.restart(fleet.reconcile("one"))).value;
-				expect(resumed.step).toBe("working");
-				expect(resumed.result).toEqual(result);
-				expect(resumed.preparation).toEqual(stopped.value.preparation);
-				expect(resumed.attempts.at(-1)?.receipt?.sessionId).not.toBe(unusableSession);
-				expect(fixture.starts.at(-1)?.prompt).toContain(stopped.value.prompt);
-				expect(fixture.starts.at(-1)?.prompt).toContain(QUESTION);
-				expect(fixture.starts.at(-1)?.prompt).toContain(answer.body);
-				expect(fixture.starts.at(-1)?.prompt).toContain(result.pr);
-				expect(fixture.starts.at(-1)?.prompt).toContain("same branch");
-				expect(fixture.launched).toHaveLength(2);
-				yield* fleet.resolve("one", decision.id, answer.id);
-				expect((yield* fleet.get("one")).value.attempts).toEqual(resumed.attempts);
-			}),
 	);
-});
+}
 
 for (const reason of ["rejected", "ambiguous", "unavailable"] as const) {
-	postgresTests("test")(`a ${reason} submission without definite exhaustion retains the answer without starting another thread`, () => {
+	{
 		let fail = false;
 		const failure = new SessionFailure({ code: "session-rejected", message: "Continuation failed", reason });
-		return withFleetBoard(
-			{
-				submissionFailure: (call) => (fail && call === "turn" ? failure : undefined),
+		engine.it(
+			`a ${reason} submission without definite exhaustion retains the answer without starting another thread`,
+			[markdownWork(), failedAnswerSubmission({ fail: () => fail, failure: () => failure })],
+			function* ({ answerWorker, launches, workerQuestion, prepareWork, restart, fleet }) {
+				yield* prepareWork("one");
+				yield* fleet.dispatch("one");
+				yield* workerQuestion("one", QUESTION);
+				const stopped = yield* fleet.reconcile("one");
+				const decision = stopped.value.decision;
+				if (decision?.published === undefined) {
+					return yield* Effect.die("Missing published worker question");
+				}
+				const answer = yield* answerWorker(decision);
+				fail = true;
+				yield* fleet.resolve("one", decision.id, answer.id);
+				const blocked = (yield* Effect.gen(function* () {
+					yield* restart();
+					return yield* fleet.reconcile("one");
+				})).value;
+				expect(blocked.step).toBe("waiting");
+				expect(blocked.attempts).toHaveLength(2);
+				expect(blocked.attempts.at(-1)?.sessionUnusable).toBeUndefined();
+				expect(blocked.responses).toMatchObject([{ responseId: answer.id }]);
+				expect(launches()).toHaveLength(1);
 			},
-			(fixture, root) =>
-				Effect.gen(function* () {
-					const fleet = yield* Fleet;
-					yield* prepareWork("one");
-					yield* fleet.dispatch("one");
-					const { decision } = yield* askWorker(fixture);
-					const answer = yield* answerWorker(root, decision);
-					fail = true;
-					yield* fleet.resolve("one", decision.id, answer.id);
-					const blocked = (yield* fixture.restart(fleet.reconcile("one"))).value;
-					expect(blocked.step).toBe("waiting");
-					expect(blocked.attempts).toHaveLength(2);
-					expect(blocked.attempts.at(-1)?.sessionUnusable).toBeUndefined();
-					expect(blocked.responses).toMatchObject([{ responseId: answer.id }]);
-					expect(fixture.launched).toHaveLength(1);
-				}),
 		);
-	});
+	}
 }

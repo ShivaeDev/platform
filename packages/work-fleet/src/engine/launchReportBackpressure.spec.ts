@@ -1,58 +1,50 @@
-import { NodeServices } from "@effect/platform-node";
 import { describe, expect } from "@effect/vitest";
-import { Effect, Layer } from "effect";
-import { markdownBoard } from "#board/markdown.ts";
-import { cycle } from "#engine/scheduler.ts";
 import { views } from "#engine/views.ts";
-import { Fleet } from "#fleet.ts";
-import { SessionFailure } from "#session/schema.ts";
-import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { reportBoard } from "#test/report.ts";
+import { engine } from "#test/engineStory.ts";
+import { queuedReportWork } from "#test/queuedReportWork.ts";
 
 describe("report launch backpressure", () => {
-	const test = postgresTests("test");
-	test("a queued report retains its report prompt through restart and publishes its result", () =>
-		Effect.gen(function* () {
-			const root = yield* reportBoard;
-			let now = 100;
-			let reject = true;
-			return yield* withEngine(
-				{
-					now: () => now,
-					submissionFailure: () =>
-						reject ? new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" }) : undefined,
-					workerGuidance: "Follow synthetic report conventions.",
-				},
-				(fixture) =>
-					Effect.gen(function* () {
-						yield* prepareWork("one");
-						const fleet = yield* Fleet;
-						yield* cycle;
-						const queued = (yield* fleet.get("one")).value;
-						expect(queued.attentionOwner).toBe("automation");
-						expect(queued).toMatchObject({ deliverable: "report", step: "queued" });
-						reject = false;
-						now = 30_099;
-						yield* fixture.restart(cycle);
-						expect(fixture.launched).toHaveLength(1);
-						now = 30_100;
-						yield* fixture.restart(cycle);
-						expect(fixture.launched).toHaveLength(2);
-						const [observation] = fixture.observations.values();
-						expect(observation?.output).toBe(queued.attempts[0]?.prompt);
-						expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");
-						expect(observation?.output).toContain("Never publish attachments to git or GitHub.");
-						expect(observation?.output).toContain("Follow synthetic report conventions.");
-						finishWorkers(fixture);
-						const completed = (yield* fleet.reconcile("one")).value;
-						expect(completed.step).toBe("done");
-						expect(completed.launchRetry).toBeUndefined();
-						expect(completed.report?.receipt).toEqual(observation?.receipt);
-						expect(views([completed]).completed[0]?.links).toEqual([completed.report?.sourcePath]);
-						expect(fixture.reviews).toEqual([]);
-					}),
-				markdownBoard(root).pipe(Layer.provide(NodeServices.layer)),
-			);
-		}).pipe(Effect.provide(NodeServices.layer)));
+	engine.it(
+		"a queued report retains its report prompt through restart and publishes its result",
+		[queuedReportWork()],
+		function* ({
+			providerObservations,
+			launches,
+			reviewedHeads,
+			advanceTime,
+			recoverProvider,
+			finishWorkers,
+			prepareWork,
+			restart,
+			fleet,
+			schedule,
+		}) {
+			yield* prepareWork("one");
+			yield* schedule();
+			const queued = (yield* fleet.get("one")).value;
+			expect(queued.attentionOwner).toBe("automation");
+			expect(queued).toMatchObject({ deliverable: "report", step: "queued" });
+			recoverProvider();
+			advanceTime(29_999);
+			yield* restart();
+			yield* schedule();
+			expect(launches()).toHaveLength(1);
+			advanceTime(1);
+			yield* restart();
+			yield* schedule();
+			expect(launches()).toHaveLength(2);
+			const [observation] = providerObservations();
+			expect(observation?.output).toBe(queued.attempts[0]?.prompt);
+			expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");
+			expect(observation?.output).toContain("Never publish attachments to git or GitHub.");
+			expect(observation?.output).toContain("Follow synthetic report conventions.");
+			finishWorkers();
+			const completed = (yield* fleet.reconcile("one")).value;
+			expect(completed.step).toBe("done");
+			expect(completed.launchRetry).toBeUndefined();
+			expect(completed.report?.receipt).toEqual(observation?.receipt);
+			expect(views([completed]).completed[0]?.links).toEqual([completed.report?.sourcePath]);
+			expect(reviewedHeads()).toEqual([]);
+		},
+	);
 });

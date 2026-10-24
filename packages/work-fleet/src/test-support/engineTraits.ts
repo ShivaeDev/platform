@@ -90,3 +90,6 @@ export function reviewFollowUpAcknowledgementLost() {
 export function advisoryReviews() {
 	return engineConfiguration("reviews are advisory", () => ({ review: "advisory" }));
 }
+
+export const oneExecutionSlot = engineConfiguration("only one worker executes at a time", () => ({ concurrency: 1 }));
+export const failedBoardAcknowledgement = engineConfiguration("the first Board acknowledgement fails", () => ({ acknowledgeFailure: true }));
