@@ -15,6 +15,7 @@ import { holdPendingReady } from "#engine/reconcileSweepHold.ts";
 import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { observeReleasedDeliveries } from "#engine/releasedDeliveries.ts";
+import { settleReleasedWork } from "#engine/settleReleasedWork.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
@@ -23,6 +24,7 @@ export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLa
 		stored = yield* holdPendingReady(state, stored);
 		stored = yield* closeDecisions(state)(stored);
 		stored = yield* observeReleasedDeliveries(state, stored);
+		stored = yield* settleReleasedWork(state, stored);
 		if (stored.value.pendingContinuation !== undefined) {
 			return yield* launch(stored, "repair", stored.value.pendingContinuation);
 		}
