@@ -1,6 +1,5 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { prepareWork } from "#test/engine.ts";
@@ -20,10 +19,7 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "execution without an intent",
-			progress: (_ctx, _before, after) => {
-				expect(after.attempts).toHaveLength(1);
-				expect(after.step).toBe("working");
-			},
+			recovery: "start-unrecorded-worker",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
@@ -41,10 +37,7 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "report without done execution",
-			progress: (_ctx, before, after) => {
-				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-				expect(after.step).toBe("working");
-			},
+			recovery: "replace-failed-report-worker",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
@@ -80,10 +73,7 @@ export function recoveryRecordCases(): readonly RecoveryCase[] {
 					return context === undefined ? Effect.die("Missing context") : context.github.resultQuery(...args);
 				},
 			},
-			progress: (_ctx, before, after) => {
-				expect(after.result?.head).toBe(MOVED);
-				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-			},
+			recovery: "observe-moved-delivery-head",
 			restore: () =>
 				Effect.sync(() => {
 					moved = false;

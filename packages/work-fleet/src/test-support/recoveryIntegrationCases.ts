@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
@@ -19,9 +18,7 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 			options: {
 				checksQuery: (result) => Effect.sync(() => ({ evidence: ["Required check"], head: result.head, passed: !invalidChecks })),
 			},
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("released");
-			},
+			recovery: "adopt-validated-merge",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					invalidChecks = false;
@@ -62,11 +59,7 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 				yield* fleet.reconcile("one");
 			}),
 			name: "done worker lacks receipt",
-			progress: (_ctx, before, after) => {
-				expect(after.attempts[0]?.receipt).toBeDefined();
-				expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
-				expect(after.result?.kind).toBe("no-change");
-			},
+			recovery: "recover-worker-receipt",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					setLastObservation(ctx, { execution: "completed", output: `Recovered report.\nFLEET_HEAD: ${HEAD}\nFLEET_PR: none` });
@@ -88,10 +81,7 @@ export function recoveryIntegrationCases(): readonly RecoveryCase[] {
 					return context === undefined ? Effect.die("Missing context") : context.github.resultQuery(...args);
 				},
 			},
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("reviewing");
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "review-after-result-reader-recovery",
 			restore: () =>
 				Effect.sync(() => {
 					invalidChecks = false;

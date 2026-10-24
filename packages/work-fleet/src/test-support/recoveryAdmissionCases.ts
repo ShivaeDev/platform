@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { enginePolicy } from "#test/enginePolicy.ts";
@@ -27,7 +26,7 @@ export function recoveryAdmissionCases(): readonly RecoveryCase[] {
 					);
 				},
 			},
-			progress: (_current, _before, after) => expect(after.step).toBe("released"),
+			recovery: "admitted-human-merge",
 			restore: (current) =>
 				Effect.sync(() => {
 					restored = true;

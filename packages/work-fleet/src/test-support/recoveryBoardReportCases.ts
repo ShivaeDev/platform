@@ -1,6 +1,5 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportFileName } from "#board/reportLinks.ts";
@@ -82,13 +81,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 				reportAttachmentsQuery: () => Effect.succeed({ files: [{ bytes: Buffer.from("Exact findings"), path: "findings.txt" }], unavailable: [] }),
 				reportPublicationQuery: () => Effect.succeed(false),
 			},
-			progress: (_ctx, before, after) => {
-				expect(after.step).toBe("done");
-				expect(after.attempts.map(({ operationId, receipt, output }) => ({ operationId, output, receipt }))).toEqual(
-					before.attempts.map(({ operationId, receipt, output }) => ({ operationId, output, receipt })),
-				);
-				expect(after.report?.receipt).toEqual(before.attempts.at(-1)?.receipt);
-			},
+			recovery: "record-board-report",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
