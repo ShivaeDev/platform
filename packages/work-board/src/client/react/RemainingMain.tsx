@@ -4,6 +4,7 @@ import { HandoffPage } from "./HandoffPage.tsx";
 import { LibraryMain } from "./LibraryMain.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
+import { pageFailureCauses } from "./pageFailureCauses.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -58,7 +59,12 @@ export function RemainingMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.handoff.query({ url }, routeQueryOptions)}
-					location={(data) => ({ file: "Handoff", status: data.source || data.reading.records.length > 0 ? 200 : 409, view: "handoff" })}
+					location={(data) => ({
+						failure: data.source || data.reading.records.length > 0 ? undefined : pageFailureCauses.conflict,
+						file: "Handoff",
+						status: data.source || data.reading.records.length > 0 ? 200 : 409,
+						view: "handoff",
+					})}
 					render={(data) => <HandoffPage data={data} />}
 				/>
 			);

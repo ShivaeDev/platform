@@ -37,6 +37,7 @@ export function ProjectionFrame<A, E extends { readonly _tag: string; readonly m
 	const hostRef = useRef<HTMLElement>(null);
 	const renderedRef = useRef<RenderedProjection | undefined>(undefined);
 	const failed = Option.isSome(query.cause);
+	const pageFailure = Option.getOrUndefined(query.cause) ?? main.failure;
 	useLayoutEffect(() => {
 		const element = hostRef.current;
 		if (element) {
@@ -61,6 +62,7 @@ export function ProjectionFrame<A, E extends { readonly _tag: string; readonly m
 				mainElement.dataset.route = url;
 				flushSync(() =>
 					onPage({
+						failure: pageFailure,
 						file: main.file,
 						projection: route,
 						route: url,
@@ -88,7 +90,7 @@ export function ProjectionFrame<A, E extends { readonly _tag: string; readonly m
 			active = false;
 			observer.disconnect();
 		};
-	}, [data, failed, query.pending, expectedSource, main.file, main.status, main.view, onPage, route, url]);
+	}, [data, failed, pageFailure, query.pending, expectedSource, main.file, main.status, main.view, onPage, route, url]);
 	return (
 		<>
 			<main

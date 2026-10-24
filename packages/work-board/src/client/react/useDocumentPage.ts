@@ -1,3 +1,4 @@
+import type { Cause } from "effect";
 import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import type { Document } from "#browser/document/schema.ts";
@@ -6,6 +7,7 @@ import { fileUrl } from "#files/url.ts";
 import type { MainLocation } from "./mainLocation.ts";
 export function useDocumentPage({
 	data,
+	failure,
 	pending,
 	status,
 	onPage,
@@ -13,6 +15,7 @@ export function useDocumentPage({
 	url,
 }: {
 	readonly data: Document | undefined;
+	readonly failure: Cause.Cause<unknown> | undefined;
 	readonly pending: boolean;
 	readonly status: string;
 	readonly title?: string | undefined;
@@ -40,7 +43,7 @@ export function useDocumentPage({
 				if (!(active && contentReady(main, data, status, pending))) {
 					return;
 				}
-				publishPage(main, data, status, url, title, onPage);
+				publishPage(main, data, status, url, title, onPage, failure);
 			});
 		}
 		const observer = new MutationObserver((records) => {
@@ -54,7 +57,7 @@ export function useDocumentPage({
 			observer.disconnect();
 			active = false;
 		};
-	}, [data, pending, status, onPage, title, url]);
+	}, [data, failure, pending, status, onPage, title, url]);
 	return hostRef;
 }
 
@@ -71,6 +74,7 @@ function publishPage(
 	url: string,
 	title: string | undefined,
 	onPage: (location: MainLocation) => void,
+	failure: Cause.Cause<unknown> | undefined,
 ) {
 	main.dataset.file = data?.file ?? "";
 	main.dataset.url = data ? fileUrl(data.file) : url;
@@ -83,6 +87,7 @@ function publishPage(
 	main.dataset.status = status;
 	flushSync(() =>
 		onPage({
+			failure,
 			file: data?.file ?? "",
 			projection: "document",
 			route: url,

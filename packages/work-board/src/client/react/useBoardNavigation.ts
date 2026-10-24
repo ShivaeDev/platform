@@ -108,7 +108,7 @@ export function useBoardNavigation(shell: RouterShell, onCurrentDestination?: ()
 				return;
 			}
 			const target = new URL(link.href, location.href);
-			if (!readerLink(target)) {
+			if (!readerLink(target, location.origin)) {
 				return;
 			}
 			event.preventDefault();

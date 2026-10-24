@@ -2,6 +2,7 @@ import { documentSourceId } from "#client/document/layout.ts";
 import { HomeBoard } from "./HomeBoard.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
+import { pageFailureCauses } from "./pageFailureCauses.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -25,7 +26,12 @@ export function ProjectionMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.inbox.query(undefined, routeQueryOptions)}
-					location={(data) => ({ file: "Today", status: data.complete ? 200 : 503, view: "today" })}
+					location={(data) => ({
+						failure: data.complete ? undefined : pageFailureCauses.unavailable,
+						file: "Today",
+						status: data.complete ? 200 : 503,
+						view: "today",
+					})}
 					render={(data) => <TodayPage api={api} data={data} />}
 				/>
 			);
@@ -44,7 +50,12 @@ export function ProjectionMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.work.query({ url }, routeQueryOptions)}
-					location={(data) => ({ file: "Work", status: data.validBoard ? 200 : 404, view: "work" })}
+					location={(data) => ({
+						failure: data.validBoard ? undefined : pageFailureCauses.notFound,
+						file: "Work",
+						status: data.validBoard ? 200 : 404,
+						view: "work",
+					})}
 					render={(data) => <WorkPage api={api} data={data} />}
 					source={(data) => (data.selected ? documentSourceId(data.selected) : undefined)}
 				/>

@@ -5,7 +5,7 @@ import type { ShellApi } from "./ShellApi.ts";
 
 export function retryPage(api: ShellApi, registry: AtomRegistry.AtomRegistry, page: MainLocation) {
 	const queries = pageQueries(api, page.projection, page.route);
-	if (page.status < 400 && !queries.some((query) => registry.get(query)._tag === "Failure")) {
+	if (!(page.failure || queries.some((query) => registry.get(query)._tag === "Failure"))) {
 		return false;
 	}
 	for (const query of queries) {
