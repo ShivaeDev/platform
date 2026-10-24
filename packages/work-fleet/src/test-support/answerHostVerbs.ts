@@ -5,8 +5,10 @@ import type { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
 import { pauseAdmission } from "#test/busyAdmission.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { cliProcess } from "#test/fleetCli.ts";
+import type { HostDaemon } from "#test/startHostDaemon.ts";
 
 export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) => void) {
+	const request: HostDaemon["client"] = (...args) => engine.running.client(...args);
 	function cli(args: readonly string[]) {
 		return Effect.gen(function* () {
 			tell(`run work-fleet ${args.join(" ")}`);
@@ -26,7 +28,8 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 			tell(`record an answer for ${workId}`);
 			return daemonRequest(engine.running.port, (client) => client("daemon.answer", { release, text, workId }), `answer ${workId}`, 500);
 		},
-		answerAndWait: (text: string, release = false, workId = "one") => answerAndWait(engine.running.client, { release, text, workId }),
+		answerAndWait: (text?: string, release = false, workId = "one") =>
+			answerAndWait(engine.running.client, { release, ...(text === undefined ? {} : { text }), workId }),
 		applied: (workId = "one") => appliedAnswer(engine.running.client, workId),
 		cliAnswer: (workId: string, text: string, release = false) => cli(["answer", workId, ...(release ? ["--release"] : [text])]),
 		cliRelease: (...workIds: readonly string[]) => cli(["release", ...workIds]),
@@ -44,6 +47,7 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 				return admission;
 			}),
 		reconcile: (workId = "one") => engine.running.client("fleet.reconcile", { workId }),
+		request,
 		resolve: (decisionId: string, responseId: string, workId = "one") => engine.running.client("fleet.resolve", { decisionId, responseId, workId }),
 		responseIndexBuilds: () => engine.spans.count("WorkBoard.searchSnapshot"),
 		start: () => {

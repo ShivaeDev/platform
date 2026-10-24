@@ -1,42 +1,19 @@
-import { expect } from "@effect/vitest";
-import { Deferred, Effect, Stream } from "effect";
+import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { SqlClient } from "effect/sql";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
-import { daemonClient } from "#host/daemonClient.ts";
+import type { FleetRecord } from "#model.ts";
 import { until } from "#test/cloudRestart.ts";
-import type { HostFixture } from "#test/fleetHost.ts";
-import { withReadDaemon } from "#test/readDaemon.ts";
-import { statusRecord } from "#test/status.ts";
+import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { storeState } from "#test/storeState.ts";
 
-export const daemonResync = Effect.fn("DaemonTest.daemonResync")(function* (fixture: HostFixture) {
-	const sql = yield* SqlClient.SqlClient;
-	yield* storeState(fixture.host, "one", statusRecord("one"));
-	return yield* withReadDaemon(
-		fixture.host,
-		(port) =>
+export function daemonResync(engine: HostStoryEngine) {
+	return {
+		awaitSnapshots: (count: number) => until(() => Effect.succeed(engine.snapshots.length >= count)),
+		commitWithoutHint: (record: FleetRecord) =>
 			Effect.gen(function* () {
-				const client = yield* daemonClient(port);
-				const ready = yield* Deferred.make<void>();
-				const received: unknown[] = [];
-				yield* client("daemon.follow", { follow: true, workIds: ["one"] }).pipe(
-					Stream.tap((states) => Effect.sync(() => received.push(states))),
-					Stream.tap(() => Deferred.succeed(ready, undefined)),
-					Stream.runDrain,
-					Effect.forkScoped,
-				);
-				yield* Deferred.await(ready);
-				yield* storeState(fixture.host, "one", statusRecord("one", "done")).pipe(
-					Effect.provideService(Reactivity.Reactivity, yield* Reactivity.make),
-					Effect.provideService(SqlClient.SqlClient, sql),
-				);
-				yield* Effect.sleep("100 millis");
-				expect(received).toMatchObject([[{ stage: "working", workId: "one" }]]);
-				yield* (yield* AppChanges).resync;
-				yield* until(() => Effect.succeed(received.length === 2));
-				expect(received).toMatchObject([[{ stage: "working", workId: "one" }], [{ stage: "done", workId: "one" }]]);
+				const reactivity = yield* Reactivity.make;
+				yield* storeState(engine.fixture.host, record.workId, record).pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 			}),
-		{ parts: fixture.parts },
-	);
-});
+		resync: () => Effect.flatMap(AppChanges, (changes) => changes.resync).pipe(Effect.provideContext(engine.running.context)),
+	};
+}
