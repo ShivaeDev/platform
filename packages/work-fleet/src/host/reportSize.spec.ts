@@ -1,41 +1,29 @@
-import { readdirSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { cycle } from "#engine/scheduler.ts";
-import { Fleet } from "#fleet.ts";
-import { hostLayer } from "#host/commands.ts";
-import { dispatchWork } from "#test/dispatchWork.ts";
-import { withHost } from "#test/fleetHost.ts";
-import { postgresTests } from "#test/postgres.ts";
+import { REPORT_SOURCE } from "#test/hostReportTraits.ts";
+import { boardWork, host } from "#test/hostStory.ts";
 
-postgresTests("live")("an oversized report needs a human once across scheduler retries and host restart", () =>
-	withHost({ "research.md": "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n" }, {}, (fixture) =>
-		Effect.gen(function* () {
-			yield* dispatchWork(fixture.host, "research", fixture.parts);
-			for (const [id, current] of fixture.provider.observations) {
-				fixture.provider.observations.set(id, { ...current, execution: "completed", output: "界".repeat((256 * 1024) / 3) });
-			}
-			const first = yield* Effect.gen(function* () {
-				return yield* (yield* Fleet).reconcile("research");
-			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			expect(first.value.step).toBe("waiting");
-			expect(first.value.attentionOwner).toBe("orchestrator");
-			expect(first.value.decision?.attentionOwner).toBe("orchestrator");
-			expect(first.value.decision?.reason).toContain("256 KiB context limit");
-			expect(first.value.decisionPublished).toBe(true);
-			expect(first.value.report).toBeUndefined();
-			const files = readdirSync(join(fixture.host.boardDir, "responses"));
-			expect(files.some((file) => file.startsWith("fleet-report."))).toBe(false);
-			yield* Effect.gen(function* () {
-				const fleet = yield* Fleet;
-				for (let pass = 0; pass < 3; pass += 1) {
-					yield* cycle;
-					expect(yield* fleet.get("research")).toEqual(first);
-				}
-			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			expect(readdirSync(join(fixture.host.boardDir, "responses"))).toEqual(files);
-			expect(fixture.provider.launched).toHaveLength(1);
-		}),
-	),
+host.it(
+	"an oversized report needs a human once across scheduler retries and host restart",
+	[boardWork({ "research.md": REPORT_SOURCE })],
+	function* (daemon) {
+		const started = yield* daemon.approve("research");
+		daemon.finishTurn(started.value, "界".repeat((256 * 1024) / 3));
+		const first = yield* daemon.reconcile("research");
+		expect(first.step).toBe("waiting");
+		expect(first.attentionOwner).toBe("orchestrator");
+		expect(first.decision?.attentionOwner).toBe("orchestrator");
+		expect(first.decision?.reason).toContain("256 KiB context limit");
+		expect(first.decisionPublished).toBe(true);
+		expect(first.report).toBeUndefined();
+		const files = daemon.boardFiles("responses");
+		expect(files.some((file) => file.startsWith("fleet-report."))).toBe(false);
+		yield* daemon.stop();
+		yield* daemon.start();
+		for (let pass = 0; pass < 3; pass += 1) {
+			yield* daemon.schedule();
+			expect(yield* daemon.get("research")).toEqual(first);
+		}
+		expect(daemon.boardFiles("responses")).toEqual(files);
+		expect(daemon.providerLaunches()).toHaveLength(1);
+	},
 );

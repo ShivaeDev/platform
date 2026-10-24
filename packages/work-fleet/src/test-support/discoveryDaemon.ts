@@ -13,10 +13,28 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 	const close = Scope.close(scope, Exit.void);
 	yield* Effect.addFinalizer(() => close);
 	const subscribed = Promise.withResolvers<void>();
-	const context = yield* Layer.buildWithScope(
-		readDaemonLayer(fixture.host, { onSnapshot: () => subscribed.resolve(), parts: fixture.parts, port }),
-		scope,
-	);
+	let snapshots = 0;
+	const waiters = new Set<() => void>();
+	function onSnapshot() {
+		snapshots += 1;
+		subscribed.resolve();
+		for (const ready of waiters) {
+			ready();
+		}
+	}
+	function nextSnapshot(previous: number) {
+		return new Promise<void>((resolve) => {
+			function ready() {
+				if (snapshots > previous) {
+					waiters.delete(ready);
+					resolve();
+				}
+			}
+			waiters.add(ready);
+			ready();
+		});
+	}
+	const context = yield* Layer.buildWithScope(readDaemonLayer(fixture.host, { onSnapshot, parts: fixture.parts, port }), scope);
 	const address = Context.get(context, HttpServer.HttpServer).address;
 	if (!NetAddress.isInetAddress(address)) {
 		return yield* Effect.die("Expected a TCP Fleet daemon");
@@ -24,5 +42,12 @@ export const discoveryDaemon = Effect.fn("DaemonStory.discoveryDaemon")(function
 	if (address.port === DAEMON_PORT) {
 		return yield* Effect.die("Discovery stories require a non-default daemon port");
 	}
-	return { close, port: address.port, reactivity: Context.get(context, Reactivity.Reactivity), subscribed: subscribed.promise };
+	return {
+		close,
+		nextSnapshot,
+		port: address.port,
+		reactivity: Context.get(context, Reactivity.Reactivity),
+		snapshotCount: () => snapshots,
+		subscribed: subscribed.promise,
+	};
 });

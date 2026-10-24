@@ -1,5 +1,6 @@
-import type { Deferred, Effect, Layer } from "effect";
+import type { Context, Deferred, Effect, Layer } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
+import type { Health, HealthPublication, HealthSnapshot } from "#engine/health.ts";
 import type { Fleet } from "#fleet.ts";
 import type { MainSource } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
@@ -31,14 +32,19 @@ export interface EngineStory extends EngineWorld {
 	predictionMain?: typeof MainSource.Service;
 	predictionRepository?: PredictionRepository;
 	previousFleet?: typeof Fleet.Service;
+	publicationContext?: Context.Context<typeof Fleet.Identifier | Health | HealthPublication | HealthSnapshot>;
+	publishViews?: boolean;
 	readinessPublications?: BoardDecision[];
 	recovery: RecoveryWorld;
+	restoreHealth?: () => void;
+	restoreStatus?: () => void;
 	resultObservation?: { value: WorkResult; unavailable: boolean };
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
 	source: string;
 	sweepReadiness?: { readonly entered: Deferred.Deferred<void>; readonly resume: Deferred.Deferred<void> };
 	sweepRequests?: Map<string, SweepPullRequest>;
+	validationEntered?: Deferred.Deferred<void>;
 	workId: string;
 }
 

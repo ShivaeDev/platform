@@ -6,17 +6,18 @@ import type { FleetRecord } from "#model.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import type { Follower } from "#test/followerProcess.ts";
+import { HostStoryScenario } from "#test/HostStoryScenario.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
+import { diagnosticClock, hostScenarioParts, hostStoryDaemon } from "#test/hostStoryRuntime.ts";
 import { localBoardHost } from "#test/localBoardHost.ts";
 import { movingMainSource } from "#test/mainSource.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { questionPublicationBoard } from "#test/questionPublicationVerbs.ts";
-import { readDaemonLayer } from "#test/readDaemon.ts";
 import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
 import { type HostDaemon, startHostDaemon } from "#test/startHostDaemon.ts";
 import { storeState } from "#test/storeState.ts";
 
-export class HostStoryEngine {
+export class HostStoryEngine extends HostStoryScenario {
 	files: Record<string, string> = {};
 	config: Partial<HostConfig> = {};
 	stored: Record<string, Readonly<Record<string, unknown>> & { readonly stage: FleetRecord["stage"] }> = {};
@@ -26,6 +27,7 @@ export class HostStoryEngine {
 	workerContexts: Context.Context<never>[] | undefined;
 	pullRequest: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	localBoard = false;
+
 	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
 	questionRegistrationClock: Clock.Clock | undefined;
@@ -37,6 +39,9 @@ export class HostStoryEngine {
 	#runtime: HostDaemon | undefined;
 	#subscribed = Promise.withResolvers<void>();
 
+	get observedProvider() {
+		return this.providerFixture ?? this.fixture.provider;
+	}
 	get fixture() {
 		if (this.#fixture === undefined) {
 			throw new Error("The host has not been created");
@@ -70,7 +75,7 @@ export class HostStoryEngine {
 		const engine = this;
 		return Effect.gen(function* () {
 			if (engine.localBoard) {
-				const local = localBoardHost(yield* hostFixture({}, engine.config));
+				const local = localBoardHost(yield* hostFixture({}, engine.config), engine.localBoardOptions);
 				engine.repositoryRoot = local.repositoryRoot;
 				engine.#fixture = local.fixture(engine.files);
 			} else {
@@ -81,7 +86,12 @@ export class HostStoryEngine {
 			}
 			engine.resources = yield* daemonResources(engine.provider ?? engine.fixture.parts.provider, undefined, engine.workerContexts);
 			engine.reads = snapshotReads(engine.fixture.host);
-			yield* engine.start();
+			if (engine.beforeStart !== undefined) {
+				yield* engine.beforeStart(engine.fixture);
+			}
+			if (!engine.deferStart) {
+				yield* engine.start();
+			}
 		});
 	}
 
@@ -97,7 +107,8 @@ export class HostStoryEngine {
 				return yield* Effect.die("Deploy the host before starting it");
 			}
 			const board = questionPublicationBoard(engine);
-			const parts = { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider };
+			const handlerClock = yield* diagnosticClock(engine);
+			const parts = hostScenarioParts(engine, { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider });
 			if (engine.integrations !== undefined) {
 				parts.integrations = engine.integrations;
 			}
@@ -105,15 +116,8 @@ export class HostStoryEngine {
 				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}
 			engine.#subscribed = Promise.withResolvers<void>();
-			engine.#runtime = yield* reads.observe(
-				startHostDaemon(
-					readDaemonLayer(engine.fixture.host, {
-						onSnapshot: () => engine.#subscribed.resolve(),
-						parts,
-						port,
-					}),
-				),
-			);
+			engine.runningParts = parts;
+			engine.#runtime = yield* reads.observe(startHostDaemon(hostStoryDaemon(engine, parts, port, handlerClock, () => engine.#subscribed.resolve())));
 		});
 	}
 

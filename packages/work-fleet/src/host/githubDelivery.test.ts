@@ -1,74 +1,68 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
 import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
-import { githubDelivery } from "#host/githubDelivery.ts";
+import { githubHost } from "#test/githubHostStory.ts";
 
 const result = { head: "reviewed-head", kind: "change", paths: ["src/task.ts"], pr: "https://github.com/example/repository/pull/42" } as const;
 const open = { headRefOid: result.head, mergeCommit: null, mergedAt: null, state: "OPEN", url: result.pr };
 const merged = { ...open, mergeCommit: { oid: "merge-revision" }, mergedAt: "2026-01-01T00:00:00Z", state: "MERGED" };
 
-it.effect("reads only the adopted PR and waits for a human merge", function* () {
-	const reads: string[] = [];
-	const observe = githubDelivery((pr) => {
-		reads.push(pr);
-		return Effect.succeed(open);
-	});
-	expect(yield* observe(result)).toBeUndefined();
-	expect(reads).toEqual([result.pr]);
+githubHost.it("reads only the adopted PR and waits for a human merge", [], function* (github) {
+	expect(yield* github.delivery(Effect.succeed(open), result)).toBeUndefined();
+	expect(github.deliveryRequests()).toEqual([result.pr]);
 });
 
-it.effect("records the reviewed head and actual merge revision", function* () {
-	expect(yield* githubDelivery(() => Effect.succeed(merged))(result)).toEqual({
+githubHost.it("records the reviewed head and actual merge revision", [], function* (github) {
+	expect(yield* github.delivery(Effect.succeed(merged), result)).toEqual({
 		head: result.head,
 		revision: "merge-revision",
 		url: result.pr,
 	});
 });
 
-it.effect("reports a merged PR at its actual head before checking whether the head moved", function* () {
-	expect(yield* githubDelivery(() => Effect.succeed({ ...merged, headRefOid: "unreviewed-head" }))(result)).toEqual({
+githubHost.it("reports a merged PR at its actual head before checking whether the head moved", [], function* (github) {
+	expect(yield* github.delivery(Effect.succeed({ ...merged, headRefOid: "unreviewed-head" }), result)).toEqual({
 		head: "unreviewed-head",
 		revision: "merge-revision",
 		url: result.pr,
 	});
 });
 
-it.effect("carries the conflicting main revision only for an open PR at the adopted head", function* () {
+githubHost.it("carries the conflicting main revision only for an open PR at the adopted head", [], function* (github) {
 	const conflict = { ...open, baseRefOid: "main-revision", mergeable: "CONFLICTING" };
-	const error = yield* githubDelivery(() => Effect.succeed(conflict))(result).pipe(Effect.flip);
+	const error = yield* github.delivery(Effect.succeed(conflict), result).pipe(Effect.flip);
 	expect(error).toBeInstanceOf(Conflict);
 	expect(failureContext(error)).toMatchObject({ code: "pr-conflicting", mainRevision: "main-revision" });
-	const moved = yield* githubDelivery(() => Effect.succeed({ ...conflict, headRefOid: "new-head" }))(result).pipe(Effect.flip);
+	const moved = yield* github.delivery(Effect.succeed({ ...conflict, headRefOid: "new-head" }), result).pipe(Effect.flip);
 	expect(moved).toBeInstanceOf(Conflict);
-	expect(yield* githubDelivery(() => Effect.succeed({ ...conflict, ...merged }))(result)).toMatchObject({
+	expect(yield* github.delivery(Effect.succeed({ ...conflict, ...merged }), result)).toMatchObject({
 		revision: "merge-revision",
 	});
 });
 
-it.effect("waits for mergeable, unknown or incomplete mergeability observations", function* () {
+githubHost.it("waits for mergeable, unknown or incomplete mergeability observations", [], function* (github) {
 	for (const observation of [
 		{ ...open, baseRefOid: "main-revision", mergeable: "MERGEABLE", mergeStateStatus: "BEHIND" },
 		{ ...open, baseRefOid: "main-revision", mergeable: "UNKNOWN" },
 		{ ...open, mergeable: "CONFLICTING" },
 	]) {
-		expect(yield* githubDelivery(() => Effect.succeed(observation))(result)).toBeUndefined();
+		expect(yield* github.delivery(Effect.succeed(observation), result)).toBeUndefined();
 	}
 });
 
-it.effect("reports a closed unmerged PR explicitly even when its head changed", function* () {
-	const error = yield* githubDelivery(() => Effect.succeed({ ...open, headRefOid: "changed-head", state: "CLOSED" }))(result).pipe(Effect.flip);
+githubHost.it("reports a closed unmerged PR explicitly even when its head changed", [], function* (github) {
+	const error = yield* github.delivery(Effect.succeed({ ...open, headRefOid: "changed-head", state: "CLOSED" }), result).pipe(Effect.flip);
 	expect(error.message).toContain("closed without merging");
 });
 
-it.effect("carries the observed head only when the adopted PR has consistent delivery evidence", function* () {
+githubHost.it("carries the observed head only when the adopted PR has consistent delivery evidence", [], function* (github) {
 	const headRefOid = "current-head";
-	const moved = yield* githubDelivery(() => Effect.succeed({ ...open, headRefOid }))(result).pipe(Effect.flip);
+	const moved = yield* github.delivery(Effect.succeed({ ...open, headRefOid }), result).pipe(Effect.flip);
 	expect(moved).toBeInstanceOf(Conflict);
 	expect(failureContext(moved)).toEqual({ code: "pr-head-moved", head: headRefOid });
-	const inconsistent = yield* githubDelivery(() => Effect.succeed({ ...open, headRefOid, mergedAt: merged.mergedAt }))(result).pipe(Effect.flip);
+	const inconsistent = yield* github.delivery(Effect.succeed({ ...open, headRefOid, mergedAt: merged.mergedAt }), result).pipe(Effect.flip);
 	expect(failureContext(inconsistent).head).toBeUndefined();
 	expect(inconsistent.message).toContain("inconsistent");
 });
@@ -80,19 +74,17 @@ for (const [name, observation, tag] of [
 	["contradictory open evidence", { ...open, mergedAt: merged.mergedAt }, "BadRequest"],
 	["an unknown response", {}, "ServiceUnavailable"],
 ] as const) {
-	it.effect(`rejects ${name}`, function* () {
-		expect(yield* githubDelivery(() => Effect.succeed(observation))(result).pipe(Effect.flip)).toMatchObject({
+	githubHost.it(`rejects ${name}`, [], function* (github) {
+		expect(yield* github.delivery(Effect.succeed(observation), result).pipe(Effect.flip)).toMatchObject({
 			_tag: tag,
 		});
 	});
 }
 
-it.effect("preserves read failures and rejects unsupported URLs before invoking the CLI", function* () {
-	function read() {
-		return Effect.fail(new ServiceUnavailable({ message: "Read failed" }));
-	}
-	expect(yield* githubDelivery(read)(result).pipe(Effect.flip)).toMatchObject({ message: "Read failed" });
-	const invalid = yield* githubDelivery(read)({ ...result, pr: "--repo=example/repository" }).pipe(Effect.flip);
+githubHost.it("preserves read failures and rejects unsupported URLs before invoking the CLI", [], function* (github) {
+	const failure = Effect.fail(new ServiceUnavailable({ message: "Read failed" }));
+	expect(yield* github.delivery(failure, result).pipe(Effect.flip)).toMatchObject({ message: "Read failed" });
+	const invalid = yield* github.delivery(failure, { ...result, pr: "--repo=example/repository" }).pipe(Effect.flip);
 	expect(failureCode(invalid)).toBe("delivery-pr-required");
 	expect(invalid).toMatchObject({
 		_tag: "BadRequest",

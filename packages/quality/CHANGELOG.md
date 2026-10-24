@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.34.0 - 2026-10-24
+
+### Added
+
+- Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+- New apps get the notes example as one removable module and fresh migrations. Apps already generated are unaffected.
+
+### Fixed
+
+- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.
+
 ## 0.33.2 - 2026-10-24
 
 ### Changed

@@ -15,6 +15,7 @@ import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
 import { engineNativeVerbs } from "#test/engineNativeVerbs.ts";
 import { enginePredictionVerbs } from "#test/enginePredictionVerbs.ts";
 import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
+import { enginePublicationVerbs } from "#test/enginePublicationVerbs.ts";
 import { engineRaceVerbs } from "#test/engineRaceVerbs.ts";
 import { engineRecoveryVerbs } from "#test/engineRecoveryVerbs.ts";
 import { engineReportVerbs } from "#test/engineReportVerbs.ts";
@@ -117,6 +118,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 	};
 	return {
 		...verbs,
+		publications: enginePublicationVerbs(state, story.tell),
 		...engineProviderVerbs(running(state).fixture, story.tell),
 		...enginePredictionVerbs(state, story.tell),
 		...engineEvidence(state),
@@ -151,7 +153,8 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		schedule: () =>
 			Effect.suspend(() => {
 				story.tell("run one Fleet scheduler cycle");
-				return provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
+				const scheduled = provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
+				return state.publicationContext === undefined ? scheduled : scheduled.pipe(Effect.provideContext(state.publicationContext));
 			}),
 	};
 }
