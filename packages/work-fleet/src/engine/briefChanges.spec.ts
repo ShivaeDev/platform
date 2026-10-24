@@ -2,60 +2,44 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { briefRevision } from "#board/briefRevision.ts";
-import { Fleet } from "#fleet.ts";
-import type { FleetRecord } from "#model.ts";
-import { boardHttpFiles } from "#test/boardHttp.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { prepareBookkeepingPhase } from "#test/prepareBookkeepingPhase.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
-import { answerWorker } from "#test/workerQuestion.ts";
-
-const test = postgresTests("test");
+import { briefAtPhase, criteriaBrief, noChangeDuringBriefPhase } from "#test/engineBriefFixtures.ts";
+import { engine } from "#test/engineStory.ts";
+import { markdownWork } from "#test/engineTraits.ts";
 
 for (const field of ["criteria", "body"]) {
 	for (const phase of ["preparation", "execution", "review", "decision"]) {
-		test(`${field} edits during ${phase} refresh active work and approve pending worker answers after restart`, () =>
-			withFleetBoard({ noChange: true, reviewRunning: phase === "review" }, (fixture, root, source) =>
-				Effect.gen(function* () {
-					const files = boardHttpFiles(root);
-					const original = source.replace("kind: task", "kind: task\ncriteria: [{ id: behavior, text: Original behavior. }]");
-					files.write("one.md", original);
-					const active = yield* prepareBookkeepingPhase(fixture, phase);
-					if (phase === "decision") {
-						const decision = active.value.decision ?? (yield* Effect.die("Missing worker question"));
-						yield* answerWorker(root, decision);
-					}
-					const turns = fixture.settings.filter((call) => call.call === "turn").length;
-					const current = field === "criteria" ? original.replace("Original behavior.", "Changed behavior.") : `${original}\nChanged scope.\n`;
-					files.write("one.md", current);
-					const stopped = yield* fixture.restart(
-						Fleet.pipe(Effect.flatMap((restarted) => (phase === "preparation" ? restarted.dispatch("one") : restarted.reconcile("one")))),
-					);
-					if (phase !== "decision") {
-						assertRefreshedBrief(stopped.value, active.value, current, phase);
-						expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns + (phase === "preparation" ? 1 : 0));
-						return;
-					}
-					expect(stopped.value.step).toBe("working");
-					expect(stopped.value.boardContext).toBe(current);
-					expect(stopped.value.boardRevision).toBe(briefRevision(metadataParse(current)));
-					expect(stopped.value.decision).toBeUndefined();
+		engine.it(
+			`${field} edits during ${phase} refresh active work and approve pending worker answers after restart`,
+			[markdownWork(), noChangeDuringBriefPhase(phase), briefAtPhase(phase, criteriaBrief)],
+			function* ({ boardBrief, writeBoardWork, answerWorker, providerCalls, restart, fleet }) {
+				const original = criteriaBrief(boardBrief());
+				const active = yield* fleet.get("one");
+				if (phase === "decision") {
+					const decision = active.value.decision ?? (yield* Effect.die("Missing worker question"));
+					yield* answerWorker(decision);
+				}
+				const turns = providerCalls().filter((call) => call.call === "turn").length;
+				const current = field === "criteria" ? original.replace("Original behavior.", "Changed behavior.") : `${original}\nChanged scope.\n`;
+				writeBoardWork("one.md", current);
+				yield* restart();
+				const stopped = yield* phase === "preparation" ? fleet.dispatch("one") : fleet.reconcile("one");
+				expect(stopped.value.step).toBe(phase === "review" ? "reviewing" : "working");
+				expect(stopped.value.boardContext).toBe(current);
+				expect(stopped.value.boardRevision).toBe(briefRevision(metadataParse(current)));
+				expect(stopped.value.decision).toBeUndefined();
+				if (phase === "decision") {
 					expect(stopped.value.attempts.at(-1)?.prompt).toContain(current);
 					expect(stopped.value.responses).toMatchObject([{ action: "continue", boardAcknowledged: true }]);
-					expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(turns + 1);
-				}),
-			));
-	}
-}
-
-function assertRefreshedBrief(current: FleetRecord, previous: FleetRecord, source: string, phase: string) {
-	expect(current.step).toBe(phase === "review" ? "reviewing" : "working");
-	expect(current.boardContext).toBe(source);
-	expect(current.boardRevision).toBe(briefRevision(metadataParse(source)));
-	expect(current.decision).toBeUndefined();
-	if (phase === "preparation") {
-		expect(current.attempts[0]?.receipt).toBeDefined();
-	} else {
-		expect(current.attempts[0]?.receipt).toEqual(previous.attempts[0]?.receipt);
+					expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns + 1);
+				} else {
+					if (phase === "preparation") {
+						expect(stopped.value.attempts[0]?.receipt).toBeDefined();
+					} else {
+						expect(stopped.value.attempts[0]?.receipt).toEqual(active.value.attempts[0]?.receipt);
+					}
+					expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns + (phase === "preparation" ? 1 : 0));
+				}
+			},
+		);
 	}
 }

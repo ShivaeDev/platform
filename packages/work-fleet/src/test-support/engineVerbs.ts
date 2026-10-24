@@ -4,15 +4,21 @@ import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet, type PrepareWork } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
+import { boardReadRetry } from "#test/boardReadRetry.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
+import { engineBoardSchedulerVerbs } from "#test/engineBoardSchedulerVerbs.ts";
 import { engineBoardVerbs } from "#test/engineBoardVerbs.ts";
+import { engineBudgetVerbs } from "#test/engineBudget.ts";
+import { engineContinuationVerbs } from "#test/engineContinuationVerbs.ts";
 import { engineDecisionVerbs } from "#test/engineDecisionVerbs.ts";
+import { engineDispatchVerbs } from "#test/engineDispatchVerbs.ts";
 import { engineEvidence } from "#test/engineEvidence.ts";
 import { engineGithubVerbs } from "#test/engineGithubVerbs.ts";
 import { engineLaunchVerbs } from "#test/engineLaunchVerbs.ts";
 import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
 import { enginePredictionVerbs } from "#test/enginePredictionVerbs.ts";
+import { engineProtocolVerbs } from "#test/engineProtocolRejections.ts";
 import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
 import { enginePublicationVerbs } from "#test/enginePublicationVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
@@ -20,7 +26,9 @@ import { engineSchedulingVerbs } from "#test/engineSchedulingVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { engineStatusVerbs } from "#test/engineStatusVerbs.ts";
 import { engineSweepVerbs } from "#test/engineSweepVerbs.ts";
+import { engineTimingVerbs } from "#test/engineTimingVerbs.ts";
 import { engineWorldVerbs } from "#test/engineWorldVerbs.ts";
+import { githubReadRetry } from "#test/githubReadRetry.ts";
 
 export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect.Effect<void, unknown>>) {
 	function provideFleet<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -44,11 +52,11 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		},
 		continueWork: (...args: Parameters<typeof Fleet.Service.continue>) =>
 			observe("continue", args[0], provideFleet(Effect.flatMap(Fleet, (fleet) => fleet.continue(...args)))),
-		dispatch: (workId: string) =>
+		dispatch: (workId: string, ...args: Parameters<typeof Fleet.Service.dispatch> extends [string, ...infer TRest] ? TRest : never) =>
 			observe(
 				"dispatch",
 				workId,
-				Effect.suspend(() => running(state).fleet.dispatch(workId)),
+				Effect.suspend(() => running(state).fleet.dispatch(workId, ...args)),
 			),
 		editWork: (workId: string, revision: string) => {
 			story.tell(`edit ${workId} to ${revision}`);
@@ -103,7 +111,6 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 				state.previousFleet = running(state).fleet;
 				running(state).fleet = Context.get(services, Fleet);
 			}),
-
 		waitForStage: (step: FleetRecord["step"], workId = "one", maxSteps?: number) => {
 			state.workId = workId;
 			return story.runUntil((current) => current.lastRecord?.workId === workId && current.lastRecord.step === step, { maxSteps });
@@ -112,6 +119,14 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 	return {
 		...verbs,
 		publications: enginePublicationVerbs(state, story.tell),
+		...engineBoardSchedulerVerbs(state, story.tell),
+		...engineProtocolVerbs(state, story.tell),
+		...engineBudgetVerbs(state, story.tell),
+		...engineDispatchVerbs(state),
+		...engineTimingVerbs(state, story.tell),
+		...boardReadRetry(state, story.tell),
+		...githubReadRetry(state, story.tell),
+		...engineContinuationVerbs(state, story.tell),
 		...engineProviderVerbs(running(state).fixture, story.tell),
 		...enginePredictionVerbs(state, story.tell),
 		...engineEvidence(state),
@@ -132,6 +147,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 			list: verbs.list,
 			prepare: verbs.prepare,
 			queueAnswer: verbs.queueAnswer,
+			reassign: engineDecisionVerbs(state, story.tell).reassign,
 			reconcile: verbs.reconcile,
 			resolve: verbs.resolve,
 		},
