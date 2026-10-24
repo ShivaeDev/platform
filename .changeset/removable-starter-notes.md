@@ -10,3 +10,7 @@
 ### Added
 
 - Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.
+
+### Fixed
+
+- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.
