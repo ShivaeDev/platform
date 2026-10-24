@@ -12,6 +12,7 @@ migrationFiles.it(
 		namingFiles([
 			{ content: SOURCE, path: "src/server/migrations/0001_create_notes.ts" },
 			{ content: SOURCE, path: "apps/web/src/server/migrations/0020_add_labels.ts" },
+			{ content: SOURCE, path: "src/modules/labels/server/migrations/0002_create_labels.ts" },
 		]),
 	],
 	function* ({ checkNames, violations }) {
