@@ -6,7 +6,8 @@ export const holdSchemaCreation = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const connection = yield* sql.reserve;
 	yield* Effect.acquireRelease(connection.executeRaw("BEGIN", []), () => connection.executeRaw("ROLLBACK", []).pipe(Effect.orDie));
-	yield* connection.executeRaw("LOCK TABLE pg_namespace IN SHARE MODE", []);
+	// Reserving the namespace uncommitted pauses the installer without catalog privileges.
+	yield* connection.executeRaw("CREATE SCHEMA pgboss", []);
 	const [holder]: readonly { readonly pid: number }[] = yield* connection.executeUnprepared("SELECT pg_backend_pid() AS pid", [], undefined);
 	if (holder === undefined) {
 		return yield* Effect.fail(new Error("Missing schema lock holder"));
