@@ -41,7 +41,7 @@ it.effect("the daemon contract lists every unfinished step and only completions 
 		Effect.provideService(HealthSnapshot, Effect.succeed(healthSnapshot)),
 		Effect.provideService(diagnostics.DiagnosticsSources, sources),
 	);
-	const client = yield* RpcTest.makeClient(diagnostics.DiagnosticsContract.omit("daemon.$changes"), { flatten: true }).pipe(Effect.provide(handlers));
+	const client = yield* RpcTest.makeClient(diagnostics.DiagnosticsContract.application, { flatten: true }).pipe(Effect.provide(handlers));
 	const result = yield* client("daemon.fleetItems", {});
 	expect(result.items.map((item) => item.workId)).toEqual([
 		"queued",

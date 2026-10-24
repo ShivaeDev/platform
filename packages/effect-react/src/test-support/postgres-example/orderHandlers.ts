@@ -3,14 +3,14 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/effect-contract/keys.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
-import { LiveOrders, type Order, orders, type Rejected } from "./contract.ts";
+import { ApplicationOrders, type Order, orders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
 
 export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | "quantity">[]>, beforeCommit?: Effect.Effect<void, Rejected>) {
 	const publications: string[] = [];
 	const delivered: Array<readonly Pick<Order, "name" | "quantity">[]> = [];
 	const reads: number[] = [];
-	const handlers = LiveOrders.omit("orders.$changes").toLayer(
+	const handlers = ApplicationOrders.toLayer(
 		Effect.gen(function* () {
 			const service = yield* OrderService;
 			const reactivity = yield* Reactivity.Reactivity;
@@ -25,7 +25,7 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 					delivered.push(rows);
 				});
 			}
-			return LiveOrders.omit("orders.$changes").of({
+			return ApplicationOrders.of({
 				"orders.get": ({ id }) =>
 					Effect.gen(function* () {
 						reads.push(id);
