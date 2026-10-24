@@ -1,105 +1,67 @@
 import { expect } from "@effect/vitest";
-import { Effect, Stream } from "effect";
-import type { DispatchRequest } from "#DispatchRequest.ts";
-import { hostScheduler } from "#host/commands.ts";
-import { daemonClient } from "#host/daemonClient.ts";
-import { waitForDispatch, waitForRecord } from "#test/daemonActions.ts";
-import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
-import { withFollower } from "#test/follower.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { withReadDaemon } from "#test/readDaemon.ts";
-import { refreshDelay } from "#test/refreshDelay.ts";
+import { task } from "#test/fleetHost.ts";
+import { delayedRefresh } from "#test/hostCommandDelaysTraits.ts";
+import { approvedWork, boardWork, host } from "#test/hostStory.ts";
 
-type Delay = Effect.Success<ReturnType<typeof refreshDelay>>;
-
-const acceptBeforeRestart = Effect.fn("DispatchRecoveryTest.acceptBeforeRestart")(function* (
-	port: number,
-	delay: Delay,
-	fail: boolean,
-	now: boolean,
-) {
-	const client = yield* daemonClient(port);
-	const request = yield* client("daemon.dispatch", { now, workId: "one" });
-	expect(request.now).toBe(now ? true : undefined);
-	yield* delay.entered;
-	if (fail) {
-		yield* delay.release;
-		const failed = yield* waitForDispatch(client, "one");
-		expect(failed.status).toBe("failed");
-		return failed;
-	}
-	return request;
-});
-
-const finishAfterRestart = Effect.fn("DispatchRecoveryTest.finishAfterRestart")(function* (
-	fixture: HostFixture,
-	port: number,
-	accepted: DispatchRequest,
-	fail: boolean,
-) {
-	const client = yield* daemonClient(port);
-	const request = fail ? yield* client("daemon.dispatch", { workId: "one" }) : accepted;
-	if (fail) {
-		expect(request.id).not.toBe(accepted.id);
-	}
-	expect(yield* waitForDispatch(client, "one")).toMatchObject({ id: request.id, status: "completed" });
-	const record = yield* client("fleet.get", { workId: "one" });
-	expect(record.step).toBe("working");
-	expect(record.dispatchNow).toEqual(accepted.now === true ? { ignoreAreas: false } : undefined);
-	expect(fixture.provider.launched).toHaveLength(1);
-});
-
-const restartStory = Effect.fn("DispatchRecoveryTest.restartStory")(function* (fixture: HostFixture, fail: boolean, now = false) {
-	const delay = yield* refreshDelay(fixture, fail);
-	const accepted = yield* withReadDaemon(fixture.host, (port) => acceptBeforeRestart(port, delay, fail, now), { parts: delay.parts });
-	expect(fixture.provider.launched).toHaveLength(0);
-	yield* withReadDaemon(fixture.host, (port) => finishAfterRestart(fixture, port, accepted, fail), { parts: fixture.parts });
-});
-
-for (const fail of [false, true]) {
-	postgresTests("live")(`dispatch ${fail ? "can be retried after refresh failure" : "resumes its pending receipt after daemon restart"}`, () =>
-		withHost({ "one.md": task("one", "approved") }, {}, (fixture) => restartStory(fixture, fail)),
+for (const [fail, now] of [
+	[false, false],
+	[true, false],
+	[false, true],
+] as const) {
+	host.it(
+		`dispatch resumes after daemon restart: refresh failure=${fail}, immediate=${now}`,
+		[approvedWork(["one"]), delayedRefresh(fail)],
+		function* (daemon) {
+			const accepted = yield* daemon.request("daemon.dispatch", { now, workId: "one" });
+			expect(accepted.now).toBe(now ? true : undefined);
+			yield* daemon.awaitDelay();
+			if (fail) {
+				yield* daemon.releaseDelay();
+				expect((yield* daemon.dispatchOutcome("one")).status).toBe("failed");
+			}
+			yield* daemon.stop();
+			expect(daemon.providerLaunches()).toHaveLength(0);
+			daemon.removeDelay();
+			yield* daemon.start();
+			const request = fail ? yield* daemon.request("daemon.dispatch", { workId: "one" }) : accepted;
+			if (fail) {
+				expect(request.id).not.toBe(accepted.id);
+			}
+			expect(yield* daemon.dispatchOutcome("one")).toMatchObject({ id: request.id, status: "completed" });
+			const record = yield* daemon.get("one");
+			expect(record.step).toBe("working");
+			expect(record.dispatchNow).toEqual(accepted.now === true ? { ignoreAreas: false } : undefined);
+			expect(daemon.providerLaunches()).toHaveLength(1);
+		},
 	);
 }
 
-postgresTests("live")("dispatch now resumes its pending receipt with the override after daemon restart", () =>
-	withHost({ "one.md": task("one", "approved") }, {}, (fixture) => restartStory(fixture, false, true)),
-);
-
-const schedulerRecovery = Effect.fn("DispatchRecoveryTest.schedulerRecovery")(function* (
-	fixture: HostFixture,
-	port: number,
-	failed: DispatchRequest,
-) {
-	const client = yield* daemonClient(port);
-	yield* hostScheduler(fixture.host).pipe(Effect.forkScoped);
-	yield* waitForRecord(client, "one", (record) => record.step === "working" && record.attempts.at(-1)?.status === "running");
-	const executing = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
-	const watched = yield* withFollower(fixture.configFile, "watch", ["one"], { port }, (follower) =>
-		Effect.gen(function* () {
-			for (const [id, observation] of fixture.provider.observations) {
-				fixture.provider.observations.set(id, { ...observation, execution: "completed", output: "Recovered findings." });
-			}
-			const completed = yield* waitForRecord(client, "one", (record) => record.step === "done");
-			expect(completed.report?.sourcePath).toBeDefined();
-			return yield* Effect.promise(() => follower.done);
-		}),
-	);
-	const completed = yield* client("daemon.follow", { workIds: ["one"] }).pipe(Stream.take(1), Stream.runCollect);
-	expect(executing).toMatchObject([[{ stage: "working", workId: "one" }]]);
-	expect(completed).toMatchObject([[{ stage: "done", workId: "one" }]]);
-	expect(watched).toMatchObject({ code: 0, stderr: "", stdout: expect.stringContaining("one done") });
-	expect(watched.stdout).not.toContain("Dispatch failed");
-	expect(yield* client("daemon.dispatch-status", { workId: "one" })).toEqual(failed);
-	expect(fixture.provider.launched).toHaveLength(1);
-});
-
-const schedulerStory = Effect.fn("DispatchRecoveryTest.schedulerStory")(function* (fixture: HostFixture) {
-	const delay = yield* refreshDelay(fixture, true);
-	const failed = yield* withReadDaemon(fixture.host, (port) => acceptBeforeRestart(port, delay, true, false), { parts: delay.parts });
-	yield* withReadDaemon(fixture.host, (port) => schedulerRecovery(fixture, port, failed), { parts: fixture.parts });
-});
-
-postgresTests("live")("watch preserves scheduler recovery and completion after a failed dispatch without another dispatch", () =>
-	withHost({ "one.md": task("one", "approved").replace("fleet: approved", "fleet: approved\ndelivers: report") }, {}, schedulerStory),
+host.it(
+	"watch preserves scheduler recovery and completion after a failed dispatch without another dispatch",
+	[boardWork({ "one.md": task("one", "approved").replace("fleet: approved", "fleet: approved\ndelivers: report") }), delayedRefresh(true)],
+	function* (daemon) {
+		yield* daemon.request("daemon.dispatch", { workId: "one" });
+		yield* daemon.awaitDelay();
+		yield* daemon.releaseDelay();
+		const failed = yield* daemon.dispatchOutcome("one");
+		expect(failed.status).toBe("failed");
+		yield* daemon.stop();
+		daemon.removeDelay();
+		yield* daemon.start();
+		yield* daemon.startScheduler();
+		const running = yield* daemon.launched("one");
+		yield* daemon.subscribe(["one"]);
+		expect(daemon.snapshots()).toMatchObject([[{ stage: "working", workId: "one" }]]);
+		yield* daemon.follow("watch", "watch", ["one"]);
+		daemon.finishTurn(running, "Recovered findings.");
+		const completed = yield* daemon.waitForRecord("one", (record) => record.step === "done");
+		expect(completed.report?.sourcePath).toBeDefined();
+		const watched = yield* daemon.followerExit("watch");
+		yield* daemon.awaitSnapshots(2);
+		expect(daemon.snapshots().at(-1)).toMatchObject([{ stage: "done", workId: "one" }]);
+		expect(watched).toMatchObject({ code: 0, stderr: "", stdout: expect.stringContaining("one done") });
+		expect(watched.stdout).not.toContain("Dispatch failed");
+		expect(yield* daemon.request("daemon.dispatch-status", { workId: "one" })).toEqual(failed);
+		expect(daemon.providerLaunches()).toHaveLength(1);
+	},
 );

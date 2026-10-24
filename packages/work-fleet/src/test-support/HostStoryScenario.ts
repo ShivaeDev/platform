@@ -1,4 +1,5 @@
-import type { Effect } from "effect";
+import type { Effect, Scope } from "effect";
+import type { SqlClient } from "effect/sql";
 import type { HostParts } from "#host/commands.ts";
 import type { EngineProvider } from "#test/engineProvider.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
@@ -25,5 +26,5 @@ export class HostStoryScenario {
 	localBoardOptions: Parameters<typeof localBoardHost>[1];
 	board: ((fixture: HostFixture) => NonNullable<HostParts["board"]>) | undefined;
 	policy: HostParts["policy"];
-	beforeStart: ((fixture: HostFixture) => Effect.Effect<void, unknown>) | undefined;
+	beforeStart: ((fixture: HostFixture) => Effect.Effect<void, unknown, SqlClient.SqlClient | Scope.Scope>) | undefined;
 }

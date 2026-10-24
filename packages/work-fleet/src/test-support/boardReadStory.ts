@@ -7,6 +7,7 @@ import { workRevision } from "#board/workRevision.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardReads } from "#test/boardReads.ts";
+import { reportAttachmentVerbs } from "#test/reportAttachmentVerbs.ts";
 import { statusRecord } from "#test/status.ts";
 
 export const boardReadStory = storyKit({
@@ -30,6 +31,7 @@ export const boardReadStory = storyKit({
 			),
 		);
 		return {
+			...reportAttachmentVerbs(fixture),
 			board: {
 				...board,
 				decision: (...args: Parameters<typeof board.decision>) => {
