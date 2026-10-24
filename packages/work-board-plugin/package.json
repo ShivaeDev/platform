@@ -6,6 +6,7 @@
 	"license": "MIT",
 	"type": "module",
 	"imports": {
+		"#test/*": "./src/test-support/*",
 		"#*.ts": "./src/*.ts",
 		"#types/*": "./types/*"
 	},
@@ -23,6 +24,9 @@
 	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"effect": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},

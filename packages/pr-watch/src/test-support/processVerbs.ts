@@ -2,7 +2,6 @@ import { execFile } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Effect, Fiber } from "effect";
-import { expect } from "vitest";
 import type { WatchError } from "#model.ts";
 import { program } from "#program.ts";
 import type { Engine } from "./engine.ts";
@@ -16,7 +15,9 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 		for (let attempt = 0; attempt < 400 && !predicate(); attempt += 1) {
 			yield* Effect.sleep("10 millis");
 		}
-		expect(predicate(), description).toBe(true);
+		if (!predicate()) {
+			throw new Error(`Timed out waiting for ${description}`);
+		}
 	});
 	return {
 		cliOnce: (...numbers: number[]) =>
@@ -45,11 +46,10 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 				yield* Fiber.interrupt(running);
 			}),
 		once: () => program([...args(), "1", "--once"], "token", engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
-		remainsStopped: () =>
+		requestsAfterPause: () =>
 			Effect.gen(function* () {
-				const count = engine.requests.length;
 				yield* Effect.sleep("50 millis");
-				expect(engine.requests).toHaveLength(count);
+				return [...engine.requests];
 			}),
 		start: () =>
 			Effect.gen(function* () {

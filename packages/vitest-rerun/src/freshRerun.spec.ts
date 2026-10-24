@@ -1,15 +1,6 @@
 import { expect } from "vitest";
 import { collectionFailsOnce, failsTimes, leavesUnhandledError, passes, rerunStory, staleReports, withCoverage } from "#test/kit.ts";
 
-interface FileResult {
-	readonly durationMs: number;
-	readonly name: string;
-}
-
-function duration(report: { testResults: readonly FileResult[] }, file: string): number | undefined {
-	return report.testResults.find(({ name }) => name.endsWith(file))?.durationMs;
-}
-
 rerunStory.it(
 	"a fresh rerun repeats only the failed tests and merges reports, durations and coverage",
 	[withCoverage(), failsTimes(1), passes()],
@@ -22,7 +13,9 @@ rerunStory.it(
 		const rerun = JSON.parse(reports.file("tests.attempt-2.json") ?? "{}");
 		const final = yield* reports.json();
 		expect([first.numFailedTests, final.numPassedTests, final.numFailedTests]).toEqual([1, 3, 0]);
-		expect(duration(final, "flaky.spec.ts")).toBe((duration(first, "flaky.spec.ts") ?? 0) + (duration(rerun, "flaky.spec.ts") ?? 0));
+		expect(reports.duration(final, "flaky.spec.ts")).toBe(
+			(reports.duration(first, "flaky.spec.ts") ?? 0) + (reports.duration(rerun, "flaky.spec.ts") ?? 0),
+		);
 		expect(yield* reports.testcases()).toContainEqual({ classname: "passing.spec.ts", failed: false, file: "passing.spec.ts", name: "passes" });
 		const coverage = files.read("coverage/lcov.info");
 		expect(coverage).toMatch(/FNDA:[1-9]\d*,covered\n/u);

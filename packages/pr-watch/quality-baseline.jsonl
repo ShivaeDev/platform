@@ -6,4 +6,3 @@
 {"path":"packages/pr-watch/src/quota.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/pr-watch/src/quota.ts","rule":"boundaries/http-status","count":2}
 {"path":"packages/pr-watch/src/startup.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/pr-watch/src/test-support/processVerbs.ts","rule":"tests/no-expect-in-support","count":2}

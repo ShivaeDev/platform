@@ -1599,6 +1599,15 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.4
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

@@ -7,6 +7,4 @@
 {"path":"packages/changesets/src/manifestFailures.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/changesets/src/pending.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/changesets/src/planning.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/changesets/src/planning.spec.ts","rule":"tests/spec-helpers","count":1}
 {"path":"packages/changesets/src/releaseCheck.spec.ts","rule":"tests/named-values","count":7}
-{"path":"packages/changesets/src/test-support/workspace.ts","rule":"tests/no-expect-in-support","count":1}

@@ -8,6 +8,11 @@ export interface Testcase {
 	readonly name: string;
 }
 
+interface FileResult {
+	readonly durationMs: number;
+	readonly name: string;
+}
+
 const TESTCASE = /<testcase (?<attributes>[^>]*?)(?<selfClosing>\/?)>(?<body>[\s\S]*?)(?:<\/testcase>|(?=<testcase )|(?=<\/testsuite>))/gu;
 const ATTRIBUTE = /(?<key>\w+)="(?<value>[^"]*)"/gu;
 const ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'", "&gt;": ">", "&lt;": "<", "&quot;": '"' };
@@ -38,6 +43,8 @@ export function reportVerbs(suite: Suite) {
 		return readFile(suite, `${REPORTS}/${name}`);
 	}
 	return {
+		duration: (report: { testResults: readonly FileResult[] }, file: string) =>
+			report.testResults.find(({ name }) => name.endsWith(file))?.durationMs,
 		file: read,
 		flakyTests: () =>
 			Effect.sync(() => {
