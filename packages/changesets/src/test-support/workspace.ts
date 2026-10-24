@@ -1,7 +1,6 @@
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { changeset, git, makeFixture, run, write } from "./fixture.ts";
 import { installCommitGuard } from "./installCommitGuard.ts";
@@ -33,6 +32,10 @@ export const workspace = storyKit({
 			return yield* (yield* FileSystem.FileSystem).exists(join(root, file));
 		}),
 		git: Effect.fn("ChangesetsStory.git")((...args: readonly string[]) => Effect.sync(() => git(root, args))),
+		packageVersion: Effect.fn("ChangesetsStory.packageVersion")(function* (directory: string) {
+			const fs = yield* FileSystem.FileSystem;
+			return JSON.parse(yield* fs.readFileString(join(root, directory, "package.json"))).version;
+		}),
 		read: Effect.fn("ChangesetsStory.read")(function* (file: string) {
 			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, file));
 		}),
@@ -53,6 +56,9 @@ export const released = workspace.trait("released", "the pending release has bee
 		git(root, ["add", "."]);
 		git(root, ["commit", "-m", "Pending changes"]);
 		git(root, ["branch", "-f", "main", "HEAD"]);
-		expect(run(root, ["apply"]).status).toBe(0);
+		const result = run(root, ["apply"]);
+		if (result.status !== 0) {
+			throw new Error(`Could not apply the release precondition: ${result.stderr}`);
+		}
 	});
 });
