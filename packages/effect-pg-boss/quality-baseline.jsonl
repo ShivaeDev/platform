@@ -13,7 +13,7 @@
 {"path":"packages/effect-pg-boss/src/server/retryAtLimitPostgres.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/effect-pg-boss/src/server/retryAtPostgres.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/effect-pg-boss/src/server/retryAtStatelyPostgres.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-pg-boss/src/server/retryWakePostgres.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/effect-pg-boss/src/server/retryWakePostgres.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/schemaPostgres.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/settlement.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/settlementPostgres.spec.ts","rule":"tests/named-values","count":1}
