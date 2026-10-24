@@ -49,5 +49,7 @@ const definition = {
 	verbs: engineVerbs,
 };
 
+export const engineStoryDefinition = definition;
+
 export const engine = storyKit({ ...definition, around: withTestTransaction });
 export const isolatedEngine = storyKit({ ...definition, around: withIsolatedDatabase });

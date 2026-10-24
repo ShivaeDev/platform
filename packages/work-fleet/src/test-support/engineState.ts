@@ -10,6 +10,7 @@ import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import type { PredictionRepository } from "#test/predictionRepository.ts";
+import type { RecoveryCase } from "#test/recoveryCase.ts";
 
 export interface SweepPullRequest {
 	checksFailed?: boolean;
@@ -31,6 +32,7 @@ export interface EngineStory extends EngineWorld {
 	predictionRepository?: PredictionRepository;
 	previousFleet?: typeof Fleet.Service;
 	readinessPublications?: BoardDecision[];
+	recoveryCase?: RecoveryCase;
 	resultObservation?: { value: WorkResult; unavailable: boolean };
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };

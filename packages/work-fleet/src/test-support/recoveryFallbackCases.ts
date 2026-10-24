@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { isFleetError } from "#errors.ts";
@@ -61,10 +60,7 @@ export function recoveryFallbackCases(): readonly RecoveryCase[] {
 			}),
 			name: `uncoded integration boundary: ${code}`,
 			options: fallbackOptions(),
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("reviewing");
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "review-after-boundary-recovery",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;

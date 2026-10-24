@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
@@ -60,10 +59,7 @@ function journalCase(name: string, fault: "missing" | "conflict" | "write" | "na
 					}
 				}),
 		},
-		progress: (_ctx, _before, after) => {
-			expect(after.step).toBe("reviewing");
-			expect(after.attempts.at(-1)?.role).toBe("reviewer");
-		},
+		recovery: "review-after-receipt-recovery",
 
 		restore: () =>
 			Effect.sync(() => {

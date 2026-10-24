@@ -1,15 +1,9 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { HEAD } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
-const newReview: NonNullable<RecoveryCase["progress"]> = (_ctx, before, after) => {
-	expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-	expect(after.attempts.at(-1)).toMatchObject({ role: "reviewer", status: "running" });
-	expect(after.attempts.at(-1)?.receipt?.sessionId).not.toBe(before.attempts.at(-1)?.receipt?.sessionId);
-};
 function verdict(value: unknown) {
 	return `FLEET_REVIEW: ${JSON.stringify(value)}`;
 }
@@ -23,7 +17,7 @@ export const recoveryReviewCases: readonly RecoveryCase[] = [
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: `reviewer ${execution}`,
-			progress: newReview,
+			recovery: "replace-terminal-reviewer",
 			sites: ['engine/makeReview.ts: "reviewer-terminal"'],
 		}),
 	),
@@ -46,7 +40,7 @@ export const recoveryReviewCases: readonly RecoveryCase[] = [
 				}
 			}),
 			name: scenario.reason,
-			progress: newReview,
+			recovery: "replace-invalid-reviewer",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		}),
 	),
@@ -61,7 +55,7 @@ export const recoveryReviewCases: readonly RecoveryCase[] = [
 			yield* (yield* Fleet).reconcile("one");
 		}),
 		name: "review head is not the result head",
-		progress: newReview,
+		recovery: "replace-stale-reviewer",
 
 		sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 	},

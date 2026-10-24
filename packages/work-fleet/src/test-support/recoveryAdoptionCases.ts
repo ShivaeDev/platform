@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { HEAD, MOVED, PR, resultFixture } from "#test/githubResult.ts";
@@ -58,18 +57,9 @@ export function recoveryAdoptionCases(): readonly RecoveryCase[] {
 				}
 			}),
 			name: `adoption: ${fault.reason}`,
+			observe: () => ({ requests: reader.requests.length }),
 			options: { resultQuery: reader.adopt },
-			progress: (_ctx, _before, afterRecord) => {
-				if (staleReport) {
-					expect(afterRecord.step).toBe("working");
-					expect(afterRecord.attempts.length).toBeGreaterThan(_before.attempts.length);
-					expect(afterRecord.attempts.at(-1)?.receipt?.sessionId).toBe(_before.attempts.at(-1)?.receipt?.sessionId);
-				} else {
-					expect(afterRecord.result?.head).toBe(HEAD);
-					expect(afterRecord.attempts.at(-1)?.role).toBe("reviewer");
-				}
-				expect(reader.requests.length).toBeGreaterThan(0);
-			},
+			recovery: staleReport ? "repair-stale-worker-report" : "adopt-worker-result",
 			restore: () =>
 				Effect.sync(() => {
 					Object.assign(before, healthy);

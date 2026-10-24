@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { githubDelivery } from "#host/githubDelivery.ts";
 import { HEAD, PR } from "#test/githubResult.ts";
@@ -25,11 +24,9 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 			code: fault.code,
 			enter: finishRecoveryReview,
 			name: fault.reason,
+			observe: () => ({ reads }),
 			options: { deliveryQuery: delivery },
-			progress: (_ctx, _before, after) => {
-				expect(reads).toBe(1);
-				expect(after.step).toBe("done");
-			},
+			recovery: "observe-valid-delivery",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
