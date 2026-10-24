@@ -1,15 +1,16 @@
-const reservedGithubBudget = githubBudget("reserve");
-const exhaustedGithubBudget = githubBudget("limit");
-const conditionalHumanDelivery = githubBudget("delivery");
-
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
 import { views } from "#engine/views.ts";
 import { renderStatus } from "#host/renderStatus.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { GITHUB_RESET } from "#test/githubApi.ts";
 import { githubBudget } from "#test/githubBudget.ts";
 import { ADOPTED_HEAD, githubResult } from "#test/githubChecks.ts";
+
+const reservedGithubBudget = engineConfiguration("GitHub reserve reads use the REST budget", githubBudget("reserve"));
+const exhaustedGithubBudget = engineConfiguration("GitHub limit reads use the REST budget", githubBudget("limit"));
+const conditionalHumanDelivery = engineConfiguration("GitHub delivery reads use the REST budget", githubBudget("delivery"));
 
 const result = githubResult();
 isolatedEngine.it(

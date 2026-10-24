@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { views } from "#engine/views.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { taskPrompt } from "#prompt/task.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { observableBriefSteering } from "#test/observableBriefSteering.ts";
@@ -9,17 +10,18 @@ import { observableBriefSteering } from "#test/observableBriefSteering.ts";
 for (const failure of [false, true]) {
 	{
 		let calls = 0;
+		const observableBriefSteeringTrait = engineConfiguration(
+			"observable brief steering",
+			observableBriefSteering({
+				failure: () => failure,
+				recordSteer: () => {
+					calls += 1;
+				},
+			}),
+		);
 		engine.it(
 			`approved edits steer once per running turn and retain revised review after restart: failure=${failure}`,
-			[
-				markdownWork(),
-				observableBriefSteering({
-					failure: () => failure,
-					recordSteer: () => {
-						calls += 1;
-					},
-				}),
-			],
+			[markdownWork(), observableBriefSteeringTrait],
 			function* ({ boardBrief, writeBoardWork, steeredTurns, finishWorkers, prepareWork, restart, fleet }) {
 				const source = boardBrief();
 				const original = source.replace("kind: task", "kind: task\ncriteria: [{ id: behavior, text: Original behavior. }]");

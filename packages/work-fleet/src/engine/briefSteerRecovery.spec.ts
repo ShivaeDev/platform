@@ -3,10 +3,13 @@ import { Effect, Fiber } from "effect";
 import { views } from "#engine/views.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { taskPrompt } from "#prompt/task.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine, isolatedEngine } from "#test/engineStory.ts";
 import { pausedSteer } from "#test/engineTimingTraits.ts";
 import { markdownWork, reviewerStillRunning, reviewRequestsRepairs } from "#test/engineTraits.ts";
-import { providerWithoutSteering } from "#test/providerWithoutSteering.ts";
+import { providerWithoutSteeringConfiguration } from "#test/providerWithoutSteeringConfiguration.ts";
+
+const providerWithoutSteering = engineConfiguration("provider without steering", providerWithoutSteeringConfiguration());
 
 isolatedEngine.it(
 	"an interrupted steer keeps its durable intent and revised review without replay",

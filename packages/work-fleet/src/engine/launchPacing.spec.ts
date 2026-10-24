@@ -2,13 +2,15 @@ import { describe, expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { executing } from "#model.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { launchAcknowledgement } from "#test/launchAcknowledgement.ts";
 
 describe("Fleet launch acknowledgement pacing", () => {
+	const slowLaunchAcknowledgement = engineConfiguration("the slow launch acknowledgement arrives after its pass", launchAcknowledgement("slow"));
 	isolatedEngine.it(
 		"a slow thread acknowledgement is persisted after the pass, without concurrent recovery",
-		[launchAcknowledgement("slow")],
+		[slowLaunchAcknowledgement],
 		function* ({
 			operationReceipt,
 			launches,
@@ -40,9 +42,13 @@ describe("Fleet launch acknowledgement pacing", () => {
 		},
 	);
 	for (const acknowledgement of ["session", "turn"] as const) {
+		const lostLaunchAcknowledgement = engineConfiguration(
+			`the ${acknowledgement} launch acknowledgement arrives after its pass`,
+			launchAcknowledgement(acknowledgement),
+		);
 		isolatedEngine.it(
 			`a lost ${acknowledgement} acknowledgement allows the next launch in the same pass`,
-			[launchAcknowledgement(acknowledgement)],
+			[lostLaunchAcknowledgement],
 			function* ({ operationReceipt, launches, publishedDecisions, waitForTimingGate, prepareWork, restart, fleet, schedule }) {
 				yield* prepareWork("one");
 				yield* prepareWork("two");
@@ -74,9 +80,13 @@ describe("Fleet launch acknowledgement pacing", () => {
 			},
 		);
 	}
+	const capacityLaunchAcknowledgement = engineConfiguration(
+		"the capacity launch acknowledgement arrives after its pass",
+		launchAcknowledgement("capacity"),
+	);
 	isolatedEngine.it(
 		"an explicit capacity rejection after a lost acknowledgement stops the rest of the pass",
-		[launchAcknowledgement("capacity")],
+		[capacityLaunchAcknowledgement],
 		function* ({ setDependencies, launches, waitForTimingGate, prepareWork, fleet, schedule }) {
 			setDependencies("dependent", []);
 			for (const id of ["one", "two", "dependent"]) {
@@ -96,9 +106,13 @@ describe("Fleet launch acknowledgement pacing", () => {
 			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
+	const backgroundLaunchAcknowledgement = engineConfiguration(
+		"the background launch acknowledgement arrives after its pass",
+		launchAcknowledgement("background"),
+	);
 	isolatedEngine.it(
 		"a capacity rejection from a background launch stops later dispatch",
-		[launchAcknowledgement("background")],
+		[backgroundLaunchAcknowledgement],
 		function* ({ setDependencies, launches, waitForTimingGate, waitForStoredRecord, prepareWork, fleet, schedule }) {
 			setDependencies("dependent", []);
 			for (const id of ["one", "two", "dependent"]) {

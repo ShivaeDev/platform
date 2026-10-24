@@ -1,11 +1,10 @@
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { running } from "#test/engineState.ts";
-import { engine } from "#test/engineStory.ts";
+import { type EngineStory, running } from "#test/engineState.ts";
 
 export function openFleetPullRequests(count: number) {
-	return engine.trait("work", `${count} Fleet PRs already await human delivery`, function* (state) {
+	return function* (state: EngineStory) {
 		const { fleet, fixture } = running(state);
 		for (let index = 1; index <= count; index += 1) {
 			const id = `pr-${index}`;
@@ -15,15 +14,15 @@ export function openFleetPullRequests(count: number) {
 			finishWorkers(fixture);
 			yield* fleet.reconcile(id);
 		}
-	});
+	};
 }
 export function preparedCandidates(count: number) {
-	return engine.trait("work", `${count} approved candidates are prepared`, function* (state) {
+	return function* (state: EngineStory) {
 		const { fleet, fixture } = running(state);
 		for (let index = 1; index <= count; index += 1) {
 			const id = `candidate-${index}`;
 			fixture.approveWork(id, `board-${id}`);
 			yield* prepareWork(id).pipe(Effect.provideService(Fleet, fleet));
 		}
-	});
+	};
 }

@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import type { WorkResult } from "#policy.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { repairResultsByReceipt } from "#test/repairResultsByReceipt.ts";
 
@@ -8,9 +9,13 @@ for (const archived of [false, true]) {
 		const results = new Map<string, WorkResult>();
 		const receipts: string[] = [];
 		let merged = false;
+		const repairResultsByReceiptTrait = engineConfiguration(
+			"repair results by receipt",
+			repairResultsByReceipt({ merged: () => merged, receipts: () => receipts, results: () => results }),
+		);
 		engine.it(
 			`retry after a receiptless failed follow-up reviews the ${archived ? "archived" : "current"} repair and accepts its delivery`,
-			[repairResultsByReceipt({ merged: () => merged, receipts: () => receipts, results: () => results })],
+			[repairResultsByReceiptTrait],
 			function* ({ replaceStoredRecord, rejectNextTurn, reviewedHeads, finishWorkers, prepareWork, respond, restart, fleet }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");

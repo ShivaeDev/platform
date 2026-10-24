@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { pendingRequiredChecks, unconfiguredAdoption } from "#test/attentionOwnerTraits.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
@@ -20,9 +21,10 @@ for (const owner of ["orchestrator", "maintainer"] as const) {
 }
 
 for (const owner of ["orchestrator", "automation"] as const) {
+	const unconfiguredAdoptionTrait = engineConfiguration("unconfigured adoption", unconfiguredAdoption({ owner: () => owner }));
 	engine.it(
 		`integration failures ${owner === "orchestrator" ? "default to the orchestrator" : "explicitly route configuration gaps to automation"}`,
-		[unconfiguredAdoption({ owner: () => owner })],
+		[unconfiguredAdoptionTrait],
 		function* ({ finishWorkers, prepareWork, fleet }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
@@ -41,9 +43,10 @@ engine.it("a routine failed worker waits on the orchestrator", [], function* ({ 
 
 {
 	let pending = true;
+	const pendingRequiredChecksTrait = engineConfiguration("pending required checks", pendingRequiredChecks({ pending: () => pending }));
 	engine.it(
 		"pending checks persist automation ownership and completion clears it",
-		[pendingRequiredChecks({ pending: () => pending })],
+		[pendingRequiredChecksTrait],
 		function* ({ finishWorkers, prepareWork, fleet }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");

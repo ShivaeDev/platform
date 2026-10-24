@@ -1,13 +1,18 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { answerReceiptDuringBoardRead } from "#test/engineTimingTraits.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
+const answerReceiptDuringBoardReadTrait = engineConfiguration(
+	"the answer receipt can arrive during the next Board read",
+	answerReceiptDuringBoardRead(),
+);
 isolatedEngine.it(
 	"observes the persisted answer receipt when it lands during the advance pass Board read",
-	[markdownWork(), answerReceiptDuringBoardRead()],
+	[markdownWork(), answerReceiptDuringBoardReadTrait],
 	function* ({
 		answerWorker,
 		launches,

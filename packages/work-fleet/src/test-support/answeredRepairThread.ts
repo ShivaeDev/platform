@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import type { SessionFailure } from "#session/schema.ts";
-import { engineConfiguration } from "#test/engineConfiguration.ts";
+import type { EngineOptions } from "#test/EngineOptions.ts";
+
 export function answeredRepairThread(controls: {
 	readonly repair: () => "checks" | "review";
 	readonly unusableSession: () => string | undefined;
@@ -8,7 +9,7 @@ export function answeredRepairThread(controls: {
 	readonly now: () => number;
 	readonly head: () => string;
 }) {
-	return engineConfiguration("answered repair thread", () => ({
+	return (): EngineOptions => ({
 		checksQuery: (result) =>
 			Effect.succeed({
 				evidence: ["Required build check"],
@@ -23,5 +24,5 @@ export function answeredRepairThread(controls: {
 		now: () => controls.now(),
 		repairs: controls.repair() === "review",
 		resultQuery: () => Effect.succeed({ head: controls.head(), kind: "change", paths: ["src/one.ts"], pr: "https://example.invalid/pr/one" }),
-	}));
+	});
 }

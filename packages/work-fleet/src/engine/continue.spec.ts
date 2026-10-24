@@ -3,9 +3,12 @@ import { Effect, Result } from "effect";
 import { views } from "#engine/views.ts";
 import { settled } from "#host/wait.ts";
 import { allAttempts } from "#model.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { humanMergeRequired, noChangeReported } from "#test/engineTraits.ts";
-import { failedChecksWithWorkerEvidence } from "#test/failedChecksWithWorkerEvidence.ts";
+import { failedChecksWithWorkerEvidenceConfiguration } from "#test/failedChecksWithWorkerEvidenceConfiguration.ts";
+
+const failedChecksWithWorkerEvidence = engineConfiguration("failed checks with worker evidence", failedChecksWithWorkerEvidenceConfiguration());
 
 describe("Fleet continuation against PostgreSQL", () => {
 	isolatedEngine.it(

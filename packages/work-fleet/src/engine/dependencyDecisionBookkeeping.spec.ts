@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { dependencySource } from "#test/dependencyBoard.ts";
 import { dependentValidation } from "#test/dependentValidation.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 
@@ -15,9 +16,10 @@ for (const [field, source] of [
 			checksQuery: (result: { readonly head: string }) => Effect.succeed({ evidence: ["Required validation"], head: result.head, passed: !blocked }),
 			noChange: true,
 		};
+		const dependentValidationTrait = engineConfiguration("dependent validation", dependentValidation({ options: () => options }));
 		engine.it(
 			`target ${field} edits preserve its dependent's open decision and retry after restart`,
-			[markdownWork(), dependentValidation({ options: () => options })],
+			[markdownWork(), dependentValidationTrait],
 			function* ({ writeBoardWork, answerReport, launches, finishWorkers, prepareWork, restart, fleet }) {
 				writeBoardWork("one.md", dependencySource);
 				writeBoardWork(

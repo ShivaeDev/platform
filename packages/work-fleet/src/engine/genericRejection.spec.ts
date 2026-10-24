@@ -1,11 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { GENERIC_REJECTION_MESSAGE } from "#test/engineProtocolRejections.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { protocolRejections } from "#test/protocolRejections.ts";
 
 for (const failures of [1, 3]) {
-	const rejectedProtocolRequests = protocolRejections(failures);
+	const rejectedProtocolRequests = engineConfiguration("Codex rejects worker submissions over its protocol", protocolRejections(failures));
 	isolatedEngine.it(
 		`a generic protocol rejection retries the same request before asking: failures=${failures}`,
 		[rejectedProtocolRequests],
@@ -61,7 +62,7 @@ for (const message of [
 	"Quota exceeded",
 	"Something went wrong. Permission denied. Request ID: synthetic-request",
 ]) {
-	const rejectedProtocolRequest = protocolRejections(message);
+	const rejectedProtocolRequest = engineConfiguration("Codex rejects worker submissions over its protocol", protocolRejections(message));
 	isolatedEngine.it(
 		`a specific rejection asks immediately: ${message}`,
 		[rejectedProtocolRequest],

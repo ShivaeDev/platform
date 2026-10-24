@@ -1,9 +1,12 @@
 import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
-import { changedSecondBrief } from "#test/changedSecondBrief.ts";
+import { changedSecondBriefConfiguration } from "#test/changedSecondBriefConfiguration.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine, isolatedEngine } from "#test/engineStory.ts";
 import { pausedReview } from "#test/engineTimingTraits.ts";
 import { failedBoardAcknowledgement, humanMergeRequired } from "#test/engineTraits.ts";
+
+const changedSecondBrief = engineConfiguration("changed second brief", changedSecondBriefConfiguration());
 
 isolatedEngine.it(
 	"applied action persists across acknowledgement failure and repeated resolve after restart repairs only acknowledgement",

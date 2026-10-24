@@ -4,6 +4,7 @@ import { SessionFailure } from "#session/schema.ts";
 import type { SessionTransport } from "#session/service.ts";
 import { activeTurn } from "#test/activeTurn.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
+import type { EngineStory } from "#test/engineState.ts";
 import type { EngineTiming } from "#test/engineTimingState.ts";
 
 export function steeredTurnActive(waitForMerge = false) {
@@ -66,7 +67,7 @@ export function pausedSteer(failure: boolean, interrupted = false) {
 	);
 }
 export function answerReceiptDuringBoardRead() {
-	return engineConfiguration("the answer receipt can arrive during the next Board read", (state) =>
+	return (state: EngineStory) =>
 		Effect.gen(function* () {
 			const acknowledgement = yield* Deferred.make<void>();
 			const timing: EngineTiming = { acknowledgement, beforeObservation: Effect.void, recoveries: 0, steers: 0 };
@@ -75,7 +76,7 @@ export function answerReceiptDuringBoardRead() {
 				continuationGate: Deferred.await(acknowledgement),
 				decorateBoard: (board: typeof BoardGateway.Service) => ({
 					...board,
-					get: (id) => board.get(id).pipe(Effect.tap(() => timing.beforeObservation ?? Effect.void)),
+					get: (id: string) => board.get(id).pipe(Effect.tap(() => timing.beforeObservation ?? Effect.void)),
 				}),
 				decorateTransport: (transport: typeof SessionTransport.Service) => ({
 					...transport,
@@ -87,6 +88,5 @@ export function answerReceiptDuringBoardRead() {
 					},
 				}),
 			};
-		}),
-	);
+		});
 }

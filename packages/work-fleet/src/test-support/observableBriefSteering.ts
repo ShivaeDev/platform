@@ -1,8 +1,9 @@
 import { Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
-import { engineConfiguration } from "#test/engineConfiguration.ts";
+import type { EngineOptions } from "#test/EngineOptions.ts";
+
 export function observableBriefSteering(controls: { readonly recordSteer: () => void; readonly failure: () => boolean }) {
-	return engineConfiguration("observable brief steering", () => ({
+	return (): EngineOptions => ({
 		decorateTransport: (transport) => ({
 			...transport,
 			steer: (receipt, prompt) =>
@@ -15,5 +16,5 @@ export function observableBriefSteering(controls: { readonly recordSteer: () => 
 				}),
 		}),
 		reviewRunning: true,
-	}));
+	});
 }

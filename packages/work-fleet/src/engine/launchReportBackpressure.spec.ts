@@ -1,12 +1,14 @@
 import { describe, expect } from "@effect/vitest";
 import { views } from "#engine/views.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { queuedReportWork } from "#test/queuedReportWork.ts";
 
 describe("report launch backpressure", () => {
+	const queuedReportWorkTrait = engineConfiguration("report work starts while the provider queue is full", queuedReportWork());
 	engine.it(
 		"a queued report retains its report prompt through restart and publishes its result",
-		[queuedReportWork()],
+		[queuedReportWorkTrait],
 		function* ({
 			providerObservations,
 			launches,

@@ -3,15 +3,20 @@ import { Effect } from "effect";
 import { describe } from "vitest";
 import { executing } from "#model.ts";
 import {
-	answerAtPullRequestLimit,
+	answerAtPullRequestLimitConfiguration,
 	mergeablePullRequestCurve,
 	openPullRequestCurve,
-	repairAtPullRequestLimit,
+	repairAtPullRequestLimitConfiguration,
 } from "#test/dispatchBackPressureTraits.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { openFleetPullRequests, preparedCandidates } from "#test/engineDispatchTraits.ts";
 import { engine, isolatedEngine } from "#test/engineStory.ts";
 import { markdownWork, oneExecutionSlot } from "#test/engineTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
+
+const repairAtPullRequestLimit = engineConfiguration("repair at pull request limit", repairAtPullRequestLimitConfiguration());
+
+const answerAtPullRequestLimit = engineConfiguration("answer at pull request limit", answerAtPullRequestLimitConfiguration());
 
 describe("Fleet dispatch back pressure", () => {
 	const curve = { concurrency: 4, openPullRequests: { ease: 1, floor: 0, max: 3 } } as const;
@@ -21,9 +26,12 @@ describe("Fleet dispatch back pressure", () => {
 		[2, 2],
 		[3, 0],
 	] as const) {
+		const openFleetPullRequestsTrait = engine.trait("work", `${open} Fleet PRs already await human delivery`, openFleetPullRequests(open));
+		const fourApprovedCandidates = engine.trait("work", "four approved candidates are prepared", preparedCandidates(4));
+		const openPullRequestCurveTrait = engineConfiguration("open pull request curve", openPullRequestCurve({ curve: () => curve }));
 		isolatedEngine.it(
 			`${open} open Fleet PRs allow ${allowed} new implementer launches`,
-			[openPullRequestCurve({ curve: () => curve }), openFleetPullRequests(open), preparedCandidates(4)],
+			[openPullRequestCurveTrait, openFleetPullRequestsTrait, fourApprovedCandidates],
 			function* ({ reserveForeign, runningWorkIds, statusText, fleet, schedule }) {
 				for (let index = 1; index <= open; index += 1) {
 					const reviewed = (yield* fleet.get(`pr-${index}`)).value;
@@ -43,9 +51,15 @@ describe("Fleet dispatch back pressure", () => {
 
 	{
 		const merged = new Set<string>();
+		const threePullRequestsAwaitingMerge = engine.trait("work", "three Fleet PRs already await human delivery", openFleetPullRequests(3));
+		const fourApprovedCandidates = engine.trait("work", "four approved candidates are prepared", preparedCandidates(4));
+		const mergeablePullRequestCurveTrait = engineConfiguration(
+			"mergeable pull request curve",
+			mergeablePullRequestCurve({ curve: () => curve, merged: () => merged }),
+		);
 		engine.it(
 			"merged PRs free new launches and urgent work launches over the curve",
-			[mergeablePullRequestCurve({ curve: () => curve, merged: () => merged }), openFleetPullRequests(3), preparedCandidates(4)],
+			[mergeablePullRequestCurveTrait, threePullRequestsAwaitingMerge, fourApprovedCandidates],
 			function* ({ setPriority, runningWorkIds, fleet, schedule }) {
 				const open = yield* Effect.forEach(["pr-1", "pr-2", "pr-3"], (id) => fleet.get(id));
 				for (const reviewed of open) {

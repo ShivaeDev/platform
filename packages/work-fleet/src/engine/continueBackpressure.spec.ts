@@ -1,4 +1,5 @@
 import { describe, expect } from "@effect/vitest";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { queuedContinuation } from "#test/queuedContinuation.ts";
 
@@ -9,9 +10,13 @@ describe("continuation launch backpressure", () => {
 			let reject = false;
 			let checksBlocked = checksFailure;
 			const launch = { model: "initial-model" };
+			const queuedContinuationTrait = engineConfiguration(
+				"queued continuation",
+				queuedContinuation({ checksBlocked: () => checksBlocked, launch: () => launch, now: () => now, reject: () => reject }),
+			);
 			engine.it(
 				`a rejected continuation from ${checksFailure ? "waiting" : "completed"} retries its saved message on the same thread`,
-				[queuedContinuation({ checksBlocked: () => checksBlocked, launch: () => launch, now: () => now, reject: () => reject })],
+				[queuedContinuationTrait],
 				function* ({ launches, providerCalls, finishWorkers, prepareWork, restart, fleet, schedule }) {
 					yield* prepareWork("one");
 					yield* fleet.dispatch("one");

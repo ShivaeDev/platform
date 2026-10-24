@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { bookkeepingBrief, briefAtPhase, noChangeDuringBriefPhase } from "#test/engineBriefFixtures.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { failedValidationUntilRetry } from "#test/failedValidationUntilRetry.ts";
@@ -68,9 +69,13 @@ for (const wholeFileRevision of [false, true]) {
 
 {
 	const options = { checksFailure: true, noChange: true };
+	const failedValidationUntilRetryTrait = engineConfiguration(
+		"failed validation until retry",
+		failedValidationUntilRetry({ options: () => options }),
+	);
 	engine.it(
 		"bookkeeping edits leave a validation decision resolvable by its original retry answer",
-		[markdownWork(), failedValidationUntilRetry({ options: () => options })],
+		[markdownWork(), failedValidationUntilRetryTrait],
 		function* ({ boardBrief, writeBoardWork, answerReport, launches, finishWorkers, prepareWork, restart, fleet }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");

@@ -1,8 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { noChangeReported } from "#test/engineTraits.ts";
-import { twoSubmissionsOfQuota } from "#test/twoSubmissionsOfQuota.ts";
+import { twoSubmissionsOfQuotaConfiguration } from "#test/twoSubmissionsOfQuotaConfiguration.ts";
+
+const twoSubmissionsOfQuota = engineConfiguration("two submissions of quota", twoSubmissionsOfQuotaConfiguration());
 
 isolatedEngine.it(
 	"continuation refuses a missing worker receipt and an empty message",

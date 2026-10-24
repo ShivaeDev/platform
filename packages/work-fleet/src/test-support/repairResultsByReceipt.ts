@@ -1,5 +1,6 @@
 import { Effect } from "effect";
-import { engineConfiguration } from "#test/engineConfiguration.ts";
+import type { EngineOptions } from "#test/EngineOptions.ts";
+
 export function repairResultsByReceipt(controls: {
 	readonly merged: () => boolean;
 	readonly receipts: () => string[];
@@ -15,7 +16,7 @@ export function repairResultsByReceipt(controls: {
 		| { readonly evidence: readonly string[]; readonly head: string; readonly kind: "no-change" }
 	>;
 }) {
-	return engineConfiguration("repair results by receipt", () => ({
+	return (): EngineOptions => ({
 		deliveryQuery: (result) => Effect.succeed(controls.merged() ? { head: result.head, revision: "merge-commit", url: result.pr } : undefined),
 		repairs: true,
 		resultQuery: (_board, observation) =>
@@ -30,5 +31,5 @@ export function repairResultsByReceipt(controls: {
 				controls.results().set(observation.receipt.turnId, result);
 				return result;
 			}),
-	}));
+	});
 }

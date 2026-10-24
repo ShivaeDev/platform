@@ -1,4 +1,8 @@
-import { engineConfiguration } from "#test/engineConfiguration.ts";
-export const occupiedBacklog = engineConfiguration("occupied backlog", () => ({ backlog: 1, foreignBacklog: true }));
+import type { EngineOptions } from "#test/EngineOptions.ts";
 
-export const unknownProviderQuota = engineConfiguration("unknown provider quota", () => ({ unknownQuota: true }));
+export function occupiedBacklogConfiguration() {
+	return (): EngineOptions => ({ backlog: 1, foreignBacklog: true });
+}
+export function unknownProviderQuotaConfiguration() {
+	return (): EngineOptions => ({ unknownQuota: true });
+}

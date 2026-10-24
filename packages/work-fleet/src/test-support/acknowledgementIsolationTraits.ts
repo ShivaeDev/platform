@@ -1,15 +1,19 @@
 import { Effect } from "effect";
 import { BoardAcknowledgementStale } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
-import { engineConfiguration } from "#test/engineConfiguration.ts";
-export const supersededBoardQuestions = engineConfiguration("superseded board questions", () => ({
-	acknowledgementQuery: () => Effect.fail(new BoardAcknowledgementStale({ message: "Question was superseded" })),
-	denyDelivery: true,
-}));
+import type { EngineOptions } from "#test/EngineOptions.ts";
 
-export const unavailableHistoricalQuestions = engineConfiguration("unavailable historical questions", () => ({
-	acknowledgementQuery: (input) =>
-		input.disposition === "superseded" ? Effect.fail(new BoardFailure({ message: "Historical question unavailable" })) : Effect.void,
-	denyDelivery: true,
-	mainChanges: ["src/renewed.ts"],
-}));
+export function supersededBoardQuestionsConfiguration() {
+	return (): EngineOptions => ({
+		acknowledgementQuery: () => Effect.fail(new BoardAcknowledgementStale({ message: "Question was superseded" })),
+		denyDelivery: true,
+	});
+}
+export function unavailableHistoricalQuestionsConfiguration() {
+	return (): EngineOptions => ({
+		acknowledgementQuery: (input) =>
+			input.disposition === "superseded" ? Effect.fail(new BoardFailure({ message: "Historical question unavailable" })) : Effect.void,
+		denyDelivery: true,
+		mainChanges: ["src/renewed.ts"],
+	});
+}

@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
 import { exhaustedQuestionThread, failedAnswerSubmission } from "#test/answeredFallbackTraits.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine, isolatedEngine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
@@ -10,9 +11,13 @@ import { QUESTION } from "#test/workerQuestion.ts";
 	let now = 100;
 	let unusableSession: string | undefined;
 	const rejection = new SessionFailure({ code: "session-active-turn-exhausted", message: "Thread cannot accept another turn", reason: "rejected" });
+	const exhaustedQuestionThreadTrait = engineConfiguration(
+		"exhausted question thread",
+		exhaustedQuestionThread({ now: () => now, rejection: () => rejection, unusableSession: () => unusableSession }),
+	);
 	isolatedEngine.it(
 		"a definitively wedged question thread continues with its answer and existing PR after restart",
-		[markdownWork(), exhaustedQuestionThread({ now: () => now, rejection: () => rejection, unusableSession: () => unusableSession })],
+		[markdownWork(), exhaustedQuestionThreadTrait],
 		function* ({ replaceStoredRecord, answerWorker, launches, providerStarts, workerQuestion, prepareWork, restart, fleet }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
@@ -56,9 +61,13 @@ for (const reason of ["rejected", "ambiguous", "unavailable"] as const) {
 	{
 		let fail = false;
 		const failure = new SessionFailure({ code: "session-rejected", message: "Continuation failed", reason });
+		const failedAnswerSubmissionTrait = engineConfiguration(
+			"failed answer submission",
+			failedAnswerSubmission({ fail: () => fail, failure: () => failure }),
+		);
 		engine.it(
 			`a ${reason} submission without definite exhaustion retains the answer without starting another thread`,
-			[markdownWork(), failedAnswerSubmission({ fail: () => fail, failure: () => failure })],
+			[markdownWork(), failedAnswerSubmissionTrait],
 			function* ({ answerWorker, launches, workerQuestion, prepareWork, restart, fleet }) {
 				yield* prepareWork("one");
 				yield* fleet.dispatch("one");

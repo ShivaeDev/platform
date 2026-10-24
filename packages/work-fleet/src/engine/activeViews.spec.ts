@@ -1,8 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { occupiedBacklog, unknownProviderQuota } from "#test/activeViewsTraits.ts";
+import { occupiedBacklogConfiguration, unknownProviderQuotaConfiguration } from "#test/activeViewsTraits.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { humanMergeRequired, oneExecutionSlot } from "#test/engineTraits.ts";
+
+const occupiedBacklog = engineConfiguration("occupied backlog", occupiedBacklogConfiguration());
+
+const unknownProviderQuota = engineConfiguration("unknown provider quota", unknownProviderQuotaConfiguration());
 
 for (const type of ["clarify", "not_now"] as const) {
 	isolatedEngine.it(

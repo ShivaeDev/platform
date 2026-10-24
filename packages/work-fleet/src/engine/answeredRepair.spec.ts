@@ -2,6 +2,7 @@ import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
 import { answeredRepairThread } from "#test/answeredRepairThread.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
@@ -12,18 +13,19 @@ for (const repair of ["review", "checks"] as const) {
 		let unusableSession: string | undefined;
 		let head = "initial-head";
 		const rejection = new SessionFailure({ code: "session-active-turn-exhausted", message: "Thread cannot accept another turn", reason: "rejected" });
+		const answeredRepairThreadTrait = engineConfiguration(
+			"answered repair thread",
+			answeredRepairThread({
+				head: () => head,
+				now: () => now,
+				rejection: () => rejection,
+				repair: () => repair,
+				unusableSession: () => unusableSession,
+			}),
+		);
 		isolatedEngine.it(
 			`an answered ${repair} repair question retains the repair instructions on a fresh thread after restart`,
-			[
-				markdownWork(),
-				answeredRepairThread({
-					head: () => head,
-					now: () => now,
-					rejection: () => rejection,
-					repair: () => repair,
-					unusableSession: () => unusableSession,
-				}),
-			],
+			[markdownWork(), answeredRepairThreadTrait],
 			function* ({ answerWorker, launches, providerStarts, reviewedHeads, workerQuestion, finishWorkers, prepareWork, restart, fleet }) {
 				const prepared = (yield* prepareWork("one")).value;
 				yield* fleet.dispatch("one");

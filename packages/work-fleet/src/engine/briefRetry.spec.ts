@@ -1,9 +1,12 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { markdownWork } from "#test/engineTraits.ts";
-import { oneSubmissionOfQuota } from "#test/oneSubmissionOfQuota.ts";
+import { oneSubmissionOfQuotaConfiguration } from "#test/oneSubmissionOfQuotaConfiguration.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
+
+const oneSubmissionOfQuota = engineConfiguration("one submission of quota", oneSubmissionOfQuotaConfiguration());
 
 engine.it(
 	"retry of receiptless preparation cannot authorize an edited brief",

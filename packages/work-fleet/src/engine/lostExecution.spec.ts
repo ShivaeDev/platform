@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { executing } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { unobservableExecution } from "#test/unobservableExecution.ts";
 
@@ -8,9 +9,13 @@ for (const role of ["worker", "repair"] as const) {
 	{
 		let now = 100;
 		const failure = new SessionFailure({ code: "session-unavailable", message: "Lost thread acknowledgement", reason: "ambiguous" });
+		const unobservableExecutionTrait = engineConfiguration(
+			"unobservable execution",
+			unobservableExecution({ failure: () => failure, now: () => now }),
+		);
 		isolatedEngine.it(
 			`lost ${role} read exhaustion retains ownership without a replacement`,
-			[unobservableExecution({ failure: () => failure, now: () => now })],
+			[unobservableExecutionTrait],
 			function* ({ replaceStoredRecord, publishedDecisions, prepareWork, restart, fleet, schedule }) {
 				yield* prepareWork("one");
 				const started = yield* fleet.dispatch("one");

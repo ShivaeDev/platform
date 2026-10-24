@@ -1,9 +1,14 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
-import { supersededBoardQuestions, unavailableHistoricalQuestions } from "#test/acknowledgementIsolationTraits.ts";
+import { supersededBoardQuestionsConfiguration, unavailableHistoricalQuestionsConfiguration } from "#test/acknowledgementIsolationTraits.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
 import { prepared } from "#test/preparation.ts";
+
+const supersededBoardQuestions = engineConfiguration("superseded board questions", supersededBoardQuestionsConfiguration());
+
+const unavailableHistoricalQuestions = engineConfiguration("unavailable historical questions", unavailableHistoricalQuestionsConfiguration());
 
 engine.it(
 	"unqualifiable replaced and archived decision acknowledgements close durably as superseded",

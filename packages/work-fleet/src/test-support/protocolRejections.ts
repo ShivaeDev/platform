@@ -1,6 +1,5 @@
-import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { protocolRejectionOptions } from "#test/engineProtocolRejections.ts";
-
+import type { EngineStory } from "#test/engineState.ts";
 export function protocolRejections(failure: number | string) {
-	return engineConfiguration("Codex rejects worker submissions over its protocol", (state) => protocolRejectionOptions(state, failure));
+	return (state: EngineStory) => protocolRejectionOptions(state, failure);
 }

@@ -2,9 +2,12 @@ import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { executing } from "#model.ts";
+import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { steeredTurnActive } from "#test/engineTimingTraits.ts";
-import { singleWorkerWithHumanDelivery } from "#test/singleWorkerWithHumanDelivery.ts";
+import { singleWorkerWithHumanDeliveryConfiguration } from "#test/singleWorkerWithHumanDeliveryConfiguration.ts";
+
+const singleWorkerWithHumanDelivery = engineConfiguration("single worker with human delivery", singleWorkerWithHumanDeliveryConfiguration());
 
 isolatedEngine.it(
 	"a hung active turn waits for five minutes then queues a fresh thread and releases capacity",

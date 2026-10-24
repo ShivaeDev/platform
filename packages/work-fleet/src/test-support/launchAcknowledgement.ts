@@ -1,13 +1,13 @@
 import { Deferred, Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
-import { engineConfiguration } from "#test/engineConfiguration.ts";
+import type { EngineStory } from "#test/engineState.ts";
 
 const queueFull = new SessionFailure({ code: "session-queue-full", message: "Request queue is full", reason: "rejected" });
 function signalled<E>(reached: Deferred.Deferred<void>, gate: Effect.Effect<void, E>) {
 	return Deferred.succeed(reached, undefined).pipe(Effect.andThen(gate));
 }
 export function launchAcknowledgement(kind: "slow" | "session" | "turn" | "capacity" | "background") {
-	return engineConfiguration(`the ${kind} launch acknowledgement arrives after its pass`, (state) =>
+	return (state: EngineStory) =>
 		Effect.gen(function* () {
 			const entered = yield* Deferred.make<void>();
 			const acknowledgement = yield* Deferred.make<void>();
@@ -45,6 +45,5 @@ export function launchAcknowledgement(kind: "slow" | "session" | "turn" | "capac
 					return call === "turn" && turns === 2 ? queueFull : undefined;
 				},
 			};
-		}),
-	);
+		});
 }
