@@ -1,103 +1,112 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
-import { finishWorkers, prepareWork } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { answerReport } from "#test/report.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
-
-const test = postgresTests("test");
+import { noChangeChecksFailOnce } from "#test/engineLifecycleTraits.ts";
+import { engine } from "#test/engineStory.ts";
+import { markdownWork } from "#test/engineTraits.ts";
 
 for (const status of ["draft", "deferred"]) {
-	test(`a Board HTTP release closes a changed and moved ${status} task decision without current approval`, () =>
-		withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root) =>
-			Effect.gen(function* () {
-				const fleet = yield* Fleet;
-				yield* prepareWork("one");
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const decision = (yield* fleet.reconcile("one")).value.decision;
-				if (decision?.published === undefined) {
-					return yield* Effect.die("Missing decision");
-				}
-				const published = decision.published;
-				expect(yield* boardAskFiles(root, "orchestrator")).toContain(published.sourcePath);
-				const files = boardHttpFiles(root);
-				files.write("one.md", `---\nid: one\nkind: task\nstatus: ${status}\n---\n# Changed scope\n`);
-				files.move("one.md", "moved.md");
-				const { client } = yield* boardHttp(root);
-				const answer = yield* Effect.tryPromise(() =>
-					client.mutate(
-						client.responses.recordResponse.run({
-							answers: [{ prompt: "fleet-action", selected: ["release"], text: "" }],
-							author: "orchestrator",
-							body: "Release ownership.",
-							id: "response.changed.release",
-							question: published.questionId,
-							type: "answer",
-						}),
-					),
-				);
-				const released = yield* fleet.reconcile("one");
-				expect(released.value.step).toBe("released");
-				if (status === "deferred") {
-					expect(released.value.releaseReason).toBe("Board status is deferred");
-					expect(released.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);
-				} else {
-					expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
-				}
-				expect(yield* boardAskFiles(root)).not.toContain(published.sourcePath);
-				expect(yield* boardAskFiles(root, "orchestrator")).toEqual([]);
-				yield* fixture.restart(
-					Fleet.pipe(
-						Effect.flatMap((resumed) => (status === "deferred" ? resumed.reconcile("one") : resumed.resolve("one", decision.id, answer.id))),
-					),
-				);
-				expect(files.receipts()).toHaveLength(1);
-				expect(fixture.launched).toHaveLength(2);
-			}),
-		));
-}
-
-test("concurrent retries cannot authorize a changed brief or consume the original answer", () =>
-	withFleetBoard({ checksFailure: true, noChange: true }, (fixture, root, source) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
+	engine.it(
+		`a Board HTTP release closes a changed and moved ${status} task decision without current approval`,
+		[markdownWork(), noChangeChecksFailOnce()],
+		function* ({
+			boardReceipts,
+			moveBoardWork,
+			boardInboxFiles,
+			recordBoardResponse,
+			fleet,
+			prepareWork,
+			finishWorkers,
+			afterRestart,
+			launches,
+			writeBoardWork,
+		}) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
-			finishWorkers(fixture);
+			finishWorkers();
 			const decision = (yield* fleet.reconcile("one")).value.decision;
 			if (decision?.published === undefined) {
 				return yield* Effect.die("Missing decision");
 			}
-			const files = boardHttpFiles(root);
-			const currentSource = `${source}\nChanged criteria.\n`;
-			files.write("one.md", currentSource);
-			const answer = answerReport(root, decision.published, "retry");
-			yield* Effect.all(
-				[fleet.resolve("one", decision.id, answer).pipe(Effect.result), fleet.resolve("one", decision.id, answer).pipe(Effect.result)],
-				{ concurrency: "unbounded" },
+			const published = decision.published;
+			expect(yield* boardInboxFiles("orchestrator")).toContain(published.sourcePath);
+			writeBoardWork("one.md", `---\nid: one\nkind: task\nstatus: ${status}\n---\n# Changed scope\n`);
+			moveBoardWork("one.md", "moved.md");
+			const answer = yield* recordBoardResponse({
+				answers: [{ prompt: "fleet-action", selected: ["release"], text: "" }],
+				author: "orchestrator",
+				body: "Release ownership.",
+				id: "response.changed.release",
+				question: published.questionId,
+				type: "answer",
+			});
+			const released = yield* fleet.reconcile("one");
+			expect(released.value.step).toBe("released");
+			if (status === "deferred") {
+				expect(released.value.releaseReason).toBe("Board status is deferred");
+				expect(released.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);
+			} else {
+				expect(released.value.responses).toMatchObject([{ action: "release", boardAcknowledged: true, responseId: answer.id }]);
+			}
+			expect(yield* boardInboxFiles()).not.toContain(published.sourcePath);
+			expect(yield* boardInboxFiles("orchestrator")).toEqual([]);
+			yield* afterRestart(
+				Fleet.pipe(Effect.flatMap((resumed) => (status === "deferred" ? resumed.reconcile("one") : resumed.resolve("one", decision.id, answer.id)))),
 			);
-			const prepared = (yield* fleet.get("one")).value;
-			expect(prepared.step).toBe("waiting");
-			expect(prepared.boardContext).toBe(source);
-			expect(prepared.decision).toEqual(decision);
-			expect(prepared.responses).toBeUndefined();
+			expect(boardReceipts()).toHaveLength(1);
+			expect(launches()).toHaveLength(2);
+		},
+	);
+}
 
-			expect(yield* boardAskFiles(root)).not.toEqual([]);
-			yield* fixture.restart(
-				Effect.gen(function* () {
-					const restarted = yield* Fleet;
-					const denied = yield* restarted.resolve("one", decision.id, answer).pipe(Effect.result);
-					expect(denied._tag).toBe("Failure");
-					const stopped = yield* restarted.reconcile("one");
-					expect(stopped.value.step).toBe("waiting");
-					expect(stopped.value.decision?.reason).toBe("Board context changed");
-					expect(stopped.value.responses).toBeUndefined();
-				}),
-			);
-			expect(files.receipts()).toHaveLength(1);
-			expect(fixture.launched).toHaveLength(2);
-		}),
-	));
+engine.it(
+	"concurrent retries cannot authorize a changed brief or consume the original answer",
+	[markdownWork(), noChangeChecksFailOnce()],
+	function* ({
+		boardReceipts,
+		boardInboxFiles,
+		answerReportDecision,
+		fleet,
+		prepareWork,
+		finishWorkers,
+		afterRestart,
+		launches,
+		source,
+		writeBoardWork,
+	}) {
+		yield* prepareWork("one");
+		yield* fleet.dispatch("one");
+		finishWorkers();
+		const decision = (yield* fleet.reconcile("one")).value.decision;
+		if (decision?.published === undefined) {
+			return yield* Effect.die("Missing decision");
+		}
+		const currentSource = `${source}\nChanged criteria.\n`;
+		writeBoardWork("one.md", currentSource);
+		const answer = answerReportDecision(decision.published, "retry");
+		yield* Effect.all(
+			[fleet.resolve("one", decision.id, answer).pipe(Effect.result), fleet.resolve("one", decision.id, answer).pipe(Effect.result)],
+			{ concurrency: "unbounded" },
+		);
+		const prepared = (yield* fleet.get("one")).value;
+		expect(prepared.step).toBe("waiting");
+		expect(prepared.boardContext).toBe(source);
+		expect(prepared.decision).toEqual(decision);
+		expect(prepared.responses).toBeUndefined();
+
+		expect(yield* boardInboxFiles()).not.toEqual([]);
+		yield* afterRestart(
+			Effect.gen(function* () {
+				const restarted = yield* Fleet;
+				const denied = yield* restarted.resolve("one", decision.id, answer).pipe(Effect.result);
+				expect(denied._tag).toBe("Failure");
+				const stopped = yield* restarted.reconcile("one");
+				expect(stopped.value.step).toBe("waiting");
+				expect(stopped.value.decision?.reason).toBe("Board context changed");
+				expect(stopped.value.responses).toBeUndefined();
+			}),
+		);
+		expect(boardReceipts()).toHaveLength(1);
+		expect(launches()).toHaveLength(2);
+	},
+);
