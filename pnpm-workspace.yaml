@@ -28,7 +28,7 @@ catalog:
   reselect: 5.3.0
   railway: 3.15.0
   "@tailwindcss/vite": 4.3.3
-  "@tanstack/react-router": 1.170.44
+  "@tanstack/react-router": 1.170.45
   "@vitejs/plugin-react": 6.1.2
   vite: 8.3.4
   tailwindcss: 4.3.3
@@ -43,8 +43,8 @@ catalog:
   "@effect/sql-pg": 4.0.4
   "@types/react": 19.3.0
   "@types/react-dom": 19.3.0
-  react: 19.3.0
-  react-dom: 19.3.0
+  react: 19.3.1
+  react-dom: 19.3.1
   react-markdown: 10.1.0
   remark-gfm: 4.0.1
   remark-directive: 4.0.0
@@ -53,7 +53,7 @@ catalog:
   rehype-raw: 7.0.0
   unist-util-visit: 5.1.0
   unified: 11.0.5
-  happy-dom: 21.0.1
+  happy-dom: 21.0.3
   dom-accessibility-api: 0.7.1
   mermaid: 12.2.0
   ignore: 7.0.12
@@ -83,16 +83,16 @@ catalog:
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.4
   esbuild: 0.28.2
-  better-auth: 1.7.7
+  better-auth: 1.7.10
   pg: 8.23.0
   pg-boss: 12.38.0
-  "@pg-boss/dashboard": 1.12.0
+  "@pg-boss/dashboard": 1.12.1
   satteri: 0.10.5
   shiki: 4.5.0
   typescript: 7.0.2
   yaml: 2.9.1
-  vitest: 5.0.4
-  "@vitest/coverage-v8": 5.0.4
+  vitest: 5.0.5
+  "@vitest/coverage-v8": 5.0.5
   "@vercel/detect-agent": 1.2.3
 
 catalogs:
