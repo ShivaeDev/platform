@@ -1,11 +1,7 @@
 {"path":"packages/work-fleet/src/board/acknowledgementHttp.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/work-fleet/src/board/briefRevision.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/board/completionMarkdown.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/board/decisionHttp.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/board/freshRead.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/work-fleet/src/board/publicationPass.spec.ts","rule":"tests/named-values","count":5}
-{"path":"packages/work-fleet/src/board/statusMarkdown.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/work-fleet/src/board/workRevision.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/acknowledgementIsolation.spec.ts","rule":"tests/named-values","count":5}
 {"path":"packages/work-fleet/src/engine/acknowledgementIsolation.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/engine/acknowledgementReads.spec.ts","rule":"tests/named-values","count":4}
@@ -400,7 +396,6 @@
 {"path":"packages/work-fleet/src/storage/reservationFlow.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/work-fleet/src/storage/typedMigration.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/test-support/boardReadRetry.ts","rule":"tests/no-expect-in-support","count":34}
-{"path":"packages/work-fleet/src/test-support/codexSockets.test.ts","rule":"tests/no-expect-in-support","count":3}
 {"path":"packages/work-fleet/src/test-support/daemonResync.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/disconnectRecovery.ts","rule":"tests/no-expect-in-support","count":26}
 {"path":"packages/work-fleet/src/test-support/githubReadRetry.ts","rule":"tests/no-expect-in-support","count":23}
@@ -433,12 +428,8 @@
 {"path":"packages/work-fleet/src/test-support/recoveryUnobservableCase.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/recoveryWorkerCases.ts","rule":"tests/no-expect-in-support","count":6}
 {"path":"packages/work-fleet/src/test-support/reportAttachments.ts","rule":"tests/no-expect-in-support","count":7}
-{"path":"packages/work-fleet/src/test-support/responseApplied.test.ts","rule":"tests/no-expect-in-support","count":5}
-{"path":"packages/work-fleet/src/test-support/responseApplied.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/test-support/retryInterrupted.ts","rule":"tests/no-expect-in-support","count":2}
-{"path":"packages/work-fleet/src/test-support/reviewerNetwork.ts","rule":"tests/no-expect-in-support","count":6}
 {"path":"packages/work-fleet/src/test-support/runRecoveryCase.ts","rule":"tests/no-expect-in-support","count":22}
-{"path":"packages/work-fleet/src/test-support/storeState.test.ts","rule":"tests/no-expect-in-support","count":1}
 {"path":"packages/work-fleet/src/test-support/timeoutProvider.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/work-fleet/src/test-support/watchReview.ts","rule":"tests/no-expect-in-support","count":3}
 {"path":"packages/work-fleet/src/test-support/watchScheduler.ts","rule":"tests/no-expect-in-support","count":9}
