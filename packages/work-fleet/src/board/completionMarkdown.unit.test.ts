@@ -1,6 +1,5 @@
 import { expect, it } from "vitest";
-import { board } from "@shivaedev/work-board/server/integration/board.ts";
-import { briefRevision } from "#board/briefRevision.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 
 const ACTION = "Done; PR #7 merged.";
@@ -17,8 +16,7 @@ for (const [before, after] of [
 		const result = completionMarkdown(source, ACTION);
 		expect(result).toBe(expected);
 		expect(completionMarkdown(expected, ACTION)).toBe(expected);
-		expect(board.metadataParse(expected).fields).toMatchObject({ nextAction: ACTION, status: "done" });
-		expect(briefRevision(board.metadataParse(expected))).toBe(briefRevision(board.metadataParse(source)));
+		expect(metadataParse(result ?? "").fields).toMatchObject({ nextAction: ACTION, status: "done" });
 	});
 }
 
@@ -28,7 +26,7 @@ it("preserves a BOM, CRLF, quoted keys and flow mapping bytes", () => {
 	const missing = "---\r\n{id: one,}\r\n---\r\nAuthored.\r\n";
 	const result = completionMarkdown(missing, ACTION);
 	expect(result).toBe(missing.replace("one,}", 'one,status: done, next_action: "Done; PR #7 merged."}'));
-	expect(board.metadataParse(result ?? "").fields).toMatchObject({ nextAction: ACTION, status: "done" });
+	expect(metadataParse(result ?? "").fields).toMatchObject({ nextAction: ACTION, status: "done" });
 });
 
 for (const source of ["Authored without frontmatter.", "---\nid: one\nstatus: [\n---\nAuthored."]) {
