@@ -1,17 +1,20 @@
-import { type Clock, Context, Effect } from "effect";
+import { type Clock, Context, Effect, type Scope } from "effect";
+import type { SqlClient } from "effect/sql";
+import type { DiagnosticsSources } from "@shivaedev/work-board/diagnostics/source.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostConfig } from "#host/config.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
+import { captureLogs } from "#test/captureLogs.ts";
 import { daemonResources } from "#test/daemonResources.ts";
 import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import type { Follower } from "#test/followerProcess.ts";
+import { hostDaemonLayer } from "#test/hostDaemonLayer.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";
 import { localBoardHost } from "#test/localBoardHost.ts";
 import { movingMainSource } from "#test/mainSource.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { questionPublicationBoard } from "#test/questionPublicationVerbs.ts";
-import { readDaemonLayer } from "#test/readDaemon.ts";
 import { type SnapshotReads, snapshotReads } from "#test/snapshotReads.ts";
 import { type HostDaemon, startHostDaemon } from "#test/startHostDaemon.ts";
 import { storeState } from "#test/storeState.ts";
@@ -26,11 +29,19 @@ export class HostStoryEngine {
 	workerContexts: Context.Context<never>[] | undefined;
 	pullRequest: Effect.Success<ReturnType<typeof mergedReviewGithub>> | undefined;
 	localBoard = false;
+	scheduled = false;
+	diagnostics: typeof DiagnosticsSources.Service | undefined;
+	observeConnections = false;
+	externalProcess = false;
+	beforeFixture: Effect.Effect<void, unknown, Scope.Scope> = Effect.void;
+	parts: Partial<HostFixture["parts"]> = {};
+	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient | Scope.Scope> = Effect.void;
 	repositoryRoot: string | undefined;
 	briefParseCount: (() => number) | undefined;
 	questionRegistrationClock: Clock.Clock | undefined;
 	readonly followers = new Map<string, Follower>();
 	readonly snapshots: unknown[] = [];
+	readonly logs = captureLogs();
 	reads: SnapshotReads | undefined;
 	resources: Effect.Success<ReturnType<typeof daemonResources>> | undefined;
 	#fixture: HostFixture | undefined;
@@ -69,6 +80,7 @@ export class HostStoryEngine {
 	deploy() {
 		const engine = this;
 		return Effect.gen(function* () {
+			yield* engine.beforeFixture;
 			if (engine.localBoard) {
 				const local = localBoardHost(yield* hostFixture({}, engine.config));
 				engine.repositoryRoot = local.repositoryRoot;
@@ -79,7 +91,15 @@ export class HostStoryEngine {
 			for (const [workId, record] of Object.entries(engine.stored)) {
 				yield* engine.store(workId, record);
 			}
-			engine.resources = yield* daemonResources(engine.provider ?? engine.fixture.parts.provider, undefined, engine.workerContexts);
+			yield* engine.beforeStart;
+			if (engine.externalProcess) {
+				return;
+			}
+			engine.resources = yield* daemonResources(
+				engine.provider ?? engine.fixture.parts.provider,
+				engine.observeConnections ? engine.fixture.host : undefined,
+				engine.workerContexts,
+			);
 			engine.reads = snapshotReads(engine.fixture.host);
 			yield* engine.start();
 		});
@@ -97,7 +117,12 @@ export class HostStoryEngine {
 				return yield* Effect.die("Deploy the host before starting it");
 			}
 			const board = questionPublicationBoard(engine);
-			const parts = { ...engine.fixture.parts, ...(board === undefined ? {} : { board }), provider: resources.provider };
+			const parts = {
+				...engine.fixture.parts,
+				...engine.parts,
+				...(board === undefined ? {} : { board }),
+				provider: engine.parts.provider ?? resources.provider,
+			};
 			if (engine.integrations !== undefined) {
 				parts.integrations = engine.integrations;
 			}
@@ -105,22 +130,17 @@ export class HostStoryEngine {
 				parts.main = movingMainSource(() => engine.observedMain, engine.repositoryRoot);
 			}
 			engine.#subscribed = Promise.withResolvers<void>();
-			engine.#runtime = yield* reads.observe(
-				startHostDaemon(
-					readDaemonLayer(engine.fixture.host, {
-						onSnapshot: () => engine.#subscribed.resolve(),
-						parts,
-						port,
-					}),
-				),
-			);
+			engine.#runtime = yield* reads
+				.observe(startHostDaemon(hostDaemonLayer(engine, parts, port, () => engine.#subscribed.resolve())))
+				.pipe(Effect.provide(engine.logs.layer));
 		});
 	}
 
 	stop() {
 		const engine = this;
+		const stop = engine.running.stop;
 		return Effect.gen(function* () {
-			yield* engine.running.stop;
+			yield* stop;
 			engine.#runtime = undefined;
 		});
 	}

@@ -1,35 +1,26 @@
-import { rmSync } from "node:fs";
-import { join } from "node:path";
 import { describe, expect } from "@effect/vitest";
 import { Cause, Clock, Effect, Exit } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { CONFIG_FILE } from "#host/defaults.ts";
-import { hostBoard } from "#test/fleetHost.ts";
-import { hostProcess } from "#test/hostProcess.ts";
+import { host } from "#test/hostStory.ts";
 
 describe("Cloud host process diagnostics", () => {
-	it.live("preserves interruption while closing the spawned host", () =>
-		Effect.scoped(
+	host.it("preserves interruption while closing the spawned host", [], function* (daemon) {
+		return yield* Effect.scoped(
 			Effect.gen(function* () {
-				const child = yield* hostProcess("/synthetic/missing-config.json");
+				const child = yield* daemon.spawnMissingHost();
 				const result = yield* child.until(() => Effect.interrupt).pipe(Effect.exit);
 				expect(Exit.isFailure(result)).toBe(true);
 				if (Exit.isFailure(result)) {
 					expect(Cause.hasInterruptsOnly(result.cause)).toBe(true);
 				}
 			}),
-		),
-	);
+		);
+	});
 
-	it.live("reports a failed startup with its exit status and stderr before the progress deadline", () =>
-		Effect.scoped(
+	host.it("reports a failed startup with its exit status and stderr before the progress deadline", [], function* (daemon) {
+		return yield* Effect.scoped(
 			Effect.gen(function* () {
-				const folder = yield* Effect.acquireRelease(
-					Effect.sync(() => hostBoard("{")),
-					(path) => Effect.sync(() => rmSync(path, { force: true, recursive: true })),
-				);
 				const started = yield* Clock.currentTimeMillis;
-				const child = yield* hostProcess(join(folder, CONFIG_FILE));
+				const child = yield* daemon.spawnInvalidHost();
 				const result = yield* child.until(() => Effect.succeed(false)).pipe(Effect.exit);
 				expect(Exit.isFailure(result)).toBe(true);
 				if (Exit.isFailure(result)) {
@@ -48,6 +39,6 @@ describe("Cloud host process diagnostics", () => {
 				}
 				expect((yield* Clock.currentTimeMillis) - started).toBeLessThan(20_000);
 			}),
-		),
-	);
+		);
+	});
 });

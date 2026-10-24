@@ -5,8 +5,11 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { HostConfig } from "#host/config.ts";
 import { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
 import { answerHostVerbs } from "#test/answerHostVerbs.ts";
+import { answerPublicationVerbs } from "#test/answerPublicationVerbs.ts";
 import { answerPullRequestVerbs } from "#test/answerPullRequestVerbs.ts";
+import { answerQueueVerbs } from "#test/answerQueueVerbs.ts";
 import { answerReceiptVerbs } from "#test/answerReceiptVerbs.ts";
+import { answerReplacementVerbs } from "#test/answerReplacement.ts";
 import { task } from "#test/fleetHost.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 
@@ -26,6 +29,9 @@ export const answers = storyKit({
 		...answerHostVerbs(engine, story.tell),
 		...answerReceiptVerbs(engine, story.tell),
 		...answerPullRequestVerbs(engine),
+		...answerQueueVerbs(engine),
+		...answerReplacementVerbs(engine),
+		...answerPublicationVerbs(engine),
 	}),
 });
 

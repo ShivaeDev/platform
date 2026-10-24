@@ -1,136 +1,75 @@
-import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
-import { Fleet } from "#fleet.ts";
-import { hostLayer } from "#host/commands.ts";
-import { WAIT_EXIT, waitFor } from "#host/wait.ts";
-import { codexServer } from "#test/codex.ts";
-import { dispatchWork } from "#test/dispatchWork.ts";
-import { cliProcess } from "#test/fleetCli.ts";
-import { type HostFixture, task, withHost } from "#test/fleetHost.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { daemonCli, withReadDaemon } from "#test/readDaemon.ts";
-import { statusRecord } from "#test/status.ts";
-import { storeState } from "#test/storeState.ts";
-import { askWorker } from "#test/workerQuestion.ts";
+import { WAIT_EXIT } from "#host/wait.ts";
+import { approvedWork, host, storedWork } from "#test/hostStory.ts";
 
-const test = postgresTests("live");
+const owners = ["maintainer", "orchestrator", "automation"] as const;
+const stages = ["done", "released"] as const;
 
-function waitSummary(port: number, workId: string) {
-	return waitFor({ intervalMs: 100, port, timeoutMs: 20_000, workId }).pipe(Effect.map(({ code, summary }) => ({ code, stdout: summary })));
-}
-
-function cli(port: number, fixture: HostFixture, args: readonly string[]) {
-	return Effect.promise(() => cliProcess([...args, "--board", fixture.host.boardDir, "--config", fixture.configFile, "--port", String(port)]));
-}
-
-test("CLI status groups all owners and wait names each owner without changing exit codes", function* () {
-	yield* withHost({}, {}, (fixture) =>
-		Effect.gen(function* () {
-			const owners = ["maintainer", "orchestrator", "automation"] as const;
-			for (const owner of owners) {
-				yield* storeState(fixture.host, owner, { ...statusRecord(owner, "waiting"), attentionOwner: owner, blocker: "Synthetic blocker" });
-			}
-			const [waits, text, json] = yield* withReadDaemon(
-				fixture.host,
-				(port) =>
-					Effect.all(
-						[Effect.forEach(owners, (owner) => waitSummary(port, owner)), cli(port, fixture, ["status"]), cli(port, fixture, ["status", "--json"])],
-						{
-							concurrency: "unbounded",
-						},
-					),
-				{ parts: fixture.parts },
-			);
-			expect(waits).toEqual(
-				owners.map((owner) => ({
-					code: WAIT_EXIT.waitingDecision,
-					stdout: `${owner} waiting (waiting on ${owner === "maintainer" ? "you" : owner}): Synthetic blocker`,
-				})),
-			);
-			expect(text.code).toBe(0);
-			for (const owner of owners) {
-				expect(text.stdout).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (1)\n  ${owner}  waiting`);
-			}
-			expect(json.code).toBe(0);
-			expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual([
-				"active",
-				"completed",
-				"config",
-				"waiting",
-			]);
-			expect(JSON.parse(json.stdout)).toMatchObject({
-				waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
+host.it(
+	"CLI status groups all owners and wait names each owner without changing exit codes",
+	owners.map((owner) => storedWork(owner, "waiting", { attentionOwner: owner, blocker: "Synthetic blocker" })),
+	function* (daemon) {
+		for (const owner of owners) {
+			expect(yield* daemon.wait(owner)).toEqual({
+				code: WAIT_EXIT.waitingDecision,
+				summary: `${owner} waiting (waiting on ${owner === "maintainer" ? "you" : owner}): Synthetic blocker`,
 			});
-		}),
-	);
-});
+		}
+		const text = yield* daemon.cli(["status"]);
+		expect(text.code).toBe(0);
+		for (const owner of owners) {
+			expect(text.stdout).toContain(`Waiting on ${owner === "maintainer" ? "you" : owner} (1)\n  ${owner}  waiting`);
+		}
+		const json = yield* daemon.cli(["status", "--json"]);
+		expect(json.code).toBe(0);
+		expect(Object.keys(JSON.parse(json.stdout)).sort((left, right) => left.localeCompare(right))).toEqual([
+			"active",
+			"completed",
+			"config",
+			"waiting",
+		]);
+		expect(JSON.parse(json.stdout)).toMatchObject({
+			waiting: { automation: [{ workId: "automation" }], maintainer: [{ workId: "maintainer" }], orchestrator: [{ workId: "orchestrator" }] },
+		});
+	},
+);
 
-test("terminal publication blockers remain grouped by owner with their original wait exit codes", function* () {
-	yield* withHost({}, {}, (fixture) =>
-		Effect.gen(function* () {
-			const stages = ["done", "released"] as const;
-			for (const step of stages) {
-				yield* storeState(fixture.host, step, {
-					...statusRecord(step, step),
-					attentionOwner: "orchestrator",
-					blocker: "Synthetic publication blocker",
-					outcome: undefined,
-				});
-			}
-			const [waits, status] = yield* withReadDaemon(
-				fixture.host,
-				(port) =>
-					Effect.all([Effect.forEach(stages, (step) => waitSummary(port, step)), cli(port, fixture, ["status"])], { concurrency: "unbounded" }),
-				{ parts: fixture.parts },
-			);
-			expect(waits).toEqual(
-				stages.map((step) => ({ code: WAIT_EXIT[step === "done" ? "completed" : step], stdout: `${step} ${step} (waiting on orchestrator)` })),
-			);
-			expect(status.code).toBe(0);
-			expect(status.stdout).toContain("Waiting on orchestrator (2)");
-			expect(status.stdout).toContain("  done  done  Synthetic publication blocker");
-			expect(status.stdout).toContain("  released  released  Synthetic publication blocker");
-		}),
-	);
-});
+host.it(
+	"terminal publication blockers remain grouped by owner with their original wait exit codes",
+	stages.map((step) => storedWork(step, step, { attentionOwner: "orchestrator", blocker: "Synthetic publication blocker", outcome: undefined })),
+	function* (daemon) {
+		for (const step of stages) {
+			expect(yield* daemon.wait(step)).toEqual({
+				code: WAIT_EXIT[step === "done" ? "completed" : step],
+				summary: `${step} ${step} (waiting on orchestrator)`,
+			});
+		}
+		const status = yield* daemon.cli(["status"]);
+		expect(status.code).toBe(0);
+		expect(status.stdout).toContain("Waiting on orchestrator (2)");
+		expect(status.stdout).toContain("  done  done  Synthetic publication blocker");
+		expect(status.stdout).toContain("  released  released  Synthetic publication blocker");
+	},
+);
 
-test("CLI reassignment publishes a new maintainer question and refreshes the generated Board", function* () {
-	const calls: string[] = [];
-	const server = yield* codexServer((request) => {
-		calls.push(request.method);
-		return {};
-	});
-	yield* withHost({ "one.md": task("one", "approved") }, { local: { endpoint: server.endpoint } }, (fixture) =>
-		Effect.gen(function* () {
-			execFileSync("git", ["init", "--quiet", "--initial-branch=main", fixture.host.boardDir]);
-			yield* dispatchWork(fixture.host, "one", fixture.parts);
-			const old = yield* askWorker(fixture.provider).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			const oldSource = readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8");
-			expect(oldSource).toContain('"response_from":["orchestrator"]');
-			const changed = yield* daemonCli(
-				fixture.host,
-				["reassign", "one", old.decision.id, "maintainer", "--board", fixture.host.boardDir, "--config", fixture.configFile],
-				{ parts: fixture.parts },
-			);
-			expect(changed).toEqual({ code: 0, stdout: "one waiting (waiting on you): Which storage should I use? Choose PostgreSQL or SQLite." });
-			const current = yield* Effect.gen(function* () {
-				return (yield* (yield* Fleet).get("one")).value;
-			}).pipe(Effect.provide(hostLayer(fixture.host, fixture.parts)));
-			const sourcePath = current.decision?.published?.sourcePath;
-			if (sourcePath === undefined) {
-				return yield* Effect.die("Missing reassigned source");
-			}
-			expect(readFileSync(join(fixture.host.boardDir, sourcePath), "utf8")).toContain('"response_from":["maintainer"]');
-			const closed = board.metadataParse(readFileSync(join(fixture.host.boardDir, old.published.sourcePath), "utf8"));
-			expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
-			expect(closed.body).toBe(board.metadataParse(oldSource).body);
-			expect(readFileSync(join(fixture.host.boardDir, "fleet/status.md"), "utf8")).toContain("## Waiting on you\n\n### one");
-			expect(calls).toEqual([]);
-			expect(fixture.provider.launched).toHaveLength(1);
-		}),
-	);
+host.it("CLI reassignment publishes a new maintainer question and refreshes the generated Board", [approvedWork(["one"])], function* (daemon) {
+	daemon.initializeRepository();
+	yield* daemon.dispatch("one");
+	const old = yield* daemon.workerQuestion();
+	const oldSource = daemon.readBoard(old.published.sourcePath);
+	expect(oldSource).toContain('"response_from":["orchestrator"]');
+	const changed = yield* daemon.cli(["reassign", "one", old.decision.id, "maintainer"]);
+	expect(changed).toEqual({ code: 0, stderr: "", stdout: "one waiting (waiting on you): Which storage should I use? Choose PostgreSQL or SQLite." });
+	const current = yield* daemon.get("one");
+	const sourcePath = current.decision?.published?.sourcePath;
+	if (sourcePath === undefined) {
+		throw new Error("Missing reassigned source");
+	}
+	expect(daemon.readBoard(sourcePath)).toContain('"response_from":["maintainer"]');
+	const closed = board.metadataParse(daemon.readBoard(old.published.sourcePath));
+	expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
+	expect(closed.body).toBe(board.metadataParse(oldSource).body);
+	expect(daemon.readBoard("fleet/status.md")).toContain("## Waiting on you\n\n### one");
+	expect(daemon.providerLaunches()).toHaveLength(1);
 });
