@@ -132,7 +132,7 @@ export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
 }));
 ```
 
-Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.omit("notes.$changes")` and keep `Notes` as the host and client group.
+Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.application` and keep `Notes` as the host and client group.
 
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 

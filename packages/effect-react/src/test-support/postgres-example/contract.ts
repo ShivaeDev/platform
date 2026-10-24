@@ -24,6 +24,11 @@ export const SaveOrder = command("save", {
 	success: Order,
 });
 export const Orders = contract("orders", { commands: [SaveOrder], queries: [GetOrder] }).middleware(Authenticated);
-export const LiveOrders = Orders.add(
-	Rpc.make("subscribe", { error: Schema.Union([Missing, Unavailable]), payload: { id: Order.fields.id }, stream: true, success: LiveHint }),
-).middleware(Authenticated);
+const Subscribe = Rpc.make("subscribe", {
+	error: Schema.Union([Missing, Unavailable]),
+	payload: { id: Order.fields.id },
+	stream: true,
+	success: LiveHint,
+}).middleware(Authenticated);
+export const LiveOrders = Orders.add(Subscribe);
+export const ApplicationOrders = Orders.application.add(Subscribe);

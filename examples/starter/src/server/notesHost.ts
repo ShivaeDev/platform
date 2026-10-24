@@ -13,10 +13,10 @@ import { jobDashboard } from "#server/jobDashboard.ts";
 import { NotesService } from "#server/NotesService.ts";
 import { noteProducer } from "#server/noteProducer.ts";
 
-const handlers = Notes.omit("notes.$changes").toLayer(
+const handlers = Notes.application.toLayer(
 	Effect.gen(function* () {
 		const service = yield* NotesService;
-		return Notes.omit("notes.$changes").of({
+		return Notes.application.of({
 			"notes.create": (input) => Effect.flatMap(SessionUser, ({ id }) => service.create(input, id)),
 			"notes.delete": (input) => Effect.flatMap(SessionUser, ({ id }) => service.delete(input, id)),
 			"notes.get": (input) => Effect.flatMap(SessionUser, ({ id }) => service.get(input.id, id)),
