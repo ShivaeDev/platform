@@ -303,8 +303,6 @@
 {"path":"packages/work-fleet/src/host/daemonDiagnostics.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemonDiscovery.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/work-fleet/src/host/daemonFollow.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/work-fleet/src/host/daemonFollow.spec.ts","rule":"tests/spec-helpers","count":3}
-{"path":"packages/work-fleet/src/host/daemonFollow.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemonRequest.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/host/daemonRequest.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/work-fleet/src/host/daemonResync.spec.ts","rule":"tests/story-specs","count":1}
