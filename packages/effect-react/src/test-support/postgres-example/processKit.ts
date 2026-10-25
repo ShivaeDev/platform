@@ -3,6 +3,7 @@ import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgre
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { databaseUrl, hasPostgres } from "#test/order-example/postgres.ts";
+import { openPrivateCluster, privateVerbs } from "./privateCluster.ts";
 import { createProcesses, openCluster } from "./processEngine.ts";
 import { processVerbs } from "./processVerbs.ts";
 
@@ -23,8 +24,12 @@ export const processes = storyKit({
 	name: "order processes",
 	runIf: hasPostgres,
 	stages: ["cluster"],
-	verbs: (engine, story) => processVerbs(engine, story.tell),
+	verbs: (engine, story) => ({ ...processVerbs(engine, story.tell), ...privateVerbs(engine, story.tell) }),
 });
 export function twoServersAndWorker() {
 	return processes.trait("cluster", "two HTTP servers and a pg-boss worker share PostgreSQL with three subscribed clients", openCluster);
+}
+
+export function privateSessionsAcrossHosts() {
+	return processes.trait("cluster", "two PostgreSQL hosts with Alice and Bob subscribed to private queries", openPrivateCluster);
 }

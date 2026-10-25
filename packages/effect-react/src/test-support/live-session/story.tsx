@@ -1,5 +1,6 @@
 import { setTimeout } from "node:timers/promises";
 import { Effect } from "effect";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clickButton, Screen } from "#test/Screen.ts";
 import { App } from "./App.tsx";
@@ -12,8 +13,10 @@ export const liveSessionStory = storyKit({
 		window.location.href = host.url;
 		const screen = new Screen(() => undefined);
 		const counts = { rechecks: 0 };
+		const registries: AtomRegistry.AtomRegistry[] = [];
 		const view = yield* screen.open(
 			<App
+				connected={(registry) => registries.push(registry)}
 				rechecked={() => {
 					counts.rechecks += 1;
 				}}
@@ -24,12 +27,12 @@ export const liveSessionStory = storyKit({
 				url={host.url}
 			/>,
 		);
-		return { counts, host, screen, view };
+		return { counts, host, registries, screen, view };
 	},
 	inspect: ({ counts, host, view }) => ({ ...counts, ...host.state, html: view.container.innerHTML }),
 	name: "live session",
 	stages: ["screen"],
-	verbs: ({ counts, host, screen, view }, story) => {
+	verbs: ({ counts, host, registries, screen, view }, story) => {
 		screen.tell = story.tell;
 		return {
 			active: () => host.state.active,
@@ -38,6 +41,7 @@ export const liveSessionStory = storyKit({
 			reads: () => host.state.reads,
 			ready: () => view.container.querySelector('[data-live="live"][data-pending="false"]') !== null,
 			rechecks: () => counts.rechecks,
+			registries: () => registries,
 			rename: (title: string) => screen.act(`the server renames the note to ${title}`, () => host.rename(title)),
 			signIn: () => screen.act("Alice signs in again", () => clickButton(view.container, "Sign in")),
 			signOut: () =>

@@ -1,9 +1,11 @@
 import { Effect, ManagedRuntime, Option, Stream } from "effect";
-import { HttpServer } from "effect/http";
+import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { queryKeys } from "@shivaedev/effect-contract/serverMetadata.ts";
+import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { Notes, notes } from "./notes.ts";
 
@@ -15,6 +17,17 @@ export async function openHost() {
 		session: "alice",
 		title: "First",
 	};
+	const tokens = new Map([
+		["Bearer alice-token", "alice"],
+		["Bearer bob-token", "bob"],
+	]);
+	function resolveSession(headers: Headers.Headers) {
+		return Effect.sync(() => {
+			state.lookups += 1;
+			const account = headers.authorization === undefined ? state.session : tokens.get(headers.authorization);
+			return Option.map(Option.fromUndefinedOr(account), (id) => ({ user: { id } }));
+		});
+	}
 	const connected = Effect.acquireRelease(
 		Effect.sync(() => {
 			state.active += 1;
@@ -28,11 +41,18 @@ export async function openHost() {
 		Effect.gen(function* () {
 			const live = yield* makeLiveServer;
 			return Notes.of({
-				"liveSession.$changes": ({ queries }) => Stream.unwrap(Effect.as(connected, live.stream(queryKeys(Notes.declaration.queries, queries)))),
+				"liveSession.$changes": ({ queries }) =>
+					Stream.unwrap(
+						Effect.gen(function* () {
+							yield* connected;
+							const { id } = yield* Identity;
+							return live.stream(queryKeys(Notes.declaration.queries, queries), { scope: id });
+						}),
+					),
 				"liveSession.get": () =>
-					Effect.sync(() => {
+					Effect.map(Identity, ({ id }) => {
 						state.reads += 1;
-						return state.title;
+						return id === "bob" ? "Bob note" : state.title;
 					}),
 			});
 		}),
@@ -45,13 +65,7 @@ export async function openHost() {
 			services: Reactivity.layer,
 			sessions: {
 				origin: () => true,
-				provider: {
-					get: () =>
-						Effect.sync(() => {
-							state.lookups += 1;
-							return Option.map(Option.fromUndefinedOr(state.session), (id) => ({ user: { id } }));
-						}),
-				},
+				provider: { get: resolveSession },
 				streamRevalidationInterval: "100 millis",
 			},
 		}),
@@ -65,7 +79,7 @@ export async function openHost() {
 			close: () => runtime.dispose(),
 			rename: (title: string) => {
 				state.title = title;
-				return runtime.runPromise(Reactivity.invalidate([notes.name]));
+				return runtime.runPromise(Reactivity.invalidate(invalidationKeys([notes.item(0)], { scope: "alice" })));
 			},
 			state,
 			url: `http://127.0.0.1:${server.address.port}/rpc`,

@@ -7,6 +7,7 @@ import { type AppDatabaseOptions, appHost } from "@shivaedev/platform/server/app
 import { LiveOrders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
 import { orderHandlers } from "./orderHandlers.ts";
+import { Preferences, privateHandlers } from "./privateFeature.ts";
 import { orderMigrations, repositoryLayer } from "./repository.ts";
 
 export interface ServerOptions {
@@ -68,8 +69,8 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 				port: 0,
 				...changes,
 			},
-			group: LiveOrders,
-			handlers,
+			group: LiveOrders.merge(Preferences),
+			handlers: Layer.merge(handlers, privateHandlers(table, options.beforeCommit)),
 			migrations: { loader: orderMigrations(table), table: ledger },
 			services: OrderService.layer.pipe(Layer.provide(repositoryLayer(table))),
 			sessions: policy,

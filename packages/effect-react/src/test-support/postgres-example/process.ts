@@ -1,5 +1,5 @@
 import process from "node:process";
-import { Effect, Logger, Schema } from "effect";
+import { Deferred, Effect, Logger, Schema } from "effect";
 import { Rejected } from "./contract.ts";
 import { Configuration, Message, type Response } from "./processProtocol.ts";
 import { startServer } from "./server.ts";
@@ -10,16 +10,23 @@ function send(response: Response) {
 }
 const config = Schema.decodeUnknownSync(Schema.fromJsonString(Configuration))(process.argv[2]);
 let reject = false;
+let held = false;
+const released = Effect.runSync(Deferred.make<void>());
 const server =
 	config.role === "server"
 		? await startServer(config.databaseUrl, {
 				...config,
-				beforeCommit: Effect.suspend(() => {
+				beforeCommit: Effect.gen(function* () {
+					if (held) {
+						send({ _tag: "Entered" });
+						yield* Deferred.await(released);
+						held = false;
+					}
 					if (!reject) {
-						return Effect.void;
+						return;
 					}
 					reject = false;
-					return Effect.fail(new Rejected());
+					return yield* new Rejected();
 				}),
 				keepTables: true,
 				logger: Logger.make((options) => {
@@ -38,6 +45,13 @@ process.on("message", (input) => {
 				await server?.close();
 				await worker?.close();
 				process.disconnect();
+				break;
+			case "Hold":
+				held = true;
+				send({ _tag: "Held" });
+				break;
+			case "Release":
+				Effect.runSync(Deferred.succeed(released, undefined));
 				break;
 			case "Reject":
 				reject = true;

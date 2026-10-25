@@ -6,5 +6,6 @@ import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
 export const notes = collection("notes", Schema.Number);
 export const Notes = contract("liveSession", {
-	queries: [query("get", { reads: () => [notes.list], success: Schema.String })],
+	keyScope: "session",
+	queries: [query("get", { reads: () => [notes.item(0)], success: Schema.String })],
 }).middleware(Authenticated);
