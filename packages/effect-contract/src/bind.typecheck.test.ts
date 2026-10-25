@@ -6,7 +6,8 @@ import type { RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
 import { type Bound, bind } from "#bind.ts";
-import type { Notes } from "#test/notes.ts";
+import type { ResumeSource } from "#resume.ts";
+import { Notes } from "#test/notes.ts";
 import { Preferences } from "#test/sessionContract.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
@@ -37,6 +38,11 @@ expectTypeOf(api.rename.run).parameter(0).toEqualTypeOf<Parameters<typeof flat<"
 
 declare const scopedClient: AtomRpc.AtomRpcClient<Self, "test/ScopedClient", RpcGroup.Rpcs<typeof Preferences>>;
 declare const registry: AtomRegistry.AtomRegistry;
+declare const resume: ResumeSource;
+bind(Notes, client, { resume });
 bind(Preferences, scopedClient, { registry });
+bind(Preferences, scopedClient, { registry, resume });
 // @ts-expect-error Session-scoped bindings require the session's registry.
 bind(Preferences, scopedClient);
+// @ts-expect-error A resume source does not replace the session's registry.
+bind(Preferences, scopedClient, { resume });

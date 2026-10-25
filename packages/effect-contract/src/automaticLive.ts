@@ -5,7 +5,7 @@ import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { type Key, readKeys } from "#keys.ts";
 import { type LiveStatus, live } from "#live.ts";
-import { type ResumeWindow, resumeSignal } from "#resume.ts";
+import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import type { changesRpc, QueryReference } from "#serverMetadata.ts";
 
 declare const window: ResumeWindow | undefined;
@@ -26,7 +26,7 @@ interface Tracked {
 	readonly reference: QueryReference;
 }
 
-export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner) {
+export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner, resume?: ResumeSource) {
 	const eager = owner === undefined ? Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map())) : undefined;
 	const known = new Set<string>();
 	const tracked = Atom.keepAlive(Atom.make(() => eager ?? Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map()))));
@@ -70,12 +70,17 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 		const queries = [...current.values()].map(({ reference }) => reference);
 		return Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries }))));
 	}
+	const signal = resumeSignal({ ...(typeof window === "undefined" ? {} : { window }), ...(resume === undefined ? {} : { native: resume }) });
 	const subscription = live(service.runtime, {
 		keyContext: owner?.context,
-		resume: resumeSignal(typeof window === "undefined" ? {} : { window }),
+		resume: signal,
 		resyncKeys: (registry) => [...Effect.runSync(SubscriptionRef.get(registry.get(tracked))).values()].flatMap(({ keys }) => keys),
 		stream: Stream.unwrap(
-			Effect.map(AtomRegistry.AtomRegistry, (registry) => SubscriptionRef.changes(registry.get(tracked)).pipe(Stream.switchMap(subscribe))),
+			Effect.map(AtomRegistry.AtomRegistry, (registry) =>
+				Stream.zipLatest(SubscriptionRef.changes(registry.get(tracked)), AtomRegistry.toStream(registry, signal)).pipe(
+					Stream.switchMap(([current]) => subscribe(current)),
+				),
+			),
 		),
 	});
 	const connection = Atom.make((get) => {

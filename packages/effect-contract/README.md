@@ -259,6 +259,23 @@ Server adapters read the RPC's `KeyScope` annotation. For `"session"`, they must
 
 Platform database hosts serve the contract's reserved `<contract>.$changes` stream automatically. With NDJSON transport, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
+A native shell supplies its lifecycle events through `bind`'s optional `resume` source:
+
+```ts
+import { bind } from "@shivaedev/effect-contract/bind.ts";
+import type { ResumeSource } from "@shivaedev/effect-contract/resume.ts";
+import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
+
+const resume: ResumeSource = (notify) => {
+  const stopApp = onAppResume(notify);
+  const stopNetwork = onNetworkReturn(notify);
+  return () => { stopApp(); stopNetwork(); };
+};
+const api = bind(Notes, NotesClient, { resume });
+```
+
+The application owns `onAppResume` and `onNetworkReturn`; each subscribes a callback and returns an unsubscribe function. The source joins the visible browser visibility and online defaults. Each notification reopens the live subscription and reconciles all reads tracked by the connection. The owning registry releases the source on disposal. Omitting `resume` keeps the browser defaults. Pass the same binding from React's `SessionBoundary.connect` to use it with automatic session subscriptions.
+
 For a direct subscription, configure the server and `NotesClient` with `RpcSerialization.layerNdjson` and use the client already typed from `Notes`:
 
 ```ts
