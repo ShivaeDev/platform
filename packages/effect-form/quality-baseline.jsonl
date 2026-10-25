@@ -1,12 +1,2 @@
-{"path":"packages/effect-form/src/arrayErrors.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/arrayRejectionRaces.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/draft.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/entryForm.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-form/src/entryForm.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/form.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/formChecks.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/formLifecycle.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-form/src/nestedErrors.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/effect-form/src/nestedErrors.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/nestedRejections.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-form/src/persistence.test.ts","rule":"tests/story-specs","count":1}
