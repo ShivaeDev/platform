@@ -49,6 +49,7 @@ export function registerWorker(
 					}).pipe(Effect.forkIn(scope)),
 				);
 			},
+			Effect.runPromiseWith(context),
 		),
 	);
 	return registration;

@@ -10,6 +10,7 @@ export type PgBossOperation =
 	| "install"
 	| "register"
 	| "retry"
+	| "settle"
 	| "start"
 	| "stop";
 

@@ -214,6 +214,8 @@ const IndexTitle = defineQueue({
 
 The adapter enforces each queue or scheduled job's deadline using pg-boss's `startedOn` and `expireInSeconds`. It skips jobs whose window has already passed and interrupts a running Effect at its deadline. Expired jobs remain for pg-boss's expiry and retry engine. Interruption stops the rest of that batch, as described above.
 
+An interrupted batch waits for pg-boss to release its original claims before returning successfully. Settlement reads use exponential backoff from 25 ms to 500 ms between reads, with a bound of one second after the latest fetched job's deadline, including a read that never resolves. If settlement cannot be observed within that bound, the callback fails with `PgBossError` (`operation: "settle"`, with a redacted `TimeoutError`) and logs the error through the worker's captured Effect context.
+
 Queue handlers can yield `job.remainingBudget`, an `Effect.Effect<Duration.Duration>` that recomputes the time left at each read and clamps it to zero. Use it to size a downstream operation's timeout:
 
 ```ts
