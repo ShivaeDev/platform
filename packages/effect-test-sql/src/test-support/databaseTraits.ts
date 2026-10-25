@@ -29,7 +29,7 @@ export const markedSessions = database.trait("configuration", "database sessions
 });
 
 export const withoutFixtures = database.trait("configuration", "only migrations prepare the template", (engine) => {
-	engine.options = { migrations: engine.options.migrations, url: engine.options.url };
+	engine.options = { migrations: engine.fixture.options.migrations, url: engine.options.url };
 });
 
 export const sequence = database.trait("configuration", "the template contains a fresh sequence", (engine) => {
@@ -49,6 +49,28 @@ export const sequence = database.trait("configuration", "the template contains a
 
 export const failingFixtures = database.trait("configuration", "template fixtures fail after acquiring their database", (engine) => {
 	engine.options = { ...engine.options, fixtures: Effect.fail("fixtures failed") };
+});
+
+export const failingInitializer = database.trait("configuration", "the production initializer fails", (engine) => {
+	engine.options = {
+		fixtures: Effect.die("fixtures must not run after initialization fails"),
+		initialize: Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			const [row] = yield* sql<{ name: string }>`select current_database() as name`;
+			engine.template = row?.name ?? "";
+			return yield* Effect.fail("initializer failed");
+		}),
+		url: engine.options.url,
+	};
+});
+
+export const emptyInitializer = database.trait("configuration", "preparation is disabled for the production initializer", (engine) => {
+	engine.options = {
+		fixtures: Effect.die("fixtures must not run on an empty schema"),
+		initialize: Effect.die("the initializer must not run when preparation is disabled"),
+		prepare: false,
+		url: engine.options.url,
+	};
 });
 
 export const idleClock = database.trait("configuration", "pool expiry uses a controlled clock", (engine) => {

@@ -56,6 +56,33 @@ const requiredLoader = makePostgresTestLayer({
 expectTypeOf<Layer.Services<typeof requiredLoader>>().toEqualTypeOf<Missing>();
 expectTypeOf<Layer.Error<typeof requiredLoader>>().toEqualTypeOf<SqlError | "loader refused" | Migrator.MigrationError>();
 
+const initialized = makePostgresTestLayer({ initialize: Effect.service(Missing), url: options.url });
+expectTypeOf<Layer.Services<typeof initialized>>().toEqualTypeOf<Missing>();
+expectTypeOf<Layer.Success<typeof initialized>>().toEqualTypeOf<PostgresTestServices | PostgresTestDatabase>();
+const initializedLoader = makePostgresTestLayer({
+	fixtures: Effect.fail("fixtures refused" as const),
+	initialize: (url) =>
+		Effect.gen(function* () {
+			expectTypeOf(url).toEqualTypeOf<Redacted.Redacted<string>>();
+			yield* Scope.Scope;
+			yield* PgClient.PgClient;
+			yield* SqlClient.SqlClient;
+			yield* Reactivity.Reactivity;
+			yield* Missing;
+			return yield* Effect.fail("initializer refused" as const);
+		}),
+	url: options.url,
+});
+expectTypeOf<Layer.Services<typeof initializedLoader>>().toEqualTypeOf<Missing>();
+expectTypeOf<Layer.Error<typeof initializedLoader>>().toEqualTypeOf<
+	SqlError | Migrator.MigrationError | "initializer refused" | "fixtures refused"
+>();
+
+// @ts-expect-error Choose an initializer or migrations, not both.
+makePostgresTestLayer({ ...options, initialize: Effect.void });
+// @ts-expect-error A preparation strategy is required.
+makePostgresTestLayer({ url: options.url });
+
 const { effectApp } = makeEffectIt({
 	around: withTestTransaction,
 	layer,

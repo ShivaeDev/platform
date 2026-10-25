@@ -11,12 +11,27 @@ export type PostgresTestLoader<E = never, R = never> = (
 	url: Redacted.Redacted<string>,
 ) => Effect.Effect<unknown, E, R | PostgresTestServices | Scope.Scope>;
 
-export interface PostgresTestOptions<E = never, R = never, TFixtures = never> extends SqlNameTransforms {
+interface PostgresTestCommonOptions<E, TFixtures> extends SqlNameTransforms {
 	readonly fixtures?: Effect.Effect<unknown, E, TFixtures | PostgresTestServices | Scope.Scope> | PostgresTestLoader<E, TFixtures>;
 	readonly maxConnections?: number;
-	readonly migrations: PostgresMigrationOptions<R>;
 	readonly prepare?: boolean;
 	readonly url: Redacted.Redacted<string>;
+}
+
+export type PostgresTestOptions<E = never, R = never, TFixtures = never> = PostgresTestCommonOptions<E, TFixtures> &
+	(
+		| { readonly migrations: PostgresMigrationOptions<R>; readonly initialize?: never }
+		| {
+				readonly initialize: Effect.Effect<unknown, E, R | PostgresTestServices | Scope.Scope> | PostgresTestLoader<E, R>;
+				readonly migrations?: never;
+		  }
+	);
+
+function runLoader<E, R>(
+	loader: Effect.Effect<unknown, E, R> | ((url: Redacted.Redacted<string>) => Effect.Effect<unknown, E, R>),
+	url: Redacted.Redacted<string>,
+) {
+	return typeof loader === "function" ? loader(url) : loader;
 }
 
 export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(options: PostgresTestOptions<E, R, TFixtures>) {
@@ -30,10 +45,14 @@ export function makePostgresTestLayer<E = never, R = never, TFixtures = never>(o
 				yield* Effect.scoped(
 					Effect.gen(function* () {
 						const services = yield* Layer.build(connection(template.url, maxConnections, options));
-						yield* migratePostgres(options.migrations).pipe(Effect.provideContext(services));
+						const initialize = options.initialize;
+						if (initialize === undefined) {
+							yield* migratePostgres(options.migrations).pipe(Effect.provideContext(services));
+						} else {
+							yield* runLoader(initialize, template.url).pipe(Effect.provideContext(services));
+						}
 						if (options.fixtures !== undefined) {
-							const fixtures = typeof options.fixtures === "function" ? options.fixtures(template.url) : options.fixtures;
-							yield* fixtures.pipe(Effect.provideContext(services));
+							yield* runLoader(options.fixtures, template.url).pipe(Effect.provideContext(services));
 						}
 					}),
 				);

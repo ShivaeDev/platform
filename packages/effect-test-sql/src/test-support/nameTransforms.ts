@@ -47,8 +47,9 @@ export const names = storyKit({
 	after: {
 		configuration: (engine) => {
 			const mapped = engine.options.transformQueryNames !== undefined;
+			const { initialize, ...options } = engine.options;
 			engine.options = {
-				...engine.options,
+				...options,
 				fixtures: Effect.gen(function* () {
 					const sql = yield* SqlClient.SqlClient;
 					yield* sql`insert into named_rows ${sql.insert({ id: 1, runId: "seed" })}`;
