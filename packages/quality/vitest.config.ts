@@ -7,6 +7,7 @@ export default defineConfig({
 		alias: {
 			"#baseline-workspace": fileURLToPath(new URL("../../script/quality/test-support/baselineWorkspace.ts", import.meta.url)),
 			"#exports-story": fileURLToPath(new URL("../../script/quality/test-support/exportsStory.ts", import.meta.url)),
+			"#rule-story": fileURLToPath(new URL("../../script/quality/test-support/ruleKit.ts", import.meta.url)),
 		},
 		conditions: ["source", "module", "browser", "development|production"],
 	},
