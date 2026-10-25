@@ -22,7 +22,7 @@ The next test still sees the original name. Tests that must observe a committed 
 
 ### Prepare one fixture
 
-`makePostgresTestLayer` creates an empty template and a migrated template through an administrative connection, runs `migratePostgres` and optional fixtures in the migrated template, then closes its preparation connections. It creates a shared test database from the migrated template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The templates remain closed and unchanged while tests run. Each isolated database copies the template it asks for; migrations and fixtures do not run again when cloning. Set `prepare: false` for a suite that needs only empty databases: both migrations and fixtures are skipped.
+`makePostgresTestLayer` creates an empty template and a migrated template through an administrative connection, runs either `migratePostgres` or the application's initializer followed by optional fixtures in the migrated template, then closes its preparation connections. It creates a shared test database from the migrated template and provides `SqlClient`, `PgClient`, `Reactivity` and `PostgresTestDatabase`. The templates remain closed and unchanged while tests run. Each isolated database copies the template it asks for; initialization and fixtures do not run again when cloning. Set `prepare: false` for a suite that needs only empty databases: preparation and fixtures are skipped.
 
 The Layer's scope owns the template, shared database and their connections. `makeEffectIt` builds the Layer once for its worker fixture. Each test's wrapper owns the transaction or isolated database. Closing a test scope releases its connections and queues its database drop in the background. Closing the Layer waits for all queued drops. To wait earlier, run `PostgresTestDatabase.awaitCleanup` after the isolated scope ends; it waits for drops queued before that Effect starts and reports cleanup failures as SQL defects. The shared database and templates stay available; the administrative database named by `url` remains in place.
 
@@ -78,6 +78,19 @@ const layer = makePostgresTestLayer({
   }),
 });
 ```
+
+### Run the production initializer
+
+Supply `initialize` instead of `migrations` when the application already owns its complete database setup:
+
+```ts
+const layer = makePostgresTestLayer({
+  url: testDatabaseUrl,
+  initialize: (templateUrl) => migrateDatabase(templateUrl),
+});
+```
+
+Choose exactly one of `migrations` and `initialize`. The initializer is an Effect using the supplied `SqlClient`, `PgClient` and `Reactivity`, or a `PostgresTestLoader` receiving the template's redacted URL. It runs once against the migrated template and completes before fixtures and cloning. Its scoped resources close before cloning, and additional service requirements remain requirements of the Layer. Optional `fixtures` run afterward. Ordinary stories inherit the initialized schema and data; deployment stories can still select the empty template.
 
 ### Reuse the app's SQL name mapping
 
@@ -226,7 +239,7 @@ Import each name from the module that defines it. The package has no root entry.
 
 | Module | Exports |
 | --- | --- |
-| `@shivaedev/effect-test-sql/server/postgres.ts` | `makePostgresTestLayer({ url, migrations, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
+| `@shivaedev/effect-test-sql/server/postgres.ts` | `makePostgresTestLayer({ url, migrations?, initialize?, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
 | `@shivaedev/effect-test-sql/server/withTestTransaction.ts` | `withTestTransaction(effect)` |
 | `@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)` |
 | `@shivaedev/effect-test-sql/server/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate` |
