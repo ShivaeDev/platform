@@ -32,14 +32,20 @@ function requiringRole<TSession extends UserSessionShape>(
 export function authenticatedAdminLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedAdmin> {
 	return Layer.succeed(AuthenticatedAdmin, requiringRole(policy, "admin", "Administrator role required"));
 }
+function adminRejection(error: Unauthorized | Forbidden | AuthUnavailable) {
+	return HttpServerResponse.empty({
+		headers: { "cache-control": "private, no-store" },
+		status: { AuthUnavailable: 503, Forbidden: 403, Unauthorized: 401 }[error._tag],
+	});
+}
+
 export function adminRoute<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>) {
 	return <E, R>(handler: (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
 		(request: HttpServerRequest.HttpServerRequest): Effect.Effect<HttpServerResponse.HttpServerResponse, E, Exclude<R, Identity | SessionUser>> =>
 			Effect.andThen(requireAdmin, Effect.context<Identity | SessionUser>()).pipe(
 				withSessionUser(policy, request.headers, request.url),
 				Effect.matchEffect({
-					onFailure: (error) =>
-						Effect.succeed(HttpServerResponse.empty({ status: { AuthUnavailable: 503, Forbidden: 403, Unauthorized: 401 }[error._tag] })),
+					onFailure: (error) => Effect.succeed(adminRejection(error)),
 					onSuccess: (context) => Effect.provideContext(handler(request), context),
 				}),
 			);

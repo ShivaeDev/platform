@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { adminVerbs } from "./adminVerbs.ts";
 import { clientAbortVerbs } from "./clientAbortVerbs.ts";
 import { connectionBackends, serverTls } from "./connectionSecurity.ts";
 import { databaseVerbs } from "./databaseVerbs.ts";
@@ -12,6 +13,7 @@ import { traceVerbs } from "./traceVerbs.ts";
 
 export function hostVerbs(state: HostState, story: { tell: (line: string) => void }) {
 	return {
+		...adminVerbs(state, story.tell),
 		connectionBackends,
 		serverTls,
 		...requests(state, story.tell),

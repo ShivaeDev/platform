@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
-import { HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpStaticServer } from "effect/http";
+import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
 import type { AppChanges, AppHttpHostOptions } from "#server/appHost.ts";
@@ -21,6 +21,10 @@ import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { TrustedProxy } from "#server/rpc-server/trustedProxy.ts";
 import { schemaSensitiveKeys } from "#server/schemaSensitiveKeys.ts";
 import { tracedGroup } from "#server/tracedGroup.ts";
+
+const rpcCacheControl: HttpEffect.PreResponseHandler = (_, response) =>
+	Effect.succeed(HttpServerResponse.setHeader(response, "cache-control", "private, no-store"));
+
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
 	THandlers,
@@ -59,13 +63,14 @@ export function appHostHttp<
 						Effect.provideService(RpcSerialization.RpcSerialization, wire),
 					);
 					const guarded = localRpcGuard(handler, trustedProxy);
-					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
-						guarded.pipe(
+					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
+						HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
+						return guarded.pipe(
 							Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
 							Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
 							Effect.provideService(RpcSerialization.RpcSerialization, wire),
-						),
-					);
+						);
+					});
 				}),
 			).pipe(
 				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
