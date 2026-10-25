@@ -3,6 +3,8 @@ import { Result } from "effect";
 import { USAGE as COMMAND_USAGE, SUBCOMMANDS } from "./messages.ts";
 
 export type Command =
+	| { readonly _tag: "Ci" }
+	| { readonly _tag: "Setup"; readonly config: string | undefined }
 	| { readonly _tag: "Lint"; readonly config: string | undefined }
 	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
 	| { readonly _tag: "Fix"; readonly config: string | undefined }
@@ -52,6 +54,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
 	"baseline write": ["rule"],
+	ci: [],
 	"exceptions migrate": ["from"],
 	fix: [],
 	"hooks install": ["force"],
@@ -59,6 +62,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"hooks status": [],
 	"hooks uninstall": [],
 	lint: [],
+	setup: [],
 };
 
 function misplaced(name: string, values: Values): string | undefined {
@@ -74,6 +78,10 @@ function ref(against: string | undefined, command: Command): Parsed {
 function commandFor(name: string, values: Values): Parsed {
 	const config = values.config;
 	switch (name) {
+		case "ci":
+			return parsed({ _tag: "Ci" });
+		case "setup":
+			return parsed({ _tag: "Setup", config });
 		case "lint":
 			return parsed({ _tag: "Lint", config });
 		case "exceptions migrate":

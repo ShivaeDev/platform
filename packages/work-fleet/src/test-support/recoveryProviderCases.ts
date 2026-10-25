@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { SessionFailure } from "#session/schema.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
@@ -28,11 +27,7 @@ export function recoveryProviderCases(): readonly RecoveryCase[] {
 							: Effect.fail(new SessionFailure({ code, message, reason: code === "session-turn-missing" ? "ambiguous" : "unavailable" })),
 				}),
 			},
-			progress: (_ctx, before, after) => {
-				expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-				expect(after.step).toBe("reviewing");
-			},
+			recovery: "review-existing-worker",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;

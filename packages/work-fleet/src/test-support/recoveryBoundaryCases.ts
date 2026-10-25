@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
@@ -23,10 +22,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 			enter: finishRecoveryWorker,
 			name: "nonterminal adoption evidence",
 			options: { resultQuery: (work, observation) => adoption.adopt(work, { ...observation, execution: restored ? "completed" : "running" }) },
-			progress: (_ctx, _before, after) => {
-				expect(after.result?.head).toBe(HEAD);
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "adopt-terminal-result",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
@@ -42,10 +38,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 					restored ? Effect.succeed({ evidence: ["Configured no-change validation"], head: result.head, passed: true }) : checks(result),
 				resultQuery: () => Effect.succeed({ evidence: ["Criteria already met"], head: HEAD, kind: "no-change" }),
 			},
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("done");
-				expect(after.result?.kind).toBe("no-change");
-			},
+			recovery: "complete-no-change",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
@@ -79,9 +72,7 @@ export function recoveryBoundaryCases(): readonly RecoveryCase[] {
 			enter: finishRecoveryReview,
 			name: "delivery reader unavailable",
 			options: { deliveryQuery: githubDelivery(readDelivery) },
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("done");
-			},
+			recovery: "observe-merged-delivery",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;

@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { activeTurnRaces } from "#test/activeTurnRaces.ts";
@@ -32,13 +31,7 @@ export function recoveryActiveTurnCase(code: "session-active-turn" | "session-ac
 			}),
 			now: () => now,
 		},
-		progress: (_context, before, after) => {
-			const retry = after.attempts.at(-1);
-			expect(retry?.receipt).toBeDefined();
-			expect(retry?.operationId).not.toBe(before.attempts.at(-1)?.operationId);
-			expect(retry?.sessionId === before.attempts.at(-1)?.sessionId).toBe(false);
-			expect(after.step).toBe("working");
-		},
+		recovery: "fresh-worker-session",
 		restore: () =>
 			Effect.sync(() => {
 				restored = true;

@@ -1,113 +1,110 @@
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { releaseOnly } from "#engine/decisionCopy.ts";
 import { Fleet } from "#fleet.ts";
-import { backlog, executing, type FleetRecord } from "#model.ts";
-import { exhaustReadRetries } from "#test/exhaustReadRetries.ts";
-import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
-import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
-import { type RecoveryCaseGroup, recoveryCaseGroups } from "#test/recoveryCases.ts";
+import type { FleetRecord } from "#model.ts";
+import { type EngineStory, running } from "#test/engineState.ts";
+import { enterRecoveryCase } from "#test/enterRecoveryCase.ts";
 import { answerReport } from "#test/report.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
 
-function assertRetryProgress(before: FleetRecord, after: FleetRecord) {
-	const priorOperations = new Set(before.attempts.map((attempt) => attempt.operationId));
-	const freshTurn = after.attempts.some((attempt) => attempt.receipt !== undefined && !priorOperations.has(attempt.operationId));
-	expect(freshTurn || ["done", "released"].includes(after.step)).toBe(true);
-	if (after.step === "released") {
-		expect(after.releaseReason).toContain("merged by a human");
-		expect(after.outcome).toBeUndefined();
+export function runRecoveryCase(state: EngineStory, tell: (line: string) => void) {
+	let entered: Effect.Success<ReturnType<typeof enterRecoveryCase>> | undefined;
+	let responseId: string | undefined;
+	function stopped() {
+		if (entered === undefined) {
+			throw new Error("Enter the decision before recovering it");
+		}
+		return entered;
 	}
-}
-
-const exerciseRecoveryCase = Effect.fn("Test.exerciseRecoveryCase")(function* (
-	scenario: RecoveryCase,
-	context: RecoveryContext,
-	action: "retry" | "release",
-) {
-	yield* scenario.enter(context);
-	yield* exhaustReadRetries(context.fixture);
-	const fleet = yield* Fleet;
-	const stopped = (yield* fleet.get("one")).value;
-	const submissionCalls = context.fixture.settings.length;
-	expect(stopped.step).toBe("waiting");
-	const decision = stopped.decision;
-	if (decision?.published === undefined) {
-		return yield* Effect.die("Decision must be durably published");
+	function response() {
+		if (responseId === undefined) {
+			throw new Error("Answer the decision before repeating its receipt");
+		}
+		return responseId;
 	}
-	expect(decision.code).toBe(scenario.code);
-	const document = readFileSync(join(context.root, decision.published.sourcePath), "utf8");
-	const explanation = decision.worker === undefined ? releaseOnly(decision) : undefined;
-	if (decision.worker === undefined) {
-		expect(document).toContain(':::option{id="release"}');
-		expect(document.includes(':::option{id="retry"}')).toBe(explanation === undefined);
-	} else {
-		expect(document).not.toContain(':::option{id="retry"}');
+	function observe(record: FleetRecord) {
+		state.lastRecord = record;
+		tell(`Fleet records ${record.step}`);
+		return record;
 	}
-	const restored = yield* context.fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.get("one"))));
-	expect(restored.value.decision).toEqual(decision);
-	if (action === "retry" && explanation !== undefined) {
-		expect(document).toContain(explanation);
-		const response = answerReport(context.root, decision.published, "retry");
-		const rejected = yield* context.fixture.restart(
-			Fleet.pipe(
-				Effect.flatMap((resumed) => resumed.resolve("one", decision.id, response)),
-				Effect.flip,
+	function answer(action: "retry" | "release") {
+		const { decision } = stopped();
+		if (decision.published === undefined) {
+			throw new Error("Missing published decision");
+		}
+		responseId = answerReport(state.root, decision.published, action);
+		tell(`answer ${decision.code}: ${action}`);
+		return running(state).fixture.restart(Fleet.pipe(Effect.flatMap((fleet) => fleet.resolve("one", decision.id, response()))));
+	}
+	return {
+		answerDecision: (action: "retry" | "release") => answer(action).pipe(Effect.map(({ value }) => observe(value))),
+		currentRecovery: () =>
+			running(state)
+				.fleet.get("one")
+				.pipe(Effect.map(({ value }) => value)),
+		dispatchRecovered: () =>
+			running(state).fixture.restart(
+				Fleet.pipe(
+					Effect.flatMap((fleet) => fleet.dispatch("one")),
+					Effect.map(({ value }) => observe(value)),
+				),
 			),
-		);
-		expect(rejected).toMatchObject({ _tag: "BadRequest", message: explanation });
-		expect((yield* fleet.get("one")).value).toEqual(stopped);
-		return;
-	}
-	yield* scenario.restore?.(context) ?? Effect.void;
-	const response = answerReport(context.root, decision.published, action);
-	const recovered = yield* context.fixture.restart(
-		Effect.gen(function* () {
-			const resumed = yield* Fleet;
-			let updated = yield* resumed.resolve("one", decision.id, response);
-			if (updated.value.step === "queued") {
-				updated = yield* resumed.dispatch("one");
+		enterDecision: () =>
+			enterRecoveryCase(state).pipe(
+				Effect.tap((entry) =>
+					Effect.sync(() => {
+						entered = entry;
+						tell(`enter ${entry.decision.code}`);
+					}),
+				),
+			),
+		reconcileRecovered: () =>
+			running(state).fixture.restart(
+				Fleet.pipe(
+					Effect.flatMap((fleet) => fleet.reconcile("one")),
+					Effect.map(({ value }) => observe(value)),
+				),
+			),
+		recoveryEvidence: () =>
+			Effect.gen(function* () {
+				const { scenario, submissionCalls } = stopped();
+				const { fleet, fixture } = running(state);
+				return {
+					observations: scenario.observe?.(),
+					records: (yield* fleet.list()).map(({ value }) => value),
+					reservations: yield* fixture.foreignReservations(),
+					reviews: [...fixture.reviews],
+					submissionCalls,
+					submissions: [...fixture.settings],
+				};
+			}),
+		rejectRetry: () => answer("retry").pipe(Effect.flip),
+		repeatAnswer: () => {
+			const { decision } = stopped();
+			const receipt = response();
+			tell("restart and replay the exact answer receipt");
+			return running(state).fixture.restart(
+				Fleet.pipe(
+					Effect.flatMap((fleet) => fleet.resolve("one", decision.id, receipt)),
+					Effect.map(({ value }) => value),
+				),
+			);
+		},
+		restartDecision: () => {
+			stopped();
+			tell("restart Fleet from PostgreSQL");
+			return running(state).fixture.restart(
+				Fleet.pipe(
+					Effect.flatMap((fleet) => fleet.get("one")),
+					Effect.map(({ value }) => observe(value)),
+				),
+			);
+		},
+		restoreRecovery: () => {
+			const { scenario, context } = stopped();
+			if (scenario.restore === undefined) {
+				throw new Error("This recovery row has no integration to restore");
 			}
-			if (updated.value.step !== "released") {
-				updated = yield* resumed.reconcile("one");
-				updated = yield* resumed.reconcile("one");
-			}
-			return updated;
-		}),
-	);
-	expect(recovered.value.decision?.code).not.toBe(decision.code);
-	if (action === "release") {
-		expect(recovered.value.step).toBe("released");
-		expect(context.fixture.settings).toHaveLength(submissionCalls);
-		expect(recovered.value.attempts).toHaveLength(stopped.attempts.length);
-		expect(executing(recovered.value)).toBe(false);
-		expect(backlog(recovered.value)).toBe(false);
-		expect((yield* fleet.list()).map(({ value }) => value.step)).toEqual(["released"]);
-		if (stopped.result?.kind === "change") {
-			const owner = stopped.result.pr;
-			const reservations = yield* context.fixture.foreignReservations();
-			expect(reservations.some((reservation) => reservation.owner === owner)).toBe(decision.code !== "pr-closed");
-		}
-	} else {
-		assertRetryProgress(stopped, recovered.value);
-		if (scenario.progress === undefined) {
-			return yield* Effect.die("Retry needs an explicit progress assertion");
-		}
-		scenario.progress(context, stopped, recovered.value);
-	}
-	const repeated = yield* context.fixture.restart(Fleet.pipe(Effect.flatMap((resumed) => resumed.resolve("one", decision.id, response))));
-	expect(repeated.value.attempts).toEqual(recovered.value.attempts);
-	expect(repeated.value.responses).toEqual(recovered.value.responses);
-});
-export const runRecoveryCase = Effect.fn("Test.runRecoveryCase")(function* (group: RecoveryCaseGroup, row: number, action: "retry" | "release") {
-	const scenario = recoveryCaseGroups[group]()[row];
-	if (scenario === undefined) {
-		return yield* Effect.die("Missing matrix row");
-	}
-	const github = yield* mergedReviewGithub();
-	return yield* withFleetBoard({ ...github, reviewRunning: true, ...scenario.options }, (fixture, root, source) =>
-		exerciseRecoveryCase(scenario, { fixture, github, root, source }, action),
-	);
-}, Effect.scoped);
+			tell("restore the recovery integration");
+			return scenario.restore(context).pipe(Effect.provideService(Fleet, running(state).fleet));
+		},
+	};
+}

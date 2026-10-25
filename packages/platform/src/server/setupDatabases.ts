@@ -1,7 +1,7 @@
 import { Config, Effect } from "effect";
 import { localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
-export const setupDatabases = Effect.fn("App.setupDatabases")(function* () {
+export const setupDatabases = Effect.fn("Platform.setupDatabases")(function* () {
 	const config = yield* Config.all({
 		"DATABASE_URL": Config.String("DATABASE_URL"),
 		"DOCKER_CONTEXT": Config.String("DOCKER_CONTEXT").pipe(Config.withDefault("")),

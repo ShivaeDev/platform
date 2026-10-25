@@ -23,11 +23,11 @@ application.it(
 			expect(manifest.scripts[name]).not.toContain("--conditions=source");
 			expect(manifest.scripts[name]).toBe(sourceManifest.scripts[name].replaceAll("--conditions=source ", ""));
 		}
-		for (const path of ["src/server/dev.ts", "src/test-support/deployChild.ts"]) {
+		for (const path of ["src/test-support/deployChild.ts"]) {
 			expect(files[path]).not.toContain("--conditions=source");
 			expect(files[path]).toBe(starterFile(path).replaceAll('"--conditions=source", ', ""));
 		}
-		for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts"]) {
+		for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"]) {
 			expect(files[path]).not.toContain('"source"');
 			expect(files[path]).toBe(starterFile(path).replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
 		}

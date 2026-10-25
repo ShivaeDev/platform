@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Cause, Config, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { databaseSetup } from "#test-support/databaseSetup.ts";
+import { databaseSetup } from "#test/databaseSetup.ts";
 
 databaseSetup.it.runIf(Option.isSome(Effect.runSync(Config.option(Config.String("TEST_DATABASE_URL")))))(
 	"prepares databases with the names configured in their URLs instead of the package name",

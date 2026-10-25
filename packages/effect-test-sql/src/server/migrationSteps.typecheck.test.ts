@@ -9,6 +9,7 @@ class Dependency extends Context.Service<Dependency, string>()("MigrationStepsDe
 
 const steps = migrationSteps({
 	...migrations,
+	components: [{ apply: Effect.asVoid(Dependency), name: "dependent schema", pending: Effect.as(Dependency, undefined) }],
 	loader: Effect.gen(function* () {
 		yield* Dependency;
 		yield* Scope.Scope;
