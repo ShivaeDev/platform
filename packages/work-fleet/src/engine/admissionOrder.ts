@@ -2,10 +2,8 @@ import { Effect } from "effect";
 import type { EngineState } from "#engine/makeState.ts";
 import { retryPending } from "#engine/readRetry.ts";
 import type { FleetRecord } from "#model.ts";
-import type { Priority } from "#policy.ts";
+import { priorityRanks as ranks } from "#scheduling/priorityRanks.ts";
 import type { Versioned } from "#storage/model.ts";
-
-const ranks: Readonly<Record<Priority, number>> = { high: 1, low: 3, normal: 2, urgent: 0 };
 
 export function admissionOrder(state: EngineState) {
 	return Effect.fn("Fleet.admissionOrder")(function* (records: readonly Versioned<FleetRecord>[]) {

@@ -68,7 +68,6 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 			new StorageAdmission({ message: `waiting for area ${overlappingArea(areas, foreign.areas)} held by ${foreign.owner}` }),
 		);
 	}
-	const index = records.findIndex((entry) => entry.workId === record.workId);
 	const holder = records.find(
 		(entry) =>
 			entry.workId !== record.workId
@@ -83,9 +82,19 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	if (previous !== undefined && holdsAreas(previous, scheduling.now, scheduling.areaMergeWaitMs)) {
 		return;
 	}
-	const ahead = records
-		.slice(0, index)
-		.find((entry) => entry.step === "queued" && scheduling.waiters.includes(entry.workId) && overlappingArea(areas, entry.areas) !== undefined);
+	const ahead = records.find(
+		(entry) =>
+			entry.step === "queued"
+			&& scheduling.waiters.includes(entry.workId)
+			&& overlappingArea(areas, entry.areas) !== undefined
+			&& !external.some((reservation) => overlappingArea(entry.areas ?? [], reservation.areas) !== undefined)
+			&& !records.some(
+				(occupant) =>
+					occupant.workId !== entry.workId
+					&& holdsAreas(occupant, scheduling.now, scheduling.areaMergeWaitMs)
+					&& overlappingArea(entry.areas ?? [], occupant.areas) !== undefined,
+			),
+	);
 	if (ahead !== undefined) {
 		const queuedArea = overlappingArea(areas, ahead.areas);
 		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${queuedArea} queued ahead by ${ahead.workId}` }));
