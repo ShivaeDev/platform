@@ -3,102 +3,104 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-test-runner-module.md",
-				"text": "---\n\"@shivaedev/effect-test\": minor\n---\n\n### Breaking\n\n- Move `@shivaedev/effect-test/vitest.ts` to `@shivaedev/effect-test/makeEffectIt.ts`. Change imports to `@shivaedev/effect-test/makeEffectIt.ts`; the exported `makeEffectIt` function is unchanged.\n"
+				"name": "bulk-write-announcements.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/effect-contract\": minor\n---\n\n### Breaking\n\n- effect-sql writes returning more than 1,000 rows across all chunks of a single call announce `<table>` and `<table>:*` instead of item keys. Code registering raw `<table>:<id>` Reactivity keys outside effect-contract must also register `<table>:*`.\n\n### Added\n\n- effect-contract item reads refresh on their collection-wide `<collection>:*` key, with live hints naming each affected subscribed item.\n"
 			},
 			{
-				"name": "quality-inline-story-traits.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Stop `tests/story-specs` from reporting inline trait calls inside a story kit registration as plain tests. Plain `it` and `test` registrations still report.\n"
+				"name": "factory-story-kits.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Recognize story kits returned by local or imported factory functions, including kits extended through object spreads, while still reporting plain test registrations beside them.\n"
 			},
 			{
-				"name": "repository-row-count.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repositories expose `count({ where })` with the same filters as `findMany`, returning a decoded number. Omit the filter to count every row; an empty table returns `0`.\n"
+				"name": "migration-wait-signal.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Added\n\n- `@shivaedev/effect-sql` exports `pendingPostgresMigrations` to read pending ledger migration IDs and names and schema component names and details.\n- `@shivaedev/platform` logs migration wait start, periodic progress, completion and timeout through Effect's logger with pending migration and component annotations. `migrations.progressInterval` controls progress logging independently of polling and defaults to 30 seconds.\n\n### Changed\n\n- `@shivaedev/create-app`'s starter worker uses the host's migration wait logs and keeps its job readiness line.\n"
+			},
+			{
+				"name": "minimal-starter.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generate the starter foundation without the notes example with `create-app <folder> --minimal`; starter updates preserve the minimal choice.\n"
+			},
+			{
+				"name": "outbound-http-client.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Outbound HTTP client status errors, clock-based Retry-After parsing, lazy same-origin Link pagination, and bounded bytes, text and Schema-decoded JSON response readers.\n"
+			},
+			{
+				"name": "signed-in-provider-accounts.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Let `signedInUser` create provider accounts without credentials and expose `storedProviderAccounts` to read account IDs and credential-presence booleans without returning secret values.\n"
+			},
+			{
+				"name": "starter-baseline-script.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps record and lower Quality debt with `pnpm baseline write --rule <id>`, `pnpm baseline tighten` and `pnpm baseline prune`, with guidance on when to use each command.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/create-app",
-				"from": "0.13.4",
+				"from": "0.13.5",
 				"name": "@shivaedev/create-app",
-				"to": "0.13.5"
+				"to": "0.14.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-contract",
+				"from": "0.11.1",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.12.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-pg-boss",
-				"from": "0.16.2",
+				"from": "0.16.3",
 				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.16.3"
+				"to": "0.16.4"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-prisma",
-				"from": "0.10.3",
-				"name": "@shivaedev/effect-prisma",
-				"to": "0.10.4"
+				"directory": "packages/effect-react",
+				"from": "0.12.4",
+				"name": "@shivaedev/effect-react",
+				"to": "0.12.5"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-sql",
-				"from": "0.16.0",
+				"from": "0.17.0",
 				"name": "@shivaedev/effect-sql",
-				"to": "0.17.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-test",
-				"from": "0.7.2",
-				"name": "@shivaedev/effect-test",
-				"to": "0.8.0"
+				"to": "0.18.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-test-sql",
-				"from": "0.8.6",
+				"from": "0.8.7",
 				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.7"
+				"to": "0.8.8"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/effect-trpc",
-				"from": "0.8.3",
-				"name": "@shivaedev/effect-trpc",
-				"to": "0.8.4"
-			},
-			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/platform",
-				"from": "0.25.3",
+				"from": "0.25.4",
 				"name": "@shivaedev/platform",
-				"to": "0.25.4"
+				"to": "0.26.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/quality",
-				"from": "0.36.1",
+				"from": "0.36.2",
 				"name": "@shivaedev/quality",
-				"to": "0.36.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/test-story",
-				"from": "0.18.2",
-				"name": "@shivaedev/test-story",
-				"to": "0.18.3"
+				"to": "0.36.3"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.7",
+				"from": "0.30.8",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.8"
+				"to": "0.30.9"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.8",
+				"from": "0.17.9",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.9"
+				"to": "0.17.10"
 			}
 		]
 	}

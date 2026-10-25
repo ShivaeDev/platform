@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.14.0 - 2026-10-25
+
+### Added
+
+- `@shivaedev/effect-sql` exports `pendingPostgresMigrations` to read pending ledger migration IDs and names and schema component names and details.
+- `@shivaedev/platform` logs migration wait start, periodic progress, completion and timeout through Effect's logger with pending migration and component annotations. `migrations.progressInterval` controls progress logging independently of polling and defaults to 30 seconds.
+- Generate the starter foundation without the notes example with `create-app <folder> --minimal`; starter updates preserve the minimal choice.
+- Generated apps record and lower Quality debt with `pnpm baseline write --rule <id>`, `pnpm baseline tighten` and `pnpm baseline prune`, with guidance on when to use each command.
+
+### Changed
+
+- `@shivaedev/create-app`'s starter worker uses the host's migration wait logs and keeps its job readiness line.
+
 ## 0.13.5 - 2026-10-25
 
 ### Changed
