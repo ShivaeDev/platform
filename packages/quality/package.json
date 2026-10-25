@@ -33,6 +33,7 @@
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json",
 		"./domEnvironment.config.ts": null,
+		"./unitIoGuard.config.ts": null,
 		"./imports/isTooling.ts": null,
 		"./rules/imports/bundleInputs.ts": null,
 		"./inventory/shadcnFolders.ts": null,

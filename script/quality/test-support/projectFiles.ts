@@ -30,7 +30,11 @@ export const projectFiles: readonly SeedFile[] = [
 		"src/unit.test.ts",
 		'import { double } from "./double.ts";\nit("doubles in Node", () => { expect(double(3)).toBe(6); expect(typeof document).toBe("undefined"); });',
 	),
-	spec("src/double.unit.test.ts", 'import { double } from "./double.ts";\nit("doubles as a unit", () => { expect(double(2)).toBe(4); });'),
+	spec("src/double.unit.spec.ts", 'import { double } from "./double.ts";\nit("doubles in a unit spec", () => { expect(double(3)).toBe(6); });'),
+	spec(
+		"src/double.unit.test.ts",
+		'import { double } from "./double.ts";\nimport process from "node:process";\nit("doubles as a unit", () => { expect(double(2)).toBe(4); });',
+	),
 	spec(
 		"src/host.dom.spec.tsx",
 		`import { label } from "./label.ts";
@@ -44,7 +48,10 @@ it("keeps the Node host separate from the document", () => {
 });`,
 	),
 	spec("src/document.dom.test.tsx", 'it("has a document", () => { expect(document.createElement("p").tagName).toBe("P"); });'),
-	spec("src/flow.spec.ts", 'it("runs Node specs", () => { expect(typeof document).toBe("undefined"); });'),
+	spec(
+		"src/flow.spec.ts",
+		'import { readFileSync } from "node:fs";\nit("reads files in ordinary Node specs", () => { expect(readFileSync("package.json", "utf8")).toContain("module"); });',
+	),
 	spec("e2e/smoke.spec.ts", 'it("runs specs outside src", () => { expect(typeof document).toBe("undefined"); });'),
 	spec("src/long.slow.test.ts", 'it("runs slow tests on request", () => { expect(typeof document).toBe("undefined"); });'),
 	...["src/never.typecheck.test.ts", "src/typecheck.test.ts", "src/never.typecheck.spec.ts"].map((path) =>

@@ -109,3 +109,13 @@ export const withWorktrees = projectKit.trait("configured", "a spec sits beside 
 		writeFileSync(target, 'import { it } from "vitest";\nit("runs", () => {});\n');
 	}
 });
+
+export function withUnitIo(source: string) {
+	return projectKit.trait("configured", "a unit file reaches I/O", (root) => {
+		writeFileSync(join(root, "src/io.unit.test.ts"), `import { it } from "vitest";\n${source}\n`);
+		const external = join(root, "node_modules/hidden-io");
+		mkdirSync(external, { recursive: true });
+		writeFileSync(join(external, "package.json"), '{ "type": "module", "exports": "./index.js" }');
+		writeFileSync(join(external, "index.js"), 'import { readFileSync } from "node:fs"; export const read = () => readFileSync("package.json");');
+	});
+}
