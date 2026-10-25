@@ -64,3 +64,56 @@ scopedHttpApp.it("keeps a status reply installed until lifted", [], function* ({
 	const recovered = yield* request("/repos/team/platform/pulls/7");
 	expect(yield* recovered.headers).toMatchObject({ status: 200 });
 });
+
+scopedHttpApp.it("holds every matching decoded scope while other scopes keep answering", [], function* ({ hold, request, requests }) {
+	const paused = yield* hold("pull", { params: { number: "7", owner: "a/b" } });
+	const first = yield* request("/repos/a%2Fb/platform/pulls/7");
+	yield* paused.waiting;
+	const second = yield* request("/repos/a%2Fb/platform/pulls/7");
+	const other = yield* request("/repos/a%2Fb/platform/pulls/8");
+	expect(yield* other.finished).toMatchObject({ kind: "complete" });
+	const elsewhere = yield* request("/repos/other/platform/pulls/7");
+	expect(yield* elsewhere.finished).toMatchObject({ kind: "complete" });
+	expect(requests()).toEqual([
+		"GET /repos/a%2Fb/platform/pulls/7 pending",
+		"GET /repos/a%2Fb/platform/pulls/7 pending",
+		"GET /repos/a%2Fb/platform/pulls/8 200",
+		"GET /repos/other/platform/pulls/7 200",
+	]);
+	yield* paused.release;
+	expect(yield* first.finished).toMatchObject({ kind: "complete" });
+	expect(yield* second.finished).toMatchObject({ kind: "complete" });
+});
+
+scopedHttpApp.it("holds only the first matching request until release", [], function* ({ hold, request, requests }) {
+	const paused = yield* hold("pull", { once: true, params: { number: "7" } });
+	const other = yield* request("/repos/team/platform/pulls/8");
+	expect(yield* other.finished).toMatchObject({ kind: "complete" });
+	const first = yield* request("/repos/team/platform/pulls/7");
+	yield* paused.waiting;
+	const second = yield* request("/repos/team/platform/pulls/7");
+	expect(yield* second.finished).toEqual({ bytes: Buffer.from('{"owner":"team","repo":"platform","number":"7"}'), kind: "complete" });
+	expect(requests()).toEqual([
+		"GET /repos/team/platform/pulls/8 200",
+		"GET /repos/team/platform/pulls/7 pending",
+		"GET /repos/team/platform/pulls/7 200",
+	]);
+	yield* paused.release;
+	expect(yield* first.finished).toMatchObject({ kind: "complete" });
+});
+
+scopedHttpApp.it("releases the selected scoped hold on an authorized arrival", [], function* ({ hold, releaseOnArrival, request, requests }) {
+	const target = yield* hold("pull", { once: true, params: { number: "7" } });
+	const other = yield* hold("pull", { params: { number: "8" } });
+	yield* releaseOnArrival("pull", "installation", { params: { number: "7" } });
+	const first = yield* request("/repos/team/platform/pulls/7");
+	yield* target.waiting;
+	const second = yield* request("/repos/team/platform/pulls/8");
+	yield* other.waiting;
+	const trigger = yield* request("/installations/4");
+	expect(yield* trigger.finished).toMatchObject({ kind: "complete" });
+	expect(yield* first.finished).toMatchObject({ kind: "complete" });
+	expect(requests()).toContain("GET /repos/team/platform/pulls/8 pending");
+	yield* other.release;
+	expect(yield* second.finished).toMatchObject({ kind: "complete" });
+});

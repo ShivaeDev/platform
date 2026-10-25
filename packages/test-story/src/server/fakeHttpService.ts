@@ -1,5 +1,5 @@
 import { createServer, type IncomingHttpHeaders } from "node:http";
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpReceive } from "#internal/fakeHttpReceive.ts";
 import { loopbackServer } from "#internal/loopback.ts";
@@ -20,10 +20,20 @@ export interface FakeHttpReply {
 	readonly status?: number;
 }
 
-export type FakeHttpFault = { readonly kind: "status"; readonly reply: FakeHttpReply } | { readonly kind: "drop" | "reset" };
+export type FakeHttpReplySource = FakeHttpReply | ((request: FakeHttpRequest, now: number) => FakeHttpReply);
+
+export interface FakeHttpRequestRecord extends FakeHttpRequest {
+	readonly status: number | "pending" | "unanswered";
+}
+
+export type FakeHttpFault = { readonly kind: "status"; readonly reply: FakeHttpReplySource } | { readonly kind: "drop" | "reset" };
 
 export interface FakeHttpScope {
 	readonly params?: Readonly<Record<string, string>>;
+}
+
+export interface FakeHttpHoldOptions extends FakeHttpScope {
+	readonly once?: boolean;
 }
 
 export interface FakeHttpScriptOptions extends FakeHttpScope {
@@ -56,12 +66,13 @@ export interface FakeHttpHold {
 }
 
 export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpServiceOptions) {
-	const requests: FakeHttpRequest[] = [];
+	const clock = yield* Clock.Clock;
+	const requests: FakeHttpRequestRecord[] = [];
 	let narrate = options.tell;
 	function tell(line: string) {
 		narrate?.(line);
 	}
-	const controls = fakeHttpControls(tell);
+	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
 	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell));
 	const url = yield* loopbackServer(server);
 	yield* Effect.addFinalizer(() => Effect.sync(controls.close));
@@ -71,22 +82,23 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		}
 	}
 	return {
-		failOnce: (route: string, reply: FakeHttpReply, scope?: FakeHttpScope) =>
+		failOnce: (route: string, reply: FakeHttpReplySource, scope?: FakeHttpScope) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
 		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault, scope))),
-		hold: (route: string) => Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.hold(route))),
+		hold: (route: string, holdOptions?: FakeHttpHoldOptions) =>
+			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.hold(route, holdOptions))),
 		narrate: (sink: (line: string) => void) => {
 			narrate = sink;
 		},
-		releaseOnArrival: (route: string, arrival: string) =>
+		releaseOnArrival: (route: string, arrival: string, scope?: FakeHttpScope) =>
 			Effect.sync(() => {
 				checkRoute(route);
 				checkRoute(arrival);
-			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival))),
-		replyOnce: (route: string, reply: FakeHttpReply, scope?: FakeHttpScope) =>
+			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival, scope))),
+		replyOnce: (route: string, reply: FakeHttpReplySource, scope?: FakeHttpScope) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
-		get requests(): readonly FakeHttpRequest[] {
+		get requests(): readonly FakeHttpRequestRecord[] {
 			return requests.slice();
 		},
 		scriptFault: (route: string, fault: FakeHttpFault, scriptOptions?: FakeHttpScriptOptions) =>

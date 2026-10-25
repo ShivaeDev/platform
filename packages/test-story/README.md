@@ -274,7 +274,7 @@ For timeout stories, return `undefined` from the `status` callback to accept an 
 
 #### Faking an outbound HTTP API
 
-Use `fakeHttpService` from `@shivaedev/test-story/server/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. A reply receives the request and returns a JSON `body` (or a `Uint8Array`/Buffer sent as raw bytes), optional `status` (default 200), and optional response `headers`.
+Use `fakeHttpService` from `@shivaedev/test-story/server/fakeHttpService.ts` in a kit's scoped `create` hook. Like the OTLP receiver, it listens on an allocated loopback port and closes with the scope. Routes have names for controls, a method (default `GET`), and a path whose `:segments` become decoded `request.params`. Plain `:name` matches exactly one segment. A final `:name*` matches one or more remaining segments, decodes each segment and joins them with `/` in `params.name`: `/repos/:owner/:repo/contents/:path*` matches nested content such as `contents/a/b/package.json`. A rest parameter cannot appear before the last segment. A reply receives the request and returns a JSON `body` (or a `Uint8Array`/Buffer sent as raw bytes), optional `status` (default 200), and optional response `headers`.
 
 ```ts
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
@@ -290,7 +290,7 @@ const api = yield* fakeHttpService({
 
 Point the application's real HTTP client at `api.url`, or use the kit's `outbound` map to route its external hostname there. A service-wide `guard` returns a boolean; a missing or wrong credential gets 401 before holds or scripted replies are consumed. Each route can also declare a `guard(request)`; both guards must accept the request before holds, arrival scripts or faults run. A route's guard applies only to that route, so an installation token check can sit beside public routes. Omit the guard for a public fake. Unmatched paths and methods get 404.
 
-In `verbs`, bind `api.narrate(story.tell)` to tell received requests, replies, rejections and hold controls through the story. An optional `tell` callback can also be supplied at acquisition. The service keeps request headers and bytes in its log; narration of normal requests includes only method, path and status.
+In `verbs`, bind `api.narrate(story.tell)` to tell received requests, replies, rejections and hold controls through the story. An optional `tell` callback can also be supplied at acquisition. The service keeps request headers and bytes in `api.requests`. Each entry has a `status`: the numeric status of a completed response, `"pending"` while waiting (including a stalled body), or `"unanswered"` when the connection closes without completing a response. Dropped connections, resets after headers and clients that hang up are unanswered. Statuses include guard rejections, unmatched routes and replies replaced by faults. Readouts can format entries as `GET /repos/o/r/actions/runs/7/artifacts 500`. Narration of normal requests includes only method, path and status.
 
 ```ts
 api.narrate(story.tell);
@@ -302,7 +302,7 @@ yield* paused.release;
 const user = yield* Fiber.join(pending);
 ```
 
-`application.loadUser` is the application's real client call. `failOnce` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Effects that wait for HTTP should use a live-clock kit.
+`application.loadUser` is the application's real client call. `failOnce` affects the next authorized matching request to that named route, then the route answers normally. `hold` pauses that route until `release`; `waiting` completes when a request reaches the hold, so a story needs no polling to know when to release it. Other routes still answer. Use a live-clock kit for HTTP stories that need real-time waits; a TestClock kit can still drive the real HTTP client while controlling the fake’s reply time.
 
 Use the controls through kit verbs after acquiring the service. `replyOnce(route, reply)` scripts the next authorized reply, including raw bytes or `chunks`, a synchronous or asynchronous iterable of strings and byte arrays. Set `headers["content-type"]` to the story's media type; the default is JSON. Chunks are written in iteration order as they become available, so an async iterable can wait between pieces.
 
@@ -318,13 +318,26 @@ yield* stalled.release;
 const bytes = yield* Fiber.join(pending);
 ```
 
-`stall(route)` sends the reply's status and headers, then pauses its body. Its `waiting` effect completes at that pause. Its `release` lets the body continue; a client that gives up also stops waiting on the server. Like a hold, a stall remains installed for matching requests until released. Holds pause before headers. `releaseOnArrival(heldRoute, arrivingRoute)` releases the current hold when an authorized request reaches the named route; script it before that arrival. Rejected requests do not trigger release.
+`stall(route)` sends the reply's status and headers, then pauses its body. Its `waiting` effect completes at that pause. Its `release` lets the body continue; a client that gives up also stops waiting on the server. Like a hold, a stall remains installed for matching requests until released. Holds pause before headers. `releaseOnArrival(heldRoute, arrivingRoute, scope?)` releases the current hold when an authorized request reaches the named route; script it before that arrival. Rejected requests do not trigger release.
 
 `fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. `failOnce` continues to queue a status reply for the next request.
 
-`stall(route, scope)`, `fault(route, fault, scope)`, `failOnce(route, reply, scope)` and `replyOnce(route, reply, scope)` accept an optional `{ params: { number: "7" } }`. Every supplied parameter must equal the decoded request parameter. Other resources on the same named route answer normally and do not consume the scoped reply. A scoped stall still returns `waiting` and `release`.
+`hold(route, scope)`, `stall(route, scope)`, `fault(route, fault, scope)`, `failOnce(route, reply, scope)` and `replyOnce(route, reply, scope)` accept an optional `{ params: { number: "7" } }`. Every supplied parameter must equal the decoded request parameter. Other resources on the same named route answer normally and do not consume the scoped reply. Scoped holds and stalls return `waiting` and `release`. `hold(route, { once: true, params: { number: "7" } })` holds only the first matching request; later matching requests answer while it remains held. Omit `params` to hold only the first request across the route. Omit `once` to keep holding every matching request until release. Pass the same parameter scope as the third argument to `releaseOnArrival` to release that hold.
 
 Use `scriptFault(route, fault, options)` to install a fault for future authorized matching requests. It returns a control with a narrated `lift` effect. The default strikes once before the route's reply runs; `{ repeat: true }` keeps it installed until lifted. Status faults can repeat too.
+
+A status fault’s `reply`, and the reply argument of `failOnce` or `replyOnce`, can be a fixed `FakeHttpReply` or a function `(request, now) => FakeHttpReply`. The fake evaluates the function when it answers, using the request being answered (including a held request for `fault`) and milliseconds from the Effect `Clock` captured when the service was created. A repeating fault rebuilds its reply for every request. TestClock stories therefore get deterministic refusal times:
+
+```ts
+yield* api.scriptFault("user", {
+  kind: "status",
+  reply: (request, now) => ({
+    status: 429,
+    headers: { "x-ratelimit-reset": String(now + 60_000) },
+    body: { user: request.params.id },
+  }),
+});
+```
 
 ```ts
 const outage = yield* api.scriptFault("pull", { kind: "drop" }, {
@@ -628,7 +641,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/domNavigate.ts` | `domNavigate(url?)` |
 | `server/genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpReply`, `FakeHttpFault`, `FakeHttpHold`, `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions`; reply functions receive `(request, now)`, request records expose answered statuses, holds accept a scope and `once`, `releaseOnArrival` accepts a held scope, and routes accept final `:name*` rest params |
 | `server/forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
 | `server/otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
