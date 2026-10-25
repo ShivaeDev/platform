@@ -33,6 +33,7 @@ host.it(
 				},
 			}),
 		]);
+		const steers = daemon.cloudSteers();
 		expect(JSON.stringify(daemon.cloudSteers()[0]?.params)).toContain("Criterion behavior: Original behavior. -> Changed behavior.");
 		expect(renderStatus(yield* client("daemon.status", {}))).toContain("brief edit steered");
 		yield* first.kill;
@@ -43,13 +44,13 @@ host.it(
 		yield* peer("fleet.reconcile", { workId: "synthetic-work" });
 		expect(resumed.boardContext).toBe(daemon.revisedCloudBrief());
 		expect(resumed.attempts[0]?.receipt).toEqual(worker.attempts[0]?.receipt);
-		expect(daemon.cloudSteers()).toHaveLength(1);
+		expect(daemon.cloudSteers()).toEqual(steers);
 		yield* restarted.kill;
 		daemon.completeCloudTurn();
 		const reviewing = yield* daemon.cloudReconcile("synthetic-work", true);
 		expect(reviewing.value.step).toBe("reviewing");
 		expect(reviewing.value.attempts.at(-1)?.prompt).toContain(taskPrompt(daemon.revisedCloudBrief()));
-		expect(daemon.cloudSteers()).toHaveLength(1);
+		expect(daemon.cloudSteers()).toEqual(steers);
 	},
 	40_000,
 );

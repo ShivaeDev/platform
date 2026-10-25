@@ -45,6 +45,11 @@ export function snapshotReads(host: FleetHost) {
 		count: () => snapshots().length,
 		failedCount: () => snapshots().filter((span) => span.status._tag === "Ended" && Exit.isFailure(span.status.exit)).length,
 		observe: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer),
+		queries: () =>
+			snapshots().map((span) => ({
+				failed: span.status._tag === "Ended" && Exit.isFailure(span.status.exit),
+				text: span.attributes.get("db.query.text"),
+			})),
 		restoreIfBroken: Effect.suspend(() => (broken ? restoreReads : Effect.void)),
 		restoreReads,
 		statements,

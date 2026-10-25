@@ -14,6 +14,8 @@ import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string) => void) {
 	return {
+		boardAcknowledgements: () => boardHttpFiles(engine.host.host.boardDir).receiptRecords(),
+
 		boardReceipts: () => boardHttpFiles(engine.host.host.boardDir).receipts(),
 		defer: (decision: Decision, type: "clarify" | "not_now") => answerWorker(engine.host.host.boardDir, decision, `response.worker.${type}`, type),
 		failCompletion: () => answerCompletionFailure(engine.host.host),
@@ -27,6 +29,8 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 			tell(`pause answer completion for ${workId}`);
 			return pauseAnswerCompletion(engine.host.host, workId);
 		},
+		providerLaunches: () => [...engine.host.provider.launched],
+		providerReceipts: () => [...engine.host.provider.observations.values()].map(({ receipt }) => receipt),
 		providerSessions: () => engine.host.provider.launched.length,
 		providerTurns: () => engine.host.provider.observations.size,
 		publishResponse: (decision: Decision, text: string, release: boolean) => {

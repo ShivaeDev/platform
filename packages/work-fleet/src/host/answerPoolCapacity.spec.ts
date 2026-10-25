@@ -29,10 +29,14 @@ for (const mode of ["answer", "release", "guidance"] as const) {
 			pending.waiting.automation
 				.filter((record) => record.blocker === ANSWER_RECORDED)
 				.map((record) => record.workId)
-				.sort(),
-		).toEqual([...workIds].sort());
+				.sort((left, right) => String(left).localeCompare(String(right))),
+		).toEqual([...workIds].sort((left, right) => String(left).localeCompare(String(right))));
 		const snapshots = yield* host.follow(workIds).pipe(Stream.take(1), Stream.runCollect, Effect.timeout("500 millis"));
-		expect(snapshots).toEqual([[...workIds].sort().map((workId) => expect.objectContaining({ blocker: ANSWER_RECORDED, workId }))]);
+		expect(snapshots).toEqual([
+			[...workIds]
+				.sort((left, right) => String(left).localeCompare(String(right)))
+				.map((workId) => expect.objectContaining({ blocker: ANSWER_RECORDED, workId })),
+		]);
 		yield* free;
 		for (const reconciliation of reconciliations) {
 			yield* Fiber.join(reconciliation);
@@ -44,7 +48,9 @@ for (const mode of ["answer", "release", "guidance"] as const) {
 			if (mode === "guidance") {
 				expect(applied.pendingAnswers).toEqual([TEXT]);
 			} else {
-				expect(applied.responses?.filter((response) => response.decisionId === decisions.get(workId))).toHaveLength(1);
+				expect(applied.responses?.filter((response) => response.decisionId === decisions.get(workId))).toMatchObject([
+					{ action: mode === "release" ? "release" : "continue", decisionId: decisions.get(workId), type: "answer" },
+				]);
 				expect(applied.step).toBe(mode === "release" ? "released" : "working");
 			}
 		}

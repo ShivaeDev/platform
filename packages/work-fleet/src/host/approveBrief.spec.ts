@@ -14,11 +14,11 @@ host.it(
 		expect(approved.value.boardRevision).not.toBe(worker.value.boardRevision);
 		expect(approved.value.prompt).toBe(current);
 		expect(approved.value.attempts.map(({ briefSteers: _steers, ...attempt }) => attempt)).toEqual(worker.value.attempts);
-		expect(approved.value.attempts[0]?.briefSteers).toHaveLength(1);
+		expect(approved.value.attempts[0]?.briefSteers).toMatchObject([{ revision: approved.value.boardRevision }]);
 		expect(approved.value.history ?? []).toEqual([]);
 		expect(approved.value.step).toBe("working");
 		expect((yield* daemon.reconcile("one")).step).toBe("working");
-		expect(daemon.providerStarts()).toHaveLength(1);
+		expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([worker.value.attempts[0]?.operationId]);
 		expect(daemon.providerSteers()).toEqual([
 			expect.objectContaining({ prompt: expect.stringContaining(current), receipt: worker.value.attempts[0]?.receipt }),
 		]);

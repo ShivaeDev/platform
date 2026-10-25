@@ -30,11 +30,11 @@ for (const action of ["retry", "release"] as const) {
 			expect(
 				boardApi.metadataParse(daemon.readBoard(`responses/response.fleet-${action}.${published.questionId}.md`)).fields.response?.answers,
 			).toEqual([{ prompt: "fleet-action", selected: [action], text: "" }]);
-			expect(daemon.receiptFiles()).toHaveLength(1);
+			expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 			expect((yield* daemon.cli(args)).code).toBe(1);
-			expect(daemon.receiptFiles()).toHaveLength(1);
+			expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 			expect(daemon.providerResources()).toEqual({ providers: 1, releases: 0 });
-			expect(daemon.providerStarts()).toHaveLength(1);
+			expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([started.attempts[0]?.operationId]);
 			yield* daemon.stop();
 			expect(daemon.providerResources()).toEqual({ providers: 1, releases: 1 });
 		},

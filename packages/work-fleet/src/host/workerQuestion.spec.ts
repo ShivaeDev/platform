@@ -42,7 +42,7 @@ host.it(
 		});
 		const resumed = yield* daemon.reconcile("one");
 		expect(resumed.step).toBe("working");
-		expect(resumed.attempts).toHaveLength(2);
+		expect(resumed.attempts).toMatchObject([{ operationId: started.attempts[0]?.operationId }, { prompt: body, role: "worker" }]);
 		expect(resumed.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, responseId: answer.id }]);
 		expect(resumed.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
 		expect(resumed.attempts.at(-1)?.prompt).toBe(body);
@@ -51,7 +51,12 @@ host.it(
 		yield* daemon.resolve("one", decision.id, answer.id);
 		const replayed = yield* daemon.reconcile("one");
 		expect(replayed.attempts).toEqual(resumed.attempts);
-		expect(daemon.providerStarts()).toHaveLength(1);
-		expect(daemon.providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([started.attempts[0]?.operationId]);
+		expect(
+			daemon
+				.providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(resumed.attempts.map(({ operationId }) => operationId));
 	},
 );

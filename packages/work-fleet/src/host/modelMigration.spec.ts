@@ -22,6 +22,6 @@ host.it(
 		const dispatched = yield* daemon.fleetDispatch("three");
 		expect(dispatched.value.decision?.reason).toBeUndefined();
 		expect(dispatched.value.step).toBe("working");
-		expect((yield* daemon.get("three")).attempts).toHaveLength(1);
+		expect((yield* daemon.get("three")).attempts).toEqual(dispatched.value.attempts);
 	},
 );

@@ -23,12 +23,15 @@ const responses = new Map([
 githubCliHost.it("adopts a result with REST reads through the shared HTTP client", [], function* (github) {
 	const cli = yield* github.cli(responses);
 	expect(yield* cli.adopt(work, completed())).toEqual({ head: HEAD, kind: "change", paths: ["src/one.ts", "src/two.ts"], pr: PR, prNumber: 7 });
-	expect(cli.commands).toHaveLength(3);
-	expect(cli.commands[1]).toMatchObject({ endpoint: `${ENDPOINT}/files?per_page=100` });
+	expect(cli.commands).toMatchObject([
+		{ endpoint: ENDPOINT, status: 200 },
+		{ endpoint: `${ENDPOINT}/files?per_page=100`, status: 200 },
+		{ endpoint: ENDPOINT, status: 304 },
+	]);
 });
 
 githubCliHost.it("rejects a failed GitHub response even when its body contains a valid result", [], function* (github) {
 	const cli = yield* github.cli(responses, 502);
 	expect(yield* cli.adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
-	expect(cli.commands).toHaveLength(1);
+	expect(cli.commands).toMatchObject([{ endpoint: ENDPOINT, status: 502 }]);
 });

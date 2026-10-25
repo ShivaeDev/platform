@@ -23,7 +23,7 @@ for (const worker of [false, true]) {
 				const step = worker ? "working" : "adopting";
 				expect(answered.step).toBe(release ? "released" : step);
 				expect(answered.responses?.at(-1)).toMatchObject({ boardAcknowledged: true });
-				expect(daemon.receiptFiles()).toHaveLength(1);
+				expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 				if (worker && !release) {
 					expect(answered.attempts.at(-1)?.prompt).toBe(text);
 					expect(answered.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts[0]?.receipt?.sessionId);

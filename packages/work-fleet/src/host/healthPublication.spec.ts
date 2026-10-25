@@ -4,7 +4,7 @@ import { humanMergeRequired } from "#test/engineTraits.ts";
 import { publicationStory, publishedBoard } from "#test/publicationStory.ts";
 
 publicationStory.it("publishes an idle scheduler pass from one snapshot without an extra list request", [publishedBoard], function* (fleet) {
-	expect(yield* fleet.publications.idlePass()).toBe(1);
+	expect(yield* fleet.publications.idlePassLists()).toEqual([[]]);
 	expect((yield* fleet.publications.health()).lastSchedulerPass).toBeGreaterThan(0);
 });
 publicationStory.it(
@@ -52,9 +52,7 @@ publicationStory.it("failed health publication leaves execution usable and retri
 publicationStory.it("publishes the final PostgreSQL state once after a batch of Fleet calls", [publishedBoard], function* (fleet) {
 	yield* fleet.publications.observeWrites();
 	const during = yield* fleet.publications.batchLaunch();
-	const writesDeferredUntilPassEnds = 0;
-	expect(during.writes).toBe(writesDeferredUntilPassEnds);
-	const oneFinalPublication = 1;
-	expect(fleet.publications.writes()).toBe(oneFinalPublication);
+	expect(during.writes).toBe(0);
+	expect(fleet.publications.publishedWorkIds()).toEqual([["one"]]);
 	expect(yield* fleet.publications.health()).toMatchObject({ queued: 0, running: 1 });
 });

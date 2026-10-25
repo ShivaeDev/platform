@@ -4,6 +4,8 @@ export function boardReadCounts() {
 	const passes = { completed: 0, live: 0, peak: 0, started: 0 };
 	const documents = { completed: 0, live: 0, peak: 0, started: 0 };
 	let reconciles = 0;
+	const livePasses = new Set<string>();
+	let peakPasses: string[] = [];
 	let cycles = 0;
 	const counters = new Map([
 		["FleetBoard.readDocuments", passes],
@@ -13,6 +15,12 @@ export function boardReadCounts() {
 		span(options) {
 			const span = new Tracer.NativeSpan(options);
 			const counter = counters.get(options.name);
+			if (options.name === "FleetBoard.readDocuments") {
+				livePasses.add(span.spanId);
+				if (livePasses.size > peakPasses.length) {
+					peakPasses = [...livePasses].map(() => options.name);
+				}
+			}
 			if (counter !== undefined) {
 				counter.started += 1;
 				counter.live += 1;
@@ -20,6 +28,7 @@ export function boardReadCounts() {
 			}
 			const end = span.end.bind(span);
 			span.end = (...args) => {
+				livePasses.delete(span.spanId);
 				if (counter !== undefined) {
 					counter.live -= 1;
 					counter.completed += 1;
@@ -37,6 +46,7 @@ export function boardReadCounts() {
 	});
 	return {
 		observe: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.withTracer(effect, tracer),
+		peakPasses: () => [...peakPasses],
 		snapshot: () => ({ cycles, documents: { ...documents }, passes: { ...passes }, reconciles }),
 	};
 }

@@ -24,7 +24,9 @@ for (const release of [false, true]) {
 		expect(renderStatus(pending)).toContain(ANSWER_RECORDED);
 		yield* free;
 		const answered = yield* host.applied();
-		expect(answered.responses?.filter((receipt) => receipt.decisionId === decision.id)).toHaveLength(1);
+		expect(answered.responses?.filter((receipt) => receipt.decisionId === decision.id)).toMatchObject([
+			{ action: release ? "release" : "continue", boardAcknowledged: true },
+		]);
 		expect(answered.blocker).not.toBe(ANSWER_RECORDED);
 		expect(renderStatus(yield* host.status())).not.toContain(ANSWER_RECORDED);
 	});
@@ -42,7 +44,9 @@ for (const release of [false, true]) {
 			yield* completion.blocked;
 			yield* completion.release;
 			const applied = yield* host.applied();
-			expect(applied.responses?.filter((receipt) => receipt.decisionId === decision.id)).toHaveLength(1);
+			expect(applied.responses?.filter((receipt) => receipt.decisionId === decision.id)).toMatchObject([
+				{ action: release ? "release" : "continue", boardAcknowledged: true },
+			]);
 		},
 	);
 }
@@ -52,7 +56,9 @@ answers.it("daemon answers share one watched Board response index", [answerWork(
 		yield* host.dispatch(workId);
 		const { decision } = yield* host.question(workId);
 		const answered = yield* host.answerAndWait(workId === "one" ? TEXT : "", workId === "two", workId);
-		expect(answered.responses?.filter((receipt) => receipt.decisionId === decision.id)).toHaveLength(1);
+		expect(answered.responses?.filter((receipt) => receipt.decisionId === decision.id)).toMatchObject([
+			{ action: workId === "two" ? "release" : "continue", boardAcknowledged: true },
+		]);
 	}
-	expect(host.responseIndexBuilds()).toBe(1);
+	expect(host.responseIndexSpans()).toEqual(["WorkBoard.searchSnapshot"]);
 });

@@ -46,6 +46,7 @@ export const boardReadDaemonStory = storyKit({
 			}).pipe(Effect.timeout("15 seconds"));
 		},
 		counts: () => engine.counts.snapshot(),
+		peakPasses: () => engine.counts.peakPasses(),
 		start: () => {
 			story.tell("start the real daemon and its scheduler over 300 documents and 50 durable Fleet records");
 			return engine.counts.observe(startHostDaemon(scheduledDaemonLayer(engine.fixture.host, engine.fixture.parts))).pipe(

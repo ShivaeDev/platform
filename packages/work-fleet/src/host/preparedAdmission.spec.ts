@@ -29,12 +29,15 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 				expect(launched.step).toBe("working");
 				expect(launched.areas ?? []).toEqual(areas === "" ? [] : ["other"]);
 				expect(launched.blocker).toBeUndefined();
-				expect(launched.attempts).toHaveLength(1);
+				expect(launched.attempts).toMatchObject([{ prompt: expect.stringContaining(edited), role: "worker", status: "accepted" }]);
 				expect(launched.boardRevision).toBe(waiting.boardRevision);
 				expect(launched.boardContext).toBe(edited);
 				expect(launched.prompt).toContain(edited);
 				expect((yield* daemon.get("one")).step).toBe("working");
-				expect(daemon.providerStarts()).toHaveLength(2);
+				expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([
+					(yield* daemon.get("one")).attempts[0]?.operationId,
+					(yield* daemon.get("two")).attempts[0]?.operationId,
+				]);
 			},
 		);
 	}
@@ -62,7 +65,10 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			}
 			expect(yield* daemon.get("two")).toMatchObject({ boardContext: independent, step: "working" });
 			expect((yield* daemon.get("one")).step).toBe("working");
-			expect(daemon.providerStarts()).toHaveLength(2);
+			expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([
+				(yield* daemon.get("one")).attempts[0]?.operationId,
+				(yield* daemon.get("two")).attempts[0]?.operationId,
+			]);
 		},
 	);
 }

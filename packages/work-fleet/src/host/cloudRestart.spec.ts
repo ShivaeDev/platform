@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import { SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
 import { task } from "#test/fleetHost.ts";
 import { host } from "#test/hostStory.ts";
 import { interruptedCloudTrait } from "#test/interruptedCloudTrait.ts";
@@ -43,7 +44,7 @@ for (const boundary of [
 				);
 			}
 			const before = yield* client("fleet.get", { workId: "synthetic-work" });
-			expect(before.attempts).toHaveLength(1);
+			expect(before.attempts).toMatchObject([{ role: "worker" }]);
 			expect(["submitting", "accepted", "running"]).toContain(before.attempts[0]?.status);
 			yield* first.kill;
 			if (boundary === "changed-context") {
@@ -69,8 +70,7 @@ for (const boundary of [
 			);
 			const after = yield* peer("fleet.get", { workId: "synthetic-work" });
 			yield* restarted.kill;
-			expect(after.attempts).toHaveLength(1);
-			expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
+			expect(after.attempts.map(({ operationId }) => operationId)).toEqual(before.attempts.map(({ operationId }) => operationId));
 			if (!recoverable) {
 				const owner = boundary === "revoked-approval" ? "maintainer" : "orchestrator";
 				expect(after).toMatchObject({ attentionOwner: owner, decision: { attentionOwner: owner } });
@@ -94,7 +94,9 @@ for (const boundary of [
 			}
 			expect(daemon.cloudLaunches().sessions).toBe(expected[boundary].sessions);
 			expect(daemon.cloudLaunches().turns).toBe(expected[boundary].turns);
-			expect(daemon.cloudLaunches().requests.filter((request) => request.method === "thread/start")).toHaveLength(1);
+			expect(daemon.cloudLaunches().requests.filter((request) => request.method === "thread/start")).toMatchObject([
+				{ params: { environments: [{ cwd: SYNTHETIC_WORKSPACE, environmentConfigId: SYNTHETIC_ENVIRONMENT }] } },
+			]);
 			expect(daemon.cloudLaunches().requests.filter((request) => request.method === "turn/start")).toHaveLength(expected[boundary].turnRequests);
 			expect(daemon.cloudLaunches().requests.some((request) => request.method === "thread/turns/list")).toBe(
 				before.attempts[0]?.sessionId !== undefined,

@@ -15,7 +15,7 @@ host.it(
 		expect(dispatched.value.history?.[0]?.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 		expect(dispatched.value.attempts[0]?.receipt?.sessionId).not.toBe(first.value.attempts[0]?.receipt?.sessionId);
 		expect(dispatched.value.boardRevision).toBe(first.value.boardRevision);
-		expect(daemon.providerLaunches()).toHaveLength(2);
+		expect(daemon.providerLaunches()).toEqual([first.value.attempts[0]?.operationId, dispatched.value.attempts[0]?.operationId]);
 		expect((yield* daemon.get("one")).step).toBe("working");
 	},
 );

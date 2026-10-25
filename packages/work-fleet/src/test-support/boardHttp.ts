@@ -4,6 +4,7 @@ import { Effect, Layer, ManagedRuntime } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 import { boardLayer } from "@shivaedev/work-board/server/board.ts";
+import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 
 export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string, maintainer?: string, fleetPort?: number) {
 	const runtime = ManagedRuntime.make(
@@ -40,7 +41,7 @@ export function boardHttpFiles(root: string) {
 			.filter((file) => file.startsWith("request-receipt."))
 			.map((file) => `responses/${file}`);
 	}
-	return { move, read, receipts, write };
+	return { move, read, receiptRecords: () => receipts().map((file) => metadataParse(read(file)).fields.requestReceipt), receipts, write };
 }
 
 export const boardAskFiles = Effect.fn("BoardStory.boardAskFiles")(function* (root: string, maintainer?: string) {

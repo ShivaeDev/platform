@@ -2,9 +2,9 @@ import { createServer } from "node:http";
 import { Effect } from "effect";
 
 export const requestServer = Effect.fn("DaemonTest.requestServer")(function* (status?: number) {
-	let requests = 0;
+	const received: { method: string | undefined; url: string | undefined }[] = [];
 	const server = createServer((request, response) => {
-		requests += 1;
+		received.push({ method: request.method, url: request.url });
 		request.resume();
 		if (status !== undefined) {
 			response.writeHead(status).end("Daemon failed");
@@ -23,5 +23,5 @@ export const requestServer = Effect.fn("DaemonTest.requestServer")(function* (st
 	if (address === null || typeof address === "string") {
 		return yield* Effect.die("Expected a TCP server");
 	}
-	return { close, port: address.port, requests: () => requests };
+	return { close, port: address.port, received: () => [...received], requests: () => received.length };
 });

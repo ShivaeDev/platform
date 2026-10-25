@@ -73,5 +73,5 @@ host.it("CLI reassignment publishes a new maintainer question and refreshes the 
 	const group = "## Waiting on you\n\n### one";
 	const published = yield* daemon.awaitBoardSource("fleet/status.md", (source) => source.includes(group));
 	expect(published).toContain(group);
-	expect(daemon.providerLaunches()).toHaveLength(1);
+	expect(daemon.providerLaunches()).toEqual([(yield* daemon.get("one")).attempts[0]?.operationId]);
 });

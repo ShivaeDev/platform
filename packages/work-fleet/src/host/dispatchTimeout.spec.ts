@@ -40,7 +40,7 @@ for (const fail of [false, true]) {
 				expect((yield* daemon.cli(["status", "one"], { selection: "port" })).stdout).toContain("one  dispatch failed: Git refresh unavailable");
 			} else {
 				expect((yield* daemon.get("one")).step).toBe("working");
-				expect(daemon.providerLaunches()).toHaveLength(1);
+				expect(daemon.providerLaunches()).toEqual([(yield* daemon.get("one")).attempts[0]?.operationId]);
 			}
 		},
 	);

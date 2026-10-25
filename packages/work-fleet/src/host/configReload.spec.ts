@@ -66,11 +66,11 @@ host.it(
 		const initial = yield* daemon.waitForConfig(() => true);
 		yield* daemon.editText('{ "provider": "lo');
 		const partial = yield* daemon.waitForConfig((config) => config.rejected !== undefined);
-		expect(partial.settings.concurrency).toBe(3);
+		expect(partial.settings.concurrency).toBe(initial.settings.concurrency);
 		expect(partial.loadedAt).toBe(initial.loadedAt);
 		yield* daemon.edit({ concurrency: 0, provider: "local" });
 		const invalid = yield* daemon.waitForConfig((config) => config.rejected?.field === "concurrency");
-		expect(invalid.settings.concurrency).toBe(3);
+		expect(invalid.settings.concurrency).toBe(initial.settings.concurrency);
 		expect(invalid.rejected?.message).toContain("is invalid");
 		const warnings = daemon
 			.logs()

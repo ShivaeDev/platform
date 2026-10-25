@@ -31,9 +31,19 @@ for (const command of [["answer", "--release"], ["release"]]) {
 			expect(open.step).toBe("released");
 			expect(executing(open)).toBe(false);
 			expect(open.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
-			expect(daemon.receiptFiles()).toHaveLength(2);
-			expect(daemon.providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
-			expect(daemon.providerLaunches()).toHaveLength(2);
+			expect(
+				daemon
+					.boardAcknowledgements()
+					.map((receipt) => receipt?.disposition)
+					.sort((left, right) => String(left).localeCompare(String(right))),
+			).toEqual(["applied", "superseded"]);
+			expect(
+				daemon
+					.providerCalls()
+					.filter((call) => call.call === "turn")
+					.map(({ operationId }) => operationId),
+			).toEqual([closed.attempts[0]?.operationId, open.attempts[0]?.operationId]);
+			expect(daemon.providerLaunches()).toEqual([closed.attempts[0]?.operationId, open.attempts[0]?.operationId]);
 			expect(daemon.missingTurnRequests()).not.toContain("turn/start");
 			expect(daemon.missingTurnRecoveries().every((input) => input.resume === undefined)).toBe(true);
 		},
