@@ -1,10 +1,11 @@
 import { spawnSync } from "node:child_process";
-import { chmodSync, existsSync, readFileSync, realpathSync, renameSync } from "node:fs";
+import { chmodSync, constants, existsSync, readFileSync, realpathSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { qualityArgs } from "#quality-fixtures/cli.ts";
 import { ISOLATED_ENV } from "#quality-fixtures/git.ts";
-import { checksLog, hookRepository, logs, withScripts, writes } from "#quality-fixtures/hookRepository.ts";
+import { hookPath } from "#quality-fixtures/hookPath.ts";
+import { checksLog, hookMode, hookRepository, logs, withScripts, writes } from "#quality-fixtures/hookRepository.ts";
 import { seedTree } from "#quality-fixtures/tree.ts";
 
 export const hookStory = storyKit({
@@ -38,6 +39,16 @@ export const hookStory = storyKit({
 				},
 			},
 			hooks: {
+				directory: () => join(hookPath(repository.root), ".."),
+				path: () => hookPath(repository.root),
+				permissions: () => {
+					const mode = hookMode(repository);
+					return {
+						group: { execute: Boolean(mode & constants.S_IXGRP), read: Boolean(mode & constants.S_IRGRP), write: Boolean(mode & constants.S_IWGRP) },
+						others: { execute: Boolean(mode & constants.S_IXOTH), read: Boolean(mode & constants.S_IROTH), write: Boolean(mode & constants.S_IWOTH) },
+						owner: { execute: Boolean(mode & constants.S_IXUSR), read: Boolean(mode & constants.S_IRUSR), write: Boolean(mode & constants.S_IWUSR) },
+					};
+				},
 				run: (...args: string[]) => run("node", qualityArgs(["hooks", ...args]), join(repository.root, repository.folder)),
 				writeGlobal: (name: string, script: string) => {
 					const path = run("git", ["config", "--global", "--type=path", "--get", "core.hooksPath"]).stdout.trim();

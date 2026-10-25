@@ -23,6 +23,8 @@ export class BurntLoaf extends Data.TaggedError("BurntLoaf")<{ readonly minute: 
 
 export class MillClosed extends Data.TaggedError("MillClosed")<{ readonly until: string }> {}
 
+export const DEFAULT_STEP_BUDGET = 60;
+
 const MOST_SACKS = 5;
 
 const DOUGH_PER_BOWL = 3;
@@ -78,7 +80,7 @@ export const bakery = storyKit({
 	run: {
 		diagnose: stillWaiting,
 		failed: ovenTrouble,
-		maxSteps: 60,
+		maxSteps: DEFAULT_STEP_BUDGET,
 		*step(state, tell) {
 			state.minute += 1;
 			if (state.overfired) {

@@ -15,7 +15,7 @@ for (const merged of [false, true]) {
 		yield* h.poll;
 		yield* h.restart;
 		expect(h.requests).toHaveLength(requests);
-		expect(h.events()).toHaveLength(1);
+		expect(h.eventNames()).toEqual([merged ? "merged" : "closed"]);
 	});
 }
 watch.it("fleet retains terminal history and polls only new and still-open PRs", [watchesFleet()], function* (h) {
@@ -32,8 +32,8 @@ watch.it("fleet retains terminal history and polls only new and still-open PRs",
 	const state = yield* h.poll;
 	expect(state.prs["1"]?.merged).toBe(true);
 	expect(Object.keys(state.prs)).toEqual(["1", "2", "3"]);
-	expect(h.requests.filter((request) => request.path.endsWith("/pulls/1"))).toHaveLength(2);
-	expect(h.events()).toHaveLength(1);
+	expect(h.requests.filter((request) => request.path.endsWith("/pulls/1")).map(({ status }) => status)).toEqual([200, 200]);
+	expect(h.eventNames()).toEqual(["merged"]);
 });
 watch.it("a PR first observed as terminal is saved without a historical event and then pruned", [hasMergedPull(1)], function* (h) {
 	yield* h.poll;

@@ -23,7 +23,9 @@ releasePullRequest.it(
 		expect(received.body).toContain("- Keep a saved draft.");
 		expect(received.body).toContain("Allow GitHub Actions to create pull requests");
 		expect(received.body).toContain("press **Approve and run**, then merge when full CI is green");
-		expect(received.requests.filter((request) => request.endpoint === "graphql")).toHaveLength(1);
+		expect(received.requests.filter((request) => request.endpoint === "graphql")).toMatchObject([
+			{ body: { query: expect.stringContaining("pullRequests") }, method: "POST" },
+		]);
 	},
 );
 
@@ -42,7 +44,9 @@ releasePullRequest.it(
 		expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.15.1"');
 		yield* check();
 		const received = yield* readGitHub();
-		expect(received.created).toBe(1);
+		expect(received.requests.filter((request) => request.method === "POST" && request.endpoint.endsWith("/pulls"))).toMatchObject([
+			{ body: { base: "main", head: "release/next" } },
+		]);
 		expect(received.title).toContain("0.10.0");
 		expect(received.body).toContain("- Keep a saved draft.");
 		expect(received.body).toContain("- Choose an app name.");

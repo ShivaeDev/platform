@@ -11,11 +11,10 @@ import {
 import { unitIoCases } from "#quality/test-support/unitIoCases.ts";
 
 const { it } = projectKit;
-const SUCCESS = 0;
 
 it("excludes worktree spec copies from every project", [withWorktrees], function* ({ run, testResults }) {
 	const result = yield* run("--project", "*");
-	expect(result.status, result.output).toBe(SUCCESS);
+	expect(result.status, result.output).toBe(0);
 	expect(testResults()).toEqual(["src/b.spec.ts passed"]);
 });
 
@@ -77,20 +76,20 @@ it("accepts native Vitest coverage options in the shared config", [customCoverag
 
 it("selects pure unit files alone on request", [], function* ({ run, testResults }) {
 	const result = yield* run("--project", "pure");
-	expect(result.status, result.output).toBe(SUCCESS);
+	expect(result.status, result.output).toBe(0);
 	expect(testResults()).toEqual(["src/double.unit.spec.ts passed", "src/double.unit.test.ts passed"]);
 });
 
 it("keeps ordinary Node files in the existing unit project", [], function* ({ run, testResults }) {
 	const result = yield* run("--project", "unit");
-	expect(result.status, result.output).toBe(SUCCESS);
+	expect(result.status, result.output).toBe(0);
 	expect(testResults()).toEqual(["e2e/smoke.spec.ts passed", "src/flow.spec.ts passed", "src/unit.test.ts passed"]);
 });
 
 for (const { call, name, source } of unitIoCases) {
 	it(`rejects ${name} in a unit file`, [withUnitIo(source)], function* ({ run, testResults }) {
 		const result = yield* run("--maxWorkers", "1", "--no-file-parallelism");
-		expect(result.status, result.output).not.toBe(SUCCESS);
+		expect(result.status, result.output).not.toBe(0);
 		expect(result.output).toContain(`src/io.unit.test.ts cannot call ${call}`);
 		expect(testResults()).toContain("src/io.unit.test.ts failed");
 		expect(testResults()).toContain("src/flow.spec.ts passed");
@@ -100,7 +99,7 @@ for (const { call, name, source } of unitIoCases) {
 
 it("keeps a compiled guard active with source maps", [withUnitIo(unitIoCases[0].source), sourceMappedGuard], function* ({ run, testResults }) {
 	const result = yield* run();
-	expect(result.status, result.output).not.toBe(SUCCESS);
+	expect(result.status, result.output).not.toBe(0);
 	expect(result.output).toContain("src/io.unit.test.ts cannot call node:fs.readFileSync");
 	expect(testResults()).toContain("src/io.unit.test.ts failed");
 	expect(testResults()).toContain("src/double.unit.test.ts passed");

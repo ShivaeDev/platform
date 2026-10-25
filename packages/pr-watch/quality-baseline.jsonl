@@ -1,5 +1,0 @@
-{"path":"packages/pr-watch/src/checks.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/pr-watch/src/io.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/pr-watch/src/prune.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/pr-watch/src/queue.spec.ts","rule":"tests/named-values","count":4}
-{"path":"packages/pr-watch/src/startup.spec.ts","rule":"tests/named-values","count":2}

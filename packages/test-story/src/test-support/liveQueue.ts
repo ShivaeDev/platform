@@ -44,7 +44,8 @@ export const liveQueue = storyKit({
 	*create() {
 		const createdAt = yield* Clock.currentTimeMillis;
 		const attempts = yield* drain();
-		return { afterAt: -1, createdAt, pollingAttempts: [attempts], steps: 0 };
+		const completedSteps: string[] = [];
+		return { afterAt: -1, completedSteps, createdAt, pollingAttempts: [attempts], steps: 0 };
 	},
 	name: "queue",
 	run: {
@@ -52,6 +53,7 @@ export const liveQueue = storyKit({
 		*step(engine) {
 			engine.pollingAttempts.push(yield* drain());
 			engine.steps += 1;
+			engine.completedSteps.push("queue drained");
 		},
 	},
 	stages: ["built"],

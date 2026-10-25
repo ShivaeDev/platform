@@ -4,8 +4,6 @@ import { globalHook, hookStory } from "#quality/test-support/hookStory.ts";
 import { CLI_EXIT } from "#quality-fixtures/cli.ts";
 import { removeSeededTrees } from "#quality-fixtures/tree.ts";
 
-const GLOBAL_GUARD_REJECTED = 7;
-
 afterEach(removeSeededTrees);
 
 hookStory.it(
@@ -34,7 +32,7 @@ hookStory.it("runs a global reference-transaction guard added after installation
 hookStory.it("preserves a forwarded hook's arguments, stdin and failing exit status", [globalHook()], ({ git, hooks, recorded }) => {
 	expect(hooks.run("install").status).toBe(CLI_EXIT.passed);
 	hooks.writeGlobal("pre-push", '#!/bin/sh\nprintf "%s\\n" "$@" >> pre-push.log\ncat >> pre-push.log\nexit 7\n');
-	expect(git.runHook("pre-push", ["origin", "destination with spaces"], "pending refs\n").status).toBe(GLOBAL_GUARD_REJECTED);
+	expect(git.runHook("pre-push", ["origin", "destination with spaces"], "pending refs\n").status).toBe(7);
 	expect(recorded.hookLog("pre-push")).toBe("origin\ndestination with spaces\npending refs\n");
 });
 

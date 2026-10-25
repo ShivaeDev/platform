@@ -15,12 +15,12 @@ for (const autoMerge of [true, false]) {
 			expect(h.events()).toEqual([{ branch: "feature-1", event: "queued", number: 1, title: "Change 1" }]);
 			yield* h.poll;
 			yield* h.restart;
-			expect(h.lines).toHaveLength(1);
+			expect(h.eventNames()).toEqual(["queued"]);
 			h.queueHas();
 			yield* h.poll;
 			expect(h.eventNames()).toEqual(["queued", "dequeued", "auto-merge-off"]);
 			yield* h.restart;
-			expect(h.lines).toHaveLength(3);
+			expect(h.eventNames()).toEqual(["queued", "dequeued", "auto-merge-off"]);
 		},
 	);
 }
@@ -47,13 +47,14 @@ watch.it("a queue rebuild retains membership until the PR confirms a drop", [que
 	yield* h.poll;
 	expect(h.eventNames()).toEqual(["dequeued", "auto-merge-off"]);
 	const confirmations = h.requests.filter((request) => request.path === "/graphql");
-	expect(confirmations).toHaveLength(3);
-	expect(confirmations.every((request) => request.method === "POST" && request.etag === undefined)).toBe(true);
-	expect(confirmations[0]?.body).toMatchObject({ variables: { name: "project", number: 1, owner: "acme" } });
-	expect(confirmations[0]?.authorization).toBe("Bearer test-token");
+	expect(confirmations).toMatchObject([
+		{ authorization: "Bearer test-token", body: { variables: { name: "project", number: 1, owner: "acme" } }, etag: undefined, method: "POST" },
+		{ etag: undefined, method: "POST" },
+		{ etag: undefined, method: "POST" },
+	]);
 	yield* h.poll;
 	yield* h.restart;
-	expect(h.lines).toHaveLength(2);
+	expect(h.eventNames()).toEqual(["dequeued", "auto-merge-off"]);
 });
 watch.it("the PR queue entry prevents a false drop even when auto-merge is disabled", [queuedPulls(1)], function* (h) {
 	yield* h.poll;

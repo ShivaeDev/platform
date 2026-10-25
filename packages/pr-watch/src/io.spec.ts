@@ -1,3 +1,4 @@
+import { constants } from "node:fs";
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { githubReplies, watchesFleet } from "#test/traits.ts";
@@ -12,7 +13,7 @@ watch.it("injected FileSystem and HttpClient own the synthetic-server observatio
 	expect(h.io.urls).toHaveLength(h.requests.length);
 	expect(h.io.urls.every((url) => url.startsWith(h.options.apiUrl))).toBe(true);
 	expect((yield* h.stored()).prs["1"].merged).toBe(true);
-	expect(yield* h.stateMode()).toBe(0o600);
+	expect(yield* h.stateMode()).toBe(constants.S_IRUSR | constants.S_IWUSR);
 });
 watch.it("graceful interruption waits for discovered open numbers to reach the state file", [watchesFleet()], function* (h) {
 	yield* h.interruptPollAt("replacement");

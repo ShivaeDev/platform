@@ -52,6 +52,8 @@ export function reportVerbs(suite: Suite) {
 				return contents === undefined ? undefined : JSON.parse(contents);
 			}),
 		json: () => Effect.sync(() => JSON.parse(read("tests.json") ?? "{}")),
+		states: (report: { testResults: readonly { assertionResults: readonly { fullName: string; status: string }[] }[] }) =>
+			report.testResults.flatMap((file) => file.assertionResults.map((test) => ({ name: test.fullName, state: test.status }))),
 		summary: () => readFile(suite, "summary.md") ?? "",
 		testcases: () => Effect.sync(() => testcases(read("tests.junit.xml") ?? "")),
 	};
