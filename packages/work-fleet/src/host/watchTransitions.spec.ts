@@ -112,7 +112,7 @@ host.it(
 	},
 );
 
-host.it("watch reports stalled working work once until it advances", [approvedWork(["one"]), humanDelivery], function* (daemon) {
+host.it("watch reports stalled working work once until it advances", [approvedWork(["one"])], function* (daemon) {
 	yield* daemon.watchEvents({
 		events: "stuck,waiting-on-orchestrator",
 		stuckAfter: 0.2,
@@ -120,16 +120,14 @@ host.it("watch reports stalled working work once until it advances", [approvedWo
 	yield* daemon.awaitSnapshot();
 	const worker = yield* daemon.dispatch("one");
 	yield* daemon.awaitEvent("stuck");
-	daemon.finishReviewedWorker(worker);
-	yield* daemon.reviewReady("one");
+	daemon.finishTurn(worker, "FLEET_QUESTION: Should I continue?");
+	yield* daemon.reconcile("one");
 	yield* daemon.awaitEvent("waiting-on-orchestrator");
 	expect(daemon.eventLines()).toEqual([
 		{ kind: "stuck", reason: "No progress for 0.2 seconds", workId: "one" },
 		{
-			head: HEAD,
 			kind: "waiting-on-orchestrator",
-			pr: PR,
-			reason: "Reviewed PR is ready to merge",
+			reason: "Should I continue?",
 			workId: "one",
 		},
 	]);
