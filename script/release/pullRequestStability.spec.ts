@@ -3,24 +3,37 @@ import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
 
+releasePullRequest.it("midnight alone leaves the release head and waiting PR untouched", [], function* ({ pushMain, run, git, readGitHub }) {
+	yield* pushMain(".changeset/draft.md", PENDING);
+	yield* run("2026-10-17");
+	const head = yield* git("rev-parse", "origin/release/next");
+	const before = yield* readGitHub();
+	expect(yield* run("2026-10-18")).toBe("unchanged");
+	expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
+	const after = yield* readGitHub();
+	expect(after.body).toBe(before.body);
+	expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual([
+		"graphql",
+		`repos/example/workspace/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${head}&per_page=1`,
+	]);
+	expect(yield* git("status", "--porcelain")).toBe("");
+});
+
 releasePullRequest.it(
-	"unrelated main pushes leave the release head and waiting PR untouched, even after midnight",
+	"a main fix without a changeset replaces a failed release with current main",
 	[],
-	function* ({ pushMain, run, git, readGitHub }) {
+	function* ({ pushMain, run, git, setCiRun, check }) {
+		yield* pushMain("packages/platform/src/index.ts", "export const ready = false;\n");
 		yield* pushMain(".changeset/draft.md", PENDING);
 		yield* run("2026-10-17");
+		yield* setCiRun("completed", "failure");
 		const head = yield* git("rev-parse", "origin/release/next");
-		const before = yield* readGitHub();
-		yield* pushMain("README.md", "A documentation change.\n");
-		expect(yield* run("2026-10-18")).toBe("unchanged");
-		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
-		const after = yield* readGitHub();
-		expect(after.body).toBe(before.body);
-		expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual([
-			"graphql",
-			`repos/example/workspace/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${head}&per_page=1`,
-		]);
-		expect(yield* git("status", "--porcelain")).toBe("");
+		yield* pushMain("packages/platform/src/index.ts", "export const ready = true;\n");
+		expect(yield* run("2026-10-18")).toBe("updated");
+		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
+		expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
+		expect(yield* git("show", "origin/release/next:packages/platform/src/index.ts")).toBe("export const ready = true;");
+		yield* check();
 	},
 );
 
@@ -32,7 +45,6 @@ releasePullRequest.it(
 		yield* run();
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* close();
-		yield* pushMain("README.md", "A documentation change.\n");
 		expect(yield* run()).toBe("unchanged");
 		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
 		const received = yield* readGitHub();
