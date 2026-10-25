@@ -5,6 +5,7 @@ import { GENERATION_FILE, Generation, readTemplate, writeGeneration } from "./ge
 import { historicalTemplate } from "./historicalTemplate.ts";
 import { checkedProcess, runProcess } from "./runProcess.ts";
 import { starterPatch } from "./starterPatch.ts";
+import { appTemplate } from "./template.ts";
 
 export const updateApp = Effect.fn("CreateApp.updateApp")(function* (folder: string, templatePath: string, version: string) {
 	return yield* Effect.scoped(
@@ -21,7 +22,13 @@ export const updateApp = Effect.fn("CreateApp.updateApp")(function* (folder: str
 			const directory = yield* fs.makeTempDirectoryScoped({ prefix: "create-app-update-" });
 			const current = yield* readTemplate(templatePath);
 			const previous = generation.version === version ? current : yield* historicalTemplate(directory, generation.version);
-			const patch = yield* starterPatch(target, directory, generation.name, previous, current);
+			const patch = yield* starterPatch(
+				target,
+				directory,
+				generation.name,
+				appTemplate(previous, generation.minimal),
+				appTemplate(current, generation.minimal),
+			);
 			if (!patch.empty) {
 				const result = yield* runProcess(target, "git", ["apply", "--3way", patch.path]);
 				if (result.code !== 0) {

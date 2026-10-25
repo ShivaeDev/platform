@@ -112,6 +112,7 @@ application.it(
 		const help = yield* cli(["--help"]);
 		expect(help.status).toBe(0);
 		expect(help.stdout).toContain("folder");
+		expect(help.stdout).toContain("--minimal");
 		expect(yield* cli(["--version"])).toMatchObject({ status: 0, stdout: `create-app v${version}\n` });
 		expect(workspaceFiles()).toEqual(["bin"]);
 	},

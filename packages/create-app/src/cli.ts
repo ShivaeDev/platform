@@ -16,11 +16,15 @@ const program = Effect.gen(function* () {
 	const update = Command.make("update", {}, () => updateApp(".", templatePath, version));
 	const cli = Command.make(
 		"create-app",
-		{ folder: Argument.String("folder").pipe(Argument.optional), git: Flag.Boolean("git").pipe(Flag.withDefault(true)) },
-		({ folder, git }) =>
+		{
+			folder: Argument.String("folder").pipe(Argument.optional),
+			git: Flag.Boolean("git").pipe(Flag.withDefault(true)),
+			minimal: Flag.Boolean("minimal").pipe(Flag.withDefault(false), Flag.withDescription("Create the starter without the notes example module.")),
+		},
+		({ folder, git, minimal }) =>
 			Option.match(folder, {
 				onNone: () => Effect.fail(new CreateAppError({ message: "Provide an app folder or use create-app update." })),
-				onSome: (destination) => createApp(destination, templatePath, { git, version }),
+				onSome: (destination) => createApp(destination, templatePath, { git, minimal, version }),
 			}),
 	).pipe(Command.withSubcommands([update]), Command.withDescription("Create and install a Platform application from the maintained starter."));
 	yield* Command.run(cli, { version });

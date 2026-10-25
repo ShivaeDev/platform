@@ -6,11 +6,12 @@ import { databaseName } from "./appFiles.ts";
 import { CreateAppError } from "./CreateAppError.ts";
 import { readTemplate, renderTemplate, writeGeneration } from "./generation.ts";
 import { commitGit, initializeGit } from "./initializeGit.ts";
+import { appTemplate } from "./template.ts";
 
 export const createApp = Effect.fn("CreateApp.createApp")(function* (
 	folder: string,
 	templatePath: string,
-	options: { readonly git: boolean; readonly version: string },
+	options: { readonly git: boolean; readonly minimal: boolean; readonly version: string },
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const target = resolve(folder);
@@ -21,10 +22,10 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (
 	if ((yield* fs.exists(target)) && ((yield* fs.stat(target)).type !== "Directory" || (yield* fs.readDirectory(target)).length > 0)) {
 		return yield* new CreateAppError({ message: `Refusing to write into ${folder}: the destination must be an empty folder.` });
 	}
-	const template = yield* readTemplate(templatePath);
+	const template = appTemplate(yield* readTemplate(templatePath), options.minimal);
 	yield* fs.makeDirectory(target, { recursive: true });
 	yield* renderTemplate(target, template, name);
-	yield* writeGeneration(target, { name, version: options.version });
+	yield* writeGeneration(target, { ...(options.minimal ? { minimal: true } : {}), name, version: options.version });
 	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
 	const database = databaseName(name);
 	yield* fs.writeFileString(

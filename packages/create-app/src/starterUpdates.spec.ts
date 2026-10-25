@@ -82,3 +82,17 @@ updates.it("refuses a dirty working tree before fetching or changing files", [],
 	expect(app.read("README.md")).toBe("app draft\n");
 	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.1.0");
 });
+
+updates.it("keeps a minimal app free of notes when a later starter adds example files", [], function* (app) {
+	app.setVersion("0.1.0");
+	expect((yield* app.create(["--minimal"])).status).toBe(SUCCESSFUL_EXIT);
+	app.publish();
+	app.setVersion("0.2.0");
+	app.revise({ "foundation.txt": "new foundation\n", "src/modules/notes/new-example.ts": "export const example = true;\n" });
+	const result = yield* app.update();
+	expect(result.status, result.stderr).toBe(SUCCESSFUL_EXIT);
+	expect(app.git("ls-files", "src/modules/notes").stdout).toBe("");
+	expect(app.read("src/server/modules.ts")).not.toContain("notesRegistration");
+	expect(app.read("foundation.txt")).toBe("new foundation\n");
+	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ minimal: true, name: "my-app", version: "0.2.0" });
+});
