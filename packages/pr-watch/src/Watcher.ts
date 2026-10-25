@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { events } from "./events.ts";
-import { GitHub } from "./GitHub.ts";
-import type { Options, Snapshot, State, WatchError } from "./model.ts";
-import { StateFile } from "./StateFile.ts";
+import { events } from "#events.ts";
+import { GitHub } from "#GitHub.ts";
+import type { Options, Snapshot, State, WatchError } from "#model.ts";
+import { StateFile } from "#StateFile.ts";
 
 function activeNumbers(options: Options, state: State) {
 	return [...new Set([...options.numbers, ...(state.openNumbers ?? []), ...Object.keys(state.prs).map(Number)])].filter((number) => {
@@ -25,7 +25,7 @@ export const Watcher = defineService({
 						before === undefined && snapshot.state === "closed" && state.openNumbers?.includes(snapshot.number)
 							? { ...snapshot, merged: false, state: "open" as const }
 							: before;
-					for (const line of events(baseline, snapshot)) {
+					for (const line of events(baseline, snapshot, options.events)) {
 						yield* emit(line);
 					}
 					const next = {

@@ -1,10 +1,13 @@
-import type { Snapshot } from "./model.ts";
+import type { Snapshot } from "#model.ts";
+
+export const eventKinds = ["merged", "closed", "conflict", "queued", "dequeued", "auto-merge-off", "checks-failed", "stuck"] as const;
+export type EventKind = (typeof eventKinds)[number];
 
 function stuck(pr: Snapshot): boolean {
 	return pr.state === "open" && pr.autoMerge && (pr.dirty || pr.failed);
 }
-function openEvents(before: Snapshot, after: Snapshot): readonly string[] {
-	const transitions: readonly (readonly [boolean, string])[] = [
+function openEvents(before: Snapshot, after: Snapshot): readonly EventKind[] {
+	const transitions: readonly (readonly [boolean, EventKind])[] = [
 		[!before.dirty && after.dirty, "conflict"],
 		[!before.queued && after.queued, "queued"],
 		[before.queued && !after.queued, "dequeued"],
@@ -14,12 +17,12 @@ function openEvents(before: Snapshot, after: Snapshot): readonly string[] {
 	];
 	return transitions.flatMap(([changed, event]) => (changed ? [event] : []));
 }
-export function events(before: Snapshot | undefined, after: Snapshot): readonly string[] {
+export function events(before: Snapshot | undefined, after: Snapshot, selected?: readonly EventKind[]): readonly string[] {
 	if (before === undefined && !stuck(after)) {
 		return [];
 	}
 	const baseline = before ?? { ...after, autoMerge: false, dirty: false, failed: false };
-	const found: string[] = [];
+	const found: EventKind[] = [];
 	if (!baseline.merged && after.merged) {
 		found.push("merged");
 	}
@@ -29,5 +32,7 @@ export function events(before: Snapshot | undefined, after: Snapshot): readonly 
 	if (after.state === "open") {
 		found.push(...openEvents(baseline, after));
 	}
-	return found.map((event) => JSON.stringify({ branch: after.branch, event, number: after.number, title: after.title }));
+	return found
+		.filter((event) => selected === undefined || selected.includes(event))
+		.map((event) => JSON.stringify({ branch: after.branch, event, number: after.number, title: after.title }));
 }
