@@ -1,53 +1,23 @@
-import { readFileSync } from "node:fs";
-import { relative } from "node:path";
-import process from "node:process";
-import { fileURLToPath } from "node:url";
-import { expect, it } from "vitest";
-import { runStories } from "#test/runStories.ts";
-
-const STORIES = relative(process.cwd(), fileURLToPath(new URL("../test-support/failingStories.ts", import.meta.url)));
-
-const LARGE_BAKERY = "node_modules/.cache/test-story/failingstories.ts--bakery-story-writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
+import { expect } from "vitest";
+import { failed, guide, LARGE_BAKERY, rerun, STORIES } from "#test/failureReport.ts";
+import { storyRunner } from "#test/storyRunner.ts";
 
 const SLOW = 30_000;
 
-async function story(name: string) {
-	const { stories } = await runStories({ include: "src/test-support/failingStories.ts", testNamePattern: name });
-	const [result] = stories.filter((candidate) => candidate.name === name);
-	return { errors: result?.errors, state: result?.state };
-}
-
-function guide(name: string): string[] {
-	return [
-		"╭─ test-story: how to read the story below",
-		'│ "given" lines are the test\'s traits, the other lines were told by verbs and engine steps as they ran, and ✗ marks',
-		`│ where the test stopped. The traits, verbs and steps live in the ${name} story kit that this test imports.`,
-		"╰─",
-		"",
-	];
-}
-
-function failed(...lines: string[]) {
-	return { errors: [lines.join("\n")], state: "failed" };
-}
-
-function rerun(test: string): string {
-	const command = `Rerun: vitest run ${STORIES} -t "${test}"`;
-	return command.length > 120 ? `Rerun: vitest run ${STORIES} \\\n  -t "${test}"` : command;
-}
-
-it(
+storyRunner.it(
 	"adds nothing when the story passes",
-	async () => {
-		expect(await story("Bakery Story: adds nothing when the story passes")).toEqual({ errors: [], state: "passed" });
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Bakery Story: adds nothing when the story passes")).toEqual({ errors: [], state: "passed" });
 	},
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"prints the story under the assertion that stopped it, with the spec line under the ✗",
-	async () => {
-		expect(await story("Bakery Story: marks where an assertion stopped the story")).toEqual(
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Bakery Story: marks where an assertion stopped the story")).toEqual(
 			failed(
 				"loaves: expected 1 to be 2 // Object.is equality",
 				"",
@@ -69,10 +39,11 @@ it(
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"marks the trait that refused, with the spec line that named it",
-	async () => {
-		expect(await story("Bakery Story: marks the trait that refused")).toEqual(
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Bakery Story: marks the trait that refused")).toEqual(
 			failed(
 				'the trait "the baker has 4 balls of dough" refused to set up the bakery: the bowls hold only 3',
 				"help: a trait throws when the bakery it asks for cannot exist. Give the test traits that fit together, or fix the trait",
@@ -95,10 +66,11 @@ it(
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"prints the story when the engine breaks",
-	async () => {
-		expect(await story("Bakery Story: prints the story when the bakery breaks")).toEqual(
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Bakery Story: prints the story when the bakery breaks")).toEqual(
 			failed(
 				"the bakery broke after 0 steps: the oven is cold with 1 balls of dough waiting",
 				"help: run.failed in the bakery story kit reports a state the bakery cannot recover from. The story printed with this",
@@ -120,10 +92,11 @@ it(
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"prints what the kit's inspect shows",
-	async () => {
-		expect(await story("Mill Story: prints what the kit's inspect shows")).toEqual(
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Mill Story: prints what the kit's inspect shows")).toEqual(
 			failed(
 				"wind: expected +0 to be 1 // Object.is equality",
 				"",
@@ -142,10 +115,11 @@ it(
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"marks a failure before the story told a line",
-	async () => {
-		expect(await story("Mill Story: marks a failure before the story told a line")).toEqual(
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Mill Story: marks a failure before the story told a line")).toEqual(
 			failed(
 				"sacks: expected +0 to be 1 // Object.is equality",
 				"",
@@ -162,10 +136,11 @@ it(
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"writes an engine too large to print to a file and names the file",
-	async () => {
-		expect(await story("Bakery Story: writes a bakery too large to print to a file")).toEqual(
+	[],
+	function* ({ failure, writtenBakery }) {
+		expect(yield* failure("Bakery Story: writes a bakery too large to print to a file")).toEqual(
 			failed(
 				"orders: expected [ …(60) ] to have a length of +0 but got 60",
 				"",
@@ -180,16 +155,17 @@ it(
 				rerun("Bakery Story: writes a bakery too large to print to a file"),
 			),
 		);
-		const written: unknown = JSON.parse(readFileSync(LARGE_BAKERY, "utf8"));
+		const written = writtenBakery();
 		expect(written).toEqual(expect.objectContaining({ orders: expect.arrayContaining(["order 60: a loaf of rye for the market stall"]) }));
 	},
 	SLOW,
 );
 
-it(
+storyRunner.it(
 	"splits the rerun command when a long test name would carry it past the width of a terminal",
-	async () => {
-		expect(await story("Mill Story: splits the rerun command when a long test name would carry it past the width of a terminal")).toEqual(
+	[],
+	function* ({ failure }) {
+		expect(yield* failure("Mill Story: splits the rerun command when a long test name would carry it past the width of a terminal")).toEqual(
 			failed(
 				"sacks: expected +0 to be 1 // Object.is equality",
 				"",
