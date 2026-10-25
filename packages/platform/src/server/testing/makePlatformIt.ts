@@ -6,7 +6,7 @@ import type { EffectTRPCAdapter } from "@shivaedev/effect-trpc/server/adapter.ts
 import type { EffectCallerFactory } from "@shivaedev/effect-trpc/server/testing/caller.ts";
 import type { CallerOptions, CallerResult } from "@shivaedev/effect-trpc/server/testing/types.ts";
 import { makeTrpcHarnessIt } from "@shivaedev/effect-trpc/server/testing/vitest.ts";
-import type { Bivariant } from "@shivaedev/types/bivariant.ts";
+import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 import type { MakePlatformItOptions, PlatformHarness, PlatformIt } from "./types.ts";
 
 interface LooseOptions {
