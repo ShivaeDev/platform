@@ -28,7 +28,9 @@ export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: Engi
 							Effect.catchTag("Forbidden", () => Effect.succeed(false)),
 						),
 			),
-			Effect.catchTag("BoardFailure", (error) => (missingBoardItem(error) ? Effect.succeed(false) : Effect.fail(error))),
+			Effect.catchTag("BoardFailure", (error) =>
+				missingBoardItem(error) || records.indexOf(entry) >= index ? Effect.succeed(false) : Effect.fail(error),
+			),
 		),
 	).pipe(Effect.map((entries) => entries.map((entry) => entry.workId)));
 });
