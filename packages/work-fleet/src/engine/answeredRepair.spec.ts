@@ -63,12 +63,12 @@ for (const repair of ["review", "checks"] as const) {
 				expect(prompt).toContain(answer.body);
 				expect(prompt).toContain(repairing.result?.kind === "change" ? repairing.result.pr : "missing PR");
 				expect(prompt).toContain("same branch");
-				expect(launches()).toHaveLength(3);
+				expect(launches()).toEqual(["operation-1", "operation-2", "operation-5"]);
 				yield* resumed.resolve("one", decision.id, answer.id);
 				expect((yield* resumed.get("one")).value.attempts).toEqual(continuing.attempts);
 				yield* resumed.reconcile("one");
 				expect((yield* resumed.get("one")).value.attempts.at(-1)?.operationId).toBe(attempt?.operationId);
-				expect(launches()).toHaveLength(3);
+				expect(launches()).toEqual(["operation-1", "operation-2", "operation-5"]);
 				head = "repaired-head";
 				finishWorkers();
 				const completed = (yield* resumed.reconcile("one")).value;

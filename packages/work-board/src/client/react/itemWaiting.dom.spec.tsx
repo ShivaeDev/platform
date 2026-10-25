@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { answerCardFixture, TEXT_QUESTION_ID, textQuestionFixture } from "#test/answerCardFixture.ts";
@@ -41,7 +40,7 @@ screenStory.it(
 	"leads an item with the open asks that name it, in amber only when they wait on you",
 	[routedScreen(FILES, TASK, { home: "home.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-waiting-on]")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-waiting-on]")).not.toBeNull());
 		const rows = [...findElements(`${HEADER} [data-waiting-on]`)];
 		expect(rows.map((row) => [row.getAttribute("data-waiting-on"), row.textContent])).toEqual([
 			["you", "Waiting on you: Your pooling designAnswer"],
@@ -72,7 +71,7 @@ screenStory.it(
 		),
 	],
 	function* ({ findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 		expect(findElement("[data-waiting-on]")).toBeNull();
 	},
 );
@@ -81,7 +80,7 @@ screenStory.it(
 	"names the items and files a next action mentions, with their status, and leaves unknown words plain",
 	[routedScreen(FILES, TASK, { home: "home.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-mention]")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-mention]")).not.toBeNull());
 		const mentions = [...findElements(`${HEADER} [data-mention]`)].map((mention) => [
 			mention.getAttribute("data-mention"),
 			mention.querySelector("a")?.textContent,
@@ -102,7 +101,7 @@ screenStory.it(
 	"links pull request numbers to the workspace repository without Fleet",
 	[routedScreen(FILES, TASK, { home: "home.md", pullRequests: "https://github.com/example/project/pull/" })],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(`${HEADER} a[href*="/pull/"]`)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(`${HEADER} a[href*="/pull/"]`)).not.toBeNull());
 		expect([...findElements(`${HEADER} a[href*="/pull/"]`)].map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
 			["#828", "https://github.com/example/project/pull/828"],
 			["PR 12", "https://github.com/example/project/pull/12"],
@@ -117,12 +116,12 @@ screenStory.it(
 		routedScreen({ ...textQuestionFixture }, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true }),
 	],
 	function* ({ click, findElement, readFocus }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		const jump = findElement(`${HEADER} [data-answer-jump]`);
 		expect(jump?.textContent).toBe("Answer");
 		expect(jump?.classList.contains("md:hidden")).toBe(true);
 		click(`${HEADER} [data-answer-jump]`);
-		yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(findElement('#response-form [name="body"]'))));
+		yield* eventually(() => expect(readFocus()).toBe(findElement('#response-form [name="body"]')));
 	},
 );
 
@@ -130,7 +129,7 @@ screenStory.it(
 	"keeps the Answer control off a task whose answer card already leads the page",
 	[routedScreen(answerCardFixture, "/_board/item/task.guide/", { home: "home.md", writable: true })],
 	function* ({ findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		expect(findElement("[data-answer-jump]")).toBeNull();
 	},
 );

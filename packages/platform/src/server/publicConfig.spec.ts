@@ -3,12 +3,17 @@ import { expect, expectTypeOf } from "vitest";
 import { configuration, serverConfiguration } from "#test/public-config/story.ts";
 
 for (const path of [undefined, "PUBLIC"]) {
+	const RETRY_LIMIT = 3;
 	const prefix = path === undefined ? "" : `${path}_`;
 	configuration.it(
 		`public configuration is decoded on the HTTP client with ${path ?? "root"} configuration`,
 		[
 			serverConfiguration(
-				{ [`${prefix}INSTALL_URL`]: "https://example.com/install", [`${prefix}RETRY_LIMIT`]: "3", "SERVER_SECRET": "private-server-key" },
+				{
+					[`${prefix}INSTALL_URL`]: "https://example.com/install",
+					[`${prefix}RETRY_LIMIT`]: String(RETRY_LIMIT),
+					"SERVER_SECRET": "private-server-key",
+				},
 				{ path },
 			),
 		],
@@ -17,7 +22,7 @@ for (const path of [undefined, "PUBLIC"]) {
 			expectTypeOf(value).toEqualTypeOf<{ readonly installUrl: URL; readonly retryLimit: number }>();
 			expect(value.installUrl).toBeInstanceOf(URL);
 			expect(value.installUrl.href).toBe("https://example.com/install");
-			expect(value.retryLimit).toBe(3);
+			expect(value.retryLimit).toBe(RETRY_LIMIT);
 			expect(lookups()).toEqual([]);
 		},
 	);

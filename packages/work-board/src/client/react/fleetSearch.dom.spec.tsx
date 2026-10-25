@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -26,7 +25,7 @@ screenStory.it(
 		for (const query of ["watch", "records: watch"]) {
 			type(query);
 			const records = query.startsWith("records:");
-			yield* Effect.promise(() => eventually(() => expect(readText("code", rows()[0])).toBe(records ? "decision.watch" : "task.watch-done")));
+			yield* eventually(() => expect(readText("code", rows()[0])).toBe(records ? "decision.watch" : "task.watch-done"));
 			const work = rows().filter((row) => readText("code", row)?.startsWith("task."));
 			expect(work.slice(0, 2).map((row) => readText("strong", row))).toEqual(["Done watch", "Keep reviews visible"]);
 			expect(work.slice(0, 2).map((row) => readText("[data-status-token]", row))).toEqual(["Done", "Ready"]);

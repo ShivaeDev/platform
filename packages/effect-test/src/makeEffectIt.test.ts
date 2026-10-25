@@ -92,7 +92,7 @@ effectApp("retries at the configured interval using the test clock", function* (
 });
 
 effectApp(
-	"retries with Schedule.spaced under the live clock",
+	"retries with a delay under the live clock",
 	function* () {
 		let attempts = 0;
 		const value = yield* eventually(
@@ -108,6 +108,19 @@ effectApp(
 	},
 	{ clock: "live" },
 );
+
+effectApp("an elapsed-time budget preserves the last typed readiness failure", function* () {
+	const result = yield* Effect.exit(
+		eventually(
+			Effect.gen(function* () {
+				return yield* Effect.fail(`not ready at ${yield* Clock.currentTimeMillis}`);
+			}),
+			{ interval: "7 millis", timeout: "20 millis" },
+		),
+	);
+	expect(result).toEqual(Exit.fail("not ready at 21"));
+	expect(yield* Clock.currentTimeMillis).toBe(21);
+});
 
 liveIt.effectApp("retries without a limit at the default live-clock interval", function* () {
 	let attempts = 0;

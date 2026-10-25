@@ -6,12 +6,17 @@ import { host } from "./story.ts";
 const Note = Context.Service<string>("publicReasonNote");
 const group = RpcGroup.make(
 	Rpc.make("nativeStack", {
-		payload: { depth: Schema.optional(Schema.Number), kind: Schema.Literals(["defect", "interruption"]), marker: Schema.String },
+		payload: {
+			depth: Schema.optional(Schema.Number),
+			fiberId: Schema.optional(Schema.Number),
+			kind: Schema.Literals(["defect", "interruption"]),
+			marker: Schema.String,
+		},
 		success: Schema.Void,
 	}),
 );
 const handlers = group.toLayer({
-	nativeStack: ({ depth = 1, kind, marker }) => {
+	nativeStack: ({ depth = 1, fiberId = 123, kind, marker }) => {
 		let frame: References.StackFrame = {
 			name: `${marker}-0`,
 			parent: undefined,
@@ -25,7 +30,7 @@ const handlers = group.toLayer({
 			Context.add(Cause.InterruptorStackTrace, frame),
 			Context.add(Note, "public reason detail"),
 		);
-		const cause = kind === "defect" ? Cause.die("public defect") : Cause.combine(Cause.die("public defect"), Cause.interrupt(123));
+		const cause = kind === "defect" ? Cause.die("public defect") : Cause.combine(Cause.die("public defect"), Cause.interrupt(fiberId));
 		return Effect.failCause(Cause.annotate(cause, annotations));
 	},
 });

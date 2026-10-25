@@ -4,6 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { routerApp } from "./routerApp.ts";
 import { type NoteMissing, type NotFound, routerClient } from "./routerClient.ts";
+import { clickButton, screenWarnings, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
@@ -32,6 +33,11 @@ export const routes = storyKit(
 					}
 					link.click();
 				}),
+			nextResponse: (id: string) => {
+				screen.tell(`the next response for ${id} waits`);
+				state.client.next(id);
+			},
+			retry: () => screen.act("retry the loader", () => clickButton(current(state).root.container, "Retry")),
 			route: () => current(state),
 			search: (page: number) =>
 				screen.act(`change page to ${page}`, () => {
@@ -39,12 +45,16 @@ export const routes = storyKit(
 				}),
 			succeed: (id: string, title: string, page = 1) =>
 				screen.act(`note ${id} responds: ${title}`, () => Effect.runPromise(Deferred.succeed(state.client.gate(id, page), { id, title }))),
+			typeShell: (value: string) => screen.act(`type in the shell: ${value}`, () => typeInput(current(state).root.container, "shell", value)),
 		}),
 	),
 );
-export function noteRoute(initial?: string) {
+export function noteRoute(initial?: string, expectedFailure?: NoteMissing) {
 	return routes.trait("screen", `the notes router at ${initial ?? "/notes/first"}`, function* ({ screen, state }) {
-		const root = yield* screen.open();
+		const root = yield* screen.open(
+			null,
+			expectedFailure ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === expectedFailure) } : undefined,
+		);
 		state.root = root;
 		const router = routerApp(root.registry, state.client, initial);
 		state.router = router;

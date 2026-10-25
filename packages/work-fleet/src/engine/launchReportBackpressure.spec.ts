@@ -31,11 +31,11 @@ describe("report launch backpressure", () => {
 			advanceTime(29_999);
 			yield* restart();
 			yield* schedule();
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			advanceTime(1);
 			yield* restart();
 			yield* schedule();
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 			const [observation] = providerObservations();
 			expect(observation?.output).toBe(queued.attempts[0]?.prompt);
 			expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");

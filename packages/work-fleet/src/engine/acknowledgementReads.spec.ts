@@ -16,6 +16,7 @@ for (const unavailable of ["decision", "question", "answer"] as const) {
 			resumeAcknowledgements,
 			writeTrackedBoard,
 			boardReceipts,
+			boardReceiptRecords,
 			readBoardWork,
 			providerStarts,
 			workerQuestion,
@@ -41,15 +42,15 @@ for (const unavailable of ["decision", "question", "answer"] as const) {
 			});
 			yield* writeTrackedBoard(responseFile, answer);
 			const applied = yield* fleet.resolve("item.0", decision.id, responseId);
-			expect(pendingAcknowledgements(applied.value)).toHaveLength(1);
-			const starts = providerStarts().length;
+			expect(pendingAcknowledgements(applied.value)).toMatchObject([{ input: { decision: published, disposition: "applied", responseId } }]);
+			const starts = providerStarts();
 			const file = { answer: responseFile, decision: published.sourcePath, question: `responses/${published.questionId}.md` }[unavailable];
 			makeBoardUnreadable(file);
 			resumeAcknowledgements();
 			yield* restart();
 			const waiting = yield* fleet.reconcile("item.0");
 			expect(waiting.value.responses).toEqual(applied.value.responses);
-			expect(pendingAcknowledgements(waiting.value)).toHaveLength(1);
+			expect(pendingAcknowledgements(waiting.value)).toMatchObject([{ input: { decision: published, disposition: "applied", responseId } }]);
 			expect(waiting.value.blocker).toContain(`Board source could not be read: ${file}`);
 
 			expect(boardReceipts()).toHaveLength(0);
@@ -59,10 +60,10 @@ for (const unavailable of ["decision", "question", "answer"] as const) {
 			expect(recovered.value.responses).toEqual(applied.value.responses?.map((response) => ({ ...response, boardAcknowledged: true })));
 			expect(pendingAcknowledgements(recovered.value)).toEqual([]);
 			expect(recovered.value.blocker).toBeUndefined();
-			expect(boardReceipts()).toHaveLength(1);
+			expect(boardReceiptRecords()).toMatchObject([{ disposition: "applied", question: published.questionId, response: responseId }]);
 			expect(readBoardWork(boardReceipts()[0] ?? "missing")).toContain('"disposition":"applied"');
 			expect(readBoardWork(responseFile)).toBe(answer);
-			expect(providerStarts()).toHaveLength(starts);
+			expect(providerStarts()).toEqual(starts);
 		},
 	);
 }

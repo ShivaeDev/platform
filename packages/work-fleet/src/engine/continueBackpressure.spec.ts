@@ -26,11 +26,12 @@ describe("continuation launch backpressure", () => {
 					const sessionId = stopped.attempts[0]?.receipt?.sessionId;
 					checksBlocked = false;
 					reject = true;
+					const rejectedAt = now;
 					const queued = (yield* fleet.continue("one", "Check another case")).value;
 					expect(queued.attentionOwner).toBe("automation");
 					expect(queued.step).toBe("repairing");
-					expect(queued.launchRetry?.retryAt).toBe(30_100);
-					expect(queued.history).toHaveLength(1);
+					expect(queued.launchRetry?.retryAt).toBe(rejectedAt + 30_000);
+					expect(queued.history).toMatchObject([{ attempts: stopped.attempts, step: stopped.step }]);
 					const calls = providerCalls().length;
 					reject = false;
 					launch.model = "new-host-model";
@@ -51,8 +52,8 @@ describe("continuation launch backpressure", () => {
 						role: "repair",
 						settings: { model: "initial-model" },
 					});
-					expect(accepted.history).toHaveLength(1);
-					expect(launches()).toHaveLength(2);
+					expect(accepted.history).toMatchObject([{ attempts: stopped.attempts, step: stopped.step }]);
+					expect(launches()).toEqual(["operation-1", "operation-2"]);
 					finishWorkers();
 					expect((yield* fleet.reconcile("one")).value).toMatchObject({ outcome: { evidence: ["Check another case"] }, step: "done" });
 				},

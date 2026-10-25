@@ -19,7 +19,7 @@ for (const phone of [false, true]) {
 			expect(rows.map((row) => row.id)).toEqual(["home-open", "goals-open", "work-open", "pull-requests-open", "documents-open", "diagnostics-open"]);
 			for (let index = 2; index <= 6; index += 1) {
 				yield* Effect.promise(() => navigate(`/notes/topic-${index}.md`));
-				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-file")).toBe(`notes/topic-${index}.md`)));
+				yield* eventually(() => expect(readAttribute("#doc", "data-file")).toBe(`notes/topic-${index}.md`));
 				expect(findElements("#primary-navigation > *")).toEqual(rows);
 				expect(readAttribute('section[aria-label="Recent"] a', "href")).toBe(`/notes/topic-${index - 1}.md`);
 				expect(findElement('section[aria-label="Recent"] a[aria-current="page"]')).toBeNull();
@@ -32,8 +32,8 @@ for (const phone of [false, true]) {
 			click("#library-open");
 			expect(findElements("#reading-library a", document)).toHaveLength(ALL_VISITED_FILES);
 			yield* roles.click({ name: "Close", role: "button" });
-			yield* Effect.promise(() => eventually(() => expect(findElement("#library-dialog", document)).toBeNull()));
-			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(control("#library-open", HTMLButtonElement))));
+			yield* eventually(() => expect(findElement("#library-dialog", document)).toBeNull());
+			yield* eventually(() => expect(readFocus()).toBe(control("#library-open", HTMLButtonElement)));
 		},
 	);
 }
@@ -54,8 +54,8 @@ screenStory.it(
 			} else {
 				click("#sidebar-backdrop");
 			}
-			yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
-			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(control("#sidebar-toggle", HTMLButtonElement))));
+			yield* eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
+			yield* eventually(() => expect(readFocus()).toBe(control("#sidebar-toggle", HTMLButtonElement)));
 			expect(findElement("[data-board-page]")?.hasAttribute("inert")).toBe(false);
 		}
 		setMediaMatch("(max-width: 767px)", false);

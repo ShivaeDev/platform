@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { answerCardFixture, decisionFile } from "#test/answerCardFixture.ts";
@@ -19,7 +18,7 @@ for (const url of [
 	"/",
 ]) {
 	screenStory.it(`keeps absent values quiet at ${url}`, [routedScreen(sourceListsFixture(), url)], function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("main h1")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("main h1")).not.toBeNull());
 		expect(readText()).not.toMatch(/not recorded/iu);
 		expect(readText()).not.toContain("These are explicit source links");
 		expect(readText()).not.toContain("Open/closed is source state");
@@ -31,7 +30,7 @@ screenStory.it(
 	"collapses repeated titles in backlinks and relationships, retaining each source in its most specific group",
 	[routedScreen(sourceListsFixture(), "/task.md")],
 	function* ({ openDetails, findElement, readText, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-context-group="linked-from"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-context-group="linked-from"]')).not.toBeNull());
 		const backlinks = findElement('[data-context-group="linked-from"]');
 		expect(readText("h3", backlinks)).toBe("Linked from");
 		expect(findElement('[data-source-group="Related to"]', backlinks)).toBeNull();
@@ -54,7 +53,7 @@ for (const status of ["done", "done", "deferred"]) {
 			`hides open managed asks from cards and Inbox for ${status} work at ${url}`,
 			[routedScreen(files, url)],
 			function* ({ findElement, readDefaultText }) {
-				yield* Effect.promise(() => eventually(() => expect(findElement("main h1")).not.toBeNull()));
+				yield* eventually(() => expect(findElement("main h1")).not.toBeNull());
 				expect(findElement(".answer-cards")).toBeNull();
 				expect(findElement("#response-form")).toBeNull();
 				if (!url.includes(decisionFile)) {
@@ -74,7 +73,7 @@ screenStory.it(
 		),
 	],
 	function* ({ readText, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("main h1")).toBe("Previous question")));
+		yield* eventually(() => expect(readText("main h1")).toBe("Previous question"));
 		expect(findElement(".answer-cards")).toBeNull();
 	},
 );

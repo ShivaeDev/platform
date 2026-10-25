@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { recordSourceFixture } from "#test/recordSourceFixture.ts";
@@ -12,7 +11,7 @@ for (const { file, source, explanation } of recordSourceFixture) {
 		`keeps ${file} record explanations in the Source tab, hidden until the reader opens it and again after Details`,
 		[routedScreen({ [file]: source }, `/${file}`)],
 		function* ({ control, click, findElement, findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("[data-document-source]")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("[data-document-source]")).not.toBeNull());
 			const records = control("[data-document-source]", HTMLElement);
 			expect(records.textContent).toContain(explanation);
 			expect(records.closest("[hidden]")).not.toBeNull();

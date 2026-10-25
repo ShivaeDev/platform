@@ -33,11 +33,11 @@ for (const closing of CLOSINGS) {
 		closing.name,
 		[screenWorkspace(closing.workspace), routedScreen(answerCardFixture, decisionUrl, { home: "home.md", writable: true })],
 		function* ({ answerInput, editFile, findElement, readText, refreshDocument }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 			answerInput("body", DRAFT);
 			editFile(decisionFile, closing.source);
 			yield* Effect.promise(() => refreshDocument(decisionUrl));
-			yield* Effect.promise(() => eventually(() => expect(findElement("[data-closed-draft]")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("[data-closed-draft]")).not.toBeNull());
 			expect(readText("[data-closed-draft] p[role='status']:not([data-copy-status])")).toBe(`${closing.reason} Your draft was not sent.`);
 			expect(findElement<HTMLTextAreaElement>("[data-closed-draft] textarea")?.value).toBe(DRAFT);
 		},
@@ -48,16 +48,14 @@ screenStory.it(
 	"selects the unsent draft for a manual copy when the clipboard refuses it",
 	[deniedClipboard(), screenWorkspace("closed-copy"), routedScreen(answerCardFixture, decisionUrl, { home: "home.md", writable: true })],
 	function* ({ answerInput, click, editFile, findElement, readFocus, readText, refreshDocument }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		answerInput("body", DRAFT);
 		editFile(decisionFile, closedRequest);
 		yield* Effect.promise(() => refreshDocument(decisionUrl));
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-closed-draft]")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-closed-draft]")).not.toBeNull());
 		click("[data-closed-draft] button");
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText("[data-closed-draft] [data-copy-status]")).toBe("Couldn't copy automatically. The draft is selected, so copy it yourself."),
-			),
+		yield* eventually(() =>
+			expect(readText("[data-closed-draft] [data-copy-status]")).toBe("Couldn't copy automatically. The draft is selected, so copy it yourself."),
 		);
 		const draft = findElement<HTMLTextAreaElement>("[data-closed-draft] textarea");
 		expect(readFocus()).toBe(draft);

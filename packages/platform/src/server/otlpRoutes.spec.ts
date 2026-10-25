@@ -16,7 +16,7 @@ host.it(
 		yield* close();
 		const spans = exportedSpans();
 		const servers = spans.filter(({ kind, attributes }) => kind === 2 && attributes.some(({ key }) => key === "http.request.method"));
-		expect(servers).toHaveLength(3);
+		expect(servers.map(({ name }) => name).sort()).toEqual(["GET", "GET /items/:id", "POST /api/rpc"]);
 		expect(servers).toContainEqual(
 			expect.objectContaining({
 				attributes: expect.arrayContaining([{ key: "http.route", value: { stringValue: "/api/rpc" } }]),

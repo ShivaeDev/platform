@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { failingSectionRender } from "#test/failingSectionRender.ts";
@@ -10,7 +9,7 @@ screenStory.it(
 	"shows the route error when a later section of a long report fails to render",
 	[failingSectionRender("Finding 1"), routedScreen({ "home.md": "# Home", "report.md": LONG_REPORT }, "/report.md")],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("pre code")).toBe("Rendering failed on Finding 1")));
+		yield* eventually(() => expect(readText("pre code")).toBe("Rendering failed on Finding 1"));
 		expect(findElement("#heading-finding-1")).toBeNull();
 	},
 );

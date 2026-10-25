@@ -32,11 +32,9 @@ screenStory.it(
 		}
 		expect(findElements('section[aria-label="Recent"] a')).toHaveLength(5);
 		expect(readText('section[aria-label="Pinned"] a')).toBe("Document title 0");
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readAttribute('section[aria-label="Active goals"] [role="progressbar"][aria-label^="Example goal"]', "aria-label")).toBe(
-					"Example goal: 2 of 5 done",
-				),
+		yield* eventually(() =>
+			expect(readAttribute('section[aria-label="Active goals"] [role="progressbar"][aria-label^="Example goal"]', "aria-label")).toBe(
+				"Example goal: 2 of 5 done",
 			),
 		);
 		expect(readText('section[aria-label="Active goals"]')).toContain("2/5");
@@ -51,18 +49,18 @@ screenStory.it(
 		expect(navigation).not.toHaveProperty("tree");
 		expect(navigation).not.toHaveProperty("records");
 		click("#work-open");
-		yield* Effect.promise(() => eventually(() => expect(readText(".work-head h1")).toBe("Now")));
+		yield* eventually(() => expect(readText(".work-head h1")).toBe("Now"));
 	},
 );
 screenStory.it(
 	"leaves Ready goals out of the sidebar while Today lists them in its main column",
 	[chromeScreen(goalsFixture(), "/")],
 	function* ({ click, findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc")).toContain("Example goal")));
+		yield* eventually(() => expect(readText("#doc")).toContain("Example goal"));
 		expect(findElement('section[aria-label="Active goals"]')).toBeNull();
 		expect(findElement('section[aria-label="Pinned"]')).not.toBeNull();
 		click("#goals-open");
-		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Active goals"]')).toContain("Example goal")));
+		yield* eventually(() => expect(readText('section[aria-label="Active goals"]')).toContain("Example goal"));
 	},
 );
 screenStory.it(
@@ -76,26 +74,24 @@ screenStory.it(
 	],
 	function* ({ openDetails, navigate, readText, findElement, findElements, roles }) {
 		yield* Effect.promise(() => navigate("/_board/library"));
-		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/notes/slug.md"]')).toBe("A readable title")));
+		yield* eventually(() => expect(readText('#doc a[href="/notes/slug.md"]')).toBe("A readable title"));
 		expect(findElement('#doc a[href="/responses/decision.md"]')).toBeNull();
 		expect(readText("#doc")).toContain("Include files Fleet writes (1)");
 		yield* roles.click({ name: "Kind", role: "combobox" });
 		yield* roles.click({ name: "Task", role: "option" });
-		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull()));
+		yield* eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull());
 		yield* roles.click({ name: "Status", role: "combobox" });
 		yield* roles.click({ name: "Ready", role: "option" });
-		yield* Effect.promise(() => eventually(() => expect(findElements("#doc li a")).toHaveLength(2)));
+		yield* eventually(() => expect(findElements("#doc li a")).toHaveLength(2));
 		yield* roles.click({ name: "Reset", role: "link" });
-		yield* Effect.promise(() => eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull());
 		yield* roles.click({ name: "Include files Fleet writes (1)", role: "checkbox" });
-		yield* Effect.promise(() =>
-			eventually(() => expect(readText('#doc a[href="/responses/decision.md"]')).toBe("Fleet decision: Deployment is blocked")),
-		);
+		yield* eventually(() => expect(readText('#doc a[href="/responses/decision.md"]')).toBe("Fleet decision: Deployment is blocked"));
 		yield* roles.click({ name: "By folder", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc summary")).toContain("notes")));
+		yield* eventually(() => expect(readText("#doc summary")).toContain("notes"));
 		expect(findElement('#doc a[href="/notes/slug.md"]')).toBeNull();
 		openDetails("#doc details");
-		yield* Effect.promise(() => eventually(() => expect(readText('#doc a[href="/notes/slug.md"]')).toBe("A readable title")));
+		yield* eventually(() => expect(readText('#doc a[href="/notes/slug.md"]')).toBe("A readable title"));
 		expect(findElement('#doc a[href="/notes/deep/other.md"]')).toBeNull();
 	},
 );

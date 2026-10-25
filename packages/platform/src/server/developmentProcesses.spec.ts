@@ -8,8 +8,8 @@ developmentApp.it(
 		yield* start();
 		expect(started()).toMatchObject({ server: "application", worker: "application" });
 		yield* finishVite();
-		const viteExit = 7;
-		expect(yield* exitCode()).toBe(viteExit);
+		const code = yield* exitCode();
+		expect(code).toBe(7);
 		expect(remaining()).toEqual([]);
 	},
 );

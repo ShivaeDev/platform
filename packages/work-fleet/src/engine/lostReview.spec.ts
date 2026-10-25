@@ -53,7 +53,7 @@ for (const exhausted of [false, true]) {
 			if (exhausted) {
 				expect(final.decision?.reason).toContain("provider failure after 5 attempts");
 				expect(final.launchRetry).toBeUndefined();
-				expect(launches()).toHaveLength(6);
+				expect(launches()).toEqual(["operation-1", "operation-2", "operation-3", "operation-4", "operation-5", "operation-6"]);
 			} else {
 				expect(final.decision?.code).toBe("reviewed-pr-ready");
 				expect(final.result).toEqual(result);
@@ -62,7 +62,7 @@ for (const exhausted of [false, true]) {
 				expect(final.attempts.at(-1)?.receipt?.sessionId).toBe(`session-${providerStarts().at(-1)?.operationId}`);
 				expect(final.attempts.at(-1)?.receipt?.sessionId).not.toBe(`session-${providerStarts()[1]?.operationId}`);
 				expect(providerStarts().at(-1)?.access).toBe("read-only");
-				expect(publishedDecisions()).toHaveLength(1);
+				expect(publishedDecisions()).toEqual([final.decision?.reason]);
 			}
 		},
 	);

@@ -56,8 +56,12 @@ for (const receipt of ["lost", "known", "recovered"] as const) {
 			}
 			const answer = yield* answerWorker(decision);
 			expect((yield* restarted.resolve("one", decision.id, answer.id)).value.step).toBe("working");
-			expect(launches()).toHaveLength(1);
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1"]);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map(({ operationId }) => operationId),
+			).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -91,7 +95,11 @@ for (const migrate of [false, true]) {
 			expect(continued.responses).toMatchObject([{ boardAcknowledged: true, decisionId: original.id, responseId: answer.id }]);
 			expect(continued.attempts.at(-1)?.prompt).toBe(answer.body);
 			expect(continued.supersededDecisions).toBeUndefined();
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map(({ operationId }) => operationId),
+			).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

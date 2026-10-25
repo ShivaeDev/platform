@@ -58,7 +58,7 @@ engine.it(
 		expect(continued.value.boardContext).toBe(linkedBrief(source));
 		expect(continued.value.attempts.at(-1)?.prompt).toBe(answer.body);
 		expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 	},
 );
 
@@ -80,6 +80,10 @@ engine.it(
 		expect(continued.value.step).toBe("working");
 		expect(continued.value.attempts.at(-1)?.prompt).toBe(newest.body);
 		expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: newest.id }]);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(["operation-1", "operation-2"]);
 	},
 );

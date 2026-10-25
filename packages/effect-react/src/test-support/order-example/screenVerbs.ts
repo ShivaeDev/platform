@@ -48,7 +48,7 @@ export function screenVerbs(engine: Application, tell: (line: string) => void) {
 		list: () => [...getContainer(engine, "list").querySelectorAll("li")].map((li) => li.textContent),
 		observe: (line: string, check: () => void) => {
 			tell(line);
-			return Effect.promise(() => eventually(check));
+			return eventually(check);
 		},
 		refreshOrder: () => click("editor", "Refresh"),
 		renameFromList: () => click("list", "Rename order"),

@@ -3,8 +3,6 @@ import { expect } from "vitest";
 import { migrationHost } from "#test/app-host/migrationStory.ts";
 import { withJobsSchema } from "#test/app-host/withJobsSchema.ts";
 
-const SUCCESSFUL_EXIT = 0;
-
 for (const version of ["missing", "older"] as const) {
 	migrationHost.it(
 		`waits with a current ledger and ${version} pg-boss until another process migrates`,
@@ -15,7 +13,8 @@ for (const version of ["missing", "older"] as const) {
 			expect(lifecycle()).toEqual([]);
 			yield* host.advance("10 millis");
 			expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
-			expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+			const exitCode = yield* migrate();
+			expect(exitCode).toBe(0);
 			yield* host.advance("10 millis");
 			expect(yield* host.ping).toBe("pong");
 			expect(lifecycle()).toEqual(["started"]);

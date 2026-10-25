@@ -16,7 +16,7 @@ for (const wholeFileRevision of [false, true]) {
 			engine.it(
 				`${wholeFileRevision ? "saved whole-file" : "authored brief"} ${field} edits during ${phase} ${closesDecision ? "release closed work" : "preserve durable work and its decision"} after restart`,
 				[markdownWork(), noChangeDuringBriefPhase(phase), briefAtPhase(phase, bookkeepingBrief, wholeFileRevision)],
-				function* ({ boardBrief, boardReceipts, writeBoardWork, answerWorker, launches, finishWorkers, restart, fleet }) {
+				function* ({ boardBrief, boardReceiptRecords, writeBoardWork, answerWorker, launches, finishWorkers, restart, fleet }) {
 					const original = bookkeepingBrief(boardBrief());
 					const active = yield* fleet.get("one");
 					writeBoardWork("one.md", original.replace(before, after));
@@ -26,7 +26,7 @@ for (const wholeFileRevision of [false, true]) {
 						expect(unchanged.value.step).toBe("released");
 						expect(unchanged.value.releaseReason).toBe("Board status is deferred");
 						expect(unchanged.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.value.decision?.published }]);
-						expect(boardReceipts()).toHaveLength(1);
+						expect(boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: active.value.decision?.published?.questionId }]);
 						return;
 					}
 					expect(unchanged.value).toMatchObject({
@@ -45,7 +45,7 @@ for (const wholeFileRevision of [false, true]) {
 						expect(continued.value.step).toBe("working");
 						expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(active.value.attempts[0]?.receipt?.sessionId);
 						expect(continued.value.responses).toMatchObject([{ boardAcknowledged: true, responseId: answer.id }]);
-						expect(boardReceipts()).toHaveLength(1);
+						expect(boardReceiptRecords()).toMatchObject([{ disposition: "applied", question: decision.published?.questionId, response: answer.id }]);
 						return;
 					}
 					if (phase === "preparation") {
@@ -93,7 +93,7 @@ for (const wholeFileRevision of [false, true]) {
 			expect(resolved.value.decision).toBeUndefined();
 			expect(resolved.value.responses).toMatchObject([{ action: "retry", boardAcknowledged: true, responseId: answer }]);
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

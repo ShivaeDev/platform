@@ -39,7 +39,7 @@ screenStory.it(
 	function* ({ findElements, navigate, readText }) {
 		expect(findElements(RECENT_LINKS).map((link) => link.getAttribute("href"))).toEqual(["/notes/next.md", "/notes/old.md", "/notes/gone.md"]);
 		yield* Effect.promise(() => navigate("/notes/next.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Next")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Next"));
 		expect(findElements(RECENT_LINKS).map((link) => link.getAttribute("href"))).toEqual(["/notes/plan.md", "/notes/old.md", "/notes/gone.md"]);
 	},
 );
@@ -58,9 +58,7 @@ screenStory.it(
 			"Earlier",
 		]);
 		expect(roles.text({ name: "Today", role: "list" })).toMatch(/^Planread just now(?:·Document)?$/u);
-		yield* Effect.promise(() =>
-			eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).toMatch(/^Nextread .+ago·Task·ReadyFirstread .+ago·Document$/u)),
-		);
+		yield* eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).toMatch(/^Nextread .+ago·Task·ReadyFirstread .+ago·Document$/u));
 		expect(roles.text({ name: dated, role: "list" })).toMatch(/^Oldread .+ago·Question$/u);
 		expect(roles.text({ name: "Earlier", role: "list" })).toBe("Gone (missing)");
 		expect(
@@ -77,7 +75,7 @@ screenStory.it(
 	function* ({ findElements, readFocus, roles, stored }) {
 		yield* roles.click({ name: "Reading history", role: "button" });
 		yield* roles.click({ name: "Remove Next from history", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).not.toContain("Next")));
+		yield* eventually(() => expect(roles.text({ name: "Yesterday", role: "list" })).not.toContain("Next"));
 		expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Remove First from history", role: "button" });
 		expect(findElements(RECENT_LINKS).map((link) => link.getAttribute("href"))).toEqual(["/notes/old.md", "/notes/gone.md"]);
 		expect(JSON.parse(stored(HISTORY_KEY) ?? "{}").recents.map((item: { file: string }) => item.file)).toEqual([
@@ -101,9 +99,7 @@ screenStory.it(
 		expect(roles.text({ name: "Yesterday", role: "list" })).toContain("Next");
 		yield* roles.click({ name: "Clear history", role: "button" });
 		yield* roles.click({ name: "Clear", role: "button" });
-		yield* Effect.promise(() =>
-			eventually(() => expect(findElements("#reading-library h3", document).map((heading) => heading.textContent)).toEqual(["Pinned"])),
-		);
+		yield* eventually(() => expect(findElements("#reading-library h3", document).map((heading) => heading.textContent)).toEqual(["Pinned"]));
 		expect(roles.text({ name: "Pinned", role: "list" })).toBe("FirstDocument");
 		expect(() => roles.text({ name: "Clear history", role: "button" })).toThrow(missing);
 		expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Reading history", role: "dialog" });

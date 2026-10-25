@@ -16,20 +16,20 @@ screenStory.it(
 	function* ({ click, input, control, keyboard, refreshQuery, editFile, findElement, roles }) {
 		click("#search-open");
 		input(QUERY, "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase.")));
+		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase."));
 		keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
-		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 		click("#search-open");
 		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase.")));
+		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase."));
 		editFile("notes/plan.md", "# Plan\n\nShared phrase changed.\n");
 		yield* Effect.promise(() => refreshQuery("search", { query: "Shared phrase" }));
-		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed.")));
+		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed."));
 		yield* roles.click({ name: "Close", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 		click("#search-open");
 		expect(control(QUERY, HTMLInputElement).value).toBe("Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed.")));
+		yield* eventually(() => expect(control(RESULT, HTMLElement).textContent).toBe("Shared phrase changed."));
 	},
 );
 
@@ -48,17 +48,17 @@ for (const modifier of ["ctrlKey", "metaKey"] as const) {
 			selectionResetOnFocus(),
 		],
 		function* ({ control, keyboard, findElement, readFocus, typeText, selectText, readTextSelection }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
 			const textarea = control("#response-form textarea", HTMLTextAreaElement);
 			typeText(textarea, "Work in progress");
 			selectText(textarea, 4, 8, "backward");
 			keyboard("k", { cancelable: true, [modifier]: true }, textarea);
 			expect(findElement("#search-dialog", document)).not.toBeNull();
-			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(control(QUERY, HTMLInputElement))));
+			yield* eventually(() => expect(readFocus()).toBe(control(QUERY, HTMLInputElement)));
 
 			keyboard("Escape", { cancelable: true }, control(QUERY, HTMLInputElement));
-			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
-			yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(textarea)));
+			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
+			yield* eventually(() => expect(readFocus()).toBe(textarea));
 			expect(textarea.value).toBe("Work in progress");
 			expect(readTextSelection("#response-form textarea")).toEqual([4, 8, "backward"]);
 		},
