@@ -1,11 +1,11 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import { aliceAccount, notesApp, signInResponseHeld, signInScreen } from "#modules/notes/test-support/app.tsx";
+import { aliceAccount, notesApp, notesHostScreen, signInResponseHeld } from "#modules/notes/test-support/app.tsx";
 
 notesApp.it(
 	"signs in, creates, opens, saves and deletes a note on screen against PostgreSQL",
-	[aliceAccount(), signInResponseHeld(), signInScreen()],
+	[aliceAccount(), signInResponseHeld(), notesHostScreen()],
 	function* ({
 		heading,
 		button,

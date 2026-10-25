@@ -3,7 +3,7 @@ import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { routerApp } from "./routerApp.ts";
-import { type NoteMissing, routerClient } from "./routerClient.ts";
+import { type NoteMissing, type NotFound, routerClient } from "./routerClient.ts";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
@@ -22,7 +22,7 @@ export const routes = storyKit(
 		"route screen",
 		(): State => ({ client: routerClient() }),
 		(state, screen) => ({
-			missing: (failure: NoteMissing) =>
+			missing: (failure: NoteMissing | NotFound) =>
 				screen.act(`note ${failure.id} is missing`, () => Effect.runPromise(Deferred.fail(state.client.gate(failure.id), failure))),
 			navigate: () =>
 				screen.act("navigate to the second note", () => {
@@ -33,8 +33,12 @@ export const routes = storyKit(
 					link.click();
 				}),
 			route: () => current(state),
-			succeed: (id: string, title: string) =>
-				screen.act(`note ${id} responds: ${title}`, () => Effect.runPromise(Deferred.succeed(state.client.gate(id), { id, title }))),
+			search: (page: number) =>
+				screen.act(`change page to ${page}`, () => {
+					void current(state).router.navigate({ params: { id: "first" }, search: { page }, to: "/notes/$id" });
+				}),
+			succeed: (id: string, title: string, page = 1) =>
+				screen.act(`note ${id} responds: ${title}`, () => Effect.runPromise(Deferred.succeed(state.client.gate(id, page), { id, title }))),
 		}),
 	),
 );

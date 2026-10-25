@@ -1,6 +1,6 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { FetchHttpClient, HttpClient } from "effect/http";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
@@ -21,6 +21,7 @@ import { credentials } from "#test-support/authHttp.ts";
 import { createCookieHost } from "#test-support/createCookieHost.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { acquireScreen, type ScreenSurface } from "#test-support/screenState.ts";
+import { mintUser } from "#test-support/sessionPrecondition.ts";
 
 const alice = credentials("alice");
 
@@ -35,7 +36,7 @@ export const notesApp = storyKit({
 		const signIn = heldSignIn(host.fetch);
 		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: signIn.fetch } });
 		const screen: ScreenSurface = { view: undefined };
-		return { ...host, ...screen, auth, authStorage, history: createMemoryHistory({ initialEntries: ["/sign-in"] }), signIn };
+		return { ...host, ...screen, auth, authStorage, headers: new Headers(), history: createMemoryHistory({ initialEntries: ["/sign-in"] }), signIn };
 	},
 	inspect: ({ history, view }) => ({ route: history.location.pathname, text: view?.container.textContent }),
 	layer: postgres,
@@ -101,14 +102,18 @@ export function aliceAccount() {
 	);
 }
 
-export function signInScreen() {
-	return notesApp.trait("screen", "the real app is open on the sign-in screen", function* (engine) {
+export function notesHostScreen(initial = "/sign-in") {
+	return notesApp.trait("screen", `the real app is open at ${initial}`, function* (engine) {
+		engine.history.replace(initial);
 		const view = yield* acquireScreen(engine);
 		function connect() {
 			return connectModules([
 				notesRegistration(
 					makeNotesClient(`${engine.baseUrl}/rpc`, (client) =>
-						HttpClient.transformResponse(client, Effect.provideService(FetchHttpClient.Fetch, engine.fetch)),
+						HttpClient.transformResponse(
+							HttpClient.mapRequest(client, HttpClientRequest.setHeaders(engine.headers)),
+							Effect.provideService(FetchHttpClient.Fetch, engine.fetch),
+						),
 					),
 				),
 			]);
@@ -125,5 +130,14 @@ export function authScreen() {
 	return notesApp.trait("screen", "the sign-in screen uses the real auth host", function* (engine) {
 		const view = yield* acquireScreen(engine);
 		yield* Effect.promise(() => view.render(<LoginScreen auth={engine.auth.actions} onAuthenticated={() => undefined} />));
+	});
+}
+
+export function signedInAccount() {
+	return notesApp.trait("account", "Alice has a minted session", function* (engine) {
+		const { headers } = yield* mintUser({ origin: engine.baseUrl }, "alice");
+		engine.headers = headers;
+		engine.fetch = globalThis.fetch;
+		engine.auth = makeAuth({ baseUrl: engine.baseUrl, fetchOptions: { customFetchImpl: engine.fetch, headers } });
 	});
 }
