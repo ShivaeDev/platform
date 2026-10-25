@@ -104,6 +104,7 @@ The hooks accept native atoms directly. This complete component module shows que
 
 ```tsx
 import { RegistryProvider } from "@effect/atom-react";
+import { QueryView } from "@shivaedev/effect-react/client/QueryView.ts";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
@@ -120,12 +121,14 @@ function Report() {
   const action = useAction(rename);
   return (
     <section>
-      {Option.match(query.data, {
-        onNone: () => <p>Loading…</p>,
-        onSome: (row) => <h1>{row.title}</h1>,
-      })}
-      {query.refreshing && <p>Refreshing…</p>}
-      {Option.isSome(query.cause) && <p role="alert">Could not load</p>}
+      <QueryView
+        query={query}
+        content={(row) => <h1>{row.title}</h1>}
+        loading={(state) => <p>{state.refreshing ? "Refreshing…" : "Loading…"}</p>}
+        failure={(error, state) => (
+          <p role="alert">{String(error)} <button disabled={state.pending} onClick={state.refresh}>Retry</button></p>
+        )}
+      />
       <button onClick={query.refresh}>Refresh</button>
       <button disabled={action.pending} onClick={() => action.dispatch("Annual report")}>
         Rename
@@ -140,6 +143,10 @@ export function App() {
   return <RegistryProvider><Report /></RegistryProvider>;
 }
 ```
+
+`QueryView` from `client/QueryView.ts` is stateless presentation over `QueryState<A, E>`, including an editor's `query`. Supply `content(data, query)`, `loading(query)` and `failure(error, query)` renderers. Loading renders while pending, including refreshes, or before the first result; a settled initial rejection renders failure without loading. The failure renderer receives the typed rejection and can call the query's native `refresh` to retry. The component keeps successful content in the same React position through refresh, failure and recovery, preserving mounted inputs. Keep content component types and keys stable as usual.
+
+The hook owns retained display data and the native atom owns execution and caching. `QueryView` creates neither. Expected query rejections stay in its failure renderer; defects are thrown to the application's error boundary. It leaves field and command failures with the editor, form or action that owns them. Native `useAtomSuspense` is unchanged and still throws failures.
 
 For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; `isUnauthorized` returns false for those causes and they do not request a session recheck, even when the defect has an `Unauthorized` tag.
 
@@ -331,6 +338,7 @@ The next module assumes `./invoice-lines-client.ts` exports a contract-bound `ap
 ```tsx
 import { useCreate } from "@shivaedev/effect-react/client/create.ts";
 import { useEditor } from "@shivaedev/effect-react/client/editor.ts";
+import { QueryView } from "@shivaedev/effect-react/client/QueryView.ts";
 import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Form } from "@shivaedev/effect-form/shape.ts";
 import { Option, Schema } from "effect";
@@ -371,21 +379,24 @@ export function InvoiceLineEditor({ id }: { readonly id: number }) {
     save: (values) => api.save.run({ id, ...values }),
     runtime: InvoiceLinesClient.runtime,
   });
-  if (editor.form === undefined) {
-    return Option.isSome(editor.query.cause)
-      ? <button onClick={editor.query.refresh}>Retry</button>
-      : <p>Loading…</p>;
-  }
   return (
-    <form onSubmit={(event) => { event.preventDefault(); editor.save(); }}>
-      <Inputs form={editor.form} />
-      {Option.isSome(editor.query.cause) && <p role="alert">Could not refresh</p>}
-      {Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
-      <button type="submit" disabled={editor.saving}>Save</button>
-      <button type="button" onClick={editor.query.refresh}>Refresh</button>
-      <button type="button" onClick={editor.revert}>Revert</button>
-      <p>{editor.saving ? "Saving" : editor.dirty ? "Unsaved" : "Saved"}</p>
-    </form>
+    <QueryView
+      query={editor.query}
+      loading={(query) => <p>{query.refreshing ? "Refreshing…" : "Loading…"}</p>}
+      failure={(_error, query) => (
+        <p role="alert">Could not load <button disabled={query.pending} onClick={query.refresh}>Retry</button></p>
+      )}
+      content={() => editor.form && (
+        <form onSubmit={(event) => { event.preventDefault(); editor.save(); }}>
+          <Inputs form={editor.form} />
+          {Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
+          <button type="submit" disabled={editor.saving}>Save</button>
+          <button type="button" onClick={editor.query.refresh}>Refresh</button>
+          <button type="button" onClick={editor.revert}>Revert</button>
+          <p>{editor.saving ? "Saving" : editor.dirty ? "Unsaved" : "Saved"}</p>
+        </form>
+      )}
+    />
   );
 }
 

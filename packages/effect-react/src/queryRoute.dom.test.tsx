@@ -98,3 +98,30 @@ routes.it(
 		expect(client.builds()).toBe(1);
 	},
 );
+
+const retryFailure = new NoteMissing({ id: "first" });
+routes.it(
+	"A loader-error retry keeps the shell mounted",
+	[noteRoute(undefined, retryFailure)],
+	function* ({ route, observe, missing, nextResponse, retry, succeed, typeShell }) {
+		const { client, root } = route();
+		yield* observe("the loader requests the note", () => expect(client.calls).toHaveLength(1));
+		yield* missing(retryFailure);
+		yield* observe("the local loader failure is visible", () =>
+			expect(root.container.querySelector('[role="alert"]')?.textContent).toBe("NoteMissing:first"),
+		);
+		const shell = root.container.querySelector("main");
+		const input = root.container.querySelector('[name="shell"]');
+		yield* typeShell("Keep this draft");
+		nextResponse("first");
+		yield* retry();
+		yield* observe("retry runs the native query again", () => expect(client.calls).toHaveLength(2));
+		expect(root.container.querySelector("main")).toBe(shell);
+		expect(root.container.querySelector('[name="shell"]')).toBe(input);
+		yield* succeed("first", "Recovered note");
+		yield* observe("the recovered route is rendered", () => expect(root.container.querySelector("h1")?.textContent).toBe("Recovered note"));
+		expect(root.container.querySelector('[role="alert"]')).toBeNull();
+		expect(root.container.querySelector("main")).toBe(shell);
+		expect(root.container.querySelector<HTMLInputElement>('[name="shell"]')?.value).toBe("Keep this draft");
+	},
+);
