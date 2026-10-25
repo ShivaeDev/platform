@@ -37,7 +37,12 @@
 		"./pack.ts": null,
 		"./packTemplate.ts": null,
 		"./template.ts": null,
-		"./test-support/*": null
+		"./test-support/*": null,
+		"./generation.ts": null,
+		"./historicalTemplate.ts": null,
+		"./runProcess.ts": null,
+		"./starterPatch.ts": null,
+		"./updateApp.ts": null
 	},
 	"bin": {
 		"create-app": "./dist/cli.js"
