@@ -5,6 +5,7 @@ import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
+import { readPostgresRelease } from "#postgresRelease.ts";
 import { makeRepository } from "#repository.ts";
 import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
@@ -106,6 +107,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		paymentFixture: engine.payments.get,
 		pendingPostgresMigrations,
 		pullRequests: engine.pullRequests.get,
+		readPostgresRelease,
 		recordedLogs: () => engine.logs,
 		secondSqliteDatabase: engine.secondSqlite.get,
 		sql: engine.sql,
