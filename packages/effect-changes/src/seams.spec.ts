@@ -54,8 +54,9 @@ changes.it(
 		]);
 		expect(published).toEqual([["ada:orders", "cyd:orders"], ["fay:orders"]]);
 
+		const before = [...seen];
 		yield* write(database, "g", change("gus"));
-		expect(seen).toHaveLength(10);
+		expect(seen).toEqual(before);
 	},
 );
 

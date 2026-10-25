@@ -8,8 +8,10 @@ export interface NotifyState {
 	channel?: string;
 	readonly cleanup?: Effect.Effect<void>;
 	connections: number;
+	readonly listenerOperations: string[];
 	muted: boolean;
 	readonly payloads: string[];
+	readonly resyncEvents: string[];
 	resyncs: number;
 	unreachable: boolean;
 }
@@ -26,8 +28,10 @@ export const startNotifications = Effect.fnUntraced(function* (
 	let closing = 0;
 	const state: NotifyState = {
 		connections: 0,
+		listenerOperations: [],
 		muted: false,
 		payloads: [],
+		resyncEvents: [],
 		resyncs: 0,
 		unreachable: false,
 		...(stallCleanup
@@ -35,6 +39,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 					cleanup: Effect.gen(function* () {
 						yield* Effect.sync(() => {
 							closing += 1;
+							state.listenerOperations.push("cleanup");
 						});
 						yield* Queue.offer(events.closings, undefined);
 						yield* Effect.promise(() => gate.promise);
@@ -60,6 +65,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 			}
 			return (channel: string) => {
 				state.connections += 1;
+				state.listenerOperations.push("listen");
 				return instrumentListener((state.unreachable ? unavailable : client).listen(channel), state, events);
 			};
 		},
@@ -73,6 +79,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 				Effect.tap(() =>
 					Effect.sync(() => {
 						state.resyncs += 1;
+						state.resyncEvents.push("resync");
 					}),
 				),
 			),

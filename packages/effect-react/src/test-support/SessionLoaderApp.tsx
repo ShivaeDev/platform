@@ -81,6 +81,7 @@ export function SessionLoaderApp({ session, mode }: { readonly session: LoaderSe
 			identify={(id) => id}
 			recheck={() => {
 				session.rechecks += 1;
+				session.recheckedSessions.push(session.session ?? "signed out");
 				session.session = undefined;
 			}}
 			session={active}

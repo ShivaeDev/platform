@@ -4,22 +4,20 @@ import { liveSessionStory } from "#test/live-session/story.tsx";
 liveSessionStory.it(
 	"stream revalidation shows sign-in without another query read",
 	[],
-	function* ({ observe, ready, reads, rechecks, signOut, text }) {
+	function* ({ observe, ready, reads, recheckedSessions, signOut, text }) {
 		yield* observe("the open page is live", () => expect(ready()).toBe(true));
 		const before = reads();
 		yield* signOut();
 		yield* observe("the boundary shows sign-in after stream revalidation", () => expect(text()).toBe("Sign in"));
 		expect(reads()).toBe(before);
-		const streamFailure = 1;
-		expect(rechecks()).toBe(streamFailure);
+		expect(recheckedSessions()).toEqual([undefined]);
 	},
 );
 
 liveSessionStory.it("an ended session stops live reconnects", [], function* ({ active, lookups, observe, ready, signOut, wait }) {
 	yield* observe("the open page is live", () => expect(ready()).toBe(true));
 	yield* signOut();
-	const noStreams = 0;
-	yield* observe("the server ends the authenticated stream", () => expect(active()).toBe(noStreams));
+	yield* observe("the server ends the authenticated stream", () => expect(active()).toBe(0));
 	const before = lookups();
 	yield* wait(1200);
 	expect(lookups()).toBe(before);
@@ -58,8 +56,7 @@ liveSessionStory.it(
 			expect(ready()).toBe(true);
 			expect(text()).toBe("Pending private refresh");
 		});
-		const twoGenerations = 2;
-		expect(registries()).toHaveLength(twoGenerations);
+		expect(registries()).toEqual([old, expect.any(Object)]);
 		expect(registries()[1]).not.toBe(old);
 		expect(old?.getNodes().size).toBe(0);
 	},

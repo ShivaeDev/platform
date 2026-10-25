@@ -19,8 +19,7 @@ boss.it("provides the owning service to a worker during startup after preparing 
 	yield* runtime.stop;
 	expect(prepared).toEqual([true]);
 	expect(client.sendCalls).toEqual([{ data: expect.any(Object), name: Target.name, options: undefined }]);
-	expect(client.startCalls).toBe(1);
-	expect(client.stopCalls).toBe(1);
+	expect(client.lifecycle).toEqual(["start", "stop"]);
 });
 
 boss.it("provides the identical scoped jobs service to scheduled effects", [], function* ({ boot, client, dispatch }) {
@@ -39,5 +38,7 @@ boss.it("provides the identical scoped jobs service to scheduled effects", [], f
 	]);
 	yield* dispatch(Schedule.name, [job(Schedule.name, null)]);
 	expect(captured).toBe(runtime.jobs);
-	expect(client.sendCalls).toHaveLength(1);
+	expect(client.sendCalls).toMatchObject([
+		{ data: { _tag: "@shivaedev/effect-pg-boss/TracedPayload", payload: {} }, name: Producer.name, options: undefined },
+	]);
 });

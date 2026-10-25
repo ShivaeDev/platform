@@ -12,9 +12,12 @@ export function batchBudget() {
 	const decode = Schema.decodeUnknownSync(Queue.schema);
 	const fetched = new Map<string, { deadline: number; retry: number }>();
 	const batches: number[] = [];
+	const fetchedBatches: number[][] = [];
+	const overlapping: string[] = [];
 	const peerRetries: number[] = [];
 	function record(jobs: readonly Job<unknown>[]) {
 		batches.push(jobs.length);
+		fetchedBatches.push(jobs.map((job) => decode(job.data).id).sort());
 		for (const job of jobs) {
 			if (!("startedOn" in job && job.startedOn instanceof Date)) {
 				throw new TypeError("Missing fetched start time");
@@ -37,6 +40,9 @@ export function batchBudget() {
 			const remaining = attempt.deadline - (yield* Clock.currentTimeMillis);
 			const budget = Duration.toMillis(yield* job.remainingBudget);
 			starts.push({ budget, id, remaining, retry: attempt.retry });
+			if (active.has(job.id) && active.get(job.id) !== 0) {
+				overlapping.push(job.id);
+			}
 			active.set(job.id, (active.get(job.id) ?? 0) + 1);
 			peak = Math.max(peak, active.get(job.id) ?? 0);
 			const release = Effect.sync(() => active.set(job.id, (active.get(job.id) ?? 1) - 1));
@@ -52,5 +58,5 @@ export function batchBudget() {
 			);
 		}),
 	);
-	return { batches, finished, interrupted, peak: () => peak, peerRetries, queue: Queue, record, starts, worker };
+	return { batches, fetchedBatches, finished, interrupted, overlapping, peak: () => peak, peerRetries, queue: Queue, record, starts, worker };
 }

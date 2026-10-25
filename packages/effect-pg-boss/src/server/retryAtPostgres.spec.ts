@@ -64,13 +64,13 @@ postgresIt("waits until RetryAt becomes due and runs through the notify polling 
 		schema: Schema.Struct({}),
 		worker: { notifyPollingIntervalSeconds: 0.5, pollingIntervalSeconds: 0.5 },
 	});
-	const attempts: number[] = [];
+	const attempts: Array<{ id: string; startedAt: number }> = [];
 	let at = DateTime.makeUnsafe(0);
 	const { jobs } = yield* boot(
 		[
-			Queue.handle(() =>
+			Queue.handle((_, job) =>
 				Effect.gen(function* () {
-					attempts.push(yield* Clock.currentTimeMillis);
+					attempts.push({ id: job.id, startedAt: yield* Clock.currentTimeMillis });
 					if (attempts.length === 1) {
 						at = DateTime.makeUnsafe((yield* Clock.currentTimeMillis) + 1500);
 						yield* new RetryAt({ at, reason: "slow down" });
@@ -84,11 +84,11 @@ postgresIt("waits until RetryAt becomes due and runs through the notify polling 
 	const waiting = yield* untilJob(jobs, Queue, id, "retry");
 	expect(waiting.startAfter).toEqual(DateTime.toDateUtc(at));
 	yield* Effect.sleep("300 millis");
-	expect(attempts).toHaveLength(1);
+	expect(attempts).toEqual([{ id, startedAt: expect.any(Number) }]);
 	yield* until(
 		Effect.sync(() => attempts.length),
 		(count) => count === 2,
 	);
-	expect(attempts[1]).toBeGreaterThanOrEqual(DateTime.toEpochMillis(at));
+	expect(attempts[1]?.startedAt).toBeGreaterThanOrEqual(DateTime.toEpochMillis(at));
 	expect((yield* untilJob(jobs, Queue, id, "completed")).retryCount).toBe(0);
 });

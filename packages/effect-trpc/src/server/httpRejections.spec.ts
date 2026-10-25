@@ -5,6 +5,8 @@ import { declaredRejections } from "#test/declaredRejections.ts";
 import { Conflict, Forbidden, NotFound, Rejection, Throttled } from "#test/rejectionSchemas.ts";
 import { trpc } from "#test/routerStory.ts";
 
+const RETRY_AFTER = 30;
+
 describe("declared rejections over tRPC HTTP with superjson", () => {
 	trpc.it(
 		"cross as their encoded value and decode to the declared class with its field",
@@ -21,12 +23,12 @@ describe("declared rejections over tRPC HTTP with superjson", () => {
 	);
 	trpc.it(
 		"encode their fields on the server and decode them on the client",
-		[declaredRejections()],
+		[declaredRejections(RETRY_AFTER)],
 		function* ({ rejection, decode, rejectMutation, exchanges }) {
 			const error = yield* rejectMutation("rename", { name: "throttled" });
 			expect(error).toMatchObject({ message: "Throttled" });
 			expect(exchanges.at(-1)?.body).toContain('"rejection":{"_tag":"Throttled","retryAfter":"30"}');
-			expect(Option.getOrThrow(decode(Throttled, error)).retryAfter).toBe(30);
+			expect(Option.getOrThrow(decode(Throttled, error)).retryAfter).toBe(RETRY_AFTER);
 			expect(rejection(error)).toEqual(Option.some({ _tag: "Throttled", retryAfter: "30" }));
 		},
 	);

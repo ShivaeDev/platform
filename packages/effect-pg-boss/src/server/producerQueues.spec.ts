@@ -16,5 +16,5 @@ boss.it("registers a producer queue with health and enqueueing but no worker", [
 		{ name: "producer", options: { deadLetter: deadLetterQueueName("producer"), retryBackoff: true, retryLimit: 5 } },
 	]);
 	yield* runtime.stop;
-	expect(client.stopCalls).toBe(1);
+	expect(client.lifecycle).toEqual(["start", "stop"]);
 });

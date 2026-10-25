@@ -20,9 +20,9 @@ postgresIt(
 	[realPostgres, acceleratedTesting, failingWorker, pendingExpiryRules],
 	function* ({ attempts, settle }) {
 		const jobs = yield* settle();
-		expect(attempts.filter((id) => id === 11)).toHaveLength(1);
+		expect(attempts.filter((id) => id === 11)).toEqual([11]);
 		expect(attempts).not.toContain(12);
-		expect(attempts.filter((id) => id === 13)).toHaveLength(2);
+		expect(attempts.filter((id) => id === 13)).toEqual([13, 13]);
 		expect(jobs.find((job) => job.data.id === 11)).toMatchObject({ retryCount: 0, retryLimit: 0, state: "failed" });
 		expect(jobs.find((job) => job.data.id === 12)).toMatchObject({
 			output: { value: { message: "job timed out" } },

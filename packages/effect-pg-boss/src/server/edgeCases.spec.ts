@@ -21,7 +21,7 @@ boss.it("delivers background errors to the captured onError service only while i
 			reported.resolve(error);
 		}),
 	);
-	expect(events.listenerCount("error")).toBe(1);
+	expect(events.listeners("error")).toEqual([expect.any(Function)]);
 	events.emit("error", failure);
 	expect(yield* Effect.promise(() => reported.promise)).toBe(failure);
 	yield* runtime.stop;
@@ -77,7 +77,7 @@ boss.it("logs a failed stop without failing the scope and evicts the cached clie
 	const first = yield* boot([], options);
 	yield* first.stop;
 	expect(stop).toHaveBeenCalledTimes(1);
-	expect(logs).toHaveLength(1);
+	expect(logs).toMatchObject([{ message: [expect.any(PgBossError)] }]);
 	const message = logs[0]?.message;
 	const error = Array.isArray(message) ? message[0] : message;
 	expect(error).toBeInstanceOf(PgBossError);
@@ -127,7 +127,7 @@ boss.it("rejects duplicate job names before registering either worker", [], func
 	expect(error._tag === "PgBossError" && Redacted.value(error.original)).toEqual(new TypeError("pg-boss job names must be unique"));
 	expect(error.message).toBe("pg-boss register failed: TypeError");
 	expect(client.workers).toEqual([]);
-	expect(client.stopCalls).toBe(1);
+	expect(client.lifecycle).toEqual(["start", "stop"]);
 	for (const listener of client.errors) {
 		listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
 	}

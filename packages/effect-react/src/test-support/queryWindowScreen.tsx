@@ -24,12 +24,14 @@ export const queryWindowScreen = storyKit({
 		const reads = new Map<string, number>();
 		let value = 0;
 		let connections = 0;
+		const subscriptions: unknown[] = [];
 		const handlers = Notes.toLayer(
 			Effect.succeed({
-				"notes.$changes": () =>
+				"notes.$changes": (request) =>
 					Stream.unwrap(
 						Effect.sync(() => {
 							connections += 1;
+							subscriptions.push(request);
 							return Stream.fromPubSub(hints);
 						}),
 					),
@@ -59,6 +61,7 @@ export const queryWindowScreen = storyKit({
 			setValue: (next: number) => {
 				value = next;
 			},
+			subscriptions,
 		};
 	},
 	inspect: (engine) => ({ connections: engine.connections(), reads: Object.fromEntries(engine.reads), ...engine.screen.inspect() }),
@@ -98,6 +101,7 @@ export const queryWindowScreen = storyKit({
 				inherited: engine.reads.get("inherited") ?? 0,
 			}),
 			resync: () => engine.screen.act("reconcile the live connection", () => Effect.runPromise(PubSub.publish(engine.hints, { _tag: "Resync" }))),
+			subscriptions: () => [...engine.subscriptions],
 			values: () => [...container().querySelectorAll("output")].map((output) => output.textContent),
 		};
 	},

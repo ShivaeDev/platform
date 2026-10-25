@@ -75,8 +75,9 @@ changes.it(
 			concurrency: "unbounded",
 			discard: true,
 		}).pipe(inTransaction(database));
-		expect(published).toHaveLength(1);
-		expect([...(published[0] ?? [])].sort()).toEqual(Array.from({ length: 10 }, (_, index) => `subject ${index}:orders`));
+		expect(published.map((batch) => [...batch].sort())).toEqual([
+			Array.from(new Set(subjects), (subject) => `${subject}:orders`).sort((left, right) => left.localeCompare(right)),
+		]);
 	},
 );
 

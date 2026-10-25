@@ -12,7 +12,7 @@ procedureEvidence.it("records one procedure span with attributes and a resolver 
 		["orders.updates", "subscription"],
 	]) {
 		const procedures = caller.spans.filter((span) => span.name === path);
-		expect(procedures).toHaveLength(1);
+		expect(procedures).toMatchObject([{ name: path, status: { _tag: "Ended" } }]);
 		const procedure = procedures[0];
 		expect(procedure?.attributes).toEqual(
 			new Map([
@@ -23,8 +23,7 @@ procedureEvidence.it("records one procedure span with attributes and a resolver 
 		);
 		expect(procedure?.status._tag).toBe("Ended");
 		const children = caller.spans.filter((span) => span.name === `resolver.${kind}`);
-		expect(children).toHaveLength(1);
-		expect(children[0] && Option.getOrUndefined(children[0].parent)).toBe(procedure);
+		expect(children).toMatchObject([{ name: `resolver.${kind}`, parent: Option.some(procedure) }]);
 	}
 });
 

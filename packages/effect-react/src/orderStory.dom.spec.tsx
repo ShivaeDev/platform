@@ -88,10 +88,8 @@ localApplication.it(
 app.it(
 	"the next story sees empty tables, restarted identities and the migration ledger",
 	[realPostgres(), aliceHasOrder("paper")],
-	function* ({ databaseSetup, orderId, storedOrder }) {
+	function* ({ databaseSetup, storedOrders }) {
 		expect(databaseSetup()).toEqual({ activeScreens: 0, migrations: [{ "migration_id": 1 }], orders: [] });
-		const restartedIdentity = 1;
-		expect(orderId("paper")).toBe(restartedIdentity);
-		expect(yield* storedOrder("paper")).toEqual([{ name: "Printer paper", quantity: 3 }]);
+		expect(yield* storedOrders()).toEqual([{ id: 1, name: "Printer paper", quantity: 3 }]);
 	},
 );

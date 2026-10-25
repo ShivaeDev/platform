@@ -4,6 +4,15 @@ import { makeDatabase } from "#database.ts";
 import { type Contract, contractJson } from "#test/contract.ts";
 import { databaseUrl } from "#test/postgresDatabase.ts";
 
+function backendNames(observer: Client, name: string) {
+	return Effect.promise(async () => {
+		const result = await observer.query<{ name: string }>("SELECT application_name AS name FROM pg_stat_activity WHERE application_name = $1", [
+			name,
+		]);
+		return result.rows;
+	});
+}
+
 export function postgresPoolLifetime(fail: boolean) {
 	return Effect.acquireUseRelease(
 		Effect.promise(async () => {
@@ -23,12 +32,15 @@ export function postgresPoolLifetime(fail: boolean) {
 					]);
 					return result.rows[0]?.count;
 				});
+				const backends = backendNames(observer, name);
+				let duringBackends: { name: string }[] = [];
 				let during: number | undefined;
 				const exit = yield* Effect.exit(
 					Effect.gen(function* () {
 						const db = yield* Database;
 						yield* db.User.count();
 						during = yield* connections;
+						duringBackends = yield* backends;
 						if (fail) {
 							return yield* Effect.fail("database caller failed");
 						}
@@ -37,7 +49,7 @@ export function postgresPoolLifetime(fail: boolean) {
 
 				// PostgreSQL removes the backend asynchronously after the pool closes its socket.
 				const after = yield* connections.pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), times: 100, until: (count) => count === 0 }));
-				return { after, during, exit };
+				return { after, afterBackends: yield* backends, during, duringBackends, exit, name };
 			}),
 		(observer) => Effect.promise(() => observer.end()),
 	);

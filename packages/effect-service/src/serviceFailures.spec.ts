@@ -7,7 +7,7 @@ serviceFailureStory.it(
 	[],
 	function* ({ buildFailedInitialization, story }) {
 		expect(yield* buildFailedInitialization()).toBe(story.engine.initializationFailure);
-		expect(story.engine.counts.finalized).toBe(1);
+		expect(story.engine.operations).toEqual(["finalize initialization"]);
 		expect(story.engine.counts.factoryCalls).toBe(0);
 	},
 );

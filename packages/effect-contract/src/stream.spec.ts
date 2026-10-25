@@ -10,7 +10,7 @@ liveNotesStory.it(
 	[liveSession()],
 	function* (test) {
 		const received = yield* test.subscribe(2).pipe(Effect.forkScoped);
-		yield* eventually(() => expect(test.active()).toBe(1));
+		yield* eventually(() => expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]));
 		yield* test.edit(1, "Changed");
 		expect(yield* Fiber.join(received)).toEqual(Exit.succeed([{ _tag: "Resync" }, { _tag: "Changed", keys: [notes.item(1)] }]));
 		yield* eventually(() => expect(test.active()).toBe(0));
@@ -29,7 +29,7 @@ liveNotesStory.it("decodes a declared stream rejection into its shared tagged cl
 liveNotesStory.it("interrupting the bound client releases the active server stream over HTTP", [liveSession()], function* (test) {
 	const controller = new AbortController();
 	const received = yield* test.subscribe(undefined, controller.signal).pipe(Effect.forkScoped);
-	yield* eventually(() => expect(test.active()).toBe(1));
+	yield* eventually(() => expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]));
 	controller.abort();
 	const exit = yield* Fiber.join(received);
 	expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);

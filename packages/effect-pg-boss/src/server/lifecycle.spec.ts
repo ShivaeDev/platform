@@ -19,14 +19,12 @@ boss.it("closes a started client when registration fails", [clientFailsQueue], f
 	const error = yield* Effect.flip(boot([Queue.handle(() => Effect.void)]));
 	expect(error).toBeInstanceOf(PgBossError);
 	expect(error).toMatchObject({ operation: "register" });
-	expect(client.startCalls).toBe(1);
-	expect(client.stopCalls).toBe(1);
+	expect(client.lifecycle).toEqual(["start", "stop"]);
 });
 
 boss.it("closes a partially acquired client when startup fails", [clientFailsStart], function* ({ boot, client }) {
 	const error = yield* Effect.flip(boot([]));
 	expect(error).toBeInstanceOf(PgBossError);
 	expect(error).toMatchObject({ operation: "start" });
-	expect(client.startCalls).toBe(1);
-	expect(client.stopCalls).toBe(1);
+	expect(client.lifecycle).toEqual(["start", "stop"]);
 });

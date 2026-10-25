@@ -40,7 +40,7 @@ sqliteStory.it("serializes concurrent queries inside a transaction", [rollbackWr
 				{ concurrency: "unbounded" },
 			);
 
-			expect(yield* db.User.where({ name: marker }).count()).toBe(3);
+			expect(yield* db.User.where({ name: marker }).count()).toBe(users.length);
 		}),
 	);
 });

@@ -11,12 +11,11 @@ serviceLifetimeStory.it(
 		expect(story.engine.counts.released).toBe(0);
 		const exit = yield* interrupt(fiber);
 		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		expect(story.engine.counts.released).toBe(1);
+		expect(story.engine.operations).toEqual(["release resource"]);
 		expect(story.engine.counts.finalized).toBe(0);
 		expect(yield* read(service)).toBe("resource");
 		yield* close();
-		expect(story.engine.counts.released).toBe(1);
-		expect(story.engine.counts.finalized).toBe(1);
+		expect(story.engine.operations).toEqual(["release resource", "finalize initialization"]);
 	},
 );
 
@@ -28,8 +27,8 @@ serviceLifetimeStory.it(
 		expect(story.engine.counts.finalized).toBe(0);
 		const exit = yield* interrupt(fiber);
 		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		expect(story.engine.counts.finalized).toBe(1);
+		expect(story.engine.operations).toEqual(["finalize initialization"]);
 		yield* interrupt(fiber);
-		expect(story.engine.counts.finalized).toBe(1);
+		expect(story.engine.operations).toEqual(["finalize initialization"]);
 	},
 );

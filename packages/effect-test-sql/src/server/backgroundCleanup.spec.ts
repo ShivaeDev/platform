@@ -51,7 +51,7 @@ cleanup.it("starting a run sweeps a database left by an earlier crash", [leftove
 });
 
 cleanup.it("starting a run sweeps every database owned by a crashed worker", [crashedRun], function* ({ readLeftoverNames, readLeftoverDatabases }) {
-	expect(yield* readLeftoverNames()).toHaveLength(2);
+	expect(yield* readLeftoverNames()).toEqual([expect.stringMatching(/^effect_test_/u), expect.stringMatching(/^effect_test_/u)]);
 	expect(yield* readLeftoverDatabases()).toEqual([]);
 });
 

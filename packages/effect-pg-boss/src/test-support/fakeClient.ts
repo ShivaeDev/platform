@@ -45,6 +45,7 @@ export class FakeClient implements PgBossClient {
 	readonly workers: WorkerCall[] = [];
 	readonly errors: Array<(error: Error) => void> = [];
 	readonly queues = new Map<string, QueueResult>();
+	readonly lifecycle: string[] = [];
 	startCalls = 0;
 	failStart = false;
 	stopCalls = 0;
@@ -110,6 +111,7 @@ export class FakeClient implements PgBossClient {
 	}
 	start() {
 		this.startCalls += 1;
+		this.lifecycle.push("start");
 		if (this.failStart) {
 			return Promise.reject(new Error("start unavailable"));
 		}
@@ -117,6 +119,7 @@ export class FakeClient implements PgBossClient {
 	}
 	stop(_options?: StopOptions) {
 		this.stopCalls += 1;
+		this.lifecycle.push("stop");
 		return Promise.resolve();
 	}
 	work(name: string, options: WorkOptions, run: (jobs: readonly Job<unknown>[]) => Promise<unknown>) {

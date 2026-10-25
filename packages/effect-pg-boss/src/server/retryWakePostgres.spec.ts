@@ -102,7 +102,10 @@ postgresIt("wakes a retrying sibling while the first native worker remains busy"
 	if (first === undefined || sibling === undefined) {
 		throw new Error("The concurrent registration is missing its native workers");
 	}
-	yield* jobs.enqueue(Queue, { hold: true });
+	const heldPayloads = [{ hold: true }];
+	for (const payload of heldPayloads) {
+		yield* jobs.enqueue(Queue, payload);
+	}
 	client.notifyWorker(first.id);
 	yield* until(
 		Effect.sync(() => holding),
@@ -116,7 +119,7 @@ postgresIt("wakes a retrying sibling while the first native worker remains busy"
 		(count) => count === 2,
 	);
 	expect(holding).toBe(true);
-	expect(client.getWipData().find((worker) => worker.id === first.id)?.count).toBe(1);
+	expect(client.getWipData().find((worker) => worker.id === first.id)?.count).toBe(heldPayloads.length);
 	expect(attempts).toEqual([id, id]);
 	expect(wakes).toHaveBeenCalledWith(sibling.id);
 	release.resolve();

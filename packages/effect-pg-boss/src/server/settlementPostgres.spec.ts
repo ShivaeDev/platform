@@ -33,7 +33,12 @@ for (const outcome of ["failure", "defect", "primitive failure"] as const) {
 			Queue.name,
 			(jobs) => jobs.length === 10 && jobs.every((job) => job.state === "completed" || job.state === "failed"),
 		);
-		expect(stored.filter((job) => job.state === "completed")).toHaveLength(9);
+		expect(
+			stored
+				.filter((job) => job.state === "completed")
+				.map((job) => job.data.id)
+				.sort((left, right) => left - right),
+		).toEqual([0, 1, 2, 3, 5, 6, 7, 8, 9]);
 		expect(stored.filter((job) => job.state === "failed")).toMatchObject([{ data: { id: 4 }, output: { message: failure.message }, retryCount: 1 }]);
 		for (const job of stored) {
 			expect(attempts.get(job.data.id)).toBe(job.data.id === 4 ? 2 : 1);

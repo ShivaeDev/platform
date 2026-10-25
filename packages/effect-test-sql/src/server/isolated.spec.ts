@@ -37,7 +37,7 @@ database.it(
 			),
 			{ concurrency: "unbounded" },
 		);
-		expect(new Set(names).size).toBe(2);
+		expect([...new Set(names)]).toEqual([expect.stringMatching(/^effect_test_/u), expect.stringMatching(/^effect_test_/u)]);
 		expect(yield* readSharedItems()).toEqual([{ value: "shared" }]);
 		expect(yield* readPreparationCounts()).toEqual({ fixtures: 1, migrations: 1 });
 		yield* closeWorker();
@@ -69,7 +69,11 @@ database.it(
 		yield* Fiber.interrupt(fiber);
 		const interrupted = yield* Fiber.await(fiber);
 		expect(Exit.isFailure(interrupted) && Cause.hasInterrupts(interrupted.cause)).toBe(true);
-		expect(new Set(names).size).toBe(3);
+		expect([...new Set(names)]).toEqual([
+			expect.stringMatching(/^effect_test_/u),
+			expect.stringMatching(/^effect_test_/u),
+			expect.stringMatching(/^effect_test_/u),
+		]);
 		yield* closeWorker();
 		expect(yield* readDatabases(names)).toEqual([]);
 	},
@@ -81,7 +85,7 @@ database.it(
 	function* ({ readWorkerDatabaseNames, readDatabases, closeWorker }) {
 		const names = yield* readWorkerDatabaseNames();
 		expect(names.every(Boolean)).toBe(true);
-		expect(yield* readDatabases(names)).toHaveLength(2);
+		expect((yield* readDatabases(names)).map(({ datname }) => datname).sort()).toEqual([...names].sort());
 		yield* closeWorker();
 		expect(yield* readDatabases(names)).toEqual([]);
 	},

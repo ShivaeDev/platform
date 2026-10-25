@@ -15,10 +15,10 @@ for (const mode of ["route", "direct"] as const) {
 			);
 			expect(vi.mocked(console.error).mock.calls.map(([, error]) => error)).toEqual(mode === "route" ? [failure] : []);
 			vi.mocked(console.error).mockClear();
-			expect(view().rechecks).toBe(1);
+			expect(view().recheckedSessions).toEqual(["visitor"]);
 			yield* applySession();
 			expect(view().root.container.textContent).toBe("Session ended");
-			expect(view().rechecks).toBe(1);
+			expect(view().recheckedSessions).toEqual(["visitor"]);
 		},
 	);
 	sessionLoaders.it(
@@ -54,6 +54,6 @@ sessionLoaders.it(
 		yield* observe("sign-in stays signed out instead of redirecting back", () =>
 			expect(view().root.container.textContent).toContain("Signed out: sign in"),
 		);
-		expect(view().rechecks).toBe(1);
+		expect(view().recheckedSessions).toEqual(["visitor"]);
 	},
 );

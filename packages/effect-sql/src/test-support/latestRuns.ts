@@ -19,10 +19,11 @@ export const latestRuns = Effect.gen(function* () {
 	);
 	yield* sql`create index on ${sql(tableName)} (repository, id desc)`;
 	yield* sql`create index on ${sql(tableName)} (repository, workflow, id desc)`;
+	const rowCount = 27_000;
 	yield* sql`insert into ${sql(tableName)} select id, (id - 1) / 9000 + 1,
 		case (id - 1) / 3000 % 3 when 0 then 'build' when 1 then 'deploy' else null end,
-		case id % 2 when 0 then 'completed' else 'queued' end from generate_series(1, 27000) as id`;
+		case id % 2 when 0 then 'completed' else 'queued' end from generate_series(1, ${rowCount}) as id`;
 	yield* sql`analyze ${sql(tableName)}`;
 	const runs = yield* makeRepository(LatestRun, { idColumn: "id", spanPrefix: "LatestRun", tableName });
-	return { runs, tableName };
+	return { rowCount, runs, tableName };
 });

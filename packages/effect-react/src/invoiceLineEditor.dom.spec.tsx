@@ -64,7 +64,7 @@ invoices.it(
 		yield* observe("the invoice screen settles", () => expect(view.value("name")).toBe("Blue stapler"));
 		expect(view.value("quantity")).toBe("160");
 		expect(view.status()).toBe("Unsaved");
-		expect(server.control.saves).toBe(1);
+		expect(server.control.savedDrafts).toEqual([{ expectedVersion: 1, id: 1, name: "  blue stapler ", quantity: 150 }]);
 		expect(server.stored(1)).toEqual(new InvoiceLine({ id: 1, name: "Blue stapler", quantity: 150, version: 2 }));
 	},
 );

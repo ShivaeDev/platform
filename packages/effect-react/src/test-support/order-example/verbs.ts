@@ -43,5 +43,6 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 			tell(`read stored ${alias}`);
 			return engine.database.observer`select name, quantity from orders where id = ${orderId(engine, alias)}`;
 		},
+		storedOrders: () => engine.database.observer`select id, name, quantity from orders order by id`,
 	};
 }

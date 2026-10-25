@@ -44,12 +44,13 @@ interface Control {
 	gets: number;
 	held: Deferred.Deferred<void> | undefined;
 	mode: "ok" | "unavailable" | "unauthorized";
+	readonly savedDrafts: Array<typeof InvoiceLineDraft.Type & { readonly id: number; readonly expectedVersion: number }>;
 	saves: number;
 }
 
 export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 	const store = new Map(initial.map((line) => [line.id, line]));
-	const control: Control = { gets: 0, held: undefined, mode: "ok", saves: 0 };
+	const control: Control = { gets: 0, held: undefined, mode: "ok", savedDrafts: [], saves: 0 };
 	function hold() {
 		const gate = Effect.runSync(Deferred.make<void>());
 		control.held = gate;
@@ -97,7 +98,8 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 				}),
 			),
 		"invoiceLines.save": ({ id, expectedVersion, ...draft }) =>
-			counted.pipe(
+			Effect.sync(() => control.savedDrafts.push({ expectedVersion, id, ...draft })).pipe(
+				Effect.andThen(counted),
 				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => SaveInvoiceLine.reject.InvoiceLineRejected(rejection)))),
 				Effect.flatMap((values) =>
 					Effect.gen(function* () {

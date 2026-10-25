@@ -11,7 +11,7 @@ postgresIt(
 	function* ({ queue, send, testing }) {
 		const id = Option.getOrThrow(yield* send(42).pipe(Effect.withSpan("sender")));
 		expect(yield* testing.jobs(queue)).toMatchObject([{ data: { id: 42 }, id, state: "created" }]);
-		expect(yield* testing.jobs(queue, { queued: true })).toHaveLength(1);
+		expect(yield* testing.jobs(queue, { queued: true })).toMatchObject([{ data: { id: 42 }, id, state: "created" }]);
 		expect(yield* testing.jobs(queue, { id: crypto.randomUUID() })).toEqual([]);
 	},
 );

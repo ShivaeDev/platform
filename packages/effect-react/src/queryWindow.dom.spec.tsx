@@ -2,7 +2,6 @@ import { expect } from "vitest";
 import { queryWindowScreen } from "#test/queryWindowScreen.tsx";
 
 queryWindowScreen.it("queries refetch on independent windows over one connection while the session remains the default", [], function* (test) {
-	const singleConnection = 1;
 	yield* test.open();
 	yield* test.observe(() => expect(test.values()).toEqual(["0", "0", "0"]));
 	yield* test.resync();
@@ -19,11 +18,14 @@ queryWindowScreen.it("queries refetch on independent windows over one connection
 	yield* test.advance(1500);
 	expect(test.values()).toEqual(["2", "2", "2"]);
 	expect(test.reads()).toEqual({ dashboard: before.dashboard + 1, detail: before.detail + 1, inherited: before.inherited + 1 });
-	expect(test.connections()).toBe(singleConnection);
+	expect(test.subscriptions()).toMatchObject([
+		{
+			queries: [{ payload: { id: "detail" }, query: "get" }],
+		},
+	]);
 });
 
 queryWindowScreen.it("changing a query window keeps its connection and cached reads and uses the new schedule", [], function* (test) {
-	const singleConnection = 1;
 	yield* test.open();
 	yield* test.observe(() => expect(test.values()).toEqual(["0", "0", "0"]));
 	yield* test.resync();
@@ -34,7 +36,11 @@ queryWindowScreen.it("changing a query window keeps its connection and cached re
 	yield* test.changeWindow();
 	expect(test.values()).toEqual(["0", "0", "0"]);
 	expect(test.reads()).toEqual(before);
-	expect(test.connections()).toBe(singleConnection);
+	expect(test.subscriptions()).toMatchObject([
+		{
+			queries: [{ payload: { id: "detail" }, query: "get" }],
+		},
+	]);
 	yield* test.advance(50);
 	expect(test.values()).toEqual(["1", "0", "0"]);
 	yield* test.publish(2);
@@ -47,5 +53,9 @@ queryWindowScreen.it("changing a query window keeps its connection and cached re
 	yield* test.advance(1500);
 	expect(test.values()).toEqual(["2", "2", "2"]);
 	expect(test.reads()).toEqual({ dashboard: before.dashboard + 1, detail: before.detail + 2, inherited: before.inherited + 1 });
-	expect(test.connections()).toBe(singleConnection);
+	expect(test.subscriptions()).toMatchObject([
+		{
+			queries: [{ payload: { id: "detail" }, query: "get" }],
+		},
+	]);
 });
