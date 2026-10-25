@@ -54,17 +54,21 @@ export const answerRequests = Effect.fn("FleetDaemon.answerRequests")(function* 
 		}
 		yield* store.finish(request);
 	});
+	function failed(request: AnswerRequest, cause: Cause.Cause<unknown>) {
+		if (Cause.hasInterrupts(cause)) {
+			return Effect.failCause(cause);
+		}
+		return Effect.logError(`Failed to apply answer for ${request.work_id}`, cause).pipe(
+			Effect.andThen(store.finish(request, failureMessage(Cause.squash(cause)))),
+		);
+	}
 	const drain = Effect.fn("FleetAnswer.drain")(function* (workId: string) {
 		while (true) {
 			const request = (yield* store.list(workId))[0];
 			if (request === undefined || request.error !== null) {
 				return;
 			}
-			yield* process(request).pipe(
-				Effect.catchCause((cause) =>
-					Cause.hasInterrupts(cause) ? Effect.failCause(cause) : store.finish(request, failureMessage(Cause.squash(cause))),
-				),
-			);
+			yield* process(request).pipe(Effect.catchCause((cause) => failed(request, cause)));
 		}
 	});
 	const start = Effect.fn("FleetAnswer.start")(function* (workId: string) {

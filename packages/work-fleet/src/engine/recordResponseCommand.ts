@@ -31,8 +31,9 @@ export function recordResponseCommand(state: EngineState) {
 }
 
 const recordFailure = Effect.fn("Fleet.recordFailure")(function* (state: EngineState, workId: string, error: unknown) {
+	yield* Effect.logError(`Failed to apply answer for ${workId}`, error);
 	const current = yield* state.load(workId);
 	return yield* current.value.blocker === ANSWER_RECORDED
-		? state.save(current, { ...current.value, blocker: failureMessage(error) })
+		? state.save(current, { ...current.value, blocker: `Answer failed: ${failureMessage(error)}` })
 		: Effect.succeed(current);
 });
