@@ -10,11 +10,12 @@ interface State {
 	readonly accounts: Map<string, Account>;
 	enabled: boolean;
 	host?: Host;
+	nativeOrigins?: readonly string[];
 }
 export const nativeSessions = storyKit({
 	after: {
 		*configured(state) {
-			state.host = yield* startHost(state.enabled);
+			state.host = yield* startHost(state.enabled, state.nativeOrigins);
 		},
 	},
 	around: withIsolatedDatabase,
@@ -107,3 +108,7 @@ export function signedIn(...names: string[]) {
 		}
 	});
 }
+
+export const nativeTransport = nativeSessions.trait("configured", "the host admits the bundled WebView origin", (state) => {
+	state.nativeOrigins = [NATIVE_ORIGIN];
+});

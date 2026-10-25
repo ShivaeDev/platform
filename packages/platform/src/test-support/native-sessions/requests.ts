@@ -58,7 +58,12 @@ export function client(host: Host, headers: Record<string, string>) {
 			RpcClient.layerProtocolHttp({
 				transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeaders(headers)),
 				url: `${host.baseUrl}/rpc`,
-			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
+			}).pipe(
+				Layer.provide([
+					FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, { credentials: "omit" }))),
+					RpcSerialization.layerNdjson,
+				]),
+			),
 		),
 	);
 }

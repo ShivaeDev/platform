@@ -50,7 +50,7 @@ export function trustedProxyRanges(trustedProxy?: string): string[] {
 	return normalizedRanges(trustedProxy);
 }
 
-function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProxy: (address: string) => boolean): boolean {
+function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProxy: (address: string) => boolean, native: boolean): boolean {
 	if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
 		return false;
 	}
@@ -61,19 +61,30 @@ function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProx
 	}
 	try {
 		const url = new URL(`${protocol}://${host}`);
-		return request.headers.origin === undefined || request.headers.origin === url.origin;
+		return native || request.headers.origin === undefined || request.headers.origin === url.origin;
 	} catch {
 		return false;
 	}
 }
-export function localRpcGuard<E, R>(effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>, trustedProxy?: string) {
+export function localTransport(trustedProxy?: string, nativeOrigins: readonly string[] = []) {
 	const isTrustedProxy = trustedProxyPeer(trustedProxy);
+	return (request: HttpServerRequest.HttpServerRequest): boolean => {
+		const native = nativeOrigins.includes(request.headers.origin ?? "");
+		const local = loopbackHost(request.headers.host) && Option.exists(request.remoteAddress, loopbackAddress);
+		return (local && (native || sameOrigin(request))) || proxyOrigin(request, isTrustedProxy, native);
+	};
+}
+export function localRpcGuard<E, R>(
+	effect: Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>,
+	trustedProxy?: string,
+	nativeOrigins: readonly string[] = [],
+) {
+	const allowed = localTransport(trustedProxy, nativeOrigins);
 	return Effect.gen(function* () {
 		const request = yield* HttpServerRequest.HttpServerRequest;
 		const serialization = yield* RpcSerialization.RpcSerialization;
-		const local = loopbackHost(request.headers.host) && Option.exists(request.remoteAddress, loopbackAddress);
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
-		return ((local && sameOrigin(request)) || proxyOrigin(request, isTrustedProxy)) && contentType === serialization.contentType
+		return allowed(request) && contentType === serialization.contentType
 			? yield* continueHttpTrace(effect, request)
 			: HttpServerResponse.text("Local same-origin requests only", { status: 403 });
 	});

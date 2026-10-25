@@ -16,6 +16,7 @@ export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandle
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
+	readonly nativeOrigins?: readonly string[];
 	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	readonly rpcPath?: HttpRouter.PathInput;
 } & (
