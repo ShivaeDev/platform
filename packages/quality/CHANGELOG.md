@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.37.0 - 2026-10-25
+
+### Added
+
+- `tests/story-engine` reports kit stories without traits that never reference their verbs, story or test context. Drive the engine through a kit verb or trait, or move pure code to a `.unit.test.ts` file that reaches no engine and mocks nothing.
+
 ## 0.36.3 - 2026-10-25
 
 ### Fixed
