@@ -48,7 +48,7 @@ workspace.it("check refuses versions outside the recorded plan", [pending(), rel
 });
 
 workspace.it("a changeset added and consumed between base and head survives squash validation", [], function* ({ change, cli, checkpoint }) {
-	yield* change("branch-only", { [CORE]: "patch" });
+	yield* change("branch-only", { [CORE]: "patch" }, "### Fixed\n\n- A branch-only fix.\n");
 	expect((yield* cli("apply")).status).toBe(0);
 	yield* checkpoint("released-head");
 	expect((yield* cli("check", "main")).status).toBe(0);
