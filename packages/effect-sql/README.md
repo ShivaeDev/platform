@@ -157,7 +157,19 @@ yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 
 Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
 
-`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates, range filters or other queries outside this shape.
+Use `gt`, `gte`, `lt` and `lte` for exclusive or inclusive bounds, and `like` for a text pattern:
+
+```ts
+yield* lines.findMany({
+  where: { id: { gte: 2, lt: 10 }, name: { like: "Consult%" } },
+  select: ["id", "name"],
+  orderBy: { field: "id", direction: "asc" },
+});
+```
+
+Bounds use decoded strings, numbers, bigints, `BigDecimal`, `Date` or `DateTime.Utc` values and run through the field codec. For a `timestamptz` field modeled with `Schema.Date`, use `{ gte: new Date("2026-10-25T00:00:00Z"), lt: new Date("2026-10-26T00:00:00Z") }` to read a UTC day. Multiple operators on a field are joined with `AND`. `like` takes text, with PostgreSQL's case-sensitive `%` and `_` wildcards; patterns are bound parameters. Invalid operand types fail with `SchemaError`. Both `findMany` and `select` accept these filters; repositories query one table.
+
+`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates or other queries outside this shape.
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 

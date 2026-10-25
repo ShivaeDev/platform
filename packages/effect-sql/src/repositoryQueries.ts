@@ -68,7 +68,7 @@ export function makeQueries<TModel extends Model.Any>(
 		const fields = Object.fromEntries(keys.map((key) => [key, model.fields[key]]));
 		const statement = Effect.gen(function* () {
 			yield* Effect.forEach(keys, fieldAt);
-			const predicate = yield* where(query.where, true);
+			const predicate = yield* where(query.where, true, true);
 			const order = yield* orderClause(query.orderBy);
 			const limit = yield* limitClause(query.limit);
 			return sql`select ${sql.csv(keys.map((key) => sql`${sql(key)}`))} from ${sql(options.tableName)} where ${predicate} ${order} ${limit}`;
