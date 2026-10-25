@@ -10,7 +10,18 @@ expectNoReactWarnings();
 screenStory.it(
 	"retries Today's unavailable workspace and tracks pending and recovered health",
 	[todayScreen(), unavailableWorkspace(), openScreen()],
-	function* ({ readText, readAttribute, findElements, recoverWorkspace, click, holdWorkspace, releaseWorkspace, refreshToday }) {
+	function* ({
+		readInbox,
+		readGoals,
+		readText,
+		readAttribute,
+		findElements,
+		recoverWorkspace,
+		click,
+		holdWorkspace,
+		releaseWorkspace,
+		refreshToday,
+	}) {
 		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("failed")));
 		expect(readAttribute("#doc", "data-status")).toBe("503");
 		recoverWorkspace();
@@ -18,8 +29,12 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled")));
 		expect(readText("#doc h1")).toBe("Today");
 		expect(readAttribute("#doc", "data-status")).toBe("200");
-		expect(findElements("[data-attention-id]")).toHaveLength(7);
-		expect(findElements("[data-goal-id]")).toHaveLength(3);
+		expect(findElements("[data-attention-id]").map((row) => row.getAttribute("data-attention-id"))).toEqual(
+			(yield* Effect.promise(readInbox)).you.map((item) => item.id),
+		);
+		expect(findElements("[data-goal-id]").map((card) => card.getAttribute("data-goal-id"))).toEqual(
+			(yield* Effect.promise(readGoals)).goals.map((goal) => goal.id),
+		);
 		holdWorkspace();
 		yield* Effect.promise(refreshToday);
 		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("pending")));

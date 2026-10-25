@@ -4,6 +4,7 @@ import { boardFilesystem, boardStory } from "./boardStory.ts";
 export function directoryNotifications(onlyDirectories = false) {
 	let notifications: PubSub.PubSub<FileSystem.WatchEvent> | undefined;
 	let starts = 0;
+	let watchedPaths: string[] = [];
 	let listeners = 0;
 	const source = Stream.unwrap(
 		Effect.gen(function* () {
@@ -32,6 +33,7 @@ export function directoryNotifications(onlyDirectories = false) {
 		trait: boardStory.traits(
 			boardStory.trait("project", "the watcher can receive delayed directory notifications", function* () {
 				starts = 0;
+				watchedPaths = [];
 				listeners = 0;
 				notifications = yield* PubSub.unbounded<FileSystem.WatchEvent>();
 			}),
@@ -42,10 +44,12 @@ export function directoryNotifications(onlyDirectories = false) {
 						return fs.watch(path, options);
 					}
 					starts += 1;
+					watchedPaths.push(path);
 					return onlyDirectories ? source : Stream.merge(fs.watch(path, options), source);
 				},
 			})),
 		),
+		watchedPaths: () => [...watchedPaths],
 		watchStarts: () => starts,
 	};
 }

@@ -24,8 +24,7 @@ boardStory.it(
 				second.mutate(second.responses.recordResponse.run({ ...input, body: "Other direction" })),
 			]),
 		);
-		expect(attempts.filter((result) => result.status === "fulfilled")).toHaveLength(1);
-		expect(attempts.filter((result) => result.status === "rejected")).toHaveLength(1);
+		expect(attempts.map((result) => result.status).sort()).toEqual(["fulfilled", "rejected"]);
 		const winner = (yield* Effect.promise(() => first.run(first.responses.responses.run({ question: question.id })))).responses[0];
 		expect(winner).toBeDefined();
 		const bytes = yield* Effect.promise(() => readFile(join(notes.root, "responses/response.concurrent.md"), "utf8"));

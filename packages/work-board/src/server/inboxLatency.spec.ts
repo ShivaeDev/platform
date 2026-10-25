@@ -12,7 +12,9 @@ boardStory.it(
 		const files = responseWorkspace(20);
 		const board = yield* start({ responses: true });
 		const client = connectClient();
-		expect((yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })))).inboxCount).toBe(2);
+		const initial = yield* Effect.promise(() => client.run(client.api.inbox.run()));
+		expect(initial.you.map((item) => item.id).sort()).toEqual(["decision.fixture.19", "decision.fixture.9"]);
+		expect((yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "" })))).inboxCount).toBe(initial.you.length);
 		const responses = vi.spyOn(records, "responseFrom");
 		const questions = vi.spyOn(records, "questionFrom");
 		try {
@@ -28,10 +30,19 @@ boardStory.it(
 				new Set(["document-1.md", "document-2.md", "decisions/decision-9.md"]),
 			);
 			editFile("responses/answer-0-current.md", files["responses/answer-0-current.md"]?.replace("type: answer", "type: not_now") ?? "");
-			yield* Effect.promise(() => waitFor(async () => expect((await client.run(client.api.navigation.run({ current: "" }))).inboxCount).toBe(3)));
+			yield* Effect.promise(() =>
+				waitFor(async () => {
+					const inbox = await client.run(client.api.inbox.run());
+					expect(inbox.you.map((item) => item.id).sort()).toEqual(["decision.fixture.0", "decision.fixture.19", "decision.fixture.9"]);
+					expect((await client.run(client.api.navigation.run({ current: "" }))).inboxCount).toBe(inbox.you.length);
+				}),
+			);
+			const refreshed = yield* Effect.promise(() => client.run(client.api.inbox.run()));
 			responses.mockClear();
 			questions.mockClear();
-			expect((yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "document-1.md" })))).inboxCount).toBe(3);
+			expect((yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "document-1.md" })))).inboxCount).toBe(
+				refreshed.you.length,
+			);
 			expect(responses).not.toHaveBeenCalled();
 			expect(questions).not.toHaveBeenCalled();
 		} finally {

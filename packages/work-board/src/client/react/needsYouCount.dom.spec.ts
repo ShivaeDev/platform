@@ -18,7 +18,11 @@ screenStory.it(
 		expect(readText("[data-needs-you] dt")).toBe("Needs you");
 		yield* Effect.promise(() => navigate("/"));
 		yield* Effect.promise(() => eventually(() => expect(readText(".today-strip a")).toBe("3 need you")));
-		expect(findElements('ul[aria-label="Needs you"] > li')).toHaveLength(3);
+		expect(findElements('ul[aria-label="Needs you"] > li').map((row) => row.getAttribute("data-attention-id"))).toEqual([
+			"question.tone",
+			"task.email",
+			"task.pricing",
+		]);
 	},
 );
 

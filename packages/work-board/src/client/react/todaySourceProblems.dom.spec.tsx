@@ -41,12 +41,15 @@ screenStory.it(
 	"lists each source problem with its path and reason on System",
 	[screenFiles({ ...fleetWorkspace, ...brokenSources }, { home: "home.md" }), screenRoute("/_board/system"), openScreen()],
 	function* ({ findElements, readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElements("[data-source-problem]")).toHaveLength(3)));
-		expect(findElements("[data-source-problem]").map((row) => [row.querySelector("a")?.textContent, row.lastElementChild?.textContent])).toEqual([
-			["notes/extra.md", "Unknown field flavor; kept in the original frontmatter."],
-			["notes/extra.md", "Unknown field colour; kept in the original frontmatter."],
-			["notes/missing.md", expect.stringContaining("absent.item")],
-		]);
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("[data-source-problem]").map((row) => [row.querySelector("a")?.textContent, row.lastElementChild?.textContent])).toEqual([
+					["notes/extra.md", "Unknown field flavor; kept in the original frontmatter."],
+					["notes/extra.md", "Unknown field colour; kept in the original frontmatter."],
+					["notes/missing.md", expect.stringContaining("absent.item")],
+				]),
+			),
+		);
 		expect(readAttribute("[data-source-problem] a", "href")).toBe("/notes/extra.md");
 		expect(readText("#source-problems-title")).toBe("Files with problems");
 		expect(readText("[data-source-problem] span")).toMatch(/^Line \d+$/u);

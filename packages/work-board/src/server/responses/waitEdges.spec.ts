@@ -23,17 +23,19 @@ boardStory.it(
 		const diagnostics: string[] = [];
 		const waiting = Effect.scoped(
 			Effect.gen(function* () {
+				const start = yield* Clock.currentTimeMillis;
 				const fiber = yield* waitForResponse(rpc.read, (text) => diagnostics.push(text)).pipe(Effect.forkChild);
 				yield* TestClock.adjust("1999 millis");
-				expect(rpc.calls()).toBe(1);
+				expect(rpc.requestedAt()).toEqual([start]);
 				yield* TestClock.adjust("1 millis");
-				expect(rpc.calls()).toBe(2);
+				expect(rpc.requestedAt()).toEqual([start, start + 2000]);
 				yield* TestClock.adjust("2 seconds");
-				return yield* Fiber.join(fiber);
+				const result = yield* Fiber.join(fiber);
+				expect(rpc.requestedAt()).toEqual([start, start + 2000, start + 4000, start + 4000]);
+				return result;
 			}),
 		).pipe(Effect.provide(TestClock.layer()));
 		expect(yield* waiting).toEqual({ kind: "response", question, response });
-		expect(rpc.calls()).toBe(4);
 		expect(diagnostics).toEqual(["Local service unavailable; reconnecting to the same question."]);
 	},
 );
@@ -44,12 +46,13 @@ boardStory.it(
 	function* ({ workspace }) {
 		const registered = yield* Effect.promise(() => workspace.register());
 		const question = { ...registered, question: { ...registered.question, deadline: (yield* Clock.currentTimeMillis) - 1 } };
-		const rpc = waitReplies([Effect.succeed({ expired: false, question }), Effect.fail(new ServiceUnavailable({ message: "Connection lost." }))]);
+		const replies = [Effect.succeed({ expired: false, question }), Effect.fail(new ServiceUnavailable({ message: "Connection lost." }))];
+		const rpc = waitReplies(replies);
 		const failure = yield* Effect.flip(waitForResponse(rpc.read, () => undefined));
 		expect(failure).toBeInstanceOf(ServiceUnavailable);
 		expect(failure.message).toContain(
 			"The service is unavailable at the deadline; unanswered status could not be verified. Re-read this question when it returns.",
 		);
-		expect(rpc.calls()).toBe(2);
+		expect(rpc.requestedReplies()).toEqual(replies);
 	},
 );

@@ -38,7 +38,7 @@ for (const { url, selector, text, kind } of routes) {
 				expect(findElement(".item a[href='/task.md']")).not.toBeNull();
 			}
 			if (url.includes("item=task.fixture")) {
-				expect(findElements("#work-results tbody tr")).toHaveLength(1);
+				expect(findElements("#work-results tbody tr").map((row) => row.getAttribute("data-item"))).toEqual(["task.fixture"]);
 				yield* Effect.promise(() => eventually(() => expect(readText("#work-detail article.doc")).toContain("Task details")));
 				expect(readText("#work-detail .item-summary")).toContain("Read evidence");
 			}
@@ -57,14 +57,16 @@ screenStory.it(
 			throw new Error("Missing answer textarea");
 		}
 		typeText(body, "Keep my answer");
-		selectText(body, 5, 7);
+		const selectionStart = 5;
+		const selectionEnd = 7;
+		selectText(body, selectionStart, selectionEnd);
 		yield* Effect.promise(() => refreshQuery("work", { url: "/_board/work?view=board&item=question.fixture&q=task" }));
 		yield* Effect.promise(() =>
 			eventually(() => expect(findElement("main")?.dataset.route).toBe("/_board/work?view=board&item=question.fixture&q=task")),
 		);
 		expect(findElement("#response-form textarea")).toBe(body);
 		expect(body.value).toBe("Keep my answer");
-		expect(body.selectionStart).toBe(5);
-		expect(body.selectionEnd).toBe(7);
+		expect(body.selectionStart).toBe(selectionStart);
+		expect(body.selectionEnd).toBe(selectionEnd);
 	},
 );

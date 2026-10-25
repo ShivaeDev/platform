@@ -69,24 +69,32 @@ screenStory.it(
 );
 
 const DOCUMENT_COUNT = 250;
-const FIRST_PAGE = 100;
-const TWO_PAGES = 200;
 screenStory.it(
 	"renders 100 rows, adds 100 more per Show more and keeps them when the reader comes back",
 	[pagedLibraryScreen(DOCUMENT_COUNT)],
 	function* ({ back, readText, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toHaveLength(FIRST_PAGE)));
+		yield* Effect.promise(() =>
+			eventually(() => expect(libraryTitles()).toEqual(Array.from({ length: 100 }, (_, index) => `Document ${String(index).padStart(3, "0")}`))),
+		);
 		expect(readText('#doc [role="status"]')).toBe("100 shown · 250 documents");
 		yield* roles.click({ name: "Show more", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toHaveLength(TWO_PAGES)));
+		yield* Effect.promise(() =>
+			eventually(() => expect(libraryTitles()).toEqual(Array.from({ length: 200 }, (_, index) => `Document ${String(index).padStart(3, "0")}`))),
+		);
 		expect(document.activeElement?.textContent).toBe("Document 100");
 		expect(readText('#doc [role="status"]')).toBe("200 shown · 250 documents");
 		yield* roles.click({ name: "Document 150", role: "link" });
 		yield* Effect.promise(() => eventually(() => expect(libraryParams()).toBeUndefined()));
 		yield* Effect.promise(back);
-		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toHaveLength(TWO_PAGES)));
+		yield* Effect.promise(() =>
+			eventually(() => expect(libraryTitles()).toEqual(Array.from({ length: 200 }, (_, index) => `Document ${String(index).padStart(3, "0")}`))),
+		);
 		yield* roles.click({ name: "Show more", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(libraryTitles()).toHaveLength(DOCUMENT_COUNT)));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(libraryTitles()).toEqual(Array.from({ length: DOCUMENT_COUNT }, (_, index) => `Document ${String(index).padStart(3, "0")}`)),
+			),
+		);
 		expect(readText('#doc [role="status"]')).toBe("250 documents");
 		expect(libraryTitles().at(-1)).toBe("Document 249");
 		expect([...document.querySelectorAll("#doc button")].map((button) => button.textContent)).not.toContain("Show more");

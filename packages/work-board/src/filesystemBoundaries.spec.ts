@@ -21,7 +21,7 @@ for (const first of ["filesystem", "notifications"]) {
 	boardStory.it(
 		`composes filesystem boundaries when ${first} is applied first`,
 		[projectFiles({ "notes/log.md": "# Before" }), ...(first === "filesystem" ? [boundary, notifications.trait] : [notifications.trait, boundary])],
-		function* ({ board, editFile, watchProject }) {
+		function* ({ notes, board, editFile, watchProject }) {
 			const events = yield* watchProject();
 			expect(yield* events.next()).toEqual({ _tag: "Resync" });
 			const before = reads;
@@ -30,8 +30,7 @@ for (const first of ["filesystem", "notifications"]) {
 			expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({ _tag: "Changed" });
 			expect((yield* rpcDocument(board, "/notes/log.md")).source).toBe("# After");
 			expect(reads).toBeGreaterThan(before);
-			const singleWatcher = 1;
-			expect(notifications.watchStarts()).toBe(singleWatcher);
+			expect(notifications.watchedPaths()).toEqual([notes.root]);
 			yield* events.close();
 		},
 	);

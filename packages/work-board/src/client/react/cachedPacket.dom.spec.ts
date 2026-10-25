@@ -6,8 +6,6 @@ import { screenStory } from "#test/screenStory.ts";
 import { screenFiles, screenRoute } from "#test/screenWorkspaceTraits.ts";
 import { sessionScreen } from "#test/sessionScreen.ts";
 
-const VISIBLE_ERRORS = 0;
-
 expectNoReactWarnings();
 screenStory.it(
 	"rebinds a cached packet without duplicate labels or stale warnings",
@@ -25,7 +23,7 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-preview")).toHaveProperty("disabled", false)));
 		input('[data-prompt="checks"] textarea', "Keyboard checks.");
 		yield* Effect.promise(() => activate("#response-preview"));
-		expect(findElements(".response-field-error:not([hidden])")).toHaveLength(VISIBLE_ERRORS);
+		expect(findElements(".response-field-error:not([hidden])")).toHaveLength(0);
 		const messages = findElements(".response-field-error");
 		expect(new Set(messages.map((message) => message.id)).size).toBe(messages.length);
 		expect(readText("#response-status")).not.toContain("Unanswered");

@@ -8,8 +8,6 @@ import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen, routedScreen } from "#test/screenTraits.ts";
 import { storedScreenState } from "#test/screenWorkspaceTraits.ts";
 
-const PRIMARY_ANSWER = 1;
-
 expectNoReactWarnings();
 screenStory.it(
 	"refreshes board task counts and the shell's library count after outside edits",
@@ -39,7 +37,11 @@ screenStory.it(
 	function* ({ click, findElement, findElements, navigate, readResponses, readText, responseClick }) {
 		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
 		expect(findElement('[data-key="response-details"]')).toHaveProperty("open", false);
-		expect(findElements("#response-form textarea").filter((field) => !field.closest("details"))).toHaveLength(PRIMARY_ANSWER);
+		expect(
+			findElements("#response-form textarea")
+				.filter((field) => !field.closest("details"))
+				.map((field) => field.closest("[data-prompt]")?.getAttribute("data-prompt")),
+		).toEqual(["answer"]);
 		expect(findElement('[name="type"]')?.closest("details")?.getAttribute("data-key")).toBe("response-details");
 		expect(findElement('[name="author"]')).toBeNull();
 		expect(findElement('[name="supersedes"]')).toBeNull();

@@ -5,17 +5,20 @@ import { questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
-const SINGLE_REQUEST = 1;
-const PACKET_PROMPTS = 2;
-const READABLE_OPTIONS = 4;
-
 expectNoReactWarnings();
 const URL = "/_board/item/investigation.choices/";
 screenStory.it(
 	"lists the packet questions and says answering is turned off in read-only mode",
 	[routedScreen({ "proposal.md": questionnaireSource }, URL, { home: undefined, writable: false })],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElements("#answer-card-direction [data-prompt]")).toHaveLength(PACKET_PROMPTS)));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("#answer-card-direction [data-prompt]").map((prompt) => prompt.getAttribute("data-prompt"))).toEqual([
+					"display",
+					"checks",
+				]),
+			),
+		);
 		const card = findElement("#answer-card-direction");
 		expect(findElements("form, input, textarea, select, button", card)).toEqual([]);
 		expect(findElements('[role="status"]', card).map((status) => status.textContent)).toEqual(["Answering is turned off on this Board."]);
@@ -26,7 +29,16 @@ screenStory.it(
 	"retains the readable questionnaire when its request is closed",
 	[routedScreen({ "proposal.md": questionnaireSource.replace("state: open", "state: closed") }, URL, { home: undefined, writable: true })],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElements(".questionnaire-option")).toHaveLength(READABLE_OPTIONS)));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements(".questionnaire-option").map((option) => option.textContent?.trim())).toEqual([
+					"Latest reply — compact, with older replies behind a link.",
+					"Full history — keep earlier direction visible.",
+					"Back/forward keeps the selected response.",
+					"Reload restores the reading context.",
+				]),
+			),
+		);
 		expect(findElement("#answer-card-direction")).toBeNull();
 		expect(findElement(".questionnaire-answer")).toBeNull();
 	},
@@ -46,7 +58,7 @@ for (const state of ["open", "closed"]) {
 			expect(findElement("#answer-card-direction [data-prompt=checks]")).toBeNull();
 			if (state === "closed") {
 				expect(findElement("#answer-card-verification")).toBeNull();
-				expect(findElements(".questionnaire-question")).toHaveLength(SINGLE_REQUEST);
+				expect(findElements(".questionnaire-question").map((prompt) => prompt.querySelector("h3")?.textContent)).toEqual(["Which checks matter?"]);
 			} else {
 				expect(readAttribute("#answer-card-direction fieldset[data-mode]", "data-mode")).toBe("one");
 				expect(readAttribute("#answer-card-verification fieldset[data-mode]", "data-mode")).toBe("many");
@@ -66,7 +78,11 @@ screenStory.it(
 		}),
 	],
 	function* ({ findElements, input, check, activate, submit, readText, readResponses }) {
-		yield* Effect.promise(() => eventually(() => expect(findElements("fieldset[data-prompt]")).toHaveLength(PACKET_PROMPTS)));
+		yield* Effect.promise(() =>
+			eventually(() =>
+				expect(findElements("fieldset[data-prompt]").map((prompt) => prompt.getAttribute("data-prompt"))).toEqual(["display", "checks"]),
+			),
+		);
 		check("history");
 		input('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
 		yield* Effect.promise(() => activate("#response-preview"));
@@ -74,10 +90,11 @@ screenStory.it(
 		yield* Effect.promise(() => eventually(() => expect(readText("#response-history")).toContain("test keyboard use instead")));
 		expect(readText("#response-history")).toContain("Chose Full history");
 		const saved = yield* Effect.promise(() => readResponses("investigation.choices", "direction"));
-		expect(saved.responses).toHaveLength(SINGLE_REQUEST);
-		expect(saved.responses[0]?.response.answers).toEqual([
-			{ prompt: "display", selected: ["history"], text: "" },
-			{ prompt: "checks", selected: [], text: "None of these; test keyboard use instead." },
+		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([
+			[
+				{ prompt: "display", selected: ["history"], text: "" },
+				{ prompt: "checks", selected: [], text: "None of these; test keyboard use instead." },
+			],
 		]);
 	},
 );

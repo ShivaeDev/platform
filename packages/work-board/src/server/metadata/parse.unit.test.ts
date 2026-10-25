@@ -106,3 +106,46 @@ describe("optional metadata", () => {
 		expect(metadataParse("---\nid: Kelvin\n---\n# Item").fields.id).toBeUndefined();
 	});
 });
+
+const REQUEST =
+	"  - id: Review.A-1\n    kind: review\n    state: open\n    response_from: [maintainer]\n    reason: Review keyboard evidence\n    unblocks: [work.search#keyboard]";
+
+it("decodes independent explicit requests and preserves their exact source locations", () => {
+	const source = `---\nid: result.search\nattention:\n${REQUEST}\n${REQUEST.replace("Review.A-1", "other").replace("state: open", "state: closed")}\n---\n# Prose`;
+	const parsed = metadataParse(source);
+	expect(parsed.fields.attention?.map((item) => [item.id, item.state, item.responseFrom])).toEqual([
+		["Review.A-1", "open", ["maintainer"]],
+		["other", "closed", ["maintainer"]],
+	]);
+	const lines = source.split("\n");
+	expect(lines[(parsed.lines["attention.0.response_from"] ?? 0) - 1]).toBe("    response_from: [maintainer]");
+	expect(lines[(parsed.lines["attention.1.id"] ?? 0) - 1]).toBe("  - id: other");
+	expect(parsed.raw + parsed.body).toBe(source);
+	expect(parsed.diagnostics).toEqual([]);
+});
+
+it("does not guess requests from statuses, owners or actions", () => {
+	expect(metadataParse("---\nstatus: ready\nowner: marvin\nnext_action: Please review\n---\n# Item").fields.attention).toBeUndefined();
+	expect(metadataParse("---\nattention: []\n---\n# Item").fields.attention).toEqual([]);
+});
+
+it("retains invalid request lists without interpreting a partial or camel-case contract", () => {
+	for (const broken of [
+		REQUEST.replace("kind: review", "kind: urgent"),
+		REQUEST.replace("state: open", "state: waiting"),
+		REQUEST.replace("    state: open\n", ""),
+		REQUEST.replace("response_from: [maintainer]", "response_from: []"),
+		REQUEST.replace("response_from: [maintainer]", "responseFrom: [maintainer]"),
+		REQUEST.replace("reason: Review keyboard evidence", 'reason: " "'),
+		REQUEST.replace("unblocks: [work.search#keyboard]", "unblocks: []"),
+		REQUEST.replace("unblocks: [work.search#keyboard]", "unblocks: [https://example.com]"),
+		`${REQUEST}\n    extra: invented`,
+	]) {
+		const parsed = metadataParse(`---\nid: result.search\nattention:\n${REQUEST}\n${broken}\n---\n# Readable`);
+		expect(parsed.fields.attention).toBeUndefined();
+		expect(parsed.fields.id).toBe("result.search");
+		expect(parsed.diagnostics[0]?.field).toBe("attention");
+		expect(parsed.raw).toContain(broken);
+		expect(parsed.body).toBe("# Readable");
+	}
+});

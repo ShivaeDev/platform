@@ -16,7 +16,7 @@ fileWatcherStory.it(
 			sequence: expect.any(Number),
 		});
 		expect(story.engine.scans).toBe(scans + 1);
-		expect(story.engine.starts).toBe(1);
+		expect(story.engine.watchedPaths).toEqual([story.engine.notes.root]);
 	},
 );
 
@@ -44,6 +44,6 @@ fileWatcherStory.it(
 			_tag: "Changed",
 			paths: expect.arrayContaining(["notes/log.md", "notes/nested/plan.md"]),
 		});
-		expect(story.engine.starts).toBe(1);
+		expect(story.engine.watchedPaths).toEqual([story.engine.notes.root]);
 	},
 );

@@ -83,6 +83,7 @@ export const indexStory = storyKit({
 			return indexed(engine).read;
 		},
 		readPaths: () => [...indexed(engine).index.reads],
+		readRevision: () => indexed(engine).index.changes.revision,
 		removeFile: (file: string) => {
 			story.tell(`an editor removes ${file}`);
 			unlinkSync(join(engine.notes.root, file));

@@ -27,7 +27,11 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 			for (const selector of ['[name="type"]', "#response-preview", "#response-clear"]) {
 				expect(findElement(selector, card)?.closest("details")).toBe(more);
 			}
-			expect([...findElements("textarea")].filter((field) => !field.closest("details"))).toHaveLength(1);
+			expect(
+				[...findElements("textarea")]
+					.filter((field) => !field.closest("details"))
+					.map((field) => field.closest("[data-prompt]")?.getAttribute("data-prompt")),
+			).toEqual(["fleet-action"]);
 			expect(readText("#response-submit", card)).toBe("Record answer");
 			expect(readText("article.doc")).toContain("Keep the release instructions clear.");
 			answerPrompt("fleet-action", "Please tighten the release instructions.");
@@ -40,11 +44,14 @@ for (const url of ["/guide.md", "/_board/item/task.guide/"]) {
 				),
 			);
 			const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
-			expect(saved.responses).toHaveLength(1);
-			expect(saved.responses[0]?.response).toMatchObject({
-				answers: [{ prompt: "fleet-action", selected: [], text: "Please tighten the release instructions." }],
-				author: "maintainer",
-			});
+			expect(saved.responses).toMatchObject([
+				{
+					response: {
+						answers: [{ prompt: "fleet-action", selected: [], text: "Please tighten the release instructions." }],
+						author: "maintainer",
+					},
+				},
+			]);
 		},
 	);
 }

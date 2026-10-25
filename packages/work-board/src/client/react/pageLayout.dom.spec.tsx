@@ -31,7 +31,7 @@ screenStory.it(
 			yield* Effect.promise(() => navigate(url));
 			yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url)));
 			yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe(title)));
-			expect(findElements("#doc [data-page-header]")).toHaveLength(1);
+			expect(findElements("#doc [data-page-header]").map((header) => readText("h1", header))).toEqual([title]);
 		}
 	},
 );

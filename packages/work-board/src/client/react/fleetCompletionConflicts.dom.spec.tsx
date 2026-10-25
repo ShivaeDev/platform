@@ -32,15 +32,14 @@ for (const status of ["dropped", "deferred", "done", "done", "dropped", "dropped
 				</FleetItemsContext.Provider>,
 			),
 		],
-		({ click, findElement, findElements, readText }) => {
+		({ click, findElement, findElements }) => {
 			expect(findElement("[data-item]")).toBeNull();
 			expect(findElement(".work-total")).toBeNull();
 			click(findElement<HTMLButtonElement>('[data-slot="collapsible-trigger"][aria-expanded="false"]'));
 			const cards = findElements('[aria-label="Done in the last 7 days"] [data-item]');
 			expect([...cards].map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);
-			expect(findElements("[data-status-token]", cards[0])).toHaveLength(1);
-			expect(readText("[data-status-token]", cards[0])).toBe("Done");
-			expect(findElements("[data-item]")).toHaveLength(1);
+			expect(findElements("[data-status-token]", cards[0]).map((token) => token.textContent)).toEqual(["Done"]);
+			expect(findElements("[data-item]").map((card) => card.getAttribute("data-item"))).toEqual(["task-0"]);
 		},
 	);
 }

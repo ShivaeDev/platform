@@ -82,8 +82,7 @@ for (const [stage, owner, label] of [
 			),
 		],
 		({ findElements, readText, findElement }) => {
-			expect(findElements("[data-status-token]")).toHaveLength(1);
-			expect(readText("[data-status-token]")).toBe(label);
+			expect(findElements("[data-status-token]").map((token) => token.textContent)).toEqual([label]);
 			expect(readText()).not.toContain("PR not recorded");
 			expect(readText(".work-owner")).toBe(owner);
 			expect(findElement(".work-stage")).toBeNull();

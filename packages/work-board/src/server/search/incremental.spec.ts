@@ -81,12 +81,13 @@ indexStory.it(
 		expect(inboxItems(before).map((item) => item.id)).toEqual(["a", "b"]);
 		expect(searchMatch(before.entries, "question", before.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
 		writeFile("a.md", `${indexedQuestion("a")}\nChanged context`);
-		setTimestamp("a.md", 10, 10);
+		const editedAt = 10;
+		setTimestamp("a.md", editedAt, editedAt);
 		yield* invalidate(["a.md"]);
 		const edited = yield* readIndex();
 		expect(inboxItems(edited).map((item) => item.id)).toEqual(["b", "a"]);
 		expect(searchMatch(edited.entries, "question", edited.modified).results.map((entry) => entry.id)).toEqual(["a", "b"]);
-		expect(edited.documents[0]?.modified).toBe(10_000);
+		expect(edited.documents[0]?.modified).toBe(editedAt * 1000);
 		expect(edited.documents[1]).toBe(before.documents[1]);
 		expect(edited.model.ids.get("b")).toBe(before.model.ids.get("b"));
 		setTimestamp("b.md", 2 * 86_400, 2 * 86_400);
@@ -94,7 +95,7 @@ indexStory.it(
 		const unchanged = yield* readIndex();
 		expect(unchanged.documents[1]).toBe(edited.documents[1]);
 		expect(unchanged.model.ids.get("b")).toBe(edited.model.ids.get("b"));
-		expect(unchanged.documents[1]?.modified).toBe(2000);
+		expect(unchanged.documents[1]?.modified).toBe(before.documents[1]?.modified);
 		expect(inboxItems(unchanged).map((item) => item.id)).toEqual(["a", "b"]);
 		expect(searchMatch(unchanged.entries, "question", unchanged.modified).results.map((entry) => entry.id)).toEqual(["b", "a"]);
 		setTimestamp("a.md", 3 * 86_400, 3 * 86_400);
