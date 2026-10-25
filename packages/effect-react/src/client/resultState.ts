@@ -7,6 +7,8 @@ import { useContext, useEffect, useState } from "react";
 import { queryCoalesceWindow } from "@shivaedev/effect-contract/queryCoalesceWindow.ts";
 import type { AtomServices } from "#fieldRejection.ts";
 import { acceptLoaderQuery } from "#internal/queryHandoff.ts";
+import { useQueryNotice } from "#internal/useQueryNotice.ts";
+import type { NoticeDescriptor } from "#notices.ts";
 import { type ActionOptions, useActionSource } from "./actionCompletion.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
 
@@ -40,9 +42,10 @@ function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, e
 export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly refresh: () => void;
 }
-export interface QueryOptions {
+export interface QueryOptions<E = unknown> {
 	readonly coalesceWindow?: Duration.Input | undefined;
 	readonly keepPreviousData?: boolean;
+	readonly notice?: (failure: { readonly cause: Cause.Cause<E>; readonly refreshing: boolean }) => NoticeDescriptor | undefined;
 }
 interface HeldQuery<A, E> {
 	readonly atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>;
@@ -52,7 +55,7 @@ interface HeldQuery<A, E> {
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly result: AsyncResult.AsyncResult<A, E>;
 }
-export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, options: QueryOptions = {}): QueryState<A, E> {
+export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, options: QueryOptions<E> = {}): QueryState<A, E> {
 	const result = useAtomValue(atom);
 	const registry = useContext(RegistryContext);
 	useEffect(() => acceptLoaderQuery(registry, atom), [registry, atom]);
@@ -75,6 +78,7 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 		hold({ atom, data, dataAtom, keepPreviousData, registry, result });
 	}
 	useRecheckOnUnauthorized(result);
+	useQueryNotice(result, Option.isSome(data), options.notice);
 	return { ...state(result, data), refresh: useAtomRefresh(atom) };
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {
@@ -84,12 +88,12 @@ export function useAction<TInput, A, E>(atom: Atom.AtomResultFn<TInput, A, E>): 
 export function useAction<TInput, A, E, R, TRuntimeError>(
 	runtime: Atom.AtomRuntime<R, TRuntimeError>,
 	run: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>,
-	options?: ActionOptions<NoInfer<TInput>, NoInfer<A>, NoInfer<E>>,
+	options?: ActionOptions<NoInfer<TInput>, NoInfer<A>, NoInfer<E>, R>,
 ): ActionState<TInput, A, E | TRuntimeError>;
 export function useAction<TInput, A, E, R, TRuntimeError>(
 	source: Atom.AtomResultFn<TInput, A, E> | Atom.AtomRuntime<R, TRuntimeError>,
 	run?: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>,
-	options: ActionOptions<TInput, A, E> = {},
+	options: ActionOptions<TInput, A, E, R> = {},
 ): ActionState<TInput, A, E | TRuntimeError> {
 	const atom = useActionSource(source, run, options);
 	const result = useAtomValue(atom);
