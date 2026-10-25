@@ -1,6 +1,5 @@
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { reduceLongFile } from "#test/baselineChanges.ts";
 import { baseline, shrunkTwice } from "#test/baselineTightening.ts";
 import { CLI_EXIT, runQuality, trees } from "#test/cli.ts";
 import { branchOff, commitAll, git } from "#test/git.ts";
@@ -34,6 +33,7 @@ describe("quality baseline tighten", { timeout: CLI_TIMEOUT }, () => {
 		expect((await runQuality(root, "baseline", "tighten", "--staged")).stdout).toBe(
 			"quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n",
 		);
+		expect(baseline(root)).toBe('{"path":"src/long.ts","rule":"structure/max-lines","count":1}\n');
 	});
 
 	it("leaves a baseline that changed files do not touch as it is", async () => {
@@ -64,7 +64,7 @@ describe("quality baseline prune", { timeout: CLI_TIMEOUT }, () => {
 	it("still prunes outside git, and says that moves are not followed", async () => {
 		const root = qualityTree(trees.dirty);
 		await runQuality(root, "baseline", "write");
-		writeFileSync(join(root, "src/long.ts"), "String(1);\n");
+		reduceLongFile(root);
 		const result = await runQuality(root, "baseline", "prune");
 		expect(result).toMatchObject({ status: 0, stdout: "quality: removed 1 entry and lowered 0 entries in quality-baseline.jsonl.\n" });
 		expect(result.stderr).toContain("quality: moved files are not followed:");

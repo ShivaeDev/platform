@@ -1,4 +1,3 @@
-import { chmodSync, mkdirSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { NodeFileSystem } from "@effect/platform-node";
@@ -6,16 +5,16 @@ import { afterEach, expect } from "vitest";
 import { collectInventory } from "#inventory/collect.ts";
 import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";
-import { failureText, makeRoot, repository, roots, scope } from "#test/inventoryRepository.ts";
+import {
+	blockedInventoryDirectory,
+	removeInventoryRepositories,
+	unicodePathsRepository,
+	unreadableManifestRepository,
+} from "#test/inventoryFixtures.ts";
+import { failureText, makeRoot, repository, scope } from "#test/inventoryRepository.ts";
 import { it as effectIt } from "#test/it.ts";
-import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
-afterEach(() => {
-	removeSeededTrees();
-	for (const root of roots.splice(0)) {
-		rmSync(root, { force: true, recursive: true });
-	}
-});
+afterEach(removeInventoryRepositories);
 
 const asRoot = process.getuid?.() === 0;
 
@@ -32,19 +31,15 @@ effectIt.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	});
 
 	it.effect("fails loudly when a file cannot be read", function* () {
-		const root = makeRoot();
-		mkdirSync(join(root, "package.json"));
+		const root = unreadableManifestRepository();
 		const text = yield* failureText(readRequiredText(join(root, "package.json")));
 		expect(text).toContain("FilesystemFailure");
 		expect(text).toContain(join(root, "package.json"));
 	});
 
 	it.effect.skipIf(asRoot)("fails loudly when a directory cannot be listed", function* () {
-		const blocked = join(makeRoot(), "packages");
-		mkdirSync(blocked);
-		chmodSync(blocked, 0o000);
+		const blocked = blockedInventoryDirectory();
 		const text = yield* failureText(walk(blocked));
-		chmodSync(blocked, 0o755);
 		expect(text).toContain("FilesystemFailure");
 		expect(text).toContain(blocked);
 	});
@@ -64,20 +59,7 @@ effectIt.layer(NodeFileSystem.layer)("inventory", (it) => {
 	});
 
 	it.effect("orders paths by UTF-16 code units and keeps overlapping sources unique", function* () {
-		const paths = [
-			"src/\uE000.ts",
-			"src/😀.ts",
-			"src/𐀀.ts",
-			"src/á.ts",
-			"src/e\u0301.ts",
-			"src/aa.ts",
-			"src/a2.ts",
-			"src/a10.ts",
-			"src/a.ts",
-			"src/Z.ts",
-			"src/B.ts",
-		];
-		const root = seedTree(paths.map((path) => ({ content: path, path })));
+		const root = unicodePathsRepository();
 		const inventory = yield* collectInventory(root, scope({ sources: ["src", "src/a.ts", "src"] }));
 		const expected = [
 			"src/B.ts",
