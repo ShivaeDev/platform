@@ -1,4 +1,4 @@
-import type { Bivariant } from "./bivariant.ts";
+import type { Bivariant } from "./Bivariant.ts";
 
 function handleName(name: string): number {
 	return name.length;
