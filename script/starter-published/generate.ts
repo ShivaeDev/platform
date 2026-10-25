@@ -10,19 +10,22 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 	archive?: string,
 	tarballs: Readonly<Record<string, string>> = {},
 	registryVersion?: string,
+	minimal = false,
 ) {
+	const folder = minimal ? "starter-minimal" : "starter";
+	const args = [folder, ...(minimal ? ["--minimal"] : [])];
 	if (registryVersion !== undefined) {
-		yield* Effect.log(`Generating and installing the starter with pnpm create @shivaedev/app@${registryVersion}.`);
+		yield* Effect.log(`Generating and installing ${folder} with pnpm create @shivaedev/app@${registryVersion}.`);
 		yield* Effect.log(
 			yield* command(temporary, "env", [
 				"npm_config_registry=https://registry.npmjs.org",
 				"pnpm",
 				"create",
 				`@shivaedev/app@${registryVersion}`,
-				"starter",
+				...args,
 			]),
 		);
-		return;
+		return folder;
 	}
 	const fs = yield* FileSystem.FileSystem;
 	const packed = archive === undefined ? join(temporary, "create-app.tgz") : resolve(root, archive);
@@ -30,17 +33,18 @@ export const generateStarter = Effect.fn("Published.generateStarter")(function* 
 		yield* command(root, "pnpm", ["--filter", "@shivaedev/create-app", "build"]);
 		yield* command(join(root, "packages/create-app"), "pnpm", ["pack", "--out", packed]);
 	}
-	const generator = join(temporary, "generator");
+	const generator = join(temporary, minimal ? "generator-minimal" : "generator");
 	yield* fs.makeDirectory(generator);
 	yield* writeJson(join(generator, "package.json"), { dependencies: { "@shivaedev/create-app": `file:${packed}` }, private: true });
 	yield* fs.writeFileString(join(generator, "pnpm-workspace.yaml"), withTarballOverrides("packages: []\n", tarballs));
 	yield* command(generator, "pnpm", ["install", "--registry=https://registry.npmjs.org"]);
-	yield* Effect.log("Generating and installing the starter with the packed create-app command.");
+	yield* Effect.log(`Generating and installing ${folder} with the packed create-app command.`);
 	const bin = join(generator, "node_modules/.bin/create-app");
 	if (Object.keys(tarballs).length === 0) {
-		yield* command(temporary, bin, ["starter"]);
+		yield* command(temporary, bin, args);
 	} else {
-		const path = yield* packedInstaller(root, temporary, tarballs);
-		yield* command(temporary, "env", [`PATH=${path}`, bin, "starter"]);
+		const path = yield* packedInstaller(root, generator, tarballs);
+		yield* command(temporary, "env", [`PATH=${path}`, bin, ...args]);
 	}
+	return folder;
 });
