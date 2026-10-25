@@ -21,7 +21,9 @@ export const viewerPage = Effect.fnUntraced(function* (engine: Effect.Success<ty
 	const subscription = live(Client.runtime, {
 		coalesceWindow: 0,
 		resyncKeys: [notes.item(id)],
-		stream: Stream.unwrap(Client.use((client) => Effect.succeed(client("notes.$changes", { keys: [notes.item(id)] }, { headers: { viewer } })))),
+		stream: Stream.unwrap(
+			Client.use((client) => Effect.succeed(client("notes.$changes", { queries: [{ payload: { id }, query: "get" }] }, { headers: { viewer } }))),
+		),
 	});
 	registry.mount(query);
 	registry.mount(subscription.connection);

@@ -1,3 +1,2 @@
-{"path":"packages/effect-contract/src/compilerFixtures.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/named-values","count":6}
-{"path":"packages/effect-contract/src/stream.spec.ts","rule":"tests/named-values","count":4}
+{"path":"packages/effect-contract/src/liveConsumer.spec.ts","rule":"tests/named-values","count":4}
+{"path":"packages/effect-contract/src/stream.spec.ts","rule":"tests/named-values","count":2}

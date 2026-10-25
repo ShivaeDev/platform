@@ -1,6 +1,7 @@
 import { Duration, Effect } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { liveBatches, liveKeys } from "./liveInvalidation.ts";
@@ -9,7 +10,12 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 	const service = runtime.atom(Effect.service(Reactivity.Reactivity));
 	type Query = Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
 	const cached = new WeakMap<Query, Query>();
-	return (atom: Query, keys: readonly string[]): Query => {
+	return (
+		atom: Query,
+		keys: readonly string[],
+		track: (registry: AtomRegistry.AtomRegistry) => () => void,
+		owner?: AtomRegistry.AtomRegistry,
+	): Query => {
 		const existing = cached.get(atom);
 		if (existing !== undefined) {
 			return existing;
@@ -21,11 +27,15 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 		let wrapped = Atom.transform(
 			source,
 			(get) => {
+				if (owner !== undefined && owner !== get.registry) {
+					throw new Error("A session-scoped query belongs to its binding registry");
+				}
 				const context = get(service);
 				if (!AsyncResult.isSuccess(context)) {
 					return get(source);
 				}
 				const reactivity = context.value;
+				get.addFinalizer(track(get.registry));
 				let pending: (() => boolean) | undefined;
 				let timer: ReturnType<typeof setTimeout> | undefined;
 				function clear() {

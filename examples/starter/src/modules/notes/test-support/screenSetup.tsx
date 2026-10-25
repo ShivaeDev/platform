@@ -69,7 +69,7 @@ export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: S
 			<LoginScreen
 				auth={auth}
 				onAuthenticated={() => {
-					engine.login.authenticated += 1;
+					engine.login.authenticated.push(engine.login.calls.at(-1)?.mode);
 				}}
 			/>,
 		),
@@ -92,7 +92,7 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 		signOutFailure === undefined
 			? undefined
 			: authAction(() => {
-					engine.signOutCalls += 1;
+					engine.signOutCalls.push(undefined);
 					return Promise.resolve({ data: null, error: { message: signOutFailure, status: 400, statusText: "Bad Request" } });
 				});
 	engine.client.api.list.query();

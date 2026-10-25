@@ -1,8 +1,8 @@
 import { type Duration, Effect, Ref, Stream } from "effect";
+import type { Rpc, RpcGroup } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Key } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
-import { viewerEngine } from "./viewerEngine.ts";
+import { type Notes, viewerEngine } from "./viewerEngine.ts";
 import { viewerPage } from "./viewerPage.ts";
 
 export const viewerStory = storyKit({
@@ -35,10 +35,14 @@ export const viewerStory = storyKit({
 			return engine.client("notes.rename", { id, title }, { headers: { viewer } });
 		},
 		resync: () => engine.live.resync,
-		watch: (viewer: string | undefined, keys: readonly Key[], received: LiveHint[]) => {
+		watch: (
+			viewer: string | undefined,
+			queries: Rpc.Payload<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "notes.$changes">>["queries"],
+			received: LiveHint[],
+		) => {
 			story.tell(`${viewer} subscribes to change hints`);
 			return engine
-				.client("notes.$changes", { keys }, { headers: viewer === undefined ? {} : { viewer } })
+				.client("notes.$changes", { queries }, { headers: viewer === undefined ? {} : { viewer } })
 				.pipe(Stream.runForEach((hint) => Effect.sync(() => received.push(hint))));
 		},
 	}),

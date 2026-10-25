@@ -38,9 +38,18 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 	const remaining = yield* remainingQueries;
 	return workRpcs
 		.toLayer({
+			"work-board-handoffs.$changes": () => Stream.never,
+			"work-board-handoffs.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
+			"work-board-handoffs.handoffs": ({ item }) => Effect.suspend(() => handoffs.read(item)).pipe(responseBoundary),
+			"work-board-handoffs.prepareHandoff": (input) => Effect.suspend(() => handoffs.prepare(input)).pipe(responseBoundary),
+			"work-board-responses.$changes": () => Stream.never,
+			"work-board-responses.answerQuestion": (input) => Effect.suspend(() => responses.answer(input)).pipe(responseBoundary),
+			"work-board-responses.awaitResponse": (input) => Effect.suspend(() => responses.awaitResponse(input)).pipe(responseBoundary),
+			"work-board-responses.question": ({ item, request }) => Effect.suspend(() => responses.locate(item, request)).pipe(responseBoundary),
+			"work-board-responses.recordResponse": (input) => Effect.suspend(() => responses.record(input)).pipe(responseBoundary),
+			"work-board-responses.registerQuestion": (input) => Effect.suspend(() => responses.register(input)).pipe(responseBoundary),
+			"work-board-responses.responses": ({ question }) => Effect.suspend(() => responses.read(question)).pipe(responseBoundary),
 			"work-board.$changes": () => Stream.never,
-			"work-board.answerQuestion": (input) => Effect.suspend(() => responses.answer(input)).pipe(responseBoundary),
-			"work-board.awaitResponse": (input) => Effect.suspend(() => responses.awaitResponse(input)).pipe(responseBoundary),
 			"work-board.board": ({ url }) => Effect.suspend(() => projections.board(url)).pipe(documentBoundary),
 			"work-board.diagnostics": () => remaining.diagnostics().pipe(readBoundary),
 			"work-board.document": ({ url }) => Effect.suspend(() => document(url)).pipe(documentBoundary),
@@ -51,8 +60,6 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 					return goals(snapshot);
 				}).pipe(readBoundary),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
-			"work-board.handoffSource": ({ item }) => Effect.suspend(() => handoffs.locate(item)).pipe(responseBoundary),
-			"work-board.handoffs": ({ item }) => Effect.suspend(() => handoffs.read(item)).pipe(responseBoundary),
 			"work-board.inbox": () => Effect.suspend(() => projections.inbox()).pipe(readBoundary),
 			"work-board.library": (input) =>
 				Effect.gen(function* () {
@@ -65,11 +72,6 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 					const now = openLaneCount(laneRows(work.rows, fleet, yield* Clock.currentTimeMillis).lanes);
 					return navigationData(yield* changes.files, home, snapshot, now);
 				}).pipe(readBoundary),
-			"work-board.prepareHandoff": (input) => Effect.suspend(() => handoffs.prepare(input)).pipe(responseBoundary),
-			"work-board.question": ({ item, request }) => Effect.suspend(() => responses.locate(item, request)).pipe(responseBoundary),
-			"work-board.recordResponse": (input) => Effect.suspend(() => responses.record(input)).pipe(responseBoundary),
-			"work-board.registerQuestion": (input) => Effect.suspend(() => responses.register(input)).pipe(responseBoundary),
-			"work-board.responses": ({ question }) => Effect.suspend(() => responses.read(question)).pipe(responseBoundary),
 			"work-board.result": ({ url }) => remaining.result(url).pipe(documentBoundary),
 			"work-board.search": ({ query, records }) =>
 				Effect.map(index, (snapshot) => ({

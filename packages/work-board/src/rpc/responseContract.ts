@@ -42,6 +42,7 @@ const answer = command("answerQuestion", {
 	rejections: responseRejections,
 	success: RecordedResponse,
 });
-export const responseContract = contract("work-board", { commands: [register, respond, answer], queries: [locate, read, awaitResponse] }).middleware(
-	RequestTracing,
-);
+export const responseContract = contract("work-board-responses", {
+	commands: [register, respond, answer],
+	queries: [locate, read, awaitResponse],
+}).middleware(RequestTracing);

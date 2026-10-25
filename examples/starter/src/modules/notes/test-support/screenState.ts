@@ -11,13 +11,13 @@ export interface Screen {
 	client: ReturnType<typeof notesClient>;
 	consoleErrors: () => readonly (readonly unknown[])[];
 	login: {
-		authenticated: number;
+		authenticated: (string | undefined)[];
 		calls: { credentials: Credentials; mode: string }[];
 		outcome: string | undefined;
 		unavailable: boolean;
 	};
 	router: ReturnType<typeof appRouter> | undefined;
-	signOutCalls: number;
+	signOutCalls: undefined[];
 	switchSession: ((id: string) => Promise<void>) | undefined;
 	view: Rendered | undefined;
 }
@@ -28,9 +28,9 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 		auth: undefined,
 		client: notesClient(),
 		consoleErrors: () => [],
-		login: { authenticated: 0, calls: [], outcome: undefined, unavailable: false },
+		login: { authenticated: [], calls: [], outcome: undefined, unavailable: false },
 		router: undefined,
-		signOutCalls: 0,
+		signOutCalls: [],
 		switchSession: undefined,
 		view: undefined,
 	};

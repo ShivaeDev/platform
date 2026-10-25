@@ -42,9 +42,9 @@ boardStory.it(
 		]);
 		const task = yield* rpc((client) => client("work-board.document", { url: "/ready.md" }));
 		expect(task.rulings).toEqual([{ answer: "# Engine ruling\n\nUse the existing engine.\n", href: "/ruling.md", title: "Engine ruling" }]);
-		const question = yield* rpc((client) => client("work-board.question", { item: "question.z", request: "answer" }));
+		const question = yield* rpc((client) => client("work-board-responses.question", { item: "question.z", request: "answer" }));
 		yield* rpc((client) =>
-			client("work-board.answerQuestion", {
+			client("work-board-responses.answerQuestion", {
 				author: "marvin",
 				body: "Keep the engine",
 				id: "answer.blocking",

@@ -6,6 +6,7 @@ import { collection, invalidationKeys, type Key } from "#keys.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { command, query } from "#operation.ts";
 import { authorizeReads, ReadPolicyMemoWindow } from "#readPolicy.ts";
+import { queryKeys } from "#serverMetadata.ts";
 
 export const notes = collection("notes", Schema.Number);
 class Row extends Schema.Class<Row>("ViewerRow")({ id: Schema.Number, owner: Schema.String, title: Schema.String }) {}
@@ -49,7 +50,7 @@ export const viewerEngine = Effect.gen(function* () {
 				);
 	});
 	const handlers = Notes.toLayer({
-		"notes.$changes": ({ keys }) => live.stream(keys),
+		"notes.$changes": ({ queries }) => live.stream(queryKeys(Notes.declaration.queries, queries)),
 		"notes.get": ({ id }) =>
 			Ref.get(stored).pipe(
 				Effect.map((rows) => {

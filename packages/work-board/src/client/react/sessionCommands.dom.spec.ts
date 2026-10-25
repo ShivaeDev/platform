@@ -12,7 +12,7 @@ const FAILED_THEN_SAVED = 2;
 
 expectNoReactWarnings();
 for (const kind of ["response", "handoff"] as const) {
-	const command = kind === "response" ? "work-board.answerQuestion" : "work-board.prepareHandoff";
+	const command = kind === "response" ? "work-board-responses.answerQuestion" : "work-board-handoffs.prepareHandoff";
 	const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
 	for (const failure of ["rejection", "transport"] as const) {
 		screenStory.it(

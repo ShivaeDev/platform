@@ -59,7 +59,7 @@ export const hostChangesStory = storyKit({
 		awaitSubscribed: () => Deferred.await(engine.started),
 		subscribe: () => {
 			story.tell("subscribe through the host without a changes service");
-			return engine.client("idle.$changes", { keys: [] }).pipe(Stream.runDrain, Effect.forkScoped);
+			return engine.client("idle.$changes", { queries: [] }).pipe(Stream.runDrain, Effect.forkScoped);
 		},
 	}),
 });
@@ -71,6 +71,6 @@ export const applicationHandlersStory = storyKit({
 	stages: [],
 	verbs: (engine) => ({
 		greet: (name: string) => engine.client("idle.greet", { name }),
-		subscribe: () => engine.client("idle.$changes", { keys: [] }).pipe(Stream.take(1), Stream.runCollect),
+		subscribe: () => engine.client("idle.$changes", { queries: [] }).pipe(Stream.take(1), Stream.runCollect),
 	}),
 });

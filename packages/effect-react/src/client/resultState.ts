@@ -1,12 +1,15 @@
 import { RegistryContext, useAtomRefresh, useAtomSet, useAtomValue } from "@effect/atom-react";
-import { Cause, type Duration, Option, Predicate } from "effect";
+import { Cause, type Duration, type Effect, Option, Predicate } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useContext, useEffect, useState } from "react";
 import { queryCoalesceWindow } from "@shivaedev/effect-contract/queryCoalesceWindow.ts";
+import type { AtomServices } from "#fieldRejection.ts";
 import { acceptLoaderQuery } from "#internal/queryHandoff.ts";
+import { type ActionOptions, useActionSource } from "./actionCompletion.ts";
 import { useSessionRecheck } from "./sessionBoundary.ts";
+
 export interface ResultState<A, E> {
 	readonly cause: Option.Option<Cause.Cause<E>>;
 	readonly data: Option.Option<A>;
@@ -26,13 +29,13 @@ function state<A, E>(result: AsyncResult.AsyncResult<A, E>, data = AsyncResult.v
 export function isUnauthorized<E>(cause: Cause.Cause<E>): boolean {
 	return Option.match(Cause.findErrorOption(cause), { onNone: () => false, onSome: (error) => Predicate.isTagged(error, "Unauthorized") });
 }
-function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>): void {
+function useRecheckOnUnauthorized<A, E>(result: AsyncResult.AsyncResult<A, E>, enabled = true): void {
 	const recheck = useSessionRecheck();
 	useEffect(() => {
-		if (AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
+		if (enabled && AsyncResult.isFailure(result) && isUnauthorized(result.cause)) {
 			recheck();
 		}
-	}, [recheck, result]);
+	}, [enabled, recheck, result]);
 }
 export interface QueryState<A, E> extends ResultState<A, E> {
 	readonly refresh: () => void;
@@ -77,9 +80,19 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {
 	readonly dispatch: (input: TInput) => void;
 }
-// The atom's state is shared by every dispatch, so it never claims to be one invocation's completion result.
-export function useAction<TInput, A, E>(atom: Atom.AtomResultFn<TInput, A, E>): ActionState<TInput, A, E> {
+export function useAction<TInput, A, E>(atom: Atom.AtomResultFn<TInput, A, E>): ActionState<TInput, A, E>;
+export function useAction<TInput, A, E, R, TRuntimeError>(
+	runtime: Atom.AtomRuntime<R, TRuntimeError>,
+	run: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>,
+	options?: ActionOptions<NoInfer<TInput>, NoInfer<A>, NoInfer<E>>,
+): ActionState<TInput, A, E | TRuntimeError>;
+export function useAction<TInput, A, E, R, TRuntimeError>(
+	source: Atom.AtomResultFn<TInput, A, E> | Atom.AtomRuntime<R, TRuntimeError>,
+	run?: (input: TInput) => Effect.Effect<A, E, AtomServices<R>>,
+	options: ActionOptions<TInput, A, E> = {},
+): ActionState<TInput, A, E | TRuntimeError> {
+	const atom = useActionSource(source, run, options);
 	const result = useAtomValue(atom);
-	useRecheckOnUnauthorized(result);
+	useRecheckOnUnauthorized(result, run === undefined);
 	return { ...state(result), dispatch: useAtomSet(atom) };
 }
