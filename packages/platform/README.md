@@ -35,6 +35,12 @@ An **Origin policy** is a function of the transport request's origin, headers an
 
 The optional modules solve different boundaries. `server/runtime/` carries Effect services into Promise callers, `server/node-http/` combines subscription cancellation sources, `server/better-auth/adapter.ts` connects Better Auth storage to Effect Prisma, and `server/testing/makePlatformIt.ts` composes the Prisma and tRPC test harnesses. Choose the modules that match the application rather than adopting every integration.
 
+### Prepare local development
+
+`setupDatabases()` from `@shivaedev/platform/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; migrations remain the application's responsibility.
+
+`development({ server, worker, conditions? })` from `@shivaedev/platform/server/development.ts` starts the two application entry points with Node's watch mode and runs `pnpm exec vite`. Supply paths relative to the application directory and any export conditions its code needs. Provide `NodeServices.layer` to run it. When a process exits, the other processes stop and the Effect returns the first exit code, which the entry point can assign to `process.exitCode`. Use `runDevelopment(options)` from the same module for the Node entry point with that runtime wiring included.
+
 ### Host the application
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
