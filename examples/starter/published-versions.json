@@ -13,7 +13,7 @@
 	"@shivaedev/effect-trpc": "0.8.6",
 	"@shivaedev/local-postgres": "0.7.0",
 	"@shivaedev/platform": "0.31.0",
-	"@shivaedev/quality": "0.39.2",
+	"@shivaedev/quality": "0.40.0",
 	"@shivaedev/test-story": "0.20.0",
 	"@shivaedev/types": "0.3.0"
 }
