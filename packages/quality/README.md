@@ -78,7 +78,7 @@ import { defineConfig } from "@shivaedev/quality/config.ts";
 export default defineConfig({ sources: ["src"] });
 ```
 
-When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
+When a config exists, its folder is the root for paths and hook scripts. Without one, the current directory is the root. `sources` chooses the files the source rules read; a missing source stops the run. Directory discovery skips untracked files ignored by git through `.gitignore`, `info/exclude` or `core.excludesFile`, and the `.git`, `.worktrees` and `node_modules` directories. Tracked files remain checked even when an ignore pattern matches them; a folder named `generated/` does not exempt authored code. Some repository rules, such as manifest sorting, inspect the whole repository even when `sources` names only `src`.
 
 Quality discovers each app’s `components.json` and resolves `aliases.ui` through its TypeScript paths or package imports. That folder belongs to the shadcn CLI: source rules and Biome lint, formatting and fixes skip it by default. Neighbouring authored folders stay checked. This leaves TypeScript’s inputs unchanged, so type checking still covers the stock components.
 
