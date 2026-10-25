@@ -44,18 +44,18 @@ for (const cause of ["expiry", "heartbeat"] as const) {
 			expect(expired[0]?.output).not.toHaveProperty("jobDeferral");
 			expect(expired[0]?.output).toMatchObject({ value: { message: cause === "expiry" ? "job timed out" : "job heartbeat timeout" } });
 			const restarted = makePgBossTesting();
-			let attempts = 0;
+			const attempts: string[] = [];
 			const second = yield* boot(
 				[
-					Queue.handle(() => {
-						attempts += 1;
-						return attempts === 1 ? Effect.fail(new RetryAt({ at, reason: "quota after timeout" })) : Effect.void;
+					Queue.handle((_, job) => {
+						attempts.push(job.id);
+						return attempts.length === 1 ? Effect.fail(new RetryAt({ at, reason: "quota after timeout" })) : Effect.void;
 					}),
 				],
 				{ clientFactory: restarted.clientFactory },
 			);
-			expect((yield* untilJob(second.jobs, Queue, id, "completed")).retryCount).toBe(2);
-			expect(attempts).toBe(2);
+			expect((yield* untilJob(second.jobs, Queue, id, "completed")).retryCount).toBe(Queue.queueOptions.retryLimit);
+			expect(attempts).toEqual([id, id]);
 			expect(yield* restarted.deferred(Queue)).toEqual([]);
 		},
 	);

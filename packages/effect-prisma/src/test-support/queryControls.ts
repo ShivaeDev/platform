@@ -14,11 +14,18 @@ export function queryControl(controls: RuntimeControls, mode: "parallel" | "seri
 	const released = signal();
 	let active = 0;
 	const events: string[] = [];
-	const state = { both, events, first, maximumActive: 0, release: released.resolve, started: 0 };
+	const activeQueries = new Set<string>();
+	const startedQueries: string[] = [];
+	const concurrentQueries: string[][] = [];
+	const state = { activeQueries, both, concurrentQueries, events, first, maximumActive: 0, release: released.resolve, started: 0, startedQueries };
 	controls.resume = released.resolve;
 	controls.beforeQuery = async () => {
 		state.started += 1;
 		active += 1;
+		const queryId = `query-${state.started}`;
+		startedQueries.push(queryId);
+		activeQueries.add(queryId);
+		concurrentQueries.push([...activeQueries]);
 		state.maximumActive = Math.max(active, state.maximumActive);
 		if (state.started === 1) {
 			first.resolve();
@@ -31,6 +38,7 @@ export function queryControl(controls: RuntimeControls, mode: "parallel" | "seri
 	async function coordinate() {
 		if (mode === "failure" && state.started === 1) {
 			active -= 1;
+			activeQueries.delete("query-1");
 			throw new Error("expected query failure");
 		}
 		if (mode === "stream") {
@@ -46,6 +54,10 @@ export function queryControl(controls: RuntimeControls, mode: "parallel" | "seri
 
 	controls.afterQuery = () => {
 		active -= 1;
+		const completed = activeQueries.values().next();
+		if (!completed.done) {
+			activeQueries.delete(completed.value);
+		}
 		if (mode === "stream" && state.started === 1) {
 			state.events.push("source:end");
 		}

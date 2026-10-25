@@ -4,6 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect } from "vitest";
 import { eventually } from "#test/eventually.ts";
 import { coalescing, liveNotesStory, liveSession, watchingNotes } from "#test/liveNotesStory.ts";
+import { notes } from "#test/notes.ts";
 
 liveNotesStory.it(
 	"refreshes affected item/list over native streaming HTTP while preserving the unrelated query",
@@ -11,8 +12,7 @@ liveNotesStory.it(
 	function* (test) {
 		yield* eventually(() => {
 			expect(test.status().connection).toBe("live");
-			const activeSubscriptions = 1;
-			expect(test.active()).toBe(activeSubscriptions);
+			expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
 			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
 				false,
@@ -32,8 +32,7 @@ liveNotesStory.it(
 liveNotesStory.it("bounds paused hints and resyncs current source once resumed", [liveSession(), watchingNotes()], function* (test) {
 	yield* eventually(() => {
 		expect(test.status().connection).toBe("live");
-		const activeSubscriptions = 1;
-		expect(test.active()).toBe(activeSubscriptions);
+		expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 		expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
 		expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
 			false,
@@ -43,10 +42,14 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	});
 	const { one } = test;
 	test.pause(true);
-	yield* test.edit(1, "While paused");
-	yield* eventually(() => expect(test.status().pending).toBe(1));
-	yield* test.resyncRepeatedly(300);
-	yield* eventually(() => expect(test.status().pending).toBe(256));
+	const edits = [{ body: "While paused", id: 1 }];
+	for (const edit of edits) {
+		yield* test.edit(edit.id, edit.body);
+	}
+	yield* eventually(() => expect(test.status().pending).toBe(edits.length));
+	const resyncs = 256;
+	yield* test.resyncRepeatedly(resyncs);
+	yield* eventually(() => expect(test.status().pending).toBe(resyncs));
 	expect(test.body(one)).toBe("First");
 	test.pause(false);
 	yield* AtomRegistry.toStream(test.registry, one).pipe(
@@ -60,8 +63,7 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 liveNotesStory.it("retains successful data on typed read failure and reconciles on resume", [liveSession(), watchingNotes()], function* (test) {
 	yield* eventually(() => {
 		expect(test.status().connection).toBe("live");
-		const activeSubscriptions = 1;
-		expect(test.active()).toBe(activeSubscriptions);
+		expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 		expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
 		expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
 			false,
@@ -84,8 +86,7 @@ liveNotesStory.it(
 	function* (test) {
 		yield* eventually(() => {
 			expect(test.status().connection).toBe("live");
-			const activeSubscriptions = 1;
-			expect(test.active()).toBe(activeSubscriptions);
+			expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
 			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
 				false,
@@ -104,7 +105,7 @@ liveNotesStory.it(
 		yield* eventually(() => expect(test.body(one)).toBe("Missed while disconnected"));
 		expect(test.status().connection).toBe("live");
 		expect(Option.isNone(test.status().failure)).toBe(true);
-		expect(test.active()).toBe(1);
+		expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 	},
 );
 liveNotesStory.it(
@@ -113,8 +114,7 @@ liveNotesStory.it(
 	function* (test) {
 		yield* eventually(() => {
 			expect(test.status().connection).toBe("live");
-			const activeSubscriptions = 1;
-			expect(test.active()).toBe(activeSubscriptions);
+			expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
 			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
 				false,
@@ -135,7 +135,7 @@ liveNotesStory.it(
 		yield* test.emit({ _tag: "Resync" });
 		yield* eventually(() => expect(test.registry.get(one).waiting).toBe(false));
 		expect(test.body(one)).toBe("Newest request");
-		expect(test.connections()).toBe(1);
+		expect(test.connectionSessions()).toEqual(["ada"]);
 		test.dispose();
 		yield* eventually(() => expect(test.active()).toBe(0));
 	},

@@ -34,9 +34,7 @@ boss.it("carries an external parent span without exposing the transport envelope
 	yield* dispatch(Queue.name, [job(Queue.name, data)]);
 	yield* runtime.stop;
 	expect(handled).toEqual([{ id: 7 }]);
-	expect(spans).toHaveLength(1);
-	expect(spans[0]?.parent).toEqual(Option.none());
-	expect(spans[0]?.links).toMatchObject([{ span: { sampled: false, spanId: external.spanId, traceId: external.traceId } }]);
+	expect(spans).toMatchObject([{ links: [{ span: { sampled: false, spanId: external.spanId, traceId: external.traceId } }], parent: Option.none() }]);
 });
 
 boss.it("decodes queued envelopes with the persisted trace tag before running the handler", [], function* ({ boot, client, dispatch }) {
@@ -66,6 +64,5 @@ boss.it("records payload decoding failures on the job span before running the ha
 	expect(client.failCalls[0]?.error).toBeInstanceOf(PgBossPayloadError);
 	yield* runtime.stop;
 	expect(handled).toBe(false);
-	expect(spans).toHaveLength(1);
-	expect(spans[0]?.status).toMatchObject({ _tag: "Ended", exit: { _tag: "Failure" } });
+	expect(spans).toMatchObject([{ name: Queue.name, status: { _tag: "Ended", exit: { _tag: "Failure" } } }]);
 });

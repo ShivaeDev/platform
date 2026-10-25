@@ -18,14 +18,13 @@ sqliteStory.it("keeps unknown Promise rejections in the defect channel", [], fun
 });
 
 sqliteStory.it("closes a connected client when initialization fails", [failsInitialization()], function* ({ initializationFailure }) {
-	const { closeCalls, closed, connected, discoveryAttempts, exit, usersBeforeFailure } = yield* initializationFailure();
+	const { operations, closed, connected, exit, usersBeforeFailure } = yield* initializationFailure();
 
 	expect(Exit.isFailure(exit)).toBe(true);
 	expect(exit).toEqual(Exit.die(new Error("model discovery failed")));
 	expect(closed).toBe(true);
 	expect(connected).toBe(true);
-	expect(discoveryAttempts).toBe(1);
-	expect(closeCalls).toBe(1);
+	expect(operations).toEqual(["discover models", "close"]);
 	expect(usersBeforeFailure).toBe(0);
 });
 

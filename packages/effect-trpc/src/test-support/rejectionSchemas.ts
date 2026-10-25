@@ -36,7 +36,10 @@ const failures = {
 	unauthorized: new Unauthorized({ message: "Sign in" }),
 	undeclared: new Undeclared({ field: "password", message: SECRET }),
 };
-export function rename(name: string) {
+export function rename(name: string, retryAfter = failures.throttled.retryAfter) {
+	if (name === "throttled") {
+		return Effect.fail(new Throttled({ retryAfter }));
+	}
 	const failure = Object.entries(failures).find(([key]) => key === name)?.[1];
 	return failure === undefined ? Effect.succeed(`renamed:${name}`) : Effect.fail(failure);
 }

@@ -1,6 +1,6 @@
 import { Deferred, Effect, PubSub, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys } from "#keys.ts";
+import { invalidationKeys, type Key } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#serverMetadata.ts";
@@ -39,6 +39,8 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const events = Effect.runSync(PubSub.bounded<LiveHint>(256));
 	const connections = Effect.runSync(Ref.make(0));
 	const active = Effect.runSync(Ref.make(0));
+	const activeSubscriptions = new Set<readonly Key[]>();
+	const connectionSessions: string[] = [];
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
 		"notes.$changes": ({ queries }) => hints.stream(queryKeys(LiveNotes.declaration.queries, queries)),
@@ -60,6 +62,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 			Stream.unwrap(
 				Effect.gen(function* () {
 					yield* Ref.update(connections, (count) => count + 1);
+					connectionSessions.push((yield* Ref.get(server.session)).user);
 					if (yield* Ref.get(streamUnavailable)) {
 						return Stream.fail(new Unavailable());
 					}
@@ -67,7 +70,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 					const firstHint = yield* Ref.get(initialHint);
 					const keys = [...(yield* Ref.get(server.stored)).keys()].map((id) => notes.item(id));
 					const injected = yield* PubSub.subscribe(events);
-					return Stream.merge(hintStream(hints, keys, active, firstHint), Stream.fromEffectRepeat(PubSub.take(injected))).pipe(
+					return Stream.merge(hintStream(hints, keys, active, firstHint, activeSubscriptions), Stream.fromEffectRepeat(PubSub.take(injected))).pipe(
 						Stream.interruptWhen(Deferred.await(ended)),
 					);
 				}),
@@ -79,10 +82,12 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 		...host,
 		...server,
 		active,
+		activeSubscriptions,
 		close: async () => {
 			await Effect.runPromise(PubSub.shutdown(events));
 			await host.close();
 		},
+		connectionSessions,
 		connections,
 		disconnect: () =>
 			Effect.runPromise(

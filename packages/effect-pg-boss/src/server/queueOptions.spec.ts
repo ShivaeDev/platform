@@ -27,7 +27,7 @@ boss.it("releases the acquired client and application error callback when immuta
 	expect(error).toMatchObject({ _tag: "PgBossQueueOptionsError", options: ["partition", "policy"], queue: "immutable" });
 	expect(client.workers).toEqual([]);
 	expect(client.updateQueueCalls).toEqual([]);
-	expect(client.stopCalls).toBe(1);
+	expect(client.lifecycle).toEqual(["start", "stop"]);
 	for (const listener of client.errors) {
 		listener(Object.assign(new Error("terminating connection due to administrator command"), { code: "57P01" }));
 	}
@@ -46,11 +46,12 @@ boss.it("fails registration at once on a non-deadlock error, and after repeated 
 	const unique = Object.assign(new Error("duplicate key value violates unique constraint"), { code: "23505" });
 	const Queue = defineQueue({ name: "contended", schema: Schema.Struct({}) });
 	for (const failures of [[unique], Array.from({ length: 6 }, deadlock)]) {
-		client.createQueueFailures.splice(0, client.createQueueFailures.length, ...failures, deadlock());
+		const remaining = deadlock();
+		client.createQueueFailures.splice(0, client.createQueueFailures.length, ...failures, remaining);
 		const error = yield* Effect.flip(boot([Queue]));
 		expect(error).toMatchObject({ _tag: "PgBossError", operation: "register" });
 		expect(error._tag === "PgBossError" && Redacted.value(error.original)).toBe(failures.at(-1));
-		expect(client.createQueueFailures).toHaveLength(1);
+		expect(client.createQueueFailures).toEqual([remaining]);
 		expect(client.createQueueCalls).toEqual([]);
 	}
 });

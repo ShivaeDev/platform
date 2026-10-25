@@ -8,7 +8,7 @@ sqliteStory.it("runs aggregate, grouping, bulk create, update, and delete termin
 		Effect.gen(function* () {
 			const db = yield* Database;
 			const marker = crypto.randomUUID();
-			const created = yield* db.User.createAll([
+			const users = [
 				{
 					email: `${marker}-one@example.test`,
 					id: crypto.randomUUID(),
@@ -19,8 +19,9 @@ sqliteStory.it("runs aggregate, grouping, bulk create, update, and delete termin
 					id: crypto.randomUUID(),
 					name: marker,
 				},
-			]);
-			expect(created).toHaveLength(2);
+			];
+			const created = yield* db.User.createAll(users);
+			expect(created).toMatchObject(users);
 
 			const aggregate = yield* db.User.where({ name: marker }).aggregate((summary) => ({
 				total: summary.count(),
@@ -37,12 +38,12 @@ sqliteStory.it("runs aggregate, grouping, bulk create, update, and delete termin
 			const updated = yield* db.User.where({ name: marker }).updateAll({
 				name: `${marker}-updated`,
 			});
-			expect(updated).toHaveLength(2);
+			expect(updated).toMatchObject(users.map((user) => ({ ...user, name: `${marker}-updated` })));
 
 			const deleted = yield* db.User.where({
 				name: `${marker}-updated`,
 			}).deleteAll();
-			expect(deleted).toHaveLength(2);
+			expect(deleted).toMatchObject(users.map((user) => ({ ...user, name: `${marker}-updated` })));
 		}),
 	);
 });
@@ -58,7 +59,7 @@ sqliteStory.it("loads related rows without changing the base relation", [rollbac
 				id: userId,
 				name: "Relation owner",
 			});
-			yield* db.Post.createAll([
+			const posts = [
 				{
 					id: firstPostId,
 					title: "First post",
@@ -69,7 +70,8 @@ sqliteStory.it("loads related rows without changing the base relation", [rollbac
 					title: "Second post",
 					userId,
 				},
-			]);
+			];
+			yield* db.Post.createAll(posts);
 
 			const base = db.User.where({ id: userId });
 			const postTitles = db.Post.orderBy((post) => post.title.asc()).select("title");
@@ -103,7 +105,7 @@ sqliteStory.it("loads related rows without changing the base relation", [rollbac
 					verifiedAt: null,
 				},
 			]);
-			expect(withPostCount[0]?.posts).toBe(2);
+			expect(withPostCount[0]?.posts).toBe(posts.length);
 			expect(withPostOverview[0]?.posts).toEqual({
 				fullCount: 2,
 				items: [{ title: "First post" }],
@@ -117,7 +119,7 @@ sqliteStory.it("loads related rows without changing the base relation", [rollbac
 			}
 			expect(Option.getOrThrow(postWithAuthor).user.id).toBe(userId);
 			expect(Option.getOrThrow(postWithAuthor).reviewer).toBeNull();
-			expect(yield* db.Post.where({ userId }).count()).toBe(2);
+			expect(yield* db.Post.where({ userId }).count()).toBe(posts.length);
 			expect(withoutPosts).toEqual([
 				{
 					createdAt: expect.any(Date),

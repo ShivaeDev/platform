@@ -48,8 +48,7 @@ postgres.it(
 			{ amount: 3, id: 9, name: "B", note: "build" },
 			{ amount: 2, id: 8, name: "B", note: "build" },
 		]);
-		const statementsPerRead = 1;
-		expect(statements).toHaveLength(statementsPerRead);
+		expect(statements).toEqual([expect.stringContaining("row_number()")]);
 	},
 );
 
@@ -117,14 +116,13 @@ postgres.it("latestPerGroup encodes typed filters before ranking the matching ro
 
 for (const { name, partitionBy, where, matches, groups } of latestRunCases) {
 	postgres.it(`latestPerGroup stops at each indexed group for ${name}`, [hasLatestRuns()], function* ({ latestRuns, captureStatement, explain }) {
-		const { runs, tableName } = latestRuns();
+		const { runs, tableName, rowCount } = latestRuns();
 		const query = { limit: 20, orderBy: [{ direction: "desc", field: "id" }], partitionBy } as const;
 		const ranked = yield* captureStatement(runs.latestPerGroup(query));
 		const pinned = yield* captureStatement(runs.latestPerGroup({ ...query, where }));
 		expect(pinned.rows).toEqual(ranked.rows.filter(matches));
 		expect(pinned.rows).toHaveLength(20 * groups);
-		const statementsPerRead = 1;
-		expect(pinned.statements).toHaveLength(statementsPerRead);
+		expect(pinned.statements).toEqual([[expect.stringContaining("cross join lateral"), expect.any(Array)]]);
 		const statement = pinned.statements[0];
 		const ranking = ranked.statements[0];
 		if (statement === undefined || ranking === undefined) {
@@ -141,12 +139,11 @@ for (const { name, partitionBy, where, matches, groups } of latestRunCases) {
 		expect(scans.reduce((total, node) => total + node["Actual Rows"] * node["Actual Loops"], 0)).toBeLessThanOrEqual(query.limit * groups);
 		expect(planNodes(pinnedPlan).some((node) => node["Node Type"] === "WindowAgg")).toBe(false);
 		expect(planNodes(rankedPlan).some((node) => node["Node Type"] === "WindowAgg")).toBe(true);
-		const fixtureRows = 27_000;
 		expect(
 			planNodes(rankedPlan)
 				.filter((node) => node["Relation Name"] === tableName)
 				.reduce((total, node) => total + node["Actual Rows"], 0),
-		).toBe(fixtureRows);
+		).toBe(rowCount);
 	});
 }
 

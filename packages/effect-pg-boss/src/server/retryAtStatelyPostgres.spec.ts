@@ -61,7 +61,9 @@ for (const partition of [false, true]) {
 				(count) => count > 0,
 			);
 			expect(yield* Effect.promise(() => client.fetch(Queue.name, { includeMetadata: true }))).toEqual([]);
-			expect(resumed).toHaveLength(1);
+			const resumedJobs = yield* testing.jobs(Queue);
+			expect(resumed).toEqual(resumedJobs.filter((job) => job.state === "active").map((job) => job.id));
+			expect(resumed).toEqual([expect.stringMatching(/^[a-f0-9-]+$/u)]);
 			expect((yield* testing.jobs(Queue)).map((job) => job.state).sort()).toEqual(["active", "retry"]);
 			release.resolve();
 			yield* until(testing.jobs(Queue), (stored) => stored.length === 2 && stored.every((job) => job.state === "completed"));

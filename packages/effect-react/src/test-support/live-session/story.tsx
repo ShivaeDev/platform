@@ -13,12 +13,14 @@ export const liveSessionStory = storyKit({
 		window.location.href = host.url;
 		const screen = new Screen(() => undefined);
 		const counts = { rechecks: 0 };
+		const recheckedSessions: Array<string | undefined> = [];
 		const registries: AtomRegistry.AtomRegistry[] = [];
 		const view = yield* screen.open(
 			<App
 				connected={(registry) => registries.push(registry)}
 				rechecked={() => {
 					counts.rechecks += 1;
+					recheckedSessions.push(host.state.session);
 				}}
 				session={() => host.state.session}
 				signIn={() => {
@@ -27,12 +29,12 @@ export const liveSessionStory = storyKit({
 				url={host.url}
 			/>,
 		);
-		return { counts, host, registries, screen, view };
+		return { counts, host, recheckedSessions, registries, screen, view };
 	},
 	inspect: ({ counts, host, view }) => ({ ...counts, ...host.state, html: view.container.innerHTML }),
 	name: "live session",
 	stages: ["screen"],
-	verbs: ({ counts, host, registries, screen, view }, story) => {
+	verbs: ({ counts, host, recheckedSessions, registries, screen, view }, story) => {
 		screen.tell = story.tell;
 		return {
 			active: () => host.state.active,
@@ -40,6 +42,7 @@ export const liveSessionStory = storyKit({
 			observe: (line: string, check: () => void) => screen.observe(line, check),
 			reads: () => host.state.reads,
 			ready: () => view.container.querySelector('[data-live="live"][data-pending="false"]') !== null,
+			recheckedSessions: () => [...recheckedSessions],
 			rechecks: () => counts.rechecks,
 			registries: () => registries,
 			rename: (title: string) => screen.act(`the server renames the note to ${title}`, () => host.rename(title)),

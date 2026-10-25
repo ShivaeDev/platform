@@ -16,11 +16,13 @@ export const liveNotesStory = storyKit({
 		const run = streamRunner(engine);
 		return {
 			active: () => Effect.runSync(Ref.get(server.active)),
+			activeSubscriptions: () => [...server.activeSubscriptions],
 			body: (atom: ReturnType<typeof client.api.get.query>) => AsyncResult.getOrElse(registry.get(atom), () => undefined)?.body,
 			connect: () => {
 				story.tell("subscribe to live notes");
 				registry.mount(client.connection);
 			},
+			connectionSessions: () => [...server.connectionSessions],
 			connections: () => Effect.runSync(Ref.get(server.connections)),
 			disconnect: () => {
 				story.tell("disconnect the live stream");

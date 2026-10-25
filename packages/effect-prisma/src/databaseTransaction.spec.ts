@@ -84,7 +84,7 @@ postgresStory.it("serializes concurrent queries inside a transaction", [rollback
 				{ concurrency: "unbounded" },
 			);
 
-			expect(yield* db.User.where({ name: marker }).count()).toBe(3);
+			expect(yield* db.User.where({ name: marker }).count()).toBe(users.length);
 		}),
 	);
 });
@@ -162,6 +162,7 @@ postgresStory.it("rolls back interrupted transactions before returning", [], fun
 postgresStory.it("forces rollback after a successful test transaction and returns its value", [], function* ({ db, rollback }) {
 	const id = crypto.randomUUID();
 
+	const returned = 42;
 	const value = yield* rollback(
 		Effect.gen(function* () {
 			const transactionDb = yield* Database;
@@ -170,11 +171,11 @@ postgresStory.it("forces rollback after a successful test transaction and return
 				id,
 				name: "Test transaction",
 			});
-			return 42;
+			return returned;
 		}),
 	);
 
-	expect(value).toBe(42);
+	expect(value).toBe(returned);
 	expect(yield* db.User.where({ id }).exists()).toBe(false);
 });
 

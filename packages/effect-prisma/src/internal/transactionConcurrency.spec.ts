@@ -8,7 +8,7 @@ postgresStory.it(
 	[postgresUsers(controlledUsers), holdsParallelQueries()],
 	function* ({ parallelQueries }) {
 		const result = yield* parallelQueries();
-		expect(result.maximumActive).toBe(2);
+		expect(result.activeQueries).toEqual(["query-1", "query-2"]);
 		expect(result.results).toEqual([controlledRows, controlledRows]);
 	},
 );
@@ -18,9 +18,9 @@ sqliteStory.it(
 	[hasUsers(controlledUsers), controlsQueries("serial")],
 	function* ({ queryProbes }) {
 		const result = yield* queryProbes.serialized();
-		expect(result.startedBeforeRelease).toBe(1);
+		expect(result.queriesBeforeRelease).toEqual(["query-1"]);
 		expect(result.results).toEqual([controlledRows, controlledRows]);
-		expect(result.maximumActive).toBe(1);
+		expect(result.concurrentQueries).toEqual([["query-1"], ["query-2"]]);
 	},
 );
 
@@ -39,7 +39,7 @@ sqliteStory.it(
 	[hasUsers(controlledUsers), controlsQueries("serial")],
 	function* ({ queryProbes }) {
 		const result = yield* queryProbes.interrupt();
-		expect(result.attemptsBeforeRelease).toBe(1);
+		expect(result.queriesBeforeRelease).toEqual(["query-1"]);
 		expect(result.rows).toEqual(controlledRows);
 	},
 );

@@ -110,6 +110,7 @@ class Prefix extends Context.Service<Prefix, string>()("story/FailurePrefix") {}
 
 export function failureEngine() {
 	const counts = { factoryCalls: 0, finalized: 0 };
+	const operations: string[] = [];
 	const initializationFailure = new InitializationFailed();
 	const methodFailure = new MethodFailed();
 	const defect = new Error("method defect");
@@ -119,12 +120,14 @@ export function failureEngine() {
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {
 					counts.finalized += 1;
+					operations.push("finalize initialization");
 				}),
 			);
 			return yield* Effect.fail(initializationFailure);
 		}),
 		methods: () => {
 			counts.factoryCalls += 1;
+			operations.push("create methods");
 			return { run: () => Effect.void };
 		},
 		requires: [],
@@ -151,7 +154,7 @@ export function failureEngine() {
 		requires: [],
 	});
 	const methodLayer = failedMethod.layer.pipe(Layer.provide(Layer.succeed(Prefix, "call ")));
-	return { counts, defect, defectiveMethod, failedInitialization, failedMethod, initializationFailure, methodFailure, methodLayer };
+	return { counts, defect, defectiveMethod, failedInitialization, failedMethod, initializationFailure, methodFailure, methodLayer, operations };
 }
 
 class Resource extends Context.Service<Resource, string>()("story/InterruptedResource") {}
@@ -160,6 +163,7 @@ export function* lifetimeEngine() {
 	const acquired = yield* Deferred.make<void>();
 	const started = yield* Deferred.make<void>();
 	const counts = { finalized: 0, released: 0 };
+	const operations: string[] = [];
 	const initialization = { wait: false };
 	const scope = yield* Scope.fork(yield* Effect.scope);
 	const service = defineService({
@@ -168,6 +172,7 @@ export function* lifetimeEngine() {
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {
 					counts.finalized += 1;
+					operations.push("finalize initialization");
 				}),
 			);
 			yield* Deferred.succeed(started, undefined);
@@ -181,6 +186,7 @@ export function* lifetimeEngine() {
 				yield* Effect.acquireRelease(Resource, () =>
 					Effect.sync(() => {
 						counts.released += 1;
+						operations.push("release resource");
 					}),
 				);
 				yield* Deferred.succeed(acquired, undefined);
@@ -190,5 +196,5 @@ export function* lifetimeEngine() {
 		requires: [Resource],
 	});
 	const layer = service.layer.pipe(Layer.provide(Layer.succeed(Resource, "resource")));
-	return { acquired, counts, initialization, layer, scope, service, started };
+	return { acquired, counts, initialization, layer, operations, scope, service, started };
 }

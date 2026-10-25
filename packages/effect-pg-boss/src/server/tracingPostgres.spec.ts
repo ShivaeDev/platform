@@ -72,7 +72,7 @@ postgresIt(
 		const worker = yield* traces.worker();
 		yield* untilJob(worker.jobs, traces.queue, jobId, "completed");
 		const jobs = traces.spans.filter((span) => span.name === traces.queue.name);
-		expect(jobs).toHaveLength(2);
+		expect(jobs).toMatchObject([{ status: { _tag: "Ended", exit: { _tag: "Failure" } } }, { status: { _tag: "Ended", exit: { _tag: "Success" } } }]);
 		expect(jobs.map((span) => span.attributes.get("job.attempt"))).toEqual([1, 2]);
 		expect(jobs.map((span) => span.attributes.get("job.retry_count"))).toEqual([0, 1]);
 		expect(jobs[0]?.status).toMatchObject({ _tag: "Ended", exit: { _tag: "Failure" } });

@@ -36,8 +36,7 @@ postgresIt(
 		yield* untilJobs(client, FollowUp.name, (jobs) => jobs.some((job) => job.state === "completed"));
 		expect(completed).toEqual([42]);
 		const produced = yield* Effect.promise(() => client.findJobs(Producer.name));
-		expect(produced).toHaveLength(1);
-		expect(produced[0]?.state).toBe("created");
+		expect(produced).toMatchObject([{ data: { _tag: "@shivaedev/effect-pg-boss/TracedPayload", payload: { id: "42" } }, state: "created" }]);
 		const producedId = produced[0]?.id;
 		expect(producedId).toBeDefined();
 		expect(Option.getOrThrow(yield* runtime.jobs.getJob(Producer, producedId ?? "")).data).toEqual({ id: 42 });

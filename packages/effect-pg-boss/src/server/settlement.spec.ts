@@ -9,18 +9,18 @@ for (const outcome of ["failure", "defect"] as const) {
 	boss.it(`settles scheduled jobs separately after a ${outcome}`, [], function* ({ boot, client, dispatch }) {
 		const Schedule = defineSchedule({ cron: "0 * * * *", name: "settle-schedule" });
 		const failure = new Error("scheduled poison job");
-		let handled = 0;
+		const handled: string[] = [];
 		const failed = outcome === "failure" ? Effect.fail(failure) : Effect.die(failure);
 		const worker = Schedule.run(
 			Effect.suspend(() => {
-				handled += 1;
-				return handled === 2 ? failed : Effect.void;
+				handled.push(Schedule.name);
+				return handled.length === 2 ? failed : Effect.void;
 			}),
 		);
 		const jobs = Array.from({ length: 10 }, (_, id) => ({ ...job(Schedule.name, null), id: String(id) }));
 		yield* boot([worker]);
 		yield* dispatch(Schedule.name, jobs);
-		expect(handled).toBe(10);
+		expect(handled).toEqual(jobs.map((entry) => entry.name));
 		expect(client.completeCalls.map(({ job: completed }) => completed)).toEqual(jobs.filter((entry) => entry.id !== "1"));
 		expect(client.failCalls).toEqual([{ error: failure, job: jobs[1], name: Schedule.name }]);
 	});

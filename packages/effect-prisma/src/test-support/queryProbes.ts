@@ -23,9 +23,10 @@ export function queryProbes(db: Effect.Success<typeof Database>, state: () => Qu
 					const second = yield* Effect.forkChild(query, { startImmediately: true });
 					yield* Effect.yieldNow;
 					const attemptsBeforeRelease = control.started;
+					const queriesBeforeRelease = [...control.startedQueries];
 					control.release();
 					yield* Fiber.join(interruption);
-					return { attemptsBeforeRelease, rows: yield* Fiber.join(second) };
+					return { attemptsBeforeRelease, queriesBeforeRelease, rows: yield* Fiber.join(second) };
 				}),
 			),
 		retry: () =>
@@ -45,9 +46,16 @@ export function queryProbes(db: Effect.Success<typeof Database>, state: () => Qu
 					yield* control.first.wait;
 					yield* Effect.yieldNow;
 					const startedBeforeRelease = control.started;
+					const queriesBeforeRelease = [...control.startedQueries];
 					control.release();
 					const results = yield* Fiber.join(fiber);
-					return { maximumActive: control.maximumActive, results, startedBeforeRelease };
+					return {
+						concurrentQueries: control.concurrentQueries,
+						maximumActive: control.maximumActive,
+						queriesBeforeRelease,
+						results,
+						startedBeforeRelease,
+					};
 				}),
 			),
 	};

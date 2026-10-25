@@ -11,17 +11,17 @@ postgresIt("exhausts the default ten deferrals before spending a normal retry", 
 		schema: Schema.Struct({}),
 		worker: { batchSize: 1, pollingIntervalSeconds: 0.5 },
 	});
-	let attempts = 0;
+	const attempts: string[] = [];
 	const { jobs } = yield* boot([
-		Queue.handle(() => {
-			attempts += 1;
-			return attempts <= 11 ? Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "still limited" })) : Effect.void;
+		Queue.handle((_, job) => {
+			attempts.push(job.id);
+			return attempts.length <= 11 ? Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "still limited" })) : Effect.void;
 		}),
 	]);
 	const id = Option.getOrThrow(yield* jobs.enqueue(Queue, {}));
 	const completed = yield* untilJob(jobs, Queue, id, "completed");
-	expect(attempts).toBe(12);
-	expect(completed.retryCount).toBe(1);
+	expect(attempts).toEqual(Array.from({ length: 12 }, () => id));
+	expect(completed.retryCount).toBe(Queue.queueOptions.retryLimit);
 });
 
 postgresIt(
@@ -43,19 +43,19 @@ postgresIt(
 		yield* until(testing.deferred(Queue), (waiting) => waiting.length === 1);
 		yield* first.stop;
 		const restarted = makePgBossTesting();
-		let attempts = 0;
+		const attempts: string[] = [];
 		const second = yield* boot(
 			[
-				Queue.handle(() => {
-					attempts += 1;
-					return attempts === 1 ? Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "quota" })) : Effect.void;
+				Queue.handle((_, job) => {
+					attempts.push(job.id);
+					return attempts.length === 1 ? Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "quota" })) : Effect.void;
 				}),
 			],
 			{ clientFactory: restarted.clientFactory },
 		);
 		yield* restarted.runDeferredNow(Queue);
-		expect((yield* untilJob(second.jobs, Queue, id, "completed")).retryCount).toBe(1);
-		expect(attempts).toBe(2);
+		expect((yield* untilJob(second.jobs, Queue, id, "completed")).retryCount).toBe(Queue.queueOptions.retryLimit);
+		expect(attempts).toEqual([id, id]);
 	},
 );
 

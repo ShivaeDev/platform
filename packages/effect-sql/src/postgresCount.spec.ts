@@ -7,36 +7,31 @@ import { hasPayments } from "#test/sqlTraits.ts";
 postgres.it("count returns a number for rows matching equality through field codecs", [hasPayments()], function* ({ paymentFixture }) {
 	const { payments } = paymentFixture();
 	yield* payments.insert({ ...input, note: "paid" });
-	yield* payments.insert(input);
-	yield* payments.insert(input);
+	const matching = [input, input];
+	yield* payments.insertMany(matching);
 	yield* payments.insert({ ...input, amount: BigDecimal.fromStringUnsafe("42.125") });
-	const paymentsWithMatchingAmountAndNoNote = 2;
-	expect(yield* payments.count({ where: { amount: input.amount, note: null } })).toBe(paymentsWithMatchingAmountAndNoNote);
+	expect(yield* payments.count({ where: { amount: input.amount, note: null } })).toBe(matching.length);
 });
 
 postgres.it("count combines list entries with equality through field codecs", [hasPayments()], function* ({ paymentFixture }) {
 	const { payments } = paymentFixture();
 	const otherAmount = BigDecimal.fromStringUnsafe("42.125");
-	yield* payments.insert(input);
-	yield* payments.insert({ ...input, amount: otherAmount });
+	const matching = [input, { ...input, amount: otherAmount }];
+	yield* payments.insertMany(matching);
 	yield* payments.insert({ ...input, amount: otherAmount, note: "paid" });
 	yield* payments.insert({ ...input, amount: BigDecimal.fromStringUnsafe("99.5") });
-	const paymentsWithListedAmountsAndNoNote = 2;
-	expect(yield* payments.count({ where: { amount: { in: [input.amount, otherAmount] }, note: null } })).toBe(paymentsWithListedAmountsAndNoNote);
+	expect(yield* payments.count({ where: { amount: { in: [input.amount, otherAmount] }, note: null } })).toBe(matching.length);
 });
 
 postgres.it("count returns zero for an empty table", [hasPayments()], function* ({ paymentFixture }) {
 	const { payments } = paymentFixture();
-	const emptyTableCount = 0;
-	expect(yield* payments.count()).toBe(emptyTableCount);
+	expect(yield* payments.count()).toBe(0);
 });
 
 postgres.it("count without a filter counts every row", [hasPayments()], function* ({ paymentFixture }) {
 	const { payments } = paymentFixture();
-	yield* payments.insert(input);
-	yield* payments.insert({ ...input, note: "paid" });
-	yield* payments.insert({ ...input, amount: BigDecimal.fromStringUnsafe("42.125") });
-	const allPayments = 3;
-	expect(yield* payments.count()).toBe(allPayments);
-	expect(yield* payments.count({})).toBe(allPayments);
+	const inserted = [input, { ...input, note: "paid" }, { ...input, amount: BigDecimal.fromStringUnsafe("42.125") }];
+	yield* payments.insertMany(inserted);
+	expect(yield* payments.count()).toBe(inserted.length);
+	expect(yield* payments.count({})).toBe(inserted.length);
 });

@@ -12,6 +12,6 @@ for (const phase of ["failed stop", "pool kept open", "failed startup cleanup"] 
 		expect(result._tag).toBe(phase === "failed startup cleanup" ? "Failure" : "Success");
 		expect(() => events.emit("error", connectionFailure)).not.toThrow();
 		expect(logs).toContainEqual({ logLevel: "Debug", message: [{ event: "pg_boss_error", message: connectionFailure.message }] });
-		expect(events.listenerCount("error")).toBe(1);
+		expect(events.listeners("error")).toEqual([expect.any(Function)]);
 	});
 }

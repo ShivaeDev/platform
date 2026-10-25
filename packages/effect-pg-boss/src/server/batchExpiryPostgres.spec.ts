@@ -9,11 +9,12 @@ postgresIt("interrupts at the fetch deadline, leaves waiting jobs for expiry, an
 	yield* budgets.firstClaim;
 	yield* budgets.startPeer();
 	const stored = yield* budgets.completed();
-	expect(stored).toHaveLength(4);
-	expect(stored.every((job) => job.state === "completed")).toBe(true);
-	expect(budgets.batches[0]).toBe(4);
+	expect(stored.map(({ data, state }) => ({ data, state })).sort((left, right) => left.data.id - right.data.id)).toEqual(
+		[0, 1, 2, 3].map((id) => ({ data: { id }, state: "completed" })),
+	);
+	expect(budgets.fetchedBatches[0]).toEqual([0, 1, 2, 3]);
 	expect(budgets.peerRetries).toContain(1);
-	expect(budgets.peak()).toBe(1);
+	expect(budgets.overlapping).toEqual([]);
 	expect(budgets.starts.filter(({ retry }) => retry === 0).map(({ id }) => id)).toEqual([0, 1]);
 	expect(budgets.starts.every(({ remaining }) => remaining > 0)).toBe(true);
 	const later = budgets.starts.find(({ id, retry }) => id === 1 && retry === 0);

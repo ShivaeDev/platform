@@ -26,8 +26,7 @@ processes.it(
 		expect(rejected.order.name).toBe("worker");
 		expect(yield* loseListener()).toEqual([{ terminated: true }]);
 		const resyncs = yield* localResyncs();
-		const disconnectedAndReconnected = 2;
-		expect(resyncs.a.filter((hint) => hint._tag === "Resync")).toHaveLength(disconnectedAndReconnected);
+		expect(resyncs.a.filter((hint) => hint._tag === "Resync")).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
 		expect(resyncs.another).toContainEqual({ _tag: "Resync" });
 		const reconnected = yield* saveAfterReconnect();
 		expect(reconnected.result).toMatchObject({ _tag: "Success" });

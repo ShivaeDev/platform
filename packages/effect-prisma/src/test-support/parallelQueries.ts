@@ -5,6 +5,7 @@ export const parallelQueries = Effect.fnUntraced(function* <A, E, R>(query: Effe
 	const fiber = yield* Effect.forkChild(Effect.all([query, query], { concurrency: "unbounded" }), { startImmediately: true });
 	yield* control.both.wait;
 	const maximumActive = control.maximumActive;
+	const activeQueries = [...control.activeQueries];
 	control.release();
-	return { maximumActive, results: yield* Fiber.join(fiber) };
+	return { activeQueries, maximumActive, results: yield* Fiber.join(fiber) };
 });

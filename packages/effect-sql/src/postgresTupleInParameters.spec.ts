@@ -25,8 +25,11 @@ postgres.it(
 		expect(yield* observe(sql`${selected}`)).toEqual([{ a: quoted }]);
 		yield* observe(rows.delete(where));
 		expect(yield* rows.findMany({ select: ["a"] })).toEqual([{ a: "other" }]);
-		const filterOperations = 3;
-		expect(statements).toHaveLength(filterOperations);
+		expect(statements.map(([query]) => query)).toEqual([
+			expect.stringMatching(/^select/u),
+			expect.stringMatching(/^select/u),
+			expect.stringMatching(/^delete/u),
+		]);
 		for (const [query, parameters] of statements) {
 			expect(parameters).toEqual(tuples.flatMap(([a, b]) => [a, String(b)]));
 			expect(query).not.toContain(quoted);

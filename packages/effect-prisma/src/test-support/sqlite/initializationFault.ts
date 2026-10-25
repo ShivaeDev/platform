@@ -10,11 +10,12 @@ vi.mock("@prisma-next/sqlite/runtime", async (importOriginal) => {
 export function initializationFault() {
 	return {
 		enabled: false,
-		observe: (): { closeCalls: number; closed: boolean; connected: boolean; discoveryAttempts: number } => ({
+		observe: (): { closeCalls: number; closed: boolean; connected: boolean; discoveryAttempts: number; operations: readonly string[] } => ({
 			closeCalls: 0,
 			closed: false,
 			connected: false,
 			discoveryAttempts: 0,
+			operations: [],
 		}),
 	};
 }
@@ -26,7 +27,11 @@ export const failInitialization = Effect.fnUntraced(function* (fault: ReturnType
 		const client = create(options);
 		const connect = client.connect.bind(client);
 		const close = client.close.bind(client);
-		const closeSpy = vi.spyOn(client, "close");
+		const operations: string[] = [];
+		const closeSpy = vi.spyOn(client, "close").mockImplementation(async () => {
+			operations.push("close");
+			await close();
+		});
 		let connected = false;
 		let discoveryAttempts = 0;
 		const connectSpy = vi.spyOn(client, "connect").mockImplementation(async (...args) => {
@@ -35,6 +40,7 @@ export const failInitialization = Effect.fnUntraced(function* (fault: ReturnType
 			Object.defineProperty(client, "orm", {
 				get() {
 					discoveryAttempts += 1;
+					operations.push("discover models");
 					throw new Error("model discovery failed");
 				},
 			});
@@ -50,7 +56,7 @@ export const failInitialization = Effect.fnUntraced(function* (fault: ReturnType
 				}
 				closed = true;
 			}
-			return { closeCalls: closeSpy.mock.calls.length, closed, connected, discoveryAttempts };
+			return { closeCalls: closeSpy.mock.calls.length, closed, connected, discoveryAttempts, operations };
 		};
 		dispose = async () => {
 			connectSpy.mockRestore();

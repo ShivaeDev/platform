@@ -7,9 +7,7 @@ databases.it(
 	[twoLeasesAreOpen()],
 	function* ({ leaseDatabases, closeLease, migrationLedger, database }) {
 		const names = yield* leaseDatabases();
-		const twoLeases = 2;
-		expect(names).toHaveLength(twoLeases);
-		expect(new Set(names)).toEqual(new Set([names[0]]));
+		expect(names).toEqual([expect.stringMatching(/^platform_story_/u), names[0]]);
 		yield* closeLease("first");
 		expect(yield* migrationLedger("second")).toEqual([{ "migration_id": 1 }]);
 		yield* closeLease("second");

@@ -73,15 +73,14 @@ postgresIt("lets the next job use an entity key while an earlier job waits to re
 
 postgresIt("dead-letters an exhausted job and leaves its entity key available", [realPostgres], function* ({ boot, admin, untilJob, untilJobs }) {
 	const Queue = defineQueue(singletonQueueOptions({ retryBackoff: false, retryDelay: 0, retryLimit: 1 }));
-	const expectedAttempts = 2;
 	const client = yield* admin();
-	let attempts = 0;
+	const attempts: string[] = [];
 	const { jobs } = yield* boot([
 		Queue.handle(({ _tag }) => {
 			if (_tag === "Reconcile") {
 				return Effect.void;
 			}
-			attempts += 1;
+			attempts.push(_tag);
 			return Effect.fail(new Error("provider unavailable"));
 		}),
 	]);
@@ -92,5 +91,5 @@ postgresIt("dead-letters an exhausted job and leaves its entity key available", 
 	]);
 	const next = Option.getOrThrow(yield* jobs.enqueue(Queue, { _tag: "Reconcile", pullRequestId: 42 }));
 	expect(yield* untilJob(jobs, Queue, next, "completed")).toMatchObject({ singletonKey: "pr:42" });
-	expect(attempts).toBe(expectedAttempts);
+	expect(attempts).toEqual(["Refresh", "Refresh"]);
 });

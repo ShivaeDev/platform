@@ -45,7 +45,7 @@ unanswered.it(
 		expect(read(second)).toBeUndefined();
 		submit();
 		expect(yield* result()).toEqual(form.values.value);
-		expect(submissions.length).toBe(1);
+		expect(submissions).toEqual([form.values.value]);
 	},
 );
 

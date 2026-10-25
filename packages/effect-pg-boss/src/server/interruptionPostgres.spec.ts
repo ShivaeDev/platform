@@ -11,16 +11,15 @@ postgresIt(
 		const client = native();
 		const interrupted = Promise.withResolvers<void>();
 		const handled: number[] = [];
-		yield* seed(
-			Queue,
-			Array.from({ length: 3 }, (_, id) => ({ data: { id } })),
-			client,
-		);
+		let interruptedId: number | undefined;
+		const inputs = Array.from({ length: 3 }, (_, id) => ({ data: { id } }));
+		yield* seed(Queue, inputs, client);
 		yield* boot([
 			Queue.handle(({ id }) =>
 				Effect.suspend(() => {
 					handled.push(id);
 					if (handled.length === 2) {
+						interruptedId = id;
 						interrupted.resolve();
 						return Effect.interrupt;
 					}
@@ -29,16 +28,24 @@ postgresIt(
 			),
 		]);
 		yield* Effect.promise(() => interrupted.promise);
-		const read = Effect.promise(() => client.findJobs(Queue.name));
+		const read = Effect.promise(() => client.findJobs<{ id: number }>(Queue.name));
 		const active = yield* read;
 		expect(active.filter((job) => job.state === "completed")).toMatchObject([{ data: { id: handled[0] }, retryCount: 0 }]);
-		expect(active.filter((job) => job.state === "active")).toHaveLength(2);
+		const waiting = inputs.filter(({ data }) => data.id !== handled[0]);
+		expect(
+			active
+				.filter((job) => job.state === "active")
+				.map(({ data }) => data)
+				.sort((left, right) => left.id - right.id),
+		).toEqual(waiting.map(({ data }) => data));
 		const expired = yield* untilJobs(client, Queue.name, (jobs) => jobs.filter((job) => job.state === "failed").length === 2);
 		expect(expired.filter((job) => job.state === "completed")).toMatchObject([{ data: { id: handled[0] }, retryCount: 0 }]);
 		expect(expired.filter((job) => job.state === "failed").map((job) => job.output)).toMatchObject([
 			{ message: "handler execution exceeded 3s" },
 			{ message: "handler execution exceeded 3s" },
 		]);
-		expect(handled).toHaveLength(2);
+		expect(handled).toEqual([active.find((job) => job.state === "completed")?.data.id, interruptedId]);
+		expect(handled[1]).not.toBe(handled[0]);
+		expect(waiting.map(({ data }) => data.id)).toContain(handled[1]);
 	},
 );

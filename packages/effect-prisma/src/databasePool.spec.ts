@@ -9,8 +9,8 @@ for (const fail of [false, true]) {
 		function* ({ poolLifetime }) {
 			const result = yield* poolLifetime(fail);
 			expect(result.exit).toEqual(fail ? Exit.fail("database caller failed") : Exit.succeed(undefined));
-			expect(result.during).toBe(1);
-			expect(result.after).toBe(0);
+			expect(result.duringBackends).toEqual([{ name: result.name }]);
+			expect(result.afterBackends).toEqual([]);
 		},
 		{ clock: "live" },
 	);

@@ -8,13 +8,14 @@ expenses.it(
 	function* ({ form, submit, result, waitForSave, finishSave, dirty, read }) {
 		const date = fromRef(form.field("date"));
 		read(date);
-		form.change("quantity", "2");
+		const quantity = 2;
+		form.change("quantity", String(quantity));
 		submit();
 		yield* waitForSave();
 		form.change("quantity", "3.50");
 		form.change("date", "2026-09-18");
 		yield* finishSave();
-		expect((yield* result()).quantity).toBe(2);
+		expect((yield* result()).quantity).toBe(quantity);
 		form.receive({ ...initial, payee: "Server payee", quantity: "2" });
 		expect(form.field("payee").value).toBe("Server payee");
 		expect(form.field("quantity").value).toBe("3.50");

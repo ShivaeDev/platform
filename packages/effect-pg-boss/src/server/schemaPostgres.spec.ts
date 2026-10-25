@@ -1,4 +1,4 @@
-import { DateTime, Effect, Option, Schema } from "effect";
+import { DateTime, Effect, Exit, Option, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue, RetryAt } from "#definition.ts";
 import { installedTemplate, schemaIt } from "#test/schemaStories.ts";
@@ -69,9 +69,12 @@ schemaIt(
 		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 44 }]);
 		yield* installSchema({ schema: "jobs_test" });
 		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 46 }]);
-		expect(yield* query("SELECT indexname FROM pg_indexes WHERE schemaname = 'jobs_test' AND indexname LIKE '%i13' ORDER BY indexname")).toHaveLength(
-			2,
-		);
+		expect(
+			yield* query("SELECT tablename, indexname FROM pg_indexes WHERE schemaname = 'jobs_test' AND indexname LIKE '%i13' ORDER BY indexname"),
+		).toEqual([
+			{ indexname: expect.stringMatching(/^j[a-f0-9]+_i13$/u), tablename: expect.stringMatching(/^j[a-f0-9]+$/u) },
+			{ indexname: "job_common_i13", tablename: "job_common" },
+		]);
 		yield* boot([queue], { migrate: false });
 	},
 );
@@ -79,14 +82,13 @@ schemaIt(
 schemaIt(
 	"reports installation failures through the typed error channel and leaves the connection usable",
 	[],
-	function* ({ installSchema, query, schemaVersion }) {
+	function* ({ installSchema, query, checkSchema }) {
 		expect(yield* installSchema({ schema: "invalid.schema" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
 		yield* query("CREATE SCHEMA broken");
 		yield* query("CREATE TABLE broken.version (version int)");
 		yield* query("INSERT INTO broken.version VALUES (44)");
 		expect(yield* installSchema({ schema: "broken" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
 		yield* installSchema();
-		const installedVersion = 46;
-		expect(yield* schemaVersion("pgboss")).toBe(installedVersion);
+		expect(yield* checkSchema().pipe(Effect.exit)).toEqual(Exit.void);
 	},
 );
