@@ -73,6 +73,14 @@
 			"updateNotScheduled": true
 		},
 		{
+			"allowedVersions": "24.x",
+			"description": "`@types/node` follows the minimum supported Node major in engines.node, not .node-version. Raise this limit only alongside the minimum engine and both catalogs. Use the same versioning for the npm and custom regex managers so both catalogs move in one pull request.",
+			"groupName": "node types",
+			"groupSlug": "node-types",
+			"matchPackageNames": ["@types/node"],
+			"versioning": "npm"
+		},
+		{
 			"allowedVersions": "<=1.2.3",
 			"description": "`@vercel/detect-agent` publishes from a private repository since 1.2.4, so its releases carry no provenance attestation and `trustPolicy: no-downgrade` refuses them (https://github.com/vercel/vercel/issues/17408). The workspace pins 1.2.3 for `@prisma-next/cli-telemetry`; drop this rule with that pin.",
 			"matchPackageNames": ["@vercel/detect-agent"]
