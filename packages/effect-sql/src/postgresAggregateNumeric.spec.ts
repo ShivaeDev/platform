@@ -25,8 +25,10 @@ postgres.it("aggregate min, max and fractional avg agree with native PostgreSQL"
 		cast(avg("durationMs") as text) as average, min(project) as first, max(project) as last
 		from ${sql(tableName)} group by file, project order by file, project`;
 	expect(rows).toEqual(native.map((row) => ({ ...row, average: Number(row.average) })));
-	const averageWebDuration = 2.5;
-	expect(rows.find((row) => row.project === "web" && row.file === "a.test.ts")?.average).toBe(averageWebDuration);
+	const webDurations = resultRows.filter((row) => row.project === "web" && row.file === "a.test.ts").map((row) => row.durationMs);
+	expect(rows.find((row) => row.project === "web" && row.file === "a.test.ts")?.average).toBe(
+		webDurations.reduce((total, duration) => total + duration, 0) / webDurations.length,
+	);
 });
 
 postgres.it(

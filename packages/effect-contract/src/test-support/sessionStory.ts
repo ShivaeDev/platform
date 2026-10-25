@@ -15,8 +15,8 @@ export const sessionStory = storyKit({
 		connect: engine.connect,
 		connectInOtherRegistry: () => engine.clients.bob.registry.get(engine.clients.alice.api[LiveConnection].connection),
 		dispose: (session: "alice" | "bob") => engine.clients[session].registry.dispose(),
-		readCount: (session: string, query: string) => engine.reads.filter((read) => read === `${session}:${query}`).length,
 		readInOtherRegistry: () => engine.clients.bob.registry.get(engine.clients.alice.api.self.query(undefined)),
+		reads: (session: string, query: string) => engine.reads.filter((read) => read === `${session}:${query}`),
 		resync: () => engine.server.resync,
 		save: (session: "alice" | "bob", title: string) => {
 			story.tell(`${session} saves their preferences`);

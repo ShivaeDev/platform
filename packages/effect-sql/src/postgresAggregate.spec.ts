@@ -89,9 +89,7 @@ postgres.it(
 			}),
 		);
 		expect(filtered.rows).toEqual([{ file: "a.test.ts", tests: 1, total: 3 }]);
-		const statementsPerReport = 1;
-		expect(filtered.statements).toHaveLength(statementsPerReport);
-		expect(filtered.statements[0]?.[1]).toEqual(expect.arrayContaining(["web", "a%", 2, 9]));
+		expect(filtered.statements).toEqual([[expect.any(String), expect.arrayContaining(["web", "a%", 2, 9])]]);
 		expect(filtered.statements[0]?.[0]).not.toContain("a%");
 	},
 );

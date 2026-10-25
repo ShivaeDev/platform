@@ -23,12 +23,10 @@ sessionStory.it(
 			expect(alice.value()).toBe("Changed");
 			expect(list.value()).toEqual(["Changed"]);
 		});
-		const initialAndRefresh = 2;
-		expect(test.readCount("alice", "self")).toBe(initialAndRefresh);
-		expect(test.readCount("alice", "list")).toBe(initialAndRefresh);
-		const initialOnly = 1;
-		expect(test.readCount("alice", "get:1")).toBe(initialOnly);
-		expect(test.readCount("bob", "self")).toBe(initialOnly);
+		expect(test.reads("alice", "self")).toEqual(["alice:self", "alice:self"]);
+		expect(test.reads("alice", "list")).toEqual(["alice:list", "alice:list"]);
+		expect(test.reads("alice", "get:1")).toEqual(["alice:get:1"]);
+		expect(test.reads("bob", "self")).toEqual(["bob:self"]);
 		expect(bob.value()).toBe("Bob");
 	},
 );
@@ -37,8 +35,7 @@ sessionStory.it("a rejected self-only write declares no invalidation", [], funct
 	const alice = test.watch("alice", "self");
 	yield* eventually(() => expect(alice.value()).toBe("Alice"));
 	expect(yield* test.save("alice", "").pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });
-	const initialOnly = 1;
-	expect(test.readCount("alice", "self")).toBe(initialOnly);
+	expect(test.reads("alice", "self")).toEqual(["alice:self"]);
 	expect(alice.waiting()).toBe(false);
 });
 
@@ -53,21 +50,21 @@ sessionStory.it("automatic query references deliver hints and reconcile only the
 		expect(bob.value()).toBe("Bob");
 		expect(alice.waiting() || bob.waiting()).toBe(false);
 	});
-	const before = test.readCount("bob", "self");
+	const before = test.reads("bob", "self").length;
 	yield* test.store("alice", "Hinted");
 	yield* test.announce("alice", [preferences.item(0)]);
 	yield* eventually(() => expect(alice.value()).toBe("Hinted"));
-	expect(test.readCount("bob", "self")).toBe(before);
+	expect(test.reads("bob", "self").length).toBe(before);
 	expect(bob.value()).toBe("Bob");
-	const aliceBeforeResync = test.readCount("alice", "self");
-	const bobBeforeResync = test.readCount("bob", "self");
+	const aliceBeforeResync = test.reads("alice", "self").length;
+	const bobBeforeResync = test.reads("bob", "self").length;
 	yield* test.store("alice", "Reconciled");
 	yield* test.resync();
 	yield* eventually(() => {
 		expect(alice.value()).toBe("Reconciled");
 		expect(bob.waiting()).toBe(false);
-		expect(test.readCount("alice", "self")).toBe(aliceBeforeResync + 1);
-		expect(test.readCount("bob", "self")).toBe(bobBeforeResync + 1);
+		expect(test.reads("alice", "self").length).toBe(aliceBeforeResync + 1);
+		expect(test.reads("bob", "self").length).toBe(bobBeforeResync + 1);
 	});
 	expect(bob.value()).toBe("Bob");
 });
@@ -105,8 +102,7 @@ sessionStory.it("reusing a command effect performs each write through the owner"
 	yield* test.store("alice", "Changed elsewhere");
 	yield* save;
 	yield* eventually(() => expect(alice.value()).toBe("Saved"));
-	const initialAndTwoSaves = 3;
-	expect(test.readCount("alice", "self")).toBe(initialAndTwoSaves);
+	expect(test.reads("alice", "self")).toEqual(["alice:self", "alice:self", "alice:self"]);
 });
 
 sessionStory.it("query registration and live coordination reject another registry", [], (test) => {

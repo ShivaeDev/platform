@@ -36,11 +36,7 @@ export const migrationHost = storyKit({
 		connections: () =>
 			Effect.gen(function* () {
 				const sql = yield* SqlClient.SqlClient;
-				const [row] = yield* sql<{ count: number }>`select count(*)::int as count from pg_stat_activity where application_name = ${state.table}`;
-				if (row === undefined) {
-					throw new Error("The database did not return a connection count");
-				}
-				return row.count;
+				return yield* sql<{ state: string }>`select state from pg_stat_activity where application_name = ${state.table}`;
 			}),
 		holdDisconnects: () =>
 			Effect.gen(function* () {

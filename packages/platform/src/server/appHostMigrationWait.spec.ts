@@ -7,19 +7,15 @@ import { withLive } from "@shivaedev/effect-test/withLive.ts";
 import { invalidLedger, migrationHost } from "#test/app-host/migrationStory.ts";
 import { pendingJobsSchema } from "#test/app-host/withJobsSchema.ts";
 
-const SUCCESSFUL_EXIT = 0;
-const WAITING_CONNECTIONS = 1;
-const NO_CONNECTIONS = 0;
-
 for (const ledger of ["missing", "pending"] as const) {
 	migrationHost.it(`starts after another process applies a migration with a ${ledger} ledger`, [], function* ({ start, migrate, lifecycle }) {
 		if (ledger === "pending") {
-			expect(yield* migrate(true)).toBe(SUCCESSFUL_EXIT);
+			expect(yield* migrate(true)).toBe(0);
 		}
 		const host = yield* start();
 		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
 		expect(lifecycle()).toEqual([]);
-		expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+		expect(yield* migrate()).toBe(0);
 		yield* host.advance("10 millis");
 		expect(yield* host.ping).toBe("pong");
 		expect(lifecycle()).toEqual(["started"]);
@@ -28,7 +24,7 @@ for (const ledger of ["missing", "pending"] as const) {
 }
 
 migrationHost.it("times out with the same MigrationError as check when the polling budget expires", [], function* ({ start, migrate, lifecycle }) {
-	expect(yield* migrate(true)).toBe(SUCCESSFUL_EXIT);
+	expect(yield* migrate(true)).toBe(0);
 	const checked = yield* start({ mode: "check" });
 	const checkExit = yield* checked.exit;
 	expect(Exit.isFailure(checkExit)).toBe(true);
@@ -62,7 +58,7 @@ migrationHost.it("times out with the same MigrationError as check when the polli
 });
 
 migrationHost.it("starts at once when the ledger is current", [], function* ({ start, migrate, lifecycle }) {
-	expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+	expect(yield* migrate()).toBe(0);
 	const host = yield* start();
 	expect(yield* host.next).toEqual({ _tag: "Ready" });
 	expect(yield* host.ping).toBe("pong");
@@ -91,7 +87,7 @@ migrationHost.it(
 		const shutdown = yield* Effect.gen(function* () {
 			const host = yield* start();
 			expect(yield* host.next).toEqual({ _tag: "Sleeping", millis: 10 });
-			expect(yield* connections()).toBe(WAITING_CONNECTIONS);
+			expect(yield* connections()).toEqual([{ state: "idle" }]);
 			const pending = yield* host.interrupt.pipe(Effect.forkChild);
 			yield* disconnects.disconnecting;
 			expect(pending.pollUnsafe()).toBeUndefined();
@@ -100,7 +96,7 @@ migrationHost.it(
 		yield* Fiber.join(shutdown.pending);
 		const exit = yield* shutdown.host.exit;
 		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		yield* withLive(eventually(connections().pipe(Effect.flatMap((count) => Effect.try(() => expect(count).toBe(NO_CONNECTIONS))))));
+		yield* withLive(eventually(connections().pipe(Effect.flatMap((rows) => Effect.try(() => expect(rows).toEqual([]))))));
 		expect(lifecycle()).toEqual([]);
 	},
 );
@@ -136,7 +132,7 @@ migrationHost.it(
 			host.migrationLogs()[0],
 			{ ...host.migrationLogs()[0], message: ["Still waiting for database migrations"] },
 		]);
-		expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+		expect(yield* migrate()).toBe(0);
 		yield* host.advance("975 millis");
 		expect(yield* host.ping).toBe("pong");
 		expect(host.migrationLogs().at(-1)).toMatchObject({ level: "Info", message: ["Database migrations current"] });

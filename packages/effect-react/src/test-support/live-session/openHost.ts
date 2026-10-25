@@ -10,8 +10,8 @@ import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { Notes, notes } from "./notes.ts";
 
 export async function openHost() {
-	const state: { active: number; lookups: number; reads: number; session: string | undefined; title: string } = {
-		active: 0,
+	const state: { active: string[]; lookups: number; reads: number; session: string | undefined; title: string } = {
+		active: [],
 		lookups: 0,
 		reads: 0,
 		session: "alice",
@@ -28,15 +28,17 @@ export async function openHost() {
 			return Option.map(Option.fromUndefinedOr(account), (id) => ({ user: { id } }));
 		});
 	}
-	const connected = Effect.acquireRelease(
-		Effect.sync(() => {
-			state.active += 1;
-		}),
-		() =>
+	function connected(id: string) {
+		return Effect.acquireRelease(
 			Effect.sync(() => {
-				state.active -= 1;
+				state.active.push(id);
 			}),
-	);
+			() =>
+				Effect.sync(() => {
+					state.active.splice(state.active.indexOf(id), 1);
+				}),
+		);
+	}
 	const handlers = Notes.toLayer(
 		Effect.gen(function* () {
 			const live = yield* makeLiveServer;
@@ -44,8 +46,8 @@ export async function openHost() {
 				"liveSession.$changes": ({ queries }) =>
 					Stream.unwrap(
 						Effect.gen(function* () {
-							yield* connected;
 							const { id } = yield* Identity;
+							yield* connected(id);
 							return live.stream(queryKeys(Notes.declaration.queries, queries), { scope: id });
 						}),
 					),
