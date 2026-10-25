@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 - 2026-10-25
+
+### Added
+
+- Repositories expose `count({ where })` with the same filters as `findMany`, returning a decoded number. Omit the filter to count every row; an empty table returns `0`.
+
 ## 0.16.0 - 2026-10-25
 
 ### Added

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-10-25
+
+### Breaking
+
+- Move `@shivaedev/effect-test/vitest.ts` to `@shivaedev/effect-test/makeEffectIt.ts`. Change imports to `@shivaedev/effect-test/makeEffectIt.ts`; the exported `makeEffectIt` function is unchanged.
+
 ## 0.7.2 - 2026-10-24
 
 ### Changed

@@ -3,77 +3,102 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+				"name": "effect-test-runner-module.md",
+				"text": "---\n\"@shivaedev/effect-test\": minor\n---\n\n### Breaking\n\n- Move `@shivaedev/effect-test/vitest.ts` to `@shivaedev/effect-test/makeEffectIt.ts`. Change imports to `@shivaedev/effect-test/makeEffectIt.ts`; the exported `makeEffectIt` function is unchanged.\n"
 			},
 			{
-				"name": "types-bivariant-module.md",
-				"text": "---\n\"@shivaedev/types\": minor\n---\n\n### Breaking\n\n- Move `@shivaedev/types/bivariant.ts` to `@shivaedev/types/Bivariant.ts`. Change imports to `@shivaedev/types/Bivariant.ts`; the exported `Bivariant` type is unchanged.\n"
+				"name": "quality-inline-story-traits.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Stop `tests/story-specs` from reporting inline trait calls inside a story kit registration as plain tests. Plain `it` and `test` registrations still report.\n"
+			},
+			{
+				"name": "repository-row-count.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repositories expose `count({ where })` with the same filters as `findMany`, returning a decoded number. Omit the filter to count every row; an empty table returns `0`.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.13.3",
+				"from": "0.13.4",
 				"name": "@shivaedev/create-app",
-				"to": "0.13.4"
+				"to": "0.13.5"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-changes-prisma",
-				"from": "0.5.3",
-				"name": "@shivaedev/effect-changes-prisma",
-				"to": "0.5.4"
+				"directory": "packages/effect-pg-boss",
+				"from": "0.16.2",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.16.3"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-contract",
-				"from": "0.11.0",
-				"name": "@shivaedev/effect-contract",
-				"to": "0.11.1"
+				"directory": "packages/effect-prisma",
+				"from": "0.10.3",
+				"name": "@shivaedev/effect-prisma",
+				"to": "0.10.4"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-sql",
+				"from": "0.16.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.17.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-test",
+				"from": "0.7.2",
+				"name": "@shivaedev/effect-test",
+				"to": "0.8.0"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-react",
-				"from": "0.12.3",
-				"name": "@shivaedev/effect-react",
-				"to": "0.12.4"
+				"directory": "packages/effect-test-sql",
+				"from": "0.8.6",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.8.7"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-trpc",
+				"from": "0.8.3",
+				"name": "@shivaedev/effect-trpc",
+				"to": "0.8.4"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/platform",
-				"from": "0.25.2",
+				"from": "0.25.3",
 				"name": "@shivaedev/platform",
-				"to": "0.25.3"
+				"to": "0.25.4"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/quality",
-				"from": "0.36.0",
+				"from": "0.36.1",
 				"name": "@shivaedev/quality",
-				"to": "0.36.1"
+				"to": "0.36.2"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/types",
-				"from": "0.2.1",
-				"name": "@shivaedev/types",
-				"to": "0.3.0"
+				"bump": "patch",
+				"directory": "packages/test-story",
+				"from": "0.18.2",
+				"name": "@shivaedev/test-story",
+				"to": "0.18.3"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.6",
+				"from": "0.30.7",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.7"
+				"to": "0.30.8"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.7",
+				"from": "0.17.8",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.8"
+				"to": "0.17.9"
 			}
 		]
 	}
