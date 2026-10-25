@@ -8,6 +8,7 @@ import { generatedRows } from "./generatedRows.ts";
 import { insertSelect } from "./insertSelect.ts";
 import { invoiceLines } from "./invoiceLines.ts";
 import { jsonReceipts } from "./jsonReceipts.ts";
+import { latestRuns } from "./latestRuns.ts";
 import { partialConflicts } from "./partialConflicts.ts";
 import { pullRequests } from "./pullRequests.ts";
 import { postgres } from "./sqlStory.ts";
@@ -77,5 +78,11 @@ export function hasInsertSelectRows() {
 export function hasPullRequests() {
 	return postgres.trait("schema", "pull requests store UTC revisions in typed columns", function* (engine) {
 		engine.pullRequests.set(yield* pullRequests);
+	});
+}
+
+export function hasLatestRuns() {
+	return postgres.trait("schema", "repositories have thousands of indexed runs per workflow", function* (engine) {
+		engine.latestRuns.set(yield* latestRuns);
 	});
 }
