@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { afterAll, expect } from "vitest";
-import { makeEffectIt } from "#vitest.ts";
+import { makeEffectIt } from "#makeEffectIt.ts";
 
 // Vitest retries `.fails` tests in the merge queue, so every attempt records its own events.
 const attempts: { readonly name: string; readonly closed: string[] }[] = [];

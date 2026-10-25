@@ -1,6 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { expect, it } from "vitest";
-import { makeEffectIt } from "#vitest.ts";
+import { makeEffectIt } from "#makeEffectIt.ts";
 
 class Connection extends Context.Service<Connection, string>()("@test/Connection") {}
 

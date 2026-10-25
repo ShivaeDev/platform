@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Clock, Context, Effect, Layer } from "effect";
-import { makeEffectIt } from "#vitest.ts";
+import { makeEffectIt } from "#makeEffectIt.ts";
 
 class Token extends Context.Service<Token, string>()("@test/EffectBodyToken") {}
 const { effectApp } = makeEffectIt({
