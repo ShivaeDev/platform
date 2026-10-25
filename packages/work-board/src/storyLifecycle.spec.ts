@@ -6,9 +6,9 @@ import type { BoardEngine } from "#test/storyEngine.ts";
 import { storyEngineStory } from "#test/storyEngineStory.ts";
 
 storyEngineStory.it(
-	"closes a delayed bundle page and server and retains the reader view after an assertion fails",
+	"closes the bundle page and server and retains the reader view after an assertion fails",
 	[],
-	function* ({ connected, createBoard, inspectBoard, openSlowReader, serveProject }) {
+	function* ({ connected, createBoard, inspectBoard, openReader, serveProject }) {
 		const lease: { engine?: BoardEngine } = {};
 		const exit = yield* Effect.gen(function* () {
 			const engine = yield* createBoard();
@@ -16,7 +16,7 @@ storyEngineStory.it(
 			engine.notes.write("question.md", inboxQuestion);
 			engine.path = "/_board/item/question.storage/";
 			yield* serveProject(engine);
-			yield* openSlowReader(engine);
+			yield* openReader(engine);
 			expect(connected(engine).page.document.body.textContent).toContain("Where should the project documents live?");
 			return yield* Effect.fail("the reader's assertion failed");
 		}).pipe(Effect.scoped, Effect.exit);

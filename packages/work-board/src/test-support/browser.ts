@@ -1,9 +1,9 @@
-import { Effect, type Scope } from "effect";
+import { Clock, Effect, type Scope } from "effect";
 import { Browser, type BrowserWindow } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
-import { type RunningBoard, rawGet } from "#test/board.ts";
-import { pageFetch } from "#test/pageFetch.ts";
-import type { RpcStream } from "#test/RpcStream.ts";
+import { type RunningBoard, rawGet } from "./board.ts";
+import { pageFetch } from "./pageFetch.ts";
+import type { RpcStream } from "./RpcStream.ts";
 
 export interface MermaidControl {
 	readonly calls: string[];
@@ -78,6 +78,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		yield* Effect.promise(async () => prepared);
 	}
 	page.content = html;
+	const deadline = (yield* Clock.currentTimeMillis) + 5000;
 	function opened() {
 		return (
 			(window.document.documentElement.dataset.boardReady || !ready)
@@ -85,8 +86,12 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 			&& window.document.querySelector("#primary-navigation[data-inbox-count]")
 		);
 	}
-	// The story's timeout interrupts startup and closes the browser's scope.
 	while (!opened()) {
+		if ((yield* Clock.currentTimeMillis) >= deadline) {
+			throw new Error(
+				`The React shell did not initialize: ${page.virtualConsolePrinter.readAsString()} · ${window.document.getElementById("doc")?.textContent}`,
+			);
+		}
 		yield* Effect.sleep("10 millis");
 	}
 
