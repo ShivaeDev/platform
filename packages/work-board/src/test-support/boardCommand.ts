@@ -11,7 +11,7 @@ export const boardCommand = Effect.fn("Story.boardCommand")(function* (engine: B
 		process.execPath,
 		[
 			"--conditions=source",
-			engine.cliEntry ?? fileURLToPath(new URL("../server/cli.ts", import.meta.url)),
+			engine.cliEntry ?? fileURLToPath(new URL("../../dist/server/cli.js", import.meta.url)),
 			engine.notes.root,
 			"--port",
 			"0",
