@@ -37,7 +37,7 @@ function splitOptions(options: number | EffectTestOptions | undefined): {
 }
 
 function makeFixtureIt<TLayer extends AnyTestLayer>(layer: TLayer) {
-	return effectIt.extend(FIXTURE_NAME, { scope: "worker" }, async ({}, { onCleanup }) => {
+	return effectIt.extend(FIXTURE_NAME, { scope: "file" }, async ({}, { onCleanup }) => {
 		const scope = Effect.runSync(Scope.make());
 		onCleanup(() => Effect.runPromise(Scope.close(scope, Exit.void)));
 

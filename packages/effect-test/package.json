@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/effect-test",
 	"version": "0.8.0",
-	"description": "Generic Effect Vitest runner with worker-scoped Layers and TestClock",
+	"description": "Generic Effect Vitest runner with file-scoped Layers and TestClock",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
