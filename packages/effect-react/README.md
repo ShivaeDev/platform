@@ -392,6 +392,60 @@ The editor's form is absent until its first row arrives. A different query atom 
 
 A successful create replaces its form with one at `initialValues`, keeping fields edited after submission began, including while an async schema decoded it. The next entry starts without the previous entry's displayed field errors. `created` holds the successful result as an `Option`.
 
+### One-shot create and edit
+
+Use `useCreate` when the app already has the opening values and needs one submission. Its `create` callback accepts any submission Effect, including an update command; `created` holds that Effect's successful result. Creation above and the query-free edit below use the same form lifecycle. No upsert or new form hook is needed: creation and update remain separate domain commands with explicit payloads.
+
+For this versioned example, the app's `save` command requires `{ id, expectedVersion, name, quantity }` and returns the row with its new `version`. It rejects a stale version with a tagged `Conflict` error. Reuse `InvoiceLineFields` and `Inputs` from above:
+
+```tsx
+import { Option } from "effect";
+import { useEffect, useState } from "react";
+import { useCreate } from "@shivaedev/effect-react/client/create.ts";
+
+type VersionedLine = {
+  readonly id: number;
+  readonly version: number;
+  readonly name: string;
+  readonly quantity: number;
+};
+
+export function OneShotEdit({ opening, onSaved }: {
+  readonly opening: VersionedLine;
+  readonly onSaved: (line: VersionedLine) => void;
+}) {
+  const [original] = useState(opening);
+  const edit = useCreate({
+    fields: InvoiceLineFields,
+    initialValues: { name: original.name, quantity: String(original.quantity) },
+    create: (values) => api.save.run({
+      id: original.id,
+      expectedVersion: original.version,
+      ...values,
+    }),
+    runtime: InvoiceLinesClient.runtime,
+  });
+  useEffect(() => {
+    if (Option.isSome(edit.created)) onSaved(edit.created.value);
+  }, [edit.created, onSaved]);
+  return (
+    <form onSubmit={(event) => { event.preventDefault(); edit.save(); }}>
+      <Inputs form={edit.form} />
+      {Option.isSome(edit.failure) && <p role="alert">
+        {edit.failure.value._tag === "Conflict"
+          ? "This line changed. Reopen it to use the latest version."
+          : "Could not save"}
+      </p>}
+      <button type="submit" disabled={edit.saving}>Save</button>
+    </form>
+  );
+}
+```
+
+The app captures the opening record once. Pass a stable `onSaved` callback to close the dialog, navigate or record a completion message; mount a new form for another opening. Domain data, including expected versions and any Undo payload, stays in the app. A conflict exposes `failure` and keeps the input. Field rejections stay on the submitted form until corrected; stale-rejection matching belongs to effect-form. Success uses `useCreate`'s normal reset to opening values while preserving input changed during submission, so `onSaved` owns what happens next rather than turning this into a continuing editor.
+
+Use `useEditor` for a continuing editor that subscribes to a record, merges refreshes and receives saved rows as its new baseline. Its `loaded` option supplies the initial row, usually from a route loader; it still requires `query` because the query owns identity, refresh and invalidation. Supplying `loaded` does not make an editor query-free. In either pattern effect-contract owns the command Effect and invalidation, effect-form owns submission and field errors, and effect-react exposes query state where a query exists.
+
 ### Hook configuration between renders
 
 `useCreate` calls the latest committed render's `create`, and `useEditor` calls its latest `save`. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. Inline callbacks may close over changing props or state without replacing the form or losing edits.

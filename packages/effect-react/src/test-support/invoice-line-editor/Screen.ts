@@ -6,9 +6,9 @@ import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 
-const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
+export const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
 type InvoiceLineFields = typeof InvoiceLineDraft.fields;
-function values(line: InvoiceLine) {
+export function values(line: InvoiceLine) {
 	return { name: line.name, quantity: String(line.quantity) };
 }
 
@@ -49,7 +49,15 @@ function saveStatus({ saving, dirty }: { readonly saving: boolean; readonly dirt
 	return dirty ? "Unsaved" : "Saved";
 }
 
-function InvoiceLineForm<E, TRuntimeError>({ editor, children }: { readonly editor: Saving<E, TRuntimeError>; readonly children?: ReactNode }) {
+export function InvoiceLineForm<E, TRuntimeError>({
+	editor,
+	children,
+	failureMessage = "Could not save",
+}: {
+	readonly editor: Saving<E, TRuntimeError>;
+	readonly children?: ReactNode;
+	readonly failureMessage?: string;
+}) {
 	return createElement(
 		"form",
 		{
@@ -60,7 +68,7 @@ function InvoiceLineForm<E, TRuntimeError>({ editor, children }: { readonly edit
 		},
 		createElement(Input<E, TRuntimeError>, { form: editor.form, name: "name" }),
 		createElement(Input<E, TRuntimeError>, { form: editor.form, name: "quantity" }),
-		Option.isSome(editor.failure) && createElement("p", { role: "alert" }, "Could not save"),
+		Option.isSome(editor.failure) && createElement("p", { role: "alert" }, failureMessage),
 		createElement("button", { type: "submit" }, "Save"),
 		createElement("p", { role: "status" }, saveStatus(editor)),
 		children,
@@ -74,9 +82,13 @@ export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly i
 		fields: InvoiceLineDraft,
 		query: api.get.query({ id }),
 		runtime,
-		save: (line) => api.save.run({ id, ...line }),
+		save: (line) => api.save.run({ expectedVersion: version, id, ...line }),
 		values,
 	});
+	const version: number = Option.getOrElse(
+		Option.map(editor.query.data, (line) => line.version),
+		() => 1,
+	);
 	const { query, form } = editor;
 	return createElement(
 		"section",

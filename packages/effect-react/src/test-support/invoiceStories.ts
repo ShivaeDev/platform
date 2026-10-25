@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { InvoiceLine } from "#test/invoice-line-editor/backend.ts";
-import { creating, editing, switching } from "./invoiceScreens.tsx";
+import { creating, editing, oneShot, switching } from "./invoiceScreens.tsx";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
@@ -94,5 +94,12 @@ export function invoiceSessions() {
 	return invoices.trait("screen", "Alice and Bob own separate invoice clients", function* ({ screen, state }) {
 		const root = yield* screen.open();
 		state.sessions = switching(root);
+	});
+}
+
+export function oneShotLine() {
+	return invoices.trait("screen", "a one-shot invoice form opens line 7 at version 3 without a query", function* ({ screen, state }) {
+		const root = yield* screen.open();
+		state.invoice = yield* Effect.promise(() => oneShot(root));
 	});
 }

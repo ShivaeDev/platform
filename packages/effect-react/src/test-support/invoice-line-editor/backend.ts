@@ -11,6 +11,7 @@ export class InvoiceLine extends Schema.Class<InvoiceLine>("InvoiceLine")({
 	id: Schema.Number,
 	name: Schema.String,
 	quantity: Schema.Number,
+	version: Schema.Number.pipe(Schema.withConstructorDefault(Effect.succeed(1))),
 }) {}
 export const InvoiceLineDraft = Schema.Struct({ name: InvoiceLine.fields.name, quantity: InvoiceLine.fields.quantity });
 export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable", {}) {}
@@ -27,8 +28,8 @@ const GetInvoiceLine = query("get", {
 });
 const SaveInvoiceLine = command("save", {
 	invalidates: ({ id }) => [invoiceLines.item(id)],
-	payload: { id: Schema.Number, ...InvoiceLineDraft.fields },
-	rejections: { InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
+	payload: { expectedVersion: Schema.Number, id: Schema.Number, ...InvoiceLineDraft.fields },
+	rejections: { Conflict: {}, InvoiceLineNotFound: {}, InvoiceLineRejected: fieldRejection(InvoiceLineDraft), Unavailable },
 	success: InvoiceLine,
 });
 const CreateInvoiceLine = command("create", {
@@ -95,10 +96,21 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 					return line === undefined ? GetInvoiceLine.reject.InvoiceLineNotFound() : Effect.succeed(line);
 				}),
 			),
-		"invoiceLines.save": ({ id, ...draft }) =>
+		"invoiceLines.save": ({ id, expectedVersion, ...draft }) =>
 			counted.pipe(
 				Effect.andThen(normalized(draft).pipe(Effect.catch((rejection) => SaveInvoiceLine.reject.InvoiceLineRejected(rejection)))),
-				Effect.flatMap((values) => stored(new InvoiceLine({ id, ...values }))),
+				Effect.flatMap((values) =>
+					Effect.gen(function* () {
+						const current = store.get(id);
+						if (!current) {
+							return yield* SaveInvoiceLine.reject.InvoiceLineNotFound();
+						}
+						if (current.version !== expectedVersion) {
+							return yield* SaveInvoiceLine.reject.Conflict();
+						}
+						return yield* stored(new InvoiceLine({ id, ...values, version: current.version + 1 }));
+					}),
+				),
 			),
 	});
 	const guard = Layer.succeed(Guard, (effect) =>
