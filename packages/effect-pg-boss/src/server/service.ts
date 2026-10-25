@@ -13,7 +13,7 @@ import { registerReleasedJobs } from "#internal/registerReleasedJobs.ts";
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
 	readonly deadLetteredJobs: <const TName extends string, const TPayload extends JobPayloadSchema>(
-		queue: QueueDefinition<TName, TPayload>,
+		queue: Pick<QueueDefinition<TName, TPayload>, "name" | "schema">,
 		options: JobPageOptions,
 	) => Effect.Effect<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
@@ -22,11 +22,11 @@ export interface PgBossService {
 		options?: NoInfer<TQueue["key"] extends undefined ? SendOptions : Omit<SendOptions, "singletonKey"> & { readonly singletonKey?: never }>,
 	) => Effect.Effect<Option.Option<string>, PgBossError | PgBossPayloadError, TPayload["EncodingServices"]>;
 	readonly failedJobs: <const TName extends string, const TPayload extends JobPayloadSchema>(
-		queue: QueueDefinition<TName, TPayload>,
+		queue: Pick<QueueDefinition<TName, TPayload>, "name" | "schema">,
 		options: JobPageOptions,
 	) => Effect.Effect<JobPage<ListedJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly getJob: <const TName extends string, const TPayload extends JobPayloadSchema>(
-		queue: QueueDefinition<TName, TPayload>,
+		queue: Pick<QueueDefinition<TName, TPayload>, "name" | "schema">,
 		id: string,
 	) => Effect.Effect<Option.Option<JobWithMetadata<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
 	readonly health: Effect.Effect<JobsHealth, PgBossError>;

@@ -43,7 +43,7 @@ function listJobs<const TName extends string, const TPayload extends JobPayloadS
 	client: PgBossClient,
 	schema: string,
 	listing: Listing,
-	queue: QueueDefinition<TName, TPayload>,
+	queue: Pick<QueueDefinition<TName, TPayload>, "name" | "schema">,
 	options: JobPageOptions,
 ): Effect.Effect<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]> {
 	return Effect.tryPromise({

@@ -572,10 +572,16 @@ importers:
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
+      '@shivaedev/effect-pg-boss':
+        specifier: workspace:*
+        version: link:../effect-pg-boss
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../platform
     devDependencies:
+      '@shivaedev/effect-test-sql':
+        specifier: workspace:*
+        version: link:../effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
