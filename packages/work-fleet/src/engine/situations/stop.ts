@@ -45,6 +45,10 @@ export const stopSituations = {
 		"The report worker published to GitHub, which a report task must not do.",
 		"Fleet cannot undo the publication. Stop here and check what was published.",
 	),
+	"report-revision": stopOnly(
+		"Fleet could not verify that the report researched the dispatched main revision or a descendant.",
+		"Stop here so the report can be prepared again on current main. Do not use the unverified findings as evidence.",
+	),
 	"report-too-large": stopOnly(
 		"The worker's report is too large for the Board.",
 		"Fleet cannot shorten a finished report. Stop here so a worker can write a shorter report.",

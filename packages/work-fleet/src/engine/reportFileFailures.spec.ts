@@ -10,10 +10,10 @@ for (const [scenario, cause] of [
 	engine.it(
 		`parks ${scenario} with the file and its cause`,
 		[reportFileFailure(scenario)],
-		function* ({ oversizeReportPayload, reportFailurePath, fleet, prepareWork, finishWorkers, launches }) {
+		function* ({ oversizeReportPayload, reportFailurePath, fleet, prepareWork, workerReports, launches }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
-			finishWorkers();
+			workerReports(`Findings.\nFLEET_HEAD: ${"a".repeat(40)}`);
 			if (scenario === "oversized-payload") {
 				yield* oversizeReportPayload();
 			}

@@ -92,7 +92,10 @@ export function makeLaunch(state: EngineState) {
 
 export function launchPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string): string {
 	const queuedPrompt = retryPrompt ?? prompt;
-	return withWorkerGuidance(record.deliverable === "report" && retryPrompt === undefined ? reportPrompt(queuedPrompt) : queuedPrompt, guidance);
+	return withWorkerGuidance(
+		record.deliverable === "report" && retryPrompt === undefined ? reportPrompt(queuedPrompt, record.preparation.baseRevision) : queuedPrompt,
+		guidance,
+	);
 }
 
 function answeredPrompt(record: FleetRecord, prompt: string, retryPrompt: string | undefined, guidance?: string) {

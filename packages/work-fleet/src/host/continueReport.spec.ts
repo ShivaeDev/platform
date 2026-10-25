@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { HEAD } from "#test/githubResult.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
@@ -8,7 +9,7 @@ host.it(
 	[boardWork({ "research.md": SOURCE })],
 	function* (daemon) {
 		const started = yield* daemon.dispatch("research");
-		daemon.finishTurn(started, "Original findings.");
+		daemon.finishTurn(started, `Original findings.\nFLEET_HEAD: ${HEAD}`);
 		const original = yield* daemon.reconcile("research");
 		expect(original.step).toBe("done");
 		const continued = yield* daemon.continue("research", "Check the remaining evidence");
@@ -24,7 +25,7 @@ host.it(
 		}
 		expect(receipt.sessionId).toBe(original.report?.receipt.sessionId);
 		expect(receipt.turnId).not.toBe(original.report?.receipt.turnId);
-		daemon.finishTurn(continued, "Updated findings.");
+		daemon.finishTurn(continued, `Updated findings.\nFLEET_HEAD: ${HEAD}`);
 		const completed = yield* daemon.reconcile("research");
 		expect(completed.step).toBe("done");
 		const report = completed.report;
@@ -33,7 +34,7 @@ host.it(
 		}
 		expect(report.receipt).toEqual(receipt);
 		expect(report.sourcePath).not.toBe(original.report?.sourcePath);
-		expect(daemon.readBoard(report.sourcePath).endsWith("Updated findings.")).toBe(true);
+		expect(daemon.readBoard(report.sourcePath).endsWith(`Updated findings.\nFLEET_HEAD: ${HEAD}`)).toBe(true);
 		expect(daemon.providerLaunches()).toHaveLength(1);
 	},
 );
