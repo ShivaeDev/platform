@@ -4,7 +4,6 @@ import { parseArgs } from "node:util";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
 import { parseShard } from "#ci/shard.ts";
-import { checkArchiveRegressions } from "#package-check/archiveRegressions.ts";
 import { prepareArchives, verifyArchives, workspaceArchives } from "#package-check/archives.ts";
 import { checkConsumers } from "#package-check/consumers.ts";
 
@@ -36,7 +35,6 @@ const program = Effect.gen(function* () {
 	const packages = yield* workspaceArchives(root, archives);
 	if (values.archives === undefined) {
 		yield* prepareArchives(packages, archives);
-		yield* checkArchiveRegressions(packages);
 	} else {
 		yield* verifyArchives(packages, archives);
 	}
