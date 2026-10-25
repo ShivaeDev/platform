@@ -32,7 +32,10 @@ describe("Fleet launch acknowledgement pacing", () => {
 					yield* TestClock.adjust("1 second");
 					return yield* Fiber.join(pass);
 				})).dispatched,
-			).toHaveLength(2);
+			).toMatchObject([
+				{ _tag: "Success", success: { value: { workId: "one" } } },
+				{ _tag: "Success", success: { value: { workId: "two" } } },
+			]);
 			yield* schedule();
 			expect(publishedDecisions()).toEqual([]);
 			yield* releaseTimingGate("acknowledgement");
@@ -60,7 +63,10 @@ describe("Fleet launch acknowledgement pacing", () => {
 						yield* TestClock.adjust("1 second");
 						return yield* Fiber.join(pass);
 					})).dispatched,
-				).toHaveLength(2);
+				).toMatchObject([
+					{ _tag: "Success", success: { value: { workId: "one" } } },
+					{ _tag: "Success", success: { value: { workId: "two" } } },
+				]);
 				const pending = (yield* fleet.get("one")).value;
 				expect(pending.attempts[0]).toMatchObject({ operationId: "operation-1", status: "submitting" });
 				expect(pending.attempts[0]?.receipt).toBeUndefined();
@@ -74,7 +80,7 @@ describe("Fleet launch acknowledgement pacing", () => {
 					expect(recovered.attempts[0]?.receipt).toEqual(operationReceipt("operation-1"));
 					expect(recovered.attempts[0]?.status).toBe("running");
 				}
-				expect(recovered.attempts).toHaveLength(1);
+				expect(recovered.attempts).toMatchObject([{ operationId: "operation-1" }]);
 				expect(executing(recovered)).toBe(true);
 				expect(launches()).toEqual(["operation-1", "operation-2"]);
 			},
@@ -100,7 +106,10 @@ describe("Fleet launch acknowledgement pacing", () => {
 					yield* TestClock.adjust("1 second");
 					return yield* Fiber.join(pass);
 				})).dispatched,
-			).toHaveLength(2);
+			).toMatchObject([
+				{ _tag: "Success", success: { value: { workId: "one" } } },
+				{ _tag: "Success", success: { value: { workId: "two" } } },
+			]);
 			expect((yield* fleet.get("two")).value.launchRetry).toBeDefined();
 			expect((yield* fleet.get("dependent")).value.attempts).toEqual([]);
 			expect(launches()).toEqual(["operation-1", "operation-2"]);
@@ -126,7 +135,10 @@ describe("Fleet launch acknowledgement pacing", () => {
 			yield* TestClock.adjust("500 millis");
 			yield* waitForStoredRecord("one", (record) => record.launchRetry !== undefined);
 			yield* TestClock.adjust("500 millis");
-			expect((yield* Fiber.join(pass)).dispatched).toHaveLength(2);
+			expect((yield* Fiber.join(pass)).dispatched).toMatchObject([
+				{ _tag: "Success", success: { value: { workId: "one" } } },
+				{ _tag: "Success", success: { value: { workId: "two" } } },
+			]);
 			expect((yield* fleet.get("dependent")).value.attempts).toEqual([]);
 			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
@@ -143,7 +155,7 @@ describe("Fleet launch acknowledgement pacing", () => {
 			yield* restart();
 			yield* schedule();
 			const accepted = (yield* fleet.get("one")).value;
-			expect(accepted.attempts).toHaveLength(2);
+			expect(accepted.attempts.map(({ operationId }) => operationId)).toEqual(["operation-1", "operation-2"]);
 			expect(accepted.attempts.at(-1)?.receipt).toEqual({ sessionId: rejected.attempts[0]?.sessionId, turnId: "turn-operation-2" });
 			expect(launches()).toEqual(["operation-1"]);
 		},

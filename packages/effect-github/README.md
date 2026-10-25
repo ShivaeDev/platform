@@ -135,6 +135,27 @@ const check = (headSha: string) => Effect.gen(function* () {
 });
 ```
 
+### Rendering untrusted text
+
+Use the pure helpers from `markdown.ts` for test names and error messages. `plainText` encodes ASCII punctuation as HTML entities, including HTML delimiters and link syntax, and adds a zero-width separator after `@` and `#` to prevent mentions and issue references. `codeSpan` chooses a backtick fence longer than any run in the input and flattens line endings to spaces. `tableCell` flattens line endings and protects pipes; pass `"code"` for a code span inside a table cell. Emoji are preserved.
+
+```ts
+import { tableCell } from "@shivaedev/effect-github/markdown.ts";
+import { renderRows } from "@shivaedev/effect-github/markdownRows.ts";
+
+const rows = failures.map(({ name, error }) =>
+  `| ${tableCell(name)} | ${tableCell(error, "code")} |`,
+);
+const summary = renderRows(rows, {
+  header: "| Test | Error |\n| --- | --- |",
+  byteLimit: 8_000,
+});
+```
+
+`renderRows` accepts already-rendered rows and a trusted Markdown header. It counts UTF-8 bytes, keeps a prefix of complete rows and, when rows are dropped, appends one `and N more` paragraph. The header and notice count toward the budget; rows, emoji and escapes are never sliced. The default budget is 60,000 bytes. A budget too small for the header and notice throws `RangeError`.
+
+Use the result as a sticky comment body or check-run summary. The budget covers the rendered body; account for any surrounding text, including the sticky comment marker, when choosing a lower total limit.
+
 ### Rate limits and failures
 
 `github.observations()` returns the latest `resource`, `limit`, `remaining`, `used` and UTC `reset` from response headers, including conditional and failed responses. Core and search budgets remain separate. A primary or secondary rate limit fails with `GitHubRateLimited` from `@shivaedev/effect-github/errors.ts`; its `retryAt` is a UTC `DateTime` usable directly by a job scheduler. Requests to a blocked resource fail locally until that instant. Each rate-limited failure records a log and span event with the request path and budget, excluding credentials and query strings.

@@ -20,6 +20,7 @@ isolatedEngine.it(
 		steeredPollTimes,
 		waitForStoredRecord,
 		advanceTime,
+		currentTime,
 		finishWorkers,
 		prepareWork,
 		restart,
@@ -30,6 +31,7 @@ isolatedEngine.it(
 		yield* fleet.dispatch("one");
 		finishWorkers();
 		yield* fleet.reconcile("one");
+		const rejectedAt = currentTime();
 		activateSteeredTurn();
 		const continuing = yield* fleet.continue("one", "Continue after the steered turn").pipe(Effect.forkChild);
 		yield* waitForSteeredTurn();
@@ -41,12 +43,15 @@ isolatedEngine.it(
 		expect(blocked.attentionOwner).toBe("automation");
 		expect(blocked.step).toBe("repairing");
 		expect(blocked.decision).toBeUndefined();
-		expect(blocked.launchRetry?.retryAt).toBe(30_100);
-		expect(blocked.attempts).toHaveLength(1);
-		expect(blocked.attempts[0]?.status).toBe("failed");
+		expect(blocked.launchRetry?.retryAt).toBe(rejectedAt + 30_000);
+		expect(blocked.attempts).toMatchObject([{ operationId: "operation-3", status: "failed" }]);
 		expect(blocked.attempts[0]?.receipt).toBeUndefined();
 		expect(executing(blocked)).toBe(false);
-		expect(steeredSubmissions()).toHaveLength(3);
+		expect(steeredSubmissions()).toMatchObject([
+			{ threadId: "session-operation-1" },
+			{ threadId: "session-operation-2" },
+			{ threadId: "session-operation-1" },
+		]);
 		expect(steeredPollTimes().slice(0, 2)).toEqual([0, 0]);
 		const intervals = steeredPollTimes()
 			.slice(2)

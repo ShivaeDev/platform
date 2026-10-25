@@ -47,7 +47,7 @@ for (const scenario of ["conflicting", "moved"] as const) {
 			expect(released.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published }]);
 			expect(acknowledgements()).toContainEqual({ decision: published, disposition: "superseded", recordedAt: expect.any(Number) });
 			expect(providerCalls()).toHaveLength(settings);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 			expect(reviewedHeads()).toEqual([HEAD]);
 			expect((yield* fleet.reconcile("one")).version).toBe(released.version);
 		},

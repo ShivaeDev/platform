@@ -70,7 +70,7 @@ for (const state of ["OPEN", "CLOSED"] as const) {
 			yield* restart();
 			yield* schedule();
 			expect((yield* fleet.get("one")).value.outcome).toEqual({ head: result.head, revision: "merge-revision", url: result.pr });
-			expect(reviewedHeads()).toHaveLength(1);
+			expect(reviewedHeads()).toEqual([result.head]);
 			expect(mergedHeads()).toEqual([]);
 		},
 	);
@@ -92,10 +92,10 @@ engine.it(
 		expect(waiting.decision).toEqual(ready.decision);
 		expect(waiting.result).toEqual(ready.result);
 		expect(waiting.mergeReadyHead).toBeUndefined();
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(publishedDecisions()).toEqual([ready.decision?.reason]);
 		yield* restart();
 		yield* schedule();
 		expect((yield* fleet.get("one")).value.decision).toEqual(ready.decision);
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(publishedDecisions()).toEqual([ready.decision?.reason]);
 	},
 );

@@ -22,7 +22,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 			}
 			expect(body).toContain("/api/auth/callback/github?code=<redacted>&state=<redacted>");
 			expect(body).toContain("https://blob.example/x?sv=<redacted>&sig=<redacted>&se=<redacted>");
-			expect(exports()).toHaveLength(1);
+			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			expect(exports()[0]?.contentType).toBe(protocol === "http/json" ? "application/json" : "application/x-protobuf");
 			expect(body).not.toContain("hidden-referer-fragment");
 			expect(body).toContain("http.request.header.referer");
@@ -45,7 +45,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 			const body = exports()
 				.map((exported) => exported.body)
 				.join("\n");
-			expect(exports()).toHaveLength(1);
+			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			expect(body).not.toContain("hidden-");
 			expect(body).toContain("https://<redacted>@example.test/path?unknown=<redacted>&unknown=<redacted>#<redacted>");
 			expect(body).toContain("/path?arbitrary=<redacted>#<redacted>");

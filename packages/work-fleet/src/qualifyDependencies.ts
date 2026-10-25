@@ -33,7 +33,9 @@ export const qualifyDependencies = Effect.fn("Fleet.qualifyDependencies")(functi
 	);
 	const blockers = unmet.filter((message) => message !== undefined);
 	if (blockers.length > 0) {
-		return yield* Effect.fail(withFailureContext(new Forbidden({ message: blockers.join("; ") }), { attentionOwner: "automation" }));
+		return yield* Effect.fail(
+			withFailureContext(new Forbidden({ message: blockers.join("; ") }), { attentionOwner: "automation", expectedWait: true }),
+		);
 	}
 });
 

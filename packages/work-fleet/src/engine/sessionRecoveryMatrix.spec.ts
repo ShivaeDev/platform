@@ -44,7 +44,10 @@ for (const action of ["retry", "release"] as const) {
 				}
 				if (action === "retry" && explanation !== undefined) {
 					expect(document).toContain(explanation);
-					expect(yield* rejectRetry()).toMatchObject({ _tag: "BadRequest", message: explanation });
+					expect(yield* rejectRetry()).toMatchObject({
+						_tag: "BadRequest",
+						message: "This decision only permits release; choose release to stop and hand back",
+					});
 					expect(yield* currentRecovery()).toEqual(before);
 					return;
 				}

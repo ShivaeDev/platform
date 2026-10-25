@@ -32,8 +32,9 @@ export interface EngineBudget {
 export const githubBudgetOptions = Effect.fn("FleetStory.githubBudgetOptions")(function* (
 	state: EngineStory,
 	mode: "delivery" | "limit" | "reserve",
+	remaining?: number,
 ) {
-	const github = budgetFixture(mode);
+	const github = budgetFixture(mode, remaining);
 	const api = Context.get(yield* Layer.build(github.layer), GithubApi);
 	state.budget = { api, github };
 	return {
@@ -75,10 +76,12 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 				github.reply(PR_ENDPOINT, budgetPullRequest(false));
 				const api = Context.get(yield* Layer.build(github.layer), GithubApi);
 				yield* api.get(PR_ENDPOINT);
-				const passes = { count: 0 };
-				const admit = Effect.sync(() => {
+				const passes: { count: number; records: { readonly workIds: readonly string[] }[] } = { count: 0, records: [] };
+				const admit = Effect.gen(function* () {
+					const records = yield* running(state).fleet.list();
 					passes.count += 1;
-				});
+					passes.records.push({ workIds: records.map(({ value }) => value.workId) });
+				}).pipe(Effect.orDie);
 				const pause = schedulerPause.pipe(Effect.provideService(GithubApi, api), Effect.provide(liveInterval(0.005)));
 				const scheduler = yield* Effect.scoped(run(pause, admit)).pipe(Effect.provideService(Fleet, running(state).fleet), Effect.forkChild);
 				return { passes, scheduler };
@@ -86,8 +89,8 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 	};
 }
 
-function budgetFixture(mode: "delivery" | "limit" | "reserve") {
-	const github = syntheticGithub({ remaining: { delivery: 5000, limit: 0, reserve: 1000 }[mode] });
+function budgetFixture(mode: "delivery" | "limit" | "reserve", remaining?: number) {
+	const github = syntheticGithub({ remaining: remaining ?? { delivery: 5000, limit: 0, reserve: 1000 }[mode] });
 	if (mode === "delivery") {
 		github.reply(PR_ENDPOINT, budgetPullRequest(false));
 	} else {

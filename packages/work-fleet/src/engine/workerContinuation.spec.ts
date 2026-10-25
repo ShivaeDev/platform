@@ -51,7 +51,7 @@ isolatedEngine.it(
 		yield* answerWorker(decision);
 		const blocked = yield* fleet.reconcile("one");
 		expect(blocked.value.step).toBe("waiting");
-		expect(blocked.value.blocker).toBe("Fresh available provider quota is required");
+		expect(blocked.value.blocker).toBe("Answer failed: Fresh available provider quota is required");
 		expect(blocked.value.attentionOwner).toBe("automation");
 		expect(blocked.value.responses ?? []).toHaveLength(0);
 		expect(
@@ -76,7 +76,7 @@ isolatedEngine.it(
 		const answer = yield* answerWorker(decision);
 		const blocked = (yield* fleet.reconcile("one")).value;
 		expect(blocked.attentionOwner).toBe("automation");
-		expect(blocked.blocker).toBe("execution capacity is occupied (limit 1)");
+		expect(blocked.blocker).toBe("Answer failed: execution capacity is occupied (limit 1)");
 		expect(blocked.responses ?? []).toHaveLength(0);
 		finishWorkers();
 		yield* fleet.reconcile("two");

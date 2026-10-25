@@ -13,19 +13,18 @@ for (const status of [400, 503, undefined]) {
 			}),
 			flushable(),
 		],
-		function* ({ ping, flush, close, logs }) {
+		function* ({ ping, flush, close, logs, exports }) {
 			expect(yield* ping()).toBe("pong");
 			yield* flush();
 			expect(yield* ping()).toBe("pong");
 			yield* flush();
 			yield* close();
 			const warnings = logs().filter(({ level }) => level === "Warn");
-			expect(warnings).toHaveLength(1);
-			expect(warnings[0]?.message).toEqual(["OTLP trace export failed"]);
+			expect(warnings).toMatchObject([{ message: ["OTLP trace export failed"] }]);
 			if (status === undefined) {
 				expect(warnings[0]?.annotations).toMatchObject({ "otlp.failure": "TransportError" });
 			} else {
-				expect(warnings[0]?.attempt).toBe(1);
+				expect(exports().slice(0, warnings[0]?.attempt)).toMatchObject([{ path: "/v1/traces" }]);
 				expect(warnings[0]?.annotations).toMatchObject({ "otlp.response": "Unsupported content type; token=<redacted>", "otlp.status": status });
 			}
 			expect(JSON.stringify(logs())).not.toContain("hidden-");

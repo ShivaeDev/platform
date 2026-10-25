@@ -8,7 +8,7 @@ for (const failure of [false, true]) {
 	isolatedEngine.it(
 		`reconciliation during brief steering preserves one delivery and its evidence: failure=${failure}`,
 		[markdownWork(), pausedSteer(failure)],
-		function* ({ boardBrief, writeBoardWork, steerCalls, waitForTimingGate, releaseTimingGate, prepareWork, fleet }) {
+		function* ({ boardBrief, writeBoardWork, steerRequests, waitForTimingGate, releaseTimingGate, prepareWork, fleet }) {
 			const source = boardBrief();
 
 			yield* prepareWork("one");
@@ -22,7 +22,9 @@ for (const failure of [false, true]) {
 			expect(approved.version).toBeGreaterThan(observed.version);
 			expect(approved.value.step).toBe("working");
 			expect(approved.value.attempts[0]?.briefSteers).toEqual([expect.objectContaining(failure ? { error: "Steer failed" } : { steeredAt: 100 })]);
-			expect(steerCalls()).toBe(1);
+			expect(steerRequests()).toMatchObject([
+				{ prompt: expect.stringContaining("Full new brief:"), receipt: { sessionId: "session-operation-1", turnId: "turn-operation-1" } },
+			]);
 		},
 	);
 }

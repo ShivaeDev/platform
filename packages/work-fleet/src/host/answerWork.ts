@@ -94,7 +94,7 @@ const publishAnswer = Effect.fn("FleetHost.publishAnswer")(function* <E, R>(
 	const responseId = yield* recordDecisionResponse(
 		host.boardDir,
 		{ ...decision, published: decision.published },
-		release ? "release" : "retry",
+		release || (decision.worker === undefined && text.trim() === "release") ? "release" : "retry",
 		text,
 		(selectedId) => beforePublish?.({ decisionId: decision.id, responseId: selectedId }) ?? Effect.void,
 	).pipe(

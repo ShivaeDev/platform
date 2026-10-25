@@ -9,13 +9,13 @@ import { observableBriefSteering } from "#test/observableBriefSteering.ts";
 
 for (const failure of [false, true]) {
 	{
-		let calls = 0;
+		const calls: { receipt: { sessionId: string; turnId: string }; prompt: string }[] = [];
 		const observableBriefSteeringTrait = engineConfiguration(
 			"observable brief steering",
 			observableBriefSteering({
 				failure: () => failure,
-				recordSteer: () => {
-					calls += 1;
+				recordSteer: (receipt, prompt) => {
+					calls.push({ prompt, receipt });
 				},
 			}),
 		);
@@ -51,19 +51,25 @@ for (const failure of [false, true]) {
 				yield* restart();
 				yield* fleet.reconcile("one");
 				yield* fleet.reconcile("one");
-				expect(calls).toBe(1);
+				expect(calls).toMatchObject([{ prompt: expect.stringContaining(current), receipt: worker.value.attempts[0]?.receipt }]);
 				writeBoardWork("one.md", original);
 				yield* fleet.reconcile("one");
 				writeBoardWork("one.md", current);
 				yield* fleet.reconcile("one");
-				expect(calls).toBe(2);
+				expect(calls).toMatchObject([
+					{ prompt: expect.stringContaining(current), receipt: worker.value.attempts[0]?.receipt },
+					{ prompt: expect.stringContaining(original), receipt: worker.value.attempts[0]?.receipt },
+				]);
 				finishWorkers();
 				const reviewing = yield* fleet.reconcile("one");
 				expect(reviewing.value.step).toBe("reviewing");
 				expect(reviewing.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
 				writeBoardWork("one.md", `${current}\nChanged during review.\n`);
 				yield* fleet.reconcile("one");
-				expect(calls).toBe(2);
+				expect(calls).toMatchObject([
+					{ prompt: expect.stringContaining(current), receipt: worker.value.attempts[0]?.receipt },
+					{ prompt: expect.stringContaining(original), receipt: worker.value.attempts[0]?.receipt },
+				]);
 			},
 		);
 	}

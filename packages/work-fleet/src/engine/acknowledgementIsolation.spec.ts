@@ -26,11 +26,11 @@ engine.it(
 		expect(renewed.value.history?.[0]?.decision).toMatchObject({ boardAcknowledgementDisposition: "superseded", id: reassigned.value.decision?.id });
 		expect(renewed.value.blocker).toBeUndefined();
 		expect(pendingAcknowledgements(renewed.value)).toEqual([]);
-		const attempts = acknowledgementAttempts().length;
+		const attempts = acknowledgementAttempts();
 		yield* restart();
 		const restarted = yield* fleet.reconcile("one");
 		expect(restarted.version).toBe(renewed.version);
-		expect(acknowledgementAttempts()).toHaveLength(attempts);
+		expect(acknowledgementAttempts()).toEqual(attempts);
 		expect(acknowledgements()).toHaveLength(0);
 	},
 );
@@ -56,14 +56,12 @@ engine.it(
 		expect(applied.value.history?.[0]?.decisionAcknowledged).toBeUndefined();
 		expect(applied.value.blocker).toContain(previous.published?.questionId);
 		expect(applied.value.blocker).toContain("Historical question unavailable");
-		expect(acknowledgements()).toHaveLength(1);
-		expect(acknowledgements()[0]).toMatchObject({ disposition: "applied", responseId });
+		expect(acknowledgements()).toMatchObject([{ decision: pending.value.decision?.published, disposition: "applied", responseId }]);
 		yield* restart();
 		const repeated = yield* fleet.resolve("one", currentId, responseId);
-		expect(repeated.value.responses).toHaveLength(1);
-		expect(repeated.value.responses?.[0]?.boardAcknowledged).toBe(true);
+		expect(repeated.value.responses).toMatchObject([{ boardAcknowledged: true, responseId }]);
 		expect(repeated.value.history?.[0]?.decisionAcknowledged).toBeUndefined();
-		expect(acknowledgements()).toHaveLength(1);
-		expect(launches()).toHaveLength(2);
+		expect(acknowledgements()).toMatchObject([{ decision: pending.value.decision?.published, disposition: "applied", responseId }]);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );

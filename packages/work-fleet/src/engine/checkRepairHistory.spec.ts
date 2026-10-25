@@ -32,7 +32,12 @@ engine.it(
 		const repairing = yield* fleet.reconcile("one");
 		expect(repairing.value.step).toBe("working");
 		expect(repairing.value.attempts.at(-1)?.checkFailures).toEqual(["build"]);
-		expect(repairing.value.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(4);
+		expect(repairing.value.attempts.filter((attempt) => attempt.role === "repair").map(({ operationId }) => operationId)).toEqual([
+			"operation-3",
+			"operation-4",
+			"operation-5",
+			"operation-6",
+		]);
 		expect(publishedDecisions()).toHaveLength(0);
 	},
 );
@@ -52,7 +57,12 @@ engine.it(
 		finishWorkers();
 		const stopped = yield* fleet.reconcile("one");
 		expect(stopped.value.step).toBe("waiting");
-		expect(stopped.value.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(4);
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(stopped.value.attempts.filter((attempt) => attempt.role === "repair").map(({ operationId }) => operationId)).toEqual([
+			"operation-3",
+			"operation-5",
+			"operation-6",
+			"operation-7",
+		]);
+		expect(publishedDecisions()).toEqual([stopped.value.decision?.reason]);
 	},
 );

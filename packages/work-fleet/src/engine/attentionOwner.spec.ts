@@ -16,7 +16,7 @@ for (const owner of ["orchestrator", "maintainer"] as const) {
 		expect(waiting.value.decision?.attentionOwner).toBe(owner);
 		yield* restart();
 		expect((yield* fleet.get("one")).value.attentionOwner).toBe(owner);
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 	});
 }
 
@@ -80,7 +80,7 @@ engine.it(
 		expect(reassigned.decision?.worker).toEqual(old.decision.worker);
 		expect(archivedSessions()).toEqual([]);
 		expect(reassigned.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: old.published }]);
-		expect((yield* rpcViews()).waiting.maintainer).toHaveLength(1);
+		expect((yield* rpcViews()).waiting.maintainer).toMatchObject([{ decision: { id: reassigned.decision?.id }, workId: "one" }]);
 		expect((yield* rpcViews()).waiting.orchestrator).toHaveLength(0);
 		expect(yield* fleet.resolve("one", old.decision.id, oldAnswer.id).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 		const decision = reassigned.decision;
@@ -93,8 +93,12 @@ engine.it(
 		const resumed = yield* restarted.resolve("one", decision.id, answer.id);
 		expect(resumed.value.step).toBe("working");
 		expect(resumed.value.attentionOwner).toBeUndefined();
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 		expect(archivedSessions()).toEqual([]);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(["operation-1", "operation-2"]);
 	},
 );

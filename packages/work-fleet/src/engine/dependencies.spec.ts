@@ -56,6 +56,6 @@ engine.it(
 		yield* prepareWork("dependent");
 		yield* fleet.dispatch("dependent").pipe(Effect.flip);
 		expect((yield* fleet.get("dependent")).value.blocker).toContain("criterion-specific accepted evidence");
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );

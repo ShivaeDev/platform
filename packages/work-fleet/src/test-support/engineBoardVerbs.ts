@@ -33,7 +33,7 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 		boardReceiptRecords: () =>
 			files()
 				.receipts()
-				.map((path) => metadataParse(files().read(path)).fields.requestReceipt),
+				.map((file) => metadataParse(files().read(file)).fields.requestReceipt),
 		boardReceipts: () => files().receipts(),
 		editBoardAtCompletion: (text: string) => {
 			state.completionEdit = () => write("one.md", text);

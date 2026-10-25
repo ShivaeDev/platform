@@ -29,13 +29,13 @@ for (const role of ["worker", "repair"] as const) {
 				expect(parked.decision?.reason).toContain("provider read failure after 5 attempts");
 				expect(parked.step).toBe("waiting");
 				expect(executing(parked)).toBe(true);
-				expect(parked.attempts).toHaveLength(1);
+				expect(parked.attempts).toMatchObject([{ operationId: "operation-1", role }]);
 				expect(parked.launchRetry).toBeUndefined();
 				now += 1_000_000;
 				yield* restart();
 				yield* schedule();
 				expect((yield* fleet.get("one")).value.attempts).toEqual(parked.attempts);
-				expect(publishedDecisions()).toHaveLength(1);
+				expect(publishedDecisions()).toEqual([parked.decision?.reason]);
 			},
 		);
 	}

@@ -51,7 +51,7 @@ for (const [field, source] of [
 				expect(resolved.value.decision).toBeUndefined();
 				expect(resolved.value.attempts).toEqual(waiting.value.attempts);
 				expect((yield* fleet.reconcile("dependent")).value.step).toBe("done");
-				expect(launches()).toHaveLength(4);
+				expect(launches()).toEqual(["operation-1", "operation-2", "operation-3", "operation-4"]);
 			},
 		);
 	}

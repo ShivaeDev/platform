@@ -36,7 +36,12 @@ export function makeHuman(state: EngineState) {
 			Effect.catch((error) =>
 				Effect.gen(function* () {
 					if (isFleetError(error) || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota) {
-						return yield* state.save(stored, { ...stored.value, attentionOwner: failureOwner(error), blocker: failureMessage(error) });
+						yield* Effect.logError(`Failed to apply answer for ${stored.value.workId}`, error);
+						return yield* state.save(stored, {
+							...stored.value,
+							attentionOwner: failureOwner(error),
+							blocker: `Answer failed: ${failureMessage(error)}`,
+						});
 					}
 					return yield* Effect.fail(error);
 				}),

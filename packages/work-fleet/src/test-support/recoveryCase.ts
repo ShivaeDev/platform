@@ -22,6 +22,8 @@ export interface RecoveryCase {
 		readonly requests?: number;
 		readonly reads?: number;
 		readonly deliveries?: number;
+		readonly acceptedDeliveries?: readonly { readonly head: string; readonly revision: string; readonly url: string }[];
+		readonly readPullRequests?: readonly string[];
 		readonly publications?: number;
 		readonly publicationReceipts?: readonly BoardReport[];
 		readonly published?: boolean | undefined;
