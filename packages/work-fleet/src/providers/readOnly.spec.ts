@@ -43,18 +43,15 @@ for (const provider of ["local", "cloud"] as const) {
 					verdict: "approved",
 				});
 			});
-			const evidenceReadCommands = 5;
+			const evidenceReadCommands = 2;
 			expect(review.commands()).toHaveLength(evidenceReadCommands);
 			for (const command of review.commands()) {
 				expect(command).toMatchObject({ _tag: "StandardCommand", command: "gh" });
 				if (command._tag !== "StandardCommand") {
 					throw new Error("Reviewer issued a compound command");
 				}
-				expect(
-					command.args[0] === "pr"
-						? ["view", "diff"].includes(command.args[1] ?? "")
-						: command.args.slice(0, 4).join(" ") === "api --include --method GET",
-				).toBe(true);
+				expect(command.args[0]).toBe("pr");
+				expect(["view", "diff"]).toContain(command.args[1]);
 			}
 			const start = requests.find((request) => request.method === "thread/start")?.params;
 			expect(start).toMatchObject(

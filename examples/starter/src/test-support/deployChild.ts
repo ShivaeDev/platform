@@ -40,6 +40,8 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	);
 	const started = yield* Deferred.make<string, Error>();
 	const waitingForSchema = yield* Deferred.make<void, Error>();
+	const paused = yield* Deferred.make<void, Error>();
+	const resumed = yield* Deferred.make<void, Error>();
 	const logs: string[] = [];
 	const errors: string[] = [];
 	yield* child.stdout.pipe(
@@ -48,6 +50,12 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 		Stream.runForEach((line) =>
 			Effect.gen(function* () {
 				logs.push(line);
+				if (line.includes("Workers paused")) {
+					yield* Deferred.succeed(paused, undefined);
+				}
+				if (line.includes("Workers resumed")) {
+					yield* Deferred.succeed(resumed, undefined);
+				}
 				if (line.includes("Waiting for database migrations")) {
 					yield* Deferred.succeed(waitingForSchema, undefined);
 				}
@@ -81,7 +89,9 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 		child,
 		errors,
 		logs,
+		paused: Deferred.await(paused).pipe(Effect.timeout("20 seconds")),
 		ready: (kind === "web" ? Effect.raceFirst(healthy, Deferred.await(started)) : Deferred.await(started)).pipe(Effect.timeout("20 seconds")),
+		resumed: Deferred.await(resumed).pipe(Effect.timeout("20 seconds")),
 		url: address,
 		waitingForSchema: Deferred.await(waitingForSchema).pipe(Effect.timeout("20 seconds")),
 	};

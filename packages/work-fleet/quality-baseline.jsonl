@@ -165,7 +165,6 @@
 {"path":"packages/work-fleet/src/host/dispatchTimeout.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/work-fleet/src/host/freshRetry.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/host/githubCli.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/work-fleet/src/host/githubRateLimit.ts","rule":"boundaries/http-status","count":1}
 {"path":"packages/work-fleet/src/host/githubRateLimits.spec.ts","rule":"tests/named-values","count":11}
 {"path":"packages/work-fleet/src/host/githubResultCli.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/work-fleet/src/host/githubResultFailures.spec.ts","rule":"tests/named-values","count":2}

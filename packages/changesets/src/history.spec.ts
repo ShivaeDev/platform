@@ -74,7 +74,7 @@ for (const action of ["delete", "edit"] as const) {
 		if (action === "delete") {
 			yield* remove(".changeset/feature.md");
 		} else {
-			yield* change("feature", { [CORE]: "patch" });
+			yield* change("feature", { [CORE]: "patch" }, "### Fixed\n\n- A fix.\n");
 		}
 		const result = yield* cli("check");
 		expect(result.status).toBe(1);

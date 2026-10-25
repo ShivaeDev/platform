@@ -56,6 +56,10 @@ const database = appDatabase({
 
 The component uses `installPgBossSchema` as its only install and upgrade path. It is pending when the schema is missing or its stored version is below the installed pg-boss package's required schema version; the readiness error names the schema and both versions (`missing` for an absent version). Start every producer and worker with the same schema and `migrate: false`. Use host mode `"wait"` for services that must wait for a deployment's migration process; no additional jobs-layer wait is needed.
 
+With Platform's `appDatabase({ migrations: { mode: "wait", release, ... } })`, each jobs Layer automatically reads effect-sql's optional `WorkerRelease` Context service. When the database belongs to another release, it calls pg-boss `offWork` for every registered worker queue, lets active jobs finish, logs `Workers paused for another database release` once, and idles. Producers and enqueueing continue. When its release owns the marker again and old workers have drained, it registers workers through the normal path and logs `Workers resumed for database release`. Equality permits rollbacks; no version ordering or payload compatibility policy is added. With no service, registration behaves as before.
+
+A worker keeps its effect-sql heartbeat row live while draining; the owning release waits for all other live releases to step aside. A crashed worker stops blocking once its heartbeat is older than five polling intervals. Set an explicit queue `expireInSeconds` and a `stop: { graceful: true, timeout }` long enough to cover it. Scope shutdown on SIGTERM waits for the native pg-boss stop before releasing application dependencies. Give the host's termination grace a margin beyond that timeout; the starter uses 60-second expiry, 65-second stop and 75-second Railway draining.
+
 `installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
 
 ```ts

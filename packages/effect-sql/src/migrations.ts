@@ -2,6 +2,7 @@ import { Duration, Effect, Option } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import { advisoryXactLock } from "./advisoryXactLock.ts";
+import { postgresRelease } from "./postgresRelease.ts";
 import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
 import { transact } from "./transact.ts";
 
@@ -9,6 +10,7 @@ export interface PostgresMigrationOptions<R> {
 	readonly components?: readonly SchemaComponent<R>[];
 	readonly loader: Migrator.Loader<R>;
 	readonly lockTimeout: Duration.Input;
+	readonly release?: string;
 	readonly table?: string;
 }
 
@@ -19,6 +21,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 	components = [],
 	table = "effect_sql_migrations",
 	lockTimeout,
+	release,
 }: PostgresMigrationOptions<R>) {
 	const sql = yield* SqlClient.SqlClient;
 	const available = yield* Effect.serviceOption(Reactivity.Reactivity);
@@ -48,7 +51,7 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 		}
 		return yield* migrate({ loader: Effect.succeed(current), table });
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.provideService(Reactivity.Reactivity, reactivity));
-	for (const component of components) {
+	for (const component of [...components, ...(release === undefined ? [] : [postgresRelease(release, table)])]) {
 		yield* runSchemaComponent(component.name, component.apply);
 	}
 	return appliedMigrations;

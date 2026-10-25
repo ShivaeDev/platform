@@ -40,8 +40,8 @@ export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (
 		url.pathname = `${url.pathname.replace(/\/$/u, "")}/graphql`;
 	}
 	const [owner, name] = options.repository.split("/");
-	const response = yield* http.post(url.href, options.token, { query, variables: { name, number: snapshot.number, owner } });
-	const body = yield* Schema.decodeUnknownEffect(QueueResponse)(response.body).pipe(
+	const response = yield* http.post(url.href, { query, variables: { name, number: snapshot.number, owner } });
+	const body = yield* Schema.decodeUnknownEffect(QueueResponse)(response).pipe(
 		Effect.mapError(() => new WatchError({ message: "Invalid GitHub queue confirmation" })),
 	);
 	const pr = body.data?.repository?.pullRequest;

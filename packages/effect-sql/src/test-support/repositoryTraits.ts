@@ -5,6 +5,7 @@ import { compositeReadings } from "./compositeReadings.ts";
 import { conflictAccounts } from "./conflictAccounts.ts";
 import { constrainedItems } from "./constrainedItems.ts";
 import { generatedRows } from "./generatedRows.ts";
+import { groupedResults } from "./groupedResults.ts";
 import { insertSelect } from "./insertSelect.ts";
 import { invoiceLines } from "./invoiceLines.ts";
 import { jsonReceipts } from "./jsonReceipts.ts";
@@ -84,5 +85,11 @@ export function hasPullRequests() {
 export function hasLatestRuns() {
 	return postgres.trait("schema", "repositories have thousands of indexed runs per workflow", function* (engine) {
 		engine.latestRuns.set(yield* latestRuns);
+	});
+}
+
+export function hasGroupedResults() {
+	return postgres.trait("schema", "test results have typed report columns", function* (engine) {
+		engine.groupedResults.set(yield* groupedResults);
 	});
 }

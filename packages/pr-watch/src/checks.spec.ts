@@ -51,3 +51,15 @@ watch.it("a failed later checks page retains the last successful snapshot", [], 
 	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 	expect(h.events()).toEqual([]);
 });
+
+watch.it("a cross-origin next page fails without sending credentials or inferring failed checks", [], function* (h) {
+	yield* h.poll;
+	h.reply("/commits/sha1/check-runs?per_page=100&filter=latest", {
+		body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
+		headers: { link: '<https://other.example/checks?page=2>; rel="next"' },
+	});
+	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
+	expect(h.io.urls.every((url) => url.startsWith(h.options.apiUrl))).toBe(true);
+	expect(h.events()).toEqual([]);
+	expect((yield* h.saved()).prs["1"]?.failed).toBe(false);
+});

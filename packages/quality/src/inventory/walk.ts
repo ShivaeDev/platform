@@ -2,7 +2,7 @@ import { dirname, join, relative, sep } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { FilesystemFailure, orWhenAbsent, readOptionalText } from "./filesystem.ts";
 import { emptyScope, type IgnoreScope, insideKept, verdictFor, withIgnoreFile } from "./ignoreScope.ts";
-import { trackedPaths } from "./trackedPaths.ts";
+import { ignoredPaths, trackedPaths } from "./trackedPaths.ts";
 
 const SKIPPED = new Set([".git", ".worktrees", "node_modules"]);
 
@@ -10,27 +10,39 @@ export function ignoreScopeAt(
 	dir: string,
 	inherited: IgnoreScope = emptyScope,
 ): Effect.Effect<IgnoreScope, FilesystemFailure, FileSystem.FileSystem> {
+	if (inherited.ignored !== undefined) {
+		return Effect.succeed(inherited);
+	}
 	return Effect.map(readOptionalText(join(dir, ".gitignore")), (contents) =>
 		contents === undefined || contents === "" ? inherited : withIgnoreFile(inherited, dir, contents),
 	);
 }
 
-// The walk itself never visits the directories between the root and a source, so their ignore files are read here.
-export function scopeAbove(root: string, dir: string): Effect.Effect<IgnoreScope, FilesystemFailure, FileSystem.FileSystem> {
+export const scopeAbove = Effect.fnUntraced(function* (
+	root: string,
+	dir: string,
+): Effect.fn.Return<IgnoreScope, FilesystemFailure, FileSystem.FileSystem> {
+	const ignored = yield* Effect.tryPromise({
+		catch: (cause) => new FilesystemFailure({ message: `cannot list ignored files in ${dir}: ${String(cause)}`, path: dir }),
+		try: () => ignoredPaths(dir),
+	});
+	if (ignored !== undefined) {
+		return { ...emptyScope, ignored: new Set(ignored) };
+	}
 	const parts = relative(root, dir)
 		.split(sep)
 		.filter((part) => part !== "");
 	const ancestors = parts.length === 0 ? [] : [root, ...parts.slice(0, -1).map((_, index) => join(root, ...parts.slice(0, index + 1)))];
-	return Effect.reduce(
+	return yield* Effect.reduce(
 		ancestors,
 		() => emptyScope,
 		(scope, ancestor) => (verdictFor(scope, ancestor, true) === "ignored" ? Effect.succeed(scope) : ignoreScopeAt(ancestor, scope)),
 	);
-}
+});
 
 export const walk = Effect.fnUntraced(function* (
 	dir: string,
-	inherited: IgnoreScope = emptyScope,
+	inherited?: IgnoreScope,
 ): Effect.fn.Return<readonly string[], FilesystemFailure, FileSystem.FileSystem> {
 	const fs = yield* FileSystem.FileSystem;
 	if ((yield* orWhenAbsent<FileSystem.File.Info | undefined>(dir, fs.stat(dir), undefined)) === undefined) {
@@ -46,7 +58,7 @@ export const walk = Effect.fnUntraced(function* (
 			tracked.add(folder);
 		}
 	}
-	return yield* walkDirectory(dir, inherited, tracked);
+	return yield* walkDirectory(dir, inherited ?? (yield* scopeAbove(dir, dir)), tracked);
 });
 
 const walkDirectory = Effect.fnUntraced(function* (

@@ -5,6 +5,7 @@ import { Effect } from "effect";
 import { productionParts } from "#host/commands.ts";
 import { loadHost } from "#host/configFile.ts";
 import { serveFleet } from "#host/daemon.ts";
+import { syntheticGithub } from "#test/githubApi.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 
 const configFile = process.argv[2];
@@ -16,6 +17,7 @@ await Effect.runPromise(
 		const host = yield* loadHost(dirname(configFile), configFile);
 		const parts = {
 			...productionParts(host),
+			github: syntheticGithub().layer,
 			main: fixedMainSource(),
 		};
 		return yield* serveFleet(host, parts, 0);

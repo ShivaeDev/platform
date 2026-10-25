@@ -27,22 +27,27 @@ releasePullRequest.it(
 	},
 );
 
-releasePullRequest.it("later main pushes regenerate the same PR with the latest plan", [], function* ({ pushMain, run, git, readGitHub, check }) {
-	yield* pushMain(".changeset/draft.md", PENDING);
-	yield* run();
-	const previous = yield* git("rev-parse", "origin/release/next");
-	yield* pushMain(".changeset/another.md", '---\n"@shivaedev/create-app": minor\n---\n\n### Added\n\n- Choose an app name.\n');
-	yield* run();
-	expect(yield* git("rev-parse", "origin/release/next")).not.toBe(previous);
-	expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
-	expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.15.1"');
-	yield* check();
-	const received = yield* readGitHub();
-	expect(received.created).toBe(1);
-	expect(received.title).toContain("0.10.0");
-	expect(received.body).toContain("- Keep a saved draft.");
-	expect(received.body).toContain("- Choose an app name.");
-});
+releasePullRequest.it(
+	"later main pushes regenerate a PR waiting for approval with the latest plan",
+	[],
+	function* ({ pushMain, run, git, readGitHub, check, setCiRun }) {
+		yield* pushMain(".changeset/draft.md", PENDING);
+		yield* run();
+		yield* setCiRun("completed", "action_required");
+		const previous = yield* git("rev-parse", "origin/release/next");
+		yield* pushMain(".changeset/another.md", '---\n"@shivaedev/create-app": minor\n---\n\n### Added\n\n- Choose an app name.\n');
+		yield* run();
+		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(previous);
+		expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
+		expect(yield* git("show", "origin/release/next:packages/platform/package.json")).toContain('"version": "0.15.1"');
+		yield* check();
+		const received = yield* readGitHub();
+		expect(received.created).toBe(1);
+		expect(received.title).toContain("0.10.0");
+		expect(received.body).toContain("- Keep a saved draft.");
+		expect(received.body).toContain("- Choose an app name.");
+	},
+);
 
 releasePullRequest.it(
 	"queued release PRs retain their branch and metadata even with new pending changes",
@@ -54,7 +59,7 @@ releasePullRequest.it(
 		const before = yield* readGitHub();
 		const head = yield* git("rev-parse", "origin/release/next");
 		yield* pushMain(".changeset/next.md", PENDING);
-		expect(yield* run()).toBe("queued");
+		expect(yield* run()).toBe("held: merge queue");
 		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
 		const after = yield* readGitHub();
 		expect(after.body).toBe(before.body);

@@ -13,12 +13,14 @@ export interface RateLimitObservation {
 export function rateLimits() {
 	const observations = new Map<string, RateLimitObservation>();
 	const blocked = new Map<string, GitHubRateLimited>();
+	const failures = new Map<string, number>();
 	const resources = new Map<string, string>();
 	function resource(path: string) {
 		return resources.get(path) ?? (path.startsWith("/search/") ? "search" : "core");
 	}
 	return {
 		blocked,
+		failures,
 		observations,
 		observe(response: HttpClientResponse.HttpClientResponse) {
 			const headers = response.headers;

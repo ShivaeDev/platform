@@ -1,10 +1,10 @@
-import { Effect, Layer, Schema } from "effect";
-import { GithubApi, githubApiLayer } from "#host/githubApi.ts";
+import { Effect, Schema } from "effect";
+import { GithubApi } from "#host/githubApi.ts";
 import { githubChecks } from "#host/githubChecks.ts";
 import { readCommand } from "#host/readCommand.ts";
 import { reviewerPrompt } from "#prompt/reviewer.ts";
 import { WireRejection, type WireRequest } from "#test/codex.ts";
-import { httpOutput, unslurped } from "#test/githubApi.ts";
+import { githubCliApi, unslurped } from "#test/githubApi.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githubChecks.ts";
 import { githubCli } from "#test/githubCli.ts";
 
@@ -16,7 +16,8 @@ export function reviewerNetwork(tell: (line: string) => void) {
 	const github = githubFixture();
 	const pr = "https://github.com/example/project/pull/7";
 	github.reply(ADOPTED_HEAD, [[checkRun()]]);
-	const responses = new Map([...unslurped(github.responses)].map(([endpoint, body]) => [endpoint, httpOutput(200, {}, body)]));
+	const http = githubCliApi(unslurped(github.responses));
+	const responses = new Map<string, string>();
 	responses.set("headRefOid", JSON.stringify({ headRefOid: ADOPTED_HEAD }));
 	responses.set(pr, "diff --git a/src/one.ts b/src/one.ts\n+export const answer = 42;\n");
 	const cli = githubCli(responses);
@@ -30,7 +31,7 @@ export function reviewerNetwork(tell: (line: string) => void) {
 			tell("read the pull request checks through GitHub");
 			return GithubApi.pipe(
 				Effect.flatMap((api) => githubChecks(api)(githubResult())),
-				Effect.provide(githubApiLayer.pipe(Layer.provide(cli.layer))),
+				Effect.provide(http.layer),
 			);
 		},
 		commands: () => cli.commands,

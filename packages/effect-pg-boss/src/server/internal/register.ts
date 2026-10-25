@@ -120,6 +120,7 @@ export function registerJobs<R>(
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
 	schema = "pgboss",
+	startWorkers = true,
 ): Effect.Effect<void, PgBossError | PgBossQueueOptionsError, Scope.Scope> {
 	return Effect.flatMap(Effect.scope, (scope) =>
 		Effect.tryPromise({
@@ -127,6 +128,9 @@ export function registerJobs<R>(
 			try: async () => {
 				registrationNames(registrations);
 				await prepareQueues(client, registrations, replaceWorkers);
+				if (!startWorkers) {
+					return;
+				}
 				const provided = workerContext(context);
 				for (const registration of registrations) {
 					if (isQueueWorker(registration) || isQueueDefinition(registration)) {

@@ -194,7 +194,7 @@ yield* lines.findMany({
 
 Bounds use decoded strings, numbers, bigints, `BigDecimal`, `Date` or `DateTime.Utc` values and run through the field codec. For a `timestamptz` field modeled with `Schema.Date`, use `{ gte: new Date("2026-10-25T00:00:00Z"), lt: new Date("2026-10-26T00:00:00Z") }` to read a UTC day. Multiple operators on a field are joined with `AND`. `like` takes text, with PostgreSQL's case-sensitive `%` and `_` wildcards; patterns are bound parameters. Invalid operand types fail with `SchemaError`. Both `findMany` and `select` accept these filters; repositories query one table.
 
-`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates or other queries outside this shape.
+`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use `aggregate` for grouped summaries, and native SQL with composed schemas for joins, percentiles, `having` or other queries outside these shapes.
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 
@@ -220,7 +220,24 @@ On PostgreSQL, pin every `partitionBy` field in `where` with equality, `null`, a
 
 Otherwise, the typed `where` filter runs before `row_number() over (partition by ... order by ...)` ranks matching rows, and the outer query keeps ranks up to `limit`. Both paths encode filter values through their field schemas, decode all model fields without exposing internal columns, and read all matching groups in one statement. Results are ordered by partition columns ascending, then by the declared ordering within each partition.
 
-Choose `latestPerGroup` for up to N complete rows per group. PostgreSQL `DISTINCT ON` is useful when you need exactly one representative row per nonempty group; `latestPerGroup` with `limit: 1` covers that case too. Use native SQL `GROUP BY` with a result Schema for grouped aggregates such as counts or sums, where the output is a summary rather than model rows. Distinct-on and grouped aggregates stay on the native SQL path.
+Choose `latestPerGroup` for up to N complete rows per group. PostgreSQL `DISTINCT ON` is useful when you need exactly one representative row per nonempty group; `latestPerGroup` with `limit: 1` covers that case too. Use `aggregate` for grouped summaries such as time per file, ordered to show the slowest N groups:
+
+```ts
+const slowestFiles = yield* results.aggregate({
+  groupBy: ["file"],
+  aggregates: {
+    total: { sum: "durationMs" },
+    tests: { count: "*" },
+    failed: { boolOr: "failed" },
+  },
+  orderBy: [{ field: "total", direction: "desc" }],
+  limit: 10,
+});
+```
+
+`groupBy` is a nonempty list of model fields. Each aggregate result name must differ from the group fields. `count: "*"` counts rows; `count: field` counts non-null values. `sum` and `avg` accept number or `BigDecimal` fields, `min` and `max` accept the same ordered fields as range filters, and `boolOr` and `boolAnd` accept boolean fields. Counts decode as numbers; sums and averages decode from text as the field's numeric type, min and max use the field schema, and boolean aggregates decode as booleans. Every aggregate except count is nullable for all-null groups. Group columns use their model schemas, and invalid results fail with `SchemaError`.
+
+An optional `where` uses the `findMany` filters before grouping. `orderBy` is a list of group fields or aggregate result names, and `limit` is a nonnegative integer over the resulting groups. Unknown group, aggregate operand, filter or sort fields passed at runtime fail with `SchemaError` before SQL executes. Use native SQL for percentiles, `having`, joins and other queries outside this shape.
 
 ### Copy query results into another table
 
@@ -475,6 +492,11 @@ Schema components describe storage owned by another engine alongside the numbere
 For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table?, components? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. Pending ledger IDs and component names and details appear together in the error. This checks recorded migrations and component readouts, not physical schema drift.
 
 For a structured readiness readout, use `pendingPostgresMigrations({ loader, table?, components? })` from `@shivaedev/effect-sql/pendingPostgresMigrations.ts`. It returns `{ migrations: [{ id, name }], components: [{ name, detail }] }` for pending work, with both arrays empty when current. It reads the same ledger and component checks as `assertPostgresMigrations` without running migrations.
+
+Pass an optional `release` string to `migratePostgres` to record the owning release after all ledger migrations and schema components succeed. The final `postgresRelease(release, table?)` schema component owns a one-row `<ledger>_release` table with typed `release` and UTC `recorded_at timestamptz` columns, plus a `<ledger>_workers` table with typed process identity, release and UTC heartbeat columns. `readPostgresRelease(table?)` from `postgresRelease.ts` returns the recorded release and `recordedAt` Date, or `undefined` for a missing marker. `pendingPostgresMigrations({ loader, release, table? })` reports a missing or different release as a pending component. Without `release`, migration and readiness calls neither write nor read these tables.
+
+Platform's `appDatabase` supplies the optional `WorkerRelease` Context service in migration mode `"wait"` with a release. Startup waits for that marker within `waitTimeout`; subsequent checks run every `pollInterval`. Each worker database Layer claims a process row only when its release owns the marker and no live row of another release remains. Heartbeats continue every poll while jobs drain; completed drain and clean shutdown remove the row. Rows older than five polling intervals count as gone, bounding takeover after a crash (five seconds at the default one-second poll). Reserve SQL pool capacity for heartbeats alongside active jobs and the change listener. Release equality decides ownership, so rolling back the marker resumes the earlier worker. effect-pg-boss reads the service automatically; applications do not connect a signal themselves. Web's `"check"` mode ignores the marker.
+
 
 ### PostgreSQL delivery between processes
 

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import type { PostgresMigrationOptions } from "./migrations.ts";
+import { postgresRelease } from "./postgresRelease.ts";
 import { runSchemaComponent } from "./SchemaComponent.ts";
 
 export interface PendingPostgresMigrations {
@@ -12,7 +13,8 @@ export const pendingPostgresMigrations = Effect.fn("EffectSql.pendingPostgresMig
 	loader,
 	components = [],
 	table = "effect_sql_migrations",
-}: Pick<PostgresMigrationOptions<R>, "loader" | "table" | "components">) {
+	release,
+}: Pick<PostgresMigrationOptions<R>, "loader" | "table" | "components" | "release">) {
 	const expected = yield* loader;
 	const migrations: { id: number; name: string }[] = [];
 	if (expected.length > 0) {
@@ -30,7 +32,7 @@ export const pendingPostgresMigrations = Effect.fn("EffectSql.pendingPostgresMig
 		}
 	}
 	const pendingComponents: { name: string; detail: string }[] = [];
-	for (const component of components) {
+	for (const component of [...components, ...(release === undefined ? [] : [postgresRelease(release, table)])]) {
 		const detail = yield* runSchemaComponent(component.name, component.pending);
 		if (detail !== undefined) {
 			pendingComponents.push({ detail, name: component.name });

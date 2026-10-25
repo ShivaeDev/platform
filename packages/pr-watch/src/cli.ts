@@ -1,8 +1,10 @@
 #!/usr/bin/env node
 import process from "node:process";
 import { NodeFileSystem } from "@effect/platform-node";
-import { Config, Effect, Layer } from "effect";
+import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
+import { GitHub as GitHubClient } from "@shivaedev/effect-github/GitHub.ts";
+import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
 import { GitHub } from "./GitHub.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { WatchError } from "./model.ts";
@@ -11,7 +13,12 @@ import { StateFile } from "./StateFile.ts";
 import { Watcher } from "./Watcher.ts";
 
 const services = Watcher.layer.pipe(
-	Layer.provide(Layer.mergeAll(StateFile.layer, GitHub.layer.pipe(Layer.provide(GitHubHttp.layer)))),
+	Layer.provide(
+		Layer.mergeAll(
+			StateFile.layer,
+			GitHub.layer.pipe(Layer.provide(GitHubHttp.layer.pipe(Layer.provide(GitHubClient.layer), Layer.provide(GitHubToken.fromEnv)))),
+		),
+	),
 	Layer.provide(
 		Layer.mergeAll(
 			NodeFileSystem.layer,
@@ -30,16 +37,9 @@ const abort = new AbortController();
 process.once("SIGINT", () => abort.abort());
 process.once("SIGTERM", () => abort.abort());
 try {
-	await Effect.runPromise(
-		Effect.gen(function* () {
-			const token = yield* Config.String("GH_TOKEN").pipe(
-				Config.orElse(() => Config.String("GITHUB_TOKEN")),
-				Config.withDefault(""),
-			);
-			yield* program(process.argv.slice(2), token, write(process.stdout), write(process.stderr));
-		}).pipe(Effect.provide(services)),
-		{ signal: abort.signal },
-	);
+	await Effect.runPromise(program(process.argv.slice(2), write(process.stdout), write(process.stderr)).pipe(Effect.provide(services)), {
+		signal: abort.signal,
+	});
 } catch (cause) {
 	if (!abort.signal.aborted) {
 		process.stderr.write(`${cause instanceof Error ? cause.message : "Watcher failed"}\n`);

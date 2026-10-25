@@ -1,5 +1,5 @@
-import { NodeRuntime } from "@effect/platform-node";
 import { Layer } from "effect";
 import { applicationWorker } from "./applicationWorker.ts";
+import { runWorker } from "./runWorker.ts";
 
-NodeRuntime.runMain(Layer.launch(applicationWorker()));
+runWorker(Layer.launch(applicationWorker()));

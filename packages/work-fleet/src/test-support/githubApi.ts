@@ -1,93 +1,45 @@
-import { createHash } from "node:crypto";
-import { Context, Effect, Layer } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Context, Effect, Layer, Option } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
+import { GitHubConfig } from "@shivaedev/effect-github/GitHubConfig.ts";
+import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
+import { fakeGitHub } from "@shivaedev/effect-github/test-support/fakeGitHub.ts";
 import { GithubApi } from "#host/githubApi.ts";
-import { GithubTransport, ghTransport } from "#host/githubTransport.ts";
-import { githubCli } from "#test/githubCli.ts";
-
-export const GITHUB_RESET = 1_800_003_600;
 
 export interface ScriptedGithubResponse {
 	readonly body: unknown;
 	readonly headers?: Readonly<Record<string, string>>;
 	readonly status?: number;
 }
-
-export function httpOutput(status: number, headers: Readonly<Record<string, string>>, body: string) {
-	return `HTTP/2.0 ${status} Synthetic\r\n${Object.entries(headers)
-		.map(([name, value]) => `${name}: ${value}\r\n`)
-		.join("")}\r\n${body}`;
-}
-
 export interface GithubRequest {
 	readonly endpoint: string;
 	readonly etag: string | undefined;
+	readonly method: string;
 	readonly status: number;
 }
 
-interface SyntheticBudget {
-	limit: number;
-	remaining: number;
-	reset: number;
-}
+export const GITHUB_RESET = 1_800_003_600;
 
-function conditionalEtag(args: readonly string[]) {
-	const header = args.indexOf("--header");
-	return header < 0 ? undefined : args[header + 1]?.replace(/^If-None-Match: /u, "");
-}
-
-function rateHeaders(budget: SyntheticBudget) {
-	return {
-		"X-Ratelimit-Limit": String(budget.limit),
-		"X-Ratelimit-Remaining": String(budget.remaining),
-		"X-Ratelimit-Reset": String(budget.reset),
-		"X-Ratelimit-Resource": "core",
-		"X-Ratelimit-Used": String(budget.limit - budget.remaining),
-	};
-}
-
-function spend(budget: SyntheticBudget, scripted: number, unchanged: boolean) {
-	if (scripted === 200 && unchanged) {
-		return 304;
-	}
-	if (scripted !== 304 && budget.remaining > 0) {
-		budget.remaining -= 1;
-	}
-	return scripted;
+export function githubHttpLayer(origin: string) {
+	return GitHub.layer.pipe(
+		Layer.provide(
+			Layer.mergeAll(FetchHttpClient.layer, Layer.succeed(GitHubToken)(Option.none()), Layer.succeed(GitHubConfig)({ apiUrl: `${origin}/` })),
+		),
+	);
 }
 
 export function syntheticGithub(options: { readonly limit?: number; readonly remaining?: number; readonly reset?: number } = {}) {
-	const budget: SyntheticBudget = { limit: options.limit ?? 5000, remaining: options.remaining ?? 5000, reset: options.reset ?? GITHUB_RESET };
-	const responses = new Map<string, ScriptedGithubResponse>();
-	const requests: GithubRequest[] = [];
-	function respond(args: readonly string[]) {
-		const endpoint = args.at(-1) ?? "";
-		const etag = conditionalEtag(args);
-		const scripted = responses.get(endpoint) ?? { body: { message: "Not Found" }, status: 404 };
-		const body = typeof scripted.body === "string" ? scripted.body : JSON.stringify(scripted.body);
-		const current = `"${createHash("sha256").update(body).digest("hex")}"`;
-		const status = spend(budget, scripted.status ?? 200, etag === current);
-		requests.push({ endpoint, etag, status });
-		const headers = { ...rateHeaders(budget), ...(status === 200 ? { Etag: current } : {}), ...scripted.headers };
-		return { exitCode: status >= 200 && status <= 299 ? 0 : 1, output: httpOutput(status, headers, status === 304 ? "" : body) };
-	}
-	const transport = Layer.succeed(GithubTransport, (args: readonly string[]) => Effect.sync(() => respond(args)));
-	return {
-		budget,
-		layer: GithubApi.layer.pipe(Layer.provide(transport)),
-		reply: (endpoint: string, body: unknown, response: Omit<ScriptedGithubResponse, "body"> = {}) => {
-			responses.set(endpoint, { body, ...response });
-		},
-		requests,
-	};
+	const fake = fakeGitHub(options);
+	const client = Layer.unwrap(Effect.map(fake.serve.pipe(Effect.orDie), (server) => githubHttpLayer(server.url)));
+	return { ...fake, layer: GithubApi.layer.pipe(Layer.provide(client)) };
 }
 
 export function githubCliApi(bodies: ReadonlyMap<string, string>, status = 200) {
-	const cli = githubCli(
-		new Map([...bodies].map(([endpoint, body]) => [endpoint, httpOutput(status, { Etag: `"${endpoint}"` }, body)])),
-		status >= 200 && status <= 299 ? 0 : 1,
-	);
-	return { commands: cli.commands, layer: GithubApi.layer.pipe(Layer.provide(ghTransport.pipe(Layer.provide(cli.layer)))) };
+	const github = syntheticGithub();
+	for (const [endpoint, body] of bodies) {
+		github.reply(endpoint, body, { status });
+	}
+	return { ...github, commands: github.requests };
 }
 
 export function unslurped(responses: ReadonlyMap<string, string>) {
@@ -103,18 +55,5 @@ export function unslurped(responses: ReadonlyMap<string, string>) {
 }
 
 export const httpGithubApi = Effect.fn("Test.httpGithubApi")(function* (origin: string) {
-	const transport = Layer.succeed(GithubTransport, (args: readonly string[]) =>
-		Effect.tryPromise({
-			catch: () => new ServiceUnavailable({ message: "Synthetic GitHub read failed" }),
-			try: async () => {
-				const etag = conditionalEtag(args);
-				const response = await fetch(`${origin}/${args.at(-1)}`, { headers: etag === undefined ? {} : { "If-None-Match": etag } });
-				return {
-					exitCode: response.ok ? 0 : 1,
-					output: httpOutput(response.status, Object.fromEntries(response.headers), await response.text()),
-				};
-			},
-		}),
-	);
-	return Context.get(yield* Layer.build(GithubApi.layer.pipe(Layer.provide(transport))), GithubApi);
+	return Context.get(yield* Layer.build(GithubApi.layer.pipe(Layer.provide(githubHttpLayer(origin)))), GithubApi);
 });

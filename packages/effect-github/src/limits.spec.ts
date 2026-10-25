@@ -58,7 +58,7 @@ for (const status of [403, 429]) {
 }
 
 github.it(
-	"recognizes a secondary limit named in the 403 message",
+	"waits one minute for a secondary limit named in the 403 message",
 	[
 		routeAnswers({
 			body: { message: "You have exceeded a secondary rate limit" },
@@ -67,7 +67,7 @@ github.it(
 		}),
 	],
 	function* ({ readPull }) {
-		expect(yield* Effect.flip(readPull())).toEqual(new GitHubRateLimited({ resource: "core", retryAt: DateTime.makeUnsafe(120_000) }));
+		expect(yield* Effect.flip(readPull())).toEqual(new GitHubRateLimited({ resource: "core", retryAt: DateTime.makeUnsafe(60_000) }));
 	},
 );
 

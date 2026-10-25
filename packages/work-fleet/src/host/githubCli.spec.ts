@@ -4,7 +4,7 @@ import { unslurped } from "#test/githubApi.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githubChecks.ts";
 import { githubCliHost } from "#test/githubHostStory.ts";
 
-githubCliHost.it("reads GitHub through gh api with response headers and a conditional repeat", [], function* (github) {
+githubCliHost.it("reads GitHub over HTTP and revalidates repeated check evidence", [], function* (github) {
 	const fixture = githubFixture();
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	const cli = yield* github.cli(unslurped(fixture.responses));
@@ -12,11 +12,12 @@ githubCliHost.it("reads GitHub through gh api with response headers and a condit
 	yield* cli.checks(githubResult());
 	const endpoint = `repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`;
 	expect(cli.commands).toHaveLength(6);
-	expect(cli.commands[0]).toMatchObject({ args: ["api", "--include", "--method", "GET", endpoint], command: "gh" });
-	expect(cli.commands[3]).toMatchObject({ args: ["api", "--include", "--method", "GET", "--header", `If-None-Match: "${endpoint}"`, endpoint] });
+	expect(cli.commands[0]).toMatchObject({ endpoint, etag: undefined });
+	expect(cli.commands[3]).toMatchObject({ endpoint, status: 304 });
+	expect(cli.commands[3]?.etag).toBeDefined();
 });
 
-githubCliHost.it("rejects a failed gh response even when its body contains green checks", [], function* (github) {
+githubCliHost.it("rejects a failed GitHub response even when its body contains green checks", [], function* (github) {
 	const fixture = githubFixture();
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]]);
 	const cli = yield* github.cli(unslurped(fixture.responses), 500);

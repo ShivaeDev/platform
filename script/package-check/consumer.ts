@@ -36,7 +36,6 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 	scenario?: Scenario,
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	yield* fs.makeDirectory(consumer);
 	const imports = yield* writeFixtures(root, pkg, consumer, scenario?.fixtures);
 	const { dependencies, tarballs } = yield* consumerDependencies(pkg, packages, imports, scenario?.omitOptionalPeers);
 	yield* writeJson(join(consumer, "package.json"), {

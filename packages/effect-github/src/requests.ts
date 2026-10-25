@@ -24,18 +24,23 @@ export function requests(client: HttpClient.HttpClient, token: GitHubToken["Serv
 		const response = yield* client.execute(request).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
 		const observedResource = rates.observe(response);
 		if (isUnchanged(response) && cached !== undefined) {
+			rates.failures.delete(observedResource);
+			rates.blocked.delete(observedResource);
 			if (cached.bytes.byteLength > limit) {
 				return yield* new ResponseBodyTooLarge({ limit });
 			}
 			return cached;
 		}
-		yield* checkStatus(response, observedResource).pipe(
+		yield* checkStatus(response, observedResource, rates.failures.get(observedResource) ?? 0).pipe(
 			Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))),
 			Effect.catchTag("GitHubRateLimited", (error) => {
 				rates.blocked.set(error.resource, error);
+				rates.failures.set(error.resource, (rates.failures.get(error.resource) ?? 0) + 1);
 				return failRateLimited(path, error, rates.observations.get(error.resource)?.remaining);
 			}),
 		);
+		rates.failures.delete(observedResource);
+		rates.blocked.delete(observedResource);
 		const bytes = yield* readBoundedBody(response, limit).pipe(
 			Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))),
 		);

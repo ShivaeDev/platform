@@ -4,6 +4,7 @@ import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
 
 export const CountWords = defineQueue({
 	name: "count-note-words",
+	queue: { expireInSeconds: 60 },
 	schema: Schema.Struct({ noteId: Schema.Number }),
 	worker: { pollingIntervalSeconds: 1 },
 });

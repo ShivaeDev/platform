@@ -15,7 +15,7 @@ export type RepositoryListFilter<TModel extends Model.Any> = Partial<TupleFilter
 };
 
 const Ordered = Schema.Union([Schema.String, Schema.Number, Schema.BigInt, Schema.Date, Schema.BigDecimal, Schema.DateTimeUtc]);
-type OrderedValue = typeof Ordered.Type;
+export type OrderedValue = typeof Ordered.Type;
 export type Comparisons<T, TOperand = NonNullable<T>> = [NonNullable<T>] extends [OrderedValue]
 	? { readonly gt?: TOperand; readonly gte?: TOperand; readonly lt?: TOperand; readonly lte?: TOperand }
 	: { readonly gt?: never; readonly gte?: never; readonly lt?: never; readonly lte?: never };

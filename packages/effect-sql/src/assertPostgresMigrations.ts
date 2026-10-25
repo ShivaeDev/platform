@@ -4,7 +4,7 @@ import type { PostgresMigrationOptions } from "./migrations.ts";
 import { type PendingPostgresMigrations, pendingPostgresMigrations } from "./pendingPostgresMigrations.ts";
 
 export const assertPostgresMigrations = Effect.fn("EffectSql.assertPostgresMigrations")(function* <R>(
-	options: Pick<PostgresMigrationOptions<R>, "loader" | "table" | "components">,
+	options: Pick<PostgresMigrationOptions<R>, "loader" | "table" | "components" | "release">,
 ) {
 	const pending = yield* pendingPostgresMigrations(options);
 	if (pending.migrations.length > 0 || pending.components.length > 0) {

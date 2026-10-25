@@ -43,5 +43,9 @@ export const releasePullRequest = storyKit({
 				}),
 			);
 		}),
+		setCiRun: (status: string, conclusion: string | null = null) =>
+			Effect.sync(() => {
+				api.state.run = { conclusion, "head_sha": git("rev-parse", "origin/release/next"), status };
+			}),
 	}),
 });

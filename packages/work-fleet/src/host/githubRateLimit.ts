@@ -1,6 +1,5 @@
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { failureContext, withFailureContext } from "#engine/failureContext.ts";
-import { headerCount, type ParsedResponse } from "#host/githubResponse.ts";
 
 export type GithubPause = "rate-limit" | "reserve";
 export interface GithubObservation {
@@ -19,8 +18,6 @@ export type RecordedObservation = Omit<GithubObservation, "limitedBy" | "limited
 export const RESERVE_SHARE = 0.2;
 const FULL_SPEED_SHARE = 0.5;
 const SLOWEST_PACE_MS = 5 * 60_000;
-const BACKOFF_MS = 60_000;
-const BACKOFF_LIMIT_MS = 15 * 60_000;
 
 export function githubRateLimited(error: unknown): error is ServiceUnavailable {
 	return error instanceof ServiceUnavailable && failureContext(error).retryAt !== undefined;
@@ -47,30 +44,6 @@ export function reservedUntil(observation: RecordedObservation | undefined, now:
 		return undefined;
 	}
 	return observation.remaining < observation.limit * RESERVE_SHARE ? observation.reset * 1000 : undefined;
-}
-
-export function readObservation(headers: ReadonlyMap<string, string>, observedAt: number): RecordedObservation | undefined {
-	const resource = headers.get("x-ratelimit-resource");
-	const limit = headerCount(headers, "x-ratelimit-limit");
-	const remaining = headerCount(headers, "x-ratelimit-remaining");
-	const reset = headerCount(headers, "x-ratelimit-reset");
-	if (resource === undefined || limit === undefined || remaining === undefined || reset === undefined) {
-		return undefined;
-	}
-	return { limit, observedAt, remaining, reset, resource, used: headerCount(headers, "x-ratelimit-used") ?? limit - remaining };
-}
-
-export function rateLimitWait(response: ParsedResponse, observation: RecordedObservation | undefined, now: number, failures: number) {
-	const retryAfter = headerCount(response.headers, "retry-after");
-	const exhausted = observation?.remaining === 0 && observation.reset * 1000 > now ? observation.reset * 1000 : undefined;
-	const limited = observation?.remaining === 0 || retryAfter !== undefined || /rate limit/iu.test(response.body);
-	if (!([403, 429].includes(response.status) && limited)) {
-		return undefined;
-	}
-	if (retryAfter !== undefined) {
-		return now + retryAfter * 1000;
-	}
-	return exhausted ?? now + Math.min(BACKOFF_LIMIT_MS, BACKOFF_MS * 2 ** failures);
 }
 
 export function pace(observation: GithubObservation | undefined, intervalMs: number, now: number) {
