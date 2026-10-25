@@ -38,6 +38,9 @@ function testShaped(call: ts.CallExpression, origin: OriginOf): boolean {
 
 function declarationScope(node: ts.Node, origin: OriginOf): boolean {
 	for (let current = node.parent; current !== undefined; current = current.parent) {
+		if (ts.isCallExpression(current) && origin(current.expression) === "story") {
+			return false;
+		}
 		if (ts.isFunctionLike(current) && (!ts.isCallExpression(current.parent) || origin(current.parent.expression) !== "suite")) {
 			return false;
 		}
