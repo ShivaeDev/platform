@@ -6,7 +6,7 @@
 
 ### Added
 
-- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, and application hook setup.
+- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.
 - Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.
 
 ### Changed

@@ -30,7 +30,7 @@ A generated app gets a README titled with its name, its own framework guidance i
 
 When Git is available and the destination is outside an existing repository, the command initializes a repository before setup and commits the generated files and installed lockfile afterward. The first commit runs Quality's lint and typecheck gates; a failed gate leaves it uncommitted. It uses your Git identity, with a local commit identity when none is configured. Pass `--no-git` to skip repository creation. A generated app includes a GitHub Actions workflow that runs `pnpm run ci` against PostgreSQL and a `.railway/railway.ts` that defines PostgreSQL, builds the web and worker services, runs migrations before deployment, starts both processes and checks `/health` on the web service.
 
-Generated apps reference Quality’s app TypeScript preset and Vite and test helpers, its hook setup, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
+Generated apps reference Quality’s app TypeScript preset and Vite and test helpers, its hook setup and CI command, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
 
 Run `pnpm run setup` after cloning the generated repository to install dependencies and the hook for that checkout. Run `pnpm ready` for the full local gate: lint, typecheck, build and tests, using the same script as CI.
 

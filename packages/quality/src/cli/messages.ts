@@ -1,5 +1,6 @@
 export const USAGE = `Usage:
   quality lint [--config <file>]
+  quality ci
   quality setup [--config <file>]
   quality fix [--config <file>]
   quality exceptions migrate [--config <file>] [--from <registry>]
@@ -14,6 +15,7 @@ export const USAGE = `Usage:
   quality hooks status
   quality hooks pre-commit [--config <file>]
 
+ci                Check pnpm peers, then run the application scripts lint, typecheck, build and test, stopping on failure.
 setup             Install the Quality hook when the current folder owns a .git entry; skip unversioned and enclosed apps.
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for an unknown rule.

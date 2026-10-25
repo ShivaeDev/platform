@@ -55,6 +55,8 @@ Add the daily commands to `package.json`:
 }
 ```
 
+For pnpm applications, `quality ci` checks peer dependencies, then runs the app’s `lint`, `typecheck`, `build` and `test` scripts in that order. It stops at the first failure. Keep those scripts as the app’s native tool commands; set `ci` to `quality ci` and let `ready` call the same script.
+
 The optional pre-commit hook runs Quality's lint, then the `typecheck` script when it exists, then an optional `quality:commit` script for repository checks. It uses the manifest's `packageManager` (`npm`, `pnpm`, `yarn` or `bun`), defaulting to `npm` when omitted. Add `quality:commit` only when the repository has extra commit checks.
 
 Inspect the report and install the optional commit check explicitly:
