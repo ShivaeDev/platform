@@ -26,7 +26,7 @@ for (const query of ["", "?view=table", "?view=board"]) {
 		],
 		function* ({ findElement, findElements, readText }) {
 			yield* eventually(() => expect(findElement('[data-item="task"]')).not.toBeNull());
-			expect(findElements("[data-item]")).toHaveLength(1);
+			expect(findElements("[data-item]").map((item) => item.getAttribute("data-item"))).toEqual(["task"]);
 			if (query) {
 				expect(readText(".work-total")).toContain("1 shown · 1 items");
 			} else {

@@ -4,8 +4,6 @@ import { capturedQuestionnaire, questionnaireSource } from "#test/questionnaire.
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";
 
-const OPEN_PACKET = 1;
-
 expectNoReactWarnings();
 for (const mode of ["managed", "registered", "waiting"]) {
 	let source = questionnaireSource;
@@ -25,9 +23,10 @@ for (const mode of ["managed", "registered", "waiting"]) {
 			),
 		],
 		function* ({ findElements }) {
-			yield* eventually(() => expect(findElements("[data-attention-row] a[title]")).toHaveLength(OPEN_PACKET));
-			expect(findElements("[data-attention-row] a[title]")[0]?.getAttribute("href")).toBe(
-				"/_board/item/investigation.choices/#answer-card-direction",
+			yield* eventually(() =>
+				expect(findElements("[data-attention-row] a[title]").map((link) => link.getAttribute("href"))).toEqual([
+					"/_board/item/investigation.choices/#answer-card-direction",
+				]),
 			);
 		},
 	);

@@ -65,6 +65,13 @@ export function screenInteractions(engine: ScreenEngine, tell: (line: string) =>
 			const { view, updatesPaused } = engine;
 			await act(() => view.registry.set(updatesPaused, paused));
 		},
+		readDraftRecoveries: () => {
+			tell("the reader reads each recovered answer packet");
+			return (document.getElementById("response-draft-recovery")?.textContent ?? "")
+				.split(/(?=Earlier template answers)/u)
+				.map((entry) => entry.trim())
+				.filter(Boolean);
+		},
 		readDraftRecovery: () => {
 			tell("the reader reads draft recovery guidance");
 			return document.getElementById("response-draft-recovery")?.textContent ?? "";

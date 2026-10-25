@@ -30,7 +30,7 @@ screenStory.it(
 		for (const name of ["Pinned", "Active goals", "Recent"]) {
 			expect(findElement(`section[aria-label="${name}"]`)).not.toBeNull();
 		}
-		expect(findElements('section[aria-label="Recent"] a')).toHaveLength(5);
+		expect(findElements('section[aria-label="Recent"] a').map((link) => link.textContent)).toEqual(saved.slice(2, 7).map((entry) => entry.title));
 		expect(readText('section[aria-label="Pinned"] a')).toBe("Document title 0");
 		yield* eventually(() =>
 			expect(readAttribute('section[aria-label="Active goals"] [role="progressbar"][aria-label^="Example goal"]', "aria-label")).toBe(
@@ -45,7 +45,7 @@ screenStory.it(
 		expect(findElement("#files")).toBeNull();
 		expect(findElements("a").length).toBeLessThan(100);
 		const navigation = yield* Effect.promise(readNavigation);
-		expect(navigation.counts.library).toBe(1500);
+		expect(navigation.counts.library).toBe(Object.keys(files).length + Object.keys(goalsFixture()).length);
 		expect(navigation).not.toHaveProperty("tree");
 		expect(navigation).not.toHaveProperty("records");
 		click("#work-open");
@@ -82,7 +82,13 @@ screenStory.it(
 		yield* eventually(() => expect(findElement('#doc a[href="/question.md"]')).toBeNull());
 		yield* roles.click({ name: "Status", role: "combobox" });
 		yield* roles.click({ name: "Ready", role: "option" });
-		yield* eventually(() => expect(findElements("#doc li a")).toHaveLength(2));
+		yield* eventually(() =>
+			expect(
+				findElements("#doc li a")
+					.map((link) => link.getAttribute("href"))
+					.sort(),
+			).toEqual(["/fleet.md", "/notes/slug.md"]),
+		);
 		yield* roles.click({ name: "Reset", role: "link" });
 		yield* eventually(() => expect(findElement('#doc a[href="/question.md"]')).not.toBeNull());
 		yield* roles.click({ name: "Include files Fleet writes (1)", role: "checkbox" });

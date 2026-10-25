@@ -7,8 +7,6 @@ import { deniedClipboard } from "#test/screenEnvironment.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { sessionScreen } from "#test/sessionScreen.ts";
 
-const ITEM_AND_UNRELATED_FILE = 2;
-
 expectNoReactWarnings();
 screenStory.it(
 	"puts handoff Schema messages on their fields when Prepare is pressed and saves nothing",
@@ -32,12 +30,14 @@ screenStory.it(
 screenStory.it(
 	"rebinds a draft to a changed source before preparing it",
 	[sessionScreen("handoff")],
-	function* ({ input, activate, submit, findElement, editSessionFile, readText, readSessionNavigation, readSessionFiles }) {
+	function* ({ input, activate, submit, findElement, editSessionFile, readText, readSessionLibrary, readSessionFiles }) {
 		yield* eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false));
 		input('[name="recipient"]', "agent-local");
 		const goal = input('[name="goal"]', "Keep my direction");
 		editSessionFile("unrelated.md", "# Another file");
-		yield* Effect.promise(() => waitFor(async () => expect((await readSessionNavigation()).counts.library).toBe(ITEM_AND_UNRELATED_FILE)));
+		yield* Effect.promise(() =>
+			waitFor(async () => expect((await readSessionLibrary()).files.map((file) => file.path).sort()).toEqual(["item.md", "unrelated.md"])),
+		);
 		expect(findElement('[name="goal"]')).toBe(goal);
 		expect(readText("#handoff-status")).toBe("");
 		editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed premise.\n`);

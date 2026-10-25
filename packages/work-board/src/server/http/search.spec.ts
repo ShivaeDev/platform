@@ -27,14 +27,22 @@ boardStory.it(
 	function* ({ search, editFile, removeFile, watchProject, waitUntil }) {
 		const events = yield* watchProject();
 		yield* events.next();
-		expect((yield* search("old phrase")).total).toBe(1);
+		const old = yield* search("old phrase");
+		expect(old.results.map((result) => result.href)).toEqual(["/note.md"]);
+		expect(old.total).toBe(old.results.length);
 		editFile("note.md", "# Note\n\nFresh phrase.");
 		yield* events.changed("note.md");
-		yield* waitUntil(async () => expect((await Effect.runPromise(search("fresh phrase"))).total).toBe(1));
+		yield* waitUntil(async () => {
+			const fresh = await Effect.runPromise(search("fresh phrase"));
+			expect(fresh.results.map((result) => result.href)).toEqual(["/note.md"]);
+			expect(fresh.total).toBe(fresh.results.length);
+		});
 		expect((yield* search("old phrase")).total).toBe(0);
 		editFile("new.md", "# New\n\nAdded phrase.");
 		yield* events.changed("new.md");
-		expect((yield* search("added phrase")).total).toBe(1);
+		const added = yield* search("added phrase");
+		expect(added.results.map((result) => result.href)).toEqual(["/new.md"]);
+		expect(added.total).toBe(added.results.length);
 		removeFile("new.md");
 		yield* events.changed("new.md");
 		expect((yield* search("added phrase")).total).toBe(0);

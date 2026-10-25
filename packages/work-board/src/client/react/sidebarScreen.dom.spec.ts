@@ -6,9 +6,6 @@ import { screenStory } from "#test/screenStory.ts";
 import { chromeScreen } from "#test/screenTraits.ts";
 import { sidebarWorkspace } from "#test/sidebarFixture.ts";
 
-const SIDEBAR_RECENT_LIMIT = 5;
-const ALL_VISITED_FILES = 6;
-
 expectNoReactWarnings();
 for (const phone of [false, true]) {
 	screenStory.it(
@@ -25,12 +22,16 @@ for (const phone of [false, true]) {
 				expect(findElement('section[aria-label="Recent"] a[aria-current="page"]')).toBeNull();
 				expect(findElement("#library-dialog", document)).toBeNull();
 			}
-			expect(findElements('section[aria-label="Recent"] a')).toHaveLength(SIDEBAR_RECENT_LIMIT);
+			expect(findElements('section[aria-label="Recent"] a').map((link) => link.getAttribute("href"))).toEqual(
+				[5, 4, 3, 2, 1].map((index) => `/notes/topic-${index}.md`),
+			);
 			if (phone) {
 				click("#sidebar-toggle");
 			}
 			click("#library-open");
-			expect(findElements("#reading-library a", document)).toHaveLength(ALL_VISITED_FILES);
+			expect(findElements("#reading-library a", document).map((link) => link.getAttribute("href"))).toEqual(
+				[6, 5, 4, 3, 2, 1].map((index) => `/notes/topic-${index}.md`),
+			);
 			yield* roles.click({ name: "Close", role: "button" });
 			yield* eventually(() => expect(findElement("#library-dialog", document)).toBeNull());
 			yield* eventually(() => expect(readFocus()).toBe(control("#library-open", HTMLButtonElement)));

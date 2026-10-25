@@ -18,7 +18,13 @@ screenStory.it(
 		)),
 	],
 	function* ({ findElements, readText }) {
-		yield* eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5));
+		yield* eventually(() =>
+			expect(
+				findElements("[data-goal-item]")
+					.map((item) => item.getAttribute("data-goal-item"))
+					.sort(),
+			).toEqual(["task.fifth", "task.first", "task.fourth", "task.second", "task.third"]),
+		);
 		expect(findElements('[data-goal-group="Dropped"], [data-goal-group="Not recorded"]')).toHaveLength(0);
 		expect(readText('[data-goal-item="task.fifth"] [data-status-token]')).toBe("Draft");
 	},
@@ -28,7 +34,13 @@ screenStory.it(
 	"falls back to authored state when Fleet is unavailable and hides an empty In progress group",
 	[boardScreen({ ...goalPageFixture(), "asks.md": "# No open asks" }, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ findElements, findElement, readText }) {
-		yield* eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(5));
+		yield* eventually(() =>
+			expect(
+				findElements("[data-goal-item]")
+					.map((item) => item.getAttribute("data-goal-item"))
+					.sort(),
+			).toEqual(["task.fifth", "task.first", "task.fourth", "task.second", "task.third"]),
+		);
 		expect(findElement('[data-goal-group="In progress"]')).toBeNull();
 		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("Draft");
 		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 draft");

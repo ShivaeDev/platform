@@ -9,10 +9,14 @@ for (const evidence of [false, true]) {
 	screenStory.it(
 		`summarizes criterion evidence once and retains recorded claims (evidence: ${evidence})`,
 		[boardScreen(itemPolishFixture(evidence), (api) => <QueryDocument api={api} url="/done.md" />)],
-		function* ({ findElement, readText, readAttribute }) {
+		function* ({ findElement, findElements, readText, readAttribute }) {
 			yield* eventually(() => expect(findElement("#criterion-layout")).not.toBeNull());
 			const summary = `${evidence ? 1 : 0} of 2 criteria have recorded evidence`;
-			expect(readText()?.split(summary)).toHaveLength(2);
+			expect(
+				findElements("p")
+					.filter((p) => p.textContent === summary)
+					.map((p) => p.textContent),
+			).toEqual([summary]);
 			expect(readText()).not.toContain("No recorded evidence");
 			expect(readText()).not.toContain("Acceptance is not established");
 			expect(findElement("#criterion-links p")).toBeNull();
@@ -38,8 +42,7 @@ for (const file of ["done", "draft", "goal"]) {
 			expect(readText()).not.toContain("Unknown field fleet");
 			const diagnostics = findElement(".metadata-problems");
 			if (file === "draft") {
-				expect(diagnostics?.textContent).toContain("Unknown field flavor");
-				expect(findElements("li", diagnostics)).toHaveLength(1);
+				expect(findElements("li", diagnostics).map((item) => item.textContent)).toEqual([expect.stringContaining("Unknown field flavor")]);
 			} else {
 				expect(diagnostics).toBeNull();
 			}

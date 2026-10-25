@@ -1,4 +1,4 @@
-import { chmodSync, existsSync, readdirSync, rmSync, statSync } from "node:fs";
+import { chmodSync, constants, existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
@@ -22,7 +22,7 @@ boardStory.it(
 			}),
 		});
 		expect(Buffer.byteLength(pending)).toBeLessThanOrEqual(Buffer.byteLength(socket));
-		expect(statSync(socket).mode & 0o777).toBe(0o600);
+		expect(statSync(socket).mode & 0o777).toBe(constants.S_IRUSR | constants.S_IWUSR);
 		expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
 			expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: { directory: notes.root, url: `${board.url}/` } } })]),
 		);
@@ -45,14 +45,14 @@ boardStory.it(
 		expect(pending.path).toBeDefined();
 		const path = pending.path ?? "";
 		expect(statSync(path).isSocket()).toBe(true);
-		expect(statSync(path).mode & 0o777).toBe(0o775);
-		expect(statSync(dirname(path)).mode & 0o777).toBe(0o700);
+		expect(statSync(path).mode & 0o777).toBe(constants.S_IRWXU | constants.S_IRWXG | constants.S_IROTH | constants.S_IXOTH);
+		expect(statSync(dirname(path)).mode & 0o777).toBe(constants.S_IRWXU);
 		const socket = join(notes.root, "board.sock");
 		expect(existsSync(socket)).toBe(false);
 		yield* child.send("continue");
 		const ready = yield* child.next();
 		expect(ready.phase).toBe("ready");
-		expect(statSync(socket).mode & 0o777).toBe(0o600);
+		expect(statSync(socket).mode & 0o777).toBe(constants.S_IRUSR | constants.S_IWUSR);
 		expect(yield* Effect.promise(() => socketRpc(socket, "work-board.server"))).toEqual(
 			expect.arrayContaining([expect.objectContaining({ exit: { _tag: "Success", value: { directory: notes.root, url: `${ready.url}/` } } })]),
 		);

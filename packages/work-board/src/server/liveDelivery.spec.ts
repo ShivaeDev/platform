@@ -60,7 +60,7 @@ const directoriesOnly = directoryNotifications(true);
 boardStory.it(
 	"completes reads after unchanged directory notifications with document and attachment extensions",
 	[projectFiles({ "archive.md/log.md": "# Log", "images.png/plan.md": "# Plan" }), directoriesOnly.trait],
-	function* ({ board, watchProject }) {
+	function* ({ notes, board, watchProject }) {
 		const events = yield* watchProject();
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 		for (const directory of ["archive.md", "images.png"]) {
@@ -69,7 +69,7 @@ boardStory.it(
 			expect((yield* rpcDocument(board, "/archive.md/log.md").pipe(Effect.timeout("1 second"))).source).toBe("# Log");
 		}
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		expect(directoriesOnly.watchStarts()).toBe(1);
+		expect(directoriesOnly.watchedPaths()).toEqual([notes.root]);
 		yield* events.close();
 	},
 );
@@ -77,10 +77,10 @@ boardStory.it(
 boardStory.it(
 	"announces a populated directory move when only the destination directory is reported",
 	[projectFiles({ "drafts/log.md": "# Log", "drafts/nested/plan.md": "# Plan" }), directoriesOnly.trait],
-	function* ({ board, editFile, moveDirectory, watchProject }) {
+	function* ({ notes, board, editFile, moveDirectory, watchProject }) {
 		const events = yield* watchProject();
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
-		expect(directoriesOnly.watchStarts()).toBe(1);
+		expect(directoriesOnly.watchedPaths()).toEqual([notes.root]);
 		moveDirectory("drafts", "published");
 		yield* directoriesOnly.changed("published");
 		expect(yield* events.next()).toMatchObject({
@@ -96,14 +96,14 @@ boardStory.it(
 		expect(yield* rpcPaths(board)).toEqual(["/published/log.md", "/published/nested/plan.md"]);
 		expect((yield* rpcDocument(board, "/published/nested/plan.md")).source).toBe("# Plan");
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		expect(directoriesOnly.watchStarts()).toBe(1);
+		expect(directoriesOnly.watchedPaths()).toEqual([notes.root]);
 
 		editFile("published/log.md", "# After the move");
 		yield* directoriesOnly.changed("published");
 		expect(yield* changesUntil(events, "published/log.md")).toMatchObject({ _tag: "Changed" });
 		expect((yield* rpcDocument(board, "/published/log.md")).source).toBe("# After the move");
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		expect(directoriesOnly.watchStarts()).toBe(1);
+		expect(directoriesOnly.watchedPaths()).toEqual([notes.root]);
 		yield* events.close();
 	},
 );
@@ -111,7 +111,7 @@ boardStory.it(
 boardStory.it(
 	"keeps delivering edits when an existing directory is reported again",
 	[projectFiles({ "notes/log.md": "# Before" }), notifications.trait],
-	function* ({ board, editFile, watchProject }) {
+	function* ({ notes, board, editFile, watchProject }) {
 		const events = yield* watchProject();
 		expect(yield* events.next()).toEqual({ _tag: "Resync" });
 		yield* notifications.changed("notes");
@@ -119,7 +119,7 @@ boardStory.it(
 		expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({ _tag: "Changed" });
 		expect((yield* rpcDocument(board, "/notes/log.md")).source).toBe("# After the directory notification");
 		expect((yield* rpcWatcher(board)).watching).toBe(true);
-		expect(notifications.watchStarts()).toBe(1);
+		expect(notifications.watchedPaths()).toEqual([notes.root]);
 		yield* events.close();
 	},
 );

@@ -31,7 +31,10 @@ for (const phase of ["temporary", "published"]) {
 				yield* Effect.promise(() => exited);
 			}
 			const files = yield* Effect.promise(() => readdir(join(notes.root, "responses")));
-			expect(files.filter((name) => name.endsWith(".tmp"))).toHaveLength(1);
+			const temporary = yield* Effect.promise(() =>
+				Promise.all(files.filter((name) => name.endsWith(".tmp")).map((name) => readFile(join(notes.root, "responses", name), "utf8"))),
+			);
+			expect(temporary).toEqual(["Retained feedback"]);
 			expect(files.includes("response.interrupted.md")).toBe(phase === "published");
 			yield* publish(notes.root, notes.root, "response.interrupted", "Retained feedback");
 			expect(yield* Effect.promise(() => readFile(join(notes.root, "responses/response.interrupted.md"), "utf8"))).toBe("Retained feedback");

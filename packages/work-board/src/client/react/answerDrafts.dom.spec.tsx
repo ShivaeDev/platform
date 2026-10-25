@@ -60,8 +60,7 @@ screenStory.it(
 		yield* Effect.promise(async () => responseClick("submit"));
 		yield* eventually(() => expect(answerInput("body").value).toBe(""));
 		const saved = yield* Effect.promise(() => readResponses("item.fixture", "direction"));
-		expect(saved.responses).toHaveLength(1);
-		expect(saved.responses[0]?.body).toBe("Direction in progress");
+		expect(saved.responses.map((entry) => entry.body)).toEqual(["Direction in progress"]);
 		expect(stored(key)).toBeNull();
 		yield* Effect.promise(() => refreshScreen(answerDraft(answerPreview, 1)));
 		expect(answerInput("body").value).toBe("");

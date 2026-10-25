@@ -32,7 +32,12 @@ boardStory.it(
 		const missing = yield* readAttention({ ...files, "orchestrator.md": files["orchestrator.md"]?.replace("id: decision.orchestrator\n", "") ?? "" });
 		expect(inboxItems(missing).map((item) => item.id)).toEqual(["decision.reader", "question.storage"]);
 		const readerDuplicate = yield* readAttention({ ...files, "duplicate.md": files["reader.md"] ?? "" });
-		expect(attentionProjection(readerDuplicate).issues.filter((issue) => issue.message.includes("Duplicate"))).toHaveLength(2);
+		expect(
+			attentionProjection(readerDuplicate)
+				.issues.filter((issue) => issue.message.includes("Duplicate"))
+				.map((issue) => issue.file)
+				.sort(),
+		).toEqual(["duplicate.md", "reader.md"]);
 		expect(inboxItems(readerDuplicate).filter((item) => item.id === "decision.reader")).toHaveLength(0);
 	},
 );

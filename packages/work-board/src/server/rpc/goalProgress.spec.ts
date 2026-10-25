@@ -32,7 +32,7 @@ boardStory.it(
 			unlinked: true,
 		});
 		expect(result.closedGoals.map((goal) => goal.id)).toEqual(["project.closed"]);
-		expect(result.items).toHaveLength(5);
+		expect(result.items.map((item) => item.id).sort()).toEqual(["task.fifth", "task.first", "task.fourth", "task.second", "task.third"]);
 		expect(result.items.every((item) => typeof item.modified === "number")).toBe(true);
 		editFile("second.md", goalsFixture()["second.md"]?.replace("status: draft", "status: ready") ?? "");
 		yield* Effect.promise(() =>

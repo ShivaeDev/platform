@@ -24,6 +24,8 @@ boardStory.it(
 		const client = connectClient();
 		const data = yield* Effect.promise(() => client.run(client.api.navigation.run({ current: "note.md" })));
 		expect(data.inboxCount).toBeNull();
-		expect(data.counts.library).toBe(2);
+		const library = yield* Effect.promise(() => client.run(client.api.library.run({})));
+		expect(library.files.map((file) => file.path).sort()).toEqual(["note.md", "question.md"]);
+		expect(data.counts.library).toBe(library.files.length);
 	},
 );

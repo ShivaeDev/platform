@@ -42,6 +42,6 @@ fileWatcherStory.it(
 		expect(yield* revision()).toBe(before + 1);
 		yield* listedFiles();
 		expect(story.engine.scans).toBe(scans);
-		expect(story.engine.starts).toBe(1);
+		expect(story.engine.watchedPaths).toEqual([story.engine.notes.root]);
 	},
 );

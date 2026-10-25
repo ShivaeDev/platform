@@ -37,8 +37,7 @@ for (const [stage, lane, label] of [
 			for (const row of rows) {
 				const card = findElement(`[data-item="${row.id}"]`, column);
 				expect(readText("h3", card)).toBe(row.title);
-				expect(findElements("[data-status-token]", card)).toHaveLength(1);
-				expect(readText("[data-status-token]", card)).toBe(label);
+				expect(findElements("[data-status-token]", card).map((token) => token.textContent)).toEqual([label]);
 			}
 			expect(findElement(".work-total")).toBeNull();
 		},

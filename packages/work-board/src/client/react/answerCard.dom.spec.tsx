@@ -46,14 +46,17 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 				expect(readText("article.doc")).toContain("Preserve this background before the decision.");
 				expect(readText("article.doc")).toContain("Preserve this conclusion after the decision.");
 				expect(readText("article.doc")).not.toContain("Read the release guide.");
-				expect(findElements(".answer-reason p")).toHaveLength(2);
+				expect(findElements(".answer-reason p").map((p) => p.textContent)).toEqual([
+					"Which publishing path should we take?",
+					"Read the release guide.",
+				]);
 			}
 			expect([...findElements(".question-choice")].map((button) => button.textContent)).toEqual([
 				"Publish nowRecommendedShip the reviewed guide with this release.",
 				"Wait for reviewKeep the work blocked until another review.",
 			]);
 			expect(readText(".item-summary")).not.toContain(decisionId);
-			expect(readText("[data-document-source] pre")?.split(decisionId)).toHaveLength(2);
+			expect(readText("[data-document-source] pre")).toBe(`${files[decisionFile]?.split("\n---\n")[0]}\n---\n`);
 			expect([...findElements("h1,h2,[title]")].every((element) => !/[a-f\d]{64}/u.test(element.textContent ?? ""))).toBe(true);
 		},
 	);
@@ -82,11 +85,14 @@ screenStory.it(
 			expect(readText("[data-answered]")).toBe("Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."),
 		);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
-		expect(saved.responses).toHaveLength(1);
-		expect(saved.responses[0]?.response).toMatchObject({
-			answers: [{ prompt: "answer", selected: ["option-1"], text: "Use the reviewed version." }],
-			author: "Reviewer",
-		});
+		expect(saved.responses).toMatchObject([
+			{
+				response: {
+					answers: [{ prompt: "answer", selected: ["option-1"], text: "Use the reviewed version." }],
+					author: "Reviewer",
+				},
+			},
+		]);
 	},
 );
 
@@ -152,8 +158,12 @@ for (const heading of ["### Release ownership", ""]) {
 		`uses an option heading or capitalised id: ${heading}`,
 		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElements }) {
-			yield* eventually(() => expect(findElements(".question-choice strong")).toHaveLength(2));
-			expect(findElements(".question-choice strong")[1]?.textContent).toBe(heading ? "Release ownership" : "Release");
+			yield* eventually(() =>
+				expect(findElements(".question-choice strong").map((label) => label.textContent)).toEqual([
+					"Request changes",
+					heading ? "Release ownership" : "Release",
+				]),
+			);
 		},
 	);
 }

@@ -4,9 +4,9 @@ import { aFileAddedDuringListing, indexedFiles, indexStory } from "#test/indexSt
 indexStory.it(
 	"does not cache an older listing under an advancing revision",
 	[indexedFiles({ "first.md": "---\nid: first\n---\n# First" }), aFileAddedDuringListing()],
-	function* ({ readIndex }) {
+	function* ({ readIndex, readRevision }) {
 		const snapshot = yield* readIndex();
-		expect(snapshot.revision).toBe(1);
+		expect(snapshot.revision).toBe(yield* readRevision());
 		expect([...snapshot.model.ids.keys()].sort()).toEqual(["added", "first"]);
 		expect(yield* readIndex()).toBe(snapshot);
 	},

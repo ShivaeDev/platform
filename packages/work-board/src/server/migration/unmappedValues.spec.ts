@@ -11,8 +11,7 @@ for (const { field, value, kind } of unmappedCases) {
 		[projectFiles(files), deferredServing],
 		({ tryMigration, notes }) => {
 			const result = tryMigration();
-			const success = 0;
-			expect(result.status).not.toBe(success);
+			expect(result.status).not.toBe(0);
 			expect(result.stderr).toContain(`z-unknown.md: ${field}: ${JSON.stringify(value)}`);
 			for (const [file, source] of Object.entries(files)) {
 				expect(readFileSync(join(notes.root, file), "utf8")).toBe(source);
