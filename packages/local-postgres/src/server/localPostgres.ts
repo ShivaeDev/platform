@@ -5,7 +5,7 @@ import { sqlInContainer, startContainer } from "./localContainer.ts";
 import { type DockerEnvironment, docker } from "./localDocker.ts";
 import { PostgresVersionMismatch } from "./PostgresVersionMismatch.ts";
 
-export const localServer = "postgresql://postgres:postgres@127.0.0.1:55432";
+export const LOCAL_SERVER = "postgresql://postgres:postgres@127.0.0.1:55432";
 
 export function assertLocalDatabase(value: string, names: readonly string[]) {
 	const url = new URL(value);
@@ -65,7 +65,7 @@ export function localPostgres(environment: DockerEnvironment, { attempts = 30, d
 		}
 	}
 
-	function startPostgres(connection = localServer) {
+	function startPostgres(connection = LOCAL_SERVER) {
 		const server = new URL(connection);
 		server.pathname = "/postgres";
 		assertLocalDatabase(server.toString(), ["postgres"]);

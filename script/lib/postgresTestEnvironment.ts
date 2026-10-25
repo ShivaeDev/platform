@@ -1,8 +1,8 @@
 import { Config, Effect } from "effect";
-import { assertLocalDatabase, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { assertLocalDatabase, LOCAL_SERVER } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
 export const postgresTestEnvironment = Effect.gen(function* () {
-	const connection = yield* Config.String("TEST_DATABASE_URL").pipe(Config.withDefault(`${localServer}/platform_test`));
+	const connection = yield* Config.String("TEST_DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/platform_test`));
 	const base = assertLocalDatabase(connection, ["platform_test"]);
 	function select(name: string) {
 		return Effect.gen(function* () {

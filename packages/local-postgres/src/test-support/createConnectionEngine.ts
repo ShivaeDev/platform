@@ -3,7 +3,7 @@ import { randomUUID } from "node:crypto";
 import { Effect } from "effect";
 import { vi } from "vitest";
 import { startContainer } from "#localContainer.ts";
-import { localPostgres, localServer } from "#localPostgres.ts";
+import { LOCAL_SERVER, localPostgres } from "#localPostgres.ts";
 
 vi.mock("node:child_process", async (original) => {
 	const module = await original<typeof import("node:child_process")>();
@@ -66,7 +66,7 @@ export function createConnectionEngine() {
 				docker,
 				manager,
 				name,
-				server: localServer,
+				server: LOCAL_SERVER,
 				startStock: () => {
 					startContainer(docker);
 					wait();
