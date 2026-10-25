@@ -90,6 +90,8 @@ const routes = HttpRouter.add("POST", "/webhook", (request) =>
 
 RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
+Every response from the host's native RPC endpoint carries `Cache-Control: private, no-store`, including mixed public and authenticated batches, typed failures, transport rejections, body-read failures and streams. The host sets this at the outer response boundary without inspecting batch contents.
+
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The same guard applies. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
 Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
@@ -421,7 +423,7 @@ export const AdminServer = Admin.toLayer({
 
 Removing a role takes effect on the next call with the same session, as long as the provider reads the role from storage; keep Better Auth's cookie cache disabled. A live stream behind role middleware rechecks the role at each session revalidation and ends with `Forbidden` once the role is gone.
 
-Use `adminRoute(sessions)` for host HTTP routes. It resolves the session through the transport-header and Origin policy, checks the role with `requireAdmin`, and provides `Identity` and `SessionUser` to the handler. Signed-out callers receive 401, missing admin roles and refused Origins receive 403, and an `AuthUnavailable` session provider failure receives 503. Refused requests never run the handler. The handler's response and typed failures pass through unchanged.
+Use `adminRoute(sessions)` for host HTTP routes. It resolves the session through the transport-header and Origin policy, checks the role with `requireAdmin`, and provides `Identity` and `SessionUser` to the handler. Signed-out callers receive 401, missing admin roles and refused Origins receive 403, and an `AuthUnavailable` session provider failure receives 503. These rejections carry `Cache-Control: private, no-store` and never run the handler. The handler's response and typed failures pass through unchanged.
 
 ```ts
 import { Effect } from "effect";
@@ -437,6 +439,24 @@ const routes = HttpRouter.use((router) =>
 ```
 
 The guard accepts any HTTP method and path. A mount can accept it as a parameter using only `effect` and `effect/http` types; the mount does not need to import Platform.
+
+For an admin SPA, guard its HTML fallback as well as its endpoints and assets. Register a guarded `/admin/*` route in `appHost({ routes, assets: { root: "dist", spa: true }, ... })`; the native wildcard also matches `/admin` and takes precedence over the general static SPA route:
+
+```ts
+import { NodeHttpPlatform, NodeServices } from "@effect/platform-node";
+import { Effect, Layer } from "effect";
+import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";
+import { adminRoute } from "@shivaedev/platform/server/rpc-server/roles.ts";
+
+const routes = HttpRouter.use((router) => Effect.gen(function* () {
+  const spa = yield* HttpStaticServer.make({ root: "dist", spa: true });
+  yield* router.add("*", "/admin/*", adminRoute(sessions)(() =>
+    spa.pipe(Effect.catch(HttpServerRespondable.toResponse)),
+  ));
+})).pipe(Layer.orDie, Layer.provide(NodeHttpPlatform.layer), Layer.provide(NodeServices.layer));
+```
+
+The admin handler serves existing files under `dist/admin` and falls back to `dist/index.html` for unknown HTML paths. Other application routes and the public SPA stay outside this mount. Admin RPCs on the shared `/rpc` endpoint still declare `AuthenticatedAdmin`; the HTTP route guard protects the admin document, while native RPC middleware protects each operation.
 
 `withSessionUser(policy, headers, operation)` resolves the session through the existing transport-header and Origin policy path and provides `Identity` and `SessionUser` only around the supplied Effect. It is also the boundary used by `authenticatedUserLayer`. Both the guard and identity boundary use public provider data, without reading Better Auth's tables or internal services. Keep Better Auth's cookie cache disabled for database-backed role removal to take effect on the next request, as in the starter.
 
@@ -685,6 +705,36 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
 
+### Bundled native clients
+
+For a Capacitor or similar WebView whose page is served from the app bundle, opt in with the auth host mount's `bearerSessions` option. It installs Better Auth's own `bearer({ requireSignature: true })` plugin from the existing dependency; do not add a second bearer plugin. The option is absent by default. List only bundled-client origins here, and include them in Better Auth's `trustedOrigins` as well.
+
+```ts
+const nativeOrigins = ["capacitor://localhost", "https://localhost"];
+const mounted = yield* betterAuthMount(
+  {
+    database,
+    trustedOrigins: [publicOrigin, ...nativeOrigins],
+    session: { cookieCache: { enabled: false } },
+    emailAndPassword: { enabled: true },
+  },
+  { bearerSessions: { origins: nativeOrigins } },
+);
+const sessions = {
+  origin: trustedOrigins({ allow: [publicOrigin, ...nativeOrigins], missing: "allow" }),
+  provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+};
+const host = appHost({ group, handlers, routes: mounted.routes, sessions });
+```
+
+Always wrap the session lookup in `admittedSessions`, even without a sign-in policy: it applies the mount's credential selection to the same request-local identity, profile and role middleware used by cookies. A request carrying the session cookie uses only that cookie, even if invalid or revoked; its bearer header cannot switch accounts or rescue it. Otherwise the signed bearer is resolved by Better Auth. Missing, unsigned, tampered, expired and revoked bearer sessions produce `Unauthorized` at protected RPCs.
+
+A native client signs in through `/api/auth/sign-in/email` with `credentials: "omit"` and its bundled Origin, reads the signed credential from the `set-auth-token` response header, and sends that exact value as `Authorization: Bearer <credential>` with `credentials: "omit"` on later auth and RPC requests. Persist it only in OS-backed secure storage, such as iOS Keychain or Android Keystore-backed storage; never use localStorage, sessionStorage or IndexedDB. Browser responses keep HttpOnly cookies and omit the plugin's token header and JSON token fields. Clients without a bundled Origin receive cookie responses.
+
+Native sign-out revokes the stored session. Signing in again while sending the current bearer replaces it and revokes the old session after successful sign-in. Streams keep their original request headers, so the old session ends with `Unauthorized` on the next revalidation; it never adopts the replacement. Keep cookie caching disabled for database-backed revocation and choose `streamRevalidationInterval` for the required delivery window.
+
+This option does not change `appHost`'s RPC transport guard: bundled cross-origin RPC requests still require transport support. Native HTTP callers without an Origin can exercise bearer RPC with an origin policy that explicitly permits missing Origins. Better Auth's trusted origins and CORS configuration remain application policy.
+
 ### Decide who may sign in
 
 Give the mount a sign-in policy as its second argument, and resolve RPC sessions through `admittedSessions` so a removal ends access on the next request:
@@ -721,7 +771,7 @@ A removal takes effect on the user's next request through `admittedSessions`: th
 
 `revokeUnadmitted` checks every stored user against the current policy, deletes the sessions of each user it no longer admits and succeeds with `{ users, sessions }`, the number of users and sessions it revoked. Run it at startup, as above, or from an administrative command. It fails with the rule's error or with a `ConfigError`.
 
-Without `signIn`, the mount installs no hooks, `admittedSessions` returns the lookup unchanged and `revokeUnadmitted` revokes nothing.
+Without `signIn`, the mount installs no sign-in policy hooks and `revokeUnadmitted` revokes nothing. Without either mount option, `admittedSessions` returns the lookup unchanged.
 
 ### Signed-in story preconditions
 
@@ -873,7 +923,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
-| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn? })`, returning `{ auth, routes, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
+| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn?, bearerSessions? })`, returning `{ auth, routes, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
 | `server/better-auth/allowedAccounts.ts` | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config. |
 | `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
 | `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |

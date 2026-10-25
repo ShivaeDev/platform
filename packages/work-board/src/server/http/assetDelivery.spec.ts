@@ -26,7 +26,7 @@ boardStory.it("compresses scripts, styles, the page shell and RPC answers for a 
 	for (const path of ["/_board/rpc", "/_board/rpc/"]) {
 		const rpc = yield* exchange(path, { "accept-encoding": "gzip", "content-type": "application/ndjson" }, "POST", START);
 		expect(rpc.headers["content-encoding"]).toBe("gzip");
-		expect(rpc.headers["cache-control"]).toBe("no-store");
+		expect(rpc.headers["cache-control"]).toBe("private, no-store");
 		expect(rpc.text).toContain('"_tag":"Success"');
 		expect(rpc.body.length).toBeLessThan(rpc.text.length / 2);
 	}

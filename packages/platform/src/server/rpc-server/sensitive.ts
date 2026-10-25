@@ -38,7 +38,7 @@ export function isSensitiveKey(key: string): boolean {
 		|| wordsOf(key).some((word) => SENSITIVE_WORDS.includes(word))
 	);
 }
-const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9._~+/-]+=*/giu;
+const AUTH_SCHEME = /\b(?<scheme>Bearer|Basic)\s+[A-Za-z0-9%._~+/-]+=*/giu;
 const JWT = /\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]*/gu;
 const PRIVATE_KEY = /-----BEGIN (?<kind>(?:[A-Z0-9]+ )*PRIVATE KEY)-----[\s\S]*?-----END \k<kind>-----/gu;
 const URL_PASSWORD = /(?<authority>\/\/[^:/\s@]+:)[^@/\s]+@/gu;

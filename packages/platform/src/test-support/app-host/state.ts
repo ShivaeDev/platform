@@ -10,6 +10,7 @@ import type { SubscriptionState } from "./subscription.ts";
 
 export interface HostState {
 	address: unknown;
+	adminSession: { role: string; unavailable: boolean };
 	agent?: Agent;
 	assets?: { root: string; spa: boolean };
 	bindAddress: string;
@@ -41,6 +42,7 @@ export interface HostState {
 export function emptyHost(): HostState {
 	return {
 		address: undefined,
+		adminSession: { role: "user", unavailable: false },
 		bindAddress: "",
 		build: (state) => otlpHost(state),
 		calls: [],

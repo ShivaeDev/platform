@@ -57,6 +57,18 @@ The Origin check is CSRF protection for cookie sessions. Browsers send `Origin` 
 
 The Origin check runs before the provider lookup. A rejected request fails with `Forbidden` whether or not it carries a session.
 
+## Bundled native bearer sessions
+
+A Capacitor or similar WebView loads its page from the app bundle, so same-site host cookies cannot be its session transport. Opt in at `betterAuthMount(options, { bearerSessions: { origins: ["capacitor://localhost", "https://localhost"] } })`, and include those bundle origins in Better Auth's `trustedOrigins`. This host option installs Better Auth's `bearer({ requireSignature: true })` plugin; the default mount remains cookie-only. Use `betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers })))` as the host's session provider, including when no sign-in policy is configured.
+
+The native client signs in through the existing auth routes using `credentials: "omit"`, reads its signed credential from `set-auth-token`, and sends `Authorization: Bearer <signed credential>` on subsequent auth and RPC requests, still omitting cookies. Store the credential in OS-backed secure storage, never web storage (localStorage, sessionStorage or IndexedDB). Browser responses retain HttpOnly cookies and omit both the token header and JSON token fields. Only listed bundled Origins can receive the signed credential header; do not list browser origins in `bearerSessions.origins`.
+
+The session cookie wins whenever it is present. A bearer header cannot upgrade that cookie's account, substitute for a revoked cookie or combine accounts. Without a session cookie, Better Auth verifies the bearer signature and stored session. Platform resolves the same `Identity`, profile and role context, and maps missing, invalid, unsigned, expired and revoked bearer sessions to the existing `Unauthorized` failure. Provider outages remain `AuthUnavailable`; credential-shaped logs and exported traces are redacted.
+
+Sign-out revokes the bearer session. A successful native sign-in that carries the previous bearer revokes that previous session as well. Existing streams revalidate their original headers every `streamRevalidationInterval` (30 seconds by default), ending with `Unauthorized` after revocation instead of adopting a replacement identity. Keep Better Auth's cookie cache disabled for database-backed revocation.
+
+The bearer option does not open the RPC transport guard to bundled Origins. The guard still requires its existing same-origin transport conditions; adding native cross-origin RPC access is a separate transport change. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [Platform README](../../packages/platform/README.md#bundled-native-clients) shows the complete host composition.
+
 ## Limits
 
 - The request id is not written to response headers; RPC middleware cannot set them. Clients correlate through their own trace span, which the RPC protocol propagates.
