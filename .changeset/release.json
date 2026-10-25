@@ -3,63 +3,59 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "sql-range-patterns.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repository `findMany` and `select` filters accept typed `gt`, `gte`, `lt` and `lte` bounds, including UTC timestamps, and `like` text patterns, with runtime operand validation through model codecs.\n"
-			},
-			{
-				"name": "tuple-list-filters.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Match several model fields together with `tupleIn(model, fields, tuples)` in `findMany`, `select` and unversioned `delete` filters. Tuples use each field's decoded type and codec, combine with other filters, and bind large lists as parameters. An empty tuple list matches nothing.\n"
+				"name": "conditional-upsert.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- PostgreSQL repository upserts accept a typed `updateWhere` filter, including `excluded` column comparisons, and return inserted, updated or unchanged outcomes. Conditional `upsertMany` returns one outcome per input in a single transaction, preventing stale sync revisions from overwriting newer rows.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.13.1",
+				"from": "0.13.2",
 				"name": "@shivaedev/create-app",
-				"to": "0.13.2"
+				"to": "0.13.3"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-pg-boss",
-				"from": "0.16.0",
+				"from": "0.16.1",
 				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.16.1"
+				"to": "0.16.2"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-sql",
-				"from": "0.14.0",
+				"from": "0.15.0",
 				"name": "@shivaedev/effect-sql",
-				"to": "0.15.0"
+				"to": "0.16.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-test-sql",
-				"from": "0.8.4",
+				"from": "0.8.5",
 				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.5"
+				"to": "0.8.6"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/platform",
-				"from": "0.25.0",
+				"from": "0.25.1",
 				"name": "@shivaedev/platform",
-				"to": "0.25.1"
+				"to": "0.25.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.4",
+				"from": "0.30.5",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.5"
+				"to": "0.30.6"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.5",
+				"from": "0.17.6",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.6"
+				"to": "0.17.7"
 			}
 		]
 	}
