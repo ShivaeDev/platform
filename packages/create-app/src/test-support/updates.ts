@@ -35,10 +35,10 @@ export const updates = storyKit({
 			`npm_config_cache=${join(dirname(engine.root), "npm-cache")}`,
 		];
 		return {
-			*create() {
+			*create(args: readonly string[] = []) {
 				story.tell("the user creates an app");
 				yield* engine.source.pack();
-				return yield* runCli(engine.root, engine.cli, true, ["my-app"], environment);
+				return yield* runCli(engine.root, engine.cli, true, ["my-app", ...args], environment);
 			},
 			edit(path: string, content: string) {
 				story.tell(`the app changes ${path}`);

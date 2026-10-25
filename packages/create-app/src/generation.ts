@@ -5,7 +5,7 @@ import { appFile } from "./appFiles.ts";
 import { CreateAppError } from "./CreateAppError.ts";
 import { Template } from "./template.ts";
 
-export const Generation = Schema.Struct({ name: Schema.String, version: Schema.String });
+export const Generation = Schema.Struct({ minimal: Schema.optional(Schema.Boolean), name: Schema.String, version: Schema.String });
 export type Generation = typeof Generation.Type;
 export const GENERATION_FILE = ".create-app.json";
 
