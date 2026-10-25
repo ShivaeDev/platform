@@ -7,7 +7,10 @@ import { linkPackage, seedTree } from "#test/tree.ts";
 
 export async function baselined(): Promise<string> {
 	const root = qualityTree(trees.dirty);
-	await runQuality(root, "baseline", "write");
+	const result = await runQuality(root, "baseline", "write");
+	if (result.status !== 0) {
+		throw new Error(`Cannot record the fixture baseline: ${result.stdout}${result.stderr}`);
+	}
 	return branchOff(root);
 }
 

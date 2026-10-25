@@ -1,11 +1,9 @@
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { importGraph } from "#imports/graph.ts";
 import { importCycles } from "#rules/imports/cycles.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
-import { git } from "#test/git.ts";
-import { findingsIn, importTree, linkWorkspace, scanned } from "#test/imports.ts";
+import { findingsIn, importTree, scanned } from "#test/imports.ts";
+import { generatedPlaceholderWorkspace, linkedWorkspace, trackedGeneratedWorkspace } from "#test/importWorkspaces.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -91,22 +89,14 @@ describe("imports/resolvable", () => {
 	});
 
 	it("takes a generated folder that git keeps with a placeholder while ignoring its contents", async () => {
-		const root = importTree("unresolvable");
-		writeFileSync(join(root, ".gitignore"), "src/generated/*\n!src/generated/.gitkeep\n");
-		mkdirSync(join(root, "src", "generated"));
-		writeFileSync(join(root, "src", "generated", ".gitkeep"), "");
-		git(root, "init", "--quiet");
-		git(root, "add", "src/generated/.gitkeep");
+		const root = generatedPlaceholderWorkspace();
 		const findings = await findingsIn(importsResolvable, { generated: ["src/generated"] }, root);
+		expect(findings).toHaveLength(11);
 		expect(findings.map((finding) => finding.subject)).not.toContain("./generated/client.ts");
 	});
 
 	it("refuses a generated folder that holds files git tracks", async () => {
-		const root = importTree("unresolvable");
-		mkdirSync(join(root, "src", "generated"));
-		writeFileSync(join(root, "src", "generated", "kept.ts"), "export const kept = 1;\n");
-		git(root, "init", "--quiet");
-		git(root, "add", "--force", "src/generated/kept.ts");
+		const root = trackedGeneratedWorkspace();
 		await expect(findingsIn(importsResolvable, { generated: ["src/generated"] }, root)).rejects.toThrow(
 			'"src/generated" holds files git tracks, such as src/generated/kept.ts, so it is not generated output',
 		);
@@ -126,8 +116,7 @@ describe("imports/resolvable", () => {
 
 describe("the import graph", () => {
 	it("resolves tsconfig paths, package.json imports, a workspace package's source export, JSON and require", async () => {
-		const root = importTree("resolution");
-		linkWorkspace(root, "@demo/shared", "packages/shared");
+		const root = linkedWorkspace();
 		const graph = await importGraph(await scanned(root));
 		expect(graph.unresolved).toEqual([]);
 		expect(graph.edges.filter((edge) => edge.from === "src/main.ts").map((edge) => edge.to)).toEqual([

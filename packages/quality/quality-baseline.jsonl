@@ -1,8 +1,0 @@
-{"path":"packages/quality/src/baseline/growth.spec.ts","rule":"tests/story-setup","count":2}
-{"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/quality/src/cli.test.ts","rule":"tests/story-setup","count":4}
-{"path":"packages/quality/src/imports/graph.test.ts","rule":"tests/story-setup","count":5}
-{"path":"packages/quality/src/inventory/inventory.spec.ts","rule":"tests/story-setup","count":2}
-{"path":"packages/quality/src/rules/biome.test.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/quality/src/rules/imports/cli.spec.ts","rule":"tests/story-setup","count":1}
-{"path":"packages/quality/src/rules/suppressions/cli.spec.ts","rule":"tests/story-setup","count":3}
