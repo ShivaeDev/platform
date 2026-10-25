@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-react",
-	"version": "0.17.0",
+	"version": "0.18.0",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-react#readme",
 	"bugs": {
