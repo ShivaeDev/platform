@@ -130,7 +130,15 @@ const reviseInvoiceLine = Effect.gen(function* () {
 });
 ```
 
-`insert` returns an `InvoiceLine` with the generated ID and decoded amount. The update supplies the model's required fields, the by-ID read reaches the saved row, and the final query returns an empty list after deletion. Without a version column, these methods come from native `SqlModel.makeRepository`; `findMany` is the added query.
+`insert` returns an `InvoiceLine` with the generated ID and decoded amount. The update supplies the model's required fields, the by-ID read reaches the saved row, and the final query returns an empty list after deletion. Repository CRUD uses native model variants and SQL schemas; `findMany` adds model-derived queries.
+
+When an unversioned row may be absent, opt into a typed missing-row failure:
+
+```ts
+yield* lines.update(input, { onMissing: "fail" });
+```
+
+This returns the decoded model or fails with `NoSuchElementError` in the error channel, just like `findById`. It supports single-column and composite keys and executes one `UPDATE … RETURNING` statement without checking existence first. A successful update announces changes after commit; a missing row announces nothing. Without the option, a missing row remains a defect. Versioned repositories use their existing `OptimisticConcurrencyError` contract instead.
 
 For lists, choose the fields the caller needs:
 
@@ -570,7 +578,7 @@ The application's startup runs migrations and keeps its database scope alive for
 
 ### Errors and storage limits
 
-Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. Native `findById` adds `NoSuchElementError` for a missing row, while unversioned native `update` defects if it returns no row. Versioned updates and deletes instead fail with typed `OptimisticConcurrencyError` when their ID and expected version match no row. A failed `COMMIT` is a typed `SqlError` like any other statement failure.
+Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. `findById` adds `NoSuchElementError` for a missing row. Unversioned `update` defects if it returns no row unless called with `{ onMissing: "fail" }`, which keeps `NoSuchElementError` in the error channel. Versioned updates and deletes instead fail with typed `OptimisticConcurrencyError` when their ID and expected version match no row. A failed `COMMIT` is a typed `SqlError` like any other statement failure.
 
 Map a known constraint at the operation that understands it, after the transaction has rolled back:
 

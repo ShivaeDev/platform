@@ -13,12 +13,29 @@ export type PrimaryKey<TModel extends Model.Any> = IdColumn<TModel> | CompositeK
 type DeleteWhere<TModel extends Model.Any> = (
 	where: RepositoryListFilter<TModel>,
 ) => Effect.Effect<void, SqlError | Schema.SchemaError, TModel["fields"][keyof TModel["fields"]]["EncodingServices"]>;
+
+interface Update<TModel extends Model.Any> {
+	(
+		input: TModel["update"]["Type"],
+		options: { readonly onMissing: "fail" },
+	): Effect.Effect<
+		TModel["Type"],
+		SqlError | Schema.SchemaError | Cause.NoSuchElementError,
+		TModel["update"]["EncodingServices"] | TModel["DecodingServices"]
+	>;
+	(
+		input: TModel["update"]["Type"],
+	): Effect.Effect<TModel["Type"], SqlError | Schema.SchemaError, TModel["update"]["EncodingServices"] | TModel["DecodingServices"]>;
+}
+
 export type Repository<TModel extends Model.Any, TId extends PrimaryKey<TModel>> = [TId] extends [IdColumn<TModel>]
-	? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete"> & {
+	? Omit<NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>, "delete" | "update"> & {
 			readonly delete: NativeRepository<TModel, Extract<TId, IdColumn<TModel>>>["delete"] & DeleteWhere<TModel>;
+			readonly update: Update<TModel>;
 		}
 	: TId extends CompositeKey<TModel>
-		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete"> & {
+		? Omit<NativeRepository<TModel, TId[number]>, "findById" | "delete" | "update"> & {
+				readonly update: Update<TModel>;
 				readonly findById: (
 					id: Pick<TModel["Type"], TId[number]>,
 				) => Effect.Effect<
