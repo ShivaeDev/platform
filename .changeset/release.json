@@ -3,39 +3,63 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "fleet-delivery-execution.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Reconcile executing attempts after delivery decisions and daemon restarts, preserve execution decisions while PR heads move, and confirm terminal execution for CLI release. Human merges at an unreviewed head release ownership without marking the work accepted.\n"
+				"name": "sql-range-patterns.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repository `findMany` and `select` filters accept typed `gt`, `gte`, `lt` and `lte` bounds, including UTC timestamps, and `like` text patterns, with runtime operand validation through model codecs.\n"
 			},
 			{
-				"name": "quality-export-paths.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Breaking\n\n- `imports/fences/dsl.ts` moves to `imports/fence.ts`: change the import path in every `quality.fences.config.ts` and other fence importer.\n- `cli/migrate.ts` moves to `cli/migrateBaseline.ts`: change the import path for `migrateBaseline`.\n- `config/file.ts` moves to `config/constants.ts`: change the import path for `CONFIG_FILE`, which now shares the topic module with `DEFAULT_EXTENSIONS`.\n- `imports/components.ts` moves to `imports/cyclicComponents.ts`: change the import path for `cyclicComponents`.\n- `imports/fences/policy.ts` moves to `imports/fences/compilePolicy.ts`: change the import path for `compilePolicy`.\n- `imports/generated.ts` moves to `imports/withoutGenerated.ts`: change the import path for `withoutGenerated`.\n- `imports/glob.ts` moves to `imports/globMatcher.ts`: change the import path for `globMatcher`.\n- `imports/paths.ts` moves to `imports/shortestPath.ts`: change the import path for `shortestPath`.\n- `report/stale.ts` moves to `report/staleSections.ts`: change the import path for `staleSections`.\n- `rules/suppressions/biome/resolve.ts` moves to `rules/suppressions/biome/resolvePackage.ts`: change the import path for `resolvePackage`.\n- `rules/syntax.ts` moves to `rules/parse.ts`: change the import path for `parse`.\n"
-			},
-			{
-				"name": "release-starter-pins.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+				"name": "tuple-list-filters.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Match several model fields together with `tupleIn(model, fields, tuples)` in `findMany`, `select` and unversioned `delete` filters. Tuples use each field's decoded type and codec, combine with other filters, and bind large lists as parameters. An empty tuple list matches nothing.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.13.0",
+				"from": "0.13.1",
 				"name": "@shivaedev/create-app",
-				"to": "0.13.1"
+				"to": "0.13.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-pg-boss",
+				"from": "0.16.0",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.16.1"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.35.0",
-				"name": "@shivaedev/quality",
-				"to": "0.36.0"
+				"directory": "packages/effect-sql",
+				"from": "0.14.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.15.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.8.4",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.8.5"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/platform",
+				"from": "0.25.0",
+				"name": "@shivaedev/platform",
+				"to": "0.25.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.30.4",
+				"name": "@shivaedev/work-board",
+				"to": "0.30.5"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.4",
+				"from": "0.17.5",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.5"
+				"to": "0.17.6"
 			}
 		]
 	}
