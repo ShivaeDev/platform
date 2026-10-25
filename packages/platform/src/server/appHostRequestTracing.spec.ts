@@ -21,6 +21,7 @@ for (const position of ["omitted", "first", "last"] as const) {
 					attempt: 0,
 					level: "Info",
 					message: ["RPC failure"],
+					spans: { "rpc.duration": expect.any(Number) },
 				},
 			]);
 		},
