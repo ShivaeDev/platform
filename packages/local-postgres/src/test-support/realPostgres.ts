@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { sqlInContainer } from "#localContainer.ts";
 import { docker } from "#localDocker.ts";
-import { localServer } from "#localPostgres.ts";
+import { LOCAL_SERVER } from "#localPostgres.ts";
 import type { PostgresEngine } from "#test/postgresEngine.ts";
 
 export function containerQuery(engine: PostgresEngine, connection: URL, query: string) {
@@ -15,19 +15,19 @@ export function containerQuery(engine: PostgresEngine, connection: URL, query: s
 
 export function queryAsNewRole(engine: PostgresEngine) {
 	const role = `client_${randomUUID().replaceAll("-", "")}`;
-	engine.manager.sql(`${localServer}/postgres`, `CREATE ROLE "${role}" LOGIN PASSWORD 'local-client-fixture-password'`);
+	engine.manager.sql(`${LOCAL_SERVER}/postgres`, `CREATE ROLE "${role}" LOGIN PASSWORD 'local-client-fixture-password'`);
 	try {
-		const connection = new URL(`${localServer}/postgres`);
+		const connection = new URL(`${LOCAL_SERVER}/postgres`);
 		connection.username = role;
 		connection.password = encodeURIComponent("local-client-fixture-password");
 		return { result: containerQuery(engine, connection, "SELECT session_user, current_database()"), role };
 	} finally {
-		engine.manager.sql(`${localServer}/postgres`, `DROP ROLE "${role}"`);
+		engine.manager.sql(`${LOCAL_SERVER}/postgres`, `DROP ROLE "${role}"`);
 	}
 }
 
 export function prepareTwice(engine: PostgresEngine) {
-	const url = `${localServer}/platform_test_local_postgres`;
+	const url = `${LOCAL_SERVER}/platform_test_local_postgres`;
 	engine.manager.prepareDatabases([url]);
 	const table = `setup_preservation_${randomUUID().replaceAll("-", "")}`;
 	engine.manager.sql(url, `CREATE TABLE "${table}" (value text NOT NULL)`);

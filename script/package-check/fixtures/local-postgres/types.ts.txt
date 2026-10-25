@@ -1,7 +1,7 @@
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts"
+import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts"
 
 const postgres = localPostgres({ DOCKER_CONTEXT: undefined, DOCKER_HOST: undefined })
-const database: URL = assertLocalDatabase(`${localServer}/example_test`, ["example_test"])
+const database: URL = assertLocalDatabase(`${LOCAL_SERVER}/example_test`, ["example_test"])
 const query: (url: string | URL, sql: string) => string = postgres.sql
 const prepare: (urls: readonly string[]) => void = postgres.prepareDatabases
 void [database, query, prepare]

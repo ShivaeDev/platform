@@ -1,5 +1,5 @@
 import { ConfigProvider, Effect } from "effect";
-import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { setupDatabases } from "#server/setupDatabases.ts";
 
@@ -17,7 +17,7 @@ export const databaseSetup = storyKit({
 					const value = env[key];
 					if (value !== undefined) {
 						const name = new URL(value).pathname.slice(1);
-						postgres.sql(`${localServer}/postgres`, `DROP DATABASE IF EXISTS "${name}"`);
+						postgres.sql(`${LOCAL_SERVER}/postgres`, `DROP DATABASE IF EXISTS "${name}"`);
 					}
 				}
 			});

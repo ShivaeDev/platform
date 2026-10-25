@@ -1,6 +1,6 @@
 import { readFileSync } from "node:fs";
 import { Config, Effect } from "effect";
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 import { postgresTestEnvironment } from "#lib/postgresTestEnvironment.ts";
 
 if (Effect.runSync(Config.String("NODE_ENV").pipe(Config.withDefault(""))) === "production") {
@@ -15,7 +15,7 @@ const { prepareDatabases, sql } = localPostgres(
 		}),
 	),
 );
-const development = Effect.runSync(Config.String("DATABASE_URL").pipe(Config.withDefault(`${localServer}/platform_dev`)));
+const development = Effect.runSync(Config.String("DATABASE_URL").pipe(Config.withDefault(`${LOCAL_SERVER}/platform_dev`)));
 const tests = Effect.runSync(postgresTestEnvironment);
 assertLocalDatabase(development, ["platform_dev"]);
 prepareDatabases([development, ...Object.values(tests)]);

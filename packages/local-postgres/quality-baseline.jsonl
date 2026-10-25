@@ -1,3 +1,1 @@
-{"path":"packages/local-postgres/src/server/localPostgres.ts","rule":"biome/plugin","count":1}
-{"path":"packages/local-postgres/src/server/localPostgresErrors.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/local-postgres/src/server/localPostgresLifecycle.spec.ts","rule":"tests/named-values","count":1}
