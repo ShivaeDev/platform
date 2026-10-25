@@ -9,14 +9,19 @@ export function isUnchanged(response: HttpClientResponse.HttpClientResponse) {
 	return response.status === 304;
 }
 
-export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, resource: string) {
+export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, resource: string, failures = 0) {
 	const { status, headers } = response;
 	if (status === 403 || status === 429) {
-		const limitedByHeaders = headers["x-ratelimit-remaining"] === "0" || headers["retry-after"] !== undefined;
+		const limitedByHeaders = status === 429 || headers["x-ratelimit-remaining"] === "0" || headers["retry-after"] !== undefined;
 		const limitedByMessage = !limitedByHeaders && status === 403 && (yield* messageNamesRateLimit(response));
 		if (limitedByHeaders || limitedByMessage) {
-			const retryAt =
-				parseRetryAfter(headers["retry-after"], yield* DateTime.now) ?? DateTime.makeUnsafe(Number(headers["x-ratelimit-reset"] ?? 0) * 1000);
+			const now = yield* DateTime.now;
+			const reset = Number(headers["x-ratelimit-reset"] ?? 0) * 1000;
+			const fallback =
+				headers["x-ratelimit-remaining"] === "0" && reset > DateTime.toEpochMillis(now)
+					? reset
+					: DateTime.toEpochMillis(now) + Math.min(15 * 60_000, 60_000 * 2 ** failures);
+			const retryAt = parseRetryAfter(headers["retry-after"], now) ?? DateTime.makeUnsafe(fallback);
 			return yield* new GitHubRateLimited({ resource, retryAt });
 		}
 	}

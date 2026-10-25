@@ -57,7 +57,7 @@ const diff = Effect.gen(function* () {
 });
 ```
 
-The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. Prefer the exported functions for Schema-decoded items.
+The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. Prefer the exported functions for Schema-decoded items. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
 
 ### Acting as a GitHub App
 

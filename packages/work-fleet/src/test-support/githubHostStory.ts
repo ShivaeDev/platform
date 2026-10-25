@@ -1,4 +1,4 @@
-import { Effect, Layer } from "effect";
+import { Context, Effect, Layer } from "effect";
 import type { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
@@ -22,14 +22,14 @@ const definition = {
 			Effect.gen(function* () {
 				story.tell("connect Fleet's conditional GitHub client");
 				const github = syntheticGithub(options);
-				const client = yield* GithubApi.pipe(Effect.provide(github.layer));
+				const client = Context.get(yield* Layer.build(github.layer), GithubApi);
 				return { ...github, client };
 			}),
 		cli: (responses: ReadonlyMap<string, string>, status = 200) =>
 			Effect.gen(function* () {
-				story.tell("connect Fleet through gh api");
+				story.tell("connect Fleet through GitHub HTTP");
 				const cli = githubCliApi(responses, status);
-				const api = yield* GithubApi.pipe(Effect.provide(cli.layer));
+				const api = Context.get(yield* Layer.build(cli.layer), GithubApi);
 				return {
 					adopt: (...args: Parameters<ReturnType<typeof githubResult>>) =>
 						githubResult(resultFixture().host, api, Effect.succeed("example/repository"))(...args),

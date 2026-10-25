@@ -29,11 +29,8 @@ isolatedEngine.it(
 			expect((yield* fleet.reconcile("one")).version).toBe(ready.version);
 		}
 		expect(budgetRequests().length).toBeGreaterThan(observed);
-		expect(
-			budgetRequests()
-				.slice(observed)
-				.every(({ status }) => status === 304),
-		).toBe(true);
+		const conditional = budgetRequests().slice(observed);
+		expect(conditional.map(({ status }) => status)).toEqual(conditional.map(() => 304));
 		expect(budgetRemaining()).toBe(spent);
 		mergeBudgetPullRequest();
 		const accepted = yield* fleet.reconcile("one");
