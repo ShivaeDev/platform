@@ -1,5 +1,4 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -20,7 +19,7 @@ for (const url of ["/notes/task.md", "/_board/item/task.fixture/"]) {
 		`renders typed document data and context at ${url}`,
 		[routedScreen(files, url, undefined)],
 		function* ({ readAttribute, findElement, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(readAttribute("article.doc a", "href")).toBe("/result.md#recorded-evidence-0")));
+			yield* eventually(() => expect(readAttribute("article.doc a", "href")).toBe("/result.md#recorded-evidence-0"));
 			expect(findElement("main")?.dataset.identity).toBe("task.fixture");
 			expect(findElement(".item-introduction h1")?.id).toBe("heading-task");
 			expect(findElement("#heading-details-2")).not.toBeNull();
@@ -45,7 +44,7 @@ for (const url of ["/missing.md", "/_board/item/missing/"]) {
 			}),
 		],
 		function* ({ findElement, findElements, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("main [data-slot=empty]")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("main [data-slot=empty]")).not.toBeNull());
 			const empty = findElement("main [data-slot=empty]");
 			expect(readText("[data-slot=empty-title]", empty)).toBe(url.endsWith(".md") ? "File not found" : "Item not found");
 			expect(readText("[role=status]", empty)).toContain(url.endsWith(".md") ? "No Markdown file at missing.md." : "No item has the ID missing.");
@@ -63,7 +62,7 @@ screenStory.it(
 	"keeps response history readable when a question's prompt template is invalid",
 	[routedScreen({ ...files, "question.md": QUESTION }, "/question.md", undefined)],
 	function* ({ readText, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(".response-panel")).toContain("Use top-level question containers")));
+		yield* eventually(() => expect(readText(".response-panel")).toContain("Use top-level question containers"));
 		expect(readText("#response-history h2")).toBe("Answers so far");
 		expect(readText("#response-history")).toContain("No answers yet");
 		expect(findElement("#response-form")).toBeNull();
@@ -74,6 +73,6 @@ screenStory.it(
 	"renders a document at its file URL when no home board is configured",
 	[routedScreen(files, "/home.md", { home: undefined })],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(".item-introduction h1")).toBe("Home")));
+		yield* eventually(() => expect(readText(".item-introduction h1")).toBe("Home"));
 	},
 );

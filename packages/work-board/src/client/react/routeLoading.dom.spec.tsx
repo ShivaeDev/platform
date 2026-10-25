@@ -16,19 +16,19 @@ for (const { kind, url } of [
 			`keeps same-URL ${kind} navigation on its projection (failed: ${failed})`,
 			[routedScreen(files, "/notes/first.md", { home: "home.md" })],
 			function* ({ follow, failWorkspace, recoverWorkspace, readAttribute, readDocumentReads, readIndexReads, findElement }) {
-				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/first.md")));
+				yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/first.md"));
 				if (failed) {
 					failWorkspace();
 				}
 				yield* Effect.promise(() => follow(url));
-				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe(failed ? "503" : "200")));
+				yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(failed ? "503" : "200"));
 				expect(readAttribute("#doc", "data-projection")).toBe(kind);
 				const before = readDocumentReads();
 				const beforeIndex = readIndexReads();
 				const projection = findElement("[data-react-projection]");
 				recoverWorkspace();
 				yield* Effect.promise(() => follow(url));
-				yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200")));
+				yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200"));
 				expect(readAttribute("#doc", "data-route")).toBe(url);
 				expect(readIndexReads()).toBe(beforeIndex + (failed ? 1 : 0));
 				expect(readDocumentReads().filter((read) => read === url)).toHaveLength(
@@ -55,7 +55,7 @@ for (const { url, kind } of routes) {
 		`preloads ${url} through the shared query registry before navigation`,
 		[routedScreen(files, "/notes/first.md", { home: "home.md" })],
 		function* ({ preload, findElement, readText, navigate, readDocumentReads }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md")));
+			yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md"));
 			const header = findElement("header");
 			yield* Effect.promise(() => preload(url));
 			expect(readDocumentReads().filter((read) => read === (kind === "work" ? "/_board/item/note.next/" : url))).toHaveLength(
@@ -63,7 +63,7 @@ for (const { url, kind } of routes) {
 			);
 			expect(readText("#doc h1")).toBe("First");
 			yield* Effect.promise(() => navigate(url));
-			yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe(url)));
+			yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe(url));
 			expect(findElement("header")).toBe(header);
 			expect(readDocumentReads().filter((read) => read === (kind === "work" ? "/_board/item/note.next/" : url))).toHaveLength(
 				kind === "today" ? 0 : 1,
@@ -81,12 +81,12 @@ screenStory.it(
 		}),
 	],
 	function* ({ preload, findElement, readText, navigate }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board")));
+		yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board"));
 		yield* Effect.promise(() => preload("/_board/work?view=table"));
 		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe("All work");
 		expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=board");
 		yield* Effect.promise(() => navigate("/_board/work?view=table"));
-		yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=table")));
+		yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/_board/work?view=table"));
 		expect(findElement("#work-results table")).not.toBeNull();
 		expect(readText('nav[aria-label="Work layout"] [aria-current="page"]')).toBe("Table");
 	},

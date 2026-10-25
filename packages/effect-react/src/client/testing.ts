@@ -4,6 +4,8 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement, type ReactNode } from "react";
 import { createRoot, type RootOptions } from "react-dom/client";
 import { beforeEach, expect, vi } from "vitest";
+import { eventually as retry } from "@shivaedev/effect-test/eventually.ts";
+import { withLive } from "@shivaedev/effect-test/withLive.ts";
 
 type CaughtErrorHandler = NonNullable<RootOptions["onCaughtError"]>;
 
@@ -78,22 +80,30 @@ export function expectNoReactWarnings() {
 		},
 	};
 }
-export async function eventually(assert: () => void) {
-	const deadline = Effect.runSync(Clock.currentTimeMillis) + 3000;
-	while (true) {
-		// Network responses must settle inside act, including the time between assertions.
-		await act(async () => {
-			await new Promise<void>((resolve) => setTimeout(resolve, 10));
-		});
-		try {
-			assert();
-			return;
-		} catch (error) {
-			if (Effect.runSync(Clock.currentTimeMillis) >= deadline) {
-				throw error;
-			}
-		}
-	}
+export function eventually(assert: () => void) {
+	return withLive(
+		Effect.gen(function* () {
+			const started = yield* Clock.currentTimeMillis;
+			return yield* retry(Effect.try({ catch: (error) => error, try: assert }), {
+				timeout: "3 seconds",
+				// Responses and React updates must settle together inside act.
+				wait: Effect.promise(() =>
+					act(async () => {
+						await new Promise<void>((resolve) => setTimeout(resolve, 10));
+					}),
+				),
+			}).pipe(
+				Effect.catch((error) =>
+					Effect.gen(function* () {
+						const elapsed = (yield* Clock.currentTimeMillis) - started;
+						return yield* Effect.fail(
+							new Error(`Assertion did not pass after ${elapsed}ms: ${error instanceof Error ? error.message : String(error)}`, { cause: error }),
+						);
+					}),
+				),
+			);
+		}),
+	);
 }
 export interface Rendered {
 	readonly container: HTMLDivElement;

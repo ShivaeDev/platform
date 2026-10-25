@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { questionId, responseMarkdown, revisionOf } from "#server/responses/records.ts";
@@ -52,7 +51,7 @@ screenStory.it(
 	"leads a closed Fleet decision with the recorded choice, who made it and when, under a title naming the work",
 	[routedScreen(closedDecision(answeredDecisionFixture()), `/_board/item/${decisionId}/`, { home: "home.md" })],
 	function* ({ findElement, readText, readTitle }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(OUTCOME)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(OUTCOME)).not.toBeNull());
 		expect(findElement("article.doc")?.firstElementChild).toBe(findElement(OUTCOME));
 		expect(readText(`${OUTCOME} h2`)).toBe("Outcome");
 		expect(readText(`${OUTCOME} [data-outcome-answer] > p:first-child`)).toBe("Request changes");
@@ -69,13 +68,11 @@ screenStory.it(
 	"shows every author's current answer with its note when answers compete",
 	[routedScreen(competing, `/_board/item/${decisionId}/`, { home: "home.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElements(`${OUTCOME} [data-outcome-answer]`).map((answer) => answer.getAttribute("data-outcome-answer"))).toEqual([
-					"response.direction-retry",
-					"response.direction-release",
-				]),
-			),
+		yield* eventually(() =>
+			expect(findElements(`${OUTCOME} [data-outcome-answer]`).map((answer) => answer.getAttribute("data-outcome-answer"))).toEqual([
+				"response.direction-retry",
+				"response.direction-release",
+			]),
 		);
 		const release = findElement(`${OUTCOME} [data-outcome-answer='response.direction-release']`);
 		expect(readText("p:first-child", release)).toBe("Stop and hand back");
@@ -89,7 +86,7 @@ screenStory.it(
 	"says plainly that a closed decision has no recorded answer instead of showing an empty outcome",
 	[routedScreen(AUTHORED, "/_board/item/decision.seven/", { home: "home.md" })],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(OUTCOME)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(OUTCOME)).not.toBeNull());
 		expect(findElement("article.doc")?.firstElementChild).toBe(findElement(OUTCOME));
 		expect(readText(`${OUTCOME} p`)).toBe("Closed with no answer recorded on the Board.");
 		expect(findElement(`${OUTCOME} [data-outcome-answer]`)).toBeNull();
@@ -102,7 +99,7 @@ screenStory.it(
 	"shows no outcome while a decision still waits for its answer",
 	[routedScreen(unansweredDecision(), `/_board/item/${decisionId}/`, { home: "home.md" })],
 	function* ({ findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("article.doc")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("article.doc")).not.toBeNull());
 		expect(findElement("[data-decision-outcome]")).toBeNull();
 	},
 );
@@ -111,7 +108,7 @@ screenStory.it(
 	"hides a Fleet packet's empty sections and keeps its fenced decision text as plain, wrappable text",
 	[routedScreen(quietPacket, `/_board/item/${reviewedDecisionId}/`, { home: "tasks/upload.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(OUTCOME)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(OUTCOME)).not.toBeNull());
 		expect(findElements("article.doc h2").map((heading) => heading.textContent)).toEqual([
 			"Outcome",
 			"Decision",

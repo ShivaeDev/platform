@@ -41,13 +41,11 @@ screenStory.it(
 		deleteFile("notes/plan.md");
 		yield* Effect.promise(() => refreshDocument());
 		click("#library-open");
-		yield* Effect.promise(() => eventually(() => expect(readText('#reading-library a[href="/notes/plan.md"]', document)).toContain("missing")));
+		yield* eventually(() => expect(readText('#reading-library a[href="/notes/plan.md"]', document)).toContain("missing"));
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
 		click('#reading-library a[href="/notes/plan.md"]');
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
-			),
+		yield* eventually(() =>
+			expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
 		);
 		expect(readText("#navigation-status")).toBe("");
 	},
@@ -77,7 +75,7 @@ screenStory.it(
 		expect(location()).toBe(entry);
 		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
 		yield* Effect.promise(() => back());
-		yield* Effect.promise(() => eventually(() => expect(findElement("article details")).toHaveProperty("open", true)));
+		yield* eventually(() => expect(findElement("article details")).toHaveProperty("open", true));
 	},
 );
 
@@ -87,12 +85,12 @@ screenStory.it(
 	function* ({ failDocument, recoverDocument, follow, navigate, readText, readAttribute }) {
 		failDocument();
 		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe("503")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("503"));
 		expect(readAttribute("#doc", "data-route")).toBe("/notes/deep/proof.md");
 		expect(readText("#navigation-status")).toBe("");
 		recoverDocument();
 		yield* Effect.promise(() => follow("/notes/deep/proof.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Proof")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Proof"));
 	},
 );
 
@@ -103,7 +101,7 @@ for (const failed of [false, true]) {
 		function* ({ pauseRead, refreshDocument, refreshStarted, navigate, releaseRefresh, readText, readAttribute, frame }) {
 			pauseRead("/notes/plan.md", failed);
 			yield* Effect.promise(() => refreshDocument());
-			yield* Effect.promise(() => eventually(() => expect(refreshStarted()).toBe(true)));
+			yield* eventually(() => expect(refreshStarted()).toBe(true));
 			yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
 			yield* Effect.promise(() => releaseRefresh());
 			yield* Effect.promise(() => frame());
@@ -120,10 +118,10 @@ screenStory.it(
 		pauseRead("/notes/plan.md");
 		editFile("notes/plan.md", "# Older source");
 		yield* Effect.promise(() => refreshDocument());
-		yield* Effect.promise(() => eventually(() => expect(refreshStarted()).toBe(true)));
+		yield* eventually(() => expect(refreshStarted()).toBe(true));
 		editFile("notes/plan.md", "# Newest source");
 		yield* Effect.promise(() => refreshDocument());
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Newest source")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Newest source"));
 		yield* Effect.promise(() => releaseRefresh());
 		yield* Effect.promise(() => frame());
 		expect(readText("#doc h1")).toBe("Newest source");
@@ -136,10 +134,8 @@ screenStory.it(
 	function* ({ deleteFile, refreshDocument, readText, readNavigation }) {
 		deleteFile("notes/plan.md");
 		yield* Effect.promise(() => refreshDocument());
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
-			),
+		yield* eventually(() =>
+			expect(readText("#doc [data-slot=empty-description]")).toBe("No Markdown file at notes/plan.md. It may have been moved or deleted."),
 		);
 		const navigation = yield* Effect.promise(() => readNavigation());
 		expect(navigation.counts.library).toBe(Object.keys(files).length - 1);

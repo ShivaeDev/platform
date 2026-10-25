@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { nowAsksFixture } from "#test/nowAsksFixture.ts";
@@ -12,7 +11,7 @@ screenStory.it(
 	[routedScreen(nowAsksFixture, "/_board/work", { home: "home.md" })],
 	function* ({ findElement, findElements, readAttribute, readText }) {
 		const waiting = "[aria-label='Waiting on you'] [data-item='task.yours']";
-		yield* Effect.promise(() => eventually(() => expect(findElement(waiting)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(waiting)).not.toBeNull());
 		expect(readText(`${waiting} .work-owner`)).toBe("Waiting on your answer");
 		expect(readAttribute(`${waiting} [data-status-token]`, "data-status-token")).toBe("needs-you");
 		expect(
@@ -31,7 +30,7 @@ for (const [task, chip] of [
 		`splits the header chip of ${task} by who answers its open ask, like Now and Today`,
 		[routedScreen(nowAsksFixture, `/_board/item/${task}/`, { home: "home.md" })],
 		function* ({ findElement, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary [data-status-token]")).not.toBeNull()));
+			yield* eventually(() => expect(findElement(".item-summary [data-status-token]")).not.toBeNull());
 			expect(readText(".item-summary [data-status-token]")).toBe(chip);
 		},
 	);

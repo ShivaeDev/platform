@@ -472,7 +472,7 @@ Use `@shivaedev/effect-react/client/testing.ts` with Vitest's `happy-dom` enviro
 
 ```sh
 pnpm add @shivaedev/effect-contract
-pnpm add -D vitest happy-dom react-dom@19.3.0 @types/react-dom
+pnpm add -D @shivaedev/effect-test @effect/vitest@4.0.5 vitest happy-dom react-dom@19.3.0 @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -482,13 +482,14 @@ import { Effect, Option, Ref, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { act, createElement } from "react";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
+import { it } from "@shivaedev/effect-test/it.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -533,23 +534,23 @@ function NotesView() {
 	);
 }
 
-it("renders a query and refetches it after a command through a test RPC layer", async () => {
-	const view = await render(createElement(NotesView));
+it.live("renders a query and refetches it after a command through a test RPC layer", function* () {
+	const view = yield* Effect.promise(() => render(createElement(NotesView)));
 	try {
-		await eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
+		yield* eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
 		expect(view.container.querySelector("output")?.textContent).toBe("");
-		await act(async () => view.container.querySelector("button")?.click());
-		await eventually(() => {
+		yield* Effect.promise(() => act(async () => view.container.querySelector("button")?.click()));
+		yield* eventually(() => {
 			expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
 			expect(view.container.querySelector("button")?.disabled).toBe(false);
 		});
 	} finally {
-		await view.unmount();
+		yield* Effect.promise(view.unmount);
 	}
 });
 ```
 
-`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
 For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
 

@@ -21,27 +21,21 @@ screenStory.it(
 	],
 	function* ({ input, keyboard, editFile, refreshSearch, count, readAttribute, findElement, findElements }) {
 		input(QUERY, "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(3)));
-		yield* Effect.promise(() =>
-			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
-		);
+		yield* eventually(() => expect(count(OPTIONS, document)).toBe(3));
+		yield* eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id));
 		keyboard("ArrowDown", {}, QUERY);
 		keyboard("ArrowDown", {}, QUERY);
-		yield* Effect.promise(() =>
-			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[2]?.id)),
-		);
+		yield* eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[2]?.id));
 		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(readAttribute(QUERY, "aria-activedescendant", document));
 		editFile("notes/second.md", "# Second\n\nNo match.");
 		editFile("notes/third.md", "# Third\n\nNo match.");
 		yield* Effect.promise(() => refreshSearch("Shared phrase"));
-		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md")));
-		yield* Effect.promise(() =>
-			eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id)),
-		);
+		yield* eventually(() => expect(count(OPTIONS, document)).toBe(1));
+		yield* eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/first.md"));
+		yield* eventually(() => expect(readAttribute(QUERY, "aria-activedescendant", document)).toBe(findElements(OPTIONS, document)[0]?.id));
 		const enter = keyboard("Enter", { cancelable: true }, QUERY);
 		expect(enter.defaultPrevented).toBe(true);
-		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 	},
 );
 
@@ -56,7 +50,7 @@ for (const { initial, previous } of [
 			if (initial) {
 				input(QUERY, initial);
 			}
-			yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe(previous)));
+			yield* eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe(previous));
 			freezeTimers(() => {
 				input(QUERY, "Second phrase");
 				expect(count(OPTIONS, document)).toBe(0);
@@ -64,10 +58,10 @@ for (const { initial, previous } of [
 				keyboard("Enter", { cancelable: true }, QUERY);
 			});
 			expect(findElement("#search-dialog", document)).not.toBeNull();
-			yield* Effect.promise(() => eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/second.md")));
+			yield* eventually(() => expect(readAttribute(SELECTED, "href", document)).toBe("/notes/second.md"));
 			expect(count(OPTIONS, document)).toBe(1);
 			keyboard("Enter", { cancelable: true }, QUERY);
-			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 		},
 	);
 }
@@ -77,10 +71,10 @@ screenStory.it(
 	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one." }), unavailableWorkspace()],
 	function* ({ input, recoverWorkspace, count, readText, roles }) {
 		input(QUERY, "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(readText(STATUS, document)).toBe("Search could not be completed.")));
+		yield* eventually(() => expect(readText(STATUS, document)).toBe("Search could not be completed."));
 		recoverWorkspace();
 		yield* roles.click({ name: "Retry search", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(1)));
+		yield* eventually(() => expect(count(OPTIONS, document)).toBe(1));
 		expect(readText(STATUS, document)).toBe("1 matches.");
 	},
 );
@@ -90,7 +84,7 @@ screenStory.it(
 	[searchScreen({ "notes/first.md": "# First\n\nShared phrase one.", "notes/second.md": "# Second\n\nShared phrase two." })],
 	function* ({ input, keyboard, count, findElement, findElements }) {
 		input(QUERY, "Shared phrase");
-		yield* Effect.promise(() => eventually(() => expect(count(OPTIONS, document)).toBe(2)));
+		yield* eventually(() => expect(count(OPTIONS, document)).toBe(2));
 		keyboard("ArrowDown", {}, QUERY);
 		const selected = findElements(OPTIONS, document)[1]?.id;
 		expect(findElement(`${OPTIONS}[aria-selected="true"]`, document)?.id).toBe(selected);
@@ -106,8 +100,6 @@ screenStory.it(
 	[searchScreen({ "home.md": "# Home\n", "notes/first.md": "# First\n\nShared phrase one." }, { home: "home.md" }), unreadableHome()],
 	function* ({ input, readText }) {
 		input(QUERY, "Shared phrase");
-		yield* Effect.promise(() =>
-			eventually(() => expect(readText(STATUS, document)).toBe("1 matches. Could not read 1 files; results are incomplete.")),
-		);
+		yield* eventually(() => expect(readText(STATUS, document)).toBe("1 matches. Could not read 1 files; results are incomplete."));
 	},
 );

@@ -10,12 +10,10 @@ screenStory.it(
 	"says Markdown could not load and keeps the Board usable when the renderer chunk fails",
 	[todayScreen(), screenRoute("/home.md"), markdownChunkFails(), openScreen()],
 	function* ({ navigate, readText }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText("#doc [data-markdown-error]")).toMatch(/^Markdown could not be loaded: .+\. Reload the page to try again\.$/u),
-			),
+		yield* eventually(() =>
+			expect(readText("#doc [data-markdown-error]")).toMatch(/^Markdown could not be loaded: .+\. Reload the page to try again\.$/u),
 		);
 		yield* Effect.promise(() => navigate("/_board/goals"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Goals")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Goals"));
 	},
 );

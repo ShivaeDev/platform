@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -16,7 +15,7 @@ screenStory.it(
 	"shows authored words on work cards and keeps all five states in Library's filter",
 	[routedScreen(files, "/_board/library")],
 	function* ({ roles, readText, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("main")).toContain("Ready brief")));
+		yield* eventually(() => expect(readText("main")).toContain("Ready brief"));
 		expect(
 			findElements("main li p")
 				.map((entry) => entry.textContent)
@@ -27,6 +26,6 @@ screenStory.it(
 			expect.arrayContaining(["Draft", "Ready", "Done", "Deferred", "Dropped"]),
 		);
 		yield* roles.click({ name: "Deferred", role: "option" });
-		yield* Effect.promise(() => eventually(() => expect(findElements("main li p").map((entry) => entry.textContent)).toEqual(["Task · Deferred"])));
+		yield* eventually(() => expect(findElements("main li p").map((entry) => entry.textContent)).toEqual(["Task · Deferred"]));
 	},
 );

@@ -10,7 +10,7 @@ screenStory.it(
 	"puts each missing prompt warning beside its own control and clears corrections",
 	[routedScreen({ "proposal.md": questionnaireSource }, "/_board/item/investigation.choices/", { home: undefined, writable: true })],
 	function* ({ findElement, input, activate, submit, readText, check, readFocus }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		check("history");
 		yield* Effect.promise(() => activate("#response-preview"));
 		const display = findElement<HTMLTextAreaElement>('[data-prompt="display"] textarea');
@@ -18,7 +18,7 @@ screenStory.it(
 		expect([display?.validationMessage, checks?.validationMessage]).toEqual(["", ""]);
 		submit("#response-form");
 		expect(checks?.validationMessage).toBe("Choose an option or answer in your own words.");
-		yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(checks)));
+		yield* eventually(() => expect(readFocus()).toBe(checks));
 		input(checks, "Test keyboard use");
 		expect(checks?.validationMessage).toBe("");
 		input(checks, "");

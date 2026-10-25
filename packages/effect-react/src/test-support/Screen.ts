@@ -64,7 +64,7 @@ export class Screen {
 	}
 	observe(line: string, check: () => void) {
 		this.tell(line);
-		return Effect.promise(() => eventually(check));
+		return eventually(check);
 	}
 	inspect() {
 		return {

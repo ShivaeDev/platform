@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import type { Document } from "#browser/document/schema.ts";
@@ -21,7 +20,7 @@ screenStory.it(
 	"keeps prose columns of a wide document table at a readable width and short columns on one line, scrolling inside its own box",
 	[routedScreen({ "home.md": "# Home", "report.md": REPORT }, "/report.md")],
 	function* ({ findElement, findElements, readTableLayout }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("article.doc table")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("article.doc table")).not.toBeNull());
 		expect(readTableLayout("article.doc table")).toEqual(WIDE_TABLE_LAYOUT);
 		expect(findElements("article.doc th").map((head) => head.dataset.slot)).toEqual(["table-head", "table-head", "table-head", "table-head"]);
 		expect(findElements("article.doc td").every((cell) => cell.classList.contains("[overflow-wrap:normal]"))).toBe(true);
@@ -49,7 +48,7 @@ screenStory.it(
 	"reads the workspace notes board as prose with its columns and items in the main column",
 	[routedScreen({ "notes.md": NOTES }, "/notes.md", { home: "notes.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".document-layout > .board")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".document-layout > .board")).not.toBeNull());
 		const board = findElement(".document-layout > .board");
 		expect(board?.classList.contains("reading-column")).toBe(true);
 		expect(readText(".board-introduction p", board)).toBe("Local planning for the project.");
@@ -72,7 +71,7 @@ screenStory.it(
 	"keeps a workspace board without columns readable in the main column",
 	[routedScreen({ "notes.md": NOTES.slice(0, NOTES.indexOf("## Plan")) }, "/notes.md", { home: "notes.md" })],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".document-layout > .board")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".document-layout > .board")).not.toBeNull());
 		expect(readText(".document-layout > .board")).toBe("Local planning for the project.");
 		expect(findElement("[data-page-summary] .counts")).toBeNull();
 	},
@@ -106,7 +105,7 @@ screenStory.it(
 		expect(order.indexOf("task")).toBeLessThan(order.indexOf("task.fixture"));
 		expect(order.indexOf("Ready")).toBeLessThan(order.indexOf("task.fixture"));
 		yield* roles.click({ name: "Copy item ID", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(findElement('button[aria-label="Copied item ID"]', row)).not.toBeNull()));
+		yield* eventually(() => expect(findElement('button[aria-label="Copied item ID"]', row)).not.toBeNull());
 		expect(writeText).toHaveBeenCalledWith("task.fixture");
 	},
 );
@@ -115,7 +114,7 @@ screenStory.it(
 	"says answering is turned off and offers no answer controls on a Board without responses",
 	[routedScreen(answerCardFixture, "/guide.md", { home: "home.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".response-panel li")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".response-panel li")).not.toBeNull());
 		const card = findElement(".response-panel");
 		expect(findElements('[role="status"]', card).map((status) => status.textContent)).toEqual(["Answering is turned off on this Board."]);
 		expect(findElements("form, input, textarea, select, button, [role=radio], [role=checkbox]", card)).toEqual([]);

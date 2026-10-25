@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { loginScreen, screens } from "#modules/notes/test-support/screens.ts";
@@ -29,27 +28,25 @@ screens.it(
 		yield* enter("alice@app.test", "Email");
 		yield* enter("correct-horse", "Password");
 		yield* submit();
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(authenticationCalls()).toEqual([
-					{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" },
-				]),
-			),
+		yield* eventually(() =>
+			expect(authenticationCalls()).toEqual([
+				{ credentials: { email: "alice@app.test", name: "Alice", password: "correct-horse" }, mode: "sign-up" },
+			]),
 		);
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Email is already registered")));
-		yield* Effect.promise(() => eventually(() => expect(draft("Email")).toBe("alice@app.test")));
-		yield* Effect.promise(() => eventually(() => expect(authenticationCount()).toBe(NO_AUTHENTICATIONS)));
+		yield* eventually(() => expect(alert()).toBe("Email is already registered"));
+		yield* eventually(() => expect(draft("Email")).toBe("alice@app.test"));
+		yield* eventually(() => expect(authenticationCount()).toBe(NO_AUTHENTICATIONS));
 		yield* authenticationAccepts();
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(authenticationCount()).toBe(AFTER_SIGN_UP)));
+		yield* eventually(() => expect(authenticationCount()).toBe(AFTER_SIGN_UP));
 		yield* click("Use an existing account");
 		yield* authenticationGoesOffline();
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(lastAuthenticationMode()).toBe("sign-in")));
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Could not reach authentication. Try again.")));
+		yield* eventually(() => expect(lastAuthenticationMode()).toBe("sign-in"));
+		yield* eventually(() => expect(alert()).toBe("Could not reach authentication. Try again."));
 		yield* authenticationAccepts();
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(authenticationCount()).toBe(AFTER_SIGN_IN)));
+		yield* eventually(() => expect(authenticationCount()).toBe(AFTER_SIGN_IN));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

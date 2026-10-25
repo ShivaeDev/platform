@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -16,17 +15,17 @@ screenStory.it(
 	function* ({ keyboard, readFocus, roles }) {
 		const image = { name: "Inspect image: Evidence", role: "button" } as const;
 		const viewer = { name: "Visual evidence", role: "dialog" } as const;
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text(image)).not.toThrow()));
+		yield* eventually(() => expect(() => roles.text(image)).not.toThrow());
 		expect(() => roles.text(viewer)).toThrow(/has 0 matches/u);
 		yield* roles.click(image);
-		yield* Effect.promise(() => eventually(() => expect(roles.text(viewer)).toContain("Evidence · 1 of 1")));
+		yield* eventually(() => expect(roles.text(viewer)).toContain("Evidence · 1 of 1"));
 		keyboard("Escape");
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text(viewer)).toThrow(/has 0 matches/u)));
-		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual(image)));
+		yield* eventually(() => expect(() => roles.text(viewer)).toThrow(/has 0 matches/u));
+		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual(image));
 		yield* roles.click(image);
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text(viewer)).not.toThrow()));
+		yield* eventually(() => expect(() => roles.text(viewer)).not.toThrow());
 		yield* roles.click({ name: "Close", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text(viewer)).toThrow(/has 0 matches/u)));
-		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual(image)));
+		yield* eventually(() => expect(() => roles.text(viewer)).toThrow(/has 0 matches/u));
+		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual(image));
 	},
 );

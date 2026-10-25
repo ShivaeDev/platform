@@ -35,13 +35,11 @@ export function chromeScreen(files: Parameters<typeof renderRouter>[0], path = "
 	return screenStory.traits(
 		routedScreen(files, path, options),
 		screenStory.trait("screen", `the shell finishes opening ${path}`, function* (engine) {
-			yield* Effect.promise(() =>
-				eventually(() => {
-					if (engine.view?.container.querySelector("#doc")?.getAttribute("data-route") !== path) {
-						throw new Error(`The shell is still opening ${path}`);
-					}
-				}),
-			);
+			yield* eventually(() => {
+				if (engine.view?.container.querySelector("#doc")?.getAttribute("data-route") !== path) {
+					throw new Error(`The shell is still opening ${path}`);
+				}
+			});
 		}),
 	);
 }

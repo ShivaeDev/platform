@@ -163,7 +163,7 @@ Both test and live clock fixtures install a fresh native TestConsole for each te
 
 ### Waiting for a typed readiness condition
 
-`eventually(effect, options)` retries the Effect's typed failures until it succeeds or uses its retry budget. It uses the active Clock: under TestClock it advances time with `TestClock.adjust`; under live time it retries with `Schedule.spaced`.
+`eventually(effect, options)` retries the Effect's typed failures until it succeeds or uses its retry budget. It uses the active Clock: under TestClock it advances time with `TestClock.adjust`; under live time it waits with `Effect.sleep`.
 
 ```ts
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
@@ -181,7 +181,7 @@ effectApp("reaches the selected time", function* () {
 });
 ```
 
-The attempts see 0, 7, 14 and subsequent multiples of 7 through 56 milliseconds. `times` counts retries after the initial attempt, so `times: 0` tries once. When the budget runs out, the final typed failure remains the failure.
+The attempts see 0, 7, 14 and subsequent multiples of 7 through 56 milliseconds. `times` counts retries after the initial attempt, so `times: 0` tries once. When the budget runs out, the final typed failure remains the failure. `timeout` sets an elapsed-time budget on the active clock, checked after a failed attempt. `wait` replaces the interval delay with a settlement Effect, so adapters such as React testing can own how pending work settles.
 
 A thrown assertion is a defect, so it escapes on the first attempt. Interruption also escapes immediately. Capture an assertion with `Effect.try` only when its failure means the state is not ready yet:
 
