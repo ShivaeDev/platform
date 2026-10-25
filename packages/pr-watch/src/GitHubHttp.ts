@@ -1,55 +1,63 @@
-import { Clock, Effect } from "effect";
-import { HttpClient } from "effect/http";
+import { Clock, DateTime, Effect, Schema, Stream } from "effect";
+import { GitHubRateLimited } from "@shivaedev/effect-github/errors.ts";
+import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { type CachedResponse, decodeResponse, fetchResponse } from "./httpResponse.ts";
 import { WatchError } from "./model.ts";
-import { type Budget, observeBudget, pollDelay } from "./quota.ts";
+import { pollDelay, quotaRetryAt } from "./quota.ts";
+
 export const GitHubHttp = defineService({
 	id: "@shivaedev/pr-watch/GitHubHttp",
 	initialize: Effect.gen(function* () {
-		return {
-			budget: { blockedUntil: 0, limit: 5000, remaining: 5000, reset: 0 } satisfies Budget,
-			cache: new Map<string, CachedResponse>(),
-			client: yield* HttpClient.HttpClient,
-			requests: 0,
-		};
+		return { github: yield* GitHub, requests: 0, retryAt: 0 };
 	}),
 	methods: (state) => {
-		function request(url: string, token: string, body?: unknown) {
+		function request<T, E, R>(operation: Effect.Effect<T, E, R>) {
 			return Effect.gen(function* () {
 				const now = yield* Clock.currentTimeMillis;
-				if (state.budget.blockedUntil > now) {
-					return yield* Effect.fail(new WatchError({ message: "GitHub quota cooldown" }));
+				const observations = yield* state.github.observations();
+				if (quotaRetryAt(observations, state.retryAt) > now) {
+					return yield* new WatchError({ message: "GitHub quota cooldown" });
 				}
-				const cached = body === undefined ? state.cache.get(url) : undefined;
-				state.requests += 1;
-				const response = yield* fetchResponse(state.client, url, token, cached, body);
-				observeBudget(state.budget, response, yield* Clock.currentTimeMillis);
-				if (response.status === 304 && cached !== undefined) {
-					return cached;
-				}
-				const result = yield* decodeResponse(url, response);
-				if (body === undefined) {
-					state.cache.set(url, result);
-				}
-				return result;
+				return yield* operation;
 			}).pipe(
 				Effect.scoped,
 				Effect.timeout("30 seconds"),
-				Effect.mapError((cause) => (cause instanceof WatchError ? cause : new WatchError({ message: cause.message }))),
+				Effect.tapError((cause) =>
+					Effect.sync(() => {
+						if (cause instanceof GitHubRateLimited) {
+							state.retryAt = DateTime.toEpochMillis(cause.retryAt);
+						}
+					}),
+				),
+				Effect.mapError(() => new WatchError({ message: "GitHub request failed" })),
 			);
+		}
+		function counted<T, E, R>(operation: Effect.Effect<T, E, R>) {
+			return Effect.suspend(() => {
+				state.requests += 1;
+				return operation;
+			});
 		}
 		return {
 			delay: (interval: number) =>
 				Effect.gen(function* () {
 					const now = yield* Clock.currentTimeMillis;
-					const delay = pollDelay(state.budget, interval, Math.max(1, state.requests), now);
+					const observations = yield* state.github.observations();
+					const delay = pollDelay(observations, interval, Math.max(1, state.requests), now, state.retryAt);
 					state.requests = 0;
 					return delay;
 				}),
-			get: (url: string, token: string) => request(url, token),
-			post: (url: string, token: string, body: unknown) => request(url, token, body),
+			get: (url: string) => request(counted(state.github.read(url)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
+			list: (url: string) =>
+				request(
+					Stream.unwrap(state.github.list(url)).pipe(
+						Stream.mapEffect((response) => counted(response.decode(Schema.Unknown))),
+						Stream.runCollect,
+					),
+				),
+			post: (url: string, body: unknown) =>
+				request(counted(state.github.write("POST", url, body)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
 		};
 	},
-	requires: [HttpClient.HttpClient],
+	requires: [GitHub],
 });
