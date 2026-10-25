@@ -59,6 +59,49 @@ const diff = Effect.gen(function* () {
 
 The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. Prefer the exported functions for Schema-decoded items.
 
+### Acting as a GitHub App
+
+Provide `githubApp` as the `GitHubToken` Layer to authenticate the same client as an installation. Give it the App ID, a PEM private key wrapped in `Redacted`, and an installation ID. This uses Node's built-in crypto; no JWT or Octokit dependency is needed.
+
+```ts
+import { Layer, Redacted } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
+import { githubApp } from "@shivaedev/effect-github/githubApp.ts";
+
+const appClient = (privateKey: Redacted.Redacted<string>) => GitHub.layer.pipe(
+  Layer.provide(githubApp({ appId: "123456", privateKey, installationId: 7 })),
+  Layer.provide(FetchHttpClient.layer),
+);
+```
+
+Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets" }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
+
+`GitHubToken` accepts a static Option or a lazy Effect returning one; the client resolves it on each request. Code that reads the service directly must evaluate an Effect value before inspecting the Option, using `Effect.isEffect(value) ? yield* value : value`.
+
+The token is fetched on the first request and reused until five minutes before `expires_at`, using Effect's Clock. Concurrent requests share the in-flight exchange, including at refresh. A rejected exchange fails with `GitHubAppError` from `errors.ts`; a 401 has `{ stage: "exchange", status: 401 }`. Signing failures have `stage: "sign"`. These errors and their logs and spans contain no private key, App JWT or installation token.
+
+### Verifying webhooks
+
+Pass the raw request bytes and the `X-Hub-Signature-256` header to `verifyWebhook` before parsing the body. It checks HMAC SHA-256 with a constant-time comparison, then decodes JSON with your Schema. A missing header, tampered body or wrong secret fails with `GitHubWebhookSignatureError` before Schema decoding.
+
+```ts
+import { Redacted, Schema } from "effect";
+import { verifyWebhook } from "@shivaedev/effect-github/verifyWebhook.ts";
+
+const WorkflowRun = Schema.Struct({
+  action: Schema.String,
+  workflowRun: Schema.Struct({ id: Schema.Number, conclusion: Schema.String }),
+}).pipe(Schema.encodeKeys({ workflowRun: "workflow_run" }));
+const receiveWorkflowRun = (
+  rawBody: Uint8Array,
+  signature: string | undefined,
+  secret: Redacted.Redacted<string>,
+) => verifyWebhook(rawBody, signature, secret, WorkflowRun);
+```
+
+This decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
+
 ### Rate limits and failures
 
 `github.observations()` returns the latest `resource`, `limit`, `remaining`, `used` and UTC `reset` from response headers, including conditional and failed responses. Core and search budgets remain separate. A primary or secondary rate limit fails with `GitHubRateLimited` from `@shivaedev/effect-github/errors.ts`; its `retryAt` is a UTC `DateTime` usable directly by a job scheduler. Requests to a blocked resource fail locally until that instant. Each rate-limited failure records a log and span event with the request path and budget, excluding credentials and query strings.
