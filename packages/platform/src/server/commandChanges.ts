@@ -3,8 +3,13 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import type { Rpc } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
-import { CommandInvalidation } from "@shivaedev/effect-contract/serverMetadata.ts";
+import { CommandInvalidation, KeyScope } from "@shivaedev/effect-contract/serverMetadata.ts";
 import { ChangeObserver, invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { sessionKeyContext } from "#server/rpc-server/sessionKeys.ts";
+
+export function sessionCommandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc.AnyWithProps, payload: unknown) {
+	return Option.isSome(Context.getOption(rpc.annotations, KeyScope)) ? commandChanges(effect, rpc, payload) : effect;
+}
 
 export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc.AnyWithProps, payload: unknown) {
 	const invalidates = Context.getOption(rpc.annotations, CommandInvalidation);
@@ -13,6 +18,7 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 	}
 	const declared = invalidates.value;
 	return Effect.gen(function* () {
+		const context = yield* sessionKeyContext(rpc);
 		const sql = yield* Effect.serviceOption(SqlClient.SqlClient);
 		const reactivity = yield* Effect.serviceOption(Reactivity.Reactivity);
 		if (Option.isNone(reactivity)) {
@@ -30,7 +36,7 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 				return observer(event);
 			}),
 		);
-		const keys = invalidationKeys(declared(payload, result)).filter((key) => !published.has(key));
+		const keys = invalidationKeys(declared(payload, result), context).filter((key) => !published.has(key));
 		if (keys.length > 0) {
 			const announce = Option.isNone(sql)
 				? reactivity.value.invalidate(keys)

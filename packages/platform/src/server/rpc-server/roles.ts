@@ -4,6 +4,7 @@ import { type AuthUnavailable, Forbidden, type Unauthorized } from "#errors/taxo
 import { hasRole } from "#rpc/hasRole.ts";
 import { Identity, SessionUser, type SessionUserValue } from "#rpc/identity.ts";
 import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";
+import { sessionCommandChanges } from "#server/commandChanges.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { resolveSession, type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
 
@@ -15,11 +16,11 @@ function requiringRole<TSession extends UserSessionShape>(
 	function permitted(user: SessionUserValue) {
 		return hasRole(user, role) ? Effect.void : Effect.fail(new Forbidden({ message }));
 	}
-	return (effect, { headers, rpc }) => {
+	return (effect, { headers, rpc, payload }) => {
 		const lookup = Effect.tap(resolveSession(policy, headers, rpc._tag), (session) =>
 			Option.isSome(session) ? permitted(session.value.user) : Effect.void,
 		);
-		return effect.pipe(
+		return sessionCommandChanges(effect, rpc, payload).pipe(
 			(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, lookup))),
 			(invocation) => Effect.andThen(Effect.flatMap(SessionUser, permitted), invocation),
 			withSessionUser(policy, headers, rpc._tag),

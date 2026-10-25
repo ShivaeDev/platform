@@ -10,6 +10,7 @@ import {
 	type SessionUserWithProviderAccountsValue,
 } from "#rpc/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#rpc/middleware.ts";
+import { sessionCommandChanges } from "#server/commandChanges.ts";
 import { type OriginPolicy, originRequest } from "./origin.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { transportHeaders } from "./transportHeaders.ts";
@@ -43,14 +44,14 @@ function identified(id: string) {
 	return Effect.andThen(Effect.annotateCurrentSpan("user.id", id), Effect.succeed(id));
 }
 export function authenticatedLayer<TSession extends SessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<Authenticated> {
-	return Layer.succeed(Authenticated, (effect, { headers, rpc }) =>
+	return Layer.succeed(Authenticated, (effect, { headers, rpc, payload }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
 			const id = yield* identified(session.value.user.id);
-			return yield* effect.pipe(
+			return yield* sessionCommandChanges(effect, rpc, payload).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.annotateLogs({ userId: id }),
@@ -99,8 +100,8 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 		});
 }
 export function authenticatedUserLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedUser> {
-	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc }) =>
-		effect.pipe(
+	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc, payload }) =>
+		sessionCommandChanges(effect, rpc, payload).pipe(
 			(invocation) =>
 				Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)))),
 			withSessionUser(policy, headers, rpc._tag),
@@ -114,7 +115,7 @@ export interface ProviderAccountsSessionShape extends UserSessionShape {
 export function authenticatedUserWithProviderAccountsLayer<TSession extends ProviderAccountsSessionShape>(
 	policy: SessionPolicy<TSession>,
 ): Layer.Layer<AuthenticatedUserWithProviderAccounts> {
-	return Layer.succeed(AuthenticatedUserWithProviderAccounts, (effect, { headers, rpc }) =>
+	return Layer.succeed(AuthenticatedUserWithProviderAccounts, (effect, { headers, rpc, payload }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);
 			if (Option.isNone(session)) {
@@ -127,7 +128,7 @@ export function authenticatedUserWithProviderAccountsLayer<TSession extends Prov
 			);
 			const user = { email, id, name, ...(role === undefined ? {} : { role }) };
 			yield* identified(id);
-			return yield* effect.pipe(
+			return yield* sessionCommandChanges(effect, rpc, payload).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.provideService(SessionUser, user),

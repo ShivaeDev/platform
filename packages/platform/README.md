@@ -154,6 +154,53 @@ Build application handlers with `Api.application.toLayer(...)` (and `Api.applica
 
 Database-backed hosts enable PostgreSQL change delivery by default and serve each contract's reserved change stream under its middleware. After a command handler succeeds, its declared invalidation keys publish without repeating keys already announced by repository commits. The handler keeps ownership of its transactions and error mapping. `config.changes.channel` overrides the app-derived default, and heartbeat and retry settings remain optional. Use the same application name or channel across web and worker processes. A worker can provide `appDatabase({ migrations, config })` without starting HTTP. See [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults and limits.
 
+### Session-scoped contract keys
+
+For self-only features, declare `contract("preferences", { keyScope: "session", queries, commands }).middleware(Authenticated)`. `List` and `Item` remain the dependency shapes; the account scope is an additional dimension derived from request-local `Identity.id`. Handlers continue to read their owner from `Identity`, and payloads need no owner field just to key reads or invalidations. Other sessions of that account receive its changes; other accounts receive no invalidation hint for those writes.
+
+The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }`, resolves the declared query dependencies during that subscription invocation, and passes the authenticated scope to the change stream. It does not accept physical subscription keys or a caller-selected scope. Missing request-local `Identity` on a session-scoped subscription is a configuration defect, with no unscoped fallback.
+
+`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `authenticatedAdminLayer` and `authenticatedOwnerLayer` run scoped command invalidation inside the authenticated invocation. Successful commands publish their scoped keys after commit and omit keys the handler's transactions already published. A rejected transaction publishes no keys.
+
+Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$changes`. When migrating a custom change handler, accept query references and resolve them inside `Stream.unwrap`, after authentication has provided `Identity`:
+
+```ts
+import { Effect, Stream } from "effect";
+import { resolveChanges } from "@shivaedev/platform/server/rpc-server/sessionKeys.ts";
+
+const changesRpc = Api.requests.get("preferences.$changes")!;
+const handlers = Api.toLayer({
+  "preferences.$changes": ({ queries }) => Stream.unwrap(
+    Effect.map(resolveChanges(changesRpc, queries), ({ keys, context }) =>
+      changes.stream(keys, context)
+    )
+  ),
+  "preferences.get": getPreference,
+  "preferences.save": savePreference,
+});
+```
+
+Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass both returned arguments to `changes.stream`.
+
+Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `sessionCommandChanges` before providing `Identity`:
+
+```ts
+import { Effect, Layer } from "effect";
+import { Identity } from "@shivaedev/platform/rpc/identity.ts";
+import { sessionCommandChanges } from "@shivaedev/platform/server/commandChanges.ts";
+
+const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, payload }) =>
+  Effect.gen(function* () {
+    const session = yield* requireTransportSession(headers, rpc);
+    return yield* sessionCommandChanges(effect, rpc, payload).pipe(
+      Effect.provideService(Identity, { id: session.user.id })
+    );
+  })
+);
+```
+
+`MyAuthentication` declares `provides: Identity` and its authentication errors. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `sessionCommandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
+
 ### Public client configuration
 
 Use one `publicConfig` declaration per application as the one path for server configuration that a client needs. Declare only public fields in a shared Schema; the declaration creates a standard effect-contract query, so applications write no config RPC. Keep private configuration in server modules.

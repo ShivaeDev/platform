@@ -1,5 +1,6 @@
-import { Cause, Effect, Exit, Layer, Option, Predicate, Random } from "effect";
+import { Cause, Context, Effect, Exit, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/http";
+import { KeyScope } from "@shivaedev/effect-contract/serverMetadata.ts";
 import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { commandChanges } from "#server/commandChanges.ts";
@@ -54,7 +55,8 @@ export function requestTracingLayer(options: RequestTracingOptions = {}): Layer.
 		Effect.gen(function* () {
 			const requestId = yield* requestIdOf(headers, options.header ?? "x-request-id");
 			yield* Effect.annotateCurrentSpan({ "request.id": requestId, "rpc.method": rpc._tag });
-			return yield* commandChanges(effect, rpc, payload).pipe(
+			const invocation = Option.isSome(Context.getOption(rpc.annotations, KeyScope)) ? effect : commandChanges(effect, rpc, payload);
+			return yield* invocation.pipe(
 				Effect.catchCauseIf(Cause.hasDies, (cause) => Effect.failCause(redactCause(cause, options.sensitive))),
 				Effect.onExit((exit) => (Exit.isFailure(exit) ? logFailure(exit.cause, payload, options.sensitive) : Effect.void)),
 				Effect.provideService(RequestId, requestId),
