@@ -50,7 +50,9 @@ for (const nameFailure of ["rejected", "timeout"] as const) {
 		function* ({ sessions, requests, persisted, logs }) {
 			expect(yield* sessions.start(input)).toEqual(receipt);
 			expect(persisted()).toEqual([receipt.sessionId, "name requested"]);
-			expect(requests().filter((request) => request.method === "turn/start")).toHaveLength(1);
+			expect(requests().filter((request) => request.method === "turn/start")).toMatchObject([
+				{ method: "turn/start", params: { threadId: receipt.sessionId } },
+			]);
 			expect(logs().filter((entry) => entry.level === "Warn")).toEqual([
 				{
 					annotations: { sessionId: receipt.sessionId },

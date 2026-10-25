@@ -38,7 +38,7 @@ for (const capacity of ["serverOverloaded", "rateLimitExceeded", "flexUnavailabl
 			capacity,
 			reason: "rejected",
 		});
-		expect(requests().filter((request) => request.method === "turn/start")).toHaveLength(1);
+		expect(requests().filter((request) => request.method === "turn/start")).toMatchObject([{ method: "turn/start", params: { threadId: "thread" } }]);
 		expect(requests().map((request) => request.method)).not.toContain("thread/turns/list");
 	});
 }
@@ -56,6 +56,6 @@ for (const [problem, reply] of [
 		expect(yield* provider.startTurn({ operationId: "invalid", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip)).toMatchObject({
 			reason: "protocol",
 		});
-		expect(requests().filter((request) => request.method === "turn/start")).toHaveLength(1);
+		expect(requests().filter((request) => request.method === "turn/start")).toMatchObject([{ method: "turn/start", params: { threadId: "thread" } }]);
 	});
 }

@@ -12,16 +12,16 @@ test.it("an unchanged list reuses decoded records and rereads only rows another 
 	const two = yield* store.insert(record("two"));
 	const spans = spanCounts();
 	expect((yield* spans.trace(store.list())).map(({ value }) => value.workId)).toEqual(["one", "two"]);
-	expect(spans.count("FleetRow.recordValues")).toBe(1);
+	expect(spans.recorded("FleetRow.recordValues")).toEqual(["FleetRow.recordValues"]);
 	spans.reset();
 	yield* spans.trace(store.list());
-	expect(spans.count("FleetRow.recordValues")).toBe(0);
+	expect(spans.recorded("FleetRow.recordValues")).toEqual([]);
 	const other = yield* openStore(namespace);
 	const running = yield* other.compareAndSet("two", two.version, { ...two.value, step: "running" });
 	const listed = yield* spans.trace(store.list());
 	expect(listed.map(({ value }) => value.step)).toEqual(["queued", "running"]);
 	expect(listed[1]).toEqual(running);
-	expect(spans.count("FleetRow.recordValues")).toBe(1);
+	expect(spans.recorded("FleetRow.recordValues")).toEqual(["FleetRow.recordValues"]);
 });
 
 test.it(

@@ -39,8 +39,8 @@ isolated.it("serializes competing writes and rejects the stale one without losin
 		),
 		{ concurrency: 2 },
 	);
-	expect(results.filter(Exit.isSuccess)).toHaveLength(1);
-	expect(results.filter(Exit.isFailure)).toHaveLength(1);
+	expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
+	expect(results.filter(Exit.isFailure)).toMatchObject([{ cause: { reasons: [{ error: { _tag: "StorageConflict", workId: "board-a" } }] } }]);
 	const winner = results.find(Exit.isSuccess);
 	expect(yield* store.load("board-a")).toEqual(winner?.value);
 });
@@ -48,7 +48,10 @@ isolated.it("serializes competing writes and rejects the stale one without losin
 integration.it("counts each foreign PR backlog separately until released", [], function* ({ store }) {
 	yield* store.reserveForeign("pr-one", { backlog: true, executing: false });
 	yield* store.reserveForeign("pr-two", { backlog: true, executing: false });
-	expect(yield* store.foreignReservations()).toHaveLength(2);
+	expect(yield* store.foreignReservations()).toEqual([
+		{ areas: [], backlog: true, executing: false, owner: "pr-one" },
+		{ areas: [], backlog: true, executing: false, owner: "pr-two" },
+	]);
 	expect(Exit.isFailure(yield* store.insert({ ...record("board-a"), step: "terminal" }, { maxBacklog: 2 }).pipe(Effect.exit))).toBe(true);
 	yield* store.releaseForeign("pr-one");
 	yield* store.insert({ ...record("board-a"), step: "terminal" }, { maxBacklog: 2 });

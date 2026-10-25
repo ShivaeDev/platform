@@ -1,6 +1,3 @@
-{"path":"packages/work-fleet/src/board/acknowledgementHttp.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/work-fleet/src/board/freshRead.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/work-fleet/src/board/publicationPass.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/work-fleet/src/engine/acknowledgementIsolation.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/work-fleet/src/engine/acknowledgementReads.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/work-fleet/src/engine/acknowledgementRecovery.spec.ts","rule":"tests/named-values","count":9}
@@ -172,12 +169,3 @@
 {"path":"packages/work-fleet/src/host/staleAcknowledgement.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/host/watchFollow.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/host/workerQuestion.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/work-fleet/src/providers/activeTurn.spec.ts","rule":"tests/named-values","count":5}
-{"path":"packages/work-fleet/src/providers/capacityWire.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/work-fleet/src/providers/cloudMetadataFlow.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/work-fleet/src/storage/attentionOwner.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/work-fleet/src/storage/capacityFlow.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/work-fleet/src/storage/listReuse.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/work-fleet/src/storage/operationLookup.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/work-fleet/src/storage/reservationFlow.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/work-fleet/src/storage/typedMigration.spec.ts","rule":"tests/named-values","count":1}
