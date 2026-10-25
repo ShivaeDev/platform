@@ -1,4 +1,4 @@
-import { join } from "node:path";
+import { statfs } from "node:fs/promises";
 import { performance } from "node:perf_hooks";
 import { Console, Effect, FileSystem } from "effect";
 import { balancedShards, type Shard } from "#ci/shard.ts";
@@ -32,18 +32,29 @@ export function checkConsumers(
 				(pkg) => estimates[pkg.manifest.name] ?? 6000,
 			)[shard.index - 1] ?? [];
 		for (const pkg of selected) {
-			const start = performance.now();
-			yield* Console.log(`Checking packed ${pkg.manifest.name}`);
-			const consumer = join(temporary, pkg.manifest.name.replace("/", "-"));
-			yield* checkConsumer(root, pkg, packages, catalog, consumer, store);
-			yield* checkBins(root, pkg, consumer, packages);
-			let index = 0;
-			for (const scenario of yield* scenarios(root, pkg)) {
-				yield* checkConsumer(root, pkg, packages, catalog, `${consumer}-${index}`, store, scenario);
-				index += 1;
-			}
-			timings.push({ durationMs: Math.round(performance.now() - start), name: pkg.manifest.name });
-			yield* Console.log(`Passed packed ${pkg.manifest.name} (${timings.at(-1)?.durationMs}ms)`);
+			yield* Effect.gen(function* () {
+				const start = performance.now();
+				yield* Console.log(`Checking packed ${pkg.manifest.name}`);
+				const prefix = `${pkg.manifest.name.replace("/", "-")}-`;
+				yield* Effect.gen(function* () {
+					const consumer = yield* fs.makeTempDirectoryScoped({ directory: temporary, prefix });
+					yield* checkConsumer(root, pkg, packages, catalog, consumer, store);
+					yield* checkBins(root, pkg, consumer, packages);
+				}).pipe(Effect.scoped);
+				for (const [index, scenario] of (yield* scenarios(root, pkg)).entries()) {
+					yield* Effect.gen(function* () {
+						const consumer = yield* fs.makeTempDirectoryScoped({ directory: temporary, prefix: `${prefix}${index}-` });
+						yield* checkConsumer(root, pkg, packages, catalog, consumer, store, scenario);
+					}).pipe(Effect.scoped);
+				}
+				timings.push({ durationMs: Math.round(performance.now() - start), name: pkg.manifest.name });
+				yield* Console.log(`Passed packed ${pkg.manifest.name} (${timings.at(-1)?.durationMs}ms)`);
+			}).pipe(Effect.ensuring(logFreeDisk(temporary, pkg.manifest.name)));
 		}
 	}).pipe(Effect.ensuring(report === undefined ? Effect.void : writeJson(report, { shard, timings }).pipe(Effect.orDie)));
 }
+
+const logFreeDisk = Effect.fn("Packed.logFreeDisk")(function* (temporary: string, name: string) {
+	const { bavail, bsize } = yield* Effect.promise(() => statfs(temporary));
+	yield* Console.log(`Free disk after packed ${name}: ${Math.floor((bavail * bsize) / 1024 ** 2)} MiB`);
+});
