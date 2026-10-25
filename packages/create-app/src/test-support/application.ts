@@ -1,8 +1,8 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, readlinkSync, realpathSync, statSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, readlinkSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Effect } from "effect";
+import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
@@ -23,12 +23,23 @@ export const application = storyKit({
 	name: "generated app",
 	stages: ["template", "installation", "workspace"],
 	verbs: (engine, story) => {
+		const commandPath = Effect.runSync(Config.String("PATH"));
 		let app = "my-app";
 		let packed = false;
 		function target() {
 			return join(engine.root, app);
 		}
+		function run(command: string, args: readonly string[]) {
+			return spawnSync("env", ["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, command, ...args], {
+				cwd: target(),
+				encoding: "utf8",
+			});
+		}
 		return {
+			baseline: () => {
+				const path = join(target(), "quality-baseline.jsonl");
+				return existsSync(path) ? readFileSync(path, "utf8") : "";
+			},
 			changeTemplate: (content: string) => {
 				story.tell("the template source changes");
 				engine.source.changeApp(content);
@@ -58,7 +69,7 @@ export const application = storyKit({
 						const path = join(file.parentPath, file.name);
 						return { content: readFileSync(path, "utf8"), mode: statSync(path).mode & 0o777, path: path.slice(target().length + 1) };
 					}),
-			git: (...args: readonly string[]) => spawnSync("git", args, { cwd: target(), encoding: "utf8" }),
+			git: (...args: readonly string[]) => run("git", args),
 			guidanceLink: () => readlinkSync(join(target(), "CLAUDE.md")),
 			navigate: (command: string) => spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
 			pack: () => {
@@ -71,6 +82,10 @@ export const application = storyKit({
 				);
 			},
 			parentGit: (...args: readonly string[]) => spawnSync("git", args, { cwd: engine.root, encoding: "utf8" }),
+			pnpm: (...args: readonly string[]) => {
+				story.tell(`pnpm ${args.join(" ")}`);
+				return run("pnpm", args);
+			},
 			prepareDatabases: () => {
 				story.tell("the app prepares its databases");
 				return appScript(target(), "db:setup");
@@ -86,6 +101,10 @@ export const application = storyKit({
 			workspace: realpathSync(engine.root),
 			workspaceExists: (path: string) => existsSync(join(engine.root, path)),
 			workspaceFiles: () => readdirSync(engine.root),
+			write: (path: string, content: string) => {
+				story.tell(`the app changes ${path}`);
+				writeFileSync(join(target(), path), content);
+			},
 		};
 	},
 });
