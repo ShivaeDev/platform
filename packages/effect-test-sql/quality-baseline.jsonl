@@ -1,3 +1,2 @@
 {"path":"packages/effect-test-sql/src/server/backgroundCleanup.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-test-sql/src/server/isolated.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/effect-test-sql/src/server/vitest.spec.ts","rule":"tests/story-specs","count":1}

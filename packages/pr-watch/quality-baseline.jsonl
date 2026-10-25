@@ -3,6 +3,5 @@
 {"path":"packages/pr-watch/src/poll.spec.ts","rule":"tests/named-values","count":5}
 {"path":"packages/pr-watch/src/prune.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/pr-watch/src/queue.spec.ts","rule":"tests/named-values","count":4}
-{"path":"packages/pr-watch/src/quota.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/pr-watch/src/quota.ts","rule":"boundaries/http-status","count":2}
 {"path":"packages/pr-watch/src/startup.spec.ts","rule":"tests/named-values","count":2}

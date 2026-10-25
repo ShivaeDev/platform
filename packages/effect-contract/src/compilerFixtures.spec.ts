@@ -1,5 +1,5 @@
-import { describe, expect, it } from "vitest";
-import { compiler } from "#test/compiler.ts";
+import { expect } from "vitest";
+import { compilerStory } from "#test/compilerStory.ts";
 
 const COMPILER_TIMEOUT = 60_000;
 
@@ -25,21 +25,29 @@ const invalidFixtures = {
 	zeroRejections: "Property 'members' does not exist on type 'Never'",
 } as const;
 
-describe("contract compiler fixtures", { timeout: COMPILER_TIMEOUT }, () => {
-	it("accepts the valid contract, binding and handlers", () => {
-		const { result, declaration } = compiler.declarations();
+compilerStory.it(
+	"accepts the valid contract, binding and handlers",
+	[],
+	function* (test) {
+		const { result, declaration } = yield* test.declarations();
 		expect(result.stderr || result.stdout).toBe("");
 		expect(result.status).toBe(0);
 		expect(declaration).toContain('Rpc<"notes.rename"');
-	});
+	},
+	COMPILER_TIMEOUT,
+);
 
-	it("rejects each invalid use with a specific diagnostic", () => {
-		const result = compiler.invalid(Object.keys(invalidFixtures));
+compilerStory.it(
+	"rejects each invalid use with a specific diagnostic",
+	[],
+	function* (test) {
+		const result = yield* test.invalid(Object.keys(invalidFixtures));
 		const diagnostics = (result.stderr || result.stdout).split(/(?=^src\/test-support\/fixtures\/invalid\/)/mu);
 		expect(result.status).not.toBe(0);
 		for (const [fixture, expected] of Object.entries(invalidFixtures)) {
 			const found = diagnostics.filter((message) => message.startsWith(`src/test-support/fixtures/invalid/${fixture}.ts(`)).join("\n");
 			expect(found, fixture).toContain(expected);
 		}
-	});
-});
+	},
+	COMPILER_TIMEOUT,
+);
