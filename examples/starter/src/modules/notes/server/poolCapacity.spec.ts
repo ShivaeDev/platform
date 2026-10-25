@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { deployment } from "#test-support/deployment.ts";
+import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 
 const OK_STATUS = 200;
@@ -8,7 +8,7 @@ const SUCCESS_EXIT = 0;
 const connections = 2 * (testPoolSizes.sql + testPoolSizes.auth + testPoolSizes.jobs);
 const LISTEN_CONNECTIONS = 2;
 
-deployment.it(
+notesDeployment.it(
 	"keeps web and worker connections bounded while signing in and counting concurrent notes",
 	[],
 	function* ({ startProcess, signUpAt, signInAt, notesAt, watchBackends }) {

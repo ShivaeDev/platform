@@ -1,7 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { authPost, credentials } from "./authHttp.ts";
 import { deployChild } from "./deployChild.ts";
 import { watchBackends } from "./watchBackends.ts";
@@ -9,7 +8,6 @@ import { watchBackends } from "./watchBackends.ts";
 export function deploymentProcesses(tell: (line: string) => void) {
 	return {
 		health: (address: string) => Effect.promise(() => fetch(`${address}/health`)),
-		notesAt: notesHttp,
 		signInAt: (address: string, name: string) => {
 			tell(`${name} signs in over HTTP`);
 			return authPost(address, "sign-in/email", credentials(name));
