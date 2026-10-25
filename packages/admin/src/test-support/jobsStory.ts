@@ -12,7 +12,11 @@ export const jobsStory = storyKit({
 	name: "admin jobs",
 	runIf: postgresConfigured,
 	stages: ["session"],
-	verbs: ({ client, jobs, privateQueue, queue, registrationReads, responses, sendInvalid, stopJobs, sync, testing }, story) => ({
+	verbs: (
+		{ api, registry, run, deliveries, client, jobs, privateQueue, queue, registrationReads, responses, sendInvalid, stopJobs, sync, testing },
+		story,
+	) => ({
+		api,
 		counts: (name: string = queue.name) => {
 			story.tell(`read counts for ${name}`);
 			return client["admin.jobs.counts"]({ queue: name });
@@ -21,6 +25,7 @@ export const jobsStory = storyKit({
 			story.tell(`list dead-lettered jobs in ${name}`);
 			return client["admin.jobs.deadLettered"]({ ...(cursor === undefined ? {} : { cursor }), limit, queue: name });
 		},
+		deliveries: () => [...deliveries],
 		failed: (limit: number, cursor?: string, name: string = queue.name) => {
 			story.tell(`list failed jobs in ${name}`);
 			return client["admin.jobs.failed"]({ ...(cursor === undefined ? {} : { cursor }), limit, queue: name });
@@ -35,7 +40,12 @@ export const jobsStory = storyKit({
 		},
 		profile: () => client["admin.users.profile"](),
 		registrationReads,
+		registry,
 		responses: () => responses,
+		retry: (id: string, name: string = queue.name) => {
+			story.tell(`retry job ${id} in ${name}`);
+			return run(api.retry.run({ id, queue: name }));
+		},
 		send: (id: number) => jobs.enqueue(queue, { id }, { retryLimit: 0 }).pipe(Effect.map(Option.getOrThrow)),
 		sendInvalid,
 		sendPrivate: () => jobs.enqueue(privateQueue, { id: 9 }),

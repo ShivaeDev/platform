@@ -90,4 +90,23 @@ The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `
 
 Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as effect-pg-boss health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
-The page declares no commands. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and role enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
+The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and role enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
+
+### Declare retry explicitly
+
+Use `jobsPageWithRetry` and `jobsHandlersWithRetry` when administrators should be able to retry failed original jobs:
+
+```ts
+import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
+import { jobsHandlersWithRetry } from "@shivaedev/admin/server/jobsHandlersWithRetry.ts";
+
+const JobsPage = jobsPageWithRetry({ name: "mail", schema: MailPayload });
+const Admin = adminRegistry(JobsPage);
+const registration = registerAdmin(Admin, {
+  jobs: jobsHandlersWithRetry(JobsPage, JobsService),
+});
+```
+
+This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires the `admin` role, including when the caller has the `owner` role. The handler uses effect-pg-boss's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+
+A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.

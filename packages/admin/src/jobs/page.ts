@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
 import { adminPage } from "#page.ts";
+import { jobsKeys } from "./keys.ts";
 import { deadLetteredSchema, JobsFailures, JobsHealth, type JobsQueue, jobPage, jobSchema, PageFields, QueueCounts } from "./schemas.ts";
 
 export function jobsPage<const TQueues extends readonly JobsQueue[]>(...queues: TQueues) {
@@ -10,23 +11,28 @@ export function jobsPage<const TQueues extends readonly JobsQueue[]>(...queues: 
 	const page = adminPage({
 		contract: contract("admin.jobs", {
 			queries: [
-				query("health", { reads: () => [], rejections: JobsFailures, success: JobsHealth }),
-				query("counts", { payload: { queue: Schema.String }, reads: () => [], rejections: JobsFailures, success: QueueCounts }),
+				query("health", { reads: () => [jobsKeys.health.list], rejections: JobsFailures, success: JobsHealth }),
+				query("counts", {
+					payload: { queue: Schema.String },
+					reads: ({ queue }) => [jobsKeys.counts.item(queue)],
+					rejections: JobsFailures,
+					success: QueueCounts,
+				}),
 				query("failed", {
 					payload: { ...PageFields, queue: Schema.String },
-					reads: () => [],
+					reads: ({ queue }) => [jobsKeys.failed.item(queue)],
 					rejections: JobsFailures,
 					success: jobPage(Job),
 				}),
 				query("deadLettered", {
 					payload: { ...PageFields, queue: Schema.String },
-					reads: () => [],
+					reads: ({ queue }) => [jobsKeys.deadLettered.item(queue)],
 					rejections: JobsFailures,
 					success: jobPage(DeadLettered),
 				}),
 				query("job", {
 					payload: { id: Schema.String, queue: Schema.String },
-					reads: () => [],
+					reads: ({ queue, id }) => [jobsKeys.job(queue).item(id)],
 					rejections: JobsFailures,
 					success: Schema.OptionFromNullOr(Job),
 				}),
