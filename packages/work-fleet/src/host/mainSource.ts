@@ -4,7 +4,7 @@ import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
-import { mergeTreeConflicts, predictionGit } from "#host/gitMergeTree.ts";
+import { predictedMergeConflicts, predictionGit } from "#host/gitMergeTree.ts";
 import type { MainObservation, Preparation } from "#preparation/schema.ts";
 
 export interface MainSnapshot {
@@ -59,8 +59,9 @@ export function gitMainSource(host: FleetHost) {
 			latest: () => latest,
 			mergeConflicts: (head: string, otherHeads: readonly string[]) =>
 				Effect.gen(function* () {
+					const main = yield* git(root, ["rev-parse", `${host.repository.remote}/${host.repository.branch}`]);
 					yield* predictionGit(root, ["fetch", "--quiet", host.repository.remote, ...new Set([head, ...otherHeads])]);
-					return yield* Effect.forEach(otherHeads, (other) => mergeTreeConflicts(root, head, other));
+					return yield* predictedMergeConflicts(root, main, head, otherHeads);
 				}),
 			observe: (preparation: Preparation) =>
 				Effect.gen(function* () {
