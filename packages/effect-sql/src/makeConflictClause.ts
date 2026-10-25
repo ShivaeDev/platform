@@ -7,12 +7,14 @@ export function makeConflictClause(
 	model: Model.Any,
 	sql: SqlClient.SqlClient,
 	options: {
+		readonly tableName: string;
 		readonly conflictColumns: readonly string[];
 		readonly conflictWhere?: Readonly<Record<string, unknown>>;
 		readonly idColumns: readonly string[];
 	},
 ) {
 	const { conflictColumns, idColumns } = options;
+	const updateFilter = makeFilter(model, sql, options);
 	const filter = makeFilter(model, sql);
 	const updateFields = SchemaAST.isObjects(model.update.ast) ? model.update.ast.propertySignatures.map((field) => field.name) : [];
 	const immutable = Object.keys(model.fields).filter((column) => !updateFields.includes(column));
@@ -31,7 +33,7 @@ export function makeConflictClause(
 			}
 		});
 	}
-	function clause(encoded: Readonly<Record<string, unknown>>, updateColumns?: readonly string[]) {
+	function clause(encoded: Readonly<Record<string, unknown>>, updateColumns?: readonly string[], updateWhere?: Readonly<Record<string, unknown>>) {
 		return Effect.gen(function* () {
 			yield* validateColumns(encoded, conflictColumns);
 			if (updateColumns !== undefined) {
@@ -43,7 +45,8 @@ export function makeConflictClause(
 				updateColumns === undefined
 					? sql`do nothing`
 					: sql`do update set ${sql.csv(updateColumns.map((column) => sql`${sql(column)} = excluded.${sql(column)}`))}`;
-			return sql`on conflict (${conflict}) ${where} ${action}`;
+			const condition = updateWhere === undefined ? sql`` : sql`where ${yield* updateFilter.where(updateWhere, true, true)}`;
+			return sql`on conflict (${conflict}) ${where} ${action} ${condition}`;
 		});
 	}
 	return clause;

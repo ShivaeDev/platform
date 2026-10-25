@@ -290,11 +290,26 @@ const inserted = yield* entries.insertManyOrIgnore(inputs);
 
 All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
 
+On PostgreSQL, pass `updateWhere` to conditionally apply the update branch:
+
+```ts
+const result = yield* pullRequests.upsert(incoming, {
+  updateColumns: ["title", "updated_at"],
+  updateWhere: { updated_at: { lt: { excluded: "updated_at" } } },
+});
+```
+
+`updateWhere` uses the repository filter shape: equality, `in`, ranges and text patterns combine with AND. A field names the stored column; `{ excluded: "field" }` refers to an incoming column of the same decoded type, in equality or range operands. Literal values pass through their field codecs. The condition becomes `DO UPDATE SET ... WHERE ...`, separate from the index predicate `conflictWhere`, and does not restrict inserts. PostgreSQL evaluates it while holding the conflicting row lock, so an older or equal incoming timestamp cannot overwrite a newer stored revision.
+
+With `updateWhere`, the typed result is `{ _tag: "Inserted", row }`, `{ _tag: "Updated", row }` or `{ _tag: "Unchanged" }`. Changed rows are decoded models; unchanged results carry no row and announce no change keys. Omitting `updateWhere` keeps the model result. `UpsertFilter` and `UpsertResult` are exported from `@shivaedev/effect-sql/conditionalUpsert.ts`.
+
+`upsertMany(inputs, { updateColumns, updateWhere })` accepts the same condition and returns one tagged result per input, in input order. It executes one statement per input inside one transaction, so a later failure rolls back earlier writes. This uses more database round trips than an unconditional batch. Other batch calls use the chunked statements described below.
+
 Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
 
 ### Batch writes
 
-Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs and returns an array of decoded models. Empty inputs return `[]` without writing.
+Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs. Unconditional batch methods return an array of decoded models; conditional upserts return the tagged outcomes described above. Empty inputs return `[]` without writing.
 
 ```ts
 const saved = yield* readings.upsertMany(
@@ -306,7 +321,7 @@ const saved = yield* readings.upsertMany(
 );
 ```
 
-Batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
+Unconditional batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
 
 Each batch call starts `transact`, so a later chunk failure rolls back earlier chunks. A surrounding `transact` groups several calls into one commit and one deduplicated change batch.
 
