@@ -18,7 +18,6 @@ import { reserveForeignPr } from "#host/foreignReservations.ts";
 import { LiveConfig } from "#host/liveConfig.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { decisionResponses } from "#host/releaseWork.ts";
-import { executing } from "#model.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
@@ -61,8 +60,8 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 		if (current.step === "released") {
 			return current;
 		}
-		if (current.step !== "waiting" || executing(current)) {
-			return yield* new Forbidden({ message: "Only terminal waiting work can be released" });
+		if (current.step !== "waiting") {
+			return yield* new Forbidden({ message: "Only waiting work can be released" });
 		}
 		return yield* answers(workId, "Release Fleet ownership.", true);
 	});

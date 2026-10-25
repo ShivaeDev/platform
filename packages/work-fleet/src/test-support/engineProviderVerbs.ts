@@ -6,6 +6,10 @@ import { reviewerReply } from "#test/reviewerReply.ts";
 
 export function engineProviderVerbs(fixture: EngineFixture<unknown>, tell: (line: string) => void) {
 	return {
+		loseNextAcknowledgement: () => {
+			fixture.loseAcknowledgement();
+			tell("the next accepted turn loses its acknowledgement");
+		},
 		setTurnExecution: (receipt: SessionReceipt, execution: SessionObservation["execution"], output = "") => {
 			if (!fixture.observations.has(receipt.turnId)) {
 				throw new Error("No matching provider turn is available");

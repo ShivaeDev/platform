@@ -100,19 +100,6 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 		{
 			code: "fleet-denied" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
-				yield* terminal(ctx);
-				const fleet = yield* Fleet;
-				const record = (yield* fleet.get("one")).value;
-				yield* ctx.fixture.replaceRecord({ ...record, step: "repairing" });
-				yield* fleet.reconcile("one");
-			}),
-			name: "repair waits for the active worker to finish",
-			recovery: "review-after-integration-recovery",
-			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
-		},
-		{
-			code: "fleet-denied" as const,
-			enter: Effect.fnUntraced(function* (ctx) {
 				const record = (yield* prepareWork("one")).value;
 				yield* ctx.fixture.replaceRecord({ ...record, step: "repairing" });
 				yield* (yield* Fleet).reconcile("one");

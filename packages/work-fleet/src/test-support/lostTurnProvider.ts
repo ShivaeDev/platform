@@ -32,5 +32,6 @@ export function lostTurnProvider() {
 			}
 			lost.add(sessionId);
 		},
+		restore: (sessionId: string) => lost.delete(sessionId),
 	};
 }

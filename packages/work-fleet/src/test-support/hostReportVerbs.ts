@@ -40,7 +40,7 @@ export function hostReportVerbs(engine: HostStoryEngine, tell: (line: string) =>
 		publicationRequests: () => engine.publicationRequests,
 		release: (ids: readonly string[]) => {
 			tell(`release ${ids.join(", ")}`);
-			return releaseWork(engine.fixture.host, ids, engine.fixture.parts);
+			return releaseWork(engine.fixture.host, ids, engine.runningParts ?? engine.fixture.parts);
 		},
 		renderedStatus: () => engine.running.client("daemon.status", {}).pipe(Effect.map(renderStatus)),
 		reportFiles: (report: Parameters<typeof reportAttachmentReadout>[1]) => reportAttachmentReadout(engine.fixture.host.boardDir, report),

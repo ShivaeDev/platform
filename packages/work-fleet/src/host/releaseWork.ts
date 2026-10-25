@@ -7,7 +7,6 @@ import { Fleet } from "#fleet.ts";
 import { type HostParts, hostLayer, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";
-import { executing } from "#model.ts";
 
 const { searchSnapshot, watchChanges } = board;
 const { Responses, Workspace, WorkspaceConfig } = responses;
@@ -46,8 +45,8 @@ function releaseItem(root: string, background: boolean) {
 		if (stored.value.step === "released") {
 			return yield* background ? Effect.succeed(stored) : fleet.reconcile(workId);
 		}
-		if (stored.value.step !== "waiting" || executing(stored.value)) {
-			return yield* Effect.fail(new Forbidden({ message: "Only terminal waiting work can be released" }));
+		if (stored.value.step !== "waiting") {
+			return yield* Effect.fail(new Forbidden({ message: "Only waiting work can be released" }));
 		}
 		if (stored.value.decision?.published === undefined) {
 			stored = yield* fleet.reconcile(workId);
