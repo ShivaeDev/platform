@@ -23,5 +23,5 @@ export const notesRegistration = {
 	group: Notes,
 	handlers,
 	services: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory) =>
-		NotesService.layer.pipe(Layer.provideMerge(noteProducer(Redacted.value(url), false, clientFactory))),
+		NotesService.layer.pipe(Layer.provideMerge(noteProducer(Redacted.value(url), clientFactory))),
 };
