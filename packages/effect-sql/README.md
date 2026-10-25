@@ -333,7 +333,7 @@ With `updateWhere`, the typed result is `{ _tag: "Inserted", row }`, `{ _tag: "U
 
 `upsertMany(inputs, { updateColumns, updateWhere })` accepts the same condition and returns one tagged result per input, in input order. It executes one statement per input inside one transaction, so a later failure rolls back earlier writes. This uses more database round trips than an unconditional batch. Other batch calls use the chunked statements described below.
 
-Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
+Versioned repositories with `conflictColumns` offer `insertOrIgnore`, including optional `conflictWhere`; other conflict writes remain unavailable because they would overwrite rows without comparing versions. `versionColumn` accepts a scalar or composite `idColumn`.
 
 ### Batch writes
 
@@ -359,31 +359,35 @@ Declare a numeric version field in the model's select and update variants, leave
 
 ```ts
 class Document extends Model.Class<Document>("Document")({
-  id: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+  id: Schema.String,
+  ownerId: Schema.String,
   name: Schema.String,
   lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
 }) {}
 
 const makeDocuments = makeRepository(Document, {
   tableName: "documents",
-  idColumn: "id",
+  idColumn: ["id", "ownerId"],
+  conflictColumns: ["id"],
   spanPrefix: "Document",
   versionColumn: "lockVersion",
 });
 
 const reviseDocument = Effect.gen(function* () {
   const documents = yield* makeDocuments;
-  const original = yield* documents.insert({ name: "Draft" });
+  const key = { id: crypto.randomUUID(), ownerId: "current-owner" };
+  yield* documents.insertOrIgnore({ ...key, name: "Draft" });
+  const original = yield* documents.findById(key);
   const saved = yield* documents.update({ ...original, name: "Published" });
-  yield* documents.delete(saved.id, saved.lockVersion);
+  yield* documents.delete(key, saved.lockVersion);
 });
 ```
 
-The application creates the integer version column; no database default is required. `insert` and `insertVoid` initialize it to `0`. The version field must encode and decode numbers without codec services, be required in updates, and differ from the primary key.
+The application creates the integer version column; no database default is required. `insert`, `insertVoid` and `insertOrIgnore` initialize it to `0`. The version field must encode and decode numbers without codec services, be required in updates, and differ from every primary key column. The example uses a unique `id` constraint so a retried creation returns `Option.none()` without reading or changing the existing row.
 
-`update` and `updateVoid` treat the input's version as the version the caller read. Their SQL statement matches both ID and expected version and increments the stored version by one. `update` returns the decoded model with the new version. `delete(id, expectedVersion)` matches both values before removing the row; it requires the expected version for a versioned repository.
+`update` and `updateVoid` treat the input's version as the version the caller read. Their single SQL statement matches every key column and the expected version and increments the stored version by one. With the composite key above, every write includes the owner. `update` returns the decoded model with the new version. `delete(key, expectedVersion)` matches every key column and the expected version before removing the row; it requires the expected version for a versioned repository.
 
-A stale version or missing row fails with `OptimisticConcurrencyError` in the error channel for `update`, `updateVoid` and `delete`. Import it from `@shivaedev/effect-sql/repository.ts`; its fields are `tableName`, `id` and `expectedVersion`. No separate existence check is needed. Two concurrent writers using the same read version produce one successful update and one conflict, and the losing write leaves the winner's data intact.
+A stale version or missing row fails with `OptimisticConcurrencyError` in the error channel for `update`, `updateVoid` and `delete`. Import it from `@shivaedev/effect-sql/repository.ts`; its fields are `tableName`, `id`, `expectedVersion` and `reason: "missing" | "stale"`. For a composite key, `id` holds the full key object. Only a zero-row write triggers a read under that same full key to classify the failure: an absent key is `missing`, an existing key is `stale`. A row under another owner is `missing`, with no stored version or row data exposed. Two concurrent writers using the same read version produce one successful update and one conflict, and the losing write leaves the winner's data intact.
 
 These writes use SQL `RETURNING`. Repositories without `versionColumn` retain native CRUD signatures and behavior.
 
@@ -523,8 +527,8 @@ Import the module that defines the name; there is no root entry.
 | Module | Export | Input or role |
 | --- | --- | --- |
 | `@shivaedev/effect-sql/clientOptions.ts` | `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` | Add default native name transforms to driver or app host options; opt out with `snakeCase: false`. |
-| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn` or `conflictColumns` with optional `conflictWhere`; requires native `SqlClient`. |
-| `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`. |
+| `@shivaedev/effect-sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`. |
+| `@shivaedev/effect-sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`. |
 | `@shivaedev/effect-sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
 | `@shivaedev/effect-sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
 | `@shivaedev/effect-sql/advisoryXactLock.ts` | `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` | PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`. |

@@ -35,10 +35,12 @@ import type { partialConflicts } from "./partialConflicts.ts";
 import type { setupBatch } from "./postgresBatch.ts";
 import type { setup as payments } from "./postgresCodecs.ts";
 import type { startNotifications } from "./postgresNotify.ts";
+import type { setupOwnedRows } from "./postgresOwnedRows.ts";
 import type { secondPool, setup as transactions } from "./postgresTransact.ts";
 import type { setupVersioned } from "./postgresVersioned.ts";
 import type { pullRequests } from "./pullRequests.ts";
 import { RecordedLogs } from "./RecordedLogs.ts";
+import { recordSpans } from "./recordSpans.ts";
 import type { labelsWithPrefix, setup as lines } from "./sqliteRepository.ts";
 import type { secondDatabase, setup as sqliteTransactions } from "./sqliteTransactions.ts";
 import { waitingOn } from "./waitingOn.ts";
@@ -69,6 +71,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		notifications: fixture<Effect.Success<ReturnType<typeof startNotifications>>>(),
 		notificationTable: fixture<Effect.Success<typeof notificationTable>>(),
 		observer: fixture<Effect.Success<typeof secondPool>>(),
+		ownedRows: fixture<Effect.Success<typeof setupOwnedRows>>(),
 		partialConflicts: fixture<Effect.Success<typeof partialConflicts>>(),
 		payments: fixture<Effect.Success<typeof payments>>(),
 		pullRequests: fixture<Effect.Success<typeof pullRequests>>(),
@@ -116,12 +119,14 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		notifications: engine.notifications.get,
 		notificationTable: engine.notificationTable.get,
 		observerPool: engine.observer.get,
+		ownedRows: engine.ownedRows.get,
 		partialConflicts: engine.partialConflicts.get,
 		paymentFixture: engine.payments.get,
 		pendingPostgresMigrations,
 		pullRequests: engine.pullRequests.get,
 		readPostgresRelease,
 		recordedLogs: () => engine.logs,
+		recordSpans,
 		secondSqliteDatabase: engine.secondSqlite.get,
 		sql: engine.sql,
 		sqliteLines: engine.lines.get,

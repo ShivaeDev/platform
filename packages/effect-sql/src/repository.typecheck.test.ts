@@ -17,6 +17,13 @@ class Document extends Model.Class<Document>("Document")({
 	name: Name,
 }) {}
 
+class OwnedDocument extends Model.Class<OwnedDocument>("OwnedDocument")({
+	id: Schema.NumberFromString,
+	lockVersion: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),
+	name: Name,
+	ownerId: Name,
+}) {}
+
 const program = Effect.gen(function* () {
 	const options = { idColumn: "id", spanPrefix: "Document", tableName: "documents" } as const;
 	const documents = yield* makeRepository(Document, { ...options, versionColumn: "lockVersion" });
@@ -43,8 +50,14 @@ const program = Effect.gen(function* () {
 	makeRepository(Document, { ...options, versionColumn: "id" });
 	// @ts-expect-error Unknown columns are rejected.
 	makeRepository(Document, { ...options, versionColumn: "missing" });
-	// @ts-expect-error Conflict writes cannot bypass optimistic concurrency.
-	makeRepository(Document, { ...options, conflictColumns: ["name"], versionColumn: "lockVersion" });
+	const idempotent = yield* makeRepository(Document, { ...options, conflictColumns: ["name"], versionColumn: "lockVersion" });
+	idempotent.insertOrIgnore({ name: "draft" });
+	// @ts-expect-error Versioned conflict repositories do not expose unconditional upserts.
+	idempotent.upsert({ name: "draft" }, { updateColumns: ["name"] });
+	// @ts-expect-error Versioned conflict repositories do not expose batch upserts.
+	idempotent.upsertMany([{ name: "draft" }], { updateColumns: ["name"] });
+	// @ts-expect-error Versioned conflict repositories do not expose other conflict writes.
+	idempotent.insertManyOrIgnore([{ name: "draft" }]);
 	// @ts-expect-error Versioned repositories do not expose unconditional upserts.
 	documents.upsert({ name: "draft" }, { updateColumns: ["name"] });
 	// @ts-expect-error Versioned repositories do not expose unconditional batch writes.
@@ -53,6 +66,26 @@ const program = Effect.gen(function* () {
 	documents.insertManyOrIgnore([{ name: "draft" }]);
 	// @ts-expect-error Batch upserts cannot bypass optimistic concurrency.
 	documents.upsertMany([{ name: "draft" }], { updateColumns: ["name"] });
+	const owned = yield* makeRepository(OwnedDocument, {
+		conflictColumns: ["id"],
+		idColumn: ["id", "ownerId"],
+		spanPrefix: "Owned",
+		tableName: "owned",
+		versionColumn: "lockVersion",
+	});
+	owned.delete({ id: 1, ownerId: "owner" }, 0);
+	owned.findById({ id: 1, ownerId: "owner" });
+	owned.insertOrIgnore({ id: 1, name: "draft", ownerId: "owner" });
+	expectTypeOf<Effect.Success<ReturnType<typeof owned.update>>>().toEqualTypeOf<OwnedDocument>();
+	expectTypeOf<Effect.Services<ReturnType<typeof owned.delete>>>().toEqualTypeOf<Prefix>();
+	// @ts-expect-error Composite versioned deletes require every key column.
+	owned.delete({ id: 1 }, 0);
+	// @ts-expect-error Composite versioned deletes take a key object.
+	owned.delete(1, 0);
+	// @ts-expect-error Composite versioned repositories cannot upsert without a version comparison.
+	owned.upsert({ id: 1, name: "draft", ownerId: "owner" }, { updateColumns: ["name"] });
+	// @ts-expect-error The version column cannot be any component of the primary key.
+	makeRepository(OwnedDocument, { idColumn: ["id", "lockVersion"], spanPrefix: "Owned", tableName: "owned", versionColumn: "lockVersion" });
 	const plain = yield* makeRepository(Document, options);
 	plain.delete(1);
 	// @ts-expect-error Unversioned delete retains its one-argument signature.

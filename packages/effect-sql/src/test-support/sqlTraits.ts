@@ -8,6 +8,7 @@ import { notificationTable } from "./notificationTable.ts";
 import { setupBatch } from "./postgresBatch.ts";
 import { setup as payments } from "./postgresCodecs.ts";
 import { startNotifications } from "./postgresNotify.ts";
+import { setupOwnedRows } from "./postgresOwnedRows.ts";
 import { secondPool, setup as transactions } from "./postgresTransact.ts";
 import { setupVersioned } from "./postgresVersioned.ts";
 import { labelsWithPrefix, setup as lines } from "./sqliteRepository.ts";
@@ -96,5 +97,11 @@ export function inTimezone(zone: string) {
 	return postgres.trait("schema", `the process timezone is ${zone}`, function* () {
 		vi.stubEnv("TZ", zone);
 		yield* Effect.addFinalizer(() => Effect.sync(() => vi.unstubAllEnvs()));
+	});
+}
+
+export function hasOwnedRows() {
+	return postgres.trait("schema", "owned rows use composite versioned keys", function* (engine) {
+		engine.ownedRows.set(yield* setupOwnedRows);
 	});
 }
