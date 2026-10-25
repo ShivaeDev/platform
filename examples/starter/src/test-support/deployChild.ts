@@ -42,7 +42,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worke
 		Stream.runForEach((line) =>
 			Effect.gen(function* () {
 				logs.push(line);
-				if (line.includes("Worker waiting for schema")) {
+				if (line.includes("Waiting for database migrations")) {
 					yield* Deferred.succeed(waitingForSchema, undefined);
 				}
 				if (line.includes("Worker ready to take jobs")) {

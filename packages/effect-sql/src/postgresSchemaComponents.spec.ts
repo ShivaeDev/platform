@@ -7,7 +7,7 @@ import { hasMigrationTables } from "#test/sqlTraits.ts";
 postgres.it(
 	"applies schema components after committing the ledger, including on a repeated migration run",
 	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres, assertPostgresMigrations }) {
+	function* ({ migrations, sql, migratePostgres, assertPostgresMigrations, pendingPostgresMigrations }) {
 		const { ledger, orders } = migrations();
 		const loader = Migrator.fromRecord({ "1_orders": sql`create table ${sql(orders)} (id integer primary key)` });
 		const index = `${orders}_index`;
@@ -19,14 +19,24 @@ postgres.it(
 			),
 		};
 		const options = { components: [component], loader, lockTimeout: "5 seconds", table: ledger } as const;
+		expect(yield* pendingPostgresMigrations(options)).toEqual({
+			components: [{ detail: "index missing", name: "order index" }],
+			migrations: [{ id: 1, name: "orders" }],
+		});
 		const pending = yield* assertPostgresMigrations(options).pipe(Effect.result);
 		expect(pending).toMatchObject({
 			_tag: "Failure",
-			failure: { kind: "BadState", message: expect.stringContaining("migration 1 (orders); component order index: index missing") },
+			failure: {
+				kind: "BadState",
+				message:
+					"Database migrations are not current: migration 1 (orders); component order index: index missing. Run the deployment migration command.",
+			},
 		});
 		expect(yield* migratePostgres(options)).toEqual([[1, "orders"]]);
 		yield* assertPostgresMigrations(options);
+		expect(yield* pendingPostgresMigrations(options)).toEqual({ components: [], migrations: [] });
 		yield* sql`drop index ${sql(index)}`;
+		expect(yield* pendingPostgresMigrations(options)).toEqual({ components: [{ detail: "index missing", name: "order index" }], migrations: [] });
 		expect(yield* migratePostgres(options)).toEqual([]);
 		yield* assertPostgresMigrations(options);
 	},

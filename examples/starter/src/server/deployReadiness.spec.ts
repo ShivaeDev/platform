@@ -18,14 +18,14 @@ deployment.it(
 		const worker = yield* startProcess("worker");
 		yield* worker.waitingForSchema;
 		expect(yield* worker.child.isRunning).toBe(true);
-		expect(worker.logs).toEqual([expect.stringContaining("Worker waiting for schema")]);
+		expect(worker.logs.filter((line) => line.includes("migrations"))).toEqual([expect.stringContaining("Waiting for database migrations")]);
 		expect(yield* migrationTable).toEqual([{ ledger: null }]);
 		const schemaCreation = yield* holdSchemaCreation;
 		const migration = yield* Effect.gen(function* () {
 			const pending = yield* startProcess("migrate");
 			yield* schemaCreation.migrationBlocked;
 			expect(yield* migrationTable).toEqual([{ ledger: "app_migrations" }]);
-			expect(worker.logs).toEqual([expect.stringContaining("Worker waiting for schema")]);
+			expect(worker.logs.filter((line) => line.includes("migrations"))).toEqual([expect.stringContaining("Waiting for database migrations")]);
 			expect(yield* worker.child.isRunning).toBe(true);
 			return pending;
 		}).pipe(Effect.ensuring(schemaCreation.release));
@@ -38,9 +38,9 @@ deployment.it(
 		expect(signup.status).toBe(OK_STATUS);
 		expect(signup.cookie).toContain("session_token=");
 		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
-		expect(worker.logs.filter((line) => line.includes("Worker "))).toEqual([
-			expect.stringContaining("Worker waiting for schema"),
-			expect.stringContaining("Worker schema current"),
+		expect(worker.logs.filter((line) => line.includes("migrations") || line.includes("Worker "))).toEqual([
+			expect.stringContaining("Waiting for database migrations"),
+			expect.stringContaining("Database migrations current"),
 			expect.stringContaining("Worker ready to take jobs"),
 		]);
 		expect(yield* worker.child.isRunning).toBe(true);

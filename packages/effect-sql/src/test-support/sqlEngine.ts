@@ -4,6 +4,7 @@ import { SqlClient } from "effect/sql";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
+import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { makeRepository } from "#repository.ts";
 import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
@@ -103,6 +104,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		observerPool: engine.observer.get,
 		partialConflicts: engine.partialConflicts.get,
 		paymentFixture: engine.payments.get,
+		pendingPostgresMigrations,
 		pullRequests: engine.pullRequests.get,
 		recordedLogs: () => engine.logs,
 		secondSqliteDatabase: engine.secondSqlite.get,

@@ -472,6 +472,8 @@ Schema components describe storage owned by another engine alongside the numbere
 
 For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table?, components? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. Pending ledger IDs and component names and details appear together in the error. This checks recorded migrations and component readouts, not physical schema drift.
 
+For a structured readiness readout, use `pendingPostgresMigrations({ loader, table?, components? })` from `@shivaedev/effect-sql/pendingPostgresMigrations.ts`. It returns `{ migrations: [{ id, name }], components: [{ name, detail }] }` for pending work, with both arrays empty when current. It reads the same ledger and component checks as `assertPostgresMigrations` without running migrations.
+
 ### PostgreSQL delivery between processes
 
 `postgresChanges` from `@shivaedev/effect-sql/postgresChanges.ts` returns a scoped Layer for the `transact` channel. Provide it to every process that writes, including job workers. Every server uses the same database and channel, its own native PostgreSQL client and its own Reactivity service. Create the server's `makeLiveServer` with that same Reactivity service and supply its `resync` Effect to the binding.
@@ -506,6 +508,7 @@ Import the module that defines the name; there is no root entry.
 | `@shivaedev/effect-sql/migrationsFromDirectory.ts` | `migrationsFromDirectory(root)` | Discover migrations under the application root with native `FileSystem` and `Path`. |
 | `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional `components` and ledger `table`, default `effect_sql_migrations`. |
 | `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table?, components? })` | Read-only readiness check of required migration IDs and names in the native ledger and registered schema components. |
+| `@shivaedev/effect-sql/pendingPostgresMigrations.ts` | `pendingPostgresMigrations({ loader, table?, components? })` | Pending ledger migrations as ID and name, and pending schema components as name and detail. |
 | `@shivaedev/effect-sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |
 
 ### Install and database setup

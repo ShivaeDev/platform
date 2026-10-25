@@ -1,12 +1,13 @@
 import { createHash } from "node:crypto";
 import { createConnection } from "node:net";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Effect, Layer, Redacted, Schedule } from "effect";
+import { Config, Duration, Effect, Fiber, Layer, Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
-import { assertPostgresMigrations } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
+import { assertPostgresMigrations, postgresMigrationError } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
 import type { SqlNameTransforms } from "@shivaedev/effect-sql/clientOptions.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+import { type PendingPostgresMigrations, pendingPostgresMigrations } from "@shivaedev/effect-sql/pendingPostgresMigrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
 import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
 import { databaseAddress } from "./databaseAddress.ts";
@@ -73,15 +74,44 @@ function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
 		case "wait":
 			return waitForMigrations(migrations);
 		default:
-			return migratePostgres({ ...migrations, lockTimeout: migrations.lockTimeout ?? "5 seconds" });
+			return migratePostgres({ ...migrations, lockTimeout: migrations.lockTimeout ?? "5 seconds" }).pipe(Effect.asVoid);
 	}
 }
 
 function waitForMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
-	return assertPostgresMigrations(migrations).pipe(
-		Effect.retry({
-			schedule: Schedule.max([Schedule.spaced(migrations.pollInterval ?? "1 second"), Schedule.during(migrations.waitTimeout ?? "5 minutes")]),
-			while: (error) => error._tag === "MigrationError" && error.kind === "BadState",
-		}),
-	);
+	return Effect.gen(function* () {
+		const progressInterval = Duration.fromInputUnsafe(migrations.progressInterval ?? "30 seconds");
+		let pending: PendingPostgresMigrations = { components: [], migrations: [] };
+		let progress: Fiber.Fiber<never> | undefined;
+		function log(message: string) {
+			return Effect.suspend(() =>
+				Effect.logInfo(message).pipe(Effect.annotateLogs({ pendingComponents: pending.components, pendingMigrations: pending.migrations })),
+			);
+		}
+		yield* Effect.gen(function* () {
+			pending = yield* pendingPostgresMigrations(migrations);
+			if (pending.migrations.length === 0 && pending.components.length === 0) {
+				return;
+			}
+			if (progress === undefined) {
+				yield* log("Waiting for database migrations");
+				progress = yield* Effect.forever(Effect.sleep(progressInterval).pipe(Effect.andThen(log("Still waiting for database migrations")))).pipe(
+					Effect.forkScoped,
+				);
+			}
+			return yield* Effect.fail(postgresMigrationError(pending));
+		}).pipe(
+			Effect.retry({
+				schedule: Schedule.max([Schedule.spaced(migrations.pollInterval ?? "1 second"), Schedule.during(migrations.waitTimeout ?? "5 minutes")]),
+				while: (error) => error._tag === "MigrationError" && error.kind === "BadState",
+			}),
+			Effect.tapError((error) =>
+				error._tag === "MigrationError" && error.kind === "BadState" ? log("Timed out waiting for database migrations") : Effect.void,
+			),
+		);
+		if (progress !== undefined) {
+			yield* Fiber.interrupt(progress);
+			yield* Effect.logInfo("Database migrations current");
+		}
+	}).pipe(Effect.scoped);
 }

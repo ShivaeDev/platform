@@ -1,4 +1,4 @@
-import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Queue, Redacted } from "effect";
+import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Logger, Queue, Redacted, References } from "effect";
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
@@ -9,8 +9,18 @@ import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 
 export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(function* (
 	state: MigrationState,
-	options: { mode?: "check" | "wait"; waitTimeout?: Duration.Input; pollInterval?: Duration.Input } = {},
+	options: { mode?: "check" | "wait"; waitTimeout?: Duration.Input; pollInterval?: Duration.Input; progressInterval?: Duration.Input } = {},
 ) {
+	const events: unknown[] = [];
+	const logs: { level: string; message: readonly unknown[]; annotations: Record<string, unknown> }[] = [];
+	const logger = Logger.make((entry) => {
+		events.push(entry.message);
+		logs.push({
+			annotations: entry.fiber.getRef(References.CurrentLogAnnotations),
+			level: entry.logLevel,
+			message: Array.isArray(entry.message) ? entry.message : [entry.message],
+		});
+	});
 	const clock = yield* Clock.Clock;
 	const sleeps = yield* Queue.unbounded<number>();
 	const pollMillis = Duration.toMillis(Duration.fromInputUnsafe(options.pollInterval ?? "10 millis"));
@@ -50,12 +60,14 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		return yield* Effect.never;
 	}).pipe(
 		Effect.scoped,
+		Effect.onExit((exit) => Effect.sync(() => events.push(exit))),
+		Effect.provide(Logger.layer([logger])),
 		Effect.provideService(Clock.Clock, {
 			...clock,
 			sleep: (duration) =>
 				Effect.gen(function* () {
 					const millis = Duration.toMillis(duration);
-					if (millis <= pollMillis) {
+					if (millis === pollMillis) {
 						yield* Queue.offer(sleeps, millis);
 					}
 					yield* clock.sleep(duration);
@@ -67,6 +79,8 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		advance: (duration: Duration.Input) => TestClock.adjust(duration),
 		exit: Fiber.await(fiber),
 		interrupt: Fiber.interrupt(fiber),
+		migrationLogs: () =>
+			logs.filter((entry) => entry.message.some((message) => typeof message === "string" && message.toLowerCase().includes("database migrations"))),
 		next: Effect.raceFirst(
 			Queue.take(sleeps).pipe(Effect.map((millis) => ({ _tag: "Sleeping" as const, millis }))),
 			Effect.raceFirst(
@@ -79,5 +93,6 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 			return yield* Effect.tryPromise(() => ping(`${HttpServer.formatAddress(server.address)}/rpc`));
 		}),
+		recordedEvents: () => events,
 	};
 });
