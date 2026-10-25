@@ -9,9 +9,10 @@ import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgre
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { hostChanges } from "@shivaedev/platform/server/hostChanges.ts";
-import { jobsHandlers } from "#server/jobsHandlers.ts";
+import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "./adminRpc.ts";
+import { jobsClient } from "./jobsClient.ts";
 import { Mail, Private, pages, Sync } from "./jobsPages.ts";
 import { Users } from "./pages.ts";
 
@@ -33,6 +34,7 @@ export const jobsEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const testing = makePgBossTesting();
+	const deliveries: string[] = [];
 	let readCount: () => number = function readCount() {
 		return 0;
 	};
@@ -47,7 +49,17 @@ export const jobsEngine = Effect.gen(function* () {
 				return client;
 			},
 			connectionString: Redacted.value(database.url),
-			jobs: [Mail.handle(({ id }) => Effect.fail(new WorkerRejected({ id }))), Sync, Private],
+			jobs: [
+				Mail.handle(({ id }, job) =>
+					Effect.suspend(() => {
+						const repeated = deliveries.includes(job.id);
+						deliveries.push(job.id);
+						return repeated ? Effect.succeed({ sent: id }) : Effect.fail(new WorkerRejected({ id }));
+					}),
+				),
+				Sync,
+				Private,
+			],
 			monitorIntervalSeconds: 1,
 			superviseIntervalSeconds: 1,
 		}),
@@ -56,7 +68,7 @@ export const jobsEngine = Effect.gen(function* () {
 	const beforeRegistration = readCount();
 	const registry = pages();
 	const page = registry.pages[0];
-	const handlers = jobsHandlers(page, Jobs);
+	const handlers = jobsHandlersWithRetry(page, Jobs);
 	const registration = registerAdmin(registry, {
 		jobs: handlers,
 		users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) }),
@@ -69,6 +81,8 @@ export const jobsEngine = Effect.gen(function* () {
 
 	return {
 		...rpc,
+		...(yield* jobsClient(page, registry.group, rpc.protocol)),
+		deliveries,
 		jobs,
 		privateQueue: Private,
 		queue: Mail,

@@ -26,5 +26,5 @@ export const adminRpc = Effect.fnUntraced(function* (group: Group, handlers: Lay
 		),
 	);
 	const client = yield* RpcClient.make(group).pipe(Effect.provide(protocol));
-	return { client, responses, session };
+	return { client, protocol, responses, session };
 });
