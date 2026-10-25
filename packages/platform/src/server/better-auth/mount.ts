@@ -7,6 +7,7 @@ import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/bette
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import type { GetSession } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { trustedProxyPeer, trustedProxyRanges } from "#server/rpc-server/local.ts";
+import { redact } from "#server/rpc-server/redact.ts";
 import type { SessionShape } from "#server/rpc-server/session.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
@@ -59,7 +60,11 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 					web.headers.delete("x-forwarded-for");
 					web.headers.delete(clientIpHeader);
 				}
-				return HttpServerResponse.fromWeb(yield* Effect.tryPromise(() => auth.handler(web)));
+				return HttpServerResponse.fromWeb(
+					yield* Effect.tryPromise(() => auth.handler(web)).pipe(
+						Effect.tapError((error) => Effect.logError("Authentication provider failed", redact(error.cause))),
+					),
+				);
 			}).pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.text("Authentication is temporarily unavailable", { status: 503 })))),
 		),
 	);
