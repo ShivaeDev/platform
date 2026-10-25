@@ -35,6 +35,35 @@ for (const step of ["queued", "adopting", "reviewing", "repairing", "validating"
 }
 
 engine.it(
+	"a repairing record with an executing worker resumes independent review after restart",
+	[githubPullRequest(), reviewerStillRunning()],
+	function* (fleet) {
+		yield* fleet.prepareWork("one");
+		const dispatched = yield* fleet.dispatch("one");
+		const worker = dispatched.value.attempts[0];
+		// Recover a legacy repairing step without replacing its executing worker.
+		yield* fleet.replaceStoredRecord({ ...dispatched.value, step: "repairing" });
+		yield* fleet.restart();
+		const restored = yield* fleet.get("one");
+		expect(restored.value.step).toBe("repairing");
+		expect(executing(restored.value)).toBe(true);
+		fleet.workerReports(REPORT);
+		const reviewing = yield* fleet.reconcile("one");
+		expect(reviewing.value.step).toBe("reviewing");
+		expect(reviewing.value.decision).toBeUndefined();
+		expect(reviewing.value.attempts).toMatchObject([
+			{ operationId: worker?.operationId, receipt: worker?.receipt, role: "worker", status: "completed" },
+			{ role: "reviewer", status: "running" },
+		]);
+		expect(fleet.providerStarts().map(({ access }) => access)).toEqual([undefined, "read-only"]);
+		fleet.finishWorkers();
+		const ready = yield* fleet.reconcile("one");
+		expect(ready.value.decision?.code).toBe("reviewed-pr-ready");
+		expect(ready.value.review).toMatchObject({ head: HEAD, verdict: "approved" });
+	},
+);
+
+engine.it(
 	"restart reconciles a reviewer stranded in delivery through independent review",
 	[githubPullRequest(), reviewerStillRunning()],
 	function* (fleet) {
