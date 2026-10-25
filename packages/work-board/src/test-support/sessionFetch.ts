@@ -41,6 +41,21 @@ export async function sessionFetch(...args: Parameters<Window["fetch"]>) {
 			if (boundary.offline) {
 				throw new Error("Connection lost while saving");
 			}
+			if (boundary.incompatible) {
+				const response = await transport.fetch(...args);
+				const body = (await response.text())
+					.split("\n")
+					.filter(Boolean)
+					.map((line) => {
+						const message = JSON.parse(line);
+						if (message._tag === "Exit" && message.exit?._tag === "Success") {
+							message.exit.value = { outdated: true };
+						}
+						return JSON.stringify(message);
+					})
+					.join("\n");
+				return new transport.Response(`${body}\n`, { headers: response.headers, status: response.status });
+			}
 		}
 	}
 	return transport.fetch(...args);
