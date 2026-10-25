@@ -14,6 +14,7 @@ const args = process.argv.slice(2);
 if (args[0] === "install") {
   fs.writeFileSync("pnpm-lock.yaml", "lockfileVersion: 9.0\\n");
   const modules = ${JSON.stringify(modules)};
+  fs.rmSync("node_modules", { recursive: true, force: true });
   fs.mkdirSync("node_modules/.bin", { recursive: true });
   for (const name of fs.readdirSync(modules)) {
     if (name.startsWith("@")) {
@@ -21,7 +22,7 @@ if (args[0] === "install") {
       for (const dependency of fs.readdirSync(join(modules, name))) {
         fs.symlinkSync(fs.realpathSync(join(modules, name, dependency)), join("node_modules", name, dependency));
       }
-    } else if (name !== ".bin") {
+    } else if (!name.startsWith(".")) {
       fs.symlinkSync(fs.realpathSync(join(modules, name)), join("node_modules", name));
     }
   }
