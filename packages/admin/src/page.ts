@@ -27,6 +27,13 @@ export function adminPage<
 	const TCommands extends readonly CommandShape[],
 	TRpcs extends Rpc.Any,
 	const TStreams extends readonly StreamShape[],
->(page: { readonly id: TId; readonly route: AdminRoute; readonly contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams> }) {
+>(page: {
+	readonly id: TId;
+	readonly route: AdminRoute;
+	readonly contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams>;
+}): AdminPage & {
+	readonly id: TId;
+	readonly contract: Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, typeof AuthenticatedAdmin>, TStreams>;
+} {
 	return { ...page, [AdminPageTypeId]: true as const, contract: page.contract.middleware(AuthenticatedAdmin) };
 }

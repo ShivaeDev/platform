@@ -60,3 +60,34 @@ const handlers = registration.handlers.pipe(
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
 Page declarations and the registry are browser-safe. Server registration lives under `/server`; views belong in the application. This package ships no UI components and adds no transport. The package's stories prove role enforcement through native in-process RPC, with an already resolved session as a precondition.
+
+## Built-in Jobs page
+
+Share each queue's name and payload Schema with the browser declaration. The page exposes only the queues passed to `jobsPage`; a queue registered with the jobs runtime is not automatically available to operators.
+
+```ts
+import { Schema } from "effect";
+import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
+import { adminRegistry } from "@shivaedev/admin/registry.ts";
+
+const MailPayload = Schema.Struct({ id: Schema.NumberFromString });
+const JobsPage = jobsPage({ name: "mail", schema: MailPayload });
+const Admin = adminRegistry(JobsPage);
+```
+
+Register its handlers with the application's existing `makePgBoss` service:
+
+```ts
+import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+
+const registration = registerAdmin(Admin, {
+  jobs: jobsHandlers(JobsPage, JobsService),
+});
+```
+
+The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceId` and `sourceOutput`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. The queue's original codec encodes and decodes its payload across RPC, preserving its service requirements.
+
+Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as effect-pg-boss health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
+
+The page declares no commands. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and role enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
