@@ -1,9 +1,10 @@
 import { createRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
-import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { queryRoute } from "@shivaedev/effect-react/queryRoute.ts";
 import type { ClientModule, RouteContext } from "#client/Module.ts";
 import { NoteEdit } from "./Edit.tsx";
 import { makeNotesClient, type NotesClient } from "./make.ts";
+import { NotFound } from "./NotFound.tsx";
 import { RouteFailure } from "./RouteFailure.tsx";
 import { NotesScreen } from "./Screen.tsx";
 
@@ -11,12 +12,12 @@ export function notesRegistration(client: NotesClient = makeNotesClient(new URL(
 	return { api: client.api, routes: (context) => routes(client, context) };
 }
 
-function routes(client: NotesClient, { root, registry, auth, navigate }: RouteContext) {
+function routes(client: NotesClient, { root, auth, navigate }: RouteContext) {
 	const notes = createRoute({
 		component: () => <NotesScreen client={client} loaded={notes.useLoaderData()} onSignedOut={() => navigate("/sign-in")} signOut={auth.signOut} />,
 		errorComponent: RouteFailure,
 		getParentRoute: () => root,
-		loader: (context) => loadQuery(registry, client.api.list.query(), context),
+		...queryRoute(() => client.api.list.query()),
 		path: "/",
 	});
 	const note = createRoute({
@@ -26,7 +27,8 @@ function routes(client: NotesClient, { root, registry, auth, navigate }: RouteCo
 		},
 		errorComponent: RouteFailure,
 		getParentRoute: () => root,
-		loader: (context) => loadQuery(registry, client.api.get.query({ id: context.params.noteId }), context),
+		...queryRoute(({ params }: { params: { noteId: number } }) => client.api.get.query({ id: params.noteId })),
+		notFoundComponent: NotFound,
 		params: {
 			parse: ({ noteId }) => ({ noteId: Schema.decodeUnknownSync(Schema.NumberFromString.check(Schema.isInt(), Schema.isGreaterThan(0)))(noteId) }),
 			stringify: ({ noteId }: { readonly noteId: number }) => ({ noteId: String(noteId) }),

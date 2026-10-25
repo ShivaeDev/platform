@@ -220,27 +220,37 @@ The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a boun
 
 ### Route loaders with TanStack Router
 
-TanStack Router owns routes, navigation, loader data and error components. `@shivaedev/effect-react/loadQuery.ts` supplies `loadQuery(registry, atom, loaderContext)` to read a contract query atom in the same registry as React. The atom runs through its native RPC runtime; the loader does not create another runtime or query cache.
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/effect-react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React.
 
-This example assumes an application-owned `api.get.query({ id })` returning `{ id, title }`, with a declared `NoteMissing` rejection:
+This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
 
 ```tsx
 import { RegistryContext } from "@effect/atom-react";
 import { createRootRouteWithContext, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
 import type { ErrorComponentProps } from "@tanstack/react-router";
-import { Predicate } from "effect";
+import { Effect, Option, Predicate, Schema } from "effect";
 import type { ReactNode } from "react";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { queryRoute } from "@shivaedev/effect-react/queryRoute.ts";
 import { useLoaderQuery } from "@shivaedev/effect-react/client/useLoaderQuery.ts";
 import { api } from "./notes-client.ts";
 
 const registry = AtomRegistry.make();
 const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
+const Search = Schema.Struct({
+  page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
+    Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
+    Schema.withDecodingDefaultKey(Effect.succeed(1)),
+  ),
+});
 const note = createRoute({
   getParentRoute: () => root,
   path: "/notes/$id",
-  loader: (context) => loadQuery(context.context.registry, api.get.query(context.params), context),
+  validateSearch: Schema.toStandardSchemaV1(Search),
+  ...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) =>
+    api.get.query({ id: params.id, page: search.page }),
+  ),
+  notFoundComponent: () => <h1>Note not found</h1>,
   component: Note,
   errorComponent: Failure,
 });
@@ -262,7 +272,7 @@ function Shell({ children }: { readonly children: ReactNode }) {
   return <main>{pending && <p>Loading…</p>}{children}</main>;
 }
 function Note() {
-  const query = useLoaderQuery(api.get.query(note.useParams()), note.useLoaderData());
+  const query = useLoaderQuery(api.get.query({ ...note.useParams(), ...note.useSearch() }), note.useLoaderData());
   return <h1>{query.data.title}</h1>;
 }
 function Failure({ error }: ErrorComponentProps) {
@@ -272,6 +282,10 @@ export function App() {
   return <RegistryContext.Provider value={registry}><RouterProvider router={router} /></RegistryContext.Provider>;
 }
 ```
+
+`validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component`, `errorComponent` and `notFoundComponent` on the route; options after the spread can override its `loaderDeps` or `loader`.
+
+For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/effect-react/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 
 `defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window. A DOM screen story proves the first render has the loaded value and the loopback RPC handler runs once.
 
