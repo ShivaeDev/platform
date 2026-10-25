@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { deniedClipboard } from "#test/screenEnvironment.ts";
@@ -13,13 +12,11 @@ screenStory.it(
 	"opens and selects a Start template when the clipboard refuses it",
 	[deniedClipboard(), routedScreen({ "home.md": "# Home" }, "/_board/start", undefined)],
 	function* ({ click, findElement, readFocus, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(`${PROJECT} [data-template-copy]`)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(`${PROJECT} [data-template-copy]`)).not.toBeNull());
 		expect(findElement<HTMLDetailsElement>(`${PROJECT} details`)?.open).toBe(false);
 		click(`${PROJECT} [data-template-copy]`);
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText(`${PROJECT} [data-copy-status]`)).toBe("Couldn't copy automatically. The template is selected, so copy it yourself."),
-			),
+		yield* eventually(() =>
+			expect(readText(`${PROJECT} [data-copy-status]`)).toBe("Couldn't copy automatically. The template is selected, so copy it yourself."),
 		);
 		const field = findElement<HTMLTextAreaElement>(`${PROJECT} textarea`);
 		expect(findElement<HTMLDetailsElement>(`${PROJECT} details`)?.open).toBe(true);

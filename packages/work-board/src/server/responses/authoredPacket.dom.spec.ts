@@ -20,7 +20,7 @@ screenStory.it(
 		routedScreen({ "proposal.md": source }, "/_board/item/investigation.choices/", { home: undefined, writable: true }),
 	],
 	function* ({ findElement, input, submit, readResponses, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		expect(findElement("#response-form #forged")).toBeNull();
 		expect(findElement("#response-form script")).toBeNull();
 		expect(readText("#response-form")).not.toContain("<form");
@@ -28,7 +28,7 @@ screenStory.it(
 		input('#response-form [data-prompt="display"] textarea', "Keep the history.");
 		input('#response-form [data-prompt="checks"] textarea', "Test keyboard use.");
 		submit("#response-form");
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Answer saved")));
+		yield* eventually(() => expect(readText("#response-status")).toContain("Answer saved"));
 		const saved = yield* Effect.promise(() => readResponses("investigation.choices", "direction"));
 		expect(saved.responses[0]?.response.author).toBe("Reviewer");
 	},

@@ -15,7 +15,7 @@ screenStory.it(
 	"prepares a handoff in plain words, linking back to the item and keeping its actions as buttons",
 	[routedScreen(task, "/_board/handoff?item=task.focus", { writable: true })],
 	function* ({ findElement, findElements, readText, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Focus")));
+		yield* eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Focus"));
 		expect(findElements("[data-page-actions] :is(a, button)").map((control) => roles.accessible(control))).toEqual([
 			{ name: "Back to item", role: "link" },
 		]);
@@ -32,7 +32,7 @@ screenStory.it(
 			{ name: "Preview file", role: "button" },
 			{ name: "Clear draft", role: "button" },
 		]);
-		yield* Effect.promise(() => eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false)));
+		yield* eventually(() => expect(findElement("#handoff-submit")).toHaveProperty("disabled", false));
 		expect(findElement("#handoff-submit")?.classList.contains("bg-primary")).toBe(false);
 		expect(readText("#handoff-status")).toBe("");
 		expect(findElement<HTMLInputElement>('[name="nextAction"]')?.value).toBe("Inspect focus");
@@ -51,7 +51,7 @@ screenStory.it(
 		),
 	],
 	function* ({ activate, findElement, input, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Shipped work")));
+		yield* eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: Shipped work"));
 		expect(findElement<HTMLInputElement>('[name="recipient"]')?.value).toBe("codex");
 		const next = findElement<HTMLTextAreaElement>('[name="nextAction"]');
 		expect(next?.value).toBe("");
@@ -67,7 +67,7 @@ screenStory.it(
 	"titles a handoff by the item ID when the item has no heading",
 	[routedScreen({ "task.md": "---\nid: task.plain\nkind: task\nstatus: draft\n---\nNo heading here.\n" }, "/_board/handoff?item=task.plain")],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: task.plain")));
+		yield* eventually(() => expect(readText(PAGE_TITLE)).toBe("Hand off: task.plain"));
 		expect(findElement<HTMLTextAreaElement>('[name="goal"]')?.value).toBe("task.plain");
 	},
 );
@@ -76,7 +76,7 @@ screenStory.it(
 	"tells a read-only reader that saving is off and keeps Prepare handoff disabled",
 	[routedScreen(task, "/_board/handoff?item=task.focus")],
 	function* ({ findElement, readText, submit }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("main [role='alert']")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("main [role='alert']")).not.toBeNull());
 		expect(readText("main [role='alert']")).toBe("Read-onlySaving handoffs is turned off on this Board.");
 		expect(findElement("#handoff-submit")).toHaveProperty("disabled", true);
 		submit("#handoff-form");

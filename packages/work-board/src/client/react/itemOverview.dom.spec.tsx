@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { QueryDocument } from "#test/QueryDocument.tsx";
@@ -22,7 +21,7 @@ screenStory.it(
 		),
 	],
 	function* ({ click, readText, findElement, readAttribute, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#criterion-proof")).toContain("Visible without a click")));
+		yield* eventually(() => expect(readText("#criterion-proof")).toContain("Visible without a click"));
 		const criterion = findElement("#criterion-proof");
 		expect(criterion?.closest("details")).toBeNull();
 		expect(criterion?.closest("[hidden]")).toBeNull();

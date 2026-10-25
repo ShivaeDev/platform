@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { documentData } from "#test/documentRendering.ts";
@@ -23,9 +22,7 @@ screenStory.it(
 		function views() {
 			return [...findElements("article.doc")];
 		}
-		yield* Effect.promise(() =>
-			eventually(() => expect(views().map((view) => view.querySelector("#heading-repeat-2")?.textContent)).toEqual(["Repeat", "Repeat"])),
-		);
+		yield* eventually(() => expect(views().map((view) => view.querySelector("#heading-repeat-2")?.textContent)).toEqual(["Repeat", "Repeat"]));
 		const [sectioned, whole] = views().map((view) => [...view.children].map((block) => block.outerHTML));
 		expect(sectioned).toEqual(whole);
 		expect([...(views()[0]?.querySelectorAll("h1") ?? [])].map((title) => title.textContent)).toEqual([SECTIONED_TITLE]);
@@ -37,7 +34,7 @@ screenStory.it(
 	"resolves reference links and footnotes across a long document",
 	[componentScreen(<DocumentView document={documentData(REFERENCED_DOCUMENT)} />)],
 	function* ({ findElement, readAttribute }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("a[data-footnote-ref]")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("a[data-footnote-ref]")).not.toBeNull());
 		expect(readAttribute('a[href="/nested/guide.md"]', "href")).toBe("/nested/guide.md");
 		expect(findElement("#user-content-fn-source")?.textContent).toContain("Read the source.");
 	},

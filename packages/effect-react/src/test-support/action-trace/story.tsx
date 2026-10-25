@@ -12,13 +12,11 @@ import { Action, Create, Editor } from "./view.tsx";
 
 // Server spans end before the response reaches the client, so a click settles once the button is enabled again.
 function settled(container: HTMLElement) {
-	return Effect.promise(() =>
-		eventually(() => {
-			if (container.querySelector("button")?.disabled !== false) {
-				throw new Error("Write is still pending");
-			}
-		}),
-	);
+	return eventually(() => {
+		if (container.querySelector("button")?.disabled !== false) {
+			throw new Error("Write is still pending");
+		}
+	});
 }
 const configured = Effect.runSync(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
 export const actions = storyKit({

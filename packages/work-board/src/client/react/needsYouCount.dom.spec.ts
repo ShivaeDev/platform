@@ -14,10 +14,10 @@ screenStory.it(
 	"counts what needs you on System by the same rule and label as Today",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), fleetHealth(health), screenRoute("/_board/system"), openScreen()],
 	function* ({ findElements, navigate, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("[data-needs-you] strong")).toBe("3")));
+		yield* eventually(() => expect(readText("[data-needs-you] strong")).toBe("3"));
 		expect(readText("[data-needs-you] dt")).toBe("Needs you");
 		yield* Effect.promise(() => navigate("/"));
-		yield* Effect.promise(() => eventually(() => expect(readText(".today-strip a")).toBe("3 need you")));
+		yield* eventually(() => expect(readText(".today-strip a")).toBe("3 need you"));
 		expect(findElements('ul[aria-label="Needs you"] > li')).toHaveLength(3);
 	},
 );
@@ -26,10 +26,8 @@ screenStory.it(
 	"counts In progress on Today from the status written in each task while Fleet is unavailable and says so in plain words",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ findElements, readText }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "2 ready tasks", "0 active goals"]),
-			),
+		yield* eventually(() =>
+			expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", "2 ready tasks", "0 active goals"]),
 		);
 		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(["task.email", "task.upload"]);
 		expect(readText("[data-progress-id='task.upload']")).toBe("Fix the flaky upload testReady");
@@ -44,17 +42,15 @@ screenStory.it(
 	"names every workspace destination and the counts beside them",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ findElements, readAttribute }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toEqual([
-					"Today, 3 need you",
-					"Goals",
-					"Now, 3 open tasks",
-					"Pull requests",
-					"Library",
-					"System",
-				]),
-			),
+		yield* eventually(() =>
+			expect(findElements("#primary-navigation a").map((link) => link.getAttribute("aria-label"))).toEqual([
+				"Today, 3 need you",
+				"Goals",
+				"Now, 3 open tasks",
+				"Pull requests",
+				"Library",
+				"System",
+			]),
 		);
 		expect(readAttribute("#inbox-topbar", "aria-label")).toBe("Today, 3 need you");
 		expect(readAttribute("#inbox-count", "aria-label")).toBe("3 need you");
@@ -66,7 +62,7 @@ screenStory.it(
 	"shows the sidebar's needs-you count as a badge on the phone's Today tab",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), screenFiles(fleetWorkspace, { home: "home.md" }), openScreen()],
 	function* ({ findElement, readAttribute, readText, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("3")));
+		yield* eventually(() => expect(readText("#inbox-count")).toBe("3"));
 		expect(roles.accessible(findElement(PHONE_TODAY) ?? document.body).name).toBe(readAttribute("#home-open", "aria-label"));
 		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 3 need you");
 		expect(readText(`${PHONE_TODAY} [data-slot="badge"]`)).toBe("3");
@@ -81,7 +77,7 @@ screenStory.it(
 	"leaves the phone's Today tab without a badge when nothing needs you",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), chromeScreen({ "notes/plan.md": "# Plan\n" })],
 	function* ({ findElement, readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("0")));
+		yield* eventually(() => expect(readText("#inbox-count")).toBe("0"));
 		expect(readAttribute(PHONE_TODAY, "aria-label")).toBe("Today, 0 need you");
 		expect(findElement(`${PHONE_TODAY} [data-slot="badge"]`)).toBeNull();
 		expect(readAttribute("#inbox-count", "data-variant")).toBe("secondary");
@@ -92,7 +88,7 @@ screenStory.it(
 	"shows no needs-you badge in the sidebar or header when nothing needs you and keeps the count for screen readers",
 	[chromeScreen({ "notes/plan.md": "# Plan\n" })],
 	function* ({ findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#inbox-count")).toBe("0")));
+		yield* eventually(() => expect(readText("#inbox-count")).toBe("0"));
 		expect(
 			findElements("#inbox-count, #inbox-topbar-count").map((badge) => [
 				badge.id,

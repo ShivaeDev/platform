@@ -1,5 +1,4 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -25,7 +24,7 @@ for (const [route, target, title] of [
 			}),
 		],
 		function* ({ readText, findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(readText("h1")).toBe(title)));
+			yield* eventually(() => expect(readText("h1")).toBe(title));
 			expect(router?.state.location.href).toBe(target);
 			if (route === "changes") {
 				const recent = [...findElements("button")].find((button) => button.textContent === "Recently changed");

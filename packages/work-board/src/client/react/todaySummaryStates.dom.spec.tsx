@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { fleetWorkspace } from "#test/fleetWorkspaceFixture.ts";
@@ -18,9 +17,7 @@ for (const [workspace, summaries, loading] of [
 		`names the Today summaries it cannot count and holds a skeleton for the one still loading while workspace indexing is ${workspace}`,
 		[screenFiles(fleetWorkspace, { home: "home.md" }), ...(workspace === "failed" ? [pendingFleet()] : []), todaySummaryScreen(workspace)],
 		function* ({ findElements, readText }) {
-			yield* Effect.promise(() =>
-				eventually(() => expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", ...summaries])),
-			);
+			yield* eventually(() => expect(findElements(".today-strip a").map((link) => link.textContent)).toEqual(["3 need you", ...summaries]));
 			expect(findElements('.today-strip [role="status"][aria-busy="true"]').map((status) => status.textContent)).toEqual(loading);
 			expect(findElements('.today-strip [data-slot="skeleton"]').map((skeleton) => skeleton.closest("[role=status]")?.textContent)).toEqual(loading);
 			expect(readText(".today-strip")).not.toContain("…");
@@ -32,7 +29,7 @@ screenStory.it(
 	"says Needs you is unavailable in the Today summary while a workspace file cannot be read",
 	[screenFiles(fleetWorkspace, { home: "home.md" }), unreadableHome(), openScreen()],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(".today-strip a")).toBe("Needs you unavailable")));
+		yield* eventually(() => expect(readText(".today-strip a")).toBe("Needs you unavailable"));
 		expect(readText(".today-strip")).not.toContain("?");
 	},
 );

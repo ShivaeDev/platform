@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { capturedQuestionnaire, questionnaireSource } from "#test/questionnaire.ts";
@@ -26,7 +25,7 @@ for (const mode of ["managed", "registered", "waiting"]) {
 			),
 		],
 		function* ({ findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(findElements("[data-attention-row] a[title]")).toHaveLength(OPEN_PACKET)));
+			yield* eventually(() => expect(findElements("[data-attention-row] a[title]")).toHaveLength(OPEN_PACKET));
 			expect(findElements("[data-attention-row] a[title]")[0]?.getAttribute("href")).toBe(
 				"/_board/item/investigation.choices/#answer-card-direction",
 			);

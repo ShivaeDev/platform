@@ -954,6 +954,9 @@ importers:
       '@shivaedev/effect-form':
         specifier: workspace:*
         version: link:../effect-form
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -976,9 +979,6 @@ importers:
       '@shivaedev/effect-sql':
         specifier: workspace:*
         version: link:../effect-sql
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
       '@shivaedev/effect-test-sql':
         specifier: workspace:*
         version: link:../effect-test-sql

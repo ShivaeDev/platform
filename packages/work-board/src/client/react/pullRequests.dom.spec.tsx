@@ -12,7 +12,7 @@ screenStory.it(
 	"opens Fleet's pull requests from navigation, ready first, with task links and time in state",
 	[pullRequestWorkspace(), openScreen()],
 	function* ({ findElement, findElements, readText, navigate, click }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Pull requests")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Pull requests"));
 		expect(findElements("#doc section").map((section) => section.getAttribute("aria-label"))).toEqual([
 			"Ready to merge",
 			"Reviewing",
@@ -37,7 +37,7 @@ screenStory.it(
 		expect(findElement("#pull-requests-open")?.getAttribute("href")).toBe("/_board/pull-requests");
 		expect(readText("#pull-requests-open")).toContain("2");
 		click("#pull-requests-open");
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Pull requests")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Pull requests"));
 	},
 );
 
@@ -45,12 +45,12 @@ screenStory.it(
 	"removes a merged PR and reduces the navigation count through the live Board subscription",
 	[pullRequestWorkspace(true), sessionScreen("response")],
 	function* ({ findElement, readText, mergeSessionPullRequest, editSessionFile }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#pull-requests-open [role='status']")).toBe("2")));
+		yield* eventually(() => expect(readText("#pull-requests-open [role='status']")).toBe("2"));
 		const retained = findElement('[data-pr-work="task.sweep"]');
 		expect(findElement('[data-pr-work="task.ready"]')).not.toBeNull();
 		mergeSessionPullRequest("task.ready");
 		editSessionFile("tasks/ready.md", "---\nid: task.ready\nkind: task\nstatus: done\n---\n# Deliver ready\n\nMerged.\n");
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-pr-work="task.ready"]')).toBeNull()));
+		yield* eventually(() => expect(findElement('[data-pr-work="task.ready"]')).toBeNull());
 		expect(readText("#pull-requests-open [role='status']")).toBe("1");
 		expect(findElement('[data-pr-work="task.sweep"]')).toBe(retained);
 		expect(readText("#doc h1")).toBe("Pull requests");

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { QueryPlainBoard } from "#test/QueryDocument.tsx";
@@ -15,7 +14,7 @@ screenStory.it(
 		)),
 	],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(".board-head h1")).toBe("Release board")));
+		yield* eventually(() => expect(readText(".board-head h1")).toBe("Release board"));
 		expect(readText(".board-head .counts")).toBe("2 open · 1 closed");
 	},
 );

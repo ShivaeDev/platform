@@ -17,12 +17,12 @@ screenStory.it(
 	"lists several open asks behind one amber control and keeps linked work in its authored state",
 	[boardScreen(goalPageFixture(), (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ click, findElement, findElements, readGoals, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-goal-open-asks]")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-goal-open-asks]")).not.toBeNull());
 		const goal = (yield* Effect.promise(readGoals))?.goals.find((entry) => entry.id === "project.example");
 		expect(readText("[data-goal-open-asks]")).toBe("2 open asks");
 		expect(findElement("[data-goal-open-asks]")?.className).toContain("text-needs-you");
 		click("[data-goal-open-asks]");
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-goal-ask-list]", document)).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-goal-ask-list]", document)).not.toBeNull());
 		expect([...findElements("[data-goal-ask-list] a", document)].map((link) => link.getAttribute("href"))).toEqual(goal?.asks.map((ask) => ask.href));
 		expect(goal?.asks.map((ask) => ask.href)).toEqual([
 			"/_board/item/decision.review/#answer-card-goal",
@@ -43,7 +43,7 @@ screenStory.it(
 	"keeps zero counts and closed groups quiet and counts each table group like its chip",
 	[boardScreen(quiet, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ findElement, findElements, readAttribute, readGoals, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-item="task.fifth"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-goal-item="task.fifth"]')).not.toBeNull());
 		const goal = (yield* Effect.promise(readGoals))?.goals.find((entry) => entry.id === "project.example");
 		expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 3, dropped: 0, ready: 0 });
 		expect(findElement("[data-goal-open-asks]")).toBeNull();
@@ -83,7 +83,7 @@ screenStory.it(
 		),
 	],
 	function* ({ findElement, findElements, readTabStops, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-group="Ready"] [data-goal-item="task.first"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-goal-group="Ready"] [data-goal-item="task.first"]')).not.toBeNull());
 		expect(readText('[data-goal-item="task.first"] [data-goal-owner]')).toBe("codex");
 		expect(findElement('[data-goal-item="task.first"] [data-goal-updated] time')?.getAttribute("data-modified")).toBe(String(RUN_UPDATED));
 		expect(readTabStops('[data-goal-item="task.first"]')).toEqual(findElements('[data-goal-item="task.first"] a[href]'));

@@ -20,15 +20,15 @@ screenStory.it(
 		routedScreen({ ...textQuestionFixture }, `/_board/item/${TEXT_QUESTION_ID}/`, { home: "home.md", writable: true }),
 	],
 	function* ({ answerInput, dropLiveConnection, findElement, readDisabled, readText, reconnectLive, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		answerInput("body", DRAFT);
 		yield* Effect.promise(dropLiveConnection);
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-form [role='status']")).toBe(REASON)));
+		yield* eventually(() => expect(readText("#response-form [role='status']")).toBe(REASON));
 		const answer = yield* roles.find(ANSWER);
 		const record = yield* roles.find(RECORD);
 		expect([readDisabled(answer), readDisabled(record)]).toEqual([true, true]);
 		yield* Effect.promise(reconnectLive);
-		yield* Effect.promise(() => eventually(() => expect([readDisabled(answer), readDisabled(record)]).toEqual([false, false])));
+		yield* eventually(() => expect([readDisabled(answer), readDisabled(record)]).toEqual([false, false]));
 		expect(readText("#response-form")).not.toContain(REASON);
 		expect(findElement<HTMLTextAreaElement>("#response-form textarea")?.value).toBe(DRAFT);
 	},
