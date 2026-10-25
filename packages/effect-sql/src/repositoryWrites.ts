@@ -61,8 +61,10 @@ export function repositoryWrites(
 		insert: (input: unknown) =>
 			changes.write(insertRow(input).pipe(Effect.catchTag("NoSuchElementError", Effect.die))).pipe(Effect.withSpan(`${spanPrefix}.insert`)),
 		insertVoid: (input: unknown) => changes.write(insertVoid(input)).pipe(Effect.withSpan(`${spanPrefix}.insertVoid`)),
-		update: (input: unknown) =>
-			changes.write(updateRow(input).pipe(Effect.catchTag("NoSuchElementError", Effect.die))).pipe(Effect.withSpan(`${spanPrefix}.update`)),
+		update: (input: unknown, settings?: { readonly onMissing: "fail" }) =>
+			changes
+				.write(settings?.onMissing === "fail" ? updateRow(input) : updateRow(input).pipe(Effect.catchTag("NoSuchElementError", Effect.die)))
+				.pipe(Effect.withSpan(`${spanPrefix}.update`)),
 		updateVoid: (input: unknown) => changes.write(updateVoid(input)).pipe(Effect.withSpan(`${spanPrefix}.updateVoid`)),
 	};
 }

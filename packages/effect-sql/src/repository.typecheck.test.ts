@@ -1,4 +1,4 @@
-import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { type Cause, Context, Effect, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
@@ -91,6 +91,19 @@ const program = Effect.gen(function* () {
 	// @ts-expect-error Unversioned delete retains its one-argument signature.
 	plain.delete(1, 0);
 	expectTypeOf<Effect.Error<ReturnType<typeof plain.update>>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+	const missingResult = plain.update(input, { onMissing: "fail" });
+	expectTypeOf<Effect.Error<typeof missingResult>>().toEqualTypeOf<SqlError | Schema.SchemaError | Cause.NoSuchElementError>();
+	expectTypeOf<Effect.Success<typeof missingResult>>().toEqualTypeOf<Document>();
+	expectTypeOf<Effect.Services<typeof missingResult>>().toEqualTypeOf<Prefix>();
+	const composite = yield* makeRepository(OwnedDocument, { idColumn: ["id", "ownerId"], spanPrefix: "Owned", tableName: "owned" });
+	const compositeResult = composite.update({ ...input, ownerId: "owner" }, { onMissing: "fail" });
+	expectTypeOf<Effect.Error<typeof compositeResult>>().toEqualTypeOf<SqlError | Schema.SchemaError | Cause.NoSuchElementError>();
+	expectTypeOf<Effect.Success<typeof compositeResult>>().toEqualTypeOf<OwnedDocument>();
+	expectTypeOf<Effect.Services<typeof compositeResult>>().toEqualTypeOf<Prefix>();
+	// @ts-expect-error Opt-in updates retain the full model update input.
+	composite.update({ id: 1, name: "draft" }, { onMissing: "fail" });
+	// @ts-expect-error Versioned updates retain their optimistic concurrency failure contract.
+	owned.update({ ...input, ownerId: "owner" }, { onMissing: "fail" });
 });
 
 it("repository type contracts compile", () => {
