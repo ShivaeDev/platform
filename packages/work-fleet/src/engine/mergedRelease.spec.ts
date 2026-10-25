@@ -47,7 +47,7 @@ for (const scenario of ["worker question", "failing check", "changed head"] as c
 			const released = yield* fleet.reconcile("one");
 			expect(released.value.step).toBe("released");
 			expect(released.value.releaseReason).toBe(
-				`PR #7 merged by a human at ${scenario === "changed head" ? MOVED : HEAD}; Fleet review covered ${waiting.value.review?.head ?? "nothing"}`,
+				`PR #7 merged by a human at ${scenario === "changed head" ? MOVED : HEAD}; Fleet review covered ${HEAD}`,
 			);
 			expect(released.value.outcome).toBeUndefined();
 			expect(released.value.decision).toBeUndefined();

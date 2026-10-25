@@ -10,15 +10,16 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 	answered: boolean,
 	threadIdle?: boolean,
 ) {
-	const record = stored.value;
-	const attempt = record.attempts.at(-1);
+	const attempt = stored.value.attempts.at(-1);
 	if (attempt === undefined) {
 		return stored;
 	}
 	const idle = answered ? yield* inspectThread(state, attempt) : threadIdle;
+	const current = answered ? yield* state.load(stored.value.workId) : stored;
+	const record = current.value;
 	const missingSince = attempt.missingSince ?? state.policy.now();
 	if (idle === false && state.policy.now() - missingSince < VISIBILITY_GRACE_MS) {
-		return yield* state.save(stored, {
+		return yield* state.save(current, {
 			...record,
 			attempts: record.attempts.map((entry) => (entry.operationId === attempt.operationId ? { ...entry, missingSince } : entry)),
 			attentionOwner: "automation",
@@ -30,12 +31,12 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 		const reason = `Accepted Codex turn is not observable; ${uncertainty}; retain execution ownership`;
 		return record.decision === undefined
 			? yield* state.decision(
-					stored,
+					current,
 					"session-turn-missing",
 					reason,
 					"Inspect the worker thread and published work before retrying or safely releasing",
 				)
-			: yield* state.save(stored, { ...record, blocker: reason });
+			: yield* state.save(current, { ...record, blocker: reason });
 	}
 	return undefined;
 });

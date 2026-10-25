@@ -19,18 +19,13 @@ export function makeObserve(state: EngineState) {
 			return input;
 		}
 		let stored = current;
-		const paused = stored.value.step === "waiting";
-		if (!observable(stored.value, paused)) {
+		const intent = yield* observationIntent(state, stored.value);
+		if (intent === undefined) {
 			return stored;
 		}
-		const latest = paused
-			? stored.value.attempts.findLast((attempt) => ["submitting", "accepted", "running"].includes(attempt.status))
-			: stored.value.attempts.at(-1);
-		if (latest === undefined) {
-			return yield* Effect.fail(new BadRequest({ message: "Execution lacks an intent" }));
-		}
-		if (state.launching.has(latest.operationId) || (paused && latest.receipt === undefined)) {
-			return stored;
+		const { latest, paused } = intent;
+		if (latest.role === "reviewer" && !paused) {
+			return stored.value.step === "reviewing" ? stored : yield* save(stored, { ...stored.value, step: "reviewing" });
 		}
 		const receipt = latest.receipt ?? (yield* reconcileAttempt(state)(stored, latest));
 		stored = yield* load(stored.value.workId);
@@ -43,6 +38,20 @@ export function makeObserve(state: EngineState) {
 		return yield* advanceObservation(state, stored, observation, paused);
 	});
 }
+
+const observationIntent = Effect.fn("Fleet.observationIntent")(function* (state: EngineState, record: FleetRecord) {
+	if (!observable(record)) {
+		return undefined;
+	}
+	const paused = record.step === "waiting";
+	const latest = executing(record)
+		? record.attempts.findLast((attempt) => ["submitting", "accepted", "running"].includes(attempt.status))
+		: record.attempts.at(-1);
+	if (latest === undefined) {
+		return yield* Effect.fail(new BadRequest({ message: "Execution lacks an intent" }));
+	}
+	return state.launching.has(latest.operationId) || (paused && latest.receipt === undefined) ? undefined : { latest, paused };
+});
 
 const observationRecord = Effect.fn("Fleet.observationRecord")(function* (state: EngineState, input: Versioned<FleetRecord>) {
 	const pending = input.value.attempts.at(-1);
@@ -57,8 +66,8 @@ function observationBlocker(record: FleetRecord, attempt: Attempt) {
 	return attempt.readRetry === undefined ? record.blocker : undefined;
 }
 
-function observable(record: FleetRecord, paused: boolean) {
-	return record.step === "working" || (paused && executing(record));
+function observable(record: FleetRecord) {
+	return record.step === "working" || (!["done", "released"].includes(record.step) && executing(record));
 }
 
 function finishObservation(state: EngineState) {

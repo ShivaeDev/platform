@@ -57,6 +57,9 @@ export const observeDeliveryFailure = Effect.fn("Fleet.observeDeliveryFailure")(
 	if (error._tag === "ServiceUnavailable") {
 		return record.decision === undefined ? yield* Effect.fail(error) : stored;
 	}
+	if (executing(record)) {
+		return stored;
+	}
 	current = yield* invalidateMergeReadiness(state, stored);
 	return yield* waitingDecision(
 		failureCode(error),
