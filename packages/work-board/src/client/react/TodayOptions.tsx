@@ -84,7 +84,12 @@ export function TodayOptions({
 	) : (
 		<Popover onOpenChange={setOpen} open={open}>
 			<PopoverTrigger render={trigger}>Answer</PopoverTrigger>
-			<PopoverContent align="end" aria-label={label} className="w-80 max-w-[calc(100vw-2rem)] text-sm" initialFocus={initialFocus}>
+			<PopoverContent
+				align="end"
+				aria-label={label}
+				className="max-h-[min(32rem,var(--available-height))] w-lg max-w-[calc(100vw-2rem)] overflow-y-auto text-sm"
+				initialFocus={initialFocus}
+			>
 				{content}
 			</PopoverContent>
 		</Popover>
