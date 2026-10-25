@@ -1,5 +1,13 @@
 import { expect } from "vitest";
-import { collectingCoverage, customCoverage, nodeOnly, projectKit, withUnitIo, withWorktrees } from "#quality/test-support/projectKit.ts";
+import {
+	collectingCoverage,
+	customCoverage,
+	nodeOnly,
+	projectKit,
+	sourceMappedGuard,
+	withUnitIo,
+	withWorktrees,
+} from "#quality/test-support/projectKit.ts";
 import { unitIoCases } from "#quality/test-support/unitIoCases.ts";
 
 const { it } = projectKit;
@@ -89,3 +97,12 @@ for (const { call, name, source } of unitIoCases) {
 		expect(testResults()).toContain("src/double.unit.test.ts passed");
 	});
 }
+
+it("keeps a compiled guard active with source maps", [withUnitIo(unitIoCases[0].source), sourceMappedGuard], function* ({ run, testResults }) {
+	const result = yield* run();
+	expect(result.status, result.output).not.toBe(SUCCESS);
+	expect(result.output).toContain("src/io.unit.test.ts cannot call node:fs.readFileSync");
+	expect(testResults()).toContain("src/io.unit.test.ts failed");
+	expect(testResults()).toContain("src/double.unit.test.ts passed");
+	expect(testResults()).toContain("src/flow.spec.ts passed");
+});

@@ -5,11 +5,11 @@ interface SeedFile {
 
 const helper = new URL("../../../packages/quality/src/testProjects.ts", import.meta.url).href;
 
-export function projectConfig(options = ""): SeedFile {
+export function projectConfig(options = "", extra = ""): SeedFile {
 	return {
 		content: `import { defineConfig } from "vitest/config";
 import { testProjects } from "${helper}";
-export default defineConfig({ test: testProjects(${options}) });
+export default defineConfig({ test: { ...testProjects(${options}), ${extra} } });
 `,
 		path: "vitest.config.ts",
 	};
