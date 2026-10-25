@@ -38,7 +38,7 @@ for (const other of ["work-fleet/cli", "work-fleets"]) {
 		yield* prepareWork("two");
 		const records = yield* Effect.all([fleet.dispatch("one"), fleet.dispatch("two")], { concurrency: "unbounded" });
 		expect(records.map(({ value }) => value.step)).toEqual(["working", "working"]);
-		expect(launches()).toEqual(["operation-1", "operation-2"]);
+		expect(launches().sort()).toEqual(["operation-1", "operation-2"]);
 	});
 }
 
