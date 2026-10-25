@@ -1,0 +1,30 @@
+import { Context, Effect, Layer, Option, Schema, Stream } from "effect";
+import { RpcTest } from "effect/rpc";
+import { adminPage } from "@shivaedev/admin/page.ts";
+import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
+import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { query } from "@shivaedev/effect-contract/operation.ts";
+import { authenticatedAdminLayer } from "@shivaedev/platform/server/rpc-server/roles.ts";
+
+class JobStore extends Context.Service<JobStore, readonly string[]>()("consumer/JobStore") {}
+const Failed = query("failed", { reads: () => [], success: Schema.Array(Schema.String) });
+const Jobs = adminPage({ id: "jobs", route: { path: "/admin/jobs", title: "Jobs" }, contract: contract("admin.jobs", { queries: [Failed] }) });
+const registry = adminRegistry(Jobs);
+const registered = registerAdmin(registry, {
+  jobs: Jobs.contract.application.toLayer({ "admin.jobs.failed": () => Effect.service(JobStore) }),
+});
+const requiresStore: Layer.Layer<Layer.Success<typeof registered.handlers>, never, JobStore> = registered.handlers;
+type Equal<A, B> = [A, B] extends [B, A] ? true : false;
+const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore> = true;
+void preserved;
+const changes = Jobs.contract.toLayerHandler("admin.jobs.$changes", () => Stream.empty);
+const auth = authenticatedAdminLayer({
+  origin: () => true,
+  provider: { get: () => Effect.succeed(Option.some({ user: { id: "operator", email: "operator@example.test", name: "Operator", role: "admin" } })) },
+});
+await Effect.runPromise(Effect.gen(function* () {
+  const client = yield* RpcTest.makeClient(registered.group).pipe(Effect.provide(Layer.mergeAll(requiresStore, changes, auth)), Effect.provideService(JobStore, ["mail-42"]));
+  const result = yield* client["admin.jobs.failed"]();
+  if (JSON.stringify(result) !== '["mail-42"]') throw new Error("Packed admin registry did not serve its handler result");
+}).pipe(Effect.scoped));
