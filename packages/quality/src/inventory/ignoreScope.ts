@@ -1,4 +1,4 @@
-import { relative } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 import ignore from "ignore";
 
 export type Verdict = "ignored" | "kept" | "unknown";
@@ -10,6 +10,7 @@ interface IgnoreMatcher {
 
 export interface IgnoreScope {
 	readonly boundary: string | undefined;
+	readonly ignored?: ReadonlySet<string>;
 	readonly matchers: readonly IgnoreMatcher[];
 }
 
@@ -46,6 +47,16 @@ function matcherVerdict(matcher: IgnoreMatcher, boundary: string | undefined, pa
 }
 
 export function verdictFor(scope: IgnoreScope, path: string, directory: boolean): Verdict {
+	if (scope.ignored !== undefined) {
+		for (let ancestor = resolve(path); ; ancestor = dirname(ancestor)) {
+			if (scope.ignored.has(ancestor)) {
+				return "ignored";
+			}
+			if (ancestor === dirname(ancestor)) {
+				return "unknown";
+			}
+		}
+	}
 	return (
 		scope.matchers.map((matcher) => matcherVerdict(matcher, scope.boundary, path, directory)).findLast((verdict) => verdict !== "unknown")
 		?? "unknown"
