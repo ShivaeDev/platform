@@ -1,17 +1,18 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
-import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Pool, type PoolClient, type PoolConfig } from "pg";
+import { type BearerSessionsOptions, sessionHeaders, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
+import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { type RevokeUnadmitted, revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import type { GetSession } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { trustedProxyPeer, trustedProxyRanges } from "#server/rpc-server/local.ts";
-import { redact } from "#server/rpc-server/redact.ts";
+import { trustedProxyRanges } from "#server/rpc-server/local.ts";
 import type { SessionShape } from "#server/rpc-server/session.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
+	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
 }
 
@@ -25,7 +26,6 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
 	const clientIpHeader = yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
 	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
-	const isTrustedProxy = trustedProxyPeer(trustedProxy);
 	const trustedProxies = trustedProxyRanges(trustedProxy);
 	const context = yield* Effect.context<R>();
 	const run = Effect.runPromiseWith(context);
@@ -39,7 +39,7 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const customStorage =
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
 	const auth = betterAuth({
-		...options,
+		...withBearerSessions(options, mount.bearerSessions !== undefined),
 		advanced: {
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
 			...options.advanced,
@@ -56,32 +56,19 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		trustedOrigins: options.trustedOrigins ?? [Option.getOrElse(origin, () => "http://127.0.0.1:*")],
 		user: gate.active ? gated.user : options.user,
 	});
-	const routes = HttpRouter.use((router) =>
-		router.add("*", "/api/auth/*", (request) =>
-			Effect.gen(function* () {
-				const web = yield* HttpServerRequest.toWeb(request);
-				if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
-					web.headers.delete("x-forwarded-for");
-					web.headers.delete(clientIpHeader);
-				}
-				return HttpServerResponse.fromWeb(
-					yield* Effect.tryPromise(() => auth.handler(web)).pipe(
-						Effect.tapError((error) => Effect.logError("Authentication provider failed", redact(error.cause))),
-					),
-				);
-			}).pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.text("Authentication is temporarily unavailable", { status: 503 })))),
-		),
-	);
+	const routes = mountRoutes(auth, { bearerSessions: mount.bearerSessions, clientIpHeader, trustedProxy });
 	function admittedSessions<TSession extends SessionShape>(getSession: GetSession<TSession>): GetSession<TSession> {
-		if (!gate.active) {
+		if (!gate.active && mount.bearerSessions === undefined) {
 			return getSession;
 		}
 		return (headers) =>
 			run(
 				Effect.gen(function* () {
-					const session = yield* Effect.tryPromise(() => getSession(headers));
-					if (session === null) {
-						return null;
+					const { authCookies } = yield* Effect.promise(() => auth.$context);
+					const selected = mount.bearerSessions === undefined ? headers : sessionHeaders(headers, authCookies.sessionToken.name);
+					const session = yield* Effect.tryPromise(() => getSession(selected));
+					if (!gate.active || session === null) {
+						return session;
 					}
 					const storage = yield* Effect.tryPromise(() => auth.$context);
 					if (yield* gate.admitsUser(storage, session.user.id)) {
