@@ -1,7 +1,8 @@
 import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse, HttpTraceContext } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
-import { proxyAddresses, proxyMatches, proxyRanges } from "./trustedProxy.ts";
+import { proxyAddresses, proxyMatches } from "./trustedProxy.ts";
+import { trustedProxyRanges as normalizedRanges } from "./trustedProxyRanges.ts";
 
 function loopbackAddress(address: string): boolean {
 	const unmapped = unmapAddress(address);
@@ -46,8 +47,9 @@ export function trustedProxyPeer(trustedProxy?: string): (address: string) => bo
 	return (address) => addresses !== undefined && proxyMatches(addresses, address);
 }
 export function trustedProxyRanges(trustedProxy?: string): string[] {
-	return trustedProxy === undefined ? [] : (proxyRanges(trustedProxy) ?? []);
+	return normalizedRanges(trustedProxy);
 }
+
 function proxyOrigin(request: HttpServerRequest.HttpServerRequest, isTrustedProxy: (address: string) => boolean): boolean {
 	if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
 		return false;

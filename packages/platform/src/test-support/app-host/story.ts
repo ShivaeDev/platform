@@ -1,38 +1,44 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { environmentVariable } from "#test/environmentVariable.ts";
 import { close, start } from "./lifecycle.ts";
-import { emptyHost } from "./state.ts";
+import { emptyHost, type HostState } from "./state.ts";
 import { hostVerbs } from "./verbs.ts";
 
-export const host = storyKit({
-	after: { configured: start },
-	clock: "live",
-	*create() {
-		const state = emptyHost();
-		yield* Effect.addFinalizer(() =>
-			Effect.gen(function* () {
-				yield* close(state).pipe(Effect.orDie);
-				for (const cleanup of state.cleanup.toReversed()) {
-					yield* Effect.promise(async () => {
-						await cleanup();
-					});
-				}
-			}),
-		);
-		return state;
-	},
-	inspect: (state) => ({
-		address: state.address,
-		bootFailure: state.bootFailure,
-		calls: state.calls,
-		lifecycle: state.lifecycle,
-		logs: state.logs,
-		lookups: state.lookups,
-	}),
-	name: "app host",
-	stages: ["configured", "listening"],
-	verbs: hostVerbs,
-});
+export function hostOptions({ database = false } = {}) {
+	return {
+		after: { configured: start },
+		clock: "live" as const,
+		*create() {
+			const state = emptyHost();
+			yield* Effect.addFinalizer(() =>
+				Effect.gen(function* () {
+					yield* close(state).pipe(Effect.orDie);
+					for (const cleanup of state.cleanup.toReversed()) {
+						yield* Effect.promise(async () => {
+							await cleanup();
+						});
+					}
+				}),
+			);
+			return state;
+		},
+		inspect: (state: HostState) => ({
+			address: state.address,
+			bootFailure: state.bootFailure,
+			calls: state.calls,
+			lifecycle: state.lifecycle,
+			logs: state.logs,
+			lookups: state.lookups,
+		}),
+		name: "app host",
+		runIf: !database || environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL") !== undefined,
+		stages: ["configured", "listening"] as const,
+		verbs: hostVerbs,
+	};
+}
+
+export const host = storyKit(hostOptions());
 
 export function environment(env: Record<string, string>) {
 	return host.trait("configured", `the host environment is ${JSON.stringify(env)}`, (state) => {

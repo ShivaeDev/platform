@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { trustedProxyRanges } from "./local.ts";
+import { trustedProxyRanges } from "./trustedProxyRanges.ts";
 
 it.each([
 	[undefined, []],

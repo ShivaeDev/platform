@@ -12,11 +12,11 @@ export const forwarded = {
 	"x-forwarded-host": "app.example",
 	"x-forwarded-proto": "https",
 };
-export const transport = storyKit({
+export const transportOptions = {
 	create: (): { trust: string | undefined } => ({ trust: undefined }),
 	name: "RPC transport",
-	stages: ["configured"],
-	verbs: (state, story) => ({
+	stages: ["configured"] as const,
+	verbs: (state: { trust: string | undefined }, story: { tell: (line: string) => void }) => ({
 		guarded: (address: string | undefined, headers: Readonly<Record<string, string>> = forwarded) =>
 			Effect.gen(function* () {
 				story.tell(`a request from ${address ?? "an unknown peer"} reaches the RPC guard`);
@@ -50,8 +50,10 @@ export const transport = storyKit({
 					: transportHeaders(message).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request));
 			}),
 	}),
-});
-export function trustedProxy(trust: string) {
+};
+export const transport = storyKit(transportOptions);
+
+export function trustedProxy(trust: string | undefined) {
 	return transport.trait("configured", `the transport trusts proxy ${trust}`, (state) => {
 		state.trust = trust;
 	});
