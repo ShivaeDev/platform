@@ -43,21 +43,25 @@ export const consumers = storyKit({
 			probe: [{ entries: [], fixtures: ["scenario.ts.txt"], omitOptionalPeers: false, run: ["scenario.ts"] }],
 		});
 		yield* writeJson(join(root, "observations.json"), []);
-		return { root, temporary };
+		const writesAtCleanup: string[] = [];
+		return { fileSystem: fs, root, temporary, writesAtCleanup };
 	},
 	layer: NodeServices.layer,
 	name: "packed consumer lifetime",
 	stages: ["workspace"],
-	verbs: ({ root, temporary }) => ({
+	verbs: (engine) => ({
 		check: Effect.fn("ConsumerStory.check")(function* () {
+			const { root, temporary } = engine;
 			return yield* checkConsumers(root, yield* workspaceArchives(root, root), temporary, { count: 1, index: 1 }, undefined, undefined).pipe(
+				Effect.provideService(FileSystem.FileSystem, engine.fileSystem),
 				Effect.match({ onFailure: String, onSuccess: () => undefined }),
 			);
 		}),
 		observations: Effect.fn("ConsumerStory.observations")(function* () {
-			return JSON.parse(yield* (yield* FileSystem.FileSystem).readFileString(join(root, "observations.json")));
+			return JSON.parse(yield* (yield* FileSystem.FileSystem).readFileString(join(engine.root, "observations.json")));
 		}),
-		remaining: () => Effect.flatMap(FileSystem.FileSystem, (fs) => fs.readDirectory(temporary)),
+		remaining: () => Effect.flatMap(FileSystem.FileSystem, (fs) => fs.readDirectory(engine.temporary)),
+		writesAtCleanup: () => Effect.sync(() => engine.writesAtCleanup),
 	}),
 });
 
