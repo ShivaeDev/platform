@@ -10,6 +10,7 @@ import type { MainLocation } from "./mainLocation.ts";
 import { NotFoundPage } from "./NotFoundPage.tsx";
 import { PageFailure } from "./PageFailure.tsx";
 import { ProjectionMain } from "./ProjectionMain.tsx";
+import { pageFailureReason } from "./pageFailureReason.ts";
 import { documentQuery } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
 import { shellIds } from "./shellIds.ts";
@@ -63,10 +64,19 @@ export function DocumentMain({
 				{data ? (
 					<DocumentPage api={api} document={data} key={data.identity ?? data.file} />
 				) : (
-					<NoDocument failed={Option.isSome(query.cause)} failure={failure} onRetry={query.refresh} retrying={query.pending} url={url} />
+					<NoDocument
+						cause={Option.isSome(query.cause) ? Cause.squash(query.cause.value) : undefined}
+						failed={Option.isSome(query.cause)}
+						failure={failure}
+						onRetry={query.refresh}
+						retrying={query.pending}
+						url={url}
+					/>
 				)}
 			</main>
-			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed page is retained.</p>}
+			{data !== undefined && Option.isSome(query.cause) && (
+				<p role="status">Refresh failed. {pageFailureReason(Cause.squash(query.cause.value))} Your displayed page is retained.</p>
+			)}
 		</>
 	);
 }
@@ -83,12 +93,14 @@ function readStatus(tag: string | undefined, failed: boolean) {
 	return failed ? "503" : "200";
 }
 function NoDocument({
+	cause,
 	failed,
 	failure,
 	onRetry,
 	retrying,
 	url,
 }: {
+	readonly cause: unknown;
 	readonly failed: boolean;
 	readonly failure: { readonly _tag: string } | undefined;
 	readonly onRetry: () => void;
@@ -104,5 +116,5 @@ function NoDocument({
 	if (failure?._tag === "Conflict") {
 		return <EmptyState title="Two items share this ID">Give each item its own ID in its file, then open the link again.</EmptyState>;
 	}
-	return <PageFailure failure={failure} onRetry={onRetry} retrying={retrying} />;
+	return <PageFailure failure={cause} onRetry={onRetry} retrying={retrying} />;
 }

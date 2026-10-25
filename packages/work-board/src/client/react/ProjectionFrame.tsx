@@ -1,4 +1,4 @@
-import { Option } from "effect";
+import { Cause, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
@@ -7,6 +7,7 @@ import { fileUrl } from "#files/url.ts";
 import { LoadingPage } from "./LoadingPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFailure } from "./PageFailure.tsx";
+import { pageFailureReason } from "./pageFailureReason.ts";
 import { pageTitle } from "./pageTitle.ts";
 import { projectionChanges, type RenderedProjection } from "./projectionChanges.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
@@ -108,7 +109,14 @@ export function ProjectionFrame<A, E extends { readonly _tag: string; readonly m
 			>
 				{data === undefined
 					&& (failed ? (
-						<ProjectionFailure conflict={conflict} failure={failure} missing={missing} onRetry={query.refresh} retrying={query.pending} />
+						<ProjectionFailure
+							cause={Option.isSome(query.cause) ? Cause.squash(query.cause.value) : undefined}
+							conflict={conflict}
+							failure={failure}
+							missing={missing}
+							onRetry={query.refresh}
+							retrying={query.pending}
+						/>
 					) : (
 						<LoadingPage board={route === "board"} url={url} />
 					))}
@@ -116,7 +124,9 @@ export function ProjectionFrame<A, E extends { readonly _tag: string; readonly m
 					{content === undefined ? null : render(content)}
 				</div>
 			</main>
-			{data !== undefined && Option.isSome(query.cause) && <p role="status">Refresh failed. Your displayed view is retained.</p>}
+			{data !== undefined && Option.isSome(query.cause) && (
+				<p role="status">Refresh failed. {pageFailureReason(Cause.squash(query.cause.value))} Your displayed view is retained.</p>
+			)}
 		</>
 	);
 }
