@@ -11,9 +11,13 @@ import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessio
 import { authenticatedUserWithProviderAccountsLayer } from "#server/rpc-server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
-export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databaseUrl: Redacted.Redacted<string>) {
+export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
+	databaseUrl: Redacted.Redacted<string>,
+	accountOptions: Pick<BetterAuthOptions, "databaseHooks">,
+) {
 	const pool = yield* authDatabase(databaseUrl);
 	const options = {
+		...accountOptions,
 		advanced: { useSecureCookies: false },
 		"baseURL": { allowedHosts: ["localhost:*"], protocol: "http" },
 		database: pool,

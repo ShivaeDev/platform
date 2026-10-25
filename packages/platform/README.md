@@ -681,11 +681,43 @@ const testAuth = betterAuth({
 const { user, headers, cookies } = await signedInUser(testAuth, {
   email: "member@example.test",
   name: "Member",
+  providerAccounts: [{ providerId: "github", accountId: "123" }],
   role: "user,admin",
 });
 ```
 
-`options` is the application's auth configuration. `signedInUser` saves the supplied user fields and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+
+Use `storedProviderAccounts(auth, userId)` to observe credential storage through Better Auth's internal adapter. It returns account and provider IDs with `hasAccessToken`, `hasRefreshToken`, `hasIdToken` and `hasPassword` booleans. It never returns token values, passwords or password hashes. A DOM story kit that exposes its test auth instance and a session readout can use both helpers:
+
+```ts
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { signedInUser, storedProviderAccounts } from "@shivaedev/platform/server/better-auth/testing.ts";
+
+const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {
+  const { cookies } = yield* Effect.promise(() => signedInUser(auth, {
+    email: "member@example.test",
+    name: "Member",
+    providerAccounts: [{ providerId: "github", accountId: "123" }],
+  }));
+  yield* seedCookies(cookies);
+});
+
+app.it("the member's provider account stores no credentials", [member], function* ({ session, story }) {
+  const { user } = yield* session();
+  const accounts = yield* Effect.promise(() => storedProviderAccounts(story.engine.auth, user.id));
+  expect(accounts).toEqual([{
+    providerId: "github",
+    accountId: "123",
+    hasAccessToken: false,
+    hasRefreshToken: false,
+    hasIdToken: false,
+    hasPassword: false,
+  }]);
+});
+```
 
 With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
