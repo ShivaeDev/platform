@@ -60,6 +60,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	const theme = yield* rawGet(board, THEME_ROUTE);
 	const browser = new Browser({
 		settings: {
+			"enableCSSFileLoading": true,
 			enableJavaScriptEvaluation: true,
 			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, pageRequests, path: activePath, streams, theme }) },
 			suppressInsecureJavaScriptEnvironmentWarning: true,

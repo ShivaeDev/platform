@@ -14,6 +14,7 @@ export interface BoardEngine {
 	announcedChanges?: string[][];
 	beforeScripts?: Parameters<typeof openPage>[2];
 	changeDelivery?: { dropped: boolean; loseNext: boolean; omitPath?: string };
+	cliEntry?: string;
 	connectionBoundary?: { readonly disconnect: () => void; readonly resume: () => void };
 	fleetPort?: number | undefined;
 	heldRequests?: Map<string, ReturnType<typeof held>>;

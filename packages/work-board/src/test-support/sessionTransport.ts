@@ -7,9 +7,16 @@ import { screenStory } from "./screenStory.ts";
 export interface SessionTransport {
 	readonly commands: RpcRequest[];
 	gate?: Promise<void> | undefined;
+	incompatible?: boolean;
 	offline: boolean;
 	release?: (() => void) | undefined;
 	readonly tag: string;
+}
+
+export function incompatibleWorkResponse() {
+	return screenStory.trait("workspace", "the server returns work in a shape this browser does not understand", (engine) => {
+		engine.sessionTransport = { commands: [], incompatible: true, offline: false, tag: "work-board.work" };
+	});
 }
 
 export function sessionDiagnostics(read: (observedAt: number) => unknown) {
