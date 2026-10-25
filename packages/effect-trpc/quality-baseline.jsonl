@@ -1,6 +1,5 @@
 {"path":"packages/effect-trpc/src/server/adapter.ts","rule":"biome/lint/style/useNamingConvention","count":4}
-{"path":"packages/effect-trpc/src/server/httpRejections.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/effect-trpc/src/server/inputRejections.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/effect-trpc/src/server/httpRejections.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-trpc/src/server/procedureEvidence.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/effect-trpc/src/server/testing/vitest.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-trpc/src/server/types.ts","rule":"biome/lint/style/useNamingConvention","count":4}

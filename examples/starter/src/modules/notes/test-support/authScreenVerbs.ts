@@ -9,6 +9,7 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 		return engine.auth;
 	}
 	return {
+		authenticated: () => engine.login.authenticated,
 		authenticationAccepts: () =>
 			Effect.sync(() => {
 				tell("the authentication provider accepts credentials");
@@ -16,7 +17,6 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				engine.login.unavailable = false;
 			}),
 		authenticationCalls: () => engine.login.calls,
-		authenticationCount: () => engine.login.authenticated,
 		authenticationGoesOffline: () =>
 			Effect.sync(() => {
 				tell("the authentication provider goes offline");

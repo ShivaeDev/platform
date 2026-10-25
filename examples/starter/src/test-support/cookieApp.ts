@@ -28,7 +28,7 @@ export const cookieApp = storyKit({
 					new Request(`${baseUrl}/api/auth/sign-out`, { body: "{}", headers: { "content-type": "application/json" }, method: "POST" }),
 				);
 				await response.text();
-				return response.status;
+				return response;
 			}),
 		visibleCookies: () => document.cookie,
 	}),

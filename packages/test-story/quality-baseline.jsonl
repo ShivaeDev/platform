@@ -1,10 +1,8 @@
 {"path":"packages/test-story/src/server/afterHostTracing.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/test-story/src/server/documentTransport.dom.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/test-story/src/server/domOutbound.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/test-story/src/server/effectHooks.spec.ts","rule":"tests/named-values","count":5}
+{"path":"packages/test-story/src/server/effectHooks.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/test-story/src/server/hostTracing.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/test-story/src/server/lifecycle.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/test-story/src/server/liveTime.spec.ts","rule":"tests/named-values","count":6}
+{"path":"packages/test-story/src/server/liveTime.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/test-story/src/server/otlpExport.spec.ts","rule":"tests/named-values","count":7}
-{"path":"packages/test-story/src/server/runUntil.spec.ts","rule":"tests/named-values","count":9}
+{"path":"packages/test-story/src/server/runUntil.spec.ts","rule":"tests/named-values","count":6}
 {"path":"packages/test-story/src/server/unlocatedFailure.spec.ts","rule":"tests/named-values","count":1}

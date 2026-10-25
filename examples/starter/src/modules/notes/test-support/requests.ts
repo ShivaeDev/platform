@@ -40,9 +40,8 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 				method: "POST",
 			}),
 		);
-		const status = response.status;
 		yield* Effect.promise(() => response.text());
-		return status;
+		return response;
 	});
 	return { foreignRequest, notes, signOut };
 }
