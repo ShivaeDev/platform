@@ -34,3 +34,33 @@ liveSessionStory.it("signing in again restores automatic live updates", [], func
 	yield* rename("After sign-in");
 	yield* observe("a live hint refreshes the new session's query", () => expect(text()).toBe("After sign-in"));
 });
+
+liveSessionStory.it(
+	"sign-out cancels a private refresh window and same-account re-entry owns new keys",
+	[],
+	function* ({ observe, ready, reads, registries, rename, signOut, signIn, text, wait }) {
+		yield* observe("the private session is live", () => expect(ready()).toBe(true));
+		const old = registries()[0];
+		const before = reads();
+		yield* rename("Pending private refresh");
+		yield* wait(50);
+		expect(reads()).toBe(before);
+		expect(text()).toBe("First");
+		yield* signOut();
+		yield* observe("the session boundary discards the outgoing keys", () => {
+			expect(text()).toBe("Sign in");
+			expect(old?.getNodes().size).toBe(0);
+		});
+		yield* wait(600);
+		expect(reads()).toBe(before);
+		yield* signIn();
+		yield* observe("the new scope reads current private data", () => {
+			expect(ready()).toBe(true);
+			expect(text()).toBe("Pending private refresh");
+		});
+		const twoGenerations = 2;
+		expect(registries()).toHaveLength(twoGenerations);
+		expect(registries()[1]).not.toBe(old);
+		expect(old?.getNodes().size).toBe(0);
+	},
+);

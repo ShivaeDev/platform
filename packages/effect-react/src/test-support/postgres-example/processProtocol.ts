@@ -15,6 +15,8 @@ export type Configuration = typeof Configuration.Type;
 export const Message = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Close") }),
 	Schema.Struct({ _tag: Schema.Literal("Reject") }),
+	Schema.Struct({ _tag: Schema.Literal("Hold") }),
+	Schema.Struct({ _tag: Schema.Literal("Release") }),
 	Schema.Struct({ _tag: Schema.Literal("Enqueue"), order: Order }),
 ]);
 export const ProcessLog = Schema.Struct({
@@ -27,6 +29,8 @@ export const Response = Schema.Union([
 	ProcessLog,
 	Schema.Struct({ _tag: Schema.Literal("Ready"), url: Schema.String }),
 	Schema.Struct({ _tag: Schema.Literal("Rejected") }),
+	Schema.Struct({ _tag: Schema.Literal("Held") }),
+	Schema.Struct({ _tag: Schema.Literal("Entered") }),
 	Schema.Struct({ _tag: Schema.Literal("Handled") }),
 	Schema.Struct({ _tag: Schema.Literal("Enqueued") }),
 	Schema.Struct({ _tag: Schema.Literal("Failure"), message: Schema.String }),

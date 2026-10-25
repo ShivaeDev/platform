@@ -233,23 +233,80 @@ Client invalidation follows RPC success. Platform database hosts also publish de
 
 ### Session-owned keys
 
-Self-only features can declare `keyScope: "session"` without adding an owner id to query or command payloads:
+Before migration, an owner field exists only to give client reads and invalidations a key. The server already chooses the account from `Identity`:
 
 ```ts
+const preferences = collection("preferences", Schema.String);
 const Preferences = contract("preferences", {
-  keyScope: "session",
-  queries: [query("self", { reads: () => [preferences.item(0)], success: Schema.String })],
-  commands: [command("save", {
-    payload: { title: Schema.String },
-    invalidates: () => [preferences.item(0)],
+  queries: [query("self", {
+    payload: { ownerId: Schema.String },
+    reads: ({ ownerId }) => [preferences.item(ownerId)],
+    success: Schema.String,
   })],
-});
-const api = bind(Preferences, Client, { registry });
-const self = api.self.query(undefined);
-const saved = api.save.run({ title: "My preferences" });
+  commands: [command("save", {
+    payload: { ownerId: Schema.String, title: Schema.String },
+    invalidates: ({ ownerId }) => [preferences.item(ownerId)],
+    success: Schema.String,
+  })],
+}).middleware(Authenticated);
+
+const api = bind(Preferences, Client);
+const self = api.self.query({ ownerId: session.userId });
+const save = api.save.run({ ownerId: session.userId, title: "My preferences" });
 ```
 
-The binding requires the session's owning registry. It scopes read registration, successful-command invalidation, live hints and reconciliation to that owner. A rejected command declares no invalidation. Query atoms and live connections belong in that registry; command and one-off query effects execute through it. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
+After migration, remove `ownerId` from both payload schemas and every call site. Add `keyScope: "session"` and keep a logical item key for the self-only record:
+
+```ts
+const preferences = collection("preferences", Schema.String);
+const Preferences = contract("preferences", {
+  keyScope: "session",
+  queries: [query("self", {
+    reads: () => [preferences.item("self")],
+    success: Schema.String,
+  })],
+  commands: [command("save", {
+    payload: { title: Schema.String },
+    invalidates: () => [preferences.item("self")],
+    success: Schema.String,
+  })],
+}).middleware(Authenticated);
+
+const api = bind(Preferences, Client, { registry });
+const self = api.self.query(undefined);
+const save = api.save.run({ title: "My preferences" });
+```
+
+The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command`, `collection` and `bind` from effect-contract's defining modules, and `Authenticated` from `@shivaedev/platform/rpc/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
+
+```tsx
+import { SessionBoundary } from "@shivaedev/effect-react/client/sessionBoundary.ts";
+
+<SessionBoundary
+  session={session}
+  identify={(current) => current.generation}
+  connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
+  recheck={recheck}
+  signedOut={<p>Signed out</p>}
+>
+  {(api) => <PreferencesScreen api={api} />}
+</SessionBoundary>
+```
+
+`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. Existing one-argument `connect` callbacks continue to work. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
+
+Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/platform/rpc/identity.ts`, before and after migration:
+
+```ts
+Preferences.application.toLayer({
+  "preferences.self": () => Effect.flatMap(Identity, ({ id }) => store.read(id)),
+  "preferences.save": ({ title }) => Effect.flatMap(Identity, ({ id }) => store.save(id, title)),
+});
+```
+
+`store` is the application's persistence service. No owner or client key scope is accepted from a request. Platform's database app host resolves the server key scope from that same request-local identity.
+
+The registry is required for session-scoped bindings. Query atoms and live connections belong in it; command and one-off query Effects execute through it. A successful command invalidates its owner's keys, while a rejected command declares no invalidation. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
 
 `List` and `Item` are still the key shapes. `readKeys(keys, { scope })` and `invalidationKeys(keys, { scope })` resolve the extra dimension while preserving item, list and wildcard semantics. An item invalidation refreshes that scope's item and list; a wildcard reaches only that scope's items. The client's opaque scope comes from its registry and is never sent as an owner id.
 

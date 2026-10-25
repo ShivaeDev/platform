@@ -8,7 +8,7 @@ import { mountLive } from "./mountLive.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
-	readonly connect: (session: TSession) => TClient;
+	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
 	readonly identify: (session: TSession) => string;
 	readonly liveCoalesceWindow?: Duration.Input | undefined;
 	readonly recheck: () => void;
@@ -24,12 +24,21 @@ interface Owned<TClient> {
 	mounted: number;
 	readonly registry: AtomRegistry.AtomRegistry;
 }
-function owning<TClient>(client: TClient): Owned<TClient> {
-	return { client, mounted: 0, registry: AtomRegistry.make({ "defaultIdleTTL": 400 }) };
+function owning<TClient>(connect: (registry: AtomRegistry.AtomRegistry) => TClient): Owned<TClient> {
+	const registry = AtomRegistry.make({ "defaultIdleTTL": 400 });
+	let client: { readonly value: TClient } | undefined;
+	return {
+		get client() {
+			client ??= { value: connect(registry) };
+			return client.value;
+		},
+		mounted: 0,
+		registry,
+	};
 }
 // No cleanup runs when a hidden <Activity> subtree is unmounted, so nodes a hidden render creates must not outlive it.
-function hidden<TClient>(client: TClient): Owned<TClient> {
-	const owned = owning(client);
+function hidden<TClient>(connect: (registry: AtomRegistry.AtomRegistry) => TClient): Owned<TClient> {
+	const owned = owning(connect);
 	let reaping = false;
 	owned.registry.onNodeAdded = () => {
 		if (reaping || owned.mounted > 0) {
@@ -47,13 +56,14 @@ function hidden<TClient>(client: TClient): Owned<TClient> {
 }
 interface GenerationProps<TSession, TClient> {
 	readonly children: (client: TClient) => ReactNode;
-	readonly connect: (session: TSession) => TClient;
+	readonly connect: (session: TSession, registry: AtomRegistry.AtomRegistry) => TClient;
 	readonly liveCoalesceWindow?: Duration.Input | undefined;
 	readonly recheck: () => void;
 	readonly session: TSession;
 }
 function Generation<TSession, TClient>({ session, connect, recheck, children, liveCoalesceWindow }: GenerationProps<TSession, TClient>): ReactNode {
-	const [owned, own] = useState(() => owning(connect(session)));
+	const [open] = useState(() => (registry: AtomRegistry.AtomRegistry) => connect(session, registry));
+	const [owned, own] = useState(() => owning(open));
 	useEffect(() => registerSessionRecheck(owned.registry, recheck), [owned, recheck]);
 	useEffect(() => {
 		owned.mounted += 1;
@@ -66,10 +76,10 @@ function Generation<TSession, TClient>({ session, connect, recheck, children, li
 					return;
 				}
 				owned.registry.dispose();
-				own((current) => (current === owned ? hidden(owned.client) : current));
+				own((current) => (current === owned ? hidden(open) : current));
 			});
 		};
-	}, [owned, liveCoalesceWindow]);
+	}, [owned, liveCoalesceWindow, open]);
 	return createElement(
 		RecheckContext.Provider,
 		{ value: recheck },

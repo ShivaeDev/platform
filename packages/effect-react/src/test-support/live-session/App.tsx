@@ -1,12 +1,13 @@
 import { useAtomValue } from "@effect/atom-react";
 import { Option } from "effect";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { useState } from "react";
 import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
 import { useQuery } from "#client/resultState.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { connect } from "./connect.ts";
 
-function Note({ client }: { readonly client: ReturnType<typeof connect> }) {
+export function Note({ client }: { readonly client: ReturnType<typeof connect> }) {
 	const query = useQuery(client.get.query(undefined));
 	const status = useAtomValue(client[LiveConnection].status);
 	return (
@@ -21,7 +22,9 @@ export function App({
 	session,
 	rechecked,
 	signIn,
+	connected,
 }: {
+	readonly connected: (registry: AtomRegistry.AtomRegistry) => void;
 	readonly url: string;
 	readonly session: () => string | undefined;
 	readonly rechecked: () => void;
@@ -30,8 +33,12 @@ export function App({
 	const [current, setSession] = useState(session);
 	return (
 		<SessionBoundary
-			connect={() => connect(url)}
+			connect={(_, registry) => {
+				connected(registry);
+				return connect(url, registry);
+			}}
 			identify={(id) => id}
+			liveCoalesceWindow="500 millis"
 			recheck={() => {
 				rechecked();
 				setSession(session());

@@ -1,6 +1,7 @@
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import type { privateClient } from "./privateClient.ts";
 import { processClient } from "./processClient.ts";
 import { startProcess, until } from "./processHarness.ts";
 
@@ -19,11 +20,14 @@ export const createProcesses = Effect.gen(function* () {
 	};
 	const sql = yield* SqlClient.SqlClient;
 	const beforeRollback: number[] = [];
+	const privateSaving: { pending?: ReturnType<Awaited<ReturnType<typeof privateClient>>["save"]> } = {};
 	return {
 		anotherBeforeLoss: 0,
 		beforeRollback,
 		clients: new Map<string, Awaited<ReturnType<typeof processClient>>>(),
 		configuration,
+		privateClients: new Map<string, Awaited<ReturnType<typeof privateClient>>>(),
+		privateSaving,
 		servers: new Map<string, Awaited<ReturnType<typeof startProcess>>>(),
 		sql,
 	};
