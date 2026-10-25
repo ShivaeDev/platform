@@ -17,9 +17,8 @@ for (const follow of [false, true]) {
 			expect(visible).toContain("one  working");
 			expect(visible).toContain("Lost turn relaunched.");
 			expect(visible).toContain("no remote branch");
-			const output = yield* watch(follow);
-			expect(output.stdout).toContain("one working: Lost turn relaunched.");
-			expect(output.code).toBe(4);
+			const output = yield* watch(follow, "one working: Lost turn relaunched.");
+			expect(output).toContain("one working: Lost turn relaunched.");
 			expect((yield* fleet.get("one")).value.releaseReason).toBeUndefined();
 		},
 	);
@@ -49,10 +48,9 @@ engine.it(
 		finishWorkers();
 		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 		const completed = yield* storedSnapshot();
-		const output = yield* watch(true, [executing, reviewing, repairing, completed]);
-		expect(output.stdout.match(/Lost turn relaunched\./gu)).toHaveLength(1);
-		expect(output.stdout).toContain("one done");
-		expect(output.code).toBe(4);
+		const output = yield* watch(true, "one done", [executing, reviewing, repairing, completed]);
+		expect(output.match(/Lost turn relaunched\./gu)).toHaveLength(1);
+		expect(output).toContain("one done");
 		expect(reviewStatus).not.toContain("Lost turn relaunched.");
 		expect(repairStatus).not.toContain("Lost turn relaunched.");
 	},
