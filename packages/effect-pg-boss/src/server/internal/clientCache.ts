@@ -1,7 +1,11 @@
+import { isDeepStrictEqual } from "node:util";
+import type { ConstructorOptions } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
+import { PgBossClientOptionsError } from "#error.ts";
 
 interface CachedClient {
 	readonly client: Promise<PgBossClient>;
+	readonly constructorOptions: ConstructorOptions;
 	references: number;
 }
 
@@ -20,13 +24,20 @@ function isCachedClient(value: unknown): value is CachedClient {
 		typeof value === "object"
 		&& value !== null
 		&& Reflect.get(value, "client") instanceof Promise
+		&& typeof Reflect.get(value, "constructorOptions") === "object"
 		&& typeof Reflect.get(value, "references") === "number"
 	);
 }
 
-export async function acquireCachedClient(key: string | symbol, start: () => Promise<PgBossClient>) {
+export async function acquireCachedClient(key: string | symbol, constructorOptions: ConstructorOptions, start: () => Promise<PgBossClient>) {
 	const existing = entryFor(key);
 	if (existing !== undefined) {
+		const options = [...new Set([...Object.keys(existing.constructorOptions), ...Object.keys(constructorOptions)])]
+			.filter((option) => !isDeepStrictEqual(Reflect.get(existing.constructorOptions, option), Reflect.get(constructorOptions, option)))
+			.sort((first, second) => first.localeCompare(second));
+		if (options.length > 0) {
+			throw new PgBossClientOptionsError({ key, options });
+		}
 		existing.references += 1;
 		try {
 			return { client: await existing.client, reused: true };
@@ -35,7 +46,8 @@ export async function acquireCachedClient(key: string | symbol, start: () => Pro
 			throw error;
 		}
 	}
-	const entry: CachedClient = { client: start(), references: 1 };
+	const settings = { ...constructorOptions };
+	const entry: CachedClient = { client: start(), constructorOptions: settings, references: 1 };
 	clients.set(key, entry);
 	try {
 		return { client: await entry.client, reused: false };

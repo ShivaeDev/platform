@@ -2,7 +2,7 @@ import { Context, Effect, Layer, type Option, type Schema } from "effect";
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
-import type { PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#error.ts";
+import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#error.ts";
 import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, QueueCounts } from "#health.ts";
 import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
@@ -46,7 +46,7 @@ export interface PgBossDefinition<TIdentifier extends string = string> extends C
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
 	) => Layer.Layer<
 		TIdentifier,
-		PgBossError | PgBossQueueOptionsError,
+		PgBossError | PgBossQueueOptionsError | PgBossClientOptionsError,
 		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
 	>;
 }
@@ -58,7 +58,7 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
 	): Layer.Layer<
 		TIdentifier,
-		PgBossError | PgBossQueueOptionsError,
+		PgBossError | PgBossQueueOptionsError | PgBossClientOptionsError,
 		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
 	> {
 		type Requirements = Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements;
