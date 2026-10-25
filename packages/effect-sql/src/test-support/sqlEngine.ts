@@ -20,6 +20,7 @@ import type { constrainedItems } from "./constrainedItems.ts";
 import { explain } from "./explain.ts";
 import { fixture } from "./fixture.ts";
 import type { generatedRows } from "./generatedRows.ts";
+import type { groupedResults } from "./groupedResults.ts";
 import type { heldSeed } from "./heldSeed.ts";
 import { holdAdvisoryLock } from "./holdAdvisoryLock.ts";
 import type { insertSelect } from "./insertSelect.ts";
@@ -52,6 +53,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		conflictAccounts: fixture<Effect.Success<typeof conflictAccounts>>(),
 		constrainedItems: fixture<Effect.Success<typeof constrainedItems>>(),
 		generatedRows: fixture<Effect.Success<typeof generatedRows>>(),
+		groupedResults: fixture<Effect.Success<typeof groupedResults>>(),
 		heldSeed: fixture<Effect.Success<ReturnType<typeof heldSeed>>>(),
 		insertSelect: fixture<Effect.Success<typeof insertSelect>>(),
 		invoiceLines: fixture<Effect.Success<typeof invoiceLines>>(),
@@ -94,6 +96,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		constrainedItems: engine.constrainedItems.get,
 		explain: (statement: readonly [string, readonly unknown[]]) => explain(engine.sql, statement),
 		generatedRows: engine.generatedRows.get,
+		groupedResults: engine.groupedResults.get,
 		heldSeed: engine.heldSeed.get,
 		holdAdvisoryLock,
 		insertSelect: engine.insertSelect.get,

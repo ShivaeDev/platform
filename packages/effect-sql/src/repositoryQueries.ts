@@ -3,14 +3,16 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
+import type { Aggregate } from "#aggregateQuery.ts";
 import { latestPerGroup as makeLatestPerGroup } from "#latestPerGroup.ts";
+import { makeAggregate } from "#makeAggregate.ts";
+import { makeQueryClauses } from "#makeQueryClauses.ts";
 import type { FindMany, LatestPerGroup } from "#repository.ts";
 import { makeFilter } from "#repositoryFilter.ts";
 
 type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<TModel>, string>;
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
 
-const Limit = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
 const CountResult = Schema.Tuple([Schema.Struct({ count: Schema.NumberFromString })]);
 
 export interface RepositorySelect<TFields extends Schema.Struct.Fields, TServices = never> {
@@ -19,6 +21,7 @@ export interface RepositorySelect<TFields extends Schema.Struct.Fields, TService
 }
 
 export interface Queries<TModel extends Model.Any> {
+	aggregate: Aggregate<TModel>;
 	count: (
 		query?: Pick<FindMany<TModel, Key<TModel>>, "where">,
 	) => Effect.Effect<number, SqlError | Schema.SchemaError, TModel["fields"][Key<TModel>]["EncodingServices"]>;
@@ -51,6 +54,8 @@ export function makeQueries<TModel extends Model.Any>(
 ): Queries<TModel> {
 	const { fieldAt, where } = makeFilter(model, sql);
 	const readLatest = makeLatestPerGroup(model, sql, options.tableName);
+	const { decodeLimit, orderClause, limitClause } = makeQueryClauses(sql, fieldAt);
+	const aggregate = makeAggregate(model, sql, options);
 	function count(query?: Pick<FindMany<TModel, Key<TModel>>, "where">): ReturnType<Queries<TModel>["count"]>;
 	function count(query: Pick<FindMany<TModel, Key<TModel>>, "where"> = {}): Effect.Effect<number, SqlError | Schema.SchemaError, unknown> {
 		return Effect.gen(function* () {
@@ -59,21 +64,6 @@ export function makeQueries<TModel extends Model.Any>(
 			const [result] = yield* Schema.decodeUnknownEffect(CountResult)(rows);
 			return result.count;
 		}).pipe(Effect.withSpan(`${options.spanPrefix}.count`));
-	}
-	function orderClause(orderBy: FindMany<TModel, Key<TModel>>["orderBy"]) {
-		if (orderBy === undefined) {
-			return Effect.succeed(sql``);
-		}
-		const entries = "field" in orderBy ? [orderBy] : orderBy;
-		return Effect.map(
-			Effect.forEach(entries, ({ field, direction }) =>
-				Effect.as(fieldAt(field), sql`${sql(field)} ${sql.literal(direction === "desc" ? "desc" : "asc")}`),
-			),
-			(columns) => sql`order by ${sql.csv(columns)}`,
-		);
-	}
-	function limitClause(limit: number | undefined) {
-		return limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (rowLimit) => sql`limit ${rowLimit}`);
 	}
 	function select<TKey extends Key<TModel> = Key<TModel>>(
 		query?: FindMany<TModel, TKey>,
@@ -109,9 +99,9 @@ export function makeQueries<TModel extends Model.Any>(
 	function latestPerGroup(query: LatestPerGroup<TModel>): Effect.Effect<unknown, SqlError | Schema.SchemaError, unknown> {
 		return Effect.gen(function* () {
 			const order = yield* orderClause(query.orderBy);
-			const rowLimit = yield* Schema.decodeUnknownEffect(Limit)(query.limit);
+			const rowLimit = yield* decodeLimit(query.limit);
 			return yield* readLatest(query, order, rowLimit);
 		}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
 	}
-	return { count, findMany, latestPerGroup, select };
+	return { aggregate, count, findMany, latestPerGroup, select };
 }

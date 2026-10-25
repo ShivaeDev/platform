@@ -194,7 +194,7 @@ yield* lines.findMany({
 
 Bounds use decoded strings, numbers, bigints, `BigDecimal`, `Date` or `DateTime.Utc` values and run through the field codec. For a `timestamptz` field modeled with `Schema.Date`, use `{ gte: new Date("2026-10-25T00:00:00Z"), lt: new Date("2026-10-26T00:00:00Z") }` to read a UTC day. Multiple operators on a field are joined with `AND`. `like` takes text, with PostgreSQL's case-sensitive `%` and `_` wildcards; patterns are bound parameters. Invalid operand types fail with `SchemaError`. Both `findMany` and `select` accept these filters; repositories query one table.
 
-`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates or other queries outside this shape.
+`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use `aggregate` for grouped summaries, and native SQL with composed schemas for joins, percentiles, `having` or other queries outside these shapes.
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 
@@ -220,7 +220,24 @@ On PostgreSQL, pin every `partitionBy` field in `where` with equality, `null`, a
 
 Otherwise, the typed `where` filter runs before `row_number() over (partition by ... order by ...)` ranks matching rows, and the outer query keeps ranks up to `limit`. Both paths encode filter values through their field schemas, decode all model fields without exposing internal columns, and read all matching groups in one statement. Results are ordered by partition columns ascending, then by the declared ordering within each partition.
 
-Choose `latestPerGroup` for up to N complete rows per group. PostgreSQL `DISTINCT ON` is useful when you need exactly one representative row per nonempty group; `latestPerGroup` with `limit: 1` covers that case too. Use native SQL `GROUP BY` with a result Schema for grouped aggregates such as counts or sums, where the output is a summary rather than model rows. Distinct-on and grouped aggregates stay on the native SQL path.
+Choose `latestPerGroup` for up to N complete rows per group. PostgreSQL `DISTINCT ON` is useful when you need exactly one representative row per nonempty group; `latestPerGroup` with `limit: 1` covers that case too. Use `aggregate` for grouped summaries such as time per file, ordered to show the slowest N groups:
+
+```ts
+const slowestFiles = yield* results.aggregate({
+  groupBy: ["file"],
+  aggregates: {
+    total: { sum: "durationMs" },
+    tests: { count: "*" },
+    failed: { boolOr: "failed" },
+  },
+  orderBy: [{ field: "total", direction: "desc" }],
+  limit: 10,
+});
+```
+
+`groupBy` is a nonempty list of model fields. Each aggregate result name must differ from the group fields. `count: "*"` counts rows; `count: field` counts non-null values. `sum` and `avg` accept number or `BigDecimal` fields, `min` and `max` accept the same ordered fields as range filters, and `boolOr` and `boolAnd` accept boolean fields. Counts decode as numbers; sums and averages decode from text as the field's numeric type, min and max use the field schema, and boolean aggregates decode as booleans. Every aggregate except count is nullable for all-null groups. Group columns use their model schemas, and invalid results fail with `SchemaError`.
+
+An optional `where` uses the `findMany` filters before grouping. `orderBy` is a list of group fields or aggregate result names, and `limit` is a nonnegative integer over the resulting groups. Unknown group, aggregate operand, filter or sort fields passed at runtime fail with `SchemaError` before SQL executes. Use native SQL for percentiles, `having`, joins and other queries outside this shape.
 
 ### Copy query results into another table
 
