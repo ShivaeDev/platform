@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.21.0 - 2026-10-25
+
+### Added
+
+- Versioned repositories accept composite keys so a consumer app can keep ownership and version predicates in one atomic write. `OptimisticConcurrencyError.reason` distinguishes `missing` from `stale` under the full key without exposing stored row data.
+- Versioned repositories with `conflictColumns` support `insertOrIgnore`, initializing the version to zero while leaving conflicting rows untouched. Unconditional upserts remain unavailable.
+- Unversioned repositories accept `update(input, { onMissing: "fail" })` to return a typed `NoSuchElementError` when no row matches a single-column or composite key. Updates still decode the returned row and announce changes only after commit; missing rows announce nothing. Calls without the option retain their missing-row defect, and versioned repositories retain their typed optimistic concurrency failures.
+
 ## 0.20.0 - 2026-10-25
 
 ### Added
