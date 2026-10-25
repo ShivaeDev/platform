@@ -21,7 +21,7 @@ for (const receiptLost of [false, true]) {
 			expect(waiting.step).toBe("working");
 			expect(waiting.blocker).toContain("thread remains active");
 			expect(yield* status()).toContain("Waiting on automation (1)");
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			expect(publishedDecisions()).toEqual([]);
 			yield* restart();
 			advanceTime(299_999);
@@ -29,7 +29,7 @@ for (const receiptLost of [false, true]) {
 			advanceTime(1);
 			const parked = (yield* fleet.reconcile("one")).value;
 			expect(parked.decision?.reason).toContain("thread remains active after the visibility grace period");
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			if (parked.decision === undefined) {
 				throw new Error("Expected an active-thread decision");
 			}
@@ -37,11 +37,11 @@ for (const receiptLost of [false, true]) {
 			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 			respond(parked.decision.id, "retry");
 			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			threadIdle(session);
 			yield* restart();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("working");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -57,14 +57,14 @@ for (const state of ["merged", "closed"] as const) {
 			const parked = (yield* fleet.reconcile("one")).value;
 			expect(parked.step).toBe("waiting");
 			expect(parked.decision?.reason).toContain(`is ${state}`);
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			if (parked.decision === undefined) {
 				throw new Error("Expected a delivery decision");
 			}
 			respond(parked.decision.id, "retry");
 			yield* restart();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 		},
 	);
 }
@@ -81,7 +81,7 @@ for (const receiptLost of [false, true]) {
 				yield* fleet.reconcile("one");
 				advanceTime(300_000);
 				const recovered = (yield* fleet.reconcile("one")).value;
-				expect(launches()).toHaveLength(2);
+				expect(launches()).toEqual(["operation-1", "operation-2"]);
 				expect(recovered.prompt).toBe(first.prompt);
 				loseTurn(recovered.attempts.at(-1)?.sessionId);
 				yield* fleet.reconcile("one");
@@ -94,15 +94,15 @@ for (const receiptLost of [false, true]) {
 				expect(replacement.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");
 				expect(replacement.prompt).toBe(first.prompt);
 				const prompt = providerStarts().at(-1)?.prompt;
-				expect(prompt?.split(first.prompt)).toHaveLength(2);
-				expect(prompt?.match(/Accepted Codex turn is not observable/gu)).toHaveLength(1);
+				expect(prompt?.match(new RegExp(RegExp.escape(first.prompt), "gu"))).toEqual([first.prompt]);
+				expect(prompt?.match(/Accepted Codex turn is not observable/gu)).toEqual(["Accepted Codex turn is not observable"]);
 				if (published !== "none") {
 					expect(prompt).toContain(`existing branch ${WORK_BRANCH}`);
 				}
 				if (published === "pr") {
 					expect(prompt).toContain(WORK_PR);
 				}
-				expect(launches()).toHaveLength(3);
+				expect(launches()).toEqual(["operation-1", "operation-2", "operation-3"]);
 			},
 		);
 	}

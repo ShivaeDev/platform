@@ -15,22 +15,22 @@ for (const published of ["none", "pr"] as const) {
 			const blocked = (yield* fleet.reconcile("one")).value;
 			expect(blocked.step).toBe("working");
 			expect(blocked.blocker).toContain("Fresh available provider quota");
-			expect(blocked.attempts).toHaveLength(1);
-			expect(blocked.attempts[0]?.publishedRecovery).toBeUndefined();
-			expect(blocked.attempts[0]?.status).toBe("submitting");
-			expect(launches()).toHaveLength(1);
+			expect(blocked.attempts.map(({ operationId, publishedRecovery, status }) => ({ operationId, publishedRecovery, status }))).toEqual([
+				{ operationId: "operation-1", publishedRecovery: undefined, status: "submitting" },
+			]);
+			expect(launches()).toEqual(["operation-1"]);
 			yield* restart();
 			setProviderQuota(100);
 			const recovered = (yield* fleet.reconcile("one")).value;
 			expect(recovered.step).toBe("working");
 			expect(recovered.prompt).toBe(initial.prompt);
-			expect(recovered.attempts.at(-1)?.prompt?.split(initial.prompt)).toHaveLength(2);
+			expect(recovered.attempts.at(-1)?.prompt?.match(new RegExp(RegExp.escape(initial.prompt), "gu"))).toEqual([initial.prompt]);
 			expect(recovered.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");
 			expect(recovered.attempts.at(-1)?.prompt).toContain("Accepted Codex turn is not observable");
 			if (published === "pr") {
 				expect(recovered.attempts.at(-1)?.prompt).toContain(WORK_PR);
 			}
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 			expect(publishedDecisions()).toEqual([]);
 		},
 	);

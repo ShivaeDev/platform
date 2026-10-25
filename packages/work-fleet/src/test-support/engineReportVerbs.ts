@@ -16,6 +16,7 @@ export function engineReportVerbs(state: EngineStory, tell: (line: string) => vo
 			tell(`answer the report decision with ${action}`);
 			return answerReport(state.root, decision, action);
 		},
+		attachmentCollectionReceipts: () => structuredClone(report().collectionReceipts),
 		attachmentCollections: () => report().collections,
 		loseReportRetrieval: () => {
 			tell("report attachment retrieval becomes unavailable");
@@ -24,5 +25,6 @@ export function engineReportVerbs(state: EngineStory, tell: (line: string) => vo
 		readReport: (file: string) => readFileSync(join(state.root, "responses", file), "utf8"),
 		reportFiles: () => readdirSync(join(state.root, "responses")).filter((file) => file.startsWith("fleet-report.") && file.endsWith(".md")),
 		reportPublicationCount: () => report().publication.count(),
+		reportPublicationReceipts: () => report().publication.receipts(),
 	};
 }

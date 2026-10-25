@@ -17,7 +17,7 @@ for (const published of ["branch", "pr"] as const) {
 			expect(repaired.attempts.at(-1)?.role).toBe("repair");
 			expect(repaired.attempts.at(-1)?.prompt).toContain(WORK_BRANCH);
 			expect(publishedDecisions()).toHaveLength(0);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -38,8 +38,12 @@ for (const acknowledgementLost of [false, true]) {
 				expect(recovered.step).toBe("working");
 				expect(recovered.decision).toBeUndefined();
 				expect(publishedDecisions()).toHaveLength(0);
-				expect(launches()).toHaveLength(2);
-				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+				expect(launches()).toEqual(["operation-1", "operation-2"]);
+				expect(
+					providerCalls()
+						.filter((call) => call.call === "turn")
+						.map((call) => call.operationId),
+				).toEqual(["operation-1", "operation-2"]);
 				expect(recovered.attempts[0]).toMatchObject({ sessionUnusable: true, status: "failed" });
 				expect(recovered.attempts[0]?.output).toContain("Accepted Codex turn is not observable");
 				expect(recovered.attempts.at(-1)?.role).toBe(published === "none" ? "worker" : "repair");
@@ -53,7 +57,7 @@ for (const acknowledgementLost of [false, true]) {
 					expect(recovered.attempts.at(-1)?.prompt).toContain(WORK_PR);
 				}
 				yield* restart();
-				expect((yield* fleet.reconcile("one")).value.attempts).toHaveLength(2);
+				expect((yield* fleet.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 			},
 		);
 	}
@@ -70,7 +74,7 @@ engine.it(
 		expect(waiting.step).toBe("waiting");
 		expect(waiting.decision?.code).toBe("session-turn-missing");
 		expect(waiting.decision?.reason).toContain("observable");
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 		const id = waiting.decision?.id;
 		if (id === undefined) {
 			throw new Error("Fleet did not publish a lost-turn decision");
@@ -80,8 +84,8 @@ engine.it(
 		const unreadable = (yield* fleet.reconcile("one")).value;
 		expect(unreadable.step).toBe("waiting");
 		expect(unreadable.decision?.id).toBe(id);
-		expect(publishedDecisions()).toHaveLength(1);
-		expect(launches()).toHaveLength(1);
+		expect(publishedDecisions()).toEqual([waiting.decision?.reason]);
+		expect(launches()).toEqual(["operation-1"]);
 		publishBranch();
 		publishPullRequest();
 		yield* restart();
@@ -93,7 +97,7 @@ engine.it(
 		expect(repaired.attempts.at(-1)?.prompt).toContain("Human context");
 		expect(repaired.attempts.at(-1)?.prompt).toContain(WORK_PR);
 		expect(repaired.responses).toMatchObject([{ action: "retry", boardAcknowledged: true }]);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );
 
@@ -113,6 +117,6 @@ engine.it(
 		const released = (yield* fleet.reconcile("one")).value;
 		expect(released.step).toBe("released");
 		expect(released.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 	},
 );

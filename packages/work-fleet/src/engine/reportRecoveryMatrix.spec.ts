@@ -105,10 +105,9 @@ for (const action of ["retry", "release"] as const) {
 						break;
 					}
 					case "recover-report-publication": {
-						const publicationAttempts = 2;
 						expect(after.step).toBe("done");
 						expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-						expect(recovery.observations?.publications).toBe(publicationAttempts);
+						expect(recovery.observations?.publicationReceipts).toEqual([after.report, after.report]);
 						expect(after.report).toBeDefined();
 						break;
 					}

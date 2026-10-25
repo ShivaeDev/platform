@@ -18,7 +18,7 @@ describe("renewal reconciles prior result ownership", () => {
 		expect(renewed.value.history?.[0]?.outcome).toBeUndefined();
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	});
 	engine.it("unknown terminal result ownership cannot be turned into a new worker", [workerResultUnavailable()], function* (fleet) {
 		yield* fleet.prepareWork("one");
@@ -31,9 +31,9 @@ describe("renewal reconciles prior result ownership", () => {
 		expect(error).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("ownership is unavailable") });
 		const retained = yield* fleet.get("one");
 		expect(retained.value.history).toBeUndefined();
-		expect(retained.value.attempts).toHaveLength(1);
+		expect(retained.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1"]);
 		expect(retained.value.boardRevision).toBe("board-one");
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 	});
 	engine.it("an observing failure conserves the old attempt and reservation", [noChangeReported()], function* (fleet) {
 		yield* fleet.prepareWork("one");
@@ -45,6 +45,6 @@ describe("renewal reconciles prior result ownership", () => {
 		fleet.failNextObservation(submitted.value.attempts[0]?.receipt?.turnId ?? "missing");
 		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 		expect((yield* fleet.get("one")).value.history).toBeUndefined();
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 	});
 });

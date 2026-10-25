@@ -32,8 +32,8 @@ for (const failedChecks of [false, true]) {
 				expect(released.value.outcome).toBeUndefined();
 				expect(backlog(released.value)).toBe(false);
 				expect(executing(released.value)).toBe(false);
-				expect(launches()).toHaveLength(2);
-				expect(released.value.attempts).toHaveLength(3);
+				expect(launches()).toEqual(["operation-1", "operation-2"]);
+				expect(released.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 				expect((yield* fleet.reconcile("one")).version).toBe(released.version);
 				expect(providerCalls()).toEqual(callsBeforeMerge);
 			},

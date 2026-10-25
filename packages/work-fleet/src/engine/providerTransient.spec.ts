@@ -22,12 +22,12 @@ for (const structured of [false, true]) {
 			recoverProvider();
 			setFleetTime(30_099);
 			yield* afterRestart(cycle);
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			setFleetTime(30_100);
 			yield* afterRestart(cycle);
 			expect((yield* fleet.get("one")).value).toMatchObject({ step: "working" });
 			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -50,12 +50,12 @@ engine.it(
 		expect(parked.step).toBe("waiting");
 		expect(parked.launchRetry).toBeUndefined();
 		expect(parked.decision?.reason).toBe(`${MESSAGE}; provider failure after 5 attempts (4 automatic retries)`);
-		expect(parked.attempts).toHaveLength(5);
+		expect(parked.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3", "operation-4", "operation-5"]);
 		expect(executing(parked)).toBe(false);
 		advanceTime(1_000_000);
 		yield* afterRestart(cycle);
-		expect(launches()).toHaveLength(5);
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1", "operation-2", "operation-3", "operation-4", "operation-5"]);
+		expect(publishedDecisions()).toEqual([parked.decision?.reason]);
 	},
 );
 
@@ -70,7 +70,7 @@ for (const rejection of ["Rejected credential", "Request refused by policy"]) {
 			expect((yield* fleet.get("one")).value).toMatchObject({ decision: { reason: rejection }, step: "waiting" });
 			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
 			yield* afterRestart(cycle);
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 		},
 	);
 }
@@ -94,7 +94,7 @@ for (const rejection of ["turn already active for thread", "Codex rejected the p
 			expect(accepted.step).toBe("working");
 			expect(accepted.attempts.at(-1)?.receipt?.sessionId).not.toBe(queued.attempts.at(-1)?.sessionId);
 			expect(providerStarts().at(-1)?.prompt).toContain("same branch and PR");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

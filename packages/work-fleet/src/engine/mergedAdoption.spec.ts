@@ -20,7 +20,7 @@ for (const retry of [false, true]) {
 				expect(reviewing.value).toMatchObject({ attentionOwner: "orchestrator", decision: { attentionOwner: "orchestrator" } });
 				expect(reviewing.value.decision?.reason).toBe("Reported PR must be open and target the configured repository branch");
 				expect(reviewing.value.result).toBeUndefined();
-				expect(launches()).toHaveLength(1);
+				expect(launches()).toEqual(["operation-1"]);
 				expect(reviewedHeads()).toEqual([]);
 				const decisionId = reviewing.value.decision?.id ?? "missing";
 				const responseId = respond(decisionId, "retry");
@@ -40,7 +40,7 @@ for (const retry of [false, true]) {
 			expect(reviewing.value.checks).toBeUndefined();
 			expect(reviewing.value.attempts[0]).toMatchObject(worker ?? {});
 			expect(backlog(reviewing.value)).toBe(false);
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			expect(reviewedHeads()).toEqual([]);
 			expect(mergedHeads()).toEqual([]);
 		},

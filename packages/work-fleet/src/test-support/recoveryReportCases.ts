@@ -11,6 +11,7 @@ import { finishRecoveryWorker } from "#test/recoverySteps.ts";
 
 export function recoveryReportCases(): readonly RecoveryCase[] {
 	let publications = 0;
+	const publicationReceipts: BoardReport[] = [];
 	let restored = false;
 	let closed = false;
 	let published: boolean | undefined;
@@ -29,6 +30,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 		return makeReportPublication(() => Effect.succeed(restored ? "[[]]" : "invalid"))("example/repository", "synthetic");
 	}
 	function loseReceipt(receipt: BoardReport) {
+		publicationReceipts.push(receipt);
 		publications += 1;
 		return publications === 1 ? Effect.fail(new BoardFailure({ message: "Lost report publication receipt" })) : Effect.succeed(receipt);
 	}
@@ -95,7 +97,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 				yield* finishRecoveryWorker(ctx, `Completed findings.\nFLEET_HEAD: ${HEAD}`);
 			}),
 			name: "lost report publication receipt",
-			observe: () => ({ publications }),
+			observe: () => ({ publicationReceipts: structuredClone(publicationReceipts), publications }),
 			options: {
 				decorateBoard: (board) => ({ ...board, report: (work, observation) => board.report(work, observation).pipe(Effect.flatMap(loseReceipt)) }),
 			},

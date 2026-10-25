@@ -58,22 +58,29 @@ for (const { lostAcknowledgement, readRetryMs } of CASES) {
 			yield* afterRestart(cycle);
 			const retrying = (yield* fleet.get("one")).value;
 			expect(retrying.attempts.at(-1)?.readRetry).toMatchObject({ failures: 2, retryAt: secondRetry });
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			recoverProviderReads();
 			setFleetTime(secondRetry);
 			yield* afterRestart(cycle);
 			const recovered = (yield* fleet.get("one")).value;
 			expect(recovered.step).toBe("working");
-			expect(recovered.attempts).toHaveLength(1);
-			expect(recovered.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
-			expect(recovered.attempts[0]?.receipt).toEqual(providerOperation(before.attempts[0]?.operationId ?? "missing"));
-			expect(recovered.attempts[0]?.readRetry).toBeUndefined();
+			expect(recovered.attempts.map(({ operationId, receipt, readRetry }) => ({ operationId, readRetry, receipt }))).toEqual([
+				{
+					operationId: before.attempts[0]?.operationId,
+					readRetry: undefined,
+					receipt: providerOperation(before.attempts[0]?.operationId ?? "missing"),
+				},
+			]);
 			expect(recovered.blocker).toBeUndefined();
 			expect(recovered.attentionOwner).toBeUndefined();
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1"]);
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-6"]);
 			expect(publishedDecisions()).toHaveLength(0);
 		},
 	);

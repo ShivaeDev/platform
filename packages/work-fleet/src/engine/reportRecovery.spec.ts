@@ -10,7 +10,7 @@ describe("report publication recovery", () => {
 	engine.it(
 		"safe release allows renewal without adopting a PR or losing the archived report output",
 		[lostReportPublication(false)],
-		function* ({ answerReportDecision, reportPublicationCount, workerReports, fleet, prepareWork, launches }) {
+		function* ({ answerReportDecision, reportPublicationReceipts, workerReports, fleet, prepareWork, launches }) {
 			yield* prepareWork("one");
 
 			yield* fleet.dispatch("one");
@@ -25,8 +25,8 @@ describe("report publication recovery", () => {
 			const renewed = yield* prepareWork("one");
 			expect(renewed.value.step).toBe("queued");
 			expect(renewed.value.history?.[0]?.attempts[0]?.output).toBe(`Archived findings.\nFLEET_HEAD: ${HEAD}`);
-			expect(launches()).toHaveLength(1);
-			expect(reportPublicationCount()).toBe(1);
+			expect(launches()).toEqual(["operation-1"]);
+			expect(reportPublicationReceipts()).toMatchObject([{ receipt: renewed.value.history?.[0]?.attempts[0]?.receipt }]);
 		},
 	);
 	engine.it(
@@ -37,8 +37,8 @@ describe("report publication recovery", () => {
 			readReport,
 			answerReportDecision,
 			loseReportRetrieval,
-			reportPublicationCount,
-			attachmentCollections,
+			reportPublicationReceipts,
+			attachmentCollectionReceipts,
 			workerReports,
 			fleet,
 			prepareWork,
@@ -70,11 +70,11 @@ describe("report publication recovery", () => {
 				decision: undefined,
 				step: "done",
 			});
-			expect(reportPublicationCount()).toBe(2);
-			expect(attachmentCollections()).toBe(1);
+			expect(reportPublicationReceipts()).toEqual([completed.value.report, completed.value.report]);
+			expect(attachmentCollectionReceipts()).toEqual([completed.value.report?.receipt]);
 			yield* fleet.reconcile("one");
-			expect(reportPublicationCount()).toBe(2);
-			expect(launches()).toHaveLength(1);
+			expect(reportPublicationReceipts()).toEqual([completed.value.report, completed.value.report]);
+			expect(launches()).toEqual(["operation-1"]);
 			expect(reviewedHeads()).toEqual([]);
 			expect(mergedHeads()).toEqual([]);
 			expect(reportFiles()).toEqual([resultFile]);

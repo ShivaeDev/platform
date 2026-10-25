@@ -57,7 +57,11 @@ for (const fault of ["none", "running", "unavailable", "mismatch", "wrong-sessio
 			expect(released.value.step).toBe("released");
 			expect(released.value.attempts[0]?.terminalReceipts).toEqual(terminalReceipts());
 			expect(released.value.attempts[0]?.receipt?.turnId).toBe(fault === "acknowledged" ? "third" : undefined);
-			expect(providerCalls().filter((setting) => setting.call === "turn")).toHaveLength(1);
+			expect(
+				providerCalls()
+					.filter((setting) => setting.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1"]);
 			yield* restart();
 			expect((yield* release).value.responses).toEqual(released.value.responses);
 		},

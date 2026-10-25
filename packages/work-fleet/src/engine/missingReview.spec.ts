@@ -50,8 +50,8 @@ for (const readFailures of [false, true]) {
 			expect(ready.checks).toMatchObject({ head: submitted.result?.head, passed: true });
 			expect(ready.attempts.at(-1)?.receipt?.sessionId).not.toBe(original?.sessionId);
 			expect(providerStarts().at(-1)?.access).toBe("read-only");
-			expect(providerStarts()).toHaveLength(3);
-			expect(publishedDecisions()).toHaveLength(1);
+			expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
+			expect(publishedDecisions()).toEqual([ready.decision?.reason]);
 		},
 	);
 }
@@ -74,7 +74,14 @@ isolatedEngine.it(
 		expect(exhausted.step).toBe("waiting");
 		expect(exhausted.decision?.reason).toContain("Provider at capacity; provider failure after 5 attempts");
 		expect(exhausted.launchRetry).toBeUndefined();
-		expect(providerStarts()).toHaveLength(6);
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(providerStarts().map((start) => start.operationId)).toEqual([
+			"operation-1",
+			"operation-2",
+			"operation-3",
+			"operation-4",
+			"operation-5",
+			"operation-6",
+		]);
+		expect(publishedDecisions()).toEqual([exhausted.decision?.reason]);
 	},
 );

@@ -15,7 +15,7 @@ engine.it(
 		expect(reviewing.value.result).toMatchObject({ head: HEAD, pr: PR, prNumber: 7 });
 		movePullRequestHead(MOVED);
 		yield* fleet.reconcile("one");
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		expect(publishedDecisions()).toHaveLength(0);
 		finishWorkers();
 		yield* restart();
@@ -30,7 +30,7 @@ engine.it(
 		expect(ready.review).toMatchObject({ head: MOVED, verdict: "approved" });
 		expect(ready.checks).toMatchObject({ head: MOVED, passed: true });
 		expect(ready.decision?.code).toBe("reviewed-pr-ready");
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(publishedDecisions()).toEqual([ready.decision?.reason]);
 		expect(reviewedHeads()).toEqual([HEAD, MOVED]);
 	},
 );

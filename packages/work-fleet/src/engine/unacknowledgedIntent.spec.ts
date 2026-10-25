@@ -8,7 +8,7 @@ for (const action of ["retry", "release"] as const) {
 	isolatedEngine.it(
 		`lost thread acknowledgement ${action} fences a late session before any turn starts`,
 		[unacknowledgedSession()],
-		function* ({ releaseGate, fleet, prepareWork, afterRestart, respond, providerOperationCount, acknowledgeProviderTurn }) {
+		function* ({ releaseGate, fleet, prepareWork, afterRestart, respond, providerOperations, acknowledgeProviderTurn }) {
 			yield* prepareWork("one");
 
 			yield* fleet.dispatch("one");
@@ -26,7 +26,7 @@ for (const action of ["retry", "release"] as const) {
 				"Failure",
 			);
 			expect((yield* fleet.get("one")).value.attempts[0]?.sessionId).toBeUndefined();
-			expect(providerOperationCount()).toBe(0);
+			expect(providerOperations()).toEqual([]);
 			expect((yield* afterRestart(resolve)).value.responses).toEqual(resolved.value.responses);
 			if (action === "retry") {
 				const fresh = yield* afterRestart(Fleet.pipe(Effect.flatMap((resumed) => resumed.dispatch("one"))));
@@ -40,7 +40,7 @@ for (const action of ["retry", "release"] as const) {
 isolatedEngine.it(
 	"acknowledgement winning the retirement race retains execution until terminal observation",
 	[unacknowledgedSession(true)],
-	function* ({ releaseGate, waitForGate, awaitRecordedReceipt, fleet, prepareWork, finishWorkers, afterRestart, respond, providerOperationCount }) {
+	function* ({ releaseGate, waitForGate, awaitRecordedReceipt, fleet, prepareWork, finishWorkers, afterRestart, respond, providerOperations }) {
 		yield* prepareWork("one");
 
 		yield* fleet.dispatch("one");
@@ -60,7 +60,7 @@ isolatedEngine.it(
 		yield* awaitRecordedReceipt("one");
 		finishWorkers();
 		expect((yield* afterRestart(resolve)).value.step).toBe("released");
-		expect(providerOperationCount()).toBe(1);
+		expect(providerOperations()).toEqual(["operation-1"]);
 	},
 	{ clock: "live", timeout: 30_000 },
 );

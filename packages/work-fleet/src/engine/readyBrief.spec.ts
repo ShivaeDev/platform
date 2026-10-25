@@ -12,7 +12,7 @@ for (const field of ["criteria", "body"]) {
 		`approved ${field} edits to a ready PR resume its worker after restart without another Board request`,
 		[markdownWork(), humanMergeRequired()],
 		function* ({
-			boardReceipts,
+			boardReceiptRecords,
 			boardResponseFiles,
 			fleet,
 			prepareWork,
@@ -54,13 +54,21 @@ for (const field of ["criteria", "body"]) {
 			expect(continued.value.mergeReadyAt).toBeUndefined();
 			expect(continued.value.mergeReadyHead).toBeUndefined();
 			expect(continued.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: ready.value.decision?.published }]);
-			expect(boardReceipts()).toHaveLength(1);
+			expect(boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: ready.value.decision?.published?.questionId }]);
 			expect(boardResponseFiles()).toEqual(requests);
-			expect(launches()).toHaveLength(2);
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1", "operation-2", "operation-3"]);
 			const observed = yield* fleet.reconcile("one");
 			expect(observed.value.attempts.map((attempt) => attempt.receipt)).toEqual(continued.value.attempts.map((attempt) => attempt.receipt));
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1", "operation-2", "operation-3"]);
 		},
 	);
 }
@@ -87,7 +95,11 @@ for (const change of ["unapproved", "owner", "done", "dropped", "deferred"]) {
 			}
 			expect(held.value.boardContext).toBe(original);
 			expect(held.value.attempts.map((attempt) => attempt.receipt)).toEqual(ready.value.attempts.map((attempt) => attempt.receipt));
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

@@ -38,7 +38,7 @@ describe("renewal after explicit safe release", () => {
 		const renewed = yield* fleet.prepareWork("one");
 		expect(renewed.value.step).toBe("queued");
 		expect(renewed.value.history?.[0]?.attempts[0]).toEqual({ ...rejected.value.attempts[0], sessionCleanupComplete: true });
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 	});
 	for (const changed of ["scope", "cwd"] as const) {
 		engine.it(`a prepared retry renews ownership when its ${changed} changes`, [rejectedWorkerWithoutResult()], function* (fleet) {
@@ -56,7 +56,7 @@ describe("renewal after explicit safe release", () => {
 			expect(renewed.value.attempts).toEqual([]);
 			expect(renewed.value.history?.[0]?.attempts[0]).toEqual({ ...retried.value.attempts[0], sessionCleanupComplete: true });
 			expect(renewed.value.history?.[0]?.responses).toEqual(retried.value.responses);
-			expect(fleet.launches()).toHaveLength(1);
+			expect(fleet.launches()).toEqual(["operation-1"]);
 		});
 	}
 	engine.it("a stored legacy preparation without Board snapshots still dispatches after restart", [], function* (fleet) {

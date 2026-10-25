@@ -48,10 +48,10 @@ engine.it(
 		expect(reviewedHeads()).toEqual([...previousReviews, ready.result?.head]);
 		expect(ready.decision?.code).toBe("reviewed-pr-ready");
 		expect(ready.sweepHold).toBeUndefined();
-		expect(ready.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(1);
+		expect(ready.attempts.filter((attempt) => attempt.role === "repair").map((entry) => entry.operationId)).toEqual(["operation-5"]);
 		yield* restart();
 		const reconciled = (yield* fleet.reconcile("package")).value;
 		expect(reconciled.decision?.code).toBe("reviewed-pr-ready");
-		expect(reconciled.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(1);
+		expect(reconciled.attempts.filter((attempt) => attempt.role === "repair").map((entry) => entry.operationId)).toEqual(["operation-5"]);
 	},
 );

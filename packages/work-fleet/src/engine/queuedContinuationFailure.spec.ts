@@ -90,12 +90,13 @@ isolatedEngine.it(
 		const resumed = (yield* fleet.get("one")).value;
 		expect(resumed.step).toBe("working");
 		expect(resumed.pendingContinuation).toBeUndefined();
-		expect(resumed.attempts).toHaveLength(1);
-		expect(resumed.attempts[0]).toMatchObject({
-			prompt: "Finish the queued change",
-			receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
-			role: "repair",
-		});
+		expect(resumed.attempts).toMatchObject([
+			{
+				prompt: "Finish the queued change",
+				receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
+				role: "repair",
+			},
+		]);
 		expect((yield* fleet.get("two")).value.step).toBe("done");
 		expect((yield* fleet.get("three")).value.step).toBe("working");
 		expect((yield* fleet.get("four")).value.step).toBe("queued");

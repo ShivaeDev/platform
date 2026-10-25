@@ -47,14 +47,15 @@ for (const scenario of [
 					expect(request.method).toBe("thread/turns/list");
 				}
 			}
-			expect(timeoutObservations().submissions).toBe(landed ? 1 : 3);
-			expect((yield* fleet.get("one")).value.attempts).toHaveLength(1);
+			expect(timeoutObservations().inputs.map((input) => input.operationId)).toEqual(
+				landed ? ["operation-1"] : ["operation-1", "operation-1", "operation-1"],
+			);
+			expect((yield* fleet.get("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1"]);
 			finishWorkers();
 			const ready = (yield* fleet.reconcile("one")).value;
 			expect(ready.decision?.code).toBe("reviewed-pr-ready");
 			expect(ready.checks?.passed).toBe(true);
-			expect(publishedDecisions()).toHaveLength(1);
-			expect(publishedDecisions()[0]).toContain("Reviewed PR is ready to merge");
+			expect(publishedDecisions()).toEqual([expect.stringContaining("Reviewed PR is ready to merge")]);
 		},
 	);
 }
@@ -72,8 +73,7 @@ engine.it(
 		const parked = (yield* fleet.get("one")).value;
 		expect(parked.step).toBe("waiting");
 		expect(parked.decision?.reason).toBe(`${TIMEOUT}; provider read failure after 5 attempts (4 automatic retries); execution ownership retained`);
-		expect(parked.attempts).toHaveLength(1);
-		expect(parked.attempts[0]?.status).toBe("submitting");
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(parked.attempts).toMatchObject([{ operationId: "operation-1", status: "submitting" }]);
+		expect(publishedDecisions()).toEqual([parked.decision?.reason]);
 	},
 );

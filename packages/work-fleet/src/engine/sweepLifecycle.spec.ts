@@ -72,8 +72,12 @@ engine.it(
 		expect(migrated.decision?.code).toBe("reviewed-pr-ready");
 		expect(migrated.result?.head).not.toBe(held.result?.head);
 		expect(reviewedHeads()).toContain(migrated.result?.head);
-		expect(migrated.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(1);
-		expect(providerStarts().filter((start) => start.access === "read-only")).toHaveLength(4);
+		expect(migrated.attempts.filter((attempt) => attempt.role === "repair").map((entry) => entry.operationId)).toEqual(["operation-8"]);
+		expect(
+			providerStarts()
+				.filter((start) => start.access === "read-only")
+				.map((start) => start.operationId),
+		).toEqual(["operation-5", "operation-6", "operation-7", "operation-9"]);
 		expect((yield* fleet.dispatch("queued")).value.step).toBe("working");
 	},
 );
@@ -98,7 +102,7 @@ engine.it(
 		yield* fleet.reconcile("package");
 		const ready = (yield* fleet.reconcile("package")).value;
 		expect(ready.decision?.code).toBe("reviewed-pr-ready");
-		expect(ready.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(0);
+		expect(ready.attempts.filter((attempt) => attempt.role === "repair").map((entry) => entry.operationId)).toEqual([]);
 		expect((yield* fleet.dispatch("queued")).value.step).toBe("working");
 	},
 );

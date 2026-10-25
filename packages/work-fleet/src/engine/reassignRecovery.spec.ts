@@ -28,9 +28,9 @@ isolatedEngine.it(
 				expect(recovered.value.blocker).toBeUndefined();
 			}),
 		);
-		expect(publishedDecisions()).toHaveLength(2);
+		expect(publishedDecisions()).toEqual([old.decision.reason, changed.value.decision?.reason]);
 		expect(acknowledgements()).toMatchObject([{ decision: old.published, disposition: "superseded" }]);
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 	},
 );
 
@@ -50,7 +50,7 @@ isolatedEngine.it(
 			],
 			{ concurrency: "unbounded" },
 		);
-		expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
+		expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
 		for (const result of results) {
 			if (result._tag === "Failure") {
 				expect(result.failure).toMatchObject({ _tag: "Conflict" });
@@ -58,9 +58,9 @@ isolatedEngine.it(
 		}
 		const current = (yield* fleet.reconcile("one")).value;
 		expect(current.attentionOwner).toBe("maintainer");
-		expect(current.supersededDecisions).toHaveLength(1);
+		expect(current.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: old.published }]);
 		expect(yield* fleet.reassign("one", old.decision.id, "orchestrator").pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 	},
 );
 
@@ -77,14 +77,17 @@ isolatedEngine.it(
 			[fleet.reassign("one", old.decision.id, "maintainer").pipe(Effect.result), fleet.resolve("one", old.decision.id, answer).pipe(Effect.result)],
 			{ concurrency: "unbounded" },
 		);
-		expect(results.filter((result) => result._tag === "Success")).toHaveLength(1);
+		expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
 		for (const result of results) {
 			if (result._tag === "Failure") {
 				expect(result.failure).toMatchObject({ _tag: "Conflict" });
 			}
 		}
 		const current = (yield* fleet.get("one")).value;
-		expect((current.responses?.length ?? 0) + (current.supersededDecisions?.length ?? 0)).toBe(1);
+		expect([
+			...(current.responses ?? []).map((response) => response.decisionId),
+			...(current.supersededDecisions ?? []).map((decision) => decision.published.request),
+		]).toEqual([old.decision.id]);
 		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(current.step === "working" ? 2 : 1);
 	},
 );

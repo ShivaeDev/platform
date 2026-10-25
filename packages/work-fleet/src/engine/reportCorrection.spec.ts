@@ -31,7 +31,7 @@ describe("worker report correction through PostgreSQL", () => {
 				expect(followUp.value.step).toBe("working");
 				expect(followUp.value.decision).toBeUndefined();
 				expect(followUp.value.result).toBeUndefined();
-				expect(followUp.value.attempts).toHaveLength(2);
+				expect(followUp.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 				expect(attempt).toMatchObject({ role: "worker", sessionId: original.sessionId, settings: { effort: "high", model: "host-model" } });
 				expect(attempt?.receipt?.turnId).not.toBe(original.turnId);
 				expect(attempt?.prompt).toContain("Reply only with a corrected report");
@@ -45,7 +45,7 @@ describe("worker report correction through PostgreSQL", () => {
 				expect(reviewing.value.step).toBe("reviewing");
 				expect(reviewing.value.result).toMatchObject({ head: HEAD, kind: "change", pr: PR });
 				expect(reviewedHeads()).toEqual([HEAD]);
-				expect(launches()).toHaveLength(2);
+				expect(launches()).toEqual(["operation-1", "operation-3"]);
 			},
 		);
 	}
@@ -62,32 +62,36 @@ describe("worker report correction through PostgreSQL", () => {
 			const blocked = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
 			expect(blocked.value.step).toBe("waiting");
 			expect(blocked.value.decision?.reason).toContain("FLEET_HEAD");
-			expect(blocked.value.attempts).toHaveLength(2);
+			expect(blocked.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 			expect(blocked.value.result).toBeUndefined();
 			expect(blocked.value.outcome).toBeUndefined();
 			expect(reviewedHeads()).toHaveLength(0);
-			expect((yield* fleet.reconcile("one")).value.attempts).toHaveLength(2);
+			expect((yield* fleet.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 			const decisionId = blocked.value.decision?.id ?? "missing";
 			const responseId = respond(decisionId, "retry");
 			const retry = yield* fleet.resolve("one", decisionId, responseId);
 			expect(retry.value.step).toBe("working");
 			expect(retry.value.decision).toBeUndefined();
-			expect(retry.value.attempts).toHaveLength(3);
+			expect(retry.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 			expect(retry.value.attempts.at(-1)?.prompt).toBe(followUp.value.attempts.at(-1)?.prompt);
 			expect(retry.value.attempts.at(-1)?.receipt?.sessionId).toBe(original.sessionId);
 			expect(retry.value.attempts.at(-1)?.receipt?.turnId).not.toBe(followUp.value.attempts.at(-1)?.receipt?.turnId);
 			const repeated = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.resolve("one", decisionId, responseId)));
-			expect(repeated.value.attempts).toHaveLength(3);
+			expect(repeated.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 			expect(repeated.value.responses?.[0]?.boardAcknowledged).toBe(true);
-			expect(acknowledgements()).toHaveLength(1);
-			expect(publishedDecisions()).toHaveLength(1);
+			expect(acknowledgements()).toMatchObject([{ decision: blocked.value.decision?.published, disposition: "applied" }]);
+			expect(publishedDecisions()).toEqual([blocked.value.decision?.reason]);
 			yield* workerReportReply(repeated, NO_CHANGE);
 			const completed = yield* fleet.reconcile("one");
 			expect(completed.value.step).toBe("done");
 			expect(completed.value.result).toMatchObject({ head: HEAD, kind: "no-change" });
 			expect(completed.value.review?.head).toBe(HEAD);
 			expect(completed.value.checks).toMatchObject({ head: HEAD, passed: true });
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(4);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1", "operation-2", "operation-3", "operation-4"]);
 		},
 	);
 });

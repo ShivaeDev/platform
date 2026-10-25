@@ -27,7 +27,6 @@ for (const scenario of recoveryCapacityCases) {
 			quotaBlocked,
 			inventory,
 		}) {
-			const originalWorker = 1;
 			expect(inventory()).toEqual({ codes: [], obsoleteSites: [], sites: [] });
 			if (scenario.call === "quota") {
 				yield* prepareWork("one");
@@ -42,7 +41,7 @@ for (const scenario of recoveryCapacityCases) {
 					step: "reviewing",
 				});
 				expect(waiting.decision).toBeUndefined();
-				expect(waiting.attempts).toHaveLength(originalWorker);
+				expect(waiting.attempts).toMatchObject([{ receipt: worker, role: "worker" }]);
 				yield* restart();
 				const resumed = (yield* fleet.reconcile("one")).value;
 				expect(resumed).toEqual({ ...waiting, updatedAt: resumed.updatedAt });
@@ -52,8 +51,10 @@ for (const scenario of recoveryCapacityCases) {
 				const completed = (yield* fleet.reconcile("one")).value;
 				expect(completed.step).toBe("done");
 				expect(completed.attempts[0]?.receipt).toEqual(worker);
-				const workerAndReviewer = 2;
-				expect(completed.attempts).toHaveLength(workerAndReviewer);
+				expect(completed.attempts).toMatchObject([
+					{ receipt: worker, role: "worker" },
+					{ role: "reviewer", status: "completed" },
+				]);
 				expect(publishedDecisions()).toEqual([]);
 				return;
 			}
@@ -74,7 +75,7 @@ for (const scenario of recoveryCapacityCases) {
 			yield* schedule();
 			const backedOff = (yield* fleet.get("one")).value;
 			expect(backedOff.launchRetry).toEqual(queued.launchRetry);
-			expect(launches()).toHaveLength(originalWorker);
+			expect(launches()).toEqual(["operation-1"]);
 			capacityClock(30_100);
 			yield* restart();
 			yield* schedule();
@@ -82,8 +83,7 @@ for (const scenario of recoveryCapacityCases) {
 			expect(accepted.step).toBe("working");
 			expect(accepted.launchRetry).toBeUndefined();
 			expect(accepted.attempts.at(-1)?.receipt).toBeDefined();
-			const sessionsAfterRetry = scenario.call === "turn" ? originalWorker : originalWorker + 1;
-			expect(launches()).toHaveLength(sessionsAfterRetry);
+			expect(launches()).toEqual(scenario.call === "turn" ? ["operation-1"] : ["operation-1", "operation-2"]);
 			if (scenario.call === "turn") {
 				expect(accepted.attempts.at(-1)?.receipt?.sessionId).toBe(queued.attempts[0]?.sessionId);
 			}
@@ -107,8 +107,10 @@ for (const action of ["retry", "release"] as const) {
 			if (action === "release") {
 				expect(resolved.step).toBe("released");
 			} else {
-				const originalAndReplacement = 2;
-				expect(fresh.attempts).toHaveLength(originalAndReplacement);
+				expect(fresh.attempts).toMatchObject([
+					{ receipt: dispatched.attempts[0]?.receipt, status: "failed" },
+					{ receipt: { sessionId: expect.any(String), turnId: expect.any(String) }, role: "worker" },
+				]);
 				expect(fresh.step).toBe("working");
 				expect(fresh.decision).toBeUndefined();
 			}

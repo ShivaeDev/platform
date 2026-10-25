@@ -39,7 +39,7 @@ isolatedEngine.it(
 		expect(persisted.value.resultObservations).toEqual([approved.value.result]);
 		expect(persisted.value.checks).toBeUndefined();
 		expect(persisted.value.decision).toBeUndefined();
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		yield* Fiber.interrupt(moving);
 		resumeMovedHeadWrites();
 		yield* restart();
@@ -48,7 +48,7 @@ isolatedEngine.it(
 		expect(recovered.value.attempts.at(-1)?.receipt?.sessionId).not.toBe(approved.value.review?.receipt.sessionId);
 		yield* restart();
 		yield* fleet.reconcile("one");
-		expect(launches()).toHaveLength(3);
+		expect(launches()).toEqual(["operation-1", "operation-2", "operation-4"]);
 		finishWorkers();
 		yield* restart();
 		yield* fleet.reconcile("one");
@@ -60,6 +60,6 @@ isolatedEngine.it(
 		expect(completed.value.review).toMatchObject({ head: MOVED, verdict: "approved" });
 		expect(completed.value.checks).toMatchObject({ head: MOVED, passed: true });
 		expect(reviewedHeads()).toEqual([HEAD, MOVED]);
-		expect(launches()).toHaveLength(3);
+		expect(launches()).toEqual(["operation-1", "operation-2", "operation-4"]);
 	},
 );
