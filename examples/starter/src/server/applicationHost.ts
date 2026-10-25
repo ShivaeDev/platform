@@ -9,8 +9,10 @@ import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { jobDashboard } from "#server/jobDashboard.ts";
 import { serverModules } from "./modules.ts";
+import type { PoolSizes } from "./PoolSizes.ts";
 
 export function applicationHost(config?: {
+	readonly poolSizes?: PoolSizes;
 	readonly jobsClientFactory?: PgBossClientFactory;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly port?: number;
@@ -19,8 +21,8 @@ export function applicationHost(config?: {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
-			const pool = yield* authDatabase(databaseUrl);
-			const database = databaseOptions(pool, databaseUrl);
+			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
+			const database = databaseOptions(pool, databaseUrl, "check", config?.poolSizes?.sql);
 			return appHost({
 				...database,
 				application: Effect.gen(function* () {
@@ -47,7 +49,7 @@ export function applicationHost(config?: {
 							jobDashboard(databaseUrl, sessions),
 							HttpStaticServer.layer({ root: "dist", spa: true }),
 						),
-						services: modules.services(databaseUrl, config?.jobsClientFactory),
+						services: modules.services(databaseUrl, config?.jobsClientFactory, config?.poolSizes?.jobs),
 						sessions,
 					};
 				}),
