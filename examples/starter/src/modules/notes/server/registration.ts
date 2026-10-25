@@ -4,6 +4,7 @@ import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes } from "#modules/notes/notes.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
+import { adminRegistration } from "./adminRegistration.ts";
 
 const handlers = Notes.application.toLayer(
 	Effect.gen(function* () {
@@ -20,8 +21,8 @@ const handlers = Notes.application.toLayer(
 );
 
 export const notesRegistration = {
-	group: Notes,
-	handlers,
+	group: Notes.merge(adminRegistration.group),
+	handlers: Layer.mergeAll(handlers, adminRegistration.handlers),
 	services: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number) =>
 		NotesService.layer.pipe(Layer.provideMerge(noteProducer(Redacted.value(url), clientFactory, max))),
 };

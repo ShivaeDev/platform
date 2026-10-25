@@ -38,7 +38,6 @@ catalog:
   happy-dom: 21.0.3
   pg: 8.23.0
   pg-boss: 12.38.0
-  "@pg-boss/dashboard": 1.12.1
   react: 19.3.1
   react-dom: 19.3.1
   tailwindcss: 4.3.3

@@ -327,7 +327,7 @@ import { appViteConfig } from "@shivaedev/quality/appViteConfig.ts";
 export default appViteConfig([tailwindcss(), react()]);
 ```
 
-Use this in `vite.config.ts`. Plugins belong to the app. The shared server proxies `/api/auth`, `/rpc` and `/admin/jobs` to the local host on port 3000, preserving the request Host. It enables TypeScript path resolution.
+Use this in `vite.config.ts`. Plugins belong to the app. The shared server proxies `/api/auth` and `/rpc` to the local host on port 3000, preserving the request Host. It enables TypeScript path resolution. Client routes, including administration pages, stay on Vite.
 
 ```ts
 import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";

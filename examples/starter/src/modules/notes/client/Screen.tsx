@@ -30,6 +30,9 @@ export function NotesScreen({
 				<p className="font-medium text-muted-foreground text-sm">Your first app</p>
 				<h1 className="font-semibold text-3xl tracking-tight">Notes</h1>
 				<p className="text-muted-foreground">A small place for things worth keeping.</p>
+				<a className="inline-block text-sm underline" href="/admin/jobs">
+					Administration
+				</a>
 				{signOut !== undefined && <SignOut action={signOut} onSignedOut={onSignedOut} />}
 			</header>
 			<section aria-label="Add a note">

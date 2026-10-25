@@ -4,10 +4,10 @@ import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/clien
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
+import { authenticatedAdminLayer } from "@shivaedev/platform/server/rpc-server/roles.ts";
 import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
-import { jobDashboard } from "#server/jobDashboard.ts";
 import { serverModules } from "./modules.ts";
 import type { PoolSizes } from "./PoolSizes.ts";
 
@@ -45,8 +45,8 @@ export function applicationHost(config?: {
 						handlers: Layer.mergeAll(
 							modules.handlers,
 							authenticatedUserLayer(sessions),
+							authenticatedAdminLayer(sessions),
 							routes,
-							jobDashboard(databaseUrl, sessions),
 							HttpStaticServer.layer({ root: "dist", spa: true }),
 						),
 						services: modules.services(databaseUrl, config?.jobsClientFactory, config?.poolSizes?.jobs),

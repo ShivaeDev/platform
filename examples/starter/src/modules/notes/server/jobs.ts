@@ -1,11 +1,10 @@
-import { Schema } from "effect";
 import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
 import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
+import { noteQueue } from "#modules/notes/queue.ts";
 
 export const CountWords = defineQueue({
-	name: "count-note-words",
+	...noteQueue,
 	queue: { expireInSeconds: 60 },
-	schema: Schema.Struct({ noteId: Schema.Number }),
 	worker: { pollingIntervalSeconds: 1 },
 });
 
