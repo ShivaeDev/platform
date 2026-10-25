@@ -5,7 +5,7 @@ import { formatTree, qualityTree } from "#test/qualityTree.ts";
 
 export const fenceConfig = [
 	'import { defineConfig } from "@shivaedev/quality/config.ts";',
-	'import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";',
+	'import { fence } from "@shivaedev/quality/imports/fence.ts";',
 	'import { folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";',
 	"",
 	'const game = fence("game-keeps-out-of-cms").because("The game ships to players.").from(folders("packages/game/src")).mayNotImport(packages("cms"))',

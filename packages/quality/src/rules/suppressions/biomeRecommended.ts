@@ -4,7 +4,7 @@ import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
 import { PRESET, rootConfig } from "#rules/biome.ts";
 import { decodeShipped, PRESET_DECLARATIONS } from "#rules/suppressions/biome/declarations.ts";
 import { type Json, member, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
-import { resolvePackage } from "#rules/suppressions/biome/resolve.ts";
+import { resolvePackage } from "#rules/suppressions/biome/resolvePackage.ts";
 
 interface Setting {
 	readonly level: string | undefined;

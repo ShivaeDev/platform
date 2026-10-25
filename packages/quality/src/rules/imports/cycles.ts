@@ -1,6 +1,6 @@
-import { cyclicComponents } from "#imports/components.ts";
+import { cyclicComponents } from "#imports/cyclicComponents.ts";
 import { type ImportEdge, importGraph } from "#imports/graph.ts";
-import { shortestPath } from "#imports/paths.ts";
+import { shortestPath } from "#imports/shortestPath.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
 type RuntimeEdge = ImportEdge & { readonly to: { readonly kind: "file"; readonly path: string } };

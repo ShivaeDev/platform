@@ -7,11 +7,9 @@ import { SetupFailure } from "#failure.ts";
 import type { InventoryScope } from "#inventory/collect.ts";
 import { ConsumerDeclaration } from "#rules/suppressions/biome/ConsumerDeclaration.ts";
 import type { Declaration } from "#rules/suppressions/biome/declarations.ts";
+import { CONFIG_FILE, DEFAULT_EXTENSIONS } from "./constants.ts";
 import { type ConfigInput, decodeConfig } from "./decode.ts";
-import { CONFIG_FILE } from "./file.ts";
 import { type ResolvedRules, resolveRules } from "./resolve.ts";
-
-const DEFAULT_EXTENSIONS = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx", ".mjs", ".cjs"];
 
 export interface ResolvedConfig extends ResolvedRules, InventoryScope {
 	readonly baseline: string;

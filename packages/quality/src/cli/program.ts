@@ -6,7 +6,7 @@ import { writeBaseline } from "#cli/baseline.ts";
 import { ci } from "#cli/ci.ts";
 import { fix } from "#cli/fix.ts";
 import { lint } from "#cli/lint.ts";
-import { migrateBaseline } from "#cli/migrate.ts";
+import { migrateBaseline } from "#cli/migrateBaseline.ts";
 import { migrateExceptions } from "#cli/migrateExceptions.ts";
 import { pruneBaseline, tightenBaseline } from "#cli/shrink.ts";
 import { SetupFailure } from "#failure.ts";

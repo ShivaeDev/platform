@@ -1,4 +1,4 @@
-import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
+import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { anyOf, anything, external, folders, modules, packages, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
 import platformManifest from "./package.json" with { type: "json" };
 

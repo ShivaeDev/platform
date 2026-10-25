@@ -2,9 +2,9 @@ import { defineRule, type Finding, type Rule } from "#rule.ts";
 import { isDirective, textOf } from "./kinds.ts";
 import { commentsOf, type SourceComment } from "./scan.ts";
 
-interface PatternRule<Id extends string> {
+interface PatternRule<TId extends string> {
 	readonly description: string;
-	readonly id: Id;
+	readonly id: TId;
 	readonly message: (match: string) => string;
 	readonly patterns: readonly RegExp[];
 }
@@ -14,7 +14,7 @@ function firstMatch(comment: SourceComment, patterns: readonly RegExp[]): string
 	return patterns.map((pattern) => pattern.exec(text)?.[0]).find((match) => match !== undefined);
 }
 
-export function definePatternRule<const Id extends string>({ description, id, message, patterns }: PatternRule<Id>): Rule<Id, undefined> {
+export function definePatternRule<const TId extends string>({ description, id, message, patterns }: PatternRule<TId>): Rule<TId, undefined> {
 	return defineRule({
 		check: ({ sources }) =>
 			sources.flatMap((file) =>

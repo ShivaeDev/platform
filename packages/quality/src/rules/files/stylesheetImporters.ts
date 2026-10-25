@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import ts from "typescript";
 import type { RuleInputs, SourceFile } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 import { type PackageImports, packageImports } from "./packageImports.ts";
 
 const STYLESHEET = /\.s?css$/u;

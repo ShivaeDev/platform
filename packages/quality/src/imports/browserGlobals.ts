@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { Finding, SourceFile } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 import { browserNames } from "./browserNames.ts";
 
 function checkerOf(source: ts.SourceFile): ts.TypeChecker {

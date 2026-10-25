@@ -8,7 +8,7 @@ import { ownExports } from "#naming/ownExports.ts";
 import { type PackageLayout, packageLayout } from "#naming/packageLayout.ts";
 import { CAMEL, KEBAB, sameWord, wordsOf } from "#naming/words.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 
 const DEFAULT_TOOL_OWNED: readonly string[] = [
 	"*.config.*",

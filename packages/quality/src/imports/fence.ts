@@ -1,4 +1,4 @@
-import type { Examples, Fence, Prohibition, Selector, Target } from "./model.ts";
+import type { Examples, Fence, Prohibition, Selector, Target } from "#imports/fences/model.ts";
 
 interface Draft {
 	readonly from: Selector;
