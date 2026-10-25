@@ -37,7 +37,10 @@ releasePullRequest.it(
 		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
 		const received = yield* readGitHub();
 		expect(received.open).toBe(true);
-		expect(received.created).toBe(2);
+		expect(received.requests.filter((request) => request.method === "POST" && request.endpoint.endsWith("/pulls"))).toMatchObject([
+			{ body: { base: "main", head: "release/next" } },
+			{ body: { base: "main", head: "release/next" } },
+		]);
 	},
 );
 
