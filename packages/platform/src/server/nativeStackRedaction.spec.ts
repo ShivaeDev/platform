@@ -4,7 +4,6 @@ import { nativeStackDiagnostics, publicStackDiagnostics } from "#test/app-host/n
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const HTTP_OK = 200;
 const INTERRUPTING_FIBER_ID = 123;
 
 for (const protocol of ["http/json", "http/protobuf"]) {
@@ -16,7 +15,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { depth: 10, kind: "interruption", marker: "public-frame" }, tag: "nativeStack" })}\n`,
 				false,
 			);
-			expect(response.status).toBe(HTTP_OK);
+			expect(response.status).toBe(200);
 			expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
 			expect(
 				reportedCauses()
@@ -42,10 +41,10 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 			function* ({ postNdjson, reportedCauses, close, exportedSpans }) {
 				const marker = "private-native-stack-marker";
 				const response = yield* postNdjson(
-					`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { kind, marker }, tag: "nativeStack" })}\n`,
+					`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { fiberId: INTERRUPTING_FIBER_ID, kind, marker }, tag: "nativeStack" })}\n`,
 					false,
 				);
-				expect(response.status).toBe(HTTP_OK);
+				expect(response.status).toBe(200);
 				const reasons = reportedCauses().flatMap((cause) => cause.reasons);
 				expect(reasons.map((reason) => reason._tag)).toEqual(kind === "defect" ? ["Die"] : ["Die", "Interrupt"]);
 				if (kind === "interruption") {

@@ -12,7 +12,7 @@ for (const stalled of ["headers", "body"]) {
 			const error = yield* probeCollector(80);
 			expect(HttpClientError.isHttpClientError(error)).toBe(true);
 			expect(error.reason).toMatchObject({ _tag: "TransportError", description: "OTLP export request timed out" });
-			expect(exports()).toHaveLength(1);
+			expect(exports()).toMatchObject([{ body: expect.stringContaining("resourceSpans"), path: "/v1/traces" }]);
 		},
 	);
 }
@@ -41,7 +41,9 @@ for (const { env, timeout } of timeouts) {
 			const started = performance.now();
 			yield* exportTrace("stalled-export");
 			yield* waitForWarning(timeout + 500);
-			expect(logs().filter(({ level }) => level === "Warn")).toHaveLength(1);
+			expect(logs().filter(({ level }) => level === "Warn")).toMatchObject([
+				{ annotations: { "otlp.failure": "TransportError" }, message: ["OTLP trace export failed"] },
+			]);
 			expect(performance.now() - started).toBeGreaterThanOrEqual(timeout - 20);
 			expect(performance.now() - started).toBeLessThan(timeout + 500);
 			expect(logs().find(({ level }) => level === "Warn")?.annotations).toMatchObject({ "otlp.failure": "TransportError" });
@@ -88,6 +90,6 @@ host.it(
 		yield* close();
 		expect(performance.now() - closing).toBeGreaterThanOrEqual(60);
 		expect(performance.now() - closing).toBeLessThan(580);
-		expect(exports()).toHaveLength(1);
+		expect(exports()).toMatchObject([{ body: expect.stringContaining("shutdown-export"), path: "/v1/traces" }]);
 	},
 );
