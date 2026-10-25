@@ -13,9 +13,9 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	function git(...args: readonly string[]) {
 		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
 	}
-	const { pull, head } = github.snapshot();
-	if (pull !== undefined && pull.mergeQueueEntry !== null) {
-		return "queued";
+	const { pull, head, hold } = github.snapshot();
+	if (hold !== undefined) {
+		return `held: ${hold}`;
 	}
 	git("switch", "-C", "release/next", "origin/main");
 	const plan = yield* planPullRequest(root);

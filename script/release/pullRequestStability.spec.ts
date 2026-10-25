@@ -16,7 +16,10 @@ releasePullRequest.it(
 		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
 		const after = yield* readGitHub();
 		expect(after.body).toBe(before.body);
-		expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual(["graphql"]);
+		expect(after.requests.slice(before.requests.length).map((request) => request.endpoint)).toEqual([
+			"graphql",
+			`repos/example/workspace/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${head}&per_page=1`,
+		]);
 		expect(yield* git("status", "--porcelain")).toBe("");
 	},
 );
