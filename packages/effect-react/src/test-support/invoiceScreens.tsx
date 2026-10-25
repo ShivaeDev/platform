@@ -3,6 +3,7 @@ import { act } from "react";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { Rendered } from "#client/testing.ts";
 import { InvoiceLine, makeInvoiceLineServer } from "#test/invoice-line-editor/backend.ts";
+import { OneShotScreen } from "#test/invoice-line-editor/OneShot.tsx";
 import { InvoiceLineCreate, InvoiceLineScreen } from "#test/invoice-line-editor/Screen.ts";
 import { clickButton, typeInput } from "./Screen.ts";
 import { RegistryProbe } from "./sessionProbes.ts";
@@ -76,4 +77,12 @@ export function switching(root: Rendered) {
 		);
 	}
 	return { rechecks, registries, servers, show, view };
+}
+
+export async function oneShot(root: Rendered) {
+	const opening = new InvoiceLine({ id: 7, name: "Stapler", quantity: 150, version: 3 });
+	const server = makeInvoiceLineServer([opening]);
+	const view = controls(root);
+	await root.render(<OneShotScreen opening={opening} server={server} />);
+	return { server, view };
 }

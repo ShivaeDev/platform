@@ -12,7 +12,8 @@ export interface SubmitState {
 	readonly decoding: PromiseWithResolvers<void>;
 	readonly names: string[];
 }
-export function CreateSubmitView({ state, slow }: { readonly state: SubmitState; readonly slow: boolean }) {
+class NameRejected extends Schema.TaggedError<NameRejected>()("NameRejected", { field: Schema.Literal("name"), message: Schema.String }) {}
+export function CreateSubmitView({ state, slow, rejected }: { readonly state: SubmitState; readonly slow: boolean; readonly rejected: boolean }) {
 	const Submission = useMemo(() => {
 		function decoded(value: string) {
 			return Effect.as(
@@ -32,7 +33,10 @@ export function CreateSubmitView({ state, slow }: { readonly state: SubmitState;
 		});
 	}, [slow, state]);
 	const current = useCreate({
-		create: (values) => Effect.sync(() => ({ id: state.names.push(values.name), name: slow ? values.name : values.name.trim() })),
+		create: (values) =>
+			rejected && values.name === "Taken"
+				? Effect.fail(new NameRejected({ field: "name", message: "Name is already used" }))
+				: Effect.sync(() => ({ id: state.names.push(values.name), name: slow ? values.name : values.name.trim() })),
 		fields: Submission,
 		initialValues: { name: "" },
 		runtime,
@@ -43,6 +47,7 @@ export function CreateSubmitView({ state, slow }: { readonly state: SubmitState;
 	return (
 		<section>
 			<input name="name" onChange={(event) => name.onChange(event.target.value)} value={name.value} />
+			{name.error ? <p role="alert">{name.error}</p> : null}
 			<button onClick={submit.run} type="button">
 				Form submit
 			</button>
