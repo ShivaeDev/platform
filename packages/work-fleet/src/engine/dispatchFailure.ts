@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { waitingOwner } from "#attention.ts";
+import { expectedDispatchWait } from "#engine/expectedDispatchWait.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -20,6 +21,9 @@ export const dispatchFailure = Effect.fn("Fleet.dispatchFailure")(function* <E>(
 	// Unchanged waits must not write and wake every subscriber on every scheduler pass.
 	if (current.value.step === "queued" && (current.value.blocker !== waiting.blocker || current.value.attentionOwner !== waitingOwner(waiting))) {
 		yield* state.save(current, waiting);
+		if (expectedDispatchWait(error) && current.value.blocker !== waiting.blocker) {
+			yield* Effect.logInfo("Fleet dispatch waiting", waiting.blocker).pipe(Effect.annotateLogs({ workId }));
+		}
 	}
 	return yield* Effect.fail(error);
 });

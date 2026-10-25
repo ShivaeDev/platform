@@ -1,10 +1,10 @@
 import type { AttentionOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
-import type { FleetError } from "#errors.ts";
 
 interface FailureContext {
 	readonly attentionOwner?: AttentionOwner | undefined;
 	readonly code?: DecisionCode | undefined;
+	readonly expectedWait?: boolean;
 	readonly head?: string;
 	readonly mainRevision?: string;
 	readonly retryAt?: number;
@@ -13,7 +13,7 @@ interface FailureContext {
 
 const contexts = new WeakMap<object, FailureContext>();
 
-export function withFailureContext<E extends FleetError>(error: E, context: FailureContext): E {
+export function withFailureContext<E extends object>(error: E, context: FailureContext): E {
 	contexts.set(error, context);
 	return error;
 }

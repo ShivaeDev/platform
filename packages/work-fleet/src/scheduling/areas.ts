@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { reviewSatisfied } from "#completion.ts";
+import { withFailureContext } from "#engine/failureContext.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
 import { openSweep } from "#scheduling/sweeps.ts";
 import { StorageAdmission } from "#storage/errors.ts";
@@ -65,7 +66,9 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	const foreign = external.find((entry) => overlappingArea(areas, entry.areas) !== undefined);
 	if (foreign !== undefined) {
 		return yield* Effect.fail(
-			new StorageAdmission({ message: `waiting for area ${overlappingArea(areas, foreign.areas)} held by ${foreign.owner}` }),
+			withFailureContext(new StorageAdmission({ message: `waiting for area ${overlappingArea(areas, foreign.areas)} held by ${foreign.owner}` }), {
+				expectedWait: true,
+			}),
 		);
 	}
 	const index = records.findIndex((entry) => entry.workId === record.workId);
@@ -78,7 +81,9 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	);
 	if (holder !== undefined) {
 		const heldArea = overlappingArea(areas, holder.areas);
-		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${heldArea} held by ${holder.workId}` }));
+		return yield* Effect.fail(
+			withFailureContext(new StorageAdmission({ message: `waiting for area ${heldArea} held by ${holder.workId}` }), { expectedWait: true }),
+		);
 	}
 	if (previous !== undefined && holdsAreas(previous, scheduling.now, scheduling.areaMergeWaitMs)) {
 		return;
@@ -88,7 +93,9 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 		.find((entry) => entry.step === "queued" && scheduling.waiters.includes(entry.workId) && overlappingArea(areas, entry.areas) !== undefined);
 	if (ahead !== undefined) {
 		const queuedArea = overlappingArea(areas, ahead.areas);
-		return yield* Effect.fail(new StorageAdmission({ message: `waiting for area ${queuedArea} queued ahead by ${ahead.workId}` }));
+		return yield* Effect.fail(
+			withFailureContext(new StorageAdmission({ message: `waiting for area ${queuedArea} queued ahead by ${ahead.workId}` }), { expectedWait: true }),
+		);
 	}
 });
 
