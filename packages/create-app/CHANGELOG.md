@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.1 - 2026-10-25
+
+### Changed
+
+- `tests/named-values` now accepts zero and status or exit codes.
+- Generated apps' stories assert observed items instead of numeric aliases.
+
 ## 0.15.0 - 2026-10-25
 
 ### Added
