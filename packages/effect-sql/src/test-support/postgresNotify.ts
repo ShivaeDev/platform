@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Exit, Layer, Queue, Scope } from "effect";
+import { Clock, Effect, Exit, Fiber, Layer, Queue, Scope } from "effect";
 import type { SqlError } from "effect/sql/SqlError";
+import * as TestClock from "effect/testing/TestClock";
 import { type PostgresChangeClient, type PostgresChangesOptions, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
 export interface NotifyState {
 	channel?: string;
@@ -13,8 +14,10 @@ export interface NotifyState {
 const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(function* (
 	listening: ReturnType<PostgresChangeClient["listen"]>,
 	state: NotifyState,
+	events: { readonly heartbeats: Queue.Queue<void>; readonly listeners: Queue.Queue<void> },
 ) {
 	const notifications = yield* listening;
+	yield* Queue.offer(events.listeners, undefined);
 	const scope = yield* Effect.scope;
 	const instrumented = yield* Queue.unbounded<PostgresNotification, SqlError>();
 	let registered = false;
@@ -30,6 +33,8 @@ const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(functi
 			}
 			if (!state.muted) {
 				yield* Queue.offer(instrumented, notification);
+			} else if (!notification.payload.startsWith("[")) {
+				yield* Queue.offer(events.heartbeats, undefined);
 			}
 		}),
 	).pipe(
@@ -43,6 +48,11 @@ export const startNotifications = Effect.fnUntraced(function* (
 	stallCleanup = false,
 ) {
 	const gate = Promise.withResolvers<void>();
+	const events = {
+		closings: yield* Queue.unbounded<void>(),
+		heartbeats: yield* Queue.unbounded<void>(),
+		listeners: yield* Queue.unbounded<void>(),
+	};
 	let closing = 0;
 	const state: NotifyState = {
 		connections: 0,
@@ -51,12 +61,13 @@ export const startNotifications = Effect.fnUntraced(function* (
 		resyncs: 0,
 		...(stallCleanup
 			? {
-					cleanup: Effect.andThen(
-						Effect.sync(() => {
+					cleanup: Effect.gen(function* () {
+						yield* Effect.sync(() => {
 							closing += 1;
-						}),
-						Effect.promise(() => gate.promise),
-					),
+						});
+						yield* Queue.offer(events.closings, undefined);
+						yield* Effect.promise(() => gate.promise);
+					}),
 				}
 			: {}),
 	};
@@ -76,11 +87,11 @@ export const startNotifications = Effect.fnUntraced(function* (
 			}
 			return (channel: string) => {
 				state.connections += 1;
-				return instrumentListener(client.listen(channel), state);
+				return instrumentListener(client.listen(channel), state, events);
 			};
 		},
 	});
-	const binding = yield* Layer.build(
+	const building = yield* Layer.build(
 		postgresChanges({
 			...timing,
 			channel: state.channel,
@@ -89,11 +100,21 @@ export const startNotifications = Effect.fnUntraced(function* (
 				state.resyncs += 1;
 			}),
 		}),
-	).pipe(Effect.provideService(Scope.Scope, scope));
+	).pipe(Effect.provideService(Scope.Scope, scope), Effect.forkScoped);
+	const clock = yield* Clock.Clock;
+	if ("adjust" in clock) {
+		yield* Queue.take(events.listeners);
+		// The first ping can precede LISTEN; let its retry run only after PostgreSQL is listening.
+		yield* TestClock.adjust("50 millis");
+	}
+	const binding = yield* Fiber.join(building);
 	return {
 		binding,
 		close: Scope.close(scope, Exit.void),
 		closing: () => closing,
+		nextCleanup: Queue.take(events.closings),
+		nextListener: Queue.take(events.listeners),
+		nextMutedHeartbeat: Queue.take(events.heartbeats),
 		release: () => gate.resolve(),
 		state,
 	};
