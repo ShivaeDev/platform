@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import type { ConstructorOptions, StopOptions } from "pg-boss";
 import { defaultClientFactory, type PgBossClient, type PgBossClientFactory } from "#client.ts";
-import { toPgBossError } from "#error.ts";
+import { PgBossClientOptionsError, type PgBossError, toPgBossError } from "#error.ts";
 import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
 import { acquireCachedClient, releaseCachedClient } from "./clientCache.ts";
 import { logClientError, observeClientErrors } from "./clientErrors.ts";
@@ -37,19 +37,19 @@ async function startClient(options: AcquireClientOptions, report: (error: Error)
 	}
 }
 
-export function acquireClient(options: AcquireClientOptions): Effect.Effect<AcquiredClient, import("#error.ts").PgBossError> {
+export function acquireClient(options: AcquireClientOptions): Effect.Effect<AcquiredClient, PgBossError | PgBossClientOptionsError> {
 	return Effect.contextWith((context) => {
 		const run = Effect.runForkWith(context);
 		function report(error: Error) {
 			run(logClientError(error));
 		}
 		return Effect.tryPromise({
-			catch: (error) => toPgBossError("start", error),
+			catch: (error) => (error instanceof PgBossClientOptionsError ? error : toPgBossError("start", error)),
 			try: async () => {
 				const cacheKey = options.clientCacheKey;
 				return cacheKey === undefined
 					? { client: await startClient(options, report), reused: false }
-					: { cacheKey, ...(await acquireCachedClient(cacheKey, () => startClient(options, report))) };
+					: { cacheKey, ...(await acquireCachedClient(cacheKey, options.constructor, () => startClient(options, report))) };
 			},
 		});
 	});

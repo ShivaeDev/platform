@@ -250,6 +250,8 @@ The constructor options belong to pg-boss. `jobs` is the complete list of regist
 
 Keep the Layer in the application's worker runtime scope. A short scope is useful for an acquisition or health check; a worker process needs its scope to remain open while it handles jobs.
 
+Set `clientCacheKey` to share one reference-counted client across Layer builds with equal pg-boss constructor settings. Reusing a key with different settings fails acquisition with `PgBossClientOptionsError` before constructing another client. Its `key`, `options` and message identify the key and differing option names without exposing connection values. Nested options are compared by value.
+
 ```ts
 import { Effect } from "effect";
 import { jobsLayer } from "./runtime.ts";
@@ -490,7 +492,7 @@ Import the module that defines the name; the package has no root entry.
 | `@shivaedev/effect-pg-boss/server/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
 | `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth` |
-| `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
+| `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
 | `@shivaedev/effect-pg-boss/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob` |
 

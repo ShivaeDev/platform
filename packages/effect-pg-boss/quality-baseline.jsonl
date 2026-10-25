@@ -4,7 +4,7 @@
 {"path":"packages/effect-pg-boss/src/server/followUp.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/effect-pg-boss/src/server/followUpPostgres.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/interruptionPostgres.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/effect-pg-boss/src/server/lifecycle.spec.ts","rule":"tests/named-values","count":8}
+{"path":"packages/effect-pg-boss/src/server/lifecycle.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/effect-pg-boss/src/server/notifyPostgres.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/producerQueues.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-pg-boss/src/server/queueOptions.spec.ts","rule":"tests/named-values","count":2}
