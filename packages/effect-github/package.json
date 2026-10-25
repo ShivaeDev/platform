@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-github",
-	"version": "0.4.3",
+	"version": "0.4.4",
 	"description": "Typed GitHub REST requests, conditional reads and resource budgets for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-github#readme",
 	"bugs": {
