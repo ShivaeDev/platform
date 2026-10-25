@@ -1,10 +1,11 @@
 import { Effect } from "effect";
 import { act, type ReactNode } from "react";
+import type { RootOptions } from "react-dom/client";
 import { beforeEach, vi } from "vitest";
 import { eventually, expectNoReactWarnings, type Rendered, render } from "#client/testing.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
-expectNoReactWarnings();
+export const screenWarnings = expectNoReactWarnings();
 beforeEach(({ onTestFinished }) => {
 	onTestFinished(() => {
 		vi.useRealTimers();
@@ -43,11 +44,11 @@ export class Screen {
 	constructor(tell: (line: string) => void) {
 		this.tell = tell;
 	}
-	open(node: ReactNode = null) {
+	open(node: ReactNode = null, options?: RootOptions) {
 		const roots = this.roots;
 		return Effect.acquireRelease(
 			Effect.promise(async () => {
-				const view = await render(node);
+				const view = await render(node, options);
 				roots.push(view);
 				return view;
 			}),

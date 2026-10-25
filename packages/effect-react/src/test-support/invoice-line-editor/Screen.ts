@@ -1,9 +1,10 @@
 import { Option, Schema } from "effect";
-import { createElement, type ReactNode } from "react";
+import { createElement, Fragment, type ReactNode } from "react";
 import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Form } from "@shivaedev/effect-form/shape.ts";
 import { useCreate } from "#client/create.ts";
 import { useEditor } from "#client/editor.ts";
+import { QueryView } from "#client/QueryView.ts";
 import type { InvoiceLine, makeInvoiceLineServer } from "./backend.ts";
 
 const InvoiceLineDraft = Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString });
@@ -82,12 +83,24 @@ export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly i
 		"section",
 		null,
 		createElement("button", { onClick: query.refresh, type: "button" }, "Refresh"),
-		Option.isSome(query.cause) && createElement("p", { role: "alert" }, "Could not load"),
-		Option.match(query.data, {
-			onNone: () => createElement("p", null, "Loading"),
-			onSome: (line) => createElement("output", null, `${line.name} / ${line.quantity}`),
+		createElement(QueryView<InvoiceLine, unknown>, {
+			content: (line) =>
+				createElement(
+					"div",
+					null,
+					createElement("output", null, `${line.name} / ${line.quantity}`),
+					form && createElement(InvoiceLineForm, { editor: { ...editor, form } }),
+				),
+			failure: (_error, state) =>
+				createElement(
+					Fragment,
+					null,
+					createElement("p", { role: "alert" }, "Could not load"),
+					createElement("button", { onClick: state.refresh, type: "button" }, "Retry"),
+				),
+			loading: () => createElement("p", null, "Loading"),
+			query,
 		}),
-		form && createElement(InvoiceLineForm, { editor: { ...editor, form } }),
 	);
 }
 export function InvoiceLineCreate({ server: { api, runtime } }: { readonly server: Server }) {
