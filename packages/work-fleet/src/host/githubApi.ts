@@ -1,56 +1,27 @@
-import { Clock, Effect, Layer } from "effect";
+import { Clock, DateTime, Effect, Layer, Schema, Stream } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { GitHubRateLimited } from "@shivaedev/effect-github/errors.ts";
+import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
-import {
-	type GithubObservation,
-	type GithubPause,
-	githubPaused,
-	pace,
-	type RecordedObservation,
-	rateLimitWait,
-	readObservation,
-	reservedUntil,
-} from "#host/githubRateLimit.ts";
-import { nextLink, type ParsedResponse, parseResponse, requestResource } from "#host/githubResponse.ts";
-import { GithubTransport, ghTransport } from "#host/githubTransport.ts";
+import { type GithubObservation, type GithubPause, githubPaused, pace, type RecordedObservation, reservedUntil } from "#host/githubRateLimit.ts";
+import { githubToken } from "#host/githubToken.ts";
 
-interface Page {
-	readonly body: string;
-	readonly etag: string | undefined;
-	readonly next: string | undefined;
-}
-interface Block {
-	readonly failures: number;
-	readonly until: number;
-}
-
-const CACHE_LIMIT = 1000;
 const PAGE_LIMIT = 100;
 
 export const GithubApi = defineService({
 	id: "Fleet/GithubApi",
 	initialize: Effect.gen(function* () {
 		return {
-			blocks: new Map<string, Block>(),
-			cache: new Map<string, Page>(),
+			blocks: new Map<string, number>(),
+			github: yield* GitHub,
 			observations: new Map<string, RecordedObservation>(),
-			transport: yield* GithubTransport,
+			seen: new WeakSet<object>(),
 		};
 	}),
 	methods: (state) => {
-		function remember(url: string, page: Page) {
-			state.cache.delete(url);
-			state.cache.set(url, page);
-			for (const key of state.cache.keys()) {
-				if (state.cache.size <= CACHE_LIMIT) {
-					break;
-				}
-				state.cache.delete(key);
-			}
-			return page;
-		}
 		function paused(resource: string, now: number): { readonly by: GithubPause; readonly until: number } | undefined {
-			const blocked = state.blocks.get(resource)?.until;
+			const blocked = state.blocks.get(resource);
 			if (blocked !== undefined && blocked > now) {
 				return { by: "rate-limit", until: blocked };
 			}
@@ -61,51 +32,63 @@ export const GithubApi = defineService({
 			const pause = paused(observation.resource, now);
 			return { ...observation, limitedBy: pause?.by ?? null, limitedUntil: pause?.until ?? null };
 		}
-		const settle = Effect.fn("Fleet.settle")(function* (url: string, exitCode: number, response: ParsedResponse, now: number) {
-			const observation = readObservation(response.headers, now);
-			const resource = observation?.resource ?? requestResource(url);
-			if (observation !== undefined) {
-				state.observations.set(resource, observation);
+		const observe = Effect.gen(function* () {
+			const observedAt = yield* Clock.currentTimeMillis;
+			for (const observation of yield* state.github.observations()) {
+				if (!state.seen.has(observation)) {
+					state.seen.add(observation);
+					state.observations.set(observation.resource, { ...observation, observedAt, reset: DateTime.toEpochMillis(observation.reset) / 1000 });
+				}
 			}
-			const previous = state.blocks.get(resource);
-			const wait = rateLimitWait(response, observation, now, previous?.failures ?? 0);
-			if (wait !== undefined) {
-				const until = Math.max(wait, previous?.until ?? 0);
-				state.blocks.set(resource, { failures: (previous?.failures ?? 0) + 1, until });
-				return yield* githubPaused("rate-limit", until);
-			}
-			state.blocks.delete(resource);
-			const cached = state.cache.get(url);
-			if (response.status === 304 && cached !== undefined) {
-				return remember(url, cached);
-			}
-			if (exitCode !== 0 || response.status < 200 || response.status > 299) {
-				return yield* new ServiceUnavailable({ message: `GitHub request failed with HTTP ${response.status}` });
-			}
-			return remember(url, { body: response.body, etag: response.headers.get("etag"), next: nextLink(response.headers) });
 		});
-		const request = Effect.fn("Fleet.request")(function* (url: string) {
-			const pause = paused(requestResource(url), yield* Clock.currentTimeMillis);
-			if (pause !== undefined) {
-				return yield* githubPaused(pause.by, pause.until);
-			}
-			const etag = state.cache.get(url)?.etag;
-			const { exitCode, output } = yield* state.transport([
-				"api",
-				"--include",
-				"--method",
-				"GET",
-				...(etag === undefined ? [] : ["--header", `If-None-Match: ${etag}`]),
-				url,
-			]);
-			const response = parseResponse(output);
-			if (response === undefined) {
-				return yield* new ServiceUnavailable({ message: "GitHub returned a response without an HTTP status" });
-			}
-			return yield* settle(url, exitCode, response, yield* Clock.currentTimeMillis);
-		});
+		function request<A, E, R>(endpoint: string, read: Effect.Effect<A, E, R>) {
+			return Effect.gen(function* () {
+				const resource = yield* state.github.resource(endpoint);
+				const pause = paused(resource, yield* Clock.currentTimeMillis);
+				if (pause !== undefined) {
+					return yield* githubPaused(pause.by, pause.until);
+				}
+				return yield* read.pipe(
+					Effect.onExit(() => observe),
+					Effect.mapError((error) => {
+						if (error instanceof ServiceUnavailable) {
+							return error;
+						}
+						if (error instanceof GitHubRateLimited) {
+							const until = DateTime.toEpochMillis(error.retryAt);
+							state.blocks.set(error.resource, until);
+							return githubPaused("rate-limit", until);
+						}
+						return new ServiceUnavailable({ message: "GitHub evidence could not be read; check authentication and repository access" });
+					}),
+				);
+			});
+		}
+		function pagePolicy() {
+			let count = 0;
+			return (resource: string) =>
+				Effect.gen(function* () {
+					yield* observe;
+					const pause = paused(resource, yield* Clock.currentTimeMillis);
+					if (pause !== undefined) {
+						return yield* githubPaused(pause.by, pause.until);
+					}
+					if (count >= PAGE_LIMIT) {
+						return yield* new ServiceUnavailable({ message: `GitHub returned more than ${PAGE_LIMIT} pages` });
+					}
+					count += 1;
+				});
+		}
+
 		return {
-			get: (endpoint: string) => request(endpoint).pipe(Effect.map(({ body }) => body)),
+			get: (endpoint: string) =>
+				request(
+					endpoint,
+					state.github.read(endpoint).pipe(
+						Effect.flatMap((page) => page.decode(Schema.Unknown)),
+						Effect.map(JSON.stringify),
+					),
+				),
 			observations: () =>
 				Effect.gen(function* () {
 					const now = yield* Clock.currentTimeMillis;
@@ -121,22 +104,22 @@ export const GithubApi = defineService({
 				}),
 			pages: (endpoint: string) =>
 				Effect.gen(function* () {
-					const bodies: string[] = [];
-					let next: string | undefined = endpoint;
-					while (next !== undefined) {
-						if (bodies.length >= PAGE_LIMIT) {
-							return yield* new ServiceUnavailable({ message: `GitHub returned more than ${PAGE_LIMIT} pages` });
-						}
-						const page: Page = yield* request(next);
-						bodies.push(page.body);
-						next = page.next;
-					}
-					return `[${bodies.join(",")}]`;
+					const pages = yield* state.github.list(endpoint, pagePolicy());
+					const bodies = yield* request(
+						endpoint,
+						pages.pipe(
+							Stream.mapEffect((page) => page.decode(Schema.Unknown)),
+							Stream.runCollect,
+						),
+					);
+					return JSON.stringify(bodies);
 				}),
 		};
 	},
-	requires: [GithubTransport],
+	requires: [GitHub],
 });
 export type GithubApi = typeof GithubApi.Identifier;
 
-export const githubApiLayer = GithubApi.layer.pipe(Layer.provide(ghTransport));
+export const githubApiLayer = GithubApi.layer.pipe(
+	Layer.provide(GitHub.layer.pipe(Layer.provide(FetchHttpClient.layer), Layer.provide(githubToken))),
+);

@@ -1679,6 +1679,9 @@ importers:
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
+      '@shivaedev/effect-github':
+        specifier: workspace:*
+        version: link:../effect-github
       '@shivaedev/effect-service':
         specifier: workspace:*
         version: link:../effect-service

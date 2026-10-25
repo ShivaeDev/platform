@@ -1,4 +1,4 @@
-import { Clock, Effect, Layer, Stream } from "effect";
+import { Clock, Context, Effect, Layer, Stream } from "effect";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { schedulerPause } from "#host/commands.ts";
@@ -34,7 +34,7 @@ export const githubBudgetOptions = Effect.fn("FleetStory.githubBudgetOptions")(f
 	mode: "delivery" | "limit" | "reserve",
 ) {
 	const github = budgetFixture(mode);
-	const api = yield* GithubApi.pipe(Effect.provide(github.layer));
+	const api = Context.get(yield* Layer.build(github.layer), GithubApi);
 	state.budget = { api, github };
 	return {
 		...(mode === "delivery" ? { deliveryQuery: githubDelivery(readPullRequest(api.get)) } : { checksQuery: githubChecks(api) }),
@@ -73,7 +73,7 @@ export function engineBudgetVerbs(state: EngineStory, tell: (line: string) => vo
 				tell(`start the scheduler with ${remaining} GitHub requests left`);
 				const github = syntheticGithub({ remaining, reset: Math.ceil((yield* Clock.currentTimeMillis) / 1000) + 3600 });
 				github.reply(PR_ENDPOINT, budgetPullRequest(false));
-				const api = yield* GithubApi.pipe(Effect.provide(github.layer));
+				const api = Context.get(yield* Layer.build(github.layer), GithubApi);
 				yield* api.get(PR_ENDPOINT);
 				const passes = { count: 0 };
 				const admit = Effect.sync(() => {

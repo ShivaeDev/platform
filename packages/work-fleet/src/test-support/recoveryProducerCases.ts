@@ -1,11 +1,11 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import { ConnectionError, SqlError } from "effect/sql/SqlError";
 import { Fleet } from "#fleet.ts";
-import { GithubApi, githubApiLayer } from "#host/githubApi.ts";
+import { GithubApi } from "#host/githubApi.ts";
 import { prepareWork } from "#test/engine.ts";
-import { githubCli } from "#test/githubCli.ts";
+import { githubCliApi } from "#test/githubApi.ts";
 import { REPORT } from "#test/githubResult.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
 import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
@@ -13,10 +13,10 @@ import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts
 export function recoveryProducerCases(): readonly RecoveryCase[] {
 	let restored = false;
 	let context: RecoveryContext | undefined;
-	const failedCli = githubCli(new Map(), 1);
+	const failedHttp = githubCliApi(new Map([["synthetic", "{}"]]), 503);
 	const failedProductionRead = GithubApi.pipe(
 		Effect.flatMap((github) => github.get("synthetic")),
-		Effect.provide(githubApiLayer.pipe(Layer.provide(failedCli.layer))),
+		Effect.provide(failedHttp.layer),
 		Effect.andThen(Effect.die("Unexpected GitHub success")),
 	);
 
