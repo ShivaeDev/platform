@@ -1,6 +1,5 @@
-import { setImmediate } from "node:timers/promises";
 import { Effect, Schema } from "effect";
-import { expect, vi } from "vitest";
+import { expect } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
 import { boss } from "#test/boss.ts";
 import { job } from "#test/fakeClient.ts";
@@ -24,42 +23,6 @@ for (const outcome of ["failure", "defect"] as const) {
 		expect(handled).toBe(10);
 		expect(client.completeCalls.map(({ job: completed }) => completed)).toEqual(jobs.filter((entry) => entry.id !== "1"));
 		expect(client.failCalls).toEqual([{ error: failure, job: jobs[1], name: Schedule.name }]);
-	});
-}
-
-for (const outcome of ["self interruption", "aborted signal"] as const) {
-	boss.it(`leaves interrupted and remaining jobs to pg-boss expiry after ${outcome}`, [], function* ({ boot, client, dispatch }) {
-		const Queue = defineQueue({ name: "interrupted", schema: Schema.Struct({ id: Schema.Number }) });
-		const controller = new AbortController();
-		const started = Promise.withResolvers<void>();
-		const handled: number[] = [];
-		const worker = Queue.handle(({ id }) =>
-			Effect.suspend(() => {
-				handled.push(id);
-				if (id !== 1) {
-					return Effect.void;
-				}
-				started.resolve();
-				return outcome === "self interruption" ? Effect.interrupt : Effect.never;
-			}),
-		);
-		const jobs = Array.from({ length: 3 }, (_, id) => ({ ...job(Queue.name, { id }), id: String(id), signal: controller.signal }));
-		const returned = vi.fn();
-		const runtime = yield* boot([worker]);
-		yield* dispatch(Queue.name, jobs).pipe(
-			Effect.onExit(() => Effect.sync(() => returned())),
-			Effect.forkChild,
-		);
-		yield* Effect.promise(() => started.promise);
-		if (outcome === "aborted signal") {
-			controller.abort();
-		}
-		yield* Effect.promise(setImmediate);
-		expect(handled).toEqual([0, 1]);
-		expect(client.completeCalls).toEqual([{ job: jobs[0], name: Queue.name }]);
-		expect(client.failCalls).toEqual([]);
-		expect(returned).not.toHaveBeenCalled();
-		yield* runtime.stop;
 	});
 }
 

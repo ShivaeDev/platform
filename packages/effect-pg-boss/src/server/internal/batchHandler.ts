@@ -3,6 +3,7 @@ import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { deadlineOf } from "#internal/deadlineOf.ts";
 import { deferredAttempt } from "#internal/deferral.ts";
+import { waitForBatchExpiry } from "#internal/waitForBatchExpiry.ts";
 
 function failureOutput(cause: Cause.Cause<unknown>): object {
 	const error = Cause.squash(cause);
@@ -55,13 +56,12 @@ export function batchHandler(
 				{ signal: job.signal },
 			);
 			if (job.signal.aborted || (Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause))) {
-				// Returning would let pg-boss complete the unprocessed jobs; its expiry owns them instead.
-				return new Promise<never>(() => undefined);
+				return waitForBatchExpiry(client, name, jobs);
 			}
 			await settleAttempt(complete, fail, name, job, exit, afterFailure);
 		}
 		if (expired) {
-			return new Promise<never>(() => undefined);
+			return waitForBatchExpiry(client, name, jobs);
 		}
 	};
 }

@@ -1,4 +1,4 @@
-import { Data, Deferred, Effect, Option } from "effect";
+import { Data, Deferred, Duration, Effect, Option } from "effect";
 import type { SendOptions } from "pg-boss";
 import { vi } from "vitest";
 import type { PgBossService } from "#service.ts";
@@ -35,8 +35,21 @@ export function* testingWorker(state: State) {
 	if (!(testing.enabled && testing.worker)) {
 		return;
 	}
-	const worker = testing.queue.handle(({ id }) => {
+	const worker = testing.queue.handle(({ id }, job) => {
 		testing.attempts.push(id);
+		if (Option.isSome(testing.stuck)) {
+			const activeWorker = Option.getOrThrow(testing.client)
+				.getWipData?.()
+				.find((candidate) => candidate.name === testing.queue.name);
+			if (activeWorker !== undefined) {
+				testing.workerIds.push(activeWorker.id);
+			}
+			return testing.stuck.value === "first" && testing.attempts.length > 1
+				? Effect.void
+				: Effect.never.pipe(
+						Effect.onInterrupt(() => Effect.map(job.remainingBudget, (budget) => testing.interruptions.push(Duration.toMillis(budget)))),
+					);
+		}
 		if (testing.paused) {
 			return Deferred.succeed(testing.entered, undefined).pipe(Effect.andThen(Deferred.await(testing.release)));
 		}
@@ -68,6 +81,7 @@ export function testingVerbs(state: TestingState) {
 		deadLetteredJobs: (options: JobPageOptions) => jobs().deadLetteredJobs(state.queue, options),
 		failedJobs: (options: JobPageOptions) => jobs().failedJobs(state.queue, options),
 		followUps: state.followUps,
+		interruptions: state.interruptions,
 		queue: state.queue,
 		recordIdleReads,
 		recoverWorker: Effect.sync(() => {
@@ -81,6 +95,7 @@ export function testingVerbs(state: TestingState) {
 		snapshot: Effect.suspend(() => state.testing.snapshot([state.queue, state.followUps])),
 		testing: state.testing,
 		testingClient: () => Option.getOrThrow(state.client),
+		workerIds: state.workerIds,
 		workerStarted: Deferred.await(state.entered),
 	};
 }

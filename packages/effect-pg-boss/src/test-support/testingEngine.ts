@@ -7,6 +7,8 @@ import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
 
 export function* testingEngine() {
 	const attempts: number[] = [];
+	const interruptions: number[] = [];
+	const workerIds: string[] = [];
 	const readout: JobWithMetadata<{ readonly id: number }>[] = [];
 	return {
 		attempts,
@@ -15,6 +17,7 @@ export function* testingEngine() {
 		enabled: false,
 		entered: yield* Deferred.make<void>(),
 		followUps: defineQueue({ name: "testing-story-follow-up", schema: Schema.Struct({ note: Schema.String }) }),
+		interruptions,
 		jobs: Option.none<PgBossService>(),
 		paused: false,
 		queue: defineQueue({
@@ -26,7 +29,9 @@ export function* testingEngine() {
 		readout,
 		recovered: false,
 		release: yield* Deferred.make<void>(),
+		stuck: Option.none<"first" | "always">(),
 		testing: makePgBossTesting({ retryPolicy: testRetryPolicy }),
 		worker: false,
+		workerIds,
 	};
 }

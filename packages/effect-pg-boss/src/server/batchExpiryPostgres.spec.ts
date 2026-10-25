@@ -1,4 +1,6 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { defineSchedule } from "#definition.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
 
 postgresIt("interrupts at the fetch deadline, leaves waiting jobs for expiry, and never overlaps retries", [realPostgres], function* ({ budgets }) {
@@ -26,3 +28,22 @@ postgresIt("interrupts at the fetch deadline, leaves waiting jobs for expiry, an
 	expect(budgets.finished).toEqual([0]);
 	expect(stored.filter((job) => job.data.id !== 0).every((job) => job.retryCount === 1)).toBe(true);
 });
+
+postgresIt(
+	"interrupts a scheduled effect at its deadline and leaves its failure to pg-boss",
+	[realPostgres],
+	function* ({ boot, native, untilJobs }) {
+		const schedule = defineSchedule({ cron: "0 * * * *", name: "scheduled-expiry", queue: { expireInSeconds: 1, retryLimit: 0 } });
+		const client = native();
+		let interrupted = false;
+		const recordInterruption = Effect.sync(() => {
+			interrupted = true;
+		});
+		const worker = schedule.run(Effect.never.pipe(Effect.onInterrupt(() => recordInterruption)));
+		yield* boot([worker], { clientFactory: () => client });
+		yield* Effect.promise(() => client.send(schedule.name));
+		const stored = yield* untilJobs(client, schedule.name, (jobs) => jobs.length === 1 && jobs[0]?.state === "failed");
+		expect(interrupted).toBe(true);
+		expect(stored).toMatchObject([{ output: { message: "handler execution exceeded 1s" }, retryCount: 0, state: "failed" }]);
+	},
+);
