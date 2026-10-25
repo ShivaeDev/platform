@@ -1,12 +1,13 @@
 import { Effect, Schema, SchemaIssue } from "effect";
 import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
+import { type TupleFilter, tuplePredicate } from "#tupleIn.ts";
 
 export type RepositoryFilter<TModel extends Model.Any> = {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?: Schema.Struct.Type<TModel["fields"]>[TField] | undefined;
 };
 
-export type RepositoryListFilter<TModel extends Model.Any> = {
+export type RepositoryListFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
 		| Schema.Struct.Type<TModel["fields"]>[TField]
 		| { readonly in: readonly Schema.Struct.Type<TModel["fields"]>[TField][] }
@@ -20,7 +21,7 @@ type Comparisons<T> = [NonNullable<T>] extends [OrderedValue]
 	: { readonly gt?: never; readonly gte?: never; readonly lt?: never; readonly lte?: never };
 type Pattern<T> = [NonNullable<T>] extends [string] ? { readonly like?: NonNullable<T> } : { readonly like?: never };
 
-export type FindManyFilter<TModel extends Model.Any> = {
+export type FindManyFilter<TModel extends Model.Any> = Partial<TupleFilter<TModel>> & {
 	readonly [TField in keyof Schema.Struct.Type<TModel["fields"]>]?:
 		| Schema.Struct.Type<TModel["fields"]>[TField]
 		| (Comparisons<Schema.Struct.Type<TModel["fields"]>[TField]> & Pattern<Schema.Struct.Type<TModel["fields"]>[TField]>)
@@ -66,14 +67,20 @@ export function makeFilter<TModel extends Model.Any>(model: TModel, sql: SqlClie
 				: Effect.map(encode(value), (encoded) => (encoded === null ? sql`${sql(key)} is null` : sql`${sql(key)} = ${encoded}`));
 		});
 	}
-	function where(input: Readonly<Record<string, unknown>> = {}, allowIn = false, allowComparisons = false) {
-		return Effect.map(
-			Effect.forEach(
+	function where(input: Readonly<Record<string, unknown>> & Partial<TupleFilter<Model.Any>> = {}, allowIn = false, allowComparisons = false) {
+		return Effect.gen(function* () {
+			const predicates = yield* Effect.forEach(
 				Object.entries(input).filter(([, value]) => value !== undefined),
 				([key, value]) => predicate(key, value, allowIn, allowComparisons),
-			),
-			(predicates) => sql.and(predicates),
-		);
+			);
+			if (allowIn) {
+				const tuple = yield* tuplePredicate(input, sql, fieldAt);
+				if (tuple !== undefined) {
+					predicates.push(tuple);
+				}
+			}
+			return sql.and(predicates);
+		});
 	}
 	return { fieldAt, where };
 }

@@ -13,6 +13,7 @@ export function repositoryWrites(
 	const { idColumns, tableName, spanPrefix } = options;
 	const { where } = makeFilter(model, sql);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
+	const filterRecord = Schema.decodeUnknownEffect(Schema.Record(Schema.PropertyKey, Schema.Unknown));
 	function predicate(input: Readonly<Record<string, unknown>>) {
 		return sql.and(idColumns.map((column) => sql`${sql(column)} = ${input[column]}`));
 	}
@@ -49,7 +50,7 @@ export function repositoryWrites(
 	function remove(input: unknown) {
 		return idColumns.length === 1 && isKey(input)
 			? removeByKey(input)
-			: Effect.flatMap(record(input), (filter) =>
+			: Effect.flatMap(filterRecord(input), (filter) =>
 					Effect.flatMap(where(filter, true), (clause) =>
 						sql`delete from ${sql(tableName)} where ${clause} returning *`.pipe(Effect.tap(changes.record), Effect.asVoid),
 					),

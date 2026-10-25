@@ -157,6 +157,22 @@ yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 
 Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
 
+Use `tupleIn` to match several fields together against a list of tuples:
+
+```ts
+import { tupleIn } from "@shivaedev/effect-sql/tupleIn.ts";
+
+yield* lines.findMany({
+  where: {
+    ...tupleIn(InvoiceLine, ["name", "amount"], [["Consulting", 52], ["Travel", 20]]),
+    note: null,
+  },
+  select: ["name", "amount"],
+});
+```
+
+Each tuple matches all its fields together, so this filter does not match `("Consulting", 20)`. The field list has at least two model fields, and each tuple's length and decoded types follow that list. Every value passes through its field codec. Spread the filter beside other entries to combine them with `AND`, or pass it directly as `where`. The same filter works in `select` and unversioned `delete`. An empty tuple list matches nothing, including deleting no rows. Large lists keep every value in a bound parameter.
+
 Use `gt`, `gte`, `lt` and `lte` for exclusive or inclusive bounds, and `like` for a text pattern:
 
 ```ts
