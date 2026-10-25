@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { deployment } from "#test-support/deployment.ts";
+import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
 const SUCCESS_EXIT = 0;
 
-deployment.it(
+notesDeployment.it(
 	"a killed old worker stops blocking the owning release after its heartbeat expires",
 	[],
-	function* ({ startProcess, signUpAt, notesAt, holdNoteJob }) {
+	function* ({ startProcess, signUpAt, notesAt, holdJob }) {
 		const oldRelease = { "RAILWAY_GIT_COMMIT_SHA": "crashed" };
 		const newRelease = { "RAILWAY_GIT_COMMIT_SHA": "replacement" };
 		const migration = yield* startProcess("migrate", 0, oldRelease);
@@ -17,7 +17,7 @@ deployment.it(
 		const session = yield* signUpAt(web.url, "crash");
 		const notes = yield* notesAt(web.url, session.cookie);
 		const first = yield* notes["notes.create"]({ title: "Interrupted by crash" });
-		const held = yield* holdNoteJob(first.id);
+		const held = yield* holdJob(first.id);
 		const oldWorker = yield* startProcess("worker", 0, oldRelease);
 		yield* oldWorker.ready;
 		yield* held.blocked;

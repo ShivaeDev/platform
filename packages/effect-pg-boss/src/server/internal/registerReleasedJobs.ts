@@ -5,7 +5,7 @@ import type { JobRegistration } from "#definition.ts";
 import { toPgBossError } from "#error.ts";
 import { registerJobs, registrationName } from "./register.ts";
 
-export const registerReleasedJobs = Effect.fn("PgBoss.registerReleasedJobs")(function* <R>(
+export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	client: PgBossClient,
 	jobs: readonly JobRegistration[],
 	context: Context.Context<R>,

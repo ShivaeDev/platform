@@ -1,13 +1,13 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { deployment } from "#test-support/deployment.ts";
+import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
 const SUCCESS_EXIT = 0;
 
-deployment.it(
+notesDeployment.it(
 	"waits for its release, drains the old worker before taking over, and resumes on rollback",
 	[],
-	function* ({ startProcess, signUpAt, notesAt, holdNoteJob }) {
+	function* ({ startProcess, signUpAt, notesAt, holdJob }) {
 		const oldRelease = { "RAILWAY_GIT_COMMIT_SHA": "old" };
 		const newRelease = { "RAILWAY_GIT_COMMIT_SHA": "new" };
 		const migration = yield* startProcess("migrate", 0, oldRelease);
@@ -17,7 +17,7 @@ deployment.it(
 		const session = yield* signUpAt(web.url, "handoff");
 		const notes = yield* notesAt(web.url, session.cookie);
 		const first = yield* notes["notes.create"]({ title: "Old release finishes" });
-		const held = yield* holdNoteJob(first.id);
+		const held = yield* holdJob(first.id);
 		const oldWorker = yield* startProcess("worker", 0, oldRelease);
 		yield* oldWorker.ready;
 		yield* held.blocked;

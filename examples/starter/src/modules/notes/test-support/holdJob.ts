@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
 
-export const holdNoteJob = Effect.fn("DeploymentStory.holdNoteJob")(function* (noteId: number) {
+export const holdJob = Effect.fn("DeploymentStory.holdJob")(function* (noteId: number) {
 	const sql = yield* SqlClient.SqlClient;
 	const connection = yield* sql.reserve;
 	yield* Effect.acquireRelease(connection.executeRaw("BEGIN", []), () => connection.executeRaw("ROLLBACK", []).pipe(Effect.orDie));

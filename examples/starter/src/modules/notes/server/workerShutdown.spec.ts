@@ -1,13 +1,13 @@
 import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
-import { deployment } from "#test-support/deployment.ts";
+import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
 const SUCCESS_EXIT = 0;
 
-deployment.it(
+notesDeployment.it(
 	"SIGTERM lets an active CountWords job finish before the worker exits cleanly",
 	[],
-	function* ({ startProcess, signUpAt, notesAt, holdNoteJob }) {
+	function* ({ startProcess, signUpAt, notesAt, holdJob }) {
 		const release = { "RAILWAY_GIT_COMMIT_SHA": "shutdown" };
 		const migration = yield* startProcess("migrate", 0, release);
 		expect(yield* migration.child.exitCode).toBe(SUCCESS_EXIT);
@@ -16,7 +16,7 @@ deployment.it(
 		const session = yield* signUpAt(web.url, "shutdown");
 		const notes = yield* notesAt(web.url, session.cookie);
 		const note = yield* notes["notes.create"]({ title: "Finish before stopping" });
-		const held = yield* holdNoteJob(note.id);
+		const held = yield* holdJob(note.id);
 		const worker = yield* startProcess("worker", 0, release);
 		yield* worker.ready;
 		yield* held.blocked;
