@@ -1,5 +1,6 @@
 import type { Deferred, Effect } from "effect";
 import type { FleetRecord } from "#model.ts";
+import type { SessionReceipt } from "#session/schema.ts";
 import type { activeTurn } from "#test/activeTurn.ts";
 import type { EngineStory } from "#test/engineState.ts";
 
@@ -12,6 +13,7 @@ export interface EngineTiming {
 	recoveries: number;
 	resume?: Deferred.Deferred<void>;
 	sessionReached?: Deferred.Deferred<void>;
+	steerRequests?: { readonly receipt: SessionReceipt; readonly prompt: string }[];
 	steers: number;
 	turnReached?: Deferred.Deferred<void>;
 }

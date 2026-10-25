@@ -30,7 +30,12 @@ engine.it(
 		const reconciled = yield* fleet.reconcile("one");
 		expect(reconciled.value.history?.[0]?.supersededDecisions?.[0]?.boardAcknowledged).toBe(true);
 		expect(reconciled.value.history?.[0]?.decisionAcknowledged).toBe(true);
-		expect(acknowledgements()).toHaveLength(2);
-		expect(acknowledgements().filter((acknowledgement) => acknowledgement.decision.request === old.decision.id)).toHaveLength(1);
+		expect(acknowledgements()).toMatchObject([
+			{ decision: old.published, disposition: "superseded" },
+			{ decision: reassigned.value.decision?.published, disposition: "superseded" },
+		]);
+		expect(acknowledgements().filter((acknowledgement) => acknowledgement.decision.request === old.decision.id)).toMatchObject([
+			{ decision: old.published, disposition: "superseded" },
+		]);
 	},
 );

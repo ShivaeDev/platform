@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { backlog, executing } from "#model.ts";
-import { HEAD, MOVED } from "#test/githubResult.ts";
+import { HEAD, MOVED, PR } from "#test/githubResult.ts";
 import { recoveryCaseGroups } from "#test/recoveryCases.ts";
 import { recoveryMatrix, recoveryRow } from "#test/recoveryMatrix.ts";
 
@@ -129,14 +129,12 @@ for (const action of ["retry", "release"] as const) {
 						break;
 					}
 					case "observe-recovered-delivery": {
-						const singleObservation = 1;
-						expect(recovery.observations?.deliveries).toBe(singleObservation);
+						expect(recovery.observations?.acceptedDeliveries).toEqual([{ head: HEAD, revision: HEAD, url: PR }]);
 						expect(after.step).toBe("done");
 						break;
 					}
 					case "observe-valid-delivery": {
-						const singleObservation = 1;
-						expect(recovery.observations?.reads).toBe(singleObservation);
+						expect(recovery.observations?.readPullRequests).toEqual([PR]);
 						expect(after.step).toBe("done");
 						break;
 					}

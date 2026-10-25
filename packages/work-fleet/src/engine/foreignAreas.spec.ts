@@ -18,9 +18,11 @@ for (const match of ["pr", "branch", "worker-branch", "unmatched"] as const) {
 		yield* fleet.dispatch("one");
 		expect((yield* fleet.get("one")).value).toMatchObject({ blocker: expect.stringContaining("held by https://github.com/"), step: "queued" });
 		expect((yield* fleet.dispatch("two"))._tag).toBe("Success");
-		expect(fleet.launches()).toHaveLength(1);
+		const two = (yield* fleet.get("two")).value;
+		expect(two).toMatchObject({ attempts: [{ role: "worker" }], step: "working" });
+		expect(fleet.launches()).toEqual(two.attempts.map(({ operationId }) => operationId));
 		fleet.prReadFails();
-		expect(yield* fleet.admit()).toHaveLength(1);
+		expect(yield* fleet.admit()).toEqual([expect.stringContaining("https://github.com/synthetic/project/pull/10")]);
 		yield* fleet.dispatch("one");
 		expect((yield* fleet.get("one")).value.step).toBe("queued");
 		fleet.pr("closed");
@@ -28,6 +30,8 @@ for (const match of ["pr", "branch", "worker-branch", "unmatched"] as const) {
 		expect(yield* fleet.reservations()).toEqual([]);
 		expect((yield* fleet.dispatch("one"))._tag).toBe("Success");
 		expect((yield* fleet.get("one")).value.step).toBe("working");
-		expect(fleet.launches()).toHaveLength(2);
+		const one = (yield* fleet.get("one")).value;
+		expect(one.attempts).toMatchObject([{ role: "worker" }]);
+		expect(fleet.launches()).toEqual([...two.attempts, ...one.attempts].map(({ operationId }) => operationId));
 	});
 }

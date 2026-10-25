@@ -14,7 +14,7 @@ const providerWithoutSteering = engineConfiguration("provider without steering",
 isolatedEngine.it(
 	"an interrupted steer keeps its durable intent and revised review without replay",
 	[markdownWork(), pausedSteer(false, true)],
-	function* ({ boardBrief, writeBoardWork, steerCalls, waitForTimingGate, finishWorkers, prepareWork, restart, fleet }) {
+	function* ({ boardBrief, writeBoardWork, steerRequests, waitForTimingGate, finishWorkers, prepareWork, restart, fleet }) {
 		const source = boardBrief();
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
@@ -29,7 +29,9 @@ isolatedEngine.it(
 		expect(renderStatus(views([pending.value]))).toContain("delivery unconfirmed");
 		yield* restart();
 		yield* Effect.suspend(() => fleet.reconcile("one"));
-		expect(steerCalls()).toBe(1);
+		expect(steerRequests()).toMatchObject([
+			{ prompt: expect.stringContaining("Full new brief:"), receipt: { sessionId: "session-operation-1", turnId: "turn-operation-1" } },
+		]);
 		finishWorkers();
 		const review = yield* fleet.reconcile("one");
 		expect(review.value.attempts.at(-1)?.prompt).toContain(taskPrompt(current));
@@ -73,10 +75,13 @@ engine.it(
 		expect(repair.value.attempts.at(-1)?.role).toBe("repair");
 		writeBoardWork("one.md", current);
 		const revised = yield* fleet.reconcile("one");
-		expect(steeredTurns()).toHaveLength(3);
-		expect(steeredTurns().at(-1)?.receipt).toEqual(repair.value.attempts.at(-1)?.receipt);
+		expect(steeredTurns()).toMatchObject([
+			{ prompt: expect.stringContaining(current), receipt: worker.value.attempts[0]?.receipt },
+			{ prompt: expect.stringContaining(source), receipt: worker.value.attempts[0]?.receipt },
+			{ prompt: expect.stringContaining(current), receipt: repair.value.attempts.at(-1)?.receipt },
+		]);
 		expect(steeredTurns().at(-1)?.receipt.turnId).not.toBe(worker.value.attempts[0]?.receipt?.turnId);
-		expect(revised.value.attempts.at(-1)?.briefSteers).toHaveLength(1);
+		expect(revised.value.attempts.at(-1)?.briefSteers).toMatchObject([{ revision: revised.value.boardRevision, steeredAt: 100 }]);
 	},
 );
 

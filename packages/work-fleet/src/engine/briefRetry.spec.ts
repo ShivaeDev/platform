@@ -36,7 +36,17 @@ engine.it(
 engine.it(
 	"an edited brief is approved while its worker answer waits for quota",
 	[markdownWork(), oneSubmissionOfQuota],
-	function* ({ boardBrief, boardReceipts, writeBoardWork, answerWorker, restartWithPolicy, providerCalls, workerQuestion, prepareWork, fleet }) {
+	function* ({
+		boardBrief,
+		boardReceiptRecords,
+		writeBoardWork,
+		answerWorker,
+		restartWithPolicy,
+		providerCalls,
+		workerQuestion,
+		prepareWork,
+		fleet,
+	}) {
 		const source = boardBrief();
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
@@ -60,7 +70,11 @@ engine.it(
 		expect(continued.value.boardContext).toBe(current);
 		expect(continued.value.responses).toMatchObject([{ action: "continue", boardAcknowledged: true }]);
 		expect(continued.value.attempts.at(-1)?.prompt).toContain(current);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
-		expect(boardReceipts()).toHaveLength(1);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(["operation-1", "operation-2"]);
+		expect(boardReceiptRecords()).toMatchObject([{ disposition: "applied", question: decision.published.questionId }]);
 	},
 );

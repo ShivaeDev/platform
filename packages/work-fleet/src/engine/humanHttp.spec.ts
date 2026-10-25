@@ -47,11 +47,11 @@ engine.it(
 		const input = { decisionId: decision.id, responseId: answer.id, workId: "one" };
 		yield* rpcResolve(input);
 		expect((yield* rpcReconcile("one")).step).toBe("done");
-		expect((yield* rpcResolve(input)).responses).toHaveLength(1);
+		expect((yield* rpcResolve(input)).responses).toMatchObject([{ questionRevision: published.revision, responseId: answer.id }]);
 		yield* restart();
 		expect((yield* fleet.resolve("one", decision.id, answer.id)).value.step).toBe("done");
 		expect((yield* fleet.get("one")).value.responses?.[0]?.questionRevision).toBe(published.revision);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		expect(readBoardWork()).toBe(
 			boardBrief().replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; no change needed."\n'),
 		);
@@ -82,6 +82,6 @@ engine.it(
 		expect(denied.value.responses?.[0]?.responseId).toBe("response.cannot.grant");
 		expect(denied.value.decision?.id).not.toBe(blocked.value.decision?.id);
 		expect(mergedHeads()).toHaveLength(0);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );
