@@ -8,10 +8,3 @@
 {"path":"packages/test-story/src/server/otlpExport.spec.ts","rule":"tests/named-values","count":7}
 {"path":"packages/test-story/src/server/runUntil.spec.ts","rule":"tests/named-values","count":9}
 {"path":"packages/test-story/src/server/unlocatedFailure.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/test-story/src/test-support/disabledStories.ts","rule":"tests/no-expect-in-support","count":1}
-{"path":"packages/test-story/src/test-support/enabledStories.ts","rule":"tests/no-expect-in-support","count":1}
-{"path":"packages/test-story/src/test-support/failingStories.ts","rule":"tests/no-expect-in-support","count":6}
-{"path":"packages/test-story/src/test-support/genreStories.ts","rule":"tests/no-expect-in-support","count":2}
-{"path":"packages/test-story/src/test-support/onlyStories.ts","rule":"tests/no-expect-in-support","count":1}
-{"path":"packages/test-story/src/test-support/scopedStories.ts","rule":"tests/no-expect-in-support","count":1}
-{"path":"packages/test-story/src/test-support/skippedStories.ts","rule":"tests/no-expect-in-support","count":1}
