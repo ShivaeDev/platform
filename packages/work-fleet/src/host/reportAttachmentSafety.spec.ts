@@ -1,6 +1,7 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { REPORT_LIMITS } from "#reportLimits.ts";
+import { HEAD } from "#test/githubResult.ts";
 import { addedAttachment } from "#test/reportAttachments.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
@@ -38,7 +39,7 @@ for (const scenario of cases) {
 			if (observation === undefined) {
 				throw new Error("No report worker");
 			}
-			const output = "Report with attachments\nFLEET_ATTACHMENT: file.txt";
+			const output = `Report with attachments\nFLEET_ATTACHMENT: file.txt\nFLEET_HEAD: ${HEAD}`;
 			daemon.finishTurn(started.value, output);
 			const result = yield* daemon.reconcile("research");
 

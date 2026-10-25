@@ -12,4 +12,13 @@ const terminalBriefRecoveryStory = {
 	spec: "approvedTerminalBrief.spec.ts",
 };
 
-export const recoveryStories = [publicationRecoveryStory, terminalBriefRecoveryStory];
+export const recoveryStories = [
+	publicationRecoveryStory,
+	terminalBriefRecoveryStory,
+	{
+		code: "report-revision",
+		name: "stale research is refused and can be safely released after restart",
+		sites: ['engine/completeReport.ts: "report-revision"'],
+		spec: "reportCurrentMain.spec.ts",
+	},
+];

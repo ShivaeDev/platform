@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { HEAD } from "#test/githubResult.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 
 const SOURCE = "---\nid: one\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
@@ -16,7 +17,7 @@ host.it("report questions continue read-only research and record the final answe
 		throw new Error("Expected the report answer turn receipt");
 	}
 	expect(receipt.sessionId).toBe(decision.worker?.sessionId);
-	daemon.finishTurn(resumed, "# Findings after the answer\n");
+	daemon.finishTurn(resumed, `# Findings after the answer\nFLEET_HEAD: ${HEAD}`);
 	const completed = yield* daemon.reconcile("one");
 	expect(completed.step).toBe("done");
 	expect(completed.report?.receipt).toEqual(receipt);
