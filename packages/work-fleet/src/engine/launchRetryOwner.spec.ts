@@ -22,7 +22,7 @@ engine.it(
 		fleet.recoverProvider();
 		fleet.advanceTime(30_099 - fleet.currentTime());
 		expect((yield* fleet.dispatch("one")).value.attentionOwner).toBe("automation");
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 		fleet.advanceTime(30_100 - fleet.currentTime());
 		const accepted = (yield* fleet.dispatch("one")).value;
 		expect(accepted.step).toBe("working");
@@ -31,6 +31,6 @@ engine.it(
 		const active = yield* fleet.rpcViews();
 		expect(active.active).toMatchObject([{ stage: "working", workId: "one" }]);
 		expect(active.waiting.automation).toEqual([]);
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );

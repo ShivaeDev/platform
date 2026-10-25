@@ -30,7 +30,7 @@ describe("Fleet launch backpressure", () => {
 				fleet.advanceTime(30_099 - fleet.currentTime());
 				yield* fleet.restart();
 				yield* fleet.schedule();
-				expect(fleet.launches()).toHaveLength(1);
+				expect(fleet.launches()).toEqual(["operation-1"]);
 				fleet.advanceTime(30_100 - fleet.currentTime());
 				yield* fleet.restart();
 				yield* fleet.schedule();
@@ -38,7 +38,7 @@ describe("Fleet launch backpressure", () => {
 				expect(accepted.step).toBe("working");
 				expect(accepted.launchRetry).toBeUndefined();
 				expect(accepted.attempts.at(-1)?.receipt).toBeDefined();
-				expect(fleet.launches()).toHaveLength(rejectedCall === "turn" ? 1 : 2);
+				expect(fleet.launches()).toEqual(rejectedCall === "turn" ? ["operation-1"] : ["operation-1", "operation-2"]);
 				if (rejectedCall === "turn") {
 					expect(accepted.attempts.at(-1)?.receipt?.sessionId).toBe(queued.attempts[0]?.sessionId);
 				}
@@ -51,11 +51,13 @@ describe("Fleet launch backpressure", () => {
 		yield* fleet.prepareWork("two");
 		for (const delay of [30_000, 60_000, 120_000, 240_000]) {
 			const pass = yield* fleet.schedule();
-			expect(pass.dispatched).toHaveLength(1);
+			expect(pass.dispatched).toMatchObject([
+				{ _tag: "Success", success: { value: { launchRetry: { retryAt: fleet.currentTime() + delay }, workId: "one" } } },
+			]);
 			const records = (yield* fleet.list()).map(({ value }) => value);
 			const retry = records.find((record) => record.launchRetry !== undefined)?.launchRetry;
 			expect(retry?.retryAt).toBe(fleet.currentTime() + delay);
-			expect(records.filter((record) => record.attempts.length === 0)).toHaveLength(1);
+			expect(records.filter((record) => record.attempts.length === 0).map(({ workId }) => workId)).toEqual(["two"]);
 			const calls = fleet.launches().length;
 			fleet.advanceTime(delay - 1);
 			yield* fleet.restart();
@@ -64,20 +66,26 @@ describe("Fleet launch backpressure", () => {
 			fleet.advanceTime(1);
 		}
 		fleet.recoverProvider();
-		expect((yield* fleet.schedule()).dispatched).toHaveLength(2);
+		expect((yield* fleet.schedule()).dispatched).toMatchObject([
+			{ _tag: "Success", success: { value: { workId: "one" } } },
+			{ _tag: "Success", success: { value: { workId: "two" } } },
+		]);
 		expect((yield* fleet.list()).map(({ value }) => value.step)).toEqual(["working", "working"]);
 		expect(fleet.publishedDecisions()).toEqual([]);
 	});
 	engine.it("a permanent rejection reaches waiting without stopping other launches", [permanentProviderRejection()], function* (fleet) {
 		yield* fleet.prepareWork("one");
 		yield* fleet.prepareWork("two");
-		expect((yield* fleet.schedule()).dispatched).toHaveLength(2);
+		expect((yield* fleet.schedule()).dispatched).toMatchObject([
+			{ _tag: "Success", success: { value: { workId: "one" } } },
+			{ _tag: "Success", success: { value: { workId: "two" } } },
+		]);
 		expect((yield* fleet.get("one")).value).toMatchObject({
 			decision: { code: "session-rejected", reason: QUEUE_FULL },
 			step: "waiting",
 		});
 		expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-		expect(fleet.publishedDecisions()).toHaveLength(2);
+		expect(fleet.publishedDecisions()).toEqual([(yield* fleet.get("one")).value.decision?.reason, (yield* fleet.get("two")).value.decision?.reason]);
 	});
 	engine.it("an ambiguous queue-full message retains ownership without resubmitting", [ambiguousProviderRejection()], function* (fleet) {
 		yield* fleet.prepareWork("one");
@@ -86,7 +94,7 @@ describe("Fleet launch backpressure", () => {
 		expect(submitted.launchRetry).toBeUndefined();
 		yield* fleet.restart();
 		yield* fleet.schedule();
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 	});
 	engine.it(
 		"retry checks current Board context and replaces capacity waiting with the human blocker",
@@ -103,7 +111,7 @@ describe("Fleet launch backpressure", () => {
 			expect(status).toContain("Waiting on you (1)");
 			expect(status).toContain("Work is no longer approved");
 			expect(status).not.toContain("Waiting for provider capacity");
-			expect(fleet.launches()).toHaveLength(1);
+			expect(fleet.launches()).toEqual(["operation-1"]);
 		},
 	);
 });

@@ -6,23 +6,24 @@ import { engine } from "#test/engineStory.ts";
 engine.it(
 	"the default merge wait frees areas after thirty minutes and continues observing delivery across restart",
 	[humanMergeCanArriveLate()],
-	function* ({ fleet, prepareWork, finishWorkers, restart, setAreas, advanceTime, mergePullRequest }) {
+	function* ({ fleet, prepareWork, finishWorkers, restart, setAreas, advanceTime, currentTime, mergePullRequest }) {
 		setAreas("one", ["fleet/host"]);
 		setAreas("two", ["fleet/host"]);
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		yield* fleet.dispatch("one");
 		finishWorkers();
+		const readyAt = currentTime();
 		expect((yield* fleet.reconcile("one")).value).toMatchObject({
 			attentionOwner: "orchestrator",
 			decision: { attentionOwner: "orchestrator" },
-			mergeReadyAt: 100,
+			mergeReadyAt: readyAt,
 			mergeReadyHead: "head-one-0",
 			step: "waiting",
 		});
 		advanceTime(1_800_000 - 1);
 		yield* fleet.reconcile("one");
-		expect((yield* fleet.get("one")).value.mergeReadyAt).toBe(100);
+		expect((yield* fleet.get("one")).value.mergeReadyAt).toBe(readyAt);
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		advanceTime(1);
@@ -46,9 +47,10 @@ engine.it(
 		yield* prepareWork("one");
 		yield* prepareWork("two");
 		yield* fleet.dispatch("one");
-		advanceTime(20_000 - currentTime());
+		const readyAt = 20_000;
+		advanceTime(readyAt - currentTime());
 		finishWorkers();
-		expect((yield* fleet.reconcile("one")).value.mergeReadyAt).toBe(20_000);
+		expect((yield* fleet.reconcile("one")).value.mergeReadyAt).toBe(readyAt);
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		expect((yield* fleet.get("two")).value.step).toBe("queued");
 		advanceTime(5000);

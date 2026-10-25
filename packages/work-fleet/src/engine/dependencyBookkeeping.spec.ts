@@ -36,7 +36,7 @@ engine.it(
 		finishWorkers();
 		yield* restart();
 		expect((yield* fleet.reconcile("dependent")).value.step).toBe("done");
-		expect(reviewedHeads()).toHaveLength(2);
+		expect(reviewedHeads()).toEqual(["current-main", "current-main"]);
 	},
 );
 

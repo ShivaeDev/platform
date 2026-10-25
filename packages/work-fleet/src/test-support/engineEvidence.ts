@@ -13,6 +13,7 @@ export function engineEvidence(state: EngineStory) {
 		mergedHeads: () => [...fixture().merged],
 		providerCalls: () => structuredClone(fixture().settings),
 		providerOperationCount: () => fixture().operations.size,
+		providerOperations: () => [...fixture().operations.keys()],
 		providerStarts: () => structuredClone(fixture().starts),
 		publishedDecisions: () => [...fixture().decisions],
 		reviewedHeads: () => [...fixture().reviews],

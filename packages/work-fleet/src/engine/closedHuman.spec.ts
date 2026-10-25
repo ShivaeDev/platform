@@ -34,7 +34,11 @@ for (const status of ["done", "dropped", "deferred", "dropped"]) {
 				expect(released.value.attempts[0]).toMatchObject({ sessionUnusable: true, status: "failed" });
 				expect(released.value.attempts[0]?.receipt).toEqual(waiting.value.attempts[0]?.receipt);
 				expect((yield* fleet.reconcile("one")).version).toBe(released.version);
-				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+				expect(
+					providerCalls()
+						.filter((call) => call.call === "turn")
+						.map(({ operationId }) => operationId),
+				).toEqual(["operation-1"]);
 				expect(providerRequests()).not.toContain("turn/start");
 				expect(
 					providerRecoveries()
