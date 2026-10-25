@@ -24,7 +24,7 @@ storyEngineStory.it(
 		if (!engine) {
 			throw new Error("The story never acquired its project");
 		}
-		expect(Exit.isFailure(exit)).toBe(true);
+		expect(exit).toEqual(Exit.fail("the reader's assertion failed"));
 		expect(existsSync(engine.notes.root)).toBe(false);
 		expect(connected(engine).page.document.body.innerHTML).toBe("");
 		expect(inspectBoard(engine)).toMatchObject({ inbox: ["1", "1"], text: expect.stringContaining("Where should the project documents live?") });
