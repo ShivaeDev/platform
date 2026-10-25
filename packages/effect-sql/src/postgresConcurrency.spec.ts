@@ -46,7 +46,13 @@ postgres.it("PostgreSQL concurrent writers produce exactly one winner and one ty
 	const losers = outcomes.filter(Result.isFailure);
 	expect(winners.map(({ success }) => success)).toEqual([{ ...original, lockVersion: 1, name: expect.stringMatching(/^Writer [01]$/u) }]);
 	expect(losers.map(({ failure }) => failure)).toEqual([
-		expect.objectContaining({ _tag: "OptimisticConcurrencyError", expectedVersion: original.lockVersion, id: original.id, tableName }),
+		expect.objectContaining({
+			_tag: "OptimisticConcurrencyError",
+			expectedVersion: original.lockVersion,
+			id: original.id,
+			reason: "stale",
+			tableName,
+		}),
 	]);
 	expect(yield* documents.findById(original.id)).toEqual(winners[0]?.success);
 });
@@ -57,14 +63,14 @@ postgres.it("PostgreSQL versioned deletes reject stale and missing rows", [hasVe
 	const updated = yield* documents.update({ ...original, name: "Published" });
 	const stale = yield* documents.delete(original.id, original.lockVersion).pipe(Effect.flip);
 	expect(stale).toBeInstanceOf(OptimisticConcurrencyError);
-	expect(stale).toMatchObject({ expectedVersion: 0, id: original.id, tableName });
+	expect(stale).toMatchObject({ expectedVersion: 0, id: original.id, reason: "stale", tableName });
 	expect(yield* documents.findById(original.id)).toEqual(updated);
 	yield* documents.delete(updated.id, updated.lockVersion);
 	expect(yield* documents.findMany()).toEqual([]);
 	const missing = yield* documents.delete(updated.id, updated.lockVersion).pipe(Effect.flip);
-	expect(missing).toBeInstanceOf(OptimisticConcurrencyError);
+	expect(missing).toMatchObject({ _tag: "OptimisticConcurrencyError", reason: "missing" });
 	const missingUpdate = yield* documents.update(updated).pipe(Effect.flip);
-	expect(missingUpdate).toBeInstanceOf(OptimisticConcurrencyError);
+	expect(missingUpdate).toMatchObject({ _tag: "OptimisticConcurrencyError", reason: "missing" });
 });
 
 postgres.it(
@@ -81,6 +87,26 @@ postgres.it(
 		expect(stale).toBeInstanceOf(OptimisticConcurrencyError);
 		yield* sql`delete from ${sql(tableName)}`;
 		const missing = yield* documents.updateVoid({ ...original, lockVersion: 1 }).pipe(Effect.flip);
-		expect(missing).toBeInstanceOf(OptimisticConcurrencyError);
+		expect(missing).toMatchObject({ _tag: "OptimisticConcurrencyError", reason: "missing" });
+	},
+);
+
+postgres.it(
+	"scalar versioned repositories can insertOrIgnore without resetting a version",
+	[hasVersionedDocuments()],
+	function* ({ versions, makeRepository, sql }) {
+		const { tableName } = versions();
+		yield* sql`create unique index ${sql(`${tableName}_name`)} on ${sql(tableName)} (name)`;
+		const documents = yield* makeRepository(Document, {
+			conflictColumns: ["name"],
+			idColumn: "id",
+			spanPrefix: "Document",
+			tableName,
+			versionColumn: "lockVersion",
+		});
+		const created = yield* documents.insertOrIgnore({ name: "Draft" });
+		expect(created).toMatchObject({ _tag: "Some", value: { lockVersion: 0, name: "Draft" } });
+		expect(yield* documents.insertOrIgnore({ name: "Draft" })).toMatchObject({ _tag: "None" });
+		expect(yield* documents.findMany()).toEqual([{ id: 1, lockVersion: 0, name: "Draft" }]);
 	},
 );
