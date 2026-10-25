@@ -12,14 +12,22 @@ import { engineEvidence } from "#test/engineEvidence.ts";
 import { engineGithubVerbs } from "#test/engineGithubVerbs.ts";
 import { engineLaunchVerbs } from "#test/engineLaunchVerbs.ts";
 import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
+import { engineNativeVerbs } from "#test/engineNativeVerbs.ts";
 import { enginePredictionVerbs } from "#test/enginePredictionVerbs.ts";
 import { engineProviderVerbs } from "#test/engineProviderVerbs.ts";
+import { enginePublicationVerbs } from "#test/enginePublicationVerbs.ts";
+import { engineRaceVerbs } from "#test/engineRaceVerbs.ts";
+import { engineRecoveryVerbs } from "#test/engineRecoveryVerbs.ts";
+import { engineReportVerbs } from "#test/engineReportVerbs.ts";
+import { engineRetryVerbs } from "#test/engineRetryVerbs.ts";
 import { engineRpcVerbs } from "#test/engineRpcVerbs.ts";
 import { engineSchedulingVerbs } from "#test/engineSchedulingVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { engineStatusVerbs } from "#test/engineStatusVerbs.ts";
 import { engineSweepVerbs } from "#test/engineSweepVerbs.ts";
 import { engineWorldVerbs } from "#test/engineWorldVerbs.ts";
+import { reportFailureVerbs } from "#test/reportFailureVerbs.ts";
+import { sessionNamingVerbs } from "#test/sessionNamingVerbs.ts";
 
 export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect.Effect<void, unknown>>) {
 	function provideFleet<A, E, R>(effect: Effect.Effect<A, E, R>) {
@@ -110,6 +118,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 	};
 	return {
 		...verbs,
+		publications: enginePublicationVerbs(state, story.tell),
 		...engineProviderVerbs(running(state).fixture, story.tell),
 		...enginePredictionVerbs(state, story.tell),
 		...engineEvidence(state),
@@ -119,11 +128,19 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineWorldVerbs(state, story.tell),
 		...engineGithubVerbs(state, story.tell),
 		...engineRpcVerbs(state, story.tell),
+		...engineRecoveryVerbs(state, story.tell),
+		...engineRetryVerbs(state, story.tell),
+		...reportFailureVerbs(state, story.tell),
+		...sessionNamingVerbs(state, story.tell),
+		...engineReportVerbs(state, story.tell),
+		...engineRaceVerbs(state, story.tell),
+		...engineNativeVerbs(state, story.tell),
 		...engineLostTurnVerbs(state, story.tell),
 		...engineStatusVerbs(state, story.tell),
 		...engineLaunchVerbs(state, story.tell),
 		...engineSweepVerbs(state, story.tell),
 		fleet: {
+			...running(state).fleet,
 			continue: verbs.continueWork,
 			dispatch: verbs.dispatch,
 			get: verbs.get,
@@ -136,7 +153,8 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		schedule: () =>
 			Effect.suspend(() => {
 				story.tell("run one Fleet scheduler cycle");
-				return provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
+				const scheduled = provideFleet(cycle).pipe(Effect.provide(state.logs.layer));
+				return state.publicationContext === undefined ? scheduled : scheduled.pipe(Effect.provideContext(state.publicationContext));
 			}),
 	};
 }

@@ -1,47 +1,44 @@
-import { Effect } from "effect";
-import type { FleetRepository } from "#engine/repository.ts";
-import type { FleetRecord } from "#model.ts";
-import type { Versioned } from "#storage/model.ts";
+import { Effect, Layer } from "effect";
+import { FleetRepository, fleetSessionJournal, postgresFleetRepository } from "#engine/repository.ts";
+import { SessionJournal } from "#session/service.ts";
+import { engine } from "#test/engineStory.ts";
 import { namedAttempt, namedRecord } from "#test/namedCloudHost.ts";
+import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
+
+export interface SessionNaming {
+	journal: typeof SessionJournal.Service;
+	lists: number;
+	loads: string[];
+	store: typeof FleetRepository.Service;
+}
 
 export function sessionNaming(count: number) {
-	const records = new Map<string, Versioned<FleetRecord>>(
-		Array.from({ length: count }, (_, index) => {
-			const workId = `synthetic-${index}`;
-			return [workId, { value: namedRecord(workId, index === 0 ? [namedAttempt("worker")] : []), version: 1 }] as const;
-		}),
-	);
-	const loads: string[] = [];
-	let lists = 0;
-	const store: typeof FleetRepository.Service = {
-		compareAndSet: (workId, version, value) =>
-			Effect.sync(() => {
-				const stored = { value, version: version + 1 };
-				records.set(workId, stored);
-				return stored;
-			}),
-		foreignReservations: () => Effect.succeed([]),
-		hasLaunchRetry: () => Effect.sync(() => [...records.values()].some(({ value }) => value.launchRetry !== undefined)),
-		insert: (value) => Effect.succeed({ value, version: 1 }),
-		list: () =>
-			Effect.sync(() => {
-				lists += 1;
-				return [...records.values()];
-			}),
-		listSnapshot: () => Effect.sync(() => [...records.values()]),
-		load: (workId) =>
-			Effect.sync(() => {
-				loads.push(workId);
-				return records.get(workId);
-			}),
-		releaseForeign: () => Effect.void,
-		reserveForeign: () => Effect.void,
-	};
-	return {
-		lists: () => lists,
-		loads,
-		remove: () => records.delete("synthetic-0"),
-		replace: (value: FleetRecord) => records.set("synthetic-0", { value, version: 2 }),
-		store,
-	};
+	return engine.trait("configuration", `the naming journal shares PostgreSQL with ${count} Fleet records`, function* (state) {
+		const store = yield* FleetRepository.pipe(Effect.provide(postgresFleetRepository(STORAGE_NAMESPACE)));
+		for (let index = 0; index < count; index += 1) {
+			yield* store.insert(namedRecord(`synthetic-${index}`, index === 0 ? [namedAttempt("worker")] : []));
+		}
+		const loads: string[] = [];
+		const observed = { lists: 0, loads };
+		const instrumented = {
+			...store,
+			list: () =>
+				Effect.sync(() => {
+					observed.lists += 1;
+				}).pipe(Effect.andThen(store.list())),
+			load: (id: string) =>
+				Effect.sync(() => {
+					observed.loads.push(id);
+				}).pipe(Effect.andThen(store.load(id))),
+		};
+		const journal = yield* SessionJournal.pipe(Effect.provide(fleetSessionJournal.pipe(Layer.provide(Layer.succeed(FleetRepository)(instrumented)))));
+		state.recovery.naming = {
+			journal,
+			get lists() {
+				return observed.lists;
+			},
+			loads: observed.loads,
+			store,
+		};
+	});
 }

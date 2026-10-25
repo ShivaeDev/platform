@@ -1,5 +1,6 @@
-import type { Deferred, Effect, Layer } from "effect";
+import type { Context, Deferred, Effect, Layer } from "effect";
 import type { BoardDecision } from "#board/schema.ts";
+import type { Health, HealthPublication, HealthSnapshot } from "#engine/health.ts";
 import type { Fleet } from "#fleet.ts";
 import type { MainSource } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
@@ -10,6 +11,7 @@ import type { EngineOptions } from "#test/EngineOptions.ts";
 import { type EngineWorld, worldDefaults } from "#test/EngineWorld.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import type { PredictionRepository } from "#test/predictionRepository.ts";
+import type { RecoveryWorld } from "#test/RecoveryWorld.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 
 export interface SweepPullRequest {
@@ -31,14 +33,20 @@ export interface EngineStory extends EngineWorld {
 	predictionMain?: typeof MainSource.Service;
 	predictionRepository?: PredictionRepository;
 	previousFleet?: typeof Fleet.Service;
+	publicationContext?: Context.Context<typeof Fleet.Identifier | Health | HealthPublication | HealthSnapshot>;
+	publishViews?: boolean;
 	readinessPublications?: BoardDecision[];
+	recovery: RecoveryWorld;
 	recoveryCase?: RecoveryCase;
+	restoreHealth?: () => void;
+	restoreStatus?: () => void;
 	resultObservation?: { value: WorkResult; unavailable: boolean };
 	root: string;
 	runtime?: Effect.Success<ReturnType<typeof createEngine<unknown>>> & { fleet: typeof Fleet.Service };
 	source: string;
 	sweepReadiness?: { readonly entered: Deferred.Deferred<void>; readonly resume: Deferred.Deferred<void> };
 	sweepRequests?: Map<string, SweepPullRequest>;
+	validationEntered?: Deferred.Deferred<void>;
 	workId: string;
 }
 
@@ -49,6 +57,7 @@ export function newEngineState(): EngineStory {
 		logs: captureLogs(),
 		markdown: false,
 		options: {},
+		recovery: { gates: {}, holdObservation: false, interrupted: [], readsFail: false, turnHidden: false },
 		root: "",
 		source: "",
 		workId: "one",

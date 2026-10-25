@@ -1,7 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { markdownBoard } from "#board/markdown.ts";
@@ -26,23 +25,14 @@ export function addedAttachment(path: string, diff: string) {
 export function attachmentItems() {
 	return Object.entries(REPORT_FILES).map(([name, bytes]) => addedAttachment(name, new TextDecoder().decode(bytes)));
 }
-export function expectReportAttachments(root: string, report: BoardReport, attachments: boolean, output: string) {
+export function reportAttachmentReadout(root: string, report: BoardReport) {
 	const content = readFileSync(join(root, report.sourcePath), "utf8");
-	expect(content).toContain(output);
-	if (!attachments) {
-		expect(readdirSync(join(root, "responses"))).toEqual([`${report.itemId}.md`]);
-		expect(content.endsWith(output)).toBe(true);
-		return;
-	}
+	const responses = readdirSync(join(root, "responses"));
 	const folder = join(root, report.sourcePath.replace(/\.md$/u, ".attachments"));
-	const files = readdirSync(folder);
-	expect(files).toHaveLength(2);
-	for (const [name, bytes] of Object.entries(REPORT_FILES)) {
-		const saved = files.find((file) => file.endsWith(`-${name}`));
-		expect(saved).toBeDefined();
-		expect(readFileSync(join(folder, saved ?? ""))).toEqual(Buffer.from(bytes));
-		expect(content).toContain(name);
-	}
+	const files = responses.includes(`${report.itemId}.attachments`)
+		? readdirSync(folder).map((name) => ({ bytes: readFileSync(join(folder, name)), name }))
+		: [];
+	return { content, files, responses };
 }
 
 export const turnDownload = Effect.fn("ReportStory.turnDownload")(function* (items: readonly unknown[], reject = false) {

@@ -1,72 +1,43 @@
-import { expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { expect } from "vitest";
 import { cycle } from "#engine/scheduler.ts";
-import { Fleet } from "#fleet.ts";
-import type { SessionObservation } from "#session/schema.ts";
-import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
+import { terminalCapacity, terminalCapacityCases } from "#test/engineCapacityTraits.ts";
+import { engine } from "#test/engineStory.ts";
 
-const test = postgresTests("test");
+for (const { capacity, reviewer, clears, message } of terminalCapacityCases) {
+	engine.it(
+		`terminal capacity retries remain bounded: reviewer=${reviewer}, clears=${clears}, capacity=${capacity}`,
+		[terminalCapacity(reviewer, message, capacity)],
+		function* ({ recoverProvider, advanceTime, currentTime, fleet, prepareWork, finishWorkers, afterRestart, publishedDecisions, schedule }) {
+			yield* prepareWork("one");
 
-function terminalCapacityCase(reviewer: boolean, clears: boolean, message: string, capacity?: SessionObservation["capacity"]) {
-	let now = 100;
-	let reject = true;
-	const expectedStage = reviewer ? "done" : "working";
-	const expectedRole = reviewer ? "reviewer" : "worker";
-	function failCapacity(observation: SessionObservation): SessionObservation {
-		const isReviewer = observation.output.includes("FLEET_REVIEW:");
-		return reject && isReviewer === reviewer ? { ...observation, capacity, error: message, execution: "failed" } : observation;
-	}
-	return withEngine(
-		{
-			decorateTransport: (transport) => ({
-				...transport,
-				observe: (receipt) => transport.observe(receipt).pipe(Effect.map(failCapacity)),
-			}),
-			now: () => now,
-		},
-		(fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				if (reviewer) {
-					finishWorkers(fixture);
-				}
-				for (const delay of [30_000, 60_000, 120_000, 240_000]) {
-					yield* cycle;
-					const queued = (yield* fleet.get("one")).value;
-					expect(queued.launchRetry?.retryAt).toBe(now + delay);
-					expect(queued.decision).toBeUndefined();
-					expect(fixture.decisions).toHaveLength(0);
-					now += delay;
-					if (clears) {
-						reject = false;
-						break;
-					}
-					yield* fixture.restart(cycle);
-				}
-				yield* fixture.restart(cycle);
+			yield* fleet.dispatch("one");
+			if (reviewer) {
+				finishWorkers();
+			}
+			for (const delay of [30_000, 60_000, 120_000, 240_000]) {
+				yield* schedule();
+				const queued = (yield* fleet.get("one")).value;
+				expect(queued.launchRetry?.retryAt).toBe(currentTime() + delay);
+				expect(queued.decision).toBeUndefined();
+				expect(publishedDecisions()).toHaveLength(0);
+				advanceTime(delay);
 				if (clears) {
-					expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-					expect((yield* fleet.get("one")).value.step).toBe(expectedStage);
-					expect(fixture.decisions).toHaveLength(0);
-				} else {
-					const parked = (yield* fleet.get("one")).value;
-					expect(parked.step).toBe("waiting");
-					expect(parked.decision?.reason).toContain(`${message}; provider failure after 5 attempts`);
-					expect(parked.attempts.filter((attempt) => attempt.role === expectedRole)).toHaveLength(5);
+					recoverProvider();
+					break;
 				}
-			}),
+				yield* afterRestart(cycle);
+			}
+			yield* afterRestart(cycle);
+			if (clears) {
+				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
+				expect((yield* fleet.get("one")).value.step).toBe(reviewer ? "done" : "working");
+				expect(publishedDecisions()).toHaveLength(0);
+			} else {
+				const parked = (yield* fleet.get("one")).value;
+				expect(parked.step).toBe("waiting");
+				expect(parked.decision?.reason).toContain(`${message}; provider failure after 5 attempts`);
+				expect(parked.attempts.filter((attempt) => attempt.role === (reviewer ? "reviewer" : "worker"))).toHaveLength(5);
+			}
+		},
 	);
-}
-
-for (const capacity of ["serverOverloaded", undefined] as const) {
-	const message = capacity === undefined ? "Selected model is at capacity. Please try a different model." : "Selected model is at capacity";
-	for (const reviewer of [false, true]) {
-		for (const clears of [false, true]) {
-			test(`terminal capacity retries remain bounded: reviewer=${reviewer}, clears=${clears}, capacity=${capacity}`, () =>
-				terminalCapacityCase(reviewer, clears, message, capacity));
-		}
-	}
 }

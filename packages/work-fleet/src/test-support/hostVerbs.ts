@@ -4,26 +4,68 @@ import { cycle } from "#engine/scheduler.ts";
 import { admitApproved, dispatchApproved } from "#host/admission.ts";
 import { daemonRequest } from "#host/daemonClient.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
+import { approvalBackoffVerbs } from "#test/approvalBackoff.ts";
 import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
+import { cloudHostVerbs } from "#test/cloudHost.ts";
+import { cloudNamingVerbs } from "#test/cloudNaming.ts";
+import { continuationCloudVerbs } from "#test/continuationCloud.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
+import { daemonResourceVerbs } from "#test/daemonResourceVerbs.ts";
+import { daemonResync } from "#test/daemonResync.ts";
+import { fanoutCloudVerbs } from "#test/fanoutCloud.ts";
 import { cliProcess } from "#test/fleetCli.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { hostAcknowledgementVerbs } from "#test/hostAcknowledgementVerbs.ts";
 import { hostBoardVerbs } from "#test/hostBoardVerbs.ts";
+import { hostDelayVerbs } from "#test/hostCommandDelays.ts";
+import { hostCommandVerbs } from "#test/hostCommandVerbs.ts";
 import { hostConfigVerbs } from "#test/hostConfigVerbs.ts";
+import { hostDatabaseVerbs } from "#test/hostDatabaseVerbs.ts";
+import { hostDiagnosticsVerbs } from "#test/hostDiagnostics.ts";
 import { hostFollowerVerbs } from "#test/hostFollowerVerbs.ts";
+import { hostInputVerbs } from "#test/hostInputVerbs.ts";
+import { hostProviderReadouts } from "#test/hostProviderReadouts.ts";
 import { hostProviderVerbs } from "#test/hostProviderVerbs.ts";
+import { hostReportVerbs } from "#test/hostReportVerbs.ts";
+import { hostRequestVerbs } from "#test/hostRequestVerbs.ts";
+import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
+import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
+import { steeringCloudVerbs } from "#test/steeringCloud.ts";
+import { watchReview } from "#test/watchReview.ts";
+import { watchScheduler } from "#test/watchScheduler.ts";
 
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		...hostDatabaseVerbs(engine, tell),
+		...watchReview(engine, tell),
+		...watchScheduler(engine, tell),
 		...hostBoardVerbs(engine, tell),
+		...daemonResync(engine),
+		...daemonResourceVerbs(engine),
+		...cloudHostVerbs(engine),
+		...fanoutCloudVerbs(engine),
+		...approvalBackoffVerbs(engine),
+		...cloudNamingVerbs(engine),
+		...continuationCloudVerbs(engine),
+		...steeringCloudVerbs(engine),
+		...interruptedCloudVerbs(engine),
+		...hostProviderReadouts(engine, tell),
+		...hostScenarioVerbs(engine, tell),
+		...hostAcknowledgementVerbs(engine, tell),
 		...hostConfigVerbs(engine, tell),
+		...hostCommandVerbs(engine, tell),
+		...hostDelayVerbs(engine),
 		...hostFollowerVerbs(engine, tell),
 		...hostProviderVerbs(engine, tell),
+		...hostInputVerbs(),
+		...hostDiagnosticsVerbs(engine),
+		...hostRequestVerbs(),
 		...hostStoreVerbs(engine, tell),
+		...hostReportVerbs(engine, tell),
 		admit: () => {
 			tell("admit approved Board work");
-			return admitApproved(engine.fixture.host).pipe(Effect.provideContext(engine.running.context));
+			return admitApproved(engine.fixture.host).pipe(Effect.provideContext(engine.running.context), Effect.provide(engine.logs.layer));
 		},
 		answer: (workId: string, text?: string, release = false) => {
 			tell(`answer ${workId} through the daemon`);
@@ -40,7 +82,10 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			}
 			return engine.briefParseCount();
 		},
-		cli: (args: readonly string[], options: { readonly stdin?: string; readonly selection?: "board" | "port" } = {}) => {
+		cli: (
+			args: readonly string[],
+			options: { readonly stdin?: string; readonly holdStdin?: boolean; readonly selection?: "board" | "port" } = {},
+		) => {
 			tell(`run work-fleet ${args.join(" ")}`);
 			return Effect.promise(async () => {
 				let stderr = "";
@@ -50,6 +95,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 						stderr += text;
 					},
 					...(options.stdin === undefined ? {} : { stdin: options.stdin }),
+					...(options.holdStdin === undefined ? {} : { holdStdin: options.holdStdin }),
 				});
 				return { ...result, stderr: stderr.trim() };
 			});
@@ -86,7 +132,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		retainedBoardSnapshots: () => retainedBoardSnapshots,
 		schedule: () => {
 			tell("run one host scheduler cycle");
-			return cycle.pipe(Effect.provideContext(engine.running.context));
+			return cycle.pipe(Effect.provideContext(engine.running.context), Effect.provide(engine.logs.layer));
 		},
 		schedulerPass: () => {
 			tell("admit and schedule one Board read pass");

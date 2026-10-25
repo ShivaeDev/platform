@@ -1,47 +1,46 @@
 import { existsSync, mkdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { NodeServices } from "@effect/platform-node";
+import { Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { FleetRecord } from "#model.ts";
-import { discoveryDaemon } from "#test/discoveryDaemon.ts";
+import { DaemonStoryEngine } from "#test/DaemonStoryEngine.ts";
+import { daemonFollowerVerbs } from "#test/daemonFollowerVerbs.ts";
+import { daemonWireVerbs } from "#test/daemonWireVerbs.ts";
 import { cliProcess } from "#test/fleetCli.ts";
-import { type HostFixture, hostFixture } from "#test/fleetHost.ts";
 import { untilError, untilOutput } from "#test/follower.ts";
-import { type Follower, followerProcess } from "#test/followerProcess.ts";
+import { followerProcess } from "#test/followerProcess.ts";
+import { hostVerbs } from "#test/hostVerbs.ts";
 import { ownedFollower } from "#test/ownedFollower.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { statusRecord } from "#test/status.ts";
 import { storeState } from "#test/storeState.ts";
 
-interface DaemonEngine {
-	daemon: Effect.Success<ReturnType<typeof discoveryDaemon>>;
-	readonly fixture: HostFixture;
-	follower?: Follower;
-}
-
-function follower(engine: DaemonEngine) {
+function follower(engine: DaemonStoryEngine) {
 	if (engine.follower === undefined) {
 		throw new Error("Start a watch before reading its output");
 	}
 	return engine.follower;
 }
 
+const layer = Layer.merge(postgresLayer, NodeServices.layer);
+
 export const fleetDaemon = storyKit({
+	after: { configuration: (engine: DaemonStoryEngine) => engine.deploy() },
 	around: withIsolatedDatabase,
 	clock: "live",
-	*create() {
-		const fixture = yield* hostFixture();
-		const engine: DaemonEngine = { daemon: yield* discoveryDaemon(fixture), fixture };
-		return engine;
-	},
-	inspect: (engine) => ({ errors: engine.follower?.errors(), output: engine.follower?.output(), port: engine.daemon.port }),
-	layer: postgresLayer,
+	create: () => new DaemonStoryEngine(),
+	inspect: (engine) => ({ ...engine.inspect(), errors: engine.follower?.errors(), output: engine.follower?.output() }),
+	layer,
 	name: "Fleet daemon",
 	runIf: postgresEnabled,
-	stages: ["daemon"],
+	stages: ["configuration", "observation", "daemon"],
 	verbs: (engine, story) => ({
+		...hostVerbs(engine, story.tell),
+		...daemonFollowerVerbs(engine, story.tell),
+		...daemonWireVerbs(engine, story),
 		awaitError: (text: string, offset = 0) => untilError(follower(engine), text, offset),
 		awaitOutput: (text: string) => untilOutput(follower(engine), text),
 		awaitSnapshot: () =>
@@ -53,6 +52,7 @@ export const fleetDaemon = storyKit({
 					}),
 				]),
 			).pipe(Effect.timeout("5 seconds")),
+		awaitSnapshotAfter: (previous: number) => Effect.promise(() => engine.daemon.nextSnapshot(previous)).pipe(Effect.timeout("5 seconds")),
 		client: (args: readonly [string, ...string[]]) =>
 			Effect.promise(async () => {
 				story.tell(`run ${args[0]} against the fixture Board`);
@@ -95,12 +95,13 @@ export const fleetDaemon = storyKit({
 				const previousPort = engine.daemon.port;
 				yield* engine.daemon.close.pipe(Effect.timeout("5 seconds"));
 				story.tell("the old daemon stopped; start its replacement");
-				engine.daemon = yield* discoveryDaemon(engine.fixture, port);
+				yield* engine.start(port);
 				story.tell("the replacement daemon is ready for a subscription");
 				if (port === 0 && engine.daemon.port === previousPort) {
 					return yield* Effect.die("Restart discovery stories require a different daemon port");
 				}
 			}),
+		snapshotCount: () => engine.daemon.snapshotCount(),
 		stop: () => {
 			story.tell("stop the daemon");
 			return engine.daemon.close.pipe(Effect.timeout("5 seconds"));

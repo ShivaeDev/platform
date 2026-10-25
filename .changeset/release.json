@@ -3,77 +3,191 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "catalog-patches.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n\"@shivaedev/effect-form\": patch\n\"@shivaedev/effect-react\": patch\n\"@shivaedev/platform\": patch\n\"@shivaedev/quality\": patch\n\"@shivaedev/test-story\": patch\n\"@shivaedev/vitest-rerun\": patch\n\"@shivaedev/work-board\": patch\n---\n\n### Changed\n\n- Align published dependency and peer pins and the generated starter with React and React DOM 19.3.1, TanStack Router 1.170.45, Better Auth 1.7.10, happy-dom 21.0.3 and Vitest 5.0.5. The starter also uses pg-boss dashboard 1.12.1.\n"
+				"name": "effect-aligned-patch.md",
+				"text": "---\n\"@shivaedev/changesets\": patch\n\"@shivaedev/create-app\": patch\n\"@shivaedev/effect-changes\": patch\n\"@shivaedev/effect-changes-prisma\": patch\n\"@shivaedev/effect-contract\": patch\n\"@shivaedev/effect-form\": patch\n\"@shivaedev/effect-pg-boss\": patch\n\"@shivaedev/effect-prisma\": patch\n\"@shivaedev/effect-react\": patch\n\"@shivaedev/effect-service\": patch\n\"@shivaedev/effect-sql\": patch\n\"@shivaedev/effect-test\": patch\n\"@shivaedev/effect-test-sql\": patch\n\"@shivaedev/effect-trpc\": patch\n\"@shivaedev/heavy-lock\": patch\n\"@shivaedev/platform\": patch\n\"@shivaedev/pr-watch\": patch\n\"@shivaedev/quality\": patch\n\"@shivaedev/skills\": patch\n\"@shivaedev/test-story\": patch\n\"@shivaedev/vitest-rerun\": patch\n\"@shivaedev/work-board\": patch\n\"@shivaedev/work-fleet\": patch\n---\n\n### Changed\n\n- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.\n"
 			},
 			{
-				"name": "starter-deploy-entry-points.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Fixed\n\n- Run the generated app's production web and worker entry points in deployment stories, waiting for the database-backed health check and the worker's existing readiness log.\n"
+				"name": "hosted-application-handlers.md",
+				"text": "---\n\"@shivaedev/effect-contract\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Contracts expose `application`, a native RPC group for building application handlers without naming the reserved `$changes` stream. Middleware stays attached, and Platform hosts complete the full contract with the stream handler.\n- Generated applications build their handlers through the contract's `application` group.\n"
+			},
+			{
+				"name": "react-form-configuration.md",
+				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Call the latest create, save and field-rejection callbacks across React renders while preserving the draft. Replace forms when their schema or runtime identity changes, and document which options are captured for a form lifetime.\n"
+			},
+			{
+				"name": "released-merged-work.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Released work leaves the waiting queues automatically once its pull request has merged and its Board task is done, superseded, deferred or dropped. Work with an open pull request or an open task keeps its current owner.\n"
+			},
+			{
+				"name": "removable-starter-notes.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n\"@shivaedev/quality\": minor\n---\n\n### Changed\n\n- New apps get the notes example as one removable module and fresh migrations. Apps already generated are unaffected.\n\n### Added\n\n- Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.\n\n### Fixed\n\n- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.\n"
+			},
+			{
+				"name": "starter-railway.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generate apps with Railway 3.16.0.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
+				"directory": "packages/changesets",
+				"from": "0.1.1",
+				"name": "@shivaedev/changesets",
+				"to": "0.1.2"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/create-app",
-				"from": "0.11.23",
+				"from": "0.11.24",
 				"name": "@shivaedev/create-app",
-				"to": "0.11.24"
+				"to": "0.12.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-changes",
+				"from": "0.3.1",
+				"name": "@shivaedev/effect-changes",
+				"to": "0.3.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-changes-prisma",
+				"from": "0.5.2",
+				"name": "@shivaedev/effect-changes-prisma",
+				"to": "0.5.3"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-contract",
+				"from": "0.10.0",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.11.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-form",
-				"from": "0.6.0",
+				"from": "0.6.1",
 				"name": "@shivaedev/effect-form",
-				"to": "0.6.1"
+				"to": "0.6.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-pg-boss",
+				"from": "0.15.2",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.15.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-prisma",
+				"from": "0.10.2",
+				"name": "@shivaedev/effect-prisma",
+				"to": "0.10.3"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-react",
-				"from": "0.12.1",
+				"from": "0.12.2",
 				"name": "@shivaedev/effect-react",
-				"to": "0.12.2"
+				"to": "0.12.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-service",
+				"from": "0.4.0",
+				"name": "@shivaedev/effect-service",
+				"to": "0.4.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-sql",
+				"from": "0.13.0",
+				"name": "@shivaedev/effect-sql",
+				"to": "0.13.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test",
+				"from": "0.7.1",
+				"name": "@shivaedev/effect-test",
+				"to": "0.7.2"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.8.2",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.8.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-trpc",
+				"from": "0.8.2",
+				"name": "@shivaedev/effect-trpc",
+				"to": "0.8.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/heavy-lock",
+				"from": "0.5.0",
+				"name": "@shivaedev/heavy-lock",
+				"to": "0.5.1"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/platform",
-				"from": "0.24.0",
+				"from": "0.24.1",
 				"name": "@shivaedev/platform",
-				"to": "0.24.1"
+				"to": "0.24.2"
 			},
 			{
 				"bump": "patch",
+				"directory": "packages/pr-watch",
+				"from": "0.1.1",
+				"name": "@shivaedev/pr-watch",
+				"to": "0.1.2"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/quality",
-				"from": "0.33.1",
+				"from": "0.33.2",
 				"name": "@shivaedev/quality",
-				"to": "0.33.2"
+				"to": "0.34.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/skills",
+				"from": "0.3.0",
+				"name": "@shivaedev/skills",
+				"to": "0.3.1"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/test-story",
-				"from": "0.18.0",
+				"from": "0.18.1",
 				"name": "@shivaedev/test-story",
-				"to": "0.18.1"
+				"to": "0.18.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/vitest-rerun",
-				"from": "0.1.0",
+				"from": "0.1.1",
 				"name": "@shivaedev/vitest-rerun",
-				"to": "0.1.1"
+				"to": "0.1.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.1",
+				"from": "0.30.2",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.2"
+				"to": "0.30.3"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.1",
+				"from": "0.17.2",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.2"
+				"to": "0.17.3"
 			}
 		]
 	}

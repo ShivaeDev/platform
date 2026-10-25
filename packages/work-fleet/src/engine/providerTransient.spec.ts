@@ -1,121 +1,100 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { cycle } from "#engine/scheduler.ts";
-import { Fleet } from "#fleet.ts";
 import { executing } from "#model.ts";
-import { SessionFailure } from "#session/schema.ts";
-import { prepareWork, withEngine } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
+import { busyThread, rejectedSubmission, submissionAtCapacity } from "#test/engineProviderRetryTraits.ts";
+import { engine } from "#test/engineStory.ts";
 
-const test = postgresTests("test");
 const MESSAGE = "Selected model is at capacity";
 
 for (const structured of [false, true]) {
-	test(`capacity clears on retry after restart: structured=${structured}`, () => {
-		let now = 100;
-		let rejected = true;
-		return withEngine(
-			{
-				now: () => now,
-				submissionFailure: () =>
-					rejected
-						? new SessionFailure({ ...(structured ? { capacity: "serverOverloaded" } : {}), message: MESSAGE, reason: "rejected" })
-						: undefined,
-			},
-			(fixture) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const fleet = yield* Fleet;
-					yield* cycle;
-					const queued = (yield* fleet.get("one")).value;
-					expect(queued.step).toBe("queued");
-					expect(queued.launchRetry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
-					expect(executing(queued)).toBe(false);
-					expect(fixture.decisions).toHaveLength(0);
-					rejected = false;
-					now = 30_099;
-					yield* fixture.restart(cycle);
-					expect(fixture.launched).toHaveLength(1);
-					now = 30_100;
-					yield* fixture.restart(cycle);
-					expect((yield* fleet.get("one")).value).toMatchObject({ step: "working" });
-					expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-					expect(fixture.launched).toHaveLength(2);
-				}),
-		);
-	});
+	engine.it(
+		`capacity clears on retry after restart: structured=${structured}`,
+		[submissionAtCapacity(structured)],
+		function* ({ setFleetTime, recoverProvider, fleet, prepareWork, afterRestart, launches, publishedDecisions, schedule }) {
+			yield* prepareWork("one");
+
+			yield* schedule();
+			const queued = (yield* fleet.get("one")).value;
+			expect(queued.step).toBe("queued");
+			expect(queued.launchRetry).toEqual({ rejectedAt: 100, rejections: 1, retryAt: 30_100 });
+			expect(executing(queued)).toBe(false);
+			expect(publishedDecisions()).toHaveLength(0);
+			recoverProvider();
+			setFleetTime(30_099);
+			yield* afterRestart(cycle);
+			expect(launches()).toHaveLength(1);
+			setFleetTime(30_100);
+			yield* afterRestart(cycle);
+			expect((yield* fleet.get("one")).value).toMatchObject({ step: "working" });
+			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
+			expect(launches()).toHaveLength(2);
+		},
+	);
 }
 
-test("capacity that never clears parks after five attempts across restarts", () => {
-	let now = 100;
-	return withEngine({ now: () => now, submissionFailure: () => new SessionFailure({ message: MESSAGE, reason: "rejected" }) }, (fixture) =>
-		Effect.gen(function* () {
-			yield* prepareWork("one");
-			const fleet = yield* Fleet;
-			for (const delay of [30_000, 60_000, 120_000, 240_000]) {
-				yield* fixture.restart(cycle);
-				const queued = (yield* fleet.get("one")).value;
-				expect(queued.launchRetry?.retryAt).toBe(now + delay);
-				expect(queued.decision).toBeUndefined();
-				now += delay;
-			}
-			yield* fixture.restart(cycle);
-			const parked = (yield* fleet.get("one")).value;
-			expect(parked.step).toBe("waiting");
-			expect(parked.launchRetry).toBeUndefined();
-			expect(parked.decision?.reason).toBe(`${MESSAGE}; provider failure after 5 attempts (4 automatic retries)`);
-			expect(parked.attempts).toHaveLength(5);
-			expect(executing(parked)).toBe(false);
-			now += 1_000_000;
-			yield* fixture.restart(cycle);
-			expect(fixture.launched).toHaveLength(5);
-			expect(fixture.decisions).toHaveLength(1);
-		}),
-	);
-});
+engine.it(
+	"capacity that never clears parks after five attempts across restarts",
+	[submissionAtCapacity()],
+	function* ({ advanceTime, currentTime, fleet, prepareWork, afterRestart, launches, publishedDecisions }) {
+		yield* prepareWork("one");
+
+		for (const delay of [30_000, 60_000, 120_000, 240_000]) {
+			yield* afterRestart(cycle);
+			const queued = (yield* fleet.get("one")).value;
+			expect(queued.launchRetry?.retryAt).toBe(currentTime() + delay);
+			expect(queued.decision).toBeUndefined();
+			advanceTime(delay);
+		}
+		yield* afterRestart(cycle);
+		const parked = (yield* fleet.get("one")).value;
+		expect(parked.step).toBe("waiting");
+		expect(parked.launchRetry).toBeUndefined();
+		expect(parked.decision?.reason).toBe(`${MESSAGE}; provider failure after 5 attempts (4 automatic retries)`);
+		expect(parked.attempts).toHaveLength(5);
+		expect(executing(parked)).toBe(false);
+		advanceTime(1_000_000);
+		yield* afterRestart(cycle);
+		expect(launches()).toHaveLength(5);
+		expect(publishedDecisions()).toHaveLength(1);
+	},
+);
 
 for (const rejection of ["Rejected credential", "Request refused by policy"]) {
-	test(`${rejection} remains a human blocker`, () =>
-		withEngine({ submissionFailure: () => new SessionFailure({ message: rejection, reason: "rejected" }) }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* cycle;
-				expect((yield* fleet.get("one")).value).toMatchObject({ decision: { reason: rejection }, step: "waiting" });
-				expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
-				yield* fixture.restart(cycle);
-				expect(fixture.launched).toHaveLength(1);
-			}),
-		));
+	engine.it(
+		`${rejection} remains a human blocker`,
+		[rejectedSubmission(rejection)],
+		function* ({ fleet, prepareWork, afterRestart, launches, schedule }) {
+			yield* prepareWork("one");
+
+			yield* schedule();
+			expect((yield* fleet.get("one")).value).toMatchObject({ decision: { reason: rejection }, step: "waiting" });
+			expect((yield* fleet.get("one")).value.launchRetry).toBeUndefined();
+			yield* afterRestart(cycle);
+			expect(launches()).toHaveLength(1);
+		},
+	);
 }
 
 for (const rejection of ["turn already active for thread", "Codex rejected the protocol request: turn already active for thread"]) {
-	test(`busy rejection queues a fresh thread automatically: ${rejection}`, () => {
-		let now = 100;
-		let reject = true;
-		return withEngine(
-			{
-				now: () => now,
-				submissionFailure: (call) => (reject && call === "turn" ? new SessionFailure({ message: rejection, reason: "rejected" }) : undefined),
-			},
-			(fixture) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const fleet = yield* Fleet;
-					yield* cycle;
-					const queued = (yield* fleet.get("one")).value;
-					expect(queued.step).toBe("queued");
-					expect(queued.attempts.at(-1)?.sessionUnusable).toBe(true);
-					expect(fixture.decisions).toHaveLength(0);
-					reject = false;
-					now = 30_100;
-					yield* fixture.restart(cycle);
-					const accepted = (yield* fleet.get("one")).value;
-					expect(accepted.step).toBe("working");
-					expect(accepted.attempts.at(-1)?.receipt?.sessionId).not.toBe(queued.attempts.at(-1)?.sessionId);
-					expect(fixture.starts.at(-1)?.prompt).toContain("same branch and PR");
-					expect(fixture.launched).toHaveLength(2);
-				}),
-		);
-	});
+	engine.it(
+		`busy rejection queues a fresh thread automatically: ${rejection}`,
+		[busyThread(rejection)],
+		function* ({ setFleetTime, recoverProvider, fleet, prepareWork, afterRestart, launches, publishedDecisions, providerStarts, schedule }) {
+			yield* prepareWork("one");
+
+			yield* schedule();
+			const queued = (yield* fleet.get("one")).value;
+			expect(queued.step).toBe("queued");
+			expect(queued.attempts.at(-1)?.sessionUnusable).toBe(true);
+			expect(publishedDecisions()).toHaveLength(0);
+			recoverProvider();
+			setFleetTime(30_100);
+			yield* afterRestart(cycle);
+			const accepted = (yield* fleet.get("one")).value;
+			expect(accepted.step).toBe("working");
+			expect(accepted.attempts.at(-1)?.receipt?.sessionId).not.toBe(queued.attempts.at(-1)?.sessionId);
+			expect(providerStarts().at(-1)?.prompt).toContain("same branch and PR");
+			expect(launches()).toHaveLength(2);
+		},
+	);
 }

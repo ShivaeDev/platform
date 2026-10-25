@@ -1,148 +1,148 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
 import { cycle } from "#engine/scheduler.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
-import { Fleet } from "#fleet.ts";
-import { captureLogs } from "#test/captureLogs.ts";
-import { finishWorkers, prepareWork, withEngine } from "#test/engine.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { withFleetBoard } from "#test/withFleetBoard.ts";
-import { answerWorker, askWorker } from "#test/workerQuestion.ts";
+import { archiveFailsOnce, reviewAndChecksRequestRepairs, workerTurnRejected } from "#test/engineLifecycleTraits.ts";
+import { engine } from "#test/engineStory.ts";
+import { humanMergeRequired, markdownWork, noChangeReported } from "#test/engineTraits.ts";
 
 describe("Fleet session cleanup", () => {
-	const test = postgresTests("test");
-	test("retains a stopped worker question and its continued thread until completion", () =>
-		withFleetBoard({}, (fixture, root) =>
-			Effect.gen(function* () {
-				const fleet = yield* Fleet;
-				yield* prepareWork("one");
-				yield* fleet.dispatch("one");
-				const { decision, stopped } = yield* askWorker(fixture);
-				expect(stopped.value.step).toBe("waiting");
-				expect(fixture.archived).toEqual([]);
-				const answer = yield* answerWorker(root, decision);
-				const continued = yield* fleet.resolve("one", decision.id, answer.id);
-				expect(continued.value.step).toBe("working");
-				expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
-				expect(fixture.archived).toEqual([]);
-				finishWorkers(fixture);
-				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-				expect(fixture.archived).toHaveLength(2);
-				expect(fixture.archived.filter((id) => id === decision.worker?.sessionId)).toHaveLength(1);
-			}),
-		));
+	engine.it(
+		"retains a stopped worker question and its continued thread until completion",
+		[markdownWork()],
+		function* ({ fleet, prepareWork, finishWorkers, archivedSessions, askWorker, answerWorker }) {
+			yield* prepareWork("one");
+			yield* fleet.dispatch("one");
+			const { decision, stopped } = yield* askWorker();
+			expect(stopped.value.step).toBe("waiting");
+			expect(archivedSessions()).toEqual([]);
+			const answer = yield* answerWorker(decision);
+			const continued = yield* fleet.resolve("one", decision.id, answer.id);
+			expect(continued.value.step).toBe("working");
+			expect(continued.value.attempts.at(-1)?.receipt?.sessionId).toBe(decision.worker?.sessionId);
+			expect(archivedSessions()).toEqual([]);
+			finishWorkers();
+			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
+			expect(archivedSessions()).toHaveLength(2);
+			expect(archivedSessions().filter((id) => id === decision.worker?.sessionId)).toHaveLength(1);
+		},
+	);
 	for (const noChange of [false, true]) {
-		test(`archives worker and reviewer threads after ${noChange ? "no-change" : "delivery"} completion`, () =>
-			withEngine({ noChange }, (fixture) =>
-				Effect.gen(function* () {
-					yield* prepareWork("one");
-					const fleet = yield* Fleet;
-					yield* fleet.dispatch("one");
-					expect(fixture.archived).toEqual([]);
-					finishWorkers(fixture);
-					const completed = yield* fleet.reconcile("one");
-					expect(completed.value.step).toBe("done");
-					expect(fixture.archived).toEqual(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId));
-					expect(pendingSessionCleanup(completed.value)).toEqual([]);
-					yield* fixture.restart(fleet.reconcile("one"));
-					expect(fixture.archived).toHaveLength(2);
-				}),
-			));
+		engine.it(
+			`archives worker and reviewer threads after ${noChange ? "no-change" : "delivery"} completion`,
+			[noChangeReported(noChange)],
+			function* ({ fleet, prepareWork, finishWorkers, afterRestart, archivedSessions }) {
+				yield* prepareWork("one");
+
+				yield* fleet.dispatch("one");
+				expect(archivedSessions()).toEqual([]);
+				finishWorkers();
+				const completed = yield* fleet.reconcile("one");
+				expect(completed.value.step).toBe("done");
+				expect(archivedSessions()).toEqual(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId));
+				expect(pendingSessionCleanup(completed.value)).toEqual([]);
+				yield* afterRestart(fleet.reconcile("one"));
+				expect(archivedSessions()).toHaveLength(2);
+			},
+		);
 	}
-	test("keeps every thread while review or check repair can need the original conversation", () =>
-		withEngine({ checkRepair: true, checksFailure: true, repairs: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const reviewRepair = yield* fleet.reconcile("one");
-				expect(reviewRepair.value.attempts.at(-1)?.role).toBe("repair");
-				expect(fixture.archived).toEqual([]);
-				finishWorkers(fixture);
-				const checkRepair = yield* fleet.reconcile("one");
-				expect(checkRepair.value.attempts.at(-1)?.role).toBe("repair");
-				expect(fixture.archived).toEqual([]);
-				finishWorkers(fixture);
-				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.step).toBe("done");
-				expect(fixture.archived).toEqual([...new Set(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId))]);
-			}),
-		));
-	test("keeps waiting threads until an explicit safe release", () =>
-		withEngine({ denyDelivery: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const denied = yield* fleet.reconcile("one");
-				expect(fixture.archived).toEqual([]);
-				const decisionId = denied.value.decision?.id ?? "missing";
-				const response = fixture.respond(decisionId, "release");
-				expect((yield* fleet.resolve("one", decisionId, response)).value.step).toBe("released");
-				expect(fixture.archived).toHaveLength(2);
-				yield* fleet.resolve("one", decisionId, response);
-				expect(fixture.archived).toHaveLength(2);
-			}),
-		));
-	test("archive failure warns and preserves completion and retries after a host restart without repeating delivery", () => {
-		const logs = captureLogs();
-		return withEngine({ archiveFailure: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				const completed = yield* fleet.reconcile("one");
-				expect(completed.value.step).toBe("done");
-				expect(pendingSessionCleanup(completed.value)).toHaveLength(1);
-				expect(logs.entries).toEqual([
-					{
-						annotations: { sessionId: pendingSessionCleanup(completed.value)[0] },
-						cause: expect.stringContaining("Archive temporarily unavailable"),
-						level: "Warn",
-						message: ["Fleet session cleanup failed; reconciliation will retry"],
-					},
-				]);
-				expect(fixture.archived).toHaveLength(1);
-				yield* fixture.restart(cycle);
-				expect(pendingSessionCleanup((yield* fleet.get("one")).value)).toEqual([]);
-				expect(fixture.archived).toHaveLength(2);
-				expect(fixture.merged).toHaveLength(1);
-			}),
-		).pipe(Effect.provide(logs.layer));
-	});
-	test("cleans up a retained session whose first turn was rejected on release", () =>
-		withEngine({ rejectTurn: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				const rejected = yield* fleet.dispatch("one");
-				expect(rejected.value.attempts[0]?.receipt).toBeUndefined();
-				const decisionId = rejected.value.decision?.id ?? "missing";
-				yield* fleet.resolve("one", decisionId, fixture.respond(decisionId, "release"));
-				expect(fixture.archived).toEqual([rejected.value.attempts[0]?.sessionId]);
-			}),
-		));
-	test("retries prior cleanup after renewal without archiving the new worker", () =>
-		withEngine({ archiveFailure: true }, (fixture) =>
-			Effect.gen(function* () {
-				yield* prepareWork("one");
-				const fleet = yield* Fleet;
-				yield* fleet.dispatch("one");
-				finishWorkers(fixture);
-				yield* fleet.reconcile("one");
-				expect(fixture.archived).toHaveLength(1);
-				fixture.editWork("one", "next-revision");
-				fixture.approveWork("one", "next-revision");
-				const renewed = yield* prepareWork("one");
-				expect(renewed.value.step).toBe("queued");
-				expect(pendingSessionCleanup(renewed.value)).toEqual([]);
-				expect(fixture.archived).toHaveLength(2);
-				yield* fleet.dispatch("one");
-				yield* fleet.reconcile("one");
-				expect(fixture.archived).toHaveLength(2);
-			}),
-		));
+	engine.it(
+		"keeps every thread while review or check repair can need the original conversation",
+		[reviewAndChecksRequestRepairs()],
+		function* ({ fleet, prepareWork, finishWorkers, archivedSessions }) {
+			yield* prepareWork("one");
+
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const reviewRepair = yield* fleet.reconcile("one");
+			expect(reviewRepair.value.attempts.at(-1)?.role).toBe("repair");
+			expect(archivedSessions()).toEqual([]);
+			finishWorkers();
+			const checkRepair = yield* fleet.reconcile("one");
+			expect(checkRepair.value.attempts.at(-1)?.role).toBe("repair");
+			expect(archivedSessions()).toEqual([]);
+			finishWorkers();
+			const completed = yield* fleet.reconcile("one");
+			expect(completed.value.step).toBe("done");
+			expect(archivedSessions()).toEqual([...new Set(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId))]);
+		},
+	);
+	engine.it(
+		"keeps waiting threads until an explicit safe release",
+		[humanMergeRequired()],
+		function* ({ fleet, prepareWork, finishWorkers, respond, archivedSessions }) {
+			yield* prepareWork("one");
+
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const denied = yield* fleet.reconcile("one");
+			expect(archivedSessions()).toEqual([]);
+			const decisionId = denied.value.decision?.id ?? "missing";
+			const response = respond(decisionId, "release");
+			expect((yield* fleet.resolve("one", decisionId, response)).value.step).toBe("released");
+			expect(archivedSessions()).toHaveLength(2);
+			yield* fleet.resolve("one", decisionId, response);
+			expect(archivedSessions()).toHaveLength(2);
+		},
+	);
+
+	engine.it(
+		"archive failure warns and preserves completion and retries after a host restart without repeating delivery",
+		[archiveFailsOnce()],
+		function* ({ reconcileLogged, recordedSchedulerLogs, fleet, prepareWork, finishWorkers, afterRestart, mergedHeads, archivedSessions }) {
+			yield* prepareWork("one");
+
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			const completed = yield* reconcileLogged("one");
+			expect(completed.value.step).toBe("done");
+			expect(pendingSessionCleanup(completed.value)).toHaveLength(1);
+			expect(recordedSchedulerLogs()).toEqual([
+				{
+					annotations: { sessionId: pendingSessionCleanup(completed.value)[0] },
+					cause: expect.stringContaining("Archive temporarily unavailable"),
+					level: "Warn",
+					message: ["Fleet session cleanup failed; reconciliation will retry"],
+				},
+			]);
+			expect(archivedSessions()).toHaveLength(1);
+			yield* afterRestart(cycle);
+			expect(pendingSessionCleanup((yield* fleet.get("one")).value)).toEqual([]);
+			expect(archivedSessions()).toHaveLength(2);
+			expect(mergedHeads()).toHaveLength(1);
+		},
+	);
+	engine.it(
+		"cleans up a retained session whose first turn was rejected on release",
+		[workerTurnRejected()],
+		function* ({ fleet, prepareWork, respond, archivedSessions }) {
+			yield* prepareWork("one");
+
+			const rejected = yield* fleet.dispatch("one");
+			expect(rejected.value.attempts[0]?.receipt).toBeUndefined();
+			const decisionId = rejected.value.decision?.id ?? "missing";
+			yield* fleet.resolve("one", decisionId, respond(decisionId, "release"));
+			expect(archivedSessions()).toEqual([rejected.value.attempts[0]?.sessionId]);
+		},
+	);
+	engine.it(
+		"retries prior cleanup after renewal without archiving the new worker",
+		[archiveFailsOnce()],
+		function* ({ fleet, prepareWork, finishWorkers, editWork, approveWork, archivedSessions }) {
+			yield* prepareWork("one");
+
+			yield* fleet.dispatch("one");
+			finishWorkers();
+			yield* fleet.reconcile("one");
+			expect(archivedSessions()).toHaveLength(1);
+			editWork("one", "next-revision");
+			approveWork("one", "next-revision");
+			const renewed = yield* prepareWork("one");
+			expect(renewed.value.step).toBe("queued");
+			expect(pendingSessionCleanup(renewed.value)).toEqual([]);
+			expect(archivedSessions()).toHaveLength(2);
+			yield* fleet.dispatch("one");
+			yield* fleet.reconcile("one");
+			expect(archivedSessions()).toHaveLength(2);
+		},
+	);
 });

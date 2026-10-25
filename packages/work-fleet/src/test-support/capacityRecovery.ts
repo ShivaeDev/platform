@@ -2,14 +2,14 @@ import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestT
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { SessionFailure } from "#session/schema.ts";
 import { type EngineStory, newEngineState } from "#test/engineState.ts";
-import { engineStoryDefinition } from "#test/engineStory.ts";
+import { engineDefinition } from "#test/engineStory.ts";
 import { engineVerbs } from "#test/engineVerbs.ts";
 import { queueRecovery, queueRecoverySetup } from "#test/queueRecovery.ts";
 import { quotaRecovery, quotaRecoverySetup } from "#test/quotaRecovery.ts";
 import { recoveryInventory } from "#test/recoveryInventory.ts";
 
 export const capacityRecovery = {
-	...engineStoryDefinition,
+	...engineDefinition,
 	around: withTestTransaction,
 	clock: "live" as const,
 	create: (): CapacityRecoveryState => ({ ...newEngineState(), capacity: { blocked: false, now: 100, reject: true } }),
