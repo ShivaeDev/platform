@@ -18,3 +18,12 @@ export const noPackedDependencies = app.trait("source", "the app has no packed d
 export const failingCi = app.trait("source", "the generated app's CI script fails", function* ({ directory }) {
 	yield* (yield* FileSystem.FileSystem).writeFileString(join(directory, "ci.js"), "process.exit(1);\n");
 });
+
+export function workerWarning(stream: "stdout" | "stderr") {
+	return app.trait("source", `the generated app exits zero with a fork teardown warning on ${stream}`, function* ({ directory }) {
+		yield* (yield* FileSystem.FileSystem).writeFileString(
+			join(directory, "ci.js"),
+			`process.${stream}.write("[vitest-pool]: Timeout terminating forks worker for test files src/first.spec.ts, src/second.dom.spec.ts.\\n");\n`,
+		);
+	});
+}
