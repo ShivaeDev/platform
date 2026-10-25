@@ -1,9 +1,11 @@
 import { Effect, Layer, Option } from "effect";
+import { type HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RpcMiddleware } from "effect/rpc";
 import { type AuthUnavailable, Forbidden, type Unauthorized } from "#errors/taxonomy.ts";
 import { hasRole } from "#rpc/hasRole.ts";
 import { Identity, SessionUser, type SessionUserValue } from "#rpc/identity.ts";
 import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";
+import { requireAdmin } from "#rpc/requireAdmin.ts";
 import { sessionCommandChanges } from "#server/commandChanges.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { resolveSession, type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
@@ -29,6 +31,18 @@ function requiringRole<TSession extends UserSessionShape>(
 }
 export function authenticatedAdminLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedAdmin> {
 	return Layer.succeed(AuthenticatedAdmin, requiringRole(policy, "admin", "Administrator role required"));
+}
+export function adminRoute<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>) {
+	return <E, R>(handler: (request: HttpServerRequest.HttpServerRequest) => Effect.Effect<HttpServerResponse.HttpServerResponse, E, R>) =>
+		(request: HttpServerRequest.HttpServerRequest): Effect.Effect<HttpServerResponse.HttpServerResponse, E, Exclude<R, Identity | SessionUser>> =>
+			Effect.andThen(requireAdmin, Effect.context<Identity | SessionUser>()).pipe(
+				withSessionUser(policy, request.headers, request.url),
+				Effect.matchEffect({
+					onFailure: (error) =>
+						Effect.succeed(HttpServerResponse.empty({ status: { AuthUnavailable: 503, Forbidden: 403, Unauthorized: 401 }[error._tag] })),
+					onSuccess: (context) => Effect.provideContext(handler(request), context),
+				}),
+			);
 }
 export function authenticatedOwnerLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedOwner> {
 	return Layer.succeed(AuthenticatedOwner, requiringRole(policy, "owner", "Owner role required"));

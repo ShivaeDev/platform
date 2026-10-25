@@ -1,9 +1,10 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { SessionUser } from "#rpc/identity.ts";
+import { Forbidden } from "#errors/taxonomy.ts";
+import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";
-import { requireAdmin } from "#rpc/requireAdmin.ts";
+import { adminRoute } from "#server/rpc-server/roles.ts";
 import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/rpc-server/session.ts";
 
 export const AdminApi = RpcGroup.make(
@@ -23,14 +24,26 @@ const routeErrors = {
 	Unauthorized: () => Effect.succeed(HttpServerResponse.empty({ status: 401 })),
 };
 
-export function adminRoutes(sessions: SessionPolicy<UserSessionShape>) {
+export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { handlerRequests: string[] }) {
+	const guarded = adminRoute(sessions);
+	const tools = guarded((request) =>
+		Effect.gen(function* () {
+			state.handlerRequests.push(request.method);
+			const user = yield* SessionUser;
+			const identity = yield* Identity;
+			return HttpServerResponse.text(`Admin tools for ${user.email}`, {
+				headers: { "x-admin-id": identity.id },
+				status: request.method === "POST" ? 201 : 200,
+			});
+		}),
+	);
 	return HttpRouter.use((router) =>
 		Effect.all([
-			router.add("GET", "/admin-tools", (request) =>
-				Effect.map(requireAdmin, (user) => `Admin tools for ${user.email}`).pipe(
-					withSessionUser(sessions, request.headers, "admin-tools"),
-					Effect.map(HttpServerResponse.text),
-					Effect.catchTags(routeErrors),
+			router.add("GET", "/admin-tools", tools),
+			router.add("POST", "/admin-tools", tools),
+			router.add("GET", "/admin-failure", (request) =>
+				guarded(() => Effect.fail(new Forbidden({ message: "Handler failure" })))(request).pipe(
+					Effect.catchTag("Forbidden", (error) => Effect.succeed(HttpServerResponse.text(error.message, { status: 422 }))),
 				),
 			),
 			router.add("GET", "/profile", (request) =>

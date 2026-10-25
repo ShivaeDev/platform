@@ -421,28 +421,22 @@ export const AdminServer = Admin.toLayer({
 
 Removing a role takes effect on the next call with the same session, as long as the provider reads the role from storage; keep Better Auth's cookie cache disabled. A live stream behind role middleware rechecks the role at each session revalidation and ends with `Forbidden` once the role is gone.
 
-An HTTP route has no RPC middleware. The `requireAdmin` Effect from `@shivaedev/platform/rpc/requireAdmin.ts` uses the same `hasRole` check: it returns the request's `SessionUser` when the role list includes `admin` and fails with `Forbidden` otherwise. Wrap the route with the same request identity boundary, which fails with `Unauthorized` when no session exists:
+Use `adminRoute(sessions)` for host HTTP routes. It resolves the session through the transport-header and Origin policy, checks the role with `requireAdmin`, and provides `Identity` and `SessionUser` to the handler. Signed-out callers receive 401, missing admin roles and refused Origins receive 403, and an `AuthUnavailable` session provider failure receives 503. Refused requests never run the handler. The handler's response and typed failures pass through unchanged.
 
 ```ts
 import { Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { requireAdmin } from "@shivaedev/platform/rpc/requireAdmin.ts";
-import { withSessionUser } from "@shivaedev/platform/server/rpc-server/session.ts";
+import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
+import { adminRoute } from "@shivaedev/platform/server/rpc-server/roles.ts";
 
 const routes = HttpRouter.use((router) =>
-  router.add("GET", "/admin-tools", (request) =>
-    Effect.map(requireAdmin, (user) => `Admin tools for ${user.email}`).pipe(
-      withSessionUser(sessions, request.headers, "admin-tools"),
-      Effect.map(HttpServerResponse.text),
-      Effect.catchTags({
-        Unauthorized: () => Effect.succeed(HttpServerResponse.empty({ status: 401 })),
-        Forbidden: () => Effect.succeed(HttpServerResponse.empty({ status: 403 })),
-        AuthUnavailable: () => Effect.succeed(HttpServerResponse.empty({ status: 503 })),
-      }),
-    ),
-  ),
+  router.add("GET", "/admin-tools", adminRoute(sessions)(() =>
+    Effect.map(SessionUser, (user) => HttpServerResponse.text(`Admin tools for ${user.email}`)),
+  )),
 );
 ```
+
+The guard accepts any HTTP method and path. A mount can accept it as a parameter using only `effect` and `effect/http` types; the mount does not need to import Platform.
 
 `withSessionUser(policy, headers, operation)` resolves the session through the existing transport-header and Origin policy path and provides `Identity` and `SessionUser` only around the supplied Effect. It is also the boundary used by `authenticatedUserLayer`. Both the guard and identity boundary use public provider data, without reading Better Auth's tables or internal services. Keep Better Auth's cookie cache disabled for database-backed role removal to take effect on the next request, as in the starter.
 
@@ -867,7 +861,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
 | `server/otlpTracing.ts` | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers. |
 | `server/rpc-server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
-| `server/rpc-server/roles.ts` | `authenticatedAdminLayer`, `authenticatedOwnerLayer`: role middleware implementations. |
+| `server/rpc-server/roles.ts` | `authenticatedAdminLayer`, `authenticatedOwnerLayer`: role middleware implementations; `adminRoute`: admin guard for host HTTP handlers. |
 | `server/rpc-server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups. |
 | `server/rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`: an exact Origin allowlist. |
 | `server/rpc-server/local.ts` | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards. |
