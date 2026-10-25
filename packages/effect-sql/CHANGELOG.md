@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.15.0 - 2026-10-25
+
+### Added
+
+- Repository `findMany` and `select` filters accept typed `gt`, `gte`, `lt` and `lte` bounds, including UTC timestamps, and `like` text patterns, with runtime operand validation through model codecs.
+- Match several model fields together with `tupleIn(model, fields, tuples)` in `findMany`, `select` and unversioned `delete` filters. Tuples use each field's decoded type and codec, combine with other filters, and bind large lists as parameters. An empty tuple list matches nothing.
+
 ## 0.14.0 - 2026-10-25
 
 ### Added
