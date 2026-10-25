@@ -1,2 +1,2 @@
 export const NAME = "work-board";
-export const VERSION = "0.30.10";
+export const VERSION = "0.30.11";
