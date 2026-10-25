@@ -38,7 +38,7 @@ deployment.it(
 		expect(signup.status).toBe(OK_STATUS);
 		expect(signup.cookie).toContain("session_token=");
 		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
-		expect(worker.logs.filter((line) => line.includes("migrations") || line.includes("Worker ready"))).toEqual([
+		expect(worker.logs.filter((line) => line.includes("migrations") || line.includes("Worker "))).toEqual([
 			expect.stringContaining("Waiting for database migrations"),
 			expect.stringContaining("Database migrations current"),
 			expect.stringContaining("Worker ready to take jobs"),
