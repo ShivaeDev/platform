@@ -18,6 +18,7 @@ export async function processClient(url: string) {
 	return {
 		close: () => runtime.dispose(),
 		get: () => runtime.runPromise(client["orders.get"]({ id: 1 })),
+		getResult: () => runtime.runPromise(client["orders.get"]({ id: 1 }).pipe(Effect.result)),
 		hints,
 		save: (name: string) => runtime.runPromise(client["orders.save"](new Order({ id: 1, name, quantity: 400 })).pipe(Effect.result)),
 	};
