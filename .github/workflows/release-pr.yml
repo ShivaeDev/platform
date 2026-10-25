@@ -19,6 +19,7 @@ jobs:
     permissions:
       contents: write
       pull-requests: write
+      actions: read
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -30,7 +31,7 @@ jobs:
         run: gh auth setup-git
         env:
           GH_TOKEN: ${{ github.token }}
-      - name: Regenerate the release PR unless it is queued
+      - name: Maintain the release PR
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
