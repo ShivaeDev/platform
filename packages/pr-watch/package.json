@@ -49,6 +49,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/effect-github": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*"
 	},
 	"devDependencies": {

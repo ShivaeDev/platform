@@ -4,11 +4,10 @@ import type { WatchError } from "./model.ts";
 import { Watcher } from "./Watcher.ts";
 export const program = Effect.fn("PrWatch.program")(function* (
 	args: readonly string[],
-	token: string,
 	emit: (line: string) => Effect.Effect<void, WatchError>,
 	diagnostic: (message: string) => Effect.Effect<void, WatchError>,
 ) {
-	const parsed = yield* argumentsFor(args, token);
+	const parsed = yield* argumentsFor(args);
 	if (parsed.help) {
 		yield* emit(help);
 		return;

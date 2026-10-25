@@ -28,21 +28,7 @@ export const GitHub = defineService({
 			return Schema.decodeUnknownEffect(schema)(body).pipe(Effect.mapError(() => new WatchError({ message: "Invalid GitHub response" })));
 		}
 		function pages(options: Options, path: string) {
-			return Effect.gen(function* () {
-				const bodies: unknown[] = [];
-				const visited = new Set<string>();
-				let url: string | undefined = `${options.apiUrl}/repos/${options.repository}${path}`;
-				while (url !== undefined) {
-					if (visited.has(url)) {
-						return yield* Effect.fail(new WatchError({ message: "Repeated pagination URL" }));
-					}
-					visited.add(url);
-					const response: Effect.Success<ReturnType<typeof http.get>> = yield* http.get(url, options.token);
-					bodies.push(response.body);
-					url = response.next;
-				}
-				return bodies;
-			});
+			return http.list(`${options.apiUrl}/repos/${options.repository}${path}`);
 		}
 		return {
 			confirmQueue: (options: Options, snapshot: Snapshot) => confirmQueue(http, options, snapshot),
@@ -66,8 +52,8 @@ export const GitHub = defineService({
 				}),
 			snapshot: (options: Options, number: number, queued: ReadonlySet<number>) =>
 				Effect.gen(function* () {
-					const response = yield* http.get(`${options.apiUrl}/repos/${options.repository}/pulls/${number}`, options.token);
-					const pr = yield* decode(Pull, response.body);
+					const response = yield* http.get(`${options.apiUrl}/repos/${options.repository}/pulls/${number}`);
+					const pr = yield* decode(Pull, response);
 					if (pr.number !== number) {
 						return yield* Effect.fail(new WatchError({ message: "GitHub returned the wrong PR" }));
 					}
@@ -78,8 +64,8 @@ export const GitHub = defineService({
 					if (pr.state === "open") {
 						const bodies = yield* pages(options, `/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`);
 						const checks = yield* Effect.forEach(bodies, (body) => decode(Checks, body));
-						const statusResponse = yield* http.get(`${options.apiUrl}/repos/${options.repository}/commits/${pr.head.sha}/status`, options.token);
-						const status = yield* decode(Status, statusResponse.body);
+						const statusResponse = yield* http.get(`${options.apiUrl}/repos/${options.repository}/commits/${pr.head.sha}/status`);
+						const status = yield* decode(Status, statusResponse);
 						failed =
 							checks.some((page) => page.checkRuns.some((check) => check.status === "completed" && failures.has(check.conclusion ?? "")))
 							|| ["failure", "error"].includes(status.state);
