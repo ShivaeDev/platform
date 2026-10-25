@@ -37,7 +37,7 @@ export function clientAbortVerbs(state: HostState, tell: (line: string) => void)
 			const { callbacks, commits, finalized, interrupted, registrations, written } = probeOf(state);
 			return { callbacks, commits, finalized, interrupted, registrations, written };
 		},
-		awaitAbort: () => until(() => probeOf(state).finalized && probeOf(state).registrations === 0),
+		awaitAbort: () => until(() => probeOf(state).finalized && probeOf(state).registrations.length === 0),
 		awaitCommit: (count: number) => until(() => probeOf(state).commits >= count),
 		awaitWrite: () => until(() => probeOf(state).written),
 		beginRpc: (method: "hold" | "watch") =>

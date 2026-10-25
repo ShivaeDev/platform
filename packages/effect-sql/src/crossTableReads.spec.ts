@@ -44,10 +44,7 @@ postgres.it(
 		const bound = DateTime.makeUnsafe("2026-10-25T13:00:00+02:00");
 		const { rows, statements } = yield* captureStatement(crossTableReads().reads.listReports({ since: bound }));
 		expect(rows.map((row) => row.pullRequestId)).toEqual([3]);
-		const oneQuery = 1;
-		expect(statements).toHaveLength(oneQuery);
-		expect(statements[0]?.[0]).toContain("where p.updated_at >= $1");
-		expect(statements[0]?.[1]).toEqual([new Date("2026-10-25T11:00:00Z")]);
+		expect(statements).toEqual([[expect.stringContaining("where p.updated_at >= $1"), [new Date("2026-10-25T11:00:00Z")]]]);
 	},
 );
 

@@ -3,8 +3,6 @@ import { expect } from "vitest";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 
-const OK_STATUS = 200;
-const SUCCESS_EXIT = 0;
 const connections = 2 * (testPoolSizes.sql + testPoolSizes.auth + testPoolSizes.jobs);
 const LISTEN_CONNECTIONS = 2;
 
@@ -13,18 +11,18 @@ notesDeployment.it(
 	[],
 	function* ({ startProcess, signUpAt, signInAt, notesAt, watchBackends }) {
 		const migrate = yield* startProcess("migrate");
-		expect(yield* migrate.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* migrate.child.exitCode).toBe(0);
 		const web = yield* startProcess("web", 0, { "AUTH_RATE_LIMIT_ENABLED": "false" });
 		const worker = yield* startProcess("worker");
 		yield* web.ready;
 		yield* worker.ready;
 		const activity = yield* watchBackends();
-		expect((yield* signUpAt(web.url, "alice")).status).toBe(OK_STATUS);
+		expect((yield* signUpAt(web.url, "alice")).status).toBe(200);
 		const results = yield* Effect.all(
 			Array.from({ length: 8 }, (_, index) =>
 				Effect.gen(function* () {
 					const session = yield* signInAt(web.url, "alice");
-					expect(session.status).toBe(OK_STATUS);
+					expect(session.status).toBe(200);
 					const client = yield* notesAt(web.url, session.cookie);
 					const note = yield* client["notes.create"]({ title: `Concurrent note ${index}` });
 					return { client, note };
