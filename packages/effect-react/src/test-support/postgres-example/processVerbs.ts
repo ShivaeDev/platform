@@ -13,7 +13,7 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 		return { a: await client(engine, "a").get(), b: await client(engine, "b").get(), hints: [...client(engine, "a").hints] };
 	}
 	return {
-		...failoverVerbs(engine),
+		...failoverVerbs(engine, tell),
 		hints: (name: string) => [...client(engine, name).hints],
 		localResyncs: () =>
 			Effect.promise(async () => {
