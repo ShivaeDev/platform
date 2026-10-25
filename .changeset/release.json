@@ -3,96 +3,133 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "action-completion.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `useAction(runtime, run, options?)` runs optional `onSuccess(value, input)` and `onFailure(error, input)` callbacks inside each command invocation using the latest committed callbacks. Native atoms retain execution, interruption and aggregate state; `concurrent: true` allows overlapping commands. Bound commands keep their own invalidation without waiting for refetches, Unauthorized failures request one session recheck per invocation, and session replacement discards outgoing feedback. The existing atom overload remains available.\n"
+				"name": "fleet-release-answer.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Answering a managed Fleet decision with `release` stops and hands back the task, allowing fresh preparation on current main.\n- Failed answers log the work ID and cause, and status reports the cause instead of the decision's recommendation.\n"
 			},
 			{
-				"name": "github-pull-request-writes.md",
-				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- Upsert sticky pull-request comments by hidden marker across comment pages, optionally matching an author login.\n- Create check runs for a head SHA and move them through in progress to completed with a conclusion and output through Schema-typed requests and responses.\n"
+				"name": "fleet-watch-events.md",
+				"text": "---\n\"@shivaedev/work-fleet\": minor\n---\n\n### Added\n\n- Stream JSON Fleet transitions with `work-fleet watch --board <dir>`, event filtering, configurable stuck detection, PR and head details, dispatch and answer failures, and daemon health across restarts.\n\n### Breaking\n\n- `watch` without work IDs now continuously streams JSON instead of waiting for the initial active set to finish. Use `watch <ids...>` for finite text outcomes or `watch --follow` for continuous text outcomes.\n"
 			},
 			{
-				"name": "pr-watch-event-health.md",
-				"text": "---\n\"@shivaedev/pr-watch\": minor\n---\n\n### Added\n\n- Select PR transitions with `--events KIND,...`; reject unknown kinds at startup with the valid choices.\n- Print unfiltered JSON health lines for heartbeats, errors, quota cooldowns and polling stops on stdout.\n\n### Fixed\n\n- Keep long quota-paced waits visible with interval heartbeats and the next poll time instead of silently sleeping.\n- Exit non-zero after a failed round instead of swallowing the error and retrying indefinitely; retain successful snapshots and report rate-limit retry times.\n- Keep rate-limit logs out of the CLI's JSON-line stdout stream.\n"
+				"name": "free-blocked-waiter-areas.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Let work launch on areas shared with a queued waiter blocked by another held area or dependency. Resolve free-area contention by priority, preserving queue order within each priority.\n"
 			},
 			{
-				"name": "quality-named-values-codes.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- `tests/named-values` now accepts zero and status or exit codes.\n- Generated apps' stories assert observed items instead of numeric aliases.\n"
+				"name": "github-markdown-rows.md",
+				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- Render untrusted text as literal Markdown text, code spans and table cells, and build row reports within a UTF-8 byte budget with a count of omitted rows.\n"
 			},
 			{
-				"name": "session-contract-keys.md",
-				"text": "---\n\"@shivaedev/effect-contract\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Declare `keyScope: \"session\"` on a contract and bind it with `bind(Api, Client, { registry })`. Its query keys, successful-command invalidations, live hints and reconciliation use that session registry's scope. `List` and `Item` retain their shapes and item/list/wildcard semantics; `readKeys`, `invalidationKeys`, `makeLiveServer.stream` and `live` accept contextual scope resolution. Server adapters receive the `KeyScope` annotation and must resolve session scopes from request-local authenticated identity.\n- Session-scoped automatic subscriptions track mounted query references per registry and release them when queries unmount or the registry is disposed.\n\n### Breaking\n\n- The reserved `<contract>.$changes` payload is now `{ queries: [{ query: \"get\", payload: { id: 1 } }] }`, typed and decoded with the contract's declared query payload schemas. Custom clients must replace `{ keys }` with declared query references; payloadless queries use `{ query: \"list\", payload: undefined }`. Subscription handlers must resolve these references with `queryKeys(Api.declaration.queries, queries)` or the RPC's `ChangesReads` annotation before calling `makeLiveServer.stream`. `changesRpc` now requires both the contract name and its query declarations. No raw-key subscription endpoint remains.\n\n- Board's handoff and response RPC contracts use distinct `work-board-handoffs` and `work-board-responses` namespaces so merging contracts preserves each declared subscription schema. Custom RPC clients must replace the `work-board.` prefix for handoff and response operations with the corresponding namespace; operation names and payloads stay the same.\n"
+				"name": "native-platform-names.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Recognise Xcode bundles and asset catalogs, Swift Package Manager source targets and Android source sets and resources in file and folder naming checks, so Capacitor-generated native shells pass without consumer configuration while authored names remain checked.\n"
+			},
+			{
+				"name": "query-screen-feedback.md",
+				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- Add stateless `QueryView` renderers for loading, successful content and typed query rejections with native refresh. Failed refreshes keep successful content mounted, while defects reach the application's error boundary.\n"
+			},
+			{
+				"name": "quiet-fleet-waits.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Changed\n\n- Fleet logs dependency, area and back-pressure waits once per changed reason at info without a stack trace, while unexpected dispatch failures retain warnings with their cause.\n"
+			},
+			{
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+			},
+			{
+				"name": "yieldable-react-assertions.md",
+				"text": "---\n\"@shivaedev/effect-react\": minor\n\"@shivaedev/effect-test\": minor\n---\n\n### Added\n\n- `@shivaedev/effect-test` readiness retries accept `timeout` and `wait` options. A timeout preserves the final typed failure; a custom wait lets adapters settle observable work through the same retry engine.\n\n### Breaking\n\n- `@shivaedev/effect-react/client/testing.ts` now returns an Effect from `eventually(assert)`. Replace `yield* Effect.promise(() => eventually(assert))` with `yield* eventually(assert)` in stories and Effect tests, or replace `await eventually(assert)` with `await Effect.runPromise(eventually(assert))` in async tests. Assertions wait inside React `act` in live time, including under TestClock. Timeout errors include elapsed milliseconds and the last assertion message, with the assertion error as their `cause`.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/admin",
-				"from": "0.1.0",
+				"from": "0.1.1",
 				"name": "@shivaedev/admin",
-				"to": "0.1.1"
+				"to": "0.1.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.15.0",
+				"from": "0.15.1",
 				"name": "@shivaedev/create-app",
-				"to": "0.15.1"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-contract",
-				"from": "0.12.0",
-				"name": "@shivaedev/effect-contract",
-				"to": "0.13.0"
+				"to": "0.15.2"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-github",
-				"from": "0.2.0",
+				"from": "0.3.0",
 				"name": "@shivaedev/effect-github",
-				"to": "0.3.0"
+				"to": "0.4.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-prisma",
+				"from": "0.10.5",
+				"name": "@shivaedev/effect-prisma",
+				"to": "0.10.6"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-react",
-				"from": "0.13.0",
+				"from": "0.14.0",
 				"name": "@shivaedev/effect-react",
-				"to": "0.14.0"
+				"to": "0.15.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/effect-test",
+				"from": "0.8.1",
+				"name": "@shivaedev/effect-test",
+				"to": "0.9.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-trpc",
+				"from": "0.8.5",
+				"name": "@shivaedev/effect-trpc",
+				"to": "0.8.6"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/platform",
-				"from": "0.28.0",
+				"from": "0.28.1",
 				"name": "@shivaedev/platform",
-				"to": "0.28.1"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/pr-watch",
-				"from": "0.2.0",
-				"name": "@shivaedev/pr-watch",
-				"to": "0.3.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.38.0",
-				"name": "@shivaedev/quality",
-				"to": "0.39.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/work-board",
-				"from": "0.30.11",
-				"name": "@shivaedev/work-board",
-				"to": "0.31.0"
+				"to": "0.28.2"
 			},
 			{
 				"bump": "patch",
+				"directory": "packages/pr-watch",
+				"from": "0.3.0",
+				"name": "@shivaedev/pr-watch",
+				"to": "0.3.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.39.0",
+				"name": "@shivaedev/quality",
+				"to": "0.39.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/test-story",
+				"from": "0.19.0",
+				"name": "@shivaedev/test-story",
+				"to": "0.19.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.31.0",
+				"name": "@shivaedev/work-board",
+				"to": "0.31.1"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/work-fleet",
-				"from": "0.17.12",
+				"from": "0.17.13",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.13"
+				"to": "0.18.0"
 			}
 		]
 	}
