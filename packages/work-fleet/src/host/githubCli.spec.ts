@@ -11,9 +11,14 @@ githubCliHost.it("reads GitHub over HTTP and revalidates repeated check evidence
 	expect(yield* cli.checks(githubResult())).toMatchObject({ head: ADOPTED_HEAD, passed: true });
 	yield* cli.checks(githubResult());
 	const endpoint = `repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`;
-	expect(cli.commands).toHaveLength(6);
-	expect(cli.commands[0]).toMatchObject({ endpoint, etag: undefined });
-	expect(cli.commands[3]).toMatchObject({ endpoint, status: 304 });
+	expect(cli.commands).toMatchObject([
+		{ endpoint, etag: undefined, status: 200 },
+		{ endpoint: `repos/example/project/commits/${ADOPTED_HEAD}/status?per_page=100`, status: 200 },
+		{ endpoint: "repos/example/project/rules/branches/main", status: 200 },
+		{ endpoint, status: 304 },
+		{ endpoint: `repos/example/project/commits/${ADOPTED_HEAD}/status?per_page=100`, status: 304 },
+		{ endpoint: "repos/example/project/rules/branches/main", status: 304 },
+	]);
 	expect(cli.commands[3]?.etag).toBeDefined();
 });
 
@@ -23,5 +28,7 @@ githubCliHost.it("rejects a failed GitHub response even when its body contains g
 	const cli = yield* github.cli(unslurped(fixture.responses), 500);
 	const failure = yield* cli.checks(githubResult()).pipe(Effect.flip);
 	expect(failure).toMatchObject({ _tag: "ServiceUnavailable" });
-	expect(cli.commands).toHaveLength(1);
+	expect(cli.commands).toMatchObject([
+		{ endpoint: `repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`, status: 500 },
+	]);
 });

@@ -23,9 +23,10 @@ boardStory.it(
 	[projectFiles(navigationFixture()), boardHome("packages/README.md")],
 	function* ({ client }) {
 		const hidden = yield* Effect.promise(() => client.run(client.api.library.run({})));
-		expect(hidden.fleetCount).toBe(1);
-		expect(hidden.files.some((file) => file.path === "responses/decision.md")).toBe(false);
+		expect(hidden.files.map((file) => file.path)).not.toContain("responses/decision.md");
 		const shown = yield* Effect.promise(() => client.run(client.api.library.run({ showFleet: true })));
-		expect(shown.files.some((file) => file.path === "responses/decision.md")).toBe(true);
+		const fleetFiles = shown.files.filter((file) => !hidden.files.some((listed) => listed.path === file.path));
+		expect(fleetFiles.map((file) => file.path)).toEqual(["responses/decision.md"]);
+		expect(hidden.fleetCount).toBe(fleetFiles.length);
 	},
 );

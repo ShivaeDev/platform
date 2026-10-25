@@ -41,7 +41,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			expect(launched.attempts.slice(0, -1)).toEqual(retried.attempts);
 			expect(launched.attempts.at(-1)).toMatchObject({ role: "worker", status: "running" });
 			expect(launched.attempts.at(-1)?.receipt?.sessionId).not.toBe(stalled.attempts.at(-1)?.receipt?.sessionId);
-			expect(daemon.providerLaunches()).toHaveLength(2);
+			expect(daemon.providerLaunches()).toEqual(["operation-1", "operation-3"]);
 			expect(launched.responses).toEqual(retried.responses);
 			expect(launched.history ?? []).toEqual([]);
 		},

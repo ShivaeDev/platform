@@ -20,6 +20,7 @@ export interface WatcherEngine {
 	reads: string[];
 	scans: number;
 	starts: number;
+	readonly watchedPaths: string[];
 }
 
 export const fileWatcherStory = storyKit({
@@ -55,6 +56,7 @@ export const fileWatcherStory = storyKit({
 						return Stream.never;
 					}
 					engine.starts += 1;
+					engine.watchedPaths.push(_path);
 					return Stream.fromPubSub(engine.input);
 				},
 			};
@@ -71,7 +73,7 @@ export const fileWatcherStory = storyKit({
 			(acquired) => Effect.sync(acquired.remove),
 		);
 		const input = yield* PubSub.unbounded<FileSystem.WatchEvent>();
-		const engine: WatcherEngine = { checked: [], folders: [], input, notes, reads: [], scans: 0, starts: 0 };
+		const engine: WatcherEngine = { checked: [], folders: [], input, notes, reads: [], scans: 0, starts: 0, watchedPaths: [] };
 		return engine;
 	},
 	inspect: (engine) => ({ checked: engine.checked, folders: engine.folders, scans: engine.scans, starts: engine.starts }),

@@ -44,8 +44,10 @@ watch.it("multiple explicit PRs share one queue request per cycle", [watchesPull
 	h.merged(2);
 	yield* h.poll;
 	expect(h.eventNames()).toEqual(["closed", "merged"]);
-	const pollingRounds = 2;
-	expect(h.requests.filter((request) => request.path.includes("matching-refs"))).toHaveLength(pollingRounds);
+	expect(h.requests.filter((request) => request.path.includes("matching-refs"))).toMatchObject([
+		{ method: "GET", path: "/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/", status: 200 },
+		{ method: "GET", path: "/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/", status: 304 },
+	]);
 });
 for (const status of [500, 403, 429]) {
 	watch.it(`HTTP ${status} produces no inferred events`, [], function* (h) {
@@ -55,8 +57,7 @@ for (const status of [500, 403, 429]) {
 		expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 		expect((yield* h.saved()).prs["1"]?.dirty).toBe(false);
 		expect(h.lines).toEqual([]);
-		const failedObservations = 1;
-		expect(h.diagnostics).toHaveLength(failedObservations);
+		expect(h.diagnostics).toEqual([status === 500 ? "GitHub request failed" : "GitHub quota cooldown"]);
 	});
 }
 watch.it("a failed queue request does not imply dequeue", [queuedPulls(1)], function* (h) {
@@ -76,8 +77,7 @@ watch.it("malformed responses and unknown mergeability retain the old state", []
 	h.pullIs(1, { mergeable: null, "mergeable_state": "unknown" });
 	yield* Effect.result(h.poll);
 	expect(h.lines).toEqual([]);
-	const failedObservations = 1;
-	expect(h.diagnostics).toHaveLength(failedObservations);
+	expect(h.diagnostics).toEqual(["Invalid GitHub response"]);
 });
 watch.it("invalid state and a different repository fail without overwriting it", [historyIs("broken")], function* (h) {
 	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");

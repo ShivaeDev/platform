@@ -39,6 +39,7 @@ export function hostStoreVerbs(engine: HostStoryEngine, tell: (line: string) => 
 				}),
 			).pipe(Effect.provideContext(engine.running.context));
 		},
+		snapshotQueries: () => observedReads(engine).queries(),
 		snapshotReadCount: () => {
 			if (engine.reads === undefined) {
 				throw new Error("Deploy the host before reading its queries");

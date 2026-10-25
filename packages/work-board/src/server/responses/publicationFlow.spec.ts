@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { chmod, open, readdir, readFile, rename } from "node:fs/promises";
 import { join } from "node:path";
-import { Effect, Exit } from "effect";
+import { Effect } from "effect";
 import { expect, vi } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { outsideResponseDirectory, responseDirectory, responseLink } from "#test/responseFiles.ts";
@@ -70,7 +70,7 @@ boardStory.it(
 			["First feedback", "Other feedback"].map((content) => Effect.exit(publish(notes.root, notes.root, "response.race", content))),
 			{ concurrency: "unbounded" },
 		);
-		expect(attempts.filter(Exit.isSuccess)).toHaveLength(1);
+		expect(attempts.map((attempt) => attempt._tag).sort()).toEqual(["Failure", "Success"]);
 		const saved = yield* Effect.promise(() => readFile(join(notes.root, "responses/response.race.md"), "utf8"));
 		yield* Effect.all(
 			Array.from({ length: 4 }, () => publish(notes.root, notes.root, "response.race", saved)),

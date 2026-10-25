@@ -17,7 +17,7 @@ for (const conflicting of [false, true]) {
 		expect(repaired.attempts.at(-1)?.prompt).toContain("Keep the loading indicator visible.");
 		expect(repaired.attempts.at(-1)?.receipt?.sessionId).toBe(ready.attempts[0]?.receipt?.sessionId);
 		expect(repaired.responses?.at(-1)).toMatchObject({ boardAcknowledged: true, responseId: response.responseId });
-		expect(repairAttempts(repaired)).toHaveLength(1);
+		expect(repairAttempts(repaired)).toMatchObject([{ prompt: expect.stringContaining("Keep the loading indicator visible."), role: "repair" }]);
 		if (conflicting) {
 			expect(repaired.conflictRepairs).toEqual([BASE]);
 			expect(repaired.attempts.at(-1)?.prompt).toContain("Fetch and merge main once");
@@ -66,7 +66,7 @@ for (const author of ["maintainer", "orchestrator"]) {
 				expect(reviewed.review).toMatchObject({ head: MOVED, verdict: "approved" });
 				expect(reviewed.checks).toMatchObject({ head: MOVED, passed: true });
 				expect(reviewHeads(reviewed)).toEqual([HEAD, MOVED]);
-				expect(repairAttempts(reviewed)).toHaveLength(1);
+				expect(repairAttempts(reviewed).map(({ operationId }) => operationId)).toEqual([repair?.operationId]);
 			});
 		},
 	);
@@ -83,7 +83,7 @@ answers.it("daemon retries an unchanged approved head without text by republishi
 		expect(retried.review).toEqual(ready.review);
 		expect(retried.checks).toEqual(ready.checks);
 		expect(retried.attempts).toEqual(ready.attempts);
-		expect(daemon.launchedSessions()).toHaveLength(2);
+		expect(daemon.launchedSessions()).toEqual(ready.attempts.map(({ operationId }) => operationId));
 		ready = retried;
 	}
 });

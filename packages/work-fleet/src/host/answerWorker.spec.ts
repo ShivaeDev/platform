@@ -41,8 +41,7 @@ for (const source of ["argument", "stdin", "release"] as const) {
 			}
 			expect(response).toContain("author: orchestrator");
 			const receipts = daemon.receiptFiles();
-			expect(receipts).toHaveLength(1);
-			expect(daemon.readBoard(receipts[0] ?? "missing")).toContain('"disposition":"applied"');
+			expect(receipts.map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 			if (source === "release") {
 				expect(queued.step).toBe("released");
 			} else {
@@ -51,7 +50,7 @@ for (const source of ["argument", "stdin", "release"] as const) {
 				expect(resumed.attempts.at(-1)?.receipt?.sessionId).toBe(started.attempts[0]?.receipt?.sessionId);
 				expect(resumed.attempts.at(-1)?.prompt).toBe(answer);
 			}
-			expect(daemon.providerStarts()).toHaveLength(1);
+			expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([started.attempts[0]?.operationId]);
 		},
 		30_000,
 	);

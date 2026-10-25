@@ -3,9 +3,6 @@ import { expect } from "vitest";
 import { historyIs, queuedPulls } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
-const FAILED_EXIT = 1;
-const SUCCESSFUL_EXIT = 0;
-
 watch.it("quota pacing explains a half-hour polling gap while heartbeats continue", [queuedPulls(1)], function* (h) {
 	yield* h.poll;
 	yield* h.quotaRemaining(9);
@@ -14,7 +11,7 @@ watch.it("quota pacing explains a half-hour polling gap while heartbeats continu
 	h.queueHas();
 	h.pullIs(1, { "auto_merge": null });
 	const once = yield* h.cliRun("1", "--once");
-	expect(once.code).toBe(SUCCESSFUL_EXIT);
+	expect(once.code).toBe(0);
 	const onceEvents = once.stdout
 		.trim()
 		.split("\n")
@@ -43,7 +40,8 @@ watch.it("quota pacing explains a half-hour polling gap while heartbeats continu
 watch.it("a filtered continuous CLI exits on a request error with JSON health lines", [], function* (h) {
 	h.reply("/pulls/1", { body: {}, status: 500 });
 	yield* h.cliStart("--events", "dequeued", "--heartbeat", "0");
-	expect(yield* h.cliFinish()).toBe(FAILED_EXIT);
+	const code = yield* h.cliFinish();
+	expect(code).toBe(1);
 	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "stopped"]);
 	expect(h.cliLines()[0]).toMatchObject({ at: expect.any(String), message: "GitHub request failed" });
 	expect(h.cliStderr()).toContain("GitHub request failed");
@@ -53,7 +51,8 @@ watch.it("a filtered rate-limited CLI reports the retry instant and exits withou
 	h.throttled(900);
 	const now = yield* Clock.currentTimeMillis;
 	yield* h.cliStart("--events", "merged", "--heartbeat", "0");
-	expect(yield* h.cliFinish()).toBe(FAILED_EXIT);
+	const code = yield* h.cliFinish();
+	expect(code).toBe(1);
 	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "cooldown", "stopped"]);
 	const retryAt = Date.parse(h.cliLines()[1].nextPollAt);
 	const minimumCooldown = 890_000;
@@ -62,7 +61,7 @@ watch.it("a filtered rate-limited CLI reports the retry instant and exits withou
 
 watch.it("invalid startup state prints an error and stop even with a transition filter", [historyIs("broken")], function* (h) {
 	const result = yield* h.cliRun("--fleet", "--events", "dequeued");
-	expect(result.code).toBe(FAILED_EXIT);
+	expect(result.code).toBe(1);
 	expect(
 		result.stdout
 			.trim()

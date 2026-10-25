@@ -12,6 +12,7 @@ export function spanCounts() {
 	});
 	return {
 		count: (name: string) => counts.get(name) ?? 0,
+		names: () => [...recorded],
 		recorded: (name: string) => recorded.filter((entry) => entry === name),
 		reset: () => {
 			counts.clear();

@@ -6,6 +6,7 @@ import type { LiveHint } from "#live.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
+	let openStreams = 0;
 	const resyncKey = `@shivaedev/effect-contract/resync/${crypto.randomUUID()}`;
 	function stream(keys: readonly Key[], context?: KeyContext) {
 		return Stream.unwrap(
@@ -45,9 +46,11 @@ export const makeLiveServer = Effect.gen(function* () {
 						flush();
 					}),
 				);
+				openStreams += 1;
 				yield* Effect.addFinalizer(() =>
 					Effect.sync(() => {
 						active = false;
+						openStreams -= 1;
 						for (const stop of cancel) {
 							stop();
 						}
@@ -67,6 +70,7 @@ export const makeLiveServer = Effect.gen(function* () {
 	}
 	const resync = Effect.sync(() => {
 		reactivity.invalidateUnsafe([resyncKey]);
+		return openStreams;
 	});
 	return { resync, stream };
 });

@@ -2,6 +2,7 @@ import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { Pool, type PoolClient, type PoolConfig } from "pg";
+import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { type RevokeUnadmitted, revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
@@ -34,6 +35,9 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	}
 	const gate = yield* signInGate(policy);
 	const gated = signInPolicyOptions(options, gate, run, (): Promise<PolicyStorage> => auth.$context);
+	const rateLimit = options.rateLimit;
+	const customStorage =
+		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
 	const auth = betterAuth({
 		...options,
 		advanced: {
@@ -47,7 +51,7 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		},
 		"baseURL": options.baseURL ?? Option.getOrElse(origin, () => ({ allowedHosts: ["127.0.0.1:*"], protocol: "http" as const })),
 		databaseHooks: gate.active ? gated.databaseHooks : options.databaseHooks,
-		rateLimit: { ...options.rateLimit, enabled: rateLimitEnabled },
+		rateLimit: { ...rateLimit, ...(customStorage === undefined ? {} : { customStorage }), enabled: rateLimitEnabled },
 		secret,
 		trustedOrigins: options.trustedOrigins ?? [Option.getOrElse(origin, () => "http://127.0.0.1:*")],
 		user: gate.active ? gated.user : options.user,

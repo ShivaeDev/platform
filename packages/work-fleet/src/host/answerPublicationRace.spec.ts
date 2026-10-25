@@ -10,11 +10,11 @@ for (const step of ["repairing", "working"] as const) {
 			daemon.finishWorkers();
 			const waiting = yield* daemon.reconcile();
 			expect(waiting.step).toBe("waiting");
-			const { publications, result } = yield* daemon.answerAcrossPublication(waiting, step, {
+			const { publishedWorkIds, result } = yield* daemon.answerAcrossPublication(waiting, step, {
 				release: input === "release",
 				text: input === "empty" ? "  " : TEXT,
 			});
-			expect(publications).toBe(1);
+			expect(publishedWorkIds).toEqual(["one"]);
 			const current = yield* daemon.get();
 			if (input !== "text") {
 				expect(result).toMatchObject({ _tag: "Failure", failure: { _tag: "Conflict", message: `Decision changed: ${step}` } });

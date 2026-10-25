@@ -60,20 +60,22 @@ screenStory.it(
 screenStory.it(
 	"updates one recovery entry per prior context when a context is revisited",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, prompts)],
-	function* ({ answerPrompt, responseClick, readDraftRecovery, refreshScreen }) {
+	function* ({ answerPrompt, responseClick, readDraftRecovery, readDraftRecoveries, refreshScreen }) {
 		answerPrompt("direction", "First direction");
 		answerPrompt("checks", "First checks");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 1, prompts)));
-		expect(readDraftRecovery().match(/Earlier template answers/gu)).toHaveLength(1);
+		const original = readDraftRecoveries();
+		expect(original).toEqual([expect.stringContaining('"text": "First direction"')]);
 		responseClick("preview");
 		const third = { ...answerPreview, id: "question.third", reviewedRevision: "c".repeat(64) };
 		yield* Effect.promise(() => refreshScreen(answerDraft(third, 2, prompts)));
-		expect(readDraftRecovery().match(/Earlier template answers/gu)).toHaveLength(2);
+		const revisited = readDraftRecoveries();
+		expect(revisited).toEqual([...original, expect.stringContaining(`Reviewed context: ${JSON.stringify([revised.id, revised.reviewedRevision])}`)]);
 		yield* Effect.promise(() => refreshScreen(answerDraft(answerPreview, 3, prompts)));
 		responseClick("preview");
 		answerPrompt("direction", "Revised direction");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 4, prompts)));
-		expect(readDraftRecovery().match(/Earlier template answers/gu)).toHaveLength(2);
+		expect(readDraftRecoveries()).toEqual([expect.stringContaining('"text": "Revised direction"'), revisited[1]]);
 		expect(readDraftRecovery()).toContain("Revised direction");
 		expect(answerPrompt("direction").value).toBe("Revised direction");
 	},
@@ -82,7 +84,7 @@ screenStory.it(
 screenStory.it(
 	"retains existing recovery strings without copying their duplicate snapshots",
 	[screenWorkspace("questionnaire-fixture"), answerScreen(answerPreview, 0, prompts)],
-	function* ({ answerPrompt, readStoredDraft, rememberStored, readDraftRecovery, draftKey, refreshScreen }) {
+	function* ({ answerPrompt, readStoredDraft, rememberStored, readDraftRecovery, readDraftRecoveries, draftKey, refreshScreen }) {
 		answerPrompt("direction", "Existing direction");
 		answerPrompt("checks", "Existing checks");
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 1, prompts)));
@@ -97,7 +99,7 @@ screenStory.it(
 		rememberStored(draftKey(), legacy);
 		yield* Effect.promise(() => refreshScreen(answerDraft(revised, 2, prompts)));
 		expect(answerPrompt("direction").value).toBe("Existing direction");
-		expect(readDraftRecovery().match(/Earlier template answers/gu)).toHaveLength(1);
+		expect(readDraftRecoveries()).toEqual([expect.stringContaining('"text": "Existing direction"')]);
 		expect(readDraftRecovery()).toContain("Older unrelated answer");
 		expect(new TextEncoder().encode(readStoredDraft() ?? "").byteLength).toBeLessThan(new TextEncoder().encode(legacy).byteLength);
 	},

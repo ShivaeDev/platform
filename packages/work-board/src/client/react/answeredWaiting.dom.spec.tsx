@@ -170,7 +170,10 @@ screenStory.it(
 		function* change(author: string, choice: string, copy: string, replaces: string) {
 			click("details[data-key='change-answer'] summary");
 			expect(findElement<HTMLInputElement>("details[data-key='change-answer'] [name='supersedes']")?.value).toBe(replaces);
-			expect(findElements("details[data-key='change-answer'] [role='radio']")).toHaveLength(2);
+			expect(findElements("details[data-key='change-answer'] [role='radio']").map((option) => option.getAttribute("data-choice"))).toEqual([
+				"retry",
+				"release",
+			]);
 			expect(findElements("details[data-key='change-answer'] [role='radio'][aria-checked='true']")).toHaveLength(0);
 			rememberStored("work-board:author:changed-answer", author);
 			click(`[data-choice='${choice}']`);
@@ -191,8 +194,8 @@ screenStory.it(
 			"You answered: Stop and hand back. Fleet picks this up on its next pass.",
 			"response.direction-retry",
 		);
-		yield* change("reviewer", "retry", "Answered by reviewer: Request changes. Fleet picks this up on its next pass.", mine);
+		const theirs = yield* change("reviewer", "retry", "Answered by reviewer: Request changes. Fleet picks this up on its next pass.", mine);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
-		expect(saved.responses).toHaveLength(3);
+		expect(saved.responses.map((entry) => entry.id).sort()).toEqual(["response.direction-retry", mine, theirs].sort());
 	},
 );

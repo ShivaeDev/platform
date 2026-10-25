@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.29.0 - 2026-10-25
+
+### Added
+
+- Interrupted RPCs log `RPC interrupted` at debug with request identity, duration and a redacted payload, and mark their trace span with `rpc.interrupted: true`.
+
+### Changed
+
+- Each mounted host owns its in-memory rate-limit buckets and releases them with its scope.
+- Starter stories import the application host without resetting modules.
+- Application test configuration no longer inlines Better Auth for module resets.
+
 ## 0.28.2 - 2026-10-25
 
 ### Changed

@@ -14,6 +14,6 @@ boardReadStory.it("rejects oversized reports including attachment links before w
 			.reportWithAttachments(work, { ...observation, output, receipt: { ...observation.receipt, turnId: "large" } })
 			.pipe(Effect.flip);
 		expect(failure.message).toContain("256 KiB");
-		expect(kit.responseFiles()).toHaveLength(1);
+		expect(kit.responseFiles()).toEqual([`${report.itemId}.md`]);
 	}
 });

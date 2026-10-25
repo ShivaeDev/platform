@@ -7,9 +7,6 @@ import { screenStory } from "#test/screenStory.ts";
 import { sessionScreen } from "#test/sessionScreen.ts";
 import { sessionBoundary } from "#test/sessionTransport.ts";
 
-const CAPTURED_COMMAND = 1;
-const FAILED_THEN_SAVED = 2;
-
 expectNoReactWarnings();
 for (const kind of ["response", "handoff"] as const) {
 	const command = kind === "response" ? "work-board-responses.answerQuestion" : "work-board-handoffs.prepareHandoff";
@@ -48,10 +45,10 @@ for (const kind of ["response", "handoff"] as const) {
 				yield* Effect.promise(() => activate(`#${kind}-preview`));
 				submit(`#${kind}-form`);
 				yield* eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/"));
-				expect(sessionCommands().length).toBe(FAILED_THEN_SAVED);
-				for (const call of sessionCommands()) {
-					expect(call.payload).toMatchObject({ id: identity });
-				}
+				expect(sessionCommands()).toMatchObject([
+					{ payload: { id: identity }, tag: command },
+					{ payload: { id: identity }, tag: command },
+				]);
 			},
 		);
 	}
@@ -67,7 +64,14 @@ for (const kind of ["response", "handoff"] as const) {
 			yield* Effect.promise(() => activate(`#${kind}-preview`));
 			pauseCommand();
 			submit(`#${kind}-form`);
-			yield* eventually(() => expect(sessionCommands()).toHaveLength(CAPTURED_COMMAND));
+			yield* eventually(() =>
+				expect(sessionCommands()).toMatchObject([
+					{
+						payload: expect.objectContaining(kind === "response" ? { body: "First reviewed direction" } : { goal: "First reviewed direction" }),
+						tag: command,
+					},
+				]),
+			);
 			input(field, "New direction typed while saving");
 			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", true);
 			yield* Effect.promise(() => releaseCommand());

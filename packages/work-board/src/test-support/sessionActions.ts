@@ -40,6 +40,11 @@ export function sessionActions(engine: ScreenEngine, tell: (line: string) => voi
 				.filter((file) => file.endsWith(".md"))
 				.map((file) => readFileSync(join(directory, file), "utf8"));
 		},
+		readSessionLibrary: async () => {
+			tell("the reader lists documents through the active native session");
+			const client = session(current().environment);
+			return await act(() => client.run(client.api.library.run({})));
+		},
 		readSessionNavigation: async () => {
 			tell("the reader reads navigation through the active native session");
 			const client = session(current().environment);

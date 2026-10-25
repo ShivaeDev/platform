@@ -5,6 +5,6 @@ export function appTestConfig(conditions: string[] = []) {
 	return defineConfig({
 		resolve: { conditions: [...conditions, "module", "browser", "development|production"] },
 		ssr: { resolve: { conditions: [...conditions, "node", "development|production"] } },
-		test: { ...testProjects(), server: { deps: { inline: ["@shivaedev/platform", "better-auth"] } } },
+		test: { ...testProjects(), server: { deps: { inline: ["@shivaedev/platform"] } } },
 	});
 }

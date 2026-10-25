@@ -8,7 +8,7 @@ for (const release of [false, true]) {
 		answers.it(`a ${release ? "release" : "text"} request restarts ${applied ? "after" : "before"} its exact response applies`, [], function* (host) {
 			yield* host.dispatch();
 			const { decision } = yield* host.question();
-			yield* host.defer(decision, "clarify");
+			const deferred = yield* host.defer(decision, "clarify");
 			yield* host.reconcile();
 			const request = yield* host.seedRecordedRequest(decision, TEXT, release);
 			const responseId = yield* host.publishResponse(decision, TEXT, release);
@@ -22,10 +22,13 @@ for (const release of [false, true]) {
 			yield* host.start();
 			const current = yield* host.applied();
 			expect(current.step).toBe(release ? "released" : "working");
-			expect(current.responses).toHaveLength(2);
+			expect(current.responses).toMatchObject([
+				{ responseId: deferred.id, type: "clarify" },
+				{ boardAcknowledged: true, responseId },
+			]);
 			expect(current.pendingAnswers).toBeUndefined();
-			expect(host.providerSessions()).toBe(1);
-			expect(host.providerTurns()).toBe(release ? 1 : 2);
+			expect(host.providerLaunches()).toEqual([current.attempts[0]?.operationId]);
+			expect(host.providerReceipts()).toEqual(current.attempts.map((attempt) => attempt.receipt));
 			if (applied) {
 				expect(current.attempts).toEqual(previous.attempts);
 				expect(current.responses).toEqual(previous.responses);

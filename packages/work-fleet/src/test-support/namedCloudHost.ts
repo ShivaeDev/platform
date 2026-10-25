@@ -44,10 +44,14 @@ export function namingBackend() {
 	const names = new Map<string, string | null>();
 	const failures = new Set<string>();
 	const requests: WireRequest[] = [];
+	const renames: (typeof Params.Type)[] = [];
 	return {
 		failures,
 		handle(request: WireRequest) {
 			requests.push(request);
+			if (request.method === "thread/name/set") {
+				renames.push(Schema.decodeUnknownSync(Params)(request.params));
+			}
 			if (request.method === "thread/start") {
 				const id = `synthetic-session-${names.size}`;
 				names.set(id, null);
@@ -59,6 +63,7 @@ export function namingBackend() {
 			return request.method === "turn/start" ? { turn: { id: "synthetic-turn" } } : {};
 		},
 		names,
+		renames,
 		requests,
 	};
 }

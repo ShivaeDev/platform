@@ -14,6 +14,9 @@ sqlite.it(
 		expect(saved).toBe("saved");
 		expect(yield* sql`select id from orders`).toEqual([{ id: 1 }]);
 		const failure = { cause: expect.stringContaining("subscriber threw"), level: "Error", message: [expect.stringContaining("committed")] };
-		expect(recordedLogs()).toEqual([failure, failure]);
+		expect(recordedLogs()).toEqual([
+			{ ...failure, annotations: { changes: 2, channel: "@shivaedev/effect-sql/transact" } },
+			{ ...failure, annotations: { changes: 1, channel: "@shivaedev/effect-sql/transact" } },
+		]);
 	},
 );

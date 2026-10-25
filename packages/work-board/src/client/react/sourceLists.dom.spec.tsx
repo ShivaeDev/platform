@@ -39,9 +39,17 @@ screenStory.it(
 			expect(group).toHaveProperty("open", false);
 			expect(findElements("a", group)).toHaveLength(0);
 			openDetails(group);
-			expect(findElements("a", group)).toHaveLength(4);
+			expect(
+				findElements("a", group)
+					.map((link) => link.getAttribute("href"))
+					.sort(),
+			).toEqual(Array.from({ length: 4 }, (_, index) => `/_board/item/decision.guide.${index}/`));
 		}
-		expect(findElements("a", backlinks)).toHaveLength(4);
+		expect(
+			findElements("a", backlinks)
+				.map((link) => link.getAttribute("href"))
+				.sort(),
+		).toEqual(Array.from({ length: 4 }, (_, index) => `/_board/item/decision.guide.${index}/`));
 		expect(readText()).not.toMatch(/not recorded/iu);
 	},
 );

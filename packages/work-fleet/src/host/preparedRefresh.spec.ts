@@ -30,7 +30,7 @@ for (const mode of ["admission", "dispatch", "edited dispatch"] as const) {
 			expect(dispatched.decision).toBeUndefined();
 			expect(dispatched.preparation.baseRevision).toBe("main-4");
 			expect(dispatched.history ?? []).toEqual([]);
-			expect(daemon.providerStarts()).toHaveLength(1);
+			expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([dispatched.attempts[0]?.operationId]);
 		},
 	);
 }
@@ -67,7 +67,10 @@ for (const dispatch of ["scheduler", "explicit"] as const) {
 			expect(launched.decision).toBeUndefined();
 			expect(launched.blocker).toBeUndefined();
 			expect(launched.history ?? []).toEqual([]);
-			expect(daemon.providerStarts()).toHaveLength(2);
+			expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([
+				(yield* daemon.get("one")).attempts[0]?.operationId,
+				(yield* daemon.get("two")).attempts[0]?.operationId,
+			]);
 		},
 	);
 }

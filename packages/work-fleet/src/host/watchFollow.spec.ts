@@ -14,7 +14,7 @@ host.it("watch --follow stays alive for new launches and repeated human decision
 	});
 	yield* daemon.awaitOutput("all", "a waiting (waiting on orchestrator): Choose the next step\n");
 	expect((yield* daemon.dispatch("b")).step).toBe("working");
-	expect(daemon.providerLaunches()).toHaveLength(1);
+	expect(daemon.providerLaunches()).toEqual([(yield* daemon.get("b")).attempts[0]?.operationId]);
 	yield* daemon.store("b", { stage: "done", step: "done" });
 	yield* daemon.awaitOutput("all", "b done\n");
 	yield* daemon.store("a", {

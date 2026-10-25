@@ -1,4 +1,4 @@
-import { existsSync, statSync } from "node:fs";
+import { constants, existsSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { Cause, Effect, Exit } from "effect";
 import { expect } from "vitest";
@@ -14,7 +14,7 @@ boardStory.it(
 		const board = yield* start({ fleetPort: null });
 		const socket = join(root, "board.sock");
 		expect(statSync(socket).isSocket()).toBe(true);
-		expect(statSync(socket).mode & 0o777).toBe(0o600);
+		expect(statSync(socket).mode & 0o777).toBe(constants.S_IRUSR | constants.S_IWUSR);
 		const info = { directory: root, url: `${board.url}/` };
 		for (const address of [socket, board.url]) {
 			expect(yield* Effect.promise(() => socketRpc(address, "work-board.server"))).toEqual(
@@ -106,8 +106,7 @@ boardStory.it(
 	function* ({ notes, start }) {
 		const root = notes.root;
 		const results = yield* Effect.all([start().pipe(Effect.exit), start().pipe(Effect.exit)], { concurrency: "unbounded" });
-		expect(results.filter(Exit.isSuccess)).toHaveLength(1);
-		expect(results.filter(Exit.isFailure)).toHaveLength(1);
+		expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
 		for (const result of results) {
 			if (Exit.isSuccess(result)) {
 				expect(yield* Effect.promise(() => socketRpc(join(root, "board.sock"), "work-board.server"))).toEqual(

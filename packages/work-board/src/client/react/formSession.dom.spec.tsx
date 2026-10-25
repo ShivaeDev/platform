@@ -27,7 +27,11 @@ for (const kind of ["response", "handoff"] as const) {
 				expect(readText("#response-status")).toContain("not acceptance");
 			}
 			const records = readSessionFiles(kind === "response" ? "responses" : "handoffs");
-			expect(records.filter((source) => source.includes("Direction before replacement"))).toHaveLength(1);
+			expect(records).toEqual(
+				kind === "response"
+					? [expect.stringContaining("item: item.edge"), expect.stringContaining("Direction before replacement")]
+					: [expect.stringContaining("Direction before replacement")],
+			);
 		},
 	);
 }

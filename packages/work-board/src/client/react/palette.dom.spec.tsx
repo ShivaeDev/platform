@@ -44,12 +44,11 @@ screenStory.it(
 		yield* eventually(() => expect(rows().some((row) => readText("strong", row) === "Inbox decision 9")).toBe(true));
 		expect(readText("strong", rows()[0])).toBe("Build the inbox");
 		expect(
-			new Set(
-				rows()
-					.map((row) => readText("code", row))
-					.filter((id) => id?.startsWith("decision.delivery.")),
-			).size,
-		).toBe(10);
+			rows()
+				.map((row) => readText("code", row))
+				.filter((id) => id?.startsWith("decision.delivery."))
+				.sort(),
+		).toEqual(Array.from({ length: 10 }, (_, index) => `decision.delivery.${index}`));
 		expect(readText("#search-dialog", document)).not.toContain("Not recorded");
 		for (const row of rows()) {
 			expect(readText("p", row) ?? "").not.toMatch(/^(?:\{|---)|(?:id|kind|next_action):/u);
@@ -66,7 +65,7 @@ screenStory.it(
 			yield* eventually(() => expect(readText("strong", rows()[0])).toBe("Go to A calmer workspace"));
 			const destinations = rows().map((row) => row.querySelector("a")?.getAttribute("href"));
 			expect(new Set(destinations).size).toBe(destinations.length);
-			expect(destinations.filter((href) => href === "/_board/item/project.workspace/")).toHaveLength(1);
+			expect(destinations.filter((href) => href === "/_board/item/project.workspace/")).toEqual(["/_board/item/project.workspace/"]);
 		}
 		input(QUERY, "Library");
 		yield* eventually(() => expect(rows()[0]?.querySelector("a")?.getAttribute("href")).toBe("/_board/library"));

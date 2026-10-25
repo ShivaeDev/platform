@@ -19,7 +19,7 @@ export interface PostgresChangesOptions {
 	readonly client: PostgresChangeClient;
 	readonly heartbeatInterval?: Duration.Input;
 	readonly heartbeatTimeout?: Duration.Input;
-	readonly resync: Effect.Effect<void>;
+	readonly resync: Effect.Effect<number>;
 	readonly retryDelay?: Duration.Input;
 }
 

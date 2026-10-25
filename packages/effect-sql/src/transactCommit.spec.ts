@@ -68,6 +68,7 @@ postgres.it(
 		expect(yield* orderIds(observer)).toEqual([1]);
 		expect(recordedLogs()).toEqual([
 			{
+				annotations: { changes: 2, channel: "@shivaedev/effect-sql/transact" },
 				cause: expect.stringContaining("subscriber threw"),
 				level: "Error",
 				message: [expect.stringContaining("committed")],

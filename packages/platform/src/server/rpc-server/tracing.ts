@@ -1,4 +1,4 @@
-import { Cause, Effect, Layer, Option, Predicate, Random } from "effect";
+import { Cause, Effect, Exit, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/http";
 import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
@@ -37,7 +37,10 @@ function failureTag(cause: Cause.Cause<unknown>, sensitive: SensitiveKey = isSen
 }
 function logFailure(cause: Cause.Cause<unknown>, payload: unknown, sensitive: SensitiveKey | undefined): Effect.Effect<void> {
 	if (Cause.hasInterruptsOnly(cause)) {
-		return Effect.void;
+		return Effect.annotateCurrentSpan("rpc.interrupted", true).pipe(
+			Effect.andThen(Effect.logDebug("RPC interrupted")),
+			Effect.annotateLogs({ "rpc.payload": redact(payload, sensitive) }),
+		);
 	}
 	const annotations = { "rpc.payload": redact(payload, sensitive) };
 	if (!Cause.hasDies(cause)) {
@@ -53,7 +56,7 @@ export function requestTracingLayer(options: RequestTracingOptions = {}): Layer.
 			yield* Effect.annotateCurrentSpan({ "request.id": requestId, "rpc.method": rpc._tag });
 			return yield* commandChanges(effect, rpc, payload).pipe(
 				Effect.catchCauseIf(Cause.hasDies, (cause) => Effect.failCause(redactCause(cause, options.sensitive))),
-				Effect.tapCause((cause) => logFailure(cause, payload, options.sensitive)),
+				Effect.onExit((exit) => (Exit.isFailure(exit) ? logFailure(exit.cause, payload, options.sensitive) : Effect.void)),
 				Effect.provideService(RequestId, requestId),
 				Effect.annotateLogs({ requestId, "rpc.method": rpc._tag }),
 				Effect.withLogSpan("rpc.duration"),

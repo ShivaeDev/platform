@@ -46,10 +46,18 @@ for (const attachments of [true, false]) {
 					.filter((request) => request.method === "thread/items/list")
 					.map((request) => request.params),
 			).toEqual([{ cursor: null, limit: 100, sortDirection: "asc", threadId: observation.receipt.sessionId, turnId: observation.receipt.turnId }]);
-			expect(daemon.publicationRequests()).toHaveLength(4);
+			expect(daemon.publicationRequests()).toEqual([
+				"repos/example/project/git/matching-refs/heads/synthetic%2Fresearch",
+				"repos/example/project/pulls?state=all&head=example%3Asynthetic%2Fresearch&per_page=100",
+				"repos/example/project/git/matching-refs/heads/synthetic%2Fresearch",
+				"repos/example/project/pulls?state=all&head=example%3Asynthetic%2Fresearch&per_page=100",
+			]);
 			expect((yield* daemon.reconcile("research")).report).toEqual(report);
-			expect(daemon.providerLaunches()).toHaveLength(1);
-			expect(daemon.providerCalls()).toHaveLength(2);
+			expect(daemon.providerLaunches()).toEqual([started.value.attempts[0]?.operationId]);
+			expect(daemon.providerCalls()).toMatchObject([
+				{ call: "session", operationId: started.value.attempts[0]?.operationId },
+				{ call: "turn", operationId: started.value.attempts[0]?.operationId },
+			]);
 			expect(daemon.readBoard("research.md")).toBe(
 				SOURCE.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
 			);
@@ -74,7 +82,10 @@ for (const published of ["branch", "pr"] as const) {
 				expect(result.report).toBeUndefined();
 				expect(daemon.providerArchives()).toEqual([]);
 				expect(daemon.downloadRequests()).toEqual([]);
-				expect(daemon.publicationRequests()).toHaveLength(2);
+				expect(daemon.publicationRequests()).toEqual([
+					"repos/example/project/git/matching-refs/heads/synthetic%2Fresearch",
+					"repos/example/project/pulls?state=all&head=example%3Asynthetic%2Fresearch&per_page=100",
+				]);
 				expect(daemon.boardFiles("responses").some((file) => file.startsWith("fleet-report."))).toBe(false);
 			},
 		);

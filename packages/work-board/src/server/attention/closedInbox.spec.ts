@@ -11,17 +11,21 @@ boardStory.it(
 	"keeps only the latest ask for open work and the authored question in the Inbox",
 	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
-		const snapshot = yield* readAttention(closedInboxFixture());
+		const files = closedInboxFixture();
+		const snapshot = yield* readAttention(files);
 		const rows = inboxItems(snapshot);
-		expect(rows).toHaveLength(2);
 		expect(rows.map((row) => row.id)).toEqual(["question.storage", "task.draft"]);
 		expect(rows[1]?.reason).toBe("Fleet asks: draft ask 2");
-		expect(rows[1]?.earlierAsks).toBe(1);
+		expect(rows[1]?.earlierAsks).toBe(
+			Object.entries(files)
+				.filter(([file]) => file.startsWith("asks/draft-"))
+				.flatMap(([, askSource]) => askSource.match(/ {2}- id:/gu) ?? []).length - 1,
+		);
 		expect(rows[1]?.href).toBe("/_board/item/decision.draft.2/#answer-card-approval");
-		expect(inboxCount(snapshot)).toBe(2);
+		expect(inboxCount(snapshot)).toBe(rows.length);
 		const groups = requestInbox(snapshot);
-		expect(groups.resolved).toHaveLength(4);
-		expect(groups.parked).toHaveLength(1);
+		expect(groups.resolved.map((row) => row.document.file)).toEqual(["asks/done-1.md", "asks/done-2.md", "asks/done-3.md", "asks/dropped-1.md"]);
+		expect(groups.parked.map((row) => row.document.file)).toEqual(["asks/deferred-1.md"]);
 	},
 );
 
@@ -33,7 +37,12 @@ for (const status of ["done", "dropped"]) {
 			const files = closedInboxFixture();
 			files["done.md"] = `---\nid: task.done\nstatus: ${status}\ncriteria:\n  - id: proof\n    text: Evidence\n---\n# Finished work\n`;
 			files["asks/done-1.md"] = files["asks/done-1.md"]?.replace("[task.done]", "[task.done#proof, task.dropped]") ?? "";
-			expect(requestInbox(yield* readAttention(files)).resolved).toHaveLength(4);
+			expect(requestInbox(yield* readAttention(files)).resolved.map((row) => row.document.file)).toEqual([
+				"asks/done-1.md",
+				"asks/done-2.md",
+				"asks/done-3.md",
+				"asks/dropped-1.md",
+			]);
 		},
 	);
 }
@@ -46,10 +55,12 @@ boardStory.it(
 		files["asks/done-1.md"] = files["asks/done-1.md"]?.replace("[task.done]", "[task.done, task.deferred]") ?? "";
 		files["asks/deferred-1.md"] = files["asks/deferred-1.md"]?.replace("[task.deferred]", "[task.deferred, task.done]") ?? "";
 		const groups = requestInbox(yield* readAttention(files));
-		expect(groups.resolved).toHaveLength(3);
+		expect(groups.resolved.map((row) => row.document.file)).toEqual(["asks/done-2.md", "asks/done-3.md", "asks/dropped-1.md"]);
 		expect(groups.parked).toHaveLength(0);
-		expect(groups.items).toHaveLength(2);
-		expect(groups.items.find((item) => item.id === "decision.deferred.1")?.earlierAsks).toBe(1);
+		expect(groups.items.map((row) => row.document.file)).toEqual(["asks/deferred-1.md", "asks/draft-2.md"]);
+		expect(groups.items.find((item) => item.id === "decision.deferred.1")?.earlierAsks).toBe(
+			Object.keys(files).filter((file) => ["asks/done-1.md", "asks/deferred-1.md"].includes(file)).length - 1,
+		);
 	},
 );
 
@@ -57,11 +68,16 @@ boardStory.it(
 	"uses source modification time to select the newest ask regardless of file order",
 	[deferredServing, anInbox()],
 	function* ({ readAttention }) {
-		const snapshot = yield* readAttention(closedInboxFixture());
+		const files = closedInboxFixture();
+		const snapshot = yield* readAttention(files);
 		const modified = new Map([...snapshot.modified, ["asks/draft-1.md", 100_000] as const]);
 		const item = inboxItems({ ...snapshot, modified }).find((row) => row.id === "task.draft");
 		expect(item?.reason).toBe("Fleet asks: draft ask 1");
-		expect(item?.earlierAsks).toBe(1);
+		expect(item?.earlierAsks).toBe(
+			Object.entries(files)
+				.filter(([file]) => file.startsWith("asks/draft-"))
+				.flatMap(([, askSource]) => askSource.match(/ {2}- id:/gu) ?? []).length - 1,
+		);
 	},
 );
 
@@ -78,9 +94,13 @@ boardStory.it(
 				"    unblocks: [task.draft#proof]\n  - id: later\n    kind: decision\n    managed: true\n    state: open\n    reason: Later request in the same source\n    response_from: [maintainer]\n    unblocks: [task.draft]",
 			) ?? "";
 		const items = inboxItems(yield* readAttention(files));
-		expect(items).toHaveLength(2);
+		expect(items.map((item) => item.id)).toEqual(["question.storage", "task.draft"]);
 		expect(items[1]?.reason).toBe("Fleet asks: Later request in the same source");
-		expect(items[1]?.earlierAsks).toBe(1);
+		expect(items[1]?.earlierAsks).toBe(
+			Object.entries(files)
+				.filter(([file]) => file.startsWith("asks/draft-"))
+				.flatMap(([, askSource]) => askSource.match(/ {2}- id:/gu) ?? []).length - 1,
+		);
 		expect(items[1]?.href).toBe("/_board/item/decision.draft.1/#answer-card-later");
 	},
 );
@@ -107,9 +127,13 @@ boardStory.it(
 			},
 		});
 		const items = inboxItems(yield* readAttention(files));
-		expect(items).toHaveLength(2);
+		expect(items.map((item) => item.id)).toEqual(["question.storage", "task.draft"]);
 		expect(items[1]?.id).toBe("task.draft");
 		expect(items[1]?.reason).toBe("draft ask 2");
-		expect(items[1]?.earlierAsks).toBe(1);
+		expect(items[1]?.earlierAsks).toBe(
+			Object.entries(files)
+				.filter(([file]) => file.startsWith("asks/draft-"))
+				.flatMap(([, askSource]) => askSource.match(/ {2}- id:/gu) ?? []).length - 1,
+		);
 	},
 );

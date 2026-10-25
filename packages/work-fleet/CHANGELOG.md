@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.1 - 2026-10-25
+
+### Fixed
+
+- Fleet holds a PR for predicted conflicts only in files both PRs change relative to current main, so a stale PR's own conflict with main no longer blocks unrelated work.
+
 ## 0.18.0 - 2026-10-25
 
 ### Added

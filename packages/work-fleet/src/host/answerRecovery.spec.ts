@@ -26,13 +26,13 @@ for (const release of [false, true]) {
 		expect(applied.responses).toMatchObject([{ boardAcknowledged: true, responseId }]);
 		if (!release) {
 			expect(applied.attempts.at(-1)?.prompt).toBe("Use PostgreSQL.");
-			expect(applied.attempts).toHaveLength(2);
+			expect(applied.attempts).toMatchObject([{ operationId: started.attempts[0]?.operationId }, { prompt: "Use PostgreSQL.", role: "worker" }]);
 			daemon.finishTurn(applied, "FLEET_QUESTION: Which storage should I use?");
 			yield* daemon.reconcile("one");
 		}
 		const result = yield* daemon.followerExit("watcher");
 		expect(result.code).toBe(0);
 		expect(result.stdout).toContain(release ? "one released" : "one waiting");
-		expect(daemon.providerStarts()).toHaveLength(1);
+		expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([started.attempts[0]?.operationId]);
 	});
 }

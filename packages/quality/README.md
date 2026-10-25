@@ -335,7 +335,7 @@ import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";
 export default appTestConfig();
 ```
 
-Use this in `vitest.config.ts`. It composes `testProjects` with browser and server resolution and inlines Platform and Better Auth for the test server. Both helpers accept extra export conditions for workspace development: `appViteConfig(plugins, ["source"])` and `appTestConfig(["source"])`. Published apps use the defaults.
+Use this in `vitest.config.ts`. It composes `testProjects` with browser and server resolution and inlines Platform for the test server. Both helpers accept extra export conditions for workspace development: `appViteConfig(plugins, ["source"])` and `appTestConfig(["source"])`. Published apps use the defaults.
 
 For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 

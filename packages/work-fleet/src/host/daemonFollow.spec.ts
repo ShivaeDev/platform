@@ -24,15 +24,18 @@ daemonFollow.it("a persistent PostgreSQL failure ends every wait and watch after
 	yield* daemon.follow("watcher", "watch", ["marker", "one"]);
 	yield* daemon.awaitOutput("watcher", "marker released\n");
 	yield* daemon.awaitSnapshots(2);
-	const before = daemon.failedReadCount();
+	const before = daemon.failedReads();
+	const retryAttempts = 20;
 	yield* daemon.breakReads();
 	yield* daemon.invalidate();
 	const results = yield* daemon.followerExits(["waiter", "watcher"]);
 	for (const result of results) {
 		expect(result.code).toBe(1);
-		expect(result.stderr).toContain("Fleet daemon could not read work states after 20 consecutive attempts");
+		expect(result.stderr).toContain(`Fleet daemon could not read work states after ${retryAttempts} consecutive attempts`);
 	}
-	expect(daemon.failedReadCount() - before).toBe(20);
+	expect(daemon.failedReads().slice(before.length)).toEqual(
+		Array.from({ length: retryAttempts }, () => ({ failed: true, text: expect.stringContaining('"checks"') })),
+	);
 });
 
 daemonFollow.it("the shared commit subscription never polls, stops after the last follower and restarts with fresh state", [], function* (daemon) {

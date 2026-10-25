@@ -1,4 +1,4 @@
-import { Deferred, type Duration, Effect, type Exit, Queue, Scope } from "effect";
+import { Clock, Deferred, type Duration, Effect, type Exit, Queue, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { decodeKeys } from "./notifyPayload.ts";
 import type { PostgresChangesOptions } from "./postgresChanges.ts";
@@ -29,6 +29,7 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 	const reactivity = yield* Reactivity.Reactivity;
 	const { client, channel, resync } = options;
 	const timeout = options.heartbeatTimeout ?? "10 seconds";
+	let lostAt: number | undefined;
 	const attempt = Effect.scoped(
 		Effect.gen(function* () {
 			const scope = yield* Effect.acquireRelease(Scope.make(), (listenerScope, exit) => closeListener(listenerScope, exit, timeout));
@@ -57,7 +58,14 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 			const send = Effect.asVoid(client`select pg_notify(${channel}, ${token})`);
 			const monitor = Effect.gen(function* () {
 				yield* Effect.raceFirst(Deferred.await(ack), Effect.forever(Effect.andThen(send, Effect.sleep("50 millis")))).pipe(Effect.timeout(timeout));
-				yield* resync;
+				const streamCount = yield* resync;
+				if (lostAt !== undefined) {
+					const downtimeMs = (yield* Clock.currentTimeMillis) - lostAt;
+					yield* Effect.logInfo("PostgreSQL change listener recovered; resynchronized live streams").pipe(
+						Effect.annotateLogs({ downtimeMs, streamCount }),
+					);
+					lostAt = undefined;
+				}
 				yield* Deferred.succeed(ready, undefined);
 				yield* Effect.forever(
 					Effect.gen(function* () {
@@ -72,7 +80,16 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 	);
 	yield* Effect.forever(
 		attempt.pipe(
-			Effect.catchCause((cause) => Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams", cause)),
+			Effect.catchCause(() =>
+				Effect.gen(function* () {
+					if (lostAt !== undefined) {
+						yield* Effect.logDebug("PostgreSQL change listener reconnect failed; retrying");
+						return;
+					}
+					lostAt = yield* Clock.currentTimeMillis;
+					yield* Effect.logWarning("PostgreSQL change listener lost; resynchronizing live streams");
+				}),
+			),
 			Effect.andThen(Effect.sleep(options.retryDelay ?? "1 second")),
 		),
 	).pipe(Effect.forkScoped);

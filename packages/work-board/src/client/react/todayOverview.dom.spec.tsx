@@ -18,7 +18,9 @@ screenStory.it(
 		const goals = yield* Effect.promise(readGoals);
 		expect([...findElements("[data-attention-id]")].map((row) => row.getAttribute("data-attention-id"))).toEqual(inbox.you.map((item) => item.id));
 		expect([...findElements("[data-goal-id]")].map((card) => card.getAttribute("data-goal-id"))).toEqual(goals.goals.map((goal) => goal.id));
-		expect(findElements("[data-goal-next-action]")).toHaveLength(3);
+		expect(findElements("[data-goal-next-action]").map((action) => action.textContent)).toEqual(
+			goals.goals.filter((goal) => goal.nextAction).map((goal) => goal.nextAction),
+		);
 		for (const goal of goals.goals) {
 			const next = findElement(`[data-goal-id='${goal.id}'] [data-goal-next-action]`);
 			if (goal.nextAction) {
@@ -42,7 +44,9 @@ screenStory.it(
 		expect(readText("#today-goals")).not.toContain("%");
 		expect(readText("#doc")).not.toContain("Resolved elsewhere");
 		expect(readText("#doc")).not.toContain("Parked");
-		expect(findElements("[data-progress-id]")).toHaveLength(8);
+		expect(findElements("[data-progress-id]").map((row) => row.getAttribute("data-progress-id"))).toEqual(
+			Array.from({ length: 8 }, (_, index) => `task.sample.${index}`),
+		);
 		expect(readText("#in-progress a[href='/_board/work']")).toBe("All in Now →");
 		const criteria = [...findElements<HTMLDetailsElement>(".today-goal details")];
 		expect(criteria).toHaveLength(goals.goals.length);

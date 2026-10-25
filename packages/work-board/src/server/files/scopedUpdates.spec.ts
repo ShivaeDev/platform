@@ -3,14 +3,12 @@ import { join } from "node:path";
 import { expect } from "vitest";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
-const ONE_LISTING = 1;
-
 fileWatcherStory.it(
 	"lists the workspace once while the watch starts and the first index reads it",
 	[watchedFiles({ "index.md": "# Index", "notes/log.md": "# Log" })],
 	function* ({ readIndex, story }) {
 		expect((yield* readIndex()).documents.map((indexed) => indexed.file)).toEqual(["index.md", "notes/log.md"]);
-		expect(story.engine.scans).toBe(ONE_LISTING);
+		expect(story.engine.folders).toEqual(["", "notes"]);
 	},
 );
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.39.2 - 2026-10-25
+
+### Changed
+
+- Each mounted host owns its in-memory rate-limit buckets and releases them with its scope.
+- Starter stories import the application host without resetting modules.
+- Application test configuration no longer inlines Better Auth for module resets.
+
 ## 0.39.1 - 2026-10-25
 
 ### Fixed

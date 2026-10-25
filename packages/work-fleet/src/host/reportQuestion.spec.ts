@@ -21,7 +21,7 @@ host.it("report questions continue read-only research and record the final answe
 	const completed = yield* daemon.reconcile("one");
 	expect(completed.step).toBe("done");
 	expect(completed.report?.receipt).toEqual(receipt);
-	expect(daemon.providerLaunches()).toHaveLength(1);
+	expect(daemon.providerLaunches()).toEqual([resumed.attempts[0]?.operationId]);
 	yield* daemon.awaitBoardText("fleet/status.md", "Stage: done");
 	const status = daemon.readBoard("fleet/status.md");
 	expect(status).toContain("## Done");

@@ -43,6 +43,6 @@ for (const action of ["retry", "release"] as const) {
 			questionId: responsesApi.questionId(published.itemId, published.request, responsesApi.revisionOf(currentContext), published.sourcePath),
 		});
 		expect(answered.responses?.at(-1)?.questionId).not.toBe(questionId);
-		expect(daemon.receiptFiles()).toHaveLength(1);
+		expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 	});
 }

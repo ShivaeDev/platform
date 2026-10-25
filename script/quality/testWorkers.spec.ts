@@ -3,42 +3,44 @@ import { workerKit } from "#quality/test-support/workerKit.ts";
 
 const { it } = workerKit;
 
-it("sizes the default budget using the peak full-app connection estimate", [], ({ maxWorkers }) => {
-	const defaultPeakWorkers = 5;
-	expect(maxWorkers()).toBe(defaultPeakWorkers);
+it("uses the default connection inputs unless a repository configures them", [], ({ configure, maxWorkers }) => {
+	const connectionBudget = 80;
+	const connectionsPerWorker = 14;
+	const defaultWorkers = maxWorkers();
+	configure({ connectionBudget, connectionsPerWorker });
+	expect(defaultWorkers).toBe(Math.floor(connectionBudget / connectionsPerWorker));
+	expect(maxWorkers()).toBe(defaultWorkers);
 });
 
-it("allows four workers on a two-CPU runner when the connection budget fits four", [], ({ configure, maxWorkers }) => {
-	configure({ connectionBudget: 56, connectionsPerWorker: 14 });
-	const ciWorkersWithinBudget = 4;
-	expect(maxWorkers()).toBe(ciWorkersWithinBudget);
-});
-
-it("limits a ten-CPU laptop to six workers when the connection budget fits six", [], ({ configure, maxWorkers }) => {
-	configure({ connectionBudget: 84, connectionsPerWorker: 14 });
-	const laptopWorkersWithinBudget = 6;
-	expect(maxWorkers()).toBe(laptopWorkersWithinBudget);
-});
-
-it("lets a repository's per-worker estimate change the concurrency", [], ({ configure, maxWorkers }) => {
-	configure({ connectionBudget: 84, connectionsPerWorker: 8 });
-	const workersWithSmallerPools = 10;
-	expect(maxWorkers()).toBe(workersWithSmallerPools);
-});
+for (const [connectionBudget, connectionsPerWorker] of [
+	[56, 14],
+	[84, 14],
+	[84, 8],
+] as const) {
+	it(`fits workers within ${connectionBudget} connections at ${connectionsPerWorker} per worker`, [], ({ configure, maxWorkers }) => {
+		configure({ connectionBudget, connectionsPerWorker });
+		expect(maxWorkers()).toBe(Math.floor(connectionBudget / connectionsPerWorker));
+	});
+}
 
 it("uses an explicit worker override ahead of the connection calculation", [], ({ configure, maxWorkers }) => {
-	configure({ connectionBudget: 56, connectionsPerWorker: 14, maxWorkers: 7 });
 	const explicitWorkers = 7;
+	configure({ connectionBudget: 56, connectionsPerWorker: 14, maxWorkers: explicitWorkers });
 	expect(maxWorkers()).toBe(explicitWorkers);
 });
 
-it("rounds down partial workers and keeps at least one worker", [], ({ configure, maxWorkers }) => {
-	configure({ connectionBudget: 55, connectionsPerWorker: 14 });
-	const wholeWorkersWithinBudget = 3;
-	expect(maxWorkers()).toBe(wholeWorkersWithinBudget);
-	configure({ connectionBudget: 8, connectionsPerWorker: 14 });
-	const minimumWorkers = 1;
-	expect(maxWorkers()).toBe(minimumWorkers);
+it("rounds down partial workers", [], ({ configure, maxWorkers }) => {
+	const connectionBudget = 55;
+	const connectionsPerWorker = 14;
+	configure({ connectionBudget, connectionsPerWorker });
+	expect(maxWorkers()).toBe(Math.floor(connectionBudget / connectionsPerWorker));
+});
+
+it("keeps a worker when the budget cannot fit its pool", [], ({ configure, maxWorkers }) => {
+	const connectionsPerWorker = 14;
+	const connectionBudget = 8;
+	configure({ connectionBudget, connectionsPerWorker });
+	expect(maxWorkers()).toBe(Math.ceil(connectionBudget / connectionsPerWorker));
 });
 
 it("rejects connection inputs that cannot produce a valid worker count", [], ({ configure }) => {

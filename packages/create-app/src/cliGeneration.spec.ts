@@ -119,7 +119,7 @@ application.it(
 );
 
 application.it("writes app database URLs and fresh secrets on each run, ignored by Git", [], function* ({ cli, read, git }) {
-	const secrets = new Set<string>();
+	let previousSecret: string | undefined;
 	for (const folder of ["first/my-app", "second/my-app"]) {
 		expect((yield* cli([folder])).status).toBe(0);
 		const env = read(".env.local");
@@ -129,8 +129,8 @@ application.it("writes app database URLs and fresh secrets on each run, ignored 
 		expect(env).toContain("TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/my_app_test\n");
 		const secret = env.match(/^BETTER_AUTH_SECRET=(?<secret>.+)$/mu)?.groups?.secret ?? "";
 		expect(secret.length).toBeGreaterThanOrEqual(32);
-		secrets.add(secret);
+		expect(secret).not.toBe(previousSecret);
+		previousSecret = secret;
 		expect(git("check-ignore", ".env.local").stdout).toBe(".env.local\n");
 	}
-	expect(secrets.size).toBe(2);
 });

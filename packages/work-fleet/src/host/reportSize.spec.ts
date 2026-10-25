@@ -25,6 +25,6 @@ host.it(
 			expect(yield* daemon.get("research")).toEqual(first);
 		}
 		expect(daemon.boardFiles("responses")).toEqual(files);
-		expect(daemon.providerLaunches()).toHaveLength(1);
+		expect(daemon.providerLaunches()).toEqual([started.value.attempts[0]?.operationId]);
 	},
 );

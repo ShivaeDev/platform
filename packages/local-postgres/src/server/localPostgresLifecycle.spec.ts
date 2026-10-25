@@ -2,14 +2,16 @@ import { expect } from "vitest";
 import { postgres } from "#test/postgres.ts";
 import { discoveryFails, readyAfter, startupAttempts } from "#test/postgresTraits.ts";
 
+const PENDING_PROBES = 2;
+
 postgres.it(
 	"steps readiness probes until PostgreSQL reports the pinned version",
-	[readyAfter(2)],
+	[readyAfter(PENDING_PROBES)],
 	function* ({ checkReadiness, readinessAttempts, operations }) {
 		yield* checkReadiness();
-		expect(readinessAttempts()).toBe(3);
+		expect(readinessAttempts()).toBe(PENDING_PROBES + 1);
 		expect(operations()).toEqual([
-			...Array.from({ length: 3 }, () => ["docker", "ps", "--filter", "publish=55432", "--format", "{{.ID}}"]),
+			...Array.from({ length: PENDING_PROBES + 1 }, () => ["docker", "ps", "--filter", "publish=55432", "--format", "{{.ID}}"]),
 			["docker", "inspect", "--format", "{{.Config.Image}}", "container-id"],
 			[
 				"docker",
@@ -86,18 +88,20 @@ postgres.it(
 	},
 );
 
+const ALLOWED_ATTEMPTS = 3;
+
 postgres.it(
 	"stops after the configured readiness attempts when Docker never reports a PostgreSQL container",
-	[discoveryFails(4), startupAttempts(3)],
+	[discoveryFails(4), startupAttempts(ALLOWED_ATTEMPTS)],
 	({ start, discoveryProbes }) => {
 		expect(start).toThrow("Expected local PostgreSQL 18.6. Check the existing service; setup never removes containers or data.");
-		const expectedProbes = 4;
-		expect(discoveryProbes()).toBe(expectedProbes);
+		expect(discoveryProbes()).toBe(ALLOWED_ATTEMPTS + 1);
 	},
 );
 
-postgres.it("makes thirty readiness attempts by default", [discoveryFails(31)], ({ start, discoveryProbes }) => {
+const FAILED_DISCOVERIES = 31;
+
+postgres.it("makes thirty readiness attempts by default", [discoveryFails(FAILED_DISCOVERIES)], ({ start, discoveryProbes }) => {
 	expect(start).toThrow("Expected local PostgreSQL 18.6.");
-	const expectedProbes = 31;
-	expect(discoveryProbes()).toBe(expectedProbes);
+	expect(discoveryProbes()).toBe(FAILED_DISCOVERIES);
 });

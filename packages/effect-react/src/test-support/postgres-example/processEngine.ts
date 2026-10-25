@@ -1,20 +1,16 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
-import { databaseUrl } from "#test/order-example/postgres.ts";
+import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { processClient } from "./processClient.ts";
 import { startProcess, until } from "./processHarness.ts";
 
-export const observerLayer = PgClient.layer({ url: Redacted.make(databaseUrl._tag === "Some" ? databaseUrl.value : "") });
 export const createProcesses = Effect.gen(function* () {
-	if (databaseUrl._tag === "None") {
-		return yield* Effect.die("PostgreSQL URL required");
-	}
+	const database = yield* PostgresTestDatabase;
 	const suffix = crypto.randomUUID().replaceAll("-", "");
 	const configuration = {
 		applicationName: `order_server_${suffix}`,
 		channel: `order_changes_${suffix}`,
-		databaseUrl: databaseUrl.value,
+		databaseUrl: Redacted.value(database.url),
 		ledger: `order_migrations_${suffix}`,
 		queue: `order-save-${suffix}`,
 		role: "server" as const,
@@ -23,12 +19,6 @@ export const createProcesses = Effect.gen(function* () {
 	};
 	const sql = yield* SqlClient.SqlClient;
 	const beforeRollback: number[] = [];
-	yield* Effect.addFinalizer(() =>
-		Effect.all([
-			sql`drop table if exists ${sql(configuration.table)}, ${sql(configuration.ledger)}`,
-			sql`drop schema if exists ${sql(configuration.schema)} cascade`,
-		]).pipe(Effect.orDie),
-	);
 	return {
 		anotherBeforeLoss: 0,
 		beforeRollback,

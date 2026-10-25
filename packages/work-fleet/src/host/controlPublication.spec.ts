@@ -11,9 +11,17 @@ controlPublication.it("continue confirms and applies once while another launch's
 	yield* daemon.blockLaunchPublication();
 	const continued = yield* daemon.continue(MESSAGE);
 	expect(continued.step).toBe("working");
-	expect(continued.attempts).toHaveLength(1);
-	expect(continued.attempts[0]).toMatchObject({ prompt: MESSAGE, receipt: { sessionId: original.attempts[0]?.receipt?.sessionId } });
-	expect(daemon.turns()).toHaveLength(3);
+	expect(continued.attempts).toMatchObject([{ prompt: MESSAGE, receipt: { sessionId: original.attempts[0]?.receipt?.sessionId } }]);
+	expect(
+		daemon
+			.turns()
+			.map(({ operationId }) => operationId)
+			.sort((left, right) => String(left).localeCompare(String(right))),
+	).toEqual(
+		[original.attempts[0]?.operationId, continued.attempts[0]?.operationId, (yield* daemon.work("two")).attempts[0]?.operationId].sort(
+			(left, right) => String(left).localeCompare(String(right)),
+		),
+	);
 	yield* daemon.releasePublication();
 	yield* daemon.flush();
 	expect(daemon.status()).toContain("Stage: working");
@@ -21,20 +29,28 @@ controlPublication.it("continue confirms and applies once while another launch's
 });
 
 controlPublication.it("repeating continue after a lost acknowledgement reports a definite refusal and applies once", [], function* (daemon) {
-	yield* daemon.dispatch();
+	const original = yield* daemon.dispatch();
 	yield* daemon.question();
 	yield* daemon.prepareLaunch();
 	yield* daemon.blockLaunchPublication();
 	yield* daemon.loseAcknowledgement(MESSAGE);
 	const recorded = yield* daemon.get();
-	expect(recorded.attempts).toHaveLength(1);
-	expect(recorded.attempts[0]?.prompt).toBe(MESSAGE);
+	expect(recorded.attempts).toMatchObject([{ prompt: MESSAGE, role: "repair" }]);
 	const repeated = yield* daemon.continue(MESSAGE).pipe(Effect.result);
 	expect(repeated).toMatchObject({ _tag: "Failure", failure: { _tag: "Forbidden" } });
 	yield* daemon.releasePublication();
 	yield* daemon.flush();
 	expect((yield* daemon.get()).attempts).toEqual(recorded.attempts);
-	expect(daemon.turns()).toHaveLength(3);
+	expect(
+		daemon
+			.turns()
+			.map(({ operationId }) => operationId)
+			.sort((left, right) => String(left).localeCompare(String(right))),
+	).toEqual(
+		[original.attempts[0]?.operationId, recorded.attempts[0]?.operationId, (yield* daemon.work("two")).attempts[0]?.operationId].sort((left, right) =>
+			String(left).localeCompare(String(right)),
+		),
+	);
 });
 
 for (const command of ["answer", "release"] as const) {
@@ -51,7 +67,7 @@ for (const command of ["answer", "release"] as const) {
 }
 
 controlPublication.it("release confirms a recorded response while provider cleanup is blocked", [], function* (daemon) {
-	yield* daemon.dispatch();
+	const started = yield* daemon.dispatch();
 	yield* daemon.question();
 	yield* daemon.blockCleanup();
 	expect(yield* daemon.release()).toMatchObject([{ blocker: "Answer recorded; applying in the background", workId: "one" }]);
@@ -59,7 +75,7 @@ controlPublication.it("release confirms a recorded response while provider clean
 	expect(daemon.archived()).toHaveLength(0);
 	yield* daemon.releaseCleanup();
 	expect((yield* daemon.waitReleased()).responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
-	expect(daemon.archived()).toHaveLength(1);
+	expect(daemon.archived()).toEqual([started.attempts[0]?.receipt?.sessionId]);
 });
 
 controlPublication.it("host shutdown flushes the recorded state after cancelling pending publication", [], function* (daemon) {

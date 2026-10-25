@@ -45,12 +45,11 @@ host.it(
 		expect(detail.value.record).toEqual(records[0]);
 		expect(new Set(detail.queries.filter((query) => /^\s*select/iu.test(query.text)).map((query) => query.parameters))).toEqual(new Set([1]));
 		expect((yield* daemon.requestStatus("item-0100")).record).toEqual(records[100]);
-		const successfulExit = 0;
 		const detailCli = yield* daemon.cli(["status", "item-0000", "--json"]);
-		expect(detailCli.code).toBe(successfulExit);
+		expect(detailCli.code).toBe(0);
 		expect(JSON.parse(detailCli.stdout).record).toEqual(JSON.parse(JSON.stringify(records[0])));
 		const cli = yield* daemon.cli(["status", "--json"]);
-		expect(cli.code).toBe(successfulExit);
+		expect(cli.code).toBe(0);
 		expect(JSON.parse(cli.stdout).completed).toEqual(overview.completed);
 		const subscribed = yield* daemon.queriesDuring(
 			Effect.all([daemon.requestStatus(), daemon.subscribe(["item-0001"])], { concurrency: "unbounded" }),

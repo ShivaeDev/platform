@@ -1,6 +1,6 @@
 import { inspect } from "node:util";
 import { expect } from "vitest";
-import { applicationRateLimit, environment, mount } from "#test/better-auth/mount.ts";
+import { applicationRateLimit, applicationStorage, environment, memoryStorage, mount } from "#test/better-auth/mount.ts";
 
 mount.it("logs a redacted provider failure in the request trace before answering 503", [], function* ({ logs, request, stopAuth }) {
 	expect((yield* request()).status).toBe(200);
@@ -86,3 +86,27 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 		},
 	);
 }
+
+for (const [name, storage] of [
+	["default", []],
+	["explicit memory", [memoryStorage]],
+] as const) {
+	mount.it(`starts each host with fresh rate-limit buckets (${name})`, storage, function* ({ request, startHost }) {
+		expect((yield* request()).status).toBe(200);
+		expect((yield* request()).status).toBe(200);
+		expect((yield* request()).status).toBe(429);
+		yield* startHost();
+		expect((yield* request({}, 1)).status).toBe(200);
+		expect((yield* request({}, 1)).status).toBe(200);
+		expect((yield* request({}, 1)).status).toBe(429);
+		expect((yield* request()).status).toBe(429);
+	});
+}
+
+mount.it("uses the application's custom storage for every request", [applicationStorage], function* ({ consumed, request }) {
+	for (let attempt = 0; attempt < 4; attempt += 1) {
+		expect((yield* request()).status).toBe(200);
+	}
+	expect(consumed()).toEqual(Array.from({ length: 4 }, () => ({ key: expect.any(String), rule: { max: 2, window: 60 } })));
+	expect(new Set(consumed().map(({ key }) => key)).size).toBe(1);
+});

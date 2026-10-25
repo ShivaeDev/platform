@@ -30,7 +30,7 @@ host.it("records the whole result and finishes without PR integrations", [boardW
 	expect(parsed.fields.relationships).toEqual([{ kind: "informs", target: "research" }]);
 	expect(content.endsWith(OUTPUT)).toBe(true);
 	expect(content).toContain(JSON.stringify({ ...observation?.receipt, workRevision: value.boardRevision }));
-	expect(daemon.boardFiles("responses")).toHaveLength(1);
+	expect(daemon.boardFiles("responses")).toEqual([`${report.itemId}.md`]);
 	expect(daemon.readBoard("research.md")).toBe(
 		REPORT_SOURCE.replace("delivers: report\n", 'delivers: report\nstatus: done\nnext_action: "Done; report recorded."\n'),
 	);
@@ -50,7 +50,7 @@ host.it("empty output needs a human and creates no result", [boardWork({ "resear
 	expect(value.result).toBeUndefined();
 	expect(value.review).toBeUndefined();
 	expect(value.checks).toBeUndefined();
-	expect(daemon.providerLaunches()).toHaveLength(1);
+	expect(daemon.providerLaunches()).toEqual([started.value.attempts[0]?.operationId]);
 	expect(daemon.boardFiles("responses").some((file) => file.startsWith("fleet-report."))).toBe(false);
 	expect((yield* daemon.wait("research")).code).toBe(WAIT_EXIT.waitingDecision);
 	const status = yield* daemon.renderedStatus();
@@ -62,6 +62,6 @@ host.it("empty output needs a human and creates no result", [boardWork({ "resear
 	}
 	daemon.answerReport(decision, "retry");
 	expect((yield* daemon.reconcile("research")).step).toBe("queued");
-	yield* daemon.approve("research");
-	expect(daemon.providerLaunches()).toHaveLength(2);
+	const retried = yield* daemon.approve("research");
+	expect(daemon.providerLaunches()).toEqual([started.value.attempts[0]?.operationId, retried.value.attempts.at(-1)?.operationId]);
 });

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.16.0 - 2026-10-25
+
+### Added
+
+- Add an optional session notice host with application-rendered controls, dismissal, expiry and native action status. Queries, command Effects and form submissions can supply notice descriptors; Undo runs an application Effect with its own payload and expected version, keeps conflicts on that action, and releases entries and pending actions when their notice or session ends.
+
 ## 0.15.0 - 2026-10-25
 
 ### Added

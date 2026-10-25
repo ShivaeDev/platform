@@ -61,7 +61,7 @@ boardStory.it(
 				}
 				return span.status.exit.cause.reasons.filter(Cause.isFailReason).map((reason) => reason.error);
 			});
-		expect(failures).toHaveLength(1);
+		expect(failures).toEqual([expect.any(InternalServerError)]);
 		for (const traced of failures) {
 			expect(traced).toBeInstanceOf(InternalServerError);
 			if (!(traced instanceof InternalServerError && Cause.isCause(traced.cause))) {
