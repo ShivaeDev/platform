@@ -12,11 +12,13 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 	].map((fault) => {
 		let restored = false;
 		let reads = 0;
+		const readPullRequests: string[] = [];
 		const healthy = { headRefOid: HEAD, mergeCommit: null, mergedAt: null, state: "OPEN", url: PR };
 		const merged = { ...healthy, mergeCommit: { oid: HEAD }, mergedAt: "2026-01-01", state: "MERGED" };
-		const delivery = githubDelivery(() =>
+		const delivery = githubDelivery((pr) =>
 			Effect.sync(() => {
 				reads += 1;
+				readPullRequests.push(pr);
 				return restored ? merged : { ...healthy, ...fault.patch };
 			}),
 		);
@@ -24,13 +26,14 @@ export function recoveryGithubDeliveryCases(): readonly RecoveryCase[] {
 			code: fault.code,
 			enter: finishRecoveryReview,
 			name: fault.reason,
-			observe: () => ({ reads }),
+			observe: () => ({ readPullRequests: [...readPullRequests], reads }),
 			options: { deliveryQuery: delivery },
 			recovery: "observe-valid-delivery",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
 					reads = 0;
+					readPullRequests.length = 0;
 				}),
 			sites: ["engine/observeDeliveryFailure.ts: failureCode(error)"],
 		};

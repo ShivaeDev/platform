@@ -23,15 +23,20 @@ engine.it(
 		expect(continued.value.boardRevision).not.toBe(worker.value.boardRevision);
 		expect(continued.value.boardContext).toBe(current);
 		expect(continued.value.prompt).toContain(current);
-		expect(continued.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);
-		expect(continued.value.attempts).toHaveLength(1);
+		expect(continued.value.attempts).toMatchObject([
+			{ operationId: worker.value.attempts[0]?.operationId, receipt: worker.value.attempts[0]?.receipt },
+		]);
 		expect(continued.value.decision).toBeUndefined();
 		expect(publishedDocuments().some(({ file }) => file.includes("decision."))).toBe(false);
 		writeBoardWork("two.md", source.replace("id: one", "id: two").replace("fleet: approved\n", ""));
 		const stopped = yield* fleet.reconcile("two");
 		expect(stopped.value.step).toBe("waiting");
 		expect(stopped.value.decision?.published).toBeDefined();
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(["operation-1", "operation-2"]);
 	},
 );
 

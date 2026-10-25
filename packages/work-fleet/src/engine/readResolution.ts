@@ -33,7 +33,7 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	const action = yield* guidedAction(response);
 	const explanation = releaseOnly(decision);
 	if (action === "retry" && explanation !== undefined) {
-		return yield* new BadRequest({ message: explanation });
+		return yield* new BadRequest({ message: "This decision only permits release; choose release to stop and hand back" });
 	}
 	return { action, published, response } as const;
 });

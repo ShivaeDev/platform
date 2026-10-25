@@ -56,7 +56,10 @@ describe("stable decision codes", () => {
 					Effect.flip,
 				),
 			);
-			expect(failure).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("Fleet cannot move a PR") });
+			expect(failure).toMatchObject({
+				_tag: "BadRequest",
+				message: "This decision only permits release; choose release to stop and hand back",
+			});
 		},
 	);
 });

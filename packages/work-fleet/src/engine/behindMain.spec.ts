@@ -38,7 +38,7 @@ engine.it(
 		expect(delivered.value.outcome).toEqual({ head: HEAD, revision: "merge-revision", url: PR });
 		expect(checkedHeads()).toEqual(validationReads);
 		expect(reviewedHeads()).toEqual([HEAD]);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		expect(mergedHeads()).toEqual([]);
 	},
 );

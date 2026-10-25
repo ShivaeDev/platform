@@ -40,3 +40,15 @@ submissions.it("a form-API edit receives the normalized saved row", [submissionF
 	yield* submit("Atom submit");
 	expect(snapshot()).toEqual({ dirty: false, values: { name: "TONER" } });
 });
+
+submissions.it("Rejected fields stay with the submitted form", [submissionForm("rejected")], function* ({ type, submit, snapshot, fieldError }) {
+	yield* type("Taken");
+	yield* submit("Form submit");
+	expect(fieldError()).toBe("Name is already used");
+	expect(snapshot()).toEqual({ created: null, values: { name: "Taken" } });
+	yield* type("Available");
+	expect(fieldError()).toBeUndefined();
+	yield* submit("Form submit");
+	expect(snapshot()).toEqual({ created: { id: 1, name: "Available" }, values: { name: "" } });
+	expect(fieldError()).toBeUndefined();
+});

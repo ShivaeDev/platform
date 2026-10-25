@@ -50,6 +50,7 @@ export const profile = storyKit({
 					get: () =>
 						Effect.suspend(() => {
 							state.lookups += 1;
+							state.sessionRequests.push("Whoami");
 							return state.session;
 						}),
 				},
@@ -60,12 +61,14 @@ export const profile = storyKit({
 		const connection: { current?: Effect.Success<ReturnType<typeof openProfile>> } = {};
 		const origin: OriginPolicy = () => true;
 		const session: Effect.Effect<Option.Option<UserSessionShape>, AuthUnavailable> = Effect.succeed(Option.none());
-		return { connection, lookups: 0, origin, session };
+		const sessionRequests: string[] = [];
+		return { connection, lookups: 0, origin, session, sessionRequests };
 	},
 	name: "RPC profile",
 	stages: ["policy"],
 	verbs: (state, story) => ({
 		lookups: () => state.lookups,
+		sessionRequests: () => [...state.sessionRequests],
 		whoami: () => {
 			story.tell("the caller requests their session profile");
 			const connection = state.connection.current;

@@ -36,8 +36,8 @@ engine.it(
 		expect(completedViews.completed[0]?.decision).toBeUndefined();
 		expect(accepted.value.decision?.published).toBeDefined();
 		expect((yield* fleet.reconcile("one")).version).toBe(accepted.version);
-		expect(launches()).toHaveLength(2);
-		expect(reviewedHeads()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
+		expect(reviewedHeads()).toEqual([result.head]);
 		expect(mergedHeads()).toEqual([]);
 	},
 );

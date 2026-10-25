@@ -32,6 +32,10 @@ export const poolTeardown = storyKit({
 	runIf: databaseUrl !== undefined,
 	stages: [],
 	verbs: ({ gate, name, scope }, story) => ({
+		backendQueries: Effect.fn("PoolTeardown.backendQueries")(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			return yield* sql<{ readonly query: string }>`select query from pg_stat_activity where application_name = ${name} order by query`;
+		}),
 		backends: Effect.fn("PoolTeardown.backends")(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			return yield* sql<{ readonly pid: number }>`select pid from pg_stat_activity where application_name = ${name}`;

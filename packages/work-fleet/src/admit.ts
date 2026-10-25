@@ -33,6 +33,7 @@ export const admit = Effect.fn("Fleet.admit")(function* (
 			withFailureContext(new Forbidden({ message: "Fresh available provider quota is required" }), {
 				attentionOwner: "automation",
 				code: "provider-quota-unavailable",
+				expectedWait: true,
 			}),
 		);
 	}

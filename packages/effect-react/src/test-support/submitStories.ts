@@ -19,6 +19,7 @@ export const submissions = storyKit(
 		"form submission screen",
 		(): State => ({ decoding: Promise.withResolvers<void>(), names: [] }),
 		(state, screen) => ({
+			fieldError: () => current(state).container.querySelector('[role="alert"]')?.textContent,
 			finishDecode: () => screen.act("the asynchronous Schema decoder finishes", () => state.decoding.resolve()),
 			names: () => state.names,
 			snapshot: () => JSON.parse(current(state).container.querySelector("output")?.textContent ?? "null"),
@@ -28,10 +29,12 @@ export const submissions = storyKit(
 		}),
 	),
 );
-export function submissionForm(kind: "create" | "slow" | "editor" = "create") {
+export function submissionForm(kind: "create" | "slow" | "editor" | "rejected" = "create") {
 	return submissions.trait("screen", `a ${kind} form with native submit controls`, function* ({ screen, state }) {
 		state.view = yield* screen.open(
-			kind === "editor" ? createElement(EditorSubmitView) : createElement(CreateSubmitView, { slow: kind === "slow", state }),
+			kind === "editor"
+				? createElement(EditorSubmitView)
+				: createElement(CreateSubmitView, { rejected: kind === "rejected", slow: kind === "slow", state }),
 		);
 	});
 }

@@ -1,9 +1,11 @@
 import { parseArgs } from "node:util";
 import { Effect } from "effect";
-import { type Options, WatchError } from "./model.ts";
+import { type EventKind, eventKinds } from "#events.ts";
+import { type Options, WatchError } from "#model.ts";
 export const help = `pr-watch --repo OWNER/REPO [--fleet | PR_NUMBER ...]
   --state PATH       Snapshot file (default .pr-watch/OWNER-REPO.json)
   --interval SECONDS Poll interval (default 60; slows as quota falls)
+  --events KINDS     Comma-separated PR event kinds (health lines always print)
   --once             Poll once and exit
   --api-url URL      GitHub REST base URL (default https://api.github.com)
   --help             Show this help
@@ -17,6 +19,7 @@ export function argumentsFor(args: readonly string[]) {
 				args: [...args],
 				options: {
 					"api-url": { type: "string" },
+					events: { type: "string" },
 					fleet: { type: "boolean" },
 					help: { type: "boolean" },
 					interval: { type: "string" },
@@ -32,6 +35,7 @@ export function argumentsFor(args: readonly string[]) {
 			if (repository.match(/^[\w.-]+\/[\w.-]+$/u) === null) {
 				throw new Error("--repo OWNER/REPO is required");
 			}
+			const selected = eventsFor(values.events);
 			const numbers = numbersFor(positionals, values.fleet ?? false);
 			const interval = intervalFor(values.interval);
 			const apiUrl = apiUrlFor(values["api-url"]);
@@ -40,6 +44,7 @@ export function argumentsFor(args: readonly string[]) {
 				once: values.once ?? false,
 				options: {
 					apiUrl,
+					...(selected === undefined ? {} : { events: selected }),
 					fleet: values.fleet ?? false,
 					interval,
 					numbers,
@@ -79,4 +84,17 @@ function apiUrlFor(value: string | undefined): string {
 		throw new Error("--api-url requires HTTPS (or loopback HTTP)");
 	}
 	return apiUrl;
+}
+
+function eventsFor(value: string | undefined): readonly EventKind[] | undefined {
+	if (value === undefined) {
+		return undefined;
+	}
+	return value.split(",").map((name) => {
+		const kind = eventKinds.find((valid) => valid === name);
+		if (kind === undefined) {
+			throw new Error(`Unknown event kind ${JSON.stringify(name)}. Valid kinds: ${eventKinds.join(", ")}`);
+		}
+		return kind;
+	});
 }

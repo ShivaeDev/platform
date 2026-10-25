@@ -42,8 +42,12 @@ isolatedEngine.it(
 		expect(continued.decision).toBeUndefined();
 		expect(continued.attempts.at(-1)).toMatchObject({ prompt: answer.body, receipt: { sessionId: decision.worker?.sessionId }, status: "running" });
 		expect(answerRecoveries()).toBe(0);
-		expect(launches()).toHaveLength(1);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1"]);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(["operation-1", "operation-2"]);
 		yield* restart();
 		yield* fleet.reconcile("one");
 		expect(answerRecoveries()).toBe(0);

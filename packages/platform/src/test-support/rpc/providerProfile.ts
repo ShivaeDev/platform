@@ -62,11 +62,13 @@ export const providerProfile = storyKit({
 			providerAccounts: Effect.succeed([]),
 		};
 		const connection: { current?: Effect.Success<ReturnType<typeof openProviderProfile>> } = {};
-		return { connection, lookups: 0, user };
+		const accountRequests: string[] = [];
+		return { accountRequests, connection, lookups: 0, user };
 	},
 	name: "provider profile",
 	stages: ["session"],
 	verbs: (state, story) => ({
+		accountRequests: () => [...state.accountRequests],
 		accounts: () => {
 			story.tell("the caller requests provider account IDs");
 			const connection = state.connection.current;
@@ -96,6 +98,7 @@ export const transientAccountsFailure = providerProfile.trait("session", "the fi
 		...state.user,
 		providerAccounts: Effect.suspend(() => {
 			state.lookups += 1;
+			state.accountRequests.push(state.user.id);
 			return state.lookups === 1
 				? Effect.fail(new AuthUnavailable({ message: "Temporary outage" }))
 				: Effect.succeed([{ accountId: "123", providerId: "github" }]);

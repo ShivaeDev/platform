@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.3 - 2026-10-25
+
+### Fixed
+
+- Reject each pre-1.0 package's patch bump when a changeset contains Added or Breaking notes. Check, plan and apply report the fragment, package, declared bump and required minor bump before combining release requests.
+
 ## 0.1.2 - 2026-10-24
 
 ### Changed

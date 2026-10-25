@@ -10,7 +10,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 		function* ({ request, close, exports }) {
 			expect((yield* request("/credentials")).status).toBe(200);
 			yield* close();
-			expect(exports()).toHaveLength(1);
+			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			const body = exports()[0]?.body;
 			expect(body).not.toContain("hidden-");
 			expect(body).not.toContain("second-line");

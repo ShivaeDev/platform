@@ -4,9 +4,8 @@ import { poolTeardown } from "#test/app-host/poolTeardown.ts";
 poolTeardown.it(
 	"waits for query and listener sockets to disconnect before its scope closes",
 	[],
-	function* ({ backends, close, disconnecting, releaseDisconnects, shutdownResult, waitForShutdown }) {
-		const queryAndListenerConnections = 2;
-		expect(yield* backends()).toHaveLength(queryAndListenerConnections);
+	function* ({ backendQueries, backends, close, disconnecting, releaseDisconnects, shutdownResult, waitForShutdown }) {
+		expect(yield* backendQueries()).toEqual([{ query: expect.stringMatching(/^LISTEN /u) }, { query: "select 1" }]);
 		const shutdown = yield* close();
 		yield* disconnecting();
 		expect(yield* shutdownResult(shutdown)).toBeUndefined();

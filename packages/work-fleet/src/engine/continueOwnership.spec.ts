@@ -7,7 +7,7 @@ import { humanMergeRequired, noChangeReported } from "#test/engineTraits.ts";
 engine.it(
 	"continuing work waiting on a human merge retains the reviewed head and worker thread without replay",
 	[humanMergeRequired()],
-	function* ({ launches, mergedHeads, providerCalls, providerOperationCount, finishWorkers, prepareWork, restart, fleet }) {
+	function* ({ launches, mergedHeads, providerCalls, providerOperations, finishWorkers, prepareWork, restart, fleet }) {
 		yield* prepareWork("one");
 		const first = yield* fleet.dispatch("one");
 		finishWorkers();
@@ -33,16 +33,15 @@ engine.it(
 		const observed = yield* restarted.reconcile("one");
 		expect(observed.value.result).toEqual(ready.value.result);
 		expect(observed.value.history?.[0]?.review).toEqual(ready.value.review);
-		expect(observed.value.attempts).toHaveLength(1);
-		expect(observed.value.attempts[0]?.receipt).toEqual(continued.value.attempts[0]?.receipt);
+		expect(observed.value.attempts).toMatchObject([{ operationId: "operation-3", receipt: continued.value.attempts[0]?.receipt }]);
 		expect((yield* restarted.reconcile("one")).value.attempts[0]?.receipt).toEqual(observed.value.attempts[0]?.receipt);
-		expect(providerOperationCount()).toBe(3);
+		expect(providerOperations()).toEqual(["operation-1", "operation-2", "operation-3"]);
 		expect(
 			providerCalls()
 				.filter((call) => call.call === "turn")
 				.map((call) => call.operationId),
 		).toEqual(["operation-1", "operation-2", "operation-3"]);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		expect(mergedHeads()).toEqual([]);
 	},
 );
@@ -67,7 +66,7 @@ engine.it(
 engine.it(
 	"continuation does not use an archived worker from a different thread after renewal",
 	[noChangeReported()],
-	function* ({ rejectNextTurn, providerOperationCount, approveWork, editWork, finishWorkers, prepareWork, fleet }) {
+	function* ({ rejectNextTurn, providerOperations, approveWork, editWork, finishWorkers, prepareWork, fleet }) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		finishWorkers();
@@ -80,6 +79,6 @@ engine.it(
 		expect(yield* fleet.continue("one", "Keep the current thread").pipe(Effect.flip)).toMatchObject({
 			message: "Continue requires an existing worker receipt",
 		});
-		expect(providerOperationCount()).toBe(2);
+		expect(providerOperations()).toEqual(["operation-1", "operation-2"]);
 	},
 );

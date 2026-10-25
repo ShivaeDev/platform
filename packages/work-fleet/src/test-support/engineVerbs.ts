@@ -15,6 +15,7 @@ import { engineDecisionVerbs } from "#test/engineDecisionVerbs.ts";
 import { engineDispatchVerbs } from "#test/engineDispatchVerbs.ts";
 import { engineEvidence } from "#test/engineEvidence.ts";
 import { engineGithubVerbs } from "#test/engineGithubVerbs.ts";
+import { engineHostAnswers } from "#test/engineHostAnswers.ts";
 import { engineLaunchVerbs } from "#test/engineLaunchVerbs.ts";
 import { engineLostTurnVerbs } from "#test/engineLostTurnVerbs.ts";
 import { engineNativeVerbs } from "#test/engineNativeVerbs.ts";
@@ -143,6 +144,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 		...engineWorldVerbs(state, story.tell),
 		...engineGithubVerbs(state, story.tell),
 		...engineRpcVerbs(state, story.tell),
+		...engineHostAnswers(state, story.tell),
 		...engineRecoveryVerbs(state, story.tell),
 		...engineRetryVerbs(state, story.tell),
 		...reportFailureVerbs(state, story.tell),

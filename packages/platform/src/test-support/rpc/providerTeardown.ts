@@ -55,6 +55,7 @@ export const providerTeardown = storyKit({
 			return yield* sql<{ datname: string }>`select datname from pg_database where datname = ${name}`;
 		}),
 		disconnecting: () => Effect.promise(() => gate.disconnecting),
+		openedBackendIds: () => [...pids].sort(),
 		releaseDisconnects: () => Effect.sync(gate.release),
 		shutdownResult: (fiber: Fiber.Fiber<void>) => Effect.sync(() => fiber.pollUnsafe()),
 		waitForDatabaseCleanup: () => database.awaitCleanup,

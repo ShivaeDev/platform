@@ -7,6 +7,7 @@ import { migratePostgres } from "#migrations.ts";
 import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { readPostgresRelease } from "#postgresRelease.ts";
 import { makeRepository } from "#repository.ts";
+import type { crossTableReads } from "#test/cross-table/reads.ts";
 import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
@@ -53,6 +54,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		compositeReadings: fixture<Effect.Success<typeof compositeReadings>>(),
 		conflictAccounts: fixture<Effect.Success<typeof conflictAccounts>>(),
 		constrainedItems: fixture<Effect.Success<typeof constrainedItems>>(),
+		crossTableReads: fixture<Effect.Success<typeof crossTableReads>>(),
 		generatedRows: fixture<Effect.Success<typeof generatedRows>>(),
 		groupedResults: fixture<Effect.Success<typeof groupedResults>>(),
 		heldSeed: fixture<Effect.Success<ReturnType<typeof heldSeed>>>(),
@@ -95,6 +97,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		compositeReadings: engine.compositeReadings.get,
 		conflictAccounts: engine.conflictAccounts.get,
 		constrainedItems: engine.constrainedItems.get,
+		crossTableReads: engine.crossTableReads.get,
 		explain: (statement: readonly [string, readonly unknown[]]) => explain(engine.sql, statement),
 		generatedRows: engine.generatedRows.get,
 		groupedResults: engine.groupedResults.get,

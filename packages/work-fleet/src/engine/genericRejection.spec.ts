@@ -31,8 +31,7 @@ for (const failures of [1, 3]) {
 			}
 			yield* Fiber.join(dispatching);
 			const record = yield* waitForProtocolOutcome();
-			expect(record.attempts).toHaveLength(1);
-			expect(record.attempts[0]?.sessionId).toBe("worker-thread");
+			expect(record.attempts).toMatchObject([{ operationId: "operation-1", sessionId: "worker-thread" }]);
 			if (failures === 1) {
 				expect(record.step).toBe("working");
 				expect(record.attempts[0]?.receipt).toEqual({ sessionId: "worker-thread", turnId: "worker-turn" });
@@ -44,12 +43,12 @@ for (const failures of [1, 3]) {
 					code: "session-rejected",
 					reason: `Codex rejected the protocol request: ${GENERIC_REJECTION_MESSAGE}`,
 				});
-				expect(publishedDecisions()).toHaveLength(1);
+				expect(publishedDecisions()).toEqual([(yield* fleet.get("one")).value.decision?.reason]);
 			}
 			expect(protocolSubmissionTimes()).toEqual(failures === 1 ? [0, 30_000] : [0, 30_000, 90_000]);
 			const submissions = protocolRequests().filter((request) => request.method === "turn/start");
 			expect(submissions.map((request) => request.params)).toEqual(protocolSubmissionTimes().map(() => submissions[0]?.params));
-			expect(protocolRequests().filter((request) => request.method === "thread/start")).toHaveLength(1);
+			expect(protocolRequests().filter((request) => request.method === "thread/start")).toMatchObject([{ params: { cwd: "/synthetic" } }]);
 		},
 	);
 }
@@ -71,8 +70,8 @@ for (const message of [
 
 			const rejected = (yield* fleet.dispatch("one")).value;
 			expect(rejected).toMatchObject({ decision: { reason: `Codex rejected the protocol request: ${message}` }, step: "waiting" });
-			expect(publishedDecisions()).toHaveLength(1);
-			expect(protocolSubmissionTimes()).toHaveLength(1);
+			expect(publishedDecisions()).toEqual([(yield* fleet.get("one")).value.decision?.reason]);
+			expect(protocolSubmissionTimes()).toEqual([0]);
 		},
 	);
 }
