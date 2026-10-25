@@ -20,13 +20,12 @@ providerProfile.it(
 providerProfile.it(
 	"retries a failed account lookup and reuses only the success for the call",
 	[transientAccountsFailure],
-	function* ({ readAccounts, lookups }) {
+	function* ({ readAccounts, accountRequests }) {
 		expect(yield* readAccounts()).toEqual([
 			{ _tag: "Failure", error: "AuthUnavailable" },
 			{ _tag: "Success", accounts: [{ accountId: "123", providerId: "github" }] },
 			{ _tag: "Success", accounts: [{ accountId: "123", providerId: "github" }] },
 		]);
-		const failedLookupAndSuccessfulLookup = 2;
-		expect(lookups()).toBe(failedLookupAndSuccessfulLookup);
+		expect(accountRequests()).toEqual(["alice", "alice"]);
 	},
 );

@@ -4,8 +4,6 @@ import { branchedEncoding, scalarEncoding } from "#test/app-host/encodingProvena
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const HTTP_OK = 200;
-
 host.it(
 	"masks every possible output field in both boolean branches of a sensitive encoder",
 	[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } }), branchedEncoding],
@@ -15,7 +13,7 @@ host.it(
 			postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: String(swap), payload: { swap, value }, tag: "branched" })}\n`, false),
 		);
 		for (const response of responses) {
-			expect(response.status).toBe(HTTP_OK);
+			expect(response.status).toBe(200);
 			expect(response.body).toContain('"_tag":"Fail"');
 			expect(response.body).toContain('"left":"<redacted>"');
 			expect(response.body).toContain('"right":"<redacted>"');
@@ -48,7 +46,7 @@ for (const source of ["schema", "host"] as const) {
 		function* ({ postNdjson, logs, close, exportedSpans }) {
 			const value = "private scalar contact";
 			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { value }, tag: "scalar" })}\n`, false);
-			expect(response.status).toBe(HTTP_OK);
+			expect(response.status).toBe(200);
 			expect(response.body).toContain('"_tag":"Fail"');
 			expect(response.body).toContain('"profile":"<redacted>"');
 			expect(response.body).toContain('"visible":"public control"');

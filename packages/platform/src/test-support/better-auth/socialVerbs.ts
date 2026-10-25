@@ -17,6 +17,7 @@ export function socialVerbs(
 		client,
 		failAccountLookup,
 		accountLookups,
+		accountRequests,
 		expireBeforeAccountLookup,
 	}: Effect.Success<ReturnType<typeof socialEngine>>,
 	story: Story<Effect.Success<ReturnType<typeof socialEngine>>>,
@@ -24,6 +25,7 @@ export function socialVerbs(
 	provider.narrate(story.tell);
 	return {
 		accountLookups,
+		accountRequests,
 		cookie: () => {
 			story.tell("read the document's visible cookies");
 			return document.cookie;

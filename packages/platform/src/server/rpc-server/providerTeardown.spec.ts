@@ -7,6 +7,7 @@ for (const owner of ["provider", "scope"] as const) {
 		[],
 		function* ({
 			backends,
+			openedBackendIds,
 			close,
 			databases,
 			closeDatabase,
@@ -16,9 +17,8 @@ for (const owner of ["provider", "scope"] as const) {
 			waitForShutdown,
 			waitForDatabaseCleanup,
 		}) {
-			const pooledClients = 2;
 			const storyDatabase = yield* databases();
-			expect(yield* backends()).toHaveLength(pooledClients);
+			expect((yield* backends()).map(({ pid }) => pid).sort()).toEqual(openedBackendIds());
 			const shutdown = yield* close(owner);
 			yield* disconnecting();
 			expect(yield* shutdownResult(shutdown)).toBeUndefined();

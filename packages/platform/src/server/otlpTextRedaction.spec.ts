@@ -12,7 +12,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				(yield* request("/diagnostics", { headers: { authorization: "Bearer hidden-header-token", cookie: "session=hidden-header-cookie" } })).status,
 			).toBe(500);
 			yield* close();
-			expect(exports()).toHaveLength(1);
+			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			expect(exports()[0]?.contentType).toBe(protocol === "http/json" ? "application/json" : "application/x-protobuf");
 			const body = exports()[0]?.body;
 			expect(body).not.toContain("hidden-");
