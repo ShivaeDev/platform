@@ -1,5 +1,2 @@
-{"path":"script/quality/globalHooks.spec.ts","rule":"tests/named-values","count":29}
-{"path":"script/quality/testProjects.spec.ts","rule":"tests/named-values","count":5}
-{"path":"script/release/appliedRelease.slow.spec.ts","rule":"tests/named-values","count":6}
-{"path":"script/release/pullRequest.spec.ts","rule":"tests/named-values","count":3}
+{"path":"script/release/pullRequest.spec.ts","rule":"tests/named-values","count":2}
 {"path":"script/release/pullRequestStability.spec.ts","rule":"tests/named-values","count":1}

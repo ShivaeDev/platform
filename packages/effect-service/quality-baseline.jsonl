@@ -1,4 +1,3 @@
-{"path":"packages/effect-service/src/compilerFixtures.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-service/src/serviceFailures.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/effect-service/src/serviceInterruption.spec.ts","rule":"tests/named-values","count":8}
-{"path":"packages/effect-service/src/serviceScope.spec.ts","rule":"tests/named-values","count":6}
+{"path":"packages/effect-service/src/serviceFailures.spec.ts","rule":"tests/named-values","count":1}
+{"path":"packages/effect-service/src/serviceInterruption.spec.ts","rule":"tests/named-values","count":5}
+{"path":"packages/effect-service/src/serviceScope.spec.ts","rule":"tests/named-values","count":4}

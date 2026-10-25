@@ -1,7 +1,6 @@
 {"path":"packages/effect-prisma/src/database.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/database.typecheck.test.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-prisma/src/databaseDisconnection.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-prisma/src/databasePool.spec.ts","rule":"tests/named-values","count":2}
+{"path":"packages/effect-prisma/src/databasePool.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-prisma/src/databaseTransaction.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/effect-prisma/src/databaseTypes.ts","rule":"biome/plugin","count":1}
 {"path":"packages/effect-prisma/src/error.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
@@ -22,7 +21,7 @@
 {"path":"packages/effect-prisma/src/internal/promise.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
 {"path":"packages/effect-prisma/src/internal/promise.ts","rule":"files/named-after-export","count":1}
 {"path":"packages/effect-prisma/src/internal/recipe.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":3}
-{"path":"packages/effect-prisma/src/internal/relation.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/effect-prisma/src/internal/relation.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/effect-prisma/src/internal/relationPlan.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}
 {"path":"packages/effect-prisma/src/internal/sqliteDatetime.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/effect-prisma/src/internal/sqliteDatetime.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":2}

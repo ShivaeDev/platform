@@ -3,10 +3,6 @@ import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { loginScreen, screens } from "#modules/notes/test-support/screens.ts";
 
-const NO_AUTHENTICATIONS = 0;
-const AFTER_SIGN_UP = 1;
-const AFTER_SIGN_IN = 2;
-
 screens.it(
 	"submits signup and sign-in, retains rejected input, and shows provider and network failures",
 	[loginScreen("Email is already registered")],
@@ -19,7 +15,7 @@ screens.it(
 		authenticationCalls,
 		alert,
 		draft,
-		authenticationCount,
+		authenticated,
 		authenticationAccepts,
 		authenticationGoesOffline,
 		lastAuthenticationMode,
@@ -38,10 +34,10 @@ screens.it(
 		);
 		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Email is already registered")));
 		yield* Effect.promise(() => eventually(() => expect(draft("Email")).toBe("alice@app.test")));
-		yield* Effect.promise(() => eventually(() => expect(authenticationCount()).toBe(NO_AUTHENTICATIONS)));
+		yield* Effect.promise(() => eventually(() => expect(authenticated()).toEqual([])));
 		yield* authenticationAccepts();
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(authenticationCount()).toBe(AFTER_SIGN_UP)));
+		yield* Effect.promise(() => eventually(() => expect(authenticated()).toEqual(["sign-up"])));
 		yield* click("Use an existing account");
 		yield* authenticationGoesOffline();
 		yield* submit();
@@ -49,7 +45,7 @@ screens.it(
 		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Could not reach authentication. Try again.")));
 		yield* authenticationAccepts();
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(authenticationCount()).toBe(AFTER_SIGN_IN)));
+		yield* Effect.promise(() => eventually(() => expect(authenticated()).toEqual(["sign-up", "sign-in"])));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

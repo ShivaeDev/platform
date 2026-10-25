@@ -1,3 +1,2 @@
-{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"tests/named-values","count":3}
-{"path":"packages/effect-react/src/sessionLoader.dom.spec.tsx","rule":"tests/named-values","count":4}
-{"path":"packages/effect-react/src/suspendedDraft.dom.spec.tsx","rule":"tests/named-values","count":1}
+{"path":"packages/effect-react/src/invoiceLineEditor.dom.spec.tsx","rule":"tests/named-values","count":1}
+{"path":"packages/effect-react/src/sessionLoader.dom.spec.tsx","rule":"tests/named-values","count":3}

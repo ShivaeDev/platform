@@ -2,8 +2,6 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
-const EXPECTED_WORKER_RUNS = 3;
-
 app.it(
 	"counts an edited title, rejects the pre-count edit and completes jobs for deleted notes",
 	[signedIn()],
@@ -21,7 +19,9 @@ app.it(
 		expect(yield* client.update({ ...edited, title: "Before counting" }).pipe(Effect.flip)).toMatchObject({ _tag: "Conflict" });
 		expect(yield* client.list()).toEqual([counted]);
 		yield* Effect.promise(() =>
-			expect.poll(() => receiver.spans.filter((span) => span.name === "CountWords"), { timeout: 8000 }).toHaveLength(EXPECTED_WORKER_RUNS),
+			expect
+				.poll(() => receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code), { timeout: 8000 })
+				.toEqual([1, 1, 1]),
 		);
 		yield* Effect.promise(() =>
 			expect

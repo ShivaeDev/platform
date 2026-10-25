@@ -71,13 +71,14 @@ ruleKit.it(
 	"a spec names numeric expectations instead of passing bare literals to matchers",
 	[
 		repositoryHas({
-			content: 'expect(items).toHaveLength(2);\nexpect(total).not.toBe(-1);\nexpect(total)["toBe"]((+3));',
+			content:
+				'expect(items).toHaveLength(2);\nexpect(total).not.toBe(-1);\nexpect(total)["toBe"]((+3));\nexpect(result.statusCount).toBe(2);\nexpect(response.body.length).toBe(4);\nexpect(codex).toBe(2);\nexpect(exitCodes).not.toHaveLength((-2));\nexpect.soft(total).not.toBe((+5));',
 			path: "src/orders.spec.ts",
 		}),
 	],
 	function* ({ checks }) {
 		const findings = yield* checks(namedValues);
-		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3]);
+		expect(findings.map((finding) => finding.line)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
 		expect(findings[0]?.message).toContain("Assert the observed items");
 	},
 );
@@ -87,7 +88,8 @@ ruleKit.it(
 	[
 		repositoryHas(
 			{
-				content: "expect(items).toEqual([placed]); const shipped = 2; expect(count).toBe(shipped); expect(items).toHaveLength(orders.length);",
+				content:
+					'expect(items).toEqual([placed]); const shipped = 2; expect(count).toBe(shipped); expect(items).toHaveLength(orders.length);\nexpect(items).toHaveLength(0);\nexpect(total).toBe(0);\nexpect(result.status).toBe(1);\nexpect(response.status).toBe(404);\nexpect(run()["code"]).toBe(2);\nexpect(exitCode).toBe(3);\nexpect(total).not.toBe(-0);\nexpect(items).toHaveLength((0));\nexpect.soft((response.status)).not.toBe((+500));\nexpect((yield* signIn()).status).toBe(200);\nexpect(process.exitCode).not.toBe(-1);\nexpect(status).toBe(201);\nexpect(code).toHaveLength(2);\nexpect.soft(run()["exitCode"]).toBe(3);',
 				path: "src/orders.spec.ts",
 			},
 			{ content: "expect(sum).toBe(2);", path: "src/value.test.ts" },
