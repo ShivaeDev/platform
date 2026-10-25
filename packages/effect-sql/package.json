@@ -52,6 +52,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
+		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",

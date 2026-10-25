@@ -71,6 +71,7 @@ The [starter quickstart](./quickstart.md) begins with a runnable app. The [Postg
 - [Entity settings](./entity-settings.md) composes typed defaults, an authorized query, transactional upserts and a live form editor without a new helper.
 - [Cancellation](./cancellation.md) covers interruption from React actions to Node requests.
 - [Migrations](./migrations.md) and [PostgreSQL migrations](./postgres-migrations.md) explain authoring and runner ownership.
+- [Cross-table reads](./cross-table-reads.md) composes repository model fields with native `SqlSchema` for service-owned joins.
 - [PostgreSQL codecs](./postgres-codecs.md) and [constraint failures](./constraint-errors.md) cover the database value boundary.
 
 ## What counts as evidence
