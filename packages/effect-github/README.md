@@ -77,6 +77,8 @@ const appClient = (privateKey: Redacted.Redacted<string>) => GitHub.layer.pipe(
 
 Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets" }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
 
+`GitHubToken` accepts a static Option or a lazy Effect returning one; the client resolves it on each request. Code that reads the service directly must evaluate an Effect value before inspecting the Option, using `Effect.isEffect(value) ? yield* value : value`.
+
 The token is fetched on the first request and reused until five minutes before `expires_at`, using Effect's Clock. Concurrent requests share the in-flight exchange, including at refresh. A rejected exchange fails with `GitHubAppError` from `errors.ts`; a 401 has `{ stage: "exchange", status: 401 }`. Signing failures have `stage: "sign"`. These errors and their logs and spans contain no private key, App JWT or installation token.
 
 ### Verifying webhooks
