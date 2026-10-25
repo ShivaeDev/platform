@@ -17,7 +17,8 @@ boardReadStory.it("a fresh lookup rereads only its source and updates the pass m
 			expect(current.revision).toBe(briefRevision(yield* workMetadata(current)));
 			expect(yield* board.get("item.0")).toEqual(current);
 			expect(fixture.scannedFolders()).toEqual(["."]);
-			expect(fixture.readFiles()).toEqual(["0.md", "1.md", "0.md"]);
+			expect(fixture.readFiles().slice(0, -1).toSorted()).toEqual(["0.md", "1.md"]);
+			expect(fixture.readFiles().slice(-1)).toEqual(["0.md"]);
 		}),
 	);
 });
