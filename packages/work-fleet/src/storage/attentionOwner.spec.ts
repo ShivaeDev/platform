@@ -43,6 +43,8 @@ test.it(
 			{ decisionOwner: null, owner: "automation", version: 2, workId: "retry" },
 		]);
 		yield* migrate(namespace, "attention_owner");
-		expect((yield* sql`select version from ${sql(`${namespace}_records`)} where work_id = 'question'`)[0]?.version).toBe(2);
+		expect(
+			yield* sql`select work_id as "workId", version, payload->>'attentionOwner' as owner, payload->'decision'->>'attentionOwner' as "decisionOwner" from ${sql(`${namespace}_records`)} order by work_id`,
+		).toEqual(rows);
 	},
 );

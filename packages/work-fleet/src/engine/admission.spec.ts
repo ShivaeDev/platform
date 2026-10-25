@@ -1,5 +1,5 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect } from "effect";
+import { Effect, Result } from "effect";
 import { availableQuota, backlogLimit, changedMainPaths, unknownProviderQuota } from "#test/engineLaunchTraits.ts";
 import { engine, isolatedEngine } from "#test/engineStory.ts";
 import { prepared } from "#test/preparation.ts";
@@ -32,7 +32,9 @@ describe("Fleet admission path", () => {
 			concurrency: "unbounded",
 		});
 		expect(outcomes.map((outcome) => outcome._tag).sort()).toEqual(["Failure", "Success"]);
-		expect(fleet.launches()).toEqual(["operation-1"]);
+		const admitted = outcomes.filter(Result.isSuccess).map(({ success }) => success.value);
+		expect(admitted).toMatchObject([{ attempts: [{ role: "worker" }], step: "working" }]);
+		expect(fleet.launches()).toEqual(admitted.flatMap(({ attempts }) => attempts.map(({ operationId }) => operationId)));
 	});
 	engine.it("unknown quota remains prepared with a concrete blocker", [unknownProviderQuota()], function* (fleet) {
 		yield* fleet.prepareWork("one");

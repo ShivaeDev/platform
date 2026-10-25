@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
@@ -45,10 +44,10 @@ for (const [layout, top, scrolls] of [
 		`${scrolls ? "brings" : "keeps"} the work results ${scrolls ? "into view" : "in place"} when ${layout} opens with them ${top} pixels down`,
 		[observedBrowserMotion(), screenResultsLayout(top), routedScreen(nowAsksFixture, "/_board/work", { home: "home.md" })],
 		function* ({ clearMotion, click, findByRole, findElement, readFocus, readPassageTargets }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("[data-item]")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("[data-item]")).not.toBeNull());
 			clearMotion();
 			click(findByRole("link", layout, findByRole("navigation", "Work layout")));
-			yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("work-results")));
+			yield* eventually(() => expect(readFocus()?.id).toBe("work-results"));
 			expect(readPassageTargets().includes("work-results")).toBe(scrolls);
 		},
 	);
@@ -58,7 +57,7 @@ screenStory.it(
 	"marks the focused work results with the Board's control focus ring instead of the browser outline",
 	[routedScreen(nowAsksFixture, "/_board/work?view=table", { home: "home.md" })],
 	function* ({ findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#work-results")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#work-results")).not.toBeNull());
 		const results = [...(findElement("#work-results")?.classList ?? [])];
 		expect(results).toEqual(expect.arrayContaining(["outline-none", "focus-visible:ring-3", "focus-visible:ring-ring/50"]));
 	},

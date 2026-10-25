@@ -4,7 +4,7 @@ import { stapler } from "#test/invoiceScreens.tsx";
 import { creatingLine, editingLine, invoiceSessions, invoices } from "#test/invoiceStories.ts";
 
 invoices.it(
-	"loading, then a refresh failure keeps the data and dirty edits; retry recovers",
+	"Retry keeps the dirty editor mounted",
 	[editingLine()],
 	function* ({ invoice, type, click, observe, finishLoad, serverUnavailable, serverAvailable }) {
 		const { view } = invoice();
@@ -12,17 +12,23 @@ invoices.it(
 		expect(view.value("name")).toBeUndefined();
 		yield* finishLoad();
 		yield* observe("the invoice loads", () => expect(view.value("name")).toBe("Stapler"));
+		const input = view.container.querySelector('input[name="name"]');
+		const form = view.container.querySelector("form");
 		yield* type("name", "Blue stapler");
 		serverUnavailable();
 		yield* click("Refresh");
 		yield* observe("the invoice screen settles", () => expect(view.alerts()).toContain("Could not load"));
 		expect(view.text()).toContain("Stapler / 150");
 		expect(view.value("name")).toBe("Blue stapler");
+		expect(view.container.querySelector("form")).toBe(form);
+		expect(view.container.querySelector('input[name="name"]')).toBe(input);
 		serverAvailable();
-		yield* click("Refresh");
+		yield* click("Retry");
 		yield* observe("the invoice screen settles", () => expect(view.alerts()).toEqual([]));
 		expect(view.value("name")).toBe("Blue stapler");
 		expect(view.status()).toBe("Unsaved");
+		expect(view.container.querySelector("form")).toBe(form);
+		expect(view.container.querySelector('input[name="name"]')).toBe(input);
 	},
 );
 

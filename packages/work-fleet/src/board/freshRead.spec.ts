@@ -8,7 +8,7 @@ boardReadStory.it("a fresh lookup rereads only its source and updates the pass m
 	yield* withBoardReadPass(
 		Effect.gen(function* () {
 			const original = yield* board.get("item.0");
-			const other = yield* board.get("item.1");
+			yield* board.get("item.1");
 			yield* fixture.write("0.md", fixture.source("item.0", false, "Changed during the pass."));
 			expect(yield* board.get("item.0")).toEqual(original);
 			const current = yield* board.get("item.0", { fresh: true });
@@ -16,9 +16,8 @@ boardReadStory.it("a fresh lookup rereads only its source and updates the pass m
 			expect(current.revision).not.toBe(original.revision);
 			expect(current.revision).toBe(briefRevision(yield* workMetadata(current)));
 			expect(yield* board.get("item.0")).toEqual(current);
-			expect(fixture.scans()).toBe(1);
-			expect(fixture.reads.get(original.sourcePath)).toBe(2);
-			expect(fixture.reads.get(other.sourcePath)).toBe(1);
+			expect(fixture.scannedFolders()).toEqual(["."]);
+			expect(fixture.readFiles()).toEqual(["0.md", "1.md", "0.md"]);
 		}),
 	);
 });

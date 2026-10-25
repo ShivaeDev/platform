@@ -25,7 +25,7 @@ isolatedEngine.it(
 isolatedEngine.it(
 	"overlapping areas serialize concurrent dispatch and completion admits the next task",
 	[],
-	function* ({ fleet, prepareWork, finishWorkers, setAreas, launches }) {
+	function* ({ fleet, prepareWork, finishWorkers, setAreas, providerStarts }) {
 		setAreas("one", ["fleet/host", "board/ui"]);
 		setAreas("two", ["fleet/host"]);
 		yield* prepareWork("one");
@@ -34,7 +34,7 @@ isolatedEngine.it(
 			[fleet.dispatch("one"), fleet.dispatch("two")].map((work) => work.pipe(Effect.result)),
 			{ concurrency: "unbounded" },
 		);
-		expect(launches()).toEqual(["operation-1"]);
+		expect(providerStarts()).toMatchObject([{ prompt: "Implement one" }]);
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		expect((yield* fleet.get("two")).value).toMatchObject({
 			attentionOwner: "automation",
@@ -55,7 +55,7 @@ isolatedEngine.it("disjoint areas dispatch concurrently", [], function* ({ fleet
 	yield* prepareWork("two");
 	const dispatched = yield* Effect.all([fleet.dispatch("one"), fleet.dispatch("two")], { concurrency: "unbounded" });
 	expect(dispatched.map(({ value }) => value.step)).toEqual(["working", "working"]);
-	expect(launches()).toEqual(["operation-1", "operation-2"]);
+	expect(launches().sort()).toEqual(["operation-1", "operation-2"]);
 });
 isolatedEngine.it(
 	"a safe human release frees the held area",

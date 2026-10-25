@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { githubReplies, hasPull } from "#test/traits.ts";
+import { githubReplies } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
 watch.it("one long-running process discovers a later PR and stops on interruption", [], function* (h) {
@@ -24,7 +24,7 @@ watch.it("once fails on request failure and help prints the CLI usage", [githubR
 });
 watch.it(
 	"a failed initial fleet snapshot stops visibly and a restart retains the discovered PR",
-	[hasPull(1, { mergeable: null, "mergeable_state": "unknown" })],
+	[githubReplies("/pulls/1", { body: {}, status: 500 })],
 	function* (h) {
 		yield* h.start();
 		yield* h.finish();

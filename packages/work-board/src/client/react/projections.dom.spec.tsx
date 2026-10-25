@@ -25,7 +25,7 @@ for (const { url, selector, text, kind } of routes) {
 		`renders ${url} from its typed projection`,
 		[routedScreen(files, url, undefined)],
 		function* ({ readText, findElement, findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
+			yield* eventually(() => expect(readText(selector)).toContain(text));
 			expect(findElement("main")?.dataset.projection).toBe(kind);
 			if (kind === "board") {
 				expect(readText(".item-introduction h1")).toBe("Project board");
@@ -39,7 +39,7 @@ for (const { url, selector, text, kind } of routes) {
 			}
 			if (url.includes("item=task.fixture")) {
 				expect(findElements("#work-results tbody tr")).toHaveLength(1);
-				yield* Effect.promise(() => eventually(() => expect(readText("#work-detail article.doc")).toContain("Task details")));
+				yield* eventually(() => expect(readText("#work-detail article.doc")).toContain("Task details"));
 				expect(readText("#work-detail .item-summary")).toContain("Read evidence");
 			}
 		},
@@ -50,7 +50,7 @@ screenStory.it(
 	"retains inline answer edits and selected detail through a Work projection refresh",
 	[routedScreen({ ...files }, "/_board/work?view=board&item=question.fixture&q=task", { writable: true })],
 	function* ({ refreshQuery, selectText, findElement, readText, typeText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
 		expect(readText(".detail-notice")).toContain("outside the current board or filters");
 		const body = findElement<HTMLTextAreaElement>("#response-form textarea");
 		if (!body) {
@@ -59,9 +59,7 @@ screenStory.it(
 		typeText(body, "Keep my answer");
 		selectText(body, 5, 7);
 		yield* Effect.promise(() => refreshQuery("work", { url: "/_board/work?view=board&item=question.fixture&q=task" }));
-		yield* Effect.promise(() =>
-			eventually(() => expect(findElement("main")?.dataset.route).toBe("/_board/work?view=board&item=question.fixture&q=task")),
-		);
+		yield* eventually(() => expect(findElement("main")?.dataset.route).toBe("/_board/work?view=board&item=question.fixture&q=task"));
 		expect(findElement("#response-form textarea")).toBe(body);
 		expect(body.value).toBe("Keep my answer");
 		expect(body.selectionStart).toBe(5);

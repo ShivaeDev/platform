@@ -25,7 +25,7 @@ for (const [stage, label] of [
 			routedScreen(files, "/_board/item/project.example/", { home: "home.md" }),
 		],
 		function* ({ readGoals, findElement, findElements, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-item="task.first"]')).not.toBeNull()));
+			yield* eventually(() => expect(findElement('[data-goal-item="task.first"]')).not.toBeNull());
 			const goal = (yield* Effect.promise(readGoals)).goals.find((entry) => entry.id === "project.example");
 			expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 3, dropped: 0, ready: 0 });
 			const progress = findElement('[data-goal-section="progress"]');
@@ -47,7 +47,7 @@ for (const [stage, label] of [
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', findElement('[data-goal-item="task.first"]'))).not.toBeNull();
 			expect(readText("#criterion-first [data-criterion-progress]")).toBe("2 draft");
 			expect(progress?.textContent).not.toContain("%");
-			yield* Effect.promise(() => eventually(() => expect(findElement('.document-outline a[href="#heading-why-this-goal-matters"]')).not.toBeNull()));
+			yield* eventually(() => expect(findElement('.document-outline a[href="#heading-why-this-goal-matters"]')).not.toBeNull());
 		},
 	);
 }
@@ -71,7 +71,7 @@ screenStory.it(
 		),
 	],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-group="Ready"] [data-goal-item="task.third"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-goal-group="Ready"] [data-goal-item="task.third"]')).not.toBeNull());
 		expect([...findElements('[data-goal-group="Ready"] th[scope="col"]')].map((head) => head.textContent)).toEqual([
 			"Work",
 			"Criteria",
@@ -94,12 +94,10 @@ screenStory.it(
 		}),
 	],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText('[data-goal-section="progress"] [role="status"]')).toBe("Progress is available for uniquely identified goals."),
-			),
+		yield* eventually(() =>
+			expect(readText('[data-goal-section="progress"] [role="status"]')).toBe("Progress is available for uniquely identified goals."),
 		);
-		yield* Effect.promise(() => eventually(() => expect(readText(".goal-page")).not.toContain("Loading linked work")));
+		yield* eventually(() => expect(readText(".goal-page")).not.toContain("Loading linked work"));
 		expect(findElement('[data-goal-section="work"]')).toBeNull();
 		expect(readText(".goal-page")).not.toContain("Linked work unavailable.");
 	},

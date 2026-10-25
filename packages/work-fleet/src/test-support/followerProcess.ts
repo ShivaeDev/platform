@@ -19,9 +19,11 @@ export interface Follower {
 }
 
 export interface FollowOptions {
+	readonly events?: string;
 	readonly follow?: boolean;
 	readonly interval?: number;
 	readonly port?: number;
+	readonly stuckAfter?: number;
 	readonly timeout?: number;
 }
 
@@ -45,6 +47,8 @@ export function followerProcess(
 					command,
 					...ids,
 					...(options.follow ? ["--follow"] : []),
+					...(options.events === undefined ? [] : ["--events", options.events]),
+					...(options.stuckAfter === undefined ? [] : ["--stuck-after", String(options.stuckAfter)]),
 					"--board",
 					dirname(configFile),
 					...(options.port === undefined ? [] : ["--port", String(options.port)]),

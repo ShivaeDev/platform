@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { goalChartChunkFails } from "#test/goalChartChunkFails.ts";
@@ -17,10 +16,8 @@ screenStory.it(
 	],
 	function* ({ findElement, readAttribute, readText }) {
 		const progress = '[data-goal-section="progress"]';
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText(`${progress} [data-goal-chart-error]`)).toMatch(/^The chart could not be loaded: .+\. Reload the page to try again\.$/u),
-			),
+		yield* eventually(() =>
+			expect(readText(`${progress} [data-goal-chart-error]`)).toMatch(/^The chart could not be loaded: .+\. Reload the page to try again\.$/u),
 		);
 		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
 		expect(findElement(`${progress} [data-slot="chart"]`)).toBeNull();

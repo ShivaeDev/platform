@@ -15,12 +15,12 @@ board.it(
 	"retries an incomplete Today page even when its queries returned successfully",
 	[screenFiles(files, { home: "home.md" }), unreadableHome(), openScreen()],
 	function* ({ readAttribute, readIndexReads, readInbox, readGoals, follow }) {
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/"));
 		expect((yield* Effect.promise(readInbox)).complete).toBe(false);
 		yield* Effect.promise(readGoals);
 		const reads = readIndexReads();
 		yield* Effect.promise(() => follow("/"));
-		yield* Effect.promise(() => eventually(() => expect(readIndexReads()).toBeGreaterThan(reads)));
+		yield* eventually(() => expect(readIndexReads()).toBeGreaterThan(reads));
 	},
 );
 
@@ -28,7 +28,7 @@ board.it(
 	"leaves a healthy Today page's queries alone when its link is opened again",
 	[screenFiles(files, { home: "home.md" }), openScreen()],
 	function* ({ readAttribute, readIndexReads, readInbox, readGoals, follow, frame }) {
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/"));
 		expect((yield* Effect.promise(readInbox)).complete).toBe(true);
 		yield* Effect.promise(readGoals);
 		const reads = readIndexReads();
@@ -42,9 +42,9 @@ board.it(
 	"retries a failed document query when the reader opens the same link",
 	[screenFiles(files), screenRoute("/home.md"), failingRead("/home.md"), openScreen()],
 	function* ({ readAttribute, readDocumentReads, follow }) {
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/home.md")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/home.md"));
 		const reads = readDocumentReads().length;
 		yield* Effect.promise(() => follow("/home.md"));
-		yield* Effect.promise(() => eventually(() => expect(readDocumentReads().length).toBeGreaterThan(reads)));
+		yield* eventually(() => expect(readDocumentReads().length).toBeGreaterThan(reads));
 	},
 );

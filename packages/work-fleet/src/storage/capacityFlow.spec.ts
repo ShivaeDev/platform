@@ -21,9 +21,11 @@ isolated.it("atomically admits only one submission against a shared remaining qu
 		[first, second].map((entry) => submitAgainstQuota(store, entry, limits).pipe(Effect.exit)),
 		{ concurrency: 2 },
 	);
-	expect(results.filter(Exit.isSuccess)).toHaveLength(1);
-	expect(results.filter(Exit.isFailure)).toHaveLength(1);
-	expect((yield* store.list()).filter((entry) => entry.value.step === "submitting")).toHaveLength(1);
+	expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
+	expect((yield* store.list()).filter((entry) => entry.value.step === "submitting")).toEqual(
+		results.filter(Exit.isSuccess).map((result) => result.value),
+	);
+	expect(results.filter(Exit.isFailure)).toMatchObject([{ cause: { reasons: [{ error: { _tag: "StorageQuota", reason: "exhausted" } }] } }]);
 });
 
 integration.it("rechecks current foreign backlog in the submission transaction", [], function* ({ store }) {

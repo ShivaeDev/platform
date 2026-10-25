@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.18.0 - 2026-10-25
+
+### Added
+
+- Stream JSON Fleet transitions with `work-fleet watch --board <dir>`, event filtering, configurable stuck detection, PR and head details, dispatch and answer failures, and daemon health across restarts.
+
+### Changed
+
+- Fleet logs dependency, area and back-pressure waits once per changed reason at info without a stack trace, while unexpected dispatch failures retain warnings with their cause.
+
+### Fixed
+
+- Answering a managed Fleet decision with `release` stops and hands back the task, allowing fresh preparation on current main.
+- Failed answers log the work ID and cause, and status reports the cause instead of the decision's recommendation.
+- Let work launch on areas shared with a queued waiter blocked by another held area or dependency. Resolve free-area contention by priority, preserving queue order within each priority.
+
+### Breaking
+
+- `watch` without work IDs now continuously streams JSON instead of waiting for the initial active set to finish. Use `watch <ids...>` for finite text outcomes or `watch --follow` for continuous text outcomes.
+
 ## 0.17.13 - 2026-10-25
 
 ### Changed

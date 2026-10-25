@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { QueryDocument } from "#test/QueryDocument.tsx";
@@ -12,7 +11,7 @@ screenStory.it(
 	"labels links from the item's side, with outgoing and incoming links in separate groups",
 	[boardScreen(relationshipsFixture, (api) => <QueryDocument api={api} url="/task.md" />)],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-context-group="linked-from"] h4')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-context-group="linked-from"] h4')).not.toBeNull());
 		const linksTo = findElement('[data-context-group="links-to"]');
 		const linkedFrom = findElement('[data-context-group="linked-from"]');
 		expect(readText("h3", linksTo)).toBe("Links to");
@@ -52,7 +51,7 @@ screenStory.it(
 	"lists a board's declared items under Links to",
 	[boardScreen(relationshipsFixture, (api) => <QueryDocument api={api} url="/board.md" />)],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-context-group="links-to"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-context-group="links-to"]')).not.toBeNull());
 		const linksTo = findElement('[data-context-group="links-to"]');
 		expect(findElements("h4", linksTo).map((node) => node.textContent)).toEqual(["Board items"]);
 		expect(readText('[data-source-group="Board items"] a', linksTo)).toBe("Task");
@@ -63,7 +62,7 @@ screenStory.it(
 	"lists a link whose target is not in the workspace under its label, without a link",
 	[boardScreen(relationshipsFixture, (api) => <QueryDocument api={api} url="/orphan.md" />)],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-context-group="links-to"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-context-group="links-to"]')).not.toBeNull());
 		const linksTo = findElement('[data-context-group="links-to"]');
 		expect(readText("li", linksTo)).toBe("Depends on: missing.fixture (unresolved, ambiguous, or unavailable)");
 		expect(findElement("a", linksTo)).toBeNull();
@@ -74,7 +73,7 @@ screenStory.it(
 	"leaves Implemented by out of a project's incoming links",
 	[boardScreen(projectLinksFixture, (api) => <QueryDocument api={api} url="/project.md" />)],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-context-group="linked-from"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-context-group="linked-from"]')).not.toBeNull());
 		expect(findElements('[data-context-group="linked-from"] h4').map((node) => node.textContent)).toEqual(["Markdown link (1)"]);
 	},
 );

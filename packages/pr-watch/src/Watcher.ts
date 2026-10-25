@@ -41,6 +41,9 @@ export const Watcher = defineService({
 		function observe(options: Options, number: number, queue: ReadonlySet<number>, before: Snapshot | undefined) {
 			return Effect.gen(function* () {
 				const snapshot = yield* github.snapshot(options, number, queue);
+				if (snapshot === undefined) {
+					return undefined;
+				}
 				return before?.queued === true && snapshot.state === "open" && !snapshot.queued ? yield* github.confirmQueue(options, snapshot) : snapshot;
 			});
 		}
@@ -79,7 +82,9 @@ export const Watcher = defineService({
 							failure = result.failure;
 							continue;
 						}
-						state = yield* commit(state, result.success, options, emit);
+						if (result.success !== undefined) {
+							state = yield* commit(state, result.success, options, emit);
+						}
 					}
 					if (failure !== undefined) {
 						return yield* Effect.fail(failure);

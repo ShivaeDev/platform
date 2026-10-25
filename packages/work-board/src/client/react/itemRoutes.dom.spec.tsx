@@ -31,10 +31,10 @@ for (const { id, mode, url, selector, text } of routes) {
 		[routedScreen(files, mode === "direct" ? url : "/task.md", { home: "home.md" })],
 		function* ({ readText, findElement, navigate, location }) {
 			if (mode === "navigation") {
-				yield* Effect.promise(() => eventually(() => expect(readText(".item-introduction h1")).toBe("Task details")));
+				yield* eventually(() => expect(readText(".item-introduction h1")).toBe("Task details"));
 				yield* Effect.promise(() => navigate(url));
 			}
-			yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
+			yield* eventually(() => expect(readText(selector)).toContain(text));
 			expect(location()?.pathname).toBe(url);
 			expect(readText("main")).not.toContain("Project and report templates");
 			expect(readText("main")).not.toContain("Colliding Markdown file");

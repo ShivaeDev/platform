@@ -6,6 +6,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
 import { type QueryOptions, useQuery } from "#client/resultState.ts";
 import type { Rendered } from "#client/testing.ts";
+import { QueryFeedbackScreen } from "./QueryFeedbackScreen.tsx";
+import { clickButton, typeInput } from "./Screen.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";
@@ -60,13 +62,21 @@ function QueryProbe({ atom, options }: { readonly atom: Query; readonly options:
 	);
 }
 
-export async function queryView(view: Rendered, atom: Query, options: QueryOptions = {}) {
+export async function queryView(view: Rendered, atom: Query, options: QueryOptions = {}, feedback = false) {
 	const { registry, container } = view;
 	async function render(next: Query, nextOptions = options, owner = registry) {
-		await view.render(createElement(RegistryContext.Provider, { value: owner }, createElement(QueryProbe, { atom: next, options: nextOptions })));
+		await view.render(
+			createElement(
+				RegistryContext.Provider,
+				{ value: owner },
+				createElement(feedback ? QueryFeedbackScreen : QueryProbe, { atom: next, options: nextOptions }),
+			),
+		);
 	}
 	await render(atom);
 	return {
+		click: (label: string) => clickButton(container, label),
+		container,
 		invalidate: async (invalidation: Atom.AtomResultFn<void, void>) => {
 			await act(async () => registry.set(invalidation, undefined));
 		},
@@ -82,6 +92,7 @@ export async function queryView(view: Rendered, atom: Query, options: QueryOptio
 		registry,
 		render,
 		snapshot: () => JSON.parse(container.textContent ?? ""),
+		type: (name: string, value: string) => typeInput(container, name, value),
 		unmount: view.unmount,
 	};
 }

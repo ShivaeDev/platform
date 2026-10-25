@@ -32,7 +32,12 @@ for (const message of ["turn already active for thread", "Another operation owns
 				});
 				expect(receipt).toEqual({ sessionId: "worker-thread", turnId: "followup" });
 			});
-			expect(polls).toBe(4);
+			expect(methods.filter((method) => method === "thread/turns/list")).toEqual([
+				"thread/turns/list",
+				"thread/turns/list",
+				"thread/turns/list",
+				"thread/turns/list",
+			]);
 			expect(submissions).toEqual([submissions[0], submissions[0], submissions[0]]);
 			expect(methods).not.toContain("turn/interrupt");
 			expect(methods).not.toContain("thread/start");
@@ -57,8 +62,19 @@ providerStory.it("repeated busy races stop after three resubmissions with a defi
 		expect(error.code).toBe("session-active-turn-exhausted");
 		expect(error.message).toContain("active-turn resubmission limit reached");
 	});
-	expect(methods.filter((method) => method === "turn/start")).toHaveLength(4);
-	expect(methods.filter((method) => method === "thread/turns/list")).toHaveLength(7);
+	expect(methods.filter((method) => method === "turn/start" || method === "thread/turns/list")).toEqual([
+		"turn/start",
+		"thread/turns/list",
+		"thread/turns/list",
+		"turn/start",
+		"thread/turns/list",
+		"thread/turns/list",
+		"turn/start",
+		"thread/turns/list",
+		"thread/turns/list",
+		"turn/start",
+		"thread/turns/list",
+	]);
 });
 for (const overloaded of [false, true]) {
 	providerStory.it(
@@ -81,8 +97,8 @@ for (const overloaded of [false, true]) {
 					reason: "rejected",
 				});
 			});
-			expect(methods.filter((method) => method === "turn/start")).toHaveLength(1);
-			expect(methods.filter((method) => method === "thread/turns/list")).toHaveLength(overloaded ? 0 : 1);
+			expect(methods.filter((method) => method === "turn/start")).toEqual(["turn/start"]);
+			expect(methods.filter((method) => method === "thread/turns/list")).toEqual(overloaded ? [] : ["thread/turns/list"]);
 		},
 	);
 }
@@ -105,7 +121,7 @@ for (const message of [
 			const error = yield* provider.startTurn({ operationId: "operation", prompt: "Continue", sessionId: "thread" }).pipe(Effect.flip);
 			expect(error).toMatchObject({ code: "session-rejected", message: `Codex rejected the protocol request: ${message}`, reason: "rejected" });
 		});
-		expect(methods.filter((method) => method === "turn/start")).toHaveLength(1);
+		expect(methods.filter((method) => method === "turn/start")).toEqual(["turn/start"]);
 		expect(methods).not.toContain("thread/turns/list");
 	});
 }

@@ -86,6 +86,14 @@ Module folders under `src/modules/<name>` use the same `client/` and `server/` i
 
 Naming rules treat numbered migration files such as `src/server/migrations/0001_create_notes.ts` as tool-owned, including in nested apps and in module folders such as `src/modules/notes/server/migrations`. The file must sit directly in its migration folder and match `NNNN_snake_case.ts`: four digits, an underscore and a lowercase name starting with a letter. Files elsewhere, files with other names and subfolders remain checked. The Biome preset lets `.ts` files directly in that folder whose names start with four digits and an underscore default-export their migration Effect, because Effect's migration loader imports the default export; Biome globs cannot spell the rest of the pattern, so the naming rules still report a malformed name.
 
+Naming rules recognise Xcode's `*.xcodeproj` and `*.xcworkspace` bundles and their `Contents.json`, project containers and matching app folders, localised `*.lproj` folders, and `*.xcassets` catalogs with their asset sets, metadata and images.
+
+Swift Package Manager packages containing `Package.swift` retain their package folder name and `Sources/<Target>` layout.
+
+Android source sets with a sibling or own `AndroidManifest.xml` retain their native source set names and `res/` resource directories, including qualifiers such as `mipmap-hdpi` and `values-night`, with lower_snake_case resource files.
+
+These contexts work at any repository path without configuration; TypeScript and JavaScript, deeper app source folders and ordinary assets outside native resource contexts remain checked, including within `ios/` and `android/`.
+
 `defineConfig` checks the config's types. The CLI also validates it: a broken config, unknown rule id or invalid options fails before checks run. An explicit `--config` path must exist.
 
 ### 2. When architecture needs it: describe an import boundary

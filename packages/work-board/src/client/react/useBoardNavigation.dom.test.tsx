@@ -32,8 +32,8 @@ screenStory.it(
 		readMotion,
 		readScrollPosition,
 	}) {
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200")));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("heading-evidence")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200"));
+		yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence"));
 		const previousLocation = location();
 		const doc = findElement("#doc");
 		focus("#search-open");
@@ -41,14 +41,14 @@ screenStory.it(
 		clearMotion();
 		failDocument();
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toBe("Couldn't refresh this page")));
+		yield* eventually(() => expect(readText("#navigation-status")).toBe("Couldn't refresh this page"));
 		expect(readAttribute("#navigation-status", "data-state")).toBe("failed");
 		expect(readAttribute("#doc", "data-status")).toBe("503");
 		expect(readText("#doc")).toContain("Read this passage.");
 		recoverDocument();
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200")));
-		yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toBe("")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200"));
+		yield* eventually(() => expect(readText("#navigation-status")).toBe(""));
 		yield* Effect.promise(() => frame());
 		expect(location()).toBe(previousLocation);
 		expect(findElement("#doc")).toBe(doc);

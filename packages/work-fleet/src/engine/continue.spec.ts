@@ -101,12 +101,14 @@ describe("Fleet continuation against PostgreSQL", () => {
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			yield* fleet.reconcile("one");
+			const previousOperations = providerOperations();
 			const results = yield* Effect.all([fleet.continue("one", "First"), fleet.continue("one", "Second")].map(Effect.result), {
 				concurrency: "unbounded",
 			});
 			expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
-			expect(providerOperations()).toEqual(["operation-1", "operation-2", "operation-3"]);
-			expect((yield* fleet.get("one")).value.attempts).toMatchObject([{ operationId: "operation-3", role: "repair" }]);
+			const continued = (yield* fleet.get("one")).value;
+			expect(continued.attempts).toMatchObject([{ prompt: expect.stringMatching(/^(?:First|Second)$/u), role: "repair" }]);
+			expect(providerOperations()).toEqual([...previousOperations, ...continued.attempts.map(({ operationId }) => operationId)]);
 		},
 	);
 });

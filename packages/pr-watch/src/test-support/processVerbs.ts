@@ -1,20 +1,23 @@
 import { execFile } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect, Fiber } from "effect";
+import { Clock, Effect, Fiber } from "effect";
+import { TestClock } from "effect/testing";
 import type { WatchError } from "#model.ts";
 import { program } from "#program.ts";
 import { cliVerbs } from "#test/cliVerbs.ts";
 import type { Engine } from "#test/engine.ts";
+import { processClock } from "#test/processClock.ts";
 export function processVerbs(engine: Engine, tell: (line: string) => void) {
 	let running: Fiber.Fiber<void, WatchError> | undefined;
+	let observed: ReturnType<typeof processClock> | undefined;
 	function args() {
 		return ["--repo", engine.options.repository, "--state", engine.options.stateFile, "--api-url", engine.options.apiUrl];
 	}
 	const until = Effect.fnUntraced(function* (description: string, predicate: () => boolean) {
 		tell(`wait for ${description}`);
 		for (let attempt = 0; attempt < 400 && !predicate(); attempt += 1) {
-			yield* Effect.sleep("10 millis");
+			yield* Effect.promise(() => new Promise<void>((resolve) => setTimeout(resolve, 10)));
 		}
 		if (!predicate()) {
 			throw new Error(`Timed out waiting for ${description}`);
@@ -22,6 +25,10 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 	});
 	return {
 		...cliVerbs(engine, tell, until),
+		advance: (milliseconds: number) => {
+			tell(`the clock advances ${milliseconds} milliseconds`);
+			return TestClock.adjust(milliseconds);
+		},
 		cliRun: (...extra: string[]) =>
 			Effect.promise(() => {
 				tell(`the CLI runs ${extra.join(" ")}`);
@@ -68,12 +75,17 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 		start: (...extra: string[]) =>
 			Effect.gen(function* () {
 				tell("the continuous fleet watcher starts");
+				observed = processClock(yield* Clock.Clock, (id) => id === running?.id);
 				running = yield* Effect.forkChild(
-					program([...args(), "--fleet", "--interval", "1", ...extra], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
+					program([...args(), "--fleet", "--interval", "1", ...extra], engine.emit, engine.diagnostic).pipe(
+						Effect.provide(engine.context),
+						Effect.provideService(Clock.Clock, observed.clock),
+					),
 				);
 			}),
 		waitForEvents: (count: number) =>
 			until(`${count} emitted PR event lines`, () => engine.lines.filter((line) => JSON.parse(line).number !== undefined).length >= count),
+		waitForPollWait: () => until("the watcher to sleep before its next poll", () => observed?.waiting() === true),
 		waitForRequest: (suffix: string) =>
 			until(`a request ending in ${suffix}`, () => engine.requests.some((request) => request.path.endsWith(suffix))),
 	};

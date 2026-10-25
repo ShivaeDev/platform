@@ -6,6 +6,7 @@ import { ClosedDecision } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRejections } from "#errors.ts";
 import { DaemonStatus } from "#host/configSettings.ts";
+import { WatchSnapshot } from "#host/watchState.ts";
 import { FleetRecord } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
 
@@ -65,6 +66,12 @@ export const ClientContract = contract("daemon", {
 		}),
 	],
 	streams: [
+		stream("watch", {
+			payload: { workIds: Schema.Array(Schema.String) },
+			reads: () => [fleetRecords.list],
+			rejections: fleetRejections,
+			success: WatchSnapshot,
+		}),
 		stream("follow", {
 			payload: { follow: Schema.optional(Schema.Boolean), workIds: Schema.Array(Schema.String) },
 			reads: ({ workIds }) => [fleetRecords.list, ...workIds.map(fleetRecords.item)],

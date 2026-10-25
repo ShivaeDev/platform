@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { heldNotesList, notesRoute, screens } from "#modules/notes/test-support/screens.ts";
@@ -20,27 +19,27 @@ screens.it(
 		finishWordCount,
 		queryCount,
 	}) {
-		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
-		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list"])));
+		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
+		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Required")));
-		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list"])));
+		yield* eventually(() => expect(alert()).toBe("Required"));
+		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
 		yield* enter("reserved");
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Choose another title")));
-		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("reserved")));
+		yield* eventually(() => expect(alert()).toBe("Choose another title"));
+		yield* eventually(() => expect(draft()).toBe("reserved"));
 		yield* enter("First note");
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
-		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("")));
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBeUndefined()));
-		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list", "create", "list"])));
-		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("Counting words…")));
+		yield* eventually(() => expect(noteLink()).toBe("First note"));
+		yield* eventually(() => expect(draft()).toBe(""));
+		yield* eventually(() => expect(alert()).toBeUndefined());
+		yield* eventually(() => expect(noteCalls()).toEqual(["list", "create", "list"]));
+		yield* eventually(() => expect(wordCountText()).toContain("Counting words…"));
 		yield* finishWordCount(2);
-		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("2 words")));
-		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBeGreaterThan(2)));
+		yield* eventually(() => expect(wordCountText()).toContain("2 words"));
+		yield* eventually(() => expect(queryCount("list")).toBeGreaterThan(2));
 		yield* finishWordCount(1);
-		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("1 word")));
+		yield* eventually(() => expect(wordCountText()).toContain("1 word"));
 		expect(wordCountText()).not.toContain("1 words");
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
@@ -62,28 +61,28 @@ screens.it(
 		queryCount,
 		screenContent,
 	}) {
-		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe("Loading…")));
-		yield* Effect.promise(() => eventually(() => expect(screenText()).not.toContain("No notes yet")));
+		yield* eventually(() => expect(loadingMessage()).toBe("Loading…"));
+		yield* eventually(() => expect(screenText()).not.toContain("No notes yet"));
 		const content = yield* screenContent();
 		expect(content.querySelector("table")).toBeNull();
 		expect(content.querySelector('section[aria-label="Add a note"] form')).toBeNull();
 		yield* releaseNotesList();
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
-		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* eventually(() => expect(refreshDisabled()).toBe(false));
+		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
 		expect(content.querySelector('section[aria-label="Add a note"] form')).not.toBeNull();
-		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
+		yield* eventually(() => expect(loadingMessage()).toBe(undefined));
 		expect(content.querySelector("table")).toBeNull();
-		yield* Effect.promise(() => eventually(() => expect(screenText()).not.toContain("No results.")));
+		yield* eventually(() => expect(screenText()).not.toContain("No results."));
 		yield* holdNotesList();
 		yield* click("Refresh");
-		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBe(2)));
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
-		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
-		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
+		yield* eventually(() => expect(queryCount("list")).toBe(2));
+		yield* eventually(() => expect(refreshDisabled()).toBe(true));
+		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
+		yield* eventually(() => expect(loadingMessage()).toBe(undefined));
 		expect(content.querySelector("table")).toBeNull();
 		yield* releaseNotesList();
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
-		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* eventually(() => expect(refreshDisabled()).toBe(false));
+		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},
@@ -108,29 +107,29 @@ screens.it(
 		finishWordCount,
 		wordCountText,
 	}) {
-		yield* Effect.promise(() => eventually(() => expect(screenText()).toContain("No notes yet")));
+		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
 		yield* enter("First note");
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
+		yield* eventually(() => expect(noteLink()).toBe("First note"));
 		yield* holdNotesList();
 		yield* click("Refresh");
-		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBe(3)));
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
-		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
-		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
+		yield* eventually(() => expect(queryCount("list")).toBe(3));
+		yield* eventually(() => expect(refreshDisabled()).toBe(true));
+		yield* eventually(() => expect(noteLink()).toBe("First note"));
+		yield* eventually(() => expect(loadingMessage()).toBe(undefined));
 		yield* releaseNotesList();
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
-		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("Counting words…")));
+		yield* eventually(() => expect(refreshDisabled()).toBe(false));
+		yield* eventually(() => expect(wordCountText()).toContain("Counting words…"));
 		yield* holdNotesList();
 		yield* finishWordCount(2);
-		yield* Effect.promise(() => eventually(() => expect(queryCount("list")).toBeGreaterThan(3)));
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(true)));
-		yield* Effect.promise(() => eventually(() => expect(noteLink()).toBe("First note")));
-		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("Counting words…")));
-		yield* Effect.promise(() => eventually(() => expect(loadingMessage()).toBe(undefined)));
+		yield* eventually(() => expect(queryCount("list")).toBeGreaterThan(3));
+		yield* eventually(() => expect(refreshDisabled()).toBe(true));
+		yield* eventually(() => expect(noteLink()).toBe("First note"));
+		yield* eventually(() => expect(wordCountText()).toContain("Counting words…"));
+		yield* eventually(() => expect(loadingMessage()).toBe(undefined));
 		yield* releaseNotesList();
-		yield* Effect.promise(() => eventually(() => expect(refreshDisabled()).toBe(false)));
-		yield* Effect.promise(() => eventually(() => expect(wordCountText()).toContain("2 words")));
+		yield* eventually(() => expect(refreshDisabled()).toBe(false));
+		yield* eventually(() => expect(wordCountText()).toContain("2 words"));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

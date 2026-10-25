@@ -17,12 +17,12 @@ for (const panel of ["Sidebar", "More"]) {
 				click("#sidebar-toggle");
 				expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 				click("#sidebar #documents-open");
-				yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
+				yield* eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
 			} else {
 				click('[aria-controls="phone-more"]');
 				expect(findElement("#phone-more", document)).not.toBeNull();
 				click('#phone-more a[href="/_board/library"]');
-				yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
+				yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
 			}
 			expect(location()).toBe(previousLocation);
 		},
@@ -37,16 +37,16 @@ screenStory.it(
 		click("#sidebar-toggle");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 		yield* Effect.promise(() => navigate("/other.md"));
-		yield* Effect.promise(() => eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true)));
+		yield* eventually(() => expect(control("#sidebar", HTMLElement).hidden).toBe(true));
 		click('[aria-controls="phone-more"]');
 		expect(findElement("#phone-more", document)).not.toBeNull();
 		yield* Effect.promise(() => navigate("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
+		yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
 		editFile("notes/plan.md", "# Revised plan");
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* Effect.promise(() => eventually(() => expect(readTitle()).toBe("Revised plan · Work Board")));
+		yield* eventually(() => expect(readTitle()).toBe("Revised plan · Work Board"));
 		yield* Effect.promise(() => navigate("/other.md"));
-		yield* Effect.promise(() => eventually(() => expect(readText('section[aria-label="Recent"] a[href="/notes/plan.md"]')).toBe("Revised plan")));
+		yield* eventually(() => expect(readText('section[aria-label="Recent"] a[href="/notes/plan.md"]')).toBe("Revised plan"));
 	},
 );
 
@@ -57,7 +57,7 @@ screenStory.it(
 		routedScreen({ "notes/plan.md": "# Plan\n\n## Evidence\n\nRead this passage." }, "/notes/plan.md#heading-evidence"),
 	],
 	function* ({ findElement, readFocus }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('.document-outline a[href="#heading-evidence"]')).not.toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("heading-evidence")));
+		yield* eventually(() => expect(findElement('.document-outline a[href="#heading-evidence"]')).not.toBeNull());
+		yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence"));
 	},
 );

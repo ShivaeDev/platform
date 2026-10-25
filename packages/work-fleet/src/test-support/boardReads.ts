@@ -8,6 +8,8 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 	const root = yield* fs.makeTempDirectoryScoped({ prefix: "fleet-reads-" });
 	const reads = new Map<string, number>();
 	const unreadable = new Set<string>();
+	const scannedFolders: string[] = [];
+	const readFiles: string[] = [];
 	let scans = 0;
 	let afterRead = Effect.void;
 	const tracked: FileSystem.FileSystem = {
@@ -15,6 +17,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 		readDirectory: (folder) =>
 			Effect.sync(() => {
 				scans += 1;
+				scannedFolders.push(path.relative(root, folder) || ".");
 			}).pipe(
 				Effect.andThen(() =>
 					unreadable.has(".")
@@ -25,6 +28,7 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 		readFileString: (file, options) =>
 			Effect.sync(() => {
 				reads.set(file, (reads.get(file) ?? 0) + 1);
+				readFiles.push(path.relative(root, file));
 			}).pipe(
 				Effect.andThen(() =>
 					unreadable.has(path.relative(root, file))
@@ -52,9 +56,11 @@ export const boardReads = Effect.fn("BoardTest.boardReads")(function* (count: nu
 			afterRead = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
 			return { entered: Deferred.await(entered), release: Deferred.succeed(release, undefined) };
 		}),
+		readFiles: () => [...readFiles],
 		reads,
 		remove: (file: string) => fs.remove(path.join(root, file)),
 		root,
+		scannedFolders: () => [...scannedFolders],
 		scans: () => scans,
 		services,
 		source,

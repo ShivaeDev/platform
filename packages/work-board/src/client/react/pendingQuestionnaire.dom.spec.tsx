@@ -26,11 +26,11 @@ screenStory.it(
 		responseClick("preview");
 		holdWorkspace();
 		responseClick("submit");
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Saving your answer…")));
+		yield* eventually(() => expect(readText("#response-status")).toContain("Saving your answer…"));
 		check("export");
 		answerPrompt("direction", "A newer rationale");
 		yield* Effect.promise(releaseWorkspace);
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Answer saved")));
+		yield* eventually(() => expect(readText("#response-status")).toContain("Answer saved"));
 		expect(readAttribute('[data-choice="export"]', "aria-checked")).toBe("true");
 		expect(answerPrompt("direction").value).toBe("A newer rationale");
 		const revised = { ...answerPreview, id: "question.revised", reviewedRevision: "b".repeat(64) };

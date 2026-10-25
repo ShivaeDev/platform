@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { headerScreen } from "#test/headerScreen.tsx";
@@ -16,7 +15,7 @@ screenStory.it(
 		yield* roles.click({ name: "Settings", role: "button" });
 		expect(roles.text({ name: "Theme", role: "group" })).toContain("System");
 		expect(roles.text({ name: "Density", role: "group" })).toContain("Compact");
-		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "System", role: "button" })));
+		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "System", role: "button" }));
 		expect(pressed()).toEqual(["System", "Comfortable"]);
 		yield* roles.click({ name: "Dark", role: "button" });
 		yield* roles.click({ name: "Compact", role: "button" });
@@ -32,7 +31,7 @@ screenStory.it(
 		yield* roles.click({ name: "Light", role: "button" });
 		expect(pressed()).toEqual(["Light", "Compact"]);
 		keyboard("Escape", {}, document);
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text(settings)).toThrow(/has 0 matches/u)));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("settings-open")));
+		yield* eventually(() => expect(() => roles.text(settings)).toThrow(/has 0 matches/u));
+		yield* eventually(() => expect(readFocus()?.id).toBe("settings-open"));
 	},
 );

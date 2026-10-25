@@ -15,7 +15,8 @@ export const boardReadStory = storyKit({
 	*create() {
 		const fixture = yield* boardReads(0);
 		const board = Context.get(yield* Layer.build(fixture.board), BoardGateway);
-		return { board, fixture, fs: yield* FileSystem.FileSystem, publications: 0 };
+		const publications: string[] = [];
+		return { board, fixture, fs: yield* FileSystem.FileSystem, publications };
 	},
 	layer: NodeServices.layer,
 	name: "Board folder reads",
@@ -26,7 +27,7 @@ export const boardReadStory = storyKit({
 			Effect.orDie,
 			Effect.tap(() =>
 				Effect.sync(() => {
-					state.publications += 1;
+					state.publications.push("fleet/status.md");
 				}),
 			),
 		);
@@ -70,7 +71,8 @@ export const boardReadStory = storyKit({
 					return fixture.write(file, content);
 				},
 			},
-			publicationCount: () => state.publications,
+			publicationCount: () => state.publications.length,
+			publications: () => [...state.publications],
 			publishedStatus: () =>
 				Effect.gen(function* () {
 					const path = `${fixture.root}/fleet/status.md`;
