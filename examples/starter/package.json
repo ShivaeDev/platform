@@ -17,7 +17,7 @@
 		"lint": "quality lint",
 		"migrate": "node --conditions=source --env-file-if-exists=.env.local src/server/migrate.ts",
 		"ready": "pnpm run ci",
-		"setup": "pnpm install && node src/setup.ts",
+		"setup": "pnpm install && quality setup",
 		"start": "node --conditions=source --env-file-if-exists=.env.local src/server/server.ts",
 		"test": "node --env-file-if-exists=.env.local node_modules/vitest/vitest.mjs run",
 		"typecheck": "tsc --noEmit",

@@ -12,6 +12,7 @@ import { SetupFailure } from "#failure.ts";
 import type { Launch } from "#hooks/command.ts";
 import { installHook } from "#hooks/install.ts";
 import { preCommitHook } from "#hooks/preCommit.ts";
+import { setupHook } from "#hooks/setup.ts";
 import { hookStatus } from "#hooks/status.ts";
 import { uninstallHook } from "#hooks/uninstall.ts";
 
@@ -29,6 +30,8 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 	switch (command._tag) {
 		case "Help":
 			return yield* Console.log(USAGE);
+		case "Setup":
+			return yield* setupHook({ config: command.config, cwd, launch });
 		case "Lint":
 			return yield* lint(cwd, command.config);
 		case "Fix":

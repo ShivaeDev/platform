@@ -13,7 +13,7 @@ application.it(
 		expect(setup.head).not.toBe(0);
 		expect(setup.staged).toBe("");
 		const gate = JSON.parse(read(".git/initial-gate.json"));
-		expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/setup.ts"]));
+		expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]));
 		expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
 	},
 );

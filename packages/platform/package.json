@@ -48,6 +48,7 @@
 	"dependencies": {
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
+		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
