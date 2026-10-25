@@ -1,10 +1,31 @@
+import { inspect } from "node:util";
 import { expect } from "vitest";
 import { applicationRateLimit, environment, mount } from "#test/better-auth/mount.ts";
 
-mount.it("answers 503 when the mounted auth provider fails", [], function* ({ request, stopAuth }) {
+mount.it("logs a redacted provider failure in the request trace before answering 503", [], function* ({ logs, request, stopAuth }) {
 	expect((yield* request()).status).toBe(200);
+	expect(logs().filter((log) => log.level === "Error")).toEqual([]);
 	yield* stopAuth();
-	expect(yield* request()).toEqual({ body: "Authentication is temporarily unavailable", status: 503 });
+	const traceId = "1234567890abcdef1234567890abcdef";
+	expect(yield* request({ traceparent: `00-${traceId}-1234567890abcdef-01` })).toEqual({
+		body: "Authentication is temporarily unavailable",
+		status: 503,
+	});
+	expect(logs().filter((log) => log.level === "Error")).toEqual([
+		{
+			level: "Error",
+			message: [
+				"Authentication provider failed",
+				expect.objectContaining({
+					cause: expect.objectContaining({ message: "password=<redacted>" }),
+					cookie: "<redacted>",
+					message: "Authentication provider is down: token=<redacted>",
+				}),
+			],
+			traceId,
+		},
+	]);
+	expect(inspect(logs(), { depth: 20 })).not.toMatch(/provider-token|database-password|provider-cookie/u);
 });
 
 for (const trust of [undefined, "127.0.0.2", "127.0.0.1", "127.0.0.0/8"]) {
