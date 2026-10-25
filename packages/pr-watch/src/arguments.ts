@@ -5,6 +5,7 @@ import { type Options, WatchError } from "#model.ts";
 export const help = `pr-watch --repo OWNER/REPO [--fleet | PR_NUMBER ...]
   --state PATH       Snapshot file (default .pr-watch/OWNER-REPO.json)
   --interval SECONDS Poll interval (default 60; slows as quota falls)
+  --heartbeat SECONDS Quiet heartbeat period (default 900; 0 disables)
   --events KINDS     Comma-separated PR event kinds (health lines always print)
   --once             Poll once and exit
   --api-url URL      GitHub REST base URL (default https://api.github.com)
@@ -21,6 +22,7 @@ export function argumentsFor(args: readonly string[]) {
 					"api-url": { type: "string" },
 					events: { type: "string" },
 					fleet: { type: "boolean" },
+					heartbeat: { type: "string" },
 					help: { type: "boolean" },
 					interval: { type: "string" },
 					once: { type: "boolean" },
@@ -40,6 +42,7 @@ export function argumentsFor(args: readonly string[]) {
 			const interval = intervalFor(values.interval);
 			const apiUrl = apiUrlFor(values["api-url"]);
 			return {
+				heartbeat: heartbeatFor(values.heartbeat),
 				help: false as const,
 				once: values.once ?? false,
 				options: {
@@ -54,6 +57,13 @@ export function argumentsFor(args: readonly string[]) {
 			};
 		},
 	});
+}
+function heartbeatFor(value: string | undefined): number {
+	const heartbeat = Number(value ?? 900) * 1000;
+	if (!Number.isFinite(heartbeat) || heartbeat < 0) {
+		throw new Error("--heartbeat must be zero or more seconds");
+	}
+	return heartbeat;
 }
 function numbersFor(positionals: readonly string[], fleet: boolean): readonly number[] {
 	if (positionals.some((value) => value.match(/^[1-9]\d*$/u) === null)) {

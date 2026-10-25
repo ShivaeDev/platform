@@ -18,7 +18,7 @@ Each PR event occupies one JSON line with its PR number, head branch and title. 
 
 ## Run the watcher
 
-Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline. If the PR already has auto-merge enabled with conflicts or failing checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests, invalid responses and pending mergeability retain the previous snapshot. Checks and queue refs are polled even when the PR detail response is unchanged.
+Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline. If the PR already has auto-merge enabled with conflicts or failing checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
 
 Install with Node 24 or later and the repository's Effect peer version:
 
@@ -34,7 +34,7 @@ pr-watch --repo acme/project 42 --once
 
 Choose explicit PR numbers or `--fleet`. Fleet mode polls all open PRs and discovers PRs opened after startup. Discovery saves open PR numbers before requesting queue refs and full snapshots, so a failed initial observation does not lose the PR. PRs already recorded in the state file stay tracked when they disappear from the open list, so their merge or closure can be observed. After that terminal observation, they stay in the state file but leave the polled set, including after a restart. Keep one watcher per state file. The default state path is `.pr-watch/OWNER-REPO.json`; a file from another repository or an invalid file causes startup to fail instead of resetting history.
 
-`--interval SECONDS` sets the minimum interval (default 60, minimum 1). `--once` performs one observation round and exits; a failed round exits unsuccessfully. `--api-url URL` sets the REST base for GitHub Enterprise or a synthetic server, allowing HTTPS or loopback HTTP. The GraphQL endpoint is the same base with `/graphql` appended, or `/api/graphql` for an Enterprise `/api/v3` REST base. `--help` lists the commands. Errors also go to stderr. A failed round ends the process with a non-zero exit code after reporting health on stdout. SIGINT and SIGTERM interrupt the watcher and print a `stopped` line.
+`--interval SECONDS` sets the minimum interval (default 60, minimum 1). `--heartbeat SECONDS` sets the quiet heartbeat period (default 900, or 15 minutes); `0` disables heartbeats. Every stdout line restarts that period. `--once` performs one observation round and exits; a failed round exits unsuccessfully. `--api-url URL` sets the REST base for GitHub Enterprise or a synthetic server, allowing HTTPS or loopback HTTP. The GraphQL endpoint is the same base with `/graphql` appended, or `/api/graphql` for an Enterprise `/api/v3` REST base. `--help` lists the commands. Errors also go to stderr. A failed round ends the process with a non-zero exit code after reporting health on stdout. SIGINT and SIGTERM interrupt the watcher and print a `stopped` line.
 
 ### Events
 
@@ -61,12 +61,12 @@ Health lines always reach stdout, including with `--events`. They have `event` a
 
 | Event | Meaning |
 | --- | --- |
-| `heartbeat` | A successful continuous round has finished, or the process is still waiting for its next poll. `nextPollAt` gives its scheduled time. Heartbeats repeat at `--interval` during the wait, including quota pacing. |
-| `cooldown` | Quota pacing extends the interval, or GitHub refuses requests until a retry instant. `nextPollAt` gives that instant; pacing also includes `delayMs`. |
+| `heartbeat` | No line has printed for `--heartbeat` seconds while the process waits for its next poll. `nextPollAt` gives its scheduled time. The heartbeat period spans polling rounds and continues during quota pacing. |
+| `cooldown` | Quota pacing extends the interval, or GitHub refuses requests until a retry instant. `nextPollAt` gives that instant; pacing also includes `delayMs`. This line prints immediately, even with heartbeats disabled. |
 | `error` | An observation or startup operation failed. `message` describes it; no failed observation replaces a saved snapshot. |
 | `stopped` | The program finished, failed or was interrupted. `reason` distinguishes these outcomes. |
 
-A rate-limited or otherwise failed round reports its error, any known cooldown and a stop, then exits non-zero. Start a new process after resolving the error or reaching the retry instant. Successful rounds can still pace their next poll for quota without stopping; heartbeats continue throughout that wait. `--once` also prints a stop after its result. Health lines do not add GitHub requests. A pipe receives lines as they are written, without waiting for process exit.
+A rate-limited or otherwise failed round reports its error, any known cooldown and a stop, then exits non-zero. Start a new process after resolving the error or reaching the retry instant. Successful rounds can still pace their next poll for quota without stopping; periodic heartbeats continue throughout that wait unless disabled. `--once` also prints a stop after its result. Health lines do not add GitHub requests. A pipe receives lines as they are written, without waiting for process exit.
 
 ### Quota cost
 

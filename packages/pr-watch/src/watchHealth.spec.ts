@@ -9,7 +9,7 @@ const SUCCESSFUL_EXIT = 0;
 watch.it("quota pacing explains a half-hour polling gap while heartbeats continue", [queuedPulls(1)], function* (h) {
 	yield* h.poll;
 	yield* h.quotaRemaining(9);
-	yield* h.cliStart();
+	yield* h.cliStart("--heartbeat", "1");
 	yield* h.cliWaitFor("heartbeat");
 	h.queueHas();
 	h.pullIs(1, { "auto_merge": null });
@@ -42,7 +42,7 @@ watch.it("quota pacing explains a half-hour polling gap while heartbeats continu
 
 watch.it("a filtered continuous CLI exits on a request error with JSON health lines", [], function* (h) {
 	h.reply("/pulls/1", { body: {}, status: 500 });
-	yield* h.cliStart("--events", "dequeued");
+	yield* h.cliStart("--events", "dequeued", "--heartbeat", "0");
 	expect(yield* h.cliFinish()).toBe(FAILED_EXIT);
 	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "stopped"]);
 	expect(h.cliLines()[0]).toMatchObject({ at: expect.any(String), message: "GitHub request failed" });
@@ -52,7 +52,7 @@ watch.it("a filtered continuous CLI exits on a request error with JSON health li
 watch.it("a filtered rate-limited CLI reports the retry instant and exits without plain stdout logs", [], function* (h) {
 	h.throttled(900);
 	const now = yield* Clock.currentTimeMillis;
-	yield* h.cliStart("--events", "merged");
+	yield* h.cliStart("--events", "merged", "--heartbeat", "0");
 	expect(yield* h.cliFinish()).toBe(FAILED_EXIT);
 	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "cooldown", "stopped"]);
 	const retryAt = Date.parse(h.cliLines()[1].nextPollAt);

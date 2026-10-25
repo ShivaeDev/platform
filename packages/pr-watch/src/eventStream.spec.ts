@@ -5,7 +5,7 @@ import { watch } from "#test/watch.ts";
 
 watch.it("a piped fleet watch emits a selected dequeue within one interval and reports its stop", [queuedPulls(1)], function* (h) {
 	yield* h.poll;
-	yield* h.cliStart("--events", "dequeued");
+	yield* h.cliStart("--events", "dequeued", "--heartbeat", "0.1");
 	yield* h.cliWaitFor("heartbeat");
 	const interval = 1000;
 	yield* h.elapse(interval / 2);

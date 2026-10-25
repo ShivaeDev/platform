@@ -58,7 +58,7 @@ export const GitHub = defineService({
 						return yield* Effect.fail(new WatchError({ message: "GitHub returned the wrong PR" }));
 					}
 					if (pr.state === "open" && (pr.mergeable === null || pr.mergeableState === "unknown")) {
-						return yield* Effect.fail(new WatchError({ message: `Mergeability pending for PR #${number}` }));
+						return undefined;
 					}
 					let failed = false;
 					if (pr.state === "open") {

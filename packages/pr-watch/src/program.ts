@@ -1,6 +1,6 @@
 import { Effect, Exit } from "effect";
 import { argumentsFor, help } from "#arguments.ts";
-import { type Emit, health, waitForPoll } from "#health.ts";
+import { type Emit, health, makeOutput } from "#health.ts";
 import type { WatchError } from "#model.ts";
 import { Watcher } from "#Watcher.ts";
 
@@ -19,9 +19,10 @@ export const program = Effect.fn("PrWatch.program")(function* (
 			return;
 		}
 		const watcher = yield* Watcher;
+		const output = yield* makeOutput(emit, parsed.heartbeat);
 		let state = yield* watcher.load(parsed.options);
 		function report(message: string) {
-			return health(emit, "error", { message }).pipe(
+			return health(output.emit, "error", { message }).pipe(
 				Effect.tap(
 					Effect.sync(() => {
 						reported = message;
@@ -32,11 +33,11 @@ export const program = Effect.fn("PrWatch.program")(function* (
 		}
 		while (true) {
 			reported = undefined;
-			state = yield* watcher.poll(parsed.options, state, emit, report);
+			state = yield* watcher.poll(parsed.options, state, output.emit, report);
 			if (parsed.once) {
 				return;
 			}
-			yield* waitForPoll(emit, parsed.options.interval, yield* watcher.delay(parsed.options.interval));
+			yield* output.waitForPoll(parsed.options.interval, yield* watcher.delay(parsed.options.interval));
 		}
 	});
 	yield* run.pipe(

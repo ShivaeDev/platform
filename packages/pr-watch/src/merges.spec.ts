@@ -30,7 +30,7 @@ for (const failure of ["mergeability", "checks", "detail", "queue"]) {
 		`fleet remembers an open PR when its first ${failure} observation fails`,
 		[watchesFleet(), queuedPulls(1), incompleteObservation(failure)],
 		function* (h) {
-			expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
+			expect((yield* Effect.result(h.poll))._tag).toBe(failure === "mergeability" ? "Success" : "Failure");
 			expect(h.events()).toEqual([]);
 			expect(yield* h.saved()).toMatchObject({ openNumbers: [1], prs: {} });
 			h.pullIs(1, { "auto_merge": null, merged: true, state: "closed" });
