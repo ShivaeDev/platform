@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.31.0 - 2026-10-25
+
+### Added
+
+- `adminRoute(sessions)` guards host route handlers with the session and Origin policy and the admin role, providing request identity and mapping authorization refusals to HTTP responses while preserving handler responses and typed failures.
+- Document mounting the admin route guard over `/admin`, its descendants and its HTML fallback before static SPA serving. Authorization rejections return `Cache-Control: private, no-store`.
+- Opt in to signed Better Auth bearer sessions for bundled native clients through the auth host mount. Browser responses retain HttpOnly cookies without exposing credentials; cookies take precedence over bearer headers. Sign-out and native session replacement revoke the old credential and end its live subscriptions on revalidation.
+
+### Changed
+
+- Mark every app-host native RPC response `Cache-Control: private, no-store` at the outer response boundary, including mixed batches, typed failures, transport failures and streams.
+
 ## 0.30.0 - 2026-10-25
 
 ### Added

@@ -3,117 +3,82 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "native-live-resume.md",
-				"text": "---\n\"@shivaedev/effect-contract\": minor\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `bind` accepts an optional `resume: ResumeSource` to reopen and reconcile automatic live subscriptions from application lifecycle events alongside the browser defaults. Registry disposal unsubscribes the source.\n- React automatic session subscriptions use the same source supplied to `bind` in `SessionBoundary.connect`, so native shells can reconcile live query screens from their own lifecycle events.\n"
+				"name": "admin-host-route.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- `adminRoute(sessions)` guards host route handlers with the session and Origin policy and the admin role, providing request identity and mapping authorization refusals to HTTP responses while preserving handler responses and typed failures.\n"
 			},
 			{
-				"name": "owned-versioned-writes.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Versioned repositories accept composite keys so a consumer app can keep ownership and version predicates in one atomic write. `OptimisticConcurrencyError.reason` distinguishes `missing` from `stale` under the full key without exposing stored row data.\n- Versioned repositories with `conflictColumns` support `insertOrIgnore`, initializing the version to zero while leaving conflicting rows untouched. Unconditional upserts remain unavailable.\n"
+				"name": "admin-route-cache.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Document mounting the admin route guard over `/admin`, its descendants and its HTML fallback before static SPA serving. Authorization rejections return `Cache-Control: private, no-store`.\n\n### Changed\n\n- Mark every app-host native RPC response `Cache-Control: private, no-store` at the outer response boundary, including mixed batches, typed failures, transport failures and streams.\n"
 			},
 			{
-				"name": "screen-optional-pending.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Screen drivers can act on and read screens without a `pending` option. Only `settle()` requires the signal; without it, settlement fails immediately with the typed `MissingScreenPending` error. Drivers that supply `pending` keep `settle()` typed as `Effect<void>`.\n"
+				"name": "native-bearer-sessions.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Opt in to signed Better Auth bearer sessions for bundled native clients through the auth host mount. Browser responses retain HttpOnly cookies without exposing credentials; cookies take precedence over bearer headers. Sign-out and native session replacement revoke the old credential and end its live subscriptions on revalidation.\n"
 			},
 			{
-				"name": "session-key-identity.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Resolve session-scoped contract subscriptions and command invalidations from request-local `Identity.id`, isolating accounts while notifying other sessions of the same account. Authenticated identity, profile, provider-account and role middleware preserve commit-bound publication and key deduplication.\n\n### Breaking\n\n- Hosted contracts must supply application handlers with `Api.application.toLayer(...)` and leave `$changes` to `appHost`. Custom `$changes` handlers must accept generated query references, call `resolveChanges(rpc, queries)` from `@shivaedev/platform/server/rpc-server/sessionKeys.ts` inside the authenticated stream invocation, and pass both `keys` and `context` to `changes.stream`. Do not accept client-supplied physical keys or scope, or resolve identity while constructing a shared Layer.\n- Tracing publishes only unscoped command invalidations. Custom authentication middleware for session-scoped contracts must wrap the invocation with `sessionCommandChanges(effect, rpc, payload)` from `@shivaedev/platform/server/commandChanges.ts` inside its request-local `Identity` provider. Platform's authenticated identity, profile and role middleware do this automatically. Explicit transaction invalidations must use `invalidationKeys(keys, { scope: identity.id })` to share the same scope and deduplication.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			},
 			{
-				"name": "sql-update-missing.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Unversioned repositories accept `update(input, { onMissing: \"fail\" })` to return a typed `NoSuchElementError` when no row matches a single-column or composite key. Updates still decode the returned row and announce changes only after commit; missing rows announce nothing. Calls without the option retain their missing-row defect, and versioned repositories retain their typed optimistic concurrency failures.\n"
+				"name": "session-owned-client-keys.md",
+				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- Pass the session-owned native registry as the second argument to `SessionBoundary.connect`, allowing session-scoped contracts to bind before screens render. Session replacement and sign-out release their private tracking, live registrations and pending refreshes; existing one-argument callbacks continue to work.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/admin",
-				"from": "0.1.3",
+				"from": "0.1.4",
 				"name": "@shivaedev/admin",
-				"to": "0.1.4"
+				"to": "0.1.5"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.15.3",
+				"from": "0.15.4",
 				"name": "@shivaedev/create-app",
-				"to": "0.15.4"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-contract",
-				"from": "0.14.0",
-				"name": "@shivaedev/effect-contract",
-				"to": "0.15.0"
+				"to": "0.15.5"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-github",
-				"from": "0.4.1",
+				"from": "0.4.2",
 				"name": "@shivaedev/effect-github",
-				"to": "0.4.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.18.1",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.18.2"
+				"to": "0.4.3"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-react",
-				"from": "0.16.0",
+				"from": "0.17.0",
 				"name": "@shivaedev/effect-react",
-				"to": "0.17.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.20.0",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.21.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-test-sql",
-				"from": "0.9.2",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.9.3"
+				"to": "0.18.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/platform",
-				"from": "0.29.0",
+				"from": "0.30.0",
 				"name": "@shivaedev/platform",
-				"to": "0.30.0"
+				"to": "0.31.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/pr-watch",
-				"from": "0.4.0",
+				"from": "0.4.1",
 				"name": "@shivaedev/pr-watch",
-				"to": "0.4.1"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.19.1",
-				"name": "@shivaedev/test-story",
-				"to": "0.20.0"
+				"to": "0.4.2"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.31.2",
+				"from": "0.31.3",
 				"name": "@shivaedev/work-board",
-				"to": "0.31.3"
+				"to": "0.31.4"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.18.1",
+				"from": "0.18.2",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.18.2"
+				"to": "0.18.3"
 			}
 		]
 	}

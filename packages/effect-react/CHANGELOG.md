@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.0 - 2026-10-25
+
+### Added
+
+- Pass the session-owned native registry as the second argument to `SessionBoundary.connect`, allowing session-scoped contracts to bind before screens render. Session replacement and sign-out release their private tracking, live registrations and pending refreshes; existing one-argument callbacks continue to work.
+
 ## 0.17.0 - 2026-10-25
 
 ### Added
