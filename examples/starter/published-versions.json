@@ -3,7 +3,7 @@
 	"@shivaedev/effect-changes-prisma": "0.5.4",
 	"@shivaedev/effect-contract": "0.15.0",
 	"@shivaedev/effect-form": "0.6.2",
-	"@shivaedev/effect-pg-boss": "0.18.2",
+	"@shivaedev/effect-pg-boss": "0.19.0",
 	"@shivaedev/effect-prisma": "0.10.6",
 	"@shivaedev/effect-react": "0.18.0",
 	"@shivaedev/effect-service": "0.4.1",
@@ -12,7 +12,7 @@
 	"@shivaedev/effect-test-sql": "0.9.3",
 	"@shivaedev/effect-trpc": "0.8.6",
 	"@shivaedev/local-postgres": "0.7.0",
-	"@shivaedev/platform": "0.31.0",
+	"@shivaedev/platform": "0.32.0",
 	"@shivaedev/quality": "0.40.0",
 	"@shivaedev/test-story": "0.20.0",
 	"@shivaedev/types": "0.3.0"

@@ -3,8 +3,16 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "quality-named-values-aliases.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Changed\n\n- `tests/named-values` now reports a spec-local numeric const that only feeds `toBe` or `toHaveLength`. Consumers should assert the observed items or derive the value from the story's inputs.\n"
+				"name": "finished-failed-answers.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Close stale failed answers for done, released, deferred or dropped work with `close-finished-decisions`, recording why the decision closed and removing it from orchestrator status and watch reports. Failed answers for active work keep waiting on the orchestrator.\n"
+			},
+			{
+				"name": "native-admin-jobs.md",
+				"text": "---\n\"@shivaedev/admin\": minor\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- `@shivaedev/admin` provides a query-only Jobs page with explicitly registered queues, payload codecs, health, counts, paginated failed and dead-lettered jobs, and job lookup through the protected admin RPC group. Jobs failures remain declared and do not prevent other pages from serving requests.\n- `@shivaedev/effect-pg-boss` job reads accept a queue's name and payload Schema without requiring its worker configuration.\n"
+			},
+			{
+				"name": "native-client-origins.md",
+				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Allow explicitly listed native origins through appHost RPC and auth routes with exact CORS responses and bearer-only cross-origin sessions. Native WebView fetch keeps incremental NDJSON delivery and cancellation while existing transport protections remain in place.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
@@ -13,18 +21,60 @@
 		],
 		"releases": [
 			{
+				"bump": "minor",
+				"directory": "packages/admin",
+				"from": "0.1.5",
+				"name": "@shivaedev/admin",
+				"to": "0.2.0"
+			},
+			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.15.5",
+				"from": "0.15.6",
 				"name": "@shivaedev/create-app",
-				"to": "0.15.6"
+				"to": "0.15.7"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-github",
+				"from": "0.4.3",
+				"name": "@shivaedev/effect-github",
+				"to": "0.4.4"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.39.2",
-				"name": "@shivaedev/quality",
-				"to": "0.40.0"
+				"directory": "packages/effect-pg-boss",
+				"from": "0.18.2",
+				"name": "@shivaedev/effect-pg-boss",
+				"to": "0.19.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/platform",
+				"from": "0.31.0",
+				"name": "@shivaedev/platform",
+				"to": "0.32.0"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/pr-watch",
+				"from": "0.4.2",
+				"name": "@shivaedev/pr-watch",
+				"to": "0.4.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-board",
+				"from": "0.31.4",
+				"name": "@shivaedev/work-board",
+				"to": "0.31.5"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/work-fleet",
+				"from": "0.18.3",
+				"name": "@shivaedev/work-fleet",
+				"to": "0.18.4"
 			}
 		]
 	}
