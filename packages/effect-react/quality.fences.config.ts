@@ -1,5 +1,5 @@
 import { fence } from "@shivaedev/quality/imports/fence.ts";
-import { anything, external, folders, modules, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
+import { anything, external, files, folders, modules, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
 const browserCode = folders("packages/effect-react/src");
 
@@ -10,6 +10,7 @@ export default [
 		.mayNotReach(
 			anything.except(
 				browserCode,
+				files("packages/effect-test/src/eventually.ts", "packages/effect-test/src/withLive.ts"),
 				packages("effect-contract", "effect-form", "types"),
 				modules("effect", "@effect/atom-react", "@tanstack/react-router", "react", "react-dom", "vitest"),
 			),
