@@ -37,8 +37,10 @@ watch.it("a new head uses its own checks and preserves updated event identity", 
 	h.checksAre(1, [], "new-head");
 	h.statusIs(1, "failure", "new-head");
 	yield* h.poll;
-	expect(h.events()[0]).toEqual({ branch: "new-branch", event: "checks-failed", number: 1, title: "Changed\ntitle" });
-	expect(h.events()).toHaveLength(2);
+	expect(h.events()).toEqual([
+		{ branch: "new-branch", event: "checks-failed", number: 1, title: "Changed\ntitle" },
+		{ branch: "new-branch", event: "stuck", number: 1, title: "Changed\ntitle" },
+	]);
 });
 watch.it("a failed later checks page retains the last successful snapshot", [], function* (h) {
 	yield* h.poll;

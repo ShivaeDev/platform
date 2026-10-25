@@ -13,8 +13,8 @@ tracingApp.it(
 		yield* step();
 
 		const requests = spans.filter((span) => span.kind === "server");
-		expect(requests).toHaveLength(2);
-		expect(new Set(requests.map((span) => span.traceId)).size).toBe(2);
+		expect(requests).toMatchObject([{ kind: "server" }, { kind: "server" }]);
+		expect(requests[0]?.traceId).not.toBe(requests[1]?.traceId);
 		for (const span of requests) {
 			expect(span.parent).toEqual(Option.none());
 			expect(span.traceId).not.toBe(storySpan.traceId);

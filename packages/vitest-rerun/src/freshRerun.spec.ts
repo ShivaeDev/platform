@@ -42,7 +42,10 @@ rerunStory.it(
 		expect((yield* runner.run()).status).toBe(0);
 		expect(files.read("collected-passed.txt")).toBe("passed\n");
 		expect(files.read("passed.txt")).toBe("passed\n");
-		expect((yield* reports.json()).numPassedTests).toBe(2);
+		expect(reports.states(yield* reports.json())).toEqual([
+			{ name: "passes once collected", state: "passed" },
+			{ name: "passes", state: "passed" },
+		]);
 		expect(reports.summary()).toContain("- Flaky: collected.spec.ts — collection failure");
 		expect(yield* reports.flakyTests()).toBeUndefined();
 	},

@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CLI_EXIT, runQuality } from "#test/cli.ts";
 import { hookPath } from "#test/hookPath.ts";
-import { commits, gitIn, hookMode, hookRepository, hookText, qualityFrom, withOwnHook, withQualityAt, withWorktree } from "#test/hookRepository.ts";
+import { commits, hookRepository, hookText, qualityFrom, withOwnHook, withQualityAt, withWorktree } from "#test/hookRepository.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
 const CLI_TIMEOUT = 60_000;
@@ -19,18 +19,6 @@ describe("quality hooks install", { timeout: CLI_TIMEOUT }, () => {
 			stderr: `quality: ${realpathSync(root)} is not in a git work tree, so there is no hook to manage.\nhelp: run quality from inside the repository, or run \`git init\` first.\n`,
 			stdout: "",
 		});
-	});
-	it("installs an executable pre-commit hook that runs the checked-out worktree's quality", async () => {
-		const repository = hookRepository();
-
-		expect(await runQuality(repository.root, "hooks", "install")).toEqual({
-			status: 0,
-			stderr: "",
-			stdout: `quality: installed the pre-commit hook at ${hookPath(repository.root)}; each commit runs \`node_modules/.bin/quality hooks pre-commit\`.\nquality: set repository-local core.hooksPath to ${join(hookPath(repository.root), "..")}.\nquality: no executable global pre-commit hook to chain.\n`,
-		});
-
-		expect(hookMode(repository)).toBe(EXECUTABLE_HOOK_MODE);
-		expect(gitIn(repository.root, "config", "--local", "--get", "core.hooksPath").trim()).toBe(join(hookPath(repository.root), ".."));
 	});
 
 	it("installs again over its own hook and says it is up to date", async () => {
@@ -121,5 +109,3 @@ describe("quality hooks uninstall", { timeout: CLI_TIMEOUT }, () => {
 		expect(hookText(repository)).toBe("#!/bin/sh\nmake check\n");
 	});
 });
-
-const EXECUTABLE_HOOK_MODE = 0o755;

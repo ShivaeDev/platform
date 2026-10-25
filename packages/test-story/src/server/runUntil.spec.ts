@@ -1,14 +1,16 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { BurntLoaf, bakery, hasBowls, hasDough, keepsSourdough, ovenIsLit, ovenIsOverfired, ovenSmokes } from "#test/bakery.ts";
+import { BurntLoaf, bakery, DEFAULT_STEP_BUDGET, hasBowls, hasDough, keepsSourdough, ovenIsLit, ovenIsOverfired, ovenSmokes } from "#test/bakery.ts";
 import { defectMessage } from "#test/defectMessage.ts";
 import { mill } from "#test/mill.ts";
 import { unattendedMill } from "#test/unattendedMill.ts";
 
-bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(3)], function* ({ oven }) {
+const DOUGH_TO_BAKE = 3;
+
+bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(DOUGH_TO_BAKE)], function* ({ oven }) {
 	yield* oven.bakesEverything();
-	expect(oven.loaves()).toBe(3);
-	expect(oven.minutes()).toBe(3);
+	expect(oven.loaves()).toBe(DOUGH_TO_BAKE);
+	expect(oven.minutes()).toBe(DOUGH_TO_BAKE);
 });
 
 bakery.it("takes no step when the condition already holds", [ovenIsLit()], function* ({ oven }) {
@@ -58,13 +60,15 @@ bakery.it("dies after the step budget with the diagnosis and what to do", [ovenI
 });
 
 bakery.it("takes no more steps than the budget allows", [ovenIsLit(), hasBowls(2), hasDough(6)], function* ({ oven, story }) {
-	expect(defectMessage(yield* Effect.exit(oven.bakesEverything(4)))).toMatch(/^the bakery ran 4 steps/u);
-	expect(story.engine.loaves).toBe(4);
+	const stepBudget = 4;
+	expect(defectMessage(yield* Effect.exit(oven.bakesEverything(stepBudget)))).toMatch(/^the bakery ran 4 steps/u);
+	expect(story.engine.loaves).toBe(stepBudget);
 });
 
 bakery.it("uses the kit's step budget when the call names none", [ovenIsLit(), keepsSourdough(), hasDough(1)], function* ({ oven, story }) {
 	expect(defectMessage(yield* Effect.exit(oven.bakesEverything()))).toMatch(/^the bakery ran 60 steps/u);
-	expect(story.engine.minute).toBe(60);
+	expect(story.lines.slice(3)).toEqual(Array.from({ length: DEFAULT_STEP_BUDGET }, (_, index) => `${index + 1}m a loaf comes out of the oven`));
+	expect(story.engine.minute).toBe(DEFAULT_STEP_BUDGET);
 });
 
 bakery.it("keeps a step's typed failure in the error channel", [ovenIsLit(), ovenIsOverfired(), hasDough(2)], function* ({ oven }) {
@@ -81,8 +85,9 @@ mill.it("dies with what to do when the kit has no run hooks", [], function* ({ m
 });
 
 unattendedMill.it("steps without optional failure or diagnosis hooks", [], function* ({ miller, story }) {
-	yield* miller.waitsForWind(2);
-	expect(story.engine.wind).toBe(2);
+	const targetWind = 2;
+	yield* miller.waitsForWind(targetWind);
+	expect(story.engine.wind).toBe(targetWind);
 	expect(story.lines).toEqual(["the wind reaches 1", "the wind reaches 2"]);
 });
 
@@ -94,5 +99,5 @@ unattendedMill.it("explains an exhausted budget even without a diagnosis hook", 
 			"      maxSteps to runUntil.",
 		].join("\n"),
 	);
-	expect(story.engine.wind).toBe(2);
+	expect(story.lines).toEqual(["the wind reaches 1", "the wind reaches 2"]);
 });

@@ -35,7 +35,20 @@ for (const protobuf of [false, true]) {
 			status: { code: 1 },
 		});
 		expect(spans().find(({ name }) => name === "failed")?.status).toMatchObject({ code: 2, message: "failed work" });
-		expect(requests()).toHaveLength(3);
+		expect(requests()).toMatchObject([
+			{
+				headers: { "content-type": protobuf ? "application/x-protobuf" : "application/json", "x-collector-token": "collector secret" },
+				path: "/v1/traces",
+			},
+			{
+				headers: { "content-type": protobuf ? "application/x-protobuf" : "application/json", "x-collector-token": "collector secret" },
+				path: "/v1/traces",
+			},
+			{
+				headers: { "content-type": protobuf ? "application/x-protobuf" : "application/json", "x-collector-token": "collector secret" },
+				path: "/v1/traces",
+			},
+		]);
 		expect(requests().every(({ body }) => !body.includes(Buffer.from("collector secret")))).toBe(true);
 		expect(requests()[0]?.headers).toMatchObject({
 			"content-type": protobuf ? "application/x-protobuf" : "application/json",
@@ -48,18 +61,32 @@ for (const protobuf of [false, true]) {
 
 lifecycle.it("releases its listening port with the scope", [], function* ({ close, send, url }) {
 	const address = url();
-	expect(yield* send("/v1/traces", "application/json", Buffer.from("{}"))).toBe(200);
+	const status = yield* send("/v1/traces", "application/json", Buffer.from("{}"));
+	expect(status).toBe(200);
 	yield* close();
 	yield* Effect.promise(() => expect(fetch(`${address}/v1/traces`)).rejects.toThrow());
 });
 
 lifecycle.it("keeps malformed export bytes and continues receiving", [], function* ({ requests, send }) {
+	const malformed = Buffer.from([0x0a, 0xff]);
+	const empty = Buffer.from("{}");
 	for (const contentType of ["application/json", "application/x-protobuf"]) {
-		expect(yield* send("/v1/traces", contentType, Buffer.from([0x0a, 0xff]))).toBe(400);
+		const status = yield* send("/v1/traces", contentType, malformed);
+		expect(status).toBe(400);
 	}
-	expect(yield* send("/wrong", "application/json", Buffer.from("{}"))).toBe(404);
-	expect(yield* send("/v1/traces", "text/plain", Buffer.from("{}"))).toBe(415);
-	expect(yield* send("/v1/traces", "application/json; charset=utf-8", Buffer.from("{}"))).toBe(200);
-	expect(requests()).toHaveLength(5);
-	expect(requests()[0]?.body).toEqual(Buffer.from([0x0a, 0xff]));
+	for (const [path, contentType, expectedStatus] of [
+		["/wrong", "application/json", 404],
+		["/v1/traces", "text/plain", 415],
+		["/v1/traces", "application/json; charset=utf-8", 200],
+	] as const) {
+		const status = yield* send(path, contentType, empty);
+		expect(status).toBe(expectedStatus);
+	}
+	expect(requests()).toMatchObject([
+		{ body: malformed, headers: { "content-type": "application/json" }, path: "/v1/traces" },
+		{ body: malformed, headers: { "content-type": "application/x-protobuf" }, path: "/v1/traces" },
+		{ body: empty, headers: { "content-type": "application/json" }, path: "/wrong" },
+		{ body: empty, headers: { "content-type": "text/plain" }, path: "/v1/traces" },
+		{ body: empty, headers: { "content-type": "application/json; charset=utf-8" }, path: "/v1/traces" },
+	]);
 });
