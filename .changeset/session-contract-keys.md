@@ -6,7 +6,7 @@
 ### Added
 
 - Declare `keyScope: "session"` on a contract and bind it with `bind(Api, Client, { registry })`. Its query keys, successful-command invalidations, live hints and reconciliation use that session registry's scope. `List` and `Item` retain their shapes and item/list/wildcard semantics; `readKeys`, `invalidationKeys`, `makeLiveServer.stream` and `live` accept contextual scope resolution. Server adapters receive the `KeyScope` annotation and must resolve session scopes from request-local authenticated identity.
-- Automatic subscriptions track mounted query references per registry and release them when queries unmount or the registry is disposed.
+- Session-scoped automatic subscriptions track mounted query references per registry and release them when queries unmount or the registry is disposed.
 
 ### Breaking
 

@@ -270,7 +270,7 @@ const changes = Stream.unwrap(NotesClient.use((client) =>
 ));
 ```
 
-The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Subscription handlers resolve keys with `queryKeys(Notes.declaration.queries, queries)` from `serverMetadata.ts`, or the stream RPC's `ChangesReads` annotation, before calling `makeLiveServer.stream`. Automatic bindings track mounted queries per registry and drop their references on unmount or disposal.
+The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Subscription handlers resolve keys with `queryKeys(Notes.declaration.queries, queries)` from `serverMetadata.ts`, or the stream RPC's `ChangesReads` annotation, before calling `makeLiveServer.stream`. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
 For a custom transport or explicit pause/status controls, the native live APIs remain available:
 

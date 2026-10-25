@@ -2,6 +2,7 @@ import { Effect, Ref } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { LiveConnection } from "#automaticLive.ts";
 import { edgeEngine } from "./edgeEngine.ts";
 import { localEngine } from "./localEngine.ts";
 import type { Note } from "./notes.ts";
@@ -18,6 +19,7 @@ export const notesStory = storyKit({
 	name: "notes",
 	stages: ["session", "notes"],
 	verbs: (engine, story) => ({
+		connect: () => engine.registry.mount(engine.api[LiveConnection].connection),
 		create: (title: string, body = "") => {
 			story.tell(`create the note ${title}`);
 			return engine.run(engine.api.create.run({ body, title }));
@@ -53,6 +55,7 @@ export const notesStory = storyKit({
 			story.tell(`rename note ${id} to ${JSON.stringify(title)}`);
 			return engine.run(engine.api.rename.run({ id, title }));
 		},
+		subscriptions: () => Effect.runSync(Ref.get(engine.server.subscriptions)),
 		watchKeys: (label: string, keys: readonly string[], refreshed: string[]) =>
 			engine.run(
 				Effect.gen(function* () {

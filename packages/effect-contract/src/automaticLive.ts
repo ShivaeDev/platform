@@ -3,7 +3,7 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
-import type { Key } from "#keys.ts";
+import { type Key, readKeys } from "#keys.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { type ResumeWindow, resumeSignal } from "#resume.ts";
 import type { changesRpc, QueryReference } from "#serverMetadata.ts";
@@ -27,11 +27,33 @@ interface Tracked {
 }
 
 export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner) {
-	const tracked = Atom.keepAlive(Atom.make(() => Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map()))));
-	function track(registry: AtomRegistry.AtomRegistry, reference: QueryReference, keys: readonly Key[]) {
+	const eager = owner === undefined ? Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map())) : undefined;
+	const known = new Set<string>();
+	const tracked = Atom.keepAlive(Atom.make(() => eager ?? Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map()))));
+	function track(registry: AtomRegistry.AtomRegistry | undefined, reference: QueryReference, keys: readonly Key[]) {
+		const fresh =
+			eager === undefined
+				? keys
+				: keys.filter((key) => {
+						const id = readKeys([key])[0] ?? "";
+						if (known.has(id)) {
+							return false;
+						}
+						known.add(id);
+						return true;
+					});
+		if (fresh.length === 0) {
+			return () => undefined;
+		}
 		const token = {};
-		const state = registry.get(tracked);
-		Effect.runSync(SubscriptionRef.update(state, (current) => new Map([...current, [token, { keys, reference }]])));
+		const state = eager ?? registry?.get(tracked);
+		if (state === undefined) {
+			throw new Error("Session query tracking requires its owning registry");
+		}
+		Effect.runSync(SubscriptionRef.update(state, (current) => new Map([...current, [token, { keys: fresh, reference }]])));
+		if (eager !== undefined) {
+			return () => undefined;
+		}
 		return () =>
 			Effect.runSync(
 				SubscriptionRef.update(state, (current) => {

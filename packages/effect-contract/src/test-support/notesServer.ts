@@ -1,4 +1,5 @@
 import { Effect, Layer, Ref, Stream } from "effect";
+import type { QueryReference } from "#serverMetadata.ts";
 import { Create, Denied, Get, Guard, Note, Notes, Rename, Session } from "./notes.ts";
 
 export const notesServer = Effect.gen(function* () {
@@ -9,6 +10,7 @@ export const notesServer = Effect.gen(function* () {
 		]),
 	);
 	const reads = yield* Ref.make<readonly string[]>([]);
+	const subscriptions = yield* Ref.make<readonly QueryReference[]>([]);
 	const denied = yield* Ref.make(false);
 	const session = yield* Ref.make({ user: "ada" });
 	function read(label: string) {
@@ -27,7 +29,8 @@ export const notesServer = Effect.gen(function* () {
 		);
 	}
 	const implementation = Notes.of({
-		"notes.$changes": () => Stream.never,
+		"notes.$changes": ({ queries }) =>
+			Stream.unwrap(Effect.as(Ref.set(subscriptions, queries), Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never))),
 		"notes.create": (draft) =>
 			draft.title === ""
 				? Create.reject.Invalid({ field: "title", message: "Enter a title" })
@@ -49,5 +52,5 @@ export const notesServer = Effect.gen(function* () {
 			isDenied ? Effect.fail(new Denied()) : Effect.flatMap(Ref.get(session), (identity) => Effect.provideService(effect, Session, identity)),
 		),
 	);
-	return { denied, guard, implementation, layer: Layer.merge(handlers, guard), reads, session, stored };
+	return { denied, guard, implementation, layer: Layer.merge(handlers, guard), reads, session, stored, subscriptions };
 });

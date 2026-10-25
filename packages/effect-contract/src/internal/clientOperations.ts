@@ -31,13 +31,20 @@ export function boundQuery(
 ) {
 	const reactive = queryReactivity(service.runtime);
 	return {
-		query: (payload: unknown, options: QueryOptions = {}) =>
-			reactive(
-				service.query(tag, payload, options),
-				readKeys(query.reads(payload), owner?.context),
-				(registry) => track(registry, { payload, query: query.name }, query.reads(payload)),
+		query: (payload: unknown, options: QueryOptions = {}) => {
+			const atom = service.query(tag, payload, options);
+			const keys = query.reads(payload);
+			const reference = { payload, query: query.name };
+			if (owner === undefined) {
+				track(undefined, reference, keys);
+			}
+			return reactive(
+				atom,
+				readKeys(keys, owner?.context),
+				(registry) => (owner === undefined ? () => undefined : track(registry, reference, keys)),
 				owner?.registry,
-			),
+			);
+		},
 		run: (payload: unknown) =>
 			run(
 				service,
