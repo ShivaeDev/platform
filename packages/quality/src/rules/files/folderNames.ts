@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import ignore, { type Ignore } from "ignore";
+import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
 import { KEBAB, PASCAL } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
@@ -50,13 +51,14 @@ function groupMessage(name: string): string | undefined {
 interface Context {
 	readonly content: Ignore;
 	readonly names: ReadonlyMap<string, string>;
+	readonly native: ReadonlySet<string>;
 	readonly stems: ReadonlySet<string>;
 	readonly toolOwned: Ignore;
 }
 
 function messageFor(folder: string, context: Context): string | undefined {
 	const name = posix.basename(folder);
-	if (context.toolOwned.ignores(`${folder}/`) || isModule(folder, context.stems)) {
+	if (context.native.has(folder) || context.toolOwned.ignores(`${folder}/`) || isModule(folder, context.stems)) {
 		return undefined;
 	}
 	const packageName = context.names.get(folder);
@@ -75,6 +77,7 @@ export const folderNames = defineRule({
 		const context: Context = {
 			content: ignore().add([...options.content]),
 			names: layout.names,
+			native: nativeNames(files).folders,
 			stems: stemsIn(files),
 			toolOwned: ignore().add([...options.toolOwned]),
 		};

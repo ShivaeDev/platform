@@ -2,7 +2,8 @@
 	"compilerOptions": {
 		"paths": {
 			"#baseline-workspace": ["../../script/quality/test-support/baselineWorkspace.ts"],
-			"#exports-story": ["../../script/quality/test-support/exportsStory.ts"]
+			"#exports-story": ["../../script/quality/test-support/exportsStory.ts"],
+			"#rule-story": ["../../script/quality/test-support/ruleKit.ts"]
 		}
 	},
 	"extends": "../../tsconfig.base.json",
