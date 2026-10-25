@@ -1,6 +1,8 @@
-import { expect, it } from "vitest";
-import { trustedProxyPeer } from "#server/rpc-server/local.ts";
-import { forwarded, transport, trustedProxy } from "#test/rpc/transportStory.ts";
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { forwarded, transportOptions, trustedProxy } from "#test/rpc/transportStory.ts";
+
+const transport = storyKit(transportOptions);
 
 transport.it("trusts forwarded authority only from the configured transport peer", [trustedProxy("10.0.0.2")], function* ({ guarded }) {
 	expect(yield* guarded("10.0.0.2")).toEqual({ calls: 1, status: 204 });
@@ -39,14 +41,13 @@ for (const [address, trust, accepted] of [
 ] as const) {
 	transport.it(`matches transport peer ${address} against ${trust}`, [trustedProxy(trust)], function* ({ guarded }) {
 		expect(yield* guarded(address)).toEqual({ calls: accepted ? 1 : 0, status: accepted ? 204 : 403 });
-		if (address !== undefined) {
-			expect(trustedProxyPeer(trust)(address)).toBe(accepted);
-		}
 	});
 }
-it.each([undefined, "", "not-an-address", "127.0.0.1/33", "127.0.0.1,invalid"])("matches no peer with absent or malformed trust: %s", (trust) => {
-	expect(trustedProxyPeer(trust)("127.0.0.1")).toBe(false);
-});
+for (const trust of [undefined, "", "not-an-address", "127.0.0.1/33", "127.0.0.1,invalid"]) {
+	transport.it(`refuses forwarded authority with absent or malformed trust: ${trust}`, [trustedProxy(trust)], function* ({ guarded }) {
+		expect(yield* guarded("127.0.0.1")).toEqual({ calls: 0, status: 403 });
+	});
+}
 for (const headers of [
 	{ origin: "https://elsewhere.example" },
 	{ origin: "http://app.example" },
