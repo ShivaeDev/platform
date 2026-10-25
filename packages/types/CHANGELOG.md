@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-25
+
+### Breaking
+
+- Move `@shivaedev/types/bivariant.ts` to `@shivaedev/types/Bivariant.ts`. Change imports to `@shivaedev/types/Bivariant.ts`; the exported `Bivariant` type is unchanged.
+
 ## 0.2.1 - 2026-10-16
 
 ### Changed

@@ -3,59 +3,77 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "conditional-upsert.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- PostgreSQL repository upserts accept a typed `updateWhere` filter, including `excluded` column comparisons, and return inserted, updated or unchanged outcomes. Conditional `upsertMany` returns one outcome per input in a single transaction, preventing stale sync revisions from overwriting newer rows.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
+			},
+			{
+				"name": "types-bivariant-module.md",
+				"text": "---\n\"@shivaedev/types\": minor\n---\n\n### Breaking\n\n- Move `@shivaedev/types/bivariant.ts` to `@shivaedev/types/Bivariant.ts`. Change imports to `@shivaedev/types/Bivariant.ts`; the exported `Bivariant` type is unchanged.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.13.2",
+				"from": "0.13.3",
 				"name": "@shivaedev/create-app",
-				"to": "0.13.3"
+				"to": "0.13.4"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.16.1",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.16.2"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.15.0",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.16.0"
+				"directory": "packages/effect-changes-prisma",
+				"from": "0.5.3",
+				"name": "@shivaedev/effect-changes-prisma",
+				"to": "0.5.4"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-test-sql",
-				"from": "0.8.5",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.6"
+				"directory": "packages/effect-contract",
+				"from": "0.11.0",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.11.1"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/effect-react",
+				"from": "0.12.3",
+				"name": "@shivaedev/effect-react",
+				"to": "0.12.4"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/platform",
-				"from": "0.25.1",
+				"from": "0.25.2",
 				"name": "@shivaedev/platform",
-				"to": "0.25.2"
+				"to": "0.25.3"
+			},
+			{
+				"bump": "patch",
+				"directory": "packages/quality",
+				"from": "0.36.0",
+				"name": "@shivaedev/quality",
+				"to": "0.36.1"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/types",
+				"from": "0.2.1",
+				"name": "@shivaedev/types",
+				"to": "0.3.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.5",
+				"from": "0.30.6",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.6"
+				"to": "0.30.7"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.6",
+				"from": "0.17.7",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.7"
+				"to": "0.17.8"
 			}
 		]
 	}
