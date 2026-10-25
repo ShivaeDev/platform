@@ -20,14 +20,14 @@ const responses = new Map([
 	[`${ENDPOINT}/files?per_page=100`, JSON.stringify([{ filename: "src/one.ts" }, { filename: "src/two.ts" }])],
 ]);
 
-githubCliHost.it("adopts a result with REST reads through the shared gh seam", [], function* (github) {
+githubCliHost.it("adopts a result with REST reads through the shared HTTP client", [], function* (github) {
 	const cli = yield* github.cli(responses);
 	expect(yield* cli.adopt(work, completed())).toEqual({ head: HEAD, kind: "change", paths: ["src/one.ts", "src/two.ts"], pr: PR, prNumber: 7 });
 	expect(cli.commands).toHaveLength(3);
-	expect(cli.commands[1]).toMatchObject({ args: ["api", "--include", "--method", "GET", `${ENDPOINT}/files?per_page=100`], command: "gh" });
+	expect(cli.commands[1]).toMatchObject({ endpoint: `${ENDPOINT}/files?per_page=100` });
 });
 
-githubCliHost.it("rejects a failed gh response even when its body contains a valid result", [], function* (github) {
+githubCliHost.it("rejects a failed GitHub response even when its body contains a valid result", [], function* (github) {
 	const cli = yield* github.cli(responses, 502);
 	expect(yield* cli.adopt(work, completed()).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
 	expect(cli.commands).toHaveLength(1);

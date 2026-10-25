@@ -1,4 +1,4 @@
-import { Config, Effect, Layer, type Redacted } from "effect";
+import { Config, Effect, Layer, Option, type Redacted } from "effect";
 import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
@@ -16,9 +16,16 @@ export function applicationWorker(config?: {
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
+			const configuredRelease = yield* Config.option(Config.String("RAILWAY_GIT_COMMIT_SHA"));
+			const database = databaseOptions(pool, databaseUrl, "wait", config?.poolSizes?.sql);
 			return workerModules(databaseUrl, config?.clientFactory, config?.poolSizes?.jobs).pipe(
 				Layer.tap(() => Effect.logInfo("Worker ready to take jobs")),
-				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait", config?.poolSizes?.sql))),
+				Layer.provideMerge(
+					appDatabase({
+						...database,
+						migrations: { ...database.migrations, ...Option.match(configuredRelease, { onNone: () => ({}), onSome: (release) => ({ release }) }) },
+					}),
+				),
 			);
 		}),
 	).pipe(Layer.provide(otlpTracing));

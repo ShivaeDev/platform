@@ -1,27 +1,31 @@
 import { Effect, Stream } from "effect";
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
+import type { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { paginate } from "@shivaedev/platform/http-client/paginate.ts";
-import type { CachedResponse } from "./cache.ts";
-import { jsonResponse } from "./json.ts";
-import type { requests } from "./requests.ts";
+import type { CachedResponse } from "#cache.ts";
+import { jsonResponse } from "#json.ts";
+import type { requests } from "#requests.ts";
 
-export function representations(apiUrl: string, request: ReturnType<typeof requests>) {
+export function representations(apiUrl: string, request: ReturnType<typeof requests>, resource: (path: string) => string) {
 	function get(path: string, accept = "application/vnd.github+json") {
 		return HttpClientRequest.get(new URL(path, apiUrl).href, { headers: { Accept: accept } });
 	}
 	function readRepresentation(path: string) {
 		return Effect.map(request(get(path), 1024 * 1024), jsonResponse);
 	}
-	function listRepresentations(path: string) {
+	function listRepresentations(path: string, beforeRequest?: (resource: string) => Effect.Effect<void, ServiceUnavailable>) {
 		const entries = new WeakMap<HttpClientResponse.HttpClientResponse, CachedResponse>();
+		function fetchPage(input: HttpClientRequest.HttpClientRequest) {
+			return (beforeRequest?.(resource(new URL(input.url).pathname)) ?? Effect.void).pipe(
+				Effect.andThen(request(input, 1024 * 1024)),
+				Effect.map((entry) => {
+					entries.set(entry.response, entry);
+					return entry.response;
+				}),
+			);
+		}
 		const client = HttpClient.makeWith(
-			(effect: Effect.Effect<HttpClientRequest.HttpClientRequest>) =>
-				Effect.flatMap(effect, (input) =>
-					Effect.map(request(input, 1024 * 1024), (entry) => {
-						entries.set(entry.response, entry);
-						return entry.response;
-					}),
-				),
+			(effect: Effect.Effect<HttpClientRequest.HttpClientRequest>) => Effect.flatMap(effect, fetchPage),
 			Effect.succeed,
 		);
 		return Effect.succeed(

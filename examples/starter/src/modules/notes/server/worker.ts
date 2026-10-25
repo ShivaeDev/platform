@@ -21,5 +21,6 @@ export function notesWorker(url: Redacted.Redacted<string>, clientFactory?: PgBo
 		connectionString: Redacted.value(url),
 		jobs: [countWords],
 		migrate: false,
+		stop: { graceful: true, timeout: 65_000 },
 	});
 }

@@ -7,7 +7,8 @@ import type { DeadLetteredJob, JobPage, JobPageOptions, JobsHealth, ListedJob, Q
 import { logClientError, subscribeClientErrors } from "#internal/clientErrors.ts";
 import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
 import { makeService } from "#internal/makeService.ts";
-import { registerJobs, registrationName } from "#internal/register.ts";
+import { registrationName } from "#internal/register.ts";
+import { registerReleasedJobs } from "#internal/registerReleasedJobs.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
@@ -80,7 +81,7 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
 				}
 				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
-				const registration = registerJobs(acquired.client, jobs, context, acquired.reused, constructorOptions.schema);
+				const registration = registerReleasedJobs(acquired.client, jobs, context, acquired.reused, constructorOptions.schema);
 				return yield* registration.pipe(
 					Effect.as({ acquired, service, unsubscribe }),
 					Effect.onError(() => releaseClient(acquired, stop).pipe(Effect.ensuring(Effect.sync(unsubscribe)))),

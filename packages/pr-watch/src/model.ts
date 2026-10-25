@@ -28,5 +28,4 @@ export interface Options {
 	readonly numbers: readonly number[];
 	readonly repository: string;
 	readonly stateFile: string;
-	readonly token: string;
 }

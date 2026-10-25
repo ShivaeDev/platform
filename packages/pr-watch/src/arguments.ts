@@ -8,7 +8,7 @@ export const help = `pr-watch --repo OWNER/REPO [--fleet | PR_NUMBER ...]
   --api-url URL      GitHub REST base URL (default https://api.github.com)
   --help             Show this help
 Authentication: GH_TOKEN or GITHUB_TOKEN`;
-export function argumentsFor(args: readonly string[], token: string) {
+export function argumentsFor(args: readonly string[]) {
 	return Effect.try({
 		catch: (cause) => new WatchError({ message: cause instanceof Error ? cause.message : "Invalid arguments" }),
 		try: () => {
@@ -45,7 +45,6 @@ export function argumentsFor(args: readonly string[], token: string) {
 					numbers,
 					repository,
 					stateFile: values.state ?? `.pr-watch/${repository.replace("/", "-")}.json`,
-					token,
 				} satisfies Options,
 			};
 		},

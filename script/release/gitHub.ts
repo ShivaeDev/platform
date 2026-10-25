@@ -1,11 +1,14 @@
 import { execFileSync } from "node:child_process";
+import { type ReleaseCiRun, releaseHoldReason } from "./holdReason.ts";
 
 export type GitHubRequest = (endpoint: string, method: string, body?: Readonly<Record<string, unknown>>) => string;
 
 interface SnapshotResponse {
 	data: {
 		repository: {
-			pullRequests: { nodes: { number: number; isCrossRepository: boolean; mergeQueueEntry: { id: string } | null }[] };
+			pullRequests: {
+				nodes: { number: number; state: string; headRefOid: string; isCrossRepository: boolean; mergeQueueEntry: { id: string } | null }[];
+			};
 			ref: { target: { oid: string } } | null;
 		};
 	};
@@ -15,7 +18,7 @@ const QUERY = `query($owner: String!, $name: String!) {
 	repository(owner: $owner, name: $name) {
 		ref(qualifiedName: "refs/heads/release/next") { target { oid } }
 		pullRequests(first: 100, headRefName: "release/next", baseRefName: "main", states: OPEN) {
-			nodes { number isCrossRepository mergeQueueEntry { id } }
+			nodes { number state headRefOid isCrossRepository mergeQueueEntry { id } }
 		}
 	}
 }`;
@@ -44,9 +47,18 @@ export function releaseGitHub(repository: string, api: GitHubRequest = request) 
 				}),
 			);
 			const current = result.data.repository;
+			const pull = current.pullRequests.nodes.find((candidate) => !candidate.isCrossRepository);
+			let run: ReleaseCiRun | undefined;
+			if (pull !== undefined && pull.mergeQueueEntry === null) {
+				const runs: { "workflow_runs": ReleaseCiRun[] } = JSON.parse(
+					api(`repos/${repository}/actions/workflows/ci.yml/runs?event=pull_request&head_sha=${pull.headRefOid}&per_page=1`, "GET"),
+				);
+				run = runs.workflow_runs[0];
+			}
 			return {
 				head: current.ref?.target.oid ?? "",
-				pull: current.pullRequests.nodes.find((pull) => !pull.isCrossRepository),
+				hold: releaseHoldReason(pull, run),
+				pull,
 			};
 		},
 	};

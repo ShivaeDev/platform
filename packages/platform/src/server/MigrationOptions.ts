@@ -9,6 +9,7 @@ export interface MigrationOptions<R = never> {
 	readonly mode?: "migrate" | "check" | "wait";
 	readonly pollInterval?: Duration.Input;
 	readonly progressInterval?: Duration.Input;
+	readonly release?: string;
 	readonly table?: string;
 	readonly waitTimeout?: Duration.Input;
 }

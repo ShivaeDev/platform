@@ -59,7 +59,7 @@ At a 60-second interval, for N open PRs, one page of checks per PR and one page 
 
 These are request counts, not necessarily charged quota. With authentication, a successful ETag conditional request returning 304 costs zero primary rate-limit quota. Every REST endpoint sends `If-None-Match` after receiving an ETag and reuses its successful cached body on 304. Initial requests, changed responses and endpoints without ETags consume quota normally. Caches are in memory, so a restart makes fresh requests. Secondary limits still apply.
 
-The minimum interval doubles below 50% remaining quota, increases fivefold below 20% and tenfold below 10%. At low quota, the delay also spreads the observed round's request count over the remaining reset window. HTTP 403 and 429 trigger a cooldown of at least the supplied `Retry-After` (60 seconds when absent); exhausted primary quota waits until reset. No further request starts during a known cooldown.
+The minimum interval doubles below 50% remaining quota, increases fivefold below 20% and tenfold below 10%. At low quota, the delay also spreads the observed round's request count over the remaining reset window. Rate-limited requests defer polling until effect-github’s `retryAt`, derived from `Retry-After` or the primary reset instant; exhausted primary quota waits until reset. Permission failures remain failed observations without a quota cooldown. No further request starts during a known cooldown.
 
 ### Restart and delivery limits
 
@@ -67,4 +67,4 @@ The state file records discovered open PR numbers and the last successfully comp
 
 Transitions that reverse between observations, including while the watcher is down, are not recovered. For example, leaving and rejoining the merge queue before the next observation produces no `dequeued` event. Stdout delivery is at-least-once across a crash: a crash after output but before the state replacement can repeat a line. There is no event history or acknowledged output protocol.
 
-The exported `StateFile.layer` requires Effect `FileSystem`, and `GitHubHttp.layer` requires Effect `HttpClient`. The CLI supplies `NodeFileSystem.layer` and a `FetchHttpClient` layer that refuses redirects. HTTP and file failures remain typed `WatchError` values.
+The exported `StateFile.layer` requires Effect `FileSystem`. `GitHubHttp.layer` requires effect-github’s `GitHub` service, which owns authentication, conditional representations, Link pagination and rate-limit observations. Provide `GitHub.layer` with Effect `HttpClient` and `GitHubToken.fromEnv`; the token Layer reads `GH_TOKEN`, then `GITHUB_TOKEN`, and allows unauthenticated access when neither exists. Watcher `Options` contain polling and repository settings; authentication belongs to the Layer. The CLI supplies these Layers, `NodeFileSystem.layer` and a `FetchHttpClient` layer that refuses redirects. HTTP and file failures remain typed `WatchError` values.

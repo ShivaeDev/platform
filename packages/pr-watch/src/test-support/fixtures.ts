@@ -57,6 +57,7 @@ export function github(engine: Engine, tell: (line: string) => void) {
 						"x-ratelimit-limit": "5000",
 						"x-ratelimit-remaining": String(remaining),
 						"x-ratelimit-reset": String(reset),
+						"x-ratelimit-used": String(5000 - remaining),
 					},
 				});
 			}),

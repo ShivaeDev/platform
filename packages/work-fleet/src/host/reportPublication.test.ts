@@ -12,10 +12,9 @@ githubCliHost.it("checks exact refs and all PR pages using only GitHub GET reque
 	]);
 	const cli = yield* github.cli(endpoints);
 	expect(yield* cli.published("example/project", "synthetic/research")).toBe(true);
-	expect(cli.commands).toHaveLength(2);
-	for (const command of cli.commands) {
-		expect(command).toMatchObject({ args: ["api", "--include", "--method", "GET", expect.any(String)], command: "gh" });
-	}
+	expect(cli.commands.map(({ endpoint, method }) => ({ endpoint, method }))).toEqual(
+		[...endpoints.keys()].map((endpoint) => ({ endpoint, method: "GET" })),
+	);
 });
 
 for (const response of ["{}", "not json"]) {

@@ -12,7 +12,7 @@ workspace.it(
 			{ [CORE]: "patch", "@test/api": "patch" },
 			"### Fixed\n\n- A fix for both packages.\n\n### Changed\n\n- Changed behavior.\n",
 		);
-		yield* change("a-first", { [CORE]: "patch" }, "### Breaking\n\n- Breaking behavior.\n\n### Added\n\n- First alphabetically.\n");
+		yield* change("a-first", { [CORE]: "minor" }, "### Breaking\n\n- Breaking behavior.\n\n### Added\n\n- First alphabetically.\n");
 		yield* checkpoint();
 		const date = new Date(yield* Clock.currentTimeMillis).toISOString().slice(0, 10);
 		const applied = yield* cli("apply");
@@ -32,7 +32,7 @@ workspace.it(
 		expect(manifest.date).toBe(date);
 		expect(manifest.plan.changesets.map((source: { name: string }) => source.name)).toEqual(["a-first.md", "feature.md", "z-last.md"]);
 		expect((yield* cli("check")).status).toBe(0);
-		yield* change("later", { [CORE]: "patch" });
+		yield* change("later", { [CORE]: "patch" }, "### Fixed\n\n- A later fix.\n");
 		expect((yield* cli("check", "main")).status).toBe(0);
 		yield* checkpoint("squashed");
 		expect((yield* cli("check", "main")).status).toBe(0);

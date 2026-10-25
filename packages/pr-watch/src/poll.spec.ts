@@ -3,12 +3,20 @@ import { expect } from "vitest";
 import { hasPull, historyIs, queuedPulls, quotaRemaining, watchesFleet, watchesPulls } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
-watch.it("ETag 304 reuses all successful snapshots without events", [], function* (h) {
+watch.it("ETag 304 reuses snapshots without events or spending quota", [quotaRemaining(2501)], function* (h) {
 	yield* h.poll;
+	expect(yield* h.delay()).toBe(h.options.interval);
 	yield* h.poll;
+	expect(yield* h.delay()).toBe(h.options.interval);
 	const last = h.requests.slice(-4);
-	expect(last).toHaveLength(4);
-	expect(last.every((request) => request.status === 304 && request.etag !== undefined)).toBe(true);
+	expect(last.map((request) => request.path)).toEqual([
+		"/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/",
+		"/repos/acme/project/pulls/1",
+		"/repos/acme/project/commits/sha1/check-runs?per_page=100&filter=latest",
+		"/repos/acme/project/commits/sha1/status",
+	]);
+	expect(last.map((request) => request.status)).toEqual([304, 304, 304, 304]);
+	expect(last.every((request) => request.etag !== undefined)).toBe(true);
 	expect(last.every((request) => request.authorization === "Bearer test-token")).toBe(true);
 	expect(h.lines).toEqual([]);
 });
@@ -36,7 +44,8 @@ watch.it("multiple explicit PRs share one queue request per cycle", [watchesPull
 	h.merged(2);
 	yield* h.poll;
 	expect(h.eventNames()).toEqual(["closed", "merged"]);
-	expect(h.requests.filter((request) => request.path.includes("matching-refs"))).toHaveLength(2);
+	const pollingRounds = 2;
+	expect(h.requests.filter((request) => request.path.includes("matching-refs"))).toHaveLength(pollingRounds);
 });
 for (const status of [500, 403, 429]) {
 	watch.it(`HTTP ${status} produces no inferred events`, [], function* (h) {
@@ -46,7 +55,8 @@ for (const status of [500, 403, 429]) {
 		expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 		expect((yield* h.saved()).prs["1"]?.dirty).toBe(false);
 		expect(h.lines).toEqual([]);
-		expect(h.diagnostics).toHaveLength(1);
+		const failedObservations = 1;
+		expect(h.diagnostics).toHaveLength(failedObservations);
 	});
 }
 watch.it("a failed queue request does not imply dequeue", [queuedPulls(1)], function* (h) {
@@ -66,25 +76,12 @@ watch.it("malformed responses and unknown mergeability retain the old state", []
 	h.pullIs(1, { mergeable: null, "mergeable_state": "unknown" });
 	yield* Effect.result(h.poll);
 	expect(h.lines).toEqual([]);
-	expect(h.diagnostics).toHaveLength(2);
+	const failedObservations = 2;
+	expect(h.diagnostics).toHaveLength(failedObservations);
 });
 watch.it("invalid state and a different repository fail without overwriting it", [historyIs("broken")], function* (h) {
 	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 	yield* h.stateTextIs(JSON.stringify({ prs: {}, repository: "other/project", version: 1 }));
 	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 	expect(h.requests).toEqual([]);
-});
-watch.it("quota headers slow down polling and honor retry-after without further requests", [quotaRemaining(5000)], function* (h) {
-	yield* h.poll;
-	expect(yield* h.delay()).toBe(60_000);
-	yield* h.quotaRemaining(400);
-	yield* h.poll;
-	expect(yield* h.delay()).toBeGreaterThanOrEqual(600_000);
-	h.throttled(900);
-	yield* Effect.result(h.poll);
-	expect(yield* h.delay()).toBeGreaterThan(890_000);
-	const count = h.requests.length;
-	yield* Effect.result(h.poll);
-	expect(h.requests).toHaveLength(count);
-	expect(h.lines).toEqual([]);
 });

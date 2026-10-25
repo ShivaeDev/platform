@@ -2,6 +2,7 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { Clock, Effect } from "effect";
 import type { Options } from "#model.ts";
 export interface Reply {
 	readonly body: unknown;
@@ -38,6 +39,7 @@ export async function startServer() {
 	const routes = new Map<string, Reply>();
 	const queueEntries = new Map<number, { autoMergeRequest: { enabledAt: string } | null; mergeQueueEntry: { id: string } | null; state: string }>();
 	const requests: {
+		at: number;
 		path: string;
 		method: string | undefined;
 		body: unknown;
@@ -64,8 +66,10 @@ export async function startServer() {
 		const etag = `"${JSON.stringify([reply.body, reply.headers?.link])
 			.replaceAll('"', "")
 			.replaceAll(/[^\x20-\x7e]/gu, "")}"`;
-		const status = reply.status ?? (request.headers["if-none-match"] === etag ? 304 : 200);
+		const unchanged = reply.status === undefined && request.headers["if-none-match"] === etag;
+		const status = reply.status ?? (unchanged ? 304 : 200);
 		requests.push({
+			at: Effect.runSync(Clock.currentTimeMillis),
 			authorization: request.headers.authorization,
 			body,
 			etag: request.headers["if-none-match"],
@@ -74,7 +78,7 @@ export async function startServer() {
 			status,
 		});
 		response.writeHead(status, { "content-type": "application/json", etag, ...reply.headers });
-		response.end(status === 304 ? undefined : JSON.stringify(reply.body));
+		response.end(unchanged ? undefined : JSON.stringify(reply.body));
 	});
 	await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
 	const address = server.address();
@@ -90,7 +94,6 @@ export async function startServer() {
 		numbers: [1],
 		repository: "acme/project",
 		stateFile: join(directory, "state.json"),
-		token: "test-token",
 	};
 	function set(path: string, reply: Reply) {
 		return routes.set(`/repos/acme/project${path}`, reply);

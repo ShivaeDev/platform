@@ -36,7 +36,7 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 					);
 				});
 			}),
-		help: () => program(["--help"], "", engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
+		help: () => program(["--help"], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
 		interrupt: () =>
 			Effect.gen(function* () {
 				tell("the continuous watcher is interrupted");
@@ -45,7 +45,7 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 				}
 				yield* Fiber.interrupt(running);
 			}),
-		once: () => program([...args(), "1", "--once"], "token", engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
+		once: () => program([...args(), "1", "--once"], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
 		requestsAfterPause: () =>
 			Effect.gen(function* () {
 				yield* Effect.sleep("50 millis");
@@ -55,7 +55,7 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 			Effect.gen(function* () {
 				tell("the continuous fleet watcher starts");
 				running = yield* Effect.forkChild(
-					program([...args(), "--fleet", "--interval", "1"], "token", engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
+					program([...args(), "--fleet", "--interval", "1"], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
 				);
 			}),
 		waitForDiagnostic: () => until("a diagnostic", () => engine.diagnostics.length > 0),

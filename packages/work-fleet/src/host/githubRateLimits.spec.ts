@@ -131,3 +131,17 @@ githubHost.it(
 		expect(yield* (yield* story.api()).client.pace(interval)).toBe(interval);
 	},
 );
+
+githubHost.it("a paged read stops before its next request would spend the reserve", [], function* (story) {
+	const reset = 600;
+	const reserve = 1000;
+	const github = yield* story.api({ remaining: reserve, reset });
+	const endpoint = `${PR}/files?per_page=100`;
+	const next = `${endpoint}&page=2`;
+	github.reply(endpoint, [{ filename: "one.ts" }], { headers: { Link: `</${next}>; rel="next"` } });
+	github.reply(next, [{ filename: "two.ts" }]);
+	const error = yield* github.client.pages(endpoint).pipe(Effect.flip);
+	expect(failureContext(error).retryAt).toBe(reset * 1000);
+	expect(github.requests.map(({ endpoint: path }) => path)).toEqual([endpoint]);
+	expect(yield* github.client.observations()).toMatchObject([{ limitedBy: "reserve", remaining: reserve - 1 }]);
+});

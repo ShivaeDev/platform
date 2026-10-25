@@ -2,6 +2,7 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsol
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deploymentProcesses } from "#test-support/deploymentProcesses.ts";
 import { postgres } from "#test-support/postgres.ts";
+import { holdJob } from "./holdJob.ts";
 import { notesHttp } from "./http.ts";
 
 export const notesDeployment = storyKit({
@@ -11,5 +12,5 @@ export const notesDeployment = storyKit({
 	layer: postgres,
 	name: "notes deployment",
 	stages: [],
-	verbs: (_engine, story) => ({ ...deploymentProcesses(story.tell), notesAt: notesHttp }),
+	verbs: (_engine, story) => ({ ...deploymentProcesses(story.tell), holdJob, notesAt: notesHttp }),
 });

@@ -1,13 +1,13 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpClient } from "effect/http";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { checkRuns } from "./checkRuns.ts";
-import { GitHubConfig } from "./GitHubConfig.ts";
-import { GitHubToken } from "./GitHubToken.ts";
-import { rateLimits } from "./rateLimits.ts";
-import { representations } from "./representations.ts";
-import { requests } from "./requests.ts";
-import { stickyComments } from "./stickyComments.ts";
+import { checkRuns } from "#checkRuns.ts";
+import { GitHubConfig } from "#GitHubConfig.ts";
+import { GitHubToken } from "#GitHubToken.ts";
+import { rateLimits } from "#rateLimits.ts";
+import { representations } from "#representations.ts";
+import { requests } from "#requests.ts";
+import { stickyComments } from "#stickyComments.ts";
 
 export const GitHub = defineService({
 	id: "@shivaedev/effect-github/GitHub",
@@ -21,13 +21,14 @@ export const GitHub = defineService({
 		};
 	}),
 	methods: ({ apiUrl, rates, request }) => {
-		const { get, ...client } = representations(apiUrl, request);
+		const { get, ...client } = representations(apiUrl, request, rates.resource);
 		return {
 			bytes: (path: string, accept: string, limit: number) => Effect.map(request(get(path, accept), limit), (entry) => entry.bytes),
 			...client,
 			...stickyComments(client),
 			...checkRuns(client),
 			observations: () => Effect.sync(() => [...rates.observations.values()]),
+			resource: (path: string) => Effect.sync(() => rates.resource(new URL(path, apiUrl).pathname)),
 			text: (path: string, accept: string, limit: number) =>
 				Effect.map(request(get(path, accept), limit), (entry) => new TextDecoder().decode(entry.bytes)),
 		};
