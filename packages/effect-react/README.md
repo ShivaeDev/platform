@@ -159,7 +159,30 @@ create.dispatch({
 
 `NotesClient` is an application's `AtomRpc.Service` with `ListNotes` and `CreateNote` RPCs. The native mutation's reactivity keys refresh the matching query after success.
 
-An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result. Disable duplicate submissions or give independent work distinct native action atoms. When one caller needs its own success or failure, run the actual RPC Effect through its runtime, as the editor's `save` does; shared atom state cannot identify one invocation's completion.
+An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result.
+
+### Completion inside each command invocation
+
+Pass the native runtime and the original bound command Effect to `useAction` when the screen needs feedback for each invocation:
+
+```tsx
+const rename = useAction(ReportsClient.runtime, api.rename.run, {
+  onSuccess: (saved, input) => {
+    showNotice(`Renamed ${input.id} to ${saved.title}`);
+  },
+  onFailure: (error, input) => {
+    showRejection(input.id, error);
+  },
+});
+```
+
+`ReportsClient`, `api`, `showNotice` and `showRejection` belong to the application. Input, success, typed failure and runtime requirements are inferred from the command. `onSuccess(value, input)` and `onFailure(error, input)` are optional synchronous callbacks. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
+
+The hook calls the supplied Effect once. A bound effect-contract command still owns invalidation, and completion does not wait for invalidated queries to refetch. Undo payloads, expected versions and presentation text stay in the application.
+
+A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use callbacks for per-invocation feedback. Keep the runtime and concurrency policy stable for the same owner.
+
+A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
 
 ### Better Auth actions
 
@@ -460,7 +483,7 @@ const query = Atom.swr(atom, {
 | `pending` | The native result is waiting. |
 | `refreshing` | The result is waiting and successful data is available. |
 
-`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom.
+`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
 
 Import the defining `.ts` module, such as `@shivaedev/effect-react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
 
