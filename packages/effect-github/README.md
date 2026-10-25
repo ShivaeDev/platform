@@ -102,6 +102,39 @@ const receiveWorkflowRun = (
 
 This decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
 
+### Sticky comments and check runs
+
+Use the service's `upsertStickyComment` to keep a report in one pull-request comment. Pass a marker name; the method prefixes the body with `<!-- name -->`, searches comment pages, and edits the first match. It creates a comment when no match exists. An optional `author` login restricts matching to that author's comments, leaving another author's report alone. A forbidden comment write fails with a typed `RemoteHttpError` and creates no comment.
+
+```ts
+const report = Effect.gen(function* () {
+  const github = yield* GitHub;
+  return yield* github.upsertStickyComment({
+    owner: "acme", repo: "widgets", number: 1,
+    marker: "coverage", author: "coverage[bot]",
+    body: "Coverage: 90%",
+  });
+});
+```
+
+`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; completion requires a conclusion. Output contains `title`, `summary` and optional `text`. Request and response Schemas are exported from `checkRuns.ts`.
+
+```ts
+const check = (headSha: string) => Effect.gen(function* () {
+  const github = yield* GitHub;
+  const created = yield* github.createCheckRun("acme", "widgets", {
+    headSha, name: "Coverage", status: "queued",
+  });
+  yield* github.updateCheckRun("acme", "widgets", created.id, {
+    status: "in_progress", output: { title: "Coverage", summary: "Measuring" },
+  });
+  return yield* github.updateCheckRun("acme", "widgets", created.id, {
+    status: "completed", conclusion: "success",
+    output: { title: "Coverage", summary: "90% covered", text: "All targets measured" },
+  });
+});
+```
+
 ### Rate limits and failures
 
 `github.observations()` returns the latest `resource`, `limit`, `remaining`, `used` and UTC `reset` from response headers, including conditional and failed responses. Core and search budgets remain separate. A primary or secondary rate limit fails with `GitHubRateLimited` from `@shivaedev/effect-github/errors.ts`; its `retryAt` is a UTC `DateTime` usable directly by a job scheduler. Requests to a blocked resource fail locally until that instant. Each rate-limited failure records a log and span event with the request path and budget, excluding credentials and query strings.
