@@ -1,12 +1,12 @@
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
-import { installedPackageManager, realSetup } from "#test/traits.ts";
+import { configuredIdentity, installedPackageManager, realSetup } from "#test/traits.ts";
 
 const SUCCESSFUL_EXIT = 0;
 
 application.it(
 	"records and lowers Quality debt through the generated app's package script",
-	[realSetup, installedPackageManager],
+	[realSetup, installedPackageManager, configuredIdentity],
 	function* ({ cli, write, pnpm, git, baseline }) {
 		const generated = yield* cli(["my-app"]);
 		expect(generated.status, generated.stdout + generated.stderr).toBe(SUCCESSFUL_EXIT);
