@@ -37,7 +37,7 @@ export const liveSessionStory = storyKit({
 	verbs: ({ counts, host, recheckedSessions, registries, screen, view }, story) => {
 		screen.tell = story.tell;
 		return {
-			active: () => host.state.active,
+			active: () => host.state.active.length,
 			lookups: () => host.state.lookups,
 			observe: (line: string, check: () => void) => screen.observe(line, check),
 			reads: () => host.state.reads,

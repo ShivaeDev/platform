@@ -1,4 +1,5 @@
 import { Cause, Effect, Exit, Schema, Stream } from "effect";
+import type * as Reactivity from "effect/reactivity/Reactivity";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
@@ -12,7 +13,7 @@ export interface ClientAbortState {
 	controller: AbortController;
 	finalized: boolean;
 	interrupted: boolean;
-	registrations: number;
+	registrations: Parameters<Reactivity.Reactivity["registerUnsafe"]>[0][];
 	response?: Promise<Response>;
 	table: string;
 	written: boolean;

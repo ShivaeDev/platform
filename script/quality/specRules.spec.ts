@@ -84,15 +84,44 @@ ruleKit.it(
 );
 
 ruleKit.it(
+	"a spec cannot hide numeric expectations behind matcher-only local constants",
+	[
+		repositoryHas({
+			content: [
+				"const OK_STATUS = 200;",
+				"expect(response.status).toBe(OK_STATUS);",
+				"const shipped = 2;",
+				"expect(count).toBe(shipped);",
+				'orders.it("ships", [], function* () {',
+				"  const zero = 0;",
+				"  expect(items).toHaveLength(zero);",
+				"  const missing = (-1);",
+				'  expect.soft(total).not["toBe"](missing);',
+				"  expect(total).toBe(missing);",
+				"});",
+				'orders.it("seeds", [], function* ({ seed }) { const shipped = 2; yield* seed(shipped); });',
+			].join("\n"),
+			path: "src/orders.spec.ts",
+		}),
+	],
+	function* ({ checks }) {
+		const findings = yield* checks(namedValues);
+		expect(findings.map((finding) => finding.line)).toEqual([2, 4, 7, 9, 10]);
+		expect(findings[0]?.message).toContain("Assert the observed items");
+	},
+);
+
+ruleKit.it(
 	"a spec asserts observed items or a domain-named value",
 	[
 		repositoryHas(
 			{
 				content:
-					'expect(items).toEqual([placed]); const shipped = 2; expect(count).toBe(shipped); expect(items).toHaveLength(orders.length);\nexpect(items).toHaveLength(0);\nexpect(total).toBe(0);\nexpect(result.status).toBe(1);\nexpect(response.status).toBe(404);\nexpect(run()["code"]).toBe(2);\nexpect(exitCode).toBe(3);\nexpect(total).not.toBe(-0);\nexpect(items).toHaveLength((0));\nexpect.soft((response.status)).not.toBe((+500));\nexpect((yield* signIn()).status).toBe(200);\nexpect(process.exitCode).not.toBe(-1);\nexpect(status).toBe(201);\nexpect(code).toHaveLength(2);\nexpect.soft(run()["exitCode"]).toBe(3);',
+					'import { SHIPPED } from "./product.ts";\nexpect(items).toEqual([placed]); expect(count).toBe(SHIPPED); expect(items).toHaveLength(orders.length);\norders.it("ships", [], function* ({ seed }) { const limit = 3; yield* seed(limit); expect(rows).toHaveLength(limit); });\nconst limit = 3; seed({ limit }); expect(rows).toHaveLength(limit);\nexpect(total).toBe(start + backoff);\nexpect(items).toHaveLength(0);\nexpect(total).toBe(0);\nexpect(result.status).toBe(1);\nexpect(response.status).toBe(404);\nexpect(run()["code"]).toBe(2);\nexpect(exitCode).toBe(3);\nexpect(total).not.toBe(-0);\nexpect(items).toHaveLength((0));\nexpect.soft((response.status)).not.toBe((+500));\nexpect((yield* signIn()).status).toBe(200);\nexpect(process.exitCode).not.toBe(-1);\nexpect(status).toBe(201);\nexpect(code).toHaveLength(2);\nexpect.soft(run()["exitCode"]).toBe(3);',
 				path: "src/orders.spec.ts",
 			},
-			{ content: "expect(sum).toBe(2);", path: "src/value.test.ts" },
+			{ content: "export const SHIPPED = 2;", path: "src/product.ts" },
+			{ content: "const sum = 2; expect(value).toBe(sum);", path: "src/value.test.ts" },
 		),
 	],
 	function* ({ checks }) {

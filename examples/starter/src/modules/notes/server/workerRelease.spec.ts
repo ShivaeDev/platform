@@ -2,8 +2,6 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
-const SUCCESS_EXIT = 0;
-
 notesDeployment.it(
 	"waits for its release, drains the old worker before taking over, and resumes on rollback",
 	[],
@@ -11,7 +9,7 @@ notesDeployment.it(
 		const oldRelease = { "RAILWAY_GIT_COMMIT_SHA": "old" };
 		const newRelease = { "RAILWAY_GIT_COMMIT_SHA": "new" };
 		const migration = yield* startProcess("migrate", 0, oldRelease);
-		expect(yield* migration.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* migration.child.exitCode).toBe(0);
 		const web = yield* startProcess("web");
 		yield* web.ready;
 		const session = yield* signUpAt(web.url, "handoff");
@@ -27,7 +25,7 @@ notesDeployment.it(
 		yield* Effect.sleep("1200 millis");
 		expect(yield* notes["notes.get"]({ id: second.id })).toMatchObject({ wordCount: null });
 		const nextMigration = yield* startProcess("migrate", 0, newRelease);
-		expect(yield* nextMigration.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* nextMigration.child.exitCode).toBe(0);
 		yield* nextWorker.ready;
 		// Hold beyond the heartbeat staleness window to exercise heartbeats during drain.
 		yield* Effect.sleep("6 seconds");
@@ -41,7 +39,7 @@ notesDeployment.it(
 		expect(yield* notes["notes.get"]({ id: first.id })).toMatchObject({ wordCount: 3 });
 		expect(yield* oldWorker.child.isRunning).toBe(true);
 		const rollback = yield* startProcess("migrate", 0, oldRelease);
-		expect(yield* rollback.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* rollback.child.exitCode).toBe(0);
 		yield* nextWorker.paused;
 		yield* oldWorker.resumed;
 		const third = yield* notes["notes.create"]({ title: "Rollback resumes jobs" });

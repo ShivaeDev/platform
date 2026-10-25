@@ -5,7 +5,7 @@ import { Note } from "./App.tsx";
 import { connect } from "./connect.ts";
 
 export function shell(url: string, view: Rendered) {
-	const connections: Array<{ readonly api: ReturnType<typeof connect>; readonly registry: AtomRegistry.AtomRegistry }> = [];
+	const connections: Array<{ readonly api: ReturnType<typeof connect>; readonly id: string; readonly registry: AtomRegistry.AtomRegistry }> = [];
 	return {
 		connections,
 		show: (session: { readonly id: string; readonly token: string } | undefined) =>
@@ -13,7 +13,7 @@ export function shell(url: string, view: Rendered) {
 				<SessionBoundary
 					connect={(current, registry) => {
 						const api = connect(url, registry, current.token);
-						connections.push({ api, registry });
+						connections.push({ api, id: current.id, registry });
 						return api;
 					}}
 					identify={(current) => current.id}

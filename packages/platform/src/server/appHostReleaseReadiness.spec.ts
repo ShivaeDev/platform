@@ -3,10 +3,8 @@ import { Migrator } from "effect/sql";
 import { expect } from "vitest";
 import { migrationHost } from "#test/app-host/migrationStory.ts";
 
-const SUCCESSFUL_EXIT = 0;
-
 migrationHost.it("web checks serve requests without requiring the configured release marker", [], function* ({ start, migrate, lifecycle }) {
-	expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+	expect(yield* migrate()).toBe(0);
 	const host = yield* start({ mode: "check", release: "unrecorded" });
 	expect(yield* host.next).toEqual({ _tag: "Ready" });
 	expect(yield* host.ping).toBe("pong");
@@ -15,7 +13,7 @@ migrationHost.it("web checks serve requests without requiring the configured rel
 });
 
 migrationHost.it("bounds startup waiting for a release marker by the migration polling budget", [], function* ({ start, migrate, lifecycle }) {
-	expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+	expect(yield* migrate()).toBe(0);
 	const host = yield* start({ release: "next", waitTimeout: "25 millis" });
 	for (const millis of [10, 10, 10]) {
 		expect(yield* host.next).toEqual({ _tag: "Sleeping", millis });

@@ -2,15 +2,13 @@ import { Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
-const SUCCESS_EXIT = 0;
-
 notesDeployment.it(
 	"SIGTERM lets an active CountWords job finish before the worker exits cleanly",
 	[],
 	function* ({ startProcess, signUpAt, notesAt, holdJob }) {
 		const release = { "RAILWAY_GIT_COMMIT_SHA": "shutdown" };
 		const migration = yield* startProcess("migrate", 0, release);
-		expect(yield* migration.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* migration.child.exitCode).toBe(0);
 		const web = yield* startProcess("web");
 		yield* web.ready;
 		const session = yield* signUpAt(web.url, "shutdown");
@@ -25,7 +23,7 @@ notesDeployment.it(
 		expect(yield* worker.child.isRunning).toBe(true);
 		yield* held.release;
 		yield* Fiber.join(stopping);
-		expect(yield* worker.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* worker.child.exitCode).toBe(0);
 		expect(yield* notes["notes.get"]({ id: note.id })).toMatchObject({ wordCount: 3 });
 	},
 	25_000,

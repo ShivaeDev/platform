@@ -2,8 +2,6 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 
-const SUCCESS_EXIT = 0;
-
 notesDeployment.it(
 	"a killed old worker stops blocking the owning release after its heartbeat expires",
 	[],
@@ -11,7 +9,7 @@ notesDeployment.it(
 		const oldRelease = { "RAILWAY_GIT_COMMIT_SHA": "crashed" };
 		const newRelease = { "RAILWAY_GIT_COMMIT_SHA": "replacement" };
 		const migration = yield* startProcess("migrate", 0, oldRelease);
-		expect(yield* migration.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* migration.child.exitCode).toBe(0);
 		const web = yield* startProcess("web");
 		yield* web.ready;
 		const session = yield* signUpAt(web.url, "crash");
@@ -22,7 +20,7 @@ notesDeployment.it(
 		yield* oldWorker.ready;
 		yield* held.blocked;
 		const nextMigration = yield* startProcess("migrate", 0, newRelease);
-		expect(yield* nextMigration.child.exitCode).toBe(SUCCESS_EXIT);
+		expect(yield* nextMigration.child.exitCode).toBe(0);
 		const nextWorker = yield* startProcess("worker", 0, newRelease);
 		yield* nextWorker.ready;
 		const second = yield* notes["notes.create"]({ title: "Replacement handles queued jobs" });

@@ -9,12 +9,13 @@ appGithub.it("installation tokens authenticate reads, are reused, and refresh fi
 	expect(yield* readPull()).toEqual({ number: 1, title: "App read" });
 	yield* TestClock.adjust("54 minutes");
 	yield* readPull();
-	const initialExchange = 1;
-	expect(exchanges()).toHaveLength(initialExchange);
+	expect(exchanges()).toMatchObject([{ method: "POST", path: "/app/installations/7/access_tokens" }]);
 	yield* TestClock.adjust("1 minute");
 	yield* readPull();
-	const exchangesAfterRefresh = 2;
-	expect(exchanges()).toHaveLength(exchangesAfterRefresh);
+	expect(exchanges()).toMatchObject([
+		{ method: "POST", path: "/app/installations/7/access_tokens" },
+		{ method: "POST", path: "/app/installations/7/access_tokens" },
+	]);
 });
 
 appGithub.it("concurrent reads at the refresh point share one in-flight token exchange", [], function* ({ readPull, exchanges, holdExchange }) {
@@ -27,11 +28,16 @@ appGithub.it("concurrent reads at the refresh point share one in-flight token ex
 		{ concurrency: "unbounded" },
 	).pipe(Effect.forkChild);
 	yield* hold.waiting;
-	const exchangesAfterRefresh = 2;
-	expect(exchanges()).toHaveLength(exchangesAfterRefresh);
+	expect(exchanges()).toMatchObject([
+		{ method: "POST", path: "/app/installations/7/access_tokens" },
+		{ method: "POST", path: "/app/installations/7/access_tokens" },
+	]);
 	yield* hold.release;
 	expect(yield* Fiber.join(readers)).toEqual(Array.from({ length: concurrentReaders }, () => ({ number: 1, title: "App read" })));
-	expect(exchanges()).toHaveLength(exchangesAfterRefresh);
+	expect(exchanges()).toMatchObject([
+		{ method: "POST", path: "/app/installations/7/access_tokens" },
+		{ method: "POST", path: "/app/installations/7/access_tokens" },
+	]);
 });
 
 appGithub.it("repository installation lookup and token exchange carry verifiable RS256 App JWTs", [], function* ({ readRepository, requests, jwts }) {
@@ -42,8 +48,7 @@ appGithub.it("repository installation lookup and token exchange carry verifiable
 		{ method: "POST", path: "/app/installations/7/access_tokens" },
 		{ method: "GET", path: "/repos/acme/widgets/pulls/1" },
 	]);
-	const appAuthenticatedRequests = 2;
-	expect(jwts()).toHaveLength(appAuthenticatedRequests);
+	expect(jwts()).toMatchObject([{ claims: { iss: APP_ID } }, { claims: { iss: APP_ID } }]);
 	for (const jwt of jwts()) {
 		expect(jwt.valid).toBe(true);
 		expect(jwt.header).toEqual({ alg: "RS256", typ: "JWT" });

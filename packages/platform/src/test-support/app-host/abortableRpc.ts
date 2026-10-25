@@ -19,7 +19,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 			controller: new AbortController(),
 			finalized: false,
 			interrupted: false,
-			registrations: 0,
+			registrations: [],
 			table,
 			written: false,
 		};
@@ -42,14 +42,14 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 			yield* Effect.addFinalizer(() => Effect.sync(stopObserving));
 			Object.assign(reactivity, {
 				registerUnsafe: (keys: Parameters<typeof register>[0], callback: () => void) => {
-					probe.registrations += 1;
+					probe.registrations.push(keys);
 					const stop = register(keys, () => {
 						probe.callbacks += 1;
 						callback();
 					});
 					return () => {
 						stop();
-						probe.registrations -= 1;
+						probe.registrations.splice(probe.registrations.indexOf(keys), 1);
 					};
 				},
 			});

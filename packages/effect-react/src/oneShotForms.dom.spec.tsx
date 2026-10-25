@@ -2,15 +2,13 @@ import { expect } from "vitest";
 import { InvoiceLine } from "#test/invoice-line-editor/backend.ts";
 import { invoices, oneShotLine } from "#test/invoiceStories.ts";
 
-const NO_QUERIES = 0;
-
 invoices.it("One-shot edit submits its opening version", [oneShotLine()], function* ({ invoice, type, click, observe }) {
 	const { server, view } = invoice();
 	expect(view.value("name")).toBe("Stapler");
 	yield* type("name", "  blue stapler ");
 	yield* click("Save");
 	yield* observe("the app receives the normalized saved row", () => expect(view.text()).toContain("Completed 7: Blue stapler / 150 (version 4)"));
-	expect(server.control.gets).toBe(NO_QUERIES);
+	expect(server.control.gets).toBe(0);
 	expect(server.stored(7)).toEqual(new InvoiceLine({ id: 7, name: "Blue stapler", quantity: 150, version: 4 }));
 });
 
@@ -41,6 +39,6 @@ invoices.it(
 		expect(view.status()).toBe("Unsaved");
 		expect(view.text()).not.toContain("Completed");
 		expect(server.stored(7)).toEqual(new InvoiceLine({ id: 7, name: "Their stapler", quantity: 200, version: 4 }));
-		expect(server.control.gets).toBe(NO_QUERIES);
+		expect(server.control.gets).toBe(0);
 	},
 );

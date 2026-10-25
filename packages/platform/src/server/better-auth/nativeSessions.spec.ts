@@ -3,7 +3,6 @@ import { cookieOnly, nativeSessions, signedIn } from "#test/native-sessions/stor
 
 const alice = signedIn("alice");
 const both = signedIn("alice", "bob");
-const OK = 200;
 const unauthorized = { _tag: "Failure", failure: { _tag: "Unauthorized", message: "Authentication required" } };
 
 nativeSessions.it(
@@ -34,7 +33,8 @@ nativeSessions.it(
 		const headers = { ...bearer("alice"), cookie: account("bob").cookie };
 		expect(yield* getSession(headers)).toMatchObject({ body: { user: account("bob").user } });
 		expect(yield* profile("bob", headers)).toMatchObject({ _tag: "Success", success: { id: account("bob").user.id } });
-		expect(yield* signout("bob", headers)).toBe(OK);
+		const status = yield* signout("bob", headers);
+		expect(status).toBe(200);
 		expect(yield* profile("bob", headers)).toMatchObject(unauthorized);
 		expect(yield* profile("alice")).toMatchObject({ _tag: "Success" });
 	},
@@ -85,7 +85,8 @@ nativeSessions.it("expired bearer sessions fail typed", [alice], function* ({ ex
 nativeSessions.it("sign-out revokes the bearer and ends its open NDJSON change subscription", [alice], function* ({ subscribe, signout, profile }) {
 	const subscription = yield* subscribe("alice");
 	yield* subscription.next;
-	expect(yield* signout("alice")).toBe(OK);
+	const status = yield* signout("alice");
+	expect(status).toBe(200);
 	expect(yield* subscription.ended).toMatchObject(unauthorized);
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 });
