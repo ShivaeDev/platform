@@ -231,6 +231,30 @@ The dependency rule is deliberately asymmetric:
 
 Client invalidation follows RPC success. Platform database hosts also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`effect-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/effect-sql); commit-bound changes belong to [`effect-changes`](https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes).
 
+### Session-owned keys
+
+Self-only features can declare `keyScope: "session"` without adding an owner id to query or command payloads:
+
+```ts
+const Preferences = contract("preferences", {
+  keyScope: "session",
+  queries: [query("self", { reads: () => [preferences.item(0)], success: Schema.String })],
+  commands: [command("save", {
+    payload: { title: Schema.String },
+    invalidates: () => [preferences.item(0)],
+  })],
+});
+const api = bind(Preferences, Client, { registry });
+const self = api.self.query(undefined);
+const saved = api.save.run({ title: "My preferences" });
+```
+
+The binding requires the session's owning registry. It scopes read registration, successful-command invalidation, live hints and reconciliation to that owner. A rejected command declares no invalidation. Query atoms and live connections belong in that registry; command and one-off query effects execute through it. Ordinary contracts keep unscoped keys and the two-argument `bind` call.
+
+`List` and `Item` are still the key shapes. `readKeys(keys, { scope })` and `invalidationKeys(keys, { scope })` resolve the extra dimension while preserving item, list and wildcard semantics. An item invalidation refreshes that scope's item and list; a wildcard reaches only that scope's items. The client's opaque scope comes from its registry and is never sent as an owner id.
+
+Server adapters read the RPC's `KeyScope` annotation. For `"session"`, they must obtain scope from request-local authenticated identity, then pass the same `{ scope }` to dependency registration, invalidation and `makeLiveServer.stream(keys, context)`. A shared server Layer must not capture identity, accept a client-selected scope or fall back to unscoped keys. This package supplies metadata and contextual keys; it has no server or authentication dependency.
+
 ### 4. Live invalidation and resume
 
 Platform database hosts serve the contract's reserved `<contract>.$changes` stream automatically. With NDJSON transport, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
@@ -240,14 +264,13 @@ For a direct subscription, configure the server and `NotesClient` with `RpcSeria
 ```ts
 import { Effect, Stream } from "effect";
 import { NotesClient } from "./client.ts";
-import { notes } from "./notes.ts";
 
 const changes = Stream.unwrap(NotesClient.use((client) =>
-  Effect.succeed(client("notes.$changes", { keys: [notes.item(1)] })),
+  Effect.succeed(client("notes.$changes", { queries: [{ query: "get", payload: { id: 1 } }] })),
 ));
 ```
 
-The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption.
+The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Subscription handlers resolve keys with `queryKeys(Notes.declaration.queries, queries)` from `serverMetadata.ts`, or the stream RPC's `ChangesReads` annotation, before calling `makeLiveServer.stream`. Automatic bindings track mounted queries per registry and drop their references on unmount or disposal.
 
 For a custom transport or explicit pause/status controls, the native live APIs remain available:
 
@@ -372,14 +395,14 @@ Import the module that defines the name; the package has no root entry.
 | Module | Functions and schemas |
 | --- | --- |
 | `operation.ts` | `query(name, { payload?, success?, rejections?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
-| `contract.ts` | `contract(name, { queries?, commands?, streams? })`, returning a native RPC group with `declaration: { name, queries, commands, streams }`. |
+| `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
-| `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys)` and `invalidationKeys(keys)`. |
-| `bind.ts` | `bind(contract, atomRpcService)`, exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
-| `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
+| `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys, context?)` and `invalidationKeys(keys, context?)`. |
+| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
+| `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
 | `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local fallible key policy used by server hint streams; `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>` controlling each stream's memo duration. |
-| `serverMetadata.ts` | `QueryReads`, `CommandInvalidation` and `changesRpc(name)` for server adapters. |
+| `serverMetadata.ts` | `KeyScope`, `QueryReads`, `CommandInvalidation`, `ChangesReads`, `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.

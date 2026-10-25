@@ -3,6 +3,7 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
+import { queryKeys } from "@shivaedev/effect-contract/serverMetadata.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { Notes, notes } from "./notes.ts";
 
@@ -27,7 +28,7 @@ export async function openHost() {
 		Effect.gen(function* () {
 			const live = yield* makeLiveServer;
 			return Notes.of({
-				"liveSession.$changes": ({ keys }) => Stream.unwrap(Effect.as(connected, live.stream(keys))),
+				"liveSession.$changes": ({ queries }) => Stream.unwrap(Effect.as(connected, live.stream(queryKeys(Notes.declaration.queries, queries)))),
 				"liveSession.get": () =>
 					Effect.sync(() => {
 						state.reads += 1;

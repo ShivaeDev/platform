@@ -1,10 +1,12 @@
 import { type Duration, Effect, Stream, SubscriptionRef } from "effect";
-import type * as Atom from "effect/reactivity/Atom";
+import * as Atom from "effect/reactivity/Atom";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
-import { type Key, readKeys } from "./keys.ts";
-import { type LiveStatus, live } from "./live.ts";
-import { type ResumeWindow, resumeSignal } from "./resume.ts";
-import type { changesRpc } from "./serverMetadata.ts";
+import type { BindingOwner } from "#internal/bindingOwner.ts";
+import type { Key } from "#keys.ts";
+import { type LiveStatus, live } from "#live.ts";
+import { type ResumeWindow, resumeSignal } from "#resume.ts";
+import type { changesRpc, QueryReference } from "#serverMetadata.ts";
 
 declare const window: ResumeWindow | undefined;
 
@@ -19,30 +21,46 @@ export interface LiveBound {
 
 export type ChangesClient = AtomRpc.AtomRpcClient<unknown, string, ReturnType<typeof changesRpc>>;
 
-export function automaticLive(service: ChangesClient, name: string) {
-	const keys = Effect.runSync(SubscriptionRef.make<readonly Key[]>([]));
-	const known = new Set<string>();
-	function track(reads: readonly Key[]) {
-		const fresh = reads.filter((key) => {
-			const id = readKeys([key])[0] ?? "";
-			if (known.has(id)) {
-				return false;
-			}
-			known.add(id);
-			return true;
-		});
-		if (fresh.length > 0) {
-			Effect.runSync(SubscriptionRef.update(keys, (current) => [...current, ...fresh]));
+interface Tracked {
+	readonly keys: readonly Key[];
+	readonly reference: QueryReference;
+}
+
+export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner) {
+	const tracked = Atom.keepAlive(Atom.make(() => Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map()))));
+	function track(registry: AtomRegistry.AtomRegistry, reference: QueryReference, keys: readonly Key[]) {
+		const token = {};
+		const state = registry.get(tracked);
+		Effect.runSync(SubscriptionRef.update(state, (current) => new Map([...current, [token, { keys, reference }]])));
+		return () =>
+			Effect.runSync(
+				SubscriptionRef.update(state, (current) => {
+					const next = new Map(current);
+					next.delete(token);
+					return next;
+				}),
+			);
+	}
+	function subscribe(current: ReadonlyMap<object, Tracked>) {
+		if (current.size === 0) {
+			return Stream.never;
 		}
+		const queries = [...current.values()].map(({ reference }) => reference);
+		return Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries }))));
 	}
 	const subscription = live(service.runtime, {
+		keyContext: owner?.context,
 		resume: resumeSignal(typeof window === "undefined" ? {} : { window }),
-		resyncKeys: () => Effect.runSync(SubscriptionRef.get(keys)),
-		stream: SubscriptionRef.changes(keys).pipe(
-			Stream.switchMap((current) =>
-				current.length === 0 ? Stream.never : Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { keys: current })))),
-			),
+		resyncKeys: (registry) => [...Effect.runSync(SubscriptionRef.get(registry.get(tracked))).values()].flatMap(({ keys }) => keys),
+		stream: Stream.unwrap(
+			Effect.map(AtomRegistry.AtomRegistry, (registry) => SubscriptionRef.changes(registry.get(tracked)).pipe(Stream.switchMap(subscribe))),
 		),
 	});
-	return { subscription, track };
+	const connection = Atom.make((get) => {
+		if (owner !== undefined && owner.registry !== get.registry) {
+			throw new Error("A session-scoped live connection belongs to its binding registry");
+		}
+		return get(subscription.connection);
+	}).pipe(Atom.setIdleTTL(0));
+	return { subscription: { ...subscription, connection }, track };
 }

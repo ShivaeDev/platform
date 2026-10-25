@@ -3,6 +3,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "#keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
+import { queryKeys } from "#serverMetadata.ts";
 import { Note, notes } from "#test/notes.ts";
 import { notesServer } from "#test/notesServer.ts";
 import { Unavailable } from "./contract.ts";
@@ -40,7 +41,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const active = Effect.runSync(Ref.make(0));
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
-		"notes.$changes": ({ keys }) => hints.stream(keys),
+		"notes.$changes": ({ queries }) => hints.stream(queryKeys(LiveNotes.declaration.queries, queries)),
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
 				const local = yield* server.implementation["notes.get"]({ id });

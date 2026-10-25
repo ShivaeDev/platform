@@ -33,3 +33,28 @@ describe("reactivity keys", () => {
 		},
 	);
 });
+
+notesStory.it("item, list and wildcard invalidations preserve scope boundaries", [], function* ({ watchKeys, invalidate }) {
+	const refreshed: string[] = [];
+	const alice = { scope: "alice" };
+	const bob = { scope: "bob" };
+	const releases = [
+		yield* watchKeys("alice one", readKeys([orders.item(1)], alice), refreshed),
+		yield* watchKeys("alice two", readKeys([orders.item(2)], alice), refreshed),
+		yield* watchKeys("alice list", readKeys([orders.list], alice), refreshed),
+		yield* watchKeys("bob one", readKeys([orders.item(1)], bob), refreshed),
+		yield* watchKeys("unscoped one", readKeys([orders.item(1)]), refreshed),
+	];
+	yield* invalidate(invalidationKeys([orders.item(1)], alice));
+	expect(refreshed.sort((left, right) => left.localeCompare(right))).toEqual(["alice list", "alice one"]);
+	refreshed.length = 0;
+	yield* invalidate(invalidationKeys([orders.list], alice));
+	expect(refreshed).toEqual(["alice list"]);
+	refreshed.length = 0;
+	const wildcard = readKeys([orders.item(1)], alice).slice(1);
+	yield* invalidate(wildcard);
+	expect(refreshed.sort((left, right) => left.localeCompare(right))).toEqual(["alice one", "alice two"]);
+	for (const release of releases) {
+		release();
+	}
+});

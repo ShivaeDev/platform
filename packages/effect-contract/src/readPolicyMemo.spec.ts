@@ -8,8 +8,8 @@ import { viewerStory } from "#test/viewerStory.ts";
 viewerStory.it("a burst reuses one successful check per stream and key while queries still authorize afresh", [], function* (test) {
 	const alice: LiveHint[] = [];
 	const bob: LiveHint[] = [];
-	yield* test.watch("alice", [notes.item(1)], alice).pipe(Effect.forkScoped);
-	yield* test.watch("bob", [notes.item(1)], bob).pipe(Effect.forkScoped);
+	yield* test.watch("alice", [{ payload: { id: 1 }, query: "get" }], alice).pipe(Effect.forkScoped);
+	yield* test.watch("bob", [{ payload: { id: 1 }, query: "get" }], bob).pipe(Effect.forkScoped);
 	yield* eventually(() => {
 		expect(alice).toEqual([{ _tag: "Resync" }]);
 		expect(bob).toEqual([{ _tag: "Resync" }]);
@@ -30,7 +30,7 @@ viewerStory.it("a burst reuses one successful check per stream and key while que
 viewerStory.it("an application can disable hint memoisation", [], function* (test) {
 	yield* test.memoWindow(0);
 	const hints: LiveHint[] = [];
-	yield* test.watch("alice", [notes.item(1)], hints).pipe(Effect.forkScoped);
+	yield* test.watch("alice", [{ payload: { id: 1 }, query: "get" }], hints).pipe(Effect.forkScoped);
 	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
 	for (let index = 1; index <= 3; index += 1) {
 		yield* test.rename("alice", 1, `Change ${index}`);
@@ -42,7 +42,7 @@ viewerStory.it("an application can disable hint memoisation", [], function* (tes
 viewerStory.it("a false hint check does not schedule recovery checks", [], function* (test) {
 	yield* test.memoWindow(0);
 	const hints: LiveHint[] = [];
-	yield* test.watch("bob", [notes.item(1)], hints).pipe(Effect.forkScoped);
+	yield* test.watch("bob", [{ payload: { id: 1 }, query: "get" }], hints).pipe(Effect.forkScoped);
 	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
 	yield* test.rename("alice", 1, "Private change");
 	yield* eventually(() => expect(test.checks()).toEqual([{ key: notes.item(1), viewer: "bob" }]));
@@ -54,7 +54,7 @@ viewerStory.it("a false hint check does not schedule recovery checks", [], funct
 viewerStory.it("a shorter memo window expires and rechecks the policy", [], function* (test) {
 	yield* test.memoWindow("20 millis");
 	const hints: LiveHint[] = [];
-	yield* test.watch("alice", [notes.item(1)], hints).pipe(Effect.forkScoped);
+	yield* test.watch("alice", [{ payload: { id: 1 }, query: "get" }], hints).pipe(Effect.forkScoped);
 	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
 	yield* test.rename("alice", 1, "First change");
 	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [notes.item(1)] }]));
