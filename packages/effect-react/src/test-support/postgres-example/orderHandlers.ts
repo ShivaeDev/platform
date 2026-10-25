@@ -36,7 +36,8 @@ export function orderHandlers(read: () => Promise<readonly Pick<Order, "name" | 
 					Stream.unwrap(
 						Effect.gen(function* () {
 							yield* service.get((yield* Identity).id, id);
-							return live.stream([orders.item(id)]).pipe(Stream.tap(() => observe()));
+							yield* observe();
+							return live.stream([orders.item(id)]).pipe(Stream.tap((hint) => (hint._tag === "Changed" ? observe() : Effect.void)));
 						}),
 					),
 			});

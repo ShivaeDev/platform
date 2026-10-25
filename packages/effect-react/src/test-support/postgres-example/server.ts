@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Layer, ManagedRuntime, Option, Redacted } from "effect";
+import { Effect, Layer, Logger, ManagedRuntime, Option, Redacted } from "effect";
 import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
@@ -15,6 +15,7 @@ export interface ServerOptions {
 	readonly channel?: string;
 	readonly keepTables?: boolean;
 	readonly ledger?: string;
+	readonly logger?: Logger.Logger<unknown, void>;
 	readonly table?: string;
 }
 
@@ -72,7 +73,7 @@ export async function startServer(databaseUrl: string, options: ServerOptions = 
 			migrations: { loader: orderMigrations(table), table: ledger },
 			services: OrderService.layer.pipe(Layer.provide(repositoryLayer(table))),
 			sessions: policy,
-		}),
+		}).pipe(Layer.provideMerge(options.logger === undefined ? Layer.empty : Logger.layer([options.logger]))),
 	);
 	async function close() {
 		try {

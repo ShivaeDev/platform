@@ -35,3 +35,55 @@ processes.it(
 	},
 	30_000,
 );
+
+processes.it(
+	"both servers and the worker recover together after every database backend is terminated",
+	[twoServersAndWorker()],
+	function* ({ hints, processLogs, terminateBackends, waitForRecovery, waitForResyncs, getFromServer, saveFromWorker, saveFromServer }) {
+		for (const name of ["first", "second"]) {
+			expect(
+				processLogs(name).filter(
+					(log) =>
+						Array.isArray(log.message)
+						&& log.message.some((message) => typeof message === "string" && message.startsWith("PostgreSQL change listener")),
+				),
+			).toEqual([]);
+		}
+		const terminated = yield* terminateBackends();
+		expect(terminated.length).toBeGreaterThanOrEqual(5);
+		expect(terminated).toEqual(terminated.map(() => ({ terminated: true })));
+		expect(yield* getFromServer("a")).toMatchObject({ id: 1 });
+		expect(yield* getFromServer("b")).toMatchObject({ id: 1 });
+		yield* waitForRecovery();
+		yield* waitForResyncs();
+		for (const name of ["a", "b", "another"]) {
+			expect(hints(name).slice(1)).toContainEqual({ _tag: "Resync" });
+		}
+		const handled = yield* saveFromWorker();
+		expect(handled.a.name).toBe("worker");
+		expect(handled.b.name).toBe("worker");
+		const saved = yield* saveFromServer("a", "after failover");
+		expect(saved.result).toMatchObject({ _tag: "Success" });
+		expect(saved.b.name).toBe("after failover");
+		for (const [name, streamCount] of [
+			["first", 2],
+			["second", 1],
+		] as const) {
+			const logs = processLogs(name).filter(
+				(log) =>
+					Array.isArray(log.message)
+					&& log.message.some((message) => typeof message === "string" && message.startsWith("PostgreSQL change listener")),
+			);
+			expect(logs).toEqual([
+				{ _tag: "Log", annotations: {}, level: "Warn", message: ["PostgreSQL change listener lost; resynchronizing live streams"] },
+				{
+					_tag: "Log",
+					annotations: { downtimeMs: expect.any(Number), streamCount },
+					level: "Info",
+					message: ["PostgreSQL change listener recovered; resynchronized live streams"],
+				},
+			]);
+		}
+	},
+	30_000,
+);
