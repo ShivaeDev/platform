@@ -34,14 +34,14 @@ export function TodayAnswer({
 	const { heading, reason } = inlineReason(inline);
 	return (
 		<fieldset aria-label={`${inline.mode === "options" ? "Options" : "Answer"} for ${title}`} className="m-0 min-w-0 space-y-3 border-0 px-2 pb-1">
-			{Boolean(reason) && <p className="m-0 font-medium text-sm">{reason}</p>}
-			<TodayContext inline={inline} />
+			{!heading && <p className="m-0 line-clamp-2 font-medium text-sm">{reason}</p>}
 			{inline.mode === "options" ? (
 				<TodayChoices choose={answer.choose} document={data} focusRef={focusRef} heading={heading} locked={answer.locked} prompt={inline.prompt} />
 			) : (
 				<TodayText answer={answer} focusRef={focusRef} heading={heading} />
 			)}
 			<TodayHiddenDraft href={href} text={answer.hidden} />
+			<TodayContext inline={inline} />
 			<details className="text-muted-foreground text-xs">
 				<summary className="cursor-pointer">More options</summary>
 				<div className="mt-2 flex items-center gap-2">
