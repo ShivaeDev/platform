@@ -18,7 +18,7 @@ boardReadStory.it("independent passes and unscoped callers join the same in-flig
 	expect((yield* Fiber.join(first)).workId).toBe("item.0");
 	expect((yield* Fiber.join(readers)).map((work) => work.workId)).toEqual(Array.from({ length: JOINING_READERS }, () => "item.1"));
 	expect(fixture.scannedFolders()).toEqual(["."]);
-	expect(fixture.readFiles()).toEqual(["0.md", "1.md"]);
+	expect(fixture.readFiles().toSorted()).toEqual(["0.md", "1.md"]);
 });
 
 boardReadStory.it("fresh passes wait for the in-flight scan and share its successor", [hasBoardItems(1)], function* ({ board, fixture }) {
