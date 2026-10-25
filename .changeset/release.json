@@ -1,193 +1,95 @@
 {
-	"date": "2026-10-24",
+	"date": "2026-10-25",
 	"plan": {
 		"changesets": [
 			{
-				"name": "effect-aligned-patch.md",
-				"text": "---\n\"@shivaedev/changesets\": patch\n\"@shivaedev/create-app\": patch\n\"@shivaedev/effect-changes\": patch\n\"@shivaedev/effect-changes-prisma\": patch\n\"@shivaedev/effect-contract\": patch\n\"@shivaedev/effect-form\": patch\n\"@shivaedev/effect-pg-boss\": patch\n\"@shivaedev/effect-prisma\": patch\n\"@shivaedev/effect-react\": patch\n\"@shivaedev/effect-service\": patch\n\"@shivaedev/effect-sql\": patch\n\"@shivaedev/effect-test\": patch\n\"@shivaedev/effect-test-sql\": patch\n\"@shivaedev/effect-trpc\": patch\n\"@shivaedev/heavy-lock\": patch\n\"@shivaedev/platform\": patch\n\"@shivaedev/pr-watch\": patch\n\"@shivaedev/quality\": patch\n\"@shivaedev/skills\": patch\n\"@shivaedev/test-story\": patch\n\"@shivaedev/vitest-rerun\": patch\n\"@shivaedev/work-board\": patch\n\"@shivaedev/work-fleet\": patch\n---\n\n### Changed\n\n- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.\n"
+				"name": "auth-mount-failure-logs.md",
+				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Better Auth mount failures log their redacted cause at error level in the request trace before returning the existing 503 response.\n"
 			},
 			{
-				"name": "hosted-application-handlers.md",
-				"text": "---\n\"@shivaedev/effect-contract\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Contracts expose `application`, a native RPC group for building application handlers without naming the reserved `$changes` stream. Middleware stays attached, and Platform hosts complete the full contract with the stream handler.\n- Generated applications build their handlers through the contract's `application` group.\n"
+				"name": "create-app-replay.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps record their generator version and can run `create-app update` in a clean Git repository to merge later starter changes, preserve app edits and deletions, and leave listed conflicts for manual resolution without committing.\n"
 			},
 			{
-				"name": "react-form-configuration.md",
-				"text": "---\n\"@shivaedev/effect-react\": patch\n---\n\n### Fixed\n\n- Call the latest create, save and field-rejection callbacks across React renders while preserving the draft. Replace forms when their schema or runtime identity changes, and document which options are captured for a form lifetime.\n"
+				"name": "local-postgres-server-constant.md",
+				"text": "---\n\"@shivaedev/local-postgres\": minor\n---\n\n### Breaking\n\n- Rename `localServer` to `LOCAL_SERVER`. Change the imported name to `LOCAL_SERVER` in imports from `@shivaedev/local-postgres/server/localPostgres.ts`.\n"
 			},
 			{
-				"name": "released-merged-work.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Released work leaves the waiting queues automatically once its pull request has merged and its Board task is done, superseded, deferred or dropped. Work with an open pull request or an open task keeps its current owner.\n"
+				"name": "pg-boss-schema-component.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/effect-test-sql\": patch\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Added\n\n- Migration options accept schema components beside the numbered loader. Components apply after the ledger commits and report pending work through the same readiness check and host wait loop.\n- `pgBossSchema` registers pg-boss installation and upgrades as a schema component, reporting the schema's installed and required versions.\n\n### Changed\n\n- Generated apps migrate pg-boss through their migration list and start producers and workers with schema migration disabled.\n\n### Fixed\n\n- Migration-step controllers capture schema-component services when constructed, keeping subsequent migration calls free of external service requirements.\n"
 			},
 			{
-				"name": "removable-starter-notes.md",
-				"text": "---\n\"@shivaedev/create-app\": minor\n\"@shivaedev/quality\": minor\n---\n\n### Changed\n\n- New apps get the notes example as one removable module and fresh migrations. Apps already generated are unaffected.\n\n### Added\n\n- Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.\n\n### Fixed\n\n- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.\n"
+				"name": "pg-boss-shared-settings.md",
+				"text": "---\n\"@shivaedev/effect-pg-boss\": patch\n---\n\n### Changed\n\n- Shared client keys reject different pg-boss constructor settings with `PgBossClientOptionsError`, which names the key and differing options before another client is constructed. Equal settings still share one reference-counted client.\n"
 			},
 			{
-				"name": "starter-railway.md",
-				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generate apps with Railway 3.16.0.\n"
+				"name": "starter-shared-foundation.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.\n- Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.\n\n### Changed\n\n- Generated apps reference their packages’ foundation configuration and helpers so dependency updates carry shared fixes into existing apps.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "patch",
-				"directory": "packages/changesets",
-				"from": "0.1.1",
-				"name": "@shivaedev/changesets",
-				"to": "0.1.2"
-			},
-			{
 				"bump": "minor",
 				"directory": "packages/create-app",
-				"from": "0.11.24",
+				"from": "0.12.0",
 				"name": "@shivaedev/create-app",
-				"to": "0.12.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-changes",
-				"from": "0.3.1",
-				"name": "@shivaedev/effect-changes",
-				"to": "0.3.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-changes-prisma",
-				"from": "0.5.2",
-				"name": "@shivaedev/effect-changes-prisma",
-				"to": "0.5.3"
+				"to": "0.13.0"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-contract",
-				"from": "0.10.0",
-				"name": "@shivaedev/effect-contract",
-				"to": "0.11.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-form",
-				"from": "0.6.1",
-				"name": "@shivaedev/effect-form",
-				"to": "0.6.2"
-			},
-			{
-				"bump": "patch",
 				"directory": "packages/effect-pg-boss",
-				"from": "0.15.2",
+				"from": "0.15.3",
 				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.15.3"
+				"to": "0.16.0"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/effect-prisma",
-				"from": "0.10.2",
-				"name": "@shivaedev/effect-prisma",
-				"to": "0.10.3"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-react",
-				"from": "0.12.2",
-				"name": "@shivaedev/effect-react",
-				"to": "0.12.3"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-service",
-				"from": "0.4.0",
-				"name": "@shivaedev/effect-service",
-				"to": "0.4.1"
-			},
-			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/effect-sql",
-				"from": "0.13.0",
+				"from": "0.13.1",
 				"name": "@shivaedev/effect-sql",
-				"to": "0.13.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-test",
-				"from": "0.7.1",
-				"name": "@shivaedev/effect-test",
-				"to": "0.7.2"
+				"to": "0.14.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/effect-test-sql",
-				"from": "0.8.2",
+				"from": "0.8.3",
 				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.3"
+				"to": "0.8.4"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/effect-trpc",
-				"from": "0.8.2",
-				"name": "@shivaedev/effect-trpc",
-				"to": "0.8.3"
+				"bump": "minor",
+				"directory": "packages/local-postgres",
+				"from": "0.6.0",
+				"name": "@shivaedev/local-postgres",
+				"to": "0.7.0"
 			},
 			{
-				"bump": "patch",
-				"directory": "packages/heavy-lock",
-				"from": "0.5.0",
-				"name": "@shivaedev/heavy-lock",
-				"to": "0.5.1"
-			},
-			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/platform",
-				"from": "0.24.1",
+				"from": "0.24.2",
 				"name": "@shivaedev/platform",
-				"to": "0.24.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/pr-watch",
-				"from": "0.1.1",
-				"name": "@shivaedev/pr-watch",
-				"to": "0.1.2"
+				"to": "0.25.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/quality",
-				"from": "0.33.2",
+				"from": "0.34.0",
 				"name": "@shivaedev/quality",
-				"to": "0.34.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/skills",
-				"from": "0.3.0",
-				"name": "@shivaedev/skills",
-				"to": "0.3.1"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/test-story",
-				"from": "0.18.1",
-				"name": "@shivaedev/test-story",
-				"to": "0.18.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/vitest-rerun",
-				"from": "0.1.1",
-				"name": "@shivaedev/vitest-rerun",
-				"to": "0.1.2"
+				"to": "0.35.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.2",
+				"from": "0.30.3",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.3"
+				"to": "0.30.4"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.2",
+				"from": "0.17.3",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.3"
+				"to": "0.17.4"
 			}
 		]
 	}

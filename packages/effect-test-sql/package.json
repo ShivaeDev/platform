@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-test-sql",
-	"version": "0.8.3",
+	"version": "0.8.4",
 	"description": "PostgreSQL rollback and real-commit test isolation for Effect",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-test-sql#readme",
 	"bugs": {

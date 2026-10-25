@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.35.0 - 2026-10-25
+
+### Added
+
+- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.
+- Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.
+
+### Changed
+
+- Generated apps reference their packages’ foundation configuration and helpers so dependency updates carry shared fixes into existing apps.
+
 ## 0.34.0 - 2026-10-24
 
 ### Added

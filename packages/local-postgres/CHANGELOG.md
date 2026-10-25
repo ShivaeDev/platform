@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-10-25
+
+### Breaking
+
+- Rename `localServer` to `LOCAL_SERVER`. Change the imported name to `LOCAL_SERVER` in imports from `@shivaedev/local-postgres/server/localPostgres.ts`.
+
 ## 0.6.0 - 2026-10-19
 
 ### Added
