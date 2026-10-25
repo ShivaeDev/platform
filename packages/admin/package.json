@@ -36,7 +36,6 @@
 		"!src/**/*.test.ts",
 		"!src/**/*.spec.ts",
 		"!src/**/test-support",
-		"CHANGELOG.md",
 		"README.md"
 	],
 	"scripts": {
