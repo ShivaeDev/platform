@@ -84,7 +84,18 @@ function observeSnapshots(handlers: ReturnType<typeof daemonHostOptions>["handle
 			};
 		}),
 	);
-	return observed.pipe(Layer.provideMerge(handlers));
+	const watched = ClientContract.toLayerHandler(
+		"daemon.watch",
+		Effect.gen(function* () {
+			const watch = yield* ClientContract.accessHandler("daemon.watch");
+			return (payload, options) => {
+				const result = watch(payload, options);
+				const stream = Stream.isStream(result) ? result : Stream.unwrap(result.pipe(Effect.map(Stream.fromQueue)));
+				return stream.pipe(Stream.tap((snapshot) => (snapshot.states === undefined ? Effect.void : Effect.sync(onSnapshot))));
+			};
+		}),
+	);
+	return Layer.merge(observed, watched).pipe(Layer.provideMerge(handlers));
 }
 
 export function scheduledDaemonLayer(host: FleetHost, parts: HostParts) {

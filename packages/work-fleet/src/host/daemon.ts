@@ -50,9 +50,24 @@ export function daemonHttpLayer(options: ReturnType<typeof daemonHostOptions>) {
 					};
 				}),
 			);
-			const handlers = follow.pipe(Layer.provideMerge(http.handlers));
+			const watch = ClientContract.toLayerHandler(
+				"daemon.watch",
+				Effect.gen(function* () {
+					const handler = yield* ClientContract.accessHandler("daemon.watch");
+					return (payload, request) => {
+						const result = handler(payload, request);
+						const stream = Stream.isStream(result) ? result : Stream.unwrap(result.pipe(Effect.map(Stream.fromQueue)));
+						return stream.pipe(Stream.interruptWhen(Deferred.await(stopping)));
+					};
+				}),
+			);
+			const handlers = Layer.merge(follow, watch).pipe(Layer.provideMerge(http.handlers));
 			const prepared = yield* Layer.build(handlers);
-			const server = appHost({ ...http, handlers: Layer.succeedContext(prepared), services: Layer.empty });
+			const server = appHost({
+				...http,
+				handlers: Layer.succeedContext(prepared),
+				services: Layer.empty,
+			});
 			return Layer.effectDiscard(
 				Effect.gen(function* () {
 					yield* publishDaemonPort(boardDir);

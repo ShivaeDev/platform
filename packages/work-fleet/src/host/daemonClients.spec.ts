@@ -36,7 +36,7 @@ for (const continuous of [false, true]) {
 		[storedWork("a", "working"), storedWork("b", "working")],
 		function* (daemon) {
 			const port = daemon.port();
-			yield* daemon.follow("watcher", "watch", [], { follow: continuous, interval: 0.1 });
+			yield* daemon.follow("watcher", "watch", continuous ? [] : ["a", "b"], { follow: continuous, interval: 0.1 });
 			yield* daemon.awaitSnapshot();
 			yield* daemon.store("a", { stage: "released", step: "released" });
 			yield* daemon.awaitOutput("watcher", "a released\n");
