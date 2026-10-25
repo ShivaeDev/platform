@@ -3,93 +3,39 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "auth-mount-failure-logs.md",
-				"text": "---\n\"@shivaedev/platform\": patch\n---\n\n### Fixed\n\n- Better Auth mount failures log their redacted cause at error level in the request trace before returning the existing 503 response.\n"
+				"name": "fleet-delivery-execution.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Reconcile executing attempts after delivery decisions and daemon restarts, preserve execution decisions while PR heads move, and confirm terminal execution for CLI release. Human merges at an unreviewed head release ownership without marking the work accepted.\n"
 			},
 			{
-				"name": "create-app-replay.md",
-				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps record their generator version and can run `create-app update` in a clean Git repository to merge later starter changes, preserve app edits and deletions, and leave listed conflicts for manual resolution without committing.\n"
+				"name": "quality-export-paths.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Breaking\n\n- `imports/fences/dsl.ts` moves to `imports/fence.ts`: change the import path in every `quality.fences.config.ts` and other fence importer.\n- `cli/migrate.ts` moves to `cli/migrateBaseline.ts`: change the import path for `migrateBaseline`.\n- `config/file.ts` moves to `config/constants.ts`: change the import path for `CONFIG_FILE`, which now shares the topic module with `DEFAULT_EXTENSIONS`.\n- `imports/components.ts` moves to `imports/cyclicComponents.ts`: change the import path for `cyclicComponents`.\n- `imports/fences/policy.ts` moves to `imports/fences/compilePolicy.ts`: change the import path for `compilePolicy`.\n- `imports/generated.ts` moves to `imports/withoutGenerated.ts`: change the import path for `withoutGenerated`.\n- `imports/glob.ts` moves to `imports/globMatcher.ts`: change the import path for `globMatcher`.\n- `imports/paths.ts` moves to `imports/shortestPath.ts`: change the import path for `shortestPath`.\n- `report/stale.ts` moves to `report/staleSections.ts`: change the import path for `staleSections`.\n- `rules/suppressions/biome/resolve.ts` moves to `rules/suppressions/biome/resolvePackage.ts`: change the import path for `resolvePackage`.\n- `rules/syntax.ts` moves to `rules/parse.ts`: change the import path for `parse`.\n"
 			},
 			{
-				"name": "local-postgres-server-constant.md",
-				"text": "---\n\"@shivaedev/local-postgres\": minor\n---\n\n### Breaking\n\n- Rename `localServer` to `LOCAL_SERVER`. Change the imported name to `LOCAL_SERVER` in imports from `@shivaedev/local-postgres/server/localPostgres.ts`.\n"
-			},
-			{
-				"name": "pg-boss-schema-component.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/effect-test-sql\": patch\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Added\n\n- Migration options accept schema components beside the numbered loader. Components apply after the ledger commits and report pending work through the same readiness check and host wait loop.\n- `pgBossSchema` registers pg-boss installation and upgrades as a schema component, reporting the schema's installed and required versions.\n\n### Changed\n\n- Generated apps migrate pg-boss through their migration list and start producers and workers with schema migration disabled.\n\n### Fixed\n\n- Migration-step controllers capture schema-component services when constructed, keeping subsequent migration calls free of external service requirements.\n"
-			},
-			{
-				"name": "pg-boss-shared-settings.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": patch\n---\n\n### Changed\n\n- Shared client keys reject different pg-boss constructor settings with `PgBossClientOptionsError`, which names the key and differing options before another client is constructed. Equal settings still share one reference-counted client.\n"
-			},
-			{
-				"name": "starter-shared-foundation.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.\n- Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.\n\n### Changed\n\n- Generated apps reference their packages’ foundation configuration and helpers so dependency updates carry shared fixes into existing apps.\n"
+				"name": "release-starter-pins.md",
+				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "minor",
-				"directory": "packages/create-app",
-				"from": "0.12.0",
-				"name": "@shivaedev/create-app",
-				"to": "0.13.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.15.3",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.16.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.13.1",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.14.0"
-			},
-			{
 				"bump": "patch",
-				"directory": "packages/effect-test-sql",
-				"from": "0.8.3",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.8.4"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/local-postgres",
-				"from": "0.6.0",
-				"name": "@shivaedev/local-postgres",
-				"to": "0.7.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/platform",
-				"from": "0.24.2",
-				"name": "@shivaedev/platform",
-				"to": "0.25.0"
+				"directory": "packages/create-app",
+				"from": "0.13.0",
+				"name": "@shivaedev/create-app",
+				"to": "0.13.1"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/quality",
-				"from": "0.34.0",
+				"from": "0.35.0",
 				"name": "@shivaedev/quality",
-				"to": "0.35.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/work-board",
-				"from": "0.30.3",
-				"name": "@shivaedev/work-board",
-				"to": "0.30.4"
+				"to": "0.36.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.3",
+				"from": "0.17.4",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.4"
+				"to": "0.17.5"
 			}
 		]
 	}
