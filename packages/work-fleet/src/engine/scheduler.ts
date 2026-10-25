@@ -1,6 +1,7 @@
 import { Cause, Effect, Result } from "effect";
 import { inBoardReadPass, withBoardReadPass } from "#board/readPass.ts";
 import { boardCompletionAction } from "#engine/completeBoardWork.ts";
+import { expectedDispatchWait } from "#engine/expectedDispatchWait.ts";
 import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { needsReleasedDelivery } from "#engine/releasedDeliveries.ts";
@@ -19,7 +20,7 @@ const dispatchRecords = Effect.fn("Fleet.dispatchRecords")(function* (records: r
 	for (const { value } of prepared) {
 		const result = yield* fleet.dispatch(value.workId).pipe(Effect.result);
 		dispatched.push(result);
-		if (Result.isFailure(result)) {
+		if (Result.isFailure(result) && !expectedDispatchWait(result.failure)) {
 			yield* Effect.logWarning("Fleet dispatch failed", Cause.fail(result.failure)).pipe(Effect.annotateLogs({ workId: value.workId }));
 		}
 		if (
