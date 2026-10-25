@@ -76,6 +76,23 @@ export function App({ session, recheck }: {
 
 `makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, remounts the screens and disposes the outgoing registry. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
 
+For a native shell, pass its resume source when binding the API returned by `connect`:
+
+```ts
+import { bind } from "@shivaedev/effect-contract/bind.ts";
+import type { ResumeSource } from "@shivaedev/effect-react/resumeSignal.ts";
+import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
+
+const resume: ResumeSource = (notify) => {
+  const stopApp = onAppResume(notify);
+  const stopNetwork = onNetworkReturn(notify);
+  return () => { stopApp(); stopNetwork(); };
+};
+const connect = () => bind(Notes, Client, { resume });
+```
+
+`Notes` and `Client` are the application's contract and native AtomRpc client. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
+
 A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 
 ### Trace an action across RPCs

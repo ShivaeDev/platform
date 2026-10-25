@@ -4,12 +4,15 @@ import { createElement } from "react";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { resumeSignal } from "#resumeSignal.ts";
+import { ResumeLiveScreen } from "./ResumeLiveScreen.tsx";
+import { resumeLiveClient } from "./resumeLiveClient.ts";
 import { counted, syntheticNative, syntheticWindow } from "./resumeSources.ts";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
 	browser: ReturnType<typeof syntheticWindow>;
 	fresh: ReturnType<typeof counted>;
+	live?: ReturnType<typeof resumeLiveClient>;
 	native: ReturnType<typeof syntheticNative>;
 	root?: Rendered;
 	stale: ReturnType<typeof counted>;
@@ -19,6 +22,7 @@ export const resumes = storyKit(
 		"resume screen",
 		(): State => ({ browser: syntheticWindow(), fresh: counted(), native: syntheticNative(), stale: counted() }),
 		(state, screen) => ({
+			active: () => state.live?.active(),
 			browserEvent: (type: "online" | "visibilitychange", visibility = "visible") =>
 				screen.act(`browser ${type} while ${visibility}`, () => state.browser.fire(type, visibility)),
 			close: () =>
@@ -28,8 +32,25 @@ export const resumes = storyKit(
 					}
 					return state.root.unmount();
 				}),
+			connections: () => state.live?.connections(),
+			disconnect: () =>
+				screen.act("interrupt the live stream", () => {
+					if (!state.live) {
+						throw new Error("Missing live client");
+					}
+					return state.live.disconnect();
+				}),
+			externalRename: (id: number, title: string) =>
+				screen.act("another client renames the note", () => {
+					if (!state.live) {
+						throw new Error("Missing live client");
+					}
+					state.live.rename(id, title);
+				}),
 			nativeEvent: () => screen.act("native resume", () => state.native.resume()),
 			resume: () => state,
+			text: () => state.root?.container.textContent,
+			visibilityEvent: () => screen.act("the page becomes visible", () => window.dispatchEvent(new Event("visibilitychange"))),
 			windowEvent: () => screen.act("the browser reconnects", () => window.dispatchEvent(new Event("online"))),
 		}),
 	),
@@ -61,5 +82,13 @@ export function resumeScreen(mode: "browser-native" | "swr" | "window") {
 			];
 		}
 		state.root = yield* screen.open(createElement(Values, { atoms }));
+	});
+}
+
+export function liveResumeScreen(source: "native" | "browser") {
+	return resumes.trait("screen", `automatic live queries with ${source} resume`, function* ({ screen, state }) {
+		const client = resumeLiveClient(source === "native" ? state.native.source : undefined);
+		state.live = client;
+		state.root = yield* screen.open(createElement(ResumeLiveScreen, { client }));
 	});
 }
