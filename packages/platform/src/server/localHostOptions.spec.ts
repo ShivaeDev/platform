@@ -26,7 +26,8 @@ host.it(
 );
 host.it("rpcPath serves the native client at the chosen route instead of /rpc", [sessionPolicy, rpcPath("/custom/rpc")], function* ({ ping, post }) {
 	expect(yield* ping()).toBe("pong");
-	expect(yield* post({})).toBe(404);
+	const status = yield* post({});
+	expect(status).toBe(404);
 });
 host.it(
 	"loopback policy refuses origin, Host, content type and proxy forwarding",
@@ -39,7 +40,8 @@ host.it(
 			{ "content-type": "application/json" },
 			{ host: "elsewhere.test", origin: "https://elsewhere.test", "x-forwarded-host": "elsewhere.test", "x-forwarded-proto": "https" },
 		]) {
-			expect(yield* post(headers)).toBe(403);
+			const status = yield* post(headers);
+			expect(status).toBe(403);
 		}
 	},
 );

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import type { Document } from "#browser/document/schema.ts";
@@ -68,7 +67,7 @@ attention:
 			),
 		],
 		function* ({ findElement, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
+			yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
 			expect(findElement('.item-summary [data-status-token="needs-you"]') !== null).toBe(status === "ready");
 			expect(findElement(".answer-cards") !== null).toBe(status === "ready");
 			expect(readText(".item-summary [data-status-token]")).toBe(label);

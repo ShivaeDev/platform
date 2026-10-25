@@ -31,16 +31,17 @@ host.it("traces and redacts a loopback RPC defect without changing the shared gr
 	const result = yield* ping().pipe(Effect.result);
 	expect(result).toMatchObject({ _tag: "Failure", failure: expect.objectContaining({ message: "password=<redacted>", name: "Error" }) });
 	const defects = logs().filter((entry) => entry.annotations["rpc.method"] === "ping");
-	expect(defects).toHaveLength(1);
-	expect(defects[0]).toMatchObject({
-		annotations: {
-			requestId: expect.stringMatching(/^[a-f0-9]{32}$/u),
-			"rpc.defect": [expect.objectContaining({ message: "password=<redacted>" })],
-			"rpc.method": "ping",
+	expect(defects).toMatchObject([
+		{
+			annotations: {
+				requestId: expect.stringMatching(/^[a-f0-9]{32}$/u),
+				"rpc.defect": [expect.objectContaining({ message: "password=<redacted>" })],
+				"rpc.method": "ping",
+			},
+			level: "Error",
+			message: ["RPC defect"],
 		},
-		level: "Error",
-		message: ["RPC defect"],
-	});
+	]);
 	expect(JSON.stringify({ defects, result })).not.toContain("hidden-defect-password");
 	expect(yield* directPing()).toBe("pong");
 });

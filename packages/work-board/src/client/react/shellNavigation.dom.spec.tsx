@@ -44,10 +44,8 @@ screenStory.it(
 			["Next", "/notes/next.md", null],
 		]);
 		keyboard("Escape");
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing)));
-		yield* Effect.promise(() =>
-			eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Reading history", role: "button" })),
-		);
+		yield* eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing));
+		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "Reading history", role: "button" }));
 	},
 );
 
@@ -57,15 +55,15 @@ screenStory.it(
 	function* ({ readAttribute, startNavigation, readStarted, releaseRead, finishNavigation, readText, roles }) {
 		const current = '[aria-label="Workspace"] [aria-current="page"]';
 		const progress = { name: "Opening page", role: "progressbar" } as const;
-		yield* Effect.promise(() => eventually(() => expect(readAttribute(current, "aria-label")).toBe("Goals")));
+		yield* eventually(() => expect(readAttribute(current, "aria-label")).toBe("Goals"));
 		yield* Effect.promise(() => startNavigation("/_board/work?item=note.next"));
-		yield* Effect.promise(() => eventually(() => expect(readStarted()).toBe(true)));
+		yield* eventually(() => expect(readStarted()).toBe(true));
 		expect(readAttribute(current, "aria-label")).toMatch(/^Now/u);
 		expect(() => roles.text(progress)).toThrow(missing);
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text(progress)).not.toThrow()));
+		yield* eventually(() => expect(() => roles.text(progress)).not.toThrow());
 		yield* Effect.promise(releaseRead);
 		yield* Effect.promise(finishNavigation);
-		yield* Effect.promise(() => eventually(() => expect(readText(".work-head h1")).toBe("Now")));
+		yield* eventually(() => expect(readText(".work-head h1")).toBe("Now"));
 		expect(() => roles.text(progress)).toThrow(missing);
 		expect(readAttribute(current, "aria-label")).toMatch(/^Now/u);
 	},
@@ -78,9 +76,9 @@ screenStory.it(
 		const pinned = { name: "Pinned", role: "region" } as const;
 		expect(roles.text(pinned)).not.toContain("Plan");
 		yield* roles.click({ name: "Pin", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(roles.text(pinned)).toContain("Plan")));
+		yield* eventually(() => expect(roles.text(pinned)).toContain("Plan"));
 		yield* roles.click({ name: "Unpin", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(roles.text(pinned)).not.toContain("Plan")));
+		yield* eventually(() => expect(roles.text(pinned)).not.toContain("Plan"));
 		expect(roles.text({ name: "Pin", role: "button" })).toBe("Pin");
 	},
 );
@@ -102,10 +100,10 @@ screenStory.it(
 			["Next", "/notes/next.md", null],
 		]);
 		yield* roles.click({ name: "Reading history", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "More", role: "dialog" })).toThrow(missing)));
-		yield* Effect.promise(() => eventually(() => expect(roles.text({ name: "Earlier", role: "list" })).toContain("Next")));
+		yield* eventually(() => expect(() => roles.text({ name: "More", role: "dialog" })).toThrow(missing));
+		yield* eventually(() => expect(roles.text({ name: "Earlier", role: "list" })).toContain("Next"));
 		keyboard("Escape");
-		yield* Effect.promise(() => eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing)));
-		yield* Effect.promise(() => eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "More", role: "button" })));
+		yield* eventually(() => expect(() => roles.text({ name: "Reading history", role: "dialog" })).toThrow(missing));
+		yield* eventually(() => expect(roles.accessible(readFocus() ?? document.body)).toEqual({ name: "More", role: "button" }));
 	},
 );

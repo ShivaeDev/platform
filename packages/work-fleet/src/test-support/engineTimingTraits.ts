@@ -41,7 +41,8 @@ export function pausedSteer(failure: boolean, interrupted = false) {
 		Effect.gen(function* () {
 			const entered = yield* Deferred.make<void>();
 			const resume = yield* Deferred.make<void>();
-			const timing: EngineTiming = { entered, recoveries: 0, resume, steers: 0 };
+			const steerRequests: NonNullable<EngineTiming["steerRequests"]> = [];
+			const timing: EngineTiming = { entered, recoveries: 0, resume, steerRequests, steers: 0 };
 			state.timing = timing;
 			const steer = Effect.fnUntraced(function* (
 				transport: typeof SessionTransport.Service,
@@ -49,6 +50,7 @@ export function pausedSteer(failure: boolean, interrupted = false) {
 				prompt: string,
 			) {
 				timing.steers += 1;
+				steerRequests.push({ prompt, receipt });
 				yield* Deferred.succeed(entered, undefined);
 				yield* interrupted ? Effect.never : Deferred.await(resume);
 				if (failure) {

@@ -7,8 +7,9 @@ import type { Decoded, Encoded, FieldFailure, Fields, Form, Services } from "@sh
 import type { AtomServices, FieldRejectionMapping } from "#fieldRejection.ts";
 import { loadedQuery } from "#internal/loadedQuery.ts";
 import { useSubmissionCallbacks } from "#internal/useSubmissionCallbacks.ts";
+import type { NoticeFeedback } from "#notices.ts";
 import { submission } from "#submission.ts";
-import { type QueryState, useQuery } from "./resultState.ts";
+import { type QueryOptions, type QueryState, useQuery } from "./resultState.ts";
 import { type SaveState, useSaveState } from "./saveState.ts";
 import type { LoadedQueryState } from "./useLoaderQuery.ts";
 export type EditorConfig<TFields extends Fields, TRow, TQueryError, TSaveError, R, TRuntimeError> = {
@@ -18,6 +19,8 @@ export type EditorConfig<TFields extends Fields, TRow, TQueryError, TSaveError, 
 	readonly values: (row: TRow) => Encoded<TFields>;
 	readonly save: (values: Decoded<TFields>) => Effect.Effect<TRow, TSaveError, AtomServices<R>>;
 	readonly runtime: Atom.AtomRuntime<Services<TFields, R>, TRuntimeError>;
+	readonly notices?: NoticeFeedback<Decoded<TFields>, TRow, TSaveError, Services<TFields, R>>;
+	readonly queryNotice?: QueryOptions<TQueryError>["notice"];
 } & FieldRejectionMapping<TFields, TSaveError>;
 export interface Editor<TFields extends Fields, TRow, TQueryError, TSaveError, TRuntimeError> extends SaveState<TSaveError | TRuntimeError> {
 	readonly form: Form<TFields, TRow, TSaveError | FieldFailure, TRuntimeError> | undefined;
@@ -45,8 +48,8 @@ export function useEditor<TFields extends Fields, TRow, TQueryError, TSaveError,
 	config: EditorConfig<TFields, TRow, TQueryError, TSaveError, R, TRuntimeError> & { readonly loaded?: TRow },
 ): Editor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> | LoadedEditor<TFields, TRow, TQueryError, TSaveError, TRuntimeError> {
 	const persistedDraft = usePersistedDraft(config.persistedDraft);
-	const callbacks = useSubmissionCallbacks(config.fields, config.save, config.rejectField);
-	const query = useQuery(config.query);
+	const callbacks = useSubmissionCallbacks(config.fields, config.save, config.rejectField, config.runtime, config.notices);
+	const query = useQuery(config.query, config.queryNotice === undefined ? {} : { notice: config.queryNotice });
 	const row = Option.orElse(query.data, () => ("loaded" in config ? Option.some(config.loaded) : Option.none()));
 	const [held, hold] = useState<Held<TFields, TRow, TSaveError, R, TRuntimeError> | undefined>(undefined);
 	let current = held?.query === config.query && held.fields === config.fields && held.runtime === config.runtime ? held : undefined;

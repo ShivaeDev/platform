@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { chromeFixture } from "#test/chromeFixture.ts";
@@ -12,17 +11,15 @@ screenStory.it(
 	function* ({ focus, keyboard, input, findElement, location, readFocus }) {
 		focus("#search-open");
 		keyboard("k", { ctrlKey: true });
-		yield* Effect.promise(() => eventually(() => expect(readFocus()).toBe(findElement('#search-dialog [role="combobox"]', document))));
+		yield* eventually(() => expect(readFocus()).toBe(findElement('#search-dialog [role="combobox"]', document)));
 		input('#search-dialog [role="combobox"]', "second phrase");
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElement('#search-dialog [role="option"] a', document)?.getAttribute("href")).toBe("/notes/plan.md#heading-evidence-2"),
-			),
+		yield* eventually(() =>
+			expect(findElement('#search-dialog [role="option"] a', document)?.getAttribute("href")).toBe("/notes/plan.md#heading-evidence-2"),
 		);
 		keyboard("Enter", {}, '#search-dialog [role="combobox"]');
-		yield* Effect.promise(() => eventually(() => expect(location()?.hash).toBe("heading-evidence-2")));
-		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("heading-evidence-2")));
+		yield* eventually(() => expect(location()?.hash).toBe("heading-evidence-2"));
+		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
+		yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence-2"));
 	},
 );
 screenStory.it(
@@ -32,12 +29,12 @@ screenStory.it(
 		focus("#search-open");
 		click("#search-open");
 		input('#search-dialog [role="combobox"]', "sidebar");
-		yield* Effect.promise(() =>
-			eventually(() => expect(findElement('#search-dialog [aria-selected="true"]', document)?.getAttribute("data-command")).toBe("sidebar-toggle")),
+		yield* eventually(() =>
+			expect(findElement('#search-dialog [aria-selected="true"]', document)?.getAttribute("data-command")).toBe("sidebar-toggle"),
 		);
 		keyboard("Enter", {}, '#search-dialog [role="combobox"]');
-		yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+		yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 		expect(readAttribute("#sidebar-toggle", "aria-expanded")).toBe("false");
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("search-open")));
+		yield* eventually(() => expect(readFocus()?.id).toBe("search-open"));
 	},
 );

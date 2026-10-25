@@ -2,12 +2,6 @@ import { Effect } from "effect";
 import { expect } from "vitest";
 import { mintedSocialSession, socialApp } from "#test/better-auth/socialApp.ts";
 
-const OK_STATUS = 200;
-const NO_ACCOUNT_LOOKUPS = 0;
-const FIRST_ACCOUNT_LOOKUP = 1;
-const SECOND_ACCOUNT_LOOKUP = 2;
-const THIRD_ACCOUNT_LOOKUP = 3;
-
 socialApp.it(
 	"a social sign-in returns from the fake provider with a PostgreSQL cookie session",
 	[],
@@ -27,7 +21,7 @@ socialApp.it(
 		expect(new URL(location()).hostname).toBe("github.com");
 		const response = yield* followRedirect();
 		expect(response.redirected).toBe(true);
-		expect(response.status).toBe(OK_STATUS);
+		expect(response.status).toBe(200);
 		expect(yield* Effect.promise(() => response.text())).toContain("Signed in as alice@social.test");
 		expect(location()).toMatch(/^http:\/\/localhost:\d+\/signed-in$/u);
 		expect(heading()).toBe("Signed in as alice@social.test");
@@ -51,11 +45,11 @@ socialApp.it(
 socialApp.it(
 	"a minted session resolves account lookups and rejects unavailable or revoked sessions",
 	[mintedSocialSession()],
-	function* ({ providerAccounts, signOut, failAccountLookup, identityOnly, accountLookups }) {
+	function* ({ providerAccounts, signOut, failAccountLookup, identityOnly, accountRequests }) {
 		expect(yield* providerAccounts()).toEqual([]);
 		yield* failAccountLookup();
 		expect(yield* identityOnly()).toEqual(expect.any(String));
-		expect(accountLookups()).toBe(FIRST_ACCOUNT_LOOKUP);
+		expect(accountRequests()).toEqual([expect.stringContaining("better-auth.session_token=")]);
 		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
 		yield* signOut();
 		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
@@ -65,31 +59,33 @@ socialApp.it(
 socialApp.it(
 	"identity-only RPCs leave accounts unloaded and each accounts request shares just its own lookup",
 	[mintedSocialSession()],
-	function* ({ identityOnly, providerAccounts, accountLookups, mintSession }) {
+	function* ({ identityOnly, providerAccounts, accountRequests, mintSession }) {
 		const bob = yield* identityOnly();
 		expect(bob).toEqual(expect.any(String));
-		expect(accountLookups()).toBe(NO_ACCOUNT_LOOKUPS);
+		expect(accountRequests()).toEqual([]);
 		expect(yield* providerAccounts()).toEqual([]);
-		expect(accountLookups()).toBe(FIRST_ACCOUNT_LOOKUP);
+		expect(accountRequests()).toEqual([expect.stringContaining("better-auth.session_token=")]);
+		const bobCookie = accountRequests()[0];
 		expect(yield* providerAccounts()).toEqual([]);
-		expect(accountLookups()).toBe(SECOND_ACCOUNT_LOOKUP);
+		expect(accountRequests()).toEqual([bobCookie, bobCookie]);
 		yield* mintSession("carol@social.test");
 		const carol = yield* identityOnly();
 		expect(carol).toEqual(expect.any(String));
 		expect(carol).not.toBe(bob);
-		expect(accountLookups()).toBe(SECOND_ACCOUNT_LOOKUP);
+		expect(accountRequests()).toEqual([bobCookie, bobCookie]);
 		expect(yield* providerAccounts()).toEqual([]);
-		expect(accountLookups()).toBe(THIRD_ACCOUNT_LOOKUP);
+		expect(accountRequests()).toEqual([bobCookie, bobCookie, expect.stringContaining("better-auth.session_token=")]);
+		expect(accountRequests()[2]).not.toBe(bobCookie);
 	},
 );
 socialApp.it(
 	"a session expiring after identity resolution fails the handler's accounts read as Unauthorized",
 	[mintedSocialSession()],
-	function* ({ expireBeforeAccountLookup, providerAccounts, accountLookups, identityOnly }) {
+	function* ({ expireBeforeAccountLookup, providerAccounts, accountRequests, identityOnly }) {
 		yield* expireBeforeAccountLookup();
 		expect(yield* identityOnly()).toEqual(expect.any(String));
-		expect(accountLookups()).toBe(NO_ACCOUNT_LOOKUPS);
+		expect(accountRequests()).toEqual([]);
 		expect(yield* providerAccounts().pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(accountLookups()).toBe(FIRST_ACCOUNT_LOOKUP);
+		expect(accountRequests()).toEqual([expect.stringContaining("better-auth.session_token=")]);
 	},
 );

@@ -65,15 +65,15 @@ for (const navigation of ["Back", "reload"]) {
 			back,
 			findElement,
 		}) {
-			yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("heading-evidence")));
+			yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence"));
 			editFile("notes/plan.md", "# Plan\n\nThe heading disappeared.\n\n<details><summary>More</summary>Saved reading details.</details>");
 			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-			yield* Effect.promise(() => eventually(() => expect(readText("#doc")).toContain("The heading disappeared.")));
+			yield* eventually(() => expect(readText("#doc")).toContain("The heading disappeared."));
 			openDetails("article details:not(.item-context)");
 			setScrollPosition(480);
 			if (navigation === "Back") {
 				yield* Effect.promise(() => navigate("/other.md"));
-				yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Other")));
+				yield* eventually(() => expect(readText("#doc h1")).toBe("Other"));
 				yield* Effect.promise(() => frame());
 			} else {
 				browserEvent("pagehide");
@@ -89,7 +89,7 @@ for (const navigation of ["Back", "reload"]) {
 			} else {
 				yield* Effect.promise(() => renderRouter(undefined, URL));
 			}
-			yield* Effect.promise(() => eventually(() => expect(readText("#navigation-status")).toBe("This passage is no longer in the document.")));
+			yield* eventually(() => expect(readText("#navigation-status")).toBe("This passage is no longer in the document."));
 			expect(location()?.hash).toBe("heading-evidence");
 			expect(findElement("article details:not(.item-context)")).toHaveProperty("open", true);
 			expect(readMotion("scroll")).toEqual([[0, 480]]);

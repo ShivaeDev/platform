@@ -18,7 +18,7 @@ for (const phone of [false, true]) {
 			],
 			function* ({ findElement, readResponses, roles }) {
 				const answer = { name: "Answer Plan the release", role: "button" };
-				yield* Effect.promise(() => eventually(() => expect(roles.text(answer)).toBe("Answer")));
+				yield* eventually(() => expect(roles.text(answer)).toBe("Answer"));
 				yield* roles.click(answer);
 				const panel = findElement("[role='dialog']", document);
 				expect(panel?.textContent).toContain("When should we release?");
@@ -29,7 +29,7 @@ for (const phone of [false, true]) {
 				expect(Boolean(control && context && control.compareDocumentPosition(context) & Node.DOCUMENT_POSITION_FOLLOWING)).toBe(true);
 				expect(roles.text({ name: "Read the full question", role: "link" })).toBe("Read the full question");
 				yield* roles.click({ name: "Item context", role: "button" });
-				yield* Effect.promise(() => eventually(() => expect(panel?.textContent).toContain("The release has a long history")));
+				yield* eventually(() => expect(panel?.textContent).toContain("The release has a long history"));
 				yield* roles.click({ name: "Item context", role: "button" });
 				if (mode === "text") {
 					yield* roles.enter({ name: "When should we release?", role: "textbox" }, "Monday after review.");
@@ -37,7 +37,7 @@ for (const phone of [false, true]) {
 				} else {
 					yield* roles.click({ name: "Monday The team is available.", role: "button" });
 				}
-				yield* Effect.promise(() => eventually(() => expect(findElement("[role='dialog']", document)).toBeNull()));
+				yield* eventually(() => expect(findElement("[role='dialog']", document)).toBeNull());
 				const saved = yield* Effect.promise(() => readResponses("decision.release", "direction"));
 				expect(saved.responses.map((entry) => entry.response.answers)).toEqual([
 					[{ prompt: "release", selected: mode === "one" ? ["monday"] : [], text: mode === "text" ? "Monday after review." : "" }],

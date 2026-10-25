@@ -21,7 +21,7 @@ it("renders with the packed testing entry and releases the registry", async () =
   const view: Rendered = await render(createElement(Component));
   try {
     expect(view.registry.get(resource)).toBe("ready");
-    await eventually(() => expect(view.container.textContent).toBe("settled"));
+    await Effect.runPromise(eventually(() => expect(view.container.textContent).toBe("settled")));
     await view.render(createElement("output", null, "rerendered"));
     expect(view.container.textContent).toBe("rerendered");
   } finally {

@@ -24,7 +24,11 @@ engine.it(
 		expect(held.value.step).toBe("waiting");
 		expect(held.value.blocker).toContain("no longer approved");
 		expect(held.value.responses).toBeUndefined();
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map(({ operationId }) => operationId),
+		).toEqual(["operation-1"]);
 		writeBoardWork("one.md", source);
 		const continued = yield* fleet.reconcile("one");
 		expect(continued.value.step).toBe("working");

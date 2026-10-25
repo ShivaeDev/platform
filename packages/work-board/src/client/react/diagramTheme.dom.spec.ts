@@ -22,13 +22,13 @@ for (const initiallyDrawn of [false, true]) {
 			chromeScreen({ "notes/plan.md": `# Diagram${diagram(`Theme${initiallyDrawn}-->Drawing`)}` }),
 		],
 		function* ({ drawings, finishDiagram, click, readAttribute, findElements, frame, setMediaMatch, roles }) {
-			yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(ONE_DIAGRAM)));
+			yield* eventually(() => expect(drawings()).toHaveLength(ONE_DIAGRAM));
 			if (initiallyDrawn) {
 				yield* Effect.promise(() => finishDiagram(0));
 			}
 			click("#settings-open");
 			yield* roles.click({ name: "Dark", role: "button" });
-			yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(LIGHT_AND_DARK_DRAWINGS)));
+			yield* eventually(() => expect(drawings()).toHaveLength(LIGHT_AND_DARK_DRAWINGS));
 			if (initiallyDrawn) {
 				expect(readAttribute("figure svg", "data-dark")).toBe("false");
 			}
@@ -41,7 +41,7 @@ for (const initiallyDrawn of [false, true]) {
 			yield* roles.click({ name: "Compact", role: "button" });
 			expect(drawings()).toHaveLength(LIGHT_AND_DARK_DRAWINGS);
 			yield* roles.click({ name: "Light", role: "button" });
-			yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(initiallyDrawn ? 2 : 3)));
+			yield* eventually(() => expect(drawings()).toHaveLength(initiallyDrawn ? 2 : 3));
 			if (!initiallyDrawn) {
 				yield* Effect.promise(() => finishDiagram(2));
 			}

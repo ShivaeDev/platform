@@ -47,5 +47,17 @@ export function useCompletionTypes() {
 			void error;
 		},
 	});
+	useAction(runtime, run, {
+		notices: {
+			onFailure: (error, input) => ({ message: `${input.title}: ${error}` }),
+			onSuccess: (value, input) => ({ action: { label: "Undo", run: run(input) }, message: value.title }),
+		},
+	});
+	useAction(runtime, run, {
+		notices: {
+			// @ts-expect-error Undo must use services provided by the operation's runtime.
+			onSuccess: () => ({ action: { label: "Undo", run: Missing.asEffect() }, message: "Saved" }),
+		},
+	});
 	return { cause, data, dispatch, runtimeFailure };
 }

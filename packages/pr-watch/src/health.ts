@@ -11,16 +11,32 @@ export const health = Effect.fnUntraced(function* (
 	yield* emit(JSON.stringify({ at, event, ...fields }));
 });
 
-export const waitForPoll = Effect.fnUntraced(function* (emit: Emit, interval: number, delay: number) {
-	const next = (yield* Clock.currentTimeMillis) + delay;
-	const nextPollAt = new Date(next).toISOString();
-	if (delay > interval) {
-		yield* health(emit, "cooldown", { delayMs: delay, message: "GitHub quota pacing", nextPollAt });
-	}
-	let remaining = delay;
-	while (remaining > 0) {
-		yield* health(emit, "heartbeat", { nextPollAt });
-		yield* Effect.sleep(Math.min(interval, remaining));
-		remaining = next - (yield* Clock.currentTimeMillis);
-	}
+export const makeOutput = Effect.fnUntraced(function* (emit: Emit, heartbeat: number) {
+	let lastOutputAt = yield* Clock.currentTimeMillis;
+	const write: Emit = Effect.fnUntraced(function* (line: string) {
+		yield* emit(line);
+		lastOutputAt = yield* Clock.currentTimeMillis;
+	});
+	const waitForPoll = Effect.fnUntraced(function* (interval: number, delay: number) {
+		const next = (yield* Clock.currentTimeMillis) + delay;
+		const nextPollAt = new Date(next).toISOString();
+		if (delay > interval) {
+			yield* health(write, "cooldown", { delayMs: delay, message: "GitHub quota pacing", nextPollAt });
+		}
+		let now = yield* Clock.currentTimeMillis;
+		while (now < next) {
+			if (heartbeat === 0) {
+				yield* Effect.sleep(next - now);
+				return;
+			}
+			const due = lastOutputAt + heartbeat;
+			if (now >= due) {
+				yield* health(write, "heartbeat", { nextPollAt });
+			} else {
+				yield* Effect.sleep(Math.min(next - now, due - now));
+			}
+			now = yield* Clock.currentTimeMillis;
+		}
+	});
+	return { emit: write, waitForPoll };
 });

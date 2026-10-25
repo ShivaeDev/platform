@@ -16,7 +16,7 @@ for (const release of [false, true]) {
 		yield* daemon.store("one", { ...stopped, blocker: ANSWER_RECORDED });
 		yield* daemon.stop();
 		yield* daemon.start();
-		yield* daemon.follow("watcher", "watch", []);
+		yield* daemon.follow("watcher", "watch", ["one"]);
 		yield* daemon.awaitSnapshot();
 		yield* Effect.sleep("100 millis");
 		expect(daemon.followerRunning("watcher")).toBe(true);

@@ -16,7 +16,7 @@ screenStory.it(
 	function* ({ click, navigate, readAttribute, findElements, findElement, readText, roles }) {
 		for (const url of ["/", "/_board/work", "/_board/item/project.alpha/", "/home.md"]) {
 			yield* Effect.promise(() => navigate(url));
-			yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url)));
+			yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url));
 			expect([...findElements(`${PHONE} a`)].map((link) => [roles.accessible(link).name, link.getAttribute("href")])).toEqual([
 				["Today, 7 need you", "/"],
 				["Goals", "/_board/goals"],
@@ -27,7 +27,7 @@ screenStory.it(
 			expect(findElement("#search-dialog kbd", document)).toBeNull();
 			expect(readText("#search-dialog", document)).not.toContain("Enter to open");
 			yield* roles.click({ name: "Close", role: "button" });
-			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 		}
 		for (const [href, title] of [
 			["/_board/goals", "Goals"],
@@ -35,7 +35,7 @@ screenStory.it(
 			["/", "Today"],
 		]) {
 			click(`${PHONE} a[href="${href}"]`);
-			yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe(title)));
+			yield* eventually(() => expect(readText("#doc h1")).toBe(title));
 			expect(readAttribute(`${PHONE} a[aria-current="page"]`, "href")).toBe(href);
 		}
 	},
@@ -54,12 +54,12 @@ screenStory.it(
 				"System",
 			]);
 			click(`#phone-more a[href="${href}"]`);
-			yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe(href)));
-			yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
+			yield* eventually(() => expect(location()?.pathname).toBe(href));
+			yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
 		}
 		click(`${PHONE} button[aria-controls="phone-more"]`);
 		yield* roles.click({ name: "Close", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(findElement("#phone-more", document)).toBeNull()));
+		yield* eventually(() => expect(findElement("#phone-more", document)).toBeNull());
 		click("#sidebar-toggle");
 		expect(control("#sidebar", HTMLElement).hidden).toBe(false);
 		click("#sidebar-backdrop");
@@ -74,7 +74,7 @@ screenStory.it(
 	"keeps the phone's live status region empty while nothing is wrong with the connection",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("connecting")],
 	function* ({ findElement, readAttribute, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(readAttribute(LIVE, "data-state")).toBe("connecting")));
+		yield* eventually(() => expect(readAttribute(LIVE, "data-state")).toBe("connecting"));
 		expect(roles.accessible(findElement(LIVE) ?? document.body).role).toBe("status");
 		expect(findElement(LIVE)?.textContent).toBe("");
 	},
@@ -84,11 +84,11 @@ screenStory.it(
 	"tells a phone reader when the connection is reconnecting or a refresh failed",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen()],
 	function* ({ click, findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Reconnecting…")));
+		yield* eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Reconnecting…"));
 		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Reconnecting…");
 		expect(findElement(`${LIVE} svg`)).not.toBeNull();
 		click("[data-document]");
-		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Couldn't update this page")));
+		yield* eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Couldn't update this page"));
 		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Not updated");
 	},
 );
@@ -97,7 +97,7 @@ screenStory.it(
 	"tells a phone reader that updates are paused",
 	[screenMedia(["(max-width: 767px)", "(any-pointer: coarse)"]), hostedHealthScreen("live", "paused")],
 	function* ({ readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Updates paused · 0 pending")));
+		yield* eventually(() => expect(readText(`${LIVE} .sr-only`)).toBe("Updates paused · 0 pending"));
 		expect(readText(`${LIVE} span[aria-hidden="true"]`)).toBe("Paused");
 		expect(readAttribute(LIVE, "data-state")).toBe("paused");
 	},

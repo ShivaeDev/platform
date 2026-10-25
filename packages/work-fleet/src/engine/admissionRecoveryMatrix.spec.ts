@@ -90,17 +90,15 @@ for (const action of ["retry", "release"] as const) {
 						break;
 					}
 					case "start-missing-worker": {
-						const originalWorker = 1;
 						expect(after.step).toBe("working");
-						expect(after.attempts).toHaveLength(originalWorker);
+						expect(after.attempts).toMatchObject([{ operationId: "operation-1", role: "worker" }]);
 						break;
 					}
 					case "start-unrecorded-worker":
 					case "start-with-complete-context":
 					case "start-with-current-brief":
 					case "start-with-current-approval": {
-						const originalWorker = 1;
-						expect(after.attempts).toHaveLength(originalWorker);
+						expect(after.attempts).toMatchObject([{ operationId: "operation-1", role: "worker" }]);
 						expect(after.step).toBe("working");
 						break;
 					}

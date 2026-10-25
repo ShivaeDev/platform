@@ -15,15 +15,15 @@ for (const { env, contentType } of [
 	},
 	{ contentType: "application/json", env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "grpc", "OTEL_EXPORTER_OTLP_TRACES_PROTOCOL": "http/json" } },
 ]) {
-	host.it(`exports ${contentType} with ${JSON.stringify(env)}`, [collector({ env })], function* ({ ping, close, exports }) {
+	host.it(`exports ${contentType} with ${JSON.stringify(env)}`, [collector({ env })], function* ({ ping, close, exports, exportedSpans }) {
 		expect(yield* ping()).toBe("pong");
 		yield* close();
-		expect(exports()).toHaveLength(1);
+		expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 		expect(exports()[0]?.contentType).toBe(contentType);
 		if (contentType === "application/json") {
 			expect(JSON.parse(exports()[0]?.body ?? "")).toHaveProperty("resourceSpans");
 		} else {
-			expect(exports()[0]?.bytes[0]).toBe(0x0a);
+			expect(exportedSpans().map(({ name }) => name)).toContain("POST /rpc");
 			expect(exports()[0]?.body).toContain("POST /rpc");
 			expect(() => JSON.parse(exports()[0]?.body ?? "")).toThrow();
 		}

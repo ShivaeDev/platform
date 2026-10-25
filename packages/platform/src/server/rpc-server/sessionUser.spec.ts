@@ -12,18 +12,18 @@ profile.it("provides only the profile fields and keeps Identity limited to id", 
 		user: { email: user.email, id: user.id, name: user.name },
 	});
 });
-profile.it("forbids the origin before consulting the session provider", [forbiddenOrigin, providerOutage], function* ({ whoami, lookups }) {
+profile.it("forbids the origin before consulting the session provider", [forbiddenOrigin, providerOutage], function* ({ whoami, sessionRequests }) {
 	const forbidden = yield* whoami();
 	expect(forbidden._tag === "Failure" && forbidden.failure).toBeInstanceOf(Forbidden);
-	expect(lookups()).toBe(0);
+	expect(sessionRequests()).toEqual([]);
 });
-profile.it("rejects a missing session as unauthorized", [], function* ({ whoami, lookups }) {
+profile.it("rejects a missing session as unauthorized", [], function* ({ whoami, sessionRequests }) {
 	const anonymous = yield* whoami();
 	expect(anonymous._tag === "Failure" && anonymous.failure).toBeInstanceOf(Unauthorized);
-	expect(lookups()).toBe(1);
+	expect(sessionRequests()).toEqual(["Whoami"]);
 });
-profile.it("reports a provider failure as unavailable", [providerOutage], function* ({ whoami, lookups }) {
+profile.it("reports a provider failure as unavailable", [providerOutage], function* ({ whoami, sessionRequests }) {
 	const unavailable = yield* whoami();
 	expect(unavailable._tag === "Failure" && unavailable.failure).toBeInstanceOf(AuthUnavailable);
-	expect(lookups()).toBe(1);
+	expect(sessionRequests()).toEqual(["Whoami"]);
 });

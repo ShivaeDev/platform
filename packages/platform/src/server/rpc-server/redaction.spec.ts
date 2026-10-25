@@ -19,7 +19,6 @@ redaction.it("defect logs keep the error's shape but redact its fields and cause
 	yield* crash("object");
 	yield* crash("error");
 	const defects = logs().filter((log) => log.level === "Error");
-	expect(defects).toHaveLength(2);
 	expect(inspect(defects, { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
 	expect(defects.map((log) => log.annotations["rpc.defect"])).toEqual([
 		[{ detail: "object defect", password: "<redacted>" }],
@@ -34,11 +33,17 @@ redaction.it("provider failures are logged without credential fields", [], funct
 });
 redaction.it("the cause seen by the client, error reporters and the server span has redacted defects", [], function* ({ crash, spans, reported }) {
 	const exits = [yield* crash("object"), yield* crash("error")];
-	expect(reported()).toHaveLength(2);
+	expect(reported().map((cause) => Cause.squash(cause))).toMatchObject([
+		{ detail: "object defect", password: "<redacted>" },
+		{ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect" },
+	]);
 	expect(inspect(reported(), { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
 	expect(inspect(exits, { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
 	const serverSpans = spans().filter((span) => span.kind === "server" && span.name === "Crash");
-	expect(serverSpans).toHaveLength(2);
+	expect(serverSpans.map((span) => span.status)).toMatchObject([
+		{ _tag: "Ended", exit: { _tag: "Failure", cause: { reasons: [{ _tag: "Die", defect: { detail: "object defect", password: "<redacted>" } }] } } },
+		{ _tag: "Ended", exit: { _tag: "Failure", cause: { reasons: [{ _tag: "Die", defect: { apiKey: "<redacted>", message: "leaky defect" } }] } } },
+	]);
 	expect(
 		inspect(
 			serverSpans.map((span) => [span.status, span.events, span.attributes]),

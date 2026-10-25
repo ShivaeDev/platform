@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { headerScreen } from "#test/headerScreen.tsx";
@@ -39,6 +38,6 @@ screenStory.it("shows the header's Today link only while the desktop sidebar is 
 	expect(toggle.getAttribute("aria-expanded")).toBe("true");
 	expect(today.hidden).toBe(true);
 	yield* roles.click({ name: "Sidebar", role: "button" });
-	yield* Effect.promise(() => eventually(() => expect(toggle.getAttribute("aria-expanded")).toBe("false")));
+	yield* eventually(() => expect(toggle.getAttribute("aria-expanded")).toBe("false"));
 	expect(today.hidden).toBe(false);
 });

@@ -17,12 +17,12 @@ screenStory.it(
 		sessionScreen("response"),
 	],
 	function* ({ input, activate, submit, findElement, findElements, restoreSession, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		input('[data-prompt="display"] textarea', "Keep history.");
 		submit("#response-form");
 		expect(readText("#response-status")).toContain("Unanswered");
 		restoreSession();
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-preview")).toHaveProperty("disabled", false)));
+		yield* eventually(() => expect(findElement("#response-preview")).toHaveProperty("disabled", false));
 		input('[data-prompt="checks"] textarea', "Keyboard checks.");
 		yield* Effect.promise(() => activate("#response-preview"));
 		expect(findElements(".response-field-error:not([hidden])")).toHaveLength(VISIBLE_ERRORS);

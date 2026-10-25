@@ -44,7 +44,7 @@ export function liveVerbs(engine: LiveEngine, tell: (line: string) => void) {
 			}),
 		observe: (line: string, check: () => void) => {
 			tell(line);
-			return Effect.promise(() => eventually(check));
+			return eventually(check);
 		},
 		publications: () => [...server.publications],
 		reads: () => [...server.reads],

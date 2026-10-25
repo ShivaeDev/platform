@@ -45,5 +45,5 @@ export function routerClient() {
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 		protocol: handlers,
 	}) {}
-	return { api: bind(Notes, Client), builds: () => builds, calls, frames, gate };
+	return { api: bind(Notes, Client), builds: () => builds, calls, frames, gate, next: (id: string, page = 1) => gates.delete(`${id}:${page}`) };
 }

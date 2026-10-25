@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { hostedHealthScreen } from "#test/hostedHealthScreen.tsx";
@@ -10,14 +9,14 @@ screenStory.it(
 	[hostedHealthScreen()],
 	function* ({ click, findElement, readText, readAttribute, recoverDocument }) {
 		expect(findElement("#doc")).toBeNull();
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled")));
+		yield* eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled"));
 		click("[data-retry]");
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled")));
+		yield* eventually(() => expect(readAttribute("#live", "title")).toContain("reads settled"));
 		click("[data-document]");
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Couldn't update this page")));
+		yield* eventually(() => expect(readText("#live")).toBe("Couldn't update this page"));
 		recoverDocument();
 		click("[data-retry]");
-		yield* Effect.promise(() => eventually(() => expect(readText("#live")).toBe("Reconnecting…")));
+		yield* eventually(() => expect(readText("#live")).toBe("Reconnecting…"));
 		expect(readAttribute("#live", "title")).toContain("reads settled");
 	},
 );

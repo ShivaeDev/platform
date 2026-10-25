@@ -7,17 +7,17 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(
 		`redacts sensitive diagnostics before ${protocol} export`,
 		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), sensitiveDiagnostics],
-		function* ({ request, close, exports }) {
+		function* ({ request, close, exports, exportedSpans }) {
 			expect(
 				(yield* request("/failed", { headers: { authorization: "Bearer hidden-header-token", cookie: "session=hidden-header-cookie" } })).status,
 			).toBe(500);
 			yield* close();
-			expect(exports()).toHaveLength(1);
+			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			const body = exports()[0]?.body;
 			expect(body).toContain("resource-name");
 			expect(exports()[0]?.contentType).toBe(protocol === "http/protobuf" ? "application/x-protobuf" : "application/json");
 			if (protocol === "http/protobuf") {
-				expect(exports()[0]?.bytes[0]).toBe(0x0a);
+				expect(exportedSpans().map(({ name }) => name)).toContain("GET /failed");
 				expect(() => JSON.parse(body ?? "")).toThrow();
 			} else {
 				expect(JSON.parse(body ?? "")).toHaveProperty("resourceSpans");

@@ -8,13 +8,16 @@ import { finishRecoveryReview } from "#test/recoverySteps.ts";
 export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 	let wrongDelivery = true;
 	let deliveries = 0;
+	const acceptedDeliveries: { readonly head: string; readonly revision: string; readonly url: string }[] = [];
 	function observeDelivery() {
 		return Effect.suspend(() => {
 			if (wrongDelivery) {
 				return Effect.fail(new ServiceUnavailable({ message: "Synthetic delivery unavailable" }));
 			}
 			deliveries += 1;
-			return Effect.succeed({ head: HEAD, revision: HEAD, url: PR });
+			const delivery = { head: HEAD, revision: HEAD, url: PR };
+			acceptedDeliveries.push(delivery);
+			return Effect.succeed(delivery);
 		});
 	}
 
@@ -99,7 +102,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			code: "fleet-integration" as const,
 			enter: finishRecoveryReview,
 			name: "delivery integration unavailable",
-			observe: () => ({ deliveries }),
+			observe: () => ({ acceptedDeliveries: [...acceptedDeliveries], deliveries }),
 			options: { deliveryQuery: observeDelivery },
 			recovery: "observe-recovered-delivery",
 			restore: () =>

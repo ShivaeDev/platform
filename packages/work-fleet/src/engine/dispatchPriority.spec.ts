@@ -36,12 +36,12 @@ describe("Fleet dispatch priority", () => {
 			setAreas("one", ["work-fleet/scheduler"]);
 			setAreas("two", ["work-fleet/scheduler"]);
 			setAreas("three", ["work-board/ui"]);
-			setPriority("two", "urgent");
-			setPriority("three", "urgent");
 			for (const id of ["one", "two", "three"]) {
 				yield* prepareWork(id);
 			}
 			yield* fleet.dispatch("one");
+			setPriority("two", "urgent");
+			setPriority("three", "urgent");
 			yield* schedule();
 			expect(yield* workStages(["one", "two", "three"])).toEqual({ one: "working", three: "working", two: "queued" });
 			expect((yield* fleet.get("two")).value.blocker).toBe("waiting for area work-fleet/scheduler held by one");

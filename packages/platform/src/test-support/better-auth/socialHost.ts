@@ -34,6 +34,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
 	const auth = betterAuth(options);
 	let accountLookupFails = false;
 	let accountLookups = 0;
+	const accountRequests: string[] = [];
 	let expireBeforeAccounts = false;
 	const sessions = {
 		origin: ({ headers }: { readonly headers: Readonly<Record<string, string>> }) =>
@@ -42,6 +43,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
 			(headers) => auth.api.getSession({ headers }),
 			async (headers) => {
 				accountLookups += 1;
+				accountRequests.push(headers.get("cookie") ?? "");
 				if (expireBeforeAccounts) {
 					await Effect.runPromise(authTestDatabase(pool).expireSessions);
 				}
@@ -81,6 +83,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
 	}
 	return {
 		accountLookups: () => accountLookups,
+		accountRequests: () => [...accountRequests],
 		auth,
 		baseUrl: `http://localhost:${server.address.port}`,
 		expireBeforeAccountLookup: () => {

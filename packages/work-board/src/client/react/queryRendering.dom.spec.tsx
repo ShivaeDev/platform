@@ -13,7 +13,7 @@ screenStory.it(
 	function* ({ boardView, readText, closeScreen }) {
 		const view = boardView();
 
-		yield* Effect.promise(() => eventually(() => expect(readText("output")).toBe("Morning walk")));
+		yield* eventually(() => expect(readText("output")).toBe("Morning walk"));
 
 		yield* Effect.promise(closeScreen);
 		expect(view.container.isConnected).toBe(false);

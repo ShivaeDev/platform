@@ -36,6 +36,7 @@ test.it(
 		const receipt = { sessionId: "session", turnId: "turn" };
 		yield* journal.acknowledgeTurn("synthetic-worker", receipt);
 		expect((yield* store.load("one"))?.value.attempts).toEqual([{ ...namedAttempt("worker"), receipt, sessionId: "session", status: "accepted" }]);
+		const acknowledged = yield* store.load("one");
 		expect(yield* journal.acknowledgeTurn("synthetic-worker", { ...receipt, turnId: "wrong" }).pipe(Effect.flip)).toMatchObject({
 			reason: "persistence",
 		});
@@ -46,7 +47,7 @@ test.it(
 		yield* store.compareAndSet("other", other.version, { ...other.value, attempts: [namedAttempt("worker")] });
 		expect(yield* storedOperation("synthetic-worker")).toBeUndefined();
 		expect(yield* journal.acknowledgeTurn("synthetic-worker", receipt).pipe(Effect.flip)).toMatchObject({ reason: "persistence" });
-		expect((yield* store.load("one"))?.version).toBe(3);
+		expect(yield* store.load("one")).toEqual(acknowledged);
 	},
 );
 

@@ -15,24 +15,20 @@ expectNoReactWarnings();
 		function* ({ chrome, click, input, control, keyboard, refreshQuery, editFile, closeScreen, location, findElement }) {
 			click("#search-open");
 			input('#search-dialog [role="combobox"]', "Second phrase");
-			yield* Effect.promise(() =>
-				eventually(() => expect(control('#search-dialog [role="option"] a', HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md")),
+			yield* eventually(() =>
+				expect(control('#search-dialog [role="option"] a', HTMLAnchorElement).getAttribute("href")).toBe("/notes/deep/proof.md"),
 			);
 			editFile("notes/deep/proof.md", "# Proof\n\nSecond phrase changed.\n");
 			yield* Effect.promise(() => refreshQuery("search", { query: "Second phrase" }));
-			yield* Effect.promise(() =>
-				eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed.")),
-			);
+			yield* eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed."));
 			keyboard("Enter", {}, control('#search-dialog [role="combobox"]', HTMLInputElement));
-			yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe("/notes/deep/proof.md")));
-			yield* Effect.promise(() => eventually(() => expect(findElement("#search-dialog", document)).toBeNull()));
+			yield* eventually(() => expect(location()?.pathname).toBe("/notes/deep/proof.md"));
+			yield* eventually(() => expect(findElement("#search-dialog", document)).toBeNull());
 			yield* Effect.promise(() => closeScreen());
 			yield* Effect.promise(() => chrome());
 			click("#search-open");
 			input('#search-dialog [role="combobox"]', "Second phrase");
-			yield* Effect.promise(() =>
-				eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed.")),
-			);
+			yield* eventually(() => expect(control('#search-dialog [role="option"] p', HTMLElement).textContent).toBe("Second phrase changed."));
 		},
 	);
 }
@@ -48,7 +44,7 @@ expectNoReactWarnings();
 			click("#sidebar-toggle");
 			editFile("notes/plan.md", `${files["notes/plan.md"]}\nRefreshed source.\n`);
 			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-			yield* Effect.promise(() => eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("Refreshed source.")));
+			yield* eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("Refreshed source."));
 			expect(readRootAttribute("data-scheme")).toBe("dark");
 			expect(control("#sidebar", HTMLElement).hidden).toBe(true);
 			yield* Effect.promise(() => closeScreen());
@@ -88,19 +84,19 @@ expectNoReactWarnings();
 			openDetails("article details");
 			editFile("notes/plan.md", `${files["notes/plan.md"]}\nMore evidence.\n`);
 			yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-			yield* Effect.promise(() => eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("More evidence.")));
+			yield* eventually(() => expect(control("#doc", HTMLElement).textContent).toContain("More evidence."));
 			expect(control("article details", HTMLDetailsElement).open).toBe(true);
 			yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-			yield* Effect.promise(() => eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Proof")));
+			yield* eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Proof"));
 			yield* Effect.promise(() => back());
-			yield* Effect.promise(() => eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Plan")));
+			yield* eventually(() => expect(control("#doc h1", HTMLElement).textContent).toBe("Plan"));
 			expect(control("article details", HTMLDetailsElement).open).toBe(true);
 			browserEvent("pagehide", "window");
 			const state = location()?.state;
 			yield* Effect.promise(() => closeScreen());
 			rememberHistory({ workBoard: { id: state?.key } });
 			yield* Effect.promise(() => chrome());
-			yield* Effect.promise(() => eventually(() => expect(control("article details", HTMLDetailsElement).open).toBe(true)));
+			yield* eventually(() => expect(control("article details", HTMLDetailsElement).open).toBe(true));
 			expect(roles.text({ name: "Unpin", role: "button" })).toBe("Unpin");
 			click("#library-open");
 			expect([...findElements("#reading-library h3", document)].map((heading) => heading.textContent)).toEqual(["Pinned", "Today"]);

@@ -37,8 +37,11 @@ for (const action of ["retry", "release"] as const) {
 					expect(document).not.toContain(':::option{id="retry"}');
 				}
 				if (scenario.recovery === "accept-merge-after-repairs") {
-					const repairLimit = 3;
-					expect(before.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(repairLimit);
+					expect(before.attempts.filter((attempt) => attempt.role === "repair").map(({ operationId }) => operationId)).toEqual([
+						"operation-3",
+						"operation-4",
+						"operation-5",
+					]);
 					expect(before.decision?.reason).toContain("test");
 				}
 				if (action === "retry" && explanation !== undefined) {
@@ -88,15 +91,15 @@ for (const action of ["retry", "release"] as const) {
 				}
 				switch (scenario.recovery) {
 					case "accept-merge-after-repairs": {
-						const repairLimit = 3;
 						expect(after.step).toBe("released");
 						expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-						expect(after.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(repairLimit);
+						expect(after.attempts.filter((attempt) => attempt.role === "repair").map(({ operationId }) => operationId)).toEqual(
+							before.attempts.filter((attempt) => attempt.role === "repair").map(({ operationId }) => operationId),
+						);
 						break;
 					}
 					case "accept-merge-without-checks": {
-						const noRequests = 0;
-						expect(recovery.observations?.requests).toBe(noRequests);
+						expect(recovery.observations?.requests).toBe(0);
 						expect(after.checks).toBeUndefined();
 						expect(after.step).toBe("released");
 						break;

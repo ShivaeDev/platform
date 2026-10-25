@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Fiber, Layer, Redacted } from "effect";
+import { Context, Effect, Fiber, Layer, Redacted, Stream } from "effect";
 import { SqlClient } from "effect/sql";
 import { Forbidden, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { databaseAddress } from "@shivaedev/platform/server/databaseAddress.ts";
@@ -25,12 +25,21 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	const board = yield* BoardGateway;
 	function closeFinished(dryRun: boolean) {
 		return board.closeFinishedDecisions === undefined
-			? Effect.fail(new BoardFailure({ message: "The Board gateway cannot close finished decisions" }))
+			? Effect.fail(
+					new BoardFailure({
+						message: "The Board gateway cannot close finished decisions",
+					}),
+				)
 			: board.closeFinishedDecisions({ dryRun });
 	}
 	const url = Redacted.make(host.databaseUrl);
 	const receiptContext = yield* Layer.buildWithScope(
-		PgClient.layer({ applicationName: "work-fleet-receipts", maxConnections: 1, url, ...databaseAddress(url) }),
+		PgClient.layer({
+			applicationName: "work-fleet-receipts",
+			maxConnections: 1,
+			url,
+			...databaseAddress(url),
+		}),
 		scope,
 	);
 	const receipts = Context.get(receiptContext, SqlClient.SqlClient);
@@ -38,6 +47,14 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 		return effect.pipe(Effect.provideService(SqlClient.SqlClient, receipts));
 	}
 	const follow = yield* read(daemonSnapshots(host));
+	const watchSnapshots = yield* read(daemonSnapshots(host, true));
+	const epoch = crypto.randomUUID();
+	function watch(workIds: readonly string[]) {
+		return watchSnapshots(workIds, true).pipe(
+			Stream.map((states) => ({ epoch, states })),
+			Stream.merge(Stream.tick("1 second").pipe(Stream.map(() => ({ epoch }))), { haltStrategy: "left" }),
+		);
+	}
 	const diagnostics = yield* daemonDiagnostics;
 	const dispatch = yield* dispatchRequests(host);
 	const live = yield* LiveConfig;
@@ -61,7 +78,9 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 			return current;
 		}
 		if (current.step !== "waiting") {
-			return yield* new Forbidden({ message: "Only waiting work can be released" });
+			return yield* new Forbidden({
+				message: "Only waiting work can be released",
+			});
 		}
 		return yield* answers(workId, "Release Fleet ownership.", true);
 	});
@@ -83,6 +102,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 					"daemon.release": ({ workIds }) => exposeFailure(settle(Effect.forEach(workIds, acceptRelease))),
 					"daemon.reserve-pr": ({ areas, pr }) => exposeFailure(settle(reserveForeignPr(host, pr, areas))),
 					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
+					"daemon.watch": ({ workIds }) => watch(workIds),
 				}),
 			),
 		),

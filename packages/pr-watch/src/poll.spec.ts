@@ -76,7 +76,7 @@ watch.it("malformed responses and unknown mergeability retain the old state", []
 	h.pullIs(1, { mergeable: null, "mergeable_state": "unknown" });
 	yield* Effect.result(h.poll);
 	expect(h.lines).toEqual([]);
-	const failedObservations = 2;
+	const failedObservations = 1;
 	expect(h.diagnostics).toHaveLength(failedObservations);
 });
 watch.it("invalid state and a different repository fail without overwriting it", [historyIs("broken")], function* (h) {

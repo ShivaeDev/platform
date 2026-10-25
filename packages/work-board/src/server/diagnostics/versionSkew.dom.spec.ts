@@ -19,7 +19,7 @@ screenStory.it(
 	"shows a GitHub decode observation while Codex usage and Fleet health survive through Board RPC and System",
 	[unknownGithubLimits, screenRoute("/_board/system"), sessionScreen("response")],
 	function* ({ readSessionDiagnostics, findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-source="github"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-source="github"]')).not.toBeNull());
 		const data = yield* Effect.promise(() => readSessionDiagnostics());
 		expect(data.sources.github).toMatchObject({ cause: expect.stringContaining("GitHub diagnostics decode failed"), state: "error" });
 		const github = findElement('[data-source="github"]');
@@ -35,7 +35,7 @@ screenStory.it(
 	"reports decode observations for every source when the daemon snapshot itself has an unknown shape",
 	[sessionDiagnostics(() => null), screenRoute("/_board/system"), sessionScreen("response")],
 	function* ({ readSessionDiagnostics, findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-source="github"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-source="github"]')).not.toBeNull());
 		const data = yield* Effect.promise(() => readSessionDiagnostics());
 		for (const source of ["codex", "github", "fleet"] as const) {
 			expect(data.sources[source]).toMatchObject({ cause: expect.stringContaining("diagnostics decode failed"), state: "error" });

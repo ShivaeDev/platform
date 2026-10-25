@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/effect-react",
-	"version": "0.14.0",
+	"version": "0.15.0",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/effect-react#readme",
 	"bugs": {
@@ -50,7 +50,8 @@
 	},
 	"dependencies": {
 		"@shivaedev/effect-contract": "workspace:*",
-		"@shivaedev/effect-form": "workspace:*"
+		"@shivaedev/effect-form": "workspace:*",
+		"@shivaedev/effect-test": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
@@ -60,7 +61,6 @@
 		"@shivaedev/effect-pg-boss": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
-		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/platform": "workspace:*",

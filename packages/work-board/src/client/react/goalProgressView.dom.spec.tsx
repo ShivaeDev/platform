@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
@@ -13,7 +12,7 @@ screenStory.it(
 	"shows goal progress on the stock progress bar and charts each criterion by its text, with counts on the bars and empty criteria kept",
 	[screenChartLayout(), boardScreen(files, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ findElement, findElements, keyboard, readAttribute, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-section="progress"] [data-slot="chart"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-goal-section="progress"] [data-slot="chart"]')).not.toBeNull());
 		const progress = '[data-goal-section="progress"]';
 		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
 		expect(readText(`${progress} [data-slot="progress-value"]`)).toBe("1 of 5 done");
@@ -24,37 +23,35 @@ screenStory.it(
 			["draft", "3"],
 			["dropped", "0"],
 		]);
-		yield* Effect.promise(() =>
-			eventually(() => {
-				expect(readText(`${progress} [data-goal-breakdown] h3`)).toBe("By criterion");
-				const labels = [...findElements(`${progress} [data-goal-criterion-label] a`)];
-				expect(labels.map((label) => [label.textContent, label.getAttribute("href")])).toEqual([
-					["First criterion", "#criterion-first"],
-					["Second criterion", "#criterion-second"],
-				]);
-				for (const label of labels) {
-					expect(findElement(`${decodeURIComponent(label.getAttribute("href") ?? "")} h3`)?.textContent).toBe(label.textContent);
-				}
-				expect(
-					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
-				).toEqual([
-					["var(--color-draft)", "508"],
-					["var(--muted)", "508"],
-				]);
-				expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["2", "No linked work"]);
-				expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
-					"Done",
-					"Deferred",
-					"Ready",
-					"Draft",
-					"Dropped",
-				]);
-			}),
-		);
+		yield* eventually(() => {
+			expect(readText(`${progress} [data-goal-breakdown] h3`)).toBe("By criterion");
+			const labels = [...findElements(`${progress} [data-goal-criterion-label] a`)];
+			expect(labels.map((label) => [label.textContent, label.getAttribute("href")])).toEqual([
+				["First criterion", "#criterion-first"],
+				["Second criterion", "#criterion-second"],
+			]);
+			for (const label of labels) {
+				expect(findElement(`${decodeURIComponent(label.getAttribute("href") ?? "")} h3`)?.textContent).toBe(label.textContent);
+			}
+			expect(
+				[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
+			).toEqual([
+				["var(--color-draft)", "508"],
+				["var(--muted)", "508"],
+			]);
+			expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["2", "No linked work"]);
+			expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
+				"Done",
+				"Deferred",
+				"Ready",
+				"Draft",
+				"Dropped",
+			]);
+		});
 		expect(readText(`${progress} [data-goal-breakdown]`)).not.toContain("All work");
 		keyboard("ArrowRight", {}, findElement(`${progress} .recharts-surface`) ?? document);
-		yield* Effect.promise(() =>
-			eventually(() => expect(findElement(`${progress} .recharts-tooltip-wrapper [class*="font-medium"]`)?.textContent).toBe("Second criterion")),
+		yield* eventually(() =>
+			expect(findElement(`${progress} .recharts-tooltip-wrapper [class*="font-medium"]`)?.textContent).toBe("Second criterion"),
 		);
 	},
 );
@@ -78,16 +75,14 @@ screenStory.it(
 	],
 	function* ({ findElements }) {
 		const progress = '[data-goal-section="progress"]';
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(
-					[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
-				).toEqual([
-					["var(--color-done)", expect.any(String)],
-					["var(--color-draft)", expect.any(String)],
-					["var(--muted)", "508"],
-				]),
-			),
+		yield* eventually(() =>
+			expect(
+				[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
+			).toEqual([
+				["var(--color-done)", expect.any(String)],
+				["var(--color-draft)", expect.any(String)],
+				["var(--muted)", "508"],
+			]),
 		);
 		expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["100", "No linked work"]);
 	},
@@ -106,7 +101,7 @@ screenStory.it(
 	],
 	function* ({ findElement, readAttribute }) {
 		const progress = '[data-goal-section="progress"]';
-		yield* Effect.promise(() => eventually(() => expect(findElement(`${progress} [role="progressbar"]`)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(`${progress} [role="progressbar"]`)).not.toBeNull());
 		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
 		expect(findElement(`${progress} [data-goal-counts]`)).not.toBeNull();
 		expect(findElement(`${progress} [data-goal-breakdown], ${progress} [data-slot="chart"]`)).toBeNull();
@@ -128,7 +123,7 @@ screenStory.it(
 		),
 	],
 	function* ({ findElement, findElements, readText, readAttribute }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement('[data-goal-item="task.ready"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement('[data-goal-item="task.ready"]')).not.toBeNull());
 		expect(readAttribute('[data-goal-section="progress"] [role="progressbar"]', "aria-valuetext")).toBe("1 of 7 done");
 		for (const [id, group, chip] of [
 			["task.dropped", "Dropped", "Dropped"],

@@ -50,7 +50,7 @@ import { QUESTION } from "#test/workerQuestion.ts";
 			expect(providerStarts().at(-1)?.prompt).toContain(answer.body);
 			expect(providerStarts().at(-1)?.prompt).toContain(result.pr);
 			expect(providerStarts().at(-1)?.prompt).toContain("same branch");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-3"]);
 			yield* fleet.resolve("one", decision.id, answer.id);
 			expect((yield* fleet.get("one")).value.attempts).toEqual(resumed.attempts);
 		},
@@ -85,10 +85,10 @@ for (const reason of ["rejected", "ambiguous", "unavailable"] as const) {
 					return yield* fleet.reconcile("one");
 				})).value;
 				expect(blocked.step).toBe("waiting");
-				expect(blocked.attempts).toHaveLength(2);
+				expect(blocked.attempts.map(({ operationId }) => operationId)).toEqual(["operation-1", "operation-2"]);
 				expect(blocked.attempts.at(-1)?.sessionUnusable).toBeUndefined();
 				expect(blocked.responses).toMatchObject([{ responseId: answer.id }]);
-				expect(launches()).toHaveLength(1);
+				expect(launches()).toEqual(["operation-1"]);
 			},
 		);
 	}

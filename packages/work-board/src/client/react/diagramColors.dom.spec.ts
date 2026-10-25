@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { boardTokens } from "#test/boardTokens.ts";
@@ -24,11 +23,11 @@ screenStory.it(
 	],
 	function* ({ diagramPalette, drawings, click, roles }) {
 		const readable = { amber: [], effects: { dropShadow: "none", useGradient: false }, offBoard: [], unreadable: [] };
-		yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(LIGHT_DRAWING + 1)));
+		yield* eventually(() => expect(drawings()).toHaveLength(LIGHT_DRAWING + 1));
 		expect(diagramPalette(LIGHT_DRAWING)).toEqual({ ...readable, dark: false });
 		click("#settings-open");
 		yield* roles.click({ name: "Dark", role: "button" });
-		yield* Effect.promise(() => eventually(() => expect(drawings()).toHaveLength(DARK_DRAWING + 1)));
+		yield* eventually(() => expect(drawings()).toHaveLength(DARK_DRAWING + 1));
 		expect(diagramPalette(DARK_DRAWING)).toEqual({ ...readable, dark: true });
 	},
 );

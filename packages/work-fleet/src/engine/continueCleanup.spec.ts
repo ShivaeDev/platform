@@ -36,15 +36,15 @@ engine.it(
 		const sessionId = completed.value.attempts[0]?.receipt?.sessionId;
 		expect(sessionId).toBeDefined();
 		expect(completed.value.step).toBe("done");
-		expect(archivedSessions().filter((id) => id === sessionId)).toHaveLength(1);
+		expect(archivedSessions().filter((id) => id === sessionId)).toEqual([sessionId]);
 		const continued = yield* fleet.continue("one", "Check one more case");
 		expect(continued.value.attempts[0]?.receipt?.sessionId).toBe(sessionId);
 		expect(continued.value.attempts[0]?.sessionCleanupComplete).toBeUndefined();
 		yield* fleet.reconcile("one");
-		expect(archivedSessions().filter((id) => id === sessionId)).toHaveLength(1);
+		expect(archivedSessions().filter((id) => id === sessionId)).toEqual([sessionId]);
 		finishWorkers();
 		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-		expect(archivedSessions().filter((id) => id === sessionId)).toHaveLength(2);
-		expect(launches().filter((id) => id === "operation-1")).toHaveLength(1);
+		expect(archivedSessions().filter((id) => id === sessionId)).toEqual([sessionId, sessionId]);
+		expect(launches().filter((id) => id === "operation-1")).toEqual(["operation-1"]);
 	},
 );

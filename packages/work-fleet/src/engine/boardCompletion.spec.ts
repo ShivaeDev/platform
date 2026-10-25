@@ -41,7 +41,7 @@ for (const released of [false, true]) {
 			yield* schedule();
 			expect(yield* fleet.get("one")).toEqual(done);
 			expect(boardFileIdentity()).toBe(identity);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -67,7 +67,7 @@ engine.it(
 		expect(yield* fleet.get("one")).toEqual(done);
 		expect(done.value.boardRevision).toBe(waiting.value.boardRevision);
 		expect(done.value.history ?? []).toEqual(waiting.value.history ?? []);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );
 engine.it(

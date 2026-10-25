@@ -19,20 +19,22 @@ isolatedEngine.it(
 		const responseId = respond(decision.id, "release");
 		const applied = yield* fleet.resolve("one", decision.id, responseId);
 		expect(applied.value.step).toBe("released");
-		expect(applied.value.responses).toHaveLength(1);
+		expect(applied.value.responses).toMatchObject([{ responseId }]);
 		expect(applied.value.responses?.[0]?.boardAcknowledged).toBeUndefined();
 		expect(applied.value.blocker).toContain("Board request acknowledgement pending");
 		expect(acknowledgements()).toHaveLength(0);
 		yield* restart();
 		const repaired = yield* fleet.resolve("one", decision.id, responseId);
 		expect(repaired.value.step).toBe("released");
-		expect(repaired.value.responses).toHaveLength(1);
-		expect(repaired.value.responses?.[0]?.boardAcknowledged).toBe(true);
+		expect(repaired.value.responses).toMatchObject([{ boardAcknowledged: true, responseId }]);
 		expect(repaired.value.blocker).toBeUndefined();
 		expect((yield* fleet.resolve("one", decision.id, responseId)).version).toBe(repaired.version);
-		expect(acknowledgementAttempts()).toHaveLength(2);
-		expect(acknowledgements()[0]).toMatchObject({ disposition: "applied", responseId });
-		expect(launches()).toHaveLength(2);
+		expect(acknowledgementAttempts()).toMatchObject([
+			{ decision: decision.published, disposition: "applied", responseId },
+			{ decision: decision.published, disposition: "applied", responseId },
+		]);
+		expect(acknowledgements()).toMatchObject([{ decision: decision.published, disposition: "applied", responseId }]);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );
 
@@ -50,8 +52,8 @@ isolatedEngine.it(
 		const repaired = yield* fleet.get("one");
 		expect(repaired.value.step).toBe("released");
 		expect(repaired.value.responses?.[0]?.boardAcknowledged).toBe(true);
-		expect(acknowledgements()).toHaveLength(1);
-		expect(launches()).toHaveLength(2);
+		expect(acknowledgements()).toMatchObject([{ decision: decision.published, disposition: "applied" }]);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );
 
@@ -75,7 +77,7 @@ isolatedEngine.it(
 		expect(repaired.value.step).toBe("queued");
 		expect(repaired.value.history?.[0]?.decisionAcknowledged).toBe(true);
 		expect(acknowledgements()[0]).toMatchObject({ decision: decision.published, disposition: "superseded" });
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );
 
@@ -94,11 +96,11 @@ for (const type of ["clarify", "not_now"] as const) {
 			const repeated = yield* fleet.resolve("one", decision.id, responseId);
 			expect(repeated.version).toBe(first.version);
 			expect(repeated.value.step).toBe("waiting");
-			expect(repeated.value.responses).toHaveLength(1);
+			expect(repeated.value.responses).toMatchObject([{ responseId, type }]);
 			expect(repeated.value.decision?.id).toBe(decision.id);
 			expect(repeated.value.responses?.[0]?.action).toBeUndefined();
 			expect(acknowledgementAttempts()).toHaveLength(0);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

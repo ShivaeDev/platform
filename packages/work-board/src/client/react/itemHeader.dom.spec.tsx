@@ -23,7 +23,7 @@ for (const [name, files, token, label] of [
 		`shows an active task's request state in its header while ${name} is open`,
 		[routedScreen(files, "/_board/item/task.guide/", { home: "home.md" })],
 		function* ({ findElement, readAttribute, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(".answer-cards")).not.toBeNull()));
+			yield* eventually(() => expect(findElement(".answer-cards")).not.toBeNull());
 			expect(readAttribute(CHIP, "data-status-token")).toBe(token);
 			expect(readText(CHIP)).toBe(label);
 		},
@@ -40,7 +40,7 @@ for (const [name, files, item, label] of [
 		`tells whether ${name} was answered once no request is open`,
 		[routedScreen(files, `/_board/item/${item}/`, { home: "home.md" })],
 		function* ({ findElement, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+			yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 			expect(findElement(".answer-cards")).toBeNull();
 			expect(readText(CHIP)).toBe(label);
 		},
@@ -51,7 +51,7 @@ screenStory.it(
 	"shows no outcome for a question receipt while its decision still waits",
 	[routedScreen(unansweredDecision(), `/_board/item/${answeredQuestion}/`, { home: "home.md" })],
 	function* ({ findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 		expect(findElement(CHIP)).toBeNull();
 	},
 );
@@ -60,7 +60,7 @@ screenStory.it(
 	"shows when the item last changed after its ID",
 	[routedScreen({ "task.md": "---\nid: task.fresh\nkind: task\nstatus: ready\n---\n# Fresh task\n" }, "/_board/item/task.fresh/")],
 	function* ({ findElement, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 		const updated = findElement(`${HEADER} [data-item-updated]`);
 		expect(updated?.textContent).toMatch(/^updated \S/u);
 		expect(findElement("time[data-modified]", updated)).not.toBeNull();
@@ -77,12 +77,12 @@ screenStory.it(
 		}),
 	],
 	function* ({ editFile, findElement, readText, refreshDocument }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 		const line = findElement(`${HEADER} [role="status"]`);
 		expect(line?.textContent).toBe("");
 		editFile("task.md", "---\nid: task.live\nkind: task\nstatus: ready\n---\n# Live task\n");
 		yield* Effect.promise(() => refreshDocument("/_board/item/task.live/"));
-		yield* Effect.promise(() => eventually(() => expect(readText(CHIP)).toBe("Ready")));
+		yield* eventually(() => expect(readText(CHIP)).toBe("Ready"));
 		expect(findElement(`${HEADER} [role="status"]`)).toBe(line);
 		expect(line?.textContent).toBe("Status changed: Draft → Ready");
 	},
@@ -92,7 +92,7 @@ screenStory.it(
 	"links the goal an item implements and offers a handoff for open work",
 	[routedScreen(GOALS, "/_board/item/task.part/", { home: "home.md" })],
 	function* ({ findElement, findElements, readAttribute }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 		const parts = [...findElements(`${HEADER} a`)].filter((link) => link.textContent?.startsWith("Part of"));
 		expect(parts.map((link) => [link.textContent, link.getAttribute("href")])).toEqual([["Part of Readable workspace", "/_board/item/goal.reader/"]]);
 		expect(readAttribute('a[href^="/_board/handoff"]', "href")).toBe("/_board/handoff?item=task.part");
@@ -108,7 +108,7 @@ for (const [item, kind] of [
 		`offers no agent handoff on ${item}`,
 		[routedScreen(GOALS, `/_board/item/${item}/`, { home: "home.md" })],
 		function* ({ findElement, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+			yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 			expect(findElement("#favorite-toggle")).not.toBeNull();
 			expect(findElement('a[href^="/_board/handoff"]')).toBeNull();
 			expect(readText(`${HEADER} > div > span`)).toBe(kind);
@@ -132,7 +132,7 @@ screenStory.it(
 		}),
 	],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(`${HEADER} a[href="${PR}"]`)).not.toBeNull()));
+		yield* eventually(() => expect(findElement(`${HEADER} a[href="${PR}"]`)).not.toBeNull());
 		const controls = {
 			copy: findElement(`${HEADER} button[aria-label="Copy item ID"]`),
 			goal: [...findElements(`${HEADER} a`)].find((link) => link.textContent?.startsWith("Part of")),
@@ -157,11 +157,11 @@ for (const [clipboard, copied] of [
 		`tells the reader the ID copy result until they move on when the clipboard ${clipboard}`,
 		[...(clipboard === "refuses the copy" ? [deniedClipboard()] : []), routedScreen(GOALS, "/_board/item/task.part/", { home: "home.md" })],
 		function* ({ click, findElement, focus, readAttribute }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(HEADER)).not.toBeNull()));
+			yield* eventually(() => expect(findElement(HEADER)).not.toBeNull());
 			const copy = `${HEADER} button[aria-label]`;
 			focus(copy);
 			click(copy);
-			yield* Effect.promise(() => eventually(() => expect(readAttribute(copy, "aria-label")).toBe(copied)));
+			yield* eventually(() => expect(readAttribute(copy, "aria-label")).toBe(copied));
 			focus("#favorite-toggle");
 			expect(readAttribute(copy, "aria-label")).toBe("Copy item ID");
 		},

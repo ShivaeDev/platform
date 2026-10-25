@@ -23,7 +23,7 @@ describe("Fleet admission path", () => {
 		yield* fleet.reserveForeign("human-pr");
 		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
 		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	});
 	isolatedEngine.it("one unit of quota cannot admit two concurrent disjoint submissions", [availableQuota(1)], function* (fleet) {
 		yield* fleet.prepareWork("one");
@@ -32,7 +32,7 @@ describe("Fleet admission path", () => {
 			concurrency: "unbounded",
 		});
 		expect(outcomes.map((outcome) => outcome._tag).sort()).toEqual(["Failure", "Success"]);
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 	});
 	engine.it("unknown quota remains prepared with a concrete blocker", [unknownProviderQuota()], function* (fleet) {
 		yield* fleet.prepareWork("one");
@@ -62,7 +62,7 @@ describe("Fleet admission path", () => {
 		yield* fleet.prepareWork("one");
 		yield* fleet.dispatch("dependent").pipe(Effect.result);
 		yield* fleet.dispatch("two");
-		expect(fleet.launches()).toHaveLength(1);
+		expect(fleet.launches()).toEqual(["operation-1"]);
 		yield* fleet.dispatch("one");
 		fleet.finishWorkers();
 		yield* fleet.reconcile("one");

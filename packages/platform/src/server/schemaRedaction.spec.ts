@@ -5,8 +5,6 @@ import { schemaDiagnostics } from "#test/app-host/schemaDiagnostics.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const HTTP_OK = 200;
-
 host.it(
 	"redacts the client failure while preserving application values in a native tracer",
 	[schemaDiagnostics, nativeTracing],
@@ -60,7 +58,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				visible: "ordinary prose stays visible",
 			};
 			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "diagnose" })}\n`, false);
-			expect(response.status).toBe(HTTP_OK);
+			expect(response.status).toBe(200);
 			expect(response.body).toContain('"_tag":"Rejected"');
 			for (const key of ["sealed", "sensitiveNote", "customerRef", "mailingLine", "internalReference", "privateLabels", "recoveryCodes"]) {
 				expect(response.body).toContain(`"${key}":"<redacted>"`);
