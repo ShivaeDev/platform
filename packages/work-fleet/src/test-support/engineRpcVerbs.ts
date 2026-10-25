@@ -44,6 +44,11 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 					return { location: response.headers.get("location"), status: response.status, text: await response.text() };
 				});
 			}),
+		rpcContinue: (input: { workId: string; message: string }) =>
+			Effect.gen(function* () {
+				tell(`continue ${input.workId} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.continue", input);
+			}).pipe(Effect.scoped),
 		rpcDispatch: (workId: string) =>
 			Effect.gen(function* () {
 				tell(`dispatch ${workId} through native RPC`);
@@ -59,10 +64,20 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 				tell(`prepare ${input.workId} through native RPC`);
 				return yield* (yield* rpcClient())("fleet.prepare", input);
 			}).pipe(Effect.scoped),
+		rpcReassign: (input: { workId: string; decisionId: string; attentionOwner: "maintainer" | "orchestrator" }) =>
+			Effect.gen(function* () {
+				tell(`reassign ${input.workId} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.reassign", input);
+			}).pipe(Effect.scoped),
 		rpcReconcile: (workId: string) =>
 			Effect.gen(function* () {
 				tell(`reconcile ${workId} through native RPC`);
 				return yield* (yield* rpcClient())("fleet.reconcile", { workId });
+			}).pipe(Effect.scoped),
+		rpcReconcileRequest: (input: { workId: string }) =>
+			Effect.gen(function* () {
+				tell(`reconcile ${input.workId} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.reconcile", input);
 			}).pipe(Effect.scoped),
 		rpcResolve: (input: { decisionId: string; responseId: string; workId: string }) =>
 			Effect.gen(function* () {
