@@ -3,6 +3,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { AdminApi } from "./adminApi.ts";
 import type { AdminHost } from "./adminHost.ts";
+import { profileVerbs } from "./profileVerbs.ts";
 
 export function adminVerbs(host: AdminHost, story: { tell: (line: string) => void }) {
 	const protocol = Layer.suspend(() =>
@@ -16,6 +17,7 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 		return makeClient.pipe(Effect.flatMap(use), Effect.result, Effect.provide(protocol));
 	}
 	return {
+		...profileVerbs(host, story),
 		callAdminTools: Effect.fn("AuthStory.callAdminTools")(function* () {
 			story.tell("call the admin-only RPC");
 			return yield* call((client) => client.adminTools());

@@ -263,6 +263,18 @@ export const sessions = {
 
 The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
+### Reading other users' public profiles
+
+Use `userProfiles(auth, userIds)` in server code to display the names of users who made changes. Pass the `auth` instance returned by `betterAuthMount` and a list of user IDs.
+
+```ts
+import { userProfiles } from "@shivaedev/platform/server/better-auth/userProfiles.ts";
+
+const profiles = yield* userProfiles(auth, changedByUserIds);
+```
+
+The Effect returns an array of `{ id, name, image }`, with `image: null` when unset and unknown IDs omitted. It reads duplicate IDs once in one storage query through Better Auth's adapter, honoring the application's model and field mappings. An empty list returns an empty array without querying storage. Each lookup reads the current profile, including names changed through Better Auth. The result never includes email, role, session or account data. A storage failure logs its cause in redacted form and fails with a generic `AuthUnavailable`, without exposing provider exception details to the caller.
+
 ### Reading the signed-in user
 
 When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; the new middleware supplies both services for that invocation. Its provider must return `user: { id, name, email }`, described by `UserSessionShape`.
