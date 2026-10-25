@@ -126,14 +126,12 @@ origins.it("rejects message-supplied credentials and still enforces NDJSON", [],
 });
 
 origins.it("delivers incremental native NDJSON updates and releases server work when fetch aborts", [], function* ({ mintSession, stream }) {
-	const openSubscription = 1;
-	const noSubscriptions = 0;
 	const session = yield* mintSession();
 	const subscription = yield* stream(NATIVE_ORIGIN, session.credential);
 	for (let update = 0; update < 3; update += 1) {
 		expect(yield* subscription.next).toMatchObject({ _tag: "Resync" });
-		expect(yield* subscription.resync).toBe(openSubscription);
+		expect(yield* subscription.resync).toBe([subscription].length);
 	}
 	yield* subscription.abort;
-	expect(yield* subscription.awaitReleased).toBe(noSubscriptions);
+	expect(yield* subscription.awaitReleased).toBe(0);
 });
