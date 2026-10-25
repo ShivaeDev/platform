@@ -1,6 +1,6 @@
 import { BlockList, isIP } from "node:net";
 
-function addProxyAddress(addresses: BlockList, entry: string): boolean {
+export function addProxyAddress(addresses: BlockList, entry: string): boolean {
 	const parts = entry.trim().split("/");
 	const address = parts[0] ?? "";
 	const family = isIP(address);

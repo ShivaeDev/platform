@@ -1,26 +1,7 @@
 import { BlockList, isIP } from "node:net";
 import { Schema } from "effect";
-import { proxyRanges as normalizedRanges } from "./proxyRanges.ts";
+import { addProxyAddress, proxyRanges as normalizedRanges } from "./proxyRanges.ts";
 
-function addProxyAddress(addresses: BlockList, entry: string): boolean {
-	const parts = entry.trim().split("/");
-	const address = parts[0] ?? "";
-	const family = isIP(address);
-	if (family === 0 || address.includes("%") || parts.length > 2) {
-		return false;
-	}
-	const type = family === 4 ? "ipv4" : "ipv6";
-	const prefix = parts[1];
-	if (prefix === undefined) {
-		addresses.addAddress(address, type);
-	} else {
-		if (!/^\d+$/u.test(prefix) || Number(prefix) > (family === 4 ? 32 : 128)) {
-			return false;
-		}
-		addresses.addSubnet(address, Number(prefix), type);
-	}
-	return true;
-}
 export function proxyRanges(value: string): string[] | undefined {
 	return normalizedRanges(value);
 }
