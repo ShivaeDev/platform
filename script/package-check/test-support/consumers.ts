@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { packArchive } from "#package-check/archive.ts";
 import { workspaceArchives } from "#package-check/archives.ts";
 import { checkConsumers } from "#package-check/consumers.ts";
-import { writeJson } from "#package-check/io.ts";
+import { command, writeJson } from "#package-check/io.ts";
 
 export const consumers = storyKit({
 	after: {
@@ -26,7 +26,8 @@ export const consumers = storyKit({
 			yield* fs.makeDirectory(join(root, path), { recursive: true });
 		}
 		const workspace = yield* fs.readFileString(join(process.cwd(), "pnpm-workspace.yaml"));
-		yield* fs.writeFileString(join(root, "pnpm-workspace.yaml"), `${workspace}\noffline: true\n`);
+		const store = (yield* command(process.cwd(), "pnpm", ["store", "path", "--silent"])).trim();
+		yield* fs.writeFileString(join(root, "pnpm-workspace.yaml"), `${workspace}\nstoreDir: ${JSON.stringify(store)}\n`);
 		yield* writeJson(join(root, "script/package-check/browser-entries.json"), {});
 		yield* writeJson(join(root, "script/package-check/fixture-files.json"), {});
 		yield* writeJson(join(root, "packages/probe/package.json"), {
