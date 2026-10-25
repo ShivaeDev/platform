@@ -1,7 +1,6 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
-import { HEAD, REPORT } from "#test/githubResult.ts";
+import { REPORT } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
@@ -25,10 +24,7 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 							.pipe(Effect.map((observation) => (restored ? observation : { ...observation, receipt: { ...receipt, turnId: "different" } }))),
 				}),
 			},
-			progress: (_ctx, _before, after) => {
-				expect(after.result?.head).toBe(HEAD);
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "adopt-matching-receipt",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
@@ -49,10 +45,7 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "terminal observation unavailable",
-			progress: (_ctx, _before, after) => {
-				expect(after.result?.head).toBe(HEAD);
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "adopt-observed-worker",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
@@ -69,11 +62,7 @@ export function recoveryUncertainCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "receipt temporarily unavailable",
-			progress: (_ctx, before, after) => {
-				expect(after.attempts[0]?.operationId).toBe(before.attempts[0]?.operationId);
-				expect(after.attempts[0]?.receipt).toBeDefined();
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "recover-authoritative-receipt",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					const observed = [...ctx.fixture.observations.values()][0];

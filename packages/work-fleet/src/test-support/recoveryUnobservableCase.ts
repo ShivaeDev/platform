@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
@@ -20,10 +19,7 @@ export function recoveryUnobservableCase(): RecoveryCase {
 		}),
 		name: "a second invisible turn offers retry and release after terminal evidence",
 		options: { now: () => now },
-		progress: (_context, before, after) => {
-			expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-			expect(after.attempts.at(-1)?.receipt?.turnId).not.toBe(before.attempts.at(-1)?.receipt?.turnId);
-		},
+		recovery: "resume-visible-worker",
 		restore: Effect.fnUntraced(function* (context) {
 			setLastObservation(context, { execution: "failed", turnMissing: false });
 			yield* (yield* Fleet).reconcile("one");

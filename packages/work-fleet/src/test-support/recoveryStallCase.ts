@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
@@ -22,10 +21,7 @@ export function recoveryStallCase(): RecoveryCase {
 			yield* fleet.reconcile("one");
 		}),
 		name: "stalled retry offers retry and release after terminal evidence",
-		progress: (_context, before, after) => {
-			expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-			expect(after.attempts.at(-1)?.receipt?.turnId).not.toBe(before.attempts.at(-1)?.receipt?.turnId);
-		},
+		recovery: "resume-stalled-worker",
 		restore: Effect.fnUntraced(function* (context) {
 			setLastObservation(context, { execution: "failed" });
 			yield* (yield* Fleet).reconcile("one");

@@ -1,6 +1,5 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { prepareWork } from "#test/engine.ts";
@@ -28,13 +27,9 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 					...policy,
 					localOnlyBoardPath: "private/board",
 				}));
-				expect(context.fixture.starts).toHaveLength(0);
 			}),
 			name: "criterion needs Board data unavailable under the launch policy",
-			progress: (_context, _before, after) => {
-				expect(after.attempts).toHaveLength(1);
-				expect(after.step).toBe("working");
-			},
+			recovery: "start-with-complete-context",
 			sites: ['engine/makeLaunch.ts: "incomplete-context"'],
 		},
 		{
@@ -45,10 +40,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).dispatch("one");
 			}),
 			name: "authored brief reassigned before dispatch",
-			progress: (_context, _before, after) => {
-				expect(after.attempts).toHaveLength(1);
-				expect(after.step).toBe("working");
-			},
+			recovery: "start-with-current-brief",
 			restore,
 			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
 		},
@@ -60,10 +52,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).dispatch("one");
 			}),
 			name: "approval revoked before dispatch",
-			progress: (_context, _before, after) => {
-				expect(after.attempts).toHaveLength(1);
-				expect(after.step).toBe("working");
-			},
+			recovery: "start-with-current-approval",
 			restore,
 			sites: ["engine/dispatchCommand.ts: failureCode(authorized.failure)"],
 		},
@@ -76,11 +65,7 @@ export function recoveryScopeCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "approval revoked during execution",
-			progress: (_context, before, after) => {
-				expect(after.attempts[0]?.receipt).toEqual(before.attempts[0]?.receipt);
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-				expect(after.step).toBe("reviewing");
-			},
+			recovery: "review-with-current-approval",
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},

@@ -1,6 +1,5 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { ConnectionError, SqlError } from "effect/sql/SqlError";
 import { Fleet } from "#fleet.ts";
@@ -20,10 +19,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 		Effect.provide(githubApiLayer.pipe(Layer.provide(failedCli.layer))),
 		Effect.andThen(Effect.die("Unexpected GitHub success")),
 	);
-	const progress: NonNullable<RecoveryCase["progress"]> = (_ctx, _before, after) => {
-		expect(after.attempts.at(-1)?.role).toBe("reviewer");
-		expect(after.step).toBe("reviewing");
-	};
+
 	function restore() {
 		return Effect.sync(() => {
 			restored = true;
@@ -48,7 +44,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 						? new SqlError({ reason: new ConnectionError({ cause: new Error("Repository unavailable") }) })
 						: undefined,
 			},
-			progress,
+			recovery: "review-after-integration-recovery",
 
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
@@ -61,7 +57,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "production Board deliverable metadata invalid",
-			progress,
+			recovery: "review-after-integration-recovery",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					writeFileSync(join(ctx.root, "one.md"), ctx.source);
@@ -79,7 +75,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				resultQuery: (work, observation) =>
 					restored && context !== undefined ? context.github.resultQuery(work, observation) : failedProductionRead,
 			},
-			progress,
+			recovery: "review-after-integration-recovery",
 
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
@@ -97,7 +93,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 					get: (id) => board.get(id).pipe(Effect.map((work) => ({ ...work, approved: context === undefined || restored }))),
 				}),
 			},
-			progress,
+			recovery: "review-after-integration-recovery",
 			restore,
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
@@ -111,7 +107,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				yield* fleet.reconcile("one");
 			}),
 			name: "repair waits for the active worker to finish",
-			progress,
+			recovery: "review-after-integration-recovery",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 		{
@@ -122,10 +118,7 @@ export function recoveryProducerCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "repair lacks an existing worker",
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("working");
-				expect(after.attempts).toHaveLength(1);
-			},
+			recovery: "start-missing-worker",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];

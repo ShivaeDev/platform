@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
@@ -35,16 +34,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 					yield* fleet.reconcile("one");
 				}),
 				name: `base merged into PR with ${evidence} prior review evidence`,
-				progress: (ctx, before, after) => {
-					expect(after.result?.head).toBe(MOVED);
-					expect(after.resultObservations).toContainEqual(before.result);
-					expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-					expect(after.attempts.at(-1)).toMatchObject({ reviewHead: MOVED, role: "reviewer", status: "running" });
-					expect(after.attempts.at(-1)?.receipt?.sessionId).not.toBe(before.attempts.at(-1)?.receipt?.sessionId);
-					expect(after.checks).toBeUndefined();
-					expect(after.mergeReadyAt).toBeUndefined();
-					expect(ctx.fixture.reviews).toEqual([HEAD, MOVED]);
-				},
+				recovery: "review-new-head",
 
 				sites: ["engine/observeDeliveryFailure.ts: failureCode(error)", "engine/observeDeliveryFailure.ts: code"],
 			}),
@@ -53,14 +43,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			code: "reviewed-pr-ready" as const,
 			enter: finishRecoveryReview,
 			name: "ready for human merge",
-			progress: (_ctx, before, after) => {
-				expect(after.step).toBe("working");
-				expect(after.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: before.attempts[0]?.receipt?.sessionId });
-				expect(after.attempts.at(-1)?.prompt).toContain("Resolve the report decision.");
-				expect(after.result).toEqual(before.result);
-				expect(after.review).toBeUndefined();
-				expect(after.checks).toBeUndefined();
-			},
+			recovery: "repair-reviewed-pr",
 			sites: ['engine/mergeReadiness.ts: "reviewed-pr-ready"'],
 		},
 		{
@@ -71,10 +54,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "closed PR",
-			progress: (_ctx, before, after) => {
-				expect(after.step).toBe("done");
-				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-			},
+			recovery: "adopt-closed-pr-merge",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					ctx.github.state.status = "MERGED";
@@ -90,11 +70,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				yield* (yield* Fleet).reconcile("one");
 			}),
 			name: "moved head with paths outside the reservation",
-			progress: (_ctx, before, after) => {
-				expect(after.result?.head).toBe(MOVED);
-				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-				expect(after.attempts.at(-1)).toMatchObject({ reviewHead: MOVED, role: "reviewer" });
-			},
+			recovery: "review-reserved-paths",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					ctx.github.state.paths = ["src/one.ts"];
@@ -112,10 +88,7 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 				yield* ctx.fixture.replaceRecord({ ...stored.value, decision: { ...stored.value.decision, code: "delivery-head-mismatch" } });
 			}),
 			name: "stored delivery head mismatch decision",
-			progress: (_ctx, before, after) => {
-				expect(after.step).toBe("done");
-				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-			},
+			recovery: "adopt-matching-delivery",
 			restore: (ctx) =>
 				Effect.sync(() => {
 					ctx.github.state.status = "MERGED";
@@ -126,11 +99,9 @@ export function recoveryDeliveryCases(): readonly RecoveryCase[] {
 			code: "fleet-integration" as const,
 			enter: finishRecoveryReview,
 			name: "delivery integration unavailable",
+			observe: () => ({ deliveries }),
 			options: { deliveryQuery: observeDelivery },
-			progress: (_ctx, _before, after) => {
-				expect(deliveries).toBe(1);
-				expect(after.step).toBe("done");
-			},
+			recovery: "observe-recovered-delivery",
 			restore: () =>
 				Effect.sync(() => {
 					wrongDelivery = false;

@@ -107,5 +107,6 @@ export const createEngine = Effect.fn("FleetFixture.createEngine")(function* <TB
 		fixture,
 		fleetLayer: fleetLayer(),
 		restartLayer: (configure?: (policy: FleetConfiguration) => FleetConfiguration) => Layer.fresh(fleetLayer(configure?.(policy) ?? policy)),
+		transport: provider.transport,
 	};
 });
