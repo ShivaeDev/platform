@@ -1,4 +1,4 @@
-import { Effect, Schedule } from "effect";
+import { Data, Effect, Schedule } from "effect";
 import { withLive } from "@shivaedev/effect-test/withLive.ts";
 import { accessibility, targetName } from "#internal/screenAccessibility.ts";
 import { screenElements } from "#internal/screenElements.ts";
@@ -7,15 +7,28 @@ export type ScreenTarget = string | { readonly role: string; readonly name: stri
 
 export interface ScreenDriverOptions {
 	readonly act?: (action: () => Promise<void>) => PromiseLike<void>;
-	readonly pending: () => boolean;
+	readonly pending?: () => boolean;
 	readonly root: HTMLElement | (() => HTMLElement);
 	readonly tell: (line: string) => void;
 	readonly timeoutMs?: number;
 }
 
-export type ScreenDriver = ReturnType<typeof screenDriver>;
+export class MissingScreenPending extends Data.TaggedError("MissingScreenPending") {
+	override readonly message =
+		"Cannot settle the screen without the pending option.\nhelp: Supply pending: () => boolean that reads the application's pending work and stays true until its resulting screen work is ready to render.";
+}
 
-export function screenDriver({ root, pending, tell, act = (action) => action(), timeoutMs = 3000 }: ScreenDriverOptions) {
+export type ScreenDriver<E = never> = Omit<ReturnType<typeof makeScreenDriver>, "settle"> & {
+	settle: (options?: { readonly timeoutMs?: number }) => Effect.Effect<void, E>;
+};
+
+export function screenDriver(options: ScreenDriverOptions & { readonly pending: () => boolean }): ScreenDriver;
+export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending>;
+export function screenDriver(options: ScreenDriverOptions) {
+	return makeScreenDriver(options);
+}
+
+function makeScreenDriver({ root, pending, tell, act = (action) => action(), timeoutMs = 3000 }: ScreenDriverOptions) {
 	const currentRoot = typeof root === "function" ? root : () => root;
 	const elements = screenElements(currentRoot);
 	function perform(line: string, action: () => void) {
@@ -25,6 +38,9 @@ export function screenDriver({ root, pending, tell, act = (action) => action(), 
 		});
 	}
 	function settle(options: { readonly timeoutMs?: number } = {}) {
+		if (pending === undefined) {
+			return Effect.fail(new MissingScreenPending());
+		}
 		const limit = options.timeoutMs ?? timeoutMs;
 		const wait = Effect.gen(function* () {
 			tell("wait for the screen's pending work");

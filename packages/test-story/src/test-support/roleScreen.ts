@@ -34,7 +34,7 @@ export const roleScreen = storyKit({
 	name: "role screen",
 	stages: ["screen"],
 	verbs: ({ root, save }, story) => ({
-		...screenDriver({ pending: () => false, root, tell: story.tell }),
+		...screenDriver({ root, tell: story.tell }),
 		saveButton: () => save,
 	}),
 });

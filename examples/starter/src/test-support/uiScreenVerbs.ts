@@ -8,7 +8,6 @@ export function uiScreenVerbs(engine: ScreenSurface, tell: (line: string) => voi
 		act: async (action) => {
 			await act(action);
 		},
-		pending: () => false,
 		root: () => screenView(engine).container,
 		tell,
 	});

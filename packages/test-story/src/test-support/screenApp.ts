@@ -55,6 +55,7 @@ export const screenApp = storyKit({
 					return hold;
 				}),
 			repaints: (count: number) => Effect.promise(() => repaints(count)),
+			withoutPending: screenDriver({ root, tell: story.tell }),
 		};
 	},
 });

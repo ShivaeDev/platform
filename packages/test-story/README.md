@@ -599,7 +599,9 @@ socialApp.it("a social sign-in returns with a cookie session", [], function* ({ 
 
 ### Driving a screen
 
-`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces), the story's `tell`, and a `pending()` function that reads the application's own request or atom state. `settle()` waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
+`screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is needed only for `settle()`; actions, lookups and readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
+
+To use `settle()`, supply a `pending()` function that reads the application's own request or atom state. Settlement then keeps its `Effect<void>` type with no typed errors and waits until that signal is false; repeated identical renders never count as completion. The application must keep the signal true until its resulting screen work is ready to render.
 
 ```ts
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -637,7 +639,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/domFetch.ts` | `domFetch(baseUrl)` |
 | `server/seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
 | `server/routeOutbound.ts` | `routeOutbound(routes)` |
-| `server/screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget` |
+| `server/screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget`, `MissingScreenPending` |
 | `server/domNavigate.ts` | `domNavigate(url?)` |
 | `server/genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |

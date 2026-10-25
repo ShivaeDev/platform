@@ -21,7 +21,7 @@ export function screenObservations(engine: ScreenEngine, tell: (line: string) =>
 	function root() {
 		return engine.container ?? engine.view?.container ?? document;
 	}
-	const { accessible } = screenDriver({ pending: () => false, root: () => document.body, tell });
+	const { accessible } = screenDriver({ root: () => document.body, tell });
 	function element<TTag extends keyof HTMLElementTagNameMap>(selector: TTag, within?: ParentNode | null): HTMLElementTagNameMap[TTag] | null;
 	function element<E extends Element = HTMLElement>(selector: string, within?: ParentNode | null): E | null;
 	function element<E extends Element = HTMLElement>(selector: string, within: ParentNode | null = root()) {
