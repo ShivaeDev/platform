@@ -9,6 +9,7 @@ import type { TestingBatch, TestingWork } from "#internal/testingIdle.ts";
 export interface TestingControls {
 	readonly changed: () => void;
 	readonly expirations: Map<string, number>;
+	readonly expirySeconds: Map<string, number>;
 	readonly failures: Set<string>;
 	readonly retryPolicy: Pick<SendOptions, "retryBackoff" | "retryDelay">;
 	readonly work: TestingWork;
@@ -60,6 +61,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 				throw new Error("Injected pg-boss send failure");
 			}
 			const attempts = controls.expirations.get(name);
+			const expireInSeconds = controls.expirySeconds.get(name);
 			const { retryDelayMax, ...rest } = options ?? {};
 			const id = await expirations.send(
 				name,
@@ -69,6 +71,7 @@ export function testingClient(client: PgBoss, schema: string, controls: TestingC
 					...(controls.retryPolicy.retryBackoff === false || retryDelayMax === undefined ? {} : { retryDelayMax }),
 					...controls.retryPolicy,
 					...(attempts === undefined ? {} : { retryLimit: attempts - 1 }),
+					...(expireInSeconds === undefined ? {} : { expireInSeconds }),
 				},
 				attempts,
 			);

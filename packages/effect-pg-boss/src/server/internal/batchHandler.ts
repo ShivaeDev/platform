@@ -3,6 +3,7 @@ import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { deadlineOf } from "#internal/deadlineOf.ts";
 import { deferredAttempt } from "#internal/deferral.ts";
+import { waitForBatchExpiry } from "#internal/waitForBatchExpiry.ts";
 
 function failureOutput(cause: Cause.Cause<unknown>): object {
 	const error = Cause.squash(cause);
@@ -32,11 +33,15 @@ export function batchHandler(
 	name: string,
 	run: (job: Job<unknown>) => Effect.Effect<unknown, unknown>,
 	afterFailure?: (job: Job<unknown>) => Promise<void>,
+	execute: typeof Effect.runPromise = Effect.runPromise,
 ) {
 	const complete = client.complete?.bind(client);
 	const fail = client.fail?.bind(client);
 	if (complete === undefined || fail === undefined) {
 		throw new TypeError("This pg-boss client does not support complete and fail");
+	}
+	function waitForExpiry(jobs: readonly Job<unknown>[]) {
+		return execute(waitForBatchExpiry(client, name, jobs).pipe(Effect.tapError(Effect.logError)));
 	}
 
 	return async (jobs: readonly Job<unknown>[]): Promise<void> => {
@@ -55,13 +60,12 @@ export function batchHandler(
 				{ signal: job.signal },
 			);
 			if (job.signal.aborted || (Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause))) {
-				// Returning would let pg-boss complete the unprocessed jobs; its expiry owns them instead.
-				return new Promise<never>(() => undefined);
+				return waitForExpiry(jobs);
 			}
 			await settleAttempt(complete, fail, name, job, exit, afterFailure);
 		}
 		if (expired) {
-			return new Promise<never>(() => undefined);
+			return waitForExpiry(jobs);
 		}
 	};
 }

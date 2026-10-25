@@ -7,6 +7,7 @@ import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
+import { settlementProbe } from "#test/settlementProbe.ts";
 import { testingEngine } from "#test/testingEngine.ts";
 import { testingProducer, testingVerbs, testingWorker } from "#test/testingProducer.ts";
 import { tracingEngine } from "#test/tracingEngine.ts";
@@ -35,6 +36,7 @@ export const boss = storyKit({
 			...runtime,
 			...waitingVerbs(),
 			budgets: budgetVerbs(state.budget, runtime),
+			observeSettlement: settlementProbe,
 			traces: tracingVerbs(state.trace, runtime),
 			...testingVerbs(state.testingState),
 			settle: () =>

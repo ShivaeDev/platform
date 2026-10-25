@@ -3,7 +3,7 @@ import { acceleratedTesting, failingWorker, pausedWorker, pendingExpiryRules } f
 import { postgresIt, realPostgres } from "#test/boss.ts";
 
 postgresIt(
-	"wakes on terminal native timeout when the interrupted batch stays pending",
+	"wakes on terminal native timeout after pg-boss fails the interrupted attempt",
 	[realPostgres, acceleratedTesting, pausedWorker],
 	function* ({ attempts, send, settle, workerStarted }) {
 		yield* send(14, { expireInSeconds: 1, retryLimit: 0 });

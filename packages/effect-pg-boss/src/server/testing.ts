@@ -1,4 +1,4 @@
-import { type DateTime, Effect, Redacted } from "effect";
+import { type DateTime, Duration, Effect, Redacted } from "effect";
 import type { PgBoss } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
@@ -35,6 +35,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	const controls = {
 		changed: signal.changed,
 		expirations: new Map<string, number>(),
+		expirySeconds: new Map<string, number>(),
 		failures: new Set<string>(),
 		retryPolicy: options.retryPolicy ?? {},
 		work,
@@ -91,6 +92,17 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 						throw new RangeError("Attempts must be a positive integer");
 					}
 					controls.expirations.set(queue.name, attempts);
+				},
+			}),
+		expireIn: (queue: Pick<QueueDefinition, "name">, duration: Duration.Input) =>
+			Effect.try({
+				catch: (original) => new PgBossTestingError({ operation: "expireIn", original: Redacted.make(original), queue: queue.name }),
+				try: () => {
+					const milliseconds = Duration.toMillis(Duration.fromInputUnsafe(duration));
+					if (!Number.isFinite(milliseconds) || milliseconds < 1000) {
+						throw new RangeError("Expiry must be finite and at least one second");
+					}
+					controls.expirySeconds.set(queue.name, Math.ceil(milliseconds / 1000));
 				},
 			}),
 		failNextSend: (queue: Pick<QueueDefinition, "name">) => Effect.sync(() => controls.failures.add(queue.name)).pipe(Effect.asVoid),
