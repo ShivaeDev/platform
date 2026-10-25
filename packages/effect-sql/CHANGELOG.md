@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.18.0 - 2026-10-25
+
+### Added
+
+- effect-contract item reads refresh on their collection-wide `<collection>:*` key, with live hints naming each affected subscribed item.
+- `@shivaedev/effect-sql` exports `pendingPostgresMigrations` to read pending ledger migration IDs and names and schema component names and details.
+- `@shivaedev/platform` logs migration wait start, periodic progress, completion and timeout through Effect's logger with pending migration and component annotations. `migrations.progressInterval` controls progress logging independently of polling and defaults to 30 seconds.
+
+### Changed
+
+- `@shivaedev/create-app`'s starter worker uses the host's migration wait logs and keeps its job readiness line.
+
+### Breaking
+
+- effect-sql writes returning more than 1,000 rows across all chunks of a single call announce `<table>` and `<table>:*` instead of item keys. Code registering raw `<table>:<id>` Reactivity keys outside effect-contract must also register `<table>:*`.
+
 ## 0.17.0 - 2026-10-25
 
 ### Added

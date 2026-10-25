@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.12.0 - 2026-10-25
+
+### Added
+
+- effect-contract item reads refresh on their collection-wide `<collection>:*` key, with live hints naming each affected subscribed item.
+
+### Breaking
+
+- effect-sql writes returning more than 1,000 rows across all chunks of a single call announce `<table>` and `<table>:*` instead of item keys. Code registering raw `<table>:<id>` Reactivity keys outside effect-contract must also register `<table>:*`.
+
 ## 0.11.1 - 2026-10-25
 
 ### Changed

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.26.0 - 2026-10-25
+
+### Added
+
+- `@shivaedev/effect-sql` exports `pendingPostgresMigrations` to read pending ledger migration IDs and names and schema component names and details.
+- `@shivaedev/platform` logs migration wait start, periodic progress, completion and timeout through Effect's logger with pending migration and component annotations. `migrations.progressInterval` controls progress logging independently of polling and defaults to 30 seconds.
+- Outbound HTTP client status errors, clock-based Retry-After parsing, lazy same-origin Link pagination, and bounded bytes, text and Schema-decoded JSON response readers.
+- Let `signedInUser` create provider accounts without credentials and expose `storedProviderAccounts` to read account IDs and credential-presence booleans without returning secret values.
+
+### Changed
+
+- `@shivaedev/create-app`'s starter worker uses the host's migration wait logs and keeps its job readiness line.
+
 ## 0.25.4 - 2026-10-25
 
 ### Changed
