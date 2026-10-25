@@ -73,6 +73,7 @@ export const daemonFollow = storyKit({
 			awaitSubscriptionStopped: () => Deferred.await(engine.stopped).pipe(Effect.timeout("5 seconds")),
 			breakReads: () => engine.reads.breakReads,
 			failedReadCount: () => engine.reads.failedCount(),
+			failedReads: () => engine.reads.queries().filter((query) => query.failed),
 			follow: (name: string, command: "wait" | "watch", workIds: readonly string[]) =>
 				Effect.gen(function* () {
 					story.tell(`start ${name}: ${command} ${workIds.join(", ")}`);

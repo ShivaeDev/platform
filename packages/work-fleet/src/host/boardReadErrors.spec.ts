@@ -13,8 +13,7 @@ host.it(
 	[boardWork({ "broken.md": invalid, "one.md": task("one", "approved") }, {})],
 	function* (daemon) {
 		const failures = yield* daemon.admit();
-		expect(failures).toHaveLength(1);
-		expect(failures[0]).toContain(NAMED_PROBLEM);
+		expect(failures).toEqual([expect.stringContaining(NAMED_PROBLEM)]);
 		yield* daemon.schedule();
 		expect((yield* daemon.storedRecord("one")).value.step).toBe("working");
 		expect((yield* daemon.list()).map(({ value }) => value.workId)).toEqual(["one"]);
@@ -23,7 +22,7 @@ host.it(
 		yield* daemon.schedule();
 		expect((yield* daemon.storedRecord("broken")).value.step).toBe("working");
 		expect((yield* daemon.storedRecord("one")).value.step).toBe("working");
-		expect(daemon.providerLaunches()).toHaveLength(2);
+		expect(daemon.providerLaunches()).toEqual((yield* daemon.list()).flatMap(({ value }) => value.attempts.map(({ operationId }) => operationId)));
 	},
 );
 
@@ -72,7 +71,7 @@ for (const [kind, source, diagnostic] of [
 			}
 			expect(JSON.stringify(daemon.logs())).toContain(diagnostic);
 			expect(JSON.stringify(daemon.logs())).toContain(NAMED_PROBLEM);
-			expect(daemon.providerLaunches()).toHaveLength(2);
+			expect(daemon.providerLaunches()).toEqual((yield* daemon.list()).flatMap(({ value }) => value.attempts.map(({ operationId }) => operationId)));
 		},
 	);
 }

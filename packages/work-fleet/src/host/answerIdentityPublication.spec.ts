@@ -20,9 +20,9 @@ answers.it("an interrupted response identity commit cannot publish an answer tha
 	const current = yield* host.applied();
 	expect(current.step).toBe("working");
 	expect(current.pendingAnswers).toBeUndefined();
-	expect(current.responses).toHaveLength(1);
-	expect(host.providerSessions()).toBe(1);
-	expect(host.providerTurns()).toBe(2);
+	expect(current.responses).toMatchObject([{ action: "continue", boardAcknowledged: true, decisionId: decision.id }]);
+	expect(host.providerLaunches()).toEqual([current.attempts[0]?.operationId]);
+	expect(host.providerReceipts()).toEqual(current.attempts.map((attempt) => attempt.receipt));
 	expect(yield* host.storedRequests()).toEqual([]);
 	expect(receiptsBeforeCommit).toEqual([]);
 });

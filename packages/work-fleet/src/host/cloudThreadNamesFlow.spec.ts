@@ -40,8 +40,13 @@ host.it("keeps the worker name when repair continues its existing Cloud thread",
 	yield* daemon.storeNamingRecord(namedRecord("synthetic-work", [{ ...worker, receipt, status: "completed" }, repair]));
 	yield* daemon.continueNamedSession(repair.operationId, "Synthetic repair", receipt.sessionId);
 	expect(daemon.names()).toEqual(["Fleet: synthetic-work: Readable title"]);
-	expect(daemon.namingRequests().filter(({ method }) => method === "thread/name/set")).toHaveLength(1);
-	expect(daemon.namingRequests().filter(({ method }) => method === "turn/start")).toHaveLength(2);
+	expect(daemon.namingRequests().filter(({ method }) => method === "thread/name/set")).toMatchObject([
+		{ params: { name: "Fleet: synthetic-work: Readable title", threadId: receipt.sessionId } },
+	]);
+	expect(daemon.namingRequests().filter(({ method }) => method === "turn/start")).toMatchObject([
+		{ params: { input: [{ text: "Synthetic work" }], threadId: receipt.sessionId } },
+		{ params: { input: [{ text: "Synthetic repair" }], threadId: receipt.sessionId } },
+	]);
 });
 host.it(
 	"backfills sessions across all records and history once, including legacy names and continued repairs",
@@ -63,9 +68,23 @@ host.it(
 		expect(first.stdout).toContain("synthetic-reviewer: renamed to Automation: synthetic-work (review): Readable title");
 		expect(first.stdout).toContain("synthetic-old: renamed to Automation: synthetic-work (repair): Original title");
 		expect(first.stdout).toContain("synthetic-other-session: renamed to Automation: synthetic-other: Readable title");
-		expect(daemon.namingRequests().filter(({ method }) => method === "thread/name/set")).toHaveLength(4);
+		expect(daemon.nameChanges().sort((left, right) => left.threadId.localeCompare(right.threadId))).toEqual(
+			[
+				{ name: "Automation: synthetic-work: Readable title", threadId: "synthetic-worker" },
+				{ name: "Automation: synthetic-work (review): Readable title", threadId: "synthetic-reviewer" },
+				{ name: "Automation: synthetic-work (repair): Original title", threadId: "synthetic-old" },
+				{ name: "Automation: synthetic-other: Readable title", threadId: "synthetic-other-session" },
+			].sort((left, right) => left.threadId.localeCompare(right.threadId)),
+		);
 		expect(yield* daemon.cli(args, { selection: "port" })).toEqual({ code: 0, stderr: "", stdout: "" });
-		expect(daemon.namingRequests().filter(({ method }) => method === "thread/name/set")).toHaveLength(4);
+		expect(daemon.nameChanges().sort((left, right) => left.threadId.localeCompare(right.threadId))).toEqual(
+			[
+				{ name: "Automation: synthetic-work: Readable title", threadId: "synthetic-worker" },
+				{ name: "Automation: synthetic-work (review): Readable title", threadId: "synthetic-reviewer" },
+				{ name: "Automation: synthetic-work (repair): Original title", threadId: "synthetic-old" },
+				{ name: "Automation: synthetic-other: Readable title", threadId: "synthetic-other-session" },
+			].sort((left, right) => left.threadId.localeCompare(right.threadId)),
+		);
 		expect(daemon.namingRequests().filter(({ method }) => method === "thread/start" || method === "turn/start")).toEqual([]);
 	},
 	30_000,

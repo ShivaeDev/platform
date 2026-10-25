@@ -11,12 +11,12 @@ export function answerPublicationVerbs(engine: AnswerHostEngine) {
 		answerAcrossPublication: (waiting: FleetRecord, step: "repairing" | "working", input: { readonly text: string; readonly release: boolean }) =>
 			Effect.gen(function* () {
 				const fleet = engine.fleet;
-				let publications = 0;
+				const publishedWorkIds: string[] = [];
 				const racing = {
 					...fleet,
 					publishDecision: (workId: string) =>
 						Effect.gen(function* () {
-							publications += 1;
+							publishedWorkIds.push(workId);
 							yield* storeState(engine.host.host, workId, { ...waiting, decision: undefined, step });
 							return yield* fleet.publishDecision(workId);
 						}),
@@ -25,7 +25,7 @@ export function answerPublicationVerbs(engine: AnswerHostEngine) {
 					Effect.provideService(Fleet, racing),
 					Effect.result,
 				);
-				return { publications, result };
+				return { publications: publishedWorkIds.length, publishedWorkIds, result };
 			}).pipe(Effect.provideContext(engine.running.context)),
 	};
 }

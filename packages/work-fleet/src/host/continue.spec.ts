@@ -30,11 +30,9 @@ host.it(
 			running: 1,
 			waiting: { automation: 0, maintainer: 0, orchestrator: 0 },
 		});
-		expect(daemon.continuationRequests().find((request) => request.method === "turn/start")?.params).toMatchObject({
-			input: [{ text: message, type: "text" }],
-			threadId: first.value.attempts[0]?.receipt?.sessionId,
-		});
-		expect(daemon.continuationRequests().filter((request) => request.method === "turn/start")).toHaveLength(1);
+		expect(daemon.continuationRequests().filter((request) => request.method === "turn/start")).toMatchObject([
+			{ params: { input: [{ text: message, type: "text" }], threadId: first.value.attempts[0]?.receipt?.sessionId } },
+		]);
 		expect(daemon.continuationRequests().filter((request) => request.method === "thread/start")).toHaveLength(0);
 		yield* daemon.waitForRecord("one", (record) => record.attempts[0]?.receipt?.turnId === "continued-turn");
 		const status = yield* daemon.status();

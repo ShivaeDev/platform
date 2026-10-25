@@ -22,6 +22,7 @@ export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => 
 			return Effect.flatMap(BoardGateway, (board) => board.decision(workId, decision)).pipe(Effect.provideContext(engine.running.context));
 		},
 		...questionPublicationVerbs(engine, tell),
+		boardAcknowledgements: () => boardHttpFiles(engine.fixture.host.boardDir).receiptRecords(),
 		boardExists: (file: string) => existsSync(join(engine.fixture.host.boardDir, file)),
 		boardHttp: () => {
 			tell("open Board HTTP against the running Fleet daemon");

@@ -17,6 +17,7 @@ import { blockedStatus } from "#test/status.ts";
 
 export function enginePublicationVerbs(state: EngineStory, tell: (line: string) => void) {
 	let writes: (() => number) | undefined;
+	let publications: (() => readonly (readonly string[])[]) | undefined;
 	function context() {
 		if (state.publicationContext === undefined) {
 			throw new Error("Configure Board publication before using it");
@@ -25,6 +26,18 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 	}
 	function status() {
 		return readFileSync(join(state.root, "fleet/status.md"), "utf8");
+	}
+	function idlePassLists() {
+		return Effect.gen(function* () {
+			tell("run an idle scheduler pass while recording its Fleet lists");
+			const fleet = running(state).fleet;
+			const lists: string[][] = [];
+			function list() {
+				return fleet.list().pipe(Effect.tap((records) => Effect.sync(() => lists.push(records.map(({ value }) => value.workId)))));
+			}
+			yield* cycle.pipe(Effect.provideService(Fleet, { ...fleet, list }), Effect.provideContext(context()));
+			return lists;
+		});
 	}
 	return {
 		awaitPage: (board: StatusPage, step: string) =>
@@ -69,30 +82,17 @@ export function enginePublicationVerbs(state: EngineStory, tell: (line: string) 
 				return { client, page };
 			}),
 		health: () => fleetHealth(state.root),
-		idlePass: () =>
-			Effect.gen(function* () {
-				tell("run an idle scheduler pass while observing its Fleet list calls");
-				const fleet = running(state).fleet;
-				let reads = 0;
-				yield* cycle.pipe(
-					Effect.provideService(Fleet, {
-						...fleet,
-						list: () => {
-							reads += 1;
-							return fleet.list();
-						},
-					}),
-					Effect.provideContext(context()),
-				);
-				return reads;
-			}),
+		idlePass: () => idlePassLists().pipe(Effect.map((lists) => lists.length)),
+		idlePassLists,
 		observeWrites: () =>
 			Effect.gen(function* () {
 				tell("observe the real status publisher's writes");
 				const calls = vi.spyOn(statusPublication, "writeStatus");
 				writes = () => calls.mock.calls.length;
+				publications = () => calls.mock.calls.map(([, , records]) => records.map(({ workId }) => workId));
 				yield* Effect.addFinalizer(() => Effect.sync(() => calls.mockRestore()));
 			}),
+		publishedWorkIds: () => publications?.(),
 		readPage: (board: StatusPage) => Effect.tryPromise(() => board.client.read(board.page)),
 		reassign: (...args: Parameters<typeof Fleet.Service.reassign>) => running(state).fleet.reassign(...args),
 		rejectCapacity: () => {

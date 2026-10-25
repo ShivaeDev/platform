@@ -20,10 +20,9 @@ host.it(
 			stdout: "one: dispatch recorded; preparing and launching in the background",
 		});
 		yield* daemon.waitForRecord("one", (record) => record.attempts.at(-1)?.receipt !== undefined);
-		expect(daemon.providerStarts()).toHaveLength(1);
-		expect(daemon.providerStarts()[0]?.prompt).toContain("Edited approved revision.");
+		expect(daemon.providerStarts()).toMatchObject([{ prompt: expect.stringContaining("Edited approved revision.") }]);
 		expect((yield* daemon.cli(["dispatch", "denied", ...flags])).code).toBe(1);
-		expect(daemon.providerStarts()).toHaveLength(1);
+		expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([(yield* daemon.get("one")).attempts[0]?.operationId]);
 	},
 	30_000,
 );

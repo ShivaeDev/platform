@@ -17,7 +17,7 @@ for (const release of [false, true]) {
 			const published = waiting.decision?.published ?? (yield* Effect.die("Missing published question"));
 			const answered = yield* daemon.answer("one", "Use PostgreSQL.", release);
 			expect(answered.blocker).toContain("Board request acknowledgement pending");
-			expect(pendingAcknowledgements(answered)).toHaveLength(1);
+			expect(pendingAcknowledgements(answered)).toMatchObject([{ input: { decision: published, disposition: "applied" } }]);
 			const response = answered.responses?.[0] ?? (yield* Effect.die("Missing recorded answer"));
 			const responseFile = `responses/${response.responseId}.md`;
 			const history = daemon.readBoard(responseFile);
@@ -32,10 +32,7 @@ for (const release of [false, true]) {
 			]);
 			expect(pendingAcknowledgements(completed)).toEqual([]);
 			expect(daemon.readBoard(responseFile)).toBe(history);
-			expect(daemon.receiptFiles()).toHaveLength(release ? 1 : 0);
-			if (release) {
-				expect(daemon.readBoard(daemon.receiptFiles()[0] ?? "missing")).toContain('"disposition":"superseded"');
-			}
+			expect(daemon.boardAcknowledgements()).toMatchObject(release ? [{ disposition: "superseded", question: published.questionId }] : []);
 			const previousAttempts = daemon.acknowledgementAttempts();
 			yield* daemon.reconcile("one");
 			expect(daemon.acknowledgementAttempts()).toBe(previousAttempts);

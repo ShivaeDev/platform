@@ -102,6 +102,7 @@ export const controlPublication = storyKit({
 		turns: () => engine.fixture.provider.settings.filter((call) => call.call === "turn"),
 		waitReleased: () =>
 			waitForRecord(engine.client, "one", (record) => record.step === "released" && record.attempts[0]?.sessionCleanupComplete === true),
+		work: (workId: string) => engine.client("fleet.get", { workId }),
 	}),
 });
 

@@ -30,7 +30,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			expect(approved.prompt).toBe(current);
 			expect(approved.launchRetry).toMatchObject(retry);
 			expect(approved.attempts).toEqual(queued.attempts);
-			expect(daemon.queuedProvider().launched).toHaveLength(1);
+			expect(daemon.queuedProvider().launched).toEqual([failed?.operationId]);
 			yield* daemon.schedule();
 			expect((yield* daemon.get("one")).attempts).toEqual(queued.attempts);
 			daemon.advanceLaunchTime(30_100);
@@ -47,9 +47,9 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			expect(accepted.history ?? []).toEqual([]);
 			if (rejectedCall === "turn") {
 				expect(accepted.attempts.at(-1)?.receipt?.sessionId).toBe(failed?.sessionId);
-				expect(daemon.queuedProvider().launched).toHaveLength(1);
+				expect(daemon.queuedProvider().launched).toEqual([failed?.operationId]);
 			} else {
-				expect(daemon.queuedProvider().launched).toHaveLength(2);
+				expect(daemon.queuedProvider().launched).toEqual(accepted.attempts.map(({ operationId }) => operationId));
 			}
 			expect(daemon.queuedProvider().archived).toEqual([]);
 		},

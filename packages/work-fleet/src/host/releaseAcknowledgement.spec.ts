@@ -3,10 +3,6 @@ import { Effect, Fiber } from "effect";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { answers, answerWork } from "#test/answerHost.ts";
 
-const CLI_FAILURE = 1;
-const CLI_SUCCESS = 0;
-const RELEASE_RECEIPTS = 1;
-
 answers.it("release confirms during a blocked launch and applies its accepted response once", [answerWork(["one", "two"])], function* (host) {
 	yield* host.dispatch();
 	const { decision } = yield* host.question();
@@ -29,21 +25,21 @@ answers.it("release confirms during a blocked launch and applies its accepted re
 	expect(released.responses?.filter((response) => response.decisionId === decision.id)).toMatchObject([
 		{ action: "release", boardAcknowledged: true },
 	]);
-	expect(host.boardReceipts()).toHaveLength(RELEASE_RECEIPTS);
+	expect(host.boardAcknowledgements()).toMatchObject([{ disposition: "applied", question: decision.published?.questionId }]);
 	expect(yield* host.cliRelease("one")).toEqual({ code: 0, stderr: "", stdout: "one released" });
 	expect((yield* host.get()).responses).toEqual(released.responses);
-	expect(host.boardReceipts()).toHaveLength(RELEASE_RECEIPTS);
+	expect(host.boardAcknowledgements()).toMatchObject([{ disposition: "applied", question: decision.published?.questionId }]);
 });
 
 answers.it("release reports refusal for running work or an unrecorded request", [], function* (host) {
 	yield* host.dispatch();
-	expect((yield* host.cliRelease("one")).code).toBe(CLI_FAILURE);
+	expect((yield* host.cliRelease("one")).code).toBe(1);
 	yield* host.question();
 	yield* host.failRecording(true);
-	expect((yield* host.cliRelease("one")).code).toBe(CLI_FAILURE);
+	expect((yield* host.cliRelease("one")).code).toBe(1);
 	expect(yield* host.storedRequests()).toEqual([]);
 	expect(host.boardReceipts()).toEqual([]);
 	yield* host.failRecording(false);
-	expect((yield* host.cliRelease("one")).code).toBe(CLI_SUCCESS);
+	expect((yield* host.cliRelease("one")).code).toBe(0);
 	expect((yield* host.applied()).step).toBe("released");
 });

@@ -35,6 +35,6 @@ host.it(
 		expect(report.receipt).toEqual(receipt);
 		expect(report.sourcePath).not.toBe(original.report?.sourcePath);
 		expect(daemon.readBoard(report.sourcePath).endsWith(`Updated findings.\nFLEET_HEAD: ${HEAD}`)).toBe(true);
-		expect(daemon.providerLaunches()).toHaveLength(1);
+		expect(daemon.providerLaunches()).toEqual([started.attempts[0]?.operationId]);
 	},
 );

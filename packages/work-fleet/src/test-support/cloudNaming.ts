@@ -39,6 +39,7 @@ export function cloudNamingVerbs(engine: HostStoryEngine) {
 		continueNamedSession: (operationId: string, prompt: string, sessionId: string) =>
 			Effect.flatMap(SessionService, (sessions) => sessions.continue({ operationId, prompt, sessionId })).pipe(Effect.provide(sessionLayer())),
 		failNaming: (method: string, sessionId: string) => state().failures.add(`${method}:${sessionId}`),
+		nameChanges: () => [...state().renames],
 		names: () => [...state().names.values()],
 		namingRequests: () => state().requests,
 		setThreadName: (sessionId: string, name: string) => state().names.set(sessionId, name),

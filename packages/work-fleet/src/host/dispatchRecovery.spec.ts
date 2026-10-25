@@ -32,7 +32,7 @@ for (const [fail, now] of [
 			const record = yield* daemon.get("one");
 			expect(record.step).toBe("working");
 			expect(record.dispatchNow).toEqual(accepted.now === true ? { ignoreAreas: false } : undefined);
-			expect(daemon.providerLaunches()).toHaveLength(1);
+			expect(daemon.providerLaunches()).toEqual([record.attempts[0]?.operationId]);
 		},
 	);
 }
@@ -63,6 +63,6 @@ host.it(
 		expect(watched).toMatchObject({ code: 0, stderr: "", stdout: expect.stringContaining("one done") });
 		expect(watched.stdout).not.toContain("Dispatch failed");
 		expect(yield* daemon.request("daemon.dispatch-status", { workId: "one" })).toEqual(failed);
-		expect(daemon.providerLaunches()).toHaveLength(1);
+		expect(daemon.providerLaunches()).toEqual([running.attempts[0]?.operationId]);
 	},
 );

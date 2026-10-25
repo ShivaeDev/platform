@@ -38,7 +38,7 @@ for (const cli of [false, true]) {
 			const launched = yield* daemon.waitForRecord("one", (record) => record.step === "working" && record.attempts[0]?.receipt !== undefined);
 			expect(launched.decision).toBeUndefined();
 			expect(launched.boardContext).toContain("Measure repository fixtures.");
-			expect(daemon.providerLaunches()).toHaveLength(1);
+			expect(daemon.providerLaunches()).toEqual([launched.attempts[0]?.operationId]);
 			expect(daemon.providerObservations()[0]?.output).toContain("Measure repository fixtures.");
 		},
 	);
@@ -64,7 +64,7 @@ for (const scenario of [
 			const launched = (yield* daemon.approve("one")).value;
 			expect(launched.step).toBe("working");
 			expect(launched.decision).toBeUndefined();
-			expect(daemon.providerLaunches()).toHaveLength(1);
+			expect(daemon.providerLaunches()).toEqual([launched.attempts[0]?.operationId]);
 		},
 	);
 }

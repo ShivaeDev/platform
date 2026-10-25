@@ -25,7 +25,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			expect(yield* daemon.get("one")).toEqual(queued);
 			yield* daemon.schedule();
 			expect((yield* daemon.get("one")).decision).toBeUndefined();
-			expect(daemon.providerLaunches()).toHaveLength(1);
+			expect(daemon.providerLaunches()).toEqual([failed?.operationId]);
 			daemon.advanceTime(1);
 			yield* daemon.admit();
 			expect((yield* daemon.get("one")).decision).toBeUndefined();
@@ -39,8 +39,13 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			expect(accepted.attempts.slice(0, -1)).toEqual(queued.attempts);
 			expect(accepted.history ?? []).toEqual(queued.history ?? []);
 			expect(attempt).toMatchObject({ prompt: expect.stringContaining(current), settings: failed?.settings, status: "accepted" });
-			expect(daemon.providerLaunches()).toHaveLength(rejectedCall === "session" ? 2 : 1);
-			expect(daemon.providerCalls().filter((call) => call.call === "turn")).toHaveLength(rejectedCall === "turn" ? 2 : 1);
+			expect(daemon.providerLaunches()).toEqual(rejectedCall === "session" ? [failed?.operationId, attempt?.operationId] : [failed?.operationId]);
+			expect(
+				daemon
+					.providerCalls()
+					.filter((call) => call.call === "turn")
+					.map(({ operationId }) => operationId),
+			).toEqual(rejectedCall === "turn" ? [failed?.operationId, attempt?.operationId] : [attempt?.operationId]);
 		},
 	);
 }

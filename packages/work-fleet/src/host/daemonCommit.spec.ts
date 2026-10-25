@@ -7,7 +7,7 @@ host.it("a daemon command commit reaches a CLI follower without periodic Postgre
 	yield* daemon.follow("watcher", "watch", ["one"]);
 	yield* daemon.awaitSnapshot();
 	yield* Effect.sleep("1200 millis");
-	expect(daemon.snapshotReadCount()).toBe(1);
+	expect(daemon.snapshotQueries()).toEqual([{ failed: false, text: expect.stringContaining('"checks"') }]);
 	const started = yield* daemon.dispatch("one");
 	daemon.finishTurn(started);
 	yield* daemon.reconcile("one");
@@ -21,5 +21,5 @@ host.it("a rolled-back daemon store write sends no snapshot or refresh query", [
 	expect(yield* daemon.loadStoredRecord("one")).toBeUndefined();
 	yield* Effect.sleep("1200 millis");
 	expect(daemon.snapshots()).toEqual([[]]);
-	expect(daemon.snapshotReadCount()).toBe(1);
+	expect(daemon.snapshotQueries()).toEqual([{ failed: false, text: expect.stringContaining('"checks"') }]);
 });

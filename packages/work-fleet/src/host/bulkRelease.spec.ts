@@ -43,7 +43,12 @@ host.it(
 		}
 		expect(yield* daemon.boardQuestions()).toEqual([]);
 		expect(yield* daemon.boardQuestions("orchestrator")).toEqual([]);
-		expect(daemon.receiptFiles()).toHaveLength(2);
+		expect(
+			daemon
+				.boardAcknowledgements()
+				.map((receipt) => receipt?.question)
+				.sort((left, right) => String(left).localeCompare(String(right))),
+		).toEqual(decisions.map(({ questionId }) => questionId).sort((left, right) => String(left).localeCompare(String(right))));
 		for (const published of decisions) {
 			expect(daemon.readBoard(`responses/response.fleet-release.${published.questionId}.md`)).toContain("Release Fleet ownership.");
 		}
@@ -51,7 +56,15 @@ host.it(
 			expect(yield* daemon.get(id)).toMatchObject({ responses: [{ action: "release", boardAcknowledged: true }], step: "released" });
 		}
 		expect(yield* daemon.cli(["release", "one", "two"])).toEqual({ code: 0, stderr: "", stdout: "one released\ntwo released" });
-		expect(daemon.receiptFiles()).toHaveLength(2);
-		expect(daemon.providerLaunches()).toHaveLength(2);
+		expect(
+			daemon
+				.boardAcknowledgements()
+				.map((receipt) => receipt?.question)
+				.sort((left, right) => String(left).localeCompare(String(right))),
+		).toEqual(decisions.map(({ questionId }) => questionId).sort((left, right) => String(left).localeCompare(String(right))));
+		expect(daemon.providerLaunches()).toEqual([
+			(yield* daemon.get("one")).attempts[0]?.operationId,
+			(yield* daemon.get("two")).attempts[0]?.operationId,
+		]);
 	},
 );

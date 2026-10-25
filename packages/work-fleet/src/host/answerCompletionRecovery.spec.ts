@@ -2,8 +2,6 @@ import { expect } from "@effect/vitest";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { answers } from "#test/answerHost.ts";
 
-const QUESTION_AND_ANSWER_TURNS = 2;
-
 answers.it("a pending answer resumes after completion writes recover without restarting the daemon", [], function* (host) {
 	yield* host.dispatch();
 	const { decision } = yield* host.question();
@@ -15,7 +13,7 @@ answers.it("a pending answer resumes after completion writes recover without res
 	const applied = yield* host.applied();
 	expect(applied.responses?.map((response) => response.decisionId)).toEqual([decision.id]);
 	expect(applied.pendingAnswers).toBeUndefined();
-	expect(host.providerTurns()).toBe(QUESTION_AND_ANSWER_TURNS);
+	expect(host.providerReceipts()).toEqual(applied.attempts.map((attempt) => attempt.receipt));
 	expect(yield* host.storedRequests()).toEqual([]);
 });
 
@@ -33,5 +31,5 @@ answers.it("a completion retry leaves an answer that Fleet is still resolving to
 	const applied = yield* host.applied();
 	expect(applied.responses?.map((response) => response.decisionId)).toEqual([decision.id]);
 	expect(applied.pendingAnswers).toBeUndefined();
-	expect(host.providerTurns()).toBe(QUESTION_AND_ANSWER_TURNS);
+	expect(host.providerReceipts()).toEqual(applied.attempts.map((attempt) => attempt.receipt));
 });

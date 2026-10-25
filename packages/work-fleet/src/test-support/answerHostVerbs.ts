@@ -50,6 +50,7 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 		request,
 		resolve: (decisionId: string, responseId: string, workId = "one") => engine.running.client("fleet.resolve", { decisionId, responseId, workId }),
 		responseIndexBuilds: () => engine.spans.count("WorkBoard.searchSnapshot"),
+		responseIndexSpans: () => engine.spans.names().filter((name) => name === "WorkBoard.searchSnapshot"),
 		start: () => {
 			tell("start the daemon");
 			return engine.start();

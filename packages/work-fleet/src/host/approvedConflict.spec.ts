@@ -32,14 +32,19 @@ answers.it("daemon relaunches a conflicting approved PR once per main revision a
 		daemon.finishPullRequestTurn(initial, MOVED);
 		const stillConflicting = yield* daemon.request("fleet.reconcile", { workId: "one" });
 		expect(stillConflicting.decision?.reason).toBe(CONFLICTING_PR_REASON);
-		expect(repairAttempts(stillConflicting)).toHaveLength(1);
+		expect(repairAttempts(stillConflicting).map(({ operationId }) => operationId)).toEqual(
+			repairAttempts(initial).map(({ operationId }) => operationId),
+		);
 		expect((yield* daemon.request("fleet.reconcile", { workId: "one" })).attempts).toEqual(stillConflicting.attempts);
 		daemon.movePullRequestBase("d".repeat(40));
 		yield* daemon.request("fleet.reconcile", { workId: "one" });
 		const next = yield* daemon.workerStarted("repair");
 		expect(next.step).toBe("working");
 		expect(next.conflictRepairs).toEqual([BASE, daemon.pullRequestBase()]);
-		expect(repairAttempts(next)).toHaveLength(2);
+		expect(repairAttempts(next)).toMatchObject([
+			...repairAttempts(stillConflicting),
+			{ prompt: expect.stringContaining(daemon.pullRequestBase()), role: "repair" },
+		]);
 		expect(next.attempts.at(-1)?.prompt).toContain(daemon.pullRequestBase());
 		daemon.setMergeable("MERGEABLE");
 		daemon.finishPullRequestTurn(next, "e".repeat(40));
@@ -47,7 +52,7 @@ answers.it("daemon relaunches a conflicting approved PR once per main revision a
 		expect(ready.decision?.reason).toBe("Reviewed PR is ready to merge");
 		expect(ready.review).toMatchObject({ head: daemon.pullRequestHead(), verdict: "approved" });
 		expect(ready.checks).toMatchObject({ head: daemon.pullRequestHead(), passed: true });
-		expect(repairAttempts(ready)).toHaveLength(2);
+		expect(repairAttempts(ready).map(({ operationId }) => operationId)).toEqual(repairAttempts(next).map(({ operationId }) => operationId));
 	});
 });
 
@@ -62,6 +67,6 @@ answers.it(
 			const waiting = yield* daemon.request("fleet.reconcile", { workId: "one" });
 			expect(waiting).toEqual(ready);
 		}
-		expect(daemon.launchedSessions()).toHaveLength(2);
+		expect(daemon.launchedSessions()).toEqual(ready.attempts.map(({ operationId }) => operationId));
 	},
 );

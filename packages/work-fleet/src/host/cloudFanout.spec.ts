@@ -44,8 +44,9 @@ host.it(
 		const after = yield* daemon.cloudRecords();
 		for (const { value } of after) {
 			const [attempt] = value.attempts;
-			expect(value.attempts).toHaveLength(1);
-			expect(attempt?.operationId).toBe(before.find((stored) => stored.value.workId === value.workId)?.value.attempts[0]?.operationId);
+			expect(value.attempts).toMatchObject([
+				{ operationId: before.find((stored) => stored.value.workId === value.workId)?.value.attempts[0]?.operationId, status: "running" },
+			]);
 			expect(attempt?.receipt).toEqual({ sessionId: attempt?.sessionId, turnId: `turn-${attempt?.sessionId}` });
 		}
 		expect(new Set(daemon.cloudFanout().operations.values()).size).toBe(ATTEMPTS);
