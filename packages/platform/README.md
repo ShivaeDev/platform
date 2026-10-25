@@ -640,6 +640,8 @@ The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL
 
 `AUTH_RATE_LIMIT_ENABLED` is a Config boolean that defaults to true and takes precedence over `options.rateLimit.enabled`; other Better Auth rate-limit options pass through. `TRUSTED_PROXY` supplies the same address and CIDR policy used by the host. An untrusted transport peer loses `x-forwarded-for` and the configured client-IP header before Better Auth sees the request. `AUTH_CLIENT_IP_HEADER` defaults to `x-forwarded-for`. With no trusted proxy, Better Auth ignores forwarded IPs and shares a rate-limit bucket per path.
 
+For email sign-in through `appHost`, the session record's `ipAddress` follows the same rule. With a trusted peer, `AUTH_CLIENT_IP_HEADER=x-real-ip` stores `X-Real-IP` even if `X-Forwarded-For` supplies a different address; the default header selects the rightmost untrusted address in the `X-Forwarded-For` chain, ignoring trusted proxy hops on the right. With an untrusted peer, neither header can supply the stored address. Sign-in attempts from an untrusted peer share one bucket per path; with a trusted peer and `x-real-ip`, changing `X-Forwarded-For` does not change the bucket, while changing `X-Real-IP` does.
+
 ### Decide who may sign in
 
 Give the mount a sign-in policy as its second argument, and resolve RPC sessions through `admittedSessions` so a removal ends access on the next request:
