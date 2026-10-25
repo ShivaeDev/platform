@@ -42,7 +42,10 @@ export function requestInbox(snapshot: Snapshot): RequestInbox {
 function collectInbox(snapshot: Snapshot) {
 	const maintainer = snapshot.maintainer ?? "maintainer";
 	const entries = attentionRequests(snapshot).entries.filter(
-		(entry) => entry.request.managed || !answeredQuestion(entry.document, snapshot.model, entry.request.id),
+		(entry) =>
+			entry.request.managed
+			|| (entry.answer && isMaintainerRequest(entry.request, maintainer))
+			|| !answeredQuestion(entry.document, snapshot.model, entry.request.id),
 	);
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	function targets(entry: AttentionEntry) {
@@ -52,7 +55,7 @@ function collectInbox(snapshot: Snapshot) {
 		const ids = targets(entry);
 		const target = ids.length === 1 ? snapshot.model.ids.get(ids[0] ?? "")?.[0] : undefined;
 		return {
-			answered: entry.request.managed && isMaintainerRequest(entry.request, maintainer) ? answerSummary(entry, maintainer) : undefined,
+			answered: isMaintainerRequest(entry.request, maintainer) ? answerSummary(entry, maintainer) : undefined,
 			document: entry.document,
 			earlierAsks: 0,
 			href: entry.problem === undefined ? responseUrl(entry.itemId, entry.request.id) : entry.href,

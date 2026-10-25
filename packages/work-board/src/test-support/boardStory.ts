@@ -15,6 +15,7 @@ import { responseFeedVerbs } from "./responseFeedVerbs.ts";
 import { responseServiceVerbs } from "./responseServiceVerbs.ts";
 import { serverVerbs } from "./serverVerbs.ts";
 import { servingVerbs } from "./servingVerbs.ts";
+import { standingQuestionVerbs } from "./standingQuestionVerbs.ts";
 import { connected, createBoard, inspectBoard, openReader, served, serveProject, wrapFilesystem } from "./storyEngine.ts";
 import { handoffInput, resultHtml, reviewReport, savedInboxAnswer } from "./storyResponses.ts";
 import { workspaceAccess } from "./workspaceAccess.ts";
@@ -32,6 +33,7 @@ export const boardStory = storyKit({
 		...responseServiceVerbs(engine, story.tell),
 		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),
+		...standingQuestionVerbs(engine, story.tell),
 		...serverVerbs(engine, story.tell),
 		...servingVerbs(engine, story.tell),
 		...nativeVerbs(engine, story.tell),

@@ -41,8 +41,7 @@ function appliedAnswer(question: string, revision: string, responseId: string | 
 function registeredQuestion(document: MetadataDocument, request: Request, model: MetadataModel) {
 	const item = document.parsed.fields.id;
 	if (
-		request.managed !== true
-		|| request.kind !== "decision"
+		request.kind !== "decision"
 		|| request.state !== "open"
 		|| !item
 		|| document.parsed.fields.kind !== "question"
@@ -91,10 +90,10 @@ function settling(receipts: readonly RequestReceipt[]): RequestReceipt | undefin
 export function managedRequestState(document: MetadataDocument, request: Request, model: MetadataModel): ManagedRequestState {
 	const question = registeredQuestion(document, request, model);
 	const index = responseIndex(model);
-	if (!question || index.receiptProblems) {
+	if (!question || (request.managed === true && index.receiptProblems)) {
 		return open;
 	}
-	const saved = index.receipts.get(question.id) ?? [];
+	const saved = request.managed === true ? (index.receipts.get(question.id) ?? []) : [];
 	const receipts = saved.flatMap((candidate) => qualified(candidate, question.id, question.revision, model) ?? []);
 	const receipt = receipts.length === saved.length ? settling(receipts) : undefined;
 	if (receipt) {
