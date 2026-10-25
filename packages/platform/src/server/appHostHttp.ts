@@ -22,9 +22,8 @@ import { TrustedProxy } from "#server/rpc-server/trustedProxy.ts";
 import { schemaSensitiveKeys } from "#server/schemaSensitiveKeys.ts";
 import { tracedGroup } from "#server/tracedGroup.ts";
 
-const rpcCacheControl = HttpEffect.appendPreResponseHandler((_, response) =>
-	Effect.succeed(HttpServerResponse.setHeader(response, "cache-control", "private, no-store")),
-);
+const rpcCacheControl: HttpEffect.PreResponseHandler = (_, response) =>
+	Effect.succeed(HttpServerResponse.setHeader(response, "cache-control", "private, no-store"));
 
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
@@ -64,13 +63,14 @@ export function appHostHttp<
 						Effect.provideService(RpcSerialization.RpcSerialization, wire),
 					);
 					const guarded = localRpcGuard(handler, trustedProxy);
-					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
-						Effect.andThen(rpcCacheControl, guarded).pipe(
+					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
+						HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
+						return guarded.pipe(
 							Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
 							Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
 							Effect.provideService(RpcSerialization.RpcSerialization, wire),
-						),
-					);
+						);
+					});
 				}),
 			).pipe(
 				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
