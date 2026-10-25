@@ -3,141 +3,154 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "github-rest-client.md",
-				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- Share token-authenticated GitHub REST reads and JSON writes through an Effect service, with Schema decoding, lazy Link pagination, bounded bodies, ETag revalidation and per-resource rate-limit observations and UTC retry instants.\n"
+				"name": "admin-pages.md",
+				"text": "---\n\"@shivaedev/admin\": minor\n---\n\n### Added\n\n- Declare admin pages with native Effect contracts protected by `AuthenticatedAdmin`, including generated change subscriptions. Merge pages into one registry with unique ids, paths and RPC tags, and register one typed handler Layer per page for the existing RPC host.\n"
 			},
 			{
-				"name": "http-arrival-replies.md",
-				"text": "---\n\"@shivaedev/test-story\": minor\n---\n\n### Added\n\n- Build fake HTTP fault replies from the answered request and the service’s captured Effect clock, through `scriptFault`, `fault`, `failOnce` and `replyOnce`.\n- Read completed response statuses, pending requests and unanswered connections from the fake HTTP request log.\n- Hold a parameter scope or only its first matching request, and release a scoped hold on another route’s arrival.\n- Match trailing `:name*` route parameters across one or more percent-decoded path segments.\n"
+				"name": "board-client-startup.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Build browser assets before starting the Board from source so checkout runs serve the current client. Failed pages show RPC error tags and messages, or a reload hint when the browser and server disagree on the response shape.\n"
 			},
 			{
-				"name": "pg-boss-time-expiry.md",
-				"text": "---\n\"@shivaedev/effect-pg-boss\": minor\n---\n\n### Added\n\n- `expireIn(queue, duration)` on the testing controller gives subsequently sent jobs a time budget using an Effect duration.\n\n### Fixed\n\n- A job interrupted at its deadline no longer stops its worker from fetching its retry. Interrupted batches return successfully after pg-boss settles their claims. Settlement reads back off and stop one second after the latest fetched deadline; if settlement cannot be observed, the callback fails with a logged `PgBossError` (`operation: \"settle\"`).\n"
+				"name": "board-story-client-isolation.md",
+				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Keep parallel Board stories from rebuilding the shared browser assets while readers load them.\n"
 			},
 			{
-				"name": "postgres-production-initializer.md",
-				"text": "---\n\"@shivaedev/effect-test-sql\": minor\n---\n\n### Added\n\n- `makePostgresTestLayer` accepts `initialize` instead of `migrations` to run an application's complete production database initializer once against the prepared template. Pass an Effect using the supplied SQL services or a callback receiving the template's redacted URL. Initialization and optional subsequent fixtures finish and release scoped resources before cloning; deployment stories can still select the empty template. Replace a dummy `migrations` loader and initializer in `fixtures` with `initialize: (url) => migrateDatabase(url)`.\n\n### Breaking\n\n- `PostgresTestOptions` is now a union requiring exactly one of `migrations` and `initialize`. Wrappers that read `options.migrations` must first narrow `options.initialize === undefined`. Replace interfaces extending `PostgresTestOptions` with intersection type aliases. Existing calls supplying migrations retain their behavior.\n"
+				"name": "bump-matches-sections.md",
+				"text": "---\n\"@shivaedev/changesets\": patch\n---\n\n### Fixed\n\n- Reject each pre-1.0 package's patch bump when a changeset contains Added or Breaking notes. Check, plan and apply report the fragment, package, declared bump and required minor bump before combining release requests.\n"
 			},
 			{
-				"name": "public-user-profiles.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Look up other users' public names and images with `userProfiles(auth, userIds)` through Better Auth's adapter, without exposing email, role, session or account data.\n"
+				"name": "fleet-github-http.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Changed\n\n- Fleet reads GitHub over HTTP through effect-github, using `GH_TOKEN`, `GITHUB_TOKEN`, or the existing `gh auth token` login.\n- Secondary GitHub rate limits without a retry time back off from one minute, doubling up to fifteen minutes until a successful response resets the wait.\n"
 			},
 			{
-				"name": "query-route.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Added\n\n- `queryRoute` supplies TanStack Router query loaders and search dependencies, mapping `NotFound` rejections to the route's not-found component.\n\n### Changed\n\n- Generated starter notes routes use query loaders and show a not-found screen for missing notes, with a link back to the list.\n"
+				"name": "github-app-auth.md",
+				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- Authenticate GitHub REST requests as an App installation with built-in RS256 signing, repository installation lookup, and cached installation tokens shared across concurrent requests until their refresh point.\n- Verify webhook signatures against raw bytes with HMAC SHA-256 and a constant-time comparison before decoding the delivery with the caller's Schema. Signature and App authentication failures stay typed and exclude credentials from errors and telemetry.\n\n### Breaking\n\n- `GitHubToken` may now contain a lazy Effect as well as a static Option. Consumers reading the service directly must resolve it with `Effect.isEffect(value) ? yield* value : value` before inspecting the Option. Existing `Layer.succeed(GitHubToken)` providers and `GitHubToken.fromEnv` need no changes.\n"
 			},
 			{
-				"name": "standing-question-answers.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Keep answered standing decisions out of Needs you while they wait on the agent; editing the reviewed question asks again.\n"
+				"name": "github-paged-policy.md",
+				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- GitHub paged reads accept a caller policy before each request and expose the observed resource for a path.\n"
 			},
 			{
-				"name": "story-engine.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- `tests/story-engine` reports kit stories without traits that never reference their verbs, story or test context. Drive the engine through a kit verb or trait, or move pure code to a `.unit.test.ts` file that reaches no engine and mocks nothing.\n"
+				"name": "pinned-group-index-walk.md",
+				"text": "---\n\"@shivaedev/effect-sql\": patch\n---\n\n### Changed\n\n- `latestPerGroup` reads each pinned group through its index and stops after `limit` rows.\n"
 			},
 			{
-				"name": "test-layer-file-teardown.md",
-				"text": "---\n\"@shivaedev/effect-test\": patch\n---\n\n### Fixed\n\n- Close shared test service Layers before their test file completes so database cleanup finishes before Vitest starts terminating the fork.\n"
+				"name": "pr-watch-github-client.md",
+				"text": "---\n\"@shivaedev/pr-watch\": minor\n---\n\n### Changed\n\n- Send GitHub reads, queue-confirmation writes, conditional requests and Link pagination through effect-github. Keep polling slowdown and cooldown scheduling in the watcher, using shared resource observations and rate-limit retry instants. Permission failures retain the saved snapshot without imposing a quota cooldown.\n\n### Breaking\n\n- Provide effect-github’s `GitHub.layer` and `GitHubToken.fromEnv` when composing `GitHubHttp.layer`. Remove `Options.token` and the token arguments to `argumentsFor`, `program` and `GitHubHttp` methods; configure authentication through `GitHubToken` instead. `GitHubHttp.get` and `post` return decoded bodies, and `list` collects paginated bodies. Replace `httpResponse` helpers and `quota.observeBudget`/`Budget` with effect-github; `pollDelay` now accepts its rate-limit observations and an optional retry instant.\n"
 			},
 			{
-				"name": "test-sized-pools.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Added\n\n- `@shivaedev/platform`: `authDatabase` accepts optional `max` and `application_name` pool settings.\n\n### Changed\n\n- `@shivaedev/create-app`: Starter stories run the web host and worker with test-sized SQL, authentication and jobs pools.\n"
+				"name": "quality-git-excludes.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Skip untracked files ignored through git's `info/exclude` or `core.excludesFile` during directory discovery, including in linked worktrees, while continuing to check tracked files.\n"
 			},
 			{
-				"name": "today-answer-first.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Show Today answer controls before collapsed item context, and keep desktop answer panels within the viewport.\n"
+				"name": "report-current-main.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Report workers fetch and research current main, receive the expected base commit, and report their checked revision. Fleet persists that revision and raises a decision instead of delivering reports from an older, divergent or unidentified checkout.\n"
+			},
+			{
+				"name": "runner-fixture-assertions.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- `tests/no-expect-in-support` no longer reports test files that a nested Vitest run executes: unimported test-support files that register tests at module top level.\n"
+			},
+			{
+				"name": "sorted-allow-scripts.md",
+				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- Use sort-package-json 4.1.0 for package manifest sorting.\n"
+			},
+			{
+				"name": "typed-grouped-reports.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repositories run typed grouped aggregates with model-derived group columns, numeric and boolean summaries, filters, ordering and limits.\n"
+			},
+			{
+				"name": "unit-io-guard.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- Run `.unit` test and spec files in a default `pure` Node project whose runtime guard rejects file-system, network, process, worker and `fetch` calls, including I/O hidden in dependencies. Errors name the unit file and call. Ordinary Node files remain in `unit`, and `--project slow` keeps selecting slow tests alone.\n"
+			},
+			{
+				"name": "worker-release-handoff.md",
+				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- effect-sql records the database release after successful migrations and coordinates worker drain with typed PostgreSQL heartbeat rows.\n- effect-pg-boss pauses fetching while the database belongs to another release, finishes active jobs, and resumes when its release owns the database again.\n- Platform migration options accept an optional `release` for deployment migration and worker readiness.\n- Generated workers step aside for a newer release and drain on SIGTERM, with queue expiry, stop timeout and Railway draining configured together.\n"
 			}
 		],
 		"releases": [
 			{
+				"bump": "minor",
+				"directory": "packages/admin",
+				"from": "0.0.0",
+				"name": "@shivaedev/admin",
+				"to": "0.1.0"
+			},
+			{
 				"bump": "patch",
+				"directory": "packages/changesets",
+				"from": "0.1.2",
+				"name": "@shivaedev/changesets",
+				"to": "0.1.3"
+			},
+			{
+				"bump": "minor",
 				"directory": "packages/create-app",
-				"from": "0.14.0",
+				"from": "0.14.1",
 				"name": "@shivaedev/create-app",
-				"to": "0.14.1"
+				"to": "0.15.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-github",
-				"from": "0.0.0",
+				"from": "0.1.0",
 				"name": "@shivaedev/effect-github",
-				"to": "0.1.0"
+				"to": "0.2.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-pg-boss",
-				"from": "0.16.4",
+				"from": "0.17.0",
 				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.17.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-prisma",
-				"from": "0.10.4",
-				"name": "@shivaedev/effect-prisma",
-				"to": "0.10.5"
+				"to": "0.18.0"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-react",
-				"from": "0.12.5",
-				"name": "@shivaedev/effect-react",
-				"to": "0.13.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-test",
-				"from": "0.8.0",
-				"name": "@shivaedev/effect-test",
-				"to": "0.8.1"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-test-sql",
-				"from": "0.8.8",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.9.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-trpc",
-				"from": "0.8.4",
-				"name": "@shivaedev/effect-trpc",
-				"to": "0.8.5"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/platform",
-				"from": "0.26.0",
-				"name": "@shivaedev/platform",
-				"to": "0.27.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.36.3",
-				"name": "@shivaedev/quality",
-				"to": "0.37.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/test-story",
-				"from": "0.18.3",
-				"name": "@shivaedev/test-story",
+				"directory": "packages/effect-sql",
+				"from": "0.18.0",
+				"name": "@shivaedev/effect-sql",
 				"to": "0.19.0"
 			},
 			{
 				"bump": "patch",
+				"directory": "packages/effect-test-sql",
+				"from": "0.9.0",
+				"name": "@shivaedev/effect-test-sql",
+				"to": "0.9.1"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/platform",
+				"from": "0.27.0",
+				"name": "@shivaedev/platform",
+				"to": "0.28.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/pr-watch",
+				"from": "0.1.2",
+				"name": "@shivaedev/pr-watch",
+				"to": "0.2.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/quality",
+				"from": "0.37.0",
+				"name": "@shivaedev/quality",
+				"to": "0.38.0"
+			},
+			{
+				"bump": "patch",
 				"directory": "packages/work-board",
-				"from": "0.30.9",
+				"from": "0.30.10",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.10"
+				"to": "0.30.11"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.10",
+				"from": "0.17.11",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.11"
+				"to": "0.17.12"
 			}
 		]
 	}

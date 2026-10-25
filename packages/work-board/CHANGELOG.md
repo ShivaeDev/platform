@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.30.11 - 2026-10-25
+
+### Fixed
+
+- Build browser assets before starting the Board from source so checkout runs serve the current client. Failed pages show RPC error tags and messages, or a reload hint when the browser and server disagree on the response shape.
+- Keep parallel Board stories from rebuilding the shared browser assets while readers load them.
+
 ## 0.30.10 - 2026-10-25
 
 ### Fixed

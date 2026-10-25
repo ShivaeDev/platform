@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.17.12 - 2026-10-25
+
+### Changed
+
+- Fleet reads GitHub over HTTP through effect-github, using `GH_TOKEN`, `GITHUB_TOKEN`, or the existing `gh auth token` login.
+- Secondary GitHub rate limits without a retry time back off from one minute, doubling up to fifteen minutes until a successful response resets the wait.
+
+### Fixed
+
+- Report workers fetch and research current main, receive the expected base commit, and report their checked revision. Fleet persists that revision and raises a decision instead of delivering reports from an older, divergent or unidentified checkout.
+
 ## 0.17.11 - 2026-10-25
 
 ### Changed

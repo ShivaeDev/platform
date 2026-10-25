@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.38.0 - 2026-10-25
+
+### Added
+
+- Run `.unit` test and spec files in a default `pure` Node project whose runtime guard rejects file-system, network, process, worker and `fetch` calls, including I/O hidden in dependencies. Errors name the unit file and call. Ordinary Node files remain in `unit`, and `--project slow` keeps selecting slow tests alone.
+
+### Changed
+
+- Use sort-package-json 4.1.0 for package manifest sorting.
+
+### Fixed
+
+- Skip untracked files ignored through git's `info/exclude` or `core.excludesFile` during directory discovery, including in linked worktrees, while continuing to check tracked files.
+- `tests/no-expect-in-support` no longer reports test files that a nested Vitest run executes: unimported test-support files that register tests at module top level.
+
 ## 0.37.0 - 2026-10-25
 
 ### Added
