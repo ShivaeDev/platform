@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.40.0 - 2026-10-25
+
+### Changed
+
+- `tests/named-values` now reports a spec-local numeric const that only feeds `toBe` or `toHaveLength`. Consumers should assert the observed items or derive the value from the story's inputs.
+
 ## 0.39.2 - 2026-10-25
 
 ### Changed

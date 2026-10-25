@@ -3,82 +3,28 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "admin-host-route.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- `adminRoute(sessions)` guards host route handlers with the session and Origin policy and the admin role, providing request identity and mapping authorization refusals to HTTP responses while preserving handler responses and typed failures.\n"
-			},
-			{
-				"name": "admin-route-cache.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Document mounting the admin route guard over `/admin`, its descendants and its HTML fallback before static SPA serving. Authorization rejections return `Cache-Control: private, no-store`.\n\n### Changed\n\n- Mark every app-host native RPC response `Cache-Control: private, no-store` at the outer response boundary, including mixed batches, typed failures, transport failures and streams.\n"
-			},
-			{
-				"name": "native-bearer-sessions.md",
-				"text": "---\n\"@shivaedev/platform\": minor\n---\n\n### Added\n\n- Opt in to signed Better Auth bearer sessions for bundled native clients through the auth host mount. Browser responses retain HttpOnly cookies without exposing credentials; cookies take precedence over bearer headers. Sign-out and native session replacement revoke the old credential and end its live subscriptions on revalidation.\n"
+				"name": "quality-named-values-aliases.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Changed\n\n- `tests/named-values` now reports a spec-local numeric const that only feeds `toBe` or `toHaveLength`. Consumers should assert the observed items or derive the value from the story's inputs.\n"
 			},
 			{
 				"name": "release-starter-pins.md",
 				"text": "---\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- Generated apps use the latest released starter dependencies.\n"
-			},
-			{
-				"name": "session-owned-client-keys.md",
-				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- Pass the session-owned native registry as the second argument to `SessionBoundary.connect`, allowing session-scoped contracts to bind before screens render. Session replacement and sign-out release their private tracking, live registrations and pending refreshes; existing one-argument callbacks continue to work.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
-				"directory": "packages/admin",
-				"from": "0.1.4",
-				"name": "@shivaedev/admin",
-				"to": "0.1.5"
-			},
-			{
-				"bump": "patch",
 				"directory": "packages/create-app",
-				"from": "0.15.4",
+				"from": "0.15.5",
 				"name": "@shivaedev/create-app",
-				"to": "0.15.5"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/effect-github",
-				"from": "0.4.2",
-				"name": "@shivaedev/effect-github",
-				"to": "0.4.3"
+				"to": "0.15.6"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-react",
-				"from": "0.17.0",
-				"name": "@shivaedev/effect-react",
-				"to": "0.18.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/platform",
-				"from": "0.30.0",
-				"name": "@shivaedev/platform",
-				"to": "0.31.0"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/pr-watch",
-				"from": "0.4.1",
-				"name": "@shivaedev/pr-watch",
-				"to": "0.4.2"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/work-board",
-				"from": "0.31.3",
-				"name": "@shivaedev/work-board",
-				"to": "0.31.4"
-			},
-			{
-				"bump": "patch",
-				"directory": "packages/work-fleet",
-				"from": "0.18.2",
-				"name": "@shivaedev/work-fleet",
-				"to": "0.18.3"
+				"directory": "packages/quality",
+				"from": "0.39.2",
+				"name": "@shivaedev/quality",
+				"to": "0.40.0"
 			}
 		]
 	}
