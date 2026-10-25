@@ -8,6 +8,7 @@
 	},
 	"scripts": {
 		"admin:create": "node --conditions=source --env-file-if-exists=.env.local src/server/admin.ts",
+		"baseline": "quality baseline",
 		"build": "vite build",
 		"check:published": "env -u NODE_OPTIONS node --conditions=source --env-file-if-exists=../../.env.local ../../script/starter-published.ts",
 		"ci": "quality ci",
