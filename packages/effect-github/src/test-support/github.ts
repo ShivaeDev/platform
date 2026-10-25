@@ -7,11 +7,14 @@ import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { budgetHeaders } from "./budgetHeaders.ts";
 import { FIXTURE_TOKEN, PullRequest } from "./fixtures.ts";
+import { pullRequestWrites } from "./pullRequestWrites.ts";
 import { readWithEnvironment } from "./readWithEnvironment.ts";
 import { telemetry } from "./telemetry.ts";
+import { writeVerbs } from "./writeVerbs.ts";
 
 export const github = storyKit({
 	*create() {
+		const writes = pullRequestWrites();
 		const state: {
 			etag: string;
 			headers: Record<string, string>;
@@ -25,6 +28,7 @@ export const github = storyKit({
 		};
 		const server = yield* fakeHttpService({
 			routes: {
+				...writes.routes,
 				artifact: { path: "/artifact", reply: () => state.reply ?? { chunks: ["patch", " bytes"] } },
 				patchIssue: { method: "PATCH", path: "/repos/acme/widgets/issues", reply: () => ({ body: state.items[0] }) },
 				postIssue: { method: "POST", path: "/repos/acme/widgets/issues", reply: () => ({ body: state.items[0] }) },
@@ -63,7 +67,7 @@ export const github = storyKit({
 			),
 		);
 		const context = yield* Layer.build(Layer.fresh(layer));
-		return { client: Context.get(context, GitHub), context, recording, server, state };
+		return { client: Context.get(context, GitHub), context, recording, server, state, writes: writes.state };
 	},
 	inspect: ({ server }) => ({ requests: server.requests.map(({ method, path }) => ({ method, path })) }),
 	name: "GitHub REST client",
@@ -74,6 +78,7 @@ export const github = storyKit({
 			return effect.pipe(Effect.provide(context), Effect.withSpan("GitHub request"), Effect.provide(recording.layer));
 		}
 		return {
+			...writeVerbs(client),
 			bytes: (limit: number) => run(client.bytes("/artifact", "application/octet-stream", limit)),
 			dropConnection: () => server.scriptFault("pull", { kind: "drop" }, { repeat: true }).pipe(Effect.asVoid),
 			observations: () => client.observations(),
