@@ -36,4 +36,6 @@ Run `pnpm run setup` after cloning the generated repository to install dependenc
 
 `pnpm dev` first runs `pnpm db:setup` to prepare both databases through `@shivaedev/local-postgres`. Have local PostgreSQL 18.6 on port 55432 or Docker available; see [local-postgres machine setup](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#install-and-machine-setup). `pnpm test` loads `TEST_DATABASE_URL` from `.env.local`.
 
+Run `pnpm dlx @shivaedev/create-app@latest update` in a generated app with a clean Git working tree to take later starter changes. The command reads `.create-app.json`, downloads the recorded generator’s starter and uses Git’s three-way merge to replay its changes against the current starter; app edits survive, deleted files stay deleted, and conflicts are listed and left for you to resolve. A successful merge records the current generator version; review the changes, run `pnpm install` and commit them yourself.
+
 The command also supports `--help` and `--version`. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.

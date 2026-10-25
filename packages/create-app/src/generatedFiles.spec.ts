@@ -9,11 +9,13 @@ application.it(
 		expect(result.status, result.stdout + result.stderr).toBe(0);
 		expect(read("README.md")).toMatch(/^# demo\n/u);
 		for (const path of ["README.md", "AGENTS.md"]) {
-			expect(read(path)).not.toMatch(/starter|create-app|check:published|--registry|published-versions/iu);
+			expect(read(path)).not.toMatch(/starter|check:published|--registry|published-versions/iu);
 			expect(read(path)).toContain("pnpm dev");
 			expect(read(path)).toContain("pnpm test");
 			expect(read(path)).toContain("docs/framework/");
 		}
+		expect(read("README.md")).toContain("pnpm dlx @shivaedev/create-app@latest update");
+		expect(read("README.md")).toContain("`.create-app.json` records the generator version");
 		expect(guidanceLink()).toBe("AGENTS.md");
 		expect(read(".env.example")).toContain("/demo_dev\n");
 		expect(read(".env.example")).toContain("/demo_test\n");
