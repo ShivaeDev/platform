@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { fence } from "#imports/fences/dsl.ts";
+import { fence } from "#imports/fence.ts";
 import type { Fence } from "#imports/fences/model.ts";
 import { anyOf, external, folders, modules, packages, scopes, workspace } from "#imports/fences/selectors.ts";
 import { importFences } from "#rules/imports/fences.ts";

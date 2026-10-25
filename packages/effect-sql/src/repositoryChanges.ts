@@ -3,6 +3,8 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { invalidateOnCommit, transact } from "#transact.ts";
 
+const ITEM_KEY_LIMIT = 1000;
+
 function encodeKeyValue(_key: string, value: unknown) {
 	return typeof value === "bigint" ? String(value) : value;
 }
@@ -26,6 +28,9 @@ export const repositoryChanges = Effect.fnUntraced(function* (sql: SqlClient.Sql
 	function record(rows: readonly Readonly<Record<string, unknown>>[]) {
 		if (rows.length === 0) {
 			return Effect.void;
+		}
+		if (rows.length > ITEM_KEY_LIMIT) {
+			return provide(invalidateOnCommit([table, `${table}:*`]));
 		}
 		const ids = rows.map((row) =>
 			columns.length === 1

@@ -18,7 +18,7 @@ export interface HostOptions {
 export const startHost = Effect.fn("AppStory.startHost")(function* (options: HostOptions = {}) {
 	// Better Auth keeps its in-memory rate-limit buckets at module scope.
 	vi.resetModules();
-	const { notesHost } = yield* Effect.promise(() => import("#server/notesHost.ts"));
+	const { applicationHost } = yield* Effect.promise(() => import("#server/applicationHost.ts"));
 	const deployed = options.deployed ?? false;
 	const jobsTesting = makePgBossTesting();
 	const database = yield* PostgresTestDatabase;
@@ -27,9 +27,12 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	if (options.trustedProxy !== undefined) {
 		env.TRUSTED_PROXY = options.trustedProxy;
 	}
-	const host = notesHost({ databaseUrl: database.url, jobsClientFactory: jobsTesting.clientFactory, secret, ...(deployed ? {} : { port: 0 }) }).pipe(
-		Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))),
-	);
+	const host = applicationHost({
+		databaseUrl: database.url,
+		jobsClientFactory: jobsTesting.clientFactory,
+		secret,
+		...(deployed ? {} : { port: 0 }),
+	}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
 	const logs: { level: string; message: unknown; annotations: Record<string, unknown> }[] = [];
 	const logger = Logger.make((entry) => {
 		logs.push({

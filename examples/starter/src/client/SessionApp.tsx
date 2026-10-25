@@ -4,14 +4,15 @@ import { useContext, useState } from "react";
 import { SessionBoundary } from "@shivaedev/effect-react/client/sessionBoundary.ts";
 import { appRouter } from "./appRouter.tsx";
 import type { AuthActions } from "./auth.ts";
-import type { NotesClient } from "./makeNotes.ts";
+import type { AppConnection } from "./Module.ts";
+import { clientModules } from "./modules.ts";
 
 interface Session {
 	readonly id: string;
 }
 interface Routing {
 	readonly auth: AuthActions;
-	readonly client: NotesClient;
+	readonly client: AppConnection;
 	readonly history: RouterHistory | undefined;
 }
 
@@ -29,13 +30,13 @@ export function SessionApp({
 	sessionId,
 	recheck,
 	auth,
-	connect: connection,
+	connect: connection = clientModules,
 	history,
 }: {
 	readonly sessionId: string;
 	readonly recheck: () => void;
 	readonly auth: AuthActions;
-	readonly connect: (session: Session) => NotesClient;
+	readonly connect?: ((session: Session) => AppConnection) | undefined;
 	readonly history?: RouterHistory | undefined;
 }) {
 	return (

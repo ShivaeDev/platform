@@ -3,7 +3,7 @@ import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
 import { packageNameOf } from "#imports/resolve.ts";
 import { isTestSupport } from "#naming/testName.ts";
 import type { Finding, SourceFile } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 import { usesDom } from "#rules/test-names/usesDom.ts";
 import { engineOf } from "./engineOf.ts";
 import { type Stand, standIns } from "./unitSyntax.ts";

@@ -39,6 +39,23 @@ The work separates naturally: declare the application services once, define a qu
 
 ### Once per database: install the schema
 
+For an application on Platform's app host, register `pgBossSchema` beside the migration loader. The host's `migrate` mode installs or upgrades it after committing the application ledger. Its `check` and `wait` modes include pg-boss readiness in the same check as the numbered migrations.
+
+```ts
+import { pgBossSchema } from "@shivaedev/effect-pg-boss/server/schema.ts";
+import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+
+const database = appDatabase({
+  migrations: {
+    loader,
+    components: [pgBossSchema({ schema: "app_jobs" })],
+    mode: "migrate",
+  },
+});
+```
+
+The component uses `installPgBossSchema` as its only install and upgrade path. It is pending when the schema is missing or its stored version is below the installed pg-boss package's required schema version; the readiness error names the schema and both versions (`missing` for an absent version). Start every producer and worker with the same schema and `migrate: false`. Use host mode `"wait"` for services that must wait for a deployment's migration process; no additional jobs-layer wait is needed.
+
 `installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
 
 ```ts
@@ -232,6 +249,8 @@ export const jobsLayer = (databaseUrl: string) =>
 The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`), which a partitioned queue can meet when other queues in the schema have traffic. A shared client stays running while another scope still owns a reference.
 
 Keep the Layer in the application's worker runtime scope. A short scope is useful for an acquisition or health check; a worker process needs its scope to remain open while it handles jobs.
+
+Set `clientCacheKey` to share one reference-counted client across Layer builds with equal pg-boss constructor settings. Reusing a key with different settings fails acquisition with `PgBossClientOptionsError` before constructing another client. Its `key`, `options` and message identify the key and differing option names without exposing connection values. Nested options are compared by value.
 
 ```ts
 import { Effect } from "effect";
@@ -471,9 +490,9 @@ Import the module that defines the name; the package has no root entry.
 | --- | --- |
 | `@shivaedev/effect-pg-boss/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/server/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
-| `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
+| `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth` |
-| `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
+| `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
 | `@shivaedev/effect-pg-boss/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob` |
 
@@ -490,7 +509,7 @@ Worker registration always requests `includeMetadata: true`, including when `wor
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-pg-boss effect@4.0.4 pg-boss@12.37.0
+pnpm add @shivaedev/effect-pg-boss effect@4.0.5 pg-boss@12.37.0
 ```
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.

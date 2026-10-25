@@ -2,7 +2,7 @@ import type { Regression } from "#baseline/compare.ts";
 import { type Outcome, passes } from "#engine/evaluate.ts";
 import { groupBy, keyOf, type Violation } from "#engine/violation.ts";
 import { plural } from "./plural.ts";
-import { staleSections } from "./stale.ts";
+import { staleSections } from "./staleSections.ts";
 
 export interface ReportContext {
 	readonly baseline: string;

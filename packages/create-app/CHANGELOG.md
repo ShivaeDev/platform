@@ -1,5 +1,72 @@
 # Changelog
 
+## 0.13.5 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.4 - 2026-10-25
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.13.3 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.2 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.13.1 - 2026-10-25
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.13.0 - 2026-10-25
+
+### Added
+
+- Generated apps record their generator version and can run `create-app update` in a clean Git repository to merge later starter changes, preserve app edits and deletions, and leave listed conflicts for manual resolution without committing.
+- Migration options accept schema components beside the numbered loader. Components apply after the ledger commits and report pending work through the same readiness check and host wait loop.
+- `pgBossSchema` registers pg-boss installation and upgrades as a schema component, reporting the schema's installed and required versions.
+- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.
+- Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.
+
+### Changed
+
+- Generated apps migrate pg-boss through their migration list and start producers and workers with schema migration disabled.
+- Generated apps reference their packages’ foundation configuration and helpers so dependency updates carry shared fixes into existing apps.
+
+### Fixed
+
+- Migration-step controllers capture schema-component services when constructed, keeping subsequent migration calls free of external service requirements.
+
+## 0.12.0 - 2026-10-24
+
+### Added
+
+- Contracts expose `application`, a native RPC group for building application handlers without naming the reserved `$changes` stream. Middleware stays attached, and Platform hosts complete the full contract with the stream handler.
+- Generated applications build their handlers through the contract's `application` group.
+- Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+- New apps get the notes example as one removable module and fresh migrations. Apps already generated are unaffected.
+- Generate apps with Railway 3.16.0.
+
+### Fixed
+
+- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.
+
 ## 0.11.24 - 2026-10-24
 
 ### Changed

@@ -4,6 +4,7 @@ import { SqlClient } from "effect/sql";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
+import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { makeRepository } from "#repository.ts";
 import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
@@ -30,6 +31,7 @@ import type { setup as payments } from "./postgresCodecs.ts";
 import type { startNotifications } from "./postgresNotify.ts";
 import type { secondPool, setup as transactions } from "./postgresTransact.ts";
 import type { setupVersioned } from "./postgresVersioned.ts";
+import type { pullRequests } from "./pullRequests.ts";
 import { RecordedLogs } from "./RecordedLogs.ts";
 import type { labelsWithPrefix, setup as lines } from "./sqliteRepository.ts";
 import type { secondDatabase, setup as sqliteTransactions } from "./sqliteTransactions.ts";
@@ -60,6 +62,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		observer: fixture<Effect.Success<typeof secondPool>>(),
 		partialConflicts: fixture<Effect.Success<typeof partialConflicts>>(),
 		payments: fixture<Effect.Success<typeof payments>>(),
+		pullRequests: fixture<Effect.Success<typeof pullRequests>>(),
 		secondSqlite: fixture<Effect.Success<typeof secondDatabase>>(),
 		sql,
 		sqliteTransactions: fixture<Effect.Success<typeof sqliteTransactions>>(),
@@ -101,6 +104,8 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		observerPool: engine.observer.get,
 		partialConflicts: engine.partialConflicts.get,
 		paymentFixture: engine.payments.get,
+		pendingPostgresMigrations,
+		pullRequests: engine.pullRequests.get,
 		recordedLogs: () => engine.logs,
 		secondSqliteDatabase: engine.secondSqlite.get,
 		sql: engine.sql,

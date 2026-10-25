@@ -1,10 +1,8 @@
 import { type Duration, Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { liveClient } from "#test/live/client.ts";
-import { eventually } from "./eventually.ts";
 import { liveEngine, liveSnapshot, streamRunner } from "./liveEngine.ts";
 
 export const liveNotesStory = storyKit({
@@ -115,28 +113,25 @@ export function withoutResume() {
 	});
 }
 
+export function resyncingKeys(keys: readonly import("#keys.ts").Key[]) {
+	return liveNotesStory.trait("consumer", "the consumer reconciles an explicit read scope", (engine) => {
+		engine.client = liveClient(engine.server.url, {}, true, undefined, keys);
+	});
+}
+
 export function startsWith(hint: import("#live.ts").LiveHint) {
 	return liveNotesStory.trait("consumer", "the first hint targets only part of the scope", (engine) => Ref.set(engine.server.initialHint, hint));
 }
 
 export function watchingNotes() {
-	return liveNotesStory.trait("consumer", "the consumer watches both notes and their list", function* (engine) {
+	return liveNotesStory.trait("consumer", "the consumer watches both notes and their list", (engine) => {
 		engine.registry.mount(engine.client.connection);
-		yield* eventually(() => {
-			expect(engine.registry.get(engine.client.status).connection).toBe("live");
-			expect(Effect.runSync(Ref.get(engine.server.active))).toBe(1);
-		});
 		const one = engine.client.api.get.query({ id: 1 });
 		const two = engine.client.api.get.query({ id: 2 });
 		engine.registry.mount(one);
 		engine.registry.mount(two);
 		const list = engine.client.api.list.query(undefined);
 		engine.registry.mount(list);
-		yield* eventually(() => {
-			expect(AsyncResult.getOrElse(engine.registry.get(one), () => undefined)?.body).toBe("First");
-			expect(AsyncResult.getOrElse(engine.registry.get(two), () => undefined)?.body).toBe("Second");
-			expect([engine.registry.get(one).waiting, engine.registry.get(two).waiting, engine.registry.get(list).waiting]).toEqual([false, false, false]);
-		});
 	});
 }
 

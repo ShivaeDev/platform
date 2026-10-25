@@ -5,8 +5,6 @@ import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act, createElement } from "react";
 import { createRoot } from "react-dom/client";
-import { expect } from "vitest";
-import { eventually } from "#client/testing.ts";
 import type { AtomServices } from "#fieldRejection.ts";
 import { makeClient } from "./makeClient.ts";
 import { OrderEditor } from "./OrderEditor.tsx";
@@ -40,10 +38,6 @@ export async function mountView(url: string, token = "alice-session") {
 	}
 	try {
 		await act(async () => root.render(createElement(RegistryContext.Provider, { value: registry }, createElement(OrderEditor, { client }))));
-		await eventually(() => {
-			expect(registry.get(client.status).connection).toBe("live");
-			expect(registry.get(client.query).waiting).toBe(false);
-		});
 	} catch (error) {
 		await close();
 		throw error;
@@ -60,8 +54,8 @@ export async function mountView(url: string, token = "alice-session") {
 		click: (name: string) =>
 			interact(() => {
 				const button = [...container.querySelectorAll("button")].find((element) => element.textContent === name);
-				if (!button) {
-					throw new Error(`Missing button ${name}`);
+				if (!button || button.disabled) {
+					throw new Error(`Button ${name} is missing or disabled`);
 				}
 				button.click();
 			}),
@@ -70,7 +64,11 @@ export async function mountView(url: string, token = "alice-session") {
 		edit: (name: string, value: string) =>
 			interact(() => {
 				const field = input(name);
-				Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set?.call(field, value);
+				const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+				if (setter === undefined) {
+					throw new Error("Input value setter is missing");
+				}
+				setter.call(field, value);
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),
 		input,

@@ -132,7 +132,7 @@ export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
 }));
 ```
 
-Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.omit("notes.$changes")` and keep `Notes` as the host and client group.
+Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.application` and keep `Notes` as the host and client group.
 
 Native `.middleware(M)` returns a contract that retains its declarations. For example, a native middleware service can supply request identity:
 
@@ -387,7 +387,7 @@ A query atom takes native query options as its optional second argument, for exa
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-contract effect@4.0.4
+pnpm add @shivaedev/effect-contract effect@4.0.5
 ```
 
 `effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.

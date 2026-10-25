@@ -5,6 +5,7 @@ import { schedulerPassed } from "#engine/health.ts";
 import { pendingAcknowledgements } from "#engine/pendingAcknowledgements.ts";
 import { needsReleasedDelivery } from "#engine/releasedDeliveries.ts";
 import { pendingSessionCleanup } from "#engine/sessionCleanup.ts";
+import { needsReleasedSettlement } from "#engine/settleReleasedWork.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
 import { openSweep } from "#scheduling/sweeps.ts";
@@ -46,6 +47,7 @@ function activeRecords(records: readonly Versioned<FleetRecord>[]) {
 				value.pendingContinuation !== undefined
 				|| !["done", "released", "queued"].includes(value.step)
 				|| needsReleasedDelivery(value)
+				|| needsReleasedSettlement(value)
 				|| boardCompletionAction(value) !== undefined
 				|| pendingAcknowledgements(value).length > 0
 				|| pendingSessionCleanup(value).length > 0,

@@ -1,12 +1,9 @@
-{"path":"packages/platform/src/errors/roundTrip.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/appHostBodyLimit.spec.ts","rule":"tests/named-values","count":2}
-{"path":"packages/platform/src/server/appHostMigrationWait.spec.ts","rule":"tests/named-values","count":5}
 {"path":"packages/platform/src/server/appHostProxy.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/platform/src/server/appHostRequestTracing.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/platform/src/server/better-auth/adapter.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/better-auth/filterBoundaries.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/platform/src/server/better-auth/filterBoundaries.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/platform/src/server/databaseLayer.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/localHostOptions.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/platform/src/server/otlpCredentialRedaction.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/platform/src/server/otlpExportFailure.spec.ts","rule":"tests/named-values","count":2}
@@ -18,10 +15,8 @@
 {"path":"packages/platform/src/server/otlpUrlRedaction.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/platform/src/server/publicConfig.spec.ts","rule":"tests/named-values","count":2}
 {"path":"packages/platform/src/server/rpc-server/admin.spec.ts","rule":"tests/named-values","count":6}
-{"path":"packages/platform/src/server/rpc-server/proxy.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/redaction.spec.ts","rule":"tests/named-values","count":3}
 {"path":"packages/platform/src/server/rpc-server/sessionUser.spec.ts","rule":"tests/named-values","count":3}
-{"path":"packages/platform/src/server/rpc-server/trustedProxyRanges.spec.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/server/rpc-server/unauthenticatedRejections.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/platform/src/server/testing/makePlatformIt.test.ts","rule":"tests/story-specs","count":1}
 {"path":"packages/platform/src/test-support/auth/contract.ts","rule":"biome/lint/style/noExportedImports","count":1}

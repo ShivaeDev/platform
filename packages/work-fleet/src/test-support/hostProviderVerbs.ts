@@ -5,12 +5,12 @@ export function hostProviderVerbs(engine: HostStoryEngine, tell: (line: string) 
 	return {
 		finishTurn: (record: FleetRecord, output?: string) => {
 			const receipt = record.attempts.at(-1)?.receipt;
-			const observation = receipt === undefined ? undefined : engine.fixture.provider.observations.get(receipt.turnId);
+			const observation = receipt === undefined ? undefined : engine.observedProvider.observations.get(receipt.turnId);
 			if (observation === undefined) {
 				throw new Error(`No provider turn exists for ${record.workId}`);
 			}
 			tell(`the provider finishes ${record.workId}'s turn`);
-			engine.fixture.provider.observations.set(observation.receipt.turnId, {
+			engine.observedProvider.observations.set(observation.receipt.turnId, {
 				...observation,
 				execution: "completed",
 				output: output ?? observation.output,
@@ -23,8 +23,20 @@ export function hostProviderVerbs(engine: HostStoryEngine, tell: (line: string) 
 			tell("a human merges the pull request");
 			engine.pullRequest.state.status = "MERGED";
 		},
-		providerCalls: () => [...engine.fixture.provider.settings],
-		providerStarts: () => [...engine.fixture.provider.starts],
-		providerSteers: () => [...engine.fixture.provider.steered],
+		missingTurnRecoveries: () => {
+			if (engine.lostTurns === undefined) {
+				throw new Error("Configure missing turns before reading their recoveries");
+			}
+			return engine.lostTurns.recoveries;
+		},
+		missingTurnRequests: () => {
+			if (engine.lostTurns === undefined) {
+				throw new Error("Configure missing turns before reading their requests");
+			}
+			return engine.lostTurns.requests;
+		},
+		providerCalls: () => [...engine.observedProvider.settings],
+		providerStarts: () => [...engine.observedProvider.starts],
+		providerSteers: () => [...engine.observedProvider.steered],
 	};
 }

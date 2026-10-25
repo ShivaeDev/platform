@@ -106,8 +106,12 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Check this commit's create-app version
-        if: github.event_name == 'workflow_run' || github.event_name == 'pull_request'
-        # pnpm resolves `latest` only to a version past its one-day release age, which for a day after a publish is the previous release, so a publish or a change to this check generates from the create-app version the pins job found on npm.
+        if: github.event_name == 'workflow_run'
+        # pnpm resolves `latest` only to a version past its one-day release age, which for a day after a publish is the previous release, so a publish generates from the create-app version the pins job found on npm.
         run: echo "CREATE_APP_VERSION=$(jq -r .version packages/create-app/package.json)" >> "$GITHUB_ENV"
-      - name: Generate an app from npm and run its CI and published API checks
+      - name: Generate both variants from the packed command against published dependencies
+        if: github.event_name == 'pull_request'
+        run: pnpm --filter @shivaedev/starter check:published
+      - name: Generate both variants from npm and run their CI and published API checks
+        if: github.event_name != 'pull_request'
         run: pnpm --filter @shivaedev/starter check:published --registry --create-app-version "$CREATE_APP_VERSION"

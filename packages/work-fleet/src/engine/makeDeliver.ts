@@ -112,9 +112,9 @@ const observeDelivery = Effect.fn("Fleet.observeDelivery")(function* (
 
 function canObserveDeliveryFailure(record: FleetRecord, error: FleetError) {
 	return (
-		!deliveryPending(record)
+		!(executing(record) || deliveryPending(record))
 		&& (["delivering", "waiting"].includes(record.step)
-			|| (failureCode(error) === "pr-head-moved" && ["reviewing", "validating"].includes(record.step) && !executing(record)))
+			|| (failureCode(error) === "pr-head-moved" && ["reviewing", "validating"].includes(record.step)))
 	);
 }
 

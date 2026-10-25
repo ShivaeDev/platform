@@ -1,90 +1,88 @@
 import { expect } from "@effect/vitest";
-import { Deferred, Effect, Fiber } from "effect";
+import { Effect, Fiber } from "effect";
 import { Fleet } from "#fleet.ts";
-import { prepareWork, withEngine } from "#test/engine.ts";
-import { HEAD, NO_CHANGE, REPORT, resultFixture } from "#test/githubResult.ts";
-import { postgresTests } from "#test/postgres.ts";
-import { startWorkerReport, workerReportReply } from "#test/workerReport.ts";
+import { heldAction } from "#test/engineRaceTraits.ts";
+import { isolatedEngine } from "#test/engineStory.ts";
+import { repairReportsCanBeAdopted, workerReportsCanBeAdopted } from "#test/engineWorkerReportTraits.ts";
+import { HEAD, NO_CHANGE, REPORT } from "#test/githubResult.ts";
 
-const test = postgresTests("test", "isolated");
+isolatedEngine.it(
+	"a repair report receives its correction on the existing worker thread without archiving the cycle",
+	[repairReportsCanBeAdopted()],
+	function* ({ workerReportReply, fleet, prepareWork, reviewedHeads }) {
+		yield* prepareWork("one");
+		const dispatched = yield* fleet.dispatch("one");
+		const original = yield* workerReportReply(dispatched, REPORT);
+		const repair = yield* fleet.reconcile("one");
+		expect(repair.value.attempts.at(-1)?.role).toBe("repair");
+		yield* workerReportReply(repair, "Missing repair report");
+		const correction = yield* fleet.reconcile("one");
+		expect(correction.value.step).toBe("working");
+		expect(correction.value.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: original.sessionId });
+		expect(correction.value.attempts).toHaveLength(4);
+		expect(correction.value.history).toBeUndefined();
+		yield* workerReportReply(correction, NO_CHANGE);
+		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
+		expect(reviewedHeads()).toEqual([HEAD, HEAD]);
+	},
+);
 
-test("a repair report receives its correction on the existing worker thread without archiving the cycle", () => {
-	const github = resultFixture({ after: { "changed_files": 1 }, before: { "changed_files": 1 }, files: [[{ filename: "src/one.ts" }]] });
-	return withEngine({ repairs: true, resultQuery: github.adopt }, (fixture) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
-			const { followUp: repair, original } = yield* startWorkerReport(fixture, REPORT);
-			expect(repair.value.attempts.at(-1)?.role).toBe("repair");
-			yield* workerReportReply(fixture, repair, "Missing repair report");
-			const correction = yield* fleet.reconcile("one");
-			expect(correction.value.step).toBe("working");
-			expect(correction.value.attempts.at(-1)).toMatchObject({ role: "repair", sessionId: original.sessionId });
-			expect(correction.value.attempts).toHaveLength(4);
-			expect(correction.value.history).toBeUndefined();
-			yield* workerReportReply(fixture, correction, NO_CHANGE);
-			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(fixture.reviews).toEqual([HEAD, HEAD]);
-		}),
-	);
-});
+isolatedEngine.it(
+	"persists the correction before provider acceptance and reconciles its lost acknowledgement after restart",
+	[heldAction("correction")],
+	function* ({ releaseGate, waitForGate, workerReportReply, fleet, prepareWork, afterRestart, launches, providerCalls, providerOperationCount }) {
+		yield* prepareWork("one");
+		const dispatched = yield* fleet.dispatch("one");
+		const original = yield* workerReportReply(dispatched, "Missing report");
+		const following = yield* fleet.reconcile("one").pipe(Effect.forkChild);
+		yield* waitForGate("entered");
+		const intent = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.get("one")));
+		const attempt = intent.value.attempts.at(-1);
+		expect(intent.value.step).toBe("working");
+		expect(intent.value.attempts).toHaveLength(2);
+		expect(attempt).toMatchObject({ role: "worker", sessionId: original.sessionId, status: "submitting" });
+		expect(attempt?.prompt).toContain("Reply only with a corrected report");
+		expect(attempt?.receipt).toBeUndefined();
+		expect(providerOperationCount()).toBe(1);
+		yield* releaseGate("release");
+		const lost = yield* Fiber.join(following);
+		expect(lost.value.attempts.at(-1)?.operationId).toBe(attempt?.operationId);
+		expect(lost.value.attempts.at(-1)?.receipt).toBeUndefined();
+		expect(providerOperationCount()).toBe(2);
+		const recovered = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
+		expect(recovered.value.attempts.at(-1)).toMatchObject({ operationId: attempt?.operationId, status: "running" });
+		expect(recovered.value.attempts.at(-1)?.receipt?.sessionId).toBe(original.sessionId);
+		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		yield* workerReportReply(recovered, NO_CHANGE);
+		const completed = yield* fleet.reconcile("one");
+		expect(completed.value.step).toBe("done");
+		expect(completed.value.result).toMatchObject({ head: HEAD, kind: "no-change" });
+		expect(launches()).toHaveLength(2);
+	},
+);
 
-test("persists the correction before provider acceptance and reconciles its lost acknowledgement after restart", function* () {
-	const entered = yield* Deferred.make<void>();
-	const release = yield* Deferred.make<void>();
-	const continuationGate = Deferred.succeed(entered, undefined).pipe(Effect.andThen(Deferred.await(release)));
-	yield* withEngine({ continuationGate, lostContinuationAcknowledgement: true, resultQuery: resultFixture().adopt }, (fixture) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
-			yield* prepareWork("one");
-			const dispatched = yield* fleet.dispatch("one");
-			const original = yield* workerReportReply(fixture, dispatched, "Missing report");
-			const following = yield* fleet.reconcile("one").pipe(Effect.forkChild);
-			yield* Deferred.await(entered);
-			const intent = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.get("one")));
-			const attempt = intent.value.attempts.at(-1);
-			expect(intent.value.step).toBe("working");
-			expect(intent.value.attempts).toHaveLength(2);
-			expect(attempt).toMatchObject({ role: "worker", sessionId: original.sessionId, status: "submitting" });
-			expect(attempt?.prompt).toContain("Reply only with a corrected report");
-			expect(attempt?.receipt).toBeUndefined();
-			expect(fixture.operations.size).toBe(1);
-			yield* Deferred.succeed(release, undefined);
-			const lost = yield* Fiber.join(following);
-			expect(lost.value.attempts.at(-1)?.operationId).toBe(attempt?.operationId);
-			expect(lost.value.attempts.at(-1)?.receipt).toBeUndefined();
-			expect(fixture.operations.size).toBe(2);
-			const recovered = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
-			expect(recovered.value.attempts.at(-1)).toMatchObject({ operationId: attempt?.operationId, status: "running" });
-			expect(recovered.value.attempts.at(-1)?.receipt?.sessionId).toBe(original.sessionId);
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(2);
-			yield* workerReportReply(fixture, recovered, NO_CHANGE);
-			const completed = yield* fleet.reconcile("one");
-			expect(completed.value.step).toBe("done");
-			expect(completed.value.result).toMatchObject({ head: HEAD, kind: "no-change" });
-			expect(fixture.launched).toHaveLength(2);
-		}),
-	);
-});
-
-test("a malformed human-requested retry returns to waiting without another automatic follow-up", () =>
-	withEngine({ resultQuery: resultFixture().adopt }, (fixture) =>
-		Effect.gen(function* () {
-			const fleet = yield* Fleet;
-			const { followUp } = yield* startWorkerReport(fixture, "Missing report");
-			yield* workerReportReply(fixture, followUp, "Still missing");
-			const blocked = yield* fleet.reconcile("one");
-			const decisionId = blocked.value.decision?.id ?? "missing";
-			fixture.respond(decisionId, "retry");
-			const retry = yield* fleet.reconcile("one");
-			expect(retry.value.step).toBe("working");
-			expect(retry.value.attempts).toHaveLength(3);
-			yield* workerReportReply(fixture, retry, `${REPORT}\nTrailing text`);
-			const malformed = yield* fixture.restart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
-			expect(malformed.value.step).toBe("waiting");
-			expect(malformed.value.decision?.id).not.toBe(decisionId);
-			expect(malformed.value.attempts).toHaveLength(3);
-			expect(fixture.settings.filter((call) => call.call === "turn")).toHaveLength(3);
-			expect(fixture.decisions).toHaveLength(2);
-			expect(fixture.reviews).toHaveLength(0);
-		}),
-	));
+isolatedEngine.it(
+	"a malformed human-requested retry returns to waiting without another automatic follow-up",
+	[workerReportsCanBeAdopted()],
+	function* ({ workerReportReply, fleet, prepareWork, afterRestart, respond, publishedDecisions, providerCalls, reviewedHeads }) {
+		yield* prepareWork("one");
+		const dispatched = yield* fleet.dispatch("one");
+		yield* workerReportReply(dispatched, "Missing report");
+		const followUp = yield* fleet.reconcile("one");
+		yield* workerReportReply(followUp, "Still missing");
+		const blocked = yield* fleet.reconcile("one");
+		const decisionId = blocked.value.decision?.id ?? "missing";
+		respond(decisionId, "retry");
+		const retry = yield* fleet.reconcile("one");
+		expect(retry.value.step).toBe("working");
+		expect(retry.value.attempts).toHaveLength(3);
+		yield* workerReportReply(retry, `${REPORT}\nTrailing text`);
+		const malformed = yield* afterRestart(Effect.flatMap(Fleet, (restarted) => restarted.reconcile("one")));
+		expect(malformed.value.step).toBe("waiting");
+		expect(malformed.value.decision?.id).not.toBe(decisionId);
+		expect(malformed.value.attempts).toHaveLength(3);
+		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
+		expect(publishedDecisions()).toHaveLength(2);
+		expect(reviewedHeads()).toHaveLength(0);
+	},
+);

@@ -9,6 +9,7 @@ import { insertSelect } from "./insertSelect.ts";
 import { invoiceLines } from "./invoiceLines.ts";
 import { jsonReceipts } from "./jsonReceipts.ts";
 import { partialConflicts } from "./partialConflicts.ts";
+import { pullRequests } from "./pullRequests.ts";
 import { postgres } from "./sqlStory.ts";
 import { wideRows } from "./wideRows.ts";
 export function hasPartialConflicts() {
@@ -70,5 +71,11 @@ export function hasJsonReceipts() {
 export function hasInsertSelectRows() {
 	return postgres.trait("schema", "source and target rows have their database schemas", function* (engine) {
 		engine.insertSelect.set(yield* insertSelect);
+	});
+}
+
+export function hasPullRequests() {
+	return postgres.trait("schema", "pull requests store UTC revisions in typed columns", function* (engine) {
+		engine.pullRequests.set(yield* pullRequests);
 	});
 }

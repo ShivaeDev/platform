@@ -17,3 +17,18 @@ application.it(
 		}
 	},
 );
+
+application.it(
+	"packing checks the numbered files inside application modules",
+	[customTemplate({ "src/modules/labels/server/migrations/create-labels.ts": "export default {};" })],
+	function* ({ pack }) {
+		const exit = yield* pack().pipe(Effect.exit);
+		expect(Exit.isFailure(exit)).toBe(true);
+		if (Exit.isFailure(exit)) {
+			expect(Cause.squash(exit.cause)).toMatchObject({
+				_tag: "CreateAppError",
+				message: "Invalid migration filename: src/modules/labels/server/migrations/create-labels.ts",
+			});
+		}
+	},
+);

@@ -1,14 +1,18 @@
-import { Buffer } from "node:buffer";
 import { randomBytes } from "node:crypto";
-import { basename, dirname, join, resolve } from "node:path";
-import { Console, Effect, FileSystem, Schema } from "effect";
+import { basename, join, resolve } from "node:path";
+import { Console, Effect, FileSystem } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { appFile, databaseName } from "./appFiles.ts";
+import { databaseName } from "./appFiles.ts";
 import { CreateAppError } from "./CreateAppError.ts";
+import { readTemplate, renderTemplate, writeGeneration } from "./generation.ts";
 import { commitGit, initializeGit } from "./initializeGit.ts";
-import { Template } from "./template.ts";
+import { appTemplate } from "./template.ts";
 
-export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: string, templatePath: string, options: { readonly git: boolean }) {
+export const createApp = Effect.fn("CreateApp.createApp")(function* (
+	folder: string,
+	templatePath: string,
+	options: { readonly git: boolean; readonly minimal: boolean; readonly version: string },
+) {
 	const fs = yield* FileSystem.FileSystem;
 	const target = resolve(folder);
 	const name = basename(target);
@@ -18,19 +22,10 @@ export const createApp = Effect.fn("CreateApp.createApp")(function* (folder: str
 	if ((yield* fs.exists(target)) && ((yield* fs.stat(target)).type !== "Directory" || (yield* fs.readDirectory(target)).length > 0)) {
 		return yield* new CreateAppError({ message: `Refusing to write into ${folder}: the destination must be an empty folder.` });
 	}
-	const template = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Template))(yield* fs.readFileString(templatePath));
+	const template = appTemplate(yield* readTemplate(templatePath), options.minimal);
 	yield* fs.makeDirectory(target, { recursive: true });
-	for (const entry of template) {
-		const path = join(target, entry.path);
-		const source = Buffer.from(entry.content, "base64");
-		const content = yield* Effect.try({
-			catch: (cause) => new CreateAppError({ message: String(cause) }),
-			try: () => appFile(entry.path, source, name),
-		});
-		yield* fs.makeDirectory(dirname(path), { recursive: true });
-		yield* fs.writeFile(path, content, { mode: 0o644 });
-		yield* fs.chmod(path, 0o644);
-	}
+	yield* renderTemplate(target, template, name);
+	yield* writeGeneration(target, { ...(options.minimal ? { minimal: true } : {}), name, version: options.version });
 	yield* fs.symlink("AGENTS.md", join(target, "CLAUDE.md"));
 	const database = databaseName(name);
 	yield* fs.writeFileString(

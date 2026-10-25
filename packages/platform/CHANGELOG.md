@@ -1,5 +1,54 @@
 # Changelog
 
+## 0.25.4 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.25.3 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.25.2 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.25.1 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.25.0 - 2026-10-25
+
+### Added
+
+- Migration options accept schema components beside the numbered loader. Components apply after the ledger commits and report pending work through the same readiness check and host wait loop.
+- `pgBossSchema` registers pg-boss installation and upgrades as a schema component, reporting the schema's installed and required versions.
+- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.
+- Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.
+
+### Changed
+
+- Generated apps migrate pg-boss through their migration list and start producers and workers with schema migration disabled.
+- Generated apps reference their packages’ foundation configuration and helpers so dependency updates carry shared fixes into existing apps.
+
+### Fixed
+
+- Better Auth mount failures log their redacted cause at error level in the request trace before returning the existing 503 response.
+- Migration-step controllers capture schema-component services when constructed, keeping subsequent migration calls free of external service requirements.
+
+## 0.24.2 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.24.1 - 2026-10-24
 
 ### Changed

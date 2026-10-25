@@ -16,6 +16,20 @@ export function spec(content: string, path = "src/orders.spec.ts"): SeedFile {
 	return { content, path };
 }
 
+export function factoryFiles(factory: string): readonly SeedFile[] {
+	return [
+		...kitFiles,
+		{
+			content: `import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";\n${factory}`,
+			path: "src/test-support/orderKit.ts",
+		},
+		{
+			content: 'import { buildOrderKit } from "./orderKit.ts"; export const orders = buildOrderKit();',
+			path: "src/test-support/factoryOrders.ts",
+		},
+	];
+}
+
 export const prerequisiteFiles: readonly SeedFile[] = [
 	{ content: '{"workspaces":["modules/*"]}', path: "package.json" },
 	{

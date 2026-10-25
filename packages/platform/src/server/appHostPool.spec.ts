@@ -27,3 +27,19 @@ for (const mode of ["database", "host"] as const) {
 		);
 	}
 }
+
+pool.it.runIf(database._tag === "Some")(
+	"recovers an idle connection and preserves active query failures",
+	[poolCapacity("host", 2)],
+	function* ({ query, terminate, nativeQueryFailure }) {
+		const [previous] = yield* query();
+		if (previous === undefined) {
+			throw new Error("The application pool returned no backend");
+		}
+		yield* terminate(previous.pid);
+		const [recovered] = yield* query();
+		expect(recovered?.pid).not.toBe(previous.pid);
+		expect(yield* nativeQueryFailure()).toMatchObject({ _tag: "SqlError" });
+		expect(yield* query()).toEqual([{ pid: expect.any(Number) }]);
+	},
+);

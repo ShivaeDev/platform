@@ -13,6 +13,7 @@ import { poolVerbs } from "./poolVerbs.ts";
 import { adminUrl, configured } from "./postgres.ts";
 import { rowLockVerbs } from "./rowLockVerbs.ts";
 import { transactionVerbs } from "./transactionVerbs.ts";
+import { vitestVerbs } from "./vitestVerbs.ts";
 
 export const database = storyKit({
 	after: { configuration: (engine) => engine.lease() },
@@ -27,6 +28,7 @@ export const database = storyKit({
 		...isolationVerbs(engine),
 		inShared: <A, E, R>(effect: Effect.Effect<A, E, R>) => engine.run(effect),
 		...transactionVerbs(engine),
+		...vitestVerbs(),
 		...applicationVerbs(),
 		...lifecycleVerbs(engine),
 		...limitVerbs(engine),

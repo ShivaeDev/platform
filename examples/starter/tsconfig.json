@@ -1,14 +1,10 @@
 {
 	"compilerOptions": {
 		"customConditions": ["source"],
-		"jsx": "react-jsx",
-		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"paths": {
 			"#*": ["./src/*"]
-		},
-		"skipLibCheck": true,
-		"types": ["node", "react", "react-dom"]
+		}
 	},
-	"extends": "@shivaedev/quality/tsconfig/base.json",
+	"extends": "@shivaedev/quality/tsconfig/app.json",
 	"include": ["src", ".railway", "vite.config.ts", "vitest.config.ts"]
 }

@@ -6,6 +6,25 @@ export const Versions = Schema.Record(Schema.String, Schema.String);
 export const Template = Schema.Array(Schema.Struct({ content: Schema.String, path: Schema.String }));
 export type Template = typeof Template.Type;
 export const decodeTemplate = Schema.decodeUnknownSync(Schema.fromJsonString(Template));
+
+export function appTemplate(template: Template, minimal = false): Template {
+	if (!minimal) {
+		return template;
+	}
+	return template
+		.filter((entry) => !entry.path.startsWith("src/modules/notes/"))
+		.map((entry) => {
+			if (!["src/server/modules.ts", "src/server/workerModules.ts", "src/server/migrations.ts", "src/client/modules.ts"].includes(entry.path)) {
+				return entry;
+			}
+			const source = Buffer.from(entry.content, "base64")
+				.toString()
+				.replace(/^import .* from "#modules\/notes\/.*";\n/gmu, "")
+				.replace(/,?\s*\b(?:notesRegistration|notesWorker|notesMigrations)\b/gu, "");
+			return { ...entry, content: Buffer.from(source).toString("base64") };
+		});
+}
+
 const Manifest = Schema.Struct({
 	dependencies: Versions,
 	devDependencies: Versions,
@@ -61,13 +80,13 @@ export function prepareManifest(source: string, versions: Readonly<Record<string
 }
 
 export function prepareFile(path: string, content: Buffer, versions: Readonly<Record<string, string>>) {
-	if (["src/server/dev.ts", "src/test-support/adminCommand.ts", "src/test-support/deployChild.ts"].includes(path)) {
+	if (["src/test-support/adminCommand.ts", "src/test-support/deployChild.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('"--conditions=source", ', ""));
 	}
 	if (path === "package.json") {
 		return Buffer.from(prepareManifest(content.toString(), versions));
 	}
-	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts"].includes(path)) {
+	if (["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"].includes(path)) {
 		return Buffer.from(content.toString().replaceAll('"source", ', "").replaceAll('["source"]', "[]"));
 	}
 	return content;

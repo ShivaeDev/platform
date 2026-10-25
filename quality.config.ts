@@ -26,7 +26,7 @@ export default defineConfig({
 			"rules": ["biome/lint/suspicious/noThenProperty"],
 		},
 		{
-			"files": ["packages/effect-test/src/vitest.ts"],
+			"files": ["packages/effect-test/src/makeEffectIt.ts"],
 			"reason":
 				"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty.",
 			"rules": ["biome/lint/correctness/noEmptyPattern"],

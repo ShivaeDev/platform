@@ -7,9 +7,9 @@ Make development and integration tests share one persistent local PostgreSQL ser
 A setup command should make a machine ready to work without erasing the work already on it. Reimplementing PostgreSQL startup in every repository makes that promise harder to keep. This package gives a setup script one place to prepare the service and its databases:
 
 ```ts
-import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
-const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
+const development = process.env.DATABASE_URL ?? `${LOCAL_SERVER}/example_dev`;
 localPostgres(process.env).prepareDatabases([development]);
 ```
 
@@ -34,10 +34,10 @@ There are three separate responsibilities:
 When database names come from the application's configured URLs, pass those URLs directly to preparation:
 
 ```ts
-import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
-const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
-const tests = process.env.TEST_DATABASE_URL ?? `${localServer}/example_test`;
+const development = process.env.DATABASE_URL ?? `${LOCAL_SERVER}/example_dev`;
+const tests = process.env.TEST_DATABASE_URL ?? `${LOCAL_SERVER}/example_test`;
 
 localPostgres(process.env).prepareDatabases([development, tests]);
 ```
@@ -47,10 +47,10 @@ Generated applications use this configuration-driven approach. An allowlist buil
 Use `assertLocalDatabase` when the setup script owns a fixed set of database names, as this repository's `script/setup-database.ts` does. Its allowlist restricts configuration to the names the script intends to touch:
 
 ```ts
-import { assertLocalDatabase, localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
-const development = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
-const tests = process.env.TEST_DATABASE_URL ?? `${localServer}/example_test`;
+const development = process.env.DATABASE_URL ?? `${LOCAL_SERVER}/example_dev`;
+const tests = process.env.TEST_DATABASE_URL ?? `${LOCAL_SERVER}/example_test`;
 
 assertLocalDatabase(development, ["example_dev"]);
 assertLocalDatabase(tests, ["example_test"]);
@@ -68,9 +68,9 @@ After `prepareDatabases`, run the application's own schema or migration entry po
 ### 3. In daily setup: prepare again and inspect with SQL
 
 ```ts
-import { localPostgres, localServer } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
 
-const database = process.env.DATABASE_URL ?? `${localServer}/example_dev`;
+const database = process.env.DATABASE_URL ?? `${LOCAL_SERVER}/example_dev`;
 
 const postgres = localPostgres(process.env);
 postgres.prepareDatabases([database]);
@@ -79,7 +79,7 @@ console.log(postgres.sql(database, "SHOW server_version"));
 
 The version query returns the string `18.6`. `sql` also accepts a `URL` and returns the command's trimmed text. URLs carrying the application's `schema` and `connection_limit` settings work for this query; those settings are removed before calling PostgreSQL's client.
 
-`startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `localServer`. Prefer `prepareDatabases` when the setup script needs named databases as well.
+`startPostgres(connection)` prepares the service without choosing an application database to create. Its connection defaults to `LOCAL_SERVER`. Prefer `prepareDatabases` when the setup script needs named databases as well.
 
 On each start, setup reads `SHOW max_connections`. When the shared container allows fewer than 500 connections, setup applies `ALTER SYSTEM SET max_connections = 500`, restarts that same container, waits for readiness and confirms the setting. Existing data stays in place. A limit of 500 or higher causes no setting change or restart. If the setting cannot be applied, setup throws `PostgresSettingError` from `@shivaedev/local-postgres/server/localConnections.ts`, with `_tag`, `container`, `setting` and the original `cause`.
 
@@ -89,11 +89,11 @@ Import the setup API from `@shivaedev/local-postgres/server/localPostgres.ts`:
 
 | Export | Purpose |
 | --- | --- |
-| `localServer` | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name. |
+| `LOCAL_SERVER` | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name. |
 | `assertLocalDatabase(value: string, names: readonly string[]): URL` | Validate a local database URL against application-owned allowed names. |
 | `localPostgres(environment: DockerEnvironment, readiness?: ReadinessOptions)` | Create the setup functions using the Docker settings to validate. After starting the container, `startPostgres` checks readiness `attempts` times (default 30), waiting `delayMillis` between checks (default 1000). |
 | `prepareDatabases(values: readonly string[]): void` | Prepare the service and create absent databases. |
-| `startPostgres(connection?: string): void` | Prepare the service; the default connection is `localServer`. |
+| `startPostgres(connection?: string): void` | Prepare the service; the default connection is `LOCAL_SERVER`. |
 | `sql(value: string \| URL, query: string): string` | Execute SQL through PostgreSQL's command-line client. |
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They throw on failure; they are synchronous Node functions rather than Effects.

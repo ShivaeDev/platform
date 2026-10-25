@@ -35,6 +35,12 @@ An **Origin policy** is a function of the transport request's origin, headers an
 
 The optional modules solve different boundaries. `server/runtime/` carries Effect services into Promise callers, `server/node-http/` combines subscription cancellation sources, `server/better-auth/adapter.ts` connects Better Auth storage to Effect Prisma, and `server/testing/makePlatformIt.ts` composes the Prisma and tRPC test harnesses. Choose the modules that match the application rather than adopting every integration.
 
+### Prepare local development
+
+`setupDatabases()` from `@shivaedev/platform/server/setupDatabases.ts` reads `DATABASE_URL` and `TEST_DATABASE_URL` through Effect Config and prepares both local databases with `@shivaedev/local-postgres`. Database names come from those URLs. `DOCKER_HOST` and `DOCKER_CONTEXT` are optional. Missing database URLs fail with a typed Config error; migrations remain the application's responsibility.
+
+`development({ server, worker, conditions? })` from `@shivaedev/platform/server/development.ts` starts the two application entry points with Node's watch mode and runs `pnpm exec vite`. Supply paths relative to the application directory and any export conditions its code needs. Provide `NodeServices.layer` to run it. When a process exits, the other processes stop and the Effect returns the first exit code, which the entry point can assign to `process.exitCode`. Use `runDevelopment(options)` from the same module for the Node entry point with that runtime wiring included.
+
 ### Host the application
 
 `appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
@@ -90,7 +96,9 @@ Omit `migrations` to host an app without a database. This form creates no SQL po
 
 `appHost` serves unauthenticated `GET /health`. It queries its SQL client on each request and returns `200` only when the query succeeds within two seconds; a missing SQL client, query failure or timeout returns `503`. Both responses have an empty body and `Cache-Control: no-store`. This route also works when the SQL client comes from the application’s `services` Layer. Use it for database readiness checks.
 
-Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. Use `migrations.mode: "wait"` for services that can start before that pre-deploy command finishes. It re-reads the ledger every second until current, then starts the application. Set `migrations.pollInterval` and `migrations.waitTimeout` with Effect duration inputs to change the interval and five-minute timeout. Timeout fails with the same `MigrationError` as `"check"`; interruption stops polling and closes the pool. SQL failures fail immediately. With `mode` omitted or `"migrate"`, startup applies pending migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it.
+Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing or a schema component is pending; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. Use `migrations.mode: "wait"` for services that can start before that pre-deploy command finishes. It re-reads the ledger and every registered component every second until all are current, then starts the application. Set `migrations.pollInterval` and `migrations.waitTimeout` with Effect duration inputs to change the interval and five-minute timeout. If the first check finds pending work, Effect’s logger emits `Waiting for database migrations` at info, then `Still waiting for database migrations` every 30 seconds independently of polling. Set `migrations.progressInterval` with an Effect duration input to change that progress interval. These lines carry `pendingMigrations` (ID and name) and `pendingComponents` (name and detail) annotations. A later successful check logs `Database migrations current` once; timeout logs `Timed out waiting for database migrations` with the pending annotations before failing. An initially current schema emits none of these lines. The host adds no connection details or secrets to these diagnostics. Timeout fails with the same `MigrationError` as `"check"`; interruption stops polling and closes the pool. SQL failures fail immediately. With `mode` omitted or `"migrate"`, startup applies pending ledger migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it, then applies schema components outside the ledger transaction.
+
+Pass `migrations.components` beside `loader` for storage managed by another engine. For pg-boss, register `pgBossSchema({ schema: "app_jobs" })` from `@shivaedev/effect-pg-boss/server/schema.ts`, then start every jobs Layer with `migrate: false`. `check` and `wait` use the same `MigrationError` readout for pending ledger IDs and component names and details, including pg-boss’s installed and required versions.
 
 Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
 
@@ -141,6 +149,8 @@ Both JSON and protobuf export serialization apply sensitive-key and credential-t
 Set `config.maxConnections` on `appDatabase` or a migrated `appHost` to bound the PostgreSQL pool. The change listener reserves one connection; when transactions hold the remaining connections, another query waits until a transaction releases its connection. A daemon with long-lived RPC streams can use `config.disablePreemptiveShutdown: true` so scope closure interrupts an active HTTP RPC stream and runs its finalizer before host disposal completes, without waiting for Node's preemptive graceful-shutdown timeout. Omitting it keeps Node's native graceful-shutdown default.
 
 For a deployment behind a proxy, set `HOST=0.0.0.0` and `TRUSTED_PROXY` to a comma-separated list of proxy peer IPs or CIDR ranges (IPv4 or IPv6), or use `config.host` and `config.trustedProxy`. Only matching peers may supply `X-Forwarded-Host` and `X-Forwarded-Proto` (`http` or `https`) for the guard's same-origin check; the proxy must overwrite both headers and preserve Origin. A single authority is required, and comma-separated forwarding chains are refused. IPv4-mapped IPv6 peers match their IPv4 address. Malformed addresses or ranges fail `appHost` startup with a typed `ConfigError`. NDJSON and the application's session Origin policy still apply. See the [deployment quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy).
+
+Build application handlers with `Api.application.toLayer(...)` (and `Api.application.of(...)` for an Effect-built handler map), then pass the full `Api` to the host and client. `Api.application` is the native RPC group without the reserved `$changes` stream; the host supplies that handler. The explicit `Api.omit("<namespace>.$changes")` form also works.
 
 Database-backed hosts enable PostgreSQL change delivery by default and serve each contract's reserved change stream under its middleware. After a command handler succeeds, its declared invalidation keys publish without repeating keys already announced by repository commits. The handler keeps ownership of its transactions and error mapping. `config.changes.channel` overrides the app-derived default, and heartbeat and retry settings remain optional. Use the same application name or channel across web and worker processes. A worker can provide `appDatabase({ migrations, config })` without starting HTTP. See [commit-bound changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults and limits.
 
@@ -510,6 +520,33 @@ For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` returns a
 
 For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` accepts a key predicate; `isSensitiveKey` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
 
+### Calling outside APIs
+
+Use Effect's HTTP client with `filterStatus`, `paginate` and the bounded body readers:
+
+```ts
+import { Effect, Schema, Stream } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { readBoundedJson } from "@shivaedev/platform/http-client/body.ts";
+import { filterStatus } from "@shivaedev/platform/http-client/filterStatus.ts";
+import { paginate } from "@shivaedev/platform/http-client/paginate.ts";
+
+const items = Effect.gen(function* () {
+  const client = filterStatus(yield* HttpClient.HttpClient);
+  return yield* paginate(client, HttpClientRequest.get("https://api.example/items")).pipe(
+    Stream.mapEffect((response) => readBoundedJson(response, 64 * 1024, Schema.Array(Schema.String))),
+    Stream.runCollect,
+    Effect.map((pages) => pages.flat()),
+  );
+});
+```
+
+Provide a native client Layer such as `FetchHttpClient.layer` from `effect/http`. `filterStatus` passes 2xx responses through and fails other statuses with Schema tagged errors from `http-client/errors.ts`: `RemoteUnauthorized` (401), `RemoteNotFound` (404), `RemoteGone` (410), `RemoteRateLimited` (429, or 503 carrying `Retry-After`) and `RemoteHttpError` for other statuses. Errors carry the method, URL without its query string and status, without headers or body. `RemoteRateLimited.retryAfter` is an optional UTC `DateTime`: delay-seconds use Effect's clock, and HTTP dates name the instant directly. Missing or invalid values leave it undefined.
+
+`paginate` follows quoted or unquoted `rel=next`, including headers with multiple links and relations, resolves relative links and stops at the last page. Taking one page sends one request. A next link on another origin fails with `PaginationLinkError` before that request is sent.
+
+`readBoundedBody(response, limit)` returns bytes; `readBoundedText` decodes UTF-8, and `readBoundedJson(response, limit, schema)` decodes JSON through the supplied Schema. Limits are bytes. An oversized `Content-Length` fails with `ResponseBodyTooLarge` before reading the body; a chunked body that exceeds the limit fails during the read. The error carries `limit`.
+
 ### Promise callers: one application runtime
 
 Build the application Layer once. `runWithServices` supplies an invocation's overrides to subsequent calls on the same runtime, across Promise awaits:
@@ -644,11 +681,43 @@ const testAuth = betterAuth({
 const { user, headers, cookies } = await signedInUser(testAuth, {
   email: "member@example.test",
   name: "Member",
+  providerAccounts: [{ providerId: "github", accountId: "123" }],
   role: "user,admin",
 });
 ```
 
-`options` is the application's auth configuration. `signedInUser` saves the supplied user fields and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+`options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
+
+Use `storedProviderAccounts(auth, userId)` to observe credential storage through Better Auth's internal adapter. It returns account and provider IDs with `hasAccessToken`, `hasRefreshToken`, `hasIdToken` and `hasPassword` booleans. It never returns token values, passwords or password hashes. A DOM story kit that exposes its test auth instance and a session readout can use both helpers:
+
+```ts
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
+import { signedInUser, storedProviderAccounts } from "@shivaedev/platform/server/better-auth/testing.ts";
+
+const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {
+  const { cookies } = yield* Effect.promise(() => signedInUser(auth, {
+    email: "member@example.test",
+    name: "Member",
+    providerAccounts: [{ providerId: "github", accountId: "123" }],
+  }));
+  yield* seedCookies(cookies);
+});
+
+app.it("the member's provider account stores no credentials", [member], function* ({ session, story }) {
+  const { user } = yield* session();
+  const accounts = yield* Effect.promise(() => storedProviderAccounts(story.engine.auth, user.id));
+  expect(accounts).toEqual([{
+    providerId: "github",
+    accountId: "123",
+    hasAccessToken: false,
+    hasRefreshToken: false,
+    hasIdToken: false,
+    hasPassword: false,
+  }]);
+});
+```
 
 With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
@@ -757,7 +826,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/platform effect@4.0.4
+pnpm add @shivaedev/platform effect@4.0.5
 ```
 
 Effect is the only required peer. The peer-free implementation lives in the shared `errors/` and `rpc/` folders and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.

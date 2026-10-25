@@ -1,44 +1,26 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import type { ApprovedPrFixture, PrDaemonClient } from "#test/approvedPrDaemon.ts";
+import type { FleetRecord } from "#model.ts";
 import { until } from "#test/cloudRestart.ts";
-import { answerAndWait } from "#test/daemonActions.ts";
-import { untilEveryOutput, withFollower } from "#test/follower.ts";
-import type { Follower } from "#test/followerProcess.ts";
-import { MOVED } from "#test/githubResult.ts";
+import { HEAD, REPORT } from "#test/githubResult.ts";
+import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { hostProviderVerbs } from "#test/hostProviderVerbs.ts";
 
-export const watchReview = Effect.fn("WatchReviewTest.watchReview")(function* (
-	fixture: ApprovedPrFixture,
-	client: PrDaemonClient,
-	port: number,
-	initialReady: boolean,
-) {
-	if (initialReady) {
-		yield* fixture.ready(client);
-	}
-	yield* withFollower(fixture.configFile, "watch", [], { follow: true, port }, (all) =>
-		withFollower(fixture.configFile, "watch", ["one"], { follow: true, port }, (explicit) =>
-			followReview(fixture, client, [all, explicit], initialReady),
-		),
-	);
-});
-
-const followReview = Effect.fn("WatchReviewTest.followReview")(function* (
-	fixture: ApprovedPrFixture,
-	client: PrDaemonClient,
-	followers: readonly Follower[],
-	initialReady: boolean,
-) {
-	if (!initialReady) {
-		yield* fixture.ready(client);
-	}
-	const line = "one waiting (waiting on orchestrator): Reviewed PR is ready to merge\n";
-	yield* untilEveryOutput(followers, line);
-	expect((yield* answerAndWait(client, { text: "Keep the loading indicator visible.", workId: "one" })).step).toBe("repairing");
-	yield* client("fleet.reconcile", { workId: "one" });
-	fixture.finishWorker(yield* fixture.started(client, "repair"), MOVED);
-	yield* until(() => client("fleet.reconcile", { workId: "one" }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")));
-	yield* untilEveryOutput(followers, line.repeat(2));
-	expect(followers.map((follower) => follower.output())).toEqual([line.repeat(2), line.repeat(2)]);
-	expect(followers.map((follower) => follower.isRunning())).toEqual([true, true]);
-});
+export function watchReview(engine: HostStoryEngine, tell: (line: string) => void) {
+	return {
+		finishReviewedWorker: (record: FleetRecord, head = HEAD) => {
+			if (engine.pullRequest === undefined) {
+				throw new Error("Configure a pull request before finishing its worker");
+			}
+			engine.pullRequest.state.head = head;
+			hostProviderVerbs(engine, tell).finishTurn(record, REPORT.replace(HEAD, head));
+		},
+		reviewReady: (workId: string) =>
+			Effect.gen(function* () {
+				tell(`reconcile ${workId} until its review is ready`);
+				yield* until(() =>
+					engine.running.client("fleet.reconcile", { workId }).pipe(Effect.map((record) => record.decision?.code === "reviewed-pr-ready")),
+				);
+				return yield* engine.running.client("fleet.get", { workId });
+			}),
+	};
+}

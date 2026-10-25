@@ -1,10 +1,8 @@
-import { appendFileSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
+import { addUnbaselinedFile, growLongerFile, legacyBaselineRepository } from "#test/baselineChanges.ts";
 import { baseline, baselined, moved, shallowClone } from "#test/baselineRepository.ts";
-import { CLI_EXIT, runQuality, trees } from "#test/cli.ts";
+import { CLI_EXIT, runQuality } from "#test/cli.ts";
 import { commitAll, git } from "#test/git.ts";
-import { qualityTree } from "#test/qualityTree.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
 const CLI_TIMEOUT = 60_000;
@@ -17,7 +15,7 @@ const HINT =
 describe("a baseline that grows", { timeout: CLI_TIMEOUT }, () => {
 	it("fails lint on a finding it does not cover, ending with the command that records the rule again", async () => {
 		const root = await baselined();
-		appendFileSync(join(root, "src/longer.ts"), "String(7);\n");
+		growLongerFile(root);
 		const result = await runQuality(root, "lint");
 		expect(result.status).toBe(CLI_EXIT.rejected);
 		expect(result.stdout.trimEnd().endsWith(HINT)).toBe(true);
@@ -25,7 +23,7 @@ describe("a baseline that grows", { timeout: CLI_TIMEOUT }, () => {
 
 	it("passes lint once it is written again with more entries, which the diff then shows", async () => {
 		const root = await baselined();
-		writeFileSync(join(root, "src/new.ts"), "String(1);\nString(2);\nString(3);\nString(4);\nString(5);\n");
+		addUnbaselinedFile(root);
 		expect((await runQuality(root, "lint")).status).toBe(CLI_EXIT.rejected);
 		expect((await runQuality(root, "baseline", "write", "--rule", "structure/max-lines")).status).toBe(CLI_EXIT.passed);
 		expect((await runQuality(root, "lint")).status).toBe(CLI_EXIT.passed);
@@ -99,8 +97,7 @@ describe("quality baseline prune finds the merge base it follows moves from", { 
 
 describe("quality baseline migrate", { timeout: CLI_TIMEOUT }, () => {
 	it("moves a baseline in the earlier format to JSON Lines, after which lint passes", async () => {
-		const legacy = { "src/long.ts": { count: 1, measure: 4 }, "src/longer.ts": { count: 1, measure: 7 }, "src/short.ts": { count: 1, measure: 5 } };
-		const root = qualityTree(trees.dirty, [{ content: JSON.stringify({ "structure/max-lines": legacy }), path: "quality/baseline.json" }]);
+		const root = legacyBaselineRepository();
 		expect(await runQuality(root, "lint")).toMatchObject({
 			status: 2,
 			stderr: expect.stringContaining("Run `quality baseline migrate --from quality/baseline.json`"),

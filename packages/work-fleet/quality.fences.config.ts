@@ -1,4 +1,4 @@
-import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
+import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { files, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
 export default [

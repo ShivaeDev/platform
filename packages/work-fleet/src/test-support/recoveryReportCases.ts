@@ -1,6 +1,5 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import type { BoardReport } from "#board/schema.ts";
 import { makeReportPublication } from "#host/reportPublication.ts";
@@ -12,6 +11,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 	let publications = 0;
 	let restored = false;
 	let closed = false;
+	let published: boolean | undefined;
 	function publicationResponse(endpoint: string) {
 		if (endpoint.includes("matching-refs")) {
 			return closed ? [[]] : [[{ ref: "refs/heads/synthetic" }]];
@@ -61,16 +61,13 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 					yield* finishRecoveryWorker(ctx, "Completed findings.");
 					if (fault.check === publishedReport) {
 						closed = true;
-						expect(yield* publishedReport()).toBe(true);
+						published = yield* publishedReport();
 					}
 				}),
 				name: fault.name,
+				observe: () => ({ published }),
 				options: { reportPublicationQuery: fault.check },
-				progress: (_ctx, before, after) => {
-					expect(after.step).toBe("done");
-					expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-					expect(after.report).toBeDefined();
-				},
+				recovery: "complete-observed-report",
 
 				restore: () =>
 					Effect.sync(() => {
@@ -86,10 +83,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 				yield* finishRecoveryWorker(ctx, "");
 			}),
 			name: "empty report",
-			progress: (_ctx, before, after) => {
-				expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-				expect(after.step).toBe("working");
-			},
+			recovery: "replace-empty-report-worker",
 			sites: ['engine/completeReport.ts: "empty-report"'],
 		},
 		{
@@ -99,15 +93,11 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 				yield* finishRecoveryWorker(ctx, "Completed findings.");
 			}),
 			name: "lost report publication receipt",
+			observe: () => ({ publications }),
 			options: {
 				decorateBoard: (board) => ({ ...board, report: (work, observation) => board.report(work, observation).pipe(Effect.flatMap(loseReceipt)) }),
 			},
-			progress: (_ctx, before, after) => {
-				expect(after.step).toBe("done");
-				expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-				expect(publications).toBe(2);
-				expect(after.report).toBeDefined();
-			},
+			recovery: "recover-report-publication",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];

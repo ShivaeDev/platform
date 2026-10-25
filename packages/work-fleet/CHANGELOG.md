@@ -1,5 +1,51 @@
 # Changelog
 
+## 0.17.9 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.17.8 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.17.7 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.17.6 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.17.5 - 2026-10-25
+
+### Fixed
+
+- Reconcile executing attempts after delivery decisions and daemon restarts, preserve execution decisions while PR heads move, and confirm terminal execution for CLI release. Human merges at an unreviewed head release ownership without marking the work accepted.
+
+## 0.17.4 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.17.3 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
+### Fixed
+
+- Released work leaves the waiting queues automatically once its pull request has merged and its Board task is done, superseded, deferred or dropped. Work with an open pull request or an open task keeps its current owner.
+
 ## 0.17.2 - 2026-10-24
 
 ### Changed

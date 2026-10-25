@@ -4,13 +4,22 @@ import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTi
 import { documentTarget } from "./documentRoute.ts";
 import { LinkButton } from "./LinkButton.tsx";
 import { type MainLocation, NOT_FOUND_PROJECTION } from "./mainLocation.ts";
+import { pageFailureCauses } from "./pageFailureCauses.ts";
 import { shellIds } from "./shellIds.ts";
 
 const NOT_FOUND_TITLE = "Page not found";
 
 export function NotFoundMain({ onPage, url }: { readonly onPage: (location: MainLocation) => void; readonly url: string }) {
 	useLayoutEffect(() => {
-		onPage({ file: "", projection: NOT_FOUND_PROJECTION, route: url, status: 404, title: NOT_FOUND_TITLE, view: "" });
+		onPage({
+			failure: pageFailureCauses.notFound,
+			file: "",
+			projection: NOT_FOUND_PROJECTION,
+			route: url,
+			status: 404,
+			title: NOT_FOUND_TITLE,
+			view: "",
+		});
 	}, [onPage, url]);
 	return (
 		<main className="document-view min-w-0 p-4 md:p-8" data-route={url} data-status="404" data-url={url} id={shellIds.doc} tabIndex={-1}>

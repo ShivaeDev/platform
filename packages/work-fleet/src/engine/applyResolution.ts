@@ -129,8 +129,8 @@ function resolutionStage(record: FleetRecord, action: "retry" | "release"): Flee
 
 function deliveryRetry(record: FleetRecord) {
 	return (
-		record.result?.kind === "change"
-		&& (record.decision?.code === "pr-head-moved"
-			|| (!executing(record) && reviewSatisfied(record, record.result.head) && record.checks?.passed === true))
+		!executing(record)
+		&& record.result?.kind === "change"
+		&& (record.decision?.code === "pr-head-moved" || (reviewSatisfied(record, record.result.head) && record.checks?.passed === true))
 	);
 }

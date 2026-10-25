@@ -9,6 +9,17 @@ liveNotesStory.it(
 	"refreshes affected item/list over native streaming HTTP while preserving the unrelated query",
 	[liveSession(), watchingNotes()],
 	function* (test) {
+		yield* eventually(() => {
+			expect(test.status().connection).toBe("live");
+			const activeSubscriptions = 1;
+			expect(test.active()).toBe(activeSubscriptions);
+			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
+			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
+				false,
+				false,
+				false,
+			]);
+		});
 		const { one, two, list } = test;
 		yield* eventually(() => expect(test.body(two)).toBe("Second"));
 		const before = test.reads().filter((id) => id === "get:2").length;
@@ -19,6 +30,17 @@ liveNotesStory.it(
 	},
 );
 liveNotesStory.it("bounds paused hints and resyncs current source once resumed", [liveSession(), watchingNotes()], function* (test) {
+	yield* eventually(() => {
+		expect(test.status().connection).toBe("live");
+		const activeSubscriptions = 1;
+		expect(test.active()).toBe(activeSubscriptions);
+		expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
+		expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
+			false,
+			false,
+			false,
+		]);
+	});
 	const { one } = test;
 	test.pause(true);
 	yield* test.edit(1, "While paused");
@@ -36,6 +58,17 @@ liveNotesStory.it("bounds paused hints and resyncs current source once resumed",
 	expect(test.status().pending).toBe(0);
 });
 liveNotesStory.it("retains successful data on typed read failure and reconciles on resume", [liveSession(), watchingNotes()], function* (test) {
+	yield* eventually(() => {
+		expect(test.status().connection).toBe("live");
+		const activeSubscriptions = 1;
+		expect(test.active()).toBe(activeSubscriptions);
+		expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
+		expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
+			false,
+			false,
+			false,
+		]);
+	});
 	const { one } = test;
 	yield* test.readOutage(true);
 	yield* test.edit(1, "After outage");
@@ -49,6 +82,17 @@ liveNotesStory.it(
 	"resyncs missed source changes after a typed stream outage without duplicating subscriptions",
 	[liveSession(), watchingNotes()],
 	function* (test) {
+		yield* eventually(() => {
+			expect(test.status().connection).toBe("live");
+			const activeSubscriptions = 1;
+			expect(test.active()).toBe(activeSubscriptions);
+			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
+			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
+				false,
+				false,
+				false,
+			]);
+		});
 		const { one } = test;
 		yield* test.streamOutage(true);
 		yield* test.disconnect();
@@ -67,6 +111,17 @@ liveNotesStory.it(
 	"interrupts stale HTTP reads on invalidation and disposes the single stream subscription",
 	[liveSession(), coalescing(0), watchingNotes()],
 	function* (test) {
+		yield* eventually(() => {
+			expect(test.status().connection).toBe("live");
+			const activeSubscriptions = 1;
+			expect(test.active()).toBe(activeSubscriptions);
+			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
+			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
+				false,
+				false,
+				false,
+			]);
+		});
 		const { one } = test;
 		const gate = yield* Deferred.make<void>();
 		yield* test.gateReads(Deferred.await(gate));

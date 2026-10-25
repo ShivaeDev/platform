@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.4 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.8.3 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.8.2 - 2026-10-18
 
 ### Changed

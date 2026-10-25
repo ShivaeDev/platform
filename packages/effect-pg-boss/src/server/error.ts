@@ -42,6 +42,15 @@ export class PgBossQueueOptionsError extends Data.TaggedError("PgBossQueueOption
 	}
 }
 
+export class PgBossClientOptionsError extends Data.TaggedError("PgBossClientOptionsError")<{
+	readonly key: string | symbol;
+	readonly options: readonly string[];
+}> {
+	override get message(): string {
+		return `Shared pg-boss client ${String(this.key)} has different constructor settings: ${this.options.join(", ")}`;
+	}
+}
+
 export class PgBossPayloadError extends Data.TaggedError("PgBossPayloadError")<{
 	readonly direction: "decode" | "encode";
 	readonly queue: string;

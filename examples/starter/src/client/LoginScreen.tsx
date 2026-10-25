@@ -25,7 +25,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 	return (
 		<main className="mx-auto w-full max-w-md space-y-6 px-4 py-12">
 			<h1 className="font-semibold text-3xl">{mode === "sign-in" ? "Sign in" : "Create an account"}</h1>
-			<p className="text-muted-foreground">Sign in to view and add your notes.</p>
+			<p className="text-muted-foreground">Sign in to your app.</p>
 			<form
 				className="space-y-4"
 				onSubmit={(event) => {

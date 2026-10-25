@@ -8,7 +8,7 @@ import { Api, migrations, repository } from "./feature.ts";
 export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 	const reads: number[] = [];
 	const publications: string[] = [];
-	const handlers = Api.omit("notes.$changes").toLayer(
+	const handlers = Api.application.toLayer(
 		Effect.gen(function* () {
 			const rows = yield* repository;
 			const reactivity = yield* Reactivity.Reactivity;
@@ -18,7 +18,7 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 					(cancel) => Effect.sync(cancel),
 				);
 			}
-			return Api.omit("notes.$changes").of({
+			return Api.application.of({
 				"notes.get": ({ id }) => Effect.sync(() => reads.push(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
 				"notes.rename": (input) => rows.update(input).pipe(Effect.orDie),
 			});

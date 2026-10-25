@@ -1,5 +1,45 @@
 # Changelog
 
+## 0.17.0 - 2026-10-25
+
+### Added
+
+- Repositories expose `count({ where })` with the same filters as `findMany`, returning a decoded number. Omit the filter to count every row; an empty table returns `0`.
+
+## 0.16.0 - 2026-10-25
+
+### Added
+
+- PostgreSQL repository upserts accept a typed `updateWhere` filter, including `excluded` column comparisons, and return inserted, updated or unchanged outcomes. Conditional `upsertMany` returns one outcome per input in a single transaction, preventing stale sync revisions from overwriting newer rows.
+
+## 0.15.0 - 2026-10-25
+
+### Added
+
+- Repository `findMany` and `select` filters accept typed `gt`, `gte`, `lt` and `lte` bounds, including UTC timestamps, and `like` text patterns, with runtime operand validation through model codecs.
+- Match several model fields together with `tupleIn(model, fields, tuples)` in `findMany`, `select` and unversioned `delete` filters. Tuples use each field's decoded type and codec, combine with other filters, and bind large lists as parameters. An empty tuple list matches nothing.
+
+## 0.14.0 - 2026-10-25
+
+### Added
+
+- Migration options accept schema components beside the numbered loader. Components apply after the ledger commits and report pending work through the same readiness check and host wait loop.
+- `pgBossSchema` registers pg-boss installation and upgrades as a schema component, reporting the schema's installed and required versions.
+
+### Changed
+
+- Generated apps migrate pg-boss through their migration list and start producers and workers with schema migration disabled.
+
+### Fixed
+
+- Migration-step controllers capture schema-component services when constructed, keeping subsequent migration calls free of external service requirements.
+
+## 0.13.1 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.13.0 - 2026-10-19
 
 ### Added

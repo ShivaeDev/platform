@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
 import { Fleet } from "#fleet.ts";
 import { resolveHost } from "#host/config.ts";
@@ -69,10 +68,7 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 						? context.github.resultQuery(work, observation)
 						: stockHost.pipe(Effect.flatMap((host) => host.result(work, observation))),
 			},
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("reviewing");
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "review-after-host-configuration",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;
@@ -89,10 +85,7 @@ export function recoveryHostCases(): readonly RecoveryCase[] {
 			}),
 			name: "host quota reader returns an unknown shape",
 			options: { now: () => now, refreshQuota },
-			progress: (_ctx, _before, after) => {
-				expect(after.step).toBe("reviewing");
-				expect(after.attempts.at(-1)?.role).toBe("reviewer");
-			},
+			recovery: "review-after-quota-refresh",
 			restore: () =>
 				Effect.sync(() => {
 					restored = true;

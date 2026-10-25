@@ -4,7 +4,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
 import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";
 import { makePostgresTestLayer } from "./postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";

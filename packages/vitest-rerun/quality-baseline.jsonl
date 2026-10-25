@@ -1,3 +1,2 @@
 {"path":"packages/vitest-rerun/src/flakyReport.spec.ts","rule":"tests/named-values","count":7}
 {"path":"packages/vitest-rerun/src/freshRerun.spec.ts","rule":"tests/named-values","count":6}
-{"path":"packages/vitest-rerun/src/freshRerun.spec.ts","rule":"tests/spec-helpers","count":1}

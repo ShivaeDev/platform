@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/create-app",
-	"version": "0.11.24",
+	"version": "0.13.5",
 	"description": "Create and install a Platform application from the maintained starter",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/create-app#readme",
 	"bugs": {
@@ -37,7 +37,12 @@
 		"./pack.ts": null,
 		"./packTemplate.ts": null,
 		"./template.ts": null,
-		"./test-support/*": null
+		"./test-support/*": null,
+		"./generation.ts": null,
+		"./historicalTemplate.ts": null,
+		"./runProcess.ts": null,
+		"./starterPatch.ts": null,
+		"./updateApp.ts": null
 	},
 	"bin": {
 		"create-app": "./dist/cli.js"

@@ -1,35 +1,36 @@
-import { Clock } from "effect";
-import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createApplication } from "./applicationEngine.ts";
-import { isolate, wholeStack } from "./isolation.ts";
+import { isolate } from "./isolation.ts";
 import { hasPostgres, kitDatabases, workerDatabase } from "./postgres.ts";
 import { activeScreens } from "./screens.ts";
 import { orderVerbs } from "./verbs.ts";
 
 export const app = storyKit({
-	around: isolate(wholeStack),
+	around: isolate,
 	clock: "live",
 	*create() {
+		const initialScreens = activeScreens.size;
 		const engine = yield* createApplication;
 		window.location.href = engine.url;
-		return engine;
+		return { ...engine, initialScreens };
 	},
-	inspect: (engine) => ({ changes: engine.changes, observations: engine.observations, orders: [...engine.orders] }),
+	inspect: (engine) => ({
+		changes: engine.changes,
+		orders: [...engine.orders],
+		screens: Object.fromEntries([...engine.screens].map(([name, screen]) => [name, screen.container.textContent])),
+	}),
 	layer: workerDatabase,
 	name: "orders",
 	runIf: hasPostgres,
 	stages: ["database", "orders", "screen"],
-	verbs: (engine, story) => orderVerbs(engine, story.tell),
+	verbs: (engine, story) => ({
+		...orderVerbs(engine, story.tell),
+		databaseSetup: () => ({ ...engine.databaseSetup, activeScreens: engine.initialScreens }),
+	}),
 });
 
 export function realPostgres() {
-	return app.trait("database", "real PostgreSQL uses HTTP, truncation and real commits", function* (engine) {
+	return app.trait("database", "the application registers its worker database", (engine) => {
 		kitDatabases.add(engine.database.name);
-		expect(activeScreens.size).toBe(0);
-		expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
-		expect(engine.database.sql).not.toBe(engine.database.observer);
-		expect(yield* engine.database.observer`select migration_id from effect_sql_migrations`).toEqual([{ "migration_id": 1 }]);
-		expect(yield* engine.database.observer`select id from orders`).toEqual([]);
 	});
 }

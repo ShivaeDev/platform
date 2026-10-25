@@ -1,6 +1,7 @@
-import { Context, Effect, Schema, SchemaGetter } from "effect";
+import { Context, DateTime, Effect, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 
@@ -12,16 +13,58 @@ const Kind = Schema.String.pipe(
 	}),
 );
 class Row extends Model.Class<Row>("FilteredRow")({
+	active: Schema.Boolean,
+	at: Schema.Date,
 	id: Schema.Number,
 	kind: Model.Field({ insert: Schema.String, json: Schema.String, select: Kind, update: Schema.String }),
+	note: Schema.NullOr(Schema.String),
+	utc: Schema.DateTimeUtcFromDate,
 	value: Schema.NumberFromString,
+	values: Schema.Array(Schema.Number),
 }) {}
 
 const program = Effect.gen(function* () {
 	const options = { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Row", tableName: "rows" } as const;
 	const plain = yield* makeRepository(Row, options);
+	const count = plain.count({ where: { id: { in: [1, 2] }, kind: "x", value: { gt: 1, lte: 3 } } });
+	expectTypeOf<Effect.Success<typeof count>>().toEqualTypeOf<number>();
+	expectTypeOf<Effect.Error<typeof count>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+	expectTypeOf<Effect.Services<typeof count>>().toEqualTypeOf<FilterEncoding>();
+	expectTypeOf<NonNullable<Parameters<typeof plain.count>[0]>["where"]>().toEqualTypeOf<NonNullable<Parameters<typeof plain.findMany>[0]>["where"]>();
+	// @ts-expect-error Count filters use decoded field values.
+	plain.count({ where: { value: { in: ["1"] } } });
+	// @ts-expect-error Count filters must name model fields.
+	plain.count({ where: { missing: 1 } });
 	expectTypeOf<Effect.Services<ReturnType<typeof plain.findMany>>>().toEqualTypeOf<FilterEncoding>();
 	plain.findMany({ where: { id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } } });
+	const read = plain.findMany({
+		select: ["id"],
+		where: { at: { gte: new Date("2026-10-25T00:00:00Z") }, kind: { like: "Run%" }, value: { gt: 1, lte: 3 } },
+	});
+	expectTypeOf<Effect.Services<typeof read>>().toEqualTypeOf<FilterEncoding>();
+	expectTypeOf<Effect.Success<typeof read>>().toEqualTypeOf<Array<{ readonly id: number }>>();
+	const select = plain.select({ where: { kind: { gt: "A", lt: "Z" }, note: { like: "%" }, utc: { gte: DateTime.makeUnsafe(0) } } });
+	expectTypeOf<Effect.Services<typeof select.statement>>().toEqualTypeOf<FilterEncoding>();
+	// @ts-expect-error Range operands use decoded numbers.
+	plain.findMany({ where: { value: { gt: "1" } } });
+	// @ts-expect-error Timestamp bounds use Date values.
+	plain.select({ where: { at: { gte: "2026-10-25T00:00:00Z" } } });
+	// @ts-expect-error UTC bounds use DateTime.Utc values.
+	plain.findMany({ where: { utc: { lt: new Date("2026-10-25T00:00:00Z") } } });
+	// @ts-expect-error Boolean fields have no range operators.
+	plain.findMany({ where: { active: { gt: true } } });
+	// @ts-expect-error Array fields have no range operators.
+	plain.select({ where: { values: { lt: [1] } } });
+	// @ts-expect-error LIKE is only available on text fields.
+	plain.findMany({ where: { value: { like: "1%" } } });
+	// @ts-expect-error LIKE patterns must be text.
+	plain.select({ where: { kind: { like: 1 } } });
+	// @ts-expect-error Null is an equality filter, not a range bound.
+	plain.findMany({ where: { note: { lte: null } } });
+	// @ts-expect-error Range filters name model fields.
+	plain.select({ where: { missing: { gt: 1 } } });
+	// @ts-expect-error Delete retains its equality and list filters.
+	plain.delete({ id: { gt: 1 } });
 	const deleted = plain.delete({ id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } });
 	expectTypeOf<Effect.Services<typeof deleted>>().toEqualTypeOf<FilterEncoding>();
 	expectTypeOf<Effect.Success<typeof deleted>>().toEqualTypeOf<void>();

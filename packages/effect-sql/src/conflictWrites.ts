@@ -3,6 +3,7 @@ import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { type InsertMany, makeInsertMany } from "#batchWrites.ts";
+import { type ConditionalUpsert, type ConditionalUpsertMany, makeConditionalUpsert } from "#conditionalUpsert.ts";
 import { type InsertFromSelect, makeInsertFromSelect } from "#insertFromSelect.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
@@ -25,18 +26,16 @@ export interface ConflictWrites<TModel extends Model.Any, TExcluded extends Prop
 		SqlError | Schema.SchemaError,
 		TModel["insert"]["EncodingServices"] | TModel["DecodingServices"] | TFilterServices
 	>;
-	readonly upsert: (
-		input: TModel["insert"]["Type"],
-		options: UpdateOptions<TModel, TExcluded>,
-	) => Effect.Effect<
-		TModel["Type"],
-		SqlError | Schema.SchemaError,
+	readonly upsert: ConditionalUpsert<
+		TModel,
+		UpdateOptions<TModel, TExcluded>,
 		TModel["insert"]["EncodingServices"] | TModel["DecodingServices"] | TFilterServices
 	>;
-	readonly upsertMany: (
-		inputs: readonly TModel["insert"]["Type"][],
-		options: UpdateOptions<TModel, TExcluded>,
-	) => ReturnType<InsertMany<TModel, TFilterServices>>;
+	readonly upsertMany: ConditionalUpsertMany<
+		TModel,
+		UpdateOptions<TModel, TExcluded>,
+		TModel["insert"]["EncodingServices"] | TModel["DecodingServices"] | TFilterServices
+	>;
 }
 
 export function makeConflictWrites(
@@ -55,6 +54,7 @@ export function makeConflictWrites(
 	const encode = Schema.encodeEffect(model.insert);
 	const decode = Schema.decodeUnknownEffect(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
+	const conditional = makeConditionalUpsert(model, sql, options);
 	const clause = makeConflictClause(model, sql, options);
 	function statement(input: unknown, updateColumns?: readonly string[]) {
 		return Effect.gen(function* () {
@@ -74,13 +74,20 @@ export function makeConflictWrites(
 				yield* options.changes.record(rows);
 				return rows.length === 0 ? Option.none() : Option.some(yield* decode(rows[0]));
 			}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.insertOrIgnore`)),
-		upsert: (input: unknown, settings: { readonly updateColumns: readonly string[] }) =>
-			Effect.gen(function* () {
-				const rows = yield* yield* statement(input, settings.updateColumns);
-				yield* options.changes.record(rows);
-				return yield* decode(rows[0]);
-			}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.upsert`)),
-		upsertMany: (inputs: readonly unknown[], settings: { readonly updateColumns: readonly string[] }) =>
-			makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns))(inputs),
+		upsert: (input: unknown, settings: { readonly updateColumns: readonly string[]; readonly updateWhere?: Readonly<Record<string, unknown>> }) =>
+			settings.updateWhere === undefined
+				? Effect.gen(function* () {
+						const rows = yield* yield* statement(input, settings.updateColumns);
+						yield* options.changes.record(rows);
+						return yield* decode(rows[0]);
+					}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.upsert`))
+				: conditional([input], { ...settings, updateWhere: settings.updateWhere }).pipe(Effect.map((results) => results[0])),
+		upsertMany: (
+			inputs: readonly unknown[],
+			settings: { readonly updateColumns: readonly string[]; readonly updateWhere?: Readonly<Record<string, unknown>> },
+		) =>
+			settings.updateWhere === undefined
+				? makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns))(inputs)
+				: conditional(inputs, { ...settings, updateWhere: settings.updateWhere }),
 	};
 }

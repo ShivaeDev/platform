@@ -1,6 +1,6 @@
 import { Effect, Layer } from "effect";
 import { expect, it } from "vitest";
-import { makeEffectIt } from "#vitest.ts";
+import { makeEffectIt } from "#makeEffectIt.ts";
 
 const { effectApp } = makeEffectIt({
 	layer: Layer.empty,

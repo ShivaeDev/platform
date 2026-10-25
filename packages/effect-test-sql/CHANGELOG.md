@@ -1,5 +1,44 @@
 # Changelog
 
+## 0.8.7 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.8.6 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.8.5 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.8.4 - 2026-10-25
+
+### Added
+
+- Migration options accept schema components beside the numbered loader. Components apply after the ledger commits and report pending work through the same readiness check and host wait loop.
+- `pgBossSchema` registers pg-boss installation and upgrades as a schema component, reporting the schema's installed and required versions.
+
+### Changed
+
+- Generated apps migrate pg-boss through their migration list and start producers and workers with schema migration disabled.
+
+### Fixed
+
+- Migration-step controllers capture schema-component services when constructed, keeping subsequent migration calls free of external service requirements.
+
+## 0.8.3 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.8.2 - 2026-10-19
 
 ### Changed

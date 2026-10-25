@@ -11,6 +11,7 @@ import { postgres } from "./test-support/postgres.ts";
 const environment = { "DATABASE_URL": process.env.DATABASE_URL, "TEST_DATABASE_URL": process.env.TEST_DATABASE_URL };
 const connections = Object.entries(environment).map(([key, value]) => ({ key, url: new URL(value ?? "") }));
 
+// The scoped test layer creates, migrates and drops databases; PostgreSQL checkpoint waits during cleanup can exceed 5s under parallel CI workers.
 it("records the generated app environment and database observations", async () => {
   const databases: Record<string, unknown> = {};
   for (const { key, url } of connections) {
@@ -26,7 +27,7 @@ it("records the generated app environment and database observations", async () =
     return yield* sql\`select 1 as value\`;
   }).pipe(Effect.provide(postgres))));
   writeFileSync("database-observations.json", JSON.stringify({ environment, databases, query }));
-});
+}, 30_000);
 
 afterAll(async () => {
   for (const { url } of connections) {

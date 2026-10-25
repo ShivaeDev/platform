@@ -1,28 +1,14 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { conflictingNotesTable, deployment } from "#test-support/deployment.ts";
+import { deployment } from "#test-support/deployment.ts";
 
 const SUCCESSFUL_EXIT = 0;
 const OK_STATUS = 200;
 
 deployment.it(
-	"applies migrations without an auth secret and preserves saved notes and the ledger on rerun",
-	[],
-	function* ({ migrate, migrationLedger, storeUnownedNote, storedNotes, storedAccounts }) {
-		expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
-		const applied = yield* migrationLedger();
-		yield* storeUnownedNote("Keep this note");
-		expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
-		expect(yield* migrationLedger()).toEqual(applied);
-		expect(yield* storedNotes()).toEqual([{ title: "Keep this note" }].map((note) => expect.objectContaining(note)));
-		expect(yield* storedAccounts).toEqual([]);
-	},
-);
-
-deployment.it(
 	"web rejects a missing schema while an already-started worker waits for deployment migration",
 	[],
-	function* ({ migrate, startProcess, health, signUpAt, port: availablePort, migrationTable }) {
+	function* ({ startProcess, holdSchemaCreation, health, signUpAt, port: availablePort, migrationTable }) {
 		const port = yield* availablePort;
 		const prematureWeb = yield* startProcess("web", port);
 		expect(yield* prematureWeb.child.exitCode).not.toBe(SUCCESSFUL_EXIT);
@@ -32,9 +18,18 @@ deployment.it(
 		const worker = yield* startProcess("worker");
 		yield* worker.waitingForSchema;
 		expect(yield* worker.child.isRunning).toBe(true);
-		expect(worker.logs).toEqual([expect.stringContaining("Worker waiting for schema")]);
+		expect(worker.logs.filter((line) => line.includes("migrations"))).toEqual([expect.stringContaining("Waiting for database migrations")]);
 		expect(yield* migrationTable).toEqual([{ ledger: null }]);
-		expect(yield* migrate()).toBe(SUCCESSFUL_EXIT);
+		const schemaCreation = yield* holdSchemaCreation;
+		const migration = yield* Effect.gen(function* () {
+			const pending = yield* startProcess("migrate");
+			yield* schemaCreation.migrationBlocked;
+			expect(yield* migrationTable).toEqual([{ ledger: "app_migrations" }]);
+			expect(worker.logs.filter((line) => line.includes("migrations"))).toEqual([expect.stringContaining("Waiting for database migrations")]);
+			expect(yield* worker.child.isRunning).toBe(true);
+			return pending;
+		}).pipe(Effect.ensuring(schemaCreation.release));
+		expect(yield* migration.child.exitCode, [...migration.logs, ...migration.errors].join("\n")).toBe(SUCCESSFUL_EXIT);
 		expect(yield* worker.ready).toBe("worker");
 		const web = yield* startProcess("web", port);
 		const address = yield* web.ready;
@@ -43,21 +38,12 @@ deployment.it(
 		expect(signup.status).toBe(OK_STATUS);
 		expect(signup.cookie).toContain("session_token=");
 		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
-		expect(worker.logs.filter((line) => line.includes("Worker "))).toEqual([
-			expect.stringContaining("Worker waiting for schema"),
-			expect.stringContaining("Worker schema current"),
+		expect(worker.logs.filter((line) => line.includes("migrations") || line.includes("Worker "))).toEqual([
+			expect.stringContaining("Waiting for database migrations"),
+			expect.stringContaining("Database migrations current"),
 			expect.stringContaining("Worker ready to take jobs"),
 		]);
 		expect(yield* worker.child.isRunning).toBe(true);
 		expect(yield* web.child.isRunning).toBe(true);
-	},
-);
-
-deployment.it(
-	"fails migration without recording success when an existing table conflicts",
-	[conflictingNotesTable()],
-	function* ({ migrate, migrationTable }) {
-		expect(yield* migrate()).not.toBe(SUCCESSFUL_EXIT);
-		expect(yield* migrationTable).toEqual([{ ledger: null }]);
 	},
 );

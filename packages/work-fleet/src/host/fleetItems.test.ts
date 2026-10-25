@@ -1,18 +1,10 @@
-import { Clock, Effect } from "effect";
-import { RpcTest } from "effect/rpc";
-import { TestClock } from "effect/testing";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
-import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
-import { HealthSnapshot } from "#engine/health.ts";
-import { FleetRepository } from "#engine/repository.ts";
-import { daemonDiagnostics } from "#host/daemonDiagnostics.ts";
-import { fleetItemStore, itemRecord } from "#test/fleetItemStore.ts";
-import { healthSnapshot } from "#test/health.ts";
+import { itemRecord } from "#test/fleetItemStore.ts";
+import { diagnosticClock } from "#test/hostDatabaseTraits.ts";
+import { host } from "#test/hostStory.ts";
 
-it.effect("the daemon contract lists every unfinished step and only completions within seven days", function* () {
-	yield* TestClock.adjust("10 days");
-	const now = yield* Clock.currentTimeMillis;
+host.it("the daemon contract lists every unfinished step and only completions within seven days", [diagnosticClock], function* (daemon) {
+	const now = daemon.diagnosticTime();
 	const cutoff = now - 7 * 24 * 60 * 60 * 1000;
 	const records = [
 		...(["queued", "working", "adopting", "reviewing", "repairing", "validating", "delivering", "waiting", "released"] as const).map((step) =>
@@ -31,18 +23,8 @@ it.effect("the daemon contract lists every unfinished step and only completions 
 		}),
 		itemRecord("validating", { checks: { evidence: [], head: "head", passed: false, pending: true }, workId: "checks" }),
 	];
-	const sources = {
-		codex: Effect.fail(new diagnostics.SourceFailure({ kind: "not-configured", message: "Synthetic" })),
-		fleet: Effect.succeed(healthSnapshot),
-		github: Effect.fail(new diagnostics.SourceFailure({ kind: "not-configured", message: "Synthetic" })),
-	};
-	const handlers = yield* daemonDiagnostics.pipe(
-		Effect.provideService(FleetRepository, fleetItemStore(records)),
-		Effect.provideService(HealthSnapshot, Effect.succeed(healthSnapshot)),
-		Effect.provideService(diagnostics.DiagnosticsSources, sources),
-	);
-	const client = yield* RpcTest.makeClient(diagnostics.DiagnosticsContract.omit("daemon.$changes"), { flatten: true }).pipe(Effect.provide(handlers));
-	const result = yield* client("daemon.fleetItems", {});
+	yield* daemon.storeRecords(records);
+	const result = yield* daemon.fleetItems();
 	expect(result.items.map((item) => item.workId)).toEqual([
 		"queued",
 		"working",
@@ -66,6 +48,6 @@ it.effect("the daemon contract lists every unfinished step and only completions 
 	expect(result.items.find((item) => item.workId === "waiting")?.attentionOwner).toBe("orchestrator");
 	expect(result.items.find((item) => item.workId === "checks")?.attentionOwner).toBe("automation");
 	expect(result.items[0]?.attentionOwner).toBeUndefined();
-	yield* TestClock.adjust("1 milli");
-	expect((yield* client("daemon.fleetItems", {})).completed.map((item) => item.workId)).toEqual(["recent", "future"]);
+	daemon.advanceDiagnosticTime(1);
+	expect((yield* daemon.fleetItems()).completed.map((item) => item.workId)).toEqual(["recent", "future"]);
 });

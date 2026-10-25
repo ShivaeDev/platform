@@ -1,4 +1,4 @@
-import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
+import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { anything, external, files, modules, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
 const browserCode = files("packages/effect-trpc/src/rejectionDecoding.ts");

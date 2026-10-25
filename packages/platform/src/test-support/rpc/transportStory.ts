@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/rpc-server/local.ts";
+import { localRpcGuard, loopbackOnly, sameOrigin, trustedProxyRanges } from "#server/rpc-server/local.ts";
 import { transportHeaders } from "#server/rpc-server/transportHeaders.ts";
 
 export const forwarded = {
@@ -12,11 +12,11 @@ export const forwarded = {
 	"x-forwarded-host": "app.example",
 	"x-forwarded-proto": "https",
 };
-export const transport = storyKit({
+export const transportOptions = {
 	create: (): { trust: string | undefined } => ({ trust: undefined }),
 	name: "RPC transport",
-	stages: ["configured"],
-	verbs: (state, story) => ({
+	stages: ["configured"] as const,
+	verbs: (state: { trust: string | undefined }, story: { tell: (line: string) => void }) => ({
 		guarded: (address: string | undefined, headers: Readonly<Record<string, string>> = forwarded) =>
 			Effect.gen(function* () {
 				story.tell(`a request from ${address ?? "an unknown peer"} reaches the RPC guard`);
@@ -32,6 +32,11 @@ export const transport = storyKit({
 					state.trust,
 				).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request), Effect.provide(RpcSerialization.layerNdjson));
 				return { calls, status: response.status };
+			}),
+		normalizeTrust: () =>
+			Effect.sync(() => {
+				story.tell("the host normalizes proxy trust for equivalent address families");
+				return trustedProxyRanges(state.trust);
 			}),
 		page: () =>
 			Effect.gen(function* () {
@@ -50,8 +55,10 @@ export const transport = storyKit({
 					: transportHeaders(message).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request));
 			}),
 	}),
-});
-export function trustedProxy(trust: string) {
+};
+export const transport = storyKit(transportOptions);
+
+export function trustedProxy(trust: string | undefined) {
 	return transport.trait("configured", `the transport trusts proxy ${trust}`, (state) => {
 		state.trust = trust;
 	});

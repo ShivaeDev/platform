@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { SourceFile } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 
 export interface SourceComment {
 	readonly body: readonly string[];

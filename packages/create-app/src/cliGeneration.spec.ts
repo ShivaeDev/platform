@@ -17,7 +17,7 @@ application.it("creates a named app, installs, commits with a fallback identity 
 	expect(git("status", "--porcelain").stdout).toBe("");
 	const tracked = git("ls-files").stdout.split("\n");
 	expect(tracked).toEqual(
-		expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", ".railway/railway.ts", "src/notes.ts"]),
+		expect.arrayContaining(["package.json", "pnpm-lock.yaml", ".github/workflows/ci.yml", ".railway/railway.ts", "src/modules/notes/notes.ts"]),
 	);
 	expect(tracked).not.toContain(".env.local");
 	expect(result.stdout).toMatch(/Created apps\/my-app\.\n\nNext steps:\n {2}cd 'apps\/my-app'\n {2}pnpm dev\n$/u);
@@ -76,7 +76,7 @@ application.it("prints a working cd command for paths with shell characters", []
 
 application.it("accepts an existing empty folder", [destination("empty")], function* ({ cli, exists }) {
 	expect((yield* cli(["my-app", "--no-git"])).status).toBe(0);
-	expect(exists("src/notes.ts")).toBe(true);
+	expect(exists("src/modules/notes/notes.ts")).toBe(true);
 });
 
 for (const kind of ["file", "nonempty"] as const) {
@@ -112,6 +112,7 @@ application.it(
 		const help = yield* cli(["--help"]);
 		expect(help.status).toBe(0);
 		expect(help.stdout).toContain("folder");
+		expect(help.stdout).toContain("--minimal");
 		expect(yield* cli(["--version"])).toMatchObject({ status: 0, stdout: `create-app v${version}\n` });
 		expect(workspaceFiles()).toEqual(["bin"]);
 	},

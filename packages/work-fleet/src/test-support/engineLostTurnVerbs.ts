@@ -25,6 +25,7 @@ export function engineLostTurnVerbs(state: EngineStory, tell: (line: string) => 
 			change(`the provider will reject the next ${call} for capacity`, () => {
 				state.rejectNextSubmission = call;
 			}),
+		restoreTurn: (sessionId: string) => change("the provider restores the accepted turn", () => lostTurns().restore(sessionId)),
 		setProviderQuota: (available: number) =>
 			change(`provider quota permits ${available} submissions`, () => {
 				state.providerQuota = available;

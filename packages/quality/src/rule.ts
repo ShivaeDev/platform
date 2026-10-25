@@ -1,4 +1,4 @@
-import type { Bivariant } from "@shivaedev/types/bivariant.ts";
+import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { describeIssue, type StandardSchemaV1 } from "./standardSchema.ts";
 

@@ -23,7 +23,7 @@ const rows = yield* lines.findMany({
 
 The application owns the database schema and its native Effect `SqlClient` layer. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
-Repository writes announce their table and returned row keys automatically. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
+Repository writes announce their table and returned row keys automatically. A single write returning more than 1,000 rows across all its chunks announces only the table and `<table>:*`; writes returning up to 1,000 rows keep their item keys. Effect-contract item reads also react to the collection-wide key. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
@@ -157,7 +157,44 @@ yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 
 Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
 
-`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates, range filters or other queries outside this shape.
+Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
+
+```ts
+yield* lines.count({ where: { amount: { in: [20, 52] }, note: null } });
+yield* lines.count();
+```
+
+Omitting `where` counts every row. An empty table returns `0`.
+
+Use `tupleIn` to match several fields together against a list of tuples:
+
+```ts
+import { tupleIn } from "@shivaedev/effect-sql/tupleIn.ts";
+
+yield* lines.findMany({
+  where: {
+    ...tupleIn(InvoiceLine, ["name", "amount"], [["Consulting", 52], ["Travel", 20]]),
+    note: null,
+  },
+  select: ["name", "amount"],
+});
+```
+
+Each tuple matches all its fields together, so this filter does not match `("Consulting", 20)`. The field list has at least two model fields, and each tuple's length and decoded types follow that list. Every value passes through its field codec. Spread the filter beside other entries to combine them with `AND`, or pass it directly as `where`. The same filter works in `select` and unversioned `delete`. An empty tuple list matches nothing, including deleting no rows. Large lists keep every value in a bound parameter.
+
+Use `gt`, `gte`, `lt` and `lte` for exclusive or inclusive bounds, and `like` for a text pattern:
+
+```ts
+yield* lines.findMany({
+  where: { id: { gte: 2, lt: 10 }, name: { like: "Consult%" } },
+  select: ["id", "name"],
+  orderBy: { field: "id", direction: "asc" },
+});
+```
+
+Bounds use decoded strings, numbers, bigints, `BigDecimal`, `Date` or `DateTime.Utc` values and run through the field codec. For a `timestamptz` field modeled with `Schema.Date`, use `{ gte: new Date("2026-10-25T00:00:00Z"), lt: new Date("2026-10-26T00:00:00Z") }` to read a UTC day. Multiple operators on a field are joined with `AND`. `like` takes text, with PostgreSQL's case-sensitive `%` and `_` wildcards; patterns are bound parameters. Invalid operand types fail with `SchemaError`. Both `findMany` and `select` accept these filters; repositories query one table.
+
+`select` is a nonempty tuple of model field names. Leave it out to select all model fields. `orderBy` takes one `{ field, direction }` object or a nonempty list of them, applied in list order, with `asc` or `desc` for each direction; `limit` takes a nonnegative integer, and zero returns an empty list. Unknown selected or sorted field names passed at runtime fail with `SchemaError`, as do unknown filter keys with a defined value. Filter entries with `undefined` values are omitted before field validation. Use native SQL and composed schemas for joins, aggregates or other queries outside this shape.
 
 If a field codec requires a service, provide it for the query. Filter encoding and selected-row decoding retain their required services in the Effect environment.
 
@@ -262,11 +299,26 @@ const inserted = yield* entries.insertManyOrIgnore(inputs);
 
 All four conflict methods use this target, producing `ON CONFLICT (a, b) WHERE kind = $n` before `DO NOTHING` or `DO UPDATE SET ...`, followed by `RETURNING`. `conflictWhere` uses typed equality entries like `findMany.where`: decoded field values pass through their field codecs and remain bound parameters. Rows outside the index predicate can insert with the same key. A target that matches no unique index fails with native `SqlError` in the error channel. Use native `SqlClient` and `SqlSchema` for SQL expressions or other conflict policies.
 
+On PostgreSQL, pass `updateWhere` to conditionally apply the update branch:
+
+```ts
+const result = yield* pullRequests.upsert(incoming, {
+  updateColumns: ["title", "updated_at"],
+  updateWhere: { updated_at: { lt: { excluded: "updated_at" } } },
+});
+```
+
+`updateWhere` uses the repository filter shape: equality, `in`, ranges and text patterns combine with AND. A field names the stored column; `{ excluded: "field" }` refers to an incoming column of the same decoded type, in equality or range operands. Literal values pass through their field codecs. The condition becomes `DO UPDATE SET ... WHERE ...`, separate from the index predicate `conflictWhere`, and does not restrict inserts. PostgreSQL evaluates it while holding the conflicting row lock, so an older or equal incoming timestamp cannot overwrite a newer stored revision.
+
+With `updateWhere`, the typed result is `{ _tag: "Inserted", row }`, `{ _tag: "Updated", row }` or `{ _tag: "Unchanged" }`. Changed rows are decoded models; unchanged results carry no row and announce no change keys. Omitting `updateWhere` keeps the model result. `UpsertFilter` and `UpsertResult` are exported from `@shivaedev/effect-sql/conditionalUpsert.ts`.
+
+`upsertMany(inputs, { updateColumns, updateWhere })` accepts the same condition and returns one tagged result per input, in input order. It executes one statement per input inside one transaction, so a later failure rolls back earlier writes. This uses more database round trips than an unconditional batch. Other batch calls use the chunked statements described below.
+
 Conflict writes belong to unversioned repositories. They cannot be combined with `versionColumn`, whose writes must compare the version read by the caller. `versionColumn` takes a scalar `idColumn`.
 
 ### Batch writes
 
-Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs and returns an array of decoded models. Empty inputs return `[]` without writing.
+Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs. Unconditional batch methods return an array of decoded models; conditional upserts return the tagged outcomes described above. Empty inputs return `[]` without writing.
 
 ```ts
 const saved = yield* readings.upsertMany(
@@ -278,7 +330,7 @@ const saved = yield* readings.upsertMany(
 );
 ```
 
-Batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
+Unconditional batch writes use one `INSERT ... RETURNING` statement per chunk, with at most 1,000 rows and 10,000 bind parameters per statement, below PostgreSQL's 65,535 parameter limit. Missing optional fields use SQL `DEFAULT`; an explicit null stays null. Return values contain the rows returned by the database, with ignored conflicts omitted. PostgreSQL's native conflict rules apply within each chunk, including an error when an upsert tries to update the same stored row twice.
 
 Each batch call starts `transact`, so a later chunk failure rolls back earlier chunks. A surrounding `transact` groups several calls into one commit and one deduplicated change batch.
 
@@ -339,6 +391,8 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 ```
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
+
+Repository writes returning more than 1,000 rows announce the table key and `<table>:*` instead of per-row item keys, counted across all chunks of each call. Calls returning up to 1,000 rows keep their table and item keys. Effect-contract item reads register the collection-wide key automatically; code registering raw `<table>:<id>` Reactivity keys must also register `<table>:*`. Command invalidation keys are unchanged.
 
 The transaction rules follow the database owner:
 
@@ -412,9 +466,13 @@ Use sequential numbers, not timestamps. Effect's Migrator skips any migration wh
 
 `migratePostgres` takes a transaction-scoped advisory lock before creating the ledger and running native Migrator. Concurrent runners on a fresh or existing ledger wait, then see the committed ledger and avoid repeating the migrations. Every runner of that ledger must use this helper and the same ledger name. The required `lockTimeout` bounds PostgreSQL lock waits; `Duration.infinity` sets the transaction's lock timeout to zero. Choose deployment and execution timeouts in the application.
 
-A failed batch rolls back its DDL, data and ledger entries, retaining previously committed migrations. A failed first batch also rolls back the bootstrapped ledger. A lock timeout fails with typed `SqlError` and reason `LockTimeoutError`; a migration-body SQL failure is a native `MigrationError` defect. Inspect startup completion with `Effect.exit` when both typed failures and defects matter. Nontransactional DDL, external side effects, crash recovery and deployment compatibility need their own migration policy.
+A failed batch rolls back its DDL, data and ledger entries, retaining previously committed migrations. A failed first batch also rolls back the bootstrapped ledger. A lock timeout fails with typed `SqlError` and reason `LockTimeoutError`; a migration-body SQL failure is a native `MigrationError` defect. Inspect startup completion with `Effect.exit` when both typed failures and defects matter. Keep nontransactional DDL in schema components; external side effects, crash recovery and deployment compatibility need their own migration policy.
 
-For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. This checks recorded migrations, not physical schema drift.
+Schema components describe storage owned by another engine alongside the numbered `loader`: pass `components: [{ name, apply, pending }]` to `migratePostgres` and `assertPostgresMigrations`. `apply` runs after the ledger transaction commits, outside that transaction, on every migration invocation; it must support repeated execution. `pending` returns a description when work remains and `undefined` when current. Components are never recorded as numbered ledger entries. Component failures become `MigrationError` (`kind: "Failed"`) with the component name and original cause; their failure leaves the application ledger committed.
+
+For processes whose deployment owns migration execution, call `assertPostgresMigrations({ loader, table?, components? })` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` before starting services. It checks the native loader’s required IDs and names against the ledger without running migration bodies or creating a ledger. A missing ledger, pending migration or mismatched name fails with native `MigrationError` (`kind: "BadState"`); database failures stay typed `SqlError`. Later ledger entries are allowed so an older application version can start during a rolling deployment. Pending ledger IDs and component names and details appear together in the error. This checks recorded migrations and component readouts, not physical schema drift.
+
+For a structured readiness readout, use `pendingPostgresMigrations({ loader, table?, components? })` from `@shivaedev/effect-sql/pendingPostgresMigrations.ts`. It returns `{ migrations: [{ id, name }], components: [{ name, detail }] }` for pending work, with both arrays empty when current. It reads the same ledger and component checks as `assertPostgresMigrations` without running migrations.
 
 ### PostgreSQL delivery between processes
 
@@ -448,14 +506,15 @@ Import the module that defines the name; there is no root entry.
 | `@shivaedev/effect-sql/advisoryXactLock.ts` | `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` | PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`. |
 | `@shivaedev/effect-sql/migrationConvention.ts` | `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` | Application folder and four-digit sequential snake_case TypeScript filename pattern. |
 | `@shivaedev/effect-sql/migrationsFromDirectory.ts` | `migrationsFromDirectory(root)` | Discover migrations under the application root with native `FileSystem` and `Path`. |
-| `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional ledger `table`, default `effect_sql_migrations`. |
-| `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table? })` | Read-only readiness check of required migration IDs and names in the native ledger. |
+| `@shivaedev/effect-sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional `components` and ledger `table`, default `effect_sql_migrations`. |
+| `@shivaedev/effect-sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table?, components? })` | Read-only readiness check of required migration IDs and names in the native ledger and registered schema components. |
+| `@shivaedev/effect-sql/pendingPostgresMigrations.ts` | `pendingPostgresMigrations({ loader, table?, components? })` | Pending ledger migrations as ID and name, and pending schema components as name and detail. |
 | `@shivaedev/effect-sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |
 
 ### Install and database setup
 
 ```sh
-pnpm add @shivaedev/effect-sql effect@4.0.4 @effect/sql-pg@4.0.4
+pnpm add @shivaedev/effect-sql effect@4.0.5 @effect/sql-pg@4.0.5
 ```
 
 `effect` is a peer. Install the native driver your application uses; this command chooses PostgreSQL. Provide its layer, and provide native Reactivity when using `transact` or `invalidateOnCommit`:

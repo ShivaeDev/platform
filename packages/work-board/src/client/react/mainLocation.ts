@@ -1,4 +1,7 @@
+import type { Cause } from "effect";
+
 export interface MainLocation {
+	readonly failure?: Cause.Cause<unknown> | undefined;
 	readonly file: string;
 	readonly projection: string;
 	readonly route: string;

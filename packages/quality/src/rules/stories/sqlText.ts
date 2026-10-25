@@ -1,6 +1,6 @@
 import ts from "typescript";
 import type { RuleInputs } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 import { unwrapped } from "./syntax.ts";
 
 export interface SqlText {

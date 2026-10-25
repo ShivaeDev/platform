@@ -3,7 +3,7 @@ import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
 import { Effect } from "effect";
 import { manifestsIn } from "#manifests/sorted.ts";
 import type { RuleInputs } from "#rule.ts";
-import { globMatcher } from "./glob.ts";
+import { globMatcher } from "./globMatcher.ts";
 import { pnpmWorkspacePatterns } from "./pnpmWorkspacePatterns.ts";
 
 export interface WorkspacePackage {

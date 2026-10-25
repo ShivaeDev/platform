@@ -1,11 +1,9 @@
-import { writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CLI_EXIT, quality } from "#test/cli.ts";
 import { register, seedFences } from "#test/importFenceRepository.ts";
-import { importTree } from "#test/imports.ts";
+import { misdirectedWorkspace, productionImportsTestsWorkspace } from "#test/importWorkspaces.ts";
 import { formatTree } from "#test/qualityTree.ts";
-import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
+import { removeSeededTrees } from "#test/tree.ts";
 
 const CLI_TIMEOUT = 60_000;
 
@@ -13,8 +11,7 @@ afterEach(removeSeededTrees);
 
 describe("the imports rules on the command line", { timeout: CLI_TIMEOUT }, () => {
 	it("exit 2 when the import graph covers no modules, so a misdirected config cannot pass", () => {
-		const root = importTree("empty");
-		writeFileSync(join(root, "quality.config.ts"), 'export default { sources: ["docs"] };\n');
+		const root = misdirectedWorkspace();
 		const result = quality(root, "lint");
 		expect(result.status).toBe(CLI_EXIT.invalid);
 		expect(result.stderr).toContain("the import graph covers no modules");
@@ -23,12 +20,7 @@ describe("the imports rules on the command line", { timeout: CLI_TIMEOUT }, () =
 	});
 
 	it("rejects production imports of tests by default and asks for shared production code", () => {
-		const root = seedTree([
-			config('{ sources: ["src"] }'),
-			{ content: 'import "./app.test.ts";\nimport "./test-support/fixture.ts";', path: "src/app.ts" },
-			{ content: 'import "./test-support/fixture.ts";', path: "src/app.test.ts" },
-			{ content: "export const fixture = 1;", path: "src/test-support/fixture.ts" },
-		]);
+		const root = productionImportsTestsWorkspace();
 		const result = quality(root, "lint");
 		expect(result.status).toBe(CLI_EXIT.rejected);
 		expect(result.stdout).toContain("imports/no-test-code");

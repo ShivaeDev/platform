@@ -3,9 +3,11 @@ import { NodeServices } from "@effect/platform-node";
 import { Context, Effect, FileSystem, Layer } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { BoardSnapshot, publishAfterBoardPass } from "#board/readPass.ts";
+import { workRevision } from "#board/workRevision.ts";
 import { writeStatus } from "#board/writeStatus.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardReads } from "#test/boardReads.ts";
+import { reportAttachmentVerbs } from "#test/reportAttachmentVerbs.ts";
 import { statusRecord } from "#test/status.ts";
 
 export const boardReadStory = storyKit({
@@ -29,6 +31,7 @@ export const boardReadStory = storyKit({
 			),
 		);
 		return {
+			...reportAttachmentVerbs(fixture),
 			board: {
 				...board,
 				decision: (...args: Parameters<typeof board.decision>) => {
@@ -73,6 +76,7 @@ export const boardReadStory = storyKit({
 					const path = `${fixture.root}/fleet/status.md`;
 					return (yield* fs.exists(path)) ? yield* fs.readFileString(path) : undefined;
 				}),
+			savedRevision: (revision: string, context?: string) => workRevision(revision, context),
 		};
 	},
 });

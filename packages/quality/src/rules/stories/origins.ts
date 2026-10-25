@@ -2,7 +2,9 @@ import { join } from "node:path";
 import ts from "typescript";
 import type { ImportGraph } from "#imports/graph.ts";
 import type { RuleInputs } from "#rule.ts";
+import { importOrigin } from "./importOrigin.ts";
 import { storyProgram } from "./program.ts";
+import { returnValues } from "./returnValues.ts";
 
 type Origin = "factory" | "kit" | "story" | "plain" | "suite" | "vitest" | "stories" | "function" | undefined;
 
@@ -13,24 +15,6 @@ function importFrom(node: ts.Node): string | undefined {
 		}
 	}
 	return undefined;
-}
-
-function moduleOrigin(from: string | undefined): Origin {
-	if (from === "vitest" || from === "@effect/vitest") {
-		return "vitest";
-	}
-	return from === "@shivaedev/test-story" || from === "@shivaedev/test-story/server/storyKit.ts" ? "stories" : undefined;
-}
-
-function imported(name: string, from: string | undefined): Origin {
-	const namespace = moduleOrigin(from);
-	if (name === "storyKit" && namespace === "stories") {
-		return "factory";
-	}
-	if ((name === "describe" || name === "suite") && namespace === "vitest") {
-		return "suite";
-	}
-	return (name === "it" || name === "test") && namespace === "vitest" ? "plain" : undefined;
 }
 
 export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
@@ -50,10 +34,10 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 
 	function declaration(node: ts.Node): Origin {
 		if (ts.isImportSpecifier(node)) {
-			return imported((node.propertyName ?? node.name).text, importFrom(node));
+			return importOrigin(importFrom(node), (node.propertyName ?? node.name).text);
 		}
 		if (ts.isNamespaceImport(node)) {
-			return moduleOrigin(importFrom(node));
+			return importOrigin(importFrom(node));
 		}
 		if (ts.isVariableDeclaration(node) || ts.isPropertyAssignment(node)) {
 			return node.initializer === undefined ? undefined : origin(node.initializer);
@@ -97,7 +81,7 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 			return receiver;
 		}
 		const from = receiver === "vitest" ? "vitest" : undefined;
-		return imported(name, receiver === "stories" ? "@shivaedev/test-story/server/storyKit.ts" : from);
+		return importOrigin(receiver === "stories" ? "@shivaedev/test-story/server/storyKit.ts" : from, name);
 	}
 
 	function identifier(node: ts.Identifier): Origin {
@@ -118,13 +102,21 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		return expression(node);
 	}
 
+	function call(node: ts.CallExpression): Origin {
+		const callee = visit(node.expression);
+		if (callee === "function") {
+			const values = returnValues(checker.getResolvedSignature(node)?.declaration);
+			return values.length > 0 && values.every((value) => value !== undefined && visit(value) === "kit") ? "kit" : callee;
+		}
+		return callee === "factory" ? "kit" : callee;
+	}
+
 	function expression(node: ts.Node): Origin {
 		if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
 			return visit(node.expression);
 		}
 		if (ts.isCallExpression(node)) {
-			const callee = visit(node.expression);
-			return callee === "factory" ? "kit" : callee;
+			return call(node);
 		}
 		if (ts.isPropertyAccessExpression(node)) {
 			return member(node.expression, node.name.text) ?? symbol(checker.getSymbolAtLocation(node.name));

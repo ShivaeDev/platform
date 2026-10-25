@@ -560,7 +560,7 @@ Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their 
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-react @effect/atom-react@4.0.4 effect@4.0.4 react@19.3.0
+pnpm add @shivaedev/effect-react @effect/atom-react@4.0.5 effect@4.0.5 react@19.3.0
 ```
 
 For editor, create or lower-level form modules, also install the optional form peer:

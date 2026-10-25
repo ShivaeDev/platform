@@ -62,7 +62,7 @@ export function appFolder(
 	}
 }
 
-export function runCli(root: string, cli: string, gitAvailable: boolean, args: readonly string[], environment: readonly string[] = []) {
+export function runCli(root: string, cli: string, gitAvailable: boolean, args: readonly string[], environment: readonly string[] = [], cwd = root) {
 	const bin = join(root, "bin");
 	const path = Effect.runSync(Config.String("PATH"));
 	return Effect.scoped(
@@ -90,7 +90,7 @@ export function runCli(root: string, cli: string, gitAvailable: boolean, args: r
 						cli,
 						...args,
 					],
-					{ cwd: root },
+					{ cwd },
 				),
 			);
 			const [stdout, stderr, status] = yield* Effect.all(

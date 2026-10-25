@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { SessionFailure } from "#session/schema.ts";
@@ -6,11 +5,6 @@ import { REPORT } from "#test/githubResult.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker, launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
-const newTurn: NonNullable<RecoveryCase["progress"]> = (ctx, before, after) => {
-	expect(after.attempts.length).toBeGreaterThan(before.attempts.length);
-	expect(after.attempts.at(-1)?.receipt?.turnId).not.toBe(before.attempts.at(-1)?.receipt?.turnId);
-	expect(ctx.fixture.settings.some((call) => call.call === "turn" && call.operationId === after.attempts.at(-1)?.operationId)).toBe(true);
-};
 export function recoveryWorkerCases(): readonly RecoveryCase[] {
 	let reject = true;
 	return [
@@ -23,7 +17,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 					yield* (yield* Fleet).reconcile("one");
 				}),
 				name: `worker ${execution}`,
-				progress: newTurn,
+				recovery: "replace-terminal-worker",
 
 				sites: ['engine/makeObserve.ts: "worker-terminal"'],
 			}),
@@ -33,10 +27,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 				code: "worker-question" as const,
 				enter: (ctx) => finishRecoveryWorker(ctx, output),
 				name: output.split(":")[0] ?? output,
-				progress: (ctx, before, after) => {
-					newTurn(ctx, before, after);
-					expect(after.attempts.at(-1)?.receipt?.sessionId).toBe(before.attempts.at(-1)?.receipt?.sessionId);
-				},
+				recovery: "answer-worker-question",
 
 				sites: ['engine/makeObserve.ts: "worker-question"'],
 			}),
@@ -61,10 +52,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 					yield* (yield* Fleet).reconcile("one");
 				}),
 				name: scenario.reason,
-				progress: (ctx, before, after) => {
-					newTurn(ctx, before, after);
-					expect(after.attempts.at(-1)?.receipt?.sessionId).toBe(before.attempts.at(-1)?.receipt?.sessionId);
-				},
+				recovery: "repair-worker-report",
 
 				sites: ["engine/workerReport.ts: failureCode(failure)"],
 			}),
@@ -76,7 +64,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 			options: {
 				submissionFailure: () => (reject ? new SessionFailure({ message: "Synthetic provider refused submission", reason: "rejected" }) : undefined),
 			},
-			progress: newTurn,
+			recovery: "retry-rejected-worker",
 			restore: () =>
 				Effect.sync(() => {
 					reject = false;
@@ -93,10 +81,7 @@ export function recoveryWorkerCases(): readonly RecoveryCase[] {
 			}),
 			name: "failed repair has no receipt",
 			options: { repairs: true },
-			progress: (ctx, before, after) => {
-				newTurn(ctx, before, after);
-				expect(after.attempts.at(-1)?.role).toBe("repair");
-			},
+			recovery: "retry-rejected-repair",
 			sites: ["engine/submissionFailure.ts: failureCode(error)"],
 		},
 	];

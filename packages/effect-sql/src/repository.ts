@@ -6,7 +6,7 @@ import { makeCompositeCrud, type PrimaryKey, type Repository } from "#compositeR
 import { type ConflictColumns, type ConflictWrites, makeConflictWrites } from "#conflictWrites.ts";
 import { makeInsertFromSelect, type SelectWrites } from "#insertFromSelect.ts";
 import { repositoryChanges } from "#repositoryChanges.ts";
-import type { FindManyFilter, RepositoryFilter } from "#repositoryFilter.ts";
+import type { FindManyFilter, RepositoryFilter, RepositoryListFilter } from "#repositoryFilter.ts";
 import { makeQueries, type Queries } from "#repositoryQueries.ts";
 import { type IdColumn, makeVersionedWrites, type NativeRepository, type VersionColumn, type VersionedWrites } from "#versionedRepository.ts";
 
@@ -29,7 +29,7 @@ export interface LatestPerGroup<TModel extends Model.Any> {
 	readonly limit: number;
 	readonly orderBy: readonly [OrderBy<TModel>, ...OrderBy<TModel>[]];
 	readonly partitionBy: readonly [Key<TModel>, ...Key<TModel>[]];
-	readonly where?: FindManyFilter<TModel>;
+	readonly where?: RepositoryListFilter<TModel>;
 }
 
 export class OptimisticConcurrencyError extends Data.TaggedError("OptimisticConcurrencyError")<{

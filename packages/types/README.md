@@ -7,7 +7,7 @@ Shared type helpers for the places where Platform packages need the same TypeScr
 A registry or implementation boundary may need one callback shape even though each callback accepts its own input type. Making every function member a method hides that choice. `Bivariant` puts it on the property that needs it:
 
 ```ts
-import type { Bivariant } from "@shivaedev/types/bivariant.ts";
+import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 
 function handleName(name: string): number {
   return name.length;
@@ -37,7 +37,7 @@ Apply the second job when adapting a typed public callback to an implementation 
 
 ### API
 
-`Bivariant<Fn>` from `@shivaedev/types/bivariant.ts` is a type alias, not a function: import it with `import type`. `Fn` is the function type whose parameter and return types form the property.
+`Bivariant<Fn>` from `@shivaedev/types/Bivariant.ts` is a type alias, not a function: import it with `import type`. `Fn` is the function type whose parameter and return types form the property.
 
 ### Install and limits
 

@@ -1,27 +1,24 @@
 import { Effect } from "effect";
-import { Migrator, SqlClient } from "effect/sql";
+import { Migrator } from "effect/sql";
+import type { PostgresMigrationOptions } from "./migrations.ts";
+import { type PendingPostgresMigrations, pendingPostgresMigrations } from "./pendingPostgresMigrations.ts";
 
-export const assertPostgresMigrations = Effect.fn("EffectSql.assertPostgresMigrations")(function* <R>({
-	loader,
-	table = "effect_sql_migrations",
-}: Pick<Migrator.MigratorOptions<R>, "loader" | "table">) {
-	const expected = yield* loader;
-	if (expected.length === 0) {
-		return;
-	}
-	const sql = yield* SqlClient.SqlClient;
-	const identifier = sql`${sql(table)}`.compile()[0];
-	const [ledger] = yield* sql<{ name: string | null }>`select to_regclass(${identifier})::text as name`.withoutTransform;
-	function invalid() {
-		return Effect.fail(
-			new Migrator.MigrationError({ kind: "BadState", message: "Database migrations are not current; run the deployment migration command." }),
-		);
-	}
-	if (ledger === undefined || ledger.name === null) {
-		return yield* invalid();
-	}
-	const applied = yield* sql<{ id: number; name: string }>`select migration_id as id, name from ${sql(table)}`.withoutTransform;
-	if (expected.some(([id, name]) => !applied.some((row) => row.id === id && row.name === name))) {
-		return yield* invalid();
+export const assertPostgresMigrations = Effect.fn("EffectSql.assertPostgresMigrations")(function* <R>(
+	options: Pick<PostgresMigrationOptions<R>, "loader" | "table" | "components">,
+) {
+	const pending = yield* pendingPostgresMigrations(options);
+	if (pending.migrations.length > 0 || pending.components.length > 0) {
+		return yield* Effect.fail(postgresMigrationError(pending));
 	}
 });
+
+export function postgresMigrationError(pending: PendingPostgresMigrations) {
+	const details = [
+		...pending.migrations.map(({ id, name }) => `migration ${id} (${name})`),
+		...pending.components.map(({ name, detail }) => `component ${name}: ${detail}`),
+	];
+	return new Migrator.MigrationError({
+		kind: "BadState",
+		message: `Database migrations are not current: ${details.join("; ")}. Run the deployment migration command.`,
+	});
+}

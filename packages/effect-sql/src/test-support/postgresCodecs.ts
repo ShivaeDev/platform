@@ -16,6 +16,10 @@ export class Payment extends Model.Class<Payment>("PostgresPayment")({
 	sequence: Schema.BigInt,
 	"settled_at": Schema.Date,
 }) {}
+export class UtcPayment extends Model.Class<UtcPayment>("UtcRangePayment")({
+	id: Schema.Int,
+	"settled_at": Schema.DateTimeUtcFromDate,
+}) {}
 export class Receipt extends Model.Class<Receipt>("PostgresReceipt")({
 	details: Schema.Struct({ attempts: Schema.Int, channel: Schema.String }),
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),

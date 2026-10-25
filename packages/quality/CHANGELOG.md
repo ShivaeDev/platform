@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.36.2 - 2026-10-25
+
+### Fixed
+
+- Stop `tests/story-specs` from reporting inline trait calls inside a story kit registration as plain tests. Plain `it` and `test` registrations still report.
+
+## 0.36.1 - 2026-10-25
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.36.0 - 2026-10-25
+
+### Breaking
+
+- `imports/fences/dsl.ts` moves to `imports/fence.ts`: change the import path in every `quality.fences.config.ts` and other fence importer.
+- `cli/migrate.ts` moves to `cli/migrateBaseline.ts`: change the import path for `migrateBaseline`.
+- `config/file.ts` moves to `config/constants.ts`: change the import path for `CONFIG_FILE`, which now shares the topic module with `DEFAULT_EXTENSIONS`.
+- `imports/components.ts` moves to `imports/cyclicComponents.ts`: change the import path for `cyclicComponents`.
+- `imports/fences/policy.ts` moves to `imports/fences/compilePolicy.ts`: change the import path for `compilePolicy`.
+- `imports/generated.ts` moves to `imports/withoutGenerated.ts`: change the import path for `withoutGenerated`.
+- `imports/glob.ts` moves to `imports/globMatcher.ts`: change the import path for `globMatcher`.
+- `imports/paths.ts` moves to `imports/shortestPath.ts`: change the import path for `shortestPath`.
+- `report/stale.ts` moves to `report/staleSections.ts`: change the import path for `staleSections`.
+- `rules/suppressions/biome/resolve.ts` moves to `rules/suppressions/biome/resolvePackage.ts`: change the import path for `resolvePackage`.
+- `rules/syntax.ts` moves to `rules/parse.ts`: change the import path for `parse`.
+
+## 0.35.0 - 2026-10-25
+
+### Added
+
+- Quality provides a React application TypeScript preset, shared Vite and Vitest configuration helpers, application hook setup, and the shared application CI command.
+- Platform provides configured local database preparation and a development runner for the server, worker and Vite processes.
+
+### Changed
+
+- Generated apps reference their packages’ foundation configuration and helpers so dependency updates carry shared fixes into existing apps.
+
+## 0.34.0 - 2026-10-24
+
+### Added
+
+- Quality recognizes client, server and numbered migration folders inside application modules, preserving their runtime boundaries.
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+- New apps get the notes example as one removable module and fresh migrations. Apps already generated are unaffected.
+
+### Fixed
+
+- Generated apps install the queue schema before publishing application migrations, so workers started before deployment wait for all required schema work.
+
 ## 0.33.2 - 2026-10-24
 
 ### Changed

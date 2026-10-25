@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.0 - 2026-10-25
+
+### Breaking
+
+- Move `@shivaedev/effect-test/vitest.ts` to `@shivaedev/effect-test/makeEffectIt.ts`. Change imports to `@shivaedev/effect-test/makeEffectIt.ts`; the exported `makeEffectIt` function is unchanged.
+
+## 0.7.2 - 2026-10-24
+
+### Changed
+
+- Require Effect and its companion packages at exactly 4.0.5. Generated applications use the same versions.
+
 ## 0.7.1 - 2026-10-18
 
 ### Fixed

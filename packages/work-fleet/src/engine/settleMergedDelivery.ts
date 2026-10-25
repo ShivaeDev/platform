@@ -20,12 +20,15 @@ export const settleMergedDelivery = Effect.fn("Fleet.settleMergedDelivery")(func
 		&& Result.isSuccess(yield* validateReviewRequirement(record, result.head).pipe(Effect.result))
 		&& record.checks !== undefined
 		&& Result.isSuccess(yield* validateChecks(record.checks, result.head).pipe(Effect.result));
+	const reviewedHead =
+		record.review?.head
+		?? record.attempts.slice(0, -1).findLast((attempt) => attempt.role === "reviewer" && attempt.status === "completed")?.reviewHead;
 	return approved && delivery.head === result.head
 		? yield* state.save(stored, { ...record, blocker: undefined, mergedDelivery: delivery, outcome: delivery, step: "done" })
 		: yield* releaseFinishedWork(
 				state,
 				stored,
-				`PR #${result.pr.split("/").at(-1)} merged by a human at ${delivery.head}; Fleet review covered ${record.review?.head ?? "nothing"}`,
+				`PR #${result.pr.split("/").at(-1)} merged by a human at ${delivery.head}; Fleet review covered ${reviewedHead ?? "nothing"}`,
 				delivery,
 			);
 });

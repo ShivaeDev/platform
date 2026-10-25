@@ -1,11 +1,6 @@
 {"path":"packages/effect-test/src/effectBody.spec.ts","rule":"tests/named-values","count":1}
-{"path":"packages/effect-test/src/eventually.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-test/src/eventually.ts","rule":"biome/plugin","count":3}
 {"path":"packages/effect-test/src/runner.spec.ts","rule":"tests/named-values","count":4}
 {"path":"packages/effect-test/src/skip.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/effect-test/src/test-support/skipFixture.ts","rule":"tests/no-expect-in-support","count":1}
 {"path":"packages/effect-test/src/test-support/startupFailureFixture.ts","rule":"tests/no-expect-in-support","count":2}
 {"path":"packages/effect-test/src/test-support/timeoutFixture.ts","rule":"tests/no-expect-in-support","count":3}
-{"path":"packages/effect-test/src/vitest.ts","rule":"biome/lint/nursery/useConsistentFunctionStyle","count":1}
-{"path":"packages/effect-test/src/vitest.ts","rule":"biome/plugin","count":1}
-{"path":"packages/effect-test/src/vitest.ts","rule":"files/named-after-export","count":1}

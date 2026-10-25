@@ -41,7 +41,7 @@ The work usually splits into two parts:
 ```ts
 import { expect } from "@effect/vitest";
 import { Clock, Context, Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
 
 class Token extends Context.Service<Token, string>()("test/Token") {}
 
@@ -69,7 +69,7 @@ A fixture that needs no services uses `Layer.empty`. This separate module replac
 ```ts
 import { expect } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
 
 const { effectApp } = makeEffectIt({
   layer: Layer.empty,
@@ -90,7 +90,7 @@ This alternative token fixture adds a tracing wrapper:
 ```ts
 import { expect } from "@effect/vitest";
 import { Context, Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
 
 class Token extends Context.Service<Token, string>()("test/Token") {}
 
@@ -223,7 +223,7 @@ Import the module that defines the name; the package has no root entry.
 | Module | Exports |
 | --- | --- |
 | `@shivaedev/effect-test/it.ts` | `it`, with generator-aware `effect` and `live` testers. |
-| `@shivaedev/effect-test/vitest.ts` | `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`. |
+| `@shivaedev/effect-test/makeEffectIt.ts` | `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`. |
 | `@shivaedev/effect-test/eventually.ts` | `eventually(effect, options?)` and `EventuallyOptions`. |
 | `@shivaedev/effect-test/withLive.ts` | `withLive(effect)`, a live-time region under either clock. |
 | `@shivaedev/effect-test/anyTestLayer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
@@ -234,7 +234,7 @@ Import the module that defines the name; the package has no root entry.
 ### Install, setup and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/effect-test @effect/vitest@4.0.4 effect@4.0.4 vitest@5.0.3
+pnpm add --save-dev @shivaedev/effect-test @effect/vitest@4.0.5 effect@4.0.5 vitest@5.0.3
 ```
 
 The package declares `effect` as a peer and `@effect/vitest` as an optional peer. The Vitest runner modules require `@effect/vitest`; install it when using them. The package requires Node.js 24 or later. Use peer versions compatible with the package's `package.json`.
