@@ -1,8 +1,9 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Clock, Effect, Exit, Fiber, Layer, Queue, Scope } from "effect";
-import type { SqlError } from "effect/sql/SqlError";
 import * as TestClock from "effect/testing/TestClock";
-import { type PostgresChangeClient, type PostgresChangesOptions, type PostgresNotification, postgresChanges } from "#postgresChanges.ts";
+import { type PostgresChangesOptions, postgresChanges } from "#postgresChanges.ts";
+import { instrumentListener } from "./instrumentListener.ts";
+import { notificationStreams } from "./notificationStreams.ts";
 export interface NotifyState {
 	channel?: string;
 	readonly cleanup?: Effect.Effect<void>;
@@ -10,39 +11,8 @@ export interface NotifyState {
 	muted: boolean;
 	readonly payloads: string[];
 	resyncs: number;
+	unreachable: boolean;
 }
-const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(function* (
-	listening: ReturnType<PostgresChangeClient["listen"]>,
-	state: NotifyState,
-	events: { readonly heartbeats: Queue.Queue<void>; readonly listeners: Queue.Queue<void> },
-) {
-	const notifications = yield* listening;
-	yield* Queue.offer(events.listeners, undefined);
-	const scope = yield* Effect.scope;
-	const instrumented = yield* Queue.unbounded<PostgresNotification, SqlError>();
-	let registered = false;
-	yield* Effect.forever(
-		Effect.gen(function* () {
-			const notification = yield* Queue.take(notifications);
-			if (notification.payload.startsWith("[")) {
-				state.payloads?.push(notification.payload);
-			}
-			if (!registered && state.cleanup !== undefined) {
-				registered = true;
-				yield* Scope.addFinalizer(scope, state.cleanup);
-			}
-			if (!state.muted) {
-				yield* Queue.offer(instrumented, notification);
-			} else if (!notification.payload.startsWith("[")) {
-				yield* Queue.offer(events.heartbeats, undefined);
-			}
-		}),
-	).pipe(
-		Effect.catchCause((cause) => Queue.failCause(instrumented, cause)),
-		Effect.forkScoped,
-	);
-	return instrumented;
-});
 export const startNotifications = Effect.fnUntraced(function* (
 	timing: Pick<PostgresChangesOptions, "heartbeatInterval" | "heartbeatTimeout" | "retryDelay"> = {},
 	stallCleanup = false,
@@ -59,6 +29,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 		muted: false,
 		payloads: [],
 		resyncs: 0,
+		unreachable: false,
 		...(stallCleanup
 			? {
 					cleanup: Effect.gen(function* () {
@@ -72,6 +43,8 @@ export const startNotifications = Effect.fnUntraced(function* (
 			: {}),
 	};
 	const client = yield* PgClient.PgClient;
+	const unavailable = yield* PgClient.make({ host: "127.0.0.1", port: 1 });
+	const streams = yield* notificationStreams;
 	const scope = yield* Scope.make();
 	yield* Effect.addFinalizer(() =>
 		Effect.andThen(
@@ -87,7 +60,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 			}
 			return (channel: string) => {
 				state.connections += 1;
-				return instrumentListener(client.listen(channel), state, events);
+				return instrumentListener((state.unreachable ? unavailable : client).listen(channel), state, events);
 			};
 		},
 	});
@@ -96,9 +69,13 @@ export const startNotifications = Effect.fnUntraced(function* (
 			...timing,
 			channel: state.channel,
 			client: instrumented,
-			resync: Effect.sync(() => {
-				state.resyncs += 1;
-			}),
+			resync: streams.resync.pipe(
+				Effect.tap(() =>
+					Effect.sync(() => {
+						state.resyncs += 1;
+					}),
+				),
+			),
 		}),
 	).pipe(Effect.provideService(Scope.Scope, scope), Effect.forkScoped);
 	const clock = yield* Clock.Clock;
@@ -115,6 +92,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 		nextCleanup: Queue.take(events.closings),
 		nextListener: Queue.take(events.listeners),
 		nextMutedHeartbeat: Queue.take(events.heartbeats),
+		openStream: streams.open,
 		release: () => gate.resolve(),
 		state,
 	};

@@ -1,5 +1,5 @@
 import process from "node:process";
-import { Effect, Schema } from "effect";
+import { Effect, Logger, Schema } from "effect";
 import { Rejected } from "./contract.ts";
 import { Configuration, Message, type Response } from "./processProtocol.ts";
 import { startServer } from "./server.ts";
@@ -22,6 +22,10 @@ const server =
 					return Effect.fail(new Rejected());
 				}),
 				keepTables: true,
+				logger: Logger.make((options) => {
+					const log = Logger.formatStructured.log(options);
+					send({ _tag: "Log", annotations: log.annotations, level: options.logLevel, message: options.message });
+				}),
 			})
 		: undefined;
 const worker = config.role === "worker" ? startWorker(config, () => send({ _tag: "Handled" })) : undefined;

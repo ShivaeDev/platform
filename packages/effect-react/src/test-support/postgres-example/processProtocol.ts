@@ -17,7 +17,14 @@ export const Message = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Reject") }),
 	Schema.Struct({ _tag: Schema.Literal("Enqueue"), order: Order }),
 ]);
+export const ProcessLog = Schema.Struct({
+	_tag: Schema.Literal("Log"),
+	annotations: Schema.Record(Schema.String, Schema.Unknown),
+	level: Schema.String,
+	message: Schema.Unknown,
+});
 export const Response = Schema.Union([
+	ProcessLog,
 	Schema.Struct({ _tag: Schema.Literal("Ready"), url: Schema.String }),
 	Schema.Struct({ _tag: Schema.Literal("Rejected") }),
 	Schema.Struct({ _tag: Schema.Literal("Handled") }),

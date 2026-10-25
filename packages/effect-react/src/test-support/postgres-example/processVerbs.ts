@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { Order } from "./contract.ts";
+import { failoverVerbs } from "./failoverVerbs.ts";
 import { client, type ProcessEngine, process } from "./processEngine.ts";
 import { until } from "./processHarness.ts";
 
@@ -12,6 +13,7 @@ export function processVerbs(engine: ProcessEngine, tell: (line: string) => void
 		return { a: await client(engine, "a").get(), b: await client(engine, "b").get(), hints: [...client(engine, "a").hints] };
 	}
 	return {
+		...failoverVerbs(engine),
 		hints: (name: string) => [...client(engine, name).hints],
 		localResyncs: () =>
 			Effect.promise(async () => {
