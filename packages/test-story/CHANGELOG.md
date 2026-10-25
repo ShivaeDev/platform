@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 - 2026-10-25
+
+### Added
+
+- Screen drivers can act on and read screens without a `pending` option. Only `settle()` requires the signal; without it, settlement fails immediately with the typed `MissingScreenPending` error. Drivers that supply `pending` keep `settle()` typed as `Effect<void>`.
+
 ## 0.19.1 - 2026-10-25
 
 ### Changed
