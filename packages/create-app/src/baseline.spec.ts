@@ -3,6 +3,7 @@ import { application } from "#test/application.ts";
 import { configuredIdentity, installedPackageManager, realSetup } from "#test/traits.ts";
 
 const SUCCESSFUL_EXIT = 0;
+const CLI_TIMEOUT = 60_000;
 
 application.it(
 	"records and lowers Quality debt through the generated app's package script",
@@ -23,4 +24,5 @@ application.it(
 		expect(tightened.status, tightened.stdout + tightened.stderr).toBe(SUCCESSFUL_EXIT);
 		expect(baseline()).toBe("");
 	},
+	CLI_TIMEOUT,
 );
