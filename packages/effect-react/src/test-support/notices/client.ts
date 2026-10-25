@@ -1,39 +1,41 @@
-import { Deferred, Effect, Schema, Stream } from "effect";
+import { Deferred, Effect, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { collection } from "@shivaedev/effect-contract/keys.ts";
-import { command, query } from "@shivaedev/effect-contract/operation.ts";
+import { Api, Conflict, Rejected, type Removed, TitleRejected } from "./Api.ts";
 
-class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { current: Schema.Number, expected: Schema.Number }) {}
-class Rejected extends Schema.TaggedError<Rejected>()("Rejected", {}) {}
-const rows = collection("notice-rows", Schema.String);
-const Removed = Schema.Struct({ expectedVersion: Schema.Number, title: Schema.String });
-const Remove = command("remove", {
-	invalidates: () => [rows.list],
-	payload: { title: Schema.String },
-	rejections: { Rejected },
-	success: Removed,
-});
-const Restore = command("restore", {
-	invalidates: () => [rows.list],
-	payload: Removed.fields,
-	rejections: { Conflict },
-	success: Schema.String,
-});
-const Edit = command("edit", { invalidates: () => [rows.list], payload: { title: Schema.String } });
-const List = query("list", { reads: () => [rows.list], rejections: { Rejected }, success: Schema.String });
-const BreakReads = command("breakReads", { invalidates: () => [rows.list] });
-const Api = contract("notices", { commands: [Remove, Restore, Edit, BreakReads], queries: [List] });
-export function noticeClient() {
+export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 	const removals = new Map<string, Deferred.Deferred<void>>();
 	const restores = new Map<string, Deferred.Deferred<void>>();
+	const saves = new Map<string, Deferred.Deferred<void>>();
+	const reads: Deferred.Deferred<void, Rejected>[] = [];
 	const versions = new Map<string, number>();
 	const restored: string[] = ["existing"];
 	let failReads = false;
 	const calls: { title: string; expectedVersion: number }[] = [];
 	const released: string[] = [];
+	function list() {
+		return Effect.gen(function* () {
+			if (options.holdReads) {
+				const pending = yield* Deferred.make<void, Rejected>();
+				reads.push(pending);
+				yield* Deferred.await(pending);
+			}
+			return yield* failReads ? Effect.fail(new Rejected()) : Effect.succeed(restored.join(", "));
+		});
+	}
+	function save({ title }: { readonly title: string }) {
+		return Effect.gen(function* () {
+			if (title === "blocked") {
+				return yield* Effect.fail(new TitleRejected({ field: "title", message: "Choose another title" }));
+			}
+			const pending = yield* Deferred.make<void>();
+			saves.set(title, pending);
+			yield* Deferred.await(pending);
+			restored.push(title);
+			return title;
+		});
+	}
 	function removeRow({ title }: { readonly title: string }) {
 		return Effect.gen(function* () {
 			if (title === "blocked") {
@@ -80,9 +82,10 @@ export function noticeClient() {
 					Effect.sync(() => {
 						versions.set(title, (versions.get(title) ?? 7) + 1);
 					}),
-				"notices.list": () => Effect.suspend(() => (failReads ? Effect.fail(new Rejected()) : Effect.succeed(restored.join(", ")))),
+				"notices.list": list,
 				"notices.remove": removeRow,
 				"notices.restore": restoreRow,
+				"notices.save": save,
 			}),
 		),
 	);
@@ -91,13 +94,13 @@ export function noticeClient() {
 		makeEffect: RpcTest.makeClient(Api, { flatten: true }),
 		protocol: handlers,
 	}) {}
-	function gate(kind: "remove" | "restore", title: string) {
-		const pending = (kind === "remove" ? removals : restores).get(title);
+	function gate(kind: "remove" | "restore" | "save", title: string) {
+		const pending = { remove: removals, restore: restores, save: saves }[kind].get(title);
 		if (!pending) {
 			throw new Error(`${kind} ${title} has not started`);
 		}
 		return pending;
 	}
-	return { api: bind(Api, Client), calls, gate, released, removals, runtime: Client.runtime };
+	return { api: bind(Api, Client), calls, gate, reads, released, removals, runtime: Client.runtime, saves };
 }
 export type NoticeClient = ReturnType<typeof noticeClient>;

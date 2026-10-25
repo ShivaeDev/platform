@@ -98,7 +98,9 @@ const save = OrdersClient.runtime.fn((input: OrderInput) =>
 
 Use native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` for the browser RPC protocol. Effect sends the trace in the W3C `traceparent` HTTP header. Platform's appHost carries it into the RPC span and its SQL, and annotates the RPC span with `request.id`. Enqueued pg-boss jobs retain that span context; worker attempts start separate traces linked back to the sender.
 
-### Once per session: render operation notices
+### One supported path for query, command and form feedback
+
+Use `useQuery` with `QueryView` for reads, the Effect overload of `useAction` for commands, and `useCreate` or `useEditor` for form submissions. Give these owners notice descriptors and mount one `NoticeHost` inside the session boundary. effect-contract still runs commands and invalidates queries; effect-form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
 
 Mount the optional `NoticeHost` from `@shivaedev/effect-react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host.
 
@@ -129,10 +131,10 @@ The Effect overload of `useAction` accepts `notices.onSuccess(value, input)` and
 
 ```ts
 const remove = useAction(OrdersClient.runtime, api.remove.run, {
+  concurrent: true,
   notices: {
     onSuccess: (removed, input) => ({
       message: `Removed ${input.title}`,
-      expiresIn: "10 seconds",
       action: {
         label: "Undo",
         run: api.restore.run({
@@ -150,6 +152,27 @@ const remove = useAction(OrdersClient.runtime, api.remove.run, {
 `OrdersClient`, `api`, the restore payload and its expected version belong to the application. The host runs the supplied Effect with the operation's native runtime, disables repeated dispatch while it is pending and exposes the outcome on that action. A failed Undo stays on its original notice; it does not become another operation failure notice. Command execution and invalidation remain with effect-contract, and form submission remains with effect-form.
 
 For query failures, pass `useQuery(atom, { notice: ({ cause, refreshing }) => descriptor })`. `useEditor` accepts the same callback as `queryNotice` for its query. `refreshing` distinguishes a failure with retained data from an initial load failure. Each settled failed result publishes once per hook; a rerender does not replay it. Omit the callback or return `undefined` for operations that need no notice.
+
+The query and form in the same feature use their own feedback options:
+
+```tsx
+const notes = useQuery(api.list.query(), {
+  notice: ({ refreshing }) => ({
+    message: refreshing ? "Refresh failed" : "Load failed",
+  }),
+});
+const save = useCreate({
+  fields: TitleFields,
+  initialValues: { title: "" },
+  create: api.save.run,
+  runtime: NotesClient.runtime,
+  notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
+});
+```
+
+Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with effect-form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
+
+The [notes feature](https://github.com/ShivaeDev/platform/tree/main/packages/effect-react/src/test-support/feedback-path) composes these owners with the existing in-memory RPC fixture. Its [feedback stories](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/feedbackPath.dom.spec.tsx) cover loading and retry, rejected fields, a held save, concurrent command notices, Undo and its version conflict, and retained content after a refresh failure. The [session story](https://github.com/ShivaeDev/platform/blob/main/packages/effect-react/src/feedbackSession.dom.spec.tsx) replaces a session during a command and Undo: the outgoing registry is disposed, late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host. These are React render stories over test RPC handlers, not evidence of a deployed service.
 
 A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
 
@@ -229,20 +252,18 @@ Pass the native runtime and the original bound command Effect to `useAction` whe
 
 ```tsx
 const rename = useAction(ReportsClient.runtime, api.rename.run, {
-  onSuccess: (saved, input) => {
-    showNotice(`Renamed ${input.id} to ${saved.title}`);
-  },
-  onFailure: (error, input) => {
-    showRejection(input.id, error);
+  notices: {
+    onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
+    onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
   },
 });
 ```
 
-`ReportsClient`, `api`, `showNotice` and `showRejection` belong to the application. Input, success, typed failure and runtime requirements are inferred from the command. `onSuccess(value, input)` and `onFailure(error, input)` are optional synchronous callbacks. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
+`ReportsClient` and `api` belong to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for the feedback path above. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
 
 The hook calls the supplied Effect once. A bound effect-contract command still owns invalidation, and completion does not wait for invalidated queries to refetch. Undo payloads, expected versions and presentation text stay in the application.
 
-A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use callbacks for per-invocation feedback. Keep the runtime and concurrency policy stable for the same owner.
+A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
 
 A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
 
