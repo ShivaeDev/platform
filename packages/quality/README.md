@@ -103,7 +103,7 @@ The manifest owns ordinary workspace dependencies. When a package promises more,
 A **fence** is a prohibition on imports, with a reason and one illegal and one legal example. Quality validates all discovered fences together, so duplicate names or contradictory examples stop the run. An unreadable file or invalid default export also stops the run. Fences remain an internal `imports/fences` module of Quality and use its shared import graph, resolver and report.
 
 ```ts
-import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
+import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { external, folders, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
 const uiBoundary = fence("ui-never-imports-server")
@@ -222,7 +222,7 @@ Import names from their defining module; there is no root entry. The package's `
 | `config.ts` | `defineConfig`, `QualityConfig`, `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules` |
 | `rule.ts` | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
 | `standardSchema.ts` | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
-| `imports/fences/dsl.ts` | `fence` |
+| `imports/fence.ts` | `fence` |
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external` |
 | `imports/fences/model.ts` | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External` |
 | `testProjects.ts` | `testProjects` |

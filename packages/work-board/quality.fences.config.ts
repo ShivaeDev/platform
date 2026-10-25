@@ -1,4 +1,4 @@
-import { fence } from "@shivaedev/quality/imports/fences/dsl.ts";
+import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { anyOf, anything, external, files, folders, modules, packages } from "@shivaedev/quality/imports/fences/selectors.ts";
 
 const boardCode = folders("packages/work-board/src").except(folders("packages/work-board/src/server"));

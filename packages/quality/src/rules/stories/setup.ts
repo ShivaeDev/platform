@@ -1,7 +1,7 @@
 import ts from "typescript";
 import { isTestSupport, testName } from "#naming/testName.ts";
 import { defineRule, type Finding, type SourceFile } from "#rule.ts";
-import { parse } from "#rules/syntax.ts";
+import { parse } from "#rules/parse.ts";
 import { fixtureWrites } from "./fixtureWrites.ts";
 
 const SETUP_HELPER = /^(?:seed|make|build|setup)(?![a-z])/u;

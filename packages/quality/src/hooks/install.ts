@@ -1,6 +1,6 @@
 import { basename, dirname, join, relative } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
-import { CONFIG_FILE } from "#config/file.ts";
+import { CONFIG_FILE } from "#config/constants.ts";
 import { loadConfig } from "#config/load.ts";
 import { SetupFailure } from "#failure.ts";
 import { gitOrFail } from "#git/command.ts";
