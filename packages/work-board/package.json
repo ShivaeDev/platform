@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/work-board",
-	"version": "0.30.9",
+	"version": "0.30.10",
 	"description": "Serve a folder of markdown files as a live local page that updates in place when a file changes",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/work-board#readme",
 	"bugs": {
@@ -98,7 +98,7 @@
 		"build:browser": "esbuild src/server/responses/agent-cli.ts --bundle --platform=node --format=esm --conditions=source --minify --external:yaml --outfile=assets/agent.js && vite build",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
 		"test": "pnpm test:prepare && vitest run",
-		"test:prepare": "pnpm build:browser",
+		"test:prepare": "tsc --project tsconfig.build.json --noCheck && pnpm build:browser",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {

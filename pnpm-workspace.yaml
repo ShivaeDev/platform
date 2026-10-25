@@ -33,7 +33,7 @@ catalog:
   vite: 8.3.4
   tailwindcss: 4.3.3
   class-variance-authority: 0.7.1
-  lucide-react: 1.57.0
+  lucide-react: 1.59.0
   "@biomejs/biome": 2.5.15
   "@effect/vitest": 4.0.5
   "@effect/atom-react": 4.0.5
@@ -57,7 +57,7 @@ catalog:
   dom-accessibility-api: 0.7.1
   mermaid: 12.2.0
   ignore: 7.0.12
-  sort-package-json: 4.0.0
+  sort-package-json: 4.1.0
   "@prisma-next/adapter-postgres": 0.16.0
   "@prisma-next/adapter-sqlite": 0.16.0
   "@prisma-next/cli": 0.16.0

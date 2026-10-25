@@ -13,6 +13,7 @@ import { githubResult } from "#host/githubResult.ts";
 import { MainSource } from "#host/mainSource.ts";
 import { mergePrediction } from "#host/mergePrediction.ts";
 import { reportRepository } from "#host/reportPublication.ts";
+import { reportRevision } from "#host/reportRevision.ts";
 import { FleetIntegrations } from "#policy.ts";
 
 function unconfigured(message: string, code: DecisionCode = "fleet-integration") {
@@ -33,6 +34,7 @@ export function hostIntegrations(host: FleetHost) {
 						? unconfigured("No-change validation is not configured in this Fleet host; inspect the worker session", "no-change-checks-unconfigured")
 						: githubChecks(github, host.repository.branch)(result),
 				delivery: githubDelivery(readPullRequest(github.get)),
+				isAncestor: reportRevision(main.repositoryRoot, host.repository.remote),
 				main: main.observe,
 				publication: githubPublication(host, github, repository),
 				result:

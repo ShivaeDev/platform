@@ -1,7 +1,7 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
-import { Pool, type PoolClient } from "pg";
+import { Pool, type PoolClient, type PoolConfig } from "pg";
 import { type RevokeUnadmitted, revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
@@ -96,12 +96,15 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	return { admittedSessions, auth, revokeUnadmitted: revoke, routes };
 });
 
-export const authDatabase = Effect.fn("Platform.authDatabase")(function* (url: Redacted.Redacted<string>) {
+export const authDatabase = Effect.fn("Platform.authDatabase")(function* (
+	url: Redacted.Redacted<string>,
+	options: Pick<PoolConfig, "max" | "application_name"> = {},
+) {
 	const clients = new Set<PoolClient>();
 	const run = Effect.runForkWith(yield* Effect.context<never>());
 	return yield* Effect.acquireRelease(
 		Effect.sync(() => {
-			const pool = new Pool({ connectionString: Redacted.value(url) });
+			const pool = new Pool({ ...options, connectionString: Redacted.value(url) });
 			pool.on("connect", (client) => clients.add(client));
 			pool.on("remove", (client) => clients.delete(client));
 			pool.on("error", (error) => {

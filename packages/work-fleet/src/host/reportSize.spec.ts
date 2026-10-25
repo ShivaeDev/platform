@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import { HEAD } from "#test/githubResult.ts";
 import { REPORT_SOURCE } from "#test/hostReportTraits.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 
@@ -7,7 +8,7 @@ host.it(
 	[boardWork({ "research.md": REPORT_SOURCE })],
 	function* (daemon) {
 		const started = yield* daemon.approve("research");
-		daemon.finishTurn(started.value, "界".repeat((256 * 1024) / 3));
+		daemon.finishTurn(started.value, `${"界".repeat((256 * 1024) / 3)}\nFLEET_HEAD: ${HEAD}`);
 		const first = yield* daemon.reconcile("research");
 		expect(first.step).toBe("waiting");
 		expect(first.attentionOwner).toBe("orchestrator");

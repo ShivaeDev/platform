@@ -4,6 +4,8 @@ import { Effect } from "effect";
 import type { BoardReport } from "#board/schema.ts";
 import { makeReportPublication } from "#host/reportPublication.ts";
 import { BoardFailure } from "#policy.ts";
+import { HEAD } from "#test/githubResult.ts";
+import { mainObservation } from "#test/preparation.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { finishRecoveryWorker } from "#test/recoverySteps.ts";
 
@@ -30,12 +32,12 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 		publications += 1;
 		return publications === 1 ? Effect.fail(new BoardFailure({ message: "Lost report publication receipt" })) : Effect.succeed(receipt);
 	}
-	return [
+	const cases: readonly RecoveryCase[] = [
 		{
 			code: "report-too-large" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
-				yield* finishRecoveryWorker(ctx, "x".repeat(256 * 1024));
+				yield* finishRecoveryWorker(ctx, `${"x".repeat(256 * 1024)}\nFLEET_HEAD: ${HEAD}`);
 			}),
 			name: "oversized done report",
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
@@ -58,7 +60,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 				code: fault.code,
 				enter: Effect.fnUntraced(function* (ctx) {
 					writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
-					yield* finishRecoveryWorker(ctx, "Completed findings.");
+					yield* finishRecoveryWorker(ctx, `Completed findings.\nFLEET_HEAD: ${HEAD}`);
 					if (fault.check === publishedReport) {
 						closed = true;
 						published = yield* publishedReport();
@@ -90,7 +92,7 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 			code: "board-failure" as const,
 			enter: Effect.fnUntraced(function* (ctx) {
 				writeFileSync(join(ctx.root, "one.md"), ctx.source.replace("fleet: approved", "fleet: approved\ndelivers: report"));
-				yield* finishRecoveryWorker(ctx, "Completed findings.");
+				yield* finishRecoveryWorker(ctx, `Completed findings.\nFLEET_HEAD: ${HEAD}`);
 			}),
 			name: "lost report publication receipt",
 			observe: () => ({ publications }),
@@ -101,4 +103,11 @@ export function recoveryReportCases(): readonly RecoveryCase[] {
 			sites: ["engine/reconcileCommand.ts: failureCode(error)"],
 		},
 	];
+	return cases.map((scenario) => ({
+		...scenario,
+		options: {
+			mainQuery: (preparation) => Effect.succeed(mainObservation({ fromRevision: preparation.baseRevision, revision: HEAD })),
+			...scenario.options,
+		},
+	}));
 }

@@ -632,6 +632,8 @@ const authentication = Effect.gen(function* () {
 });
 ```
 
+`authDatabase(url, { max, application_name })` accepts an optional maximum connection count and PostgreSQL application name, passed to `pg.Pool`. Omit the settings to use pg’s defaults.
+
 Run this Effect in the host's scope. The pool logs idle-client errors at Debug and replaces failed connections on the next query; closing the scope disconnects its clients. A rejected auth handler returns HTTP 503 with `Authentication is temporarily unavailable`.
 
 The mount reads `BETTER_AUTH_SECRET` unless options supply `secret`. `PUBLIC_URL` supplies the default base URL, trusted origin and HTTPS secure-cookie setting; without it, the defaults accept loopback HTTP. Application options can override those defaults. RPC Origin policy remains an application choice.
@@ -826,7 +828,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `server/node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
-| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn? })`, returning `{ auth, routes, admittedSessions, revokeUnadmitted }`, and `authDatabase(url)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
+| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn? })`, returning `{ auth, routes, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
 | `server/better-auth/allowedAccounts.ts` | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config. |
 | `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
 | `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |

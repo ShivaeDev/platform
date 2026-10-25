@@ -5,6 +5,7 @@ import { makeAuth } from "#client/auth.ts";
 import { CountWords } from "#modules/notes/server/jobs.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { authPost, credentials } from "#test-support/authHttp.ts";
+import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 import type { Engine } from "./applicationState.ts";
 import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
@@ -27,7 +28,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 	const startWorker = Effect.fn("AppStory.startWorker")(function* (env?: Record<string, string>) {
 		story.tell("start the word-count worker");
 		const database = yield* PostgresTestDatabase;
-		const worker = applicationWorker({ clientFactory: engine.workerQueue.clientFactory, databaseUrl: database.url });
+		const worker = applicationWorker({ clientFactory: engine.workerQueue.clientFactory, databaseUrl: database.url, poolSizes: testPoolSizes });
 		const scope = yield* Scope.fork(yield* Scope.Scope);
 		yield* Layer.buildWithScope(
 			env === undefined ? worker : worker.pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env })))),

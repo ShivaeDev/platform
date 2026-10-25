@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.14.1 - 2026-10-25
+
+### Added
+
+- `queryRoute` supplies TanStack Router query loaders and search dependencies, mapping `NotFound` rejections to the route's not-found component.
+- `@shivaedev/platform`: `authDatabase` accepts optional `max` and `application_name` pool settings.
+
+### Changed
+
+- Generated starter notes routes use query loaders and show a not-found screen for missing notes, with a link back to the list.
+- `@shivaedev/create-app`: Starter stories run the web host and worker with test-sized SQL, authentication and jobs pools.
+
 ## 0.14.0 - 2026-10-25
 
 ### Added

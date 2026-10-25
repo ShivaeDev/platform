@@ -22,6 +22,6 @@ const handlers = Notes.application.toLayer(
 export const notesRegistration = {
 	group: Notes,
 	handlers,
-	services: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory) =>
-		NotesService.layer.pipe(Layer.provideMerge(noteProducer(Redacted.value(url), clientFactory))),
+	services: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number) =>
+		NotesService.layer.pipe(Layer.provideMerge(noteProducer(Redacted.value(url), clientFactory, max))),
 };

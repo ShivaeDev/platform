@@ -4,16 +4,9 @@ import { Button } from "#client/react/components/ui/button.tsx";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { LinkButton } from "./LinkButton.tsx";
+import { pageFailureReason } from "./pageFailureReason.ts";
 
-export function PageFailure({
-	failure,
-	onRetry,
-	retrying,
-}: {
-	readonly failure: { readonly _tag: string } | undefined;
-	readonly onRetry: () => void;
-	readonly retrying: boolean;
-}) {
+export function PageFailure({ failure, onRetry, retrying }: { readonly failure: unknown; readonly onRetry: () => void; readonly retrying: boolean }) {
 	const unreachable = serverUnreachable(failure);
 	return (
 		<Empty className="mx-auto mt-8 max-w-xl border">
@@ -21,9 +14,8 @@ export function PageFailure({
 				<EmptyMedia variant="icon">{unreachable ? <Unplug /> : <CircleAlert />}</EmptyMedia>
 				<EmptyTitle>{unreachable ? "The Board server isn't answering" : "This page couldn't be opened"}</EmptyTitle>
 				<EmptyDescription>
-					{unreachable
-						? "This page tries again on its own."
-						: "The Board couldn't read what this page needs. Try again, or open System to see which files it can't read."}
+					{unreachable && "This page tries again on its own. "}
+					{pageFailureReason(failure)}
 				</EmptyDescription>
 			</EmptyHeader>
 			<EmptyContent className="flex-row justify-center">
@@ -36,7 +28,7 @@ export function PageFailure({
 	);
 }
 
-function serverUnreachable(failure: { readonly _tag: string } | undefined) {
+function serverUnreachable(failure: unknown) {
 	return failure instanceof RpcClientError && failure.reason._tag === "HttpError" && failure.reason.kind === "TransportError";
 }
 
@@ -44,12 +36,14 @@ export function ProjectionFailure({
 	conflict,
 	failure,
 	missing,
+	cause,
 	onRetry,
 	retrying,
 }: {
 	readonly conflict: boolean;
 	readonly failure: { readonly _tag: string; readonly message: string } | undefined;
 	readonly missing: boolean;
+	readonly cause: unknown;
 	readonly onRetry: () => void;
 	readonly retrying: boolean;
 }) {
@@ -60,5 +54,5 @@ export function ProjectionFailure({
 			</EmptyState>
 		);
 	}
-	return <PageFailure failure={failure} onRetry={onRetry} retrying={retrying} />;
+	return <PageFailure failure={cause} onRetry={onRetry} retrying={retrying} />;
 }

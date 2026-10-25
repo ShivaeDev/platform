@@ -1,5 +1,14 @@
 import { expect } from "vitest";
-import { collectingCoverage, customCoverage, nodeOnly, projectKit, withWorktrees } from "#quality/test-support/projectKit.ts";
+import {
+	collectingCoverage,
+	customCoverage,
+	nodeOnly,
+	projectKit,
+	sourceMappedGuard,
+	withUnitIo,
+	withWorktrees,
+} from "#quality/test-support/projectKit.ts";
+import { unitIoCases } from "#quality/test-support/unitIoCases.ts";
 
 const { it } = projectKit;
 const SUCCESS = 0;
@@ -19,6 +28,7 @@ it(
 		expect(testResults()).toEqual([
 			"e2e/smoke.spec.ts passed",
 			"src/document.dom.test.tsx passed",
+			"src/double.unit.spec.ts passed",
 			"src/double.unit.test.ts passed",
 			"src/flow.spec.ts passed",
 			"src/host.dom.spec.tsx passed",
@@ -37,7 +47,13 @@ it("runs slow tests alone when requested", [], function* ({ run, testResults }) 
 it("runs Node-only repositories without installing the DOM plugin", [nodeOnly], function* ({ run, testResults }) {
 	const result = yield* run();
 	expect(result.status, result.output).toBe(0);
-	expect(testResults()).toEqual(["e2e/smoke.spec.ts passed", "src/double.unit.test.ts passed", "src/flow.spec.ts passed", "src/unit.test.ts passed"]);
+	expect(testResults()).toEqual([
+		"e2e/smoke.spec.ts passed",
+		"src/double.unit.spec.ts passed",
+		"src/double.unit.test.ts passed",
+		"src/flow.spec.ts passed",
+		"src/unit.test.ts passed",
+	]);
 });
 
 it("collects executed and unvisited source coverage while leaving test fixtures out", [collectingCoverage], function* ({ run, coverageFiles }) {
@@ -57,4 +73,36 @@ it("accepts native Vitest coverage options in the shared config", [customCoverag
 	expect(result.status, result.output).toBe(0);
 	expect(coverageFiles()).toEqual([{ hits: [expect.any(Number)], path: "src/double.ts" }]);
 	expect(coverageFiles()[0]?.hits[0]).toBeGreaterThan(0);
+});
+
+it("selects pure unit files alone on request", [], function* ({ run, testResults }) {
+	const result = yield* run("--project", "pure");
+	expect(result.status, result.output).toBe(SUCCESS);
+	expect(testResults()).toEqual(["src/double.unit.spec.ts passed", "src/double.unit.test.ts passed"]);
+});
+
+it("keeps ordinary Node files in the existing unit project", [], function* ({ run, testResults }) {
+	const result = yield* run("--project", "unit");
+	expect(result.status, result.output).toBe(SUCCESS);
+	expect(testResults()).toEqual(["e2e/smoke.spec.ts passed", "src/flow.spec.ts passed", "src/unit.test.ts passed"]);
+});
+
+for (const { call, name, source } of unitIoCases) {
+	it(`rejects ${name} in a unit file`, [withUnitIo(source)], function* ({ run, testResults }) {
+		const result = yield* run("--maxWorkers", "1", "--no-file-parallelism");
+		expect(result.status, result.output).not.toBe(SUCCESS);
+		expect(result.output).toContain(`src/io.unit.test.ts cannot call ${call}`);
+		expect(testResults()).toContain("src/io.unit.test.ts failed");
+		expect(testResults()).toContain("src/flow.spec.ts passed");
+		expect(testResults()).toContain("src/double.unit.test.ts passed");
+	});
+}
+
+it("keeps a compiled guard active with source maps", [withUnitIo(unitIoCases[0].source), sourceMappedGuard], function* ({ run, testResults }) {
+	const result = yield* run();
+	expect(result.status, result.output).not.toBe(SUCCESS);
+	expect(result.output).toContain("src/io.unit.test.ts cannot call node:fs.readFileSync");
+	expect(testResults()).toContain("src/io.unit.test.ts failed");
+	expect(testResults()).toContain("src/double.unit.test.ts passed");
+	expect(testResults()).toContain("src/flow.spec.ts passed");
 });

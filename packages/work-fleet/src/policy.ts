@@ -131,6 +131,7 @@ export class FleetIntegrations extends Context.Service<
 		readonly predict?: (pr: string, watchedPrs: readonly string[]) => Effect.Effect<MergePrediction, FleetError>;
 		readonly publication?: (work: BoardWork) => Effect.Effect<WorkPublication, FleetError>;
 		readonly main: (preparation: Preparation) => Effect.Effect<MainObservation, FleetError>;
+		readonly isAncestor?: (base: string, revision: string) => Effect.Effect<boolean, FleetError>;
 		readonly result: (work: BoardWork, observation: SessionObservation) => Effect.Effect<WorkResult, FleetError>;
 		readonly checks: (work: BoardWork, result: WorkResult, purpose?: "review") => Effect.Effect<Checks, FleetError>;
 		readonly delivery: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;

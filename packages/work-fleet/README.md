@@ -326,6 +326,8 @@ Record a nonempty answer through Board's response page or response API. Reconcil
 
 Declare `delivers: report` on an approved task to request research. Report workers leave repository sources unchanged and return the whole report in the final message. They may create new uncommitted report attachments, but must never commit, push, create branches or open PRs. Omit the field to keep the PR workflow.
 
+Cloud report workers fetch `origin/main` and check it out detached before setup and research. Their brief names the expected base commit from dispatch. End the final report with one `FLEET_HEAD: <full 40-character checked revision>` line from `git rev-parse HEAD`. Fleet stores it as the attempt's `reportRevision` and delivers only reports on the dispatched base or a verified descendant. Missing, older or divergent revisions create an orchestrator decision without publishing a report. Release and dispatch again to research current main. Composed hosts can provide `FleetIntegrations.isAncestor(base, revision)` to verify descendants; without it, reports must name the exact dispatched base.
+
 ```markdown
 ---
 id: research.example

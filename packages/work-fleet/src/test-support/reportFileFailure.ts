@@ -6,6 +6,8 @@ import { reportBoard } from "#host/reportBoard.ts";
 import { BoardGateway } from "#policy.ts";
 import { changedReportAttachment } from "#test/changedReportAttachment.ts";
 import { engine } from "#test/engineStory.ts";
+import { HEAD } from "#test/githubResult.ts";
+import { mainObservation } from "#test/preparation.ts";
 import { reportBoard as reportRoot } from "#test/report.ts";
 import { reconstructedAttachment } from "#test/reportAttachmentSafety.ts";
 
@@ -26,7 +28,11 @@ export function reportFileFailure(scenario: "escape" | "oversized-payload" | "ch
 
 		state.root = root;
 		state.recovery.reportFailure = { path: attachment?.name ?? "", work };
-		state.options = { ...state.options, resultUnavailable: true };
+		state.options = {
+			...state.options,
+			mainQuery: (preparation) => Effect.succeed(mainObservation({ fromRevision: preparation.baseRevision, revision: HEAD })),
+			resultUnavailable: true,
+		};
 		state.board = reportBoard(
 			root,
 			() => Effect.succeed(false),

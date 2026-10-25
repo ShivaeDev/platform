@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect";
 import type { FleetError } from "#errors.ts";
 import { type MainSnapshot, MainSource, unchanged } from "#host/mainSource.ts";
 
-export const MAIN = { observedAt: 1, revision: "main-revision" };
+export const MAIN = { observedAt: 1, revision: "a".repeat(40) };
 
 interface FixedMainOptions {
 	readonly current?: Effect.Effect<MainSnapshot, FleetError>;

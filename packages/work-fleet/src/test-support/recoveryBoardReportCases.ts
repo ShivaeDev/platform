@@ -5,6 +5,8 @@ import { reportIdentity } from "#board/reportIdentity.ts";
 import { reportFileName } from "#board/reportLinks.ts";
 import { originalWork } from "#engine/originalWork.ts";
 import { Fleet } from "#fleet.ts";
+import { HEAD } from "#test/githubResult.ts";
+import { mainObservation } from "#test/preparation.ts";
 import type { RecoveryCase } from "#test/recoveryCase.ts";
 import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
 
@@ -68,7 +70,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 				}
 				const { itemId } = reportIdentity(work, receipt);
 				blocked = blockReport(ctx.root, itemId, fault.kind);
-				setLastObservation(ctx, { execution: "completed", output: "Completed findings." });
+				setLastObservation(ctx, { execution: "completed", output: `Completed findings.\nFLEET_HEAD: ${HEAD}` });
 				yield* fleet.reconcile("one");
 			}),
 			name: `production Board report ${fault.kind} failure`,
@@ -78,6 +80,7 @@ export function recoveryBoardReportCases(): readonly RecoveryCase[] {
 					report: (work, observation) =>
 						board.report(fault.kind === "context" && !restored ? { ...work, revision: "wrong-revision" } : work, observation),
 				}),
+				mainQuery: (preparation) => Effect.succeed(mainObservation({ fromRevision: preparation.baseRevision, revision: HEAD })),
 				reportAttachmentsQuery: () => Effect.succeed({ files: [{ bytes: Buffer.from("Exact findings"), path: "findings.txt" }], unavailable: [] }),
 				reportPublicationQuery: () => Effect.succeed(false),
 			},

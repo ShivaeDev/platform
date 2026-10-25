@@ -4,16 +4,21 @@ import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { otlpTracing } from "@shivaedev/platform/server/otlpTracing.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
+import type { PoolSizes } from "./PoolSizes.ts";
 import { workerModules } from "./workerModules.ts";
 
-export function applicationWorker(config?: { readonly databaseUrl?: Redacted.Redacted<string>; readonly clientFactory?: PgBossClientFactory }) {
+export function applicationWorker(config?: {
+	readonly poolSizes?: PoolSizes;
+	readonly databaseUrl?: Redacted.Redacted<string>;
+	readonly clientFactory?: PgBossClientFactory;
+}) {
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
-			const pool = yield* authDatabase(databaseUrl);
-			return workerModules(databaseUrl, config?.clientFactory).pipe(
+			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
+			return workerModules(databaseUrl, config?.clientFactory, config?.poolSizes?.jobs).pipe(
 				Layer.tap(() => Effect.logInfo("Worker ready to take jobs")),
-				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait"))),
+				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait", config?.poolSizes?.sql))),
 			);
 		}),
 	).pipe(Layer.provide(otlpTracing));

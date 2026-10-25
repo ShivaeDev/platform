@@ -90,5 +90,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 		}),
 		"25_advisory_reviews": advisoryReviews(namespace),
 		"26_vocabulary": vocabulary(namespace),
+		"27_report_revisions": Effect.gen(function* () {
+			for (const path of [["attempts"], ["history", "attempts"]]) {
+				yield* sql`alter table ${sql(childTable(namespace, path))} add column "reportRevision" text`;
+			}
+		}),
 	});
 });

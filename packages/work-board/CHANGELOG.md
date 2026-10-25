@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.30.10 - 2026-10-25
+
+### Fixed
+
+- Keep answered standing decisions out of Needs you while they wait on the agent; editing the reviewed question asks again.
+- Show Today answer controls before collapsed item context, and keep desktop answer panels within the viewport.
+
 ## 0.30.9 - 2026-10-25
 
 ### Changed
