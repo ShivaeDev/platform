@@ -11,6 +11,7 @@ const WRITE_CONCURRENCY = 16;
 
 export interface CloseFinishedOptions {
 	readonly dryRun?: boolean;
+	readonly finishedWork?: ReadonlyMap<string, string>;
 	readonly workId?: string;
 }
 
@@ -26,7 +27,7 @@ export function closeFinishedDecisions(root: string, realRoot: string, snapshot:
 			current.documents.flatMap(({ parsed }) => (parsed.fields.response?.type === "answer" ? [questions.get(parsed.fields.response.question)] : [])),
 		);
 		const candidates = current.documents.flatMap((document) => {
-			const candidate = finishedDecision(current, document, options.workId, answered);
+			const candidate = finishedDecision(current, document, options, answered);
 			return candidate === undefined ? [] : [{ decision: { ...candidate, sourcePath: document.file } satisfies ClosedDecision, document }];
 		});
 		if (options.dryRun) {
@@ -42,13 +43,18 @@ export function closeFinishedDecisions(root: string, realRoot: string, snapshot:
 	});
 }
 
-function finishedDecision(snapshot: BoardSnapshot, document: BoardDocument, workId: string | undefined, answered: ReadonlySet<string | undefined>) {
+function finishedDecision(
+	snapshot: BoardSnapshot,
+	document: BoardDocument,
+	options: CloseFinishedOptions,
+	answered: ReadonlySet<string | undefined>,
+) {
 	const decision = publishedDecision(document);
 	if (
 		decision === undefined
 		|| decision.request.state !== "open"
 		|| snapshot.problems.has(document.file)
-		|| (workId !== undefined && decision.workId !== workId)
+		|| (options.workId !== undefined && decision.workId !== options.workId)
 	) {
 		return;
 	}
@@ -56,7 +62,11 @@ function finishedDecision(snapshot: BoardSnapshot, document: BoardDocument, work
 	if (receipt?.disposition === "applied") {
 		return { reason: "Closed because Fleet applied the answer to this decision.", workId: decision.workId };
 	}
-	if (workId === undefined && answered.has(document.file)) {
+	const reason = options.finishedWork?.get(decision.workId);
+	if (reason !== undefined) {
+		return { reason, workId: decision.workId };
+	}
+	if (options.workId === undefined && answered.has(document.file)) {
 		return;
 	}
 	const matches = snapshot.model.ids.get(decision.workId);
