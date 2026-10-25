@@ -1,7 +1,7 @@
 import { Context, Deferred, Effect, Fiber, Layer } from "effect";
+import type { Engine } from "#test/engine.ts";
+import type { Operation } from "#test/io.ts";
 import { Watcher } from "#Watcher.ts";
-import type { Engine } from "./engine.ts";
-import type { Operation } from "./io.ts";
 export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 	const poll = Effect.gen(function* () {
 		tell("the watcher polls GitHub");
@@ -72,6 +72,7 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 				yield* engine.io.fs.writeFileString(engine.options.stateFile, text);
 			}),
 		stored: () => engine.io.fs.readFileString(engine.options.stateFile).pipe(Effect.map((text) => JSON.parse(text))),
+		transitions: () => engine.lines.map((line) => JSON.parse(line)).filter((event) => event.number !== undefined),
 		transportFails: () => {
 			tell("the native HTTP transport fails");
 			engine.io.control.transportFails = true;
