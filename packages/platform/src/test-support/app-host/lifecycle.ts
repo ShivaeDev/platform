@@ -14,6 +14,7 @@ export function start(state: HostState) {
 				attempt: state.receiver?.requests.length ?? 0,
 				level: options.logLevel,
 				message: options.message,
+				spans: Object.fromEntries(options.fiber.getRef(References.CurrentLogSpans)),
 			}),
 		);
 		const layer = state
@@ -21,7 +22,7 @@ export function start(state: HostState) {
 			.pipe(
 				Layer.provideMerge(runtimeLayer(state.runtimeLifecycle)),
 				Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: state.env, preserveEmptyStrings: true }))),
-				Layer.provideMerge(Logger.layer([logger])),
+				Layer.provideMerge(Layer.merge(Logger.layer([logger]), Layer.succeed(References.MinimumLogLevel, state.minimumLogLevel))),
 			);
 		state.runtime = makePlatformRuntime(layer);
 		const exit = await state.runtime.runPromiseExit(HttpServer.HttpServer);
@@ -46,6 +47,7 @@ export function start(state: HostState) {
 }
 export function close(state: HostState) {
 	return io(async () => {
+		state.clientAbort?.controller.abort();
 		state.proxy?.setResponsive(true);
 		state.subscription?.outgoing?.destroy();
 		state.agent?.destroy();

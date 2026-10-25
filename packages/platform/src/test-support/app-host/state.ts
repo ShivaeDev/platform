@@ -1,9 +1,10 @@
 import type { Agent } from "node:http";
-import { type Cause, Effect, Layer, type Tracer } from "effect";
+import { type Cause, Effect, Layer, type LogLevel, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
 import type { PlatformRuntime } from "#server/runtime/types.ts";
 import { otlpHost } from "#test/otlpHost.ts";
 import type { otlpReceiver } from "#test/otlpReceiver.ts";
+import type { ClientAbortState } from "./clientAbortFixture.ts";
 import type { databaseProxy } from "./databaseProxy.ts";
 import type { SubscriptionState } from "./subscription.ts";
 
@@ -16,13 +17,15 @@ export interface HostState {
 	build: (state: HostState) => Layer.Layer<HttpServer.HttpServer, unknown>;
 	calls: (string | Buffer)[];
 	cleanup: (() => void | Promise<void>)[];
+	clientAbort?: ClientAbortState;
 	config: { port?: number; host?: string; trustedProxy?: string; maxBodySize?: number; sensitiveKeys?: readonly string[] };
 	env: Record<string, string>;
 	expectBootFailure: boolean;
 	lifecycle: string[];
-	logs: { level: string; attempt: number; annotations: Record<string, unknown>; message: unknown }[];
+	logs: { level: string; attempt: number; annotations: Record<string, unknown>; message: unknown; spans?: Readonly<Record<string, number>> }[];
 	lookups: string[];
 	loopback: boolean;
+	minimumLogLevel: LogLevel.LogLevel;
 	nativeSpans: Tracer.NativeSpan[];
 	proxy?: Awaited<ReturnType<typeof databaseProxy>>;
 	receiver?: Awaited<ReturnType<typeof otlpReceiver>>;
@@ -49,6 +52,7 @@ export function emptyHost(): HostState {
 		logs: [],
 		lookups: [],
 		loopback: true,
+		minimumLogLevel: "Info",
 		nativeSpans: [],
 		reported: [],
 		routes: Layer.empty,
