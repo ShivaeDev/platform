@@ -10,7 +10,7 @@ for (const status of ["draft", "deferred"]) {
 		`a Board HTTP release closes a changed and moved ${status} task decision without current approval`,
 		[markdownWork(), noChangeChecksFailOnce()],
 		function* ({
-			boardReceipts,
+			boardReceiptRecords,
 			moveBoardWork,
 			boardInboxFiles,
 			recordBoardResponse,
@@ -53,8 +53,10 @@ for (const status of ["draft", "deferred"]) {
 			yield* afterRestart(
 				Fleet.pipe(Effect.flatMap((resumed) => (status === "deferred" ? resumed.reconcile("one") : resumed.resolve("one", decision.id, answer.id)))),
 			);
-			expect(boardReceipts()).toHaveLength(1);
-			expect(launches()).toHaveLength(2);
+			expect(boardReceiptRecords()).toMatchObject([
+				{ disposition: status === "deferred" ? "superseded" : "applied", question: decision.published.questionId },
+			]);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -63,7 +65,7 @@ engine.it(
 	"concurrent retries cannot authorize a changed brief or consume the original answer",
 	[markdownWork(), noChangeChecksFailOnce()],
 	function* ({
-		boardReceipts,
+		boardReceiptRecords,
 		boardInboxFiles,
 		answerReportDecision,
 		fleet,
@@ -106,7 +108,7 @@ engine.it(
 				expect(stopped.value.responses).toBeUndefined();
 			}),
 		);
-		expect(boardReceipts()).toHaveLength(1);
-		expect(launches()).toHaveLength(2);
+		expect(boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: decision.published.questionId }]);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );

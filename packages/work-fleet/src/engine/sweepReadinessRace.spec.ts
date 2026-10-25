@@ -47,7 +47,7 @@ isolatedEngine.it(
 		yield* fleet.reconcile("catalog");
 		const migrated = (yield* fleet.reconcile("package")).value;
 		expect(turnOutput(migrated.attempts.at(-1)?.receipt)).toContain("Fetch and merge main");
-		expect(migrated.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(1);
+		expect(migrated.attempts.filter((attempt) => attempt.role === "repair").map((entry) => entry.operationId)).toEqual(["operation-5"]);
 	},
 );
 

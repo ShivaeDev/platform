@@ -23,14 +23,14 @@ for (const published of ["branch", "pr"] as const) {
 				yield* restart();
 				advanceTime(29_999);
 				yield* schedule();
-				expect((yield* fleet.get("one")).value.attempts).toHaveLength(2);
+				expect((yield* fleet.get("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 				advanceTime(1);
 				yield* schedule();
 				const resumed = (yield* fleet.get("one")).value;
 				expect(resumed.step).toBe("working");
 				expect(resumed.launchRetry).toBeUndefined();
 				expect(resumed.decision).toBeUndefined();
-				expect(resumed.attempts).toHaveLength(3);
+				expect(resumed.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 				expect(resumed.attempts.at(-1)).toMatchObject({ role: "repair", status: "accepted" });
 				expect(resumed.attempts.at(-1)?.receipt).toBeDefined();
 				expect(resumed.attempts.at(-1)?.sessionId).not.toBe(original?.sessionId);

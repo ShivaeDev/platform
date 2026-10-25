@@ -15,19 +15,27 @@ engine.it(
 		rejectProvider();
 		const queued = (yield* fleet.resolve("one", decision.id, answer.id)).value;
 		expect(queued.step).toBe("repairing");
-		expect(queued.responses).toHaveLength(1);
+		expect(queued.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
 		recoverProvider();
 		setFleetTime(30_099);
 		yield* afterRestart(cycle);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1", "operation-2"]);
 		setFleetTime(30_100);
 		yield* afterRestart(cycle);
 		const accepted = (yield* fleet.get("one")).value;
 		expect(accepted.attempts.at(-1)).toMatchObject({ prompt: answer.body, receipt: { sessionId: decision.worker?.sessionId }, role: "worker" });
-		expect(accepted.responses).toHaveLength(1);
+		expect(accepted.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
 		expect(accepted.history ?? []).toEqual([]);
-		expect(launches()).toHaveLength(1);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
+		expect(launches()).toEqual(["operation-1"]);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1", "operation-2", "operation-3"]);
 	},
 );
 
@@ -64,7 +72,11 @@ engine.it(
 		recoverProvider();
 		setFleetTime(30_099);
 		yield* afterRestart(cycle);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1", "operation-2"]);
 		expect((yield* fleet.get("one")).value.decision).toBeUndefined();
 		setFleetTime(30_100);
 		yield* afterRestart(cycle);
@@ -78,7 +90,11 @@ engine.it(
 		expect(accepted.attempts.slice(0, -1)).toEqual(queued.attempts);
 		expect(accepted.responses).toEqual(queued.responses);
 		expect(accepted.history ?? []).toEqual([]);
-		expect(launches()).toHaveLength(1);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
+		expect(launches()).toEqual(["operation-1"]);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1", "operation-2", "operation-3"]);
 	},
 );

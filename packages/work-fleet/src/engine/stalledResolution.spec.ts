@@ -57,10 +57,10 @@ for (const scenario of [
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "retry") {
 				const fresh = yield* afterRestart(fleet.dispatch("one"));
-				expect(fresh.value.attempts).toHaveLength(2);
+				expect(fresh.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 				expect(fresh.value.attempts[1]?.receipt?.sessionId).not.toBe(receipt.sessionId);
 				expect(fresh.value.attempts[1]?.receipt?.turnId).not.toBe(receipt.turnId);
-				expect(providerStarts()).toHaveLength(2);
+				expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1", "operation-2"]);
 			} else {
 				const other = yield* prepareWork("two");
 				expect((yield* fleet.dispatch(other.value.workId)).value.step).toBe("working");

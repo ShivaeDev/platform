@@ -19,7 +19,7 @@ isolatedEngine.it(
 		const waiting = yield* fleet.reconcile("one");
 		expect(waiting.value.blocker).toBe("waiting for area shared queued ahead by two");
 		expect(waiting.value.attempts.filter((attempt) => attempt.reviewHead === MOVED)).toEqual([]);
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 		expect((yield* fleet.dispatch("two")).value.step).toBe("working");
 		expect((yield* fleet.reconcile("one")).value.blocker).toBe("waiting for area shared held by two");
 		yield* fleet.workerQuestion("two", "Should I continue?");
@@ -28,6 +28,6 @@ isolatedEngine.it(
 		const reviewed = yield* fleet.reconcile("one");
 		expect(reviewed.value.review).toMatchObject({ head: MOVED, verdict: "approved" });
 		expect(reviewed.value.blocker).toBeUndefined();
-		expect(fleet.launches()).toHaveLength(4);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2", "operation-4", "operation-6"]);
 	},
 );

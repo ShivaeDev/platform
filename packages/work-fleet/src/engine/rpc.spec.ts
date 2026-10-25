@@ -18,7 +18,10 @@ engine.it(
 		finishWorkers();
 		yield* rpcReconcile("one");
 		const view = yield* rpcViews();
-		expect(view.waiting.orchestrator[0]?.sessions).toHaveLength(2);
+		expect(view.waiting.orchestrator[0]?.sessions).toMatchObject([
+			{ sessionId: "session-operation-1", turnId: "turn-operation-1" },
+			{ sessionId: "session-operation-2", turnId: "turn-operation-2" },
+		]);
 		expect(view.waiting.orchestrator[0]?.decision?.recommendation).toContain("Merge the reviewed, green PR");
 		const decisionId = view.waiting.orchestrator[0]?.decision?.id ?? "missing";
 		const responseId = respond(decisionId, "release");

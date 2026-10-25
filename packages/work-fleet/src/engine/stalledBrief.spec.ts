@@ -63,8 +63,13 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 				expect(fresh.value.attempts).toHaveLength(stalled.value.attempts.length + 1);
 				expect(fresh.value.attempts.at(-1)?.receipt?.sessionId).not.toBe(receipt.sessionId);
 				expect(fresh.value.attempts.at(-1)?.receipt?.turnId).not.toBe(receipt.turnId);
-				expect(providerStarts()).toHaveLength(2);
-				expect(providerSteers()).toHaveLength(1);
+				expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1", "operation-3"]);
+				expect(providerSteers()).toMatchObject([
+					{
+						prompt: expect.stringContaining("Continue the approved work"),
+						receipt: { sessionId: "session-operation-1", turnId: "turn-operation-1" },
+					},
+				]);
 			}
 			const observed = yield* afterRestart(fleet.reconcile("one"));
 			const abandoned = observed.value.attempts.find((entry) => entry.operationId === attempt.operationId);

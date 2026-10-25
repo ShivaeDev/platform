@@ -25,5 +25,5 @@ engine.it("persists exact worker and reviewer launch inputs, including omitted r
 	yield* fleet.resolve("one", decisionId, fleet.respond(decisionId, "retry"));
 	yield* fleet.restart();
 	expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-	expect(fleet.launches()).toHaveLength(2);
+	expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 });

@@ -47,7 +47,9 @@ engine.it(
 		yield* restart();
 		const stopped = yield* fleet.reconcile("one");
 		expect(stopped.value).toMatchObject({ decision: { code: "checks-repair-exhausted" }, step: "waiting" });
-		expect(stopped.value.attempts.filter((attempt) => attempt.role === "repair" && attempt.status === "completed")).toHaveLength(3);
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(
+			stopped.value.attempts.filter((attempt) => attempt.role === "repair" && attempt.status === "completed").map((entry) => entry.operationId),
+		).toEqual(["operation-3", "operation-5", "operation-6"]);
+		expect(publishedDecisions()).toEqual([stopped.value.decision?.reason]);
 	},
 );

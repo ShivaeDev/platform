@@ -19,7 +19,7 @@ describe("renewal retains unresolved decision publication", () => {
 			expect(renewed.value.boardRevision).toBe("board-one-next");
 			expect(renewed.value.history?.[0]?.decision?.published?.workRevision).toBe("board-one-next");
 			expect(renewed.value.history?.[0]?.decisionAcknowledged).toBe(true);
-			expect(fleet.launches()).toHaveLength(1);
+			expect(fleet.launches()).toEqual(["operation-1"]);
 		},
 	);
 });

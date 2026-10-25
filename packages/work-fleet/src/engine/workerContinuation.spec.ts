@@ -10,7 +10,7 @@ import { markdownWork } from "#test/engineTraits.ts";
 isolatedEngine.it(
 	"interruption before provider submission retains the answer intent without replaying it after restart",
 	[markdownWork(), heldAction("answer")],
-	function* ({ waitForGate, fleet, prepareWork, afterRestart, providerCalls, providerOperationCount, askWorker, answerWorker }) {
+	function* ({ waitForGate, fleet, prepareWork, afterRestart, providerCalls, providerOperations, askWorker, answerWorker }) {
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
 		const { decision } = yield* askWorker();
@@ -19,7 +19,7 @@ isolatedEngine.it(
 		yield* waitForGate("entered");
 		yield* Fiber.interrupt(resolving);
 		const intent = (yield* fleet.get("one")).value;
-		expect(intent.responses).toHaveLength(1);
+		expect(intent.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
 		expect(intent.attempts.at(-1)?.prompt).toBe(answer.body);
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
 		expect(intent.attempts.at(-1)?.receipt).toBeUndefined();
@@ -32,8 +32,12 @@ isolatedEngine.it(
 				yield* restarted.resolve("one", decision.id, answer.id);
 			}),
 		);
-		expect(providerOperationCount()).toBe(1);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(providerOperations()).toEqual(["operation-1"]);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1", "operation-2"]);
 	},
 );
 
@@ -50,7 +54,11 @@ isolatedEngine.it(
 		expect(blocked.value.blocker).toBe("Fresh available provider quota is required");
 		expect(blocked.value.attentionOwner).toBe("automation");
 		expect(blocked.value.responses ?? []).toHaveLength(0);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1"]);
 	},
 );
 

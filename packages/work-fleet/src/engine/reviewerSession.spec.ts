@@ -28,7 +28,7 @@ describe("independent reviewer sessions", () => {
 			const completed = yield* fleet.reconcile("one");
 			expect(completed.value.step).toBe("done");
 			expect(completed.value.review).toMatchObject({ head: "head-one-0", receipt: attempt?.receipt, verdict: "approved" });
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 	engine.it(
@@ -44,7 +44,7 @@ describe("independent reviewer sessions", () => {
 			yield* fleet.resolve("one", lost.value.decision?.id ?? "missing", respond(lost.value.decision?.id ?? "missing", "retry"));
 			yield* restart();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 	for (const reviewExecution of ["failed", "interrupted"] as const) {
@@ -86,7 +86,7 @@ describe("independent reviewer sessions", () => {
 			expect(retry.value.attempts.at(-1)?.status).toBe("running");
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(3);
+			expect(launches()).toEqual(["operation-1", "operation-2", "operation-3"]);
 		},
 	);
 	engine.it(

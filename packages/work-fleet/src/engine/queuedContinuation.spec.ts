@@ -43,14 +43,14 @@ for (const step of ["waiting", "done"] as const) {
 			const resumed = (yield* fleet.get("one")).value;
 			expect(resumed.step).toBe("working");
 			expect(resumed.pendingContinuation).toBeUndefined();
-			expect(resumed.attempts).toHaveLength(1);
-			expect(resumed.attempts[0]).toMatchObject({
-				prompt: "Fix the remaining case",
-				receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
-				role: "repair",
-			});
-			expect(resumed.history).toHaveLength(1);
-			expect(resumed.history?.[0]?.review).toEqual(terminal.review);
+			expect(resumed.attempts).toMatchObject([
+				{
+					prompt: "Fix the remaining case",
+					receipt: { sessionId: first.attempts[0]?.receipt?.sessionId },
+					role: "repair",
+				},
+			]);
+			expect(resumed.history?.map((cycle) => cycle.review)).toEqual([terminal.review]);
 			expect(resumed.history?.[0]).not.toHaveProperty("pendingContinuation");
 			expect(resumed.history?.[0]?.attentionOwner).toBe(terminal.attentionOwner);
 			expect(resumed.history?.[0]?.blocker).toBe(terminal.blocker);
@@ -58,8 +58,7 @@ for (const step of ["waiting", "done"] as const) {
 			expect((yield* fleet.get("four")).value.step).toBe("queued");
 			yield* fleet.schedule();
 			const observed = (yield* fleet.get("one")).value;
-			expect(observed.attempts).toHaveLength(1);
-			expect(observed.attempts[0]?.receipt).toEqual(resumed.attempts[0]?.receipt);
+			expect(observed.attempts).toMatchObject([{ receipt: resumed.attempts[0]?.receipt }]);
 		},
 	);
 }

@@ -19,7 +19,11 @@ for (const reason of ["unavailable", "protocol", "ambiguous"] as const) {
 			const decisionId = waiting.value.decision?.id ?? "missing";
 			expect((yield* fleet.resolve("one", decisionId, respond(decisionId, "release")).pipe(Effect.result))._tag).toBe("Failure");
 			expect(executing((yield* fleet.get("one")).value)).toBe(true);
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1"]);
 		},
 	);
 }

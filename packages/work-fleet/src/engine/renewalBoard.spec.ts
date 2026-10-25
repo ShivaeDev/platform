@@ -32,7 +32,7 @@ engine.it(
 		expect(renewed.value.history?.[0]?.decision?.published).toEqual(published);
 		expect(renewed.value.history?.[0]?.decisionAcknowledged).toBe(true);
 		expect(yield* fleet.boardInboxFiles()).not.toContain(published.sourcePath);
-		expect(fleet.boardReceipts()).toHaveLength(1);
+		expect(fleet.boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: published.questionId }]);
 		const closed = metadataParse(fleet.readBoardWork(published.sourcePath));
 		expect(closed.fields.attention).toMatchObject([{ state: "closed" }]);
 		expect(closed.body).toBe(metadataParse(question).body);
@@ -43,7 +43,7 @@ engine.it(
 		expect(restored.value.history).toEqual(renewed.value.history);
 		expect(restored.value.boardContext).toBe(nextSource);
 		expect(restored.value.attempts).toEqual([]);
-		expect(fleet.boardReceipts()).toHaveLength(1);
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: published.questionId }]);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	},
 );

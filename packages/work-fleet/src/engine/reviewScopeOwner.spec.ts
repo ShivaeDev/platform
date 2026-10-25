@@ -57,7 +57,7 @@ for (const timing of ["between review passes", "while the reviewer finishes"] as
 			expect(views.waiting.maintainer).toMatchObject([{ decision: { id: stopped.value.decision?.id }, workId: "one" }]);
 			expect(views.waiting.orchestrator).toEqual([]);
 			expect(views.waiting.automation).toEqual([]);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

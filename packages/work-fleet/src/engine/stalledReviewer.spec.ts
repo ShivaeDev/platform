@@ -37,6 +37,10 @@ isolatedEngine.it(
 			sandboxPolicy: { networkAccess: true, type: "readOnly" },
 			threadId: "reviewer-thread",
 		});
-		expect(nativeRequests().filter((request) => request.method === "thread/start")).toHaveLength(2);
+		expect(
+			nativeRequests()
+				.filter((request) => request.method === "thread/start")
+				.map((request) => request.params),
+		).toMatchObject([{ cwd: "/synthetic" }, { cwd: "/synthetic", sandbox: "read-only" }]);
 	},
 );

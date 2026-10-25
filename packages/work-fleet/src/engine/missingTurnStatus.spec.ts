@@ -49,7 +49,7 @@ engine.it(
 		expect((yield* fleet.reconcile("one")).value.step).toBe("done");
 		const completed = yield* storedSnapshot();
 		const output = yield* watch(true, "one done", [executing, reviewing, repairing, completed]);
-		expect(output.match(/Lost turn relaunched\./gu)).toHaveLength(1);
+		expect(output.match(/Lost turn relaunched\./gu)).toEqual(["Lost turn relaunched."]);
 		expect(output).toContain("one done");
 		expect(reviewStatus).not.toContain("Lost turn relaunched.");
 		expect(repairStatus).not.toContain("Lost turn relaunched.");

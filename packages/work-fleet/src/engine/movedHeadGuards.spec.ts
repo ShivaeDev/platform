@@ -31,7 +31,7 @@ for (const contextChanged of [false, true]) {
 			expect(held.value.mergeReadyAt).toBeUndefined();
 			expect(held.value.outcome).toBeUndefined();
 			expect(reviewedHeads()).toEqual([HEAD]);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }

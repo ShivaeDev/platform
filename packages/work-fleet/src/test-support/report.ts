@@ -4,7 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Layer, Path } from "effect";
 import { responseMarkdown } from "@shivaedev/work-board/server/responses/records.ts";
 import { markdownBoard } from "#board/markdown.ts";
-import type { BoardDecision } from "#board/schema.ts";
+import type { BoardDecision, BoardReport } from "#board/schema.ts";
 import { BoardFailure, BoardGateway } from "#policy.ts";
 
 export const reportBoard = Effect.gen(function* () {
@@ -17,6 +17,7 @@ export const reportBoard = Effect.gen(function* () {
 
 export function lostReportReceipt(root: string) {
 	let publications = 0;
+	const receipts: BoardReport[] = [];
 	const board = Layer.effect(BoardGateway)(
 		Effect.gen(function* () {
 			const original = yield* BoardGateway;
@@ -25,6 +26,7 @@ export function lostReportReceipt(root: string) {
 				report: (work, observation) =>
 					original.report(work, observation).pipe(
 						Effect.flatMap((receipt) => {
+							receipts.push(receipt);
 							publications += 1;
 							return publications === 1 ? Effect.fail(new BoardFailure({ message: "Lost report publication receipt" })) : Effect.succeed(receipt);
 						}),
@@ -32,7 +34,7 @@ export function lostReportReceipt(root: string) {
 			});
 		}),
 	).pipe(Layer.provide(markdownBoard(root).pipe(Layer.provide(NodeServices.layer))));
-	return { board, count: () => publications };
+	return { board, count: () => publications, receipts: () => structuredClone(receipts) };
 }
 
 export function answerReport(root: string, decision: BoardDecision, action: "retry" | "release") {

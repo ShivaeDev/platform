@@ -34,8 +34,12 @@ engine.it(
 		expect(stopped.value.step).toBe("waiting");
 		expect(stopped.value.decision).toMatchObject({ attentionOwner: "orchestrator", reason: expect.stringContaining("verify") });
 		expect(stopped.value.decisionPublished).toBe(true);
-		expect(publishedDecisions()).toHaveLength(1);
-		expect(stopped.value.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(3);
+		expect(publishedDecisions()).toEqual([stopped.value.decision?.reason]);
+		expect(stopped.value.attempts.filter((attempt) => attempt.role === "repair").map((entry) => entry.operationId)).toEqual([
+			"operation-3",
+			"operation-5",
+			"operation-7",
+		]);
 		const launched = launches().length;
 		yield* fleet.reconcile("one");
 		expect(launches()).toHaveLength(launched);
@@ -56,13 +60,13 @@ engine.it(
 		expect((yield* fleet.reconcile("one")).value.step).toBe("validating");
 		expect(publishedDecisions()).toHaveLength(0);
 		expect(mergedHeads()).toHaveLength(0);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		checksRespond(ADOPTED_HEAD, [[checkRun()]]);
 		const completed = yield* fleet.reconcile("one");
 		expect(completed.value.step).toBe("done");
 		expect(completed.value.checks).toMatchObject({ head: ADOPTED_HEAD, passed: true, pending: false });
 		expect(mergedHeads()).toEqual([ADOPTED_HEAD]);
-		expect(reviewedHeads()).toHaveLength(1);
+		expect(reviewedHeads()).toEqual([ADOPTED_HEAD]);
 	},
 );
 engine.it(

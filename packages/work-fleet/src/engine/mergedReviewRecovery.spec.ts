@@ -36,7 +36,7 @@ engine.it(
 		expect(backlog(released.value)).toBe(false);
 		yield* restart();
 		expect((yield* fleet.reconcile("one")).version).toBe(released.version);
-		expect(launches()).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1", "operation-2"]);
 		expect(reviewedHeads()).toEqual([HEAD]);
 		expect(mergedHeads()).toEqual([]);
 	},

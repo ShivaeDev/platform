@@ -30,7 +30,7 @@ for (const rejectedCall of ["session", "turn"] as const) {
 			recoverProvider();
 			setFleetTime(30_099);
 			yield* afterRestart(cycle);
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			setFleetTime(30_100);
 			yield* afterRestart(cycle);
 			const accepted = (yield* fleet.get("one")).value;

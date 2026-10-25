@@ -25,7 +25,14 @@ isolatedEngine.it(
 		expect(visible.value.step).toBe("working");
 		expect(visible.value.attempts.at(-1)?.missingSince).toBeUndefined();
 		expect(visible.value.attempts.at(-1)?.status).toBe("running");
-		expect(nativeRequests().filter((request) => request.method === "turn/start")).toHaveLength(2);
+		expect(
+			nativeRequests()
+				.filter((request) => request.method === "turn/start")
+				.map((request) => request.params),
+		).toMatchObject([
+			{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" },
+			{ "clientUserMessageId": "operation-2", "threadId": "worker-thread" },
+		]);
 		expect(publishedDecisions()).toHaveLength(0);
 	},
 );
@@ -47,7 +54,14 @@ for (const progressingTurn of ["turn-1", "provider-followup"]) {
 				expect(current.value.attempts.at(-1)?.progress?.at).toBe((61 + (pass + 1) * 6) * 60_000);
 				expect(current.value.decision).toBeUndefined();
 			}
-			expect(nativeRequests().filter((request) => request.method === "turn/start")).toHaveLength(2);
+			expect(
+				nativeRequests()
+					.filter((request) => request.method === "turn/start")
+					.map((request) => request.params),
+			).toMatchObject([
+				{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" },
+				{ "clientUserMessageId": "operation-2", "threadId": "worker-thread" },
+			]);
 			expect(publishedDecisions()).toHaveLength(0);
 		},
 	);
@@ -61,7 +75,7 @@ isolatedEngine.it(
 
 		yield* fleet.reconcile("one");
 		advanceTime(4 * 60_000);
-		expect((yield* fleet.reconcile("one")).value.attempts).toHaveLength(2);
+		expect((yield* fleet.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 		advanceTime(1 * 60_000);
 		const resumed = yield* afterRestart(reconcile);
 		expect(resumed.value.step).toBe("working");
@@ -77,9 +91,21 @@ isolatedEngine.it(
 			step: "waiting",
 		});
 		expect(executing(lost.value)).toBe(true);
-		expect(nativeRequests().filter((request) => request.method === "turn/start")).toHaveLength(3);
-		expect(nativeRequests().filter((request) => request.method === "thread/start")).toHaveLength(1);
-		expect(publishedDecisions()).toHaveLength(1);
+		expect(
+			nativeRequests()
+				.filter((request) => request.method === "turn/start")
+				.map((request) => request.params),
+		).toMatchObject([
+			{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" },
+			{ "clientUserMessageId": "operation-2", "threadId": "worker-thread" },
+			{ "clientUserMessageId": "operation-3", "threadId": "worker-thread" },
+		]);
+		expect(
+			nativeRequests()
+				.filter((request) => request.method === "thread/start")
+				.map((request) => request.params),
+		).toMatchObject([{ cwd: "/synthetic" }]);
+		expect(publishedDecisions()).toEqual([lost.value.decision?.reason]);
 		const decisionId = lost.value.decision?.id ?? "missing";
 		const released = yield* afterRestart(
 			Fleet.pipe(Effect.flatMap((restarted) => restarted.resolve("one", decisionId, respond(decisionId, "release")))),

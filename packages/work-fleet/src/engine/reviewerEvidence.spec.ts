@@ -23,7 +23,7 @@ describe("reviewer evidence and verdict follow-up", () => {
 			expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
 			expect(completed.value.review?.evidence).toContain("CI job logs and artifacts unavailable: HTTP 403");
 			expect(completed.value.checks).toMatchObject({ head: "head-one-0", passed: true });
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 	for (const malformed of ["Cannot see CI job logs: HTTP 403", "FLEET_REVIEW: invalid"]) {
@@ -53,8 +53,8 @@ describe("reviewer evidence and verdict follow-up", () => {
 				const completed = yield* fleet.reconcile("one");
 				expect(completed.value.step).toBe("done");
 				expect(completed.value.review).toMatchObject({ receipt, verdict: "approved" });
-				expect(launches()).toHaveLength(2);
-				expect(completed.value.attempts).toHaveLength(3);
+				expect(launches()).toEqual(["operation-1", "operation-2"]);
+				expect(completed.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 			},
 		);
 	}
@@ -77,8 +77,12 @@ describe("reviewer evidence and verdict follow-up", () => {
 			const receipt = yield* turnReports(recovered, approval);
 			expect(receipt.sessionId).toBe(original.sessionId);
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(3);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1", "operation-2", "operation-3"]);
 		},
 	);
 	engine.it(
@@ -105,9 +109,9 @@ describe("reviewer evidence and verdict follow-up", () => {
 			const unchanged = yield* fleet.reconcile("one");
 			expect(unchanged.value.step).toBe("waiting");
 			expect(unchanged.value.outcome).toBeUndefined();
-			expect(unchanged.value.attempts).toHaveLength(3);
-			expect(launches()).toHaveLength(2);
-			expect(invalid.value.attempts).toHaveLength(3);
+			expect(unchanged.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
+			expect(invalid.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2", "operation-3"]);
 		},
 	);
 });

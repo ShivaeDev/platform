@@ -23,7 +23,7 @@ for (const [scenario, cause] of [
 			expect(parked.decision?.reason).toBe(`${reportFailurePath()}: ${cause}`);
 			expect(stored.decision?.reason).toBe(`${reportFailurePath()}: ${cause}`);
 			expect(parked.report).toBeUndefined();
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 		},
 	);
 }

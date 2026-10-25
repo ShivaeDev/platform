@@ -23,7 +23,7 @@ describe("Fleet recovery", () => {
 					expect(adopted.value.attempts[0]?.receipt?.turnId).toBe("turn-operation-1");
 				}),
 			);
-			expect(launches()).toHaveLength(1);
+			expect(launches()).toEqual(["operation-1"]);
 			expect(publishedDecisions()).toHaveLength(0);
 		},
 	);
@@ -40,7 +40,7 @@ describe("Fleet recovery", () => {
 			expect(failed.value.attempts.at(-1)?.role).toBe("reviewer");
 			yield* fleet.resolve("one", failed.value.decision?.id ?? "missing", respond(failed.value.decision?.id ?? "missing", "retry"));
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 	engine.it(
@@ -55,7 +55,7 @@ describe("Fleet recovery", () => {
 			expect(failed.value.decisionPublished).toBe(false);
 			expect(publishedDecisions()).toHaveLength(0);
 			expect((yield* fleet.reconcile("one")).value.decisionPublished).toBe(true);
-			expect(publishedDecisions()).toHaveLength(1);
+			expect(publishedDecisions()).toEqual([failed.value.decision?.reason]);
 		},
 	);
 	engine.it(
@@ -70,7 +70,7 @@ describe("Fleet recovery", () => {
 			expect(failed.value.step).toBe("waiting");
 			yield* fleet.resolve("one", failed.value.decision?.id ?? "missing", respond(failed.value.decision?.id ?? "missing", "retry"));
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 	engine.it(
@@ -89,7 +89,7 @@ describe("Fleet recovery", () => {
 			const completed = yield* fleet.reconcile("one");
 			expect(completed.value.step).toBe("done");
 			expect(completed.value.checks?.head).toBe("head-one-1");
-			expect(reviewedHeads()).toHaveLength(2);
+			expect(reviewedHeads()).toEqual(["head-one-0", "head-one-1"]);
 		},
 	);
 	engine.it(
@@ -108,7 +108,7 @@ describe("Fleet recovery", () => {
 			yield* fleet.resolve("one", failed.value.decision?.id ?? "missing", respond(failed.value.decision?.id ?? "missing", "retry"));
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 });

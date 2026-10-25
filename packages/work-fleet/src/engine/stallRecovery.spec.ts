@@ -29,11 +29,15 @@ for (const delayInterrupt of [false, true]) {
 				"last progress 1970-01-01T00:00:00.000Z; Fleet steer requested 1970-01-01T00:31:00.000Z",
 			);
 			yield* afterRestart(fleet.reconcile("one"));
-			expect(nativeRequests().filter((request) => request.method === "turn/steer")).toHaveLength(1);
+			expect(
+				nativeRequests()
+					.filter((request) => request.method === "turn/steer")
+					.map((request) => request.params),
+			).toMatchObject([{ expectedTurnId: "turn-1", threadId: "worker-thread" }]);
 			advanceTime(30 * 60_000);
 			let retried = yield* fleet.reconcile("one");
 			if (delayInterrupt) {
-				expect(retried.value.attempts).toHaveLength(1);
+				expect(retried.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1"]);
 				yield* afterRestart(fleet.reconcile("one"));
 				setNativeTurnState("turn-1", "interrupted");
 				retried = yield* afterRestart(fleet.reconcile("one"));
@@ -53,7 +57,11 @@ for (const delayInterrupt of [false, true]) {
 				input: [{ text: expect.stringContaining("Continue on the same branch and PR") }],
 				threadId: "worker-thread",
 			});
-			expect(nativeRequests().filter((request) => request.method === "thread/start")).toHaveLength(1);
+			expect(
+				nativeRequests()
+					.filter((request) => request.method === "thread/start")
+					.map((request) => request.params),
+			).toMatchObject([{ cwd: "/synthetic" }]);
 			expect(statusMarkdown([retried.value])).toContain("Fleet interrupt acknowledged 1970-01-01T01:01:00.000Z");
 			yield* fleet.reconcile("one");
 			advanceTime(31 * 60_000);
@@ -64,8 +72,12 @@ for (const delayInterrupt of [false, true]) {
 				decisionPublished: true,
 				step: "waiting",
 			});
-			expect(publishedDecisions()).toHaveLength(1);
-			expect(nativeRequests().filter((request) => request.method === "turn/steer")).toHaveLength(1);
+			expect(publishedDecisions()).toEqual([exhausted.value.decision?.reason]);
+			expect(
+				nativeRequests()
+					.filter((request) => request.method === "turn/steer")
+					.map((request) => request.params),
+			).toMatchObject([{ expectedTurnId: "turn-1", threadId: "worker-thread" }]);
 		},
 	);
 }

@@ -1,5 +1,6 @@
 import type { Deferred, Effect } from "effect";
 import type { BoardWork } from "#policy.ts";
+import type { SessionReceipt } from "#session/schema.ts";
 import type { lostReportReceipt } from "#test/report.ts";
 import type { SessionNaming } from "#test/sessionNaming.ts";
 import type { stalledCodex } from "#test/stalledCodex.ts";
@@ -18,7 +19,7 @@ export interface RecoveryWorld {
 	naming?: SessionNaming;
 	native?: Effect.Success<ReturnType<typeof stalledCodex>>;
 	readsFail: boolean;
-	report?: { available: boolean; collections: number; publication: ReturnType<typeof lostReportReceipt> };
+	report?: { available: boolean; collections: number; collectionReceipts: SessionReceipt[]; publication: ReturnType<typeof lostReportReceipt> };
 	reportFailure?: { work: BoardWork; path: string };
 	timeout?: ReturnType<typeof timeoutProvider>["state"];
 	turnHidden: boolean;

@@ -22,8 +22,7 @@ describe("Fleet session cleanup", () => {
 			expect(archivedSessions()).toEqual([]);
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(archivedSessions()).toHaveLength(2);
-			expect(archivedSessions().filter((id) => id === decision.worker?.sessionId)).toHaveLength(1);
+			expect(archivedSessions()).toEqual([decision.worker?.sessionId, "session-operation-3"]);
 		},
 	);
 	for (const noChange of [false, true]) {
@@ -41,7 +40,7 @@ describe("Fleet session cleanup", () => {
 				expect(archivedSessions()).toEqual(completed.value.attempts.map((attempt) => attempt.receipt?.sessionId));
 				expect(pendingSessionCleanup(completed.value)).toEqual([]);
 				yield* afterRestart(fleet.reconcile("one"));
-				expect(archivedSessions()).toHaveLength(2);
+				expect(archivedSessions()).toEqual(["session-operation-1", "session-operation-2"]);
 			},
 		);
 	}
@@ -79,9 +78,9 @@ describe("Fleet session cleanup", () => {
 			const decisionId = denied.value.decision?.id ?? "missing";
 			const response = respond(decisionId, "release");
 			expect((yield* fleet.resolve("one", decisionId, response)).value.step).toBe("released");
-			expect(archivedSessions()).toHaveLength(2);
+			expect(archivedSessions()).toEqual(["session-operation-1", "session-operation-2"]);
 			yield* fleet.resolve("one", decisionId, response);
-			expect(archivedSessions()).toHaveLength(2);
+			expect(archivedSessions()).toEqual(["session-operation-1", "session-operation-2"]);
 		},
 	);
 
@@ -95,7 +94,7 @@ describe("Fleet session cleanup", () => {
 			finishWorkers();
 			const completed = yield* reconcileLogged("one");
 			expect(completed.value.step).toBe("done");
-			expect(pendingSessionCleanup(completed.value)).toHaveLength(1);
+			expect(pendingSessionCleanup(completed.value)).toEqual(["session-operation-1"]);
 			expect(recordedSchedulerLogs()).toEqual([
 				{
 					annotations: { sessionId: pendingSessionCleanup(completed.value)[0] },
@@ -104,11 +103,11 @@ describe("Fleet session cleanup", () => {
 					message: ["Fleet session cleanup failed; reconciliation will retry"],
 				},
 			]);
-			expect(archivedSessions()).toHaveLength(1);
+			expect(archivedSessions()).toEqual(["session-operation-2"]);
 			yield* afterRestart(cycle);
 			expect(pendingSessionCleanup((yield* fleet.get("one")).value)).toEqual([]);
-			expect(archivedSessions()).toHaveLength(2);
-			expect(mergedHeads()).toHaveLength(1);
+			expect(archivedSessions()).toEqual(["session-operation-2", "session-operation-1"]);
+			expect(mergedHeads()).toEqual(["head-one-0"]);
 		},
 	);
 	engine.it(
@@ -133,16 +132,16 @@ describe("Fleet session cleanup", () => {
 			yield* fleet.dispatch("one");
 			finishWorkers();
 			yield* fleet.reconcile("one");
-			expect(archivedSessions()).toHaveLength(1);
+			expect(archivedSessions()).toEqual(["session-operation-2"]);
 			editWork("one", "next-revision");
 			approveWork("one", "next-revision");
 			const renewed = yield* prepareWork("one");
 			expect(renewed.value.step).toBe("queued");
 			expect(pendingSessionCleanup(renewed.value)).toEqual([]);
-			expect(archivedSessions()).toHaveLength(2);
+			expect(archivedSessions()).toEqual(["session-operation-2", "session-operation-1"]);
 			yield* fleet.dispatch("one");
 			yield* fleet.reconcile("one");
-			expect(archivedSessions()).toHaveLength(2);
+			expect(archivedSessions()).toEqual(["session-operation-2", "session-operation-1"]);
 		},
 	);
 });

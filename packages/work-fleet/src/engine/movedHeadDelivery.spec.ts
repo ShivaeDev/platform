@@ -85,7 +85,7 @@ for (const legacy of [false, true]) {
 			expect(delivered.value.step).toBe("done");
 			expect(delivered.value.outcome).toEqual({ head: MOVED, revision: BASE, url: PR });
 			expect(reviewedHeads()).toEqual([HEAD, MOVED]);
-			expect(launches()).toHaveLength(3);
+			expect(launches()).toEqual(["operation-1", "operation-2", "operation-3"]);
 			expect(mergedHeads()).toEqual([]);
 		},
 	);

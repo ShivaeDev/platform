@@ -1,4 +1,5 @@
 import type { Effect } from "effect";
+import type { BoardReport } from "#board/schema.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import type { Fleet } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
@@ -22,6 +23,7 @@ export interface RecoveryCase {
 		readonly reads?: number;
 		readonly deliveries?: number;
 		readonly publications?: number;
+		readonly publicationReceipts?: readonly BoardReport[];
 		readonly published?: boolean | undefined;
 	};
 	readonly options?: EngineOptions;

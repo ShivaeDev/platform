@@ -55,7 +55,7 @@ for (const role of ["worker", "reviewer"] as const) {
 			});
 			expect(lost.value.attempts).toHaveLength(initial.attempts.length + 2);
 			expect(providerCalls().filter((setting) => setting.call === "turn")).toHaveLength(initial.attempts.length + 2);
-			expect(publishedDecisions()).toHaveLength(1);
+			expect(publishedDecisions()).toEqual([lost.value.decision?.reason]);
 		},
 	);
 }

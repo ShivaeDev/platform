@@ -20,11 +20,11 @@ isolatedEngine.it(
 			{ concurrency: "unbounded" },
 		);
 		const intent = (yield* fleet.get("one")).value;
-		expect(intent.attempts).toHaveLength(2);
+		expect(intent.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 		expect(intent.attempts.at(-1)?.receipt).toBeUndefined();
 		expect(intent.attempts.at(-1)?.sessionId).toBe(decision.worker?.sessionId);
 		expect(intent.attempts.at(-1)?.prompt).toBe(answer.body);
-		expect(intent.responses).toHaveLength(1);
+		expect(intent.responses).toMatchObject([{ decisionId: decision.id, responseId: answer.id }]);
 		yield* afterRestart(
 			Effect.gen(function* () {
 				const restarted = yield* Fleet;
@@ -34,8 +34,12 @@ isolatedEngine.it(
 				yield* restarted.resolve("one", decision.id, answer.id);
 			}),
 		);
-		expect(launches()).toHaveLength(1);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+		expect(launches()).toEqual(["operation-1"]);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1", "operation-2"]);
 	},
 );
 
@@ -49,11 +53,19 @@ for (const type of ["clarify", "not_now"] as const) {
 			const { decision } = yield* askWorker();
 			const deferred = yield* answerWorker(decision, "response.deferred", type);
 			expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1"]);
 			const answer = yield* answerWorker(decision, "response.superseding", "answer", deferred.id);
 			expect((yield* fleet.reconcile("one")).value.step).toBe("working");
 			expect((yield* fleet.get("one")).value.attempts.at(-1)?.prompt).toBe(answer.body);
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map((call) => call.operationId),
+			).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 }
@@ -75,7 +87,11 @@ isolatedEngine.it(
 		expect(stale.value.step).toBe("released");
 		expect(stale.value.releaseReason).toBe("Board status is done");
 		expect(stale.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: decision.published }]);
-		expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+		expect(
+			providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1"]);
 	},
 );
 
@@ -99,7 +115,7 @@ isolatedEngine.it(
 				expect(recovered.value.decision?.reason).toBe(QUESTION);
 			}),
 		);
-		expect(publishedDecisions()).toHaveLength(1);
-		expect(launches()).toHaveLength(1);
+		expect(publishedDecisions()).toEqual([QUESTION]);
+		expect(launches()).toEqual(["operation-1"]);
 	},
 );

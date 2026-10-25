@@ -33,7 +33,7 @@ describe("context-bound Fleet renewal", () => {
 		expect(renewed.value.outcome).toBeUndefined();
 		expect(renewed.value.decision).toBeUndefined();
 		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	});
 	engine.it("an authored stop observes the existing terminal turn without resuming before explicit renewal", [noChangeReported()], function* (fleet) {
 		yield* fleet.prepareWork("one");
@@ -47,7 +47,12 @@ describe("context-bound Fleet renewal", () => {
 		expect(observed.value.decision).toEqual(stopped.value.decision);
 		expect(observed.value.boardRevision).toBe("board-one");
 		expect(observed.value.attempts[0]?.status).toBe("completed");
-		expect(fleet.providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+		expect(
+			fleet
+				.providerCalls()
+				.filter((call) => call.call === "turn")
+				.map((call) => call.operationId),
+		).toEqual(["operation-1"]);
 		fleet.approveWork("one", "board-one-next");
 		const renewed = yield* fleet.prepareWork("one");
 		expect(renewed.value.step).toBe("queued");
@@ -63,7 +68,7 @@ describe("context-bound Fleet renewal", () => {
 				expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden" });
 				expect((yield* fleet.get("one")).value.attempts).toEqual(submitted.value.attempts);
 				expect((yield* fleet.get("one")).value.history).toBeUndefined();
-				expect(fleet.launches()).toHaveLength(1);
+				expect(fleet.launches()).toEqual(["operation-1"]);
 			},
 		);
 	}
@@ -105,7 +110,7 @@ describe("context-bound Fleet renewal", () => {
 			reason: "persistence",
 		});
 		expect(yield* Effect.flip(fleet.dispatch("one"))).toMatchObject({ _tag: "Forbidden" });
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 		expect((yield* fleet.get("one")).value.attempts).toEqual([]);
 	});
 	engine.it("renewal conserves an adopted open PR backlog reservation and relaunches the same scope", [humanMergeRequired()], function* (fleet) {
@@ -118,6 +123,6 @@ describe("context-bound Fleet renewal", () => {
 		expect(renewed.value.history?.[0]?.result).toMatchObject({ kind: "change", pr: "https://example.invalid/pr/one" });
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
 		expect((yield* fleet.dispatch("one")).value.step).toBe("working");
-		expect(fleet.launches()).toHaveLength(3);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2", "operation-3"]);
 	});
 });

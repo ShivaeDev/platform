@@ -18,7 +18,7 @@ describe("renewal refreshes adopted open PR ownership", () => {
 		expect(yield* Effect.flip(fleet.prepareWork("one"))).toMatchObject({ _tag: "Forbidden", message: expect.stringContaining("scope exceeds") });
 		expect((yield* fleet.get("one")).value.history).toBeUndefined();
 		expect(yield* fleet.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "https://example.invalid/pr/one" }]);
-		expect(fleet.launches()).toHaveLength(2);
+		expect(fleet.launches()).toEqual(["operation-1", "operation-2"]);
 	});
 	engine.it("unknown actual PR ownership retains the previous cycle", [observedRenewalResult(original)], function* (fleet) {
 		yield* fleet.prepareWork("one");

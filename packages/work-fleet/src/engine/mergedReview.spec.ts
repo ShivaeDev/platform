@@ -42,7 +42,7 @@ for (const head of [HEAD, MOVED]) {
 				expect(observed.value.result).toEqual(reviewing.value.result);
 				expect(backlog(observed.value)).toBe(false);
 				expect((yield* fleet.reconcile("one")).version).toBe(observed.version);
-				expect(launches()).toHaveLength(2);
+				expect(launches()).toEqual(["operation-1", "operation-2"]);
 				expect(reviewedHeads()).toEqual([HEAD]);
 				expect(mergedHeads()).toEqual([]);
 				expect(githubRequests().filter((request) => request === "/repos/example/repository/pulls/7").length).toBeGreaterThan(2);
@@ -78,7 +78,7 @@ for (const scenario of [
 			expect(observed.value.outcome).toBeUndefined();
 			expect(backlog(observed.value)).toBe(true);
 			expect(observed.value.result).toEqual(reviewing.value.result);
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 			expect(reviewedHeads()).toEqual([HEAD]);
 			expect(mergedHeads()).toEqual([]);
 		},

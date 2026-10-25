@@ -39,8 +39,7 @@ for (const action of ["retry", "release"] as const) {
 				if (scenario.recovery === "resume-capacity-read") {
 					expect(entry.readRetries.map(executing)).toEqual([true, true, true, true]);
 					expect(before.decision?.reason).toContain("provider read failure after 5 attempts");
-					const originalWorker = 1;
-					expect(before.attempts).toHaveLength(originalWorker);
+					expect(before.attempts).toMatchObject([{ operationId: "operation-1", role: "worker" }]);
 					expect(executing(before)).toBe(true);
 				}
 				if (action === "retry" && explanation !== undefined) {

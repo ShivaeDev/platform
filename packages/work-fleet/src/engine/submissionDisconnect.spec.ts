@@ -4,11 +4,6 @@ import { SYNTHETIC_WORKSPACE } from "#test/codexCloud.ts";
 import { disconnectRecovery } from "#test/disconnectRecovery.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 
-const ONE_ATTEMPT = 1;
-const NO_READS = 0;
-const NO_DECISIONS = 0;
-const ONE_DECISION = 1;
-
 for (const delayedReads of [0, 1, 4]) {
 	isolatedEngine.it(
 		`disconnected turn acceptance reconciles its saved operation without replay: delayed reads=${delayedReads}`,
@@ -31,18 +26,19 @@ for (const delayedReads of [0, 1, 4]) {
 			expect(waiting.decision).toBeUndefined();
 			expect(waiting.attentionOwner).toBe("automation");
 			expect(waiting.blocker).toContain("Codex disconnected");
-			expect(waiting.attempts).toHaveLength(ONE_ATTEMPT);
 			const operationId = waiting.attempts[0]?.operationId;
-			expect(waiting.attempts[0]).toMatchObject({
-				readRetry: { failures: 1, retryAt: 30_100 },
-				sessionId: "worker-thread",
-				status: "submitting",
-				submissionUncertain: true,
-			});
+			expect(waiting.attempts).toMatchObject([
+				{
+					readRetry: { failures: 1, retryAt: 30_100 },
+					sessionId: "worker-thread",
+					status: "submitting",
+					submissionUncertain: true,
+				},
+			]);
 			expect(waiting.attempts[0]?.receipt).toBeUndefined();
 			advanceTime(29_999);
 			yield* afterRestart(cycle);
-			expect(disconnectReads()).toHaveLength(NO_READS);
+			expect(disconnectReads()).toEqual([]);
 			advanceTime(1);
 			yield* afterRestart(cycle);
 			for (let failedRead = 1; failedRead <= delayedReads; failedRead += 1) {
@@ -51,10 +47,10 @@ for (const delayedReads of [0, 1, 4]) {
 					expect(retrying.step).toBe("waiting");
 					expect(retrying.decision?.reason).toContain("read failure after 5 attempts");
 					expect(retrying.decisionPublished).toBe(true);
-					expect(publishedDecisions()).toHaveLength(ONE_DECISION);
+					expect(publishedDecisions()).toEqual([retrying.decision?.reason]);
 					yield* afterRestart(cycle);
 					expect((yield* fleet.get("one")).value.decision).toEqual(retrying.decision);
-					expect(publishedDecisions()).toHaveLength(ONE_DECISION);
+					expect(publishedDecisions()).toEqual([retrying.decision?.reason]);
 					expect(disconnectSubmissions()).toEqual([operationId]);
 					return;
 				}
@@ -68,16 +64,17 @@ for (const delayedReads of [0, 1, 4]) {
 			expect(recovered.step).toBe("working");
 			expect(recovered.blocker).toBeUndefined();
 			expect(recovered.attentionOwner).toBeUndefined();
-			expect(recovered.attempts).toHaveLength(ONE_ATTEMPT);
-			expect(recovered.attempts[0]).toMatchObject({
-				operationId,
-				receipt: { sessionId: "worker-thread", turnId: "accepted-turn" },
-				status: "running",
-			});
+			expect(recovered.attempts).toMatchObject([
+				{
+					operationId,
+					receipt: { sessionId: "worker-thread", turnId: "accepted-turn" },
+					status: "running",
+				},
+			]);
 			expect(recovered.attempts[0]?.readRetry).toBeUndefined();
 			yield* afterRestart(cycle);
 			expect(disconnectSubmissions()).toEqual([operationId]);
-			expect(publishedDecisions()).toHaveLength(NO_DECISIONS);
+			expect(publishedDecisions()).toEqual([]);
 		},
 		{ clock: "live", timeout: 30_000 },
 	);

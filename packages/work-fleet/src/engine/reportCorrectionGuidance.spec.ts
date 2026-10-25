@@ -25,14 +25,14 @@ describe("report correction after worker guidance changes", () => {
 						const blocked = yield* restarted.reconcile("one");
 						expect(blocked.value.step).toBe("waiting");
 						expect(blocked.value.decision?.reason).toContain("FLEET_HEAD");
-						expect(blocked.value.attempts).toHaveLength(2);
+						expect(blocked.value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 						expect(blocked.value.result).toBeUndefined();
-						expect((yield* restarted.reconcile("one")).value.attempts).toHaveLength(2);
+						expect((yield* restarted.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
 					}),
 					({ workerGuidance: _workerGuidance, ...policy }) => (nextGuidance === undefined ? policy : { ...policy, workerGuidance: nextGuidance }),
 				);
 				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(turns);
-				expect(publishedDecisions()).toHaveLength(1);
+				expect(publishedDecisions()).toEqual([expect.stringContaining("FLEET_HEAD")]);
 				expect(reviewedHeads()).toHaveLength(0);
 			},
 		);

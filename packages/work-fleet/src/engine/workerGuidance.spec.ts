@@ -59,7 +59,7 @@ describe("worker guidance through PostgreSQL", () => {
 			yield* afterRestart(cycle);
 			const prompt = (yield* fleet.get("one")).value.attempts.at(-1)?.prompt;
 			expect(prompt).toBe(queued.value.attempts[0]?.prompt);
-			expect(prompt?.split(GUIDANCE)).toHaveLength(2);
+			expect(prompt?.match(new RegExp(RegExp.escape(GUIDANCE), "gu"))).toEqual([GUIDANCE]);
 			expect(providerStarts().at(-1)?.prompt).toBe(prompt);
 		},
 	);

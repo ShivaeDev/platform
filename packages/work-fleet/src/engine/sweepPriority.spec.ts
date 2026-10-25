@@ -54,7 +54,7 @@ for (const reason of ["checks", "conflict"] as const) {
 			const repairing = (yield* fleet.get("catalog")).value;
 			expect(repairing.attempts.at(-1)).toMatchObject({ role: "repair", status: "accepted" });
 			expect((yield* fleet.get("package")).value.step).toBe("working");
-			expect((yield* fleet.get("queued")).value.attempts).toHaveLength(0);
+			expect((yield* fleet.get("queued")).value.attempts.map((entry) => entry.operationId)).toEqual([]);
 			sweepChecksFail("catalog", false);
 			sweepConflicts("catalog", false);
 			yield* vacateExecution("busy");
@@ -76,7 +76,7 @@ isolatedEngine.it(
 			[fleet.dispatch("catalog"), fleet.dispatch("rename")].map((operation) => operation.pipe(Effect.result)),
 			{ concurrency: "unbounded" },
 		);
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 		yield* fleet.dispatch("urgent").pipe(Effect.result);
 		expect((yield* fleet.get("urgent")).value).toMatchObject({ attempts: [], attentionOwner: "automation", step: "queued" });
 		expect((yield* fleet.get("urgent")).value.blocker).toMatch(/^waiting for sweep (?:catalog|rename)$/u);

@@ -36,7 +36,11 @@ for (const { capacity, reviewer, clears, message } of terminalCapacityCases) {
 				const parked = (yield* fleet.get("one")).value;
 				expect(parked.step).toBe("waiting");
 				expect(parked.decision?.reason).toContain(`${message}; provider failure after 5 attempts`);
-				expect(parked.attempts.filter((attempt) => attempt.role === (reviewer ? "reviewer" : "worker"))).toHaveLength(5);
+				expect(parked.attempts.filter((attempt) => attempt.role === (reviewer ? "reviewer" : "worker")).map((entry) => entry.operationId)).toEqual(
+					reviewer
+						? ["operation-2", "operation-3", "operation-4", "operation-5", "operation-6"]
+						: ["operation-1", "operation-2", "operation-3", "operation-4", "operation-5"],
+				);
 			}
 		},
 	);
