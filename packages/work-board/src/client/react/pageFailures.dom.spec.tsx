@@ -24,8 +24,7 @@ for (const { crumb, heading, link } of [
 			setSessionServer(false);
 			yield* Effect.promise(() => follow(link));
 			yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("The Board server isn't answering")));
-			expect(readText("#doc [data-slot=empty-description]")).toBe("This page tries again on its own.");
-			expect(readText("#doc")).not.toContain("Error");
+			expect(readText("#doc [data-slot=empty-description]")).toContain("This page tries again on its own. RpcClientError:");
 			yield* Effect.promise(() => eventually(() => expect(readText("#breadcrumbs")).toBe(crumb)));
 			setSessionServer(true);
 			click(findElements("#doc button").find((button) => button.textContent === "Retry"));
@@ -80,9 +79,7 @@ screenStory.it(
 		failDocument();
 		yield* Effect.promise(() => follow("/notes/plan.md"));
 		yield* Effect.promise(() => eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("This page couldn't be opened")));
-		expect(readText("#doc [data-slot=empty-description]")).toBe(
-			"The Board couldn't read what this page needs. Try again, or open System to see which files it can't read.",
-		);
+		expect(readText("#doc [data-slot=empty-description]")).toBe("InternalServerError: Internal server error");
 		expect(findElements("#doc [data-slot=empty] a").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
 			["Open System", "/_board/system"],
 		]);

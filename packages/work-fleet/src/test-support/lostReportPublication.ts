@@ -2,6 +2,8 @@ import { Effect, Layer } from "effect";
 import { reportBoard as attachmentReportBoard } from "#host/reportBoard.ts";
 import { BoardFailure } from "#policy.ts";
 import { engine } from "#test/engineStory.ts";
+import { HEAD } from "#test/githubResult.ts";
+import { mainObservation } from "#test/preparation.ts";
 import { lostReportReceipt, reportBoard } from "#test/report.ts";
 
 export function lostReportPublication(attachments = false) {
@@ -11,7 +13,11 @@ export function lostReportPublication(attachments = false) {
 		const report = { available: true, collections: 0, publication };
 		state.recovery.report = report;
 		state.root = root;
-		state.options = { ...state.options, resultUnavailable: true };
+		state.options = {
+			...state.options,
+			mainQuery: (preparation) => Effect.succeed(mainObservation({ fromRevision: preparation.baseRevision, revision: HEAD })),
+			resultUnavailable: true,
+		};
 		state.board = attachments
 			? attachmentReportBoard(
 					root,

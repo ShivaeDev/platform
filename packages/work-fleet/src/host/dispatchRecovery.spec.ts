@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { task } from "#test/fleetHost.ts";
+import { HEAD } from "#test/githubResult.ts";
 import { delayedRefresh } from "#test/hostCommandDelaysTraits.ts";
 import { approvedWork, boardWork, host } from "#test/hostStory.ts";
 
@@ -53,7 +54,7 @@ host.it(
 		yield* daemon.subscribe(["one"]);
 		expect(daemon.snapshots()).toMatchObject([[{ stage: "working", workId: "one" }]]);
 		yield* daemon.follow("watch", "watch", ["one"]);
-		daemon.finishTurn(running, "Recovered findings.");
+		daemon.finishTurn(running, `Recovered findings.\nFLEET_HEAD: ${HEAD}`);
 		const completed = yield* daemon.waitForRecord("one", (record) => record.step === "done");
 		expect(completed.report?.sourcePath).toBeDefined();
 		const watched = yield* daemon.followerExit("watch");

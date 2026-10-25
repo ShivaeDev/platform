@@ -1,10 +1,11 @@
 import { expect } from "@effect/vitest";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { WAIT_EXIT } from "#host/wait.ts";
+import { HEAD } from "#test/githubResult.ts";
 import { REPORT_SOURCE } from "#test/hostReportTraits.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 
-const OUTPUT = "  # Findings\n\nWhole report, including whitespace.\n";
+const OUTPUT = `  # Findings\n\nWhole report, including whitespace.\nFLEET_HEAD: ${HEAD}\n`;
 
 host.it("records the whole result and finishes without PR integrations", [boardWork({ "research.md": REPORT_SOURCE })], function* (daemon) {
 	const started = yield* daemon.approve("research");

@@ -8,3 +8,10 @@ export class GitHubRateLimited extends Schema.TaggedError<GitHubRateLimited>()("
 export class GitHubTransportError extends Schema.TaggedError<GitHubTransportError>()("GitHubTransportError", {
 	path: Schema.String,
 }) {}
+
+export class GitHubAppError extends Schema.TaggedError<GitHubAppError>()("GitHubAppError", {
+	stage: Schema.Literals(["sign", "exchange"]),
+	status: Schema.optional(Schema.Number),
+}) {}
+
+export class GitHubWebhookSignatureError extends Schema.TaggedError<GitHubWebhookSignatureError>()("GitHubWebhookSignatureError", {}) {}

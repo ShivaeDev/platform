@@ -2,6 +2,7 @@ import { describe, expect } from "@effect/vitest";
 import { views } from "#engine/views.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { engine } from "#test/engineStory.ts";
+import { HEAD } from "#test/githubResult.ts";
 import { queuedReportWork } from "#test/queuedReportWork.ts";
 
 describe("report launch backpressure", () => {
@@ -15,7 +16,7 @@ describe("report launch backpressure", () => {
 			reviewedHeads,
 			advanceTime,
 			recoverProvider,
-			finishWorkers,
+			workerReports,
 			prepareWork,
 			restart,
 			fleet,
@@ -40,7 +41,7 @@ describe("report launch backpressure", () => {
 			expect(observation?.output).toContain("Leave repository sources unchanged. Commit nothing, push nothing, and open no PR.");
 			expect(observation?.output).toContain("Never publish attachments to git or GitHub.");
 			expect(observation?.output).toContain("Follow synthetic report conventions.");
-			finishWorkers();
+			workerReports(`Findings.\nFLEET_HEAD: ${HEAD}`);
 			const completed = (yield* fleet.reconcile("one")).value;
 			expect(completed.step).toBe("done");
 			expect(completed.launchRetry).toBeUndefined();

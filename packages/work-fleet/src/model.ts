@@ -29,6 +29,7 @@ export const Attempt = Schema.Struct({
 	publishedRecovery: Schema.optional(Schema.Boolean),
 	readRetry: Schema.optional(Schema.Struct({ error: Schema.String, failures: Schema.Number, retryAt: Schema.Number })),
 	receipt: Schema.optional(SessionReceipt),
+	reportRevision: Schema.optional(Schema.String),
 	reviewHead: Schema.optional(Schema.String),
 	reviewRevision: Schema.optional(Schema.String),
 	role: Schema.Literals(["worker", "repair", "reviewer"]),
