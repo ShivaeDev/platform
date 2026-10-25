@@ -98,6 +98,61 @@ const save = OrdersClient.runtime.fn((input: OrderInput) =>
 
 Use native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` for the browser RPC protocol. Effect sends the trace in the W3C `traceparent` HTTP header. Platform's appHost carries it into the RPC span and its SQL, and annotates the RPC span with `request.id`. Enqueued pg-boss jobs retain that span context; worker attempts start separate traces linked back to the sender.
 
+### Once per session: render operation notices
+
+Mount the optional `NoticeHost` from `@shivaedev/effect-react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host.
+
+```tsx
+import { Cause } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
+import { NoticeHost, type Notice } from "@shivaedev/effect-react/notices.ts";
+
+function renderNotice(notice: Notice) {
+  const action = notice.action;
+  return <article role="status">
+    <p>{notice.message}</p>
+    {action && <button disabled={action.pending} onClick={action.run}>{action.label}</button>}
+    {action && AsyncResult.isSuccess(action.result) && <p>Undo completed</p>}
+    {action && AsyncResult.isFailure(action.result) && <p>{Cause.pretty(action.result.cause)}</p>}
+    <button onClick={notice.dismiss}>Dismiss</button>
+  </article>;
+}
+
+function SessionScreens({ client }: { readonly client: AppClient }) {
+  return <NoticeHost render={renderNotice}><OrderScreens client={client} /></NoticeHost>;
+}
+```
+
+`AppClient` and `OrderScreens` belong to the application; return `SessionScreens` from the session boundary's child function. The renderer receives `id`, `message`, `dismiss` and an optional action with `label`, `run`, `pending` and `result`. Action results retain the native success value or failure cause as `unknown`; narrow domain errors in your renderer to choose their wording.
+
+The Effect overload of `useAction` accepts `notices.onSuccess(value, input)` and `notices.onFailure(error, input)`. Each callback returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
+
+```ts
+const remove = useAction(OrdersClient.runtime, api.remove.run, {
+  notices: {
+    onSuccess: (removed, input) => ({
+      message: `Removed ${input.title}`,
+      expiresIn: "10 seconds",
+      action: {
+        label: "Undo",
+        run: api.restore.run({
+          id: input.id,
+          title: input.title,
+          expectedVersion: removed.version,
+        }),
+      },
+    }),
+    onFailure: () => ({ message: "Could not remove this order" }),
+  },
+});
+```
+
+`OrdersClient`, `api`, the restore payload and its expected version belong to the application. The host runs the supplied Effect with the operation's native runtime, disables repeated dispatch while it is pending and exposes the outcome on that action. A failed Undo stays on its original notice; it does not become another operation failure notice. Command execution and invalidation remain with effect-contract, and form submission remains with effect-form.
+
+For query failures, pass `useQuery(atom, { notice: ({ cause, refreshing }) => descriptor })`. `useEditor` accepts the same callback as `queryNotice` for its query. `refreshing` distinguishes a failure with retained data from an initial load failure. Each settled failed result publishes once per hook; a rerender does not replay it. Omit the callback or return `undefined` for operations that need no notice.
+
+A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
+
 ### 2. Once per feature: native queries and actions
 
 The hooks accept native atoms directly. This complete component module shows query and action state without RPC setup:
