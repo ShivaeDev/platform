@@ -524,4 +524,6 @@ pnpm add @shivaedev/effect-pg-boss effect@4.0.5 pg-boss@12.37.0
 
 The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` are peers; use versions that satisfy the package's published peer ranges.
 
+`connectionString` configures pg-boss's own `pg` Pool, separately from the application's Effect SQL pool. In the default configuration a URL without `sslmode` uses plaintext. Outside a private network, add `sslmode=verify-full` (or `require`) to require TLS. The installed `pg` 8.23 driver verifies certificates for both modes and refuses servers without TLS. For private CAs, start Node with `NODE_EXTRA_CA_CERTS=/path/to/ca.pem`. See the [framework database connection security guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#database-connection-security) for all three connection paths and the driver's differences from libpq.
+
 Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. Treat enqueueing and an application database transaction as separate operations. Enqueue after the application write commits, and handle queue failures in the application so they cannot roll back the write. The package supplies no application transaction adapter.

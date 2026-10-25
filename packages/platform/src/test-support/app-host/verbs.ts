@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { clientAbortVerbs } from "./clientAbortVerbs.ts";
+import { connectionBackends, serverTls } from "./connectionSecurity.ts";
 import { databaseVerbs } from "./databaseVerbs.ts";
 import { close, hasService } from "./lifecycle.ts";
 import { requests } from "./requests.ts";
@@ -11,6 +12,8 @@ import { traceVerbs } from "./traceVerbs.ts";
 
 export function hostVerbs(state: HostState, story: { tell: (line: string) => void }) {
 	return {
+		connectionBackends,
+		serverTls,
 		...requests(state, story.tell),
 		...clientAbortVerbs(state, story.tell),
 		...databaseVerbs(state, story.tell),
