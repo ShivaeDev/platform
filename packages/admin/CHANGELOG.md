@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-25
+
+### Added
+
+- Add an explicitly retry-enabled Jobs page and handlers for registered failed originals, with administrator-only RPC access and query invalidation after retry.
+
 ## 0.2.0 - 2026-10-25
 
 ### Added
