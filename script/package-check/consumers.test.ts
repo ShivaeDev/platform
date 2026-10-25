@@ -1,5 +1,17 @@
 import { expect } from "vitest";
 import { consumerRun, consumers } from "#package-check/test-support/consumers.ts";
+import { packingGitConsumer } from "#package-check/test-support/packingGitConsumer.ts";
+
+consumers.it(
+	"leaves no Git packer writing when consumer cleanup begins",
+	[packingGitConsumer],
+	function* ({ check, remaining, writesAtCleanup }) {
+		expect(yield* check()).toBeUndefined();
+		expect(yield* writesAtCleanup()).toEqual([]);
+		expect(yield* remaining()).toEqual([]);
+	},
+	30_000,
+);
 
 consumers.it(
 	"removes each install before the next while keeping it alive for bin checks",
