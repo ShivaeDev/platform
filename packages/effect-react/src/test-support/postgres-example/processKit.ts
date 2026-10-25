@@ -17,7 +17,7 @@ export const processes = storyKit({
 	}),
 	layer: makePostgresTestLayer({
 		initialize: Effect.void,
-		maxConnections: 1,
+		maxConnections: 2,
 		prepare: false,
 		url: Redacted.make(databaseUrl._tag === "Some" ? databaseUrl.value : "postgresql://disabled"),
 	}),

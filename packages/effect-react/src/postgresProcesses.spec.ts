@@ -38,7 +38,20 @@ processes.it(
 processes.it(
 	"both servers and the worker recover together after every database backend is terminated",
 	[twoServersAndWorker()],
-	function* ({ hints, processLogs, terminateBackends, waitForRecovery, waitForResyncs, getFromServer, saveFromWorker, saveFromServer }) {
+	function* ({
+		hints,
+		processLogs,
+		lockOrders,
+		beginGetFromServer,
+		blockedReads,
+		pendingReadResult,
+		terminateBackends,
+		waitForRecovery,
+		waitForResyncs,
+		getFromServer,
+		saveFromWorker,
+		saveFromServer,
+	}) {
 		for (const name of ["first", "second"]) {
 			expect(
 				processLogs(name).filter(
@@ -48,12 +61,16 @@ processes.it(
 				),
 			).toEqual([]);
 		}
+		yield* lockOrders();
+		yield* beginGetFromServer("a");
+		expect(yield* blockedReads()).toEqual([{ query: expect.stringContaining('select * from "'), "wait_event_type": "Lock" }]);
 		const terminated = yield* terminateBackends();
 		expect(terminated.length).toBeGreaterThanOrEqual(5);
 		expect(terminated).toEqual(terminated.map(() => ({ terminated: true })));
+		expect(yield* pendingReadResult("a")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unavailable" } });
+		yield* waitForRecovery();
 		expect(yield* getFromServer("a")).toMatchObject({ id: 1 });
 		expect(yield* getFromServer("b")).toMatchObject({ id: 1 });
-		yield* waitForRecovery();
 		yield* waitForResyncs();
 		for (const name of ["a", "b", "another"]) {
 			expect(hints(name).slice(1)).toContainEqual({ _tag: "Resync" });

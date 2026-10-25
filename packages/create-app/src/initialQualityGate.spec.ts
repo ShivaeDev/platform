@@ -19,6 +19,19 @@ application.it(
 );
 
 application.it(
+	"runs setup again with an existing installation and keeps the Quality gate active",
+	[realSetup, installedPackageManager],
+	function* ({ cli, pnpm, read, git }) {
+		const generated = yield* cli(["my-app"]);
+		expect(generated.status, generated.stdout + generated.stderr).toBe(0);
+		const setup = pnpm("run", "setup");
+		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
+		expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
+		expect(git("status", "--porcelain").stdout).toBe("");
+	},
+);
+
+application.it(
 	"blocks the initial commit when the installed Quality gate fails",
 	[failingQualityGate, installedPackageManager],
 	function* ({ cli, exists, git }) {
