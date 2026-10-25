@@ -36,12 +36,13 @@ export function makeInsertMany<TServices = never>(
 			const names = sql.csv(columns.map((column) => sql`${sql(column)}`));
 			const chunkSize = Math.max(1, Math.min(1000, Math.floor(10_000 / columns.length)));
 			const results: unknown[] = [];
+			const changedRows: Readonly<Record<string, unknown>>[] = [];
 			let chunk: Fragment[] = [];
 			let parameters = 0;
 			let suffix: Fragment = sql``;
 			const flush = Effect.gen(function* () {
 				const returned = yield* sql`insert into ${sql(options.tableName)} (${names}) values ${sql.csv(chunk)} ${suffix} returning *`;
-				yield* options.changes.record(returned);
+				changedRows.push(...returned);
 				for (const row of yield* decode(returned)) {
 					results.push(row);
 				}
@@ -62,6 +63,7 @@ export function makeInsertMany<TServices = never>(
 				parameters += size;
 			}
 			yield* flush;
+			yield* options.changes.record(changedRows);
 			return results;
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.${operation}`));
 }

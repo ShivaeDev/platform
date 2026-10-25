@@ -4,7 +4,7 @@ Repository writes announce their own changes. A database-backed Platform host de
 
 ## Write and commit
 
-`makeRepository` records the table name as the collection key and each written row's item key. Insert, update, delete, void writes, conflict writes and the Many methods use rows returned by SQL, including generated IDs. Ignored conflicts and missing unversioned deletes announce nothing. Composite IDs use the JSON array of encoded primary-key values in `idColumn` order.
+`makeRepository` records the table name as the collection key and each written row's item key. A single write returning more than 1,000 rows across all its chunks records only `<table>` and the collection-wide key `<table>:*`, with no item keys. Calls returning up to 1,000 rows keep their item keys. Insert, update, delete, void writes, conflict writes and the Many methods use rows returned by SQL, including generated IDs. Ignored conflicts and missing unversioned deletes announce nothing. Composite IDs use the JSON array of encoded primary-key values in `idColumn` order.
 
 A repository write opens `transact` when called alone and joins the enclosing `transact` when several writes form one operation. The existing effect-changes buffer deduplicates their keys. Its `BeforeCommit` hook sends NOTIFY through the writing connection, so PostgreSQL delivers the notification only after the outer commit and discards it on rollback. No trigger or second publisher is involved. Start enclosing transactions with `transact`, since a bare native transaction's commit cannot be observed by the change channel.
 
@@ -20,7 +20,7 @@ Use `invalidateOnCommit` only for derived keys that neither a repository write n
 
 Contracts include a framework subscription named `<contract>.$changes`. Platform supplies its handler under the contract's middleware. Use the native NDJSON RPC transport for streaming. `bind` tracks the keys of query atoms created through that binding; `SessionBoundary` mounts the binding's `LiveConnection.connection` atom when the binding is the client or a property such as `client.api`, then releases it with the session registry. Adding a query key renews the subscription and reconciles current reads. Resume and reconnect also reconcile those reads.
 
-A changed hint contains only keys that actually fired and belong to the subscription. An item query should read its item key; add a list key only when changes to the whole collection should refetch it. Query handlers still enforce access policy and return authoritative data.
+A changed hint names the subscribed keys affected by an invalidation. Effect-contract item reads register both `<collection>:<id>` and `<collection>:*`; a collection-wide invalidation produces a hint naming the subscribed item key. An item query should read its item key; add a list key when any write to the collection should refetch it. List reads still register only the table key. Code registering raw item Reactivity keys outside effect-contract must also register the collection-wide key. Command invalidation keys are unchanged. Query handlers still enforce access policy and return authoritative data.
 
 ## Query read keys
 
