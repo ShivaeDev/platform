@@ -4,21 +4,21 @@ import { runEffectTest } from "#internal/runEffectTest.ts";
 import { type AnyTestLayer, buildTestLayer } from "./anyTestLayer.ts";
 import type { EffectClock, EffectTest, EffectTestBody, EffectTester, EffectTestOptions, MakeEffectItOptions, MakeEffectItResult } from "./types.ts";
 
-const fixtureName = "__effectTestContext";
+const FIXTURE_NAME = "__effectTestContext";
 
 type EffectFixture<TProvided> = TestContext & {
-	readonly [fixtureName]: Context.Context<TProvided>;
+	readonly [FIXTURE_NAME]: Context.Context<TProvided>;
 };
 
 type FixtureTest<TProvided> = (name: string, options: TestOptions, body: (context: EffectFixture<TProvided>) => Promise<unknown>) => void;
 
 function restoreContext<TProvided>(
 	fixture: Context.Context<TProvided>,
-	context: Omit<EffectFixture<TProvided>, typeof fixtureName>,
+	context: Omit<EffectFixture<TProvided>, typeof FIXTURE_NAME>,
 ): EffectFixture<TProvided> {
 	return {
 		...context,
-		[fixtureName]: fixture,
+		[FIXTURE_NAME]: fixture,
 	};
 }
 
@@ -37,7 +37,7 @@ function splitOptions(options: number | EffectTestOptions | undefined): {
 }
 
 function makeFixtureIt<TLayer extends AnyTestLayer>(layer: TLayer) {
-	return effectIt.extend(fixtureName, { scope: "worker" }, async ({}, { onCleanup }) => {
+	return effectIt.extend(FIXTURE_NAME, { scope: "worker" }, async ({}, { onCleanup }) => {
 		const scope = Effect.runSync(Scope.make());
 		onCleanup(() => Effect.runPromise(Scope.close(scope, Exit.void)));
 
@@ -50,9 +50,9 @@ function makeFixtureIt<TLayer extends AnyTestLayer>(layer: TLayer) {
 	});
 }
 
-export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
+export function makeEffectIt<THarness, TTestLayer extends AnyTestLayer>(
 	options: MakeEffectItOptions<THarness, TTestLayer>,
-): MakeEffectItResult<THarness, Layer.Success<TTestLayer>> => {
+): MakeEffectItResult<THarness, Layer.Success<TTestLayer>> {
 	type Provided = Layer.Success<TTestLayer>;
 	const fixtureIt = makeFixtureIt(options.layer);
 	const defaultClock = options.clock ?? "test";
@@ -64,7 +64,7 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 			return yield* Effect.isEffect(result) ? result : Effect.gen(() => result);
 		});
 		const wrapped = options.around?.(ready) ?? ready;
-		return wrapped.pipe(Effect.provide(context[fixtureName]));
+		return wrapped.pipe(Effect.provide(context[FIXTURE_NAME]));
 	}
 
 	function register(current: FixtureTest<Provided>): EffectTest<THarness, Provided> {
@@ -123,4 +123,4 @@ export const makeEffectIt = <THarness, TTestLayer extends AnyTestLayer>(
 	});
 
 	return { effectApp };
-};
+}

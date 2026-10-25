@@ -32,7 +32,7 @@ Define the tester in test support:
 import { expect } from "vitest";
 import { Config, Effect, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
 import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
 import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
 

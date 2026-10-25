@@ -1,7 +1,7 @@
 import { Effect, Option } from "effect";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
-import { makeEffectIt } from "@shivaedev/effect-test/vitest.ts";
+import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
 import { configured, setup, values } from "#test/postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
 import { withTestTransaction } from "./withTestTransaction.ts";
