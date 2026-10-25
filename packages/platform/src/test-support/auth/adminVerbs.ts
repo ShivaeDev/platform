@@ -3,6 +3,7 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { AdminApi } from "./adminApi.ts";
 import type { AdminHost } from "./adminHost.ts";
+import { adminRouteVerbs } from "./adminRouteVerbs.ts";
 import { profileVerbs } from "./profileVerbs.ts";
 
 export function adminVerbs(host: AdminHost, story: { tell: (line: string) => void }) {
@@ -18,6 +19,7 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 	}
 	return {
 		...profileVerbs(host, story),
+		...adminRouteVerbs(host, story),
 		callAdminTools: Effect.fn("AuthStory.callAdminTools")(function* () {
 			story.tell("call the admin-only RPC");
 			return yield* call((client) => client.adminTools());
@@ -31,11 +33,6 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 			const received = yield* Queue.unbounded<string>();
 			const fiber = yield* Effect.forkScoped(call((client) => Stream.runForEach(client.adminFeed(), (value) => Queue.offer(received, value))));
 			return { ended: Fiber.join(fiber), next: Queue.take(received) };
-		}),
-		openAdminTools: Effect.fn("AuthStory.openAdminTools")(function* () {
-			story.tell("open the admin-only HTTP route");
-			const response = yield* Effect.promise(() => fetch(`${host.baseUrl}/admin-tools`, { headers: host.headers }));
-			return { body: yield* Effect.promise(() => response.text()), status: response.status };
 		}),
 		profile: Effect.fn("AuthStory.profile")(function* () {
 			story.tell("read the protected profile from the HTTP host");

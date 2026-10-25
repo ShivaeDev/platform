@@ -7,10 +7,12 @@ import * as NetAddress from "effect/net/NetAddress";
 import { Migrator } from "effect/sql";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { appHost } from "#server/appHost.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
+import { trustedOrigins } from "#server/rpc-server/origin.ts";
 import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 import { countQueries } from "./countQueries.ts";
@@ -41,9 +43,16 @@ export const startAdminHost = Effect.gen(function* () {
 		const context = await auth.$context;
 		await context.checkSchema?.();
 	});
+	const state: { handlerRequests: string[]; providerUnavailable: boolean } = { handlerRequests: [], providerUnavailable: false };
+	const provider = betterAuthSessions((headers) => auth.api.getSession({ headers }));
 	const sessions = {
-		origin: () => true,
-		provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+		origin: trustedOrigins({ allow: ["http://localhost:3000"], missing: "allow" }),
+		provider: {
+			get: (headers: Parameters<typeof provider.get>[0]) =>
+				Effect.suspend(() =>
+					state.providerUnavailable ? Effect.fail(new AuthUnavailable({ message: "Session provider unavailable" })) : provider.get(headers),
+				),
+		},
 		streamRevalidationInterval: Duration.millis(100),
 	};
 	const context = yield* Layer.build(
@@ -51,7 +60,7 @@ export const startAdminHost = Effect.gen(function* () {
 			config: { port: 0 },
 			group: AdminApi,
 			handlers: adminHandlers.pipe(Layer.provideMerge(Layer.merge(authenticatedAdminLayer(sessions), authenticatedOwnerLayer(sessions)))),
-			routes: adminRoutes(sessions),
+			routes: adminRoutes(sessions, state),
 			sessions,
 		}),
 	);
@@ -64,6 +73,7 @@ export const startAdminHost = Effect.gen(function* () {
 		baseUrl: `http://127.0.0.1:${server.address.port}`,
 		headers: new Headers(),
 		queries,
+		state,
 		stopStorage: Scope.close(poolScope, Exit.void),
 		userId: "",
 	};

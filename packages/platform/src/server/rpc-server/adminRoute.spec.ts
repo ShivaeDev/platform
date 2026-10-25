@@ -1,0 +1,52 @@
+import { expect } from "vitest";
+import { auth, signedInWithRole } from "#test/auth/story.ts";
+
+auth.it(
+	"an admin receives the handler response on GET and POST",
+	[signedInWithRole("user,admin")],
+	function* ({ openAdminTools, adminHandlerRequests }) {
+		expect(yield* openAdminTools()).toEqual({ body: "Admin tools for member@example.test", status: 200 });
+		expect(yield* openAdminTools("POST")).toEqual({ body: "Admin tools for member@example.test", status: 201 });
+		expect(yield* adminHandlerRequests()).toEqual(["GET", "POST"]);
+	},
+);
+
+auth.it("a signed-in user without admin cannot run the handler", [signedInWithRole("user")], function* ({ openAdminTools, adminHandlerRequests }) {
+	expect((yield* openAdminTools()).status).toBe(403);
+	expect(yield* adminHandlerRequests()).toEqual([]);
+});
+
+auth.it("a signed-out caller cannot run the handler", [], function* ({ openAdminTools, adminHandlerRequests }) {
+	expect((yield* openAdminTools()).status).toBe(401);
+	expect(yield* adminHandlerRequests()).toEqual([]);
+});
+
+auth.it("a refused Origin cannot run the handler", [signedInWithRole("admin")], function* ({ openAdminTools, adminHandlerRequests }) {
+	expect((yield* openAdminTools("POST", "https://refused.example")).status).toBe(403);
+	expect(yield* adminHandlerRequests()).toEqual([]);
+});
+
+auth.it(
+	"an unavailable session provider returns 503 without running the handler",
+	[signedInWithRole("admin")],
+	function* ({ failSessionProvider, openAdminTools, adminHandlerRequests }) {
+		yield* failSessionProvider();
+		expect((yield* openAdminTools()).status).toBe(503);
+		expect(yield* adminHandlerRequests()).toEqual([]);
+	},
+);
+
+auth.it(
+	"removing admin prevents the next request with the same session from running the handler",
+	[signedInWithRole("admin")],
+	function* ({ openAdminTools, setRole, adminHandlerRequests }) {
+		expect((yield* openAdminTools()).status).toBe(200);
+		yield* setRole("user");
+		expect((yield* openAdminTools()).status).toBe(403);
+		expect(yield* adminHandlerRequests()).toEqual(["GET"]);
+	},
+);
+
+auth.it("a handler's own Forbidden failure stays in the typed error channel", [signedInWithRole("admin")], function* ({ openFailingAdminTools }) {
+	expect(yield* openFailingAdminTools()).toEqual({ body: "Handler failure", status: 422 });
+});
