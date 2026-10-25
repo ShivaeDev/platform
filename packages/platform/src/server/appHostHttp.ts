@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
-import { ByteSize, Config, Effect, Layer, Option, Schema } from "effect";
+import { ByteSize, Config, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse, HttpStaticServer } from "effect/http";
 import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
@@ -10,7 +10,9 @@ import type { databaseLayer } from "#server/databaseLayer.ts";
 import { healthRoute } from "#server/healthRoute.ts";
 import { hostChanges } from "#server/hostChanges.ts";
 import type { HostOptions, HostPolicy } from "#server/hostOptions.ts";
+import { hostTransport } from "#server/hostTransport.ts";
 import type { MigrationOptions } from "#server/MigrationOptions.ts";
+import { nativeClientOrigins } from "#server/nativeClientOrigins.ts";
 import { otlpTracing } from "#server/otlpTracing.ts";
 import { RedactionPolicy } from "#server/RedactionPolicy.ts";
 import { redactingDiagnostics } from "#server/redactingDiagnostics.ts";
@@ -18,7 +20,6 @@ import { redactingRpcSerialization } from "#server/redactingRpcSerialization.ts"
 import { localRpcGuard } from "#server/rpc-server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "#server/rpc-server/session.ts";
 import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
-import { TrustedProxy } from "#server/rpc-server/trustedProxy.ts";
 import { schemaSensitiveKeys } from "#server/schemaSensitiveKeys.ts";
 import { tracedGroup } from "#server/tracedGroup.ts";
 
@@ -41,17 +42,7 @@ export function appHostHttp<
 	const sensitive = schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const maxBodySize = options.config?.maxBodySize ?? (yield* Config.Int("MAX_BODY_SIZE").pipe(Config.withDefault(1024 * 1024)));
-			const bodySize = yield* Schema.decodeUnknownEffect(Schema.Int.check(Schema.isGreaterThanOrEqualTo(0)))(maxBodySize).pipe(
-				Effect.mapError((cause) => new Config.ConfigError(cause)),
-			);
-			const trustedProxy =
-				options.policy === "loopback"
-					? undefined
-					: (options.config?.trustedProxy ?? Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option)));
-			if (trustedProxy !== undefined) {
-				yield* Schema.decodeUnknownEffect(TrustedProxy)(trustedProxy).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
-			}
+			const { bodySize, trustedProxy, nativeOrigins } = yield* hostTransport(options);
 			const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
 				options.policy === "loopback"
 					? requestTracingLayer({ sensitive })
@@ -62,7 +53,10 @@ export function appHostHttp<
 					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group)).pipe(
 						Effect.provideService(RpcSerialization.RpcSerialization, wire),
 					);
-					const guarded = localRpcGuard(handler, trustedProxy);
+					const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
+					if (nativeOrigins.length > 0) {
+						yield* router.add("OPTIONS", options.rpcPath ?? "/rpc", HttpServerResponse.text("Local same-origin requests only", { status: 403 }));
+					}
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
 						HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
 						return guarded.pipe(
@@ -75,6 +69,7 @@ export function appHostHttp<
 			).pipe(
 				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
 				Layer.provide(RpcSerialization.layerNdjson),
+				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy)),
 			);
 			const assets =
 				options.assets === undefined
@@ -94,7 +89,10 @@ export function appHostHttp<
 					});
 				}),
 			);
-			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, options.routes ?? Layer.empty), { disableLogger: true }).pipe(
+			const applicationRoutes = (options.routes ?? Layer.empty).pipe(
+				Layer.provide(options.nativeOrigins === undefined ? Layer.empty : nativeClientOrigins(nativeOrigins, trustedProxy, true)),
+			);
+			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, applicationRoutes), { disableLogger: true }).pipe(
 				Layer.provideMerge(application),
 				Layer.provideMerge(server),
 				Layer.provide(NodeServices.layer),

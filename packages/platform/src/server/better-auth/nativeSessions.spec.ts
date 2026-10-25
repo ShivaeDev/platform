@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { cookieOnly, nativeSessions, signedIn } from "#test/native-sessions/story.ts";
+import { cookieOnly, nativeSessions, nativeTransport, signedIn } from "#test/native-sessions/story.ts";
 
 const alice = signedIn("alice");
 const both = signedIn("alice", "bob");
@@ -7,13 +7,13 @@ const unauthorized = { _tag: "Failure", failure: { _tag: "Unauthorized", message
 
 nativeSessions.it(
 	"native sign-in issues a signed credential accepted by auth and request-local profile RPC",
-	[alice],
+	[nativeTransport, alice],
 	function* ({ account, bearer, getSession, profile }) {
 		const session = account("alice");
 		expect(session.credential).toEqual(expect.stringContaining("."));
 		expect(session.exposed).toContain("set-auth-token");
-		expect(yield* getSession(bearer("alice"))).toMatchObject({ body: { user: session.user }, status: 200 });
-		expect(yield* profile("alice")).toMatchObject({
+		expect(yield* getSession({ origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({ body: { user: session.user }, status: 200 });
+		expect(yield* profile("alice", { origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({
 			_tag: "Success",
 			success: { email: session.user.email, id: session.user.id, name: session.user.name, role: "user" },
 		});

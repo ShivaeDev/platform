@@ -51,7 +51,7 @@ A policy is a function of `{ origin: Option<string>, rpc, headers }`. Platform d
 The Origin check is CSRF protection for cookie sessions. Browsers send `Origin` on the POST requests native RPC uses over HTTP. The choices:
 
 - `missing: "reject"` works for browser-only applications. It rejects server-to-server callers and native HTTP stacks that omit the header.
-- Capacitor WebViews send their own origin (`capacitor://localhost` on iOS, `https://localhost` on Android by default). List it rather than allowing a missing header. Requests made through a native HTTP plugin may have no `Origin` at all.
+- Capacitor WebViews send their own origin (`capacitor://localhost` on iOS, `https://localhost` on Android by default). List it in the session policy and opt in to transport access with `appHost({ nativeOrigins, ... })`; the session policy alone cannot admit a request through the earlier transport guard. Use the WebView's own fetch so NDJSON updates arrive incrementally and abort releases server work.
 - `missing: "allow"` accepts those clients. It also accepts any other request without an Origin header, including requests from software that strips it. Accept it only with another control in place: SameSite cookies, a custom header that a browser cannot send cross-site without a preflight, or bearer tokens instead of cookies.
 - A custom policy can make a narrower choice, for example allowing a missing Origin only for particular RPCs, or only when a header the client sets is present.
 
@@ -63,11 +63,20 @@ A Capacitor or similar WebView loads its page from the app bundle, so same-site 
 
 The native client signs in through the existing auth routes using `credentials: "omit"`, reads its signed credential from `set-auth-token`, and sends `Authorization: Bearer <signed credential>` on subsequent auth and RPC requests, still omitting cookies. Store the credential in OS-backed secure storage, never web storage (localStorage, sessionStorage or IndexedDB). Browser responses retain HttpOnly cookies and omit both the token header and JSON token fields. Only listed bundled Origins can receive the signed credential header; do not list browser origins in `bearerSessions.origins`.
 
-The session cookie wins whenever it is present. A bearer header cannot upgrade that cookie's account, substitute for a revoked cookie or combine accounts. Without a session cookie, Better Auth verifies the bearer signature and stored session. Platform resolves the same `Identity`, profile and role context, and maps missing, invalid, unsigned, expired and revoked bearer sessions to the existing `Unauthorized` failure. Provider outages remain `AuthUnavailable`; credential-shaped logs and exported traces are redacted.
+For same-origin browser requests and callers without an Origin, the session cookie wins whenever it is present. A bearer header cannot upgrade that cookie's account, substitute for a revoked cookie or combine accounts. Without a session cookie, Better Auth verifies the bearer signature and stored session. Platform resolves the same `Identity`, profile and role context, and maps missing, invalid, unsigned, expired and revoked bearer sessions to the existing `Unauthorized` failure. Provider outages remain `AuthUnavailable`; credential-shaped logs and exported traces are redacted.
 
 Sign-out revokes the bearer session. A successful native sign-in that carries the previous bearer revokes that previous session as well. Existing streams revalidate their original headers every `streamRevalidationInterval` (30 seconds by default), ending with `Unauthorized` after revocation instead of adopting a replacement identity. Keep Better Auth's cookie cache disabled for database-backed revocation.
 
-The bearer option does not open the RPC transport guard to bundled Origins. The guard still requires its existing same-origin transport conditions; adding native cross-origin RPC access is a separate transport change. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [Platform README](../../packages/platform/README.md#bundled-native-clients) shows the complete host composition.
+Pass the same exact bundle origins to the host:
+
+```ts
+const nativeOrigins = ["capacitor://localhost", "https://localhost"];
+const host = appHost({ group, handlers, routes: mounted.routes, sessions, nativeOrigins });
+```
+
+`nativeOrigins` admits only those exact origins on RPC and `/api/auth/*` routes; wildcards, patterns and non-origin URLs are rejected at startup. The host answers their preflights and echoes the origin with `Vary: Origin`, allows `Authorization` and `Content-Type`, and exposes `set-auth-token` on auth responses. RPC allows POST; auth allows GET and POST. It never sends `Access-Control-Allow-Credentials`. Every admitted native request loses its cookies before session resolution: only its signed bearer session can authenticate it. This prevents an allowed origin from opening a cookie CSRF path. A cookie-only native request is anonymous and protected RPCs reject it. App authorization stays application-owned.
+
+Omitting `nativeOrigins` retains the existing transport policy. The option retains trusted-proxy peer and forwarded-authority checks, NDJSON content-type enforcement, bounded bodies, transport-only identity, redaction and session authorization. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [Platform README](../../packages/platform/README.md#bundled-native-clients) shows the complete host composition.
 
 ## Limits
 
