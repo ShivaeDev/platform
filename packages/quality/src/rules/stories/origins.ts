@@ -135,5 +135,5 @@ export function storyOrigins(inputs: RuleInputs, graph: ImportGraph) {
 		return result;
 	}
 
-	return { origin: visit, source: (path: string) => program.getSourceFile(join(inputs.root, path)) };
+	return { checker, origin: visit, source: (path: string) => program.getSourceFile(join(inputs.root, path)) };
 }

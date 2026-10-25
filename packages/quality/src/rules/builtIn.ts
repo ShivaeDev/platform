@@ -17,6 +17,7 @@ import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { authSql } from "#rules/stories/authSql.ts";
+import { storyEngine } from "#rules/stories/engine.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { noExpect } from "#rules/stories/noExpect.ts";
@@ -75,6 +76,7 @@ export const builtInRules = [
 	testsColocated,
 	storySetup,
 	storySpecs,
+	storyEngine,
 	queueSql,
 	authSql,
 	noExpect,
