@@ -520,6 +520,33 @@ For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` returns a
 
 For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` accepts a key predicate; `isSensitiveKey` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
 
+### Calling outside APIs
+
+Use Effect's HTTP client with `filterStatus`, `paginate` and the bounded body readers:
+
+```ts
+import { Effect, Schema, Stream } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { readBoundedJson } from "@shivaedev/platform/http-client/body.ts";
+import { filterStatus } from "@shivaedev/platform/http-client/filterStatus.ts";
+import { paginate } from "@shivaedev/platform/http-client/paginate.ts";
+
+const items = Effect.gen(function* () {
+  const client = filterStatus(yield* HttpClient.HttpClient);
+  return yield* paginate(client, HttpClientRequest.get("https://api.example/items")).pipe(
+    Stream.mapEffect((response) => readBoundedJson(response, 64 * 1024, Schema.Array(Schema.String))),
+    Stream.runCollect,
+    Effect.map((pages) => pages.flat()),
+  );
+});
+```
+
+Provide a native client Layer such as `FetchHttpClient.layer` from `effect/http`. `filterStatus` passes 2xx responses through and fails other statuses with Schema tagged errors from `http-client/errors.ts`: `RemoteUnauthorized` (401), `RemoteNotFound` (404), `RemoteGone` (410), `RemoteRateLimited` (429, or 503 carrying `Retry-After`) and `RemoteHttpError` for other statuses. Errors carry the method, URL without its query string and status, without headers or body. `RemoteRateLimited.retryAfter` is an optional UTC `DateTime`: delay-seconds use Effect's clock, and HTTP dates name the instant directly. Missing or invalid values leave it undefined.
+
+`paginate` follows quoted or unquoted `rel=next`, including headers with multiple links and relations, resolves relative links and stops at the last page. Taking one page sends one request. A next link on another origin fails with `PaginationLinkError` before that request is sent.
+
+`readBoundedBody(response, limit)` returns bytes; `readBoundedText` decodes UTF-8, and `readBoundedJson(response, limit, schema)` decodes JSON through the supplied Schema. Limits are bytes. An oversized `Content-Length` fails with `ResponseBodyTooLarge` before reading the body; a chunked body that exceeds the limit fails during the read. The error carries `limit`.
+
 ### Promise callers: one application runtime
 
 Build the application Layer once. `runWithServices` supplies an invocation's overrides to subsequent calls on the same runtime, across Promise awaits:
