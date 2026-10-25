@@ -6,7 +6,7 @@ import type { NotifyState } from "./postgresNotify.ts";
 export const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")(function* (
 	listening: ReturnType<PostgresChangeClient["listen"]>,
 	state: NotifyState,
-	events: { readonly heartbeats: Queue.Queue<void>; readonly listeners: Queue.Queue<void> },
+	events: { readonly heartbeats: Queue.Queue<Effect.Effect<void>>; readonly listeners: Queue.Queue<void> },
 ) {
 	const notifications = yield* listening;
 	yield* Queue.offer(events.listeners, undefined);
@@ -26,7 +26,7 @@ export const instrumentListener = Effect.fn("PostgresNotify.instrumentListener")
 			if (!state.muted) {
 				yield* Queue.offer(instrumented, notification);
 			} else if (!notification.payload.startsWith("[")) {
-				yield* Queue.offer(events.heartbeats, undefined);
+				yield* Queue.offer(events.heartbeats, Queue.offer(instrumented, notification).pipe(Effect.asVoid));
 			}
 		}),
 	).pipe(

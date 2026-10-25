@@ -20,7 +20,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 	const gate = Promise.withResolvers<void>();
 	const events = {
 		closings: yield* Queue.unbounded<void>(),
-		heartbeats: yield* Queue.unbounded<void>(),
+		heartbeats: yield* Queue.unbounded<Effect.Effect<void>>(),
 		listeners: yield* Queue.unbounded<void>(),
 	};
 	let closing = 0;

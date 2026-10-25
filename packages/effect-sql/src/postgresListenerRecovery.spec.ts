@@ -11,7 +11,7 @@ postgres.it(
 	[listeningForChanges({ heartbeatInterval: "1 second", heartbeatTimeout: "1 second", retryDelay: "1 second" })],
 	function* ({ sql, notifications, recordedLogs }) {
 		const outageCount = 1;
-		const advancedDowntimeMs = 3100;
+		const advancedDowntimeMs = 3050;
 		const { state, openStream, nextListener, nextMutedHeartbeat } = notifications();
 		const first = yield* openStream();
 		const second = yield* openStream();
@@ -37,10 +37,10 @@ postgres.it(
 		yield* TestClock.adjust("1 second");
 		yield* nextListener;
 		yield* TestClock.adjust("50 millis");
-		yield* nextMutedHeartbeat;
+		const acknowledgeHeartbeat = yield* nextMutedHeartbeat;
 		expect(recordedLogs().filter((log) => log.level === "Info")).toEqual([]);
 		state.muted = false;
-		yield* TestClock.adjust("50 millis");
+		yield* acknowledgeHeartbeat;
 		yield* withLive(eventually(Effect.try(() => expect(recordedLogs().filter((log) => log.level === "Info")).toHaveLength(outageCount))));
 		const downtimeMs = (yield* Clock.currentTimeMillis) - lostAt;
 		expect(downtimeMs).toBe(advancedDowntimeMs);
