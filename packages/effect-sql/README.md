@@ -23,7 +23,7 @@ const rows = yield* lines.findMany({
 
 The application owns the database schema and its native Effect `SqlClient` layer. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
-Repository writes announce their table and returned row keys automatically. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
+Repository writes announce their table and returned row keys automatically. A single write returning more than 1,000 rows across all its chunks announces only the table and `<table>:*`; writes returning up to 1,000 rows keep their item keys. Effect-contract item reads also react to the collection-wide key. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `effect-changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
@@ -391,6 +391,8 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 ```
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
+
+Repository writes returning more than 1,000 rows announce the table key and `<table>:*` instead of per-row item keys, counted across all chunks of each call. Calls returning up to 1,000 rows keep their table and item keys. Effect-contract item reads register the collection-wide key automatically; code registering raw `<table>:<id>` Reactivity keys must also register `<table>:*`. Command invalidation keys are unchanged.
 
 The transaction rules follow the database owner:
 

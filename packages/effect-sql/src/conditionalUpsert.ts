@@ -79,10 +79,11 @@ export function makeConditionalUpsert(
 					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning *, (xmax = 0) as ${sql("effectSqlInserted")}`;
 				}),
 			);
-			return yield* Effect.forEach(statements, (statement) =>
+			const changedRows: Readonly<Record<string, unknown>>[] = [];
+			const results = yield* Effect.forEach(statements, (statement) =>
 				Effect.gen(function* () {
 					const rows = yield* statement;
-					yield* options.changes.record(rows);
+					changedRows.push(...rows);
 					const row = rows[0];
 					if (row === undefined) {
 						return { _tag: "Unchanged" } as const;
@@ -90,5 +91,7 @@ export function makeConditionalUpsert(
 					return { _tag: row.effectSqlInserted ? "Inserted" : "Updated", row: yield* decode(row) } as const;
 				}),
 			);
+			yield* options.changes.record(changedRows);
+			return results;
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.conditionalUpsert`));
 }

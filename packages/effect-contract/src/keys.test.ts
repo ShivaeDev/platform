@@ -24,6 +24,9 @@ describe("reactivity keys", () => {
 			refreshed.length = 0;
 			yield* invalidate(invalidationKeys([orders.list]));
 			expect(refreshed).toEqual(["list"]);
+			refreshed.length = 0;
+			yield* invalidate(["orders:*"]);
+			expect(refreshed.sort((left, right) => left.localeCompare(right))).toEqual(["order 1", "order 2"]);
 			for (const release of releases) {
 				release();
 			}

@@ -113,6 +113,12 @@ export function withoutResume() {
 	});
 }
 
+export function resyncingKeys(keys: readonly import("#keys.ts").Key[]) {
+	return liveNotesStory.trait("consumer", "the consumer reconciles an explicit read scope", (engine) => {
+		engine.client = liveClient(engine.server.url, {}, true, undefined, keys);
+	});
+}
+
 export function startsWith(hint: import("#live.ts").LiveHint) {
 	return liveNotesStory.trait("consumer", "the first hint targets only part of the scope", (engine) => Ref.set(engine.server.initialHint, hint));
 }

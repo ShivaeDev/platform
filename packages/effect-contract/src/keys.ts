@@ -42,7 +42,7 @@ function own(key: Key): string {
 }
 
 export function readKeys(keys: readonly Key[]): readonly string[] {
-	return [...new Set(keys.map(own))];
+	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), `${key.collection}:*`] : [own(key)])))];
 }
 
 export function invalidationKeys(keys: readonly Key[]): readonly string[] {

@@ -4,12 +4,19 @@ import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { bind } from "#bind.ts";
+import type { Key } from "#keys.ts";
 import { type LiveHint, live } from "#live.ts";
 import { type ResumeOptions, resumeSignal } from "#resume.ts";
 import { notes } from "#test/notes.ts";
 import { LiveNotes } from "./notesContract.ts";
 
-export function liveClient(url: string, options: ResumeOptions = {}, includeResume = true, coalesceWindow?: Duration.Input) {
+export function liveClient(
+	url: string,
+	options: ResumeOptions = {},
+	includeResume = true,
+	coalesceWindow?: Duration.Input,
+	resyncKeys: readonly Key[] = [notes.item(1), notes.item(2), notes.list],
+) {
 	class Client extends AtomRpc.Service<Client>()("example/LiveDocuments", {
 		group: LiveNotes,
 		protocol: RpcClient.layerProtocolHttp({ url: `${url}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
@@ -21,7 +28,7 @@ export function liveClient(url: string, options: ResumeOptions = {}, includeResu
 	const subscription = live(Client.runtime, {
 		...(coalesceWindow === undefined ? {} : { coalesceWindow }),
 		...(includeResume ? { resume: Atom.make((get) => get(resume) + get(signal)) } : {}),
-		resyncKeys: [notes.item(1), notes.item(2), notes.list],
+		resyncKeys,
 		retryDelay: "100 millis",
 		stream: api.subscribe
 			.run(undefined)
