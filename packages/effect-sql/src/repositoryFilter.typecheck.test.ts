@@ -1,6 +1,7 @@
 import { Context, DateTime, Effect, Schema, SchemaGetter } from "effect";
 import { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
 
@@ -25,6 +26,15 @@ class Row extends Model.Class<Row>("FilteredRow")({
 const program = Effect.gen(function* () {
 	const options = { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Row", tableName: "rows" } as const;
 	const plain = yield* makeRepository(Row, options);
+	const count = plain.count({ where: { id: { in: [1, 2] }, kind: "x", value: { gt: 1, lte: 3 } } });
+	expectTypeOf<Effect.Success<typeof count>>().toEqualTypeOf<number>();
+	expectTypeOf<Effect.Error<typeof count>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
+	expectTypeOf<Effect.Services<typeof count>>().toEqualTypeOf<FilterEncoding>();
+	expectTypeOf<NonNullable<Parameters<typeof plain.count>[0]>["where"]>().toEqualTypeOf<NonNullable<Parameters<typeof plain.findMany>[0]>["where"]>();
+	// @ts-expect-error Count filters use decoded field values.
+	plain.count({ where: { value: { in: ["1"] } } });
+	// @ts-expect-error Count filters must name model fields.
+	plain.count({ where: { missing: 1 } });
 	expectTypeOf<Effect.Services<ReturnType<typeof plain.findMany>>>().toEqualTypeOf<FilterEncoding>();
 	plain.findMany({ where: { id: { in: [1, 2] }, kind: "x", value: { in: [1, 2] } } });
 	const read = plain.findMany({

@@ -157,6 +157,15 @@ yield* lines.findMany({ where: { id: { in: [1, 3, 5] }, amount: 52 } });
 
 Each list value uses the field's codec and decoded type. An empty list matches no rows. A plain array remains an equality value for an array-typed field; only the explicit `{ in: [...] }` entry requests SQL `IN`.
 
+Use `count` with the same `where` shape as `findMany` to return the matching row count decoded as a number:
+
+```ts
+yield* lines.count({ where: { amount: { in: [20, 52] }, note: null } });
+yield* lines.count();
+```
+
+Omitting `where` counts every row. An empty table returns `0`.
+
 Use `tupleIn` to match several fields together against a list of tuples:
 
 ```ts

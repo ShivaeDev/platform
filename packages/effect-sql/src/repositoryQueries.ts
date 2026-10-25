@@ -10,6 +10,7 @@ type Key<TModel extends Model.Any> = Extract<keyof TModel["fields"] & keyof Row<
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
 
 const Limit = Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0));
+const CountResult = Schema.Tuple([Schema.Struct({ count: Schema.NumberFromString })]);
 
 export interface RepositorySelect<TFields extends Schema.Struct.Fields, TServices = never> {
 	readonly fields: TFields;
@@ -17,6 +18,9 @@ export interface RepositorySelect<TFields extends Schema.Struct.Fields, TService
 }
 
 export interface Queries<TModel extends Model.Any> {
+	count: (
+		query?: Pick<FindMany<TModel, Key<TModel>>, "where">,
+	) => Effect.Effect<number, SqlError | Schema.SchemaError, TModel["fields"][Key<TModel>]["EncodingServices"]>;
 	findMany: <TKey extends Key<TModel> = Key<TModel>>(
 		query?: FindMany<TModel, TKey>,
 	) => Effect.Effect<
@@ -45,6 +49,15 @@ export function makeQueries<TModel extends Model.Any>(
 	},
 ): Queries<TModel> {
 	const { fieldAt, where } = makeFilter(model, sql);
+	function count(query?: Pick<FindMany<TModel, Key<TModel>>, "where">): ReturnType<Queries<TModel>["count"]>;
+	function count(query: Pick<FindMany<TModel, Key<TModel>>, "where"> = {}): Effect.Effect<number, SqlError | Schema.SchemaError, unknown> {
+		return Effect.gen(function* () {
+			const predicate = yield* where(query.where, true, true);
+			const rows = yield* sql`select cast(count(*) as text) as count from ${sql(options.tableName)} where ${predicate}`;
+			const [result] = yield* Schema.decodeUnknownEffect(CountResult)(rows);
+			return result.count;
+		}).pipe(Effect.withSpan(`${options.spanPrefix}.count`));
+	}
 	function orderClause(orderBy: FindMany<TModel, Key<TModel>>["orderBy"]) {
 		if (orderBy === undefined) {
 			return Effect.succeed(sql``);
@@ -58,7 +71,7 @@ export function makeQueries<TModel extends Model.Any>(
 		);
 	}
 	function limitClause(limit: number | undefined) {
-		return limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (count) => sql`limit ${count}`);
+		return limit === undefined ? Effect.succeed(sql``) : Effect.map(Schema.decodeUnknownEffect(Limit)(limit), (rowLimit) => sql`limit ${rowLimit}`);
 	}
 	function select<TKey extends Key<TModel> = Key<TModel>>(
 		query?: FindMany<TModel, TKey>,
@@ -96,7 +109,7 @@ export function makeQueries<TModel extends Model.Any>(
 			yield* Effect.forEach(query.partitionBy, fieldAt);
 			const predicate = yield* where(query.where, true);
 			const order = yield* orderClause(query.orderBy);
-			const count = yield* Schema.decodeUnknownEffect(Limit)(query.limit);
+			const rowLimit = yield* Schema.decodeUnknownEffect(Limit)(query.limit);
 			const partitions = sql.csv(query.partitionBy.map((key) => sql`${sql(key)}`));
 			const columns = sql.csv(Object.keys(model.fields).map((key) => sql`${sql(key)}`));
 			let rankColumn = "__effect_sql_rank";
@@ -106,10 +119,10 @@ export function makeQueries<TModel extends Model.Any>(
 			const rows = yield* sql`select ${columns} from (
 				select ${columns}, row_number() over (partition by ${partitions} ${order}) as ${sql(rankColumn)}
 				from ${sql(options.tableName)} where ${predicate}
-			) as ${sql("__effect_sql_ranked")} where ${sql(rankColumn)} <= ${count}
+			) as ${sql("__effect_sql_ranked")} where ${sql(rankColumn)} <= ${rowLimit}
 			order by ${partitions}, ${sql(rankColumn)}`;
 			return yield* Schema.decodeUnknownEffect(Schema.Array(Schema.Struct(model.fields)))(rows);
 		}).pipe(Effect.withSpan(`${options.spanPrefix}.latestPerGroup`));
 	}
-	return { findMany, latestPerGroup, select };
+	return { count, findMany, latestPerGroup, select };
 }
