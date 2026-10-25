@@ -1,5 +1,5 @@
 ---
-"@shivaedev/pr-watch": patch
+"@shivaedev/pr-watch": minor
 ---
 
 ### Changed
