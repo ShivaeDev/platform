@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { HEAD, MOVED } from "#test/githubResult.ts";
@@ -48,12 +47,9 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 			code: fault.code,
 			enter: finishRecoveryReview,
 			name: fault.reason,
+			observe: () => ({ requests }),
 			options: { checksQuery: checks },
-			progress: (_ctx, _before, after) => {
-				expect(requests).toBe(0);
-				expect(after.checks).toBeUndefined();
-				expect(after.step).toBe("released");
-			},
+			recovery: "accept-merge-without-checks",
 			restore: (ctx: RecoveryContext) =>
 				Effect.sync(() => {
 					restored = true;

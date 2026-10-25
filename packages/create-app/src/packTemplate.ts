@@ -11,7 +11,7 @@ const appPaths = new Map([
 	["pnpm-workspace.copy.yaml", "pnpm-workspace.yaml"],
 ]);
 const excluded = new Set(["node_modules", "dist", "coverage", "pnpm-lock.yaml", ".git"]);
-const rootExcluded = new Set(["published-versions.json", "AGENTS.md", "CLAUDE.md", "README.md"]);
+const rootExcluded = new Set(["published-versions.json", "AGENTS.md", "CLAUDE.md", "README.md", "quality.config.ts"]);
 function included(path: string) {
 	return !(rootExcluded.has(path) || excluded.has(basename(path))) && (!basename(path).startsWith(".env") || basename(path) === ".env.example");
 }

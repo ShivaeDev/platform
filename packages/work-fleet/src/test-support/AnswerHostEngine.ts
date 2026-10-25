@@ -1,4 +1,5 @@
 import { Context, Effect } from "effect";
+import type { SqlClient } from "effect/sql";
 import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostConfig } from "#host/config.ts";
@@ -15,6 +16,8 @@ export class AnswerHostEngine {
 	files: Record<string, string> = { "one.md": task("one", "approved") };
 	config: Partial<HostConfig> = {};
 	approvedPr = false;
+	boardOverride: HostFixture["parts"]["board"];
+	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient> = Effect.void;
 	readonly resolution = resolutionHold();
 	readonly spans = spanCounts();
 	#fixture: HostFixture | undefined;
@@ -49,6 +52,7 @@ export class AnswerHostEngine {
 			if (engine.approvedPr) {
 				engine.#pr = approvedPrFixture(engine.#fixture, yield* mergedReviewGithub());
 			}
+			yield* engine.beforeStart;
 			yield* engine.start();
 		});
 	}
@@ -60,7 +64,8 @@ export class AnswerHostEngine {
 				if (engine.#runtime !== undefined) {
 					return yield* Effect.die("The daemon is already running");
 				}
-				const { host, parts: fixtureParts } = engine.host;
+				const { host, parts: originalParts } = engine.host;
+				const fixtureParts = engine.boardOverride === undefined ? originalParts : { ...originalParts, board: engine.boardOverride };
 				const parts = fixtureParts.board === undefined ? fixtureParts : { ...fixtureParts, board: engine.resolution.board(fixtureParts.board) };
 				const previous = engine.#pr === undefined ? undefined : yield* fleetHealth(host.boardDir).pipe(Effect.option);
 				const layer = engine.#pr === undefined ? readDaemonLayer(host, { parts }) : daemonLayer(host, engine.#pr.parts, 0);

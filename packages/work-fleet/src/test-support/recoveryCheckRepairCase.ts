@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import { REPORT } from "#test/githubResult.ts";
@@ -16,16 +15,9 @@ export function recoveryCheckRepairCase(): RecoveryCase {
 				setLastObservation(context, { execution: "completed", output: REPORT });
 				yield* fleet.reconcile("one");
 			}
-			const stopped = (yield* fleet.get("one")).value;
-			expect(stopped.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(3);
-			expect(stopped.decision?.reason).toContain("test");
 		}),
 		name: "the same check still fails after three done repairs",
-		progress: (_context, before, after) => {
-			expect(after.step).toBe("released");
-			expect(after.attempts.map((attempt) => attempt.operationId)).toEqual(before.attempts.map((attempt) => attempt.operationId));
-			expect(after.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(3);
-		},
+		recovery: "accept-merge-after-repairs",
 		restore: (context) =>
 			Effect.sync(() => {
 				context.github.state.failed = false;

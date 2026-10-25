@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { RpcTest } from "effect/rpc";
-import { Fleet } from "#fleet.ts";
+import { Fleet, type PrepareWork } from "#fleet.ts";
 import { FleetContract, fleetHandlers } from "#operations.ts";
 import { boardAskFiles, boardHttp } from "#test/boardHttp.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
@@ -22,12 +22,12 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 		);
 	}
 	return {
-		boardInboxFiles: () => {
+		boardInboxFiles: (audience?: Parameters<typeof boardAskFiles>[1]) => {
 			if (state.root === "") {
 				throw new Error("No Markdown Board is configured");
 			}
 			tell("read Board inbox files over HTTP");
-			return boardAskFiles(state.root);
+			return boardAskFiles(state.root, audience);
 		},
 		recordBoardResponse: (answer: BoardAnswer) =>
 			Effect.gen(function* () {
@@ -49,10 +49,20 @@ export function engineRpcVerbs(state: EngineStory, tell: (line: string) => void)
 				tell(`continue ${input.workId} through native RPC`);
 				return yield* (yield* rpcClient())("fleet.continue", input);
 			}).pipe(Effect.scoped),
-		rpcDispatch: (input: { workId: string }) =>
+		rpcDispatch: (workId: string) =>
 			Effect.gen(function* () {
-				tell(`dispatch ${input.workId} through native RPC`);
-				return yield* (yield* rpcClient())("fleet.dispatch", input);
+				tell(`dispatch ${workId} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.dispatch", { workId });
+			}).pipe(Effect.scoped),
+		rpcGet: (workId: string) =>
+			Effect.gen(function* () {
+				tell(`read ${workId} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.get", { workId });
+			}).pipe(Effect.scoped),
+		rpcPrepare: (input: PrepareWork) =>
+			Effect.gen(function* () {
+				tell(`prepare ${input.workId} through native RPC`);
+				return yield* (yield* rpcClient())("fleet.prepare", input);
 			}).pipe(Effect.scoped),
 		rpcReassign: (input: { workId: string; decisionId: string; attentionOwner: "maintainer" | "orchestrator" }) =>
 			Effect.gen(function* () {

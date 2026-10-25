@@ -39,6 +39,23 @@ The work separates naturally: declare the application services once, define a qu
 
 ### Once per database: install the schema
 
+For an application on Platform's app host, register `pgBossSchema` beside the migration loader. The host's `migrate` mode installs or upgrades it after committing the application ledger. Its `check` and `wait` modes include pg-boss readiness in the same check as the numbered migrations.
+
+```ts
+import { pgBossSchema } from "@shivaedev/effect-pg-boss/server/schema.ts";
+import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+
+const database = appDatabase({
+  migrations: {
+    loader,
+    components: [pgBossSchema({ schema: "app_jobs" })],
+    mode: "migrate",
+  },
+});
+```
+
+The component uses `installPgBossSchema` as its only install and upgrade path. It is pending when the schema is missing or its stored version is below the installed pg-boss package's required schema version; the readiness error names the schema and both versions (`missing` for an absent version). Start every producer and worker with the same schema and `migrate: false`. Use host mode `"wait"` for services that must wait for a deployment's migration process; no additional jobs-layer wait is needed.
+
 `installPgBossSchema` installs or upgrades pg-boss through the provided Effect SQL client without starting workers or schedules. Run it outside an application transaction, in a release step or the `fixtures` Effect of `makePostgresTestLayer`, so stories inherit the schema from the migrated template:
 
 ```ts
@@ -471,7 +488,7 @@ Import the module that defines the name; the package has no root entry.
 | --- | --- |
 | `@shivaedev/effect-pg-boss/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
 | `@shivaedev/effect-pg-boss/server/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
-| `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`; `PgBossSchemaOptions` |
+| `@shivaedev/effect-pg-boss/server/schema.ts` | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions` |
 | `@shivaedev/effect-pg-boss/server/health.ts` | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth` |
 | `@shivaedev/effect-pg-boss/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
 | `@shivaedev/effect-pg-boss/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |

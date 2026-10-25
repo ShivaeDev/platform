@@ -16,7 +16,7 @@ describe("Fleet continuation against PostgreSQL", () => {
 		[failedChecksWithWorkerEvidence],
 		function* ({ acknowledgements, rpcDispatch, rpcReconcileRequest, rpcContinue, rpcViews, finishWorkers, prepareWork }) {
 			yield* prepareWork("one");
-			const first = yield* rpcDispatch({ workId: "one" });
+			const first = yield* rpcDispatch("one");
 			finishWorkers();
 			const stopped = yield* rpcReconcileRequest({ workId: "one" });
 			expect(stopped.step).toBe("waiting");

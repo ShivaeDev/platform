@@ -15,7 +15,7 @@ for (const type of ["clarify", "not_now"] as const) {
 		[humanMergeRequired()],
 		function* ({ rpcDispatch, rpcReconcileRequest, rpcResolve, rpcViews, finishWorkers, prepareWork, respond }) {
 			yield* prepareWork("one");
-			yield* rpcDispatch({ workId: "one" });
+			yield* rpcDispatch("one");
 			finishWorkers();
 			const denied = yield* rpcReconcileRequest({ workId: "one" });
 			const decisionId = denied.decision?.id ?? "missing";
@@ -35,7 +35,7 @@ isolatedEngine.it(
 	[occupiedBacklog],
 	function* ({ rpcDispatch, rpcViews, prepareWork }) {
 		yield* prepareWork("one");
-		yield* rpcDispatch({ workId: "one" }).pipe(Effect.result);
+		yield* rpcDispatch("one").pipe(Effect.result);
 		const item = (yield* rpcViews()).waiting.automation[0];
 		expect(item?.stage).toBe("waiting");
 		expect(item?.blocker).toBe("backlog capacity is occupied (limit 1)");
@@ -48,7 +48,7 @@ isolatedEngine.it(
 	[unknownProviderQuota],
 	function* ({ rpcDispatch, rpcViews, prepareWork }) {
 		yield* prepareWork("one");
-		yield* rpcDispatch({ workId: "one" }).pipe(Effect.result);
+		yield* rpcDispatch("one").pipe(Effect.result);
 		const result = yield* rpcViews();
 		expect(result.waiting.automation[0]?.stage).toBe("waiting");
 		expect(result.waiting.automation[0]?.blocker).toBe("Fresh available provider quota is required");
@@ -61,8 +61,8 @@ isolatedEngine.it(
 	function* ({ rpcDispatch, rpcViews, prepareWork }) {
 		yield* prepareWork("dependent");
 		yield* prepareWork("two");
-		yield* rpcDispatch({ workId: "dependent" }).pipe(Effect.result);
-		yield* rpcDispatch({ workId: "two" });
+		yield* rpcDispatch("dependent").pipe(Effect.result);
+		yield* rpcDispatch("two");
 		const result = yield* rpcViews();
 		expect(result.waiting.automation.find((item) => item.workId === "dependent")?.blocker).toContain(
 			"dependency one: not done on the Board; no accepted outcome",
@@ -78,14 +78,14 @@ isolatedEngine.it(
 	function* ({ rpcDispatch, rpcReconcileRequest, rpcViews, finishWorkers, prepareWork }) {
 		yield* prepareWork("one");
 		yield* prepareWork("two");
-		yield* rpcDispatch({ workId: "one" });
-		yield* rpcDispatch({ workId: "two" }).pipe(Effect.result);
+		yield* rpcDispatch("one");
+		yield* rpcDispatch("two").pipe(Effect.result);
 		expect((yield* rpcViews()).waiting.automation.find((item) => item.workId === "two")?.blocker).toContain(
 			"execution capacity is occupied (limit 1)",
 		);
 		finishWorkers();
 		yield* rpcReconcileRequest({ workId: "one" });
-		yield* rpcDispatch({ workId: "two" });
+		yield* rpcDispatch("two");
 		const result = yield* rpcViews();
 		expect(result.completed.find((item) => item.workId === "one")?.outcome).toBeDefined();
 		expect(result.active.find((item) => item.workId === "two")?.stage).toBe("working");
@@ -98,9 +98,9 @@ isolatedEngine.it(
 	[],
 	function* ({ rpcDispatch, rpcViews, editWork, prepareWork }) {
 		yield* prepareWork("dependent");
-		yield* rpcDispatch({ workId: "dependent" }).pipe(Effect.result);
+		yield* rpcDispatch("dependent").pipe(Effect.result);
 		editWork("dependent", "changed-context");
-		yield* rpcDispatch({ workId: "dependent" });
+		yield* rpcDispatch("dependent");
 		const item = (yield* rpcViews()).waiting.maintainer[0];
 		expect(item?.stage).toBe("waiting");
 		expect(item?.blocker).toBe("Work is no longer approved");

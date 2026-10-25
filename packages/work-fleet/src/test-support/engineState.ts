@@ -15,6 +15,8 @@ import type { ProtocolRejections } from "#test/engineProtocolRejections.ts";
 import type { EngineTiming } from "#test/engineTimingState.ts";
 import type { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import type { PredictionRepository } from "#test/predictionRepository.ts";
+import type { RecoveryWorld } from "#test/RecoveryWorld.ts";
+import type { RecoveryCase } from "#test/recoveryCase.ts";
 
 export interface SweepPullRequest {
 	checksFailed?: boolean;
@@ -41,6 +43,8 @@ export interface EngineStory extends EngineWorld {
 	publicationContext?: Context.Context<typeof Fleet.Identifier | Health | HealthPublication | HealthSnapshot>;
 	publishViews?: boolean;
 	readinessPublications?: BoardDecision[];
+	recovery: RecoveryWorld;
+	recoveryCase?: RecoveryCase;
 	restoreHealth?: () => void;
 	restoreStatus?: () => void;
 	resultObservation?: { value: WorkResult; unavailable: boolean };
@@ -62,6 +66,7 @@ export function newEngineState(): EngineStory {
 		logs: captureLogs(),
 		markdown: false,
 		options: {},
+		recovery: { gates: {}, holdObservation: false, interrupted: [], readsFail: false, turnHidden: false },
 		root: "",
 		source: "",
 		workId: "one",

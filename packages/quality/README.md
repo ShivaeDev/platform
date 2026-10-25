@@ -55,6 +55,8 @@ Add the daily commands to `package.json`:
 }
 ```
 
+For pnpm applications, `quality ci` checks peer dependencies, then runs the app’s `lint`, `typecheck`, `build` and `test` scripts in that order. It stops at the first failure. Keep those scripts as the app’s native tool commands; set `ci` to `quality ci` and let `ready` call the same script.
+
 The optional pre-commit hook runs Quality's lint, then the `typecheck` script when it exists, then an optional `quality:commit` script for repository checks. It uses the manifest's `packageManager` (`npm`, `pnpm`, `yarn` or `bun`), defaulting to `npm` when omitted. Add `quality:commit` only when the repository has extra commit checks.
 
 Inspect the report and install the optional commit check explicitly:
@@ -63,6 +65,8 @@ Inspect the report and install the optional commit check explicitly:
 quality lint
 quality hooks install
 ```
+
+For an application setup script, use `quality setup`. It installs the same hook when the current folder has its own `.git` entry, including a linked worktree. An unversioned app or an app inside another repository leaves hooks alone.
 
 Installing the package does not install a hook. `hooks install` writes the repository's pre-commit hook. A hook Quality did not write is kept unless `--force` replaces it. For an existing repository, `quality baseline write` records error-level findings when there is no baseline; it refuses to regenerate an existing baseline without `--rule <id>`.
 
@@ -300,6 +304,28 @@ The TypeScript base leaves `types`, `jsx`, `paths`, `include` and output directo
 	"include": ["src"]
 }
 ```
+
+For a React browser app, extend `@shivaedev/quality/tsconfig/app.json` instead. It adds React JSX, browser libraries and the Node, React and React DOM types to the base. Keep the application's paths and input files in its own config.
+
+Platform apps can share the Vite and Vitest setup too:
+
+```ts
+import tailwindcss from "@tailwindcss/vite";
+import react from "@vitejs/plugin-react";
+import { appViteConfig } from "@shivaedev/quality/appViteConfig.ts";
+
+export default appViteConfig([tailwindcss(), react()]);
+```
+
+Use this in `vite.config.ts`. Plugins belong to the app. The shared server proxies `/api/auth`, `/rpc` and `/admin/jobs` to the local host on port 3000, preserving the request Host. It enables TypeScript path resolution.
+
+```ts
+import { appTestConfig } from "@shivaedev/quality/appTestConfig.ts";
+
+export default appTestConfig();
+```
+
+Use this in `vitest.config.ts`. It composes `testProjects` with browser and server resolution and inlines Platform and Better Auth for the test server. Both helpers accept extra export conditions for workspace development: `appViteConfig(plugins, ["source"])` and `appTestConfig(["source"])`. Published apps use the defaults.
 
 For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 

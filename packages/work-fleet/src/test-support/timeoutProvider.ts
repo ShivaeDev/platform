@@ -1,4 +1,3 @@
-import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import type { CodexRequest } from "#providers/codexTurns.ts";
@@ -9,7 +8,8 @@ export const TIMEOUT = "Codex request timed out; preserve submission ownership";
 
 export function timeoutProvider(landed: boolean, priorTurn: boolean) {
 	const inputs: ContinueSession[] = [];
-	const state = { inputs, reads: 0, submissions: 0 };
+	const requests: { method: string; params: unknown }[] = [];
+	const state = { inputs, reads: 0, requests, submissions: 0 };
 	function decorateTransport(transport: typeof SessionTransport.Service): typeof SessionTransport.Service {
 		let accepted: SessionReceipt | undefined;
 		const startTurn: typeof transport.startTurn = (input) =>
@@ -25,16 +25,18 @@ export function timeoutProvider(landed: boolean, priorTurn: boolean) {
 			});
 		const rpc: CodexRequest = (method, params) =>
 			Effect.gen(function* () {
+				state.requests.push({ method, params });
 				const input = state.inputs[0];
 				if (input === undefined) {
 					return yield* Effect.die("Missing saved operation");
 				}
 				if (method === "turn/start") {
-					expect(params).toMatchObject({ clientUserMessageId: input.operationId, input: [{ text: input.prompt }], threadId: input.sessionId });
 					const receipt = yield* startTurn(input);
 					return { turn: { id: receipt.turnId } };
 				}
-				expect(method).toBe("thread/turns/list");
+				if (method !== "thread/turns/list") {
+					return yield* Effect.die(new Error(`Unexpected recovery request: ${method}`));
+				}
 				state.reads += 1;
 				return turnPage(priorTurn, accepted, input.operationId);
 			});

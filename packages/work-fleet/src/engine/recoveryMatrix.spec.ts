@@ -1,81 +1,118 @@
-import { readdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "@effect/vitest";
-import { DecisionCode } from "#DecisionCode.ts";
-import { decisionSites, sourceDecisionSites } from "#test/decisionSites.ts";
-import { postgresTests } from "#test/postgres.ts";
+import { expect } from "@effect/vitest";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { failureCode } from "#engine/failureCode.ts";
+import { capacityCase, capacityRecovery } from "#test/capacityRecovery.ts";
+import { daemonBoard, daemonRecovery } from "#test/daemonRecovery.ts";
 import { recoveryCapacityCases } from "#test/recoveryCapacityCases.ts";
-import { recoveryCaseGroups, recoveryCases } from "#test/recoveryCases.ts";
-import { recoveryDaemon } from "#test/recoveryDaemon.ts";
-import { recoveryStories } from "#test/recoveryStories.ts";
 
-const engine = dirname(fileURLToPath(import.meta.url));
-const root = dirname(engine);
-const scenarios = recoveryCases();
-const rows = [...scenarios, ...recoveryCapacityCases, ...recoveryStories];
-const covered = new Set([...scenarios, ...recoveryStories].flatMap((scenario) => scenario.sites));
-covered.add('engine/makeState.ts: step: "waiting"');
-function uncovered(sites: readonly string[]) {
-	return sites.filter((site) => !covered.has(site));
+const capacity = storyKit(capacityRecovery);
+const daemon = storyKit(daemonRecovery);
+
+for (const scenario of recoveryCapacityCases) {
+	capacity.it(
+		`${scenario.code}: ${scenario.name}`,
+		[capacityCase(scenario.call)],
+		function* ({
+			fleet,
+			prepareWork,
+			finishWorkers,
+			schedule,
+			restart,
+			launches,
+			publishedDecisions,
+			queueRejection,
+			providerHasRoom,
+			capacityClock,
+			quotaDenial,
+			quotaBlocked,
+			inventory,
+		}) {
+			const originalWorker = 1;
+			expect(inventory()).toEqual({ codes: [], obsoleteSites: [], sites: [] });
+			if (scenario.call === "quota") {
+				yield* prepareWork("one");
+				const worker = (yield* fleet.dispatch("one")).value.attempts[0]?.receipt;
+				finishWorkers();
+				quotaBlocked(true);
+				const waiting = (yield* fleet.reconcile("one")).value;
+				expect(failureCode(quotaDenial())).toBe("provider-quota-unavailable");
+				expect(waiting).toMatchObject({
+					attentionOwner: "automation",
+					blocker: "The provider budget needs to refresh before another operation can start.",
+					step: "reviewing",
+				});
+				expect(waiting.decision).toBeUndefined();
+				expect(waiting.attempts).toHaveLength(originalWorker);
+				yield* restart();
+				const resumed = (yield* fleet.reconcile("one")).value;
+				expect(resumed).toEqual({ ...waiting, updatedAt: resumed.updatedAt });
+				expect(resumed.updatedAt).toBeGreaterThanOrEqual(waiting.updatedAt ?? 0);
+				quotaBlocked(false);
+				yield* restart();
+				const completed = (yield* fleet.reconcile("one")).value;
+				expect(completed.step).toBe("done");
+				expect(completed.attempts[0]?.receipt).toEqual(worker);
+				const workerAndReviewer = 2;
+				expect(completed.attempts).toHaveLength(workerAndReviewer);
+				expect(publishedDecisions()).toEqual([]);
+				return;
+			}
+			yield* prepareWork("one");
+			yield* schedule();
+			const queued = (yield* fleet.get("one")).value;
+			expect(queueRejection()?.code).toBe("session-queue-full");
+			expect(queued).toMatchObject({
+				attentionOwner: "automation",
+				launchRetry: { rejectedAt: 100, rejections: 1, retryAt: 30_100 },
+				step: "queued",
+			});
+			expect(queued.attempts[0]).toMatchObject({ output: "Please wait until the provider has room for another operation.", status: "failed" });
+			expect(queued.decision).toBeUndefined();
+			providerHasRoom();
+			capacityClock(30_099);
+			yield* restart();
+			yield* schedule();
+			const backedOff = (yield* fleet.get("one")).value;
+			expect(backedOff.launchRetry).toEqual(queued.launchRetry);
+			expect(launches()).toHaveLength(originalWorker);
+			capacityClock(30_100);
+			yield* restart();
+			yield* schedule();
+			const accepted = (yield* fleet.get("one")).value;
+			expect(accepted.step).toBe("working");
+			expect(accepted.launchRetry).toBeUndefined();
+			expect(accepted.attempts.at(-1)?.receipt).toBeDefined();
+			const sessionsAfterRetry = scenario.call === "turn" ? originalWorker : originalWorker + 1;
+			expect(launches()).toHaveLength(sessionsAfterRetry);
+			if (scenario.call === "turn") {
+				expect(accepted.attempts.at(-1)?.receipt?.sessionId).toBe(queued.attempts[0]?.sessionId);
+			}
+			expect(publishedDecisions()).toEqual([]);
+		},
+	);
 }
-
-function uncoveredCodes(codes: readonly string[], cases = rows) {
-	const coveredCodes = new Set<string>(cases.map((scenario) => scenario.code));
-	return codes.filter((code) => !coveredCodes.has(code));
+for (const action of ["retry", "release"] as const) {
+	daemon.it(
+		`HTTP daemon closes before the ${action} answer and restarts against the same PostgreSQL records`,
+		[daemonBoard],
+		function* ({ stopDaemon }) {
+			const failedDaemon = yield* stopDaemon();
+			const { decision, dispatched, stopped } = failedDaemon;
+			expect(dispatched.decision).toBeUndefined();
+			expect(dispatched.step).toBe("working");
+			expect(stopped.step).toBe("waiting");
+			const responseId = failedDaemon.answerOffline(action);
+			const { resolved, fresh } = yield* failedDaemon.restart(action, responseId);
+			expect(resolved.responses).toContainEqual(expect.objectContaining({ action, boardAcknowledged: true, decisionId: decision.id, responseId }));
+			if (action === "release") {
+				expect(resolved.step).toBe("released");
+			} else {
+				const originalAndReplacement = 2;
+				expect(fresh.attempts).toHaveLength(originalAndReplacement);
+				expect(fresh.step).toBe("working");
+				expect(fresh.decision).toBeUndefined();
+			}
+		},
+		30_000,
+	);
 }
-
-describe("every published Fleet decision has a recovery", () => {
-	it("production decision creation sites exactly match the matrix", () => {
-		expect([...covered].sort((left, right) => left.localeCompare(right))).toEqual(
-			[...new Set(decisionSites(root))].sort((left, right) => left.localeCompare(right)),
-		);
-	});
-	it("a new code or direct stuck state fails the inventory guard", () => {
-		const added = sourceDecisionSites("engine/new.ts", 'state.decision(stored, "new-code", "New reason", "Inspect");');
-		expect(uncovered([...decisionSites(root), ...added])).toEqual(['engine/new.ts: "new-code"']);
-		expect(uncovered(sourceDecisionSites("engine/new.ts", 'save(stored, {step: "waiting"});'))).toEqual(['engine/new.ts: step: "waiting"']);
-	});
-	it("a wrapped decision creation call remains in the inventory", () => {
-		expect(sourceDecisionSites("engine/new.ts", 'state\n .decision(stored, "new-code", "New reason", "Inspect");')).toEqual([
-			'engine/new.ts: "new-code"',
-		]);
-	});
-	it("every code in the Schema union has a matrix row", () => {
-		expect(uncoveredCodes(DecisionCode.literals)).toEqual([]);
-	});
-	it("a missing code row fails the matrix guard", () => {
-		const missing = rows.filter((scenario) => scenario.code !== "reviewed-pr-ready");
-		expect(uncoveredCodes(DecisionCode.literals, missing)).toEqual(["reviewed-pr-ready"]);
-		for (const code of [
-			"session-queue-full",
-			"provider-quota-unavailable",
-			"session-active-turn",
-			"session-active-turn-exhausted",
-			"pr-conflicting",
-		]) {
-			expect(
-				uncoveredCodes(
-					DecisionCode.literals,
-					rows.filter((scenario) => scenario.code !== code),
-				),
-			).toEqual([code]);
-		}
-		expect(uncoveredCodes([...DecisionCode.literals, "new-code"])).toEqual(["new-code"]);
-	});
-	it("every case group has a spec file", () => {
-		const groups = Object.keys(recoveryCaseGroups).sort((left, right) => left.localeCompare(right));
-		const files = readdirSync(engine).filter((file) => file.endsWith("RecoveryMatrix.spec.ts"));
-		expect(files.sort((left, right) => left.localeCompare(right))).toEqual(groups.map((group) => `${group}RecoveryMatrix.spec.ts`));
-	});
-	for (const scenario of recoveryCapacityCases) {
-		postgresTests("live")(`${scenario.code}: ${scenario.name}`, scenario.run);
-	}
-	for (const action of ["retry", "release"] as const) {
-		postgresTests("live")(
-			`HTTP daemon closes before the ${action} answer and restarts against the same PostgreSQL records`,
-			() => recoveryDaemon(action),
-			30_000,
-		);
-	}
-});

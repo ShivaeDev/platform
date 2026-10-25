@@ -1,7 +1,9 @@
-import { Clock, Effect } from "effect";
+import { Clock, Effect, Layer } from "effect";
+import { DiagnosticsSources } from "@shivaedev/work-board/diagnostics/source.ts";
 import type { HostParts } from "#host/commands.ts";
+import { daemonLayer } from "#host/daemon.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
-import { readDaemonLayer, scheduledDaemonLayer } from "#test/readDaemon.ts";
+import { readDaemonLayer } from "#test/readDaemon.ts";
 
 export function hostScenarioParts(engine: HostStoryEngine, original: HostParts) {
 	const board = engine.board?.(engine.fixture) ?? original.board;
@@ -37,7 +39,8 @@ export function hostStoryDaemon(
 	handlerClock: Clock.Clock | undefined,
 	onSnapshot: () => void,
 ) {
-	return engine.scheduled
-		? scheduledDaemonLayer(engine.fixture.host, parts)
+	const layer = engine.scheduled
+		? daemonLayer(engine.fixture.host, parts, port)
 		: readDaemonLayer(engine.fixture.host, { onSnapshot, ...(handlerClock === undefined ? {} : { handlerClock }), parts, port });
+	return engine.diagnostics === undefined ? layer : layer.pipe(Layer.provide(Layer.succeed(DiagnosticsSources, engine.diagnostics)));
 }
