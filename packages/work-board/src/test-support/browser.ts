@@ -1,9 +1,9 @@
 import { Clock, Effect, type Scope } from "effect";
 import { Browser, type BrowserWindow } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
-import { type RunningBoard, rawGet } from "./board.ts";
-import { pageFetch } from "./pageFetch.ts";
-import type { RpcStream } from "./RpcStream.ts";
+import { type RunningBoard, rawGet } from "#test/board.ts";
+import { pageFetch } from "#test/pageFetch.ts";
+import type { RpcStream } from "#test/RpcStream.ts";
 
 export interface MermaidControl {
 	readonly calls: string[];
@@ -59,6 +59,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 	const html = response.location ? (yield* rawGet(board, activePath)).body : response.body;
 	const theme = yield* rawGet(board, THEME_ROUTE);
 	const browser = new Browser({
+		console: globalThis.console,
 		settings: {
 			enableJavaScriptEvaluation: true,
 			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, pageRequests, path: activePath, streams, theme }) },
