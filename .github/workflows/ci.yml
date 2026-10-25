@@ -149,7 +149,8 @@ jobs:
       contents: read
       actions: read
     name: tests (${{ matrix.shard }})
-    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    # Keep PostgreSQL test runners stable during the ubuntu-latest image migration.
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-24.04' }}
     timeout-minutes: 10
     strategy:
       fail-fast: false
