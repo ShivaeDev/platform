@@ -26,7 +26,7 @@ const datedRows = Effect.fnUntraced(function* (column: string) {
 		lockTimeout: "5 seconds",
 		table: ledger,
 	});
-	const rows = yield* makeRepository(DatedRow, { idColumn: "id", spanPrefix: "DatedRow", tableName });
+	const rows = yield* makeRepository(DatedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "DatedRow", tableName });
 	return {
 		rows,
 		seed: (createdAt: Date) => sql`insert into ${sql(tableName)} (id, ${sql(column)}) values (1, ${createdAt})`,

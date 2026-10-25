@@ -1,6 +1,7 @@
 import { Deferred, Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { mapped } from "#test/clientNames.ts";
 import { PullRequest, pull, syncOptions } from "#test/pullRequests.ts";
 import { hasPullRequests } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
@@ -102,4 +103,14 @@ postgres.it("update conditions combine encoded literals, lists, patterns and inc
 	});
 	expect(yield* rows.upsert(pull(14), { updateColumns: ["updated_at"], updateWhere: { title: "Revision 12" } })).toMatchObject({ _tag: "Updated" });
 	expect(yield* rows.upsert(pull(15), { updateColumns: ["updated_at"], updateWhere: { id: { in: [] } } })).toEqual({ _tag: "Unchanged" });
+});
+
+mapped.it("conditional upserts preserve typed outcomes with the default snake_case client", [], function* ({ rows }) {
+	const original = { createdAt: new Date("2026-10-25T12:00:00Z"), id: 1 };
+	const newer = { ...original, createdAt: new Date("2026-10-25T13:00:00Z") };
+	const options = { updateColumns: ["createdAt"], updateWhere: { createdAt: { lt: { excluded: "createdAt" } } } } as const;
+	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Inserted", row: original });
+	expect(yield* rows.upsert(newer, options)).toEqual({ _tag: "Updated", row: newer });
+	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Unchanged" });
+	expect(yield* rows.findById(1)).toEqual(newer);
 });

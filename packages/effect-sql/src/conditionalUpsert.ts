@@ -76,7 +76,7 @@ export function makeConditionalUpsert(
 				Effect.gen(function* () {
 					const row = yield* record(yield* encode(input));
 					const suffix = yield* clause(row, settings.updateColumns, settings.updateWhere);
-					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning *, (xmax = 0) as "__effect_sql_inserted"`;
+					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning *, (xmax = 0) as ${sql("effectSqlInserted")}`;
 				}),
 			);
 			return yield* Effect.forEach(statements, (statement) =>
@@ -87,7 +87,7 @@ export function makeConditionalUpsert(
 					if (row === undefined) {
 						return { _tag: "Unchanged" } as const;
 					}
-					return { _tag: row.__effect_sql_inserted ? "Inserted" : "Updated", row: yield* decode(row) } as const;
+					return { _tag: row.effectSqlInserted ? "Inserted" : "Updated", row: yield* decode(row) } as const;
 				}),
 			);
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.conditionalUpsert`));
