@@ -9,7 +9,7 @@ Authors record the packages and bumps they intend. The release tool carries that
 ```markdown
 ---
 "@acme/core": minor
-"@acme/client": patch
+"@acme/client": minor
 ---
 
 ### Added
@@ -18,13 +18,15 @@ Authors record the packages and bumps they intend. The release tool carries that
 ```
 
 ```text
-@acme/client: 0.4.0 -> 0.4.1 (patch)
+@acme/client: 0.4.0 -> 0.5.0 (minor)
 @acme/core: 0.2.3 -> 0.3.0 (minor)
 ```
 
 ## Use changesets
 
 Put changes in one repository-root `.changeset/` directory, with a unique `.md` filename per change. Frontmatter is a flat YAML mapping from package names to explicit `patch`, `minor` or `major` bumps; quoted and bare scalars and comments are supported. One file can name several packages. Under the frontmatter, write Markdown list entries beneath `### Added`, `### Changed`, `### Fixed` or `### Breaking`. Indented continuation lines belong to the preceding entry. `README.md` is reserved for directory instructions.
+
+The planner validates each named package's bump in each fragment before combining requests. Before 1.0, Added or Breaking entries require at least `minor`; Changed or Fixed entries alone allow `patch`. An insufficient bump fails with the fragment name, package, declared bump and required bump, even when another fragment requests a larger bump for the same package.
 
 The planner takes the highest requested bump for each package. Every published workspace dependent receives at least a patch, transitively, through dependencies, optional dependencies and peers. Private and development-only dependents do not receive an automatic release. A `major` bump on a `0.x` version fails: use `minor` for breaking changes before 1.0. Package versions must be stable `major.minor.patch` versions.
 

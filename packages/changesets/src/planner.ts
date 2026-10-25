@@ -24,12 +24,18 @@ function nextVersion(name: string, version: string, bump: Bump): string {
 function requestedBumps(packages: readonly WorkspacePackage[], sources: readonly Source[]): Map<string, Bump> {
 	const bumps = new Map<string, Bump>();
 	for (const source of sources) {
-		for (const [name, bump] of Object.entries(parseChangeset(source).packages)) {
+		const changeset = parseChangeset(source);
+		const needsMinor = changeset.entries.some((entry) => entry.section === "Added" || entry.section === "Breaking");
+		for (const [name, bump] of Object.entries(changeset.packages)) {
 			const pkg = packages.find((candidate) => candidate.manifest.name === name);
 			requireThat(pkg !== undefined, `${source.name}: unknown package ${name}; fix the name or include its directory in config.packages.`);
 			requireThat(!pkg?.manifest.private, `${source.name}: ${name} is private; remove it from release frontmatter.`);
 			if (pkg !== undefined) {
 				nextVersion(name, pkg.manifest.version, bump);
+				requireThat(
+					!(pkg.manifest.version.startsWith("0.") && needsMinor) || rank[bump] >= rank.minor,
+					`${source.name}: ${name} has a ${bump} bump but its sections require at least minor; use minor for Added or Breaking before 1.0.`,
+				);
 			}
 			const previous = bumps.get(name);
 			if (previous === undefined || rank[bump] > rank[previous]) {
