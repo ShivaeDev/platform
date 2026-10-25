@@ -1,10 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { PUBLISHED_REPORT } from "#host/reportBoard.ts";
+import { HEAD } from "#test/githubResult.ts";
 import { attachmentItems, REPORT_FILES } from "#test/reportAttachments.ts";
 
 const SOURCE = "---\nid: research\nkind: task\nfleet: approved\ndelivers: report\n---\n# Research\n";
-const OUTPUT = "The report stays private to Board.";
+const OUTPUT = `The report stays private to Board.\nFLEET_HEAD: ${HEAD}`;
 
 import { reportDownload } from "#test/hostReportTraits.ts";
 import { boardWork, host } from "#test/hostStory.ts";

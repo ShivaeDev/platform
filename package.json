@@ -23,8 +23,8 @@
 		"ready": "pnpm lint && pnpm test:orchestration && pnpm build && pnpm typecheck && pnpm test && pnpm test:package --prepare .ci/packages && pnpm test:package --archives .ci/packages && pnpm --filter @shivaedev/starter check:published --archives .ci/packages",
 		"setup": "pnpm install --frozen-lockfile && pnpm hooks && node --conditions=source packages/quality/src/cli.ts baseline install-driver && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
-		"test:ci": "node --conditions=source node_modules/vitest/vitest.mjs run script/ci/TestSequencer.test.ts script/ci/mainShardPlan.test.ts script/ci/mergeConsumerTimings.test.ts script/ci/mergeTestTimings.test.ts script/ci/shard.test.ts script/ci/shardCount.test.ts script/ci/testPackages.test.ts script/ci/timings.test.ts script/ci/workspaceCoverage.spec.ts --configLoader native",
-		"test:orchestration": "node --conditions=source --test script/ci/*.unit.test.ts script/release/*.unit.test.ts && pnpm test:ci && pnpm test:quality && node --conditions=source node_modules/vitest/vitest.mjs run script/package-check/*.test.ts script/starter-published/*.test.ts script/effect-test/environment.spec.ts script/release/repository.spec.ts script/release/pullRequest.spec.ts script/release/pullRequestStability.spec.ts script/release/pullRequestHold.spec.ts script/starter-published/portableCommits.spec.ts script/starter-published/packedGenerator.spec.ts --configLoader native",
+		"test:ci": "node --conditions=source node_modules/vitest/vitest.mjs run script/ci/TestSequencer.test.ts script/ci/mainShardPlan.test.ts script/ci/mergeConsumerTimings.test.ts script/ci/mergeTestTimings.test.ts script/ci/shard.test.ts script/ci/shardCount.test.ts script/ci/testPackages.test.ts script/ci/timings.test.ts script/ci/timings.unit.test.ts script/ci/workspaceCoverage.spec.ts --configLoader native",
+		"test:orchestration": "pnpm test:ci && pnpm test:quality && node --conditions=source node_modules/vitest/vitest.mjs run script/package-check/*.test.ts script/starter-published/*.test.ts script/effect-test/environment.spec.ts script/release/holdReason.unit.test.ts script/release/repository.spec.ts script/release/pullRequest.spec.ts script/release/pullRequestStability.spec.ts script/release/pullRequestHold.spec.ts script/starter-published/portableCommits.spec.ts script/starter-published/packedGenerator.spec.ts --configLoader native",
 		"test:package": "env -u NODE_OPTIONS node --conditions=source packages/heavy-lock/src/cli.ts -- node script/package-check.ts",
 		"test:quality": "node --conditions=source node_modules/vitest/vitest.mjs run script/quality --configLoader native",
 		"test:release": "node --conditions=source node_modules/vitest/vitest.mjs run script/release/*.slow.spec.ts --project slow --configLoader native",
@@ -46,7 +46,7 @@
 		"typescript": "catalog:compiler-api",
 		"vitest": "catalog:"
 	},
-	"packageManager": "pnpm@12.13.0+sha512.1e55719bf26e809dce5c5084fdebaa64efb3da9038ae5d68a9f8a68311f1a45841c8c3b76a37298c3b66f6bcc80409a9b7f33c78a7168a3e90fb65a5d8235ae4",
+	"packageManager": "pnpm@12.14.0+sha512.c18ba6d87993d3d164cb5e8948f32b2c06ee854487e06cd8d86781342fb3e5bb4634367034711e86802baa9c37bea906ce1929ad08d70884c97d801df13389a6",
 	"engines": {
 		"node": ">=24"
 	}

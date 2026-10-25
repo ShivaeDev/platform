@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test as it } from "node:test";
+import { it } from "vitest";
 import { decodeVitestTimingReport } from "./timings.ts";
 
 it("decodes Vitest's project results cache into project-aware timings", () => {

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.27.0 - 2026-10-25
+
+### Added
+
+- Look up other users' public names and images with `userProfiles(auth, userIds)` through Better Auth's adapter, without exposing email, role, session or account data.
+- `@shivaedev/platform`: `authDatabase` accepts optional `max` and `application_name` pool settings.
+
+### Changed
+
+- `@shivaedev/create-app`: Starter stories run the web host and worker with test-sized SQL, authentication and jobs pools.
+
 ## 0.26.0 - 2026-10-25
 
 ### Added

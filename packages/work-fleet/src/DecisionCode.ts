@@ -26,6 +26,7 @@ export const DecisionCode = Schema.Literals([
 	"provider-quota-unavailable",
 	"relevant-change",
 	"report-published",
+	"report-revision",
 	"report-too-large",
 	"result-identity-changed",
 	"reviewed-pr-ready",

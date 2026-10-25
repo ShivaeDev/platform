@@ -4,11 +4,13 @@ import { readBoundedBody } from "@shivaedev/platform/http-client/body.ts";
 import { ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
 import { type CachedResponse, responseCache } from "./cache.ts";
 import { GitHubTransportError } from "./errors.ts";
+import type { GitHubToken } from "./GitHubToken.ts";
 import { failRateLimited, type RateLimits } from "./rateLimits.ts";
 import { checkStatus, isUnchanged } from "./status.ts";
 
-export function requests(client: HttpClient.HttpClient, token: Option.Option<Redacted.Redacted<string>>, rates: RateLimits) {
+export function requests(client: HttpClient.HttpClient, token: GitHubToken["Service"], rates: RateLimits) {
 	const cache = responseCache();
+	const accessToken = Effect.isEffect(token) ? token : Effect.succeed(token);
 	return Effect.fn("GitHub.request")(function* (input: HttpClientRequest.HttpClientRequest, limit: number) {
 		const path = new URL(input.url).pathname;
 		const resource = rates.resource(path);
@@ -18,7 +20,7 @@ export function requests(client: HttpClient.HttpClient, token: Option.Option<Red
 		}
 		const key = `${input.url} ${input.headers.accept}`;
 		const cached = input.method === "GET" ? cache.get(key) : undefined;
-		const request = requestHeaders(input, cached, token);
+		const request = requestHeaders(input, cached, yield* accessToken);
 		const response = yield* client.execute(request).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
 		const observedResource = rates.observe(response);
 		if (isUnchanged(response) && cached !== undefined) {

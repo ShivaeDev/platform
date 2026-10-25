@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
+import ts from "typescript";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { projectConfig, projectFiles } from "./projectFiles.ts";
 
@@ -108,4 +109,35 @@ export const withWorktrees = projectKit.trait("configured", "a spec sits beside 
 		mkdirSync(dirname(target), { recursive: true });
 		writeFileSync(target, 'import { it } from "vitest";\nit("runs", () => {});\n');
 	}
+});
+
+export function withUnitIo(source: string) {
+	return projectKit.trait("configured", "a unit file reaches I/O", (root) => {
+		writeFileSync(join(root, "src/io.unit.test.ts"), `import { it } from "vitest";\n${source}\n`);
+		const external = join(root, "node_modules/hidden-io");
+		mkdirSync(external, { recursive: true });
+		writeFileSync(join(external, "package.json"), '{ "type": "module", "exports": "./index.js" }');
+		writeFileSync(join(external, "index.js"), 'import { readFileSync } from "node:fs"; export const read = () => readFileSync("package.json");');
+	});
+}
+
+export const sourceMappedGuard = projectKit.trait("configured", "the guard is compiled with source maps enabled", (root) => {
+	const source = new URL("../../../packages/quality/src/unitIoGuard.config.ts", import.meta.url);
+	writeFileSync(
+		join(root, "guard.js"),
+		ts.transpileModule(readFileSync(source, "utf8"), {
+			compilerOptions: { inlineSourceMap: true, inlineSources: true, module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ESNext },
+			fileName: source.pathname,
+		}).outputText,
+	);
+	writeFileSync(
+		join(root, "vitest.config.ts"),
+		projectConfig(
+			"",
+			`execArgv: ["--enable-source-maps"],
+projects: testProjects().projects.map(project => ({ ...project,
+	test: { ...project.test, ...(project.test.name === "pure" ? { setupFiles: ["./guard.js"] } : {}) }
+})),`,
+		).content,
+	);
 });

@@ -11,9 +11,9 @@ export function engineStatusVerbs(state: EngineStory, tell: (line: string) => vo
 		status: () =>
 			Effect.suspend(() => running(state).fleet.list()).pipe(Effect.map((records) => renderStatus(views(records.map(({ value }) => value))))),
 		storedSnapshot: () => readWaitStates({ namespace: STORAGE_NAMESPACE }),
-		watch: (follow = true, recorded?: RecoverySnapshots) => {
+		watch: (follow: boolean, expected: string, recorded?: RecoverySnapshots) => {
 			tell(`run watch${follow ? " --follow" : ""} against the persisted Fleet snapshots over HTTP`);
-			return watchRecovery(follow, recorded);
+			return watchRecovery(follow, expected, recorded);
 		},
 	};
 }

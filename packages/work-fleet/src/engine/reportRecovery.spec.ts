@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { describe, expect } from "vitest";
 import { Fleet } from "#fleet.ts";
 import { engine } from "#test/engineStory.ts";
+import { HEAD } from "#test/githubResult.ts";
 import { lostReportPublication } from "#test/lostReportPublication.ts";
 
 const reconcileReport = Fleet.pipe(Effect.flatMap((fleet) => fleet.reconcile("one")));
@@ -13,7 +14,7 @@ describe("report publication recovery", () => {
 			yield* prepareWork("one");
 
 			yield* fleet.dispatch("one");
-			workerReports("Archived findings.");
+			workerReports(`Archived findings.\nFLEET_HEAD: ${HEAD}`);
 			const failed = yield* fleet.reconcile("one");
 			const decision = failed.value.decision?.published;
 			if (decision === undefined) {
@@ -23,7 +24,7 @@ describe("report publication recovery", () => {
 			expect((yield* fleet.reconcile("one")).value.step).toBe("released");
 			const renewed = yield* prepareWork("one");
 			expect(renewed.value.step).toBe("queued");
-			expect(renewed.value.history?.[0]?.attempts[0]?.output).toBe("Archived findings.");
+			expect(renewed.value.history?.[0]?.attempts[0]?.output).toBe(`Archived findings.\nFLEET_HEAD: ${HEAD}`);
 			expect(launches()).toHaveLength(1);
 			expect(reportPublicationCount()).toBe(1);
 		},
@@ -49,7 +50,7 @@ describe("report publication recovery", () => {
 			yield* prepareWork("one");
 
 			yield* fleet.dispatch("one");
-			workerReports("# Complete findings\n\nEvidence.\n");
+			workerReports(`# Complete findings\n\nEvidence.\nFLEET_HEAD: ${HEAD}`);
 			const failed = yield* fleet.reconcile("one");
 			expect(failed.value.step).toBe("waiting");
 			const renewal = yield* prepareWork("one").pipe(Effect.flip);

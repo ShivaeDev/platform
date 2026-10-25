@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { test as it } from "node:test";
+import { it } from "vitest";
 import { releaseHoldReason } from "./holdReason.ts";
 
 const pull = { headRefOid: "current-head", mergeQueueEntry: null, state: "OPEN" };
