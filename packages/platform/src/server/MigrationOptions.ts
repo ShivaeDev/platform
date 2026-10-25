@@ -8,6 +8,7 @@ export interface MigrationOptions<R = never> {
 	readonly lockTimeout?: Duration.Input;
 	readonly mode?: "migrate" | "check" | "wait";
 	readonly pollInterval?: Duration.Input;
+	readonly progressInterval?: Duration.Input;
 	readonly table?: string;
 	readonly waitTimeout?: Duration.Input;
 }

@@ -26,3 +26,10 @@ export function withJobsSchema(version: "missing" | "older" | "current") {
 		}
 	});
 }
+
+export const pendingJobsSchema = migrationHost.trait("schema", "pending ledger migrations and a missing pg-boss schema", function* (state) {
+	const schema = `${state.table}_jobs`;
+	const sql = yield* SqlClient.SqlClient;
+	yield* Effect.addFinalizer(() => sql`drop schema if exists ${sql(schema)} cascade`.pipe(Effect.orDie));
+	state.migrations.components.push(pgBossSchema({ schema }));
+});

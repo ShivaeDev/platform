@@ -11,10 +11,9 @@ export function applicationWorker(config?: { readonly databaseUrl?: Redacted.Red
 		Effect.gen(function* () {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const pool = yield* authDatabase(databaseUrl);
-			yield* Effect.logInfo("Worker waiting for schema");
 			return workerModules(databaseUrl, config?.clientFactory).pipe(
 				Layer.tap(() => Effect.logInfo("Worker ready to take jobs")),
-				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait")).pipe(Layer.tap(() => Effect.logInfo("Worker schema current")))),
+				Layer.provideMerge(appDatabase(databaseOptions(pool, databaseUrl, "wait"))),
 			);
 		}),
 	).pipe(Layer.provide(otlpTracing));
