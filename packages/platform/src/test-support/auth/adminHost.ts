@@ -1,28 +1,33 @@
-import { type BetterAuthOptions, betterAuth } from "better-auth";
+import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { admin } from "better-auth/plugins";
-import { Duration, Effect, Layer } from "effect";
+import { Duration, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Migrator } from "effect/sql";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { appHost } from "#server/appHost.ts";
-import { authDatabase } from "#server/better-auth/mount.ts";
+import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
+import { countQueries } from "./countQueries.ts";
 
 export const startAdminHost = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
-	const pool = yield* authDatabase(database.url);
+	const poolScope = yield* Scope.make();
+	yield* Effect.addFinalizer(() => Scope.close(poolScope, Exit.void));
+	const pool = yield* authDatabase(database.url).pipe(Effect.provideService(Scope.Scope, poolScope));
+	const queries = countQueries(pool);
 	const options = {
 		"baseURL": "http://localhost:3000",
 		database: pool,
 		plugins: [admin(), authTestUtils()],
 		secret: "integration-only-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
+		user: { fields: { image: "avatar", name: "display_name" }, modelName: "members" },
 	} satisfies BetterAuthOptions;
 	yield* migratePostgres({
 		loader: Migrator.fromRecord({
@@ -31,7 +36,11 @@ export const startAdminHost = Effect.gen(function* () {
 		lockTimeout: "5 seconds",
 		table: "auth_migrations",
 	});
-	const auth = betterAuth(options);
+	const { auth } = yield* betterAuthMount(options);
+	yield* Effect.promise(async () => {
+		const context = await auth.$context;
+		await context.checkSchema?.();
+	});
 	const sessions = {
 		origin: () => true,
 		provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
@@ -50,7 +59,14 @@ export const startAdminHost = Effect.gen(function* () {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP server");
 	}
-	return { auth, baseUrl: `http://127.0.0.1:${server.address.port}`, headers: new Headers(), userId: "" };
+	return {
+		auth,
+		baseUrl: `http://127.0.0.1:${server.address.port}`,
+		headers: new Headers(),
+		queries,
+		stopStorage: Scope.close(poolScope, Exit.void),
+		userId: "",
+	};
 });
 
 export type AdminHost = Effect.Success<typeof startAdminHost>;
