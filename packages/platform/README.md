@@ -90,6 +90,8 @@ const routes = HttpRouter.add("POST", "/webhook", (request) =>
 
 RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
+Every response from the host's native RPC endpoint carries `Cache-Control: private, no-store`, including mixed public and authenticated batches, typed failures, transport rejections, body-read failures and streams. The host sets this at the outer response boundary without inspecting batch contents.
+
 For local tools, use `policy: "loopback"` with contracts that do not use session middleware to serve RPC without a session provider. The same guard applies. This policy does not use `TRUSTED_PROXY` or `config.trustedProxy`. Set `rpcPath` to choose another native RPC route; `/rpc` remains the default.
 
 Omit `migrations` to host an app without a database. This form creates no SQL pool and reads no `DATABASE_URL`; `AppHttpHostOptions` describes it. `AppHostOptions` requires migrations for database-backed hosts. A service that needs SQL still requires a SQL Layer. Provide `appDatabase` to the application’s service Layer when it owns database composition.
@@ -421,7 +423,7 @@ export const AdminServer = Admin.toLayer({
 
 Removing a role takes effect on the next call with the same session, as long as the provider reads the role from storage; keep Better Auth's cookie cache disabled. A live stream behind role middleware rechecks the role at each session revalidation and ends with `Forbidden` once the role is gone.
 
-Use `adminRoute(sessions)` for host HTTP routes. It resolves the session through the transport-header and Origin policy, checks the role with `requireAdmin`, and provides `Identity` and `SessionUser` to the handler. Signed-out callers receive 401, missing admin roles and refused Origins receive 403, and an `AuthUnavailable` session provider failure receives 503. Refused requests never run the handler. The handler's response and typed failures pass through unchanged.
+Use `adminRoute(sessions)` for host HTTP routes. It resolves the session through the transport-header and Origin policy, checks the role with `requireAdmin`, and provides `Identity` and `SessionUser` to the handler. Signed-out callers receive 401, missing admin roles and refused Origins receive 403, and an `AuthUnavailable` session provider failure receives 503. These rejections carry `Cache-Control: private, no-store` and never run the handler. The handler's response and typed failures pass through unchanged.
 
 ```ts
 import { Effect } from "effect";
@@ -437,6 +439,24 @@ const routes = HttpRouter.use((router) =>
 ```
 
 The guard accepts any HTTP method and path. A mount can accept it as a parameter using only `effect` and `effect/http` types; the mount does not need to import Platform.
+
+For an admin SPA, guard its HTML fallback as well as its endpoints and assets. Register a guarded `/admin/*` route in `appHost({ routes, assets: { root: "dist", spa: true }, ... })`; the native wildcard also matches `/admin` and takes precedence over the general static SPA route:
+
+```ts
+import { NodeHttpPlatform, NodeServices } from "@effect/platform-node";
+import { Effect, Layer } from "effect";
+import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";
+import { adminRoute } from "@shivaedev/platform/server/rpc-server/roles.ts";
+
+const routes = HttpRouter.use((router) => Effect.gen(function* () {
+  const spa = yield* HttpStaticServer.make({ root: "dist", spa: true });
+  yield* router.add("*", "/admin/*", adminRoute(sessions)(() =>
+    spa.pipe(Effect.catch(HttpServerRespondable.toResponse)),
+  ));
+})).pipe(Layer.orDie, Layer.provide(NodeHttpPlatform.layer), Layer.provide(NodeServices.layer));
+```
+
+The admin handler serves existing files under `dist/admin` and falls back to `dist/index.html` for unknown HTML paths. Other application routes and the public SPA stay outside this mount. Admin RPCs on the shared `/rpc` endpoint still declare `AuthenticatedAdmin`; the HTTP route guard protects the admin document, while native RPC middleware protects each operation.
 
 `withSessionUser(policy, headers, operation)` resolves the session through the existing transport-header and Origin policy path and provides `Identity` and `SessionUser` only around the supplied Effect. It is also the boundary used by `authenticatedUserLayer`. Both the guard and identity boundary use public provider data, without reading Better Auth's tables or internal services. Keep Better Auth's cookie cache disabled for database-backed role removal to take effect on the next request, as in the starter.
 
