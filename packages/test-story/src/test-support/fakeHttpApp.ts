@@ -1,8 +1,14 @@
 import { Effect, Exit, Schema, Scope } from "effect";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
+import { httpProbe } from "#test/httpProbe.ts";
 
 const routes = {
+	contents: {
+		path: "/repos/:owner/:repo/contents/:path*",
+		reply: ({ params }: { readonly params: Readonly<Record<string, string>> }) => ({ body: params }),
+	},
+	invalidRest: { path: "/invalid/:path*/tail", reply: () => ({ status: 200 }) },
 	items: { pages: [["paper", "ink"], ["pens"], ["staples"]], path: "/items" },
 	message: { method: "POST", path: "/messages", reply: () => ({ body: { saved: true }, status: 201 }) },
 	user: { path: "/users/:id", reply: ({ params }: { readonly params: Readonly<Record<string, string>> }) => ({ body: { id: params.id } }) },
@@ -53,8 +59,14 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 				close: () => Scope.close(scope, Exit.void),
 				failOnce: service.failOnce,
 				hold: service.hold,
+				probe: (path: string) =>
+					Effect.acquireRelease(
+						Effect.sync(() => httpProbe(`${service.url}${path}`)),
+						(client) => client.abort,
+					),
 				readPage: (page: number) =>
 					request(page === 1 ? "/items" : `/items?page=${page}`).pipe(Effect.flatMap(({ body }) => Schema.decodeUnknownEffect(HttpPage)(body))),
+				recordedRequests: () => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
 				request,
 				requests: () => service.requests.map(({ method, path, body }) => ({ body: body.toString(), method, path })),
 				url: () => service.url,

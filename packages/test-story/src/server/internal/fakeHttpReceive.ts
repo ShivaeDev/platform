@@ -1,5 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import type { FakeHttpRequest, FakeHttpRoute, FakeHttpServiceOptions } from "#fakeHttpService.ts";
+import type { FakeHttpRequestRecord, FakeHttpRoute, FakeHttpServiceOptions } from "#fakeHttpService.ts";
 import { fakeHttpAnswer } from "#internal/fakeHttpAnswer.ts";
 import type { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpSend } from "#internal/fakeHttpSend.ts";
@@ -10,14 +10,26 @@ function match(route: FakeHttpRoute, method: string, pathname: string) {
 	}
 	const pattern = route.path.split("/");
 	const segments = pathname.split("/");
-	if (pattern.length !== segments.length) {
+	const rest = pattern.at(-1)?.startsWith(":") && pattern.at(-1)?.endsWith("*");
+	if (rest ? segments.length < pattern.length : pattern.length !== segments.length) {
 		return;
 	}
+	return pathParams(pattern, segments);
+}
+
+function pathParams(pattern: string[], segments: string[]) {
 	const params: Record<string, string> = {};
 	for (const [index, part] of pattern.entries()) {
 		const segment = segments[index] ?? "";
 		if (part.startsWith(":")) {
-			params[part.slice(1)] = segment;
+			if (part.endsWith("*")) {
+				if (index !== pattern.length - 1 || !segment) {
+					return;
+				}
+				params[part.slice(1, -1)] = segments.slice(index).join("/");
+			} else {
+				params[part.slice(1)] = segment;
+			}
 		} else if (part !== segment) {
 			return;
 		}
@@ -28,7 +40,7 @@ function match(route: FakeHttpRoute, method: string, pathname: string) {
 function decodeParams(params: Record<string, string>) {
 	try {
 		for (const [name, value] of Object.entries(params)) {
-			params[name] = decodeURIComponent(value);
+			params[name] = value.split("/").map(decodeURIComponent).join("/");
 		}
 		return true;
 	} catch {
@@ -36,11 +48,18 @@ function decodeParams(params: Record<string, string>) {
 	}
 }
 
+function requestStatus(response: ServerResponse) {
+	if (response.writableFinished) {
+		return response.statusCode;
+	}
+	return response.destroyed ? "unanswered" : "pending";
+}
+
 export async function fakeHttpReceive(
 	incoming: IncomingMessage,
 	response: ServerResponse,
 	options: FakeHttpServiceOptions,
-	requests: FakeHttpRequest[],
+	requests: FakeHttpRequestRecord[],
 	controls: ReturnType<typeof fakeHttpControls>,
 	tell: (line: string) => void,
 ) {
@@ -57,13 +76,16 @@ export async function fakeHttpReceive(
 			chunks.push(Buffer.from(chunk));
 		}
 		const params = found?.params ?? {};
-		const request: FakeHttpRequest = {
+		const request: FakeHttpRequestRecord = {
 			body: Buffer.concat(chunks),
 			headers: incoming.headers,
 			method,
 			params,
 			path,
 			query: url.searchParams,
+			get status() {
+				return requestStatus(response);
+			},
 		};
 		requests.push(request);
 		tell(`fake HTTP received ${method} ${path}`);

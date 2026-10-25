@@ -48,6 +48,7 @@ export const scopedHttpApp = storyKit({
 			hold: service.hold,
 			releaseOnArrival: service.releaseOnArrival,
 			request,
+			requests: () => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
 			scriptFault: service.scriptFault,
 			stall: service.stall,
 		};

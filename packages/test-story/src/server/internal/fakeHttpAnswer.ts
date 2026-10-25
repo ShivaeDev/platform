@@ -24,7 +24,7 @@ export async function fakeHttpAnswer(
 ) {
 	const { method, path } = request;
 	controls.arrive(name, request, response);
-	if (!(await controls.pause(name, response))) {
+	if (!(await controls.pause(name, request, response))) {
 		return;
 	}
 	const before = controls.takeFault(name, request, "before");
@@ -33,7 +33,7 @@ export async function fakeHttpAnswer(
 		await fakeHttpStrike(response, before);
 		return;
 	}
-	let reply = before?.reply ?? pageReply(route, request);
+	let reply = before ? controls.reply(before.reply, request) : pageReply(route, request);
 	const after = before ? undefined : controls.takeFault(name, request, "after");
 	if (after) {
 		tell(`fake HTTP ${name} fault ${after.kind} after reply`);
@@ -41,7 +41,7 @@ export async function fakeHttpAnswer(
 			await fakeHttpStrike(response, after, reply);
 			return;
 		}
-		reply = after.reply;
+		reply = controls.reply(after.reply, request);
 	}
 	tell(`fake HTTP answered ${method} ${path} with ${reply.status ?? 200}`);
 	await fakeHttpSend(response, reply, controls.stallBody(name, request));
