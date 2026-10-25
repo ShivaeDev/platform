@@ -25,7 +25,11 @@ test.it(
 		}
 		expect(yield* sql`select work_id, admission_order, version from ${sql(`${namespace}_records`)} order by admission_order`).toEqual(before);
 		expect(yield* store.foreignReservations()).toEqual([{ areas: [], backlog: true, executing: false, owner: "external" }]);
-		expect(yield* store.operationEntries("operation")).toHaveLength(3);
+		expect(yield* store.operationEntries("operation")).toEqual([
+			{ version: expected[0]?.version, workId: "populated" },
+			{ version: expected[0]?.version, workId: "populated" },
+			{ version: expected[0]?.version, workId: "populated" },
+		]);
 		expect(yield* migrate(namespace)).toEqual([]);
 		expect(yield* store.list()).toEqual(expected);
 		const first = expected[0];

@@ -52,7 +52,15 @@ boardFolderStory.it(
 			expect((yield* Effect.result(board.acknowledgeDecision({ decision: receipt, disposition: "superseded", recordedAt: 1002 })))._tag).toBe(
 				"Failure",
 			);
-			expect(files.receipts()).toHaveLength(1);
+			expect(files.receipts().map((file) => boardApi.metadataParse(files.read(file)).fields.requestReceipt)).toEqual([
+				{
+					disposition: acknowledgement.disposition,
+					question: receipt.questionId,
+					recordedAt: acknowledgement.recordedAt,
+					response: answer.id,
+					reviewedRevision: receipt.revision,
+				},
+			]);
 			const closed = boardApi.metadataParse(files.read(receipt.sourcePath));
 			expect(closed.fields).toMatchObject({ attention: [{ state: "closed" }], status: "done" });
 			expect(closed.body).toBe(boardApi.metadataParse(source).body);
