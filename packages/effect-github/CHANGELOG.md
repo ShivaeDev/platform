@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-25
+
+### Added
+
+- Render untrusted text as literal Markdown text, code spans and table cells, and build row reports within a UTF-8 byte budget with a count of omitted rows.
+
 ## 0.3.0 - 2026-10-25
 
 ### Added
