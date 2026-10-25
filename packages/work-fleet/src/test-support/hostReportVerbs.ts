@@ -10,10 +10,12 @@ import { until } from "#test/cloudRestart.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { answerReport } from "#test/report.ts";
 import { reportAttachmentReadout } from "#test/reportAttachments.ts";
+import { reportHistoryVerbs } from "#test/reportHistory.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 
 export function hostReportVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		...reportHistoryVerbs(engine),
 		answerReport: (published: Parameters<typeof answerReport>[1], action: Parameters<typeof answerReport>[2]) => {
 			tell(`answer the report decision with ${action}`);
 			return answerReport(engine.fixture.host.boardDir, published, action);

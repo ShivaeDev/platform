@@ -2,6 +2,7 @@
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { VERSION } from "#server/packageInfo.ts";
 import { HOST, serveBoard } from "./serve.ts";
@@ -15,6 +16,17 @@ const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly home: Option.Option<string>;
 }) {
 	const path = yield* Path.Path;
+	if (import.meta.url.endsWith(".ts")) {
+		const cwd = yield* path.fromFileUrl(new URL("../../", import.meta.url));
+		yield* Effect.logInfo("Building the Work Board browser app from source…");
+		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+		const code = yield* spawner.exitCode(ChildProcess.make("pnpm", ["build:browser"], { cwd, stderr: "inherit", stdout: "inherit" }));
+		if (code !== 0) {
+			return yield* Effect.fail(
+				new Error("The browser build failed. Run pnpm --filter @shivaedev/work-board build:browser and resolve its errors before restarting."),
+			);
+		}
+	}
 	return yield* Layer.launch(
 		serveBoard({
 			fleetPort: input.fleetPort,

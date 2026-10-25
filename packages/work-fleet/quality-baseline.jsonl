@@ -64,7 +64,7 @@
 {"path":"packages/work-fleet/src/engine/missingTurnRecovery.spec.ts","rule":"tests/named-values","count":11}
 {"path":"packages/work-fleet/src/engine/missingTurnSafety.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/engine/missingTurnSafetyRecovery.spec.ts","rule":"tests/named-values","count":12}
-{"path":"packages/work-fleet/src/engine/missingTurnStatus.spec.ts","rule":"tests/named-values","count":3}
+{"path":"packages/work-fleet/src/engine/missingTurnStatus.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/engine/movedHeadDelivery.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/engine/movedHeadGuards.spec.ts","rule":"tests/named-values","count":1}
 {"path":"packages/work-fleet/src/engine/movedHeadRecovery.spec.ts","rule":"tests/named-values","count":3}

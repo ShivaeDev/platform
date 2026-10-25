@@ -26,6 +26,7 @@ const REPORT_INSTRUCTIONS = [
 	`- Use UTF-8 text attachments. For binary evidence, write a base64 text file with the file-edit tool and describe its encoding. List every promised attachment in the final report on its own line: ${REPORT_ATTACHMENT_MARKER} <path relative to ${REPORT_ATTACHMENT_DIRECTORY}>. Do not reuse files from earlier turns.`,
 	"- Read the root and package AGENTS.md and use read-only research to answer the approved task.",
 	"- Return the whole report as your final message, with evidence for each acceptance criterion and any remaining uncertainty.",
+	"- End the report with exactly one FLEET_HEAD: <full 40-character checked revision> line, using git rev-parse HEAD from the checkout you researched.",
 ].join("\n");
 
 // Codex Cloud cannot run startup steps before the worker receives its prompt.
@@ -45,7 +46,9 @@ export function workerPrompt(input: WorkerPrompt) {
 		"",
 		cloudStartup(input),
 		...(input.deliverable === "report"
-			? ["- Run `./script/update` with require_escalated before task work."]
+			? [
+					"- Fetch origin/main, check out that revision detached in the supplied checkout, then immediately run `./script/update` with require_escalated. Leave unrelated state alone.",
+				]
 			: [
 					`- Fetch origin/main, create ${input.branch} at that revision in the supplied checkout, then immediately run \`./script/update\` with require_escalated. Leave unrelated state alone.`,
 				]),
@@ -70,8 +73,15 @@ export function workerPrompt(input: WorkerPrompt) {
 	].join("\n");
 }
 
-export function reportPrompt(task: string): string {
-	return task.endsWith(REPORT_INSTRUCTIONS) ? task : [task, "", QUESTION_INSTRUCTIONS, "", REPORT_INSTRUCTIONS].join("\n");
+export function reportPrompt(task: string, baseRevision?: string): string {
+	const base =
+		baseRevision === undefined
+			? ""
+			: `Expected research base: ${baseRevision}. Fetch origin/main before research; verify HEAD is this commit or a descendant. If it is older or divergent, stop with a question instead of reporting findings.`;
+	if (task.endsWith(REPORT_INSTRUCTIONS)) {
+		return base && !task.includes(base) ? task.replace(REPORT_INSTRUCTIONS, `${base}\n\n${REPORT_INSTRUCTIONS}`) : task;
+	}
+	return [task, "", base, "", QUESTION_INSTRUCTIONS, "", REPORT_INSTRUCTIONS].join("\n");
 }
 
 export function withWorkerGuidance(prompt: string, guidance?: string): string {

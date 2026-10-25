@@ -55,9 +55,22 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 						...(coverage === true ? {} : coverage),
 					},
 				}),
-		project: ["unit", "dom"],
+		project: ["unit", "pure", "dom"],
 		projects: [
-			{ extends: true, test: { environment: "node", exclude: excluding(named("dom"), named("slow")), include: [named()], name: "unit" } },
+			{
+				extends: true,
+				test: { environment: "node", exclude: excluding(named("dom"), named("slow"), named("unit")), include: [named()], name: "unit" },
+			},
+			{
+				extends: true,
+				test: {
+					environment: "node",
+					exclude: excluding(),
+					include: [named("unit")],
+					name: "pure",
+					setupFiles: [fileURLToPath(import.meta.resolve("#unitIoGuard.config.ts"))],
+				},
+			},
 			{
 				extends: true,
 				test: {

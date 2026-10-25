@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import type { SqlClient } from "effect/sql";
 
-const tupleFilter = Symbol("effect-sql/tupleIn");
+export const tupleFilter = Symbol("effect-sql/tupleIn");
 type Row<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
 type Key<TModel extends Model.Any> = Extract<keyof Row<TModel>, string>;
 

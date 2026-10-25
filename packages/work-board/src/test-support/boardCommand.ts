@@ -9,7 +9,14 @@ export const boardCommand = Effect.fn("Story.boardCommand")(function* (engine: B
 	tell("the reader launches work-board for the project");
 	const child = spawn(
 		process.execPath,
-		["--conditions=source", fileURLToPath(new URL("../server/cli.ts", import.meta.url)), engine.notes.root, "--port", "0", ...args],
+		[
+			"--conditions=source",
+			engine.cliEntry ?? fileURLToPath(new URL("../../dist/server/cli.js", import.meta.url)),
+			engine.notes.root,
+			"--port",
+			"0",
+			...args,
+		],
 		{ stdio: ["ignore", "pipe", "pipe"] },
 	);
 	let output = "";

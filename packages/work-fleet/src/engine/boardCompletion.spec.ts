@@ -2,7 +2,8 @@ import { expect } from "vitest";
 import { boardEditRacesCompletion } from "#test/engineBoardTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { checksWithoutRepair, githubPullRequest, markdownWork, noChangeReported } from "#test/engineTraits.ts";
-import { REPORT } from "#test/githubResult.ts";
+import { HEAD, REPORT } from "#test/githubResult.ts";
+import { reportMain } from "#test/reportMain.ts";
 
 for (const released of [false, true]) {
 	engine.it(
@@ -71,13 +72,13 @@ engine.it(
 );
 engine.it(
 	"a report completion marks only Board bookkeeping fields and preserves its recorded report and cycle",
-	[markdownWork()],
+	[markdownWork(), reportMain],
 	function* ({ fleet, schedule, prepareWork, workerReports, boardBrief, writeBoardWork, readBoardWork }) {
 		const original = boardBrief().replace("fleet: approved", "fleet: approved\ndelivers: report");
 		writeBoardWork("one.md", original);
 		yield* prepareWork("one");
 		yield* fleet.dispatch("one");
-		workerReports(REPORT);
+		workerReports(`Findings.\nFLEET_HEAD: ${HEAD}`);
 		yield* schedule();
 		const done = yield* fleet.get("one");
 		expect(done.value.step).toBe("done");

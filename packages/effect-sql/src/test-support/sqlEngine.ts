@@ -10,6 +10,7 @@ import { makeRepository } from "#repository.ts";
 import { withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
+import { captureStatement } from "./captureStatement.ts";
 import { watchChanges } from "./changeObservation.ts";
 import { isCommitting } from "./commitObservation.ts";
 import type { compositeLedger } from "./compositeLedger.ts";
@@ -17,6 +18,7 @@ import type { compositeMeasurements } from "./compositeMeasurements.ts";
 import type { compositeReadings } from "./compositeReadings.ts";
 import type { conflictAccounts } from "./conflictAccounts.ts";
 import type { constrainedItems } from "./constrainedItems.ts";
+import { explain } from "./explain.ts";
 import { fixture } from "./fixture.ts";
 import type { generatedRows } from "./generatedRows.ts";
 import type { heldSeed } from "./heldSeed.ts";
@@ -24,6 +26,7 @@ import { holdAdvisoryLock } from "./holdAdvisoryLock.ts";
 import type { insertSelect } from "./insertSelect.ts";
 import type { invoiceLines } from "./invoiceLines.ts";
 import type { jsonReceipts } from "./jsonReceipts.ts";
+import type { latestRuns } from "./latestRuns.ts";
 import type { migrationTables } from "./migrationTables.ts";
 import type { notificationTable } from "./notificationTable.ts";
 import type { partialConflicts } from "./partialConflicts.ts";
@@ -55,6 +58,7 @@ export const sqlEngine = Effect.fnUntraced(function* () {
 		invoiceLines: fixture<Effect.Success<typeof invoiceLines>>(),
 		jsonReceipts: fixture<Effect.Success<typeof jsonReceipts>>(),
 		labels: fixture<Effect.Success<typeof labelsWithPrefix>>(),
+		latestRuns: fixture<Effect.Success<typeof latestRuns>>(),
 		lines: fixture<Effect.Success<typeof lines>>(),
 		logs,
 		migrations: fixture<Effect.Success<typeof migrationTables>>(),
@@ -83,11 +87,13 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		arraySamples: engine.arraySamples.get,
 		assertPostgresMigrations,
 		batchFixture: engine.batch.get,
+		captureStatement,
 		compositeLedger: engine.compositeLedger.get,
 		compositeMeasurements: engine.compositeMeasurements.get,
 		compositeReadings: engine.compositeReadings.get,
 		conflictAccounts: engine.conflictAccounts.get,
 		constrainedItems: engine.constrainedItems.get,
+		explain: (statement: readonly [string, readonly unknown[]]) => explain(engine.sql, statement),
 		generatedRows: engine.generatedRows.get,
 		heldSeed: engine.heldSeed.get,
 		holdAdvisoryLock,
@@ -97,6 +103,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		isCommitting,
 		jsonReceipts: engine.jsonReceipts.get,
 		labels: engine.labels.get,
+		latestRuns: engine.latestRuns.get,
 		makeRepository,
 		migratePostgres,
 		migrations: engine.migrations.get,

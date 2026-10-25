@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/quality",
-	"version": "0.36.3",
+	"version": "0.37.0",
 	"description": "Repository quality gate with typed rules, a baseline of existing debt and a registry of reasoned exceptions",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme",
 	"bugs": {
@@ -33,6 +33,7 @@
 		"./tsconfig/package.json": "./tsconfig/package.json",
 		"./package.json": "./package.json",
 		"./domEnvironment.config.ts": null,
+		"./unitIoGuard.config.ts": null,
 		"./imports/isTooling.ts": null,
 		"./rules/imports/bundleInputs.ts": null,
 		"./inventory/shadcnFolders.ts": null,
