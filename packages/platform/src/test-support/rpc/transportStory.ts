@@ -2,7 +2,7 @@ import { Effect, Option } from "effect";
 import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { localRpcGuard, loopbackOnly, sameOrigin } from "#server/rpc-server/local.ts";
+import { localRpcGuard, loopbackOnly, sameOrigin, trustedProxyRanges } from "#server/rpc-server/local.ts";
 import { transportHeaders } from "#server/rpc-server/transportHeaders.ts";
 
 export const forwarded = {
@@ -32,6 +32,11 @@ export const transportOptions = {
 					state.trust,
 				).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, request), Effect.provide(RpcSerialization.layerNdjson));
 				return { calls, status: response.status };
+			}),
+		normalizeTrust: () =>
+			Effect.sync(() => {
+				story.tell("the host normalizes proxy trust for equivalent address families");
+				return trustedProxyRanges(state.trust);
 			}),
 		page: () =>
 			Effect.gen(function* () {

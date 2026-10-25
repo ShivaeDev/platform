@@ -1,7 +1,10 @@
-import { expect, it } from "vitest";
-import { trustedProxyRanges } from "./trustedProxyRanges.ts";
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { transportOptions, trustedProxy } from "#test/rpc/transportStory.ts";
 
-it.each([
+const transport = storyKit(transportOptions);
+
+for (const [value, ranges] of [
 	[undefined, []],
 	["", []],
 	["127.0.0.1,invalid", []],
@@ -19,6 +22,8 @@ it.each([
 	["::/64", ["::/64", "0.0.0.0/0"]],
 	["::fffe:0:0/95", ["::fffe:0:0/95", "0.0.0.0/0"]],
 	[" 2001:db8::/32, 127.0.0.0/8 ", ["2001:db8::/32", "127.0.0.0/8"]],
-])("normalizes host proxy trust %s to equivalent address families", (value, ranges) => {
-	expect(trustedProxyRanges(value)).toEqual(ranges);
-});
+] as const) {
+	transport.it(`normalizes host proxy trust ${value} to equivalent address families`, [trustedProxy(value)], function* ({ normalizeTrust }) {
+		expect(yield* normalizeTrust()).toEqual(ranges);
+	});
+}
