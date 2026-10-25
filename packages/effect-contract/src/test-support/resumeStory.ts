@@ -1,10 +1,8 @@
 import { Effect, Ref } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import { expect } from "vitest";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resumeSignal } from "#resume.ts";
-import { eventually } from "./eventually.ts";
 import { localEngine } from "./localEngine.ts";
 import { syntheticNative, syntheticWindow } from "./resumeSources.ts";
 
@@ -33,7 +31,7 @@ export const resumeStory = storyKit({
 				browser.fire(type, visibility);
 			},
 			listeners: () => [browser.listeners.size, native.listeners.size],
-			loaded: (id: number) => eventually(() => expect(AsyncResult.isSuccess(registry.get(engine.api.get.query({ id })))).toBe(true)),
+			loaded: (id: number) => AtomRegistry.getResult(registry, engine.api.get.query({ id })),
 			reads: (id: number) => Effect.runSync(Ref.get(engine.server.reads)).filter((label) => label === `get:${id}`).length,
 			resume: () => {
 				story.tell("the native application resumes");
