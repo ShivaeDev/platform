@@ -16,32 +16,8 @@ fleetDaemon.it("streams each selected outcome once, including late records and m
 		stdout: "a done: All checks passed\nb waiting (waiting on orchestrator): Review failed Please inspect the diff\nc released",
 	});
 });
-fleetDaemon.it("without IDs snapshots only active work", [], function* (daemon) {
-	for (const [id, step] of [
-		["old", "done"],
-		["stuck", "waiting"],
-		["gone", "released"],
-		["a", "working"],
-		["b", "queued"],
-	] as const) {
-		yield* daemon.transition(id, step);
-	}
-	yield* daemon.follow("watch", []);
-	yield* daemon.awaitSnapshot();
-	expect(daemon.output()).toBe("");
-	yield* daemon.transition("a", "released");
-	yield* daemon.awaitOutput("a released\n");
-	yield* daemon.transition("new", "working");
-	yield* daemon.transition("b", "done");
-	expect(yield* daemon.exit()).toMatchObject({ code: 0, stdout: "a released\nb done" });
-});
 fleetDaemon.it("timeout preserves printed outcomes", [], function* (daemon) {
 	yield* daemon.transition("a", "released");
 	yield* daemon.follow("watch", ["a", "unknown"], { timeout: 0.2 });
 	expect(yield* daemon.exit()).toMatchObject({ code: 4, stderr: "watch: timed out waiting for Fleet work", stdout: "a released" });
-});
-fleetDaemon.it("an empty active set exits without printing terminal records", [], function* (daemon) {
-	yield* daemon.transition("new", "released");
-	yield* daemon.follow("watch", []);
-	expect(yield* daemon.exit()).toMatchObject({ code: 0, stdout: "" });
 });

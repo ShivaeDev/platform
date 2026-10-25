@@ -32,12 +32,14 @@ import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
+import { watchEventVerbs } from "#test/watchEventVerbs.ts";
 import { watchReview } from "#test/watchReview.ts";
 import { watchScheduler } from "#test/watchScheduler.ts";
 
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
 		...hostDatabaseVerbs(engine, tell),
+		...watchEventVerbs(engine, tell),
 		...watchReview(engine, tell),
 		...watchScheduler(engine, tell),
 		...hostBoardVerbs(engine, tell),

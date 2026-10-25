@@ -21,7 +21,7 @@ for (const fail of [false, true]) {
 			expect(daemon.providerLaunches()).toHaveLength(0);
 			expect((yield* daemon.cli(["status", "one"], { selection: "port" })).stdout).toContain("one  dispatch pending");
 			if (fail) {
-				yield* daemon.follow("watch", "watch", [], { interval: 0.1 });
+				yield* daemon.follow("watch", "watch", ["one"], { interval: 0.1 });
 				yield* daemon.awaitSnapshot();
 				expect(daemon.followerRunning("watch")).toBe(true);
 				expect(daemon.followerOutput("watch")).toBe("");
