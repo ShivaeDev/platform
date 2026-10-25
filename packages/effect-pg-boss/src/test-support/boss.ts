@@ -5,6 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { batchBudget } from "#test/batchBudget.ts";
 import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";
+import { connectionSecurity } from "#test/connectionSecurity.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 import { settlementProbe } from "#test/settlementProbe.ts";
@@ -34,6 +35,7 @@ export const boss = storyKit({
 		const runtime = pgBossRuntime(state, story.tell);
 		return {
 			...runtime,
+			...connectionSecurity(state, runtime),
 			...waitingVerbs(),
 			budgets: budgetVerbs(state.budget, runtime),
 			observeSettlement: settlementProbe,

@@ -1,4 +1,4 @@
-import { Deferred, Effect, Fiber, Logger, type LogLevel, References } from "effect";
+import { Deferred, Effect, Fiber, Logger, type LogLevel, Redacted, References } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Pool, PoolConfig } from "pg";
 import { vi } from "vitest";
@@ -66,12 +66,16 @@ export const authPool = storyKit({
 				yield* Deferred.await(acquired);
 				return Deferred.succeed(release, undefined).pipe(Effect.andThen(Fiber.join(holder)));
 			}),
+			connectionBackends: (name: string) => engine.sql<{ ssl: boolean }>`
+				select s.ssl from pg_stat_activity a join pg_stat_ssl s using (pid)
+				where a.datname = current_database() and a.application_name = ${name}`,
 			logs: () => engine.logs,
 			outstandingQueries: () => pool().totalCount + pool().waitingCount,
 			query: () => {
 				story.tell("query through the auth pool");
-				return Effect.promise(() => pool().query("select pg_advisory_xact_lock(72401)"));
+				return Effect.tryPromise(() => pool().query("select pg_advisory_xact_lock(72401)"));
 			},
+			serverTls: () => engine.sql<{ ssl: string }>`show ssl`.pipe(Effect.map(([row]) => row?.ssl === "on")),
 			terminateIdleBackend: Effect.fn("AppStory.terminateIdleBackend")(function* () {
 				const pid = yield* backend();
 				story.tell(`PostgreSQL terminates the idle auth backend ${pid}`);
@@ -90,13 +94,20 @@ export const authPool = storyKit({
 	},
 });
 
-export function openAuthPool(options?: Pick<PoolConfig, "max" | "application_name">) {
+export function openAuthPool(options?: Pick<PoolConfig, "max" | "application_name">, mode?: "require" | "unset") {
 	return authPool.trait("pool", "the Better Auth pool is open", function* (engine) {
 		const database = yield* PostgresTestDatabase;
 		const logger = Logger.make(({ logLevel, message }) => {
 			engine.logs.push({ level: logLevel, message });
 		});
-		engine.pool = yield* authDatabase(database.url, options).pipe(
+		const url = new URL(Redacted.value(database.url));
+		if (mode !== undefined) {
+			url.searchParams.delete("sslmode");
+			if (mode !== "unset") {
+				url.searchParams.set("sslmode", mode);
+			}
+		}
+		engine.pool = yield* authDatabase(Redacted.make(url.toString()), options).pipe(
 			Effect.provide(Logger.layer([logger])),
 			Effect.provideService(References.MinimumLogLevel, "Debug"),
 		);
