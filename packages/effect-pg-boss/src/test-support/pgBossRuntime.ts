@@ -1,6 +1,7 @@
 import { Context, Effect, Exit, Layer, Logger, References, Scope } from "effect";
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
+import { makeWorkerRelease, WorkerRelease } from "@shivaedev/effect-sql/WorkerRelease.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition } from "#definition.ts";
 import { makePgBoss, type PgBossLayerOptions } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
@@ -74,6 +75,7 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 		logs: state.logs,
 		native,
 		register: <const T extends readonly JobRegistration[]>(jobs: T) => boot(jobs).pipe(Effect.flatMap((runtime) => runtime.stop)),
+
 		seed: <const TPayload extends JobPayloadSchema>(
 			queue: QueueDefinition<string, TPayload>,
 			rows: readonly JobInsert<TPayload["Encoded"]>[],
@@ -91,5 +93,14 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 				});
 			}),
 		terminateIdle,
+		workerRelease: Effect.gen(function* () {
+			const gate = yield* makeWorkerRelease();
+			yield* gate.setActive(true);
+			return {
+				boot: <const T extends readonly JobRegistration[]>(jobs: T) => boot(jobs).pipe(Effect.provideService(WorkerRelease, gate.service)),
+				close: gate.setActive(false),
+				open: gate.setActive(true),
+			};
+		}),
 	};
 }

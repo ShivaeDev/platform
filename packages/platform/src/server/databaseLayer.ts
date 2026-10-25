@@ -6,9 +6,11 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { assertPostgresMigrations, postgresMigrationError } from "@shivaedev/effect-sql/assertPostgresMigrations.ts";
 import type { SqlNameTransforms } from "@shivaedev/effect-sql/clientOptions.ts";
+import { coordinateWorkerRelease } from "@shivaedev/effect-sql/coordinateWorkerRelease.ts";
 import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { type PendingPostgresMigrations, pendingPostgresMigrations } from "@shivaedev/effect-sql/pendingPostgresMigrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/effect-sql/postgresChanges.ts";
+import { WorkerRelease } from "@shivaedev/effect-sql/WorkerRelease.ts";
 import type { AppChanges, AppDatabaseOptions } from "#server/appHost.ts";
 import { databaseAddress } from "./databaseAddress.ts";
 
@@ -53,7 +55,12 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 	);
 	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
 	const live = Layer.effect(changesService, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer));
-	const base = Layer.merge(prepared, live);
+	const migrations = options.migrations;
+	const worker =
+		migrations.mode === "wait" && migrations.release !== undefined
+			? Layer.effect(WorkerRelease, coordinateWorkerRelease(migrations.release, migrations.pollInterval, migrations.table))
+			: Layer.empty;
+	const base = Layer.merge(worker.pipe(Layer.provideMerge(prepared)), live);
 	const changes = options.config?.changes;
 	return Layer.unwrap(
 		Effect.gen(function* () {
@@ -69,8 +76,11 @@ export function databaseLayer<R>(options: AppDatabaseOptions<R>, changesService:
 
 function prepareMigrations<R>(migrations: AppDatabaseOptions<R>["migrations"]) {
 	switch (migrations.mode) {
-		case "check":
-			return assertPostgresMigrations(migrations);
+		case "check": {
+			const schema = { ...migrations };
+			delete schema.release;
+			return assertPostgresMigrations(schema);
+		}
 		case "wait":
 			return waitForMigrations(migrations);
 		default:

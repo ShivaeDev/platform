@@ -9,7 +9,13 @@ import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 
 export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(function* (
 	state: MigrationState,
-	options: { mode?: "check" | "wait"; waitTimeout?: Duration.Input; pollInterval?: Duration.Input; progressInterval?: Duration.Input } = {},
+	options: {
+		mode?: "check" | "wait";
+		waitTimeout?: Duration.Input;
+		pollInterval?: Duration.Input;
+		progressInterval?: Duration.Input;
+		release?: string;
+	} = {},
 ) {
 	const events: unknown[] = [];
 	const logs: { level: string; message: readonly unknown[]; annotations: Record<string, unknown> }[] = [];
