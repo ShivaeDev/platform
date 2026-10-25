@@ -1,6 +1,8 @@
 import { Schema } from "effect";
+import type { EventKind } from "#events.ts";
 export class WatchError extends Schema.TaggedError<WatchError>()("WatchError", {
 	message: Schema.String,
+	retryAt: Schema.optionalKey(Schema.Number),
 }) {}
 export const Snapshot = Schema.Struct({
 	autoMerge: Schema.Boolean,
@@ -23,6 +25,7 @@ export const State = Schema.Struct({
 export type State = typeof State.Type;
 export interface Options {
 	readonly apiUrl: string;
+	readonly events?: readonly EventKind[];
 	readonly fleet: boolean;
 	readonly interval: number;
 	readonly numbers: readonly number[];

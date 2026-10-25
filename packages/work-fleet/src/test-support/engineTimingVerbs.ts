@@ -57,6 +57,7 @@ export function engineTimingVerbs(state: EngineStory, tell: (line: string) => vo
 		steerCalls: () => timing().steers,
 		steeredPollTimes: () => [...active().pollTimes],
 		steeredSubmissions: () => [...active().submissions],
+		steerRequests: () => structuredClone(timing().steerRequests ?? []),
 		waitForSteeredTurn: () => active().waiting,
 		waitForStoredRecord: (id: string, ready: (record: FleetRecord) => boolean) =>
 			Effect.gen(function* () {

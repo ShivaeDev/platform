@@ -1,0 +1,46 @@
+#!/usr/bin/env node
+import { execFileSync } from "node:child_process";
+import { chmodSync, existsSync, mkdirSync, watch, writeFileSync } from "node:fs";
+import { join } from "node:path";
+
+const root = process.cwd();
+const git = (...args) => execFileSync("git", args, { encoding: "utf8", env: { ...process.env, GIT_TRACE2_EVENT: join(root, "trace.jsonl") } });
+git("init", "--quiet");
+for (const [key, value] of Object.entries({
+  "user.name": "Packed Git",
+  "user.email": "packed@example.test",
+  "commit.gpgsign": "false",
+  "core.hooksPath": join(root, ".git/hooks"),
+  "maintenance.strategy": "gc",
+  "maintenance.autoDetach": "true",
+  "gc.autoDetach": "true",
+  "gc.auto": "1",
+})) git("config", key, value);
+mkdirSync("objects");
+for (let i = 0; i < 1500; i++) writeFileSync(join("objects", String(i)), `object-${i}`);
+git("add", "objects");
+execFileSync("mkfifo", ["release-git"]);
+writeFileSync(".git/hooks/pre-auto-gc", `#!/bin/sh
+ echo call >> .git/gc-calls
+ if [ "$(wc -l < .git/gc-calls)" -eq 2 ]; then
+   touch .git/gc-waiting
+   read release < release-git
+ fi
+`);
+chmodSync(".git/hooks/pre-auto-gc", 0o755);
+git("commit", "--quiet", "-m", "Packed consumer");
+// The second hook runs after maintenance detaches. Hold the real packer until cleanup begins.
+if (existsSync(".git/gc-calls")) {
+  await new Promise((resolve, reject) => {
+    const watcher = watch(".git", check);
+    const timeout = setTimeout(() => { watcher.close(); reject(new Error("Git did not reach its background gate")); }, 10000);
+    function check() {
+      if (!existsSync(".git/gc-waiting")) return;
+      watcher.close();
+      clearTimeout(timeout);
+      resolve();
+    }
+    check();
+  });
+}
+console.log("bin passed");

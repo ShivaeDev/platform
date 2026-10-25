@@ -44,10 +44,8 @@ export function editingNote() {
 	return screens.trait("screen", "the first note is open in the editor", function* (engine) {
 		engine.client = notesClient([{ id: 1, title: "First note", version: 0, wordCount: null }]);
 		yield* openRoute(engine, "/notes/1");
-		yield* Effect.promise(() =>
-			eventually(() =>
-				requireSetup(screenView(engine).container.querySelector("input")?.value === "First note", "The editor did not load First note"),
-			),
+		yield* eventually(() =>
+			requireSetup(screenView(engine).container.querySelector("input")?.value === "First note", "The editor did not load First note"),
 		);
 	});
 }

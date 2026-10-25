@@ -19,19 +19,19 @@ for (const { mode, url } of [
 		[routedScreen(attentionFixture(), url)],
 		function* ({ click, input, control, navigate, findElement, readFocus, readAttribute, back }) {
 			if (mode === "search") {
-				yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
+				yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
 				click("#search-open");
 				input('#search-dialog [role="combobox"]', "keyboard-review");
 				const result = '#search-dialog [role="option"] a[href$="#attention-request-keyboard-review"]';
-				yield* Effect.promise(() => eventually(() => expect(findElement(result, document)).not.toBeNull()));
+				yield* eventually(() => expect(findElement(result, document)).not.toBeNull());
 				click(result);
 			}
 			if (mode === "same-document") {
-				yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
+				yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
 				expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Details");
 				yield* Effect.promise(() => navigate(SOURCE));
 			}
-			yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("attention-request-keyboard-review")));
+			yield* eventually(() => expect(readFocus()?.id).toBe("attention-request-keyboard-review"));
 			const target = control("#attention-request-keyboard-review", HTMLElement);
 			expect(target.closest("[hidden]")).toBeNull();
 			expect(target.closest('[role="tabpanel"]')?.getAttribute("aria-labelledby")).toBe(
@@ -39,11 +39,9 @@ for (const { mode, url } of [
 			);
 			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Source");
 			yield* Effect.promise(() => navigate("/decision.md"));
-			yield* Effect.promise(() => eventually(() => expect(readAttribute("main", "data-route")).toBe("/decision.md")));
+			yield* eventually(() => expect(readAttribute("main", "data-route")).toBe("/decision.md"));
 			yield* Effect.promise(() => back());
-			yield* Effect.promise(() =>
-				eventually(() => expect(control("#attention-request-keyboard-review", HTMLElement).closest("[hidden]")).toBeNull()),
-			);
+			yield* eventually(() => expect(control("#attention-request-keyboard-review", HTMLElement).closest("[hidden]")).toBeNull());
 			expect(control('.item-context [role="tab"][aria-selected="true"]', HTMLElement).textContent).toBe("Source");
 		},
 	);

@@ -19,7 +19,7 @@ const routes = [
 ];
 for (const { kind, url, selector, text } of routes) {
 	screenStory.it(`renders ${kind} from typed queries`, [routedScreen(files, url, undefined)], function* ({ readText, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(selector)).toContain(text)));
+		yield* eventually(() => expect(readText(selector)).toContain(text));
 		expect(findElement("main")?.dataset.projection).toBe(kind);
 	});
 }
@@ -27,7 +27,7 @@ screenStory.it(
 	"updates answer card context while retaining answer text, node and caret",
 	[routedScreen({ ...files }, "/_board/item/task.fixture/", { writable: true })],
 	function* ({ refreshDocument, selectText, editFile, findElement, readText, readFocus, typeText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form textarea")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form textarea")).not.toBeNull());
 		const body = findElement<HTMLTextAreaElement>("#response-form textarea");
 		if (!body) {
 			throw new Error("Missing answer textarea");
@@ -36,7 +36,7 @@ screenStory.it(
 		selectText(body, 5, 7);
 		editFile("task.md", `${files["task.md"]}\nChanged reviewed context.\n`);
 		yield* Effect.promise(() => refreshDocument("/_board/item/task.fixture/"));
-		yield* Effect.promise(() => eventually(() => expect(readText("article.doc")).toContain("Changed reviewed context")));
+		yield* eventually(() => expect(readText("article.doc")).toContain("Changed reviewed context"));
 		expect(findElement("#response-form textarea")).toBe(body);
 		expect(body.value).toBe("Keep my response");
 		expect(readFocus()).toBe(body);
@@ -44,5 +44,5 @@ screenStory.it(
 	},
 );
 screenStory.it("shows Today for an empty workspace", [routedScreen({}, "/", undefined)], function* ({ readText }) {
-	yield* Effect.promise(() => eventually(() => expect(readText("h1")).toBe("Today")));
+	yield* eventually(() => expect(readText("h1")).toBe("Today"));
 });

@@ -29,7 +29,8 @@ for (const { config, env, accepted, host: bindAddress, name } of [
 			if (!accepted) {
 				const refused = yield* call("alice", false, headers);
 				expect(Result.isFailure(refused) && refused.failure._tag).toBe("RpcClientError");
-				expect(yield* post(headers)).toBe(403);
+				const status = yield* post(headers);
+				expect(status).toBe(403);
 				expect(lookups()).toEqual([]);
 				return;
 			}
@@ -43,10 +44,12 @@ for (const { config, env, accepted, host: bindAddress, name } of [
 				const refused = yield* call(token, reject, { origin: "https://app.example" });
 				expect(Result.isFailure(refused) && refused.failure).toBeInstanceOf(expected);
 			}
-			const before = lookups().length;
-			expect(yield* post({ origin: "https://elsewhere.example" })).toBe(403);
-			expect(yield* post({ "content-type": "application/json" })).toBe(403);
-			expect(lookups()).toHaveLength(before);
+			const before = [...lookups()];
+			for (const refusedHeaders of [{ origin: "https://elsewhere.example" }, { "content-type": "application/json" }]) {
+				const status = yield* post(refusedHeaders);
+				expect(status).toBe(403);
+			}
+			expect(lookups()).toEqual(before);
 		},
 	);
 }

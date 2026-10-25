@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { reviewedDecisionId, reviewedWorkFixture } from "#test/reviewedWorkFixture.ts";
@@ -12,7 +11,7 @@ screenStory.it(
 	"shows the work a Fleet decision reviewed as its title, criteria and description instead of raw front matter",
 	[routedScreen(reviewedWorkFixture(), decision, { home: "tasks/upload.md" })],
 	function* ({ findElement, findElements, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("article.doc")).toContain("Reviewed Board work")));
+		yield* eventually(() => expect(readText("article.doc")).toContain("Reviewed Board work"));
 		const heading = findElements("article.doc h2").find((section) => section.textContent === "Reviewed Board work");
 		const shown: Element[] = [];
 		for (let node = heading?.nextElementSibling; node && node.tagName !== "H2"; node = node.nextElementSibling) {
@@ -34,7 +33,7 @@ screenStory.it(
 	"keeps reviewed work without readable front matter as the agent wrote it",
 	[routedScreen(reviewedWorkFixture("Plain notes from the reviewer."), decision, { home: "tasks/upload.md" })],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("article.doc pre")?.trim()).toBe("Plain notes from the reviewer.")));
+		yield* eventually(() => expect(readText("article.doc pre")?.trim()).toBe("Plain notes from the reviewer."));
 	},
 );
 
@@ -42,7 +41,7 @@ screenStory.it(
 	"names untitled reviewed work by its id and shows no criteria it does not have",
 	[routedScreen(reviewedWorkFixture("---\nid: task.untitled\nkind: task\n---\nOnly a description."), decision, { home: "tasks/upload.md" })],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("article.doc blockquote")?.trim()).toBe("Only a description.")));
+		yield* eventually(() => expect(readText("article.doc blockquote")?.trim()).toBe("Only a description."));
 		expect(readText("article.doc")).toContain("task.untitled · task.untitled");
 		expect(readText("article.doc")).not.toContain("Criteria:");
 		expect(readText("article.doc pre")).toBeUndefined();

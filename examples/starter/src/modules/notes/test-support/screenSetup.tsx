@@ -31,10 +31,8 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 			engine.client.api.get.query({ id: 1 });
 		}
 		view.registry.mount(engine.client.api[LiveConnection].connection);
-		yield* Effect.promise(() =>
-			eventually(() =>
-				requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
-			),
+		yield* eventually(() =>
+			requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
 		);
 	}
 	const router = appRouter(
@@ -46,9 +44,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
-		yield* Effect.promise(() =>
-			eventually(() => requireSetup(engine.client.calls.includes(route === "/" ? "list" : "get"), "The route did not load its query")),
-		);
+		yield* eventually(() => requireSetup(engine.client.calls.includes(route === "/" ? "list" : "get"), "The route did not load its query"));
 	}
 });
 
@@ -101,14 +97,12 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 				});
 	engine.client.api.list.query();
 	view.registry.mount(engine.client.api[LiveConnection].connection);
-	yield* Effect.promise(() =>
-		eventually(() =>
-			requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
-		),
+	yield* eventually(() =>
+		requireSetup(view.registry.get(engine.client.api[LiveConnection].status).connection === "live", "The fixture live connection did not open"),
 	);
 	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
-	yield* Effect.promise(() => eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load")));
+	yield* eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load"));
 });
 
 export const openSession = Effect.fn("ScreenStory.openSession")(function* (engine: Screen) {
@@ -134,7 +128,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 				sessionId={id}
 			/>,
 		);
-		await eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load"));
+		await Effect.runPromise(eventually(() => requireSetup(engine.client.calls.includes("list"), "The notes list did not load")));
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));

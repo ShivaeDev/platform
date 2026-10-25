@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
@@ -8,10 +7,10 @@ screens.it(
 	"shows the protected route's typed Unauthorized failure and links to sign-in",
 	[signedOutNotesRoute()],
 	function* ({ closeScreen, consoleErrors, alert, signInLink, form, noteCalls }) {
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Sign in to view your notes.")));
-		yield* Effect.promise(() => eventually(() => expect(signInLink()).toBe("/sign-in")));
+		yield* eventually(() => expect(alert()).toBe("Sign in to view your notes."));
+		yield* eventually(() => expect(signInLink()).toBe("/sign-in"));
 		expect(form()).toBeNull();
-		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual([])));
+		yield* eventually(() => expect(noteCalls()).toEqual([]));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([
 			[
@@ -31,9 +30,9 @@ screens.it(
 		yield* expireSession();
 		yield* enter("Keep this draft");
 		yield* submit();
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Sign in to add a note.")));
-		yield* Effect.promise(() => eventually(() => expect(draft()).toBe("Keep this draft")));
-		yield* Effect.promise(() => eventually(() => expect(noteCalls()).toEqual(["list"])));
+		yield* eventually(() => expect(alert()).toBe("Sign in to add a note."));
+		yield* eventually(() => expect(draft()).toBe("Keep this draft"));
+		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},
@@ -44,8 +43,8 @@ screens.it(
 	[notesScreen("Could not sign out")],
 	function* ({ closeScreen, consoleErrors, click, signOutCalls, alert }) {
 		yield* click("Sign out");
-		yield* Effect.promise(() => eventually(() => expect(signOutCalls()).toEqual([undefined])));
-		yield* Effect.promise(() => eventually(() => expect(alert()).toBe("Could not sign out")));
+		yield* eventually(() => expect(signOutCalls()).toEqual([undefined]));
+		yield* eventually(() => expect(alert()).toBe("Could not sign out"));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

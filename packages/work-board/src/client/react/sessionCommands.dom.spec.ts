@@ -16,7 +16,7 @@ for (const kind of ["response", "handoff"] as const) {
 			`classifies ${kind} ${failure} and retries its retained identity over native HTTP`,
 			[sessionBoundary(command, silentWatch), sessionScreen(kind)],
 			function* ({ input, activate, submit, findElement, readText, setSessionOffline, editSessionFile, sessionCommands }) {
-				yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false)));
+				yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
 				if (kind === "handoff") {
 					input('[name="recipient"]', "local-reviewer");
 				}
@@ -30,8 +30,8 @@ for (const kind of ["response", "handoff"] as const) {
 					setSessionOffline(true);
 				}
 				submit(`#${kind}-form`);
-				yield* Effect.promise(() =>
-					eventually(() => expect(readText(`#${kind}-status`)).toContain(failure === "rejection" ? "Rejected: PreconditionFailed:" : "Uncertain:")),
+				yield* eventually(() =>
+					expect(readText(`#${kind}-status`)).toContain(failure === "rejection" ? "Rejected: PreconditionFailed:" : "Uncertain:"),
 				);
 				expect(readText(`#${kind}-status`)).toContain("Draft retained");
 				if (kind === "response" && failure === "rejection") {
@@ -44,9 +44,7 @@ for (const kind of ["response", "handoff"] as const) {
 				setSessionOffline(false);
 				yield* Effect.promise(() => activate(`#${kind}-preview`));
 				submit(`#${kind}-form`);
-				yield* Effect.promise(() =>
-					eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/")),
-				);
+				yield* eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/"));
 				expect(sessionCommands()).toMatchObject([
 					{ payload: { id: identity }, tag: command },
 					{ payload: { id: identity }, tag: command },
@@ -58,7 +56,7 @@ for (const kind of ["response", "handoff"] as const) {
 		`retains newer ${kind} input while saving the captured command`,
 		[sessionBoundary(command), sessionScreen(kind)],
 		function* ({ input, activate, submit, findElement, readText, pauseCommand, releaseCommand, sessionCommands, readSessionFiles, stored }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false)));
+			yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
 			if (kind === "handoff") {
 				input('[name="recipient"]', "local-reviewer");
 			}
@@ -66,24 +64,20 @@ for (const kind of ["response", "handoff"] as const) {
 			yield* Effect.promise(() => activate(`#${kind}-preview`));
 			pauseCommand();
 			submit(`#${kind}-form`);
-			yield* Effect.promise(() =>
-				eventually(() =>
-					expect(sessionCommands()).toMatchObject([
-						{
-							payload: expect.objectContaining(kind === "response" ? { body: "First reviewed direction" } : { goal: "First reviewed direction" }),
-							tag: command,
-						},
-					]),
-				),
+			yield* eventually(() =>
+				expect(sessionCommands()).toMatchObject([
+					{
+						payload: expect.objectContaining(kind === "response" ? { body: "First reviewed direction" } : { goal: "First reviewed direction" }),
+						tag: command,
+					},
+				]),
 			);
 			input(field, "New direction typed while saving");
 			expect(findElement(`#${kind}-submit`)).toHaveProperty("disabled", true);
 			yield* Effect.promise(() => releaseCommand());
-			yield* Effect.promise(() =>
-				eventually(() =>
-					expect(readText(`#${kind}-status`)).toContain(
-						kind === "response" ? "Your current draft remains unsaved" : "Your newer draft remains unsaved",
-					),
+			yield* eventually(() =>
+				expect(readText(`#${kind}-status`)).toContain(
+					kind === "response" ? "Your current draft remains unsaved" : "Your newer draft remains unsaved",
 				),
 			);
 			expect(draft.value).toBe("New direction typed while saving");
@@ -96,12 +90,10 @@ for (const kind of ["response", "handoff"] as const) {
 			}
 			yield* Effect.promise(() => activate(`#${kind}-preview`));
 			submit(`#${kind}-form`);
-			yield* Effect.promise(() =>
-				eventually(() =>
-					expect(
-						readSessionFiles(kind === "response" ? "responses" : "handoffs").some((source) => source.includes("New direction typed while saving")),
-					).toBe(true),
-				),
+			yield* eventually(() =>
+				expect(
+					readSessionFiles(kind === "response" ? "responses" : "handoffs").some((source) => source.includes("New direction typed while saving")),
+				).toBe(true),
 			);
 		},
 	);

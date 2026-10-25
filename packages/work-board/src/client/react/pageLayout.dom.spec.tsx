@@ -29,8 +29,8 @@ screenStory.it(
 			["/home.md", "Workspace notes"],
 		] as const) {
 			yield* Effect.promise(() => navigate(url));
-			yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url)));
-			yield* Effect.promise(() => eventually(() => expect(readText(PAGE_TITLE)).toBe(title)));
+			yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe(url));
+			yield* eventually(() => expect(readText(PAGE_TITLE)).toBe(title));
 			expect(findElements("#doc [data-page-header]").map((header) => readText("h1", header))).toEqual([title]);
 		}
 	},
@@ -67,7 +67,7 @@ for (const { name, files, url, open, actions } of [
 		`shows the actions on ${name} as links that navigate and buttons that act in place`,
 		[routedScreen(files, url, { writable: true })],
 		function* ({ accessible, click, findElement, findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(".item-summary")).not.toBeNull()));
+			yield* eventually(() => expect(findElement(".item-summary")).not.toBeNull());
 			click(open);
 			const controls = findElements(ACTION_CONTROLS).map((element) => [accessible(element).role, element.textContent?.trim()]);
 			for (const action of actions) {
@@ -89,8 +89,8 @@ screenStory.it(
 		openScreen(),
 	],
 	function* ({ findElement, readPassageTargets }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-source-problem]")).not.toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(readPassageTargets()).toContain("source-problems")));
+		yield* eventually(() => expect(findElement("[data-source-problem]")).not.toBeNull());
+		yield* eventually(() => expect(readPassageTargets()).toContain("source-problems"));
 	},
 );
 
@@ -120,7 +120,7 @@ screenStory.it(
 	"offers an answer card's links as links to their pages",
 	[routedScreen(readyDecisionFixture, "/guide.md", { home: "home.md" })],
 	function* ({ findByRole, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".answer-links")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".answer-links")).not.toBeNull());
 		expect(findByRole("link", "Open PR #395")?.getAttribute("href")).toBe("https://github.com/ShivaeDev/platform/pull/395");
 	},
 );

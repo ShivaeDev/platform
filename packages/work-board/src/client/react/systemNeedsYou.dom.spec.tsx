@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { health } from "#test/diagnostics.ts";
@@ -18,7 +17,7 @@ for (const [state, workspace, shown] of [
 		`shows Today's Needs you count on System instead of Fleet's maintainer count when ${state}`,
 		[screenFiles(fleetWorkspace, { home: "home.md" }), ...workspace, fleetHealth(health), screenRoute("/_board/system"), openScreen()],
 		function* ({ findElements, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(readText("[data-needs-you] strong")).toBe(shown)));
+			yield* eventually(() => expect(readText("[data-needs-you] strong")).toBe(shown));
 			expect(findElements('[data-source="fleet"] dt').map((term) => term.textContent)).toEqual([
 				"Running / concurrency cap",
 				"Queued",

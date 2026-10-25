@@ -15,8 +15,8 @@ screenStory.it(
 	"reads and tabs through a goal's content before its context",
 	[routedScreen(goal, "/goal.md")],
 	function* ({ findElement, findElements, readAttribute, readTabStops }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(LINKED_WORK)).not.toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/goal.md")));
+		yield* eventually(() => expect(findElement(LINKED_WORK)).not.toBeNull());
+		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/goal.md"));
 		const article = findElement("#doc article.doc");
 		const context = findElement("#doc .item-context");
 		expect(article && context && article.compareDocumentPosition(context)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
@@ -33,8 +33,8 @@ screenStory.it(
 	"names only the goal's main sections and its context as landmarks",
 	[routedScreen(goal, "/goal.md")],
 	function* ({ findElement, findElements, roles }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(LINKED_WORK)).not.toBeNull()));
-		yield* Effect.promise(() => eventually(() => expect(findElement('#doc .item-context [data-context-group="linked-from"]')).not.toBeNull()));
+		yield* eventually(() => expect(findElement(LINKED_WORK)).not.toBeNull());
+		yield* eventually(() => expect(findElement('#doc .item-context [data-context-group="linked-from"]')).not.toBeNull());
 		const landmarks = findElements("#doc :is(section, aside, nav, [role])")
 			.filter((element) => element.closest(".item-introduction, .answer-cards") === null)
 			.map((element) => roles.accessible(element))
@@ -54,7 +54,7 @@ screenStory.it(
 	"links the outline to stable goal section anchors and lands a shared link on Linked work",
 	[routedScreen(goal, "/goal.md#linked-work")],
 	function* ({ findElements, readFocus, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("linked-work")));
+		yield* eventually(() => expect(readFocus()?.id).toBe("linked-work"));
 		expect(readText("#navigation-status")).not.toContain("no longer in the document");
 		expect(findElements(".document-outline a").map((link) => link.getAttribute("href"))).toEqual(
 			expect.arrayContaining(["#progress", "#criteria", "#linked-work"]),
@@ -71,14 +71,14 @@ screenStory.it(
 		),
 	],
 	function* ({ back, click, findElement, findElements, focus, readFocus, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md")));
+		yield* eventually(() => expect(findElement<HTMLElement>("#doc")?.dataset.route).toBe("/notes/first.md"));
 		const next = findElements<HTMLAnchorElement>("#doc article.doc a").find((link) => link.textContent === "Next");
 		focus(next);
 		click(next);
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Next")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Next"));
 		yield* Effect.promise(back);
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("First")));
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.textContent).toBe("Next")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("First"));
+		yield* eventually(() => expect(readFocus()?.textContent).toBe("Next"));
 		expect(readFocus()?.closest("article.doc")).not.toBeNull();
 	},
 );
@@ -96,11 +96,11 @@ screenStory.it(
 		),
 	],
 	function* ({ findElement, navigate, readAttribute, readTabStops }) {
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/plain.md")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/plain.md"));
 		expect(findElement("#doc .item-context")).not.toBeNull();
 		expect(findElement('#doc .item-context [role="tablist"]')).toBeNull();
 		yield* Effect.promise(() => navigate("/notes/record.md"));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/record.md")));
+		yield* eventually(() => expect(readAttribute("#doc", "data-route")).toBe("/notes/record.md"));
 		expect(findElement('#doc .item-context [role="tab"][aria-selected="true"]')?.textContent).toBe("Details");
 		expect(readTabStops("#doc .item-context").filter((stop) => stop.getAttribute("role") === "tabpanel")).toEqual([]);
 	},

@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -11,7 +10,7 @@ for (const kind of ["response", "handoff"] as const) {
 		[sessionScreen(kind)],
 		function* ({ input, click, submit, findElement, readText, readSession, restoreSession, readSessionFiles }) {
 			const first = readSession();
-			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull()));
+			yield* eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull());
 			const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
 			if (kind === "handoff") {
 				input('[name="recipient"]', "local-reviewer");
@@ -19,13 +18,11 @@ for (const kind of ["response", "handoff"] as const) {
 			input(field, "Direction before replacement");
 			restoreSession();
 			expect(readSession()).not.toBe(first);
-			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false)));
+			yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
 			expect(findElement(field)).toHaveProperty("value", "Direction before replacement");
 			click(`#${kind}-preview`);
 			submit(`#${kind}-form`);
-			yield* Effect.promise(() =>
-				eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/")),
-			);
+			yield* eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/"));
 			if (kind === "response") {
 				expect(readText("#response-status")).toContain("not acceptance");
 			}

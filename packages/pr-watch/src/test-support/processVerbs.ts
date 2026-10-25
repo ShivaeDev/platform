@@ -4,7 +4,8 @@ import { fileURLToPath } from "node:url";
 import { Effect, Fiber } from "effect";
 import type { WatchError } from "#model.ts";
 import { program } from "#program.ts";
-import type { Engine } from "./engine.ts";
+import { cliVerbs } from "#test/cliVerbs.ts";
+import type { Engine } from "#test/engine.ts";
 export function processVerbs(engine: Engine, tell: (line: string) => void) {
 	let running: Fiber.Fiber<void, WatchError> | undefined;
 	function args() {
@@ -20,9 +21,10 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 		}
 	});
 	return {
-		cliOnce: (...numbers: number[]) =>
+		...cliVerbs(engine, tell, until),
+		cliRun: (...extra: string[]) =>
 			Effect.promise(() => {
-				tell(`the CLI observes PRs ${numbers.join(", ")} once`);
+				tell(`the CLI runs ${extra.join(" ")}`);
 				return new Promise<{
 					code: string | number;
 					stderr: string;
@@ -30,11 +32,23 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 				}>((done) => {
 					execFile(
 						process.execPath,
-						["--conditions=source", fileURLToPath(new URL("../cli.ts", import.meta.url)), ...args(), ...numbers.map(String), "--once"],
+						["--conditions=source", fileURLToPath(new URL("../cli.ts", import.meta.url)), ...args(), ...extra],
 						{ timeout: 5000 },
 						(error, stdout, stderr) => done({ code: error?.code ?? 0, stderr, stdout }),
 					);
 				});
+			}),
+		elapse: (milliseconds: number) =>
+			Effect.gen(function* () {
+				tell(`${milliseconds} milliseconds pass`);
+				yield* Effect.sleep(milliseconds);
+			}),
+		finish: () =>
+			Effect.gen(function* () {
+				if (running === undefined) {
+					throw new Error("Start the watcher before joining it");
+				}
+				return yield* Fiber.await(running);
 			}),
 		help: () => program(["--help"], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
 		interrupt: () =>
@@ -45,21 +59,21 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 				}
 				yield* Fiber.interrupt(running);
 			}),
-		once: () => program([...args(), "1", "--once"], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
+		once: (...extra: string[]) => program([...args(), "1", "--once", ...extra], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
 		requestsAfterPause: () =>
 			Effect.gen(function* () {
 				yield* Effect.sleep("50 millis");
 				return [...engine.requests];
 			}),
-		start: () =>
+		start: (...extra: string[]) =>
 			Effect.gen(function* () {
 				tell("the continuous fleet watcher starts");
 				running = yield* Effect.forkChild(
-					program([...args(), "--fleet", "--interval", "1"], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
+					program([...args(), "--fleet", "--interval", "1", ...extra], engine.emit, engine.diagnostic).pipe(Effect.provide(engine.context)),
 				);
 			}),
-		waitForDiagnostic: () => until("a diagnostic", () => engine.diagnostics.length > 0),
-		waitForEvents: (count: number) => until(`${count} emitted event lines`, () => engine.lines.length === count),
+		waitForEvents: (count: number) =>
+			until(`${count} emitted PR event lines`, () => engine.lines.filter((line) => JSON.parse(line).number !== undefined).length >= count),
 		waitForRequest: (suffix: string) =>
 			until(`a request ending in ${suffix}`, () => engine.requests.some((request) => request.path.endsWith(suffix))),
 	};

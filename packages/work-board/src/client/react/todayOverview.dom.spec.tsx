@@ -12,7 +12,7 @@ screenStory.it(
 	"opens Today with the exact human lane and one honest card per goal, linking the home document by its title",
 	[todayScreen(), screenFleet(todayFleetFixture()), openScreen()],
 	function* ({ openDetails, readInbox, readGoals, readText, readAttribute, findElements, findElement }) {
-		yield* Effect.promise(() => eventually(() => expect(readText("#doc h1")).toBe("Today")));
+		yield* eventually(() => expect(readText("#doc h1")).toBe("Today"));
 		expect(readAttribute('#primary-navigation [aria-current="page"]', "href")).toBe("/");
 		const inbox = yield* Effect.promise(readInbox);
 		const goals = yield* Effect.promise(readGoals);

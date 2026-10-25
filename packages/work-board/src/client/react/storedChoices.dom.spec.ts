@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { chromeFixture } from "#test/chromeFixture.ts";
@@ -57,14 +56,12 @@ screenStory.it(
 		}),
 	],
 	function* ({ findElements, readText, findElement }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(
-					findElements<HTMLDetailsElement>("#doc details")
-						.slice(0, 2)
-						.map((detail) => detail.open),
-				).toEqual([false, true]),
-			),
+		yield* eventually(() =>
+			expect(
+				findElements<HTMLDetailsElement>("#doc details")
+					.slice(0, 2)
+					.map((detail) => detail.open),
+			).toEqual([false, true]),
 		);
 		expect(readText('section[aria-label="Pinned"] a[href="/next.md"]')).toBe("Next");
 		expect(findElement('section[aria-label="Pinned"] a[href="/invalid.md"]')).toBeNull();

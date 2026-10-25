@@ -21,7 +21,7 @@ for (const kind of ["task", "question", "report"] as const) {
 			),
 		],
 		function* ({ findElements, readGoals }) {
-			yield* Effect.promise(() => eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(expectedTasks)));
+			yield* eventually(() => expect(findElements("[data-goal-item]")).toHaveLength(expectedTasks));
 			const goal = (yield* Effect.promise(readGoals))?.goals.find((item) => item.id === "project.example");
 			expect(goal?.linked).toBe(expectedTasks);
 			expect(goal?.counts.done).toBe(kind === "task" ? 2 : 1);

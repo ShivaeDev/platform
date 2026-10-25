@@ -1,5 +1,4 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/effect-react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -26,7 +25,7 @@ for (const query of ["", "?view=table", "?view=board"]) {
 			}),
 		],
 		function* ({ findElement, findElements, readText }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement('[data-item="task"]')).not.toBeNull()));
+			yield* eventually(() => expect(findElement('[data-item="task"]')).not.toBeNull());
 			expect(findElements("[data-item]").map((item) => item.getAttribute("data-item"))).toEqual(["task"]);
 			if (query) {
 				expect(readText(".work-total")).toContain("1 shown · 1 items");

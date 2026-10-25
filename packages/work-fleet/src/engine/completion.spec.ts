@@ -61,7 +61,7 @@ describe("Fleet completion path", () => {
 			const repairing = yield* fleet.reconcile("one");
 			expect(repairing.value.step).toBe("working");
 			expect(repairing.value.attempts.at(-1)?.prompt).toContain("Human context");
-			expect(launches()).toHaveLength(2);
+			expect(launches()).toEqual(["operation-1", "operation-2"]);
 			expect(mergedHeads()).toHaveLength(0);
 		},
 	);
@@ -101,7 +101,11 @@ describe("Fleet completion path", () => {
 			finishWorkers();
 			const rejected = yield* fleet.reconcile("one");
 			expect(rejected.value.decision?.reason).toContain("Independent review");
-			expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(1);
+			expect(
+				providerCalls()
+					.filter((call) => call.call === "turn")
+					.map(({ operationId }) => operationId),
+			).toEqual(["operation-1"]);
 			expect(mergedHeads()).toHaveLength(0);
 		},
 	);
@@ -118,7 +122,7 @@ describe("Fleet completion path", () => {
 			expect(mergedHeads()).toHaveLength(0);
 			finishWorkers();
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(reviewedHeads()).toHaveLength(1);
+			expect(reviewedHeads()).toEqual([reviewing.value.result?.head]);
 		},
 	);
 });

@@ -34,11 +34,16 @@ try {
   assert(address !== null && typeof address !== "string");
   const state = join(directory, "state.json");
   const args = ["--repo", "acme/project", "7", "--once", "--state", state, "--api-url", `http://127.0.0.1:${address.port}`];
-  const run = () => promisify(execFile)(resolve("node_modules/.bin/pr-watch"), args, { env: { ...process.env, GH_TOKEN: "fixture-token" } });
-  assert.equal((await run()).stdout, "");
+  const run = async () => {
+    const { stdout } = await promisify(execFile)(resolve("node_modules/.bin/pr-watch"), args, { env: { ...process.env, GH_TOKEN: "fixture-token" } });
+    return stdout.trim().split("\n").map((line) => JSON.parse(line));
+  };
+  assert.deepEqual((await run()).map((line) => line.event), ["stopped"]);
   closed = true;
-  assert.deepEqual(JSON.parse((await run()).stdout), { event: "merged", number: 7, branch: "feature", title: "Packed executable" });
-  assert.equal((await run()).stdout, "");
+  const merged = await run();
+  assert.deepEqual(merged[0], { event: "merged", number: 7, branch: "feature", title: "Packed executable" });
+  assert.equal(merged[1].event, "stopped");
+  assert.deepEqual((await run()).map((line) => line.event), ["stopped"]);
   assert.equal(JSON.parse(await readFile(state, "utf8")).prs["7"].merged, true);
 } finally {
   server.closeAllConnections();

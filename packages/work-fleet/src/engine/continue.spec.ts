@@ -1,5 +1,5 @@
 import { describe, expect } from "@effect/vitest";
-import { Effect, Result } from "effect";
+import { Effect } from "effect";
 import { views } from "#engine/views.ts";
 import { settled } from "#host/wait.ts";
 import { allAttempts } from "#model.ts";
@@ -65,33 +65,38 @@ describe("Fleet continuation against PostgreSQL", () => {
 			expect(observed.value.attempts[0]?.receipt).toEqual({ sessionId: "session-operation-1", turnId: "turn-operation-3" });
 			finishWorkers();
 			expect((yield* restarted.reconcile("one")).value.step).toBe("done");
-			expect(providerCalls().filter((call) => call.operationId === "operation-3")).toHaveLength(1);
-			expect(launches()).toHaveLength(3);
-			expect(allAttempts((yield* fleet.get("one")).value)).toHaveLength(4);
+			expect(providerCalls().filter((call) => call.operationId === "operation-3")).toMatchObject([{ call: "turn", operationId: "operation-3" }]);
+			expect(launches()).toEqual(["operation-1", "operation-2", "operation-4"]);
+			expect(allAttempts((yield* fleet.get("one")).value).map(({ operationId }) => operationId)).toEqual([
+				"operation-1",
+				"operation-2",
+				"operation-3",
+				"operation-4",
+			]);
 		},
 	);
 
 	isolatedEngine.it(
 		"refuses running and released work without submitting another turn",
 		[humanMergeRequired()],
-		function* ({ providerOperationCount, finishWorkers, prepareWork, respond, fleet }) {
+		function* ({ providerOperations, finishWorkers, prepareWork, respond, fleet }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			expect(yield* fleet.continue("one", "Still running").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-			expect(providerOperationCount()).toBe(1);
+			expect(providerOperations()).toEqual(["operation-1"]);
 			finishWorkers();
 			const stopped = yield* fleet.reconcile("one");
 			const decisionId = stopped.value.decision?.id ?? "missing";
 			yield* fleet.resolve("one", decisionId, respond(decisionId, "release"));
 			expect(yield* fleet.continue("one", "Released").pipe(Effect.flip)).toMatchObject({ _tag: "Forbidden" });
-			expect(providerOperationCount()).toBe(2);
+			expect(providerOperations()).toEqual(["operation-1", "operation-2"]);
 		},
 	);
 
 	isolatedEngine.it(
 		"concurrent continuation requests reserve exactly one turn",
 		[noChangeReported()],
-		function* ({ providerOperationCount, finishWorkers, prepareWork, fleet }) {
+		function* ({ providerOperations, finishWorkers, prepareWork, fleet }) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			finishWorkers();
@@ -99,9 +104,9 @@ describe("Fleet continuation against PostgreSQL", () => {
 			const results = yield* Effect.all([fleet.continue("one", "First"), fleet.continue("one", "Second")].map(Effect.result), {
 				concurrency: "unbounded",
 			});
-			expect(results.filter(Result.isSuccess)).toHaveLength(1);
-			expect(providerOperationCount()).toBe(3);
-			expect((yield* fleet.get("one")).value.attempts).toHaveLength(1);
+			expect(results.map((result) => result._tag).sort()).toEqual(["Failure", "Success"]);
+			expect(providerOperations()).toEqual(["operation-1", "operation-2", "operation-3"]);
+			expect((yield* fleet.get("one")).value.attempts).toMatchObject([{ operationId: "operation-3", role: "repair" }]);
 		},
 	);
 });

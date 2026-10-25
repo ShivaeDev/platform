@@ -20,7 +20,7 @@ for (const wholeFileRevision of [false, true]) {
 				writeBoardWork,
 				replaceStoredRecord,
 				providerCalls,
-				boardReceipts,
+				boardReceiptRecords,
 				foreignReservations,
 			}) {
 				const original = boardBrief().replace("kind: task", "kind: task\nstatus: draft\nnext_action: Implement the work.");
@@ -52,7 +52,7 @@ for (const wholeFileRevision of [false, true]) {
 					expect(preserved.value.releaseReason).toBe("Board status is done");
 					expect(preserved.value.decision).toBeUndefined();
 					expect(preserved.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: active.value.decision?.published }]);
-					expect(boardReceipts()).toHaveLength(1);
+					expect(boardReceiptRecords()).toMatchObject([{ disposition: "superseded", question: active.value.decision?.published?.questionId }]);
 					return;
 				}
 				expect(preserved.value).toMatchObject({

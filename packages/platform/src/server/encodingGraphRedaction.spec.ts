@@ -3,8 +3,6 @@ import { declarationOrder, flattenedEncoding, unionEncoding } from "#test/app-ho
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
-const HTTP_OK = 200;
-
 for (const [key, value] of [
 	["wireContact", "private contact"],
 	["alternateContact", "alternate private contact"],
@@ -14,7 +12,7 @@ for (const [key, value] of [
 			`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { value }, tag: "unionFailure" })}\n`,
 			false,
 		);
-		expect(response.status).toBe(HTTP_OK);
+		expect(response.status).toBe(200);
 		expect(response.body).toContain('"_tag":"Fail"');
 		expect(response.body).toContain(`"${key}":"<redacted>"`);
 		expect(response.body).not.toContain(value);
@@ -31,7 +29,7 @@ for (const declaration of ["schema", "host"] as const) {
 				`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { value }, tag: "flattened" })}\n`,
 				false,
 			);
-			expect(response.status).toBe(HTTP_OK);
+			expect(response.status).toBe(200);
 			expect(response.body).toContain('"_tag":"Fail"');
 			expect(response.body).toContain('"wireContact":"<redacted>"');
 			expect(response.body).toContain('"wireVisible":"<redacted>"');
@@ -61,7 +59,7 @@ for (const order of ["first", "last"] as const) {
 				["lastLink", "wireChainedContact"],
 			]) {
 				const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: tag, payload: { value }, tag })}\n`, false);
-				expect(response.status).toBe(HTTP_OK);
+				expect(response.status).toBe(200);
 				expect(response.body).toContain('"_tag":"Fail"');
 				expect(response.body).toContain(`"${key}":"<redacted>"`);
 				expect(response.body).toContain('"visible":"<redacted>"');

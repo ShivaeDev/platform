@@ -954,6 +954,9 @@ importers:
       '@shivaedev/effect-form':
         specifier: workspace:*
         version: link:../effect-form
+      '@shivaedev/effect-test':
+        specifier: workspace:*
+        version: link:../effect-test
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
@@ -976,9 +979,6 @@ importers:
       '@shivaedev/effect-sql':
         specifier: workspace:*
         version: link:../effect-sql
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
       '@shivaedev/effect-test-sql':
         specifier: workspace:*
         version: link:../effect-test-sql
@@ -1067,6 +1067,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)
+      '@shivaedev/effect-service':
+        specifier: workspace:*
+        version: link:../effect-service
       '@shivaedev/effect-test':
         specifier: workspace:*
         version: link:../effect-test

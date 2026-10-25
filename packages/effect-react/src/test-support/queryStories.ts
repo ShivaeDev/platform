@@ -5,6 +5,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { QueryOptions } from "#client/resultState.ts";
 import { finishQuery, queryRequests, queryView, type Unavailable } from "./queryView.ts";
+import { screenWarnings } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 
 interface State {
@@ -23,6 +24,7 @@ export const queries = storyKit(
 		"query screen",
 		(): State => ({ requests: queryRequests() }),
 		(state, screen) => ({
+			click: (label: string) => screen.act(`click ${label}`, () => view(state).click(label)),
 			finish: (...args: Parameters<typeof finishQuery>) => screen.act(`query responds: ${JSON.stringify(args[1])}`, () => finishQuery(...args)),
 			invalidate: () => screen.act("invalidate reports", () => view(state).invalidate(state.requests.invalidation)),
 			nativeResult: () => {
@@ -54,6 +56,7 @@ export const queries = storyKit(
 					}
 					view(state).registry.set(state.native, result);
 				}),
+			type: (name: string, value: string) => screen.act(`type ${name}: ${value}`, () => view(state).type(name, value)),
 		}),
 	),
 );
@@ -63,5 +66,12 @@ export function queryScreen(options: QueryOptions = {}, nativeSuccess?: string) 
 		state.native =
 			nativeSuccess === undefined ? undefined : Atom.make<AsyncResult.AsyncResult<string, Unavailable>>(AsyncResult.success(nativeSuccess));
 		state.view = yield* Effect.promise(() => queryView(root, state.native ?? state.requests.queries("first"), options));
+	});
+}
+
+export function queryFeedbackScreen(defect?: Error) {
+	return queries.trait("screen", "query feedback inside an application shell and error boundary", function* ({ screen, state }) {
+		const root = yield* screen.open(null, defect ? { onCaughtError: screenWarnings.expectCaughtError((error) => error === defect) } : undefined);
+		state.view = yield* Effect.promise(() => queryView(root, state.requests.queries("first"), {}, true));
 	});
 }

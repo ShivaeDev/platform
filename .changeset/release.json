@@ -3,154 +3,96 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "admin-pages.md",
-				"text": "---\n\"@shivaedev/admin\": minor\n---\n\n### Added\n\n- Declare admin pages with native Effect contracts protected by `AuthenticatedAdmin`, including generated change subscriptions. Merge pages into one registry with unique ids, paths and RPC tags, and register one typed handler Layer per page for the existing RPC host.\n"
+				"name": "action-completion.md",
+				"text": "---\n\"@shivaedev/effect-react\": minor\n---\n\n### Added\n\n- `useAction(runtime, run, options?)` runs optional `onSuccess(value, input)` and `onFailure(error, input)` callbacks inside each command invocation using the latest committed callbacks. Native atoms retain execution, interruption and aggregate state; `concurrent: true` allows overlapping commands. Bound commands keep their own invalidation without waiting for refetches, Unauthorized failures request one session recheck per invocation, and session replacement discards outgoing feedback. The existing atom overload remains available.\n"
 			},
 			{
-				"name": "board-client-startup.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Build browser assets before starting the Board from source so checkout runs serve the current client. Failed pages show RPC error tags and messages, or a reload hint when the browser and server disagree on the response shape.\n"
+				"name": "github-pull-request-writes.md",
+				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- Upsert sticky pull-request comments by hidden marker across comment pages, optionally matching an author login.\n- Create check runs for a head SHA and move them through in progress to completed with a conclusion and output through Schema-typed requests and responses.\n"
 			},
 			{
-				"name": "board-story-client-isolation.md",
-				"text": "---\n\"@shivaedev/work-board\": patch\n---\n\n### Fixed\n\n- Keep parallel Board stories from rebuilding the shared browser assets while readers load them.\n"
+				"name": "pr-watch-event-health.md",
+				"text": "---\n\"@shivaedev/pr-watch\": minor\n---\n\n### Added\n\n- Select PR transitions with `--events KIND,...`; reject unknown kinds at startup with the valid choices.\n- Print unfiltered JSON health lines for heartbeats, errors, quota cooldowns and polling stops on stdout.\n\n### Fixed\n\n- Keep long quota-paced waits visible with interval heartbeats and the next poll time instead of silently sleeping.\n- Exit non-zero after a failed round instead of swallowing the error and retrying indefinitely; retain successful snapshots and report rate-limit retry times.\n- Keep rate-limit logs out of the CLI's JSON-line stdout stream.\n"
 			},
 			{
-				"name": "bump-matches-sections.md",
-				"text": "---\n\"@shivaedev/changesets\": patch\n---\n\n### Fixed\n\n- Reject each pre-1.0 package's patch bump when a changeset contains Added or Breaking notes. Check, plan and apply report the fragment, package, declared bump and required minor bump before combining release requests.\n"
+				"name": "quality-named-values-codes.md",
+				"text": "---\n\"@shivaedev/quality\": minor\n\"@shivaedev/create-app\": patch\n---\n\n### Changed\n\n- `tests/named-values` now accepts zero and status or exit codes.\n- Generated apps' stories assert observed items instead of numeric aliases.\n"
 			},
 			{
-				"name": "fleet-github-http.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Changed\n\n- Fleet reads GitHub over HTTP through effect-github, using `GH_TOKEN`, `GITHUB_TOKEN`, or the existing `gh auth token` login.\n- Secondary GitHub rate limits without a retry time back off from one minute, doubling up to fifteen minutes until a successful response resets the wait.\n"
-			},
-			{
-				"name": "github-app-auth.md",
-				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- Authenticate GitHub REST requests as an App installation with built-in RS256 signing, repository installation lookup, and cached installation tokens shared across concurrent requests until their refresh point.\n- Verify webhook signatures against raw bytes with HMAC SHA-256 and a constant-time comparison before decoding the delivery with the caller's Schema. Signature and App authentication failures stay typed and exclude credentials from errors and telemetry.\n\n### Breaking\n\n- `GitHubToken` may now contain a lazy Effect as well as a static Option. Consumers reading the service directly must resolve it with `Effect.isEffect(value) ? yield* value : value` before inspecting the Option. Existing `Layer.succeed(GitHubToken)` providers and `GitHubToken.fromEnv` need no changes.\n"
-			},
-			{
-				"name": "github-paged-policy.md",
-				"text": "---\n\"@shivaedev/effect-github\": minor\n---\n\n### Added\n\n- GitHub paged reads accept a caller policy before each request and expose the observed resource for a path.\n"
-			},
-			{
-				"name": "pinned-group-index-walk.md",
-				"text": "---\n\"@shivaedev/effect-sql\": patch\n---\n\n### Changed\n\n- `latestPerGroup` reads each pinned group through its index and stops after `limit` rows.\n"
-			},
-			{
-				"name": "pr-watch-github-client.md",
-				"text": "---\n\"@shivaedev/pr-watch\": minor\n---\n\n### Changed\n\n- Send GitHub reads, queue-confirmation writes, conditional requests and Link pagination through effect-github. Keep polling slowdown and cooldown scheduling in the watcher, using shared resource observations and rate-limit retry instants. Permission failures retain the saved snapshot without imposing a quota cooldown.\n\n### Breaking\n\n- Provide effect-github’s `GitHub.layer` and `GitHubToken.fromEnv` when composing `GitHubHttp.layer`. Remove `Options.token` and the token arguments to `argumentsFor`, `program` and `GitHubHttp` methods; configure authentication through `GitHubToken` instead. `GitHubHttp.get` and `post` return decoded bodies, and `list` collects paginated bodies. Replace `httpResponse` helpers and `quota.observeBudget`/`Budget` with effect-github; `pollDelay` now accepts its rate-limit observations and an optional retry instant.\n"
-			},
-			{
-				"name": "quality-git-excludes.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- Skip untracked files ignored through git's `info/exclude` or `core.excludesFile` during directory discovery, including in linked worktrees, while continuing to check tracked files.\n"
-			},
-			{
-				"name": "report-current-main.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Report workers fetch and research current main, receive the expected base commit, and report their checked revision. Fleet persists that revision and raises a decision instead of delivering reports from an older, divergent or unidentified checkout.\n"
-			},
-			{
-				"name": "runner-fixture-assertions.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Fixed\n\n- `tests/no-expect-in-support` no longer reports test files that a nested Vitest run executes: unimported test-support files that register tests at module top level.\n"
-			},
-			{
-				"name": "sorted-allow-scripts.md",
-				"text": "---\n\"@shivaedev/quality\": patch\n---\n\n### Changed\n\n- Use sort-package-json 4.1.0 for package manifest sorting.\n"
-			},
-			{
-				"name": "typed-grouped-reports.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n---\n\n### Added\n\n- Repositories run typed grouped aggregates with model-derived group columns, numeric and boolean summaries, filters, ordering and limits.\n"
-			},
-			{
-				"name": "unit-io-guard.md",
-				"text": "---\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- Run `.unit` test and spec files in a default `pure` Node project whose runtime guard rejects file-system, network, process, worker and `fetch` calls, including I/O hidden in dependencies. Errors name the unit file and call. Ordinary Node files remain in `unit`, and `--project slow` keeps selecting slow tests alone.\n"
-			},
-			{
-				"name": "worker-release-handoff.md",
-				"text": "---\n\"@shivaedev/effect-sql\": minor\n\"@shivaedev/effect-pg-boss\": minor\n\"@shivaedev/platform\": minor\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- effect-sql records the database release after successful migrations and coordinates worker drain with typed PostgreSQL heartbeat rows.\n- effect-pg-boss pauses fetching while the database belongs to another release, finishes active jobs, and resumes when its release owns the database again.\n- Platform migration options accept an optional `release` for deployment migration and worker readiness.\n- Generated workers step aside for a newer release and drain on SIGTERM, with queue expiry, stop timeout and Railway draining configured together.\n"
+				"name": "session-contract-keys.md",
+				"text": "---\n\"@shivaedev/effect-contract\": minor\n\"@shivaedev/work-board\": minor\n---\n\n### Added\n\n- Declare `keyScope: \"session\"` on a contract and bind it with `bind(Api, Client, { registry })`. Its query keys, successful-command invalidations, live hints and reconciliation use that session registry's scope. `List` and `Item` retain their shapes and item/list/wildcard semantics; `readKeys`, `invalidationKeys`, `makeLiveServer.stream` and `live` accept contextual scope resolution. Server adapters receive the `KeyScope` annotation and must resolve session scopes from request-local authenticated identity.\n- Session-scoped automatic subscriptions track mounted query references per registry and release them when queries unmount or the registry is disposed.\n\n### Breaking\n\n- The reserved `<contract>.$changes` payload is now `{ queries: [{ query: \"get\", payload: { id: 1 } }] }`, typed and decoded with the contract's declared query payload schemas. Custom clients must replace `{ keys }` with declared query references; payloadless queries use `{ query: \"list\", payload: undefined }`. Subscription handlers must resolve these references with `queryKeys(Api.declaration.queries, queries)` or the RPC's `ChangesReads` annotation before calling `makeLiveServer.stream`. `changesRpc` now requires both the contract name and its query declarations. No raw-key subscription endpoint remains.\n\n- Board's handoff and response RPC contracts use distinct `work-board-handoffs` and `work-board-responses` namespaces so merging contracts preserves each declared subscription schema. Custom RPC clients must replace the `work-board.` prefix for handoff and response operations with the corresponding namespace; operation names and payloads stay the same.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "minor",
+				"bump": "patch",
 				"directory": "packages/admin",
-				"from": "0.0.0",
+				"from": "0.1.0",
 				"name": "@shivaedev/admin",
-				"to": "0.1.0"
+				"to": "0.1.1"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/changesets",
-				"from": "0.1.2",
-				"name": "@shivaedev/changesets",
-				"to": "0.1.3"
+				"directory": "packages/create-app",
+				"from": "0.15.0",
+				"name": "@shivaedev/create-app",
+				"to": "0.15.1"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/create-app",
-				"from": "0.14.1",
-				"name": "@shivaedev/create-app",
-				"to": "0.15.0"
+				"directory": "packages/effect-contract",
+				"from": "0.12.0",
+				"name": "@shivaedev/effect-contract",
+				"to": "0.13.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/effect-github",
-				"from": "0.1.0",
+				"from": "0.2.0",
 				"name": "@shivaedev/effect-github",
-				"to": "0.2.0"
+				"to": "0.3.0"
 			},
 			{
 				"bump": "minor",
-				"directory": "packages/effect-pg-boss",
-				"from": "0.17.0",
-				"name": "@shivaedev/effect-pg-boss",
-				"to": "0.18.0"
-			},
-			{
-				"bump": "minor",
-				"directory": "packages/effect-sql",
-				"from": "0.18.0",
-				"name": "@shivaedev/effect-sql",
-				"to": "0.19.0"
+				"directory": "packages/effect-react",
+				"from": "0.13.0",
+				"name": "@shivaedev/effect-react",
+				"to": "0.14.0"
 			},
 			{
 				"bump": "patch",
-				"directory": "packages/effect-test-sql",
-				"from": "0.9.0",
-				"name": "@shivaedev/effect-test-sql",
-				"to": "0.9.1"
-			},
-			{
-				"bump": "minor",
 				"directory": "packages/platform",
-				"from": "0.27.0",
+				"from": "0.28.0",
 				"name": "@shivaedev/platform",
-				"to": "0.28.0"
+				"to": "0.28.1"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/pr-watch",
-				"from": "0.1.2",
+				"from": "0.2.0",
 				"name": "@shivaedev/pr-watch",
-				"to": "0.2.0"
+				"to": "0.3.0"
 			},
 			{
 				"bump": "minor",
 				"directory": "packages/quality",
-				"from": "0.37.0",
+				"from": "0.38.0",
 				"name": "@shivaedev/quality",
-				"to": "0.38.0"
+				"to": "0.39.0"
 			},
 			{
-				"bump": "patch",
+				"bump": "minor",
 				"directory": "packages/work-board",
-				"from": "0.30.10",
+				"from": "0.30.11",
 				"name": "@shivaedev/work-board",
-				"to": "0.30.11"
+				"to": "0.31.0"
 			},
 			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.17.11",
+				"from": "0.17.12",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.17.12"
+				"to": "0.17.13"
 			}
 		]
 	}

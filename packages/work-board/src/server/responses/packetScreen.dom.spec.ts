@@ -11,13 +11,8 @@ screenStory.it(
 	"lists the packet questions and says answering is turned off in read-only mode",
 	[routedScreen({ "proposal.md": questionnaireSource }, URL, { home: undefined, writable: false })],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElements("#answer-card-direction [data-prompt]").map((prompt) => prompt.getAttribute("data-prompt"))).toEqual([
-					"display",
-					"checks",
-				]),
-			),
+		yield* eventually(() =>
+			expect(findElements("#answer-card-direction [data-prompt]").map((prompt) => prompt.getAttribute("data-prompt"))).toEqual(["display", "checks"]),
 		);
 		const card = findElement("#answer-card-direction");
 		expect(findElements("form, input, textarea, select, button", card)).toEqual([]);
@@ -29,15 +24,13 @@ screenStory.it(
 	"retains the readable questionnaire when its request is closed",
 	[routedScreen({ "proposal.md": questionnaireSource.replace("state: open", "state: closed") }, URL, { home: undefined, writable: true })],
 	function* ({ findElement, findElements }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElements(".questionnaire-option").map((option) => option.textContent?.trim())).toEqual([
-					"Latest reply — compact, with older replies behind a link.",
-					"Full history — keep earlier direction visible.",
-					"Back/forward keeps the selected response.",
-					"Reload restores the reading context.",
-				]),
-			),
+		yield* eventually(() =>
+			expect(findElements(".questionnaire-option").map((option) => option.textContent?.trim())).toEqual([
+				"Latest reply — compact, with older replies behind a link.",
+				"Full history — keep earlier direction visible.",
+				"Back/forward keeps the selected response.",
+				"Reload restores the reading context.",
+			]),
 		);
 		expect(findElement("#answer-card-direction")).toBeNull();
 		expect(findElement(".questionnaire-answer")).toBeNull();
@@ -54,7 +47,7 @@ for (const state of ["open", "closed"]) {
 			}),
 		],
 		function* ({ findElement, findElements, readAttribute }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("#answer-card-direction [data-prompt=display]")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("#answer-card-direction [data-prompt=display]")).not.toBeNull());
 			expect(findElement("#answer-card-direction [data-prompt=checks]")).toBeNull();
 			if (state === "closed") {
 				expect(findElement("#answer-card-verification")).toBeNull();
@@ -78,16 +71,14 @@ screenStory.it(
 		}),
 	],
 	function* ({ findElements, input, check, activate, submit, readText, readResponses }) {
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(findElements("fieldset[data-prompt]").map((prompt) => prompt.getAttribute("data-prompt"))).toEqual(["display", "checks"]),
-			),
+		yield* eventually(() =>
+			expect(findElements("fieldset[data-prompt]").map((prompt) => prompt.getAttribute("data-prompt"))).toEqual(["display", "checks"]),
 		);
 		check("history");
 		input('[data-prompt="checks"] textarea', "None of these; test keyboard use instead.");
 		yield* Effect.promise(() => activate("#response-preview"));
 		submit("#response-form");
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-history")).toContain("test keyboard use instead")));
+		yield* eventually(() => expect(readText("#response-history")).toContain("test keyboard use instead"));
 		expect(readText("#response-history")).toContain("Chose Full history");
 		const saved = yield* Effect.promise(() => readResponses("investigation.choices", "direction"));
 		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([
@@ -103,13 +94,13 @@ screenStory.it(
 	"retains text but clears changed template selections and exposes the earlier packet",
 	[routedScreen({ "proposal.md": questionnaireSource }, URL, { home: undefined, writable: true })],
 	function* ({ findElement, input, check, editFile, refreshDocument, readText, readAttribute, submit, activate }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		check("history");
 		const rationale = input('[data-prompt="display"] textarea', "Keep this rationale.");
 		yield* Effect.promise(() => activate("#response-preview"));
 		editFile("proposal.md", questionnaireSource.replace("Full history", "Changed meaning of the same option"));
 		yield* Effect.promise(() => refreshDocument());
-		yield* Effect.promise(() => eventually(() => expect(readText("#response-status")).toContain("Source changed")));
+		yield* eventually(() => expect(readText("#response-status")).toContain("Source changed"));
 		expect(readAttribute('[data-choice="history"]', "aria-checked")).toBe("false");
 		expect(rationale.value).toBe("Keep this rationale.");
 		expect(readText("#response-draft-recovery")).toContain("history");

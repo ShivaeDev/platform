@@ -37,13 +37,13 @@ for (const { kind, query, field, url, source: content, writable } of cases) {
 		`retains ${query} ${field} draft, source notice and caret through query refresh and reload`,
 		[screenWorkspace("forms-fixture"), routedScreen(files, url, { writable })],
 		function* ({ findElement, readText, readFocus, typeText, selectText, editFile, refreshQuery, browserEvent, closeScreen, renderRouter }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull()));
+			yield* eventually(() => expect(findElement(`#${kind}-form`)).not.toBeNull());
 			const original = findElement<HTMLTextAreaElement>(selector);
 			typeText(original, "Direction in progress");
 			selectText(selector, 4, 9, "backward");
 			editFile("task.md", `${content}\nChanged source context.\n`);
 			yield* Effect.promise(() => refreshQuery(query, { url }));
-			yield* Effect.promise(() => eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed")));
+			yield* eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed"));
 			expect(findElement(selector)).toBe(original);
 			expect(original?.value).toBe("Direction in progress");
 			expect(readFocus()).toBe(original);
@@ -51,7 +51,7 @@ for (const { kind, query, field, url, source: content, writable } of cases) {
 			browserEvent("pagehide");
 			yield* Effect.promise(closeScreen);
 			yield* Effect.promise(() => renderRouter(undefined, url));
-			yield* Effect.promise(() => eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed")));
+			yield* eventually(() => expect(readText(`#${kind}-status`)).toContain("Source changed"));
 			const restored = findElement<HTMLTextAreaElement>(selector);
 			expect(restored?.value).toBe("Direction in progress");
 			const details = restored?.closest("details");

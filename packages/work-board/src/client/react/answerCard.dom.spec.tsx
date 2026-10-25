@@ -31,7 +31,7 @@ for (const mode of ["fenced", "nested", "paragraphs"]) {
 		`renders a managed decision with a ${mode} reason once below its header and is titled after the unblocked item`,
 		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElement, readAttribute, readText, findElements }) {
-			yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+			yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 			expect(findElement('[name="author"]')).toBeNull();
 			const header = findElement(".item-introduction");
 			expect(readText("h1", header)).toBe("Fleet decision: Publish the install guide");
@@ -70,21 +70,19 @@ screenStory.it(
 		routedScreen({ ...answerCardFixture }, url, { home: "home.md", writable: true }),
 	],
 	function* ({ refreshDocument, selectText, readResponses, click, answerPrompt, responseClick, findElement, readAttribute, readFocus, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".question-choice")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".question-choice")).not.toBeNull());
 		click(".question-choice label");
 		const input = answerPrompt("answer", "Use the reviewed version.");
 		selectText(input, 4, 7);
 		yield* Effect.promise(() => refreshDocument(url));
-		yield* Effect.promise(() => eventually(() => expect(readAttribute("[data-choice='option-1']", "aria-checked")).toBe("true")));
+		yield* eventually(() => expect(readAttribute("[data-choice='option-1']", "aria-checked")).toBe("true"));
 		expect(answerPrompt("answer")).toBe(input);
 		expect(input.value).toBe("Use the reviewed version.");
 		expect(readFocus()).toBe(input);
 		expect([input.selectionStart, input.selectionEnd]).toEqual([4, 7]);
 		yield* Effect.promise(async () => responseClick("submit"));
-		yield* Effect.promise(() =>
-			eventually(() =>
-				expect(readText("[data-answered]")).toBe("Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."),
-			),
+		yield* eventually(() =>
+			expect(readText("[data-answered]")).toBe("Answered by Reviewer: Publish now. Fleet isn't running. It picks this up when it starts again."),
 		);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 		expect(saved.responses).toMatchObject([
@@ -102,13 +100,13 @@ screenStory.it(
 	"opens a Today ask on a read-only Board directly on the item and focuses its answer card",
 	[screenWorkspace("answer-card-fixture"), routedScreen(answerCardFixture, "/")],
 	function* ({ click, findElement, readFocus, location }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-attention-row] a[title]")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-attention-row] a[title]")).not.toBeNull());
 		const link = findElement<HTMLAnchorElement>("[data-attention-row] a[title]");
 		expect(link?.getAttribute("href")).toBe(`${url}#answer-card-direction`);
 		click(link);
-		yield* Effect.promise(() => eventually(() => expect(location()?.pathname).toBe(url)));
+		yield* eventually(() => expect(location()?.pathname).toBe(url));
 		expect(location()?.hash).toBe("answer-card-direction");
-		yield* Effect.promise(() => eventually(() => expect(readFocus()?.id).toBe("answer-card-direction")));
+		yield* eventually(() => expect(readFocus()?.id).toBe("answer-card-direction"));
 	},
 );
 
@@ -126,7 +124,7 @@ screenStory.it(
 		),
 	],
 	function* ({ readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText(".response-panel h2")).toBe("Answer unavailable")));
+		yield* eventually(() => expect(readText(".response-panel h2")).toBe("Answer unavailable"));
 		expect(readText(".response-panel")).not.toContain("Question closed");
 		expect(readText(".item-summary")).toContain("Needs you");
 	},
@@ -136,7 +134,7 @@ screenStory.it(
 	"puts the recommendation and primary PR action above secondary human choices",
 	[screenWorkspace("answer-card-fixture"), routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true })],
 	function* ({ findElement, readText, findElements, readAttribute }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("#response-form")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("#response-form")).not.toBeNull());
 		const card = findElement(".response-panel");
 		expect(readText(".answer-recommendation", card)).toBe("Merge the reviewed PR on GitHub.");
 		const link = findElement(".answer-links a", card);
@@ -160,13 +158,11 @@ for (const heading of ["### Release ownership", ""]) {
 		`uses an option heading or capitalised id: ${heading}`,
 		[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 		function* ({ findElements }) {
-			yield* Effect.promise(() =>
-				eventually(() =>
-					expect(findElements(".question-choice strong").map((label) => label.textContent)).toEqual([
-						"Request changes",
-						heading ? "Release ownership" : "Release",
-					]),
-				),
+			yield* eventually(() =>
+				expect(findElements(".question-choice strong").map((label) => label.textContent)).toEqual([
+					"Request changes",
+					heading ? "Release ownership" : "Release",
+				]),
 			);
 		},
 	);
@@ -177,7 +173,7 @@ screenStory.it(
 	"toggles option checkboxes when several choices are allowed",
 	[screenWorkspace("answer-card-fixture"), routedScreen(files, url, { home: "home.md", writable: true })],
 	function* ({ click, findElement, readAttribute }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".question-choice")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".question-choice")).not.toBeNull());
 		expect(findElement("[role='radio']")).toBeNull();
 		click(".question-choice label");
 		expect(readAttribute("[data-choice='retry']", "role")).toBe("checkbox");
@@ -191,7 +187,7 @@ screenStory.it(
 	"moves a single answer with arrow keys from one tab stop and records the chosen option",
 	[screenWorkspace("answer-keyboard"), routedScreen(readyDecisionFixture, url, { home: "home.md", writable: true })],
 	function* ({ findElement, focus, press, readAttribute, readFocus, readResponses, readText, responseClick }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[role='radiogroup']")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[role='radiogroup']")).not.toBeNull());
 		expect(readAttribute("[role='radiogroup']", "aria-labelledby")).toBe(findElement("fieldset legend")?.id);
 		expect([readAttribute("[data-choice='retry']", "tabindex"), readAttribute("[data-choice='release']", "tabindex")]).toEqual(["0", "-1"]);
 		focus("[data-choice='retry']");
@@ -204,7 +200,7 @@ screenStory.it(
 		expect(readFocus()).toBe(findElement("[data-choice='release']"));
 		expect(readAttribute("[data-choice='release']", "aria-checked")).toBe("true");
 		yield* Effect.promise(async () => responseClick("submit"));
-		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back")));
+		yield* eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back"));
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([[{ prompt: "fleet-action", selected: ["release"], text: "" }]]);
 	},
@@ -214,7 +210,7 @@ screenStory.it(
 	"toggles several answers with Space and records them in the order they were chosen",
 	[screenWorkspace("answer-keyboard-many"), routedScreen(files, url, { home: "home.md", writable: true })],
 	function* ({ findElement, focus, press, readAttribute, readResponses, readText, responseClick }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement("[data-choice='retry']")).not.toBeNull()));
+		yield* eventually(() => expect(findElement("[data-choice='retry']")).not.toBeNull());
 		expect([readAttribute("[data-choice='retry']", "tabindex"), readAttribute("[data-choice='release']", "tabindex")]).toEqual(["0", "0"]);
 		focus("[data-choice='release']");
 		yield* Effect.promise(() => press(" "));
@@ -227,7 +223,7 @@ screenStory.it(
 		yield* Effect.promise(() => press(" "));
 		yield* Effect.promise(() => press(" "));
 		yield* Effect.promise(async () => responseClick("submit"));
-		yield* Effect.promise(() => eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back")));
+		yield* eventually(() => expect(readText("[data-answered]")).toContain("Stop and hand back"));
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
 		expect(saved.responses.map((entry) => entry.response.answers)).toEqual([[{ prompt: "fleet-action", selected: ["release", "retry"], text: "" }]]);
 	},
@@ -243,7 +239,7 @@ screenStory.it(
 	"lays out a wide table in an answer card like a document table, scrolling inside its own box",
 	[screenWorkspace("answer-card-table"), routedScreen(tableRecommendation, url, { home: "home.md", writable: true })],
 	function* ({ findElement, readTableLayout }) {
-		yield* Effect.promise(() => eventually(() => expect(findElement(".answer-recommendation table")).not.toBeNull()));
+		yield* eventually(() => expect(findElement(".answer-recommendation table")).not.toBeNull());
 		expect(readTableLayout(".answer-recommendation table")).toEqual(WIDE_TABLE_LAYOUT);
 	},
 );

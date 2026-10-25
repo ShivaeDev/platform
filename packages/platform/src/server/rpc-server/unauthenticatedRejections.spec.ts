@@ -28,7 +28,10 @@ rejections.it(
 				return span.status.exit.cause.reasons.filter(Cause.isFailReason).map((reason) => reason.error);
 			});
 		const unexpected = traced.filter((error) => error instanceof InternalServerError);
-		expect(unexpected).toHaveLength(2);
+		expect(unexpected).toMatchObject([
+			{ _tag: "InternalServerError", message: "Internal server error" },
+			{ _tag: "InternalServerError", message: "Internal server error" },
+		]);
 		for (const rejection of unexpected) {
 			expect(Cause.isCause(rejection.cause) && Cause.squash(rejection.cause)).toBe(original);
 		}

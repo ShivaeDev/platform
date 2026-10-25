@@ -104,6 +104,7 @@ The hooks accept native atoms directly. This complete component module shows que
 
 ```tsx
 import { RegistryProvider } from "@effect/atom-react";
+import { QueryView } from "@shivaedev/effect-react/client/QueryView.ts";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { Effect, Option } from "effect";
 import * as Atom from "effect/reactivity/Atom";
@@ -120,12 +121,14 @@ function Report() {
   const action = useAction(rename);
   return (
     <section>
-      {Option.match(query.data, {
-        onNone: () => <p>Loading…</p>,
-        onSome: (row) => <h1>{row.title}</h1>,
-      })}
-      {query.refreshing && <p>Refreshing…</p>}
-      {Option.isSome(query.cause) && <p role="alert">Could not load</p>}
+      <QueryView
+        query={query}
+        content={(row) => <h1>{row.title}</h1>}
+        loading={(state) => <p>{state.refreshing ? "Refreshing…" : "Loading…"}</p>}
+        failure={(error, state) => (
+          <p role="alert">{String(error)} <button disabled={state.pending} onClick={state.refresh}>Retry</button></p>
+        )}
+      />
       <button onClick={query.refresh}>Refresh</button>
       <button disabled={action.pending} onClick={() => action.dispatch("Annual report")}>
         Rename
@@ -140,6 +143,10 @@ export function App() {
   return <RegistryProvider><Report /></RegistryProvider>;
 }
 ```
+
+`QueryView` from `client/QueryView.ts` is stateless presentation over `QueryState<A, E>`, including an editor's `query`. Supply `content(data, query)`, `loading(query)` and `failure(error, query)` renderers. Loading renders while pending, including refreshes, or before the first result; a settled initial rejection renders failure without loading. The failure renderer receives the typed rejection and can call the query's native `refresh` to retry. The component keeps successful content in the same React position through refresh, failure and recovery, preserving mounted inputs. Keep content component types and keys stable as usual.
+
+The hook owns retained display data and the native atom owns execution and caching. `QueryView` creates neither. Expected query rejections stay in its failure renderer; defects are thrown to the application's error boundary. It leaves field and command failures with the editor, form or action that owns them. Native `useAtomSuspense` is unchanged and still throws failures.
 
 For both queries and actions, a successful `undefined` is `Option.some(undefined)` in `data`, with `pending` and `refreshing` false. A defect or interruption is available as `Option.some(cause)` in `cause`; `isUnauthorized` returns false for those causes and they do not request a session recheck, even when the defect has an `Unauthorized` tag.
 
@@ -331,6 +338,7 @@ The next module assumes `./invoice-lines-client.ts` exports a contract-bound `ap
 ```tsx
 import { useCreate } from "@shivaedev/effect-react/client/create.ts";
 import { useEditor } from "@shivaedev/effect-react/client/editor.ts";
+import { QueryView } from "@shivaedev/effect-react/client/QueryView.ts";
 import { useField } from "@shivaedev/effect-form/client/react.ts";
 import type { Form } from "@shivaedev/effect-form/shape.ts";
 import { Option, Schema } from "effect";
@@ -371,21 +379,24 @@ export function InvoiceLineEditor({ id }: { readonly id: number }) {
     save: (values) => api.save.run({ id, ...values }),
     runtime: InvoiceLinesClient.runtime,
   });
-  if (editor.form === undefined) {
-    return Option.isSome(editor.query.cause)
-      ? <button onClick={editor.query.refresh}>Retry</button>
-      : <p>Loading…</p>;
-  }
   return (
-    <form onSubmit={(event) => { event.preventDefault(); editor.save(); }}>
-      <Inputs form={editor.form} />
-      {Option.isSome(editor.query.cause) && <p role="alert">Could not refresh</p>}
-      {Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
-      <button type="submit" disabled={editor.saving}>Save</button>
-      <button type="button" onClick={editor.query.refresh}>Refresh</button>
-      <button type="button" onClick={editor.revert}>Revert</button>
-      <p>{editor.saving ? "Saving" : editor.dirty ? "Unsaved" : "Saved"}</p>
-    </form>
+    <QueryView
+      query={editor.query}
+      loading={(query) => <p>{query.refreshing ? "Refreshing…" : "Loading…"}</p>}
+      failure={(_error, query) => (
+        <p role="alert">Could not load <button disabled={query.pending} onClick={query.refresh}>Retry</button></p>
+      )}
+      content={() => editor.form && (
+        <form onSubmit={(event) => { event.preventDefault(); editor.save(); }}>
+          <Inputs form={editor.form} />
+          {Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
+          <button type="submit" disabled={editor.saving}>Save</button>
+          <button type="button" onClick={editor.query.refresh}>Refresh</button>
+          <button type="button" onClick={editor.revert}>Revert</button>
+          <p>{editor.saving ? "Saving" : editor.dirty ? "Unsaved" : "Saved"}</p>
+        </form>
+      )}
+    />
   );
 }
 
@@ -549,7 +560,7 @@ Use `@shivaedev/effect-react/client/testing.ts` with Vitest's `happy-dom` enviro
 
 ```sh
 pnpm add @shivaedev/effect-contract
-pnpm add -D vitest happy-dom react-dom@19.3.0 @types/react-dom
+pnpm add -D @shivaedev/effect-test @effect/vitest@4.0.5 vitest happy-dom react-dom@19.3.0 @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -559,13 +570,14 @@ import { Effect, Option, Ref, Schema } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { act, createElement } from "react";
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/effect-react/client/testing.ts";
+import { it } from "@shivaedev/effect-test/it.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 expectNoReactWarnings();
@@ -610,23 +622,23 @@ function NotesView() {
 	);
 }
 
-it("renders a query and refetches it after a command through a test RPC layer", async () => {
-	const view = await render(createElement(NotesView));
+it.live("renders a query and refetches it after a command through a test RPC layer", function* () {
+	const view = yield* Effect.promise(() => render(createElement(NotesView)));
 	try {
-		await eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
+		yield* eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
 		expect(view.container.querySelector("output")?.textContent).toBe("");
-		await act(async () => view.container.querySelector("button")?.click());
-		await eventually(() => {
+		yield* Effect.promise(() => act(async () => view.container.querySelector("button")?.click()));
+		yield* eventually(() => {
 			expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
 			expect(view.container.querySelector("button")?.disabled).toBe(false);
 		});
 	} finally {
-		await view.unmount();
+		yield* Effect.promise(view.unmount);
 	}
 });
 ```
 
-`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` retries the assertion for up to three seconds, allowing pending responses to settle inside `act` between attempts; it throws the last assertion failure on timeout. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
 For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
 

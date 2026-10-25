@@ -8,7 +8,8 @@ import { GITHUB_RESET } from "#test/githubApi.ts";
 import { githubBudget } from "#test/githubBudget.ts";
 import { ADOPTED_HEAD, githubResult } from "#test/githubChecks.ts";
 
-const reservedGithubBudget = engineConfiguration("GitHub reserve reads use the REST budget", githubBudget("reserve"));
+const INITIAL_REMAINING = 1000;
+const reservedGithubBudget = engineConfiguration("GitHub reserve reads use the REST budget", githubBudget("reserve", INITIAL_REMAINING));
 const exhaustedGithubBudget = engineConfiguration("GitHub limit reads use the REST budget", githubBudget("limit"));
 const conditionalHumanDelivery = engineConfiguration("GitHub delivery reads use the REST budget", githubBudget("delivery"));
 
@@ -55,12 +56,12 @@ isolatedEngine.it(
 		expect(waiting.value.blocker).toBe(`GitHub is rate-limited until ${until}`);
 		expect(waiting.value.attentionOwner).toBe("automation");
 		expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
-		expect(budgetRequests()).toHaveLength(1);
+		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
 		for (let pass = 0; pass < 6; pass += 1) {
 			yield* fleet.reconcile("one");
 		}
 		expect(yield* readBudgetPullRequest().pipe(Effect.flip)).toMatchObject({ message: `GitHub is rate-limited until ${until}` });
-		expect(budgetRequests()).toHaveLength(1);
+		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
 		const current = yield* fleet.get("one");
 		expect(current.value.decision).toBeUndefined();
 		expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  waiting  GitHub is rate-limited until ${until}`);
@@ -84,12 +85,12 @@ isolatedEngine.it(
 		expect(waiting.value.step).toBe("validating");
 		expect(waiting.value.blocker).toBe(message);
 		expect(waiting.value.integrationRetry).toMatchObject({ failures: 0, retryAt: GITHUB_RESET * 1000 });
-		expect(budgetRequests()).toHaveLength(1);
-		expect(budgetRemaining()).toBe(999);
+		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
+		expect(budgetRemaining()).toBe(INITIAL_REMAINING - budgetRequests().length);
 		for (let pass = 0; pass < 6; pass += 1) {
 			yield* fleet.reconcile("one");
 		}
-		expect(budgetRequests()).toHaveLength(1);
+		expect(budgetRequests()).toMatchObject([{ endpoint: expect.stringContaining("check-runs"), method: "GET" }]);
 		expect((yield* fleet.get("one")).value.decision).toBeUndefined();
 		expect(renderStatus(views((yield* fleet.list()).map(({ value }) => value)))).toContain(`one  waiting  ${message}`);
 		expect(yield* budgetObservations()).toMatchObject([{ limitedBy: "reserve", limitedUntil: GITHUB_RESET * 1000, remaining: 999 }]);
@@ -107,7 +108,7 @@ isolatedEngine.it(
 		const stretched = yield* startBudgetScheduler(1500);
 		yield* Effect.sleep("300 millis");
 		yield* Fiber.interrupt(stretched.scheduler);
-		expect(stretched.passes.count).toBe(1);
+		expect(stretched.passes.records).toEqual([{ workIds: [] }]);
 	},
 	{ clock: "live" },
 );

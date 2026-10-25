@@ -34,7 +34,7 @@ isolatedEngine.it(
 			[fleet.dispatch("one"), fleet.dispatch("two")].map((work) => work.pipe(Effect.result)),
 			{ concurrency: "unbounded" },
 		);
-		expect(launches()).toHaveLength(1);
+		expect(launches()).toEqual(["operation-1"]);
 		yield* fleet.dispatch("two").pipe(Effect.result);
 		expect((yield* fleet.get("two")).value).toMatchObject({
 			attentionOwner: "automation",
@@ -55,7 +55,7 @@ isolatedEngine.it("disjoint areas dispatch concurrently", [], function* ({ fleet
 	yield* prepareWork("two");
 	const dispatched = yield* Effect.all([fleet.dispatch("one"), fleet.dispatch("two")], { concurrency: "unbounded" });
 	expect(dispatched.map(({ value }) => value.step)).toEqual(["working", "working"]);
-	expect(launches()).toHaveLength(2);
+	expect(launches()).toEqual(["operation-1", "operation-2"]);
 });
 isolatedEngine.it(
 	"a safe human release frees the held area",
@@ -99,7 +99,7 @@ isolatedEngine.it(
 		yield* schedule();
 		expect((yield* fleet.get("two")).value.step).toBe("working");
 		expect((yield* fleet.get("dependent")).value.step).toBe("queued");
-		expect((yield* fleet.get("two")).value.attempts).toHaveLength(1);
+		expect((yield* fleet.get("two")).value.attempts).toMatchObject([{ prompt: "Implement two", role: "worker" }]);
 		finishWorkers();
 		yield* fleet.reconcile("two");
 		yield* schedule();

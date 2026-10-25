@@ -1,6 +1,7 @@
 import { posix } from "node:path";
 import { Effect, Schema } from "effect";
 import ignore, { type Ignore } from "ignore";
+import { nativeNames } from "#naming/nativeNames.ts";
 import { CAMEL, KEBAB } from "#naming/words.ts";
 import { defineRule, type Finding } from "#rule.ts";
 import { stylesheetImporters } from "./stylesheetImporters.ts";
@@ -53,6 +54,7 @@ function stylesheetMessage(path: string, stem: string, importedBy: readonly stri
 
 interface Context {
 	readonly content: Ignore;
+	readonly native: ReturnType<typeof nativeNames>;
 	readonly stylesheets: ReadonlyMap<string, readonly string[]>;
 	readonly toolOwned: Ignore;
 }
@@ -61,6 +63,9 @@ function messageFor(path: string, context: Context): string | undefined {
 	const name = posix.basename(path);
 	const kind = posix.extname(name).slice(1);
 	const stem = name.slice(0, name.length - kind.length - 1);
+	if (context.native.owns(path)) {
+		return context.native.messageFor(path);
+	}
 	if (kind === "" || context.toolOwned.ignores(path) || CONVENTIONAL.has(stem)) {
 		return undefined;
 	}
@@ -84,6 +89,7 @@ export const otherNames = defineRule({
 	check: async ({ files, options, readText, sources }) => {
 		const context: Context = {
 			content: ignore().add([...options.content]),
+			native: nativeNames(files),
 			stylesheets: await stylesheetImporters({ files, readText, sources }),
 			toolOwned: ignore().add([...DEFAULT_TOOL_OWNED, ...options.toolOwned]),
 		};

@@ -15,7 +15,7 @@ screenStory.it(
 		}),
 	],
 	function* ({ findElement, readTabStops, readText }) {
-		yield* Effect.promise(() => eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-updated]')).toBe("Updated 2h ago")));
+		yield* eventually(() => expect(readText('#doc li:has(a[href="/note.md"]) [data-updated]')).toBe("Updated 2h ago"));
 		expect(readTabStops('#doc li:has(a[href="/note.md"])')).toEqual([findElement('#doc a[href="/note.md"]')]);
 	},
 );
@@ -46,11 +46,9 @@ screenStory.it(
 	],
 	function* ({ findElements, readText, roles }) {
 		const goalRow = '#doc li:has(a[href="/goal.md"]) p';
-		yield* Effect.promise(() => eventually(() => expect(readText(goalRow)).toBe("Goal · Ready")));
+		yield* eventually(() => expect(readText(goalRow)).toBe("Goal · Ready"));
 		yield* roles.click({ name: "Kind", role: "combobox" });
 		yield* roles.click({ name: "Goal", role: "option" });
-		yield* Effect.promise(() =>
-			eventually(() => expect([...findElements("#doc li a")].map((link) => link.textContent)).toEqual(["A calm workspace"])),
-		);
+		yield* eventually(() => expect([...findElements("#doc li a")].map((link) => link.textContent)).toEqual(["A calm workspace"]));
 	},
 );

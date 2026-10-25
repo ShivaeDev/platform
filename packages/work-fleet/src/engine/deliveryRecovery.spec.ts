@@ -20,8 +20,8 @@ describe("Fleet delivery ownership", () => {
 			expect(ambiguous.value.attentionOwner).toBe("automation");
 			advanceTime(30_100 - currentTime());
 			expect((yield* fleet.reconcile("one")).value.step).toBe("done");
-			expect(mergedHeads()).toHaveLength(1);
-			expect(reviewedHeads()).toHaveLength(1);
+			expect(mergedHeads()).toEqual([ambiguous.value.result?.head]);
+			expect(reviewedHeads()).toEqual([ambiguous.value.result?.head]);
 		},
 	);
 	engine.it(
@@ -41,13 +41,13 @@ describe("Fleet delivery ownership", () => {
 	engine.it(
 		"duplicate operation identity cannot acknowledge the wrong work's turn",
 		[providerReusesOperationIdentity()],
-		function* ({ fleet, prepareWork, providerOperationCount }) {
+		function* ({ fleet, prepareWork, providerOperations }) {
 			yield* prepareWork("one");
 			yield* prepareWork("two");
 			yield* fleet.dispatch("one");
 			yield* fleet.dispatch("two");
 			expect((yield* fleet.get("two")).value.attempts[0]?.receipt).toBeUndefined();
-			expect(providerOperationCount()).toBe(1);
+			expect(providerOperations()).toEqual(["operation-fixed"]);
 		},
 	);
 	engine.it(

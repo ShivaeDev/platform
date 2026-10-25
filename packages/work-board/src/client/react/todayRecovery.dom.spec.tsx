@@ -22,11 +22,11 @@ screenStory.it(
 		releaseWorkspace,
 		refreshToday,
 	}) {
-		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("failed")));
+		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("failed"));
 		expect(readAttribute("#doc", "data-status")).toBe("503");
 		recoverWorkspace();
 		click("#home-open");
-		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled")));
+		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled"));
 		expect(readText("#doc h1")).toBe("Today");
 		expect(readAttribute("#doc", "data-status")).toBe("200");
 		expect(findElements("[data-attention-id]").map((row) => row.getAttribute("data-attention-id"))).toEqual(
@@ -37,8 +37,8 @@ screenStory.it(
 		);
 		holdWorkspace();
 		yield* Effect.promise(refreshToday);
-		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("pending")));
+		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("pending"));
 		yield* Effect.promise(releaseWorkspace);
-		yield* Effect.promise(() => eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled")));
+		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled"));
 	},
 );

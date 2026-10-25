@@ -35,9 +35,13 @@ for (const timing of ["between passes", "while the reviewer finishes"] as const)
 				expect(continued.value.outcome).toBeUndefined();
 				expect(continued.value.boardContext).toBe(current);
 				expect(continued.value.attempts[0]?.receipt).toEqual(worker.value.attempts[0]?.receipt);
-				expect(providerCalls().filter((call) => call.call === "turn")).toHaveLength(2);
+				expect(
+					providerCalls()
+						.filter((call) => call.call === "turn")
+						.map(({ operationId }) => operationId),
+				).toEqual(["operation-1", "operation-2"]);
 				expect(continued.value.attentionOwner).toBeUndefined();
-				expect(launches()).toHaveLength(2);
+				expect(launches()).toEqual(["operation-1", "operation-2"]);
 			},
 		);
 	}
