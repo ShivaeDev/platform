@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.2 - 2026-10-25
+
+### Fixed
+
+- Stop `tests/story-specs` from reporting inline trait calls inside a story kit registration as plain tests. Plain `it` and `test` registrations still report.
+
 ## 0.36.1 - 2026-10-25
 
 ### Changed
