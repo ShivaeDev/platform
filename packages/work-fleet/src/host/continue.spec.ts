@@ -19,8 +19,14 @@ host.it(
 		yield* daemon.start();
 		const run = yield* daemon.cli(["continue", "one"], { stdin: message });
 		expect(run).toEqual({ code: 0, stderr: "", stdout: "one working" });
-		expect(daemon.readBoard("fleet/status.md")).toContain("Stage: working");
-		expect(JSON.parse(daemon.readBoard("fleet/health.json"))).toMatchObject({
+		expect(yield* daemon.get("one")).toMatchObject({
+			attempts: [{ prompt: message, sessionId: first.value.attempts[0]?.receipt?.sessionId }],
+			step: "working",
+		});
+		const published = yield* daemon.awaitBoardSource("fleet/status.md", (source) => source.includes("Stage: working"));
+		expect(published).toContain("## Active\n\n### one\n");
+		const health = yield* daemon.awaitBoardSource("fleet/health.json", (source) => JSON.parse(source).running === 1);
+		expect(JSON.parse(health)).toMatchObject({
 			running: 1,
 			waiting: { automation: 0, maintainer: 0, orchestrator: 0 },
 		});
@@ -30,6 +36,7 @@ host.it(
 		});
 		expect(daemon.continuationRequests().filter((request) => request.method === "turn/start")).toHaveLength(1);
 		expect(daemon.continuationRequests().filter((request) => request.method === "thread/start")).toHaveLength(0);
+		yield* daemon.waitForRecord("one", (record) => record.attempts[0]?.receipt?.turnId === "continued-turn");
 		const status = yield* daemon.status();
 		expect(status.waiting).toEqual({ automation: [], maintainer: [], orchestrator: [] });
 		expect(status.active[0]?.sessions[0]?.turnId).toBe("continued-turn");
