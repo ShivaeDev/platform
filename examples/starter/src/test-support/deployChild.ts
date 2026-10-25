@@ -16,17 +16,23 @@ export async function deployPort() {
 	return address.port;
 }
 
-export const deployChild = Effect.fn("Test.deployChild")(function* (kind: "worker" | "web" | "migrate", url: Redacted.Redacted<string>, port = 0) {
+export const deployChild = Effect.fn("Test.deployChild")(function* (
+	kind: "worker" | "web" | "migrate",
+	url: Redacted.Redacted<string>,
+	port = 0,
+	env: Record<string, string> = {},
+) {
 	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 	const target = new URL(Redacted.value(url));
 	target.searchParams.set("application_name", `deploy_${kind}`);
-	const entry = kind === "web" ? "../server/server.ts" : `../server/${kind}.ts`;
+	const entry = kind === "migrate" ? "../server/migrate.ts" : "./deployApplication.ts";
 	const listenPort = kind === "web" && port === 0 ? yield* Effect.promise(deployPort) : port;
 	const address = `http://127.0.0.1:${listenPort}`;
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL(entry, import.meta.url))], {
+		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL(entry, import.meta.url)), kind], {
 			env: {
 				"DATABASE_URL": target.toString(),
+				...env,
 				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(listenPort) } : {}),
 			},
 			extendEnv: false,

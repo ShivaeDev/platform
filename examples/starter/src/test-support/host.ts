@@ -6,6 +6,7 @@ import { makePgBossTesting } from "@shivaedev/effect-pg-boss/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
+import { testPoolSizes } from "./poolSizes.ts";
 
 export const secret = Redacted.make("app-test-secret-with-at-least-32-characters");
 export const PUBLIC_URL = "https://app.example";
@@ -30,6 +31,7 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	const host = applicationHost({
 		databaseUrl: database.url,
 		jobsClientFactory: jobsTesting.clientFactory,
+		poolSizes: testPoolSizes,
 		secret,
 		...(deployed ? {} : { port: 0 }),
 	}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));
