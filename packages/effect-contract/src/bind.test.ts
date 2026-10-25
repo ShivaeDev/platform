@@ -49,3 +49,12 @@ notesStory.it("query run performs a one-off typed call without registering keys"
 	const missing = yield* Effect.result(get(7));
 	expect(Result.isFailure(missing) && missing.failure._tag).toBe("NoteMissing");
 });
+
+notesStory.it("ordinary contracts subscribe to created query references before mounting reads", [signedIn()], function* (test) {
+	const query = test.query(1);
+	test.connect();
+	yield* eventually(() => expect(test.subscriptions()).toEqual([{ payload: { id: 1 }, query: "get" }]));
+	expect(test.reads()).toEqual([]);
+	test.mount(query);
+	yield* eventually(() => expect(AsyncResult.getOrElse(test.registry.get(query), () => undefined)?.title).toBe("One"));
+});

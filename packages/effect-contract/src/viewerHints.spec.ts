@@ -10,8 +10,8 @@ viewerStory.it("contract-typed clients receive changed keys only for rows their 
 	const bob: LiveHint[] = [];
 	expect(yield* get("alice", 1)).toMatchObject({ id: 1, title: "One" });
 	expect(yield* get("bob", 1).pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Denied" } });
-	yield* watch("alice", [notes.item(1)], alice).pipe(Effect.forkScoped);
-	yield* watch("bob", [notes.item(1)], bob).pipe(Effect.forkScoped);
+	yield* watch("alice", [{ payload: { id: 1 }, query: "get" }], alice).pipe(Effect.forkScoped);
+	yield* watch("bob", [{ payload: { id: 1 }, query: "get" }], bob).pipe(Effect.forkScoped);
 	yield* eventually(() => {
 		expect(alice).toEqual([{ _tag: "Resync" }]);
 		expect(bob).toEqual([{ _tag: "Resync" }]);
@@ -26,7 +26,10 @@ viewerStory.it("contract-typed clients receive changed keys only for rows their 
 });
 
 viewerStory.it("the contract's middleware rejects a change subscription without a session", [], function* ({ watch }) {
-	expect(yield* watch(undefined, [notes.item(1)], []).pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Denied" } });
+	expect(yield* watch(undefined, [{ payload: { id: 1 }, query: "get" }], []).pipe(Effect.result)).toMatchObject({
+		_tag: "Failure",
+		failure: { _tag: "Denied" },
+	});
 });
 
 viewerStory.it("both viewers receive allowed list hints while the private row key stays filtered", [], function* (test) {
@@ -34,9 +37,12 @@ viewerStory.it("both viewers receive allowed list hints while the private row ke
 	const bob: LiveHint[] = [];
 	expect(yield* test.list("alice")).toMatchObject([{ id: 1 }]);
 	expect(yield* test.list("bob")).toEqual([]);
-	const keys = [notes.item(1), notes.list];
-	yield* test.watch("alice", keys, alice).pipe(Effect.forkScoped);
-	yield* test.watch("bob", keys, bob).pipe(Effect.forkScoped);
+	const queries = [
+		{ payload: { id: 1 }, query: "get" },
+		{ payload: undefined, query: "list" },
+	] as const;
+	yield* test.watch("alice", queries, alice).pipe(Effect.forkScoped);
+	yield* test.watch("bob", queries, bob).pipe(Effect.forkScoped);
 	yield* eventually(() => {
 		expect(alice).toEqual([{ _tag: "Resync" }]);
 		expect(bob).toEqual([{ _tag: "Resync" }]);

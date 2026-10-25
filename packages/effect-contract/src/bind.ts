@@ -1,17 +1,17 @@
-import type { Duration, Schema } from "effect";
-import { Effect, Stream } from "effect";
+import type { Duration, Effect, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
-import * as Reactivity from "effect/reactivity/Reactivity";
-import type { Rpc, RpcSchema } from "effect/rpc";
+import type * as Reactivity from "effect/reactivity/Reactivity";
+import type { Rpc } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
-import { queryReactivity } from "#internal/queryReactivity.ts";
-import { automaticLive, type LiveBound, LiveConnection } from "./automaticLive.ts";
-import type { Contract, Declared, Tag } from "./contract.ts";
-import { invalidationKeys, type Key, readKeys } from "./keys.ts";
-import type { CommandShape, QueryShape, StreamShape } from "./operation.ts";
+import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts";
+import type { Contract, Declared, Tag } from "#contract.ts";
+import { bindingOwner } from "#internal/bindingOwner.ts";
+import { boundCommand, boundQuery, boundStream } from "#internal/clientOperations.ts";
+import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 
 export type Failure<R extends Rpc.Any> =
 	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>
@@ -57,50 +57,11 @@ export type Bound<
 	readonly [TStream in TStreams[number] as TStream["name"]]: BoundStream<Rpc.ExtractTag<TRpcs, Tag<TName, TStream["name"]>>, TSelf>;
 };
 
-type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
-
-type ErasedStreamingClient = AtomRpc.AtomRpcClient<
-	unknown,
-	string,
-	Rpc.Rpc<string, Schema.Top, RpcSchema.Stream<Schema.Top, Schema.Top>, Schema.Never>
->;
-
 type MatchingClient<TRpcs extends Rpc.Any, TClientRpcs extends Rpc.Any> = [TRpcs] extends [Extract<TClientRpcs, { readonly _tag: TRpcs["_tag"] }>]
 	? [Extract<TClientRpcs, { readonly _tag: TRpcs["_tag"] }>] extends [TRpcs]
 		? unknown
 		: "Client must preserve the contract RPC types"
 	: "Client must implement the contract RPCs";
-
-const invalidateAfter = Effect.fn("EffectContract.invalidateAfter")(function* (keys: readonly Key[]) {
-	yield* Reactivity.invalidate(invalidationKeys(keys));
-});
-
-function boundQuery(service: ErasedClient, tag: string, query: QueryShape, track: (keys: readonly Key[]) => void) {
-	const reactive = queryReactivity(service.runtime);
-	function reads(payload: unknown) {
-		return readKeys(query.reads(payload));
-	}
-	return {
-		query: (payload: unknown, options: QueryOptions = {}) => {
-			track(query.reads(payload));
-			return reactive(service.query(tag, payload, options), reads(payload));
-		},
-		run: (payload: unknown) => service.use((client) => client(tag, payload)),
-	};
-}
-
-function boundCommand(service: ErasedClient, tag: string, command: CommandShape) {
-	return {
-		run: (payload: unknown) =>
-			service.use((client) => client(tag, payload)).pipe(Effect.tap((result) => invalidateAfter(command.invalidates(payload, result)))),
-	};
-}
-
-function boundStream(service: ErasedStreamingClient, tag: string) {
-	return {
-		run: (payload: unknown) => Stream.unwrap(service.use((client) => Effect.succeed(client(tag, payload)))),
-	};
-}
 
 export function bind<
 	TName extends string,
@@ -111,20 +72,26 @@ export function bind<
 	TId extends string,
 	TClientRpcs extends Rpc.Any,
 	TStreams extends readonly StreamShape[],
+	TScope extends "session" | undefined,
 >(
-	contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams>,
+	contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams, TScope>,
 	service: AtomRpc.AtomRpcClient<TSelf, TId, TClientRpcs> & MatchingClient<NoInfer<TRpcs>, TClientRpcs>,
+	...options: "session" extends TScope
+		? [options: { readonly registry: AtomRegistry.AtomRegistry }]
+		: [options?: { readonly registry: AtomRegistry.AtomRegistry }]
 ): Bound<TName, TQueries, TCommands, TRpcs, TSelf, TStreams> & LiveBound;
 export function bind(
-	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[]> },
+	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined> },
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	options?: { readonly registry: AtomRegistry.AtomRegistry },
 ): unknown {
-	const { name, queries, commands, streams } = contract.declaration;
-	const automatic = automaticLive(service, name);
+	const { name, queries, commands, streams, keyScope } = contract.declaration;
+	const owner = bindingOwner(keyScope, options?.registry);
+	const automatic = automaticLive(service, name, owner);
 	return Object.assign(
 		Object.fromEntries([
-			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic.track)] as const),
-			...commands.map((command) => [command.name, boundCommand(service, `${name}.${command.name}`, command)] as const),
+			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic.track, owner)] as const),
+			...commands.map((command) => [command.name, boundCommand(service, `${name}.${command.name}`, command, owner)] as const),
 			...streams.map((stream) => [stream.name, boundStream(service, `${name}.${stream.name}`)] as const),
 		]),
 		{ [LiveConnection]: automatic.subscription },

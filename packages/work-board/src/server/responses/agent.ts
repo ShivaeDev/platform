@@ -28,7 +28,7 @@ const requestFrom = Effect.fn("WorkBoard.requestFrom")(function* (
 		if (!(item && request) || extra) {
 			return yield* Effect.fail(new BadRequest({ message: "Use question <item>/<request>." }));
 		}
-		return yield* client("work-board.question", { item, request });
+		return yield* client("work-board-responses.question", { item, request });
 	}
 	let id = options.request;
 	if (request !== undefined) {
@@ -37,14 +37,14 @@ const requestFrom = Effect.fn("WorkBoard.requestFrom")(function* (
 				new BadRequest({ message: "Use wait <item>/<request> --revision <reviewed SHA-256>, or wait <registered-question-id>." }),
 			);
 		}
-		const question = yield* client("work-board.registerQuestion", { item, request, revision: options.revision });
+		const question = yield* client("work-board-responses.registerQuestion", { item, request, revision: options.revision });
 		id = question.id;
 		diagnostic(`Registered ${id}; reattach with work-board wait ${id}. Deadline: ${new Date(question.question.deadline).toISOString()}`);
 	}
 	if (action === "response") {
-		return yield* client("work-board.responses", { question: id });
+		return yield* client("work-board-responses.responses", { question: id });
 	}
-	return yield* waitForResponse(() => client("work-board.awaitResponse", { after: options.after, question: id }), diagnostic);
+	return yield* waitForResponse(() => client("work-board-responses.awaitResponse", { after: options.after, question: id }), diagnostic);
 });
 
 export const agentRequest = Effect.fn("WorkBoard.agentRequest")(function* (

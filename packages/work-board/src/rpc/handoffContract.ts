@@ -24,4 +24,4 @@ const prepare = command("prepareHandoff", {
 	rejections: responseRejections,
 	success: Handoff,
 });
-export const handoffContract = contract("work-board", { commands: [prepare], queries: [locate, read] }).middleware(RequestTracing);
+export const handoffContract = contract("work-board-handoffs", { commands: [prepare], queries: [locate, read] }).middleware(RequestTracing);

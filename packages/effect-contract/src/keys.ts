@@ -37,14 +37,26 @@ export function collection<const TName extends string, TId extends Schema.Top & 
 	};
 }
 
+export interface KeyContext {
+	readonly scope: string;
+}
+
+function contextual(key: string, context?: KeyContext): string {
+	return context === undefined ? key : `${JSON.stringify(["session", context.scope])}:${key}`;
+}
+
 function own(key: Key): string {
 	return key._tag === "List" ? key.collection : `${key.collection}:${key.id}`;
 }
 
-export function readKeys(keys: readonly Key[]): readonly string[] {
-	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), `${key.collection}:*`] : [own(key)])))];
+export function readKeys(keys: readonly Key[], context?: KeyContext): readonly string[] {
+	return [...new Set(keys.flatMap((key) => (key._tag === "Item" ? [own(key), `${key.collection}:*`] : [own(key)])))].map((key) =>
+		contextual(key, context),
+	);
 }
 
-export function invalidationKeys(keys: readonly Key[]): readonly string[] {
-	return [...new Set(keys.flatMap((key) => (key._tag === "List" ? [key.collection] : [own(key), key.collection])))];
+export function invalidationKeys(keys: readonly Key[], context?: KeyContext): readonly string[] {
+	return [...new Set(keys.flatMap((key) => (key._tag === "List" ? [key.collection] : [own(key), key.collection])))].map((key) =>
+		contextual(key, context),
+	);
 }

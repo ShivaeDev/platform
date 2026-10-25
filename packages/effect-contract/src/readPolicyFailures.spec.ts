@@ -17,7 +17,7 @@ viewerStory.it("a policy outage reaches the query caller as its declared typed e
 
 viewerStory.it("a failed hint check drops the key while the same stream stays open", [], function* (test) {
 	const hints: LiveHint[] = [];
-	yield* test.watch("alice", [notes.item(1)], hints).pipe(Effect.forkScoped);
+	yield* test.watch("alice", [{ payload: { id: 1 }, query: "get" }], hints).pipe(Effect.forkScoped);
 	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
 	yield* test.policyOutage(true);
 	yield* test.rename("alice", 1, "During outage");
@@ -52,7 +52,7 @@ viewerStory.it("an open page catches up after policy recovery without another ch
 
 viewerStory.it("interrupting a subscription cancels its pending failed-policy recheck", [], function* (test) {
 	const hints: LiveHint[] = [];
-	const subscription = yield* test.watch("alice", [notes.item(1)], hints).pipe(Effect.forkScoped);
+	const subscription = yield* test.watch("alice", [{ payload: { id: 1 }, query: "get" }], hints).pipe(Effect.forkScoped);
 	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
 	yield* test.policyOutage(true);
 	yield* test.rename("alice", 1, "During outage");

@@ -1,11 +1,13 @@
 import type { Effect } from "effect";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
-import type { Bound } from "#bind.ts";
+import { type Bound, bind } from "#bind.ts";
 import type { Notes } from "#test/notes.ts";
+import { Preferences } from "#test/sessionContract.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
 type Self = "test/Self";
@@ -32,3 +34,9 @@ expectTypeOf(api.rename.run).returns.toEqualTypeOf<
 >();
 expectTypeOf(api.get.query).parameter(0).toEqualTypeOf<Parameters<typeof client.query<"notes.get">>[1]>();
 expectTypeOf(api.rename.run).parameter(0).toEqualTypeOf<Parameters<typeof flat<"notes.rename">>[1]>();
+
+declare const scopedClient: AtomRpc.AtomRpcClient<Self, "test/ScopedClient", RpcGroup.Rpcs<typeof Preferences>>;
+declare const registry: AtomRegistry.AtomRegistry;
+bind(Preferences, scopedClient, { registry });
+// @ts-expect-error Session-scoped bindings require the session's registry.
+bind(Preferences, scopedClient);

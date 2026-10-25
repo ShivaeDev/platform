@@ -1,8 +1,9 @@
 import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidateLive } from "#internal/liveInvalidation.ts";
-import { invalidationKeys, Key, readKeys } from "./keys.ts";
+import { invalidationKeys, Key, type KeyContext, readKeys } from "#keys.ts";
 
 export const LiveHint = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key) }),
@@ -17,8 +18,9 @@ export interface LiveStatus<E> {
 }
 export interface LiveOptions<E, R> {
 	readonly coalesceWindow?: Duration.Input;
+	readonly keyContext?: KeyContext | undefined;
 	readonly resume?: Atom.Atom<unknown>;
-	readonly resyncKeys: readonly Key[] | (() => readonly Key[]);
+	readonly resyncKeys: readonly Key[] | ((registry: AtomRegistry.AtomRegistry) => readonly Key[]);
 	readonly retryDelay?: Duration.Input;
 	readonly stream: Stream.Stream<LiveHint, E, R>;
 }
@@ -51,14 +53,14 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 				});
 				function changed(changedKeys: readonly Key[]) {
 					const window = get.once(coalesceWindow);
-					const keys = invalidationKeys(changedKeys);
+					const keys = invalidationKeys(changedKeys, options.keyContext);
 					invalidateLive(reactivity, keys, () => active && !get.once(paused), window);
 					const delay = Duration.toMillis(Duration.fromInputUnsafe(window));
 					if (delay === 0) {
 						invalidateLive(reactivity, keys, () => active && !get.once(paused));
 						return;
 					}
-					for (const key of invalidationKeys(changedKeys)) {
+					for (const key of invalidationKeys(changedKeys, options.keyContext)) {
 						pending.add(key);
 					}
 					timer ??= setTimeout(() => {
@@ -75,8 +77,8 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						update({ needsResync: true });
 						return;
 					}
-					const keys = typeof options.resyncKeys === "function" ? options.resyncKeys() : options.resyncKeys;
-					reactivity.invalidateUnsafe(keys.map((key) => readKeys([key])[0] ?? ""));
+					const keys = typeof options.resyncKeys === "function" ? options.resyncKeys(get.registry) : options.resyncKeys;
+					reactivity.invalidateUnsafe(keys.map((key) => readKeys([key], options.keyContext)[0] ?? ""));
 					update({ needsResync: false, pending: 0 });
 				}
 				// A subscription alone does not build the flag, so its first read would otherwise announce a change.

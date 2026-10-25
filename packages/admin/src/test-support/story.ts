@@ -12,7 +12,7 @@ export const adminStory = storyKit({
 	verbs: ({ client }, story) => ({
 		changes: () => {
 			story.tell("subscribe to job changes");
-			return client["admin.jobs.$changes"]({ keys: [] }).pipe(Stream.take(1), Stream.runCollect);
+			return client["admin.jobs.$changes"]({ queries: [{ payload: undefined, query: "failed" }] }).pipe(Stream.take(1), Stream.runCollect);
 		},
 		failed: () => {
 			story.tell("read failed jobs");
@@ -28,7 +28,7 @@ export const adminStory = storyKit({
 		},
 		userChanges: () => {
 			story.tell("subscribe to user changes");
-			return client["admin.users.$changes"]({ keys: [] }).pipe(Stream.take(1), Stream.runCollect);
+			return client["admin.users.$changes"]({ queries: [{ payload: undefined, query: "profile" }] }).pipe(Stream.take(1), Stream.runCollect);
 		},
 		watch: () => {
 			story.tell("watch failed jobs");

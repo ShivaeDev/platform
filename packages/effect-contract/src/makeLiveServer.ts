@@ -1,13 +1,13 @@
 import { Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeHintPolicy } from "#internal/makeHintPolicy.ts";
-import { type Key, readKeys } from "./keys.ts";
-import type { LiveHint } from "./live.ts";
+import { type Key, type KeyContext, readKeys } from "#keys.ts";
+import type { LiveHint } from "#live.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	const resyncKey = `@shivaedev/effect-contract/resync/${crypto.randomUUID()}`;
-	function stream(keys: readonly Key[]) {
+	function stream(keys: readonly Key[], context?: KeyContext) {
 		return Stream.unwrap(
 			Effect.gen(function* () {
 				const queue = yield* Queue.unbounded<LiveHint>();
@@ -33,7 +33,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					});
 				}
 				const cancel = keys.map((key) => {
-					const own = readKeys([key]);
+					const own = readKeys([key], context);
 					return reactivity.registerUnsafe(own, () => {
 						pending.set(own[0] ?? "", key);
 						flush();
