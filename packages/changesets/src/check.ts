@@ -8,8 +8,21 @@ import { computePlan } from "#planner.ts";
 import { readHistory } from "#readHistory.ts";
 import { readWorkspace } from "#workspace.ts";
 
-function previousPackage(before: Workspace, pkg: WorkspacePackage) {
-	return before.packages.find((old) => old.manifest.name === pkg.manifest.name) ?? before.packages.find((old) => old.directory === pkg.directory);
+function previousPackage(before: Workspace, after: Workspace, pkg: WorkspacePackage) {
+	return (
+		before.packages.find((old) => old.manifest.name === pkg.manifest.name)
+		?? before.packages.find((old) => old.directory === pkg.directory)
+		?? before.packages.find((old) => {
+			const rename = new RegExp(`\\bRename \`${RegExp.escape(old.manifest.name)}\` to \`${RegExp.escape(pkg.manifest.name)}\``, "u");
+			return [...before.changesets, ...after.changesets]
+				.map(parseChangeset)
+				.some(
+					(changeset) =>
+						Object.hasOwn(changeset.packages, pkg.manifest.name)
+						&& changeset.entries.some((entry) => entry.section === "Breaking" && rename.test(entry.text)),
+				);
+		})
+	);
 }
 
 function validateInputs(before: readonly Source[], pending: readonly Source[], releasing: boolean): void {
@@ -25,7 +38,7 @@ function validateInputs(before: readonly Source[], pending: readonly Source[], r
 export function planDiff(before: Workspace, after: Workspace) {
 	const packages = after.packages.map((pkg) => ({
 		...pkg,
-		manifest: { ...pkg.manifest, version: previousPackage(before, pkg)?.manifest.version ?? "0.0.0" },
+		manifest: { ...pkg.manifest, version: previousPackage(before, after, pkg)?.manifest.version ?? "0.0.0" },
 	}));
 	return computePlan(
 		packages,
@@ -50,13 +63,13 @@ export function validateDiff(before: Workspace, after: Workspace): void {
 		);
 	}
 	const bumped = after.packages.filter((pkg) => {
-		const old = previousPackage(before, pkg);
+		const old = previousPackage(before, after, pkg);
 		return old === undefined ? !pkg.manifest.private && pkg.manifest.version !== "0.0.0" : old.manifest.version !== pkg.manifest.version;
 	});
 	validateInputs(before.changesets, after.changesets, bumped.length > 0);
 	if (bumped.length === 0) {
 		for (const pkg of after.packages) {
-			const old = previousPackage(before, pkg);
+			const old = previousPackage(before, after, pkg);
 			requireThat(
 				(old?.changelog ?? "# Changelog\n") === pkg.changelog,
 				`${pkg.manifest.name}: CHANGELOG.md changes require a version bump; add .changeset/<name>.md and run changesets apply.`,
@@ -72,7 +85,7 @@ export function validateDiff(before: Workspace, after: Workspace): void {
 function validateRelease(before: Workspace, after: Workspace, plan: ReleasePlan): void {
 	let date: string | undefined;
 	for (const pkg of after.packages) {
-		const old = previousPackage(before, pkg);
+		const old = previousPackage(before, after, pkg);
 		const release = plan.releases.find((candidate) => candidate.name === pkg.manifest.name);
 		requireThat(
 			pkg.manifest.version === (release?.to ?? old?.manifest.version ?? "0.0.0"),

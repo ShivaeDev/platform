@@ -44,7 +44,7 @@ For a rename, change the manifest's name and declare the new name with its bump 
 - Rename `@acme/old-name` to `@acme/new-name`; change dependency declarations and imports to the new name.
 ```
 
-When renaming in the same directory, keep the existing version and released changelog history. The release advances that version under the new name and prepends its notes without rewriting old entries. The plan releases the new name only; it does not publish or deprecate the old name.
+A declared rename may also move the package folder. Keep the existing version and move its `CHANGELOG.md` with its released history unchanged. The check follows the `Rename` entry to the previous package even when its folder changes. The release advances that version under the new name and prepends its notes without rewriting old entries. The plan releases the new name only; it does not publish or deprecate the old name.
 
 For a removal, name a remaining package and its bump in frontmatter, and add a `### Breaking` entry naming the removed package and its replacement or migration steps. The removed name belongs in the note, never in frontmatter. Removed packages are excluded from release planning. A package disappearing without this declaration fails the diff check with instructions for adding it. Declarations may be pending or consumed by the release; consumed inputs must already exist at the base, just like other release inputs.
 
