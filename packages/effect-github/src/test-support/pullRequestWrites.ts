@@ -11,7 +11,7 @@ const Update = Schema.Struct({ conclusion: Schema.optional(Schema.String), outpu
 
 export function pullRequestWrites() {
 	const state: {
-		comments: (typeof PullRequestComment.Type)[];
+		comments: (typeof PullRequestComment.Encoded)[];
 		checks: Array<{
 			id: number;
 			headSha: string;
