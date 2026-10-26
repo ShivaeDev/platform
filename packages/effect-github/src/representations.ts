@@ -6,18 +6,27 @@ import type { CachedResponse } from "#cache.ts";
 import { jsonResponse } from "#json.ts";
 import type { requests } from "#requests.ts";
 
-export function representations(apiUrl: string, request: ReturnType<typeof requests>, resource: (path: string) => string) {
+export function representations(
+	apiUrl: string,
+	request: ReturnType<typeof requests>,
+	resource: (path: string) => string,
+	responseByteLimit = 1024 * 1024,
+) {
 	function get(path: string, accept = "application/vnd.github+json") {
 		return HttpClientRequest.get(new URL(path, apiUrl).href, { headers: { Accept: accept } });
 	}
-	function readRepresentation(path: string) {
-		return Effect.map(request(get(path), 1024 * 1024), jsonResponse);
+	function readRepresentation(path: string, byteLimit = responseByteLimit) {
+		return Effect.map(request(get(path), byteLimit), jsonResponse);
 	}
-	function listRepresentations(path: string, beforeRequest?: (resource: string) => Effect.Effect<void, ServiceUnavailable>) {
+	function listRepresentations(
+		path: string,
+		beforeRequest?: (resource: string) => Effect.Effect<void, ServiceUnavailable>,
+		byteLimit = responseByteLimit,
+	) {
 		const entries = new WeakMap<HttpClientResponse.HttpClientResponse, CachedResponse>();
 		function fetchPage(input: HttpClientRequest.HttpClientRequest) {
 			return (beforeRequest?.(resource(new URL(input.url).pathname)) ?? Effect.void).pipe(
-				Effect.andThen(request(input, 1024 * 1024)),
+				Effect.andThen(request(input, byteLimit)),
 				Effect.map((entry) => {
 					entries.set(entry.response, entry);
 					return entry.response;
@@ -35,10 +44,10 @@ export function representations(apiUrl: string, request: ReturnType<typeof reque
 			),
 		);
 	}
-	function writeRepresentation(method: "POST" | "PATCH", path: string, body: unknown) {
+	function writeRepresentation(method: "POST" | "PATCH", path: string, body: unknown, byteLimit = responseByteLimit) {
 		return HttpClientRequest.make(method)(new URL(path, apiUrl).href, { headers: { Accept: "application/vnd.github+json" } }).pipe(
 			HttpClientRequest.bodyJson(body),
-			Effect.flatMap((input) => request(input, 1024 * 1024)),
+			Effect.flatMap((input) => request(input, byteLimit)),
 			Effect.map(jsonResponse),
 		);
 	}
