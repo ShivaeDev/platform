@@ -6,3 +6,10 @@ export const humanDelivery = host.trait("configuration", "a pull request waits f
 	engine.pullRequest = yield* mergedReviewGithub();
 	engine.integrations = engineIntegrations(engine.pullRequest, []);
 });
+
+export const publishedBranch = host.trait("configuration", "the worker branch has an open pull request", (engine) => {
+	if (engine.pullRequest === undefined) {
+		throw new Error("Configure human delivery before publishing the branch");
+	}
+	engine.integrations = engineIntegrations({ ...engine.pullRequest, publicationQuery: engine.pullRequest.publication }, []);
+});

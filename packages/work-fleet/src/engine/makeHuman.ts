@@ -8,7 +8,7 @@ import { resolveCommand } from "#engine/resolveCommand.ts";
 import { isFleetError } from "#errors.ts";
 import type { FleetRecord } from "#model.ts";
 import { BoardFailure } from "#policy.ts";
-import { StorageCapacity, StorageQuota } from "#storage/errors.ts";
+import { StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function makeHuman(state: EngineState) {
@@ -34,18 +34,24 @@ export function makeHuman(state: EngineState) {
 		}
 		return yield* resolveCommand(state)(stored.value.workId, decision.id, reading.response.id).pipe(
 			Effect.catch((error) =>
-				Effect.gen(function* () {
-					if (isFleetError(error) || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota) {
-						yield* Effect.logError(`Failed to apply answer for ${stored.value.workId}`, error);
-						return yield* state.save(stored, {
-							...stored.value,
-							attentionOwner: failureOwner(error),
-							blocker: `Answer failed: ${failureMessage(error)}`,
-						});
-					}
-					return yield* Effect.fail(error);
-				}),
+				isFleetError(error) || error instanceof BoardFailure || error instanceof StorageCapacity || error instanceof StorageQuota
+					? recordAnswerFailure(state, stored, error)
+					: Effect.fail(error),
 			),
 		);
 	});
 }
+
+const recordAnswerFailure = Effect.fn("Fleet.recordAnswerFailure")(function* (state: EngineState, stored: Versioned<FleetRecord>, error: unknown) {
+	yield* Effect.logError(`Failed to apply answer for ${stored.value.workId}`, error);
+	return yield* state.load(stored.value.workId).pipe(
+		Effect.flatMap((current) =>
+			state.save(current, {
+				...current.value,
+				attentionOwner: current.value.decision?.id === stored.value.decision?.id ? failureOwner(error) : current.value.attentionOwner,
+				blocker: `Answer failed: ${failureMessage(error)}`,
+			}),
+		),
+		Effect.retry({ while: (failure) => failure instanceof StorageConflict }),
+	);
+});

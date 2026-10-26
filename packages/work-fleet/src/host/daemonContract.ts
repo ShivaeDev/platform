@@ -14,6 +14,12 @@ const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;
 
 export const ClientContract = contract("daemon", {
 	commands: [
+		command("check-stuck", {
+			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
+			payload: { workId: Schema.String },
+			rejections: fleetRejections,
+			success: Schema.Boolean,
+		}),
 		command("close-finished-decisions", {
 			invalidates: () => [fleetRecords.list],
 			payload: { dryRun: Schema.Boolean },

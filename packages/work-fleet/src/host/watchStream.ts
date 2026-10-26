@@ -23,7 +23,25 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 	let epoch: string | undefined;
 	let states: readonly WatchState[] | undefined;
 	function print(event: WatchEvent) {
-		return options.events.some((kind) => kind === event.kind) || event.kind.startsWith("daemon-") ? Console.log(JSON.stringify(event)) : Effect.void;
+		return Effect.gen(function* () {
+			if (!(options.events.some((kind) => kind === event.kind) || event.kind.startsWith("daemon-"))) {
+				return;
+			}
+			if (event.kind === "stuck" && event.workId !== undefined) {
+				const workId = event.workId;
+				const pickedUp = yield* Effect.scoped(
+					Effect.gen(function* () {
+						const port = yield* readDaemonPort(options.board, options.port).pipe(Effect.provide(NodeServices.layer));
+						const client = yield* daemonClient(port);
+						return yield* client("daemon.check-stuck", { workId });
+					}),
+				).pipe(Effect.orElseSucceed(() => false));
+				if (pickedUp) {
+					return;
+				}
+			}
+			yield* Console.log(JSON.stringify(event));
+		});
 	}
 	const receive = Effect.fnUntraced(function* (snapshot: typeof WatchSnapshot.Type) {
 		const now = yield* Clock.currentTimeMillis;

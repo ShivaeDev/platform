@@ -7,6 +7,7 @@ import { exposeFailure } from "#exposeFailure.ts";
 import { answerRecords } from "#host/answerRecords.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
+import { checkStuck } from "#host/checkStuck.ts";
 import type { FleetHost } from "#host/config.ts";
 import { configStatus } from "#host/configSettings.ts";
 import { ClientContract } from "#host/daemonContract.ts";
@@ -84,6 +85,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 			Effect.succeed(
 				ClientContract.application.of({
 					"daemon.answer": ({ workId, text, release }) => exposeFailure(settle(answers(workId, text, release))),
+					"daemon.check-stuck": ({ workId }) => exposeFailure(checkStuck(workId)),
 					"daemon.close-finished-decisions": ({ dryRun }) => exposeFailure(settle(settleFinishedDecisions(host.namespace, dryRun))),
 					"daemon.dispatch": ({ workId, now, ignoreAreas }) => exposeFailure(dispatch.accept(workId, { ignoreAreas, now })),
 					"daemon.dispatch-status": ({ workId }) => exposeFailure(dispatch.get(workId)),
