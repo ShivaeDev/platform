@@ -12,15 +12,6 @@
 		"output": "pnpm dev",
 		"packedInstall": true
 	},
-	"effect-prisma-normalize": {
-		"args": ["raw-contract.d.ts"],
-		"expectedFiles": {
-			"raw-contract.d.ts": "export type Row = { readonly createdAt: Date };\n"
-		},
-		"files": {
-			"raw-contract.d.ts": "export type Row = { readonly createdAt: Timestamp<6> };\n"
-		}
-	},
 	"heavy-lock": {
 		"absent": ["locks/heavy-process.lock"],
 		"args": [

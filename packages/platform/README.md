@@ -1,6 +1,6 @@
 # @shivaedev/platform
 
-Request identity and server boundaries for Effect applications. A feature can say who called it and why it refused, while the application supplies its session policy once. The package also connects Effect services to Promise callers, Node subscriptions and optional Better Auth, Prisma and tRPC integrations.
+Request identity and server boundaries for Effect applications. A feature can say who called it and why it refused, while the application supplies its session policy once. The package also connects Effect services to Promise callers, Node subscriptions and optional Better Auth integration.
 
 ## Why you want this
 
@@ -33,7 +33,7 @@ There are three parts to a native RPC boundary:
 
 An **Origin policy** is a function of the transport request's origin, headers and RPC name. A **session provider** returns `Option<Session>` or fails with `AuthUnavailable`; a session carries `user.id`. These are application inputs, not a second authentication framework.
 
-The optional modules solve different boundaries. `server/runtime/` carries Effect services into Promise callers, `server/node-http/` combines subscription cancellation sources, `server/better-auth/adapter.ts` connects Better Auth storage to Effect Prisma, and `server/testing/makePlatformIt.ts` composes the Prisma and tRPC test harnesses. Choose the modules that match the application rather than adopting every integration.
+The optional modules solve different boundaries. `server/runtime/` carries Effect services into Promise callers, and `server/node-http/` combines subscription cancellation sources. Choose the modules that match the application rather than adopting every integration.
 
 ### Prepare local development
 
@@ -497,7 +497,7 @@ The same module exports `loopbackOnly(handler)` for local page routes and `sameO
 
 `trustedProxyRanges(trustedProxy?)` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
 
-Declare expected refusals with the shared tagged error schemas from [contract](https://github.com/ShivaeDev/platform/tree/main/packages/contract#expected-failures). They work with native RPC without authentication middleware. For tRPC, use the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc); that HTTP boundary owns status mapping.
+Declare expected refusals with the shared tagged error schemas from [contract](https://github.com/ShivaeDev/platform/tree/main/packages/contract#expected-failures). They work with native RPC without authentication middleware.
 
 ### Handling unexpected failures
 
@@ -796,71 +796,6 @@ app.it("the member's provider account stores no credentials", [member], function
 
 With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
-### Optional Better Auth storage on Effect Prisma
-
-When Better Auth's rows belong to an Effect Prisma database, give its adapter the same database service and runtime:
-
-```ts
-import { betterAuth } from "better-auth";
-import { effectPrismaAdapter } from "@shivaedev/platform/server/better-auth/adapter.ts";
-import { makePlatformRuntime } from "@shivaedev/platform/server/runtime/makePlatform.ts";
-import { Database, DatabaseLive } from "./database.ts";
-
-export const runtime = makePlatformRuntime(DatabaseLive);
-export const auth = betterAuth({
-  database: effectPrismaAdapter(Database, runtime, {
-    modelName: (model) =>
-      `Auth${model.length === 0 ? model : `${model[0]?.toUpperCase()}${model.slice(1)}`}`,
-  }),
-});
-```
-
-The application's database module owns its generated contract and Layer. This mapping selects `AuthUser` for Better Auth's `user` model. The adapter translates create, read, update, count and delete operations through Effect Prisma. It carries a Better Auth transaction's services through its Promise callback; a failed callback rolls the transaction back.
-
-An empty `update` filter returns null. Empty filters on `updateMany` and `deleteMany` affect all rows, so callers must choose those operations deliberately.
-
-### In tests: one Prisma/tRPC composition
-
-Set up the application harness once in `test-support/`:
-
-```ts
-import { Effect } from "effect";
-import { makePlatformIt } from "@shivaedev/platform/server/testing/makePlatformIt.ts";
-import { adapter, Database, router, TestLive } from "./application.ts";
-
-export const it = makePlatformIt(Database)({
-  adapter,
-  createCaller: (options = { actor: "default" }) => router.createCaller(options),
-  extend: ({ db }) =>
-    Effect.succeed({
-      userExists: (id: string) => db.AuthUser.where({ id }).exists(),
-    }),
-  layer: TestLive,
-});
-```
-
-`application.ts` supplies the application's Effect tRPC adapter, generated database service, router and test Layer. The example router has `createUser` and `findUser` procedures, and its caller context has an `actor` string. `extend` adds application helpers alongside `db`, `trpc` and `promise`; types are inferred from the database, caller and extension.
-
-Write each feature test against the caller and database:
-
-```ts
-import { expect } from "@effect/vitest";
-import { Option } from "effect";
-import { it } from "./test-support/it.ts";
-
-it.effectApp("stores the user's email", function* ({ db, trpc, userExists }) {
-  const id = crypto.randomUUID();
-  const input = { email: `${id}@example.test`, id, name: "Ada" };
-  const created = yield* trpc.createUser(input);
-  const stored = Option.getOrThrow(yield* db.AuthUser.where({ id }).first());
-
-  expect(stored.email).toBe(input.email);
-  expect(yield* userExists(created.id)).toBe(true);
-});
-```
-
-The direct database, tRPC caller and extension share the test's PostgreSQL transaction. Successful and expected-failing tests roll their writes back. `trpc({ actor: "admin" })` selects another caller context within the test. `promise(() => auth.api.getSession({ headers }))` runs a Promise boundary with the test's services, so Better Auth adapter calls inside it join the rollback transaction.
-
 ### API
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/platform/`.
@@ -892,8 +827,6 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |
 | `server/better-auth/testDatabase.ts` | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema. |
 | `server/better-auth/testing.ts` | `signedInUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only minted user sessions and credential storage observations. |
-| `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
-| `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
 
 ### Manage app users
 
@@ -916,8 +849,6 @@ Install the optional peers for the selected integration:
 | `server/boundedBody.ts` | `@effect/platform-node` |
 | `server/appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
 | `server/better-auth/mount.ts` | `better-auth`, `pg` |
-| `server/better-auth/adapter.ts` | `better-auth`, `@shivaedev/effect-prisma`, `@prisma-next/sql-orm-client` |
-| `server/testing/makePlatformIt.ts` | `@effect/vitest`, `@shivaedev/effect-prisma`, `@shivaedev/effect-trpc`, `@trpc/server` |
 
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.

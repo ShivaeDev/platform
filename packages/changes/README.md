@@ -60,7 +60,7 @@ const membershipChanges = makeChannel<MembershipChange, SqlClient.SqlClient>({
 
 The owner is the native SQL client's transaction-service identity. The key groups each subject and domain. The publish function collects notifications here; replace it with the application's notification or invalidation Effect. The channel's `R` parameter describes the services its owner and publish function require.
 
-`within(native)(body)` wraps an Effect transaction combinator. Its native combinator must run the body once and return success only after the root commit or successful native nested outcome. A successful nested scope can leave its savepoint open until the root transaction settles. Use an existing binding when it already owns the job: [sql](https://github.com/ShivaeDev/platform/tree/main/packages/sql#readme) provides the SQL boundary for Reactivity keys, and [effect-changes-prisma](https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes-prisma#readme) provides the Prisma driver and mapped write recording.
+`within(native)(body)` wraps an Effect transaction combinator. Its native combinator must run the body once and return success only after the root commit or successful native nested outcome. A successful nested scope can leave its savepoint open until the root transaction settles. Use an existing binding when it already owns the job: [sql](https://github.com/ShivaeDev/platform/tree/main/packages/sql#readme) provides the SQL boundary for Reactivity keys.
 
 ### 2. Once per feature: record the affected subjects
 
@@ -121,7 +121,7 @@ Capture the application's Effect context before running callback work in another
 
 Settle with `"committed"` only after the root commit or successful native nested outcome, and `"rolledBack"` when that operation fails. The first settlement outcome wins, so calling it again cannot publish twice.
 
-For an interruptible Promise driver, the binding must keep waiting for the pending transaction result after caller interruption and settle from that result. The [complete Prisma driver adapter](https://github.com/ShivaeDev/platform/blob/main/packages/effect-changes-prisma/src/transaction.ts) shows context capture, failed-body rejection, aborting the body, awaiting the driver and retaining its typed errors. Do not treat an interrupted wait or a successful body as the driver's commit result.
+For an interruptible Promise driver, the binding must keep waiting for the pending transaction result after caller interruption and settle from that result. Do not treat an interrupted wait or a successful body as the driver's commit result.
 
 ### Decide what a publish failure means
 

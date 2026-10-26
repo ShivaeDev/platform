@@ -1,6 +1,6 @@
 # @shivaedev/test
 
-You are changing the shared path from a Vitest test to a real Effect program. A test should name its work in a generator, use the services the application already has, and control time without rebuilding a runner. Prisma fixtures, tRPC callers and domain stories build on this package; their domain setup belongs to them. Usage is in [README.md](README.md).
+You are changing the shared path from a Vitest test to a real Effect program. A test should name its work in a generator, use the services the application already has, and control time without rebuilding a runner. Domain stories build on this package; their domain setup belongs to them. Usage is in [README.md](README.md).
 
 ## Which way to lean
 

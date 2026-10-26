@@ -1,6 +1,6 @@
 # @shivaedev/platform
 
-You are changing the shared boundaries that an Effect application otherwise writes again: request identity, session resolution and tracing, plus the runtime and HTTP cleanup that connect Effect to Promise callers. Applications need one account of who made a request and why it failed, without mixing users, trusting message-supplied credentials or turning an authentication outage into an anonymous user. The optional Better Auth database adapter and Prisma/tRPC test harness compose those integration packages; they do not define the native SQL path.
+You are changing the shared boundaries that an Effect application otherwise writes again: request identity, session resolution and tracing, plus the runtime and HTTP cleanup that connect Effect to Promise callers. Applications need one account of who made a request and why it failed, without mixing users, trusting message-supplied credentials or turning an authentication outage into an anonymous user.
 
 ## Which way to lean
 

@@ -38,7 +38,7 @@ function invalidArguments(fixtures: readonly string[]) {
 }
 
 export function compileValidFixture() {
-	const output = mkdtempSync(join(tmpdir(), "effect-service-"));
+	const output = mkdtempSync(join(tmpdir(), "service-"));
 	try {
 		const result = compile(["-p", "src/test-support/fixtures/tsconfig.json", "--outDir", output]);
 		const diagnostics = result.stderr || result.stdout;

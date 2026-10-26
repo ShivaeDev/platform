@@ -34,7 +34,7 @@ for (const role of ["worker", "reviewer"] as const) {
 			const prompt = yield* policy.prompt(role);
 			expect(prompt).not.toContain(`Repository ${role} guidance:`);
 			expect(prompt).not.toContain("pnpm db:setup");
-			expect(prompt).not.toContain("PLATFORM_EFFECT_");
+			expect(prompt).not.toContain("_TEST_DATABASE_URL");
 			expect(prompt).not.toContain("script/lib/postgresTestEnvironment.ts");
 		});
 		hostPolicyStory.it("an unreadable guidance file fails host policy creation", [], function* (policy) {

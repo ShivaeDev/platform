@@ -14,7 +14,7 @@ export const app = storyKit({
 	after: {
 		*source(engine) {
 			const fs = yield* FileSystem.FileSystem;
-			yield* command(join(engine.root, "source"), "pnpm", ["pack", "--out", join(engine.root, "archives/effect-contract.tgz")]);
+			yield* command(join(engine.root, "source"), "pnpm", ["pack", "--out", join(engine.root, "archives/contract.tgz")]);
 			engine.path = yield* packedInstaller(process.cwd(), engine.root, engine.tarballs);
 			yield* command(engine.directory, "env", [`PATH=${engine.path}`, "pnpm", "install"]);
 			yield* fs.makeDirectory(join(engine.directory, "node_modules/.bin"), { recursive: true });
@@ -43,7 +43,7 @@ export const app = storyKit({
 			join(directory, "ci.js"),
 			'import { writeFileSync } from "node:fs";\nimport { query } from "@shivaedev/contract/operation.ts";\nwriteFileSync("ci-result.json", JSON.stringify({ cwd: process.cwd(), database: process.env.TEST_DATABASE_URL, query }));\n',
 		);
-		const tarballs: Record<string, string> = { "@shivaedev/contract": join(root, "archives/effect-contract.tgz") };
+		const tarballs: Record<string, string> = { "@shivaedev/contract": join(root, "archives/contract.tgz") };
 		return { database: "postgres://localhost/starter-story", directory, path: "", root, tarballs };
 	},
 	layer: NodeServices.layer,

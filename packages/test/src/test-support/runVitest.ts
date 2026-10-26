@@ -18,7 +18,7 @@ interface Report {
 
 export function runVitest(fixture: string, reporter?: string) {
 	const vitestRoot = dirname(createRequire(import.meta.url).resolve("vitest/package.json"));
-	const reportDirectory = mkdtempSync(join(tmpdir(), "effect-test-report-"));
+	const reportDirectory = mkdtempSync(join(tmpdir(), "test-report-"));
 	const reportFile = join(reportDirectory, "report.json");
 	const envFile = join(reportDirectory, ".env");
 	writeFileSync(envFile, `EFFECT_TEST_SERVER_URL=${join(reportDirectory, "server-url")}\n`);

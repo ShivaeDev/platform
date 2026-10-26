@@ -17,9 +17,6 @@ Every package has a README for people and agents using it and a short `AGENTS.md
   dependencies with native Effect Layers and caller-owned scopes.
 - [`@shivaedev/changes`](./packages/changes): Commit-bound change
   channels that publish recorded changes only after their transaction commits.
-- [`@shivaedev/effect-changes-prisma`](./packages/effect-changes-prisma):
-  Commit-bound changes recorded from Prisma Classic writes on PostgreSQL only,
-  with a test-time coverage check.
 - [`@shivaedev/sql`](./packages/sql): Simple schema-derived
   repositories over native Effect SQL, and after-commit invalidation.
 - [`@shivaedev/contract`](./packages/contract): Query and command
@@ -28,22 +25,17 @@ Every package has a README for people and agents using it and a short `AGENTS.md
   editable drafts, with optional React bindings.
 - [`@shivaedev/react`](./packages/react): Query state and action
   dispatch hooks for native Effect atoms.
-- [`@shivaedev/effect-prisma`](./packages/effect-prisma): Generated Prisma Next
-  queries and transactions that compose with Effect.
 - [`@shivaedev/jobs`](./packages/jobs): Schema-defined jobs
   and scoped pg-boss workers in Effect applications.
 - [`@shivaedev/test`](./packages/test): Generic Effect Vitest
   runner with worker-scoped Layers and TestClock.
 - [`@shivaedev/test-sql`](./packages/test-sql): PostgreSQL test fixtures prepared once, per-test rollback and isolated databases for real commits.
-- [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
-  procedures and testing.
 - [`@shivaedev/test-story`](./packages/test-story): Tests that read like
   stories over the real engine: one Effect story kit per engine with its own
   `it` that names every test after the engine's genre, traits per feature, and a
   failure that prints the story, where it stopped and the engine's state.
 - [`@shivaedev/platform`](./packages/platform): Shared errors, request identity,
-  Node HTTP cancellation and runtime ownership, plus optional auth and composed
-  Prisma/tRPC test integrations.
+  Node HTTP cancellation and runtime ownership, plus optional auth.
 - [`@shivaedev/quality`](./packages/quality): Opinionated repository quality
   policy with shared tooling and minimal setup; counted existing debt keeps
   adoption practical without weakening the checks.
@@ -89,14 +81,13 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 | Test variable | Database |
 | --- | --- |
-| `PLATFORM_PRISMA_TEST_DATABASE_URL` | `platform_test_prisma` |
 | `PLATFORM_SQL_TEST_DATABASE_URL` | `platform_test_sql` |
 | `PLATFORM_JOBS_TEST_DATABASE_URL` | `platform_test_jobs` |
-| `PLATFORM_CHANGES_PRISMA_TEST_DATABASE_URL` | `platform_test_changes_prisma` |
+| `PLATFORM_TEST_SQL_TEST_DATABASE_URL` | `platform_test_test_sql` |
 
-`pnpm db:setup` creates missing development and package-specific test databases, then initializes the integration and auth schemas in the Prisma test database without dropping tables. SQL, pg-boss and changes-prisma tests prepare their own objects in their separate databases. Local preparation and `pnpm test` validate each database name and refuse remote hosts, development databases, shared test targets or connection overrides. Existing databases and data are preserved.
+`pnpm db:setup` creates missing development and package-specific test databases without dropping anything. Each package's tests prepare their own objects in their separate database. Local preparation and `pnpm test` validate each database name and refuse remote hosts, development databases, shared test targets or connection overrides. Existing databases and data are preserved.
 
-`pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage. Prisma generation runs explicitly in the package build/typecheck/test paths.
+`pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage.
 
 Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files. For example, after local setup:
 

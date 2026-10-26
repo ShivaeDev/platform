@@ -14,16 +14,10 @@ export default defineConfig({
 			"rules": ["biome/files/includes"],
 		},
 		{
-			"files": ["packages/test/src/anyTestLayer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
+			"files": ["packages/test/src/anyTestLayer.ts"],
 			"reason":
-				"test declares the shared test Layer bound; effect-trpc preserves the same type at its public compatibility path. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
+				"test declares the shared test Layer bound. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
 			"rules": ["biome/lint/suspicious/noExplicitAny"],
-		},
-		{
-			"files": ["packages/effect-prisma/src/test-support/FakeResult.ts"],
-			"reason":
-				"Test doubles for Prisma Next's AsyncIterableResult, a lazy thenable that is also async-iterable. The relation runtime must be exercised against that exact shape, so the doubles define then() and run their query on each consumption.",
-			"rules": ["biome/lint/suspicious/noThenProperty"],
 		},
 		{
 			"files": ["packages/test/src/makeEffectIt.ts"],
@@ -64,7 +58,6 @@ export default defineConfig({
 				],
 			},
 		},
-		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 	},
 	sources: ["packages", "examples", "script"],
 });

@@ -4,7 +4,7 @@ import { anything, external, files, folders, modules, packages } from "@shivaede
 const browserCode = folders("packages/react/src");
 
 export default [
-	fence("effect-react-never-imports-server")
+	fence("react-never-imports-server")
 		.because("Browser packages ship to browsers and reach only browser-safe code.")
 		.from(browserCode)
 		.mayNotReach(

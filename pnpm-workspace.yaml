@@ -7,11 +7,6 @@ nodeOptions: --conditions=source
 overrides:
   # Recharts pins an unattested reselect release; use its attested compatible successor.
   "recharts>reselect": "catalog:"
-  # `@prisma-next/cli-telemetry` asks for `^1.2.3`. Vercel publishes 1.2.4 and
-  # later from a private repository, where npm cannot attest provenance, so
-  # `trustPolicy: no-downgrade` rejects them. Keep 1.2.3 while Prisma Next
-  # depends on it.
-  "@vercel/detect-agent": "catalog:"
   # `@effect/platform-node` asks for `^` its shared layer; keep that layer on
   # the catalog version so the Effect packages share one release.
   "@effect/platform-node-shared": "catalog:"
@@ -58,28 +53,10 @@ catalog:
   mermaid: 12.2.0
   ignore: 7.0.12
   sort-package-json: 4.1.0
-  "@prisma-next/adapter-postgres": 0.16.0
-  "@prisma-next/adapter-sqlite": 0.16.0
-  "@prisma-next/cli": 0.16.0
-  "@prisma-next/contract": 0.16.0
-  "@prisma-next/postgres": 0.16.0
-  "@prisma-next/sql-contract": 0.16.0
-  "@prisma-next/sql-orm-client": 0.16.0
-  "@prisma-next/sql-relational-core": 0.16.0
-  "@prisma-next/sql-runtime": 0.16.0
-  "@prisma-next/sqlite": 0.16.0
-  "@prisma-next/target-postgres": 0.16.0
-  "@prisma-next/target-sqlite": 0.16.0
-  "@prisma/adapter-pg": 7.10.0
-  "@prisma/client": 7.10.0
-  prisma: 7.10.0
   "@types/hast": 3.0.5
   "@types/mdast": 4.0.4
   "@types/node": 24.19.2
   "@types/pg": 8.20.0
-  "@trpc/client": 11.19.0
-  "@trpc/server": 11.19.0
-  superjson: 2.2.6
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.5
   esbuild: 0.28.2
@@ -92,7 +69,6 @@ catalog:
   yaml: 2.9.1
   vitest: 5.0.5
   "@vitest/coverage-v8": 5.0.5
-  "@vercel/detect-agent": 1.2.3
 
 catalogs:
   compiler-api:
@@ -105,10 +81,6 @@ minimumReleaseAgeExclude:
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
-# `prisma@7.10.0` was published without the provenance attestation earlier
-# releases carry. Remove this once an attested Prisma release ships.
-trustPolicyExclude:
-  - prisma@7.10.0
 # Re-verifying every lockfile entry costs pnpm about 1 GB more memory, which
 # pushes Renovate's lockfile updates past the 3 GB of the Mend-hosted runner.
 # Newly resolved versions are still verified; CI and publish re-verify every
@@ -119,5 +91,3 @@ strictDepBuilds: true
 allowBuilds:
   esbuild: true
   msgpackr-extract: false
-  "@prisma/engines": false
-  prisma: false

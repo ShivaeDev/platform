@@ -30,12 +30,6 @@ user-facing text, layout and deployment choices.
 | Isolate PostgreSQL tests | [test-sql](../../packages/test-sql/README.md) | Prepare migrations and fixtures once; use rollback or cloned databases for real commits. |
 | Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |
 
-The Prisma and tRPC integrations serve applications using those stacks:
-[effect-prisma](../../packages/effect-prisma/README.md) integrates Prisma Next,
-[effect-changes-prisma](../../packages/effect-changes-prisma/README.md) binds
-commit-bound changes to Prisma Classic on PostgreSQL, and
-[effect-trpc](../../packages/effect-trpc/README.md) integrates tRPC procedures.
-Choose the package for the stack the application actually uses.
 
 ## Design priorities
 

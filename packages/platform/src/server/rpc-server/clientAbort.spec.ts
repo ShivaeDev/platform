@@ -53,7 +53,7 @@ cancellation.it(
 	function* ({ beginRpc, nextHint, rpcResult, awaitCommit, abortClient, awaitAbort, abortProbe, close, logs, exportedSpans }) {
 		yield* beginRpc("watch");
 		expect(yield* nextHint()).toContain('"_tag":"Resync"');
-		expect(abortProbe().registrations).toEqual([["abort_items"], [expect.stringMatching(/^@shivaedev\/effect-contract\/resync\//u)]]);
+		expect(abortProbe().registrations).toEqual([["abort_items"], [expect.stringMatching(/^@shivaedev\/contract\/resync\//u)]]);
 		yield* rpcResult("commit");
 		yield* awaitCommit(1);
 		expect(yield* nextHint()).toContain('"_tag":"Changed"');

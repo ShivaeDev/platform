@@ -1,3 +1,0 @@
-{"path":"packages/effect-trpc/src/server/adapter.ts","rule":"biome/lint/style/useNamingConvention","count":4}
-{"path":"packages/effect-trpc/src/server/testing/vitest.test.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-trpc/src/server/types.ts","rule":"biome/lint/style/useNamingConvention","count":4}

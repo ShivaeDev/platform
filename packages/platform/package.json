@@ -56,28 +56,17 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@prisma-next/adapter-postgres": "catalog:",
-		"@prisma-next/contract": "catalog:",
-		"@prisma-next/postgres": "catalog:",
-		"@prisma-next/sql-contract": "catalog:",
-		"@prisma-next/sql-orm-client": "catalog:",
-		"@prisma-next/target-postgres": "catalog:",
-		"@shivaedev/effect-prisma": "workspace:*",
-		"@shivaedev/effect-trpc": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
-		"@trpc/client": "catalog:",
-		"@trpc/server": "catalog:",
 		"@types/node": "catalog:",
 		"@types/pg": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg": "catalog:",
 		"pg-boss": "catalog:",
-		"superjson": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
@@ -85,10 +74,6 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@prisma-next/sql-orm-client": "catalog:",
-		"@shivaedev/effect-prisma": "workspace:*",
-		"@shivaedev/effect-trpc": "workspace:*",
-		"@trpc/server": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg": "catalog:"
@@ -101,18 +86,6 @@
 			"optional": true
 		},
 		"@effect/vitest": {
-			"optional": true
-		},
-		"@prisma-next/sql-orm-client": {
-			"optional": true
-		},
-		"@shivaedev/effect-prisma": {
-			"optional": true
-		},
-		"@shivaedev/effect-trpc": {
-			"optional": true
-		},
-		"@trpc/server": {
 			"optional": true
 		},
 		"better-auth": {

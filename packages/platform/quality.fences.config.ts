@@ -2,7 +2,6 @@ import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { anyOf, anything, external, files, folders, modules, packages, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
 import platformManifest from "./package.json" with { type: "json" };
 
-const WORKSPACE_SCOPE = "@shivaedev/";
 const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependenciesMeta)
 	.filter(([, meta]) => meta.optional)
 	.map(([name]) => name);
@@ -32,13 +31,7 @@ export default [
 				"packages/platform/src/server/runtime",
 			),
 		)
-		.mayNotReach(
-			anyOf(
-				packages(...PLATFORM_OPTIONAL_PEERS.filter((name) => name.startsWith(WORKSPACE_SCOPE))),
-				modules(...PLATFORM_OPTIONAL_PEERS.filter((name) => !name.startsWith(WORKSPACE_SCOPE))),
-				scopes("@better-auth"),
-			),
-		)
+		.mayNotReach(anyOf(modules(...PLATFORM_OPTIONAL_PEERS), scopes("@better-auth")))
 		.demonstratedBy({
 			illegal: ["packages/platform/src/server/runtime/makePlatform.ts", external("better-auth")],
 			legal: ["packages/platform/src/server/runtime/makePlatform.ts", external("effect")],

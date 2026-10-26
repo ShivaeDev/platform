@@ -1,10 +1,10 @@
 # Errors and request context for native RPC
 
-Applications built on tRPC tend to carry their own copies of the same error classes, request id reference, optional identity service and request logging. Effect Contract provides the shared errors; Platform provides request context for native Effect RPC. The [Platform README](../../packages/platform/README.md) teaches the API; this guide explains the decisions behind it.
+Applications tend to carry their own copies of the same error classes, request id reference, optional identity service and request logging. Effect Contract provides the shared errors; Platform provides request context for native Effect RPC. The [Platform README](../../packages/platform/README.md) teaches the API; this guide explains the decisions behind it.
 
 ## Where the modules run
 
-`@shivaedev/contract/errors/*.ts` and `@shivaedev/platform/rpc/*.ts` run in the browser and on the server: Schema error classes, `rejectedField`, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/platform/server/rpc-server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and redaction. Quality's `effect-contract-never-imports-server` and `platform-client-stays-browser-safe` import fences keep the shared modules browser-safe.
+`@shivaedev/contract/errors/*.ts` and `@shivaedev/platform/rpc/*.ts` run in the browser and on the server: Schema error classes, `rejectedField`, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/platform/server/rpc-server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and redaction. Quality's `contract-never-imports-server` and `platform-client-stays-browser-safe` import fences keep the shared modules browser-safe.
 
 ## Errors
 
@@ -12,7 +12,7 @@ Applications built on tRPC tend to carry their own copies of the same error clas
 
 `rejectedField` is the canonical definition of a field rejection: a value with a string `_tag`, a string `field` and a string `message`, as an instance or as encoded JSON. An untagged `{ field, message }` is not one, so a defect or an arbitrary thrown object with those keys is never shown as a field message. Code that maps rejections to form fields starts from this check and keeps only fields the form has.
 
-Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them. On tRPC, `rejectWith` from `@shivaedev/effect-trpc/server/rejection.ts` sends the same classes as declared rejections; see the [effect-trpc README](../../packages/effect-trpc/README.md).
+Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them.
 
 ## Request id, identity and logging
 

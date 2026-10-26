@@ -4,7 +4,7 @@ import { anything, external, folders, modules } from "@shivaedev/quality/imports
 const browserCode = folders("packages/form/src");
 
 export default [
-	fence("effect-form-never-imports-server")
+	fence("form-never-imports-server")
 		.because("Browser packages ship to browsers and reach only browser-safe code.")
 		.from(browserCode)
 		.mayNotReach(anything.except(browserCode, modules("effect", "@effect/atom-react", "react")))

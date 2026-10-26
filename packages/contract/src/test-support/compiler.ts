@@ -12,7 +12,7 @@ function compile(arguments_: readonly string[]) {
 
 export const compiler = {
 	declarations() {
-		const output = mkdtempSync(join(tmpdir(), "effect-contract-"));
+		const output = mkdtempSync(join(tmpdir(), "contract-"));
 		try {
 			const result = compile(["-p", "src/test-support/fixtures/tsconfig.json", "--outDir", output]);
 			const declaration = result.status === 0 ? readFileSync(join(output, "src/test-support/fixtures/valid.d.ts"), "utf8") : "";
