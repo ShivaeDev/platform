@@ -10,6 +10,7 @@ export default [
 				files(
 					"packages/work-board/src/integration/metadata.ts",
 					"packages/work-board/src/server/integration/board.ts",
+					"packages/work-board/src/server/integration/processes.ts",
 					"packages/work-board/src/server/integration/responses.ts",
 					"packages/work-board/src/server/integration/attention.ts",
 					"packages/work-board/src/server/integration/diagnostics.ts",
