@@ -17,6 +17,22 @@ The notes route loads an authenticated RPC query; the create command is also pro
 
 The starter uses strict application checking with `skipLibCheck: true`, matching Quality's application configuration. Better Auth's published declarations also reference runtimes this Node app does not use. Auth options live in `src/server/authOptions.ts`; the numbered migrations in `src/server/migrations/` call Better Auth's [programmatic migration API](https://better-auth.com/docs/concepts/database#programmatic-migrations), so no separate auth CLI step is needed. With `PUBLIC_URL` unset, auth supports the documented `127.0.0.1` HTTP development and built-app URLs.
 
+## Administer the app
+
+The starter registers its Jobs and note-statistics pages through [`@shivaedev/admin`](../../packages/admin/README.md). Open `/admin` in development on port 5173 or in the built app on port 3000. Vite serves the React routes and proxies their `/rpc` requests to the same app host as notes. The Jobs page shows health, queue counts, failed and dead-lettered jobs and job detail; `/admin/notes` shows aggregate statistics across users.
+
+After `pnpm migrate`, provision an administrator with a new email address:
+
+```sh
+ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
+```
+
+Sign in with those credentials, then open `/admin/jobs`. The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. Existing email addresses are rejected. Every admin query and change subscription requires `AuthenticatedAdmin`: signed-out requests receive `Unauthorized`, and users without `admin`, including `owner` alone, receive `Forbidden`.
+
+The registry in `src/modules/notes/admin.ts` lists the authored pages; `src/modules/notes/server/adminRegistration.ts` supplies handlers on the existing `/rpc` host. Each page wraps a native effect-contract contract. The default Jobs page declares no commands. Retry requires an explicit `jobsPageWithRetry` contract, `jobsHandlersWithRetry` registration and a bound retry action in the app view. React views belong to the application; the admin package adds no UI components or transport.
+
+`--minimal` omits the notes module and its page registrations. Its foundation and reusable admin views compile independently of notes. Add page declarations, handlers and client routes with your own module when you need operator tooling.
+
 ## Add a job
 
 Define a payload Schema with `defineQueue` in `src/server/noteJobs.ts`, and register its handler in `src/server/noteWorker.ts`; the worker uses the host's `appDatabase` Layer.

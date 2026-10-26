@@ -46,7 +46,7 @@ The built server serves the UI, authentication and RPC on port 3000 by default. 
 
 ## Inspect background jobs
 
-Open `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views use native RPC and session-owned atoms. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. Both pages require the `admin` role; `owner` alone stays forbidden.
+Open `/admin` or `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views register native contracts with [`@shivaedev/admin`](https://github.com/ShivaeDev/platform/tree/main/packages/admin) and use the existing `/rpc` transport and session-owned atoms. Vite serves the React routes and proxies their RPC calls to the app host. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. Both pages require the `admin` role; `owner` alone stays forbidden.
 
 After `pnpm migrate`, create an admin with a new email address:
 
