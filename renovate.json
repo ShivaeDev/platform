@@ -53,9 +53,8 @@
 			"matchPackageNames": ["effect", "@effect/**"]
 		},
 		{
-			"description": "Prisma Classic packages must share one version.",
-			"groupName": "prisma",
-			"groupSlug": "prisma",
+			"description": "Platform is retiring Prisma Classic packages, so keep the pinned version until removal instead of adding a new provenance trust exception for each unattested release.",
+			"enabled": false,
 			"matchPackageNames": ["prisma", "@prisma/**"]
 		},
 		{
