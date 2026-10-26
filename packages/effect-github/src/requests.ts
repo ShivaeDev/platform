@@ -1,48 +1,33 @@
-import { DateTime, Effect, Option, Redacted } from "effect";
+import { Effect } from "effect";
 import { type HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedBody } from "@shivaedev/platform/http-client/body.ts";
 import { ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
+import { authenticatedRequest } from "./authenticatedRequest.ts";
 import { type CachedResponse, responseCache } from "./cache.ts";
 import { GitHubTransportError } from "./errors.ts";
 import type { GitHubToken } from "./GitHubToken.ts";
-import { failRateLimited, type RateLimits } from "./rateLimits.ts";
-import { checkStatus, isUnchanged } from "./status.ts";
+import type { RateLimits } from "./rateLimits.ts";
+import { isUnchanged } from "./status.ts";
 
 export function requests(client: HttpClient.HttpClient, token: GitHubToken["Service"], rates: RateLimits) {
 	const cache = responseCache();
-	const accessToken = Effect.isEffect(token) ? token : Effect.succeed(token);
+	const send = authenticatedRequest(client, token, rates);
 	return Effect.fn("GitHub.request")(function* (input: HttpClientRequest.HttpClientRequest, limit: number) {
-		const path = new URL(input.url).pathname;
-		const resource = rates.resource(path);
-		const blocked = rates.blocked.get(resource);
-		if (blocked !== undefined && DateTime.isGreaterThan(blocked.retryAt, yield* DateTime.now)) {
-			return yield* failRateLimited(path, blocked, rates.observations.get(resource)?.remaining);
-		}
 		const key = `${input.url} ${input.headers.accept}`;
 		const cached = input.method === "GET" ? cache.get(key) : undefined;
-		const request = requestHeaders(input, cached, yield* accessToken);
-		const response = yield* client.execute(request).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
-		const observedResource = rates.observe(response);
+		let request = HttpClientRequest.removeHeader(input, "if-none-match");
+		if (cached?.response.headers.etag !== undefined) {
+			request = HttpClientRequest.setHeader(request, "If-None-Match", cached.response.headers.etag);
+		}
+		const response = yield* send(request, cached === undefined ? undefined : "revalidate");
 		if (isUnchanged(response) && cached !== undefined) {
-			rates.failures.delete(observedResource);
-			rates.blocked.delete(observedResource);
 			if (cached.bytes.byteLength > limit) {
 				return yield* new ResponseBodyTooLarge({ limit });
 			}
 			return cached;
 		}
-		yield* checkStatus(response, observedResource, rates.failures.get(observedResource) ?? 0).pipe(
-			Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))),
-			Effect.catchTag("GitHubRateLimited", (error) => {
-				rates.blocked.set(error.resource, error);
-				rates.failures.set(error.resource, (rates.failures.get(error.resource) ?? 0) + 1);
-				return failRateLimited(path, error, rates.observations.get(error.resource)?.remaining);
-			}),
-		);
-		rates.failures.delete(observedResource);
-		rates.blocked.delete(observedResource);
 		const bytes = yield* readBoundedBody(response, limit).pipe(
-			Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))),
+			Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path: new URL(input.url).pathname }))),
 		);
 		const entry: CachedResponse = { bytes, decoded: new Map(), response };
 		if (input.method === "GET" && response.headers.etag !== undefined) {
@@ -50,19 +35,4 @@ export function requests(client: HttpClient.HttpClient, token: GitHubToken["Serv
 		}
 		return entry;
 	});
-}
-
-function requestHeaders(
-	input: HttpClientRequest.HttpClientRequest,
-	cached: CachedResponse | undefined,
-	token: Option.Option<Redacted.Redacted<string>>,
-) {
-	let request = HttpClientRequest.removeHeader(input, "if-none-match").pipe(HttpClientRequest.setHeader("X-GitHub-Api-Version", "2022-11-28"));
-	if (Option.isSome(token)) {
-		request = HttpClientRequest.setHeader(request, "Authorization", `Bearer ${Redacted.value(token.value)}`);
-	}
-	if (cached?.response.headers.etag !== undefined) {
-		request = HttpClientRequest.setHeader(request, "If-None-Match", cached.response.headers.etag);
-	}
-	return request;
 }
