@@ -2,7 +2,7 @@ import process from "node:process";
 import { Effect, Layer, ManagedRuntime, Redacted, Schema } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
-import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+import { appDatabase } from "@shivaedev/server/appHost.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { migrations, repository } from "./feature.ts";
 

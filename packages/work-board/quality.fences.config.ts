@@ -17,7 +17,6 @@ const markdownDependencies = modules(
 	"mdast-util-directive",
 );
 const browserDependencies = anyOf(
-	folders("packages/platform/src/rpc"),
 	files("packages/identity/src/identity.ts", "packages/identity/src/middleware.ts", "packages/identity/src/permission.ts"),
 	files("packages/access/src/permission.ts"),
 );

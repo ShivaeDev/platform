@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { BeforeCommit } from "@shivaedev/sql/transact.ts";
 import { SettingsApplication, settings } from "./contract.ts";
 import { SettingsService } from "./Service.ts";

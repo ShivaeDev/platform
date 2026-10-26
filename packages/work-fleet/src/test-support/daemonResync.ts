@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
 import type { FleetRecord } from "#model.ts";
 import { until } from "#test/cloudRestart.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";

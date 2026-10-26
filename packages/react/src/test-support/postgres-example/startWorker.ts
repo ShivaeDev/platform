@@ -1,7 +1,7 @@
 import { Effect, Layer, ManagedRuntime, Redacted } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
-import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+import { appDatabase } from "@shivaedev/server/appHost.ts";
 import { Order } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
 import { orderMigrations, repositoryLayer } from "./repository.ts";

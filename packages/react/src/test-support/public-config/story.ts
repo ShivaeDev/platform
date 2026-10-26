@@ -1,8 +1,8 @@
 import { ConfigProvider, Context, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
-import { publicConfigLayer } from "@shivaedev/platform/server/rpc-server/publicConfigLayer.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { publicConfigLayer } from "@shivaedev/server/rpc-server/publicConfigLayer.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Rendered } from "#client/testing.ts";
 import { Screen } from "#test/Screen.ts";

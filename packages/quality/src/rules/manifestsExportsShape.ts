@@ -45,8 +45,11 @@ function findingsIn(file: string, exports: unknown): readonly Finding[] {
 	}
 	const entries = Object.entries(exports);
 	const patterns = entries.filter(([key, value]) => key.includes("*") && value !== null);
+	const exportsModules = entries.some(([key, value]) => value !== null && !exactAsset(key, value));
 	const count =
-		patterns.length === 1 ? [] : [finding(file, "exports", `The exports field needs exactly one non-null wildcard; found ${patterns.length}.`)];
+		patterns.length === 1 || (patterns.length === 0 && !exportsModules)
+			? []
+			: [finding(file, "exports", `The exports field needs exactly one non-null wildcard; found ${patterns.length}.`)];
 	return [
 		...count,
 		...entries.flatMap(([key, value]) =>
@@ -73,7 +76,8 @@ export const manifestsExportsShape = defineRule({
 		);
 		return findings.flat();
 	},
-	description: "Workspace packages export modules through one file-preserving wildcard, with optional root, exact non-code assets and null blocks.",
+	description:
+		"Workspace packages export modules through one file-preserving wildcard, with optional root, exact non-code assets and null blocks; a package without modules exports only exact assets.",
 	id: "manifests/exports-shape",
 	registrable: false,
 });

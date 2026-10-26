@@ -5,7 +5,7 @@ import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";

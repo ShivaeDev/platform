@@ -1,7 +1,7 @@
 import { Effect, Schedule, Stream } from "effect";
 import { SqlClient } from "effect/sql";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { withAnswerRequests } from "#host/answerRecords.ts";

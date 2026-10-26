@@ -32,20 +32,6 @@
 			"run": ["local-guard.ts"]
 		}
 	],
-	"platform": [
-		{
-			"entries": ["./server/node-http/subscriptionSignal.ts", "./server/runtime/makePlatform.ts", "./server/runtime/types.ts"],
-			"fixtures": ["runtime-minimal.ts.txt"],
-			"omitOptionalPeers": true,
-			"run": ["runtime-minimal.ts"]
-		},
-		{
-			"entries": ["./server/appHost.ts"],
-			"fixtures": ["host.ts.txt"],
-			"omitOptionalPeers": false,
-			"run": ["host.ts"]
-		}
-	],
 	"pr-watch": [
 		{
 			"entries": ["./Watcher.ts", "./GitHub.ts", "./GitHubHttp.ts", "./StateFile.ts"],
@@ -82,6 +68,20 @@
 			"fixtures": ["router-types.ts.txt"],
 			"omitOptionalPeers": false,
 			"run": []
+		}
+	],
+	"server": [
+		{
+			"entries": ["./node-http/subscriptionSignal.ts", "./runtime/makePlatform.ts", "./runtime/types.ts"],
+			"fixtures": ["runtime-minimal.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["runtime-minimal.ts"]
+		},
+		{
+			"entries": ["./appHost.ts"],
+			"fixtures": ["host.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["host.ts"]
 		}
 	],
 	"vitest-rerun": [

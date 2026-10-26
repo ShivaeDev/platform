@@ -1,0 +1,113 @@
+{
+	"name": "@shivaedev/server",
+	"version": "0.0.0",
+	"description": "The Effect application host: HTTP and RPC serving, health, OTLP export, database and migrations, and development mode",
+	"keywords": [
+		"effect"
+	],
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/server#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/server"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx",
+		"!src/**/*.spec.ts",
+		"!src/**/*.spec.tsx",
+		"!src/**/test-support",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/http": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
+		"@shivaedev/local-postgres": "workspace:*",
+		"@shivaedev/sql": "workspace:*"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
+		"@effect/vitest": "catalog:",
+		"@shivaedev/jobs": "workspace:*",
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"@types/pg": "catalog:",
+		"better-auth": "catalog:",
+		"effect": "catalog:",
+		"pg": "catalog:",
+		"pg-boss": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
+		"@effect/vitest": "catalog:",
+		"better-auth": "catalog:",
+		"effect": "catalog:",
+		"pg": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@effect/platform-node": {
+			"optional": true
+		},
+		"@effect/sql-pg": {
+			"optional": true
+		},
+		"@effect/vitest": {
+			"optional": true
+		},
+		"better-auth": {
+			"optional": true
+		},
+		"pg": {
+			"optional": true
+		}
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"quality": {
+		"runtime": "server"
+	}
+}

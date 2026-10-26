@@ -3,7 +3,7 @@ import { Effect, Layer, Logger, ManagedRuntime, Option, Redacted } from "effect"
 import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
-import { type AppDatabaseOptions, appHost } from "@shivaedev/platform/server/appHost.ts";
+import { type AppDatabaseOptions, appHost } from "@shivaedev/server/appHost.ts";
 import { LiveOrders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
 import { orderHandlers } from "./orderHandlers.ts";

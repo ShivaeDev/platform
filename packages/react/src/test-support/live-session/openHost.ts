@@ -6,7 +6,7 @@ import { invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { queryKeys } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { Notes, notes } from "./notes.ts";
 
 export async function openHost() {

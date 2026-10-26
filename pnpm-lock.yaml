@@ -423,6 +423,9 @@ importers:
       '@shivaedev/react':
         specifier: workspace:*
         version: link:../../packages/react
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../../packages/server
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../../packages/service
@@ -570,12 +573,12 @@ importers:
       '@effect/atom-react':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
-      '@shivaedev/platform':
-        specifier: workspace:*
-        version: link:../platform
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
@@ -974,6 +977,15 @@ importers:
 
   packages/platform:
     dependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
@@ -992,43 +1004,15 @@ importers:
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../local-postgres
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
-    devDependencies:
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/jobs':
-        specifier: workspace:*
-        version: link:../jobs
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
-      '@shivaedev/test-sql':
-        specifier: workspace:*
-        version: link:../test-sql
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      '@types/pg':
-        specifier: 'catalog:'
-        version: 8.20.0
       better-auth:
         specifier: 'catalog:'
         version: 1.7.11(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
@@ -1038,15 +1022,6 @@ importers:
       pg:
         specifier: 'catalog:'
         version: 8.23.0
-      pg-boss:
-        specifier: 'catalog:'
-        version: 12.38.0(@opentelemetry/api@1.9.1)
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/pr-watch:
     dependencies:
@@ -1161,12 +1136,12 @@ importers:
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../local-postgres
-      '@shivaedev/platform':
-        specifier: workspace:*
-        version: link:../platform
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service
@@ -1239,6 +1214,76 @@ importers:
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.3
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/server:
+    dependencies:
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
+      '@shivaedev/http':
+        specifier: workspace:*
+        version: link:../http
+      '@shivaedev/identity':
+        specifier: workspace:*
+        version: link:../identity
+      '@shivaedev/local-postgres':
+        specifier: workspace:*
+        version: link:../local-postgres
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/jobs':
+        specifier: workspace:*
+        version: link:../jobs
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@types/pg':
+        specifier: 'catalog:'
+        version: 8.20.0
+      better-auth:
+        specifier: 'catalog:'
+        version: 1.7.11(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      pg:
+        specifier: 'catalog:'
+        version: 8.23.0
+      pg-boss:
+        specifier: 'catalog:'
+        version: 12.38.0(@opentelemetry/api@1.9.1)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1488,9 +1533,9 @@ importers:
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity
-      '@shivaedev/platform':
+      '@shivaedev/server':
         specifier: workspace:*
-        version: link:../platform
+        version: link:../server
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service
@@ -1675,12 +1720,12 @@ importers:
       '@shivaedev/github':
         specifier: workspace:*
         version: link:../github
-      '@shivaedev/platform':
-        specifier: workspace:*
-        version: link:../platform
       '@shivaedev/pr-watch':
         specifier: workspace:*
         version: link:../pr-watch
+      '@shivaedev/server':
+        specifier: workspace:*
+        version: link:../server
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service

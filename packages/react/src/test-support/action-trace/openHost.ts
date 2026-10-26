@@ -3,7 +3,7 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { SqlClient } from "effect/sql";
 import { defaultClientFactory, type PgBossClient } from "@shivaedev/jobs/server/client.ts";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { Api } from "./Api.ts";
 import { Jobs, Work } from "./feature.ts";

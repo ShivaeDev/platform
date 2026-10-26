@@ -43,7 +43,7 @@ For an application on Platform's app host, register `pgBossSchema` beside the mi
 
 ```ts
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
-import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
+import { appDatabase } from "@shivaedev/server/appHost.ts";
 
 const database = appDatabase({
   migrations: {

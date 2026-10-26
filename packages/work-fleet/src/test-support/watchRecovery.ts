@@ -4,7 +4,7 @@ import { HttpServer } from "effect/http";
 import { RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { Follow, RPC_PATH } from "#host/daemonContract.ts";
 import { readWaitStates } from "#host/readWaitStates.ts";

@@ -105,7 +105,7 @@
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
-		"@shivaedev/platform": "workspace:*",
+		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"mdast-util-directive": "catalog:",
 		"mermaid": "catalog:",

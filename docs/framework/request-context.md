@@ -4,7 +4,7 @@ Applications tend to carry their own copies of the same error classes, request i
 
 ## Where the modules run
 
-`@shivaedev/errors/*.ts` and `@shivaedev/platform/rpc/*.ts` run in the browser and on the server: Schema error classes, `rejectedField`, the redaction policy, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/platform/server/rpc-server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and the redacting tracer. Quality's `errors-stay-browser-safe`, `contract-never-imports-server` and `platform-client-stays-browser-safe` import fences keep the shared modules browser-safe.
+`@shivaedev/errors/*.ts` and the `identity.ts`, `middleware.ts` and `permission.ts` modules of `@shivaedev/identity` run in the browser and on the server: Schema error classes, `rejectedField`, the redaction policy, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/identity/server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and request tracing; `@shivaedev/server` adds the redacting tracer. Quality's `errors-stay-browser-safe`, `contract-never-imports-server` and `identity-client-stays-browser-safe` import fences keep the shared modules browser-safe.
 
 ## Errors
 

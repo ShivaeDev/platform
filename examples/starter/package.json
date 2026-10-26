@@ -39,6 +39,7 @@
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/react": "workspace:*",
+		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@tanstack/react-router": "catalog:",

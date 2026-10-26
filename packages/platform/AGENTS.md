@@ -1,15 +1,11 @@
 # @shivaedev/platform
 
-You are changing the shared boundaries that an Effect application otherwise writes again: request identity, session resolution and tracing, plus the runtime and HTTP cleanup that connect Effect to Promise callers. Applications need one account of who made a request and why it failed, without mixing users, trusting message-supplied credentials or turning an authentication outage into an anonymous user.
+You are changing the entry point an application installs to get the whole framework. Platform holds no code: its manifest depends on every runtime piece at the versions released together, and its README maps each job to the package that owns it. An application lists this one dependency and imports each piece by its own name.
 
 ## Which way to lean
 
-When goals conflict, they win in this order:
+1. **No code here, ever.** A module that seems to belong in platform belongs in a piece; when two pieces need it, it becomes its own package.
+2. **Only applications depend on platform.** Libraries, including published tools such as work-board and work-fleet, declare the pieces they import directly.
+3. **The pieces move together.** Platform's dependency list is the set of runtime packages that are released and tested as one framework; test pieces and tooling stay out of it.
 
-1. **Keep Effect's boundaries intact.** Provide identity around the invocation, preserve typed rejections and cancellation, and carry the transaction's services across Promise calls. Shared Layers must never capture a caller's identity.
-2. **Trust the transport for authentication.** Origin checks and session providers read the HTTP request or WebSocket upgrade headers. Request ids are caller-controlled correlation data. A missing session, a forbidden origin and a provider outage are different results.
-3. **Own only the shared boundary.** Applications own resource authorization, cookie and session policy, provider configuration and transports. Native RPC stays visible; persistence, contracts, shared typed errors and generic test execution stay with their packages. Optional integrations must not become dependencies of the core modules.
-4. **Prove the particular composition.** A test of injected HTTP or simulated socket events does not establish a deployed host's behavior. Document only the boundary the test exercises, and keep sensitive data out of diagnostics.
-5. **Remove repeated application code thinly.** Prefer a small provider function or native Layer over another application framework. An extra option needs a real caller's need.
-
-The [README](README.md) teaches consumers. Follow the repository's `AGENTS.md` for checks and changes to public APIs.
+The [README](README.md) is the map for consumers. Follow the repository's [AGENTS.md](../../AGENTS.md) for checks and releases.
