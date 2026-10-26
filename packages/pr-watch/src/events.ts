@@ -29,7 +29,7 @@ export function events(before: Snapshot | undefined, after: Snapshot, selected?:
 	if (baseline.state === "open" && after.state === "closed" && !after.merged) {
 		found.push("closed");
 	}
-	if (after.state === "open") {
+	if (after.state === "open" && !after.merged) {
 		found.push(...openEvents(baseline, after));
 	}
 	return found

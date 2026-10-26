@@ -57,11 +57,12 @@ export const GitHub = defineService({
 					if (pr.number !== number) {
 						return yield* Effect.fail(new WatchError({ message: "GitHub returned the wrong PR" }));
 					}
-					if (pr.state === "open" && (pr.mergeable === null || pr.mergeableState === "unknown")) {
+					const open = pr.state === "open" && !pr.merged;
+					if (open && (pr.mergeable === null || pr.mergeableState === "unknown")) {
 						return undefined;
 					}
 					let failed = false;
-					if (pr.state === "open") {
+					if (open) {
 						const bodies = yield* pages(options, `/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`);
 						const checks = yield* Effect.forEach(bodies, (body) => decode(Checks, body));
 						const statusResponse = yield* http.get(`${options.apiUrl}/repos/${options.repository}/commits/${pr.head.sha}/status`);
