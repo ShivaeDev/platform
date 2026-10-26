@@ -29,10 +29,7 @@ export const Release = Schema.Struct({
 export type Release = typeof Release.Type;
 export const ReleasePlan = Schema.Struct({ changesets: Schema.Array(Source), releases: Schema.Array(Release) });
 export type ReleasePlan = typeof ReleasePlan.Type;
-export const ReleaseManifest = Schema.Struct({ date: Schema.String, plan: ReleasePlan });
-export type ReleaseManifest = typeof ReleaseManifest.Type;
 export interface Workspace {
 	readonly changesets: readonly Source[];
 	readonly packages: readonly WorkspacePackage[];
-	readonly release: ReleaseManifest | undefined;
 }

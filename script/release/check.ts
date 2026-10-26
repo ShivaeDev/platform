@@ -2,13 +2,13 @@ import { join } from "node:path";
 import process from "node:process";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Config, Console, Effect, FileSystem, Schema } from "effect";
-import { checkRepository } from "@shivaedev/changesets/check.ts";
 import { ChangesetError } from "@shivaedev/changesets/error.ts";
 import type { PackageManifest } from "@shivaedev/changesets/model.ts";
 import { readWorkspace } from "@shivaedev/changesets/workspace.ts";
 import config from "#release-config";
 import { checkStarterCatalog } from "./starterCatalog.ts";
 import { checkStarterPnpm } from "./starterPnpm.ts";
+import { validateRelease } from "./validate.ts";
 
 const Versions = Schema.fromJsonString(Schema.Record(Schema.String, Schema.String));
 
@@ -49,6 +49,7 @@ const checkStarterPins = Effect.fn("Release.checkStarterPins")(function* (root: 
 		}
 		yield* checkDependencyPins(manifest, published, pins);
 	}
+	return pins;
 });
 
 export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root: string, reference?: string) {
@@ -66,10 +67,10 @@ export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root:
 			}
 		}
 	}
-	yield* checkStarterPins(root);
+	const pins = yield* checkStarterPins(root);
 	yield* checkStarterPnpm(root);
 	yield* checkStarterCatalog(root);
-	yield* checkRepository(root, config, reference);
+	yield* validateRelease(root, pins, reference);
 });
 
 if (import.meta.main) {

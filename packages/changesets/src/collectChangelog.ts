@@ -7,7 +7,7 @@ export function collectChangelog(previous: string, release: Release, plan: Relea
 	const timestamp = Date.parse(`${date}T00:00:00Z`);
 	requireThat(
 		/^\d{4}-\d{2}-\d{2}$/u.test(date) && Number.isFinite(timestamp) && new Date(timestamp).toISOString().slice(0, 10) === date,
-		"Use a valid UTC YYYY-MM-DD release date in .changeset/release.json; rerun changesets apply.",
+		"Use a valid UTC YYYY-MM-DD release date in every new changelog heading; rerun changesets apply.",
 	);
 	requireThat(
 		previous.startsWith("# Changelog\n") && !/^## Unreleased\s*$/mu.test(previous),

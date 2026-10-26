@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { RemoteHttpError, RemoteNotFound, ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
+import { RemoteNotFound, ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
+import { GitHubPermissionDenied } from "#errors.ts";
 import { FIXTURE_TOKEN } from "#test/fixtures.ts";
 import { github } from "#test/github.ts";
 import { coreNearlySpent, currentEtag, repositoryListsPullRequests, routeAnswers } from "#test/traits.ts";
@@ -25,7 +26,7 @@ github.it("fails typed when GitHub's JSON breaks the requested Schema", [routeAn
 });
 
 github.it(
-	"a permission failure stays an HTTP error when its message does not name a rate limit",
+	"a permission refusal ignores rate-limit text outside the message and excludes the query",
 	[
 		routeAnswers({
 			body: { "documentation_url": "/rate limit", message: "Resource not accessible by integration" },
@@ -33,7 +34,7 @@ github.it(
 		}),
 	],
 	function* ({ readPull }) {
-		expect(yield* Effect.flip(readPull())).toBeInstanceOf(RemoteHttpError);
+		expect(yield* Effect.flip(readPull())).toEqual(new GitHubPermissionDenied({ path: "/repos/acme/widgets/pulls/1" }));
 	},
 );
 
