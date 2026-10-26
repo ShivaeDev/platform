@@ -1,25 +1,22 @@
-import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
+import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { inboxItems, openItem } from "#server/attention/inbox.ts";
 import { deferredItem } from "#server/attention/status.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { goalCounts } from "./goalCounts.ts";
+import { goalTasks } from "./goalTasks.ts";
 import { type Item, itemsOf } from "./items.ts";
 
-function countsOf(items: readonly Item[]): GoalCounts {
-	const counts = { deferred: 0, done: 0, draft: 0, dropped: 0, ready: 0 };
-	for (const item of items) {
-		counts[item.document.parsed.fields.status ?? "draft"] += 1;
-	}
-	return counts;
-}
 function askTargets(ask: { readonly unblocks: readonly string[] }) {
 	return ask.unblocks.map((target) => target.split("#")[0] ?? "");
 }
 
-export function goals(snapshot: Snapshot): GoalsProjection {
+export function goals(snapshot: Snapshot, fleet?: FleetItemsProjection): GoalsProjection {
 	const items = itemsOf(snapshot);
 	const claims = snapshot.documents.flatMap((document) => document.parsed.fields.evidence ?? []);
 	const asks = inboxItems(snapshot);
 	const waiting = new Map(asks.flatMap((ask) => askTargets(ask).map((target) => [target, ask.reason] as const)));
+	const countsOf = goalCounts(snapshot, fleet);
 	const projects = items.filter((item) => item.document.parsed.fields.kind === "goal").sort((a, b) => a.id.localeCompare(b.id));
 	function toGoal({ id, title, document }: Item) {
 		const fields = document.parsed.fields;
@@ -30,22 +27,9 @@ export function goals(snapshot: Snapshot): GoalsProjection {
 		);
 		const lanes = linked.filter((item) => item.document.parsed.fields.kind === "goal");
 		function laneTasks(goal: string) {
-			return items.filter(
-				(item) =>
-					item.document.parsed.fields.kind === "task"
-					&& item.document.parsed.fields.relationships?.some(
-						(link) => link.kind === "implements" && (link.target === goal || link.target.startsWith(`${goal}#`)),
-					),
-			);
+			return goalTasks(items, goal);
 		}
-		const tasks = [
-			...new Map(
-				[...linked.filter((item) => item.document.parsed.fields.kind === "task"), ...lanes.flatMap((lane) => laneTasks(lane.id))].map((item) => [
-					item.id,
-					item,
-				]),
-			).values(),
-		];
+		const tasks = laneTasks(id);
 		const unblocks = new Set([id, ...linked.map((item) => item.id)]);
 		const open = asks.filter((ask) => askTargets(ask).some((target) => unblocks.has(target)));
 		return {
@@ -69,15 +53,16 @@ export function goals(snapshot: Snapshot): GoalsProjection {
 			nextAction: fields.nextAction,
 			openAsks: open.length,
 			owner: fields.owner,
-			status: fields.status,
+			standing: fields.standing,
+			status: fields.standing ? undefined : fields.status,
 			title,
 			unlinked: tasks.length === 0,
 		};
 	}
 	return {
 		closedGoals: projects.filter((item) => !openItem(item.document)).map(toGoal),
-		deferredGoals: projects.filter((item) => deferredItem(item.document)).map(toGoal),
-		goals: projects.filter((item) => openItem(item.document) && !deferredItem(item.document)).map(toGoal),
+		deferredGoals: projects.filter((item) => !item.document.parsed.fields.standing && deferredItem(item.document)).map(toGoal),
+		goals: projects.filter((item) => openItem(item.document) && !(!item.document.parsed.fields.standing && deferredItem(item.document))).map(toGoal),
 		items: items
 			.filter(
 				(item) =>

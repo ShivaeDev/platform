@@ -57,7 +57,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.goals": () =>
 				Effect.gen(function* () {
 					const snapshot = yield* index;
-					return goals(snapshot);
+					return goals(snapshot, yield* fleetOver(snapshot));
 				}).pipe(readBoundary),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.inbox": () => Effect.suspend(() => projections.inbox()).pipe(readBoundary),

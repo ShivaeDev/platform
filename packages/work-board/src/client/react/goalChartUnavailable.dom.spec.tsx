@@ -19,7 +19,9 @@ screenStory.it(
 		yield* eventually(() =>
 			expect(readText(`${progress} [data-goal-chart-error]`)).toMatch(/^The chart could not be loaded: .+\. Reload the page to try again\.$/u),
 		);
-		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
+		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe(
+			"1 of 5 done, 1 done, 0 running, 2 blocked, 0 scheduled, 2 parked",
+		);
 		expect(findElement(`${progress} [data-slot="chart"]`)).toBeNull();
 		expect(readText("#criterion-first h3")).toBe("First criterion");
 	},

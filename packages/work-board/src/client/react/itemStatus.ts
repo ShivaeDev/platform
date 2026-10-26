@@ -3,6 +3,9 @@ import type { Document } from "#browser/document/schema.ts";
 
 export function itemStatus(document: Document): string | undefined {
 	const fields = document.metadata;
+	if (fields.kind === "goal" && fields.standing) {
+		return undefined;
+	}
 	if (!fields.id) {
 		return undefined;
 	}

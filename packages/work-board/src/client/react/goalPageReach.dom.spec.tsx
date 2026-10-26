@@ -29,9 +29,8 @@ screenStory.it(
 			"/_board/item/decision.review/#answer-card-task",
 		]);
 		const asked = ["task.fifth", "task.first"];
-		const drafted = ["task.first", "task.fourth", "task.fifth"];
-		expect(goal?.counts.draft).toBe(drafted.length);
-		expect(readText(`${PROGRESS} [data-status=draft] [data-status-token]`)).toBe("Draft");
+		expect(goal?.counts.blocked).toBe(asked.length);
+		expect(readText(`${PROGRESS} [data-status=blocked] [data-status-token]`)).toBe("Blocked");
 		expect([...findElements('[data-goal-group="Draft"] [data-goal-item]')].map((row) => row.getAttribute("data-goal-item"))).toEqual(
 			expect.arrayContaining(asked),
 		);
@@ -45,17 +44,17 @@ screenStory.it(
 	function* ({ findElement, findElements, readAttribute, readGoals, readText }) {
 		yield* eventually(() => expect(findElement('[data-goal-item="task.fifth"]')).not.toBeNull());
 		const goal = (yield* Effect.promise(readGoals))?.goals.find((entry) => entry.id === "project.example");
-		expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 3, dropped: 0, ready: 0 });
+		expect(goal?.counts).toEqual({ blocked: 0, done: 1, parked: 4, running: 0, scheduled: 0 });
 		expect(findElement("[data-goal-open-asks]")).toBeNull();
-		expect(findElements(`${PROGRESS} [data-status-token]`).map((chip) => chip.textContent)).toEqual(["Done", "Deferred", "Draft"]);
-		expect(findElements(`${PROGRESS} [data-quiet-count]`).map((label) => label.textContent)).toEqual(["Ready", "Dropped"]);
+		expect(findElements(`${PROGRESS} [data-status-token]`).map((chip) => chip.textContent)).toEqual(["Done", "Parked"]);
+		expect(findElements(`${PROGRESS} [data-quiet-count]`).map((label) => label.textContent)).toEqual(["Running", "Blocked", "Scheduled"]);
 		expect(findElement(`${PROGRESS} .text-needs-you`)).toBeNull();
 		expect(Object.fromEntries(goalWorkGroups.map((group) => [group, findElements(`[data-goal-group="${group}"] [data-goal-item]`).length]))).toEqual({
-			Deferred: goal?.counts.deferred,
-			Done: goal?.counts.done,
-			Draft: goal?.counts.draft,
-			Dropped: goal?.counts.dropped,
-			Ready: goal?.counts.ready,
+			Deferred: 1,
+			Done: 1,
+			Draft: 3,
+			Dropped: 0,
+			Ready: 0,
 		});
 		expect(readText('[data-goal-item="task.third"] [data-status-token]')).toBe("Deferred");
 		for (const group of ["Draft", "Done"]) {

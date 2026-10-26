@@ -14,14 +14,14 @@ function row(goal: Goal, criterion: Criterion, index: number): GoalChartRow {
 	const { counts } = criterion;
 	const unique = goal.criteria.filter((entry) => entry.id === criterion.id).length === 1;
 	return {
-		deferred: counts.deferred,
+		blocked: counts.blocked,
 		done: counts.done,
-		draft: counts.draft,
-		dropped: counts.dropped,
 		empty: criterion.linked === 0 ? 1 : 0,
 		href: unique ? `#criterion-${encodeURIComponent(criterion.id)}` : undefined,
 		key: String(index),
-		ready: counts.ready,
+		parked: counts.parked,
+		running: counts.running,
+		scheduled: counts.scheduled,
 		text: criterion.text,
 	};
 }

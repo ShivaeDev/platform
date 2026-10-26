@@ -9,19 +9,21 @@ import { DocumentMain } from "./DocumentMain.tsx";
 const files = { ...goalPageFixture(), "asks.md": "# No open asks" };
 
 screenStory.it(
-	"shows goal progress on the stock progress bar and charts each criterion by its text, with counts on the bars and empty criteria kept",
+	"shows goal progress in five segments and charts each criterion by its text, with counts on the bars and empty criteria kept",
 	[screenChartLayout(), boardScreen(files, (api) => <DocumentMain api={api} onPage={() => undefined} url="/goal.md" />)],
 	function* ({ findElement, findElements, keyboard, readAttribute, readText }) {
 		yield* eventually(() => expect(findElement('[data-goal-section="progress"] [data-slot="chart"]')).not.toBeNull());
 		const progress = '[data-goal-section="progress"]';
-		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
-		expect(readText(`${progress} [data-slot="progress-value"]`)).toBe("1 of 5 done");
+		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe(
+			"1 of 5 done, 1 done, 0 running, 0 blocked, 0 scheduled, 4 parked",
+		);
+		expect(readText(`${progress} [data-slot="progress-value"]`)).toBe("1/5 done");
 		expect([...findElements(`${progress} [data-goal-counts] li`)].map((entry) => [entry.dataset.status, entry.dataset.count])).toEqual([
 			["done", "1"],
-			["deferred", "1"],
-			["ready", "0"],
-			["draft", "3"],
-			["dropped", "0"],
+			["running", "0"],
+			["blocked", "0"],
+			["scheduled", "0"],
+			["parked", "4"],
 		]);
 		yield* eventually(() => {
 			expect(readText(`${progress} [data-goal-breakdown] h3`)).toBe("By criterion");
@@ -36,16 +38,16 @@ screenStory.it(
 			expect(
 				[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
 			).toEqual([
-				["var(--color-draft)", "508"],
+				["var(--color-parked)", "508"],
 				["var(--muted)", "508"],
 			]);
 			expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["2", "No linked work"]);
 			expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
 				"Done",
-				"Deferred",
-				"Ready",
-				"Draft",
-				"Dropped",
+				"Running",
+				"Blocked",
+				"Scheduled",
+				"Parked",
 			]);
 		});
 		expect(readText(`${progress} [data-goal-breakdown]`)).not.toContain("All work");
@@ -80,7 +82,7 @@ screenStory.it(
 				[...findElements(`${progress} .recharts-bar-rectangle path`)].map((bar) => [bar.getAttribute("fill"), bar.getAttribute("width")]),
 			).toEqual([
 				["var(--color-done)", expect.any(String)],
-				["var(--color-draft)", expect.any(String)],
+				["var(--color-parked)", expect.any(String)],
 				["var(--muted)", "508"],
 			]),
 		);
@@ -102,7 +104,9 @@ screenStory.it(
 	function* ({ findElement, readAttribute }) {
 		const progress = '[data-goal-section="progress"]';
 		yield* eventually(() => expect(findElement(`${progress} [role="progressbar"]`)).not.toBeNull());
-		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe("1 of 5 done");
+		expect(readAttribute(`${progress} [role="progressbar"]`, "aria-valuetext")).toBe(
+			"1 of 5 done, 1 done, 0 running, 0 blocked, 0 scheduled, 4 parked",
+		);
 		expect(findElement(`${progress} [data-goal-counts]`)).not.toBeNull();
 		expect(findElement(`${progress} [data-goal-breakdown], ${progress} [data-slot="chart"]`)).toBeNull();
 	},
@@ -124,7 +128,9 @@ screenStory.it(
 	],
 	function* ({ findElement, findElements, readText, readAttribute }) {
 		yield* eventually(() => expect(findElement('[data-goal-item="task.ready"]')).not.toBeNull());
-		expect(readAttribute('[data-goal-section="progress"] [role="progressbar"]', "aria-valuetext")).toBe("1 of 7 done");
+		expect(readAttribute('[data-goal-section="progress"] [role="progressbar"]', "aria-valuetext")).toBe(
+			"1 of 6 done, 1 done, 0 running, 0 blocked, 0 scheduled, 5 parked",
+		);
 		for (const [id, group, chip] of [
 			["task.dropped", "Dropped", "Dropped"],
 			["task.ready", "Ready", "Ready"],

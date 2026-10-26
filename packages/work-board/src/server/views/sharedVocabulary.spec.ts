@@ -8,10 +8,10 @@ boardStory.it(
 	function* ({ rpc }) {
 		const data = yield* rpc((client) => client("work-board.goals", undefined));
 		const goal = data.goals.find((entry) => entry.id === "goal");
-		expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 1, dropped: 1, ready: 1 });
+		expect(goal?.counts).toEqual({ blocked: 0, done: 1, parked: 2, running: 0, scheduled: 1 });
 		expect(goal?.lanes).toEqual([
-			{ counts: { deferred: 0, done: 1, draft: 1, dropped: 0, ready: 1 }, id: "lane.board", title: "Board lane" },
-			{ counts: { deferred: 1, done: 0, draft: 0, dropped: 1, ready: 0 }, id: "lane.fleet", title: "Fleet lane" },
+			{ counts: { blocked: 0, done: 1, parked: 1, running: 0, scheduled: 1 }, id: "lane.board", title: "Board lane" },
+			{ counts: { blocked: 0, done: 0, parked: 1, running: 0, scheduled: 0 }, id: "lane.fleet", title: "Fleet lane" },
 		]);
 		const work = yield* rpc((client) => client("work-board.work", { url: "/_board/work" }));
 		expect(work.items.find((entry) => entry.id === "task.draft")).toMatchObject({

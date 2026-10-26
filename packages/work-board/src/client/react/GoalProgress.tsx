@@ -1,7 +1,6 @@
 import { cn } from "cn";
 import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
-import { Progress, ProgressLabel, ProgressValue } from "#client/react/components/ui/progress.tsx";
-import { goalTotal } from "./goalCounts.ts";
+import { goalCountOrder, goalStateColors, goalStateLabels, goalTotal } from "./goalCounts.ts";
 
 export function GoalProgress({
 	counts,
@@ -16,23 +15,43 @@ export function GoalProgress({
 }) {
 	const total = goalTotal(counts);
 	const summary = `${counts.done} of ${total} done`;
-	const large = size === "large";
+	const states = goalCountOrder.map((state) => `${counts[state]} ${goalStateLabels[state].toLowerCase()}`).join(", ");
 	return (
-		<Progress
+		<div
 			aria-label={`${title}: ${summary}`}
-			className={cn(
-				"[&_[data-slot=progress-indicator]]:bg-done",
-				large ? "gap-2 text-sm [&_[data-slot=progress-track]]:h-2.5" : "mt-2 gap-1 [&_[data-slot=progress-track]]:h-1.5",
-			)}
+			aria-valuemax={Math.max(total, 1)}
+			aria-valuemin={0}
+			aria-valuenow={counts.done}
+			aria-valuetext={`${summary}, ${states}`}
+			className={cn("space-y-1", size === "small" && "mt-2")}
 			data-goal-progress=""
-			getAriaValueText={() => summary}
-			max={Math.max(total, 1)}
-			value={counts.done}
+			data-slot="progress"
+			role="progressbar"
 		>
-			{large ? <ProgressLabel className="text-sm">Done</ProgressLabel> : null}
-			<ProgressValue className={cn("tabular-nums", large ? "text-sm" : "order-last ml-0")} title={summary}>
-				{() => (compact ? `${counts.done}/${total}` : summary)}
-			</ProgressValue>
-		</Progress>
+			<div className={cn("flex w-full overflow-hidden rounded-md bg-muted", size === "large" ? "h-2.5" : "h-1.5")} data-slot="progress-track">
+				{goalCountOrder.map((state) => (
+					<span
+						className={cn("h-full", goalStateColors[state])}
+						data-count={counts[state]}
+						data-goal-state={state}
+						key={state}
+						style={{ width: `${total === 0 ? 0 : (counts[state] / total) * 100}%` }}
+						title={`${goalStateLabels[state]}: ${counts[state]}`}
+					/>
+				))}
+			</div>
+			<div className={cn("text-muted-foreground tabular-nums", size === "large" ? "text-sm" : "text-xs")} data-slot="progress-value" title={summary}>
+				{compact ? (
+					`${counts.done}/${total}`
+				) : (
+					<>
+						<span>
+							{counts.done}/{total}
+						</span>{" "}
+						done
+					</>
+				)}
+			</div>
+		</div>
 	);
 }

@@ -10,7 +10,11 @@ import { isMaintainerRequest } from "./requests.ts";
 import { closedItem, deferredItem } from "./status.ts";
 
 export function openItem(document: MetadataDocument): boolean {
-	return (document.parsed.fields.kind === "report" && document.parsed.fields.status === "done") || !closedItem(document);
+	return (
+		(document.parsed.fields.kind === "goal" && document.parsed.fields.standing === true)
+		|| (document.parsed.fields.kind === "report" && document.parsed.fields.status === "done")
+		|| !closedItem(document)
+	);
 }
 
 export function authoredQuestion(document: MetadataDocument): boolean {

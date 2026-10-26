@@ -1,7 +1,13 @@
 import { Schema } from "effect";
 import { WorkItem } from "./schema.ts";
 
-const Counts = Schema.Struct({ deferred: Schema.Number, done: Schema.Number, draft: Schema.Number, dropped: Schema.Number, ready: Schema.Number });
+const Counts = Schema.Struct({
+	blocked: Schema.Number,
+	done: Schema.Number,
+	parked: Schema.Number,
+	running: Schema.Number,
+	scheduled: Schema.Number,
+});
 export type GoalCounts = typeof Counts.Type;
 const Criterion = Schema.Struct({ counts: Counts, evidence: Schema.Number, id: Schema.String, linked: Schema.Number, text: Schema.String });
 const Ask = Schema.Struct({ href: Schema.String, id: Schema.String, reason: Schema.String, title: Schema.String });
@@ -15,6 +21,7 @@ const Goal = Schema.Struct({
 	nextAction: Schema.optional(Schema.String),
 	openAsks: Schema.Number,
 	owner: Schema.optional(Schema.String),
+	standing: Schema.optional(Schema.Boolean),
 	status: Schema.optional(Schema.String),
 	title: Schema.String,
 	unlinked: Schema.Boolean,

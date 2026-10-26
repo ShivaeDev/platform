@@ -3,7 +3,6 @@ import { isRecord, records, text } from "./rpc.ts";
 
 export const STAGES = ["working", "reviewing", "waiting"] as const;
 const STAGE_NAMES: ReadonlySet<unknown> = new Set(STAGES);
-const DONE = ["done"];
 
 export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<string, string> = new Map()): WorkboardBlock<WorkboardFlight> {
 	if (!isRecord(value)) {
@@ -34,23 +33,27 @@ export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<strin
 export function goalsOf(value: unknown): WorkboardBlock<WorkboardGoal> {
 	const rows = isRecord(value) ? records(value.goals) : [];
 	const items = rows.map((row) => {
-		const counts = isRecord(row.counts) ? Object.entries(row.counts) : [];
-		let done = 0;
-		let ready = 0;
-		let total = 0;
-		for (const [status, count] of counts) {
-			if (typeof count !== "number") {
-				continue;
-			}
-			total += count;
-			if (DONE.includes(status)) {
-				done += count;
-			} else if (status === "ready") {
-				ready += count;
-			}
+		const counts = isRecord(row.counts) ? row.counts : {};
+		function count(state: string) {
+			return typeof counts[state] === "number" ? counts[state] : 0;
 		}
+		const blocked = count("blocked");
+		const done = count("done");
+		const parked = count("parked");
+		const running = count("running");
+		const scheduled = count("scheduled");
 		const id = text(row.id) ?? "goal";
-		return { done, id, ready, title: text(row.title) ?? id, total };
+		return {
+			blocked,
+			done,
+			id,
+			parked,
+			running,
+			scheduled,
+			standing: row.standing === true,
+			title: text(row.title) ?? id,
+			total: blocked + done + parked + running + scheduled,
+		};
 	});
 	return { items, problem: null };
 }
