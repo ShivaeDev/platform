@@ -1,6 +1,7 @@
 import { Clock, Effect } from "effect";
 import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { APP_ID, APP_TOKEN, inspectJwt } from "./appFixture.ts";
+import { artifactFixture } from "./artifactFixture.ts";
 
 export const appServer = Effect.gen(function* () {
 	const clock = yield* Clock.Clock;
@@ -18,9 +19,15 @@ export const appServer = Effect.gen(function* () {
 			&& observed.claims.exp <= observed.now + 600
 		);
 	}
+	const archive = artifactFixture(() => server.url);
 	const server = yield* fakeHttpService({
 		routes: {
+			...archive.routes,
 			app: { guard: check, path: "/app", reply: () => ({ body: { id: Number(APP_ID), slug: "widgets-app" } }) },
+			artifactRedirect: {
+				...archive.routes.artifactRedirect,
+				guard: (request) => tokens.has(request.headers.authorization ?? ""),
+			},
 			installation: { guard: check, path: "/repos/acme/widgets/installation", reply: () => ({ body: { id: 7 } }) },
 			installations: {
 				guard: check,

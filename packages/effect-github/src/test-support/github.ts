@@ -98,6 +98,7 @@ export const github = storyKit({
 					),
 				),
 			readWithEnvironment: (variables: Record<string, string>) => readWithEnvironment(server.url, variables),
+			rejectArchive: () => server.replyOnce("artifactRedirect", { status: 401 }),
 			requests: () => server.requests,
 			search: () => run(read("/search/issues?private=query-secret", PullRequest)),
 			setBudget: (resource: string, remaining: number, reset: number) =>

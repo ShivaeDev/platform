@@ -18,11 +18,12 @@ export const GitHub = defineService({
 		const rates = rateLimits();
 		const client = yield* HttpClient.HttpClient;
 		const token = yield* GitHubToken;
+		const refresh = yield* TokenRefresh;
 		return {
 			apiUrl: config.apiUrl,
-			archive: artifacts(config.apiUrl, client, token, rates),
+			archive: artifacts(config.apiUrl, client, token, rates, refresh),
 			rates,
-			request: requests(client, token, rates, yield* TokenRefresh),
+			request: requests(client, token, rates, refresh),
 			responseByteLimit: config.responseByteLimit,
 		};
 	}),
