@@ -5,6 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHub, list, read, write } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
+import { artifactFixture } from "./artifactFixture.ts";
 import { budgetHeaders } from "./budgetHeaders.ts";
 import { FIXTURE_TOKEN, PullRequest } from "./fixtures.ts";
 import { pullRequestWrites } from "./pullRequestWrites.ts";
@@ -26,9 +27,11 @@ export const github = storyKit({
 			items: Array.from({ length: 5 }, (_, index) => ({ number: index + 1, title: `Pull request ${index + 1}` })),
 			reply: undefined,
 		};
+		const archive = artifactFixture(() => server.url);
 		const server = yield* fakeHttpService({
 			routes: {
 				...writes.routes,
+				...archive.routes,
 				artifact: { path: "/artifact", reply: () => state.reply ?? { chunks: ["patch", " bytes"] } },
 				patchIssue: { method: "PATCH", path: "/repos/acme/widgets/issues", reply: () => ({ body: state.items[0] }) },
 				postIssue: { method: "POST", path: "/repos/acme/widgets/issues", reply: () => ({ body: state.items[0] }) },
@@ -67,19 +70,21 @@ export const github = storyKit({
 			),
 		);
 		const context = yield* Layer.build(Layer.fresh(layer));
-		return { client: Context.get(context, GitHub), context, recording, server, state, writes: writes.state };
+		return { archive: archive.state, client: Context.get(context, GitHub), context, recording, server, state, writes: writes.state };
 	},
 	inspect: ({ server }) => ({ requests: server.requests.map(({ method, path }) => ({ method, path })) }),
 	name: "GitHub REST client",
 	stages: ["github"],
-	verbs: ({ client, context, recording, server, state }, story) => {
+	verbs: ({ archive, client, context, recording, server, state }, story) => {
 		server.narrate(story.tell);
 		function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof GitHub>>) {
 			return effect.pipe(Effect.provide(context), Effect.withSpan("GitHub request"), Effect.provide(recording.layer));
 		}
 		return {
 			...writeVerbs(client),
+			archiveBytesSent: () => archive.sentBytes,
 			bytes: (limit: number) => run(client.bytes("/artifact", "application/octet-stream", limit)),
+			downloadArchive: (byteLimit: number) => run(client.downloadArtifactArchive({ artifactId: 7, byteLimit, owner: "acme", repo: "widgets" })),
 			dropConnection: () => server.scriptFault("pull", { kind: "drop" }, { repeat: true }).pipe(Effect.asVoid),
 			observations: () => client.observations(),
 			readPull: (number = 1) => run(read(`/repos/acme/widgets/pulls/${number}?private=query-secret`, PullRequest)),

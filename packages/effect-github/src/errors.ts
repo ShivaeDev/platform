@@ -23,3 +23,12 @@ export class GitHubAppError extends Schema.TaggedError<GitHubAppError>()("GitHub
 }) {}
 
 export class GitHubWebhookSignatureError extends Schema.TaggedError<GitHubWebhookSignatureError>()("GitHubWebhookSignatureError", {}) {}
+
+export class GitHubArtifactError extends Schema.TaggedError<GitHubArtifactError>()("GitHubArtifactError", {
+	stage: Schema.Literals(["redirect", "download"]),
+	status: Schema.Number,
+}) {}
+
+export class GitHubArtifactTooLarge extends Schema.TaggedError<GitHubArtifactTooLarge>()("GitHubArtifactTooLarge", {
+	limit: Schema.Number,
+}) {}

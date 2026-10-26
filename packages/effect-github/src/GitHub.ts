@@ -1,6 +1,7 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpClient } from "effect/http";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { artifacts } from "#artifacts.ts";
 import { checkRuns } from "#checkRuns.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
@@ -15,18 +16,22 @@ export const GitHub = defineService({
 	initialize: Effect.gen(function* () {
 		const config = yield* GitHubConfig;
 		const rates = rateLimits();
+		const client = yield* HttpClient.HttpClient;
+		const token = yield* GitHubToken;
 		return {
 			apiUrl: config.apiUrl,
+			archive: artifacts(config.apiUrl, client, token, rates),
 			rates,
-			request: requests(yield* HttpClient.HttpClient, yield* GitHubToken, rates, yield* TokenRefresh),
+			request: requests(client, token, rates, yield* TokenRefresh),
 			responseByteLimit: config.responseByteLimit,
 		};
 	}),
-	methods: ({ apiUrl, rates, request, responseByteLimit }) => {
+	methods: ({ apiUrl, archive, rates, request, responseByteLimit }) => {
 		const { get, ...client } = representations(apiUrl, request, rates.resource, responseByteLimit);
 		return {
 			bytes: (path: string, accept: string, limit: number) => Effect.map(request(get(path, accept), limit), (entry) => entry.bytes),
 			...client,
+			...archive,
 			...stickyComments(client),
 			...checkRuns(client),
 			observations: () => Effect.sync(() => [...rates.observations.values()]),

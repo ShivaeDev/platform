@@ -67,7 +67,7 @@ const comparison = read("/repos/acme/widgets/compare/main...feature", Comparison
 
 `largeGithub` raises the client default; the final argument on `comparison` overrides the cap for that request, including when using a client with the default cap. A per-request cap can also lower the client default.
 
-For diffs and artifacts, obtain the service and call `text(path, accept, byteLimit)` or `bytes(path, accept, byteLimit)`. Both bound the body before returning it and use your chosen media type.
+For diff text and other raw bodies, obtain the service and call `text(path, accept, byteLimit)` or `bytes(path, accept, byteLimit)`. Both bound the body before returning it and use your chosen media type.
 
 ```ts
 const diff = Effect.gen(function* () {
@@ -119,6 +119,27 @@ Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", 
 An installation token is fetched on the first request and reused until five minutes before `expires_at`, using Effect's Clock. Concurrent requests through the same Layer share the in-flight exchange, including at refresh. A resource 401 invalidates only the rejected cached token and retries once with a newly exchanged token; simultaneous 401s share that exchange. A second 401 fails with typed `RemoteUnauthorized`. App-level JWTs and custom tokens are not automatically retried.
 
 A rejected exchange fails with `GitHubAppError` from `errors.ts`; a 401 has `{ stage: "exchange", status: 401 }`. Signing failures have `stage: "sign"`. These errors and their logs and spans contain no private key, App JWT or installation token.
+
+### Downloading workflow-artifact archives
+
+Call `downloadArtifactArchive` with the artifact ID and a byte cap. It requests GitHub's ZIP endpoint with the current installation token, reads the 302 Location explicitly, and issues a fresh request to storage without the GitHub Authorization or API-version headers. Fetch requests use manual redirects and omit ambient credentials; provide an HTTP client without automatic redirect middleware.
+
+```ts
+import { Effect } from "effect";
+import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
+
+const archive = Effect.gen(function* () {
+  const github = yield* GitHub;
+  return yield* github.downloadArtifactArchive({
+    owner: "acme", repo: "widgets", artifactId: 7,
+    byteLimit: 10 * 1024 * 1024,
+  });
+});
+```
+
+Provide the same `appClient(privateKey)` Layer shown above. The result is a `Uint8Array` of archive bytes. The package counts bytes while streaming, independently of transport limits, and stops on overflow with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. This replaces application-owned redirect handling and archive body limits. It does not extract the ZIP.
+
+A missing (404) or expired (410) artifact fails with `GitHubArtifactError({ stage: "redirect", status })`. A storage HTTP failure uses the same error with `stage: "download"`. Transport and GitHub rate-limit failures retain their usual typed errors.
 
 ### Verifying webhooks
 
