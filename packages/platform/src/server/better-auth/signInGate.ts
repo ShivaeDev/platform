@@ -1,5 +1,5 @@
 import { Cache, type Config, Duration, Effect, Exit } from "effect";
-import { AuthUnavailable } from "#errors/taxonomy.ts";
+import { AuthUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#rpc/identity.ts";
 import { redact } from "#server/rpc-server/redact.ts";
 

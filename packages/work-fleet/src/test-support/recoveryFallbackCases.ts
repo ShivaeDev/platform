@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { isFleetError } from "#errors.ts";
 import { Fleet } from "#fleet.ts";
 import { BoardFailure } from "#policy.ts";

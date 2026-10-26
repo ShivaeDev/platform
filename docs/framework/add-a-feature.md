@@ -32,7 +32,7 @@ Trim the title, reject a whitespace-only title with the command's field rejectio
 
 Finish `src/bookmarks.ts` by following [`notes.ts`](../../examples/starter/src/notes.ts). Use `collection` from `@shivaedev/effect-contract/keys.ts` for bookmark keys, `query` and `command` from `@shivaedev/effect-contract/operation.ts`, and `contract` from `@shivaedev/effect-contract/contract.ts` for the group.
 
-The list query reads the collection list key, returns `Schema.Array(Bookmark.json)` and declares `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created item's key. Import `fieldRejection` from `@shivaedev/effect-contract/rejection.ts` and the error from `@shivaedev/platform/errors/taxonomy.ts`. Give this resource its own collection and contract names.
+The list query reads the collection list key, returns `Schema.Array(Bookmark.json)` and declares `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created item's key. Import `fieldRejection` from `@shivaedev/effect-contract/rejection.ts` and the error from `@shivaedev/effect-contract/errors/taxonomy.ts`. Give this resource its own collection and contract names.
 
 Apply `Authenticated` from `@shivaedev/platform/rpc/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; it does not implement authorization or SQL.
 

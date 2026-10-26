@@ -1,7 +1,7 @@
 import { Option, Schema } from "effect";
 import type { Paragraph, RootContent } from "mdast";
 import type { ContainerDirective } from "mdast-util-directive";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { MetricFields, ProgressFields } from "./visualFields.ts";
 
 function textOf(node: RootContent): string {

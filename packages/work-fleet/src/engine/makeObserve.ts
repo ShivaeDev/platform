@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { observedAttempt } from "#engine/observedAttempt.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";

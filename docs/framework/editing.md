@@ -34,13 +34,13 @@ supplies value, change, blur and message.
   the failure and `query.refresh()` retries.
 - A tagged rejection shaped `{ _tag, field, message }` whose `field` names a
   form field (such as a contract `fieldRejection(Draft)`) becomes that field's
-  message; this is the same shape `rejectedField` in `@shivaedev/platform/errors/rejectedField.ts`
+  message; this is the same shape `rejectedField` in `@shivaedev/effect-contract/errors/rejectedField.ts`
   recognizes. `rejectField` overrides the mapping. Other failures appear in
   `failure`.
 - If a save's error type contains a tagged rejection whose `field` type is not
   one of the form's field names (a `fieldRejection` over a different struct, or
   a plain `string`, required or optional as on `Conflict` and `BadRequest` from
-  `@shivaedev/platform/errors/taxonomy.ts`), `rejectField` becomes required and the call
+  `@shivaedev/effect-contract/errors/taxonomy.ts`), `rejectField` becomes required and the call
   does not compile without it.
 - `save()` does nothing while a save is running. Submitting through
   effect-form's own API (`useSubmit(form).run()` or setting `form.submit`)

@@ -4,7 +4,7 @@ import { NodeHttpPlatform, NodeServices } from "@effect/platform-node";
 import { Effect, Layer, Option, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { AuthUnavailable, Conflict } from "#errors/taxonomy.ts";
+import { AuthUnavailable, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedAdmin } from "#rpc/middleware.ts";
 import { appHost } from "#server/appHost.ts";

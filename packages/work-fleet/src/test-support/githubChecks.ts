@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { CheckPages, StatusPages } from "#host/githubCheckState.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import type { WorkResult } from "#policy.ts";

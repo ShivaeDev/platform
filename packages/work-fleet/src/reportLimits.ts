@@ -1,4 +1,4 @@
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 
 export const REPORT_LIMITS = {
 	attachmentBytes: 32 * 1024 * 1024,

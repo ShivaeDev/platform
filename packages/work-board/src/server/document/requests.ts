@@ -1,4 +1,4 @@
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { DocumentRequest, RequestState } from "#browser/document/schema.ts";
 import { errorMessage } from "#errorMessage.ts";
 import { addressedElsewhere, authoredQuestion, openItem } from "#server/attention/inbox.ts";

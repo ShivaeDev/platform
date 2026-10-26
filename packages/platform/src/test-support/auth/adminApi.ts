@@ -1,7 +1,7 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden } from "#errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";
 import { adminRoute } from "#server/rpc-server/roles.ts";

@@ -3,6 +3,7 @@ import { testUtils } from "better-auth/plugins";
 import { type Duration, Effect, Fiber, Layer, Option, Queue, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
+import { AuthUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
@@ -16,7 +17,6 @@ import {
 	maybeAuthenticatedLayer,
 } from "@shivaedev/platform/server/rpc-server/session.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { createProvider } from "./harness.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
 import { signOut } from "./sessionLifecycle.ts";

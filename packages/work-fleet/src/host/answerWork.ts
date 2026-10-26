@@ -1,5 +1,5 @@
 import { Effect, Predicate } from "effect";
-import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { recordDecisionResponse } from "#host/recordDecisionResponse.ts";

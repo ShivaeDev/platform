@@ -88,6 +88,35 @@ Operation names must differ within a contract, including across queries, command
 
 ### Expected failures
 
+Import the shared expected failures from `@shivaedev/effect-contract/errors/taxonomy.ts`: `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a tagged error schema with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. Declare only the failures an operation can return:
+
+```ts
+import { Schema } from "effect";
+import { Rpc } from "effect/rpc";
+import { BadRequest, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+
+export const Rename = Rpc.make("Rename", {
+  error: Schema.Union([BadRequest, Conflict]),
+  payload: { name: Schema.String },
+  success: Schema.String,
+});
+```
+
+A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. Taxonomy errors can be declared on an RPC with no authentication middleware. `rejectedField` reads either that instance or tagged JSON:
+
+```ts
+import { rejectedField } from "@shivaedev/effect-contract/errors/rejectedField.ts";
+import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+
+const field = rejectedField(
+  new Conflict({ field: "name", message: "Name is taken" }),
+);
+```
+
+`field` is `Option.some({ field: "name", message: "Name is taken" })`. Any value with string `_tag`, `field` and `message` qualifies, including an application's own tagged error. An untagged object, a missing field or a non-string field yields `Option.none()`.
+
+For tRPC, use these classes with the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc). The composed HTTP boundary carries rejection data and maps statuses, including `TooManyRequests` as 429 and `AuthUnavailable` as 503.
+
 `rejections: { NoteMissing }` reuses the class. The object's key must equal the class's `_tag`. Sharing a class lets a service and several operations use the same expected failure.
 
 `rejections: { Invalid: fieldRejection(Draft) }` generates a tagged error class for that operation. `fieldRejection` derives the allowed field names from the struct; an explicit field list narrows them. `Rename` permits only `"title"`, while `Create` permits `"body"` or `"title"`. Their generated `Invalid` classes are distinct.
@@ -470,6 +499,8 @@ Import the module that defines the name; the package has no root entry.
 | --- | --- |
 | `operation.ts` | `query(name, { payload?, success?, rejections?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
 | `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
+| `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
+| `errors/rejectedField.ts` | `rejectedField(unknown)`: the field and message of a field rejection. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
 | `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys, context?)` and `invalidationKeys(keys, context?)`. |
 | `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |

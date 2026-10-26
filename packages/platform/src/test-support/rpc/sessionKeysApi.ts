@@ -2,10 +2,10 @@ import { Effect, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { AuthUnavailable, Conflict, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { collection, invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
-import { AuthUnavailable, Conflict, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
 import { Identity } from "#rpc/identity.ts";
 import { Authenticated, AuthenticatedAdmin, AuthenticatedOwner, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "#rpc/middleware.ts";
 

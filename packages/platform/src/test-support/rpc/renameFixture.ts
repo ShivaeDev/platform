@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 
 export class Invalid extends Schema.TaggedError<Invalid>()("Invalid", { field: Schema.Literals(["title"]), message: Schema.String }) {}
 

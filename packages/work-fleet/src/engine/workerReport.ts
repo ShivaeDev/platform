@@ -1,5 +1,5 @@
 import { Effect, Result } from "effect";
-import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { withFailureContext } from "#engine/failureContext.ts";

@@ -45,6 +45,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-service": "workspace:*",
 		"@shivaedev/platform": "workspace:*"
 	},

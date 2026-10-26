@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { isNode } from "yaml";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { sourceHeader } from "#server/migration/sourceHeader.ts";

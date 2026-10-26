@@ -828,6 +828,9 @@ importers:
 
   packages/effect-github:
     dependencies:
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../effect-contract
       '@shivaedev/effect-service':
         specifier: workspace:*
         version: link:../effect-service

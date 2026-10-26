@@ -1,8 +1,8 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { AuthUnavailable, Forbidden, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
-import { AuthUnavailable, Forbidden, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
 import { ChangeRoleInput, LastOwner, UserList, UserListInput } from "@shivaedev/platform/rpc/userRoles.ts";
 import { adminPage } from "#page.ts";
 

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
 
 export function predictionGit(cwd: string, args: readonly string[], conflicts = false) {

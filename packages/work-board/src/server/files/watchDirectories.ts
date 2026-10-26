@@ -1,5 +1,5 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { attachmentType } from "#path/attachment.ts";
 import { isMarkdown, type MarkdownFile } from "./list.ts";
 import { folderEvents, rescanFolders, SETTLE, type WatchRoots, watchedScan } from "./watchedScan.ts";

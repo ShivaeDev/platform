@@ -1,10 +1,10 @@
 import { Schema } from "effect";
 import { Model } from "effect/schema";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
+import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { collection } from "@shivaedev/effect-contract/keys.ts";
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
-import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({

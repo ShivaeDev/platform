@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict, Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { conflictingPr } from "#engine/deliveryFailure.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";

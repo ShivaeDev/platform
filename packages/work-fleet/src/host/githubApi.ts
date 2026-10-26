@@ -1,9 +1,9 @@
 import { Clock, DateTime, Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { GitHubRateLimited } from "@shivaedev/effect-github/errors.ts";
 import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import { type GithubObservation, type GithubPause, githubPaused, pace, type RecordedObservation, reservedUntil } from "#host/githubRateLimit.ts";
 import { githubToken } from "#host/githubToken.ts";
 

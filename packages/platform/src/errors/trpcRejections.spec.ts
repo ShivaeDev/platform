@@ -1,8 +1,15 @@
 import { Option } from "effect";
 import { expect } from "vitest";
+import { rejectedField } from "@shivaedev/effect-contract/errors/rejectedField.ts";
+import {
+	BadRequest,
+	Conflict,
+	InternalServerError,
+	NotFound,
+	ServiceUnavailable,
+	TooManyRequests,
+} from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/rejectionDecoding.ts";
-import { rejectedField } from "#errors/rejectedField.ts";
-import { BadRequest, Conflict, InternalServerError, NotFound, ServiceUnavailable, TooManyRequests } from "#errors/taxonomy.ts";
 import { Rejection, trpcRejections } from "#test/errors/trpcRejections.ts";
 
 trpcRejections.it("taxonomy errors cross tRPC HTTP as rejections whose field reaches the form", [], function* ({ rename }) {

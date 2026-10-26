@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
+import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
-import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { DecisionCode } from "#DecisionCode.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import type { Decision, DecisionResponse } from "#policy.ts";

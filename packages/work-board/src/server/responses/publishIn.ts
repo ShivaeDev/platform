@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { constants } from "node:fs";
 import { type FileHandle, link, lstat, open, readFile, realpath, unlink } from "node:fs/promises";
-import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { PublicationUncertain } from "#rpc/rejections.ts";
 import { directoryPath, publicationFailure, uncertain, validateDirectory } from "./publicationDirectory.ts";
 
