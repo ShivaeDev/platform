@@ -1,5 +1,5 @@
 import { Effect, Queue, Stream } from "effect";
-import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
+import type { LiveHint } from "@shivaedev/contract/live.ts";
 
 export const followHints = Effect.fnUntraced(function* <E, R>(stream: Stream.Stream<LiveHint, E, R>) {
 	const hints: LiveHint[] = [];

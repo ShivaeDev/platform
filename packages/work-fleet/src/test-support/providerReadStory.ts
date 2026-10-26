@@ -1,6 +1,6 @@
 import { Clock, Duration, Effect } from "effect";
-import { withLive } from "@shivaedev/effect-test/withLive.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withLive } from "@shivaedev/test/withLive.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";

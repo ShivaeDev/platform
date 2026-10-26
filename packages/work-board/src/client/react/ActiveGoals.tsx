@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { EmptyState } from "#client/react/EmptyState.tsx";
 import { GoalProgress } from "#client/react/GoalProgress.tsx";
 import { LoadingRows } from "#client/react/loading.tsx";

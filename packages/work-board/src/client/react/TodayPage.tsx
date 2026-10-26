@@ -1,6 +1,6 @@
 import { Clock, Effect, Option } from "effect";
 import { useEffect, useMemo, useRef } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { inProgress } from "#browser/views/inProgress.ts";
 import type { InboxProjection, RecentAnswer } from "#browser/views/schema.ts";

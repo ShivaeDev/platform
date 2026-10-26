@@ -1,6 +1,6 @@
 import { Cause, Exit } from "effect";
 import { expect } from "vitest";
-import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { rejections } from "#test/rpc/rejections.ts";
 import { original } from "#test/rpc/saveFixture.ts";
 

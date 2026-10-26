@@ -14,9 +14,9 @@ export default defineConfig({
 			"rules": ["biome/files/includes"],
 		},
 		{
-			"files": ["packages/effect-test/src/anyTestLayer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
+			"files": ["packages/test/src/anyTestLayer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
 			"reason":
-				"effect-test declares the shared test Layer bound; effect-trpc preserves the same type at its public compatibility path. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
+				"test declares the shared test Layer bound; effect-trpc preserves the same type at its public compatibility path. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
 			"rules": ["biome/lint/suspicious/noExplicitAny"],
 		},
 		{
@@ -26,7 +26,7 @@ export default defineConfig({
 			"rules": ["biome/lint/suspicious/noThenProperty"],
 		},
 		{
-			"files": ["packages/effect-test/src/makeEffectIt.ts"],
+			"files": ["packages/test/src/makeEffectIt.ts"],
 			"reason":
 				"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty.",
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
@@ -57,7 +57,7 @@ export default defineConfig({
 		"boundaries/http-status": {
 			options: {
 				edge: [
-					"packages/effect-github/src/status.ts",
+					"packages/github/src/status.ts",
 					"packages/pr-watch/src/requestFailure.ts",
 					"packages/platform/src/server/rpc-server/**",
 					"packages/platform/src/server/node-http/**",

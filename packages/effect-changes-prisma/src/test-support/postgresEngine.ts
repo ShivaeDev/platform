@@ -1,6 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { Effect } from "effect";
-import type { BeforeCommit } from "@shivaedev/effect-changes/channel.ts";
+import type { BeforeCommit } from "@shivaedev/changes/channel.ts";
 import { tablesOf } from "#tables.ts";
 import { type Change, label, makeChanges } from "./changes.ts";
 import { type ConnectOptions, connect, makeDatabase, orderIds } from "./database.ts";

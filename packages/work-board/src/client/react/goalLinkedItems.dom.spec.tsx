@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { routedScreen } from "#test/screenTraits.ts";

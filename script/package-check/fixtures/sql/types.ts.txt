@@ -1,0 +1,62 @@
+import { Effect, Schema } from "effect"
+import { Model } from "effect/schema"
+import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts"
+import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts"
+
+class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
+  id: Schema.Number,
+  name: Schema.String,
+  amount: Schema.NumberFromString,
+}) {}
+
+class Document extends Model.Class<Document>("Document")({
+  id: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+  name: Schema.String,
+  lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+}) {}
+
+const program = Effect.gen(function* () {
+  const lines = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: "id", spanPrefix: "InvoiceLine" })
+  const selected = yield* lines.findMany({ select: ["name", "amount"], where: { amount: 42 } })
+  const rows: Array<{ readonly name: string; readonly amount: number }> = selected
+  void rows
+  // @ts-expect-error Unselected fields are absent from the result.
+  selected[0].id
+  // @ts-expect-error Field codecs accept their domain type.
+  lines.findMany({ where: { amount: "42" } })
+  // @ts-expect-error Unknown selected columns are rejected.
+  lines.findMany({ select: ["missing"] })
+  // @ts-expect-error Unknown sort columns are rejected.
+  lines.findMany({ orderBy: { field: "missing", direction: "asc" } })
+  // @ts-expect-error Selections cannot be empty.
+  lines.findMany({ select: [] })
+  const ingest = yield* makeRepository(InvoiceLine, { tableName: "invoice_line", idColumn: ["id", "name"], conflictColumns: ["id", "name"], spanPrefix: "InvoiceLine" })
+  const ignored = yield* ingest.insertOrIgnore({ id: 1, name: "Consulting", amount: 42 })
+  const insertedMany: InvoiceLine[] = yield* lines.insertMany([{ id: 2, name: "Consulting", amount: 42 }])
+  const ignoredMany: InvoiceLine[] = yield* ingest.insertManyOrIgnore([{ id: 1, name: "Consulting", amount: 42 }])
+  const upsertedMany: InvoiceLine[] = yield* ingest.upsertMany([{ id: 1, name: "Consulting", amount: 52 }], { updateColumns: ["amount"] })
+  void [insertedMany, ignoredMany, upsertedMany]
+  const upserted: InvoiceLine = yield* ingest.upsert({ id: 1, name: "Consulting", amount: 52 }, { updateColumns: ["amount"] })
+  const found: InvoiceLine = yield* ingest.findById({ id: 1, name: "Consulting" })
+  yield* ingest.delete({ id: 1, name: "Consulting" })
+  void [ignored, upserted, found]
+  // @ts-expect-error Composite reads require every key column.
+  ingest.findById({ id: 1 })
+  // @ts-expect-error Primary and conflict columns cannot be updated by an upsert.
+  ingest.upsert({ id: 1, name: "Consulting", amount: 52 }, { updateColumns: ["name"] })
+  const saved: string = yield* Effect.as(invalidateOnCommit({ invoiceLines: [1] }), "saved").pipe(transact({ onSqlError: () => "unavailable" as const }))
+  void saved
+  const documents = yield* makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "lockVersion" })
+  const original = yield* documents.insert({ name: "Draft" })
+  const updated: Document = yield* documents.update({ ...original, name: "Published" })
+  yield* documents.delete(updated.id, updated.lockVersion)
+  const handled: Document | OptimisticConcurrencyError = yield* documents.update(original).pipe(Effect.catchTag("OptimisticConcurrencyError", error => Effect.succeed(error)))
+  void handled
+  // @ts-expect-error Versioned deletion requires the version read.
+  documents.delete(original.id)
+  // @ts-expect-error Versioned updates require the version read.
+  documents.update({ id: original.id, name: "Stale" })
+  // @ts-expect-error The version column must be numeric and absent from insert.
+  makeRepository(Document, { tableName: "documents", idColumn: "id", spanPrefix: "Document", versionColumn: "name" })
+})
+void program

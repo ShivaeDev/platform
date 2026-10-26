@@ -1,6 +1,6 @@
 import type { Auth } from "better-auth";
 import { Effect } from "effect";
-import { AuthUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { AuthUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { redact } from "#server/rpc-server/redact.ts";
 
 export interface UserProfile {

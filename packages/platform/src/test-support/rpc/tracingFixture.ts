@@ -1,6 +1,6 @@
 import { Effect, Redacted, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
 import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 

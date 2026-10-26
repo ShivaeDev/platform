@@ -1,4 +1,4 @@
-import type { Form } from "@shivaedev/effect-form/shape.ts";
+import type { Form } from "@shivaedev/form/shape.ts";
 import type { ResponseSubmission, responseFormSchema } from "./formSchema.ts";
 
 type ResponseForm = Form<ReturnType<typeof responseFormSchema>["fields"], ResponseSubmission, unknown, never>;

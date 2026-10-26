@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
 import { revisionOf } from "#server/responses/records.ts";
 import { boardStory, responsesEnabled } from "#test/boardStory.ts";
 import { REVIEW_TASK, reviewResult } from "#test/resultReview.ts";

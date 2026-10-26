@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import type { Observation } from "@shivaedev/effect-changes/observe.ts";
+import type { Observation } from "@shivaedev/changes/observe.ts";
 import { checkCoverage } from "#coverage.ts";
 
 interface Change {

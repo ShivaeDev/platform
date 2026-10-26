@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { host } from "#test/hostStory.ts";
 
 for (const table of ["records", "dispatches"]) {

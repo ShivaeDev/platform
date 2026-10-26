@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Checks, Review, WorkResult } from "#policy.ts";
 export function validateResult(record: FleetRecord, result: WorkResult) {

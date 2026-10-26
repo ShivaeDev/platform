@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { homeScreen } from "#test-support/homeScreen.tsx";
 import { screens } from "#test-support/screens.ts";
 

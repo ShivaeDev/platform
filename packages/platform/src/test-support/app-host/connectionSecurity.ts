@@ -3,7 +3,7 @@ import { Config, Effect } from "effect";
 import { SqlClient } from "effect/sql";
 
 const inspect = Effect.fnUntraced(function* <A, E>(read: Effect.Effect<A, E, SqlClient.SqlClient>) {
-	const url = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+	const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 	return yield* read.pipe(Effect.provide(PgClient.layer({ url })));
 });
 

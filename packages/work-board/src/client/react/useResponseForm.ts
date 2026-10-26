@@ -1,7 +1,7 @@
 import { useAtomRef } from "@effect/atom-react";
 import { Equal, Option, Schema } from "effect";
 import { useEffect, useMemo, useState } from "react";
-import { useCreate } from "@shivaedev/effect-react/client/create.ts";
+import { useCreate } from "@shivaedev/react/client/create.ts";
 import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { PromptAnswer, QuestionPreview } from "#browser/responses/schema.ts";

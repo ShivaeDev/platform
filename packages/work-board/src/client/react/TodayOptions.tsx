@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { type ReactNode, useRef, useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { InboxProjection } from "#browser/views/schema.ts";
 import { Button, buttonVariants } from "#client/react/components/ui/button.tsx";
 import { Popover, PopoverContent, PopoverTrigger } from "#client/react/components/ui/popover.tsx";

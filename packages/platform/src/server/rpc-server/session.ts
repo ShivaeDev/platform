@@ -2,7 +2,7 @@ import { Duration, Effect, Exit, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
-import { type AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { type AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import {
 	Identity,
 	OptionalIdentity,

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { finishDocumentBody, heldDocumentBody } from "#test/documentBodyTiming.ts";
 import { failingSectionRender } from "#test/failingSectionRender.ts";
 import { LATE_HEADING, LONG_REPORT, LONG_REPORT_TITLE, REWRITTEN_REPORT, REWRITTEN_SUMMARY } from "#test/longReportFixture.ts";

@@ -1,6 +1,6 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { boardScreen, routedScreen } from "#test/screenTraits.ts";
 import { boardRouter } from "./boardRouter.ts";

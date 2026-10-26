@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { BadRequest, Conflict, Forbidden, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Conflict, Forbidden, NotFound } from "@shivaedev/contract/errors/taxonomy.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork, host } from "#test/hostStory.ts";
 import { prepared } from "#test/preparation.ts";

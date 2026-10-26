@@ -2,7 +2,7 @@ import { Config, Effect, Fiber } from "effect";
 import { expect } from "vitest";
 import { pool, poolCapacity } from "#test/app-host/pool.ts";
 
-const database = Effect.runSync(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL").pipe(Config.option));
+const database = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
 
 for (const mode of ["database", "host"] as const) {
 	for (const limit of [2, 3]) {

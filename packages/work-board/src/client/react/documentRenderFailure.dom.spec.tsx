@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { failingSectionRender } from "#test/failingSectionRender.ts";
 import { LONG_REPORT } from "#test/longReportFixture.ts";
 import { screenStory } from "#test/screenStory.ts";

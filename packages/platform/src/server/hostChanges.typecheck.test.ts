@@ -2,8 +2,8 @@ import { Context, Effect, Layer, Schema } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { expectTypeOf } from "vitest";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { query } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { query } from "@shivaedev/contract/operation.ts";
 import { appHost } from "#server/appHost.ts";
 
 class Required extends Context.Service<Required, string>()("changes-test/Required") {}

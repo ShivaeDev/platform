@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { questionId, responseMarkdown, revisionOf } from "#server/responses/records.ts";
 import { decisionFile, decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { answeredDecisionFixture } from "#test/answeredDecisionFixture.ts";

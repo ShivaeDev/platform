@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Option, type Redacted } from "effect";
-import { clientOptions } from "@shivaedev/effect-sql/clientOptions.ts";
 import { appDatabase } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 import { migrations } from "#server/migrations.ts";
 
 export const migrateDatabase = Effect.fn("App.migrateDatabase")(function* (databaseUrl?: Redacted.Redacted<string>) {

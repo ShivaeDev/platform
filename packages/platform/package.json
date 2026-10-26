@@ -47,9 +47,9 @@
 	},
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
-		"@shivaedev/effect-contract": "workspace:*",
-		"@shivaedev/effect-sql": "workspace:*",
+		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
+		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {
@@ -62,12 +62,12 @@
 		"@prisma-next/sql-contract": "catalog:",
 		"@prisma-next/sql-orm-client": "catalog:",
 		"@prisma-next/target-postgres": "catalog:",
-		"@shivaedev/effect-pg-boss": "workspace:*",
 		"@shivaedev/effect-prisma": "workspace:*",
-		"@shivaedev/effect-test": "workspace:*",
-		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/effect-trpc": "workspace:*",
+		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@trpc/client": "catalog:",
 		"@trpc/server": "catalog:",

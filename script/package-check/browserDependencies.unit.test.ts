@@ -7,22 +7,22 @@ function workspacePackage(name: string, manifest: Partial<Package["manifest"]> =
 	return { directory: `packages/${name}`, manifest: { name: `@shivaedev/${name}`, version: "0.0.0", ...manifest }, tarball: `${name}.tgz` };
 }
 
-const contract = workspacePackage("effect-contract");
-const entries = { "effect-contract": ["./errors/taxonomy.ts"] };
+const contract = workspacePackage("contract");
+const entries = { "contract": ["./errors/taxonomy.ts"] };
 
 it("follows a declared browser entry of a workspace dependency", () => {
-	const platform = workspacePackage("platform", { dependencies: { "@shivaedev/effect-contract": "workspace:*" } });
-	assert.equal(dependencyEntry(platform, [contract, platform], entries, "@shivaedev/effect-contract/errors/taxonomy.ts"), contract);
+	const platform = workspacePackage("platform", { dependencies: { "@shivaedev/contract": "workspace:*" } });
+	assert.equal(dependencyEntry(platform, [contract, platform], entries, "@shivaedev/contract/errors/taxonomy.ts"), contract);
 });
 
 it("rejects a workspace module that is not a declared browser entry", () => {
-	const platform = workspacePackage("platform", { dependencies: { "@shivaedev/effect-contract": "workspace:*" } });
-	assert.equal(dependencyEntry(platform, [contract, platform], entries, "@shivaedev/effect-contract/contract.ts"), undefined);
+	const platform = workspacePackage("platform", { dependencies: { "@shivaedev/contract": "workspace:*" } });
+	assert.equal(dependencyEntry(platform, [contract, platform], entries, "@shivaedev/contract/contract.ts"), undefined);
 });
 
 it("rejects a browser entry of a package the importer only develops against", () => {
-	const platform = workspacePackage("platform", { devDependencies: { "@shivaedev/effect-contract": "workspace:*" } });
-	assert.equal(dependencyEntry(platform, [contract, platform], entries, "@shivaedev/effect-contract/errors/taxonomy.ts"), undefined);
+	const platform = workspacePackage("platform", { devDependencies: { "@shivaedev/contract": "workspace:*" } });
+	assert.equal(dependencyEntry(platform, [contract, platform], entries, "@shivaedev/contract/errors/taxonomy.ts"), undefined);
 });
 
 it("rejects a package outside the workspace", () => {

@@ -5,7 +5,7 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
-import type { SchemaComponent } from "@shivaedev/effect-sql/SchemaComponent.ts";
+import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { bootMigrations } from "#test/app-host/bootMigrations.ts";
 import { disconnectGate } from "#test/app-host/disconnectGate.ts";
@@ -13,7 +13,7 @@ import { migrationLoader } from "#test/app-host/migrationLoader.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 
 const create = Effect.fnUntraced(function* () {
-	const url = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+	const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 	const table = `waiting_${crypto.randomUUID().replaceAll("-", "")}`;
 	const ledger = `${table}_migrations`;
 	const sql = yield* SqlClient.SqlClient;
@@ -28,9 +28,9 @@ export type MigrationState = Effect.Success<ReturnType<typeof create>>;
 export const migrationHost = storyKit({
 	clock: "test",
 	create,
-	layer: Layer.unwrap(Effect.map(Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"), (url) => PgClient.layer({ url }))),
+	layer: Layer.unwrap(Effect.map(Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL"), (url) => PgClient.layer({ url }))),
 	name: "migration wait",
-	runIf: environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL") !== undefined,
+	runIf: environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL") !== undefined,
 	stages: ["schema"],
 	verbs: (state, story) => ({
 		connections: () =>

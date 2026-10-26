@@ -1,6 +1,6 @@
 import { Effect, Option } from "effect";
 import { type Rpc, RpcSchema } from "effect/rpc";
-import { type AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { type AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { SessionPolicy, SessionShape } from "./session.ts";
 
 export function revalidateStream<TSession extends SessionShape>(

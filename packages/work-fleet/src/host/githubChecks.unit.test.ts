@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { ADOPTED_HEAD, checkRun, commitStatus, githubFixture, githubResult, NEW_HEAD } from "#test/githubChecks.ts";
 
 it.effect("passes required verify while retaining a failed non-required check as evidence", function* () {

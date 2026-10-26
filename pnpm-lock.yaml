@@ -400,18 +400,18 @@ importers:
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@shivaedev/changesets':
-        specifier: workspace:*
-        version: link:packages/changesets
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:packages/effect-sql
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:packages/local-postgres
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:packages/quality
+      '@shivaedev/releases':
+        specifier: workspace:*
+        version: link:packages/releases
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:packages/sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:packages/test-story
@@ -454,30 +454,30 @@ importers:
       '@shivaedev/admin':
         specifier: workspace:*
         version: link:../../packages/admin
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../../packages/effect-contract
-      '@shivaedev/effect-form':
+        version: link:../../packages/contract
+      '@shivaedev/form':
         specifier: workspace:*
-        version: link:../../packages/effect-form
-      '@shivaedev/effect-pg-boss':
+        version: link:../../packages/form
+      '@shivaedev/jobs':
         specifier: workspace:*
-        version: link:../../packages/effect-pg-boss
-      '@shivaedev/effect-react':
-        specifier: workspace:*
-        version: link:../../packages/effect-react
-      '@shivaedev/effect-service':
-        specifier: workspace:*
-        version: link:../../packages/effect-service
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:../../packages/effect-sql
+        version: link:../../packages/jobs
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../../packages/local-postgres
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../../packages/platform
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../../packages/react
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../../packages/service
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../../packages/sql
       '@tanstack/react-router':
         specifier: 'catalog:'
         version: 1.170.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -518,15 +518,15 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../../packages/effect-test
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../../packages/effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../../packages/test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../../packages/test-sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../../packages/test-story
@@ -569,9 +569,9 @@ importers:
 
   packages/access:
     dependencies:
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../effect-contract
+        version: link:../contract
     devDependencies:
       '@shivaedev/quality':
         specifier: workspace:*
@@ -597,28 +597,28 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../effect-contract
-      '@shivaedev/effect-pg-boss':
+        version: link:../contract
+      '@shivaedev/jobs':
         specifier: workspace:*
-        version: link:../effect-pg-boss
-      '@shivaedev/effect-react':
-        specifier: workspace:*
-        version: link:../effect-react
+        version: link:../jobs
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../platform
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../react
     devDependencies:
       '@effect/atom-react':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -650,20 +650,8 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/changesets:
+  packages/changes:
     devDependencies:
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/platform-node-shared':
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -676,6 +664,46 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/contract:
+    dependencies:
+      '@shivaedev/types':
+        specifier: workspace:*
+        version: link:../types
+    devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      esbuild:
+        specifier: 'catalog:'
+        version: 0.28.2
       happy-dom:
         specifier: 'catalog:'
         version: 21.0.3
@@ -688,9 +716,9 @@ importers:
 
   packages/create-app:
     dependencies:
-      '@shivaedev/effect-sql':
+      '@shivaedev/sql':
         specifier: workspace:*
-        version: link:../effect-sql
+        version: link:../sql
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
@@ -720,32 +748,11 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/effect-changes:
-    devDependencies:
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
   packages/effect-changes-prisma:
     dependencies:
-      '@shivaedev/effect-changes':
+      '@shivaedev/changes':
         specifier: workspace:*
-        version: link:../effect-changes
+        version: link:../changes
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
@@ -778,162 +785,6 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/effect-contract:
-    dependencies:
-      '@shivaedev/types':
-        specifier: workspace:*
-        version: link:../types
-    devDependencies:
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../effect-test-sql
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      esbuild:
-        specifier: 'catalog:'
-        version: 0.28.2
-      happy-dom:
-        specifier: 'catalog:'
-        version: 21.0.3
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-form:
-    devDependencies:
-      '@effect/atom-react':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      react:
-        specifier: 'catalog:'
-        version: 19.3.1
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-github:
-    dependencies:
-      '@shivaedev/effect-contract':
-        specifier: workspace:*
-        version: link:../effect-contract
-      '@shivaedev/effect-service':
-        specifier: workspace:*
-        version: link:../effect-service
-      '@shivaedev/platform':
-        specifier: workspace:*
-        version: link:../platform
-    devDependencies:
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/platform-node-shared':
-        specifier: 4.0.5
-        version: 4.0.5(effect@4.0.5)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-pg-boss:
-    dependencies:
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:../effect-sql
-    devDependencies:
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../effect-test-sql
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      pg-boss:
-        specifier: 'catalog:'
-        version: 12.38.0(@opentelemetry/api@1.9.1)
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
   packages/effect-prisma:
     dependencies:
       '@prisma-next/contract':
@@ -957,9 +808,9 @@ importers:
       '@prisma-next/sqlite':
         specifier: 'catalog:'
         version: 0.16.0(magicast@0.5.5)(typanion@3.14.0)(typescript@7.0.2)
-      '@shivaedev/effect-test':
+      '@shivaedev/test':
         specifier: workspace:*
-        version: link:../effect-test
+        version: link:../test
       pg:
         specifier: 'catalog:'
         version: 8.23.0
@@ -1004,222 +855,18 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
-  packages/effect-react:
-    dependencies:
-      '@shivaedev/effect-contract':
-        specifier: workspace:*
-        version: link:../effect-contract
-      '@shivaedev/effect-form':
-        specifier: workspace:*
-        version: link:../effect-form
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-    devDependencies:
-      '@effect/atom-react':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)
-      '@effect/sql-sqlite-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)
-      '@shivaedev/effect-pg-boss':
-        specifier: workspace:*
-        version: link:../effect-pg-boss
-      '@shivaedev/effect-service':
-        specifier: workspace:*
-        version: link:../effect-service
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:../effect-sql
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../effect-test-sql
-      '@shivaedev/local-postgres':
-        specifier: workspace:*
-        version: link:../local-postgres
-      '@shivaedev/platform':
-        specifier: workspace:*
-        version: link:../platform
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@tanstack/react-router':
-        specifier: 'catalog:'
-        version: 1.170.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      '@types/react':
-        specifier: 'catalog:'
-        version: 19.3.0
-      '@types/react-dom':
-        specifier: 'catalog:'
-        version: 19.3.0(@types/react@19.3.0)
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      happy-dom:
-        specifier: 'catalog:'
-        version: 21.0.3
-      react:
-        specifier: 'catalog:'
-        version: 19.3.1
-      react-dom:
-        specifier: 'catalog:'
-        version: 19.3.1(react@19.3.1)
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-service:
-    devDependencies:
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-sql:
-    dependencies:
-      '@shivaedev/effect-changes':
-        specifier: workspace:*
-        version: link:../effect-changes
-    devDependencies:
-      '@effect/platform-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)
-      '@effect/sql-sqlite-node':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)
-      '@shivaedev/effect-service':
-        specifier: workspace:*
-        version: link:../effect-service
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-test:
-    devDependencies:
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
-  packages/effect-test-sql:
-    dependencies:
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:../effect-sql
-    devDependencies:
-      '@effect/sql-pg':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)
-      '@effect/vitest':
-        specifier: 'catalog:'
-        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/quality':
-        specifier: workspace:*
-        version: link:../quality
-      '@shivaedev/test-story':
-        specifier: workspace:*
-        version: link:../test-story
-      '@types/node':
-        specifier: 'catalog:'
-        version: 24.19.2
-      effect:
-        specifier: 'catalog:'
-        version: 4.0.5
-      pg-boss:
-        specifier: 'catalog:'
-        version: 12.38.0(@opentelemetry/api@1.9.1)
-      typescript:
-        specifier: 'catalog:'
-        version: 7.0.2
-      vitest:
-        specifier: 'catalog:'
-        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
-
   packages/effect-trpc:
     dependencies:
-      '@shivaedev/effect-test':
+      '@shivaedev/test':
         specifier: workspace:*
-        version: link:../effect-test
+        version: link:../test
     devDependencies:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../effect-contract
+        version: link:../contract
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
@@ -1248,6 +895,85 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/form:
+    devDependencies:
+      '@effect/atom-react':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/github:
+    dependencies:
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@shivaedev/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
+    devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared':
+        specifier: 4.0.5
+        version: 4.0.5(effect@4.0.5)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/heavy-lock:
     devDependencies:
       '@effect/platform-node':
@@ -1259,12 +985,12 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1274,6 +1000,40 @@ importers:
       effect:
         specifier: 'catalog:'
         version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/jobs:
+    dependencies:
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      pg-boss:
+        specifier: 'catalog:'
+        version: 12.38.0(@opentelemetry/api@1.9.1)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2
@@ -1307,15 +1067,15 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../effect-contract
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:../effect-sql
+        version: link:../contract
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../local-postgres
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
@@ -1347,24 +1107,24 @@ importers:
       '@prisma-next/target-postgres':
         specifier: 'catalog:'
         version: 0.16.0(magicast@0.5.5)(typanion@3.14.0)(typescript@7.0.2)
-      '@shivaedev/effect-pg-boss':
-        specifier: workspace:*
-        version: link:../effect-pg-boss
       '@shivaedev/effect-prisma':
         specifier: workspace:*
         version: link:../effect-prisma
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../effect-test-sql
       '@shivaedev/effect-trpc':
         specifier: workspace:*
         version: link:../effect-trpc
+      '@shivaedev/jobs':
+        specifier: workspace:*
+        version: link:../jobs
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1404,12 +1164,12 @@ importers:
 
   packages/pr-watch:
     dependencies:
-      '@shivaedev/effect-github':
+      '@shivaedev/github':
         specifier: workspace:*
-        version: link:../effect-github
-      '@shivaedev/effect-service':
+        version: link:../github
+      '@shivaedev/service':
         specifier: workspace:*
-        version: link:../effect-service
+        version: link:../service
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
@@ -1420,12 +1180,12 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1482,6 +1242,148 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/react:
+    dependencies:
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
+      '@shivaedev/form':
+        specifier: workspace:*
+        version: link:../form
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+    devDependencies:
+      '@effect/atom-react':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@effect/sql-sqlite-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@shivaedev/jobs':
+        specifier: workspace:*
+        version: link:../jobs
+      '@shivaedev/local-postgres':
+        specifier: workspace:*
+        version: link:../local-postgres
+      '@shivaedev/platform':
+        specifier: workspace:*
+        version: link:../platform
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      '@types/react':
+        specifier: 'catalog:'
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: 'catalog:'
+        version: 19.3.0(@types/react@19.3.0)
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      happy-dom:
+        specifier: 'catalog:'
+        version: 21.0.3
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/releases:
+    devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/platform-node-shared':
+        specifier: 4.0.5
+        version: 4.0.5(effect@4.0.5)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      happy-dom:
+        specifier: 'catalog:'
+        version: 21.0.3
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/service:
+    devDependencies:
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/skills:
     devDependencies:
       '@effect/platform-node':
@@ -1512,11 +1414,109 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/sql:
+    dependencies:
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
+    devDependencies:
+      '@effect/platform-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@effect/sql-sqlite-node':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/test:
+    devDependencies:
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
+  packages/test-sql:
+    dependencies:
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
+    devDependencies:
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
+      '@effect/vitest':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      pg-boss:
+        specifier: 'catalog:'
+        version: 12.38.0(@opentelemetry/api@1.9.1)
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/test-story:
     dependencies:
-      '@shivaedev/effect-test':
+      '@shivaedev/test':
         specifier: workspace:*
-        version: link:../effect-test
+        version: link:../test
       dom-accessibility-api:
         specifier: 'catalog:'
         version: 0.7.1
@@ -1563,12 +1563,12 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1590,15 +1590,15 @@ importers:
 
   packages/work-board:
     dependencies:
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../effect-contract
-      '@shivaedev/effect-service':
-        specifier: workspace:*
-        version: link:../effect-service
+        version: link:../contract
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../platform
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
       mdast-util-directive:
         specifier: 'catalog:'
         version: 3.1.1(supports-color@7.2.0)
@@ -1657,18 +1657,18 @@ importers:
       '@fontsource-variable/geist-mono':
         specifier: 'catalog:'
         version: 5.3.0
-      '@shivaedev/effect-form':
+      '@shivaedev/form':
         specifier: workspace:*
-        version: link:../effect-form
-      '@shivaedev/effect-react':
-        specifier: workspace:*
-        version: link:../effect-react
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
+        version: link:../form
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../react
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
@@ -1771,24 +1771,24 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)
-      '@shivaedev/effect-contract':
+      '@shivaedev/contract':
         specifier: workspace:*
-        version: link:../effect-contract
-      '@shivaedev/effect-github':
+        version: link:../contract
+      '@shivaedev/github':
         specifier: workspace:*
-        version: link:../effect-github
-      '@shivaedev/effect-service':
-        specifier: workspace:*
-        version: link:../effect-service
-      '@shivaedev/effect-sql':
-        specifier: workspace:*
-        version: link:../effect-sql
+        version: link:../github
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../platform
       '@shivaedev/pr-watch':
         specifier: workspace:*
         version: link:../pr-watch
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
+      '@shivaedev/sql':
+        specifier: workspace:*
+        version: link:../sql
       '@shivaedev/work-board':
         specifier: workspace:*
         version: link:../work-board
@@ -1805,15 +1805,15 @@ importers:
       '@effect/vitest':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(vitest@5.0.5)
-      '@shivaedev/effect-test':
-        specifier: workspace:*
-        version: link:../effect-test
-      '@shivaedev/effect-test-sql':
-        specifier: workspace:*
-        version: link:../effect-test-sql
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
+      '@shivaedev/test':
+        specifier: workspace:*
+        version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story

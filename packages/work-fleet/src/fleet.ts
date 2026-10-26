@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { admissionOrder } from "#engine/admissionOrder.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueCommand } from "#engine/continueCommand.ts";

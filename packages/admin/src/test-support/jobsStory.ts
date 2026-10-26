@@ -1,5 +1,5 @@
 import { Effect, Option, Ref, Schedule } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { JobsHealth } from "#jobs/schemas.ts";
 import { jobsEngine, postgresConfigured, postgresLayer } from "./jobsEngine.ts";

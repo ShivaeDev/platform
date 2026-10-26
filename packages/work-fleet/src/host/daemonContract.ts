@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { command, query, stream } from "@shivaedev/contract/operation.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { ClosedDecision } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";

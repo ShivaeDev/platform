@@ -1,6 +1,6 @@
 # @shivaedev/effect-changes-prisma
 
-Prisma applications need to announce changes after rows commit, even when a caller is interrupted or a transaction fails at COMMIT. This package binds Prisma Classic on PostgreSQL to effect-changes: returned model rows name changes, the transaction outcome decides when they publish, and tests can find written tables that no recorded change covers.
+Prisma applications need to announce changes after rows commit, even when a caller is interrupted or a transaction fails at COMMIT. This package binds Prisma Classic on PostgreSQL to changes: returned model rows name changes, the transaction outcome decides when they publish, and tests can find written tables that no recorded change covers.
 
 ## Why you want this
 
@@ -156,7 +156,7 @@ const saveInvoices = Effect.gen(function* () {
 });
 ```
 
-The first write publishes after autocommit. The explicit batch groups the two later writes into one publication. Use `transaction` for an action that needs a database transaction. The exposed `channel` is an [effect-changes channel](https://github.com/ShivaeDev/platform/tree/main/packages/effect-changes#readme); its sink and observer references are available for application wiring and tests.
+The first write publishes after autocommit. The explicit batch groups the two later writes into one publication. Use `transaction` for an action that needs a database transaction. The exposed `channel` is an [changes channel](https://github.com/ShivaeDev/platform/tree/main/packages/changes#readme); its sink and observer references are available for application wiring and tests.
 
 ### Transaction failures, interruption and timeouts
 
@@ -194,7 +194,7 @@ Take a counter baseline at the start of the test's own transaction. A pooled con
 import { readFile } from "node:fs/promises";
 import { checkCoverage, type CoverageViolation } from "@shivaedev/effect-changes-prisma/coverage.ts";
 import { tablesOf, tableWrites, writtenTables } from "@shivaedev/effect-changes-prisma/tables.ts";
-import type { Observation } from "@shivaedev/effect-changes/observe.ts";
+import type { Observation } from "@shivaedev/changes/observe.ts";
 
 const tables = tablesOf(await readFile("prisma/schema.prisma", "utf8"));
 const domains: Readonly<Record<string, string>> = {
@@ -271,12 +271,12 @@ Import the module that defines the name. There is no root entry point.
 | `tables.ts` | `RawQueryClient`, `TableWrites`, `tablesOf`, `tableWrites`, `writtenTables` |
 | `error.ts` | `PrismaError`, `TransactionExpired` |
 
-`makePrismaChanges` also accepts the effect-changes channel options `onPublishFailure` and `beforeCommit`. The `beforeCommit` hook runs inside the Prisma transaction after the body succeeds, with its recorded changes, before commit. Calls to `use` in the hook use the transaction's scoped `Client`, so they see uncommitted body rows. A hook failure rolls back both body and hook writes and publishes nothing.
+`makePrismaChanges` also accepts the changes channel options `onPublishFailure` and `beforeCommit`. The `beforeCommit` hook runs inside the Prisma transaction after the body succeeds, with its recorded changes, before commit. Calls to `use` in the hook use the transaction's scoped `Client`, so they see uncommitted body rows. A hook failure rolls back both body and hook writes and publishes nothing.
 
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-changes-prisma @shivaedev/effect-changes @prisma/client@7.10.0 effect@4.0.5
+pnpm add @shivaedev/effect-changes-prisma @shivaedev/changes @prisma/client@7.10.0 effect@4.0.5
 ```
 
 `@prisma/client` and `effect` are peers. Generate and construct the application's Prisma Classic client for PostgreSQL before binding it.

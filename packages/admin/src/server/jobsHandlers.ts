@@ -1,6 +1,6 @@
 import { type Context, DateTime, Effect, Option } from "effect";
-import type { PgBossError, PgBossPayloadError } from "@shivaedev/effect-pg-boss/server/error.ts";
-import type { PgBossService } from "@shivaedev/effect-pg-boss/server/service.ts";
+import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
+import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import type { jobsPage } from "#jobs/page.ts";
 import { JobsPayloadInvalid, type JobsQueue, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
 

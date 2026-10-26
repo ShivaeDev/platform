@@ -20,7 +20,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 			"-u",
 			"DATABASE_URL",
 			"-u",
-			"PLATFORM_EFFECT_SQL_TEST_DATABASE_URL",
+			"PLATFORM_SQL_TEST_DATABASE_URL",
 			"sh",
 			"-c",
 			`${manifest.scripts[script]} "$@"`,
@@ -36,7 +36,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 
 export function installDatabaseProbe(app: string) {
 	const environment = join(app, ".env.local");
-	const line = "PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://invalid:invalid@127.0.0.1:1/invalid";
+	const line = "PLATFORM_SQL_TEST_DATABASE_URL=postgresql://invalid:invalid@127.0.0.1:1/invalid";
 	if (!readFileSync(environment, "utf8").split("\n").includes(line)) {
 		writeFileSync(environment, `${line}\n`, { flag: "a" });
 	}

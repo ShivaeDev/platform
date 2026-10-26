@@ -1,9 +1,9 @@
 import { Context, Effect, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
-import { GitHubConfig } from "@shivaedev/effect-github/GitHubConfig.ts";
-import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
-import { fakeGitHub } from "@shivaedev/effect-github/test-support/fakeGitHub.ts";
+import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
+import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
+import { fakeGitHub } from "@shivaedev/github/test-support/fakeGitHub.ts";
 import { GithubApi } from "#host/githubApi.ts";
 
 export interface ScriptedGithubResponse {

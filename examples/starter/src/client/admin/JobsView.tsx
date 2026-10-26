@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { JobsHealth } from "@shivaedev/admin/jobs/schemas.ts";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "#client/ui/tabs.tsx";
 import { JobList } from "./JobList.tsx";
 import type { JobsViewClient, RetryJob } from "./jobsTypes.ts";

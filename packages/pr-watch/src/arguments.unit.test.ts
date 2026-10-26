@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { argumentsFor } from "#arguments.ts";
 
 it.effect("arguments select explicit PRs, defaults and fleet settings", function* () {

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { NotFound } from "@shivaedev/contract/errors/taxonomy.ts";
 import { type AttentionOwner, waitingOwner } from "#attention.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";

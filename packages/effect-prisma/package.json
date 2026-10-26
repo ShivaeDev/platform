@@ -57,7 +57,7 @@
 		"@prisma-next/sql-relational-core": "catalog:",
 		"@prisma-next/sql-runtime": "catalog:",
 		"@prisma-next/sqlite": "catalog:",
-		"@shivaedev/effect-test": "workspace:*",
+		"@shivaedev/test": "workspace:*",
 		"pg": "catalog:"
 	},
 	"devDependencies": {

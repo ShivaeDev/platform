@@ -2,14 +2,14 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
-import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
+import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { AppChanges, appHost } from "#server/appHost.ts";
 import { AbortApi, abortHandlers, CHANGED_KEY, type ClientAbortState } from "./clientAbortFixture.ts";
 import { host } from "./story.ts";
 
 export function abortableRpc(mode: "transaction" | "subscription") {
 	return host.trait("configured", `a PostgreSQL host serves an abortable ${mode}`, function* (state) {
-		const databaseUrl = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+		const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 		const table = `abort_${crypto.randomUUID().replaceAll("-", "")}`;
 		const ledger = `${table}_migrations`;
 		const probe: ClientAbortState = {

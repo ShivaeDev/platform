@@ -1,7 +1,7 @@
 import { Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#server/appHost.ts";
 import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";

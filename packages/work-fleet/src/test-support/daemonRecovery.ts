@@ -1,4 +1,4 @@
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import type { EngineStory } from "#test/engineState.ts";
 import { engine, engineDefinition } from "#test/engineStory.ts";
 import { recoveryDaemon } from "#test/recoveryDaemon.ts";

@@ -6,7 +6,7 @@ import { environmentVariable } from "#test/environment.ts";
 import { withTestTransaction } from "#testing/transaction.ts";
 import { makeDatabaseIt } from "#testing/vitest.ts";
 
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
+const databaseUrl = environmentVariable("PLATFORM_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/TestingDatabase", {
 	contractJson,
 });

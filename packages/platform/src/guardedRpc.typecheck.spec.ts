@@ -10,7 +10,7 @@ import {
 	PreconditionFailed,
 	TooManyRequests,
 	Unauthorized,
-} from "@shivaedev/effect-contract/errors/taxonomy.ts";
+} from "@shivaedev/contract/errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";

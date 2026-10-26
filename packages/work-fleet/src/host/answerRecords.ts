@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { FleetRecord } from "#model.ts";
 import { type AnswerRequest, answerStore } from "#storage/answerStore.ts";

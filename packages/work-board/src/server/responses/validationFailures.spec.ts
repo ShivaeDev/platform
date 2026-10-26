@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { DraftInput } from "#browser/responses/schema.ts";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 import { responseInput, TEXT_QUESTION } from "#test/coverageEdges.ts";

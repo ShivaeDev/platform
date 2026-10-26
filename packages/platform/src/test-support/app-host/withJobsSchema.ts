@@ -2,8 +2,8 @@ import { Effect, Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { getRollbackPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
-import { installPgBossSchema, pgBossSchema } from "@shivaedev/effect-pg-boss/server/schema.ts";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+import { installPgBossSchema, pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
+import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { migrationHost } from "./migrationStory.ts";
 
 export function withJobsSchema(version: "missing" | "older" | "current") {

@@ -12,7 +12,7 @@ import {
 	PreconditionFailed,
 	ServiceUnavailable,
 	TooManyRequests,
-} from "@shivaedev/effect-contract/errors/taxonomy.ts";
+} from "@shivaedev/contract/errors/taxonomy.ts";
 import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
 import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
 import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";

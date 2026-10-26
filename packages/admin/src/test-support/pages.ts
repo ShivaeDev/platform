@@ -1,7 +1,7 @@
 import { Schema } from "effect";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { collection } from "@shivaedev/effect-contract/keys.ts";
-import { command, query, stream } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { collection } from "@shivaedev/contract/keys.ts";
+import { command, query, stream } from "@shivaedev/contract/operation.ts";
 import { adminPage } from "#page.ts";
 import { adminRegistry } from "#registry.ts";
 

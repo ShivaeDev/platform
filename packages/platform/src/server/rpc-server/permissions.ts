@@ -2,7 +2,7 @@ import { Effect, Layer, Option } from "effect";
 import { type HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
-import { type AuthUnavailable, Forbidden, type Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { type AuthUnavailable, Forbidden, type Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import { Identity, type SessionUser } from "#rpc/identity.ts";
 import { hasPermission, type permissionMiddleware, requirePermission } from "#rpc/permission.ts";
 import { sessionCommandChanges } from "#server/commandChanges.ts";

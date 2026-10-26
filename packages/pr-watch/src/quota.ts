@@ -1,5 +1,5 @@
 import { DateTime } from "effect";
-import type { RateLimitObservation } from "@shivaedev/effect-github/rateLimits.ts";
+import type { RateLimitObservation } from "@shivaedev/github/rateLimits.ts";
 
 export function quotaRetryAt(observations: readonly RateLimitObservation[], retryAt = 0): number {
 	return Math.max(retryAt, ...observations.filter((budget) => budget.remaining === 0).map((budget) => DateTime.toEpochMillis(budget.reset)));

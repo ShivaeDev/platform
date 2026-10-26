@@ -15,7 +15,7 @@ const order = procedure
   });
 ```
 
-The caller sends the input; the generator yields application services and returns its result. The same builder handles mutations and subscriptions, and a test can yield a real router call as an Effect. This package is for applications that use tRPC; Platform's native query and command path is `@shivaedev/effect-contract`.
+The caller sends the input; the generator yields application services and returns its result. The same builder handles mutations and subscriptions, and a test can yield a real router call as an Effect. This package is for applications that use tRPC; Platform's native query and command path is `@shivaedev/contract`.
 
 ## Using it
 
@@ -218,7 +218,7 @@ For `Schema.Struct({ name: Schema.NonEmptyString })` and input `{ name: "" }`, t
 
 `invalidInput` is reserved for input validation. A declared rejection schema cannot encode that field, and the formatter strips it from a manually constructed declared rejection. The input failure still decodes as a `BadRequest` schema that has `message` and an optional `field`.
 
-An operation declared with `@shivaedev/effect-contract` supplies an error schema too. Use `rejectWith(operation.error)` on the server and `decodeRejection(operation.error)` on the client. The generated rejection class and its fields survive that round trip; a contract without declared rejections leaves other failures opaque. This reuses the error vocabulary without changing the application's tRPC transport.
+An operation declared with `@shivaedev/contract` supplies an error schema too. Use `rejectWith(operation.error)` on the server and `decodeRejection(operation.error)` on the client. The generated rejection class and its fields survive that round trip; a contract without declared rejections leaves other failures opaque. This reuses the error vocabulary without changing the application's tRPC transport.
 
 ### Every client failure: read or decode the rejection
 
@@ -318,7 +318,7 @@ harnessIt.effectTRPC("provides the caller and fixture services", function* ({ or
 });
 ```
 
-Harness creation runs with the test Layer's services. The testing module delegates to `@shivaedev/effect-test`; its runner options include `around` and `clock`. See [Effect Test](https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme) for the runner's lifecycle and clock model.
+Harness creation runs with the test Layer's services. The testing module delegates to `@shivaedev/test`; its runner options include `around` and `clock`. See [Effect Test](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) for the runner's lifecycle and clock model.
 
 For a caller wrapper outside Vitest, `makeEffectCaller(adapter, caller, services)` turns an existing caller into an Effect-shaped caller. `makeEffectCallerFactory(adapter, createCaller, services)` adds the context-selection form used above. The adapter's `runWithServices(services, evaluate)` is the bridge for those overrides:
 

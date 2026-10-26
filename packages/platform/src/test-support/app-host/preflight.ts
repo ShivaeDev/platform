@@ -34,7 +34,7 @@ export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred 
 				state.build = () => appHost({ ...options, preflight: validation });
 				return;
 			}
-			const databaseUrl = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+			const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 			const table = `preflight_${crypto.randomUUID().replaceAll("-", "")}`;
 			const loader = Migrator.fromRecord({ "001_prepare": Effect.sync(() => state.lifecycle.push("migrated")) });
 			const migrations: MigrationOptions<AppId> = {

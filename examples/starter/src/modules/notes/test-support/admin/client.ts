@@ -5,7 +5,7 @@ import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
 import { AdminPermission } from "@shivaedev/admin/permissions.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { UsersPage } from "@shivaedev/admin/users/page.ts";
-import { bind } from "@shivaedev/effect-contract/bind.ts";
+import { bind } from "@shivaedev/contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { Admin, JobsPage, StatisticsPage } from "#modules/notes/admin.ts";
 import { noteQueue } from "#modules/notes/queue.ts";

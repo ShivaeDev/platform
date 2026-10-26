@@ -1,7 +1,7 @@
 import { Context, Effect, Option } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { KeyContext } from "@shivaedev/effect-contract/keys.ts";
-import { ChangesReads, KeyScope, type QueryReference } from "@shivaedev/effect-contract/serverMetadata.ts";
+import type { KeyContext } from "@shivaedev/contract/keys.ts";
+import { ChangesReads, KeyScope, type QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "#rpc/identity.ts";
 
 export function sessionKeyContext(rpc: Pick<Rpc.AnyWithProps, "annotations">): Effect.Effect<KeyContext | undefined> {

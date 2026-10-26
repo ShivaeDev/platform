@@ -1,6 +1,6 @@
 import { Deferred, Effect, Fiber, Schedule } from "effect";
 import { expect } from "vitest";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { recordModel } from "#storage/model.ts";
 import { readRecordSnapshot, readRecords } from "#storage/readRecords.ts";
 import { recordShape } from "#storage/recordShape.ts";

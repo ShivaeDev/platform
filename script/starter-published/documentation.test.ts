@@ -12,8 +12,8 @@ app.it(
 );
 
 for (const [specifier, name] of [
-	["@shivaedev/effect-contract/operation.ts", "stream"],
-	["@shivaedev/effect-contract/makeLiveServer.ts", "makeLiveServer"],
+	["@shivaedev/contract/operation.ts", "stream"],
+	["@shivaedev/contract/makeLiveServer.ts", "makeLiveServer"],
 ] as const) {
 	app.it(
 		`rejects the unpublished ${name} API imported by a framework guide`,

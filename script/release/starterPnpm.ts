@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
-import { ChangesetError } from "@shivaedev/changesets/error.ts";
+import { ChangesetError } from "@shivaedev/releases/error.ts";
 
 const STARTER_PATH = "examples/starter/package.json";
 const Manifest = Schema.fromJsonString(Schema.Struct({ packageManager: Schema.String }));
@@ -19,7 +19,7 @@ export const checkStarterPnpm = Effect.fn("Release.checkStarterPnpm")(function* 
 	const pinned = yield* readPin(root, STARTER_PATH);
 	if (pinned.version !== expected.version) {
 		return yield* new ChangesetError({
-			message: `${STARTER_PATH}: pnpm pin ${pinned.version} differs from root package.json pnpm version ${expected.version}. Run pnpm changesets apply for a release, or set packageManager to pnpm@${expected.version} in ${STARTER_PATH}.`,
+			message: `${STARTER_PATH}: pnpm pin ${pinned.version} differs from root package.json pnpm version ${expected.version}. Run pnpm releases apply for a release, or set packageManager to pnpm@${expected.version} in ${STARTER_PATH}.`,
 		});
 	}
 });

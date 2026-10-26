@@ -1,5 +1,5 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { loadQuery } from "@shivaedev/react/loadQuery.ts";
 import { pageQueries } from "./pageQueries.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import { routeQueryOptions } from "./routeQuery.ts";

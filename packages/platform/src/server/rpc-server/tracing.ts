@@ -1,6 +1,6 @@
 import { Cause, Context, Effect, Exit, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/http";
-import { KeyScope } from "@shivaedev/effect-contract/serverMetadata.ts";
+import { KeyScope } from "@shivaedev/contract/serverMetadata.ts";
 import { RequestId } from "#rpc/identity.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { commandChanges } from "#server/commandChanges.ts";

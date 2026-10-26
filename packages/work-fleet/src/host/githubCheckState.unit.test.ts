@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githubChecks.ts";
 
 for (const conclusion of ["cancelled", "failure"]) {

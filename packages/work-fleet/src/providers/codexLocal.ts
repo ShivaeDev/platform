@@ -1,5 +1,5 @@
 import { Clock, Context, Effect, Layer, Schema } from "effect";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { codexLive } from "#providers/codexLive.ts";
 import { connect, failure, initialize, request } from "#providers/codexRpc.ts";

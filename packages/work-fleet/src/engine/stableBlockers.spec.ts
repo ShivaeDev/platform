@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { CommittedSink } from "@shivaedev/effect-sql/transact.ts";
+import { CommittedSink } from "@shivaedev/sql/transact.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { githubPullRequest, markdownWork } from "#test/engineTraits.ts";
 import { HEAD, MOVED, REPORT } from "#test/githubResult.ts";

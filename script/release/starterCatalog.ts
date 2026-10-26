@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { ChangesetError } from "@shivaedev/changesets/error.ts";
+import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { scanCatalog } from "#quality/catalog.ts";
 
 const STARTER_PATH = "examples/starter/pnpm-workspace.copy.yaml";
@@ -26,7 +26,7 @@ export const checkStarterCatalog = Effect.fn("Release.checkStarterCatalog")(func
 			(entry) => `${STARTER_PATH}: catalog entry ${entry.name} pins ${entry.value}, but root pnpm-workspace.yaml pins ${entry.expected}.`,
 		);
 		return yield* new ChangesetError({
-			message: `${messages.join("\n")}\nRun pnpm changesets apply for a release, or align these starter catalog entries with the root catalog.`,
+			message: `${messages.join("\n")}\nRun pnpm releases apply for a release, or align these starter catalog entries with the root catalog.`,
 		});
 	}
 });

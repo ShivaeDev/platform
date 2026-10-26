@@ -1,24 +1,10 @@
 {
-	"effect-github": [
+	"github": [
 		{
 			"entries": ["./GitHub.ts", "./GitHubToken.ts", "./GitHubConfig.ts", "./errors.ts"],
 			"fixtures": ["client.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["client.ts"]
-		}
-	],
-	"effect-react": [
-		{
-			"entries": ["./client/resultState.ts", "./resumeSignal.ts", "./client/sessionBoundary.ts"],
-			"fixtures": ["hooks-types.ts.txt"],
-			"omitOptionalPeers": true,
-			"run": []
-		},
-		{
-			"entries": ["./loadQuery.ts"],
-			"fixtures": ["router-types.ts.txt"],
-			"omitOptionalPeers": false,
-			"run": []
 		}
 	],
 	"platform": [
@@ -73,6 +59,20 @@
 			"omitOptionalPeers": false,
 			"run": ["dist/emit-main.js"],
 			"tsconfig": "@shivaedev/quality/tsconfig/package.json"
+		}
+	],
+	"react": [
+		{
+			"entries": ["./client/resultState.ts", "./resumeSignal.ts", "./client/sessionBoundary.ts"],
+			"fixtures": ["hooks-types.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": []
+		},
+		{
+			"entries": ["./loadQuery.ts"],
+			"fixtures": ["router-types.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": []
 		}
 	],
 	"vitest-rerun": [

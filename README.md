@@ -13,28 +13,28 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 
 ## Packages
 
-- [`@shivaedev/effect-service`](./packages/effect-service): Declared service
+- [`@shivaedev/service`](./packages/service): Declared service
   dependencies with native Effect Layers and caller-owned scopes.
-- [`@shivaedev/effect-changes`](./packages/effect-changes): Commit-bound change
+- [`@shivaedev/changes`](./packages/changes): Commit-bound change
   channels that publish recorded changes only after their transaction commits.
 - [`@shivaedev/effect-changes-prisma`](./packages/effect-changes-prisma):
   Commit-bound changes recorded from Prisma Classic writes on PostgreSQL only,
   with a test-time coverage check.
-- [`@shivaedev/effect-sql`](./packages/effect-sql): Simple schema-derived
+- [`@shivaedev/sql`](./packages/sql): Simple schema-derived
   repositories over native Effect SQL, and after-commit invalidation.
-- [`@shivaedev/effect-contract`](./packages/effect-contract): Query and command
+- [`@shivaedev/contract`](./packages/contract): Query and command
   declarations over native Effect RPC with typed rejections and reactivity keys.
-- [`@shivaedev/effect-form`](./packages/effect-form): Schema-based forms and
+- [`@shivaedev/form`](./packages/form): Schema-based forms and
   editable drafts, with optional React bindings.
-- [`@shivaedev/effect-react`](./packages/effect-react): Query state and action
+- [`@shivaedev/react`](./packages/react): Query state and action
   dispatch hooks for native Effect atoms.
 - [`@shivaedev/effect-prisma`](./packages/effect-prisma): Generated Prisma Next
   queries and transactions that compose with Effect.
-- [`@shivaedev/effect-pg-boss`](./packages/effect-pg-boss): Schema-defined jobs
+- [`@shivaedev/jobs`](./packages/jobs): Schema-defined jobs
   and scoped pg-boss workers in Effect applications.
-- [`@shivaedev/effect-test`](./packages/effect-test): Generic Effect Vitest
+- [`@shivaedev/test`](./packages/test): Generic Effect Vitest
   runner with worker-scoped Layers and TestClock.
-- [`@shivaedev/effect-test-sql`](./packages/effect-test-sql): PostgreSQL test fixtures prepared once, per-test rollback and isolated databases for real commits.
+- [`@shivaedev/test-sql`](./packages/test-sql): PostgreSQL test fixtures prepared once, per-test rollback and isolated databases for real commits.
 - [`@shivaedev/effect-trpc`](./packages/effect-trpc): Effect-native tRPC
   procedures and testing.
 - [`@shivaedev/test-story`](./packages/test-story): Tests that read like
@@ -63,7 +63,7 @@ Every package has a README for people and agents using it and a short `AGENTS.md
   durable ownership and receipts.
 - [Work Board plugin](./packages/work-board-plugin): The Work Board inside Claude Code, installed with `/plugin install workboard --marketplace ShivaeDev/platform` from this repository's plugin marketplace.
 
-No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/effect-sql/transact.ts"`, and a bundler sees only what you use.
+No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
 
 ## Development
 
@@ -89,10 +89,10 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 | Test variable | Database |
 | --- | --- |
-| `PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL` | `platform_test_effect_prisma` |
-| `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` | `platform_test_effect_sql` |
-| `PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL` | `platform_test_effect_pg_boss` |
-| `PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL` | `platform_test_effect_changes_prisma` |
+| `PLATFORM_PRISMA_TEST_DATABASE_URL` | `platform_test_prisma` |
+| `PLATFORM_SQL_TEST_DATABASE_URL` | `platform_test_sql` |
+| `PLATFORM_JOBS_TEST_DATABASE_URL` | `platform_test_jobs` |
+| `PLATFORM_CHANGES_PRISMA_TEST_DATABASE_URL` | `platform_test_changes_prisma` |
 
 `pnpm db:setup` creates missing development and package-specific test databases, then initializes the integration and auth schemas in the Prisma test database without dropping tables. SQL, pg-boss and changes-prisma tests prepare their own objects in their separate databases. Local preparation and `pnpm test` validate each database name and refuse remote hosts, development databases, shared test targets or connection overrides. Existing databases and data are preserved.
 
@@ -101,8 +101,8 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files. For example, after local setup:
 
 ```sh
-PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
-PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-sql test src/postgres.spec.ts
+PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
+PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/postgres.spec.ts
 ```
 
 CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. Pull requests and pushes allow no reruns, so a flaky test fails them. In the merge queue, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact.

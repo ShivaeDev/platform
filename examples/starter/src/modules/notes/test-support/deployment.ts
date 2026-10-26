@@ -1,4 +1,4 @@
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deploymentProcesses } from "#test-support/deploymentProcesses.ts";
 import { postgres } from "#test-support/postgres.ts";

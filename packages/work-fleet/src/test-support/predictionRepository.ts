@@ -3,7 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { ChangeResult } from "#policy.ts";
 
 interface PullRequest {

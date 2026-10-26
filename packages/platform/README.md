@@ -27,7 +27,7 @@ const Handlers = Account.toLayer({
 
 There are three parts to a native RPC boundary:
 
-1. **The shared contract** names Schema errors and middleware tags. The browser imports these declarations too, so `effect-contract/errors/` and Platform's `rpc/` contain browser-safe data and services.
+1. **The shared contract** names Schema errors and middleware tags. The browser imports these declarations too, so `contract/errors/` and Platform's `rpc/` contain browser-safe data and services.
 2. **The server composition** implements the tags with Layers from `rpc-server/`. A session provider resolves a session; an Origin policy decides whether its request may reach that provider; tracing supplies a request id and diagnostic context.
 3. **The feature handler** reads `Identity`, `OptionalIdentity` or `RequestId` and runs application code. Authentication supplies a user id. Authorization still decides whether that user may perform this operation.
 
@@ -100,7 +100,7 @@ Omit `migrations` to host an app without a database. This form creates no SQL po
 
 Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` when a separate pre-deploy command owns migrations. Startup reads the ledger and fails with native `MigrationError` (`kind: "BadState"`) if any required migration ID or name is missing or a schema component is pending; it does not run migrations or create a ledger. Later ledger entries are allowed for rolling deployments. Use `migrations.mode: "wait"` for services that can start before that pre-deploy command finishes. It re-reads the ledger and every registered component every second until all are current, then starts the application. Set `migrations.pollInterval` and `migrations.waitTimeout` with Effect duration inputs to change the interval and five-minute timeout. If the first check finds pending work, Effect’s logger emits `Waiting for database migrations` at info, then `Still waiting for database migrations` every 30 seconds independently of polling. Set `migrations.progressInterval` with an Effect duration input to change that progress interval. These lines carry `pendingMigrations` (ID and name) and `pendingComponents` (name and detail) annotations. A later successful check logs `Database migrations current` once; timeout logs `Timed out waiting for database migrations` with the pending annotations before failing. An initially current schema emits none of these lines. The host adds no connection details or secrets to these diagnostics. Timeout fails with the same `MigrationError` as `"check"`; interruption stops polling and closes the pool. SQL failures fail immediately. With `mode` omitted or `"migrate"`, startup applies pending ledger migrations with a five-second lock timeout unless `migrations.lockTimeout` overrides it, then applies schema components outside the ledger transaction.
 
-Pass `migrations.components` beside `loader` for storage managed by another engine. For pg-boss, register `pgBossSchema({ schema: "app_jobs" })` from `@shivaedev/effect-pg-boss/server/schema.ts`, then start every jobs Layer with `migrate: false`. `check` and `wait` use the same `MigrationError` readout for pending ledger IDs and component names and details, including pg-boss’s installed and required versions.
+Pass `migrations.components` beside `loader` for storage managed by another engine. For pg-boss, register `pgBossSchema({ schema: "app_jobs" })` from `@shivaedev/jobs/server/schema.ts`, then start every jobs Layer with `migrate: false`. `check` and `wait` use the same `MigrationError` readout for pending ledger IDs and component names and details, including pg-boss’s installed and required versions.
 
 Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
 
@@ -205,7 +205,7 @@ const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, 
 
 ### Public client configuration
 
-Use one `publicConfig` declaration per application as the one path for server configuration that a client needs. Declare only public fields in a shared Schema; the declaration creates a standard effect-contract query, so applications write no config RPC. Keep private configuration in server modules.
+Use one `publicConfig` declaration per application as the one path for server configuration that a client needs. Declare only public fields in a shared Schema; the declaration creates a standard contract query, so applications write no config RPC. Keep private configuration in server modules.
 
 ```ts
 import { Schema } from "effect";
@@ -236,15 +236,15 @@ export const Server = appHost({
 
 `publicConfigLayer` reads `Config.schema` from the host's native ConfigProvider when the handler Layer builds. Missing or invalid required fields fail startup with a typed `ConfigError`. An optional second argument supplies a native Config path: `publicConfigLayer(PublicConfig, "PUBLIC")` reads `PUBLIC_INSTALL_URL` with the default environment provider. Only schema-declared fields are loaded and serialized; other server values never enter this response. The generated query has no session middleware, so it can supply public configuration before sign-in. Merge it alongside authenticated contracts rather than applying authentication to the merged group.
 
-On the client, use the same native `AtomRpc.Service`, NDJSON HTTP protocol and effect-contract `bind` as other queries:
+On the client, use the same native `AtomRpc.Service`, NDJSON HTTP protocol and contract `bind` as other queries:
 
 ```ts
 import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { bind } from "@shivaedev/effect-contract/bind.ts";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { bind } from "@shivaedev/contract/bind.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { PublicConfig } from "./public-config.ts";
 
 class ConfigClient extends AtomRpc.Service<ConfigClient>()("app/ConfigClient", {
@@ -269,7 +269,7 @@ Declare the RPC group in a shared module:
 ```ts
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
@@ -357,7 +357,7 @@ Pass Better Auth's account lookup as the second argument to `betterAuthSessions`
 ```ts
 import { SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/platform/rpc/middleware.ts";
-import { AuthUnavailable, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 
 const sessions = {
@@ -452,9 +452,9 @@ An operation on one record reads that record's owner and uses the application's 
 
 Session resolution reads `HttpServerRequest`: the HTTP POST or WebSocket upgrade request. Credentials and Origin supplied inside an RPC message cannot replace those transport headers. An application-owned middleware can use `transportHeaders(rpcHeaders)` for the same source of headers.
 
-effect-react’s `actionTrace` groups an action’s RPC Effects under one browser trace; editor saves and create submissions group their save Effects automatically. Native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` sends W3C `traceparent` on each request. appHost continues that HTTP trace for RPC handling, including without an installed tracer or exporter. Each RPC span records `request.id` and `rpc.method`; native SQL spans executed by the handler inherit that trace.
+react’s `actionTrace` groups an action’s RPC Effects under one browser trace; editor saves and create submissions group their save Effects automatically. Native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` sends W3C `traceparent` on each request. appHost continues that HTTP trace for RPC handling, including without an installed tracer or exporter. Each RPC span records `request.id` and `rpc.method`; native SQL spans executed by the handler inherit that trace.
 
-When a handler enqueues through effect-pg-boss, the job stores the current span context. Wrap enqueueing in an application-named producer span with `Effect.withSpan("Receipt.enqueue", { kind: "producer" })` to show the enqueue operation in the action trace. Worker attempts run in their own trace, linked back to the captured sender span. A trace viewer can follow that link between the action and its job.
+When a handler enqueues through jobs, the job stores the current span context. Wrap enqueueing in an application-named producer span with `Effect.withSpan("Receipt.enqueue", { kind: "producer" })` to show the enqueue operation in the action trace. Worker attempts run in their own trace, linked back to the captured sender span. A trace viewer can follow that link between the action and its job.
 
 Tracing uses the RPC headers for correlation. `requestTracingLayer()` accepts `x-request-id`; `{ header: "x-correlation-id" }` changes the name. Missing, malformed or oversized values receive generated 32-character lowercase hexadecimal ids. A request id reaches the `RequestId` service, log annotations as `requestId`, and the server span as `request.id`; the RPC method reaches both as `rpc.method`.
 
@@ -497,7 +497,7 @@ The same module exports `loopbackOnly(handler)` for local page routes and `sameO
 
 `trustedProxyRanges(trustedProxy?)` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
 
-Declare expected refusals with the shared tagged error schemas from [effect-contract](https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract#expected-failures). They work with native RPC without authentication middleware. For tRPC, use the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc); that HTTP boundary owns status mapping.
+Declare expected refusals with the shared tagged error schemas from [contract](https://github.com/ShivaeDev/platform/tree/main/packages/contract#expected-failures). They work with native RPC without authentication middleware. For tRPC, use the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc); that HTTP boundary owns status mapping.
 
 ### Handling unexpected failures
 
@@ -505,7 +505,7 @@ At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections an
 
 ```ts
 import { Schema } from "effect";
-import { Conflict, InternalServerError } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict, InternalServerError } from "@shivaedev/contract/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError]);
@@ -907,7 +907,7 @@ Role writes require an owner `SessionUser`, serialize role changes in a transact
 pnpm add @shivaedev/platform effect@4.0.5
 ```
 
-Effect is the only required peer. The peer-free implementation lives in the shared `rpc/` folder and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `rpc/` modules and the error schemas from `@shivaedev/effect-contract/errors/taxonomy.ts`.
+Effect is the only required peer. The peer-free implementation lives in the shared `rpc/` folder and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `rpc/` modules and the error schemas from `@shivaedev/contract/errors/taxonomy.ts`.
 
 Install the optional peers for the selected integration:
 

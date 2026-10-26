@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { HealthSnapshot } from "#engine/health.ts";

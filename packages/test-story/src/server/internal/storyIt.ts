@@ -1,7 +1,7 @@
 import type { TestContext } from "@effect/vitest";
 import { Effect, Layer } from "effect";
-import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
-import type { EffectTest, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
+import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import type { EffectTest, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { type Genre, genreOf } from "#internal/genre.ts";
 import { type AnyEffect, hooked } from "#internal/hooked.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";

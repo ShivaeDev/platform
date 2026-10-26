@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { collection } from "@shivaedev/effect-contract/keys.ts";
+import { collection } from "@shivaedev/contract/keys.ts";
 
 export const workspace = collection("work-board/workspace", Schema.String);
 export const documents = collection("work-board/documents", Schema.String);

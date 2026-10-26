@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { clientIpHost } from "./clientIpHost.ts";

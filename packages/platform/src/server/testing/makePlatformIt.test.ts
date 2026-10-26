@@ -11,7 +11,7 @@ import type { Contract } from "#test/auth/generated/contract.d.ts";
 import contractJson from "#test/auth/generated/contract.json" with { type: "json" };
 import { environmentVariable } from "#test/environmentVariable.ts";
 
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
+const databaseUrl = environmentVariable("PLATFORM_PRISMA_TEST_DATABASE_URL");
 const Database = makeDatabase<Contract>()("@test/PlatformDatabase", {
 	contractJson,
 });

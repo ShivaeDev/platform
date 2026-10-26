@@ -2,7 +2,7 @@ import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Logger, 
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
+import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "#server/appHost.ts";
 import type { MigrationState } from "#test/app-host/migrationStory.ts";
 import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";

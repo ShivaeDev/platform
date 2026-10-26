@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
-import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository, OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { checkRecordAdmission } from "#storage/admission.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";

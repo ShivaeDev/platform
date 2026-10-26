@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { planDiff, validateDiff } from "@shivaedev/changesets/check.ts";
-import { attempt } from "@shivaedev/changesets/error.ts";
-import { computePlan } from "@shivaedev/changesets/planner.ts";
-import { readHistory } from "@shivaedev/changesets/readHistory.ts";
-import { readWorkspace } from "@shivaedev/changesets/workspace.ts";
+import { planDiff, validateDiff } from "@shivaedev/releases/check.ts";
+import { attempt } from "@shivaedev/releases/error.ts";
+import { computePlan } from "@shivaedev/releases/planner.ts";
+import { readHistory } from "@shivaedev/releases/readHistory.ts";
+import { readWorkspace } from "@shivaedev/releases/workspace.ts";
 import config from "#release-config";
 import { starterPinsInput } from "./starterPinsInput.ts";
 

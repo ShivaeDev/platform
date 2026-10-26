@@ -240,7 +240,7 @@ The Relation surface follows Prisma Next's collections. Its typed operations inc
 
 A `PrismaError` carries a tagged `reason`. A unique-constraint violation is a `PrismaQueryFailure` with `sqlState` and `constraint`; scope and transaction guards use `PrismaRuntimeFailure` with `code`. Unknown Promise rejections remain defects rather than becoming typed database failures.
 
-`makeDatabaseIt` and each `effectDB` test accept `clock`; see the [Effect test runner](https://github.com/ShivaeDev/platform/tree/main/packages/effect-test#readme) for the shared option types and clock model.
+`makeDatabaseIt` and each `effectDB` test accept `clock`; see the [Effect test runner](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) for the shared option types and clock model.
 
 ### Install and contract setup
 

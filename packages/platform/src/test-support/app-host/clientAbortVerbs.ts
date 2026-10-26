@@ -56,7 +56,7 @@ export function clientAbortVerbs(state: HostState, tell: (line: string) => void)
 			}).pipe(Effect.timeout("5 seconds")),
 		poolActivity: () =>
 			Effect.gen(function* () {
-				const url = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+				const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 				return yield* SqlClient.SqlClient.use(
 					(sql) => sql<{ state: string }>`select state from pg_stat_activity where application_name = ${probeOf(state).applicationName}`,
 				).pipe(Effect.provide(PgClient.layer({ url })));

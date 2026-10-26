@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { command, query } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
 import { AttentionOwner } from "#attention.ts";
 import { views } from "#engine/views.ts";
 import { fleetRejections } from "#errors.ts";

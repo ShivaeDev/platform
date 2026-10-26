@@ -1,0 +1,36 @@
+import assert from "node:assert/strict";
+import { createServer } from "node:http";
+import { Effect, Layer, Option, Schema, Stream } from "effect";
+import { FetchHttpClient } from "effect/http";
+import { GitHub, read, list, write } from "@shivaedev/github/GitHub.ts";
+import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
+import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
+import { GitHubRateLimited } from "@shivaedev/github/errors.ts";
+
+const server = createServer((request, response) => {
+  response.writeHead(200, { "content-type": "application/json" });
+  response.end(JSON.stringify(request.url === "/items" ? [{ name: "packed" }] : { name: "packed" }));
+});
+await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+try {
+  const address = server.address();
+  assert(address !== null && typeof address !== "string");
+  const layer = GitHub.layer.pipe(Layer.provide(Layer.mergeAll(
+    FetchHttpClient.layer,
+    Layer.succeed(GitHubToken)(Option.none()),
+    Layer.succeed(GitHubConfig)({ apiUrl: `http://127.0.0.1:${address.port}` }),
+  )));
+  const Item = Schema.Struct({ name: Schema.String });
+  const program = Effect.gen(function* () {
+    const item: { readonly name: string } = yield* read("/item", Item);
+    assert.equal(item.name, "packed");
+    assert.deepEqual(yield* list("/items", Item).pipe(Stream.runCollect), [item]);
+    assert.deepEqual(yield* write("PATCH", "/item", { name: "packed" }, Item), item);
+    assert.deepEqual(yield* (yield* GitHub).observations(), []);
+  });
+  await Effect.runPromise(program.pipe(Effect.provide(layer)));
+  assert.equal(typeof GitHubRateLimited, "function");
+} finally {
+  server.closeAllConnections();
+  await new Promise<void>((resolve) => server.close(() => resolve()));
+}

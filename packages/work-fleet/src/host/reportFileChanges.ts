@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
 import { reportAttachmentFiles } from "#host/reportAttachmentFiles.ts";
 import { reportFileReplay } from "#host/reportFileReplay.ts";
 import type { Item } from "#providers/codexProtocol.ts";

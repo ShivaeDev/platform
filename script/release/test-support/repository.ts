@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem } from "effect";
-import { applyRelease } from "@shivaedev/changesets/applyRelease.ts";
+import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import { planPullRequest } from "#release/planPullRequest.ts";

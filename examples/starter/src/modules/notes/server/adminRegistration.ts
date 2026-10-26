@@ -3,7 +3,7 @@ import { SqlClient, SqlSchema } from "effect/sql";
 import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { Admin, JobsPage, NoteStatistics, StatisticsPage } from "#modules/notes/admin.ts";
 import { NoteJobs } from "./jobs.ts";
 

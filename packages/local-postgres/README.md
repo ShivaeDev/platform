@@ -25,7 +25,7 @@ There are three separate responsibilities:
 2. A **database** is an application-chosen name on that service. This package creates missing databases; the application chooses their names through configuration or a fixed allowlist.
 3. The **schema and data** belong to the application. Its setup script runs migrations, loads fixtures or seeds data after preparation.
 
-`localPostgres(environment)` returns three synchronous functions: `startPostgres`, `prepareDatabases` and `sql`. Use them in setup tooling. Use your application's database client and `@shivaedev/effect-sql` for persistence and migrations in an Effect application.
+`localPostgres(environment)` returns three synchronous functions: `startPostgres`, `prepareDatabases` and `sql`. Use them in setup tooling. Use your application's database client and `@shivaedev/sql` for persistence and migrations in an Effect application.
 
 ### 1. Once per application: choose the databases
 
@@ -63,7 +63,7 @@ postgres.prepareDatabases([development, tests]);
 
 ### 2. Once per feature: prepare its schema in application tooling
 
-After `prepareDatabases`, run the application's own schema or migration entry point. This package provides no schema model, migration ledger, fixture catalogue or seed convention. `@shivaedev/effect-sql` owns the SQL and migration APIs.
+After `prepareDatabases`, run the application's own schema or migration entry point. This package provides no schema model, migration ledger, fixture catalogue or seed convention. `@shivaedev/sql` owns the SQL and migration APIs.
 
 ### 3. In daily setup: prepare again and inspect with SQL
 

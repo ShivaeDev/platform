@@ -1,6 +1,6 @@
 import { createAuthClient } from "better-auth/react";
 import type * as Atom from "effect/reactivity/Atom";
-import { type AuthActionUnavailable, authAction } from "@shivaedev/effect-react/client/authAction.ts";
+import { type AuthActionUnavailable, authAction } from "@shivaedev/react/client/authAction.ts";
 
 export interface Credentials {
 	readonly email: string;

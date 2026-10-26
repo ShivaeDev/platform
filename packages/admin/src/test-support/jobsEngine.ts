@@ -1,14 +1,14 @@
 import { Config, Context, Data, Effect, Exit, Layer, Option, Redacted, Schema, Scope } from "effect";
 import { Migrator } from "effect/sql";
 import { vi } from "vitest";
-import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
-import { makePgBossTesting } from "@shivaedev/effect-pg-boss/server/testing.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { hostChanges } from "@shivaedev/platform/server/hostChanges.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "./adminRpc.ts";
@@ -16,10 +16,10 @@ import { jobsClient } from "./jobsClient.ts";
 import { Mail, Private, pages, Sync } from "./jobsPages.ts";
 import { Users } from "./pages.ts";
 
-const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL"))));
+const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_JOBS_TEST_DATABASE_URL"))));
 export const postgresConfigured = url !== undefined && url !== "";
 if (!postgresConfigured && Effect.runSync(Config.String("CI").pipe(Config.withDefault(""))) !== "") {
-	throw new Error("CI requires PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
+	throw new Error("CI requires PLATFORM_JOBS_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
 }
 export const postgresLayer = makePostgresTestLayer({
 	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" },

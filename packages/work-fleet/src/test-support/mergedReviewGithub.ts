@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { Effect } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
 import { githubPublication } from "#host/githubPublication.ts";

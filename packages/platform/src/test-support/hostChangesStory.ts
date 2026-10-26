@@ -3,9 +3,9 @@ import { FetchHttpClient, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
-import { query } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { query } from "@shivaedev/contract/operation.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppChanges, appHost } from "#server/appHost.ts";
 

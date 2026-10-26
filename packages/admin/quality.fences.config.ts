@@ -13,7 +13,7 @@ export default [
 			anything.except(
 				browser,
 				files("packages/access/src/permission.ts"),
-				packages("effect-contract", "types"),
+				packages("contract", "types"),
 				folders("packages/platform/src/rpc"),
 				modules("effect"),
 			),
@@ -30,7 +30,7 @@ export default [
 				client,
 				browser,
 				files("packages/access/src/permission.ts"),
-				packages("effect-react", "effect-form", "effect-contract", "types"),
+				packages("react", "form", "contract", "types"),
 				folders("packages/platform/src/rpc"),
 				modules("effect", "react", "@effect/atom-react"),
 			),

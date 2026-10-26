@@ -1,6 +1,6 @@
 import { Layer, type Redacted } from "effect";
 import { RpcGroup } from "effect/rpc";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
+import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { notesRegistration } from "#modules/notes/server/registration.ts";
 
 const foundationServices: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number) => Layer.Layer<never> = () =>

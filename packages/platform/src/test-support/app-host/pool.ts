@@ -29,7 +29,7 @@ function heldTransaction(sql: SqlClient.SqlClient, state: PoolState, release: De
 export const pool = storyKit({
 	after: {
 		configured: Effect.fnUntraced(function* (state: PoolState) {
-			const databaseUrl = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+			const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 			const config = { databaseUrl, host: "127.0.0.1", maxConnections: state.limit, port: 0 };
 			const migrations = { loader: Migrator.fromRecord({}) };
 			const database = appDatabase({ config, migrations });
@@ -76,7 +76,7 @@ export const pool = storyKit({
 				story.tell(`terminate idle application backend ${pid}`);
 				return Effect.scoped(
 					Effect.gen(function* () {
-						const url = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+						const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 						yield* Effect.gen(function* () {
 							const admin = yield* SqlClient.SqlClient;
 							yield* admin`select pg_terminate_backend(${pid}, 5000)`;

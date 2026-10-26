@@ -2,7 +2,7 @@ import { execFileSync, spawnSync } from "node:child_process";
 import process from "node:process";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Clock, Config, Console, Effect } from "effect";
-import { applyRelease } from "@shivaedev/changesets/applyRelease.ts";
+import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
 import config from "#release-config";
 import { compareRelease } from "./compare.ts";
 import { releaseGitHub } from "./gitHub.ts";

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import type { BeforeCommit } from "@shivaedev/effect-changes/channel.ts";
-import type { Observation } from "@shivaedev/effect-changes/observe.ts";
+import type { BeforeCommit } from "@shivaedev/changes/channel.ts";
+import type { Observation } from "@shivaedev/changes/observe.ts";
 import { makePrismaChanges } from "#changes.ts";
 import type { ChangeMap } from "#model.ts";
 import type { PrismaClient } from "#test/generated/client.ts";

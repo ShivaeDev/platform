@@ -8,7 +8,7 @@ import { host } from "./story.ts";
 
 export function deferred(mode: "migrate" | "check", fails = false) {
 	return host.trait("configured", `deferred construction follows ${fails ? "failed " : ""}${mode}`, function* (state) {
-		const databaseUrl = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+		const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 		const table = `deferred_${crypto.randomUUID().replaceAll("-", "")}`;
 		const migrations = {
 			loader: migrationLoader(state, fails),

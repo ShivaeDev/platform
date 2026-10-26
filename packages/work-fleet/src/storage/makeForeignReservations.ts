@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import { admissionLockKey } from "#storage/admissionLockKey.ts";
 import { makeFleetTransaction } from "#storage/makeFleetTransaction.ts";

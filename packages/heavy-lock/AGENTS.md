@@ -1,6 +1,6 @@
 # @shivaedev/heavy-lock
 
-Heavy builds, type checks and test suites from different repositories compete for the same machine's memory. This package gives cooperating commands one shared lock, with a command line and an Effect API, so another run waits and can see who it is waiting for. It owns command coordination; application jobs belong to `effect-pg-boss`, and repository policy belongs to `quality`.
+Heavy builds, type checks and test suites from different repositories compete for the same machine's memory. This package gives cooperating commands one shared lock, with a command line and an Effect API, so another run waits and can see who it is waiting for. It owns command coordination; application jobs belong to `jobs`, and repository policy belongs to `quality`.
 
 The holder is a process with a recorded start time, not just a PID. Its hold ends with its Effect scope; a child or nested Effect can join that hold without waiting for itself. Keep the shared file protocol small enough for another repository to implement without this package. Read [the README](./README.md) for usage and [the protocol](./docs/protocol.md) for the file exchange other implementations rely on.
 

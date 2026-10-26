@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { invalidationKeys } from "@shivaedev/effect-contract/keys.ts";
+import { invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { sessionKeys } from "#test/rpc/sessionKeys.ts";
 import { type Boundary, Preferences } from "#test/rpc/sessionKeysApi.ts";
 

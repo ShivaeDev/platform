@@ -1,6 +1,6 @@
 import { Context, Effect, Layer, Option, Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import type { QueryReference } from "@shivaedev/effect-contract/serverMetadata.ts";
+import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { resolveChanges } from "#server/rpc-server/sessionKeys.ts";
 import type { AppChanges } from "./appHost.ts";
 

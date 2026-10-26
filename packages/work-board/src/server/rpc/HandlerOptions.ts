@@ -1,5 +1,5 @@
 import type { Effect } from "effect";
-import type { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import type { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { Server } from "#rpc/Server.ts";
 
 export interface HandlerOptions {

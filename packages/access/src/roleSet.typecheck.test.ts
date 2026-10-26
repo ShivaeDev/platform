@@ -1,6 +1,6 @@
 import type { Effect, Schema } from "effect";
 import { expectTypeOf } from "vitest";
-import type { Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import type { Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { User } from "#roleSet.ts";
 import { Access, ReadUsers } from "#test/policy.ts";
 

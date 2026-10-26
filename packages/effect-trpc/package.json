@@ -47,11 +47,11 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-test": "workspace:*"
+		"@shivaedev/test": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
-		"@shivaedev/effect-contract": "workspace:*",
+		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@trpc/client": "catalog:",

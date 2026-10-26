@@ -9,7 +9,7 @@ app.it(
 	function* ({ setup, install, workspace, installedQuery }) {
 		yield* setup();
 		yield* install();
-		expect(yield* workspace()).toBe('packages: []\n\noverrides:\n  "@shivaedev/effect-contract": "file:../archives/effect-contract.tgz"\n');
+		expect(yield* workspace()).toBe('packages: []\n\noverrides:\n  "@shivaedev/contract": "file:../archives/effect-contract.tgz"\n');
 		expect(yield* installedQuery()).toBe("42\n");
 	},
 );
@@ -19,7 +19,7 @@ app.it(
 	[unpublishedContract, existingOverrides],
 	function* ({ workspace, installedQuery }) {
 		expect(yield* workspace()).toBe(
-			'packages: []\n\noverrides:\n  "@shivaedev/effect-contract": "file:../archives/effect-contract.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/effect-contract": 0.9.0\n',
+			'packages: []\n\noverrides:\n  "@shivaedev/contract": "file:../archives/effect-contract.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/contract": 0.9.0\n',
 		);
 		expect(yield* installedQuery()).toBe("42\n");
 	},

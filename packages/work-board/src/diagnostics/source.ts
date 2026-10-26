@@ -1,5 +1,5 @@
 import { Clock, Context, Effect, Schema } from "effect";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import * as limits from "#browser/diagnostics/schema.ts";
 import type { FleetHealth } from "./health.ts";
 

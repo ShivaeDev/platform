@@ -1,7 +1,7 @@
 import { Cause, Effect, Exit, Schema } from "effect";
 import { expect } from "vitest";
-import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { rpcBoundary } from "#server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);

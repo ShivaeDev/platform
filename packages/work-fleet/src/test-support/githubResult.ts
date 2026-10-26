@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { resolveHost } from "#host/config.ts";
 import type { GithubRead } from "#host/github.ts";
 import { githubResult } from "#host/githubResult.ts";

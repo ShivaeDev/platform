@@ -3,7 +3,7 @@ import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useContext, useEffect, useId, useState } from "react";
-import { useAction } from "@shivaedev/effect-react/client/resultState.ts";
+import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import type { AuthActions } from "./auth.ts";

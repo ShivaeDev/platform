@@ -29,13 +29,13 @@ session ownership and logout policy.
 
 ## `SessionBoundary` owns the generation
 
-`@shivaedev/effect-react/client/sessionBoundary.ts` exports this transition as one component. The auth
+`@shivaedev/react/client/sessionBoundary.ts` exports this transition as one component. The auth
 owner supplies the current session (or `undefined` while signed out or
 unresolved), an opaque `identify` key, a `connect` function that builds the
 credential-bound client, and `recheck`:
 
 ```ts
-import { SessionBoundary } from "@shivaedev/effect-react/client/sessionBoundary.ts";
+import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 createElement(SessionBoundary, {
 	session,
@@ -127,7 +127,7 @@ These follow from `effect/reactivity/AtomRpc` and `AtomRegistry`:
   request. Explicit refresh remains useful for external changes.
 - Native Reactivity expands a record key such as `{ orders: [id] }` into both
   `"orders"` and `"orders:<id>"`, when registering a query and when invalidating.
-  The `effect-contract` binding registers item queries with `` `orders:${id}` ``,
+  The `contract` binding registers item queries with `` `orders:${id}` ``,
   the list with `"orders"`, and invalidates both after a save, so one save
   refreshes that order and the list but no other mounted order.
 - `serializationKey` enables native serialization; it does not make hydration

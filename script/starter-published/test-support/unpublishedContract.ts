@@ -13,7 +13,7 @@ export const unpublishedContract = app.trait("source", "the packed contract has 
 			"./operation.ts": { import: "./operation.js", types: "./operation.d.ts" },
 			"./resume.ts": { import: "./resume.js", types: "./resume.d.ts" },
 		},
-		name: "@shivaedev/effect-contract",
+		name: "@shivaedev/contract",
 		type: "module",
 		version: "0.1.0",
 	});

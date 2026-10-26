@@ -1,6 +1,6 @@
 import type { Duration } from "effect";
 import type { Migrator } from "effect/sql";
-import type { SchemaComponent } from "@shivaedev/effect-sql/SchemaComponent.ts";
+import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 
 export interface MigrationOptions<R = never> {
 	readonly components?: readonly SchemaComponent<R>[];

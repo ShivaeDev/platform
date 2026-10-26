@@ -7,7 +7,7 @@ import { makePlatformRuntime } from "#server/runtime/makePlatform.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { Database } from "./native.ts";
 
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
+const databaseUrl = environmentVariable("PLATFORM_PRISMA_TEST_DATABASE_URL");
 const layer = Database.layer({ url: databaseUrl ?? "postgresql://integration-tests-disabled" });
 
 export const filterAdapter = storyKit({

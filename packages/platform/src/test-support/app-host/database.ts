@@ -8,7 +8,7 @@ import { Ping } from "./ping.ts";
 import { host } from "./story.ts";
 
 export const postgresFeature = host.trait("configured", "PostgreSQL migrations precede the fixture feature", function* (state) {
-	const destination = yield* Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+	const destination = yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL");
 	const table = `host_${crypto.randomUUID().replaceAll("-", "")}`;
 	const ledger = `${table}_migrations`;
 	const { loader, services } = feature(table, state.lifecycle);
@@ -36,7 +36,7 @@ export const postgresFeature = host.trait("configured", "PostgreSQL migrations p
 		});
 });
 export const migratedSql = host.trait("configured", "omitted services retain migrated SQL in the RPC handler", function* (state) {
-	const databaseUrl = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+	const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 	function build() {
 		return appHost({
 			config: { ...state.config, databaseUrl },
@@ -49,7 +49,7 @@ export const migratedSql = host.trait("configured", "omitted services retain mig
 	state.build = build;
 });
 export const failedMigration = host.trait("configured", "a failed migration prevents services from starting", function* (state) {
-	const databaseUrl = yield* Config.Redacted("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+	const databaseUrl = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");
 	const { services } = feature("does_not_exist", state.lifecycle);
 	state.build = () =>
 		appHost({
@@ -66,7 +66,7 @@ export const failedMigration = host.trait("configured", "a failed migration prev
 });
 export function databaseHealth(source: "migrations" | "services") {
 	return host.trait("configured", `health uses PostgreSQL from ${source}`, function* (state) {
-		const destination = yield* Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+		const destination = yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL");
 		const proxy = yield* Effect.promise(() => databaseProxy(destination));
 		state.proxy = proxy;
 		state.cleanup.push(proxy.close);

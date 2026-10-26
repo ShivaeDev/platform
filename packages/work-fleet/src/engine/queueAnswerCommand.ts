@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { BadRequest, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 
 export function queueAnswerCommand(state: EngineState) {

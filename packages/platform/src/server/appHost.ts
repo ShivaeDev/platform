@@ -1,6 +1,6 @@
 import { Context, type Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
+import type { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import type { AppHostFactory } from "#server/AppHostFactory.ts";
 import type { AppHostInput, HostPreflight } from "#server/AppHostInput.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#server/appHostHttp.ts";

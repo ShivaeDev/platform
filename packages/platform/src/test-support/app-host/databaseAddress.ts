@@ -7,7 +7,7 @@ import { host } from "./story.ts";
 
 export function databaseAddress(source: "authority" | "parameters") {
 	return host.trait("configured", `PostgreSQL uses the DATABASE_URL ${source} address`, function* (state) {
-		const url = new URL(yield* Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"));
+		const url = new URL(yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL"));
 		url.hostname = "127.0.0.1";
 		if (source === "parameters") {
 			url.searchParams.set("host", url.hostname);

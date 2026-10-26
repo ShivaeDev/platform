@@ -2,7 +2,7 @@ import "#test/assetResolutionBoundary.ts";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Path, PlatformError } from "effect";
 import { expect } from "vitest";
-import { InternalServerError } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { InternalServerError } from "@shivaedev/contract/errors/taxonomy.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { missingMermaid } from "#test/missingMermaid.ts";
 import { MermaidMissing } from "./assets.ts";

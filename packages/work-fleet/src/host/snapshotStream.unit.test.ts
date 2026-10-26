@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Stream } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { snapshotStream } from "#host/snapshotStream.ts";
 
 it.effect("each follower selects its initial active set and keeps subsequent terminal outcomes", function* () {

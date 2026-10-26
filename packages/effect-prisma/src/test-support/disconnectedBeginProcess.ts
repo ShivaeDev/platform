@@ -13,7 +13,7 @@ process.on("uncaughtException", (error) => {
 const Database = makeDatabase<Contract>()("@test/InterruptedBeginDatabase", { contractJson });
 const program = Effect.acquireUseRelease(
 	Effect.promise(() =>
-		disconnectPostgresBegin(environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL") ?? "postgresql://integration-tests-disabled"),
+		disconnectPostgresBegin(environmentVariable("PLATFORM_PRISMA_TEST_DATABASE_URL") ?? "postgresql://integration-tests-disabled"),
 	),
 	(proxy) =>
 		Effect.gen(function* () {

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
 import { ANSWERED_TASK, answeredDecisionFixture, appliedReceipt, guideFleet } from "#test/answeredDecisionFixture.ts";
 import { screenWorkspace } from "#test/screenEnvironment.ts";

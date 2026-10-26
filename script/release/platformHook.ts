@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
-import type { ReleaseHook } from "@shivaedev/changesets/config.ts";
-import { ChangesetError } from "@shivaedev/changesets/error.ts";
+import type { ReleaseHook } from "@shivaedev/releases/config.ts";
+import { ChangesetError } from "@shivaedev/releases/error.ts";
 import { alignStarterCatalog } from "./starterCatalog.ts";
 import { alignStarterPnpm } from "./starterPnpm.ts";
 

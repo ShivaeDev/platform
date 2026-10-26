@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { RequestTracing } from "#rpc/middleware.ts";
 import { rpcBoundary } from "#server/rpc-server/boundary.ts";
 

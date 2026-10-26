@@ -1,14 +1,7 @@
 import { Option } from "effect";
 import { expect } from "vitest";
-import { rejectedField } from "@shivaedev/effect-contract/errors/rejectedField.ts";
-import {
-	BadRequest,
-	Conflict,
-	InternalServerError,
-	NotFound,
-	ServiceUnavailable,
-	TooManyRequests,
-} from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { rejectedField } from "@shivaedev/contract/errors/rejectedField.ts";
+import { BadRequest, Conflict, InternalServerError, NotFound, ServiceUnavailable, TooManyRequests } from "@shivaedev/contract/errors/taxonomy.ts";
 import { decodeRejection, rejectionOf } from "@shivaedev/effect-trpc/rejectionDecoding.ts";
 import { Rejection, trpcRejections } from "#test/errors/trpcRejections.ts";
 

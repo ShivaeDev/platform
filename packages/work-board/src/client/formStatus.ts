@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import type { SaveState } from "@shivaedev/effect-react/client/saveState.ts";
+import type { SaveState } from "@shivaedev/react/client/saveState.ts";
 import { type SaveFailure, saveFailure } from "./saveFailure.ts";
 
 export type DraftInteraction = "draft" | "cleared" | "submitted";

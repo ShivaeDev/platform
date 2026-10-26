@@ -1,7 +1,7 @@
 import type { BetterAuthOptions } from "better-auth";
 import { createAuthClient } from "better-auth/client";
 import { Effect } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { oauthProvider } from "./oauthProvider.ts";

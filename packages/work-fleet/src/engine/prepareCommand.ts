@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { BadRequest, Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { withFailureContext } from "#engine/failureContext.ts";

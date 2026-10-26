@@ -1,6 +1,6 @@
 import { Clock, Effect, Schema, Stream } from "effect";
-import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { WatchError } from "#model.ts";
 import { pollDelay, quotaRetryAt } from "#quota.ts";
 import { requestFailure } from "#requestFailure.ts";

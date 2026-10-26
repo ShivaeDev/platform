@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { transact } from "@shivaedev/effect-sql/transact.ts";
+import { transact } from "@shivaedev/sql/transact.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
 import type { RunningHost } from "#test-support/host.ts";
 

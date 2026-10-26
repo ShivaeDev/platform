@@ -7,7 +7,7 @@ You are changing the bridge from Prisma Next's generated models to Effect. An ap
 When goals conflict, they win in this order:
 
 1. **Effect owns the boundary.** Keep failures typed, defects intact and resources scoped. A transaction must settle before its connection or permit is released; a value whose owning scope has ended must fail closed.
-2. **One persistence service.** The exported Database definition is the application's entry point inside and outside a transaction. Keep executor coordination private. Native framework persistence and migrations belong to `effect-sql`; Prisma Classic change tracking belongs to `effect-changes-prisma`.
+2. **One persistence service.** The exported Database definition is the application's entry point inside and outside a transaction. Keep executor coordination private. Native framework persistence and migrations belong to `sql`; Prisma Classic change tracking belongs to `effect-changes-prisma`.
 3. **The contract stays precise.** Preserve generated input, row, relation and database identity types. Decline an upstream feature rather than expose it through weakened types or a second authored model.
 4. **A query can be reused safely.** Branching a Relation must leave its base alone. Resolve the active transaction when a root query runs, and keep transaction-bound values inside their owner.
 5. **Proven behavior before convenience or speed.** Use real PostgreSQL tests for PostgreSQL claims. Prefer explicit limits to promises a synchronous SQLite driver or a single transaction connection cannot keep.

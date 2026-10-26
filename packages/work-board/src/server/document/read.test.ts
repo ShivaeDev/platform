@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { Conflict, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict, NotFound } from "@shivaedev/contract/errors/taxonomy.ts";
 import { boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
 import { documentSource } from "#test/documentSource.ts";
 import { waitFor } from "#test/live.ts";

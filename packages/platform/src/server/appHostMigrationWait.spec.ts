@@ -2,8 +2,8 @@ import { Cause, Effect, Exit, Fiber, Result } from "effect";
 import { Migrator } from "effect/sql";
 import { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
-import { withLive } from "@shivaedev/effect-test/withLive.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
+import { withLive } from "@shivaedev/test/withLive.ts";
 import { invalidLedger, migrationHost } from "#test/app-host/migrationStory.ts";
 import { pendingJobsSchema } from "#test/app-host/withJobsSchema.ts";
 

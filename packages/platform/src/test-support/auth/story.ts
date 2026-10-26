@@ -1,14 +1,14 @@
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { environmentVariable } from "#test/environmentVariable.ts";
 import { startAdminHost } from "./adminHost.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 
-const databaseUrl = environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL");
+const databaseUrl = environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL");
 
 export const auth = storyKit({
 	around: withIsolatedDatabase,

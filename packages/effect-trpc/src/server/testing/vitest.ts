@@ -1,7 +1,7 @@
 import { it as effectIt, type Vitest } from "@effect/vitest";
 import { Effect, type Layer } from "effect";
-import type { AnyTestLayer } from "@shivaedev/effect-test/anyTestLayer.ts";
-import { makeEffectIt } from "@shivaedev/effect-test/makeEffectIt.ts";
+import type { AnyTestLayer } from "@shivaedev/test/anyTestLayer.ts";
+import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 import { makeEffectCallerFactory } from "./caller.ts";
 import type { CallerOptions, CallerResult, MakeTrpcHarnessItOptions, MakeTrpcItOptions, TrpcHarnessIt, TrpcIt } from "./types.ts";
 

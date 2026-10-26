@@ -1,11 +1,11 @@
 # Editing a record and creating one
 
-`useEditor` (`@shivaedev/effect-react/client/editor.ts`) and `useCreate` (`@shivaedev/effect-react/client/create.ts`) join three existing pieces:
+`useEditor` (`@shivaedev/react/client/editor.ts`) and `useCreate` (`@shivaedev/react/client/create.ts`) join three existing pieces:
 a query atom (for example `api.get.query({ id })` from an
-`@shivaedev/effect-contract` binding), an `@shivaedev/effect-form` form, and a
+`@shivaedev/contract` binding), an `@shivaedev/form` form, and a
 save Effect (`api.save.run(...)`). They add no cache, no mutation atom and no
-second form model. Those two modules need the optional `@shivaedev/effect-form`
-peer; the other `@shivaedev/effect-react` modules do not load it.
+second form model. Those two modules need the optional `@shivaedev/form`
+peer; the other `@shivaedev/react` modules do not load it.
 
 ```ts
 const editor = useEditor({
@@ -19,7 +19,7 @@ if (editor.form === undefined) return editor.query.pending ? <Loading /> : <Load
 return <InvoiceLineForm form={editor.form} save={editor.save} saving={editor.saving} failure={editor.failure} />;
 ```
 
-Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/effect-form/client/react.ts`
+Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/client/react.ts`
 supplies value, change, blur and message.
 
 ## Behavior
@@ -34,16 +34,16 @@ supplies value, change, blur and message.
   the failure and `query.refresh()` retries.
 - A tagged rejection shaped `{ _tag, field, message }` whose `field` names a
   form field (such as a contract `fieldRejection(Draft)`) becomes that field's
-  message; this is the same shape `rejectedField` in `@shivaedev/effect-contract/errors/rejectedField.ts`
+  message; this is the same shape `rejectedField` in `@shivaedev/contract/errors/rejectedField.ts`
   recognizes. `rejectField` overrides the mapping. Other failures appear in
   `failure`.
 - If a save's error type contains a tagged rejection whose `field` type is not
   one of the form's field names (a `fieldRejection` over a different struct, or
   a plain `string`, required or optional as on `Conflict` and `BadRequest` from
-  `@shivaedev/effect-contract/errors/taxonomy.ts`), `rejectField` becomes required and the call
+  `@shivaedev/contract/errors/taxonomy.ts`), `rejectField` becomes required and the call
   does not compile without it.
 - `save()` does nothing while a save is running. Submitting through
-  effect-form's own API (`useSubmit(form).run()` or setting `form.submit`)
+  form's own API (`useSubmit(form).run()` or setting `form.submit`)
   settles the same way: the editor receives the saved row and a create resets.
 - `Unauthorized` from the query or the save asks the enclosing
   `SessionBoundary` to re-check the session.

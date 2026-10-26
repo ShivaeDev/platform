@@ -1,7 +1,7 @@
 import { Clock, Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { fleetRecords } from "#fleetRecords.ts";
 import type { DispatchNow } from "#model.ts";

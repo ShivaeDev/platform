@@ -1,5 +1,5 @@
 import { type Context, Effect, Option } from "effect";
-import type { PgBossService } from "@shivaedev/effect-pg-boss/server/service.ts";
+import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { JobsNotFailed, type jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { type JobsQueue, JobsQueueUnregistered } from "#jobs/schemas.ts";
 import { jobsFailures, jobsReadHandlers } from "./jobsHandlers.ts";

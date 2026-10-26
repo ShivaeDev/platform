@@ -1,5 +1,5 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { loadQuery } from "@shivaedev/react/loadQuery.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
 import { libraryQuery, routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";

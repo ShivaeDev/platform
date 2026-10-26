@@ -3,7 +3,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient } from "effect/rpc";
-import { bind } from "@shivaedev/effect-contract/bind.ts";
+import { bind } from "@shivaedev/contract/bind.ts";
 import type { pages } from "./jobsPages.ts";
 
 type Registry = ReturnType<typeof pages>;

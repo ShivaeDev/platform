@@ -23,6 +23,6 @@ for (const schema of ["packages/effect-prisma/src/test-support/schema.sql", "pac
 	const source = readFileSync(schema, "utf8")
 		.replaceAll("CREATE TABLE ", "CREATE TABLE IF NOT EXISTS ")
 		.replaceAll("CREATE INDEX ", "CREATE INDEX IF NOT EXISTS ");
-	sql(tests.PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL, source);
+	sql(tests.PLATFORM_PRISMA_TEST_DATABASE_URL, source);
 }
 Effect.runSync(Effect.log("Local development and integration databases are ready."));

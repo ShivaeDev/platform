@@ -4,11 +4,11 @@ Applications built on tRPC tend to carry their own copies of the same error clas
 
 ## Where the modules run
 
-`@shivaedev/effect-contract/errors/*.ts` and `@shivaedev/platform/rpc/*.ts` run in the browser and on the server: Schema error classes, `rejectedField`, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/platform/server/rpc-server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and redaction. Quality's `effect-contract-never-imports-server` and `platform-client-stays-browser-safe` import fences keep the shared modules browser-safe.
+`@shivaedev/contract/errors/*.ts` and `@shivaedev/platform/rpc/*.ts` run in the browser and on the server: Schema error classes, `rejectedField`, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/platform/server/rpc-server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and redaction. Quality's `effect-contract-never-imports-server` and `platform-client-stays-browser-safe` import fences keep the shared modules browser-safe.
 
 ## Errors
 
-`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable` are `Schema.TaggedError` classes. Use them directly as native RPC error schemas or as effect-contract rejections. `AuthUnavailable` tells a provider outage apart from a signed-out user. The message is for diagnostics and a fallback display; applications choose their own wording per tag.
+`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable` are `Schema.TaggedError` classes. Use them directly as native RPC error schemas or as contract rejections. `AuthUnavailable` tells a provider outage apart from a signed-out user. The message is for diagnostics and a fallback display; applications choose their own wording per tag.
 
 `rejectedField` is the canonical definition of a field rejection: a value with a string `_tag`, a string `field` and a string `message`, as an instance or as encoded JSON. An untagged `{ field, message }` is not one, so a defect or an arbitrary thrown object with those keys is never shown as a field message. Code that maps rejections to form fields starts from this check and keeps only fields the form has.
 

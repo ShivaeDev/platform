@@ -1,6 +1,6 @@
 import type { TestContext } from "@effect/vitest";
 import type { Effect, Layer, Scope } from "effect";
-import type { EffectClock, EffectTestOptions } from "@shivaedev/effect-test/types.ts";
+import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#internal/hooked.ts";
 import type { AfterResults, InferredDefinition, LegacyDefinition } from "#internal/hookInference.ts";
 import type { LooseDefinition } from "#internal/seed.ts";

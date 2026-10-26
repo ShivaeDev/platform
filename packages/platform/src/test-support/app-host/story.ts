@@ -32,7 +32,7 @@ export function hostOptions({ database = false } = {}) {
 			lookups: state.lookups,
 		}),
 		name: "app host",
-		runIf: !database || environmentVariable("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL") !== undefined,
+		runIf: !database || environmentVariable("PLATFORM_SQL_TEST_DATABASE_URL") !== undefined,
 		stages: ["configured", "listening"] as const,
 		verbs: hostVerbs,
 	};

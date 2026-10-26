@@ -30,7 +30,7 @@ export default [
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
-				packages("effect-contract", "effect-form", "effect-react", "types"),
+				packages("contract", "form", "react", "types"),
 				modules(
 					"effect",
 					"react",
@@ -49,7 +49,7 @@ export default [
 		)
 		.demonstratedBy({
 			illegal: ["packages/work-board/src/client/handoffs/form.ts", external("node:fs")],
-			legal: ["packages/work-board/src/client/handoffs/form.ts", "packages/effect-form/src/form.ts"],
+			legal: ["packages/work-board/src/client/handoffs/form.ts", "packages/form/src/form.ts"],
 		}),
 	fence("document-rendering-stays-browser-safe")
 		.because(
@@ -61,7 +61,7 @@ export default [
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
-				packages("effect-contract", "effect-form", "types"),
+				packages("contract", "form", "types"),
 				modules("effect"),
 				modules("react"),
 			),

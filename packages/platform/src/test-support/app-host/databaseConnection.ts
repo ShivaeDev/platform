@@ -7,7 +7,7 @@ import { host } from "./story.ts";
 
 export function databaseConnection(mode: "require" | undefined, name: string) {
 	return host.trait("configured", `the database connection uses sslmode=${mode ?? "unset"}`, function* (state) {
-		const url = new URL(yield* Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL"));
+		const url = new URL(yield* Config.String("PLATFORM_SQL_TEST_DATABASE_URL"));
 		url.searchParams.delete("sslmode");
 		if (mode !== undefined) {
 			url.searchParams.set("sslmode", mode);

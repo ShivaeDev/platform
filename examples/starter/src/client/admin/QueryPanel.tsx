@@ -1,6 +1,6 @@
 import { Cause, Option, Predicate } from "effect";
 import type { ReactNode } from "react";
-import type { QueryState } from "@shivaedev/effect-react/client/resultState.ts";
+import type { QueryState } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 
 export function QueryPanel<A, E>({ state, children }: { readonly state: QueryState<A, E>; readonly children: (value: A) => ReactNode }) {

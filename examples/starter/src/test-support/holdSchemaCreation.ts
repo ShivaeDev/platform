@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
 
 export const holdSchemaCreation = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;

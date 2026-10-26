@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { useAction } from "@shivaedev/effect-react/client/resultState.ts";
+import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import type { AuthActions } from "./auth.ts";
 

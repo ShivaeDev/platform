@@ -2,7 +2,7 @@ import { Deferred, Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
-import type { render } from "@shivaedev/effect-react/client/testing.ts";
+import type { render } from "@shivaedev/react/client/testing.ts";
 import { loadLazyChunks } from "#client/react/lazyChunks.ts";
 import type { CurrentFleet } from "#test/pullRequestsFixture.ts";
 import type { FileSystemWrapper } from "./board.ts";

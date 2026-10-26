@@ -45,5 +45,5 @@ export const readCommittedRecord = Effect.fn("StorageStory.readCommittedRecord")
 	);
 });
 
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";

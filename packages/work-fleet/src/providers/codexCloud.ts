@@ -1,6 +1,6 @@
 import { Clock, Context, Effect, FileSystem, Layer, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { codexCloudConnection } from "#providers/codexCloudConnection.ts";
 import { codexLive } from "#providers/codexLive.ts";

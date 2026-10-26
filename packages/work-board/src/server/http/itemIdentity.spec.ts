@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { NotFound } from "@shivaedev/contract/errors/taxonomy.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
 for (const collision of [false, true]) {

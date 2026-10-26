@@ -1,5 +1,5 @@
 import { Effect, Fiber, Option, Predicate, PubSub, Stream } from "effect";
-import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
+import type { LiveHint } from "@shivaedev/contract/live.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import type { Change } from "#server/files/changes.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";

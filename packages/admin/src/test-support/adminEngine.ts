@@ -1,7 +1,7 @@
 import { Effect, Layer, Option, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
-import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
+import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { hostChanges } from "@shivaedev/platform/server/hostChanges.ts";

@@ -47,7 +47,7 @@
 		"typecheck": "prisma generate --config src/test-support/prisma.config.ts --no-hints && tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-changes": "workspace:*",
+		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"devDependencies": {

@@ -1,5 +1,5 @@
 import { Effect, FileSystem } from "effect";
-import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import type { MarkdownFile } from "#server/files/list.ts";

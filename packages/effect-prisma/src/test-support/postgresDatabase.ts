@@ -4,7 +4,7 @@ import { type Contract, contractJson } from "#test/contract.ts";
 import { controlledRuntime } from "#test/runtimeControls.ts";
 import { environmentVariable } from "./environment.ts";
 
-export const databaseUrl = environmentVariable("PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL");
+export const databaseUrl = environmentVariable("PLATFORM_PRISMA_TEST_DATABASE_URL");
 
 export const Database = makeDatabase<Contract>()("@test/IntegrationDatabase", {
 	contractJson,

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
+import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import type { EngineStory } from "#test/engineState.ts";
 import { engine, engineDefinition } from "#test/engineStory.ts";

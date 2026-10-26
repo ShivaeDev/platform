@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
-import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import { type Identity, SessionUser, type SessionUserValue } from "./identity.ts";
 
 const Failures = Schema.Union([Unauthorized, AuthUnavailable, Forbidden]);

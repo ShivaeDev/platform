@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { makePostgresFleetStore } from "#storage/makePostgresFleetStore.ts";
 import { recordModel } from "#storage/model.ts";
 import { hostDatabase } from "#test/hostDatabase.ts";

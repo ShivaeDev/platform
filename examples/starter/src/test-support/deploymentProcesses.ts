@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { authPost, credentials } from "./authHttp.ts";
 import { deployChild } from "./deployChild.ts";
 import { watchBackends } from "./watchBackends.ts";

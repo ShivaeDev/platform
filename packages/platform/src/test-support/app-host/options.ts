@@ -1,7 +1,7 @@
 import { Effect, Layer, Redacted } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Migrator } from "effect/sql";
-import { InternalServerError } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { InternalServerError } from "@shivaedev/contract/errors/taxonomy.ts";
 import { appHost } from "#server/appHost.ts";
 import { sessions, staticAssets } from "./fixture.ts";
 import { useForwardingProxy } from "./lifecycle.ts";

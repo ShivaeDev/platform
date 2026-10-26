@@ -2,26 +2,26 @@
 
 Give an entity's settings a successful query value even before the first save. A screen then uses the same editor for defaults and stored values: it never creates a placeholder row or handles a missing-settings state. The application still owns authorization and validation policy.
 
-This recipe uses Schema, an effect-sql repository, an effect-contract query and command, and an effect-react editor over effect-form fields. It adds no framework helper. The executable example edits an entity's table title and rows per page over real PostgreSQL and authenticated HTTP.
+This recipe uses Schema, an sql repository, an contract query and command, and an react editor over form fields. It adds no framework helper. The executable example edits an entity's table title and rows per page over real PostgreSQL and authenticated HTTP.
 
 ## Code to read
 
 | Module | Responsibility |
 | --- | --- |
-| [Schema and contract](../../packages/effect-react/src/test-support/settings-example/contract.ts) | Field defaults, successful query values, entity read keys and typed command rejections. |
-| [Repositories and migration](../../packages/effect-react/src/test-support/settings-example/repository.ts) | Existing entity ownership, one settings row per entity, and the upsert conflict target. |
-| [Service](../../packages/effect-react/src/test-support/settings-example/Service.ts) | Ownership checks, defaulting reads, validation and transactional upserts with committed invalidation. |
-| [Handlers](../../packages/effect-react/src/test-support/settings-example/handlers.ts) | Request identity and authorized live subscriptions. |
-| [Host](../../packages/effect-react/src/test-support/settings-example/startHost.ts) | Platform's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC. |
-| [Client](../../packages/effect-react/src/test-support/settings-example/makeClient.ts) | Native AtomRpc, contract binding and entity-scoped live invalidation. |
-| [Editor](../../packages/effect-react/src/test-support/settings-example/Editor.tsx) | `useEditor`, encoded input, effect-form fields and rendered field errors. |
-| [Story kit](../../packages/effect-react/src/test-support/settings-example/story.ts) | PostgreSQL configuration, cloned-database isolation and open-editor traits. |
-| [Engine](../../packages/effect-react/src/test-support/settings-example/engine.ts) | Existing signed-in owners as fixture preconditions and independent stored-row observations. |
-| [Screens](../../packages/effect-react/src/test-support/settings-example/openScreen.tsx) | Separate registries and DOM drivers for each rendered editor. |
-| [HTTP requests](../../packages/effect-react/src/test-support/settings-example/request.ts) | Independent authenticated queries and commands for rejection observations. |
-| [React waits](../../packages/effect-react/src/test-support/settings-example/withReact.ts) | Keep asynchronous HTTP and stored-row observations inside React’s `act`. |
-| [Verbs](../../packages/effect-react/src/test-support/settings-example/verbs.ts) | Screen actions, rendered readouts and HTTP calls; expectations stay in the spec. |
-| [Stories](../../packages/effect-react/src/entitySettings.dom.spec.tsx) | Defaults, insert, live refresh, repeated save, typed field rejection and owner isolation. |
+| [Schema and contract](../../packages/react/src/test-support/settings-example/contract.ts) | Field defaults, successful query values, entity read keys and typed command rejections. |
+| [Repositories and migration](../../packages/react/src/test-support/settings-example/repository.ts) | Existing entity ownership, one settings row per entity, and the upsert conflict target. |
+| [Service](../../packages/react/src/test-support/settings-example/Service.ts) | Ownership checks, defaulting reads, validation and transactional upserts with committed invalidation. |
+| [Handlers](../../packages/react/src/test-support/settings-example/handlers.ts) | Request identity and authorized live subscriptions. |
+| [Host](../../packages/react/src/test-support/settings-example/startHost.ts) | Platform's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC. |
+| [Client](../../packages/react/src/test-support/settings-example/makeClient.ts) | Native AtomRpc, contract binding and entity-scoped live invalidation. |
+| [Editor](../../packages/react/src/test-support/settings-example/Editor.tsx) | `useEditor`, encoded input, form fields and rendered field errors. |
+| [Story kit](../../packages/react/src/test-support/settings-example/story.ts) | PostgreSQL configuration, cloned-database isolation and open-editor traits. |
+| [Engine](../../packages/react/src/test-support/settings-example/engine.ts) | Existing signed-in owners as fixture preconditions and independent stored-row observations. |
+| [Screens](../../packages/react/src/test-support/settings-example/openScreen.tsx) | Separate registries and DOM drivers for each rendered editor. |
+| [HTTP requests](../../packages/react/src/test-support/settings-example/request.ts) | Independent authenticated queries and commands for rejection observations. |
+| [React waits](../../packages/react/src/test-support/settings-example/withReact.ts) | Keep asynchronous HTTP and stored-row observations inside React’s `act`. |
+| [Verbs](../../packages/react/src/test-support/settings-example/verbs.ts) | Screen actions, rendered readouts and HTTP calls; expectations stay in the spec. |
+| [Stories](../../packages/react/src/entitySettings.dom.spec.tsx) | Defaults, insert, live refresh, repeated save, typed field rejection and owner isolation. |
 
 ## Declare defaults once
 
@@ -76,16 +76,16 @@ return useEditor({
 });
 ```
 
-`values` turns the numeric page size into encoded text. Each control uses effect-form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft, so the stories can observe both read delivery and field rendering.
+`values` turns the numeric page size into encoded text. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft, so the stories can observe both read delivery and field rendering.
 
-The command declares `InvalidSettings: fieldRejection(Settings)`. The service refuses a page size outside the integer range 1–100 with that typed rejection naming `pageSize`. `useEditor` maps its `{ _tag, field, message }` shape to the matching effect-form field, whose error the component renders beside the input. The rejected draft stays visible and no settings row is stored. This range is application policy, enforced by the service for HTTP callers as well as form submissions.
+The command declares `InvalidSettings: fieldRejection(Settings)`. The service refuses a page size outside the integer range 1–100 with that typed rejection naming `pageSize`. `useEditor` maps its `{ _tag, field, message }` shape to the matching form field, whose error the component renders beside the input. The rejected draft stays visible and no settings row is stored. This range is application policy, enforced by the service for HTTP callers as well as form submissions.
 
 ## Run the evidence
 
-The module-level `storyKit(...)` reads `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` through Effect Config, as the order example does. Without it the stories skip; a skipped story proves nothing. CI supplies real PostgreSQL and the URL through the repository test runner. For a focused local run after `./script/update`:
+The module-level `storyKit(...)` reads `PLATFORM_SQL_TEST_DATABASE_URL` through Effect Config, as the order example does. Without it the stories skip; a skipped story proves nothing. CI supplies real PostgreSQL and the URL through the repository test runner. For a focused local run after `./script/update`:
 
 ```sh
-PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-react test src/entitySettings.dom.spec.tsx --maxWorkers=2
+PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/react test src/entitySettings.dom.spec.tsx --maxWorkers=2
 ```
 
 Each story commits through `appHost` and real HTTP into its own cloned PostgreSQL database. Two independent rendered clients prove defaults without a row, first-save creation and live delivery, and replacement values with exactly one stored row. The first save pauses before commit: an independent SQL connection still sees no row and the reader still shows defaults. Releasing the transaction makes the saved values reach the reader. A rejected submission proves the server error reaches the field without inserting. The ownership story refuses cross-owner queries and saves before and after row creation, while each owner's editor retains its own values. These are DOM render stories; they do not establish browser appearance or a production sign-in flow.

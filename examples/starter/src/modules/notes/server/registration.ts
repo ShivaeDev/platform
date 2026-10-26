@@ -1,5 +1,5 @@
 import { Effect, Layer, Redacted } from "effect";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
+import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { Notes } from "#modules/notes/notes.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";

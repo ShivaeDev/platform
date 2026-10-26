@@ -1,5 +1,5 @@
-import { MIGRATION_FILE_PATTERN, MIGRATIONS_DIRECTORY } from "@shivaedev/effect-sql/migrationConvention.ts";
 import { defineRule } from "@shivaedev/quality/rule.ts";
+import { MIGRATION_FILE_PATTERN, MIGRATIONS_DIRECTORY } from "@shivaedev/sql/migrationConvention.ts";
 import { MIGRATIONS_DIRECTORY as QUALITY_DIRECTORY, MIGRATION_FILE_PATTERN as QUALITY_PATTERN } from "#quality-internal/naming/migrationFile.ts";
 
 export const migrationConvention = defineRule({
@@ -11,9 +11,9 @@ export const migrationConvention = defineRule({
 			: [
 					{
 						file: "packages/quality/src/naming/migrationFile.ts",
-						message: "Quality's tool-owned migration layout must match effect-sql's exported migration directory and filename pattern.",
+						message: "Quality's tool-owned migration layout must match sql's exported migration directory and filename pattern.",
 					},
 				],
-	description: "Keep Quality's default migration naming convention aligned with effect-sql without a runtime dependency.",
+	description: "Keep Quality's default migration naming convention aligned with sql without a runtime dependency.",
 	id: "files/migration-convention",
 });

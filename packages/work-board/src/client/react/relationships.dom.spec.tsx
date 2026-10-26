@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { QueryDocument } from "#test/QueryDocument.tsx";
 import { projectLinksFixture, relationshipsFixture } from "#test/relationshipsFixture.ts";
 import { screenStory } from "#test/screenStory.ts";

@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";

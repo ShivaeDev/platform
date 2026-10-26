@@ -2,8 +2,8 @@ import { Cause, Effect, Exit, Schema, Stream } from "effect";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { LiveHint } from "@shivaedev/effect-contract/live.ts";
-import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
+import { LiveHint } from "@shivaedev/contract/live.ts";
+import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { AppChanges } from "#server/appHost.ts";
 
 export interface ClientAbortState {

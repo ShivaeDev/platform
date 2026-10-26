@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
-import { MIGRATION_FILE_PATTERN } from "@shivaedev/effect-sql/migrationConvention.ts";
+import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migrationConvention.ts";
 import { CreateAppError } from "#CreateAppError.ts";
 import { prepareFile, type Template, Versions } from "#template.ts";
 

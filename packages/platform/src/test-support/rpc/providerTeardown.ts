@@ -1,7 +1,7 @@
 import { Context, Effect, Exit, Fiber, Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { disconnectGate } from "#test/app-host/disconnectGate.ts";
 import { createProvider, signup } from "./harness.ts";

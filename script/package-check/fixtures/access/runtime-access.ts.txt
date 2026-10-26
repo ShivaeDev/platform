@@ -2,7 +2,7 @@ import { Effect, Schema } from "effect";
 import { permission } from "@shivaedev/access/permission.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
 
 const ReadUsers = permission("users.read");
 const Access = roleSet(role("member", [ReadUsers]), role("operator", [ReadUsers.any]));

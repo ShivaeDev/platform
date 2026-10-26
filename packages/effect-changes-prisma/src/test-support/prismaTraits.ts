@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import type { BeforeCommit } from "@shivaedev/effect-changes/channel.ts";
+import type { BeforeCommit } from "@shivaedev/changes/channel.ts";
 import { bindingIsolation } from "./bindingIsolation.ts";
 import { type Change, makeChanges } from "./changes.ts";
 import { connect } from "./database.ts";

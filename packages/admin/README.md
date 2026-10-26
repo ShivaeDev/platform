@@ -17,14 +17,14 @@ The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` sub
 
 ## Use native contracts and Layers
 
-Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react`. Declare each page's queries, commands and streams with `@shivaedev/effect-contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
+Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react`. Declare each page's queries, commands and streams with `@shivaedev/contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
 
 ```ts
 import { Schema } from "effect";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { query } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { query } from "@shivaedev/contract/operation.ts";
 
 const Failed = query("failed", {
   reads: () => [],
@@ -91,7 +91,7 @@ const registration = registerAdmin(Admin, {
 
 The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `admin.jobs.deadLettered` and `admin.jobs.job`. Counts take `{ queue }`; listings take `{ queue, limit, cursor? }` and return `{ jobs, next }`, where `next` is an `Option<string>`. Job lookup takes `{ queue, id }` and returns `Option<Job>`. Each job carries its queue, decoded payload, state, attempt and retry counts, output and timestamps. Dead-letter listings also carry `sourceId` and `sourceOutput`. Timestamps use UTC `DateTime` values; the RPC encodes timestamps as strings and Options as nullable values. The queue's original codec encodes and decodes its payload across RPC, preserving its service requirements.
 
-Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as effect-pg-boss health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
+Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
 The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and permission enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
 
@@ -110,7 +110,7 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `OpenAdmin`, through the same page middleware. The handler uses effect-pg-boss's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `OpenAdmin`, through the same page middleware. The handler uses jobs's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.
 

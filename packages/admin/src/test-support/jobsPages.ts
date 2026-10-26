@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { defineQueue } from "@shivaedev/effect-pg-boss/server/definition.ts";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
 import { Users } from "./pages.ts";

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
 
 export const holdJob = Effect.fn("DeploymentStory.holdJob")(function* (noteId: number) {
 	const sql = yield* SqlClient.SqlClient;

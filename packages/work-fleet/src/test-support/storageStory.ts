@@ -1,8 +1,8 @@
 import type { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { makePostgresTestLayer } from "@shivaedev/effect-test-sql/server/postgres.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
-import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
+import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { postgresEnabled, postgresLayer, postgresOptions } from "#test/postgres.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";

@@ -1,4 +1,4 @@
-import type { ReleasePlan, Source } from "@shivaedev/changesets/model.ts";
+import type { ReleasePlan, Source } from "@shivaedev/releases/model.ts";
 
 export function starterPinsInput(plan: ReleasePlan, pins: Readonly<Record<string, string>>): Source | undefined {
 	if (

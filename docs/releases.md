@@ -4,7 +4,7 @@ A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming e
 
 ```markdown
 ---
-"@shivaedev/effect-react": minor
+"@shivaedev/react": minor
 ---
 
 ### Added
@@ -44,11 +44,11 @@ Merging the release PR changes package versions on main, which starts the existi
 
 When released packages change starter pins, the automation derives a patch changeset for `@shivaedev/create-app` before applying the plan so generated apps receive those versions. The check reconstructs only that canonical starter-pin input; all other consumed inputs must be changesets deleted since the base. Altering its generated notes fails validation.
 
-The repository uses the workspace `@shivaedev/changesets` package. To inspect or prepare a release locally:
+The repository uses the workspace `@shivaedev/releases` package. To inspect or prepare a release locally:
 
-1. Run `pnpm changesets plan` (or `pnpm changesets plan --json`) and review the requested bumps and automatic dependent releases.
+1. Run `pnpm releases plan` (or `pnpm releases plan --json`) and review the requested bumps and automatic dependent releases.
 2. Use the automated release PR when starter pins change; it derives the `@shivaedev/create-app` patch automatically.
-3. Run `pnpm changesets apply` from the repository root. It bumps versions, collects changelogs and deletes consumed changesets. The repository config hook aligns existing starter pins in `examples/starter/published-versions.json` and the released binaries' `packageInfo.ts` version constants.
+3. Run `pnpm releases apply` from the repository root. It bumps versions, collects changelogs and deletes consumed changesets. The repository config hook aligns existing starter pins in `examples/starter/published-versions.json` and the released binaries' `packageInfo.ts` version constants.
 4. Review and commit all generated files. Run `pnpm ready`, then open the pull request.
 
 Published workspace dependents receive at least a patch transitively, including optional dependencies and peers. Private packages and development-only dependents do not receive automatic releases. Workspace wildcard declarations stay intact; exact, caret and tilde workspace references advance with the release. After a squash merge, the version diff, deleted changesets and changelogs still show the release plan and collected inputs. Existing changelog history stays unchanged.
@@ -57,4 +57,4 @@ Published workspace dependents receive at least a patch transitively, including 
 
 The check also requires starter pins to match the current workspace versions and include each pinned package's published framework dependencies. Align the dependency releases and starter pins; the automated release PR derives the `@shivaedev/create-app` patch when those pins change.
 
-Hooks run after collection. If a hook fails, review or restore the generated release diff before retrying. See the [Changesets package](../packages/changesets/README.md) for its input format, plan and validation rules.
+Hooks run after collection. If a hook fails, review or restore the generated release diff before retrying. See the [Changesets package](../packages/releases/README.md) for its input format, plan and validation rules.

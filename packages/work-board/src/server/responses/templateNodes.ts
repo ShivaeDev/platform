@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import type { RootContent } from "mdast";
 import type { ContainerDirective } from "mdast-util-directive";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import { Identity } from "#path/Identity.ts";
 

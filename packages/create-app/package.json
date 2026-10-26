@@ -64,7 +64,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-sql": "workspace:*"
+		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",

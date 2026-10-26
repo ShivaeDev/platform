@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
 import { AdminPermission } from "@shivaedev/admin/permissions.ts";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
+import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
 import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";

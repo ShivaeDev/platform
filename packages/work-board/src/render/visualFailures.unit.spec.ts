@@ -2,7 +2,7 @@ import remarkDirective from "remark-directive";
 import remarkParse from "remark-parse";
 import { unified } from "unified";
 import { expect, it } from "vitest";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
 import { renderVisual } from "./visual.ts";
 
 it.each([

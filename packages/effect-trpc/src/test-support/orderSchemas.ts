@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { command } from "@shivaedev/effect-contract/operation.ts";
-import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
+import { command } from "@shivaedev/contract/operation.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 export class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}
 const Draft = Schema.Struct({ name: Schema.String, quantity: Schema.Number });
 export const Place = command("place", {

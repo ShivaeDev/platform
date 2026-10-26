@@ -1,9 +1,9 @@
 import { Deferred, Effect, Layer, PubSub, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
-import { bind } from "@shivaedev/effect-contract/bind.ts";
-import { Conflict, NotFound, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
+import { bind } from "@shivaedev/contract/bind.ts";
+import { Conflict, NotFound, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
 import { Create, type Note, Notes, notes, Update } from "#modules/notes/notes.ts";

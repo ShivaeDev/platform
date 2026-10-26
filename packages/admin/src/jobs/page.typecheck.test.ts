@@ -1,8 +1,8 @@
 import { Context, Effect, type Layer, type Option, Schema, SchemaGetter } from "effect";
 import type { RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import type { Bound } from "@shivaedev/effect-contract/bind.ts";
-import { makePgBoss } from "@shivaedev/effect-pg-boss/server/service.ts";
+import type { Bound } from "@shivaedev/contract/bind.ts";
+import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { adminRegistry } from "#registry.ts";
 import { jobsHandlers } from "#server/jobsHandlers.ts";
 import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";

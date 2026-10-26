@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { command } from "@shivaedev/effect-contract/operation.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { command } from "@shivaedev/contract/operation.ts";
 import { adminPage } from "#page.ts";
 import { jobsKeys } from "./keys.ts";
 import { jobsPage } from "./page.ts";

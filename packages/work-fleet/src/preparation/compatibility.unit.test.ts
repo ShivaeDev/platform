@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Schema } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { assessPreparation, pathsOverlap } from "#preparation/compatibility.ts";
 import { Preparation, RepositoryPath } from "#preparation/schema.ts";
 import { mainObservation, prepared } from "#test/preparation.ts";

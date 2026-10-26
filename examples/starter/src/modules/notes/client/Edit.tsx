@@ -1,10 +1,10 @@
 import { Link } from "@tanstack/react-router";
 import { Option, Predicate } from "effect";
 import { useId } from "react";
-import { useField } from "@shivaedev/effect-form/client/react.ts";
-import type { Form } from "@shivaedev/effect-form/shape.ts";
-import { useEditor } from "@shivaedev/effect-react/client/editor.ts";
-import { fieldRejectionOf } from "@shivaedev/effect-react/fieldRejection.ts";
+import { useField } from "@shivaedev/form/client/react.ts";
+import type { Form } from "@shivaedev/form/shape.ts";
+import { useEditor } from "@shivaedev/react/client/editor.ts";
+import { fieldRejectionOf } from "@shivaedev/react/fieldRejection.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import { type Note, NoteEditFields } from "#modules/notes/notes.ts";
