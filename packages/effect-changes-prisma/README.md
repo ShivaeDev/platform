@@ -276,7 +276,7 @@ Import the module that defines the name. There is no root entry point.
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/effect-changes-prisma @shivaedev/effect-changes @prisma/client@7.10.0 effect@4.0.5
+pnpm add @shivaedev/effect-changes-prisma @shivaedev/effect-changes @prisma/client@7.10.1 effect@4.0.5
 ```
 
 `@prisma/client` and `effect` are peers. Generate and construct the application's Prisma Classic client for PostgreSQL before binding it.

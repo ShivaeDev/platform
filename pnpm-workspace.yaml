@@ -70,9 +70,9 @@ catalog:
   "@prisma-next/sqlite": 0.16.0
   "@prisma-next/target-postgres": 0.16.0
   "@prisma-next/target-sqlite": 0.16.0
-  "@prisma/adapter-pg": 7.10.0
-  "@prisma/client": 7.10.0
-  prisma: 7.10.0
+  "@prisma/adapter-pg": 7.10.1
+  "@prisma/client": 7.10.1
+  prisma: 7.10.1
   "@types/hast": 3.0.5
   "@types/mdast": 4.0.4
   "@types/node": 24.19.2
@@ -105,10 +105,10 @@ minimumReleaseAgeExclude:
 minimumReleaseAgeIgnoreMissingTime: false
 minimumReleaseAgeStrict: true
 trustPolicy: no-downgrade
-# `prisma@7.10.0` was published without the provenance attestation earlier
+# The pinned Prisma CLI was published without the provenance attestation earlier
 # releases carry. Remove this once an attested Prisma release ships.
 trustPolicyExclude:
-  - prisma@7.10.0
+  - prisma@7.10.1
 # Re-verifying every lockfile entry costs pnpm about 1 GB more memory, which
 # pushes Renovate's lockfile updates past the 3 GB of the Mend-hosted runner.
 # Newly resolved versions are still verified; CI and publish re-verify every
