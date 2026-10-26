@@ -6,6 +6,7 @@ import { Badge } from "#client/react/components/ui/badge.tsx";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { RadioGroupItem } from "#client/react/components/ui/radio-group.tsx";
+import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 
 export function PromptOption({
 	document,
@@ -42,17 +43,19 @@ export function PromptOption({
 			) : (
 				<RadioGroupItem {...control} />
 			)}
-			<Label className="grid flex-1 cursor-pointer items-start gap-1 font-normal after:absolute after:inset-0" htmlFor={id}>
-				<strong className="flex flex-wrap items-center gap-2 font-medium text-sm" id={`${id}-label`}>
-					{label}
-					{label === document.metadata.recommended && <Badge variant="outline">Recommended</Badge>}
-				</strong>
+			<div className="grid flex-1 items-start gap-1">
+				<Label className="cursor-pointer font-normal after:absolute after:inset-0" htmlFor={id}>
+					<strong className="flex flex-wrap items-center gap-2 font-medium text-sm" id={`${id}-label`}>
+						{label}
+						{label === document.metadata.recommended && <Badge variant="outline">Recommended</Badge>}
+					</strong>
+				</Label>
 				{Boolean(description) && (
-					<small className="text-muted-foreground text-sm leading-normal" id={`${id}-description`}>
-						{description}
-					</small>
+					<div className="text-muted-foreground text-sm leading-normal [&_a]:relative [&_a]:z-10" id={`${id}-description`}>
+						<AnswerMarkdown file={document.file} source={description} />
+					</div>
 				)}
-			</Label>
+			</div>
 		</div>
 	);
 }
