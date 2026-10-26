@@ -16,7 +16,7 @@ const files = [
 ];
 
 describe("tests/colocated", () => {
-	it("flags a test in a test, tests, __tests__ or spec folder, unless the folder is a declared suite", async () => {
+	it("flags tests-only test, tests and spec folders and every __tests__ folder outside declared suites", async () => {
 		const findings = await checkRule(testsColocated, { suites: ["tests/smoke/"] }, { files });
 		expect(findings.map((finding) => finding.file)).toEqual([
 			"packages/cart/test/cart.test.ts",
@@ -32,7 +32,7 @@ describe("tests/colocated", () => {
 			{
 				file: "packages/cart/test/cart.test.ts",
 				message:
-					'Sits in the test folder "test/". A test sits beside the file it covers, as cart.test.ts beside cart.ts, or as a <behaviour>.spec.ts in the folder it covers. A folder of tests that cover several packages is a suite in the "suites" option.',
+					'Sits in the test folder "test/". A test, tests or spec folder is test-only when its directly contained checked files are all tests or test support; __tests__ is always a test folder. A test sits beside the file it covers, as cart.test.ts beside cart.ts, or as a <behaviour>.spec.ts at the module root or directly beside the module folder. Shared test support belongs in test-support/. A folder of tests that cover several packages is a suite in the "suites" option.',
 			},
 		]);
 	});
@@ -40,7 +40,7 @@ describe("tests/colocated", () => {
 	it("keeps a unit test's modifier in the name it suggests", async () => {
 		const findings = await checkRule(testsColocated, undefined, { files: ["src/tests/cart.unit.test.ts"] });
 		expect(findings.map((finding) => finding.message)).toEqual([
-			'Sits in the test folder "tests/". A test sits beside the file it covers, as cart.unit.test.ts beside cart.ts, or as a <behaviour>.unit.spec.ts in the folder it covers. A folder of tests that cover several packages is a suite in the "suites" option.',
+			'Sits in the test folder "tests/". A test, tests or spec folder is test-only when its directly contained checked files are all tests or test support; __tests__ is always a test folder. A test sits beside the file it covers, as cart.unit.test.ts beside cart.ts, or as a <behaviour>.unit.spec.ts at the module root or directly beside the module folder. Shared test support belongs in test-support/. A folder of tests that cover several packages is a suite in the "suites" option.',
 		]);
 	});
 });
