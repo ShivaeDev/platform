@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.5 - 2026-10-26
+
+### Fixed
+
+- Serialize daemon fetches of main and retry concurrent ref updates up to three attempts so admission continues when another Git fetch advances main. Other fetch failures still surface.
+- Check daemon liveness independently of the watch stream so stalled provider work or stream delivery does not report a responsive daemon as unreachable.
+
 ## 0.18.4 - 2026-10-25
 
 ### Fixed
