@@ -5,6 +5,14 @@
 		{
 			"customType": "regex",
 			"datasourceTemplate": "npm",
+			"depNameTemplate": "prisma",
+			"description": "Keep the exact Prisma CLI trust exception with its catalog update so pnpm can regenerate the lockfile. Remove this manager with the exception once an attested CLI release ships.",
+			"managerFilePatterns": ["/^pnpm-workspace\\.yaml$/"],
+			"matchStrings": ["(?:^|\\r?\\n)  - prisma@(?<currentValue>\\d+\\.\\d+\\.\\d+)(?:\\r?\\n|$)"]
+		},
+		{
+			"customType": "regex",
+			"datasourceTemplate": "npm",
 			"depTypeTemplate": "pnpm.catalog.default",
 			"description": "Keep the generated starter's catalog on the same dependency branches as the root catalog.",
 			"managerFilePatterns": ["/^examples/starter/pnpm-workspace\\.copy\\.yaml$/"],
