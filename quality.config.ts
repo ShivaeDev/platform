@@ -47,7 +47,7 @@ export default defineConfig({
 	],
 	local: [catalogOnly, catalogOverrides, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["packages/identity/src/server/better-auth/**", "packages/platform/src/server/better-auth/**"] } },
+		"boundaries/auth-sql": { options: { owners: ["packages/admin/src/server/users.ts", "packages/identity/src/server/better-auth/**"] } },
 		"boundaries/http-status": {
 			options: {
 				edge: [

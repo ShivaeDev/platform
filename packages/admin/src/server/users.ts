@@ -4,7 +4,7 @@ import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { requirePermission } from "@shivaedev/identity/permission.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { type ChangeRoleInput, ChangeUserRoles, LastOwner, type UserListInput } from "#rpc/userRoles.ts";
+import { type ChangeRoleInput, ChangeUserRoles, LastOwner, type UserListInput } from "#users/roles.ts";
 
 const StoredUser = Schema.Struct({
 	createdAt: Schema.Date,

@@ -5,12 +5,12 @@ import { act } from "react";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
-import { type ChangeRoleInput, LastOwner } from "@shivaedev/platform/rpc/userRoles.ts";
 import { render } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/UsersView.ts";
 import { AdminPermission } from "#permissions.ts";
 import { UsersPage } from "#users/page.ts";
+import { type ChangeRoleInput, LastOwner } from "#users/roles.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 

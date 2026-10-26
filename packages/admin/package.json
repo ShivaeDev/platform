@@ -52,11 +52,12 @@
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
-		"@shivaedev/platform": "workspace:*",
-		"@shivaedev/react": "workspace:*"
+		"@shivaedev/react": "workspace:*",
+		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
+		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
