@@ -20,7 +20,9 @@ export function engineLostTurnVerbs(state: EngineStory, tell: (line: string) => 
 	return {
 		loseTurn: (sessionId: string | undefined) => change("the provider loses the accepted turn", () => lostTurns().lose(sessionId)),
 		publishBranch: () => change("publish the remote branch", () => publication().branch()),
-		publishPullRequest: (status: "open" | "closed" | "merged" = "open") => change(`publish a ${status} PR`, () => publication().pullRequest(status)),
+		publishPullRequest: (status: "open" | "closed" | "merged" = "open") => change(`publish a ${status} PR`, () => publication().pullRequests(status)),
+		publishPullRequests: (...states: readonly ("open" | "closed" | "merged")[]) =>
+			change(`publish ${states.join(", ")} PRs on the worker branch`, () => publication().pullRequests(...states)),
 		rejectNextSubmission: (call: "session" | "turn") =>
 			change(`the provider will reject the next ${call} for capacity`, () => {
 				state.rejectNextSubmission = call;

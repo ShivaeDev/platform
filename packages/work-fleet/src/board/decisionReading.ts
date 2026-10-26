@@ -6,7 +6,7 @@ import type { BoardDocument } from "#board/documents.ts";
 import type { BoardDecision, BoardDecisionReading } from "#board/schema.ts";
 import { BoardFailure } from "#policy.ts";
 
-const { metadataModel } = board;
+const { metadataModel, metadataParse } = board;
 const { currentResponses, questionId, readResponses, questionSourceMatches } = responses;
 
 function currentResponse(reading: Reading): BoardDecisionReading {
@@ -20,6 +20,17 @@ function currentResponse(reading: Reading): BoardDecisionReading {
 	return { _tag: "Response", response: current[0] };
 }
 
+// Closing a decision rewrites only its metadata, so a closed decision still carries the reviewed body.
+function reviewedQuestion(question: Reading["question"], receipt: BoardDecision, document: BoardDocument, closed: boolean) {
+	return (
+		question.question.item === receipt.itemId
+		&& question.question.request === receipt.request
+		&& question.question.source === receipt.sourcePath
+		&& question.question.reviewedRevision === receipt.revision
+		&& (closed ? metadataParse(question.context).body === document.parsed.body : questionSourceMatches(question, document))
+	);
+}
+
 export function decisionReading(documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
 	return Effect.fn("FleetBoard.readDecision")(function* (receipt: BoardDecision): Effect.fn.Return<BoardDecisionReading, BoardFailure> {
 		const all = yield* documents;
@@ -29,26 +40,22 @@ export function decisionReading(documents: Effect.Effect<readonly BoardDocument[
 		if (!document || document.file !== receipt.sourcePath) {
 			return { _tag: "Stale", reason: "The decision source changed, moved or became ambiguous." };
 		}
+		const requests = document.parsed.fields.attention?.filter((request) => request.id === receipt.request) ?? [];
 		if (
 			document.parsed.fields.kind !== "question"
-			|| document.parsed.fields.attention?.filter((request) => request.id === receipt.request && request.state === "open").length !== 1
+			|| requests.length !== 1
 			|| questionId(receipt.itemId, receipt.request, receipt.revision, receipt.sourcePath) !== receipt.questionId
 		) {
 			return { _tag: "Stale", reason: "The exact open decision request is unavailable." };
 		}
+		const closed = requests[0]?.state === "closed";
 		const snapshot = Effect.succeed({ documents: all, entries: [], model, modified: new Map<string, number>(), revision: 0, unavailable: [] });
 		const reading = yield* readResponses(snapshot)(receipt.questionId).pipe(
 			Effect.mapError(() => new BoardFailure({ message: "Fleet decision response history is incomplete or ambiguous." })),
 		);
-		if (
-			reading.question.question.item !== receipt.itemId
-			|| reading.question.question.request !== receipt.request
-			|| reading.question.question.source !== receipt.sourcePath
-			|| reading.question.question.reviewedRevision !== receipt.revision
-			|| !questionSourceMatches(reading.question, document)
-		) {
+		if (!reviewedQuestion(reading.question, receipt, document, closed)) {
 			return { _tag: "Stale", reason: "The registered question does not match the reviewed decision context." };
 		}
-		return currentResponse(reading);
+		return closed ? { _tag: "Closed" } : currentResponse(reading);
 	});
 }

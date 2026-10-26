@@ -21,7 +21,8 @@ export const watchedPrs = Effect.fn("Fleet.watchedPrs")(function* (state: Engine
 		),
 	);
 	const pending = records.filter(({ value }) => value.result === undefined && !["done", "released"].includes(value.step));
-	const published = yield* Effect.forEach(pending, ({ value }) => publishedPr(state, value));
+	// Another item's unreadable publication is that item's own wait; it must not fail this item's prediction.
+	const published = yield* Effect.forEach(pending, ({ value }) => publishedPr(state, value).pipe(Effect.orElseSucceed(() => undefined)));
 	const foreign = (yield* state.store.foreignReservations()).map((entry) => entry.owner).filter((owner) => owner.startsWith("https://github.com/"));
 	return [...known, ...published.filter((pr) => pr !== undefined), ...foreign];
 });

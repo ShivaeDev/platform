@@ -44,7 +44,7 @@ export function applyResolution(state: EngineState) {
 	});
 }
 
-function retryOrRelease(state: EngineState) {
+export function retryOrRelease(state: EngineState) {
 	return Effect.fn("Fleet.retryOrRelease")(function* (
 		stored: Versioned<FleetRecord>,
 		action: "retry" | "release",

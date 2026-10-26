@@ -42,6 +42,7 @@ export class BoardAcknowledgementStale extends Schema.TaggedError<BoardAcknowled
 export const BoardDecisionReading = Schema.Union([
 	Schema.Struct({ _tag: Schema.Literal("Pending") }),
 	Schema.Struct({ _tag: Schema.Literal("Stale"), reason: Schema.String }),
+	Schema.Struct({ _tag: Schema.Literal("Closed") }),
 	Schema.Struct({ _tag: Schema.Literal("Ambiguous"), responseIds: Schema.Array(Schema.String) }),
 	Schema.Struct({ _tag: Schema.Literal("Response"), response: RecordedResponse }),
 ]);

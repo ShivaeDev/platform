@@ -21,7 +21,7 @@ export const watchedBranches = isolatedEngine.trait(
 			concurrency: 4,
 			deliveryQuery: (result) => Effect.sync(() => repository.delivery(result)),
 			predict: mergePrediction(repository.github, main, Effect.succeed("example/project")),
-			publicationQuery: (work) => Effect.sync(() => repository.publication(work.workId)),
+			publicationQuery: (work) => repository.publication(work.workId),
 			resultQuery: (work) => Effect.sync(() => repository.result(work.workId)),
 		};
 	},

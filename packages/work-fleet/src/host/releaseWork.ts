@@ -55,6 +55,10 @@ function releaseItem(root: string, background: boolean) {
 		if (decision?.published === undefined) {
 			return yield* Effect.fail(new Conflict({ message: "Publish the waiting decision before release" }));
 		}
+		const released = yield* fleet.releaseClosed(workId, decision.id);
+		if (released !== undefined) {
+			return released;
+		}
 		const responseId = yield* recordDecisionResponse(root, { ...decision, published: decision.published }, "release");
 		return yield* background ? fleet.recordResponse(workId, decision.id, responseId) : fleet.resolve(workId, decision.id, responseId);
 	});
