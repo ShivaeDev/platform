@@ -1,28 +1,50 @@
+import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect } from "effect";
-import { createServer, type Plugin } from "vite";
+import { NodeServices } from "@effect/platform-node";
+import { Console, Effect, Fiber, Option, Stream } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
-export const developmentServer = Effect.fn("AppStory.developmentServer")(function* (target: string) {
-	const backend: Plugin = {
-		configResolved(config) {
-			for (const proxy of Object.values(config.server.proxy ?? {})) {
-				if (typeof proxy !== "string") {
-					proxy.target = target;
+export interface DevelopmentServerOptions {
+	readonly configFile?: string;
+	readonly onOutput?: (source: "stdout" | "stderr", line: string) => void;
+}
+
+export const developmentServer = Effect.fn("AppStory.developmentServer")(function* (target: string, options: DevelopmentServerOptions = {}) {
+	return yield* Effect.gen(function* () {
+		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+		const child = yield* spawner.spawn(
+			ChildProcess.make(
+				process.execPath,
+				["--conditions=source", fileURLToPath(new URL("./developmentServerChild.ts", import.meta.url)), target, options.configFile ?? ""],
+				{ additionalFds: { fd3: { type: "output" } } },
+			),
+		);
+		function forward(source: "stdout" | "stderr") {
+			return child[source].pipe(
+				Stream.decodeText(),
+				Stream.splitLines,
+				Stream.runForEach((line) =>
+					Effect.sync(() => options.onOutput?.(source, line)).pipe(Effect.andThen(source === "stdout" ? Console.log(line) : Console.error(line))),
+				),
+				Effect.forkScoped,
+			);
+		}
+		const output = yield* forward("stdout");
+		const errors = yield* forward("stderr");
+		// Vite can outlive server.close(); terminate its process before interrupting the output readers.
+		yield* Effect.addFinalizer(() =>
+			Effect.gen(function* () {
+				if (yield* child.isRunning) {
+					yield* child.kill();
 				}
-			}
-		},
-		name: "story-backend",
-	};
-	const server = yield* Effect.acquireRelease(
-		Effect.promise(() =>
-			createServer({
-				plugins: [backend],
-				root: fileURLToPath(new URL("../../", import.meta.url)),
-				server: { port: 0, strictPort: false },
-			}),
-		),
-		(running) => Effect.promise(() => running.close()),
-	);
-	yield* Effect.promise(() => server.listen());
-	return new URL(server.resolvedUrls?.local[0] ?? "").origin;
+				yield* Fiber.join(output);
+				yield* Fiber.join(errors);
+			}).pipe(Effect.orDie),
+		);
+		const address = yield* child.getOutputFd(3).pipe(Stream.decodeText(), Stream.splitLines, Stream.runHead);
+		if (Option.isNone(address)) {
+			return yield* Effect.die("Development server exited before listening");
+		}
+		return { child, url: new URL(address.value).origin };
+	}).pipe(Effect.provide(NodeServices.layer));
 });
