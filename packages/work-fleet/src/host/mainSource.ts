@@ -1,5 +1,5 @@
 import { execFile } from "node:child_process";
-import { Clock, Context, Effect, Layer } from "effect";
+import { Clock, Context, Effect, Layer, Schedule, Semaphore } from "effect";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
@@ -35,17 +35,31 @@ function git(cwd: string, args: readonly string[]) {
 	});
 }
 
+function refUpdateRace(ref: string, error: FleetError) {
+	return (
+		(error.message.includes(`cannot lock ref 'refs/remotes/${ref}': is at `) && /is at [0-9a-f]+ but expected [0-9a-f]+/u.test(error.message))
+		|| error.message.includes(`fetching ref refs/remotes/${ref} failed: incorrect old value provided`)
+	);
+}
+
 export function gitMainSource(host: FleetHost) {
 	const GitMainSource = defineService({
 		id: "Fleet/GitMainSource",
 		initialize: Effect.gen(function* () {
 			const root = yield* git(host.boardDir, ["rev-parse", "--show-toplevel"]);
 			const ref = `${host.repository.remote}/${host.repository.branch}`;
+			const fetchLock = yield* Semaphore.make(1);
 			let snapshot: MainSnapshot | undefined;
 			const latest = Effect.gen(function* () {
-				yield* git(root, ["fetch", "--quiet", host.repository.remote, host.repository.branch]);
+				yield* git(root, ["fetch", "--quiet", host.repository.remote, host.repository.branch]).pipe(
+					Effect.retry({
+						schedule: Schedule.spaced("50 millis"),
+						times: 2,
+						while: (error) => refUpdateRace(ref, error),
+					}),
+				);
 				return { observedAt: yield* Clock.currentTimeMillis, revision: yield* git(root, ["rev-parse", ref]) };
-			});
+			}).pipe(fetchLock.withPermit);
 			const refresh = Effect.tap(latest, (next) =>
 				Effect.sync(() => {
 					snapshot = next;
