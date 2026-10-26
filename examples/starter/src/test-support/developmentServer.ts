@@ -1,3 +1,4 @@
+import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { createServer, type Plugin } from "vite";
 
@@ -16,6 +17,7 @@ export const developmentServer = Effect.fn("AppStory.developmentServer")(functio
 		Effect.promise(() =>
 			createServer({
 				plugins: [backend],
+				root: fileURLToPath(new URL("../../", import.meta.url)),
 				server: { port: 0, strictPort: false },
 			}),
 		),
