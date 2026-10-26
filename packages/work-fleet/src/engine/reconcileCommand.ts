@@ -68,7 +68,10 @@ export function reconcileCommand(state: EngineState, advance: ReturnType<typeof 
 		workId: string,
 	): Effect.fn.Return<
 		Versioned<FleetRecord>,
-		Effect.Error<ReturnType<typeof decision>> | Effect.Error<ReturnType<typeof load>> | Effect.Error<ReturnType<typeof refreshBrief>>
+		| Effect.Error<ReturnType<typeof decision>>
+		| Effect.Error<ReturnType<typeof load>>
+		| Effect.Error<ReturnType<typeof refreshBrief>>
+		| Effect.Error<ReturnType<typeof readRetry>>
 	> {
 		let current = yield* load(workId);
 		if (current.value.step !== "waiting" && retryPending(state, current.value)) {

@@ -5,6 +5,7 @@ import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { retryLostThread } from "#engine/retryLostThread.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { BoardFailure } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
@@ -88,8 +89,9 @@ export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 		return yield* waitForRateLimit(state, current, failureMessage(error), limitedUntil);
 	}
 	const failures = (previous?.failures ?? 0) + 1;
-	if (failures >= 5 && (yield* retryLostReview(state, current.value, error))) {
-		return yield* state.load(current.value.workId);
+	const restarted = yield* recoverLostExecution(state, current, kind, failures, error);
+	if (restarted !== undefined) {
+		return restarted;
 	}
 	const retryAt = state.policy.now() + ((yield* state.current).readRetryMs ?? DEFAULT_READ_RETRY_MS) * 2 ** (failures - 1);
 	const message = failureMessage(error);
@@ -114,6 +116,20 @@ export const readRetry = Effect.fn("Fleet.readRetry")(function* (
 					failureContext(error).attentionOwner,
 				)
 				.pipe(Effect.catchTag("BoardFailure", () => state.load(current.value.workId)));
+});
+
+const recoverLostExecution = Effect.fn("Fleet.recoverLostExecution")(function* (
+	state: EngineState,
+	current: Versioned<FleetRecord>,
+	kind: "integration" | "provider",
+	failures: number,
+	error: unknown,
+) {
+	if (failures < 5) {
+		return undefined;
+	}
+	const restarted = kind === "provider" ? yield* retryLostThread(state, current, error) : undefined;
+	return restarted ?? ((yield* retryLostReview(state, current.value, error)) ? yield* state.load(current.value.workId) : undefined);
 });
 
 export function retryPending(state: EngineState, record: FleetRecord) {

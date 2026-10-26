@@ -12,9 +12,17 @@ const terminalBriefRecoveryStory = {
 	spec: "approvedTerminalBrief.spec.ts",
 };
 
+export const lostThreadRestartStory = {
+	code: "session-ambiguous",
+	name: "lost thread restarts stop at the budget and resume after an orchestrator answer",
+	sites: ["engine/retryLostThread.ts: failureCode(error)"],
+	spec: "lostThreadRestart.spec.ts",
+};
+
 export const recoveryStories = [
 	publicationRecoveryStory,
 	terminalBriefRecoveryStory,
+	lostThreadRestartStory,
 	{
 		code: "report-revision",
 		name: "stale research is refused and can be safely released after restart",
