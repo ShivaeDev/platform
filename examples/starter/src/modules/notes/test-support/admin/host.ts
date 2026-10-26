@@ -43,7 +43,7 @@ export const adminHost = storyKit({
 		request: (path: string) => Effect.promise(() => fetch(new URL(path, engine.url)).then((response) => response.text())),
 		startDevelopment: Effect.fn("AdminStory.startDevelopment")(function* () {
 			story.tell("start the app's Vite development server");
-			engine.url = yield* developmentServer(engine.host.baseUrl);
+			engine.url = (yield* developmentServer(engine.host.baseUrl)).url;
 		}),
 		startWorker: Effect.fn("AdminStory.startWorker")(function* () {
 			story.tell("start the app's word-count worker");

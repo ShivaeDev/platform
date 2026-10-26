@@ -23,7 +23,7 @@ application.it(
 			expect(manifest.scripts[name]).not.toContain("--conditions=source");
 			expect(manifest.scripts[name]).toBe(sourceManifest.scripts[name].replaceAll("--conditions=source ", ""));
 		}
-		for (const path of ["src/test-support/deployChild.ts"]) {
+		for (const path of ["src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"]) {
 			expect(files[path]).not.toContain("--conditions=source");
 			expect(files[path]).toBe(starterFile(path).replaceAll('"--conditions=source", ', ""));
 		}
