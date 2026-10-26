@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.4 - 2026-10-26
+
+### Fixed
+
+- Keep continuous PR watches running through network errors, request timeouts, GitHub server failures and rate limits. Report the failure cause, preserve saved observations and retry with bounded backoff, stopping after one hour without a successful round or immediately on permanent failures.
+
 ## 0.4.3 - 2026-10-25
 
 ### Changed
