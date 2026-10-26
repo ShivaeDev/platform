@@ -1,19 +1,26 @@
 {
-	"date": "2026-10-25",
+	"date": "2026-10-26",
 	"plan": {
 		"changesets": [
 			{
-				"name": "admin-jobs-retry.md",
-				"text": "---\n\"@shivaedev/admin\": minor\n---\n\n### Added\n\n- Add an explicitly retry-enabled Jobs page and handlers for registered failed originals, with administrator-only RPC access and query invalidation after retry.\n"
+				"name": "admin-template-views.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- Generated apps include app-owned admin navigation, Jobs health, counts, failed and dead-lettered lists, job detail, and an example note-statistics page on the existing protected RPC transport. Jobs views accept retry actions from explicitly retry-enabled registrations and retain the default read-only registration.\n\n### Breaking\n\n- `@shivaedev/create-app`'s starter no longer serves the pg-boss dashboard at `/admin/jobs`; the app-owned admin Jobs views replace it. Existing apps must remove `readOnlyDashboard.ts`, `readOnlyDashboardWorker.ts`, `checkDashboardVersion.ts` and `jobDashboard.ts`, remove the `@pg-boss/dashboard` dependency and catalog pin, and register the admin pages and their handlers on the existing `/rpc` host. Keep admin account provisioning through `admin:create`, `admin.ts` and `createAdmin.ts`.\n- `@shivaedev/quality`'s `appViteConfig` leaves `/admin/jobs` on the client router. Apps that still host a server dashboard at that path must add their own Vite `server.proxy` entry for `/admin/jobs` targeting the app host.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "minor",
-				"directory": "packages/admin",
-				"from": "0.2.0",
-				"name": "@shivaedev/admin",
-				"to": "0.3.0"
+				"directory": "packages/create-app",
+				"from": "0.15.7",
+				"name": "@shivaedev/create-app",
+				"to": "0.16.0"
+			},
+			{
+				"bump": "minor",
+				"directory": "packages/quality",
+				"from": "0.40.0",
+				"name": "@shivaedev/quality",
+				"to": "0.41.0"
 			}
 		]
 	}
