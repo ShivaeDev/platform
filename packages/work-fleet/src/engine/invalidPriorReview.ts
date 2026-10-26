@@ -18,12 +18,3 @@ export const invalidPriorReview = Effect.fn("Fleet.invalidPriorReview")(function
 	);
 	return Result.isFailure(parsed);
 });
-
-export function stalledReviewRetry(previous: Attempt | undefined, now: number) {
-	return previous?.role === "reviewer"
-		&& previous.status === "interrupted"
-		&& previous.stallRecovery?.interruptRequestedAt !== undefined
-		&& previous.receipt !== undefined
-		? { prompt: previous.prompt ?? "Continue the review", sessionId: previous.receipt.sessionId, stallRecovery: { count: 2, lastActionAt: now } }
-		: undefined;
-}

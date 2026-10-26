@@ -2,12 +2,12 @@ import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { areaWaiters } from "#engine/areaWaiters.ts";
+import { invalidPriorReview } from "#engine/invalidPriorReview.ts";
 import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { reviewChecks } from "#engine/reviewChecks.ts";
 import { reviewContext } from "#engine/reviewContext.ts";
-import { invalidPriorReview, stalledReviewRetry } from "#engine/reviewRetry.ts";
 import { submissionFailure } from "#engine/submissionFailure.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork, WorkResult } from "#policy.ts";
@@ -24,7 +24,6 @@ export function obtainReview(state: EngineState) {
 		retry?: {
 			readonly prompt: string;
 			readonly sessionId: string;
-			readonly stallRecovery: Attempt["stallRecovery"];
 			readonly observationRetries?: number;
 		},
 	) {
@@ -33,7 +32,6 @@ export function obtainReview(state: EngineState) {
 			return stored.value.review.receipt;
 		}
 		const previous = stored.value.attempts.at(-1);
-		const continuation = retry ?? stalledReviewRetry(previous, policy.now());
 		const previousHead = reviewAttemptHead(stored.value, previous);
 		const unusable = yield* invalidPriorReview(stored.value, previous, result.head);
 		if (reusableReview(previous, work, result.head, previousHead, unusable)) {
@@ -41,7 +39,7 @@ export function obtainReview(state: EngineState) {
 		}
 		const reviewerGuidance = yield* policyGuidance(policy, "reviewer");
 		const prompt =
-			continuation?.prompt
+			retry?.prompt
 			?? reviewerPrompt({
 				result,
 				...(reviewerGuidance === undefined ? {} : { reviewerGuidance }),
@@ -59,9 +57,8 @@ export function obtainReview(state: EngineState) {
 			reviewHead: result.head,
 			reviewRevision: workRevision(work.revision, work.context),
 			role: "reviewer",
-			sessionId: continuation?.sessionId,
+			sessionId: retry?.sessionId,
 			settings,
-			stallRecovery: continuation?.stallRecovery,
 			status: "submitting",
 			submittedAt: policy.now(),
 		};
@@ -91,7 +88,7 @@ export function obtainReview(state: EngineState) {
 			prompt,
 			settings,
 		} as const;
-		return yield* (continuation === undefined ? sessions.start(input) : sessions.continue({ ...input, sessionId: continuation.sessionId })).pipe(
+		return yield* (retry === undefined ? sessions.start(input) : sessions.continue({ ...input, sessionId: retry.sessionId })).pipe(
 			Effect.tapError((error) =>
 				submissionFailure(state, stored.value.workId, attempt.operationId, error, "Restore provider access and retry this review"),
 			),

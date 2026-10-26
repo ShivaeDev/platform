@@ -25,10 +25,6 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			yield* fleet.reconcile("one");
-			for (let pass = 0; pass < 3; pass += 1) {
-				advanceTime(31 * 60_000);
-				yield* fleet.reconcile("one");
-			}
 			advanceTime(31 * 60_000);
 			const stalled = yield* fleet.reconcile("one");
 			expect(stalled.value.decision?.code).toBe("session-stalled");
@@ -63,13 +59,8 @@ for (const action of ["retry", "dispatch", "release"] as const) {
 				expect(fresh.value.attempts).toHaveLength(stalled.value.attempts.length + 1);
 				expect(fresh.value.attempts.at(-1)?.receipt?.sessionId).not.toBe(receipt.sessionId);
 				expect(fresh.value.attempts.at(-1)?.receipt?.turnId).not.toBe(receipt.turnId);
-				expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1", "operation-3"]);
-				expect(providerSteers()).toMatchObject([
-					{
-						prompt: expect.stringContaining("Continue the approved work"),
-						receipt: { sessionId: "session-operation-1", turnId: "turn-operation-1" },
-					},
-				]);
+				expect(providerStarts().map((start) => start.operationId)).toEqual(["operation-1", "operation-2"]);
+				expect(providerSteers()).toEqual([]);
 			}
 			const observed = yield* afterRestart(fleet.reconcile("one"));
 			const abandoned = observed.value.attempts.find((entry) => entry.operationId === attempt.operationId);

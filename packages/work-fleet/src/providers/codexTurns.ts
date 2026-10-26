@@ -6,8 +6,12 @@ import { readActiveTurn } from "#providers/readActiveTurn.ts";
 import { reportLimit } from "#reportLimits.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
 
+export interface Progress {
+	readonly id: string;
+	readonly status?: string | undefined;
+}
 export type CodexRequest = (method: string, params: unknown, mutation?: boolean) => Effect.Effect<unknown, SessionFailure>;
-function finalOutput(items: readonly (typeof Item.Type)[]) {
+export function finalOutput(items: readonly (typeof Item.Type)[]) {
 	const messages = items.filter((item) => item.type === "agentMessage" && item.text !== undefined);
 	const final = messages.filter((item) => item.phase === "final_answer");
 	return (final.length > 0 ? final : messages).map((item) => item.text).join("\n");
@@ -32,27 +36,40 @@ export function codexTurns(rpc: CodexRequest) {
 			threadId: sessionId,
 		}).pipe(Effect.flatMap((value) => decode(TurnsResponse, value)));
 	}
-	const readTurn = Effect.fn("Codex.readTurn")(function* (sessionId: string, turnId: string, full = false) {
+	const latestItem = Effect.fn("Codex.latestItem")(function* (sessionId: string, turnId: string) {
+		const page: typeof ItemsResponse.Type = yield* rpc("thread/items/list", {
+			cursor: null,
+			limit: 1,
+			sortDirection: "desc",
+			threadId: sessionId,
+			turnId,
+		}).pipe(Effect.flatMap((value) => decode(ItemsResponse, value)));
+		return page.data[0]?.item;
+	});
+	const readTurn = Effect.fn("Codex.readTurn")(function* (sessionId: string, turnId: string) {
 		let cursor: string | null = null;
 		const cursors = new Set<string>();
-		const progress: { id: string; status?: string | undefined }[] = [];
+		const progress: Progress[] = [];
 		do {
-			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, full);
+			const page: typeof TurnsResponse.Type = yield* turns(sessionId, cursor, false);
 			const found = page.data.find((turn) => turn.id === turnId);
 			if (found !== undefined) {
 				return { progress, turn: found };
 			}
 			for (const turn of page.data.filter((entry) => entry.status === "inProgress")) {
 				progress.push({ id: turn.id, status: turn.status });
-				progress.push(...turn.items.map(({ id, status }) => ({ id: `${turn.id}/${id}`, status })));
+				const item = yield* latestItem(sessionId, turn.id);
+				if (item !== undefined) {
+					progress.push({ id: `${turn.id}/${item.id}`, status: item.status });
+				}
 			}
 			cursor = page.nextCursor;
 			yield* rememberCursor(cursors, cursor, "Codex repeated a turn pagination cursor");
 		} while (cursor !== null);
 		return { progress, turn: undefined };
 	});
-	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string, full = false) {
-		const { turn } = yield* readTurn(sessionId, turnId, full);
+	const findTurn = Effect.fn("Codex.findTurn")(function* (sessionId: string, turnId: string) {
+		const { turn } = yield* readTurn(sessionId, turnId);
 		return (
 			turn
 			?? (yield* new SessionFailure({
@@ -118,15 +135,12 @@ export function codexTurns(rpc: CodexRequest) {
 		} while (cursor !== null);
 		return items;
 	});
-	function readOutput(receipt: SessionReceipt) {
-		return readItems(receipt).pipe(Effect.map(finalOutput));
-	}
 	return {
 		findTurn,
 		hasActiveTurn: readActiveTurn((sessionId, cursor) => turns(sessionId, cursor, false)),
+		latestItem,
 		operationTurn,
 		readItems,
-		readOutput,
 		readTurn,
 		waitUntilIdle,
 	};

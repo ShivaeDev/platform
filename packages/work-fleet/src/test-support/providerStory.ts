@@ -26,6 +26,7 @@ const definition = {
 				}
 				return state.reply(request);
 			}, state.handshakes);
+			state.backend = fixture;
 			const authFile = yield* authFolder(state.token);
 			const layer = state.cloud
 				? cloudConfiguration(fixture.endpoint, authFile, {
@@ -60,6 +61,12 @@ const definition = {
 			}
 			return Effect.die("The provider was not acquired");
 		});
+		function backend() {
+			if (state.backend === undefined) {
+				throw new Error("The fake provider did not start");
+			}
+			return state.backend;
+		}
 		return {
 			awaitSleep: (milliseconds: number) =>
 				Effect.gen(function* () {
@@ -76,6 +83,21 @@ const definition = {
 				}
 				return Scope.close(state.observerScope, Exit.void);
 			},
+			dropConnections: () =>
+				Effect.gen(function* () {
+					story.tell("the provider drops every connection");
+					const sockets = backend().sockets;
+					for (const socket of sockets) {
+						socket.destroy();
+					}
+					// The client learns about a dropped socket from its close event, which arrives on the next turns of the event loop.
+					yield* Effect.promise(() => new Promise((resolve) => setTimeout(resolve, 100)));
+				}),
+			emitThreadEvent: (threadId: string, method: string) =>
+				Effect.sync(() => {
+					story.tell(`the provider streams ${method} on ${threadId}`);
+					backend().notify(threadId, method);
+				}),
 			handshakes: () => state.handshakes,
 			provider: providerVerbs(connected, story.tell, state.clock),
 			replyAfter: (milliseconds: number, response: unknown) => {

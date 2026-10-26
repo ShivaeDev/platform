@@ -35,7 +35,7 @@ export const abandonStalled = Effect.fn("Fleet.abandonStalled")(function* (state
 		const abandoned = {
 			at: attempt.abandoned?.at ?? at,
 			interruptError: Result.isFailure(interrupted) ? interrupted.failure.message : undefined,
-			observation: Result.isSuccess(observed) ? observed.success : (attempt.abandoned?.observation ?? lastObservation(attempt)),
+			observation: Result.isSuccess(observed) ? withoutActivity(observed.success) : (attempt.abandoned?.observation ?? lastObservation(attempt)),
 			observationError: Result.isFailure(observed) ? observed.failure.message : undefined,
 		};
 		current = yield* state.save(current, {
@@ -48,7 +48,12 @@ export const abandonStalled = Effect.fn("Fleet.abandonStalled")(function* (state
 
 function hasStalledAttempt(record: FleetRecord): boolean {
 	const latest = record.attempts.at(-1);
-	return record.decision?.code === "session-stalled" || (latest?.sessionUnusable === true && (latest.stallRecovery?.count ?? 0) >= 2);
+	return record.decision?.code === "session-stalled" || (latest?.sessionUnusable === true && latest.stallRecovery !== undefined);
+}
+
+// Live activity is a transient provider signal, so the abandoned evidence keeps only the observed turn.
+function withoutActivity({ activityAt: _activityAt, ...observation }: SessionObservation) {
+	return observation;
 }
 
 function lastObservation(attempt: Attempt): SessionObservation | undefined {

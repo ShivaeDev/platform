@@ -1,6 +1,7 @@
-import { Context, Effect, Layer, Schema } from "effect";
+import { Clock, Context, Effect, Layer, Schema } from "effect";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
+import { codexLive } from "#providers/codexLive.ts";
 import { connect, failure, initialize, request } from "#providers/codexRpc.ts";
 import { SessionTransport } from "#session/service.ts";
 
@@ -29,27 +30,22 @@ const CodexLocal = defineService({
 			Effect.mapError(() => failure("unavailable", "Local Codex configuration requires a finite positive request timeout")),
 		);
 		const url = yield* loopback(config.endpoint);
-		const connection = yield* connect({ url }, config.requestTimeoutMs);
+		const clock = yield* Clock.Clock;
+		const live = codexLive(() => clock.currentTimeMillisUnsafe());
+		const connection = yield* connect({ url }, config.requestTimeoutMs, live.notified);
 		yield* initialize(connection, config.requestTimeoutMs, false);
 		function rpc(method: string, params: unknown, mutation = false) {
 			return request(connection, config.requestTimeoutMs, method, params, mutation);
 		}
-		const resumed = new Set<string>();
+		const activity = live.activity(Effect.succeed(connection), config.requestTimeoutMs);
 		return codexAdapter(rpc, {
+			activity,
 			beforeTurn: (input) =>
-				(resumed.has(input.sessionId)
-					? Effect.succeed({})
-					: rpc("thread/resume", { excludeTurns: true, threadId: input.sessionId }).pipe(
-							Effect.tap(() => Effect.sync(() => resumed.add(input.sessionId))),
-							Effect.as({}),
-						)
-				).pipe(
-					Effect.map((params) =>
-						input.access === "read-only" ? { ...params, approvalPolicy: "never", sandboxPolicy: { networkAccess: true, type: "readOnly" } } : params,
-					),
-				),
+				activity
+					.follow(input.sessionId)
+					.pipe(Effect.as(input.access === "read-only" ? { approvalPolicy: "never", sandboxPolicy: { networkAccess: true, type: "readOnly" } } : {})),
 			provisioning: "ready",
-			sessionStarted: (sessionId) => resumed.add(sessionId),
+			sessionStarted: (sessionId) => live.followed(connection, sessionId),
 			threadStart: (input) => ({
 				...(input.access === "read-only"
 					? { approvalPolicy: "never", config: { "sandbox_read_only.network_access": true }, sandbox: "read-only" }

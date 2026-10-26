@@ -40,7 +40,25 @@ export interface CodexEndpoint {
 	readonly protocols?: readonly string[];
 	readonly url: URL;
 }
-function openSocket(endpoint: CodexEndpoint) {
+export type CodexNotified = (method: string, params: unknown) => void;
+function receive(connection: CodexConnection, envelope: typeof Envelope.Type, notified: CodexNotified | undefined) {
+	if (envelope.method !== undefined && envelope.id !== undefined) {
+		// A provider request cannot grant itself execution or delivery authority.
+		connection.socket.send(JSON.stringify({ error: { code: -32_601, message: "Fleet transport has no approval handler" }, id: envelope.id }));
+		return;
+	}
+	if (envelope.method !== undefined) {
+		notified?.(envelope.method, envelope.params);
+		return;
+	}
+	if (typeof envelope.id !== "number") {
+		return;
+	}
+	const pending = connection.pending.get(envelope.id);
+	connection.pending.delete(envelope.id);
+	pending?.(envelope.error === undefined ? Effect.succeed(envelope.result) : Effect.fail(rejection(envelope.error)));
+}
+function openSocket(endpoint: CodexEndpoint, notified: CodexNotified | undefined) {
 	return Effect.callback<CodexConnection, SessionFailure>((resume) => {
 		let socket: WebSocket;
 		try {
@@ -73,18 +91,7 @@ function openSocket(endpoint: CodexEndpoint) {
 		socket.addEventListener("open", () => resume(Effect.succeed(connection)), { once: true });
 		socket.addEventListener("message", (event) => {
 			try {
-				const envelope = Schema.decodeUnknownSync(Envelope)(JSON.parse(String(event.data)));
-				if (envelope.method !== undefined && envelope.id !== undefined) {
-					// A provider request cannot grant itself execution or delivery authority.
-					socket.send(JSON.stringify({ error: { code: -32_601, message: "Fleet transport has no approval handler" }, id: envelope.id }));
-					return;
-				}
-				if (typeof envelope.id !== "number") {
-					return;
-				}
-				const pending = connection.pending.get(envelope.id);
-				connection.pending.delete(envelope.id);
-				pending?.(envelope.error === undefined ? Effect.succeed(envelope.result) : Effect.fail(rejection(envelope.error)));
+				receive(connection, Schema.decodeUnknownSync(Envelope)(JSON.parse(String(event.data))), notified);
 			} catch {
 				failPending(connection, failure("protocol", "Codex returned an invalid protocol envelope"));
 			}
@@ -92,9 +99,9 @@ function openSocket(endpoint: CodexEndpoint) {
 		return Effect.sync(() => socket.close());
 	});
 }
-export function connect(endpoint: CodexEndpoint, timeoutMs: number) {
+export function connect(endpoint: CodexEndpoint, timeoutMs: number, notified?: CodexNotified) {
 	return Effect.acquireRelease(
-		openSocket(endpoint).pipe(
+		openSocket(endpoint, notified).pipe(
 			Effect.timeout(`${timeoutMs} millis`),
 			Effect.catchTag("TimeoutError", () => Effect.fail(failure("unavailable", "Codex connection timed out"))),
 		),

@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import type { Duplex } from "node:stream";
-import { Effect, Layer, Schema } from "effect";
+import { Effect, Layer, Option, Schema } from "effect";
 import { CodexLocalConfig, codexLocalLayer } from "#providers/codexLocal.ts";
 import { codexSockets } from "./codexSockets.ts";
 
 const WireRequest = Schema.Struct({ id: Schema.optional(Schema.Number), method: Schema.String, params: Schema.optional(Schema.Unknown) });
 export type WireRequest = typeof WireRequest.Type;
 const Params = Schema.Struct({ cursor: Schema.optional(Schema.NullOr(Schema.String)) });
+const ThreadParams = Schema.Struct({ threadId: Schema.String });
+const StartedThread = Schema.Struct({ thread: Schema.Struct({ id: Schema.String }) });
 export function requestCursor(request: WireRequest) {
 	return Schema.decodeUnknownSync(Params)(request.params).cursor;
 }
@@ -57,9 +59,22 @@ function nextFrame(buffered: Buffer) {
 	}
 	return { body, consumed: offset + 4 + length, opcode };
 }
-async function respond(handle: (request: WireRequest) => unknown, body: Buffer) {
+// Like Codex, a connection receives a thread's notifications once it starts, resumes or submits to that thread.
+function subscribedThread(message: WireRequest, result: unknown) {
+	if (message.method === "thread/start") {
+		return Option.map(Schema.decodeUnknownOption(StartedThread)(result), (started) => started.thread.id);
+	}
+	return ["thread/resume", "turn/start"].includes(message.method)
+		? Option.map(Schema.decodeUnknownOption(ThreadParams)(message.params), (params) => params.threadId)
+		: Option.none();
+}
+async function respond(handle: (request: WireRequest) => unknown, body: Buffer, threads: Set<string>) {
 	const message = Schema.decodeUnknownSync(WireRequest)(JSON.parse(body.toString()));
 	const result = await handle(message);
+	const subscribed = result instanceof WireRejection ? Option.none() : subscribedThread(message, result);
+	if (Option.isSome(subscribed)) {
+		threads.add(subscribed.value);
+	}
 	if (message.id === undefined || result === undefined) {
 		return undefined;
 	}
@@ -67,8 +82,8 @@ async function respond(handle: (request: WireRequest) => unknown, body: Buffer) 
 		? { error: { code: result.code, ...(result.data === undefined ? {} : { data: result.data }), message: result.message }, id: message.id }
 		: { id: message.id, result };
 }
-function sendReply(socket: Duplex, handle: (request: WireRequest) => unknown, body: Buffer) {
-	respond(handle, body)
+function sendReply(socket: Duplex, handle: (request: WireRequest) => unknown, body: Buffer, threads: Set<string>) {
+	respond(handle, body, threads)
 		.then((reply) => {
 			if (reply !== undefined && !socket.destroyed) {
 				socket.write(frame(reply));
@@ -101,8 +116,12 @@ export function codexServer(handle: (request: WireRequest) => unknown, handshake
 		Effect.tryPromise(async () => {
 			const server = createServer();
 			const connections = codexSockets(server);
+			const subscriptions = new Map<Duplex, Set<string>>();
 			server.on("upgrade", (request, socket) => {
 				connections.add(socket);
+				const threads = new Set<string>();
+				subscriptions.set(socket, threads);
+				socket.on("close", () => subscriptions.delete(socket));
 				const accept = createHash("sha1").update(`${request.headers["sec-websocket-key"]}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`).digest("base64");
 				const protocols = offeredProtocols(request.headers["sec-websocket-protocol"]);
 				handshakes.push({ protocols });
@@ -119,7 +138,7 @@ export function codexServer(handle: (request: WireRequest) => unknown, handshake
 							return;
 						}
 						buffered = buffered.subarray(parsed.consumed);
-						sendReply(socket, handle, parsed.body);
+						sendReply(socket, handle, parsed.body, threads);
 					}
 				});
 			});
@@ -128,7 +147,19 @@ export function codexServer(handle: (request: WireRequest) => unknown, handshake
 			if (address === null || typeof address === "string") {
 				throw new Error("No synthetic server address");
 			}
-			return { close: connections.close, endpoint: `ws://127.0.0.1:${address.port}`, server, sockets: connections.sockets };
+			return {
+				close: connections.close,
+				endpoint: `ws://127.0.0.1:${address.port}`,
+				notify: (threadId: string, method: string) => {
+					for (const [socket, threads] of subscriptions) {
+						if (threads.has(threadId) && !socket.destroyed) {
+							socket.write(frame({ method, params: { threadId } }));
+						}
+					}
+				},
+				server,
+				sockets: connections.sockets,
+			};
 		}),
 		({ close }) => Effect.promise(close),
 	);

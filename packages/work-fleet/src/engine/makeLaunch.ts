@@ -23,7 +23,6 @@ export function makeLaunch(state: EngineState) {
 		continuation?: {
 			readonly sessionId: string;
 			readonly responses: readonly DecisionResponse[];
-			readonly stallRecovery?: Attempt["stallRecovery"];
 			readonly observationRetries?: number;
 		},
 	) {
@@ -71,7 +70,6 @@ export function makeLaunch(state: EngineState) {
 			providerFailures: stored.value.launchRetry?.rejections,
 			role: launchRole,
 			settings,
-			stallRecovery: continuation?.stallRecovery,
 			...(sessionId === undefined ? {} : { sessionId }),
 			status: "submitting",
 			submittedAt: policy.now(),

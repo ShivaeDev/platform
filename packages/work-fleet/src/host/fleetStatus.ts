@@ -29,7 +29,7 @@ export const fleetStatus = Effect.fn("FleetHost.fleetStatus")(function* (host: F
 const StatusRecord = Schema.Struct({
 	...Struct.pick(FleetRecord.fields, ["attentionOwner", "blocker", "completedAt", "outcome", "result", "step", "updatedAt", "workId"]),
 	attempts: Schema.Array(
-		Schema.Struct(Struct.pick(Attempt.fields, ["briefSteers", "overLimit", "progress", "publishedRecovery", "receipt", "stallRecovery", "status"])),
+		Schema.Struct(Struct.pick(Attempt.fields, ["briefSteers", "overLimit", "progress", "publishedRecovery", "receipt", "status"])),
 	),
 	checks: Schema.optional(Schema.Struct({ pending: Schema.optional(Schema.Boolean) })),
 	decision: Schema.optional(Schema.Struct(Struct.omit(Decision.fields, ["publicationWork", "published"]))),

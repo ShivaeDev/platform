@@ -23,9 +23,9 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 				return { turn: { id } };
 			}
 			case "thread/turns/list":
-				return { data: [...states].filter(([id]) => !hidden.has(id)).map(([id, status]) => ({ id, items, status })), nextCursor: null };
+				return { data: [...states].filter(([id]) => !hidden.has(id)).map(([id, status]) => ({ id, items: [], status })), nextCursor: null };
 			case "thread/items/list":
-				return { data: [], nextCursor: null };
+				return { data: items.toReversed().map((item) => ({ item })), nextCursor: null };
 			case "turn/interrupt": {
 				const params = Schema.decodeUnknownSync(TurnParams)(request.params);
 				if (!delayInterrupt) {
@@ -45,6 +45,7 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 		changeStatus: () => {
 			items = items.map((item) => ({ ...item, status: item.status === "inProgress" ? "completed" : "inProgress" }));
 		},
+		emit: () => server.notify("worker-thread", "item/commandExecution/outputDelta"),
 		hidden,
 		requests,
 		states,

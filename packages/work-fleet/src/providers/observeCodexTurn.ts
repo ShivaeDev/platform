@@ -1,8 +1,13 @@
 import { Effect, Schema } from "effect";
-import type { codexTurns } from "#providers/codexTurns.ts";
+import type { CodexActivity } from "#providers/codexLive.ts";
+import { type codexTurns, finalOutput, type Progress } from "#providers/codexTurns.ts";
 import { ProviderCapacity, type SessionObservation, type SessionReceipt } from "#session/schema.ts";
 
-export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provisioning: SessionObservation["provisioning"]) {
+function sorted(progress: readonly Progress[]) {
+	return [...progress].sort((left, right) => left.id.localeCompare(right.id));
+}
+
+export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provisioning: SessionObservation["provisioning"], activity?: CodexActivity) {
 	const terminal = new Map<string, SessionObservation>();
 	return Effect.fn("Codex.observe")(function* (receipt: SessionReceipt) {
 		const key = `${receipt.sessionId}/${receipt.turnId}`;
@@ -10,31 +15,44 @@ export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provision
 		if (cached !== undefined) {
 			return cached;
 		}
-		const { turn, progress } = yield* turns.readTurn(receipt.sessionId, receipt.turnId, true);
+		const { turn, progress } = yield* turns.readTurn(receipt.sessionId, receipt.turnId);
 		if (turn === undefined) {
 			return {
 				execution: "accepted" as const,
 				output: "",
-				progress: progress.sort((left, right) => left.id.localeCompare(right.id)),
+				progress: sorted(progress),
 				provisioning,
 				receipt,
 				turnMissing: true,
 			};
 		}
-		const output = turn.status === "inProgress" ? "" : yield* turns.readOutput(receipt);
+		if (turn.status === "inProgress") {
+			// The latest item still observes the turn when the provider refuses a subscription.
+			yield* (activity?.follow(receipt.sessionId) ?? Effect.void).pipe(Effect.ignore);
+			const latest = yield* turns.latestItem(receipt.sessionId, receipt.turnId);
+			return {
+				activityAt: activity?.at(receipt.sessionId),
+				execution: "running" as const,
+				output: "",
+				progress: latest === undefined ? [] : [{ id: latest.id, status: latest.status }],
+				provisioning,
+				receipt,
+			};
+		}
+		const items = yield* turns.readItems(receipt);
+		const latest = items.at(-1);
 		const capacity = Schema.decodeUnknownOption(ProviderCapacity)(turn.error?.codexErrorInfo);
 		const observation: SessionObservation = {
 			capacity: capacity._tag === "Some" && turn.status === "failed" ? capacity.value : undefined,
 			error: turn.error?.message,
-			execution: turn.status === "inProgress" ? "running" : turn.status,
-			output,
-			progress: turn.items.map(({ id, status }) => ({ id, status })).sort((left, right) => left.id.localeCompare(right.id)),
+			execution: turn.status,
+			output: finalOutput(items),
+			progress: latest === undefined ? [] : [{ id: latest.id, status: latest.status }],
 			provisioning,
 			receipt,
 		};
-		if (observation.execution !== "running") {
-			terminal.set(key, observation);
-		}
+		terminal.set(key, observation);
+		activity?.forget(receipt.sessionId);
 		return observation;
 	});
 }

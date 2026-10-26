@@ -12,10 +12,8 @@ for (const fault of ["unavailable", "hanging", "mismatch"] as const) {
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			yield* fleet.reconcile("one");
-			for (let pass = 0; pass < 3; pass += 1) {
-				advanceTime(31 * 60_000);
-				yield* fleet.reconcile("one");
-			}
+			advanceTime(31 * 60_000);
+			yield* fleet.reconcile("one");
 			const stalled = yield* fleet.get("one");
 			expect(stalled.value.decision?.code).toBe("session-stalled");
 			failStalledProvider();

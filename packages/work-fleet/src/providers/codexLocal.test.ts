@@ -75,6 +75,9 @@ providerStory.it(
 			if (request.method === "thread/turns/list") {
 				return { data: [{ id: receipt.turnId, items: [], status: "inProgress" }], nextCursor: null };
 			}
+			if (request.method === "thread/items/list") {
+				return { data: [], nextCursor: null };
+			}
 			return {};
 		});
 		yield* Effect.gen(function* () {
@@ -83,7 +86,6 @@ providerStory.it(
 			expect(yield* provider.interrupt(receipt)).toEqual(receipt);
 		});
 		expect(methods).not.toContain("turn/start");
-		expect(methods).not.toContain("thread/items/list");
 		expect(methods.filter((method) => method === "turn/interrupt")).toHaveLength(1);
 	},
 );

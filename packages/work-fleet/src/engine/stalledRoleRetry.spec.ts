@@ -12,10 +12,8 @@ for (const role of ["repair", "reviewer"] as const) {
 			finishWorkers();
 			yield* fleet.reconcile("one");
 			yield* fleet.reconcile("one");
-			for (let pass = 0; pass < 3; pass += 1) {
-				advanceTime(31 * 60_000);
-				yield* fleet.reconcile("one");
-			}
+			advanceTime(31 * 60_000);
+			yield* fleet.reconcile("one");
 			const stalled = yield* fleet.get("one");
 			expect(stalled.value.decision?.code).toBe("session-stalled");
 			const previous = stalled.value.attempts.at(-1);
