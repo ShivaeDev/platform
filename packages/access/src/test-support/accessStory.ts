@@ -19,6 +19,7 @@ export const accessStory = storyKit({
 		hasPermission: (role: typeof Access.Role.Type, permission: Permission) => engine.access.hasPermission(role, permission),
 		requireAccess: (permission: OwnPermission, ownerId: string) => engine.access.requireAccess(engine.user, permission, ownerId),
 		requirePermission: (permission: Permission) => engine.access.requirePermission(engine.user, permission),
+		resolve: (stored: unknown) => engine.access.resolve(stored),
 	}),
 });
 

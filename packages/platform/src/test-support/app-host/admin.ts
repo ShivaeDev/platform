@@ -6,10 +6,10 @@ import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http
 import { Rpc, RpcGroup } from "effect/rpc";
 import { AuthUnavailable, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { SessionUser } from "#rpc/identity.ts";
-import { AuthenticatedAdmin } from "#rpc/middleware.ts";
 import { appHost } from "#server/appHost.ts";
-import { adminRoute, authenticatedAdminLayer } from "#server/rpc-server/roles.ts";
+import { permissionLayer, permissionRoute } from "#server/rpc-server/permissions.ts";
 import type { SessionPolicy, UserSessionShape } from "#server/rpc-server/session.ts";
+import { TestRoles, ToolsPermission, UseTools } from "#test/auth/permissions.ts";
 import { staticAssets } from "./fixture.ts";
 import type { HostState } from "./state.ts";
 import { host } from "./story.ts";
@@ -18,8 +18,12 @@ const Admin = RpcGroup.make(
 	Rpc.make("adminRead", { success: Schema.String }),
 	Rpc.make("adminReject", { error: Conflict, success: Schema.String }),
 	Rpc.make("adminStream", { stream: true, success: Schema.String }),
-).middleware(AuthenticatedAdmin);
+).middleware(ToolsPermission);
 const Api = Admin.merge(RpcGroup.make(Rpc.make("publicRead", { success: Schema.String })));
+
+function memberSession(role: string) {
+	return { user: { email: "member@example.test", id: "member", name: "Member", role } };
+}
 
 function adminSessions(state: HostState) {
 	return {
@@ -30,13 +34,10 @@ function adminSessions(state: HostState) {
 					if (state.adminSession.unavailable) {
 						return Effect.fail(new AuthUnavailable({ message: "Session provider unavailable" }));
 					}
-					return Effect.succeed(
-						headers.authorization === "member"
-							? Option.some({ user: { email: "member@example.test", id: "member", name: "Member", role: state.adminSession.role } })
-							: Option.none(),
-					);
+					return Effect.succeed(headers.authorization === "member" ? Option.some(memberSession(state.adminSession.role)) : Option.none());
 				}),
 		},
+		roles: TestRoles,
 	};
 }
 
@@ -47,7 +48,10 @@ function adminRoutes(root: string, sessions: SessionPolicy<UserSessionShape>, st
 			yield* router.add(
 				"*",
 				"/admin/*",
-				adminRoute(sessions)((request) =>
+				permissionRoute(
+					sessions,
+					UseTools,
+				)((request) =>
 					Effect.andThen(
 						Effect.sync(() => state.calls.push(request.url)),
 						spa,
@@ -79,10 +83,18 @@ export const adminApplication = host.trait("configured", "admin routes and RPC s
 				),
 			adminStream: () => Stream.concat(Stream.fromEffect(read), Stream.never),
 			publicRead: () => Effect.succeed("public result"),
-		}).pipe(Layer.provideMerge(authenticatedAdminLayer(sessions)));
+		}).pipe(Layer.provideMerge(permissionLayer(ToolsPermission, sessions)));
 		const routes = adminRoutes(files.path, sessions, state);
 		state.build = () =>
-			appHost({ assets: { root: files.path, spa: true }, config: state.config, group: Api, handlers, routes, services: Layer.empty, sessions });
+			appHost({
+				assets: { root: files.path, spa: true },
+				config: state.config,
+				group: Api,
+				handlers,
+				routes,
+				services: Layer.empty,
+				sessions,
+			});
 	}),
 );
 

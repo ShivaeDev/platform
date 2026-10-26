@@ -1,6 +1,7 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { Config, Effect, Option, Redacted } from "effect";
 import { Pool, type PoolClient, type PoolConfig } from "pg";
+import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BearerSessionsOptions, sessionHeaders, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
@@ -10,9 +11,11 @@ import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import type { GetSession } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { trustedProxyRanges } from "#server/rpc-server/local.ts";
 import type { SessionShape } from "#server/rpc-server/session.ts";
+import { mountedSessions } from "./mountedSessions.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
+	readonly roles?: RoleSet;
 	readonly signIn?: SignInPolicy<E, R> | undefined;
 }
 
@@ -49,14 +52,28 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 				trustedProxies,
 			},
 		},
-		"baseURL": options.baseURL ?? Option.getOrElse(origin, () => ({ allowedHosts: ["127.0.0.1:*"], protocol: "http" as const })),
+		"baseURL":
+			options.baseURL
+			?? Option.getOrElse(origin, () => ({
+				allowedHosts: ["127.0.0.1:*"],
+				protocol: "http" as const,
+			})),
 		databaseHooks: gate.active ? gated.databaseHooks : options.databaseHooks,
-		rateLimit: { ...rateLimit, ...(customStorage === undefined ? {} : { customStorage }), enabled: rateLimitEnabled },
+		rateLimit: {
+			...rateLimit,
+			...(customStorage === undefined ? {} : { customStorage }),
+			enabled: rateLimitEnabled,
+		},
 		secret,
 		trustedOrigins: options.trustedOrigins ?? [Option.getOrElse(origin, () => "http://127.0.0.1:*")],
 		user: gate.active ? gated.user : options.user,
 	});
-	const routes = mountRoutes(auth, { bearerSessions: mount.bearerSessions, clientIpHeader, trustedProxy });
+	const authRoutes = mountRoutes(auth, {
+		bearerSessions: mount.bearerSessions,
+		clientIpHeader,
+		roles: mount.roles,
+		trustedProxy,
+	});
 	function admittedSessions<TSession extends SessionShape>(getSession: GetSession<TSession>): GetSession<TSession> {
 		if (!gate.active && mount.bearerSessions === undefined) {
 			return getSession;
@@ -84,7 +101,13 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 		revokeUnadmitted(gate, () => auth.$context),
 		context,
 	);
-	return { admittedSessions, auth, revokeUnadmitted: revoke, routes };
+	const lookupSession = Reflect.get(auth.api, "getSession");
+	const sessions = mountedSessions(
+		(headers) => lookupSession({ asResponse: false, headers, query: { disableCookieCache: true }, returnHeaders: false }),
+		admittedSessions,
+		mount.roles,
+	);
+	return { admittedSessions, auth, revokeUnadmitted: revoke, routes: authRoutes, sessions };
 });
 
 export const authDatabase = Effect.fn("Platform.authDatabase")(function* (
@@ -95,11 +118,19 @@ export const authDatabase = Effect.fn("Platform.authDatabase")(function* (
 	const run = Effect.runForkWith(yield* Effect.context<never>());
 	return yield* Effect.acquireRelease(
 		Effect.sync(() => {
-			const pool = new Pool({ ...options, connectionString: Redacted.value(url) });
+			const pool = new Pool({
+				...options,
+				connectionString: Redacted.value(url),
+			});
 			pool.on("connect", (client) => clients.add(client));
 			pool.on("remove", (client) => clients.delete(client));
 			pool.on("error", (error) => {
-				run(Effect.logDebug({ event: "auth_database_idle_client_failed", message: error.message }));
+				run(
+					Effect.logDebug({
+						event: "auth_database_idle_client_failed",
+						message: error.message,
+					}),
+				);
 			});
 			return pool;
 		}),

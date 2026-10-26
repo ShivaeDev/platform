@@ -5,7 +5,10 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
-import { authenticatedAdminLayer } from "@shivaedev/platform/server/rpc-server/roles.ts";
+import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
+import { AdminPermission, OpenAdmin } from "@shivaedev/admin/permissions.ts";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
 
 class JobStore extends Context.Service<JobStore, readonly string[]>()("consumer/JobStore") {}
 const Failed = query("failed", { reads: () => [], success: Schema.Array(Schema.String) });
@@ -19,7 +22,7 @@ type Equal<A, B> = [A, B] extends [B, A] ? true : false;
 const preserved: Equal<Layer.Services<typeof registered.handlers>, JobStore> = true;
 void preserved;
 const changes = Jobs.contract.toLayerHandler("admin.jobs.$changes", () => Stream.empty);
-const auth = authenticatedAdminLayer({
+const auth = permissionLayer(AdminPermission, { roles: roleSet(role("admin", [OpenAdmin])),
   origin: () => true,
   provider: { get: () => Effect.succeed(Option.some({ user: { id: "operator", email: "operator@example.test", name: "Operator", role: "admin" } })) },
 });

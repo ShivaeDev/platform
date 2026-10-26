@@ -29,7 +29,11 @@ export function roleSet<const TName extends string>(...roles: readonly [RoleDefi
 		}
 		return hasPermission(user.role, permission)
 			? Effect.void
-			: Effect.fail(new Forbidden({ message: `Permission required: ${permission.name} (${permission.strength})` }));
+			: Effect.fail(
+					new Forbidden({
+						message: `Permission required: ${permission.name} (${permission.strength})`,
+					}),
+				);
 	}
 	function requireAccess(
 		user: User<TName> | null | undefined,
@@ -41,5 +45,20 @@ export function roleSet<const TName extends string>(...roles: readonly [RoleDefi
 		}
 		return canAccess(user, permission, ownerId) ? Effect.void : Effect.fail(new Forbidden({ message: `Access denied: ${permission.name}` }));
 	}
-	return { canAccess, hasPermission, Role, requireAccess, requirePermission };
+	function resolve(stored: unknown) {
+		return Effect.map(Schema.decodeUnknownEffect(Role)(stored), (roleName) => ({
+			permissions: (roles.find((candidate) => candidate.name === roleName)?.permissions ?? []).map(({ name, strength }) => ({ name, strength })),
+			role: roleName,
+		}));
+	}
+	return {
+		canAccess,
+		hasPermission,
+		Role,
+		requireAccess,
+		requirePermission,
+		resolve,
+	};
 }
+
+export type RoleSet = Pick<ReturnType<typeof roleSet>, "resolve">;

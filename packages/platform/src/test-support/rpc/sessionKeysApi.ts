@@ -7,7 +7,8 @@ import { collection, invalidationKeys } from "@shivaedev/effect-contract/keys.ts
 import { command, query } from "@shivaedev/effect-contract/operation.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
 import { Identity } from "#rpc/identity.ts";
-import { Authenticated, AuthenticatedAdmin, AuthenticatedOwner, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "#rpc/middleware.ts";
+import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "#rpc/middleware.ts";
+import { ManagementPermission, ToolsPermission } from "#test/auth/permissions.ts";
 
 export const Preferences = collection("preferences", Schema.String);
 const get = query("get", { payload: { id: Schema.String }, reads: ({ id }) => [Preferences.item(id)], success: Schema.String });
@@ -26,9 +27,9 @@ export class CustomAuthenticated extends RpcMiddleware.Service<CustomAuthenticat
 }) {}
 export const Apis = {
 	account: scoped("account").middleware(Authenticated),
-	admin: scoped("admin").middleware(AuthenticatedAdmin),
+	admin: scoped("admin").middleware(ToolsPermission),
 	custom: scoped("custom").middleware(CustomAuthenticated),
-	owner: scoped("owner").middleware(AuthenticatedOwner),
+	owner: scoped("owner").middleware(ManagementPermission),
 	profile: scoped("profile").middleware(AuthenticatedUser),
 	providers: scoped("providers").middleware(AuthenticatedUserWithProviderAccounts),
 };

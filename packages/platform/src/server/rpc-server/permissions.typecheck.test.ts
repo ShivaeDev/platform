@@ -3,12 +3,20 @@ import { HttpServerResponse } from "effect/http";
 import { expectTypeOf } from "vitest";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import type { HostRouteGuard } from "#test/auth/HostRouteGuard.ts";
-import { adminRoute } from "./roles.ts";
+import { TestRoles, UseTools } from "#test/auth/permissions.ts";
+import { permissionRoute } from "./permissions.ts";
 
 class Required extends Context.Service<Required, string>()("admin-route/Required") {}
 class HandlerFailure extends Data.TaggedError("HandlerFailure") {}
 
-const guard = adminRoute({ origin: () => true, provider: { get: () => Effect.succeed(Option.none()) } });
+const guard = permissionRoute(
+	{
+		origin: () => true,
+		provider: { get: () => Effect.succeed(Option.none()) },
+		roles: TestRoles,
+	},
+	UseTools,
+);
 function mount(routeGuard: HostRouteGuard) {
 	return routeGuard(() => Effect.map(Required, HttpServerResponse.text));
 }

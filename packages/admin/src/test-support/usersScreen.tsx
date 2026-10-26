@@ -6,15 +6,15 @@ import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { render } from "@shivaedev/effect-react/client/testing.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { AuthenticatedAdmin } from "@shivaedev/platform/rpc/middleware.ts";
 import { type ChangeRoleInput, LastOwner } from "@shivaedev/platform/rpc/userRoles.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/UsersView.ts";
+import { AdminPermission } from "#permissions.ts";
 import { UsersPage } from "#users/page.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
-const authenticated = Layer.succeed(AuthenticatedAdmin, (effect) =>
+const authenticated = Layer.succeed(AdminPermission, (effect) =>
 	effect.pipe(
 		Effect.provideService(Identity, { id: "owner" }),
 		Effect.provideService(SessionUser, { email: "owner@app.test", id: "owner", name: "Owner", role: "admin,owner" }),

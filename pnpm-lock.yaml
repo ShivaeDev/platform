@@ -448,6 +448,9 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)
+      '@shivaedev/access':
+        specifier: workspace:*
+        version: link:../../packages/access
       '@shivaedev/admin':
         specifier: workspace:*
         version: link:../../packages/admin
@@ -591,6 +594,9 @@ importers:
 
   packages/admin:
     dependencies:
+      '@shivaedev/access':
+        specifier: workspace:*
+        version: link:../access
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract
@@ -1298,6 +1304,9 @@ importers:
 
   packages/platform:
     dependencies:
+      '@shivaedev/access':
+        specifier: workspace:*
+        version: link:../access
       '@shivaedev/effect-contract':
         specifier: workspace:*
         version: link:../effect-contract

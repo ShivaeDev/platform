@@ -36,19 +36,3 @@ export class AuthenticatedUserWithProviderAccounts extends RpcMiddleware.Service
 >()("@shivaedev/platform/rpc/AuthenticatedUserWithProviderAccounts", {
 	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden]),
 }) {}
-export class AuthenticatedAdmin extends RpcMiddleware.Service<
-	AuthenticatedAdmin,
-	{
-		provides: Identity | SessionUser;
-	}
->()("@shivaedev/platform/rpc/AuthenticatedAdmin", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden]),
-}) {}
-export class AuthenticatedOwner extends RpcMiddleware.Service<
-	AuthenticatedOwner,
-	{
-		provides: Identity | SessionUser;
-	}
->()("@shivaedev/platform/rpc/AuthenticatedOwner", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden]),
-}) {}

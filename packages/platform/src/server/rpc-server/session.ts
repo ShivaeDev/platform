@@ -1,5 +1,7 @@
 import { Duration, Effect, Exit, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
+import type { Permission } from "@shivaedev/access/permission.ts";
+import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import {
 	Identity,
@@ -12,7 +14,9 @@ import {
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#rpc/middleware.ts";
 import { sessionCommandChanges } from "#server/commandChanges.ts";
 import { type OriginPolicy, originRequest } from "./origin.ts";
+import { resolveRole } from "./resolveRole.ts";
 import { revalidateStream } from "./revalidateStream.ts";
+import { sessionProfile } from "./sessionProfile.ts";
 import { transportHeaders } from "./transportHeaders.ts";
 export interface SessionShape {
 	readonly user: {
@@ -25,21 +29,30 @@ export interface SessionProvider<TSession extends SessionShape> {
 export interface SessionPolicy<TSession extends SessionShape> {
 	readonly origin: OriginPolicy;
 	readonly provider: SessionProvider<TSession>;
+	readonly roles?: RoleSet;
 	readonly streamRevalidationInterval?: Duration.Input | undefined;
 }
 export const resolveSession: <TSession extends SessionShape>(
 	policy: SessionPolicy<TSession>,
 	headers: Headers.Headers,
 	rpc: string,
-) => Effect.Effect<Option.Option<TSession>, AuthUnavailable | Forbidden> = Effect.fn("PlatformRpc.resolveSession")(function* <
-	TSession extends SessionShape,
->(policy: SessionPolicy<TSession>, headers: Headers.Headers, rpc: string) {
-	const transport = yield* transportHeaders(headers);
-	if (!policy.origin(originRequest(transport, rpc))) {
-		return yield* new Forbidden({ message: "Origin not allowed" });
-	}
-	return yield* policy.provider.get(transport);
-});
+) => Effect.Effect<Option.Option<TSession & { readonly user: { readonly permissions?: readonly Permission[] } }>, AuthUnavailable | Forbidden> =
+	Effect.fn("PlatformRpc.resolveSession")(function* <TSession extends SessionShape>(
+		policy: SessionPolicy<TSession>,
+		headers: Headers.Headers,
+		rpc: string,
+	) {
+		const transport = yield* transportHeaders(headers);
+		if (!policy.origin(originRequest(transport, rpc))) {
+			return yield* new Forbidden({ message: "Origin not allowed" });
+		}
+		const session = yield* policy.provider.get(transport);
+		if (Option.isNone(session) || policy.roles === undefined) {
+			return session;
+		}
+		const access = yield* resolveRole(policy.roles, Reflect.get(session.value.user, "role"));
+		return Option.some({ ...session.value, user: { ...session.value.user, ...access } });
+	});
 function identified(id: string) {
 	return Effect.andThen(Effect.annotateCurrentSpan("user.id", id), Effect.succeed(id));
 }
@@ -85,16 +98,11 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const { name, email, role } = session.value.user;
+			const user = sessionProfile(session.value.user);
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
-				Effect.provideService(SessionUser, {
-					email,
-					id,
-					name,
-					...(role === undefined ? {} : { role }),
-				}),
+				Effect.provideService(SessionUser, user),
 				Effect.annotateLogs({ userId: id }),
 			);
 		});
@@ -121,12 +129,12 @@ export function authenticatedUserWithProviderAccountsLayer<TSession extends Prov
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const { id, name, email, role, providerAccounts } = session.value.user;
+			const { id, providerAccounts } = session.value.user;
 			const accounts = yield* Effect.cachedWithTTL(
 				Effect.map(providerAccounts, (values) => values.map(({ accountId, providerId }) => ({ accountId, providerId }))),
 				(exit) => (Exit.isSuccess(exit) ? Duration.infinity : Duration.zero),
 			);
-			const user = { email, id, name, ...(role === undefined ? {} : { role }) };
+			const user = sessionProfile(session.value.user);
 			yield* identified(id);
 			return yield* sessionCommandChanges(effect, rpc, payload).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),

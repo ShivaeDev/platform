@@ -1,15 +1,11 @@
 import { expect } from "vitest";
 import { auth, signedInWithRole } from "#test/auth/story.ts";
 
-auth.it(
-	"an admin receives the handler response on GET and POST",
-	[signedInWithRole("user,admin")],
-	function* ({ openAdminTools, adminHandlerRequests }) {
-		expect(yield* openAdminTools()).toEqual({ body: "Admin tools for member@example.test", status: 200 });
-		expect(yield* openAdminTools("POST")).toEqual({ body: "Admin tools for member@example.test", status: 201 });
-		expect(yield* adminHandlerRequests()).toEqual(["GET", "POST"]);
-	},
-);
+auth.it("an admin receives the handler response on GET and POST", [signedInWithRole("admin")], function* ({ openAdminTools, adminHandlerRequests }) {
+	expect(yield* openAdminTools()).toEqual({ body: "Admin tools for member@example.test", status: 200 });
+	expect(yield* openAdminTools("POST")).toEqual({ body: "Admin tools for member@example.test", status: 201 });
+	expect(yield* adminHandlerRequests()).toEqual(["GET", "POST"]);
+});
 
 auth.it("a signed-in user without admin cannot run the handler", [signedInWithRole("user")], function* ({ openAdminTools, adminHandlerRequests }) {
 	expect((yield* openAdminTools()).status).toBe(403);

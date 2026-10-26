@@ -1,6 +1,6 @@
 # @shivaedev/admin
 
-Admin tooling starts with an explicit list of pages and the operations each page needs. This package collects native Effect contracts behind the administrator role, so every page operation shares the same boundary.
+Admin tooling starts with an explicit list of pages and the operations each page needs. This package collects native Effect contracts behind a declared permission, so every page operation shares the same boundary.
 
 ## Declare the tools operators can use
 
@@ -13,7 +13,7 @@ const Jobs = adminPage({
 const Admin = adminRegistry(Jobs);
 ```
 
-The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `AuthenticatedAdmin`. A query-only contract has no command; an owner without the `admin` role remains forbidden.
+The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `AdminPermission`, which checks the `OpenAdmin` permission (`admin.open`). A query-only contract has no command. The application grants this permission to its chosen roles.
 
 ## Use native contracts and Layers
 
@@ -45,7 +45,8 @@ Register server handler Layers by page id:
 ```ts
 import { Effect, Layer } from "effect";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { authenticatedAdminLayer } from "@shivaedev/platform/server/rpc-server/roles.ts";
+import { AdminPermission, OpenAdmin } from "@shivaedev/admin/permissions.ts";
+import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
 
 const registration = registerAdmin(Admin, {
   jobs: Jobs.contract.application.toLayer({
@@ -53,13 +54,15 @@ const registration = registerAdmin(Admin, {
   }),
 });
 const handlers = registration.handlers.pipe(
-  Layer.provideMerge(authenticatedAdminLayer(sessions)),
+  Layer.provideMerge(permissionLayer(AdminPermission, sessions)),
 );
 ```
 
+Declare application roles with `@shivaedev/access`, grant `OpenAdmin` explicitly, and supply that role set through Platform's session or auth configuration.
+
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
-Page declarations and the registry are browser-safe. Server registration lives under `/server`; applications own route composition and styling. The built-in Users view uses React; server declarations add no transport. The package's stories prove role enforcement through native in-process RPC, with an already resolved session as a precondition.
+Page declarations and the registry are browser-safe. Server registration lives under `/server`; applications own route composition and styling. The built-in Users view uses React; server declarations add no transport. The package's stories prove permission enforcement through native in-process RPC, with an already resolved session as a precondition.
 
 ## Built-in Jobs page
 
@@ -90,7 +93,7 @@ The queries are `admin.jobs.health`, `admin.jobs.counts`, `admin.jobs.failed`, `
 
 Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as effect-pg-boss health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
-The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and role enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
+The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and permission enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
 
 ### Declare retry explicitly
 
@@ -107,7 +110,7 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires the `admin` role, including when the caller has the `owner` role. The handler uses effect-pg-boss's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `OpenAdmin`, through the same page middleware. The handler uses effect-pg-boss's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.
 
@@ -126,8 +129,8 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 <UsersView list={users.list.query} changeRole={changeRole} />;
 ```
 
-`admin.users.list` takes `{ limit, cursor? }` (1–100 users), returns `{ users, next, canChangeRoles }`, and orders pages by user id. Each user has id, name, email, roles and a UTC sign-up time. All reads and subscriptions require `admin`. Only callers who also have `owner` see role controls. `admin.users.changeRole` takes `{ userId, role, grant }` for Platform's `user`, `admin` and `owner` roles. It returns typed `Forbidden` for a non-owner, `LastOwner` when revoking the final owner, and `NotFound` for a missing user. Role changes preserve other roles, invalidate the list after commit, and emit an Effect log with actor id, target id, role, action and timestamp. There is no durable audit-history store.
+`admin.users.list` takes `{ limit, cursor? }` (1–100 users), returns `{ users, next, canChangeRoles }`, and orders pages by user id. Each user has id, name, email, roles and a UTC sign-up time. All reads and subscriptions require `OpenAdmin`. Callers granted `ChangeUserRoles` (`users.roles.change`) from Platform's `rpc/userRoles.ts` see role controls. `admin.users.changeRole` takes `{ userId, role, grant }` for Platform's `user`, `admin` and `owner` roles. It returns typed `Forbidden` without that permission, `LastOwner` when revoking the final owner, and `NotFound` for a missing user. Role changes preserve other roles, invalidate the list after commit, and emit an Effect log with actor id, target id, role, action and timestamp. There is no durable audit-history store.
 
-Keep Better Auth cookie caching disabled so requests see current roles. Applications must route role writes through this operation to retain its owner and last-owner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
+Keep Better Auth cookie caching disabled so requests see current roles. Applications must route role writes through this operation to retain its permission and last-owner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
 
 The starter mounts Users beside Jobs and bootstraps new administrators with both `admin` and `owner`. Existing generated apps receive this wiring through `pnpm dlx @shivaedev/create-app@latest update` after release; review conflicts and install dependencies. For an existing database with no owner, bootstrap a new administrator with `pnpm admin:create`.

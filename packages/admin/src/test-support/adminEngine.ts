@@ -5,9 +5,11 @@ import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { hostChanges } from "@shivaedev/platform/server/hostChanges.ts";
-import { authenticatedAdminLayer } from "@shivaedev/platform/server/rpc-server/roles.ts";
+import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/platform/server/rpc-server/session.ts";
+import { AdminPermission } from "#permissions.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
+import { Access } from "./Access.ts";
 import { Jobs, Registry, Users } from "./pages.ts";
 
 export const adminEngine = Effect.gen(function* () {
@@ -25,7 +27,11 @@ export const adminEngine = Effect.gen(function* () {
 		}),
 	});
 	const changes = hostChanges(registration.group, AppChanges).pipe(Layer.provide(Layer.succeed(AppChanges, live)));
-	const auth = authenticatedAdminLayer({ origin: () => true, provider: { get: () => Ref.get(session) } });
+	const auth = permissionLayer(AdminPermission, {
+		origin: () => true,
+		provider: { get: () => Ref.get(session) },
+		roles: Access,
+	});
 	const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(Layer.mergeAll(registration.handlers, changes, auth)));
 	return { client, session };
 });

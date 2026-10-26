@@ -1,10 +1,10 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { AuthUnavailable, Forbidden, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { AuthUnavailable, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/effect-sql/transact.ts";
-import { hasRole } from "#rpc/hasRole.ts";
 import { SessionUser } from "#rpc/identity.ts";
-import { type ChangeRoleInput, LastOwner, type UserListInput } from "#rpc/userRoles.ts";
+import { requirePermission } from "#rpc/permission.ts";
+import { type ChangeRoleInput, ChangeUserRoles, LastOwner, type UserListInput } from "#rpc/userRoles.ts";
 
 const StoredUser = Schema.Struct({
 	createdAt: Schema.Date,
@@ -36,9 +36,7 @@ export const listUsers = Effect.fn("Platform.listUsers")(function* (input: typeo
 
 export const changeUserRole = Effect.fn("Platform.changeUserRole")(function* (input: typeof ChangeRoleInput.Type) {
 	const actor = yield* SessionUser;
-	if (!hasRole(actor, "owner")) {
-		return yield* Effect.fail(new Forbidden({ message: "Owner role required" }));
-	}
+	yield* requirePermission(ChangeUserRoles);
 	const sql = yield* SqlClient.SqlClient;
 	const changed = yield* Effect.gen(function* () {
 		yield* sql`select pg_advisory_xact_lock(hashtext('platform.auth.user-roles'))`;

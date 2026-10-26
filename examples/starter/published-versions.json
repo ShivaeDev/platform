@@ -1,4 +1,5 @@
 {
+	"@shivaedev/access": "0.0.0",
 	"@shivaedev/admin": "0.4.0",
 	"@shivaedev/effect-changes": "0.3.2",
 	"@shivaedev/effect-changes-prisma": "0.5.4",
