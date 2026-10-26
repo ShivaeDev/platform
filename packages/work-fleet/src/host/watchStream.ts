@@ -1,5 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Console, Effect, Stream } from "effect";
+import { FetchHttpClient, HttpClient } from "effect/http";
 import { daemonClient } from "#host/daemonClient.ts";
 import { readDaemonPort } from "#host/daemonPort.ts";
 import { type EventKind, type WatchEvent, watchTransitions } from "#host/watchEvents.ts";
@@ -17,8 +18,8 @@ export interface WatchStreamOptions {
 
 export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (options: WatchStreamOptions) {
 	const transitions = watchTransitions(options.stuckMs);
-	let seenAt = yield* Clock.currentTimeMillis;
 	let unreachable = false;
+	let outageEpoch: string | undefined;
 	let epoch: string | undefined;
 	let states: readonly WatchState[] | undefined;
 	function print(event: WatchEvent) {
@@ -27,19 +28,14 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 	const receive = Effect.fnUntraced(function* (snapshot: typeof WatchSnapshot.Type) {
 		const now = yield* Clock.currentTimeMillis;
 		if (epoch !== undefined && epoch !== snapshot.epoch) {
-			if (!unreachable) {
+			if (outageEpoch !== epoch) {
 				yield* print({ kind: "daemon-unreachable" });
+				yield* print({ kind: "daemon-back" });
 			}
-			unreachable = true;
 			states = undefined;
 			transitions.reset();
 		}
-		if (unreachable) {
-			yield* print({ kind: "daemon-back" });
-		}
-		unreachable = false;
 		epoch = snapshot.epoch;
-		seenAt = now;
 		if (snapshot.states) {
 			states = snapshot.states;
 			for (const event of transitions.update(states, now)) {
@@ -48,16 +44,29 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 		}
 	});
 	const health = Effect.gen(function* () {
-		if (!unreachable && (yield* Clock.currentTimeMillis) - seenAt >= 3000) {
-			unreachable = true;
-			yield* print({ kind: "daemon-unreachable" });
-		}
 		if (!unreachable && states) {
 			for (const event of transitions.update(states, yield* Clock.currentTimeMillis)) {
 				yield* print(event);
 			}
 		}
 	}).pipe(Effect.andThen(Effect.sleep("100 millis")), Effect.forever);
+	const liveness = Effect.gen(function* () {
+		const alive = yield* Effect.gen(function* () {
+			const port = yield* readDaemonPort(options.board, options.port).pipe(Effect.provide(NodeServices.layer));
+			const response = yield* HttpClient.get(`http://127.0.0.1:${port}/live`);
+			return response.status === 204;
+		}).pipe(
+			Effect.timeout("1 second"),
+			Effect.orElseSucceed(() => false),
+		);
+		if (!alive) {
+			outageEpoch = epoch;
+		}
+		if (unreachable !== !alive) {
+			unreachable = !alive;
+			yield* print({ kind: alive ? "daemon-back" : "daemon-unreachable" });
+		}
+	}).pipe(Effect.provide(FetchHttpClient.layer), Effect.andThen(Effect.sleep("500 millis")), Effect.forever);
 	const connect = Effect.gen(function* () {
 		const port = yield* readDaemonPort(options.board, options.port).pipe(Effect.provide(NodeServices.layer));
 		yield* Stream.unwrap(daemonClient(port).pipe(Effect.map((client) => client("daemon.watch", { workIds: options.workIds })))).pipe(
@@ -70,7 +79,7 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 		Effect.andThen(Effect.sleep(options.intervalMs)),
 		Effect.forever,
 	);
-	const consume = Effect.all([connect, health], {
+	const consume = Effect.all([connect, health, liveness], {
 		concurrency: "unbounded",
 		discard: true,
 	});

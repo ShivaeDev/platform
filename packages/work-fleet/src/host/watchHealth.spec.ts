@@ -1,7 +1,37 @@
 import { expect } from "@effect/vitest";
+import { Effect } from "effect";
 import { HEAD, PR } from "#test/githubResult.ts";
+import { delayedAnswer } from "#test/hostCommandDelaysTraits.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
 import { humanDelivery } from "#test/humanDelivery.ts";
+
+host.it(
+	"stalled provider calls and watch delivery leave a responsive daemon quiet",
+	[approvedWork(["one"]), delayedAnswer("startTurn")],
+	function* (daemon) {
+		daemon.enableDelay();
+		yield* daemon.acknowledgeDispatch("one");
+		yield* daemon.awaitDelay();
+		const proxy = yield* daemon.stalledWatchProxy();
+		yield* daemon.watchEvents({ events: "done", port: proxy.port });
+		yield* proxy.subscribed.pipe(Effect.timeout("5 seconds"));
+		yield* Effect.sleep("4 seconds");
+		expect(daemon.eventLines()).toEqual([]);
+		expect((yield* daemon.get("one")).attempts.at(-1)?.receipt).toBeUndefined();
+		yield* daemon.releaseDelay();
+		yield* daemon.launched("one");
+	},
+);
+
+host.it("a stopped daemon is reported promptly and its return clears the outage", [], function* (daemon) {
+	yield* daemon.watchEvents({ events: "done" });
+	yield* daemon.awaitSnapshot();
+	yield* daemon.stop();
+	yield* daemon.awaitEvent("daemon-unreachable").pipe(Effect.timeout("2 seconds"));
+	yield* daemon.start();
+	yield* daemon.awaitEvent("daemon-back").pipe(Effect.timeout("2 seconds"));
+	expect(daemon.eventLines()).toEqual([{ kind: "daemon-unreachable" }, { kind: "daemon-back" }]);
+});
 
 for (const samePort of [false, true]) {
 	host.it(
