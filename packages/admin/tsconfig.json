@@ -1,4 +1,7 @@
 {
+	"compilerOptions": {
+		"jsx": "react-jsx"
+	},
 	"exclude": ["src/test-support/fixtures"],
 	"extends": "../../tsconfig.base.json",
 	"include": ["src"]

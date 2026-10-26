@@ -34,7 +34,9 @@
 		"dist",
 		"src",
 		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx",
 		"!src/**/*.spec.ts",
+		"!src/**/*.spec.tsx",
 		"!src/**/test-support",
 		"README.md"
 	],
@@ -47,19 +49,28 @@
 	"dependencies": {
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-pg-boss": "workspace:*",
+		"@shivaedev/effect-react": "workspace:*",
 		"@shivaedev/platform": "workspace:*"
 	},
 	"devDependencies": {
+		"@effect/atom-react": "catalog:",
 		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
+		"@types/react": "catalog:",
+		"@types/react-dom": "catalog:",
 		"effect": "catalog:",
+		"happy-dom": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
-		"effect": "catalog:"
+		"@effect/atom-react": "catalog:",
+		"effect": "catalog:",
+		"react": "catalog:"
 	},
 	"engines": {
 		"node": ">=24"

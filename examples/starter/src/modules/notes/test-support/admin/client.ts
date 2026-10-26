@@ -3,6 +3,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { UsersPage } from "@shivaedev/admin/users/page.ts";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedAdmin } from "@shivaedev/platform/rpc/middleware.ts";
@@ -27,10 +28,11 @@ export function adminClient(retry = false) {
 	const jobs = bind(JobsPage.contract, Client);
 	const statistics = bind(StatisticsPage.contract, Client);
 	if (!retry) {
-		return { backend, jobs, runtime: Client.runtime, statistics };
+		const users = bind(UsersPage.contract, Client);
+		return { backend, changeRole: Client.runtime.fn(users.changeRole.run), jobs, runtime: Client.runtime, statistics, users };
 	}
 	const page = jobsPageWithRetry(noteQueue);
-	const registry = adminRegistry(page, StatisticsPage);
+	const registry = adminRegistry(page, StatisticsPage, UsersPage);
 	class RetryClient extends AtomRpc.Service<RetryClient>()("app/AdminClient", {
 		group: registry.group,
 		makeEffect: RpcTest.makeClient(registry.group, { flatten: true }),
@@ -38,5 +40,14 @@ export function adminClient(retry = false) {
 	}) {}
 	const api = bind(page.contract, RetryClient);
 	const action = RetryClient.runtime.fn((input: { readonly id: string; readonly queue: string }) => api.retry.run(input));
-	return { backend, jobs: api, retry: action, runtime: RetryClient.runtime, statistics: bind(StatisticsPage.contract, RetryClient) };
+	const users = bind(UsersPage.contract, RetryClient);
+	return {
+		backend,
+		changeRole: RetryClient.runtime.fn(users.changeRole.run),
+		jobs: api,
+		retry: action,
+		runtime: RetryClient.runtime,
+		statistics: bind(StatisticsPage.contract, RetryClient),
+		users,
+	};
 }

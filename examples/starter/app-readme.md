@@ -48,7 +48,7 @@ The built server serves the UI, authentication and RPC on port 3000 by default. 
 
 Open `/admin` or `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views register native contracts with [`@shivaedev/admin`](https://github.com/ShivaeDev/platform/tree/main/packages/admin) and use the existing `/rpc` transport and session-owned atoms. Vite serves the React routes and proxies their RPC calls to the app host. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. Both pages require the `admin` role; `owner` alone stays forbidden.
 
-After `pnpm migrate`, create an admin with a new email address:
+After `pnpm migrate`, create an admin and owner with a new email address:
 
 ```sh
 ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
@@ -69,3 +69,5 @@ To export Effect spans from both services, set `OTEL_EXPORTER_OTLP_ENDPOINT` or 
 For Railway, install its CLI, link an empty project and follow the [deployment guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy). Set the shared authentication secret and public URL for web before running `railway config plan` and `railway config apply`. The configuration in `.railway/railway.ts` defines PostgreSQL, web and worker services. Both services build. Web runs `pnpm migrate` in its pre-deploy container, then starts HTTP with `pnpm start`; Railway checks `/health`. Neither process migrates at boot. Web uses migration mode `"check"` after pre-deploy. The worker starts `pnpm worker` with migration mode `"wait"` until the schema is current. Every service without the pre-deploy migration command uses `"wait"`, because deploy platforms may start services in any order.
 
 Read the [framework docs](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md) for design boundaries and the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for local database and hosting details.
+
+`/admin/users` lists names, email addresses, roles and sign-up times. Owners who also hold `admin` can grant and revoke Platform roles; the server rejects demotion of the final owner. The bootstrap command creates both roles. Existing apps receive the Users route through the create-app updater; a database without an owner can bootstrap a new administrator. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. There is no durable audit-history store. This app disables Better Auth’s browser endpoints for setting roles, updating users and creating users so role writes use the guarded native contract; the server-side bootstrap API remains available.

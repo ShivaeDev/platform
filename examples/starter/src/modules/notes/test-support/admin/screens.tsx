@@ -62,7 +62,9 @@ export function adminScreen(path = "/admin/jobs") {
 		const auth = screenAuth();
 		function connect({ id }: { readonly id: string }) {
 			const client = id === "alice" ? engine.client : other;
-			return connectModules([{ api: client.jobs, bindings: [client.jobs, client.statistics], routes: (context) => adminRoutes(client, context) }]);
+			return connectModules([
+				{ api: client.jobs, bindings: [client.jobs, client.statistics, client.users], routes: (context) => adminRoutes(client, context) },
+			]);
 		}
 		function recheck() {
 			return undefined;

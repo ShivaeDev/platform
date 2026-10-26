@@ -936,6 +936,12 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/adapter.ts` | `effectPrismaAdapter(Database, runtime, options?)`: a Better Auth adapter over Effect Prisma; `modelName` maps model names. |
 | `server/testing/makePlatformIt.ts` | `makePlatformIt(Database)({ adapter, createCaller, layer, extend? })`. |
 
+### Manage app users
+
+`server/better-auth/users.ts` provides `listUsers({ limit, cursor? })` and `changeUserRole({ userId, role, grant })` using the existing Effect SQL client and Better Auth's default PostgreSQL user table with its admin plugin. Browser-safe schemas, Platform roles (`user`, `admin`, `owner`) and the typed `LastOwner` failure live in `rpc/userRoles.ts`. The admin package supplies the protected contract and React view.
+
+Role writes require an owner `SessionUser`, serialize role changes in a transaction, and reject removal of the final owner. They preserve unrelated roles and publish the `admin.users` invalidation after commit. Successful changes emit structured Effect logs with actor, target, role, action and UTC timestamp. Platform has no durable audit-history store. The host must use the same database as authentication; custom Better Auth table names and columns need their own integration.
+
 ### Install, setup and limits
 
 ```sh

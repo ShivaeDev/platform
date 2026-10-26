@@ -1,4 +1,6 @@
 import { createRoute, redirect } from "@tanstack/react-router";
+import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
+import { UsersPage } from "@shivaedev/admin/users/page.ts";
 import { JobsView } from "#client/admin/JobsView.tsx";
 import { AdminShell } from "#client/admin/Shell.tsx";
 import type { RouteContext } from "#client/Module.ts";
@@ -14,6 +16,15 @@ export function adminRoutes(client: AdminClient, { root }: RouteContext) {
 			},
 			getParentRoute: () => root,
 			path: "/admin",
+		}),
+		createRoute({
+			component: () => (
+				<AdminShell pages={Admin.pages} title={UsersPage.route.title}>
+					<UsersView changeRole={client.changeRole} list={client.users.list.query} />
+				</AdminShell>
+			),
+			getParentRoute: () => root,
+			path: UsersPage.route.path,
 		}),
 		createRoute({
 			component: () => (

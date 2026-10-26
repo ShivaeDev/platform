@@ -68,6 +68,9 @@ export function adminBackend() {
 			"admin.jobs.job": ({ id }: { readonly id: string }) => Effect.sync(() => Option.fromUndefinedOr(state.jobs.find((job) => job.id === id))),
 			"admin.notes.$changes": changes,
 			"admin.notes.statistics": () => Effect.sync(() => ({ ...state.statistics })),
+			"admin.users.$changes": changes,
+			"admin.users.changeRole": () => Effect.void,
+			"admin.users.list": () => Effect.succeed({ canChangeRoles: false, next: Option.none<string>(), users: [] }),
 		},
 		retry: ({ id }: { readonly id: string }) =>
 			Effect.suspend(() =>

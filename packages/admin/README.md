@@ -17,7 +17,7 @@ The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` sub
 
 ## Use native contracts and Layers
 
-Install `@shivaedev/admin` with `effect`. Declare each page's queries, commands and streams with `@shivaedev/effect-contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
+Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react`. Declare each page's queries, commands and streams with `@shivaedev/effect-contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
 
 ```ts
 import { Schema } from "effect";
@@ -59,7 +59,7 @@ const handlers = registration.handlers.pipe(
 
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
-Page declarations and the registry are browser-safe. Server registration lives under `/server`; views belong in the application. This package ships no UI components and adds no transport. The package's stories prove role enforcement through native in-process RPC, with an already resolved session as a precondition.
+Page declarations and the registry are browser-safe. Server registration lives under `/server`; applications own route composition and styling. The built-in Users view uses React; server declarations add no transport. The package's stories prove role enforcement through native in-process RPC, with an already resolved session as a precondition.
 
 ## Built-in Jobs page
 
@@ -110,3 +110,24 @@ const registration = registerAdmin(Admin, {
 This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires the `admin` role, including when the caller has the `owner` role. The handler uses effect-pg-boss's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.
+
+## Built-in Users page
+
+`UsersPage` from `@shivaedev/admin/users/page.ts` declares `/admin/users`. Add it to the same registry as Jobs and register `users: usersHandlers` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers use the application's existing Effect SQL client against Better Auth's default PostgreSQL `user` table, with the admin plugin's `role` column. They do not create another user store. Custom Better Auth table or column names are not supported by these handlers.
+
+Bind `UsersPage.contract` to the registry's native AtomRpc client, then mount the package view in the application's admin shell. The view uses semantic HTML and Tailwind utility classes; Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in `src/client/entry.css`, as the starter does:
+
+```tsx
+import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
+
+const users = bind(UsersPage.contract, Client);
+const changeRole = Client.runtime.fn(users.changeRole.run);
+
+<UsersView list={users.list.query} changeRole={changeRole} />;
+```
+
+`admin.users.list` takes `{ limit, cursor? }` (1–100 users), returns `{ users, next, canChangeRoles }`, and orders pages by user id. Each user has id, name, email, roles and a UTC sign-up time. All reads and subscriptions require `admin`. Only callers who also have `owner` see role controls. `admin.users.changeRole` takes `{ userId, role, grant }` for Platform's `user`, `admin` and `owner` roles. It returns typed `Forbidden` for a non-owner, `LastOwner` when revoking the final owner, and `NotFound` for a missing user. Role changes preserve other roles, invalidate the list after commit, and emit an Effect log with actor id, target id, role, action and timestamp. There is no durable audit-history store.
+
+Keep Better Auth cookie caching disabled so requests see current roles. Applications must route role writes through this operation to retain its owner and last-owner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
+
+The starter mounts Users beside Jobs and bootstraps new administrators with both `admin` and `owner`. Existing generated apps receive this wiring through `pnpm dlx @shivaedev/create-app@latest update` after release; review conflicts and install dependencies. For an existing database with no owner, bootstrap a new administrator with `pnpm admin:create`.

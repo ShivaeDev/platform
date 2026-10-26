@@ -16,7 +16,7 @@ export function notesRegistration(
 ): ClientModule {
 	return {
 		api: client.api,
-		bindings: [client.api, admin.jobs, admin.statistics],
+		bindings: [client.api, admin.jobs, admin.statistics, admin.users],
 		routes: (context) => [...routes(client, context), ...adminRoutes(admin, context)],
 	};
 }
