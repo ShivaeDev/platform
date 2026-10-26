@@ -19,10 +19,14 @@ export interface Follower {
 }
 
 export interface FollowOptions {
+	readonly apiUrl?: string;
 	readonly events?: string;
 	readonly follow?: boolean;
+	readonly heartbeat?: number;
 	readonly interval?: number;
 	readonly port?: number;
+	readonly prEvents?: boolean;
+	readonly prInterval?: number;
 	readonly stuckAfter?: number;
 	readonly timeout?: number;
 }
@@ -46,15 +50,9 @@ export function followerProcess(
 					cli,
 					command,
 					...ids,
-					...(options.follow ? ["--follow"] : []),
-					...(options.events === undefined ? [] : ["--events", options.events]),
-					...(options.stuckAfter === undefined ? [] : ["--stuck-after", String(options.stuckAfter)]),
 					"--board",
 					dirname(configFile),
-					...(options.port === undefined ? [] : ["--port", String(options.port)]),
-					"--interval",
-					String(options.interval ?? 0.05),
-					...(options.follow && options.timeout === undefined ? [] : ["--timeout", String(options.timeout ?? 20)]),
+					...followArguments(options),
 				],
 				{ stdio: ["ignore", "pipe", "pipe"] },
 			);
@@ -92,4 +90,22 @@ export function followerProcess(
 				await done;
 			}),
 	);
+}
+
+function followArguments(options: FollowOptions) {
+	const values: Readonly<Record<string, string | number | undefined>> = {
+		"api-url": options.apiUrl,
+		events: options.events,
+		heartbeat: options.heartbeat,
+		interval: options.interval ?? 0.05,
+		port: options.port,
+		"pr-interval": options.prInterval,
+		"stuck-after": options.stuckAfter,
+		timeout: options.follow && options.timeout === undefined ? undefined : (options.timeout ?? 20),
+	};
+	return [
+		...(options.follow ? ["--follow"] : []),
+		...(options.prEvents ? ["--pr-events"] : []),
+		...Object.entries(values).flatMap(([flag, value]) => (value === undefined ? [] : [`--${flag}`, String(value)])),
+	];
 }

@@ -1777,6 +1777,9 @@ importers:
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../platform
+      '@shivaedev/pr-watch':
+        specifier: workspace:*
+        version: link:../pr-watch
       '@shivaedev/work-board':
         specifier: workspace:*
         version: link:../work-board

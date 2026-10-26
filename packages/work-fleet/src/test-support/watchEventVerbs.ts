@@ -5,6 +5,7 @@ import { untilOutput } from "#test/follower.ts";
 import { type FollowOptions, followerProcess } from "#test/followerProcess.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { stalledWatchProxy } from "#test/stalledWatchProxy.ts";
+import { watchPrApi } from "#test/watchPrApi.ts";
 
 export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	function follower() {
@@ -16,6 +17,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 	}
 	return {
 		awaitEvent: (kind: string) => untilOutput(follower(), `"kind":"${kind}"`),
+		awaitWatchExit: () => Effect.promise(() => follower().done),
 		eventErrors: () => follower().errors(),
 		eventLines: (): readonly unknown[] =>
 			follower()
@@ -38,6 +40,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				progress: [{ id: "review-inspection", status: "running" }],
 			});
 		},
+		prApi: () => watchPrApi,
 		stalledWatchProxy: () => stalledWatchProxy(engine.running.port),
 		watchEvents: (options: FollowOptions = {}) =>
 			Effect.gen(function* () {
@@ -45,5 +48,6 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				const child = yield* followerProcess(engine.fixture.configFile, "watch", [], { timeout: 30, ...options });
 				engine.followers.set("events", child);
 			}),
+		watchRunning: () => follower().isRunning(),
 	};
 }

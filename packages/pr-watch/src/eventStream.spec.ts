@@ -16,7 +16,7 @@ watch.it("a piped fleet watch emits a selected dequeue within one interval and r
 	const elapsed = (yield* Clock.currentTimeMillis) - droppedAt;
 	expect(elapsed).toBeLessThanOrEqual(interval);
 	expect(h.cliLines().filter((line) => line.number !== undefined)).toEqual([
-		{ branch: "feature-1", event: "dequeued", number: 1, title: "Change 1" },
+		{ branch: "feature-1", event: "dequeued", number: 1, reason: "Queue entry removed; GitHub supplied no reason", title: "Change 1" },
 	]);
 	yield* h.cliStop();
 	yield* h.cliFinish();
