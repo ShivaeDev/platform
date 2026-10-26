@@ -71,23 +71,27 @@ host.it(
 	},
 );
 
-host.it("a fatal GitHub failure is an event before the combined stream ends", [approvedWork(["one"]), humanDelivery], function* (daemon) {
-	const github = yield* daemon.prApi();
-	github.fail(401);
-	yield* daemon.watchEvents({ apiUrl: github.url, prEvents: true, prInterval: 0.1 });
-	yield* daemon.awaitSnapshot();
-	const worker = yield* daemon.dispatch("one");
-	daemon.finishReviewedWorker(worker);
-	yield* daemon.reviewReady("one");
-	const result = yield* daemon.awaitWatchExit();
-	expect(result.code).toBe(1);
-	expect(daemon.eventLines()).toEqual(
-		expect.arrayContaining([
-			expect.objectContaining({ kind: "pr-error", message: expect.stringMatching(/\S/u) }),
-			expect.objectContaining({ kind: "pr-stopped", reason: "failed" }),
-		]),
-	);
-});
+host.it(
+	"a repository-wide authentication failure is an event before the combined stream ends",
+	[approvedWork(["one"]), humanDelivery],
+	function* (daemon) {
+		const github = yield* daemon.prApi();
+		github.failRepository(401);
+		yield* daemon.watchEvents({ apiUrl: github.url, prEvents: true, prInterval: 0.1 });
+		yield* daemon.awaitSnapshot();
+		const worker = yield* daemon.dispatch("one");
+		daemon.finishReviewedWorker(worker);
+		yield* daemon.reviewReady("one");
+		const result = yield* daemon.awaitWatchExit();
+		expect(result.code).toBe(1);
+		expect(daemon.eventLines()).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({ kind: "pr-error", message: expect.stringMatching(/\S/u) }),
+				expect.objectContaining({ kind: "pr-stopped", reason: "failed" }),
+			]),
+		);
+	},
+);
 
 host.it("an answer recorded through Board appears once even without running Fleet work", [boardWork({ "one.md": task("one") })], function* (daemon) {
 	const published = yield* daemon.publishBoardDecision("one", {
