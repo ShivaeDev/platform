@@ -3,17 +3,17 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "pr-watch-transient-polls.md",
-				"text": "---\n\"@shivaedev/pr-watch\": patch\n---\n\n### Fixed\n\n- Keep continuous PR watches running through network errors, request timeouts, GitHub server failures and rate limits. Report the failure cause, preserve saved observations and retry with bounded backoff, stopping after one hour without a successful round or immediately on permanent failures.\n"
+				"name": "fleet-provider-read-wakeup.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Run scheduled provider read retries without restarting the daemon when GitHub pacing delays the next scheduler pass.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "patch",
-				"directory": "packages/pr-watch",
-				"from": "0.4.3",
-				"name": "@shivaedev/pr-watch",
-				"to": "0.4.4"
+				"directory": "packages/work-fleet",
+				"from": "0.18.6",
+				"name": "@shivaedev/work-fleet",
+				"to": "0.18.7"
 			}
 		]
 	}

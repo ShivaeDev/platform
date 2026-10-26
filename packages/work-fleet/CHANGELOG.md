@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.18.7 - 2026-10-26
+
+### Fixed
+
+- Run scheduled provider read retries without restarting the daemon when GitHub pacing delays the next scheduler pass.
+
 ## 0.18.6 - 2026-10-26
 
 ### Fixed
