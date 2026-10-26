@@ -5,6 +5,7 @@ import { observedAttempt } from "#engine/observedAttempt.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { recoverStall } from "#engine/recoverStall.ts";
 import { recoverUnobservable } from "#engine/recoverUnobservable.ts";
+import { resumeObservedStall } from "#engine/resumeStalled.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
 import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
@@ -35,7 +36,11 @@ export function makeObserve(state: EngineState) {
 			attempt.operationId === latest.operationId ? observedAttempt(attempt, observation, state.policy.now()) : attempt,
 		);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: observationBlocker(stored.value, latest) });
-		return yield* advanceObservation(state, stored, observation, paused);
+		stored = yield* resumeObservedStall(state, stored, latest, observation);
+		if (latest.role === "reviewer") {
+			return stored;
+		}
+		return yield* advanceObservation(state, stored, observation, stored.value.step === "waiting");
 	});
 }
 

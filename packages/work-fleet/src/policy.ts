@@ -48,7 +48,7 @@ export const SupersededDecision = Schema.Struct({
 	supersededAt: Schema.Number,
 });
 export const DecisionResponse = Schema.Struct({
-	action: Schema.optional(Schema.Literals(["retry", "release", "continue"])),
+	action: Schema.optional(Schema.Literals(["retry", "release", "continue", "wait"])),
 	boardAcknowledged: Schema.optional(Schema.Boolean),
 	boardAcknowledgementDisposition: Schema.optional(Schema.Literal("superseded")),
 	decisionId: Schema.String,

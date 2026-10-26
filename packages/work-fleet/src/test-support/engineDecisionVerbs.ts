@@ -15,7 +15,7 @@ export function engineDecisionVerbs(state: EngineStory, tell: (line: string) => 
 	}
 	const board = engineBoardVerbs(state, tell);
 	return {
-		answerPublishedDecision: (id: string, action: "retry" | "release") =>
+		answerPublishedDecision: (id: string, action: "retry" | "release" | "wait") =>
 			Effect.gen(function* () {
 				const { fleet } = running(state);
 				const decision = (yield* fleet.get(id)).value.decision;
