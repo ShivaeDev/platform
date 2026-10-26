@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.19.0 - 2026-10-26
+
+### Added
+
+- Provide the shared expected failure schemas and `rejectedField` in `@shivaedev/effect-contract/errors/`, so browser-safe contract consumers can use them without depending on Platform. Tags, schema fields and RPC encoding remain the same.
+- Run Fleet and Work Board together with `work-fleet up <board-dir>`, with exclusive board ownership, process and code-change restarts, combined logs, `up --status` and clean shutdown through `down`.
+- Work Board coordinates command-line process ownership with Fleet supervision and refuses a hand-started server while `up` holds its directory.
+- The HTTP host accepts Effect’s native `gracefulShutdownTimeout` so supervised processes can finish active requests before restarting.
+
+### Fixed
+
+- Keep observing active worker turns across daemon restarts while GitHub pacing delays other work, check branch PRs before reporting stuck work, and surface conflicting answer applications as answer-failed events.
+- Run scheduled provider read retries without restarting the daemon when GitHub pacing delays the next scheduler pass.
+
+### Breaking
+
+- Move all imports from `@shivaedev/platform/errors/taxonomy.ts` to `@shivaedev/effect-contract/errors/taxonomy.ts`, and from `@shivaedev/platform/errors/rejectedField.ts` to `@shivaedev/effect-contract/errors/rejectedField.ts`. The old modules are removed. Add a direct `@shivaedev/effect-contract` dependency if the consuming package does not already declare one. Admin, GitHub, Work Board and Work Fleet public failure types now refer to these shared classes.
+- Generated apps use the new imports. The create-app updater applies the starter changes through its usual three-way patch; it does not rewrite imports in app-owned files. Replace both old import paths above in those files when upgrading existing apps.
+
 ## 0.18.6 - 2026-10-26
 
 ### Fixed

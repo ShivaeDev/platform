@@ -1,5 +1,30 @@
 # Changelog
 
+## 0.32.0 - 2026-10-26
+
+### Added
+
+- Provide the shared expected failure schemas and `rejectedField` in `@shivaedev/effect-contract/errors/`, so browser-safe contract consumers can use them without depending on Platform. Tags, schema fields and RPC encoding remain the same.
+- Run Fleet and Work Board together with `work-fleet up <board-dir>`, with exclusive board ownership, process and code-change restarts, combined logs, `up --status` and clean shutdown through `down`.
+- Work Board coordinates command-line process ownership with Fleet supervision and refuses a hand-started server while `up` holds its directory.
+- The HTTP host accepts Effect’s native `gracefulShutdownTimeout` so supervised processes can finish active requests before restarting.
+- Keep goals with `standing: true` active as homes for new work.
+
+### Changed
+
+- Show done, running, blocked, scheduled and parked work in goal progress bars, excluding dropped tasks from totals and child-goal rollups.
+
+### Fixed
+
+- Keep the reading position when an item header compacts by preserving its expanded grid row before browser layout runs.
+- Give goal progress bars and legends distinct saturated green, yellow-orange, red, blue and neutral gray colors in both themes.
+
+### Breaking
+
+- Move all imports from `@shivaedev/platform/errors/taxonomy.ts` to `@shivaedev/effect-contract/errors/taxonomy.ts`, and from `@shivaedev/platform/errors/rejectedField.ts` to `@shivaedev/effect-contract/errors/rejectedField.ts`. The old modules are removed. Add a direct `@shivaedev/effect-contract` dependency if the consuming package does not already declare one. Admin, GitHub, Work Board and Work Fleet public failure types now refer to these shared classes.
+- Generated apps use the new imports. The create-app updater applies the starter changes through its usual three-way patch; it does not rewrite imports in app-owned files. Replace both old import paths above in those files when upgrading existing apps.
+- Goal projection counts now use `done`, `running`, `blocked`, `scheduled` and `parked`. Consumers of the goals RPC must read these progress states instead of authored status counts.
+
 ## 0.31.5 - 2026-10-25
 
 ### Changed
