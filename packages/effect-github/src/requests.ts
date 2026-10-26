@@ -8,10 +8,16 @@ import { GitHubTransportError } from "./errors.ts";
 import type { GitHubToken } from "./GitHubToken.ts";
 import type { RateLimits } from "./rateLimits.ts";
 import { isUnchanged } from "./status.ts";
+import type { TokenRefresh } from "./TokenRefresh.ts";
 
-export function requests(client: HttpClient.HttpClient, token: GitHubToken["Service"], rates: RateLimits) {
+export function requests(
+	client: HttpClient.HttpClient,
+	token: GitHubToken["Service"],
+	rates: RateLimits,
+	refresh: typeof TokenRefresh.Service = undefined,
+) {
 	const cache = responseCache();
-	const send = authenticatedRequest(client, token, rates);
+	const send = authenticatedRequest(client, token, rates, refresh);
 	return Effect.fn("GitHub.request")(function* (input: HttpClientRequest.HttpClientRequest, limit: number) {
 		const key = `${input.url} ${input.headers.accept}`;
 		const cached = input.method === "GET" ? cache.get(key) : undefined;

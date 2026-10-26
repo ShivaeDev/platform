@@ -80,25 +80,45 @@ The service's `read(path)` and `write(method, path, body)` return a representati
 
 ### Acting as a GitHub App
 
-Provide `githubApp` as the `GitHubToken` Layer to authenticate the same client as an installation. Give it the App ID, a PEM private key wrapped in `Redacted`, and an installation ID. This uses Node's built-in crypto; no JWT or Octokit dependency is needed.
+Provide `githubApp` as the `GitHubToken` Layer. With just the App ID and a PEM private key wrapped in `Redacted`, the client signs App JWTs for App-level requests. Add an installation ID for installation requests. Both use the same Schema-aware `read` and paginated `list` functions.
 
 ```ts
-import { Layer, Redacted } from "effect";
+import { Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
+import { GitHub, list, read } from "@shivaedev/effect-github/GitHub.ts";
 import { githubApp } from "@shivaedev/effect-github/githubApp.ts";
 
-const appClient = (privateKey: Redacted.Redacted<string>) => GitHub.layer.pipe(
-  Layer.provide(githubApp({ appId: "123456", privateKey, installationId: 7 })),
-  Layer.provide(FetchHttpClient.layer),
-);
+const clients = (privateKey: Redacted.Redacted<string>) => {
+  const credentials = { appId: "123456", privateKey };
+  const client = (auth: ReturnType<typeof githubApp>) => GitHub.layer.pipe(
+    Layer.provide(auth),
+    Layer.provide(FetchHttpClient.layer),
+  );
+  return {
+    app: client(githubApp(credentials)),
+    background: client(githubApp({ ...credentials, installationId: 7 })),
+    accessCheck: client(githubApp({
+      ...credentials, installationId: 7,
+      scope: { repositoryIds: [42], permissions: { metadata: "read" } },
+    })),
+  };
+};
+const appInfo = read("/app", Schema.Struct({ id: Schema.Number, slug: Schema.String }));
+const installations = list("/app/installations", Schema.Struct({ id: Schema.Number })).pipe(Stream.runCollect);
+const repository = read("/repos/acme/widgets", Schema.Struct({ id: Schema.Number, name: Schema.String }));
 ```
 
-Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets" }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
+Provide `clients(privateKey).app` to `appInfo` or `installations`, and `.accessCheck` to `repository`, using `Effect.provide`. The `.background` client receives a full installation token. These Layers replace application-written JWT signing, installation-token exchanges, expiry timers and the resource-401 refresh wrapper; provide the client Layer once around the application or job for each installation and scope to share its token cache.
 
-`GitHubToken` accepts a static Option or a lazy Effect returning one; the client resolves it on each request. Code that reads the service directly must evaluate an Effect value before inspecting the Option, using `Effect.isEffect(value) ? yield* value : value`.
+`scope` accepts `repositoryIds` or `repositories` (repository names), and a `permissions` record of GitHub permission names to `"read"`, `"write"` or `"admin"`. Omit `scope` for the installation's full access. Explicit `{ permissions: { metadata: "read" } }` requests a metadata-only token for access checks. GitHub decides whether the requested scope is allowed.
 
-The token is fetched on the first request and reused until five minutes before `expires_at`, using Effect's Clock. Concurrent requests share the in-flight exchange, including at refresh. A rejected exchange fails with `GitHubAppError` from `errors.ts`; a 401 has `{ stage: "exchange", status: 401 }`. Signing failures have `stage: "sign"`. These errors and their logs and spans contain no private key, App JWT or installation token.
+Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", scope? }`. The Layer resolves the installation through `GET /repos/{owner}/{repo}/installation` before exchanging the App JWT for an installation token. Signing uses Node's built-in crypto. The RS256 JWT carries the App ID as `iss`, `iat` 60 seconds before the current time, and `exp` ten minutes ahead.
+
+`GitHubToken` accepts a static Option or a lazy Effect returning one; the client resolves it on each request. Code that reads the service directly must evaluate an Effect value before inspecting the Option, using `Effect.isEffect(value) ? yield* value : value`. Custom injection keeps the caller's token lifecycle.
+
+An installation token is fetched on the first request and reused until five minutes before `expires_at`, using Effect's Clock. Concurrent requests through the same Layer share the in-flight exchange, including at refresh. A resource 401 invalidates only the rejected cached token and retries once with a newly exchanged token; simultaneous 401s share that exchange. A second 401 fails with typed `RemoteUnauthorized`. App-level JWTs and custom tokens are not automatically retried.
+
+A rejected exchange fails with `GitHubAppError` from `errors.ts`; a 401 has `{ stage: "exchange", status: 401 }`. Signing failures have `stage: "sign"`. These errors and their logs and spans contain no private key, App JWT or installation token.
 
 ### Downloading workflow-artifact archives
 
@@ -217,4 +237,4 @@ const publishReport = report.pipe(
 
 Other HTTP status failures use platform's typed `RemoteNotFound`, `RemoteUnauthorized` and other errors from `@shivaedev/platform/http-client/errors.ts`. An oversized body fails with `ResponseBodyTooLarge`; invalid response data fails with `Schema.SchemaError`. Transport failures use `GitHubTransportError`, which contains only the request path.
 
-Install with `pnpm add @shivaedev/effect-github effect`. Choose and provide an Effect HTTP client appropriate to your runtime. Scheduling, retries and application policy stay with the caller.
+Install with `pnpm add @shivaedev/effect-github effect`. Choose and provide an Effect HTTP client appropriate to your runtime. Scheduling, retries beyond the single installation-token refresh, and application policy stay with the caller.

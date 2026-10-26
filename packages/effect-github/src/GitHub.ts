@@ -9,6 +9,7 @@ import { rateLimits } from "#rateLimits.ts";
 import { representations } from "#representations.ts";
 import { requests } from "#requests.ts";
 import { stickyComments } from "#stickyComments.ts";
+import { TokenRefresh } from "#TokenRefresh.ts";
 
 export const GitHub = defineService({
 	id: "@shivaedev/effect-github/GitHub",
@@ -21,7 +22,7 @@ export const GitHub = defineService({
 			apiUrl: config.apiUrl,
 			archive: artifacts(config.apiUrl, client, token, rates),
 			rates,
-			request: requests(client, token, rates),
+			request: requests(client, token, rates, yield* TokenRefresh),
 			responseByteLimit: config.responseByteLimit,
 		};
 	}),

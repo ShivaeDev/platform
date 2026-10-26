@@ -3,12 +3,14 @@ import { FetchHttpClient, type HttpClient, type HttpClientError, HttpClientReque
 import { GitHubTransportError } from "./errors.ts";
 import type { GitHubToken } from "./GitHubToken.ts";
 import { failRateLimited, type RateLimits } from "./rateLimits.ts";
-import { checkStatus, isUnchanged } from "./status.ts";
+import { checkStatus, isUnauthorized, isUnchanged } from "./status.ts";
+import type { TokenRefresh } from "./TokenRefresh.ts";
 
 export function authenticatedRequest<R>(
 	client: HttpClient.HttpClient.With<HttpClientError.HttpClientError, R>,
 	token: GitHubToken["Service"],
 	rates: RateLimits,
+	refresh: typeof TokenRefresh.Service = undefined,
 ) {
 	const accessToken = Effect.isEffect(token) ? token : Effect.succeed(token);
 	return Effect.fnUntraced(function* (input: HttpClientRequest.HttpClientRequest, mode?: "manual" | "revalidate") {
@@ -18,15 +20,18 @@ export function authenticatedRequest<R>(
 		if (blocked !== undefined && DateTime.isGreaterThan(blocked.retryAt, yield* DateTime.now)) {
 			return yield* failRateLimited(path, blocked, rates.observations.get(resource)?.remaining);
 		}
-		let request = HttpClientRequest.setHeader(input, "X-GitHub-Api-Version", "2022-11-28");
-		const currentToken = yield* accessToken;
-		if (Option.isSome(currentToken)) {
-			request = HttpClientRequest.setHeader(request, "Authorization", `Bearer ${Redacted.value(currentToken.value)}`);
+		function send(current: Option.Option<Redacted.Redacted<string>>) {
+			const sent = client.execute(withCredential(input, current));
+			return (
+				mode === "manual" ? sent.pipe(Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" })) : sent
+			).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
 		}
-		const execute = client.execute(request);
-		const response = yield* (
-			mode === "manual" ? execute.pipe(Effect.provideService(FetchHttpClient.RequestInit, { credentials: "omit", redirect: "manual" })) : execute
-		).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
+		const credential = yield* accessToken;
+		let response = yield* send(credential);
+		if (isUnauthorized(response) && refresh !== undefined) {
+			yield* refresh(credential);
+			response = yield* send(yield* accessToken);
+		}
 		const observedResource = rates.observe(response);
 		if (!((mode === "revalidate" && isUnchanged(response)) || (mode === "manual" && response.status === 302))) {
 			yield* checkStatus(response, observedResource, rates.failures.get(observedResource) ?? 0).pipe(
@@ -42,4 +47,9 @@ export function authenticatedRequest<R>(
 		rates.blocked.delete(observedResource);
 		return response;
 	});
+}
+
+function withCredential(input: HttpClientRequest.HttpClientRequest, credential: Option.Option<Redacted.Redacted<string>>) {
+	const request = HttpClientRequest.setHeader(input, "X-GitHub-Api-Version", "2022-11-28");
+	return Option.isSome(credential) ? HttpClientRequest.setHeader(request, "Authorization", `Bearer ${Redacted.value(credential.value)}`) : request;
 }
