@@ -2,6 +2,7 @@ import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
+import { testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Layer } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -10,7 +11,7 @@ import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsol
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { authTestUtils, signedInUser } from "#server/better-auth/testing.ts";
+import { signedInUser } from "#server/better-auth/testing.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
 
 export const authStorage = storyKit({
@@ -46,7 +47,7 @@ export const authStorage = storyKit({
 		};
 		yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 		return {
-			auth: betterAuth({ ...options, "baseURL": "http://127.0.0.1:3000", plugins: [authTestUtils()] }),
+			auth: betterAuth({ ...options, "baseURL": "http://127.0.0.1:3000", plugins: [testUtils()] }),
 			baseUrl: "",
 			headers: new Map<string, Headers>(),
 			options,

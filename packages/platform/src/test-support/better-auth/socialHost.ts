@@ -1,12 +1,12 @@
 import { type BetterAuthOptions, betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
+import { testUtils } from "better-auth/plugins";
 import { Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "#server/appHost.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "#server/rpc-server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
@@ -22,7 +22,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
 		"baseURL": { allowedHosts: ["localhost:*"], protocol: "http" },
 		database: pool,
 		emailAndPassword: { enabled: true },
-		plugins: [authTestUtils()],
+		plugins: [testUtils()],
 		secret: "social-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 		socialProviders: { github: { clientId: "story-client", clientSecret: "story-secret" } },

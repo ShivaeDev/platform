@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { admin } from "better-auth/plugins";
+import { admin, testUtils } from "better-auth/plugins";
 import { Duration, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -10,7 +10,6 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database
 import { AuthUnavailable } from "#errors/taxonomy.ts";
 import { appHost } from "#server/appHost.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
-import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { trustedOrigins } from "#server/rpc-server/origin.ts";
 import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
@@ -26,7 +25,7 @@ export const startAdminHost = Effect.gen(function* () {
 	const options = {
 		"baseURL": "http://localhost:3000",
 		database: pool,
-		plugins: [admin(), authTestUtils()],
+		plugins: [admin(), testUtils()],
 		secret: "integration-only-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 		user: { fields: { image: "avatar", name: "display_name" }, modelName: "members" },

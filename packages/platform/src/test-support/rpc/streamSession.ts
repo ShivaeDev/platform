@@ -1,4 +1,5 @@
 import { betterAuth } from "better-auth";
+import { testUtils } from "better-auth/plugins";
 import { type Duration, Effect, Fiber, Layer, Option, Queue, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
@@ -6,7 +7,7 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database
 import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
 import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "@shivaedev/platform/rpc/middleware.ts";
-import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
 import {
 	authenticatedLayer,
@@ -32,7 +33,7 @@ export const streamSession = storyKit({
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const provider = yield* createProvider(database.url);
-		const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [authTestUtils()] });
+		const mintingAuth = betterAuth({ ...provider.auth.options, plugins: [testUtils()] });
 		const session = yield* Effect.promise(() => signedInUser(mintingAuth, { email: "alice@example.test", name: "Alice" }));
 		const cookie = session.headers.get("cookie");
 		if (cookie === null) {

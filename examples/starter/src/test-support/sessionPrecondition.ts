@@ -1,8 +1,9 @@
 import { betterAuth } from "better-auth";
+import { testUtils } from "better-auth/plugins";
 import { Effect, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
-import { authTestUtils, signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { type RunningHost, secret } from "./host.ts";
 
@@ -14,7 +15,7 @@ export const sessionPrecondition = Effect.fn("AppStory.sessionPrecondition")(fun
 		...options,
 		advanced: { ...options.advanced, useSecureCookies: host.origin.startsWith("https:") },
 		"baseURL": host.origin,
-		plugins: [...options.plugins, authTestUtils()],
+		plugins: [...options.plugins, testUtils()],
 		secret: Redacted.value(secret),
 	});
 });
