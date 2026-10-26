@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.1 - 2026-10-26
+
+### Fixed
+
+- Skip disabled external stylesheets and module scripts during DOM navigation without logging unsupported-file errors or fetching the assets.
+
 ## 0.20.0 - 2026-10-25
 
 ### Added

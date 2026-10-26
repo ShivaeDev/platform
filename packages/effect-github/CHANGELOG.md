@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.5.0 - 2026-10-26
+
+### Added
+
+- Provide the shared expected failure schemas and `rejectedField` in `@shivaedev/effect-contract/errors/`, so browser-safe contract consumers can use them without depending on Platform. Tags, schema fields and RPC encoding remain the same.
+- Authenticate App-level requests, including Schema-decoded `GET /app` and paginated `GET /app/installations`, with `githubApp({ appId, privateKey })`.
+- Downscope installation tokens with `scope.repositoryIds`, `scope.repositories` and `scope.permissions`, including metadata-only access checks; omit the scope for full installation access.
+- Refresh a cached installation token after a resource 401 and retry once, sharing replacement exchanges across concurrent requests and preserving a typed failure on a second 401.
+- Download workflow-artifact ZIP archives with `GitHub.downloadArtifactArchive({ owner, repo, artifactId, byteLimit })`. The client reads GitHub's redirect explicitly, requests storage without GitHub credentials, and enforces the caller's byte cap while streaming. Missing or expired artifacts fail with `GitHubArtifactError`; oversized archives stop with `GitHubArtifactTooLarge`. This replaces application-owned redirect handling and archive byte limits.
+- Match sticky comments with `appId` to require the marker at the start of the body, the matching `performed_via_github_app.id` and a bot author. Existing marker-inclusion and optional `author` login matching remain available.
+- Classify GitHub's integration permission refusal as `GitHubPermissionDenied` and locked conversations as `GitHubConversationLocked`, each with the request path. Other 403s remain HTTP errors; primary and secondary rate limits retain precedence.
+- Configure JSON response caps with `GitHubConfig.responseByteLimit` or a trailing byte-limit argument on `read`, `list` and `write`, including their representation methods. The default remains 1 MiB; larger comparisons and listings can allow 16 MiB while retaining streaming size enforcement, typed `ResponseBodyTooLarge` failures and Schema decoding.
+
+### Fixed
+
+- Refresh a rejected GitHub App installation token when downloading a workflow artifact archive and retry once, returning a typed failure on a second 401.
+
+### Breaking
+
+- Move all imports from `@shivaedev/platform/errors/taxonomy.ts` to `@shivaedev/effect-contract/errors/taxonomy.ts`, and from `@shivaedev/platform/errors/rejectedField.ts` to `@shivaedev/effect-contract/errors/rejectedField.ts`. The old modules are removed. Add a direct `@shivaedev/effect-contract` dependency if the consuming package does not already declare one. Admin, GitHub, Work Board and Work Fleet public failure types now refer to these shared classes.
+- Generated apps use the new imports. The create-app updater applies the starter changes through its usual three-way patch; it does not rewrite imports in app-owned files. Replace both old import paths above in those files when upgrading existing apps.
+- Permission and locked-conversation 403s now fail with the GitHub-specific errors instead of `RemoteHttpError`. Move handlers for those cases to `Effect.catchTag("GitHubPermissionDenied", ...)` and `Effect.catchTag("GitHubConversationLocked", ...)`; keep `RemoteHttpError` handling for other HTTP refusals.
+
 ## 0.4.4 - 2026-10-25
 
 ### Changed
