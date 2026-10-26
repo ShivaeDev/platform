@@ -35,6 +35,9 @@ export const workspace = storyKit({
 			return yield* (yield* FileSystem.FileSystem).readDirectory(join(root, directory));
 		}),
 		git: Effect.fn("ChangesetsStory.git")((...args: readonly string[]) => Effect.sync(() => git(root, args))),
+		move: Effect.fn("ChangesetsStory.move")(function* (from: string, to: string) {
+			yield* (yield* FileSystem.FileSystem).rename(join(root, from), join(root, to));
+		}),
 		packageVersion: Effect.fn("ChangesetsStory.packageVersion")(function* (directory: string) {
 			const fs = yield* FileSystem.FileSystem;
 			return JSON.parse(yield* fs.readFileString(join(root, directory, "package.json"))).version;
