@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { CodexActivity } from "#providers/codexLive.ts";
 import { ThreadResponse } from "#providers/codexProtocol.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
 import { echoedSettings, settingsParams } from "#providers/codexSettings.ts";
@@ -10,6 +11,7 @@ import type { ContinueSession, ReconcileSession, SessionFailure, SessionObservat
 import type { SessionTransport } from "#session/service.ts";
 
 export interface CodexDialect {
+	readonly activity?: CodexActivity;
 	readonly beforeTurn: (input: ContinueSession) => Effect.Effect<Record<string, unknown>, SessionFailure>;
 	readonly provisioning: SessionObservation["provisioning"];
 	readonly recoveryGraceMs?: number;
@@ -37,7 +39,7 @@ export function codexAdapter(rpc: CodexRequest, dialect: CodexDialect): typeof S
 			yield* rpc("turn/interrupt", { threadId: receipt.sessionId, turnId: receipt.turnId }, true);
 			return receipt;
 		}),
-		observe: observeCodexTurn(turns, dialect.provisioning),
+		observe: observeCodexTurn(turns, dialect.provisioning, dialect.activity),
 		reconcile: Effect.fn("Codex.reconcile")(function* (input: ReconcileSession) {
 			if (input.sessionId === undefined) {
 				return yield* Effect.fail(

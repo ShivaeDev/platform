@@ -7,6 +7,7 @@ export const SessionReceipt = Schema.Struct({ sessionId: Schema.String, turnId: 
 export type SessionReceipt = typeof SessionReceipt.Type;
 
 export const SessionObservation = Schema.Struct({
+	activityAt: Schema.optional(Schema.Number),
 	capacity: Schema.optional(ProviderCapacity),
 	error: Schema.optional(Schema.String),
 	execution: Schema.Literals(["accepted", "running", "completed", "failed", "interrupted"]),

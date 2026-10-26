@@ -16,7 +16,7 @@ export function codexReportAttachments(login: CodexLogin & { readonly endpoint?:
 	return (observation: SessionObservation) =>
 		Effect.scoped(
 			Effect.gen(function* () {
-				const rpc = yield* codexCloudConnection(login.endpoint ?? CODEX_CLOUD_ENDPOINT, login, timeoutMs);
+				const { rpc } = yield* codexCloudConnection(login.endpoint ?? CODEX_CLOUD_ENDPOINT, login, timeoutMs);
 				return yield* makeCodexReportAttachments(rpc)(observation);
 			}),
 		);

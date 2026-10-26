@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import type { CodexActivity } from "#providers/codexLive.ts";
 import { type codexTurns, finalOutput, type Progress } from "#providers/codexTurns.ts";
 import { ProviderCapacity, type SessionObservation, type SessionReceipt } from "#session/schema.ts";
 
@@ -6,7 +7,7 @@ function sorted(progress: readonly Progress[]) {
 	return [...progress].sort((left, right) => left.id.localeCompare(right.id));
 }
 
-export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provisioning: SessionObservation["provisioning"]) {
+export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provisioning: SessionObservation["provisioning"], activity?: CodexActivity) {
 	const terminal = new Map<string, SessionObservation>();
 	return Effect.fn("Codex.observe")(function* (receipt: SessionReceipt) {
 		const key = `${receipt.sessionId}/${receipt.turnId}`;
@@ -26,8 +27,11 @@ export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provision
 			};
 		}
 		if (turn.status === "inProgress") {
+			// The latest item still observes the turn when the provider refuses a subscription.
+			yield* (activity?.follow(receipt.sessionId) ?? Effect.void).pipe(Effect.ignore);
 			const latest = yield* turns.latestItem(receipt.sessionId, receipt.turnId);
 			return {
+				activityAt: activity?.at(receipt.sessionId),
 				execution: "running" as const,
 				output: "",
 				progress: latest === undefined ? [] : [{ id: latest.id, status: latest.status }],
@@ -48,6 +52,7 @@ export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provision
 			receipt,
 		};
 		terminal.set(key, observation);
+		activity?.forget(receipt.sessionId);
 		return observation;
 	});
 }

@@ -45,6 +45,7 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 		changeStatus: () => {
 			items = items.map((item) => ({ ...item, status: item.status === "inProgress" ? "completed" : "inProgress" }));
 		},
+		emit: () => server.notify("worker-thread", "item/commandExecution/outputDelta"),
 		hidden,
 		requests,
 		states,

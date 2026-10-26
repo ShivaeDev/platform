@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema, Struct } from "effect";
 import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { AttemptProgress } from "#AttemptProgress.ts";
 import { AttentionOwner } from "#attention.ts";
@@ -14,7 +14,7 @@ export const Attempt = Schema.Struct({
 		Schema.Struct({
 			at: Schema.Number,
 			interruptError: Schema.optional(Schema.String),
-			observation: Schema.optional(SessionObservation),
+			observation: Schema.optional(Schema.Struct(Struct.omit(SessionObservation.fields, ["activityAt"]))),
 			observationError: Schema.optional(Schema.String),
 		}),
 	),
