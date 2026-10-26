@@ -1,4 +1,4 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import process from "node:process";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Clock, Config, Console, Effect } from "effect";
@@ -14,7 +14,10 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
 	}
 	const { pull, head, hold } = github.snapshot();
-	if (hold !== undefined) {
+	if (
+		hold !== undefined
+		&& (hold === "merge queue" || spawnSync("git", ["-C", root, "merge-tree", "--write-tree", "origin/main", head]).status === 0)
+	) {
 		return `held: ${hold}`;
 	}
 	git("switch", "-C", "release/next", "origin/main");
