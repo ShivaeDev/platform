@@ -25,7 +25,7 @@ export const Watcher = defineService({
 				Effect.gen(function* () {
 					const before = state.prs[String(snapshot.number)];
 					const baseline =
-						before === undefined && snapshot.state === "closed" && state.openNumbers?.includes(snapshot.number)
+						before === undefined && (snapshot.merged || snapshot.state === "closed") && state.openNumbers?.includes(snapshot.number)
 							? { ...snapshot, merged: false, state: "open" as const }
 							: before;
 					for (const line of events(baseline, snapshot, options.events)) {
@@ -47,7 +47,9 @@ export const Watcher = defineService({
 				if (snapshot === undefined) {
 					return undefined;
 				}
-				return before?.queued === true && snapshot.state === "open" && !snapshot.queued ? yield* github.confirmQueue(options, snapshot) : snapshot;
+				return before?.queued === true && snapshot.state === "open" && !snapshot.merged && !snapshot.queued
+					? yield* github.confirmQueue(options, snapshot)
+					: snapshot;
 			});
 		}
 		function targets(options: Options, state: State) {
