@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { cpSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { cpSync, existsSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -44,6 +44,7 @@ export const updates = storyKit({
 				story.tell(`the app changes ${path}`);
 				writeFileSync(join(target, path), content);
 			},
+			exists: (path: string) => existsSync(join(target, path)),
 			git: (...args: readonly string[]) => spawnSync("git", args, { cwd: target, encoding: "utf8" }),
 			publish() {
 				story.tell("the recorded generator is published");
@@ -53,6 +54,10 @@ export const updates = storyKit({
 			remove(path: string) {
 				story.tell(`the app removes ${path}`);
 				rmSync(join(target, path));
+			},
+			removeFromStarter(path: string) {
+				story.tell(`the starter removes ${path}`);
+				rmSync(join(engine.source.starter, path));
 			},
 			revise(files: Readonly<Record<string, string>>) {
 				story.tell("the starter source changes");
