@@ -1,86 +1,70 @@
-import { Clock, Effect, Layer, Redacted, type Schema } from "effect";
+import { Effect, Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHub, read } from "#GitHub.ts";
+import { GitHub, list, read } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
-import { githubApp } from "#githubApp.ts";
+import { githubApp, type InstallationScope } from "#githubApp.ts";
 import { verifyWebhook } from "#verifyWebhook.ts";
-import { APP_ID, APP_TOKEN, inspectJwt, PRIVATE_KEY, WEBHOOK_SECRET, WORKFLOW_BODY, WorkflowDelivery, webhookSignature } from "./appFixture.ts";
+import { APP_ID, APP_TOKEN, PRIVATE_KEY, WEBHOOK_SECRET, WORKFLOW_BODY, WorkflowDelivery, webhookSignature } from "./appFixture.ts";
+import { appServer } from "./appServer.ts";
 import { PullRequest } from "./fixtures.ts";
 import { telemetry } from "./telemetry.ts";
 
+const App = Schema.Struct({ appId: Schema.Number, slug: Schema.String }).pipe(Schema.encodeKeys({ appId: "id" }));
+const Installation = Schema.Struct({ account: Schema.Struct({ login: Schema.String }), installationId: Schema.Number }).pipe(
+	Schema.encodeKeys({ installationId: "id" }),
+);
+
 export const appGithub = storyKit({
 	*create() {
-		const clock = yield* Clock.Clock;
-		const state: { exchanges: number; jwts: ReturnType<typeof inspectJwt>[] } = { exchanges: 0, jwts: [] };
-		function check(request: Parameters<typeof inspectJwt>[0]) {
-			const observed = inspectJwt(request, clock.currentTimeMillisUnsafe());
-			state.jwts.push(observed);
-			return (
-				observed.valid
-				&& observed.header.alg === "RS256"
-				&& observed.claims.iss === APP_ID
-				&& observed.claims.iat === observed.now - 60
-				&& observed.claims.exp > observed.now
-				&& observed.claims.exp <= observed.now + 600
-			);
-		}
-		function accessTokenReply() {
-			state.exchanges += 1;
-			return {
-				body: {
-					"expires_at": new Date(clock.currentTimeMillisUnsafe() + 3_600_000).toISOString(),
-					token: `${APP_TOKEN}-${state.exchanges}`,
-				},
-			};
-		}
-		const server = yield* fakeHttpService({
-			routes: {
-				installation: {
-					guard: check,
-					path: "/repos/acme/widgets/installation",
-					reply: () => ({ body: { id: 7 } }),
-				},
-				pull: {
-					guard: (request) => request.headers.authorization === `Bearer ${APP_TOKEN}-${state.exchanges}`,
-					path: "/repos/acme/widgets/pulls/1",
-					reply: () => ({ body: { number: 1, title: "App read" } }),
-				},
-				token: {
-					guard: check,
-					method: "POST",
-					path: "/app/installations/7/access_tokens",
-					reply: accessTokenReply,
-				},
-			},
-		});
+		const { server, state } = yield* appServer;
 		const recording = telemetry();
 		const environment = Layer.mergeAll(FetchHttpClient.layer, Layer.succeed(GitHubConfig)({ apiUrl: server.url }));
-		function layer(installation: { installationId: number } | { owner: string; repository: string }, privateKey = PRIVATE_KEY) {
+		function layer(
+			installation:
+				| { installationId: number; scope?: InstallationScope }
+				| { owner: string; repository: string }
+				| { installationId?: never; owner?: never; repository?: never },
+			privateKey = PRIVATE_KEY,
+		) {
 			return GitHub.layer.pipe(
 				Layer.provide(githubApp({ appId: APP_ID, privateKey: Redacted.make(privateKey), ...installation })),
 				Layer.provide(environment),
 			);
 		}
 		const context = yield* Layer.build(layer({ installationId: 7 }));
-		return { context, layer, recording, server, state };
+		const appContext = yield* Layer.build(layer({}));
+		const metadataContext = yield* Layer.build(layer({ installationId: 7, scope: { permissions: { metadata: "read" }, repositoryIds: [42] } }));
+		const scopedContext = yield* Layer.build(layer({ installationId: 7, scope: { permissions: { contents: "read" }, repositories: ["widgets"] } }));
+		return { appContext, context, layer, metadataContext, recording, scopedContext, server, state };
 	},
 	inspect: ({ state }) => ({ exchanges: state.exchanges }),
 	name: "GitHub App",
 	stages: ["github"],
-	verbs: ({ context, layer, recording, server, state }, story) => {
+	verbs: ({ appContext, context, layer, metadataContext, recording, scopedContext, server, state }, story) => {
 		server.narrate(story.tell);
 		function record<A, E, R>(effect: Effect.Effect<A, E, R>) {
 			return effect.pipe(Effect.withSpan("GitHub App operation"), Effect.provide(recording.layer));
 		}
 		return {
+			awaitPulls: (count: number) =>
+				Effect.yieldNow.pipe(
+					Effect.andThen(Effect.sync(() => server.requests.filter(({ path }) => path === "/repos/acme/widgets/pulls/1").length)),
+					Effect.repeat({ while: (arrived) => arrived < count }),
+					Effect.asVoid,
+				),
 			exchanges: () => server.requests.filter(({ path }) => path === "/app/installations/7/access_tokens"),
 			holdExchange: () => server.hold("token"),
+			holdPulls: () => server.hold("pull", { once: false }),
 			jwts: () => state.jwts,
+			listInstallations: () => record(list("/app/installations", Installation).pipe(Stream.runCollect, Effect.provide(appContext))),
+			readApp: () => record(read("/app", App).pipe(Effect.provide(appContext))),
+			readMetadata: () =>
+				record(read("/repos/acme/widgets", Schema.Struct({ id: Schema.Number, name: Schema.String })).pipe(Effect.provide(metadataContext))),
 			readPull: () => record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(context))),
 			readRepository: () =>
 				record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(layer({ owner: "acme", repository: "widgets" })))),
+			readScopedPull: () => record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(scopedContext))),
 			readWithInvalidKey: () =>
 				record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(layer({ installationId: 7 }, "invalid-private-key-secret")))),
 			rejectExchange: () =>
@@ -88,6 +72,7 @@ export const appGithub = storyKit({
 					body: { message: `${request.headers.authorization} ${PRIVATE_KEY} ${APP_TOKEN} ${WEBHOOK_SECRET}` },
 					status: 401,
 				})),
+			rejectPull: () => server.replyOnce("pull", { status: 401 }),
 			requests: () => server.requests,
 			secrets: () => [
 				PRIVATE_KEY,

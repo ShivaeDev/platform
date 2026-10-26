@@ -1,16 +1,23 @@
-import { DateTime, Effect, Option, Redacted } from "effect";
-import { type HttpClient, HttpClientRequest } from "effect/http";
+import { DateTime, Effect } from "effect";
+import type { HttpClient, HttpClientRequest } from "effect/http";
 import { readBoundedBody } from "@shivaedev/platform/http-client/body.ts";
 import { ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
-import { type CachedResponse, responseCache } from "./cache.ts";
-import { GitHubTransportError } from "./errors.ts";
-import type { GitHubToken } from "./GitHubToken.ts";
-import { failRateLimited, type RateLimits } from "./rateLimits.ts";
-import { checkStatus, isUnchanged } from "./status.ts";
+import { type CachedResponse, responseCache } from "#cache.ts";
+import { GitHubTransportError } from "#errors.ts";
+import type { GitHubToken } from "#GitHubToken.ts";
+import { failRateLimited, type RateLimits } from "#rateLimits.ts";
+import { checkStatus, isUnchanged } from "#status.ts";
+import type { TokenRefresh } from "#TokenRefresh.ts";
+import { tokenRequests } from "#tokenRequests.ts";
 
-export function requests(client: HttpClient.HttpClient, token: GitHubToken["Service"], rates: RateLimits) {
+export function requests(
+	client: HttpClient.HttpClient,
+	token: GitHubToken["Service"],
+	rates: RateLimits,
+	refresh: typeof TokenRefresh.Service = undefined,
+) {
 	const cache = responseCache();
-	const accessToken = Effect.isEffect(token) ? token : Effect.succeed(token);
+	const execute = tokenRequests(client, token, refresh);
 	return Effect.fn("GitHub.request")(function* (input: HttpClientRequest.HttpClientRequest, limit: number) {
 		const path = new URL(input.url).pathname;
 		const resource = rates.resource(path);
@@ -20,8 +27,7 @@ export function requests(client: HttpClient.HttpClient, token: GitHubToken["Serv
 		}
 		const key = `${input.url} ${input.headers.accept}`;
 		const cached = input.method === "GET" ? cache.get(key) : undefined;
-		const request = requestHeaders(input, cached, yield* accessToken);
-		const response = yield* client.execute(request).pipe(Effect.mapError(() => new GitHubTransportError({ path })));
+		const response = yield* execute(input, cached).pipe(Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))));
 		const observedResource = rates.observe(response);
 		if (isUnchanged(response) && cached !== undefined) {
 			rates.failures.delete(observedResource);
@@ -50,19 +56,4 @@ export function requests(client: HttpClient.HttpClient, token: GitHubToken["Serv
 		}
 		return entry;
 	});
-}
-
-function requestHeaders(
-	input: HttpClientRequest.HttpClientRequest,
-	cached: CachedResponse | undefined,
-	token: Option.Option<Redacted.Redacted<string>>,
-) {
-	let request = HttpClientRequest.removeHeader(input, "if-none-match").pipe(HttpClientRequest.setHeader("X-GitHub-Api-Version", "2022-11-28"));
-	if (Option.isSome(token)) {
-		request = HttpClientRequest.setHeader(request, "Authorization", `Bearer ${Redacted.value(token.value)}`);
-	}
-	if (cached?.response.headers.etag !== undefined) {
-		request = HttpClientRequest.setHeader(request, "If-None-Match", cached.response.headers.etag);
-	}
-	return request;
 }

@@ -3,7 +3,11 @@ import { HttpClient, type HttpClientResponse } from "effect/http";
 import { readBoundedText } from "@shivaedev/platform/http-client/body.ts";
 import { filterStatus } from "@shivaedev/platform/http-client/filterStatus.ts";
 import { parseRetryAfter } from "@shivaedev/platform/http-client/parseRetryAfter.ts";
-import { GitHubRateLimited } from "./errors.ts";
+import { GitHubRateLimited } from "#errors.ts";
+
+export function isUnauthorized(response: HttpClientResponse.HttpClientResponse) {
+	return response.status === 401;
+}
 
 export function isUnchanged(response: HttpClientResponse.HttpClientResponse) {
 	return response.status === 304;

@@ -3,6 +3,7 @@ import { expect } from "vitest";
 import { GitHubTransportError } from "#errors.ts";
 import { FIXTURE_TOKEN } from "#test/fixtures.ts";
 import { github } from "#test/github.ts";
+import { routeAnswers } from "#test/traits.ts";
 
 github.it("GH_TOKEN takes precedence over GITHUB_TOKEN in authenticated reads", [], function* ({ readWithEnvironment, requests }) {
 	yield* readWithEnvironment({ "GH_TOKEN": "preferred-token", "GITHUB_TOKEN": "fallback-token" });
@@ -36,3 +37,14 @@ github.it("a transport failure retains neither credentials nor the query in its 
 	expect(captured).not.toContain(FIXTURE_TOKEN);
 	expect(JSON.stringify(error)).not.toContain("query-secret");
 });
+
+github.it(
+	"a custom GitHubToken authenticates without automatic installation refresh",
+	[routeAnswers({ status: 401 })],
+	function* ({ readPull, requests }) {
+		expect(yield* Effect.flip(readPull())).toMatchObject({ _tag: "RemoteUnauthorized", status: 401 });
+		expect(requests().map(({ headers, method }) => ({ authorization: headers.authorization, method }))).toEqual([
+			{ authorization: `Bearer ${FIXTURE_TOKEN}`, method: "GET" },
+		]);
+	},
+);
