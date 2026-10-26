@@ -3,24 +3,32 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "admin-template-views.md",
-				"text": "---\n\"@shivaedev/create-app\": minor\n\"@shivaedev/quality\": minor\n---\n\n### Added\n\n- Generated apps include app-owned admin navigation, Jobs health, counts, failed and dead-lettered lists, job detail, and an example note-statistics page on the existing protected RPC transport. Jobs views accept retry actions from explicitly retry-enabled registrations and retain the default read-only registration.\n\n### Breaking\n\n- `@shivaedev/create-app`'s starter no longer serves the pg-boss dashboard at `/admin/jobs`; the app-owned admin Jobs views replace it. Existing apps must remove `readOnlyDashboard.ts`, `readOnlyDashboardWorker.ts`, `checkDashboardVersion.ts` and `jobDashboard.ts`, remove the `@pg-boss/dashboard` dependency and catalog pin, and register the admin pages and their handlers on the existing `/rpc` host. Keep admin account provisioning through `admin:create`, `admin.ts` and `createAdmin.ts`.\n- `@shivaedev/quality`'s `appViteConfig` leaves `/admin/jobs` on the client router. Apps that still host a server dashboard at that path must add their own Vite `server.proxy` entry for `/admin/jobs` targeting the app host.\n"
+				"name": "admin-adoption-stories.md",
+				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps include a development-server story covering admin routes, role enforcement and native jobs data through the existing RPC proxy.\n"
+			},
+			{
+				"name": "fleet-admission-fetch.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Serialize daemon fetches of main and retry concurrent ref updates up to three attempts so admission continues when another Git fetch advances main. Other fetch failures still surface.\n"
+			},
+			{
+				"name": "fleet-watch-liveness.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Check daemon liveness independently of the watch stream so stalled provider work or stream delivery does not report a responsive daemon as unreachable.\n"
 			}
 		],
 		"releases": [
 			{
 				"bump": "minor",
 				"directory": "packages/create-app",
-				"from": "0.15.7",
+				"from": "0.16.0",
 				"name": "@shivaedev/create-app",
-				"to": "0.16.0"
+				"to": "0.17.0"
 			},
 			{
-				"bump": "minor",
-				"directory": "packages/quality",
-				"from": "0.40.0",
-				"name": "@shivaedev/quality",
-				"to": "0.41.0"
+				"bump": "patch",
+				"directory": "packages/work-fleet",
+				"from": "0.18.4",
+				"name": "@shivaedev/work-fleet",
+				"to": "0.18.5"
 			}
 		]
 	}

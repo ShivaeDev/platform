@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.17.0 - 2026-10-26
+
+### Added
+
+- Generated apps include a development-server story covering admin routes, role enforcement and native jobs data through the existing RPC proxy.
+
 ## 0.16.0 - 2026-10-26
 
 ### Added
