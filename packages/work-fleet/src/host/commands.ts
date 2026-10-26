@@ -8,6 +8,7 @@ import { GithubApi } from "#host/githubApi.ts";
 import { healthLayer } from "#host/healthLayer.ts";
 import { LiveConfig, staticConfig } from "#host/liveConfig.ts";
 import { gitMainSource, type MainSource } from "#host/mainSource.ts";
+import { providerReadPause } from "#host/providerReadPause.ts";
 import { hostProvider } from "#host/providers.ts";
 import { fleetHostLayer } from "#host/runtime.ts";
 import { statusLayer } from "#host/statusLayer.ts";
@@ -54,8 +55,10 @@ export const schedulerPause = Effect.gen(function* () {
 	const live = yield* LiveConfig;
 	const github = yield* GithubApi;
 	const { host: applied } = yield* live.current;
-	const delay = yield* github.pace(applied.interval * 1000);
-	yield* Effect.raceFirst(Effect.sleep(delay), live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
+	const interval = applied.interval * 1000;
+	const delay = yield* github.pace(interval);
+	const pause = delay > interval ? Effect.raceFirst(Effect.sleep(delay), providerReadPause(interval)) : Effect.sleep(delay);
+	yield* Effect.raceFirst(pause, live.changes.pipe(Stream.drop(1), Stream.take(1), Stream.runDrain));
 });
 
 export function hostScheduler(host: FleetHost) {
