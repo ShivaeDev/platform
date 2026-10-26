@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { createConnection } from "node:net";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Effect, FileSystem, Layer, Path, Scope } from "effect";
+import { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { workRpcs } from "#rpc/contract.ts";
@@ -31,6 +31,7 @@ function socketState(path: string) {
 export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 	root: string,
 	handlers: Effect.Success<ReturnType<typeof boardRuntime>>["rpcHandlers"],
+	drainRequests = false,
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const paths = yield* Path.Path;
@@ -64,7 +65,11 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 			// Short private names preserve owner-only access within board.sock's pathname budget.
 			const staging = yield* fs.makeTempDirectoryScoped({ directory: root, prefix: ".s" });
 			const pending = paths.join(staging, "s");
-			const server = yield* NodeHttpServer.make(createServer, { disablePreemptiveShutdown: true, path: pending }).pipe(Scope.provide(scope));
+			const server = yield* NodeHttpServer.make(createServer, {
+				disablePreemptiveShutdown: !drainRequests,
+				gracefulShutdownTimeout: Duration.infinity,
+				path: pending,
+			}).pipe(Scope.provide(scope));
 			yield* fs.chmod(pending, 0o600);
 			yield* server
 				.serve(

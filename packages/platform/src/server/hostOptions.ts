@@ -1,4 +1,4 @@
-import type { Layer } from "effect";
+import type { Duration, Layer } from "effect";
 import type { HttpRouter, HttpStaticServer } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";
@@ -13,6 +13,7 @@ export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandle
 		readonly maxBodySize?: number;
 		readonly sensitiveKeys?: readonly string[];
 		readonly disablePreemptiveShutdown?: boolean;
+		readonly gracefulShutdownTimeout?: Duration.Input;
 	};
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;

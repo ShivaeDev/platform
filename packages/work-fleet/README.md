@@ -7,7 +7,7 @@ Work Fleet launches approved Work Board items and keeps execution receipts in Po
 Approve an item in Board, then let Fleet admit it and observe its worker. Waiting views name who must act: the maintainer, the orchestrator or automation.
 
 ```sh
-work-fleet serve <board-dir>
+work-fleet up <board-dir>
 ```
 
 ## Use the command
@@ -28,7 +28,7 @@ Run `work-board migrate <board dir>` before starting this version with an existi
 
 ### Configure the host
 
-Put `fleet.config.json` in the Board folder. For `serve`, `--config <file>` selects another configuration file. A Cloud host needs both `cloud` and `worker` settings:
+Put `fleet.config.json` in the Board folder. For `up` or `serve`, `--config <file>` selects another configuration file. A Cloud host needs both `cloud` and `worker` settings:
 
 ```json
 {
@@ -89,9 +89,29 @@ A capacity rejection while reading or reconciling a turn does not establish that
 
 A review with a lost thread acknowledgement or an unobservable submitted turn is safe to repeat because it changes no code. When its provider read budget runs out, or reconciliation reports `session-turn-missing` without a pending read retry, Fleet retires the unacknowledged review and queues a fresh read-only thread for the same head under the shared five-attempt provider retry budget. Late acknowledgements of the retired attempt are rejected. Lost worker and repair threads still retain execution ownership and require a human decision after read exhaustion.
 
-### Start the local daemon
+### Run Fleet and the Board
 
-`work-fleet serve <board-dir>` binds to `127.0.0.1:3457`; `--port <port>` selects another port. The daemon composes `Fleet.layer`, the host and scheduler once for its lifetime. Its HTTP clients share one PostgreSQL admission pool, bounded by `database.maxConnections` (20 by default, at least 2), and one provider connection set. One admission-pool connection is reserved for the PostgreSQL change listener; the remaining connections serve queries and transactions. The daemon opens one additional receipt connection for answer recording, status and follower snapshots, so admission waiters cannot consume their database capacity. Fleet record commits notify followers through PostgreSQL, including followers in another host runtime. A listener resync refreshes their stored-state snapshots. Work Board runs independently.
+Run one foreground supervisor for each Board directory:
+
+```sh
+work-fleet up <board-dir> --port 3457 --board-port 4747 --home index.md --responses
+```
+
+`--port` (also `--fleet-port`) selects Fleet's port; `--board-port` selects Board's port. Board also receives `--home`, `--responses` and `--maintainer`. `--config` selects Fleet's host configuration. The command resolves the installed Fleet and Work Board packages from the consuming repository and needs no shell restart loop.
+
+The supervisor holds the canonical Board directory until shutdown. A second `up`, a hand-started `serve` or a hand-started Board command refuses with the owner's pid, ports and start time. A lease left by a dead process is reclaimed. A child that exits is restarted independently after a short backoff; a code change replaces the affected child after HTTP shutdown drains active requests. Code revisions are SHA-256 digests of Fleet, Board and their installed ShivaeDev package code; source execution watches source files, and published execution watches compiled code and Board assets.
+
+```sh
+work-fleet up <board-dir> --status
+work-fleet up <board-dir> --status --json
+work-fleet down <board-dir>
+```
+
+Status reports the supervisor and child pids, ports, uptime, restart counts and running code revisions. Both processes append to `<board-dir>/.work-up.log`, whose full path status prints. `down` or Ctrl-C stops both children and releases the directory. `work-fleet status --board <board-dir>` continues to show Fleet's work and configuration.
+
+### Per-process building blocks
+
+`work-fleet serve <board-dir>` binds to `127.0.0.1:3457`; `--port <port>` selects another port. The daemon composes `Fleet.layer`, the host and scheduler once for its lifetime. Its HTTP clients share one PostgreSQL admission pool, bounded by `database.maxConnections` (20 by default, at least 2), and one provider connection set. One admission-pool connection is reserved for the PostgreSQL change listener; the remaining connections serve queries and transactions. The daemon opens one additional receipt connection for answer recording, status and follower snapshots, so admission waiters cannot consume their database capacity. Fleet record commits notify followers through PostgreSQL, including followers in another host runtime. A listener resync refreshes their stored-state snapshots. The `work-board <board-dir>` command starts Board independently when the directory is not supervised.
 
 Native Effect HTTP RPC uses NDJSON at `/_fleet/rpc`. Import `DaemonContract` from `@shivaedev/work-fleet/host/daemonContract.ts` and provide `RpcClient.layerProtocolHttp` with `RpcSerialization.layerNdjson` and an HTTP client. The contract exposes Fleet's existing prepare, dispatch, continue, reconcile, resolve, reassign, get and views operations, plus `daemon.dispatch` for explicit Board dispatch, `daemon.dispatch-status` for its receipt, `daemon.status` for filtered views the `daemon.follow` snapshot stream, and `daemon.watch` snapshots with instance identity and heartbeats for the JSON watcher. Platform's `RequestTracing` supplies a request id for each call, preserving valid `x-request-id` values. Only loopback Host values and missing or same-origin transport Origin headers are accepted; requests must use `application/ndjson`.
 
@@ -208,6 +228,9 @@ fleet-priority: high
 
 | Command | Behavior |
 |---|---|
+| `work-fleet up <board-dir> [--port <port>] [--board-port <port>]` | Supervises Fleet and Board for one directory. |
+| `work-fleet up <board-dir> --status [--json]` | Shows supervised processes and the shared log path. |
+| `work-fleet down <board-dir>` | Stops both processes and releases the directory. |
 | `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches queued items and reconciles running work. |
 | `work-fleet reserve-pr <url> [--areas <area> ...] [--port <port>]` | Reserves a foreign PR using matching Board areas or the supplied areas. |
 | `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims. |
@@ -225,7 +248,7 @@ fleet-priority: high
 
 Fleet closes an ask and marks its question `status: done` when it applies the answer. Reconciliation also closes open asks when their linked Board work is done, deferred or dropped, including work finished outside Fleet. The decision source records `state: closed` and the reason for closure. `close-finished-decisions` settles existing asks with applied-answer receipts as well as unanswered asks for finished work. It also clears failed-answer requests when Fleet work is done or released, or Board work is done, deferred or dropped, including when question registration failed. It records the closure reason on published questions and in the daemon log, and those requests stop appearing in status and watch reports. Failed answers for active work remain visible. A second run closes nothing. An unconsumed answer to an earlier question revision leaves its ask open unless a failed-answer request belongs to finished work.
 
-Automatic reconciliation refreshes eligible edited briefs in place. Explicit dispatch can re-approve work waiting on a context decision; renewal still requires safe execution and result ownership. Keep `serve` active to reconcile worker progress. All commands except `serve` connect to its loopback port over RPC and open no PostgreSQL connection. `serve` writes its bound port to `<board-dir>/.fleet-port`. Clients read that file from `--board <board-dir>` (default `.work`); an explicit `--port` overrides discovery. On shutdown, the daemon removes the port file if it still holds that daemon's port. The running daemon owns its configuration; client `--config` does not change it. Without a daemon, clients other than the JSON watch and `watch --follow` exit 1 with the address and a command to start it.
+Automatic reconciliation refreshes eligible edited briefs in place. Explicit dispatch can re-approve work waiting on a context decision; renewal still requires safe execution and result ownership. Keep `up` active to reconcile worker progress. Per-process `serve` remains available for composition. Work commands connect to its loopback port over RPC and open no PostgreSQL connection. `serve` writes its bound port to `<board-dir>/.fleet-port`. Work clients read that file from `--board <board-dir>` (default `.work`); an explicit `--port` overrides discovery. On shutdown, the daemon removes the port file if it still holds that daemon's port. The running daemon owns its configuration; client `--config` does not change it. Without a daemon, clients other than the JSON watch and `watch --follow` exit 1 with the address and a command to start it.
 
 `answer` saves an answer request in PostgreSQL and prints `Answer recorded; applying in the background` before admission, Board publication or provider work. `answer --release` uses the same acknowledgement boundary. A recording failure exits with an error; a recorded request resumes after daemon restart. Each waiting request tracks its exact published decision and response before resolution. An earlier clarification or deferral receipt leaves the decision open and does not consume a later answer or release. `status` and `watch` keep its application on automation until the answer is applied. Application failures appear as `Answer failed` with their cause in status, log the work ID and cause, and can be retried with another answer. The daemon records the orchestrator response on Board and resolves what the item waits on in the background. Worker questions require nonempty text and continue on the same thread. For Fleet decisions, an answer whose trimmed text is exactly `release` selects release. Other text selects retry with the text as the overall response; for a reviewed, ready PR, nonempty text requests changes on the same branch and PR. Use `--release` to release terminal ownership instead. The command refreshes the managed decision and registers its current question before answering, including after a changed template was republished. If reconciliation replaces a decision with another of the same kind during the command, the answer applies to the current decision. A different kind or a move out of waiting records `Decision changed` with the current reason in status. Nonempty text sent during execution or repair is stored for the next worker turn, survives daemon restart and uses the same recorded acknowledgement before queueing in request order; release requests still require terminal waiting work. Items waiting on nothing return a typed error naming their stage. `status` prints each waiting question or reason, with `work-fleet answer <work-id>` in the maintainer and orchestrator lanes. Automation waits have no answer command. `src/host/daemonCommands.spec.ts`, `src/host/answerWorker.spec.ts`, `src/host/answerPublication.spec.ts`, `src/host/answerReplacement.spec.ts`, `src/host/answerQueue.spec.ts` and `src/host/approvedRework.spec.ts` prove these paths through daemon HTTP against PostgreSQL and synthetic Board directories. All answers and releases share one watched Board response index, so a request rereads only changed Board files. `src/host/answerDisconnect.spec.ts` proves acknowledgements within the timeout, the CLI confirmation, applying status and shared indexing while another connection holds the admission lock. `src/host/answerQueueAcknowledgement.spec.ts` proves working and repairing guidance confirms through the CLI while admission is held and queues multiple messages in order when admission frees. `src/host/answerAfterDeferral.spec.ts` proves answers and releases apply after reconciled clarification and deferral responses, and restart recovery matches the pending request’s exact response without applying it twice. `src/host/answerRequestRecovery.spec.ts` proves recorded requests survive shutdown before admission frees; `src/host/answerRecordingFailure.spec.ts` proves the CLI reports a failed database recording and permits a later valid request.
 

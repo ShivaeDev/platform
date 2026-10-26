@@ -15,14 +15,22 @@ import { board, clientPort, config, host, port } from "#host/cliOptions.ts";
 import { closeFinishedDecisionsCommand } from "#host/closeFinishedDecisionsCommand.ts";
 import { waitCommand, watchCommand } from "#host/followCommands.ts";
 import { reservePrCommand } from "#host/reservePrCommand.ts";
+import { downCommand, upCommand } from "#host/upCommands.ts";
 import { VERSION } from "#packageInfo.ts";
 
 const serveCommand = Command.make(
 	"serve",
 	{ board: Argument.Directory("board-dir"), config, port },
 	Effect.fn("WorkFleetCli.serve")(function* (input) {
-		const { serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
-		yield* serveFleet(yield* host(input.board, input.config), undefined, Option.getOrUndefined(input.port));
+		return yield* Effect.scoped(
+			Effect.gen(function* () {
+				const { processes } = yield* Effect.promise(() => import("@shivaedev/work-board/server/integration/processes.ts"));
+				const { DAEMON_PORT, serveFleet } = yield* Effect.promise(() => import("#host/daemon.ts"));
+				const daemonPort = Option.getOrElse(input.port, () => DAEMON_PORT);
+				yield* processes.claimProcess(input.board, "daemon", { daemonPort });
+				yield* serveFleet(yield* host(input.board, input.config), undefined, daemonPort);
+			}),
+		);
 	}),
 ).pipe(Command.withDescription("Serve the local Fleet HTTP RPC daemon and schedule approved Board work"));
 
@@ -84,6 +92,8 @@ const statusCommand = Command.make(
 const cli = Command.make("work-fleet").pipe(
 	Command.withDescription("Run approved Work Board items through Work Fleet"),
 	Command.withSubcommands([
+		upCommand,
+		downCommand,
 		serveCommand,
 		closeFinishedDecisionsCommand,
 		dispatchCommand,

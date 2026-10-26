@@ -495,10 +495,11 @@ The Board shell renders this data in its internal `DocumentView`, using the Boar
 
 #### Headless addon API
 
-Work Fleet uses five server entry points and one portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
+Work Fleet uses the server entry points below and the portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
 
 | Entry point | API object |
 | --- | --- |
+| `server/integration/processes.ts` | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision |
 | `server/integration/board.ts` | `board`: metadata parsing and model, Markdown listing, watching and the search snapshot |
 | `integration/metadata.ts` | Portable metadata types, also available through `server/integration/board.ts` |
 | `server/integration/responses.ts` | `responses`: the workspace and response services, reading, recording and publishing questions and responses |
