@@ -34,13 +34,13 @@ screenStory.it(
 		expect(
 			findElements("[data-goal-counts] > li", progress)
 				.slice(0, 5)
-				.map((segment) => [segment.dataset.status, segment.dataset.count]),
+				.map((segment) => [segment.dataset.status, segment.dataset.count, segment.querySelector("span")?.style.backgroundColor]),
 		).toEqual([
-			["done", "1"],
-			["running", "2"],
-			["blocked", "4"],
-			["scheduled", "2"],
-			["parked", "5"],
+			["done", "1", "#00a83b"],
+			["running", "2", "#b56b00"],
+			["blocked", "4", "#ce0030"],
+			["scheduled", "2", "#0065ff"],
+			["parked", "5", "#767676"],
 		]);
 		const child = findElement('section[aria-label="goal.child"]', progress);
 		expect(findElements("[data-goal-state]", child).map((segment) => segment.dataset.count)).toEqual(["0", "1", "2", "0", "0"]);

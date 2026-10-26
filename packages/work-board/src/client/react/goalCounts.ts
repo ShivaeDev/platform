@@ -6,10 +6,11 @@ export function goalTotal(counts: GoalCounts) {
 }
 
 export const goalStateLabels = { blocked: "Blocked", done: "Done", parked: "Parked", running: "Running", scheduled: "Scheduled" } as const;
-export const goalStateColors = {
-	blocked: "bg-destructive",
-	done: "bg-done",
-	parked: "bg-deferred",
-	running: "bg-goal-running",
-	scheduled: "bg-agent-working",
+
+export const goalColors = {
+	blocked: "#ce0030",
+	done: "#00a83b",
+	parked: "#767676",
+	running: "#b56b00",
+	scheduled: "#0065ff",
 } as const;

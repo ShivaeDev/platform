@@ -57,7 +57,7 @@ function CriterionLabel({
 	);
 }
 
-export function CountLabel({ height, value, width, x, y }: LabelProps) {
+export function CountLabel({ fill, height, value, width, x, y }: LabelProps) {
 	const count = Number(value);
 	const box = { height: Number(height), width: Number(width), x: Number(x), y: Number(y) };
 	if (box.width < String(count).length * COUNT_DIGIT_WIDTH + COUNT_PADDING) {
@@ -65,8 +65,9 @@ export function CountLabel({ height, value, width, x, y }: LabelProps) {
 	}
 	return (
 		<text
-			className="fill-background font-medium text-xs tabular-nums"
+			className="font-medium text-xs tabular-nums"
 			dominantBaseline="central"
+			fill={fill}
 			textAnchor="middle"
 			x={box.x + box.width / 2}
 			y={box.y + box.height / 2}
