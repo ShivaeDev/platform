@@ -117,3 +117,47 @@ describe("folder runtime boundaries", () => {
 		expect(result.stdout).toContain('Shared code uses browser global "window"');
 	});
 });
+
+describe("whole-package runtime declaration", () => {
+	it("treats every source file of a declared server package as server code, which browser code may not import", async () => {
+		const root = seedTree([
+			{ content: '{"workspaces":["modules/*"]}', path: "package.json" },
+			{ content: '{"name":"host","exports":{"./*.ts":"./src/*.ts"},"quality":{"runtime":"server"}}', path: "modules/host/package.json" },
+			{ content: '{"name":"app"}', path: "modules/app/package.json" },
+			{ content: 'import "node:fs";\nexport const host = 1;', path: "modules/host/src/appHost.ts" },
+			{ content: 'import "host/appHost.ts";', path: "modules/app/src/client/app.ts" },
+		]);
+		runtimeFolders(root, "modules/app/src/client");
+		linkWorkspace(root, "host", "modules/host");
+		expect((await findingsIn(importsRuntime, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+			{ file: "modules/app/src/client/app.ts", subject: "host/appHost.ts" },
+		]);
+	});
+
+	it("treats a declared client package as browser code throughout", async () => {
+		const root = seedTree([
+			{ content: '{"name":"view","quality":{"runtime":"client"}}', path: "package.json" },
+			{ content: 'import "node:fs";\nwindow.alert("hi");', path: "src/view.ts" },
+		]);
+		expect((await findingsIn(importsRuntime, undefined, root)).map(({ file, subject }) => ({ file, subject }))).toEqual([
+			{ file: "src/view.ts", subject: "node:fs" },
+		]);
+	});
+
+	it("reports a declaration beside runtime folders and an unknown runtime on the manifest", async () => {
+		const root = seedTree([
+			{ content: '{"workspaces":["modules/*"]}', path: "package.json" },
+			{ content: '{"name":"mixed","quality":{"runtime":"server"}}', path: "modules/mixed/package.json" },
+			{ content: '{"name":"odd","quality":{"runtime":"edge"}}', path: "modules/odd/package.json" },
+			{ content: "export const view = 1;", path: "modules/mixed/src/client/view.ts" },
+			{ content: "export const odd = 1;", path: "modules/odd/src/odd.ts" },
+		]);
+		const findings = await findingsIn(importsRuntime, undefined, root);
+		expect(findings.map(({ file, subject }) => ({ file, subject }))).toEqual([
+			{ file: "modules/mixed/package.json", subject: "quality.runtime" },
+			{ file: "modules/odd/package.json", subject: "quality.runtime" },
+		]);
+		expect(findings[0]?.message).toContain("also has src/client/");
+		expect(findings[1]?.message).toContain('Declare "client" or "server"');
+	});
+});

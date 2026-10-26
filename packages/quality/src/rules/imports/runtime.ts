@@ -1,6 +1,6 @@
 import { importGraph } from "#imports/graph.ts";
 import { builtinName } from "#imports/resolve.ts";
-import { type Runtime, runtimeOf } from "#imports/runtime.ts";
+import { type Runtime, runtimeDeclarationProblems, runtimeOf } from "#imports/runtime.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";
 
@@ -34,14 +34,20 @@ export const importsRuntime = defineRule({
 				},
 			];
 		});
+		const declarations = runtimeDeclarationProblems(inputs, graph.packages).map(({ directory, message }) => ({
+			file: directory === "." ? "package.json" : `${directory}/package.json`,
+			line: 1,
+			message,
+			subject: "quality.runtime",
+		}));
 		const shared = inputs.sources.filter((file) => !isTestCode(file.path) && runtime(file.path) === "shared");
 		if (shared.length === 0) {
-			return imports;
+			return [...imports, ...declarations];
 		}
 		const { browserGlobals } = await import("#imports/browserGlobals.ts");
-		return [...imports, ...shared.flatMap(browserGlobals)];
+		return [...imports, ...declarations, ...shared.flatMap(browserGlobals)];
 	},
 	description:
-		"Runtime folders define client, server and shared code. Executable packages without runtime folders and package-root tooling are server code.",
+		"Runtime folders define client, server and shared code. A manifest's quality.runtime declares a single-runtime package whole; executable packages without runtime folders and package-root tooling are server code.",
 	id: "imports/runtime",
 });
