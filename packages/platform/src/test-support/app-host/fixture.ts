@@ -6,7 +6,7 @@ import { Context, Effect, Layer, Option, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
-import { AuthUnavailable, Conflict } from "#errors/taxonomy.ts";
+import { AuthUnavailable, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { Identity } from "#rpc/identity.ts";
 import { Authenticated } from "#rpc/middleware.ts";
 import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";

@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { it } from "@shivaedev/effect-test/it.ts";
-import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
 import { waitForResponse } from "#server/responses/waitFor.ts";
 import { waitReplies } from "#test/waitReplies.ts";
 

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { makeHuman } from "#engine/makeHuman.ts";

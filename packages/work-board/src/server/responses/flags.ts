@@ -1,4 +1,4 @@
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 export function flags(args: readonly string[]) {
 	const values = new Map<string, string>();
 	for (let index = 0; index < args.length; index += 2) {

@@ -2,7 +2,7 @@ import { constants } from "node:fs";
 import { mkdir, open, realpath } from "node:fs/promises";
 import process from "node:process";
 import { Effect, Schema } from "effect";
-import { BadRequest, Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, Conflict, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { PublicationUncertain, ResponseRejection } from "#rpc/rejections.ts";
 import { directoryPath, publicationFailure, validateDirectory } from "./publicationDirectory.ts";
 import { publishIn } from "./publishIn.ts";

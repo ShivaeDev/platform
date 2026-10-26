@@ -1,6 +1,6 @@
 import { Effect, Option, Predicate } from "effect";
 import type { Headers } from "effect/http";
-import { AuthUnavailable, Unauthorized } from "#errors/taxonomy.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#rpc/identity.ts";
 import { redact } from "#server/rpc-server/redact.ts";
 import type { SessionProvider, SessionShape } from "#server/rpc-server/session.ts";

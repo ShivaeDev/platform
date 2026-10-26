@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { forbiddenOrigin, profile, providerOutage, sessionUser } from "#test/rpc/profile.ts";
 
 const user = { email: "alice@example.test", id: "alice", name: "Alice", privateField: "provider-only" };

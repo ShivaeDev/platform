@@ -3,7 +3,7 @@ import * as Effect from "effect/Effect";
 import * as Layer from "effect/Layer";
 import * as RpcClient from "effect/rpc/RpcClient";
 import * as RpcSerialization from "effect/rpc/RpcSerialization";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 import { agentUrl } from "./agentArguments.ts";
 import { waitForResponse } from "./waitFor.ts";

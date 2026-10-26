@@ -7,11 +7,11 @@ const PLATFORM_OPTIONAL_PEERS = Object.entries(platformManifest.peerDependencies
 	.filter(([, meta]) => meta.optional)
 	.map(([name]) => name);
 
-const browserCode = folders("packages/platform/src/errors", "packages/platform/src/rpc");
+const browserCode = folders("packages/platform/src/rpc");
 
 export default [
 	fence("platform-client-stays-browser-safe")
-		.because("The errors and rpc modules ship to browsers and reach only browser-safe code.")
+		.because("The rpc modules ship to browsers and reach only browser-safe code.")
 		.from(browserCode)
 		.mayNotReach(anything.except(browserCode, packages("effect-contract", "effect-form", "effect-react", "types"), modules("effect")))
 		.demonstratedBy({
@@ -20,11 +20,10 @@ export default [
 		}),
 	fence("platform-core-needs-no-optional-peer")
 		.because(
-			"The errors, rpc, node-http, rpc-server and runtime modules of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
+			"The rpc, node-http, rpc-server and runtime modules of @shivaedev/platform work with only effect installed: nothing they reach, as a value or a type, is an optional peer of the package, as its peerDependenciesMeta lists them, or a @better-auth/* package.",
 		)
 		.from(
 			folders(
-				"packages/platform/src/errors",
 				"packages/platform/src/rpc",
 				"packages/platform/src/server/node-http",
 				"packages/platform/src/server/rpc-server",

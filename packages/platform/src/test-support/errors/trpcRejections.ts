@@ -3,11 +3,6 @@ import { initTRPC } from "@trpc/server";
 import { fetchRequestHandler } from "@trpc/server/adapters/fetch";
 import { Effect, Layer, ManagedRuntime, Schema } from "effect";
 import superjson from "superjson";
-import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
-import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
-import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";
-import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
-import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import {
 	AuthUnavailable,
 	BadRequest,
@@ -17,7 +12,12 @@ import {
 	PreconditionFailed,
 	ServiceUnavailable,
 	TooManyRequests,
-} from "#errors/taxonomy.ts";
+} from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { makeEffectTRPC } from "@shivaedev/effect-trpc/server/adapter.ts";
+import { rejectWith } from "@shivaedev/effect-trpc/server/rejection.ts";
+import { rejectionFormatter } from "@shivaedev/effect-trpc/server/rejectionFormatter.ts";
+import { makeRequestServices } from "@shivaedev/effect-trpc/server/requestServices.ts";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const Rejection = Schema.Union([
 	NotFound,

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 import { questionnaireSource, scopedQuestionnaire } from "#test/questionnaire.ts";
 

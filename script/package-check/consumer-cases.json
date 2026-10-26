@@ -24,8 +24,6 @@
 	"platform": [
 		{
 			"entries": [
-				"./errors/rejectedField.ts",
-				"./errors/taxonomy.ts",
 				"./server/node-http/subscriptionSignal.ts",
 				"./rpc/identity.ts",
 				"./rpc/middleware.ts",

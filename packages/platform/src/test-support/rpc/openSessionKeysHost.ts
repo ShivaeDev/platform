@@ -3,10 +3,10 @@ import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effe
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator } from "effect/sql";
+import { Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { LiveHint } from "@shivaedev/effect-contract/live.ts";
 import { ChangeObserver } from "@shivaedev/effect-sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { Unauthorized } from "#errors/taxonomy.ts";
 import { Identity } from "#rpc/identity.ts";
 import { appHost } from "#server/appHost.ts";
 import { sessionCommandChanges } from "#server/commandChanges.ts";

@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { expect } from "vitest";
+import { rejectedField } from "@shivaedev/effect-contract/errors/rejectedField.ts";
+import { BadRequest, Conflict, Forbidden, PreconditionFailed, TooManyRequests } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { rejectedField } from "#errors/rejectedField.ts";
-import { BadRequest, Conflict, Forbidden, PreconditionFailed, TooManyRequests } from "#errors/taxonomy.ts";
 import { rejectionsOptions } from "#test/rpc/rejections.ts";
 import { Invalid } from "#test/rpc/renameFixture.ts";
 

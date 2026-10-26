@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { WorkResult } from "#policy.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 

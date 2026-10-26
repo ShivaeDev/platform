@@ -1,6 +1,6 @@
 # @shivaedev/platform
 
-Shared errors, request identity and server boundaries for Effect applications. A feature can say who called it and why it refused, while the application supplies its session policy once. The package also connects Effect services to Promise callers, Node subscriptions and optional Better Auth, Prisma and tRPC integrations.
+Request identity and server boundaries for Effect applications. A feature can say who called it and why it refused, while the application supplies its session policy once. The package also connects Effect services to Promise callers, Node subscriptions and optional Better Auth, Prisma and tRPC integrations.
 
 ## Why you want this
 
@@ -19,7 +19,7 @@ const Handlers = Account.toLayer({
 });
 ```
 
-`Account` is a native RPC group with authenticated middleware. Its handler reads the identity for this invocation and decides whether that user may read the account. Platform supplies the common error classes and request services; feature code keeps the resource-ownership check. Concurrent requests receive their own identities, and a provider outage reaches the caller as `AuthUnavailable` instead of pretending the caller signed out.
+`Account` is a native RPC group with authenticated middleware. Its handler reads the identity for this invocation and decides whether that user may read the account. Effect Contract supplies the common error classes, and Platform supplies request services; feature code keeps the resource-ownership check. Concurrent requests receive their own identities, and a provider outage reaches the caller as `AuthUnavailable` instead of pretending the caller signed out.
 
 ## Using it
 
@@ -27,7 +27,7 @@ const Handlers = Account.toLayer({
 
 There are three parts to a native RPC boundary:
 
-1. **The shared contract** names Schema errors and middleware tags. The browser imports these declarations too, so `errors/` and `rpc/` contain browser-safe data and services.
+1. **The shared contract** names Schema errors and middleware tags. The browser imports these declarations too, so `effect-contract/errors/` and Platform's `rpc/` contain browser-safe data and services.
 2. **The server composition** implements the tags with Layers from `rpc-server/`. A session provider resolves a session; an Origin policy decides whether its request may reach that provider; tracing supplies a request id and diagnostic context.
 3. **The feature handler** reads `Identity`, `OptionalIdentity` or `RequestId` and runs application code. Authentication supplies a user id. Authorization still decides whether that user may perform this operation.
 
@@ -63,7 +63,7 @@ const Server = appHost({
 NodeRuntime.runMain(Layer.launch(Server));
 ```
 
-`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and `SessionPolicy`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `errors/`, `node-http/`, `rpc/`, `rpc-server/` and `runtime/` entries still work without them.
+`app.ts` exports the application's contracts, native Layers, numbered `Migrator.Loader` and `SessionPolicy`. The host needs the optional peers `@effect/platform-node` and `@effect/sql-pg` at the workspace's Effect version; install both for this entry point. The `node-http/`, `rpc/`, `rpc-server/` and `runtime/` entries still work without them.
 
 Omit `services` when the app has no service Layer of its own. The host uses `Layer.empty`; handler requirements remain explicit, and a migrated host still provides its database services to handlers. Annotated options that declare service outputs, errors or requirements must supply a `services` Layer.
 
@@ -269,7 +269,7 @@ Declare the RPC group in a shared module:
 ```ts
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
@@ -357,7 +357,7 @@ Pass Better Auth's account lookup as the second argument to `betterAuthSessions`
 ```ts
 import { SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/platform/rpc/middleware.ts";
-import { AuthUnavailable, Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 
 const sessions = {
@@ -509,34 +509,7 @@ The same module exports `loopbackOnly(handler)` for local page routes and `sameO
 
 `trustedProxyRanges(trustedProxy?)` returns the equivalent IP addresses and CIDR ranges used by that matcher. Mapped IPv6 addresses and CIDRs become IPv4 entries: `::ffff:127.0.0.0/104` becomes `127.0.0.0/8`, including hexadecimal mapped forms. Broader IPv6 ranges retain both native IPv6 and mapped IPv4 coverage. Missing or malformed configuration returns an empty list. Pass these ranges to a forwarded-header integration after checking the transport with `trustedProxyPeer`.
 
-Declare expected refusals in the RPC's error schema:
-
-```ts
-import { Schema } from "effect";
-import { Rpc } from "effect/rpc";
-import { BadRequest, Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
-
-export const Rename = Rpc.make("Rename", {
-  error: Schema.Union([BadRequest, Conflict]),
-  payload: { name: Schema.String },
-  success: Schema.String,
-});
-```
-
-A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`. Native RPC JSON decodes the rejection back to the error instance with its field. Taxonomy errors can be declared on an RPC with no authentication middleware. `rejectedField` reads either that instance or tagged JSON:
-
-```ts
-import { rejectedField } from "@shivaedev/platform/errors/rejectedField.ts";
-import { Conflict } from "@shivaedev/platform/errors/taxonomy.ts";
-
-const field = rejectedField(
-  new Conflict({ field: "name", message: "Name is taken" }),
-);
-```
-
-`field` is `Option.some({ field: "name", message: "Name is taken" })`. Any value with string `_tag`, `field` and `message` qualifies, including an application's own tagged error. An untagged object, a missing field or a non-string field yields `Option.none()`.
-
-For tRPC, use these classes with the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc). The composed HTTP boundary carries rejection data and maps statuses, including `TooManyRequests` as 429 and `AuthUnavailable` as 503.
+Declare expected refusals with the shared tagged error schemas from [effect-contract](https://github.com/ShivaeDev/platform/tree/main/packages/effect-contract#expected-failures). They work with native RPC without authentication middleware. For tRPC, use the rejection schema and formatter from [effect-trpc](https://github.com/ShivaeDev/platform/tree/main/packages/effect-trpc); that HTTP boundary owns status mapping.
 
 ### Handling unexpected failures
 
@@ -544,7 +517,7 @@ At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections an
 
 ```ts
 import { Schema } from "effect";
-import { Conflict, InternalServerError } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, InternalServerError } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError]);
@@ -906,8 +879,6 @@ Import the module that defines the name; there is no package-root entry. Paths b
 
 | Module | Names and purpose |
 | --- | --- |
-| `errors/taxonomy.ts` | `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError`, `ServiceUnavailable`: Schema tagged error classes with a `message`; `BadRequest` and `Conflict` also accept an optional `field`. |
-| `errors/rejectedField.ts` | `rejectedField(unknown)`: the field and message of a field rejection. |
 | `rpc/identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services. |
 | `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `AuthenticatedAdmin`, `AuthenticatedOwner`, `MaybeAuthenticated`: native RPC middleware declarations. |
 | `rpc/hasRole.ts` | `hasRole(user, role)`: whether a user's comma-separated role list includes a role; browser-safe. |
@@ -949,7 +920,7 @@ Role writes require an owner `SessionUser`, serialize role changes in a transact
 pnpm add @shivaedev/platform effect@4.0.5
 ```
 
-Effect is the only required peer. The peer-free implementation lives in the shared `errors/` and `rpc/` folders and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core errors, RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `errors/` and `rpc/` modules.
+Effect is the only required peer. The peer-free implementation lives in the shared `rpc/` folder and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `rpc/` modules and the error schemas from `@shivaedev/effect-contract/errors/taxonomy.ts`.
 
 Install the optional peers for the selected integration:
 

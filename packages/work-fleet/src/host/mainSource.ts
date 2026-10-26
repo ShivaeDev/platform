@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { Clock, Context, Effect, Layer, Schedule, Semaphore } from "effect";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
 import { predictedMergeConflicts, predictionGit } from "#host/gitMergeTree.ts";

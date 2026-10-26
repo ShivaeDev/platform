@@ -20,7 +20,7 @@ user-facing text, layout and deployment choices.
 | Persist data and run migrations | [effect-sql](../../packages/effect-sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
 | Announce committed changes | [effect-changes](../../packages/effect-changes/README.md) | Repositories announce table and row keys at commit; command declarations name additional dependencies. |
 | Declare queries and commands | [effect-contract](../../packages/effect-contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
-| Resolve identity and share errors | [platform](../../packages/platform/README.md) | Use its errors, RPC middleware and server modules; applications decide session and Origin policy. |
+| Resolve identity | [platform](../../packages/platform/README.md) | Use its RPC middleware and server modules; applications decide session and Origin policy. |
 | Render queries and invoke actions | [effect-react](../../packages/effect-react/README.md) | Bind native atoms to React; session boundaries own registries and live connections. |
 | Route React screens | [effect-react/router.ts](../../packages/effect-react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
 | Edit and submit data | [effect-form](../../packages/effect-form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |

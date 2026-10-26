@@ -1,7 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
-import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
 import type { DecisionCode } from "#DecisionCode.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetHost } from "#host/config.ts";

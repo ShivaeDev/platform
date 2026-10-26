@@ -79,7 +79,7 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 	);
 	yield* command(consumer, "pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", store]);
 	yield* checkEffectCopies(consumer, catalog);
-	yield* checkBrowserEntries(root, pkg, consumer);
+	yield* checkBrowserEntries(root, pkg, packages, consumer);
 	if (scenario?.omitOptionalPeers) {
 		yield* checkOptionalPeers(pkg, consumer);
 	}

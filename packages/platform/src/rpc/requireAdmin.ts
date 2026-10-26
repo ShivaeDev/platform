@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Forbidden } from "#errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { hasRole } from "./hasRole.ts";
 import { SessionUser, type SessionUserValue } from "./identity.ts";
 

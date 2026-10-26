@@ -1,7 +1,7 @@
 import { Cause, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { rejectedField } from "#errors/rejectedField.ts";
-import { Conflict } from "#errors/taxonomy.ts";
+import { rejectedField } from "@shivaedev/effect-contract/errors/rejectedField.ts";
+import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { isSensitiveKey } from "#server/rpc-server/sensitive.ts";
 import { tracePolicy, tracing } from "#test/rpc/tracingStory.ts";
 

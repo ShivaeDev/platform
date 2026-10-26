@@ -1,7 +1,7 @@
 import { Effect, Layer, Option } from "effect";
 import { type HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RpcMiddleware } from "effect/rpc";
-import { type AuthUnavailable, Forbidden, type Unauthorized } from "#errors/taxonomy.ts";
+import { type AuthUnavailable, Forbidden, type Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { hasRole } from "#rpc/hasRole.ts";
 import { Identity, SessionUser, type SessionUserValue } from "#rpc/identity.ts";
 import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";

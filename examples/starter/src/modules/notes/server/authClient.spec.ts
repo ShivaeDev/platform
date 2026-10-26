@@ -1,6 +1,6 @@
 import { Effect, Result } from "effect";
 import { expect } from "vitest";
-import { Unauthorized } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it("targets its own host for auth actions and session checks", [signedIn("client-user")], function* ({ authClient, actor }) {

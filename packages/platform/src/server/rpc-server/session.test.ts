@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { trustedOrigins } from "#server/rpc-server/origin.ts";
 import { ORIGIN } from "#test/rpc/harness.ts";
 import { originPolicy, publicWithoutOrigin, sessions, signedUp } from "#test/rpc/sessionStory.ts";

@@ -1,7 +1,16 @@
 import { Effect, type Layer, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import { AuthUnavailable, BadRequest, Conflict, Forbidden, NotFound, PreconditionFailed, TooManyRequests, Unauthorized } from "#errors/taxonomy.ts";
+import {
+	AuthUnavailable,
+	BadRequest,
+	Conflict,
+	Forbidden,
+	NotFound,
+	PreconditionFailed,
+	TooManyRequests,
+	Unauthorized,
+} from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";

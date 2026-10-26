@@ -1,5 +1,5 @@
 import { Effect, Result } from "effect";
-import { Forbidden } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetCycleSnapshot, FleetRecord } from "#model.ts";

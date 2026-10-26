@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { Conflict, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import { failureContext } from "#engine/failureContext.ts";
 import { githubHost } from "#test/githubHostStory.ts";

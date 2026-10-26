@@ -1,7 +1,7 @@
 import process from "node:process";
 import { text } from "node:stream/consumers";
 import { Effect } from "effect";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 
 export function answerText(value: string | undefined) {
 	if (value !== undefined || process.stdin.isTTY) {

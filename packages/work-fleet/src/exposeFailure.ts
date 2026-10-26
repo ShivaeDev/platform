@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { FleetError, isFleetError } from "#errors.ts";

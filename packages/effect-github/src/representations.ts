@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
-import type { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
+import type { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { paginate } from "@shivaedev/platform/http-client/paginate.ts";
 import type { CachedResponse } from "#cache.ts";
 import { jsonResponse } from "#json.ts";

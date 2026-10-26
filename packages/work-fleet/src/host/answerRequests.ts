@@ -1,6 +1,6 @@
 import { Cause, Effect, Schedule, Semaphore } from "effect";
 import { SqlClient } from "effect/sql";
-import { BadRequest, NotFound } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { Fleet } from "#fleet.ts";

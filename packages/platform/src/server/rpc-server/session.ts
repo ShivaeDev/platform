@@ -1,6 +1,6 @@
 import { Duration, Effect, Exit, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
-import { type AuthUnavailable, Forbidden, Unauthorized } from "#errors/taxonomy.ts";
+import { type AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import {
 	Identity,
 	OptionalIdentity,

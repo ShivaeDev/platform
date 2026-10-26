@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Schema } from "effect";
-import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { boardSnapshot } from "#board/documents.ts";
 import { fleetBranch, fleetPullRequest } from "#board/fleetField.ts";
 import { FleetRepository } from "#engine/repository.ts";
