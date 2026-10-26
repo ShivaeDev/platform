@@ -1,4 +1,4 @@
-import { Context, Deferred, Effect, Fiber, Layer, Stream } from "effect";
+import { Context, Deferred, Duration, Effect, Fiber, Layer, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
@@ -20,7 +20,7 @@ class Scheduler extends Context.Service<Scheduler, Fiber.Fiber<void, unknown>>()
 export function daemonHostOptions(host: FleetHost, parts: HostParts = productionParts(host), port: number = DAEMON_PORT) {
 	return {
 		boardDir: host.boardDir,
-		config: { disablePreemptiveShutdown: false, host: DAEMON_HOST, port },
+		config: { disablePreemptiveShutdown: false, gracefulShutdownTimeout: Duration.infinity, host: DAEMON_HOST, port },
 		group: DaemonContract,
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
 		policy: "loopback" as const,

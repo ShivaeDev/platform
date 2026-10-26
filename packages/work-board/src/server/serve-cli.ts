@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { NodeRuntime, NodeServices } from "@effect/platform-node";
-import { Effect, Layer, Option, Path } from "effect";
+import { Config, Effect, Layer, Option, Path } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { VERSION } from "#server/packageInfo.ts";
+import { SUPERVISOR_ENV } from "./processInstance.ts";
+import { claimProcess } from "./processOwnership.ts";
 import { HOST, serveBoard } from "./serve.ts";
 
 const serve = Effect.fn("WorkBoard.serve")(function* (input: {
@@ -16,6 +18,7 @@ const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	readonly home: Option.Option<string>;
 }) {
 	const path = yield* Path.Path;
+	yield* claimProcess(path.resolve(input.dir), "board", { boardPort: input.port, daemonPort: input.fleetPort });
 	if (import.meta.url.endsWith(".ts")) {
 		const cwd = yield* path.fromFileUrl(new URL("../../", import.meta.url));
 		yield* Effect.logInfo("Building the Work Board browser app from source…");
@@ -29,6 +32,7 @@ const serve = Effect.fn("WorkBoard.serve")(function* (input: {
 	}
 	return yield* Layer.launch(
 		serveBoard({
+			drainRequests: Option.isSome(yield* Config.option(Config.String(SUPERVISOR_ENV))),
 			fleetPort: input.fleetPort,
 			home: Option.getOrUndefined(input.home),
 			maintainer: input.maintainer,
@@ -55,7 +59,7 @@ const workBoard = Command.make(
 			Flag.withDescription("Explicitly enable local durable question, response and handoff writes (Linux)"),
 		),
 	},
-	serve,
+	(input) => Effect.scoped(serve(input)),
 ).pipe(Command.withDescription("Serve a folder of markdown files as a live page that updates in place when a file changes."));
 
 export function runServe() {
