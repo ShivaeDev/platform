@@ -8,6 +8,7 @@ import {
 	ChartTooltipContent,
 } from "#client/react/components/ui/chart.tsx";
 import { CountLabel, CriterionAxis, EmptyLabel } from "./goalChartLabels.tsx";
+import { goalColors, goalCountOrder, goalStateLabels } from "./goalCounts.ts";
 
 export interface GoalChartRow {
 	readonly blocked: number;
@@ -21,14 +22,9 @@ export interface GoalChartRow {
 	readonly text: string;
 }
 
-const config = {
-	blocked: { color: "var(--destructive)", label: "Blocked" },
-	done: { color: "var(--status-done)", label: "Done" },
-	parked: { color: "var(--status-deferred)", label: "Parked" },
-	running: { color: "var(--status-goal-running)", label: "Running" },
-	scheduled: { color: "var(--status-agent-working)", label: "Scheduled" },
-} satisfies ChartConfig;
-const series = ["done", "running", "blocked", "scheduled", "parked"] as const;
+const config = Object.fromEntries(
+	goalCountOrder.map((state) => [state, { color: goalColors[state], label: goalStateLabels[state] }]),
+) satisfies ChartConfig;
 
 export function GoalChart({
 	height,
@@ -50,7 +46,7 @@ export function GoalChart({
 				<CriterionAxis rowHeight={rowHeight} rows={rows} />
 				<ChartTooltip content={<ChartTooltipContent labelFormatter={(key) => rows.find((row) => row.key === key)?.text} />} cursor={false} />
 				<ChartLegend content={<ChartLegendContent className="flex-wrap gap-y-1" />} itemSorter={null} />
-				{series.map((key) => (
+				{goalCountOrder.map((key) => (
 					<Bar
 						dataKey={key}
 						fill={`var(--color-${key})`}
@@ -60,7 +56,7 @@ export function GoalChart({
 						stroke="var(--background)"
 						strokeWidth={2}
 					>
-						<LabelList content={CountLabel} dataKey={key} />
+						<LabelList content={CountLabel} dataKey={key} fill={key === "done" || key === "running" ? "#000" : "#fff"} />
 					</Bar>
 				))}
 				<Bar dataKey="empty" fill="var(--muted)" isAnimationActive={false} legendType="none" stackId="state" tooltipType="none">
