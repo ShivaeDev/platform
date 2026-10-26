@@ -16,7 +16,7 @@ const domEnvironment: Environment = {
 		const win = new GlobalWindow({
 			...happyDOM,
 			console: global.console,
-			settings: { ...happyDOM.settings, disableErrorCapturing: true },
+			settings: { ...happyDOM.settings, disableErrorCapturing: true, handleDisabledFileLoadingAsSuccess: true },
 			url: happyDOM.url ?? "http://localhost:3000",
 		});
 		win.happyDOM.settings.fetch.interceptor = documentTransport(global.fetch);

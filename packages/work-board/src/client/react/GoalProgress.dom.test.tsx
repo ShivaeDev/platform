@@ -20,13 +20,14 @@ for (const compact of [false, true]) {
 					segment.dataset.count,
 					segment.getAttribute("title"),
 					segment.style.width,
+					segment.style.backgroundColor,
 				]),
 			).toEqual([
-				["done", "31", "Done: 31", "77.5%"],
-				["running", "1", "Running: 1", "2.5%"],
-				["blocked", "2", "Blocked: 2", "5%"],
-				["scheduled", "4", "Scheduled: 4", "10%"],
-				["parked", "2", "Parked: 2", "5%"],
+				["done", "31", "Done: 31", "77.5%", "#00a83b"],
+				["running", "1", "Running: 1", "2.5%", "#b56b00"],
+				["blocked", "2", "Blocked: 2", "5%", "#ce0030"],
+				["scheduled", "4", "Scheduled: 4", "10%", "#0065ff"],
+				["parked", "2", "Parked: 2", "5%", "#767676"],
 			]);
 		},
 	);

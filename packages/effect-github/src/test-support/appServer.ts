@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import { type FakeHttpReply, type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { APP_ID, APP_TOKEN, inspectJwt } from "./appFixture.ts";
 
 export const appServer = Effect.gen(function* () {
@@ -21,6 +21,16 @@ export const appServer = Effect.gen(function* () {
 	const server = yield* fakeHttpService({
 		routes: {
 			app: { guard: check, path: "/app", reply: () => ({ body: { id: Number(APP_ID), slug: "widgets-app" } }) },
+			archive: {
+				guard: (request) => request.headers.authorization === undefined && request.headers["x-github-api-version"] === undefined,
+				path: "/storage/archive",
+				reply: () => ({ chunks: ["archive"] }),
+			},
+			artifact: {
+				guard: (request) => tokens.has(request.headers.authorization ?? ""),
+				path: "/repos/acme/widgets/actions/artifacts/42/zip",
+				reply: (): FakeHttpReply => ({ headers: { location: `${server.url}/storage/archive` }, status: 302 }),
+			},
 			installation: { guard: check, path: "/repos/acme/widgets/installation", reply: () => ({ body: { id: 7 } }) },
 			installations: {
 				guard: check,

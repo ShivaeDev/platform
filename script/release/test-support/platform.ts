@@ -52,4 +52,8 @@ export const pending = platform.trait("pending", "framework and binary changes a
 		join(root, ".changeset/release-story.md"),
 		'---\n"@shivaedev/platform": patch\n"@shivaedev/create-app": patch\n"@shivaedev/work-board": patch\n"@shivaedev/work-fleet": patch\n---\n\n### Fixed\n\n- Release story behavior.\n',
 	);
+	yield* Effect.sync(() => {
+		git(root, "add", ".changeset/release-story.md");
+		git(root, "commit", "-m", "Pending release story");
+	});
 });

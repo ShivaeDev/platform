@@ -69,3 +69,22 @@ appGithub.it(
 		expect([...new Set(unauthorized.map(({ headers }) => headers.authorization))]).toEqual([requests()[1]?.headers.authorization]);
 	},
 );
+
+appGithub.it(
+	"an artifact request refreshes a rejected installation token before downloading without credentials",
+	[],
+	function* ({ readPull, rejectArchive, downloadArchive, exchanges, requests }) {
+		yield* readPull();
+		yield* rejectArchive();
+		expect(new TextDecoder().decode(yield* downloadArchive())).toBe("archive");
+		expect(exchanges()).toMatchObject([
+			{ method: "POST", path: "/app/installations/7/access_tokens" },
+			{ method: "POST", path: "/app/installations/7/access_tokens" },
+		]);
+		const redirects = requests().filter(({ path }) => path === "/repos/acme/widgets/actions/artifacts/42/zip");
+		expect(redirects.map(({ status }) => status)).toEqual([401, 302]);
+		expect(redirects[1]?.headers.authorization).not.toBe(redirects[0]?.headers.authorization);
+		expect(requests().filter(({ path }) => path === "/storage/archive")).toMatchObject([{ path: "/storage/archive", status: 200 }]);
+		expect(requests().find(({ path }) => path === "/storage/archive")?.headers.authorization).toBeUndefined();
+	},
+);

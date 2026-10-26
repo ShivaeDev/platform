@@ -1,10 +1,10 @@
 import { execFileSync, spawnSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { posix } from "node:path";
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import type { ChangesetConfig } from "#config.ts";
 import { attempt, ChangesetError } from "#error.ts";
-import { ReleaseManifest } from "#model.ts";
+import type { Workspace } from "#model.ts";
 import { decodePackage, isChangeset, packagePatterns } from "#workspace.ts";
 
 function git(root: string, args: readonly string[]): string {
@@ -24,7 +24,7 @@ export const readHistory = Effect.fn("Changesets.readHistory")(function* (root: 
 			message: `Cannot resolve changeset base ${reference ?? "origin/main or main"}; run git fetch origin main or pass an existing base-ref with full history.`,
 		});
 	});
-	return yield* attempt(() => {
+	return yield* attempt((): Workspace => {
 		const paths = git(root, ["ls-tree", "-r", "--name-only", base]).trim().split("\n");
 		function read(path: string, fallback: string) {
 			return paths.includes(path) ? git(root, ["show", `${base}:${path}`]) : fallback;
@@ -35,7 +35,6 @@ export const readHistory = Effect.fn("Changesets.readHistory")(function* (root: 
 		const changesets = paths
 			.filter((path) => path.startsWith(".changeset/") && isChangeset(path.slice(".changeset/".length)))
 			.map((path) => ({ name: path.slice(".changeset/".length), text: read(path, "") }));
-		const text = read(".changeset/release.json", "");
-		return { changesets, packages, release: text === "" ? undefined : Schema.decodeUnknownSync(Schema.fromJsonString(ReleaseManifest))(text) };
+		return { changesets, packages };
 	});
 });

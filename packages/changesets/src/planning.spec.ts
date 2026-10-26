@@ -25,9 +25,8 @@ workspace.it("major releases are explicit after 1.0", [pending({ "@test/optional
 	expect(result.stdout).toContain("@test/optional: 1.0.0 -> 2.0.0 (major)");
 	expect(result.stdout).toContain("@test/peer: 1.0.0 -> 1.0.1 (patch)");
 });
-workspace.it("an empty workspace release is a no-op", [], function* ({ cli, exists }) {
+workspace.it("an empty workspace release is a no-op", [], function* ({ cli }) {
 	expect((yield* cli("plan")).stdout.trim()).toBe("No pending releases.");
 	expect((yield* cli("apply")).stdout.trim()).toBe("No pending releases.");
-	expect(yield* exists(".changeset/release.json")).toBe(false);
 	expect((yield* cli("check")).status).toBe(0);
 });
