@@ -12,7 +12,7 @@ screenStory.it(
 	({ read, findElement, findElements, readText }) => {
 		expect(read().text).not.toMatch(/0 linked|0 evidence|0 open|0 of 0|0\/0/u);
 		const card = findElement('[data-goal-id="project.example"]');
-		expect(card?.textContent).toContain("2 of 5 done");
+		expect(card?.textContent).toContain("2/5 done");
 		expect(card?.textContent).toContain("Review linked work");
 		expect(card?.textContent).toContain("2 open asks");
 		const criteria = findElements("li", card);
@@ -61,6 +61,8 @@ screenStory.it(
 	({ findElement, readAttribute }) => {
 		const card = findElement('[data-goal-id="project.example"]');
 		expect(card?.parentElement?.classList.contains("items-start")).toBe(true);
-		expect(readAttribute('[role="progressbar"][data-slot="progress"]', "aria-valuetext", card)).toBe("2 of 5 done");
+		expect(readAttribute('[role="progressbar"][data-slot="progress"]', "aria-valuetext", card)).toBe(
+			"2 of 5 done, 2 done, 0 running, 1 blocked, 0 scheduled, 2 parked",
+		);
 	},
 );

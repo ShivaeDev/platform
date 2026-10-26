@@ -4,6 +4,7 @@ import { boardInit, readBoard } from "@shivaedev/work-board-plugin/board.ts";
 import { answersTo, type Board, item, needsYou, overview } from "@shivaedev/work-board-plugin/boardTools.ts";
 import { rpcInit } from "@shivaedev/work-board-plugin/rpc.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
+import { goalProgressFixture, progressFleet } from "#test/goalProgressFixture.ts";
 import { fleetReports } from "#test/storyTraits.ts";
 
 const STARTED = 1000;
@@ -52,7 +53,10 @@ boardStory.it(
 				],
 				problem: null,
 			},
-			goals: { items: [{ done: 1, id: "project.launch", ready: 1, title: "Launch", total: 2 }], problem: null },
+			goals: {
+				items: [{ blocked: 1, done: 1, id: "project.launch", parked: 0, running: 0, scheduled: 0, standing: false, title: "Launch", total: 2 }],
+				problem: null,
+			},
 			kind: "ready",
 		});
 	},
@@ -86,5 +90,29 @@ boardStory.it(
 			relationships: [{ kind: "implements", target: "project.launch#page" }],
 			status: "ready",
 		});
+	},
+);
+
+boardStory.it(
+	"carries all progress states and standing homes through the Claude Code adapter",
+	[projectFiles(goalProgressFixture()), fleetReports(progressFleet())],
+	function* ({ postToSocket }) {
+		const result = readBoard(yield* postToSocket(boardInit("/project")), "/project", NOW);
+		expect(result.kind).toBe("ready");
+		if (result.kind !== "ready") {
+			throw new Error("Expected a readable Board");
+		}
+		expect(result.goals.items.find((goal) => goal.id === "goal.progress")).toEqual({
+			blocked: 4,
+			done: 1,
+			id: "goal.progress",
+			parked: 5,
+			running: 2,
+			scheduled: 2,
+			standing: false,
+			title: "goal.progress",
+			total: 14,
+		});
+		expect(result.goals.items.find((goal) => goal.id === "goal.standing")).toMatchObject({ done: 1, standing: true, total: 1 });
 	},
 );

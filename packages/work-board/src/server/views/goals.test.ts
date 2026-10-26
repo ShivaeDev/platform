@@ -19,9 +19,9 @@ for (const status of ["done", "dropped"]) {
 		function* ({ rpc }) {
 			const data = yield* rpc((client) => client("work-board.goals", undefined));
 			const goal = data.closedGoals.find((entry) => entry.id === "project.closed");
-			expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 2, dropped: 0, ready: 1 });
-			expect(goal?.criteria[0]?.counts).toEqual({ deferred: 0, done: 0, draft: 1, dropped: 0, ready: 1 });
-			expect(goal?.criteria[1]?.counts).toEqual({ deferred: 0, done: 0, draft: 0, dropped: 0, ready: 0 });
+			expect(goal?.counts).toEqual({ blocked: 2, done: 2, parked: 1, running: 0, scheduled: 0 });
+			expect(goal?.criteria[0]?.counts).toEqual({ blocked: 1, done: 1, parked: 0, running: 0, scheduled: 0 });
+			expect(goal?.criteria[1]?.counts).toEqual({ blocked: 0, done: 0, parked: 0, running: 0, scheduled: 0 });
 			expect(goal?.linked).toBe(5);
 			expect(data.goals.map((entry) => entry.id)).toEqual(["project.example"]);
 			expect(data.deferredGoals.map((entry) => entry.id)).toEqual(["project.empty"]);
@@ -50,30 +50,22 @@ boardStory.it(
 	},
 );
 
-for (const [status, group] of [
-	["dropped", "dropped"],
-	["ready", "ready"],
-	["draft", "draft"],
-	["ready", "ready"],
+for (const [status, parked] of [
+	["dropped", 0],
+	["ready", 1],
+	["draft", 1],
 ] as const) {
 	boardStory.it(
-		`counts ${status} linked work as ${group}`,
+		`counts ${status} work without treating it as scheduled`,
 		[
 			projectFiles({
 				"goal.md": "---\nid: project.counting\nkind: goal\nstatus: ready\n---\n# Counting goal",
-				"work.md": `---\nid: task.counted\nkind: task\nstatus: ${status}\nrelationships:\n - kind: implements\n   target: project.counting\n---\n# Counted work`,
+				"work.md": `---\nid: task.counted\nkind: task\nstatus: ${status}\nrelationships: [{kind: implements, target: project.counting}]\n---\n# Counted work`,
 			}),
 		],
 		function* ({ rpc }) {
 			const data = yield* rpc((client) => client("work-board.goals", undefined));
-			expect(data.goals.find((goal) => goal.id === "project.counting")?.counts).toEqual({
-				deferred: 0,
-				done: 0,
-				draft: 0,
-				dropped: 0,
-				ready: 0,
-				[group]: 1,
-			});
+			expect(data.goals.find((goal) => goal.id === "project.counting")?.counts).toEqual({ blocked: 0, done: 0, parked, running: 0, scheduled: 0 });
 		},
 	);
 }

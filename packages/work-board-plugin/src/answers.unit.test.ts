@@ -50,15 +50,9 @@ describe("Fleet items and goals", () => {
 		expect(flightsOf(null, NOW).problem).toBe("Fleet sent no items.");
 	});
 
-	it("counts done, ready and total tasks per goal", () => {
-		expect(goalsOf({ goals: [{ counts: { deferred: 1, done: 2, draft: 4, dropped: 1, ready: 3 }, id: "goal.a" }] }).items).toEqual([
-			{ done: 2, id: "goal.a", ready: 3, title: "goal.a", total: 11 },
-		]);
-	});
-
-	it("counts parked work in the total and ready work as active", () => {
-		expect(goalsOf({ goals: [{ counts: { deferred: 1, done: 2, draft: 4, ready: 3 }, id: "goal.b" }] }).items).toEqual([
-			{ done: 2, id: "goal.b", ready: 3, title: "goal.b", total: 10 },
-		]);
+	it("keeps the five progress states and standing-home flag from the Board", () => {
+		expect(
+			goalsOf({ goals: [{ counts: { blocked: 4, done: 2, parked: 5, running: 3, scheduled: 1 }, id: "goal.a", standing: true }] }).items,
+		).toEqual([{ blocked: 4, done: 2, id: "goal.a", parked: 5, running: 3, scheduled: 1, standing: true, title: "goal.a", total: 15 }]);
 	});
 });

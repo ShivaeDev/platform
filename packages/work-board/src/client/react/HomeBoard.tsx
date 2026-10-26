@@ -4,7 +4,8 @@ import { AnswerPanel } from "./AnswerPanel.tsx";
 import { DocumentContext } from "./DocumentContext.tsx";
 import { OutlineMenu } from "./DocumentOutline.tsx";
 import { documentElements } from "./documentElements.tsx";
-import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
+import { ItemActions } from "./ItemActions.tsx";
+import { ItemSummary } from "./ItemSummary.tsx";
 import { LazyDocumentView } from "./lazyMarkdown.tsx";
 
 const SEPARATOR = " · ";

@@ -14,7 +14,7 @@ for (const [stage, label] of [
 	const files: Record<string, string> = { ...goalPageFixture(), "asks.md": "# No open asks" };
 	const fleet = goalFleetFixture(stage);
 	screenStory.it(
-		`keeps authored progress before the goal's prose while showing Fleet ${stage} separately`,
+		`shows live progress before the goal's prose while showing Fleet ${stage} separately`,
 		[
 			screenFleet({
 				...fleet,
@@ -27,25 +27,25 @@ for (const [stage, label] of [
 		function* ({ readGoals, findElement, findElements, readText }) {
 			yield* eventually(() => expect(findElement('[data-goal-item="task.first"]')).not.toBeNull());
 			const goal = (yield* Effect.promise(readGoals)).goals.find((entry) => entry.id === "project.example");
-			expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 3, dropped: 0, ready: 0 });
+			expect(goal?.counts).toEqual({ blocked: stage === "waiting" ? 1 : 0, done: 2, parked: 2, running: stage === "waiting" ? 0 : 1, scheduled: 0 });
 			const progress = findElement('[data-goal-section="progress"]');
 			expect(findElement(".item-introduction")?.nextElementSibling).toBe(progress);
 			expect(readText('[data-goal-section="progress"]')).toContain("5 linked items");
 			expect(
 				findElements("[data-goal-counts] [data-count]").map((entry) => [entry.getAttribute("data-status"), entry.getAttribute("data-count")]),
 			).toEqual([
-				["done", "1"],
-				["deferred", "1"],
-				["ready", "0"],
-				["draft", "3"],
-				["dropped", "0"],
+				["done", "2"],
+				["running", stage === "waiting" ? "0" : "1"],
+				["blocked", stage === "waiting" ? "1" : "0"],
+				["scheduled", "0"],
+				["parked", "2"],
 			]);
 			expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe(label);
 			expect(findElement('[data-goal-item="task.first"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Draft");
 			expect(findElement('[data-goal-item="task.third"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Deferred");
 			expect(findElement('[data-goal-item="task.fourth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Done");
 			expect(findElement('a[href="https://github.com/example/project/pull/1"]', findElement('[data-goal-item="task.first"]'))).not.toBeNull();
-			expect(readText("#criterion-first [data-criterion-progress]")).toBe("2 draft");
+			expect(readText("#criterion-first [data-criterion-progress]")).toBe(stage === "waiting" ? "1 done · 1 blocked" : "1 done · 1 running");
 			expect(progress?.textContent).not.toContain("%");
 			yield* eventually(() => expect(findElement('.document-outline a[href="#heading-why-this-goal-matters"]')).not.toBeNull());
 		},

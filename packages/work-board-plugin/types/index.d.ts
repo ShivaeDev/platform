@@ -19,9 +19,13 @@ export interface WorkboardFlight {
 }
 
 export interface WorkboardGoal {
+	blocked: number;
 	done: number;
 	id: string;
-	ready: number;
+	parked: number;
+	running: number;
+	scheduled: number;
+	standing: boolean;
 	title: string;
 	total: number;
 }

@@ -1,6 +1,7 @@
 import type { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { GoalProgress } from "./GoalProgress.tsx";
 import { GoalProgressSummary } from "./GoalProgressSummary.tsx";
+import { goalTotal } from "./goalCounts.ts";
 
 export function GoalOverviewCard({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {
 	const criteria = goal.criteria.filter((criterion) => criterion.linked > 0);
@@ -49,8 +50,8 @@ function CriterionProgress({ criterion, goal }: { readonly criterion: GoalsProje
 			>
 				{criterion.text}
 			</a>
-			<span className="shrink-0 text-muted-foreground tabular-nums" title={`${criterion.counts.done} of ${criterion.linked} done`}>
-				{criterion.counts.done}/{criterion.linked}
+			<span className="shrink-0 text-muted-foreground tabular-nums" title={`${criterion.counts.done} of ${goalTotal(criterion.counts)} done`}>
+				{criterion.counts.done}/{goalTotal(criterion.counts)}
 			</span>
 		</li>
 	);

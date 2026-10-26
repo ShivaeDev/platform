@@ -43,7 +43,7 @@ screenStory.it(
 		);
 		expect(findElement('[data-goal-group="In progress"]')).toBeNull();
 		expect(readText('[data-goal-item="task.first"] [data-status-token]')).toBe("Draft");
-		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 draft");
+		expect(readText("#criterion-first [data-criterion-progress]")).toContain("2 parked");
 		expect(readText('[data-goal-item="task.fifth"] td:nth-of-type(2)')).toBe("");
 		expect(findElement('[data-goal-item="task.fifth"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Draft");
 		expect(findElement('[data-goal-item="task.third"]')?.closest("[data-goal-group]")?.getAttribute("data-goal-group")).toBe("Deferred");
@@ -71,14 +71,14 @@ for (const status of ["done", "dropped"]) {
 			const data = yield* Effect.promise(readGoals);
 			const goal = data?.closedGoals.find((entry) => entry.id === "project.closed");
 			expect(data?.goals.map((entry) => entry.id)).toEqual(["project.example"]);
-			expect(goal?.counts).toEqual({ deferred: 1, done: 1, draft: 2, dropped: 0, ready: 1 });
+			expect(goal?.counts).toEqual({ blocked: 2, done: 1, parked: 2, running: 0, scheduled: 0 });
 			const counts = Object.fromEntries(
 				[...findElements<HTMLElement>("[data-goal-counts] [data-count]")].map((segment) => [segment.dataset.status, Number(segment.dataset.count)]),
 			);
 			expect(counts).toEqual(goal?.counts);
 			expect(readText("[data-goal-open-asks]")).toBe(`${goal?.openAsks} open asks`);
-			expect(goal?.criteria[0]?.counts).toEqual({ deferred: 0, done: 0, draft: 1, dropped: 0, ready: 1 });
-			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 ready · 1 draft");
+			expect(goal?.criteria[0]?.counts).toEqual({ blocked: 1, done: 0, parked: 1, running: 0, scheduled: 0 });
+			expect(readText("#criterion-first [data-criterion-progress]")).toBe("1 blocked · 1 parked");
 			yield* eventually(() => expect(readText("#criterion-second")).toBe("Second criterion"));
 			expect(findElements("[data-goal-item]")).toHaveLength(goal?.linked ?? 0);
 			expect(findElements('[data-goal-item="result.closed"]')).toHaveLength(0);

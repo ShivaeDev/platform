@@ -18,10 +18,10 @@ boardStory.it(
 				{ href: "/_board/item/decision.review/#answer-card-goal", reason: "Review goal" },
 				{ href: "/_board/item/decision.review/#answer-card-task", reason: "Review task", title: "Fifth task" },
 			],
-			counts: { deferred: 1, done: 2, draft: 2, dropped: 0, ready: 0 },
+			counts: { blocked: 1, done: 2, parked: 2, running: 0, scheduled: 0 },
 			criteria: [
-				{ counts: { deferred: 0, done: 1, draft: 1, dropped: 0, ready: 0 }, evidence: 2, linked: 2 },
-				{ counts: { deferred: 1, done: 0, draft: 0, dropped: 0, ready: 0 }, evidence: 1, linked: 1 },
+				{ counts: { blocked: 0, done: 1, parked: 1, running: 0, scheduled: 0 }, evidence: 2, linked: 2 },
+				{ counts: { blocked: 0, done: 0, parked: 1, running: 0, scheduled: 0 }, evidence: 1, linked: 1 },
 			],
 			linked: 5,
 			openAsks: 2,
@@ -34,16 +34,16 @@ boardStory.it(
 		expect(result.closedGoals.map((goal) => goal.id)).toEqual(["project.closed"]);
 		expect(result.items.map((item) => item.id).sort()).toEqual(["task.fifth", "task.first", "task.fourth", "task.second", "task.third"]);
 		expect(result.items.every((item) => typeof item.modified === "number")).toBe(true);
-		editFile("second.md", goalsFixture()["second.md"]?.replace("status: draft", "status: ready") ?? "");
+		editFile("second.md", goalsFixture()["second.md"]?.replace("status: draft", "status: ready\nfleet: approved") ?? "");
 		yield* Effect.promise(() =>
 			waitFor(() => {
 				const updated = client.registry.get(atom);
 				expect(updated._tag === "Success" && updated.value.goals.find((goal) => goal.id === "project.example")?.counts).toEqual({
-					deferred: 1,
+					blocked: 1,
 					done: 2,
-					draft: 1,
-					dropped: 0,
-					ready: 1,
+					parked: 1,
+					running: 0,
+					scheduled: 1,
 				});
 			}),
 		);
@@ -53,11 +53,11 @@ boardStory.it(
 				const updated = client.registry.get(atom);
 				expect(updated._tag === "Success" && updated.value.goals.map((goal) => goal.id)).toEqual([]);
 				expect(updated._tag === "Success" && updated.value.closedGoals.find((goal) => goal.id === "project.example")?.counts).toEqual({
-					deferred: 1,
+					blocked: 1,
 					done: 2,
-					draft: 1,
-					dropped: 0,
-					ready: 1,
+					parked: 1,
+					running: 0,
+					scheduled: 1,
 				});
 			}),
 		);

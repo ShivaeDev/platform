@@ -36,7 +36,7 @@ describe("the Board's RPC stream", () => {
 					],
 				}),
 				success("2", { items: [], state: "ready" }),
-				success("3", { goals: [{ counts: { done: 1, draft: 1 }, id: "goal.a", title: "Goal A" }] }),
+				success("3", { goals: [{ counts: { done: 1, parked: 1 }, id: "goal.a", title: "Goal A" }] }),
 				success("4", { directory: "/repo/.work", url: "http://127.0.0.1:4801" }),
 			),
 			"/repo",
@@ -52,7 +52,10 @@ describe("the Board's RPC stream", () => {
 				problem: null,
 			},
 			flights: { items: [], problem: null },
-			goals: { items: [{ done: 1, id: "goal.a", ready: 0, title: "Goal A", total: 2 }], problem: null },
+			goals: {
+				items: [{ blocked: 0, done: 1, id: "goal.a", parked: 1, running: 0, scheduled: 0, standing: false, title: "Goal A", total: 2 }],
+				problem: null,
+			},
 			kind: "ready",
 		});
 	});

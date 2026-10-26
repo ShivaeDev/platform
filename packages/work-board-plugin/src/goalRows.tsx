@@ -2,27 +2,33 @@ import type { RenderElement } from "claude-code";
 import type { WorkboardGoal } from "#types/index.d.ts";
 import { clip } from "./lines.ts";
 import type { PaneView, Table } from "./pane.tsx";
-import { goalOrder, goalShare, startedShare } from "./summary.ts";
+import { goalOrder } from "./summary.ts";
 
 type Drawn = Extract<Table, { Svg: unknown }>;
 
-const BAR_FILL = "#3fa36b";
-const BAR_ACTIVE = "#5b9cf5";
-const BAR_TRACK = "#8a8f98";
+const states = ["done", "running", "blocked", "scheduled", "parked"] as const;
+const colors = { blocked: "#f87171", done: "#84b9a2", parked: "#929698", running: "#fbbf24", scheduled: "#8aafc5" };
 const BAR_HEIGHT = 6;
 const BAR_CELLS = 8;
 
 export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): RenderElement {
-	const { Box } = t;
+	const { Box, Text } = t;
 	const countWidth = Math.max(1, ...goals.map((goal) => countLabel(goal).length));
 	const titleRoom = view.columns - BAR_CELLS - countWidth - 2;
 	const drawn = view.surface !== "terminal" && "Svg" in t ? t : null;
 	return (
 		<Box flexDirection="column">
 			{goalOrder(goals).map((goal) => {
-				const open = goal.total > 0 && goal.done < goal.total;
+				const open = goal.standing || (goal.total > 0 && goal.done < goal.total);
 				return goalRow(t, goal, { countWidth, drawn, open, titleRoom });
 			})}
+			<Text size="caption">
+				{states.map((state) => (
+					<Text color={colors[state]} key={state}>
+						{state.charAt(0).toUpperCase() + state.slice(1)}{" "}
+					</Text>
+				))}
+			</Text>
 		</Box>
 	);
 }
@@ -71,15 +77,16 @@ function countLabel(goal: WorkboardGoal): string {
 }
 
 function barSource(goal: WorkboardGoal): string {
-	const filled = percent(goalShare(goal));
-	const started = percent(startedShare(goal));
-	const active =
-		started > filled ? `<rect x="${filled}" width="${percent((started - filled) / 100)}" height="${BAR_HEIGHT}" fill="${BAR_ACTIVE}"/>` : "";
-	return (
-		`<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${BAR_HEIGHT}" viewBox="0 0 100 ${BAR_HEIGHT}" preserveAspectRatio="none">`
-		+ `<rect width="100" height="${BAR_HEIGHT}" fill="${BAR_TRACK}" fill-opacity="0.28"/>`
-		+ `<rect width="${filled}" height="${BAR_HEIGHT}" fill="${BAR_FILL}"/>${active}</svg>`
-	);
+	let offset = 0;
+	const segments = states
+		.map((state) => {
+			const width = percent(goal[state] / goal.total);
+			const segment = `<rect x="${offset}" width="${width}" height="${BAR_HEIGHT}" fill="${colors[state]}"/>`;
+			offset += width;
+			return segment;
+		})
+		.join("");
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${BAR_HEIGHT}" viewBox="0 0 100 ${BAR_HEIGHT}" preserveAspectRatio="none">${segments}</svg>`;
 }
 
 function percent(share: number): number {
@@ -87,8 +94,7 @@ function percent(share: number): number {
 }
 
 function barLabel(goal: WorkboardGoal): string {
-	const done = `${goal.done} of ${goal.total} done`;
-	return goal.ready === 0 ? done : `${done}, ${goal.ready} ready`;
+	return `${goal.done} of ${goal.total} done, ${states.map((state) => `${goal[state]} ${state}`).join(", ")}`;
 }
 
 function svgBar(t: Drawn, goal: WorkboardGoal): RenderElement {
@@ -97,14 +103,21 @@ function svgBar(t: Drawn, goal: WorkboardGoal): RenderElement {
 
 function textBar(t: Table, goal: WorkboardGoal): RenderElement {
 	const { Text } = t;
-	const filled = Math.floor(BAR_CELLS * goalShare(goal));
-	const reached = Math.floor(BAR_CELLS * startedShare(goal));
-	const active = goal.ready > 0 && reached === filled && filled < BAR_CELLS ? 1 : reached - filled;
+	let reached = 0;
+	let cells = 0;
 	return (
 		<Text>
-			<Text color={BAR_FILL}>{"▰".repeat(filled)}</Text>
-			{active > 0 && <Text color={BAR_ACTIVE}>{"▰".repeat(active)}</Text>}
-			<Text dimColor>{"▱".repeat(BAR_CELLS - filled - active)}</Text>
+			{states.map((state) => {
+				reached += goal[state];
+				const end = Math.round((BAR_CELLS * reached) / goal.total);
+				const width = end - cells;
+				cells = end;
+				return (
+					<Text color={colors[state]} key={state}>
+						{"▰".repeat(width)}
+					</Text>
+				);
+			})}
 		</Text>
 	);
 }

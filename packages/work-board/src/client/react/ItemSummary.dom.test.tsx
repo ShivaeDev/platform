@@ -5,7 +5,8 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, routedScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
-import { ItemActions, ItemSummary } from "./ItemSummary.tsx";
+import { ItemActions } from "./ItemActions.tsx";
+import { ItemSummary } from "./ItemSummary.tsx";
 
 const document: Document = {
 	diagnostics: [],

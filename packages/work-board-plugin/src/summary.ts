@@ -37,15 +37,11 @@ export function goalShare(goal: WorkboardGoal): number {
 	return goal.total === 0 ? 0 : Math.min(1, goal.done / goal.total);
 }
 
-export function startedShare(goal: WorkboardGoal): number {
-	return goal.total === 0 ? 0 : Math.min(1, (goal.done + goal.ready) / goal.total);
-}
-
 function goalRank(goal: WorkboardGoal): number {
 	if (goal.total === 0) {
 		return 1;
 	}
-	return goal.done >= goal.total ? 2 : 0;
+	return !goal.standing && goal.done >= goal.total ? 2 : 0;
 }
 
 export function goalOrder(goals: readonly WorkboardGoal[]): WorkboardGoal[] {

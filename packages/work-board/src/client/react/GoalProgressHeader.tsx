@@ -2,20 +2,16 @@ import { Option } from "effect";
 import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { GoalCounts, GoalsProjection } from "#browser/views/GoalsProjection.ts";
-import { statusLabel } from "#browser/views/statusLabel.ts";
 import { Skeleton } from "#client/react/components/ui/skeleton.tsx";
 import { EmptyState } from "./EmptyState.tsx";
 import { GoalAsks } from "./GoalAsks.tsx";
 import { GoalBreakdown } from "./GoalBreakdown.tsx";
 import { GoalProgress } from "./GoalProgress.tsx";
-import { goalCountOrder } from "./goalCounts.ts";
+import { goalCountOrder, goalStateColors, goalStateLabels } from "./goalCounts.ts";
 import { Loading } from "./loading.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
-import { StatusChip } from "./StatusChip.tsx";
 import { shellIds } from "./shellIds.ts";
-
-const dots = { deferred: "bg-needs-you", done: "bg-done", draft: "bg-deferred", dropped: "bg-deferred", ready: "bg-agent-working" } as const;
 
 export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; readonly document: Document }) {
 	const progress = useQuery(api.goals.query(undefined, routeQueryOptions), { keepPreviousData: true });
@@ -26,6 +22,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 			<h2 className="font-semibold text-xl" id={shellIds.goalProgress} tabIndex={-1}>
 				Progress
 			</h2>
+			{document.metadata.standing ? <p>This goal is a standing home for new work.</p> : null}
 			{goal ? <GoalSummary goal={goal} /> : null}
 			{goal === undefined && progress.pending ? (
 				<Loading className="space-y-3" label="Loading goal progress">
@@ -76,13 +73,13 @@ function GoalCountList({ counts }: { readonly counts: GoalCounts }) {
 		<ul aria-label="Linked work by state" className="!p-0 !list-none flex flex-wrap gap-x-5 gap-y-2" data-goal-counts="">
 			{goalCountOrder.map((status) => (
 				<li className="flex items-center gap-2" data-count={counts[status]} data-status={status} key={status}>
-					<span aria-hidden="true" className={`size-2 rounded-full ${counts[status] > 0 ? dots[status] : "bg-muted-foreground/30"}`} />
+					<span aria-hidden="true" className={`size-2 rounded-full ${counts[status] > 0 ? goalStateColors[status] : "bg-muted-foreground/30"}`} />
 					<strong className="tabular-nums">{counts[status]}</strong>{" "}
 					{counts[status] > 0 ? (
-						<StatusChip status={status} />
+						<span data-status-token="">{goalStateLabels[status]}</span>
 					) : (
 						<span className="text-muted-foreground text-xs" data-quiet-count="">
-							{statusLabel(status)}
+							{goalStateLabels[status]}
 						</span>
 					)}
 				</li>

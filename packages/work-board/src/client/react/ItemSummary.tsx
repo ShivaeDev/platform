@@ -2,16 +2,13 @@ import { ClipboardList, FileText, Flag, MessageCircle } from "lucide-react";
 import { useContext, useState } from "react";
 import type { Document } from "#browser/document/schema.ts";
 import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
-import { closedStatus } from "#browser/views/workStatus.ts";
 import { Badge } from "#client/react/components/ui/badge.tsx";
 import { StatusChip } from "#client/react/StatusChip.tsx";
 import { Time } from "#client/react/Time.tsx";
 import { ActionText } from "./ActionText.tsx";
-import { Favorite } from "./Favorite.tsx";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
 import { ItemId } from "./ItemId.tsx";
 import { itemStatus } from "./itemStatus.ts";
-import { LinkButton } from "./LinkButton.tsx";
 import { PrChip } from "./PrChip.tsx";
 import { AnswerJump, WaitingOn } from "./WaitingOn.tsx";
 
@@ -35,6 +32,7 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 				<Icon aria-hidden="true" className="size-4" />
 				<span>{kindLabel(fields.kind ?? "document")}</span>
 				<StatusChip status={status} />
+				{fields.kind === "goal" && fields.standing ? <Badge variant="outline">Standing home</Badge> : null}
 				{fields.kind === "question" && (
 					<Badge variant="outline">
 						{fields.scope} · {fields.urgency}
@@ -95,35 +93,6 @@ function ItemGoals({ document }: { readonly document: Document }) {
 
 function goalKind(kind: string | undefined) {
 	return kind === "goal";
-}
-
-const TOUCH = "pointer-coarse:h-11";
-
-export function ItemActions({ document }: { readonly document: Document }) {
-	const kind = document.metadata.kind ?? "";
-	const identity = document.identity;
-	return (
-		<>
-			<Favorite file={document.file} title={document.file} />
-			{identity
-				&& !(
-					kind === "question"
-					|| document.metadata.response
-					|| document.metadata.handoff
-					|| goalKind(kind)
-					|| (kind !== "report" && closedStatus(document.metadata.status))
-				) && (
-					<LinkButton className={TOUCH} href={`/_board/handoff?item=${encodeURIComponent(identity)}`}>
-						Prepare an agent handoff
-					</LinkButton>
-				)}
-			{identity && document.metadata.items !== undefined && (
-				<LinkButton className={TOUCH} href={`/_board/work?view=board&board=${encodeURIComponent(identity)}`}>
-					View this board
-				</LinkButton>
-			)}
-		</>
-	);
 }
 
 function ItemFields({ document }: { readonly document: Document }) {

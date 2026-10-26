@@ -22,14 +22,18 @@ boardTools.it(
 	[
 		boardAnswers({
 			"work-board.fleetItems": { reason: "Fleet is not configured", state: "unavailable" },
-			"work-board.goals": { goals: [{ counts: { done: 1, draft: 3 }, id: "goal.a", title: "Goal A" }] },
+			"work-board.goals": { goals: [{ counts: { done: 1, parked: 3 }, id: "goal.a", title: "Goal A" }] },
 			"work-board.inbox": INBOX,
 		}),
 	],
 	function* ({ overview }) {
 		expect(yield* overview()).toEqual({
 			fleet: { reason: "Fleet is not configured", state: "unavailable" },
-			goals: { done: 1, goals: [{ done: 1, id: "goal.a", ready: 0, title: "Goal A", total: 4 }], total: 4 },
+			goals: {
+				done: 1,
+				goals: [{ blocked: 0, done: 1, id: "goal.a", parked: 3, running: 0, scheduled: 0, standing: false, title: "Goal A", total: 4 }],
+				total: 4,
+			},
 			needsYou: { complete: true, count: 1, you: [{ id: "decision.a", reason: "Pick one", title: "Decide" }] },
 		});
 	},
