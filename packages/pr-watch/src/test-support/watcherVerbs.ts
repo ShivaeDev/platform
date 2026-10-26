@@ -73,9 +73,13 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 			}),
 		stored: () => engine.io.fs.readFileString(engine.options.stateFile).pipe(Effect.map((text) => JSON.parse(text))),
 		transitions: () => engine.lines.map((line) => JSON.parse(line)).filter((event) => event.number !== undefined),
-		transportFails: () => {
-			tell("the native HTTP transport fails");
-			engine.io.control.transportFails = true;
+		transportFails: (fails = true) => {
+			tell(`the native HTTP transport ${fails ? "fails" : "recovers"}`);
+			engine.io.control.transportFails = fails;
+		},
+		transportStalls: (stalls = true) => {
+			tell(`the native HTTP transport ${stalls ? "stalls" : "resumes"}`);
+			engine.io.control.transportStalls = stalls;
 		},
 	};
 }

@@ -17,11 +17,11 @@ export const makeOutput = Effect.fnUntraced(function* (emit: Emit, heartbeat: nu
 		yield* emit(line);
 		lastOutputAt = yield* Clock.currentTimeMillis;
 	});
-	const waitForPoll = Effect.fnUntraced(function* (interval: number, delay: number) {
+	const waitForPoll = Effect.fnUntraced(function* (interval: number, delay: number, message = "GitHub quota pacing") {
 		const next = (yield* Clock.currentTimeMillis) + delay;
 		const nextPollAt = new Date(next).toISOString();
 		if (delay > interval) {
-			yield* health(write, "cooldown", { delayMs: delay, message: "GitHub quota pacing", nextPollAt });
+			yield* health(write, "cooldown", { delayMs: delay, message, nextPollAt });
 		}
 		let now = yield* Clock.currentTimeMillis;
 		while (now < next) {

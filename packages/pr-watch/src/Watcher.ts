@@ -11,6 +11,9 @@ function activeNumbers(options: Options, state: State) {
 		return saved === undefined || (saved.state === "open" && !saved.merged);
 	});
 }
+function prioritizeFailure(previous: WatchError | undefined, next: WatchError) {
+	return previous === undefined || previous.retryable === true ? next : previous;
+}
 export const Watcher = defineService({
 	id: "@shivaedev/pr-watch/Watcher",
 	initialize: Effect.gen(function* () {
@@ -79,7 +82,7 @@ export const Watcher = defineService({
 						const result = yield* Effect.result(observe(options, number, queue, state.prs[String(number)]));
 						if (result._tag === "Failure") {
 							yield* diagnostic(result.failure.message);
-							failure = result.failure;
+							failure = prioritizeFailure(failure, result.failure);
 							continue;
 						}
 						if (result.success !== undefined) {

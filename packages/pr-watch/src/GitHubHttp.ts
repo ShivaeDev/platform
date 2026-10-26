@@ -1,9 +1,9 @@
-import { Clock, DateTime, Effect, Schema, Stream } from "effect";
-import { GitHubRateLimited } from "@shivaedev/effect-github/errors.ts";
+import { Clock, Effect, Schema, Stream } from "effect";
 import { GitHub } from "@shivaedev/effect-github/GitHub.ts";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { WatchError } from "#model.ts";
 import { pollDelay, quotaRetryAt } from "#quota.ts";
+import { requestFailure } from "#requestFailure.ts";
 
 export const GitHubHttp = defineService({
 	id: "@shivaedev/pr-watch/GitHubHttp",
@@ -16,28 +16,20 @@ export const GitHubHttp = defineService({
 				const now = yield* Clock.currentTimeMillis;
 				const observations = yield* state.github.observations();
 				if (quotaRetryAt(observations, state.retryAt) > now) {
-					return yield* new WatchError({ message: "GitHub quota cooldown", retryAt: quotaRetryAt(observations, state.retryAt) });
+					return yield* new WatchError({ message: "GitHub quota cooldown", retryAt: quotaRetryAt(observations, state.retryAt), retryable: true });
 				}
 				return yield* operation;
 			}).pipe(
 				Effect.scoped,
 				Effect.timeout("30 seconds"),
-				Effect.tapError((cause) =>
+				Effect.mapError(requestFailure),
+				Effect.tapError((error) =>
 					Effect.sync(() => {
-						if (cause instanceof GitHubRateLimited) {
-							state.retryAt = DateTime.toEpochMillis(cause.retryAt);
+						if (error.retryAt !== undefined) {
+							state.retryAt = error.retryAt;
 						}
 					}),
 				),
-				Effect.mapError((cause) => {
-					if (cause instanceof WatchError) {
-						return cause;
-					}
-					if (cause instanceof GitHubRateLimited) {
-						return new WatchError({ message: "GitHub quota cooldown", retryAt: DateTime.toEpochMillis(cause.retryAt) });
-					}
-					return new WatchError({ message: "GitHub request failed" });
-				}),
 			);
 		}
 		function counted<T, E, R>(operation: Effect.Effect<T, E, R>) {

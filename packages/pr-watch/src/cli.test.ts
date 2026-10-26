@@ -7,7 +7,7 @@ watch.it("CLI prints a failed round and polling stop as JSON alongside successfu
 	h.reply("/pulls/2", { body: {}, status: 500 });
 	const result = yield* h.cliRun("1", "2", "--once");
 	expect(result.code).toBe(1);
-	expect(result.stderr).toContain("GitHub request failed");
+	expect(result.stderr).toContain("GitHub HTTP 500");
 	expect(
 		result.stdout
 			.trim()
@@ -15,7 +15,7 @@ watch.it("CLI prints a failed round and polling stop as JSON alongside successfu
 			.map((line) => JSON.parse(line)),
 	).toEqual([
 		{ branch: "feature-1", event: "merged", number: 1, title: "Change 1" },
-		expect.objectContaining({ event: "error", message: "GitHub request failed" }),
+		expect.objectContaining({ event: "error", message: "GitHub HTTP 500 (GET /repos/acme/project/pulls/2)" }),
 		expect.objectContaining({ event: "stopped" }),
 	]);
 });

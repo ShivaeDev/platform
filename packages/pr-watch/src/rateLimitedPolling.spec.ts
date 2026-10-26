@@ -40,24 +40,27 @@ watch.it("a permission failure retains the snapshot for a later invocation", [],
 	yield* h.poll;
 	expect(h.transitions()).toEqual([]);
 });
-watch.it("an HTTP-date retry instant prevents further requests without inferring transitions", [], function* (h) {
-	const retryAt = new Date((yield* Clock.currentTimeMillis) + 120_000);
-	h.reply("/commits/sha1/status", { body: {}, headers: { "retry-after": retryAt.toUTCString() }, status: 429 });
-	expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
-	expect(yield* h.delay()).toBeGreaterThan(retryAt.getTime() - (yield* Clock.currentTimeMillis) - 1000);
-	const requests = [...h.requests];
-	expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
-	expect(h.requests).toEqual(requests);
-	expect(h.transitions()).toEqual([]);
-});
+for (const status of [429, 503]) {
+	watch.it(`an HTTP ${status} retry instant prevents further requests without inferring transitions`, [], function* (h) {
+		const retryAt = new Date((yield* Clock.currentTimeMillis) + 120_000);
+		h.reply("/commits/sha1/status", { body: {}, headers: { "retry-after": retryAt.toUTCString() }, status });
+		expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
+		expect(yield* h.delay()).toBeGreaterThan(retryAt.getTime() - (yield* Clock.currentTimeMillis) - 1000);
+		const requests = [...h.requests];
+		expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
+		expect(h.requests).toEqual(requests);
+		expect(h.transitions()).toEqual([]);
+	});
+}
 
-watch.it("continuous polling stops visibly on a rate limit without more requests", [], function* (h) {
+watch.it("continuous polling waits visibly on a rate limit without more requests", [], function* (h) {
 	yield* h.poll;
 	h.throttled(900);
 	yield* h.start("--events", "dequeued");
-	yield* h.finish();
+	yield* h.waitForPollWait();
 	const requests = [...h.requests];
-	expect(h.eventNames()).toEqual(["error", "cooldown", "stopped"]);
+	expect(h.eventNames()).toEqual(["error", "cooldown"]);
 	expect(yield* h.requestsAfterPause()).toEqual(requests);
 	expect(h.events()[1]).toMatchObject({ nextPollAt: expect.any(String) });
+	yield* h.interrupt();
 });

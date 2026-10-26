@@ -3,6 +3,7 @@ import type { EventKind } from "#events.ts";
 export class WatchError extends Schema.TaggedError<WatchError>()("WatchError", {
 	message: Schema.String,
 	retryAt: Schema.optionalKey(Schema.Number),
+	retryable: Schema.optionalKey(Schema.Boolean),
 }) {}
 export const Snapshot = Schema.Struct({
 	autoMerge: Schema.Boolean,

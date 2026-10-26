@@ -88,5 +88,6 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 		waitForPollWait: () => until("the watcher to sleep before its next poll", () => observed?.waiting() === true),
 		waitForRequest: (suffix: string) =>
 			until(`a request ending in ${suffix}`, () => engine.requests.some((request) => request.path.endsWith(suffix))),
+		waitForTransport: () => until("a pending HTTP request", () => engine.io.control.transportPending),
 	};
 }
