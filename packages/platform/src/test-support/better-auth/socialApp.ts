@@ -1,9 +1,9 @@
 import { Effect } from "effect";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 import { socialEngine } from "./socialEngine.ts";
 import { socialVerbs } from "./socialVerbs.ts";
 

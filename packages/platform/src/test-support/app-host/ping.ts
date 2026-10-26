@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization, RpcTest } from "effect/rpc";
-import { Authenticated } from "#rpc/middleware.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
 export const Ping = RpcGroup.make(Rpc.make("ping", { success: Schema.String }));
 export const AuthenticatedPing = Ping.middleware(Authenticated);

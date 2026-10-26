@@ -50,6 +50,7 @@
 		"@shivaedev/access": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/react": "workspace:*"

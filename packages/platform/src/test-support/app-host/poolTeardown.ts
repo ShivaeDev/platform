@@ -1,11 +1,11 @@
 import { Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
+import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
+import { disconnectGate } from "@shivaedev/identity/test-support/disconnectGate.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#server/appHost.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
-import { disconnectGate } from "./disconnectGate.ts";
 
 export const poolTeardown = storyKit({
 	around: withIsolatedDatabase,

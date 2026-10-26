@@ -1,6 +1,6 @@
 import { Clock, Effect, Fiber, FiberSet, FileSystem, Path, Schema, Semaphore } from "effect";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { AnswerInput, DraftInput, RecordedResponse } from "#browser/responses/schema.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";

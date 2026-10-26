@@ -5,12 +5,12 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
+import { disconnectGate } from "@shivaedev/identity/test-support/disconnectGate.ts";
+import { environmentVariable } from "@shivaedev/identity/test-support/environmentVariable.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { bootMigrations } from "#test/app-host/bootMigrations.ts";
-import { disconnectGate } from "#test/app-host/disconnectGate.ts";
 import { migrationLoader } from "#test/app-host/migrationLoader.ts";
-import { environmentVariable } from "#test/environmentVariable.ts";
 
 const create = Effect.fnUntraced(function* () {
 	const url = yield* Config.Redacted("PLATFORM_SQL_TEST_DATABASE_URL");

@@ -39,6 +39,25 @@ export const Rename = Rpc.make("Rename", {
 
 A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`, and native RPC JSON decodes the rejection back to the error instance with its field. `rejectedField(error)` reads either that instance or its tagged JSON. Any value with a string `_tag`, `field` and `message` qualifies, including an application's own tagged error; an untagged object, a missing field or a non-string field yields `Option.none()`.
 
+### Mapping unexpected failures at the handler edge
+
+At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
+
+```ts
+import { Schema } from "effect";
+import { Conflict, InternalServerError } from "@shivaedev/errors/taxonomy.ts";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
+
+const Rejection = Schema.Union([Conflict, InternalServerError]);
+const expose = rpcBoundary(Rejection, {
+  unexpected: (message) => new InternalServerError({ message }),
+});
+
+export const save = storageSave.pipe(expose);
+```
+
+`storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so a server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
+
 ### Masking secrets in failures
 
 `sensitive.ts` decides which names are secret. `isSensitiveKey(key)` matches credential-shaped names whatever their casing or separator, such as `sessionId`, `bearerToken`, `access_key_id` or `cardNumber`. A `SensitiveKey` is any `(key: string) => boolean`, so an application can widen the policy with its own names. `redactText(text, sensitive, maxLength?)` masks credential-shaped text and `key=value` assignments inside a string, and cuts it at 2,048 characters by default; passing `Infinity` keeps complete public text. Masked values become `REDACTED`, the string `<redacted>`.

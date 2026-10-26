@@ -1,5 +1,5 @@
 {
 	"access": ["./permission.ts", "./role.ts", "./roleSet.ts"],
-	"errors": ["./redact.ts", "./redactCause.ts", "./rejectedField.ts", "./sensitive.ts", "./taxonomy.ts"],
-	"platform": ["./rpc/identity.ts", "./rpc/middleware.ts"]
+	"errors": ["./boundary.ts", "./redact.ts", "./redactCause.ts", "./rejectedField.ts", "./sensitive.ts", "./taxonomy.ts"],
+	"identity": ["./identity.ts", "./middleware.ts", "./permission.ts"]
 }

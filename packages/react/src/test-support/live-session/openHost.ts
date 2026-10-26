@@ -5,7 +5,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { queryKeys } from "@shivaedev/contract/serverMetadata.ts";
-import { Identity } from "@shivaedev/platform/rpc/identity.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { Notes, notes } from "./notes.ts";
 

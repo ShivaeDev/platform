@@ -34,6 +34,7 @@
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/form": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/platform": "workspace:*",

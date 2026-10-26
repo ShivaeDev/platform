@@ -1,6 +1,6 @@
 import { Config, Effect, Option, Schema } from "effect";
+import { TrustedProxy } from "@shivaedev/identity/server/trustedProxy.ts";
 import { NativeOrigins } from "#server/nativeClientOrigins.ts";
-import { TrustedProxy } from "#server/rpc-server/trustedProxy.ts";
 
 interface Options {
 	readonly config?: { readonly maxBodySize?: number; readonly trustedProxy?: string };

@@ -1,0 +1,22 @@
+import { Identity } from "@shivaedev/identity/identity.ts"
+import { localRpcGuard, loopbackOnly, sameOrigin } from "@shivaedev/identity/server/local.ts"
+import { Effect, Option } from "effect"
+import { HttpServerRequest, HttpServerResponse } from "effect/http"
+import { RpcSerialization } from "effect/rpc"
+
+const identity = await Effect.runPromise(Effect.gen(function* () {
+	return yield* Identity
+}).pipe(Effect.provideService(Identity, { id: "consumer" })))
+
+const incoming = HttpServerRequest.fromWeb(new Request("http://localhost/rpc", {
+	headers: { host: "localhost", origin: "http://localhost", "content-type": "application/ndjson" },
+})).modify({ remoteAddress: Option.some("127.0.0.1") })
+const guarded = await Effect.runPromise(localRpcGuard(Effect.succeed(HttpServerResponse.empty())).pipe(
+	Effect.provideService(HttpServerRequest.HttpServerRequest, incoming),
+	Effect.provide(RpcSerialization.layerNdjson),
+))
+const page = await Effect.runPromise(loopbackOnly(() => Effect.succeed(HttpServerResponse.empty()))(incoming))
+
+if (identity.id !== "consumer" || guarded.status !== 204 || page.status !== 204 || !sameOrigin(incoming)) {
+	throw new Error("The packed effect-only identity entries misbehaved")
+}

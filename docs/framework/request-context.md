@@ -42,7 +42,7 @@ The `headers` that native RpcServer passes to middleware are not the HTTP reques
 
 `resolveSession`, and therefore `authenticatedLayer` and `maybeAuthenticatedLayer`, ignore message headers. They read the `HttpServerRequest` that RpcServer runs each request with: the POST for HTTP and the upgrade request for WebSocket. Both the Origin policy and the session provider see only those headers. When there is no `HttpServerRequest`, as with `RpcTest`, workers or a raw socket server, the RPC headers are used, because there are no transport headers to prefer and no browser attaches ambient credentials.
 
-An application-owned middleware that reads any header for a security decision calls `transportHeaders(headers)` from `@shivaedev/platform/server/rpc-server/transportHeaders.ts` instead of using `headers` directly. The request id is still read from the RPC headers, so a client can set it per call.
+An application-owned middleware that reads any header for a security decision calls `transportHeaders(headers)` from `@shivaedev/identity/server/transportHeaders.ts` instead of using `headers` directly. The request id is still read from the RPC headers, so a client can set it per call.
 
 ## Origin policy
 
@@ -76,7 +76,7 @@ const host = appHost({ group, handlers, routes: mounted.routes, sessions, native
 
 `nativeOrigins` admits only those exact origins on RPC and `/api/auth/*` routes; wildcards, patterns and non-origin URLs are rejected at startup. The host answers their preflights and echoes the origin with `Vary: Origin`, allows `Authorization` and `Content-Type`, and exposes `set-auth-token` on auth responses. RPC allows POST; auth allows GET and POST. It never sends `Access-Control-Allow-Credentials`. Every admitted native request loses its cookies before session resolution: only its signed bearer session can authenticate it. This prevents an allowed origin from opening a cookie CSRF path. A cookie-only native request is anonymous and protected RPCs reject it. App authorization stays application-owned.
 
-Omitting `nativeOrigins` retains the existing transport policy. The option retains trusted-proxy peer and forwarded-authority checks, NDJSON content-type enforcement, bounded bodies, transport-only identity, redaction and session authorization. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [Platform README](../../packages/platform/README.md#bundled-native-clients) shows the complete host composition.
+Omitting `nativeOrigins` retains the existing transport policy. The option retains trusted-proxy peer and forwarded-authority checks, NDJSON content-type enforcement, bounded bodies, transport-only identity, redaction and session authorization. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [identity README](../../packages/identity/README.md#bundled-native-clients) shows the complete host composition.
 
 ## Limits
 

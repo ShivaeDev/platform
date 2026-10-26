@@ -4,7 +4,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { collection } from "@shivaedev/contract/keys.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
 export class Order extends Schema.Class<Order>("Order")({ id: Schema.Number, name: Schema.String, quantity: Schema.Number }) {}
 export class Missing extends Schema.TaggedError<Missing>()("Missing", {}) {}

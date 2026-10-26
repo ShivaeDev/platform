@@ -46,7 +46,7 @@ Register server handler Layers by page id:
 import { Effect, Layer } from "effect";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { AdminPermission, OpenAdmin } from "@shivaedev/admin/permissions.ts";
-import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 
 const registration = registerAdmin(Admin, {
   jobs: Jobs.contract.application.toLayer({

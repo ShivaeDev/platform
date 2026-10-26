@@ -1,4 +1,12 @@
 {
+	"errors": [
+		{
+			"entries": ["./boundary.ts", "./taxonomy.ts"],
+			"fixtures": ["boundary.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["boundary.ts"]
+		}
+	],
 	"github": [
 		{
 			"entries": ["./GitHub.ts", "./GitHubToken.ts", "./GitHubConfig.ts", "./errors.ts"],
@@ -7,25 +15,26 @@
 			"run": ["client.ts"]
 		}
 	],
-	"platform": [
+	"identity": [
 		{
 			"entries": [
-				"./server/node-http/subscriptionSignal.ts",
-				"./rpc/identity.ts",
-				"./rpc/middleware.ts",
-				"./server/rpc-server/adapters/betterAuthSessions.ts",
-				"./server/rpc-server/boundary.ts",
-				"./server/rpc-server/local.ts",
-				"./server/rpc-server/origin.ts",
-				"./server/rpc-server/redactCause.ts",
-				"./server/rpc-server/redact.ts",
-				"./server/rpc-server/sensitive.ts",
-				"./server/rpc-server/session.ts",
-				"./server/rpc-server/tracing.ts",
-				"./server/rpc-server/transportHeaders.ts",
-				"./server/runtime/makePlatform.ts",
-				"./server/runtime/types.ts"
+				"./identity.ts",
+				"./middleware.ts",
+				"./server/adapters/betterAuthSessions.ts",
+				"./server/local.ts",
+				"./server/origin.ts",
+				"./server/session.ts",
+				"./server/tracing.ts",
+				"./server/transportHeaders.ts"
 			],
+			"fixtures": ["local-guard.ts.txt"],
+			"omitOptionalPeers": true,
+			"run": ["local-guard.ts"]
+		}
+	],
+	"platform": [
+		{
+			"entries": ["./server/node-http/subscriptionSignal.ts", "./server/runtime/makePlatform.ts", "./server/runtime/types.ts"],
 			"fixtures": ["runtime-minimal.ts.txt"],
 			"omitOptionalPeers": true,
 			"run": ["runtime-minimal.ts"]

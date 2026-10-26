@@ -5,7 +5,7 @@ import { collection } from "@shivaedev/contract/keys.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
-import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
 export const Settings = Schema.Struct({
 	pageSize: Schema.Number.pipe(Schema.withDecodingDefaultKey(Effect.succeed(25))),

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Authenticated, RequestTracing } from "#rpc/middleware.ts";
+import { Authenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { appHost } from "#server/appHost.ts";
 import { sessions } from "./fixture.ts";
 import { AuthenticatedPing, Ping, pingHandlers } from "./ping.ts";

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
-import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { hasPermission } from "@shivaedev/platform/rpc/permission.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { hasPermission } from "@shivaedev/identity/permission.ts";
 import { ChangeUserRoles } from "@shivaedev/platform/rpc/userRoles.ts";
 import { changeUserRole, listUsers } from "@shivaedev/platform/server/better-auth/users.ts";
 import { UsersPage } from "#users/page.ts";

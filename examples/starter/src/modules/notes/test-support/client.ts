@@ -4,8 +4,8 @@ import { RpcTest } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
+import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
+import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { Create, type Note, Notes, notes, Update } from "#modules/notes/notes.ts";
 
 export function notesClient(initial: readonly (typeof Note.Type)[] = []) {

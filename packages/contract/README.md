@@ -293,7 +293,7 @@ const self = api.self.query(undefined);
 const save = api.save.run({ title: "My preferences" });
 ```
 
-The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command`, `collection` and `bind` from contract's defining modules, and `Authenticated` from `@shivaedev/platform/rpc/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
+The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command`, `collection` and `bind` from contract's defining modules, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
 
 ```tsx
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
@@ -311,7 +311,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 `makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. Existing one-argument `connect` callbacks continue to work. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
 
-Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/platform/rpc/identity.ts`, before and after migration:
+Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, before and after migration:
 
 ```ts
 Preferences.application.toLayer({

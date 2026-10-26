@@ -5,16 +5,21 @@ import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
+import { sessionCommandChanges } from "@shivaedev/identity/server/commandChanges.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import {
+	authenticatedUserLayer,
+	authenticatedUserWithProviderAccountsLayer,
+	resolveSession,
+	type SessionShape,
+} from "@shivaedev/identity/server/session.ts";
+import { ManagementPermission, TestRoles, ToolsPermission } from "@shivaedev/identity/test-support/auth/permissions.ts";
+import type { Provider } from "@shivaedev/identity/test-support/rpc/harness.ts";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { Identity } from "#rpc/identity.ts";
 import { appHost } from "#server/appHost.ts";
-import { sessionCommandChanges } from "#server/commandChanges.ts";
-import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { permissionLayer } from "#server/rpc-server/permissions.ts";
-import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, resolveSession, type SessionShape } from "#server/rpc-server/session.ts";
-import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
-import type { Provider } from "./harness.ts";
 import { Api, CustomAuthenticated, handlers } from "./sessionKeysApi.ts";
 
 const Wire = RpcGroup.make(

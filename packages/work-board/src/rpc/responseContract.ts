@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
+import { RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { AnswerInput, DraftInput, Question, QuestionPreview, Reading, RecordedResponse, Revision, WaitReading } from "#browser/responses/schema.ts";
 import { index, workspace } from "#rpc/keys.ts";
 import { responseRejections } from "#rpc/rejections.ts";

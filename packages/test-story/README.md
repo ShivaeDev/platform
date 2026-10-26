@@ -563,7 +563,7 @@ const cookieApp = storyKit({
 `seedCookies(cookies)` from `@shivaedev/test-story/server/seedCookies.ts` returns an Effect that seeds the current happy-dom window's cookie container, including HttpOnly cookies. Call `domFetch(baseUrl)` first so the document and requests use the same origin. Each cookie has `name` and `value`, with optional `domain`, `path`, `httpOnly`, `secure`, `sameSite` (`Lax`, `Strict` or `None`) and `expires` (Unix seconds). Better Auth's test-utils login cookies fit this shape directly.
 
 ```ts
-import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 
 const { cookies } = yield* Effect.promise(() => signedInUser(testAuth, {

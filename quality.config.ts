@@ -47,11 +47,12 @@ export default defineConfig({
 	],
 	local: [catalogOnly, catalogOverrides, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
+		"boundaries/auth-sql": { options: { owners: ["packages/identity/src/server/better-auth/**", "packages/platform/src/server/better-auth/**"] } },
 		"boundaries/http-status": {
 			options: {
 				edge: [
 					"packages/github/src/status.ts",
+					"packages/identity/src/server/**",
 					"packages/pr-watch/src/requestFailure.ts",
 					"packages/platform/src/server/rpc-server/**",
 					"packages/platform/src/server/node-http/**",

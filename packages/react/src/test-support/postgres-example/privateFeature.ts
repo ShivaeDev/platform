@@ -3,8 +3,8 @@ import { SqlClient } from "effect/sql";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { collection, invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
-import { Identity } from "@shivaedev/platform/rpc/identity.ts";
-import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { Rejected } from "./contract.ts";
 

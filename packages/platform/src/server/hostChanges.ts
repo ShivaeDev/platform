@@ -1,7 +1,7 @@
 import { Context, Effect, Layer, Option, Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
-import { resolveChanges } from "#server/rpc-server/sessionKeys.ts";
+import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import type { AppChanges } from "./appHost.ts";
 
 export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, changesService: typeof AppChanges) {

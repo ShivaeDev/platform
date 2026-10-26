@@ -1,6 +1,6 @@
 import { Effect, Logger } from "effect";
-import { signedInUser } from "#server/better-auth/testing.ts";
-import { userProfiles } from "#server/better-auth/userProfiles.ts";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { userProfiles } from "@shivaedev/identity/server/better-auth/userProfiles.ts";
 import type { AdminHost } from "./adminHost.ts";
 
 export function profileVerbs(host: AdminHost, story: { tell: (line: string) => void }) {

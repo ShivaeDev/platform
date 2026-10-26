@@ -7,9 +7,9 @@ import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { AuthUnavailable, Conflict } from "@shivaedev/errors/taxonomy.ts";
-import { Identity } from "#rpc/identity.ts";
-import { Authenticated } from "#rpc/middleware.ts";
-import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
+import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("host-test/Greeting") {}
 export const Api = RpcGroup.make(Rpc.make("greet", { error: Conflict, payload: { reject: Schema.Boolean }, success: Schema.String })).middleware(

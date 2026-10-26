@@ -1,8 +1,8 @@
 import { Effect } from "effect";
+import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 import { ANDROID_ORIGIN, type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
 import { originVerbs } from "./originVerbs.ts";
 

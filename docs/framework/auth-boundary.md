@@ -3,11 +3,11 @@
 The native RPC stack can keep an application's existing authentication provider. An application that already resolves sessions with BetterAuth's `auth.api.getSession({ headers })` reuses it: Platform's session middleware calls that same API and provides a small request-local Effect service to handlers. Domain repositories do not need to know how authentication sessions are stored, and an Effect SQL adapter for auth is not a prerequisite.
 
 ```ts
-import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
-import { betterAuthSessions } from "@shivaedev/platform/server/rpc-server/adapters/betterAuthSessions.ts";
+import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";
+import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 ```
 
-Use these with the shared error classes described in [errors and request context](./request-context.md). For a handler that needs the user's id, name and email, or provider account IDs, follow [reading the signed-in user](../../packages/platform/README.md#reading-the-signed-in-user) and [provider account IDs](../../packages/platform/README.md#reading-provider-account-ids) in the Platform README; applications use that profile instead of reading Better Auth's `user` or `account` tables.
+Use these with the shared error classes described in [errors and request context](./request-context.md). For a handler that needs the user's id, name and email, or provider account IDs, follow [reading the signed-in user](../../packages/identity/README.md#reading-the-signed-in-user) and [provider account IDs](../../packages/identity/README.md#reading-provider-account-ids) in the identity README; applications use that profile instead of reading Better Auth's `user` or `account` tables.
 
 ## Request flow
 
@@ -28,7 +28,7 @@ The provider's Promise API is wrapped once with `Effect.tryPromise`. A missing o
 
 ## Sign-in policy
 
-An application that admits only some provider accounts passes a sign-in policy to `betterAuthMount` and wraps its lookup as `betterAuthSessions(mounted.admittedSessions((headers) => auth.api.getSession({ headers })))`; see [deciding who may sign in](../../packages/platform/README.md#decide-who-may-sign-in). The list of allowed accounts comes from Effect Config and the optional rule is an application Effect, such as an organization membership check through the provider.
+An application that admits only some provider accounts passes a sign-in policy to `betterAuthMount` and wraps its lookup as `betterAuthSessions(mounted.admittedSessions((headers) => auth.api.getSession({ headers })))`; see [deciding who may sign in](../../packages/identity/README.md#decide-who-may-sign-in). The list of allowed accounts comes from Effect Config and the optional rule is an application Effect, such as an organization membership check through the provider.
 
 ```text
 OAuth callback → validateUserInfo: provider account on the list and admitted by the rule?

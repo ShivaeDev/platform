@@ -1,0 +1,15 @@
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts"
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts"
+import { Cause, Effect } from "effect"
+
+const original = new Error("private storage failure")
+const expose = rpcBoundary(InternalServerError, { unexpected: (message) => new InternalServerError({ message }) })
+const failure: InternalServerError = await Effect.runPromise(Effect.flip(expose(Effect.fail(original))))
+if (failure.message !== "Internal server error" || !Cause.isCause(failure.cause) || Cause.squash(failure.cause) !== original) {
+  throw new Error("The packed RPC boundary lost its public rejection or server cause")
+}
+const unavailable = new ServiceUnavailable({ message: "Storage is unavailable" })
+const declared = rpcBoundary(ServiceUnavailable, { unexpected: (message) => new ServiceUnavailable({ message }) })
+if (await Effect.runPromise(Effect.flip(declared(Effect.fail(unavailable)))) !== unavailable) {
+  throw new Error("The packed RPC boundary replaced a declared rejection")
+}

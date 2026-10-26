@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { migrationUpgrade } from "@shivaedev/test-sql/server/migrationUpgrade.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";

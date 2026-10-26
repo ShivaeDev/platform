@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { environmentVariable } from "@shivaedev/identity/test-support/environmentVariable.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { environmentVariable } from "#test/environmentVariable.ts";
 import { close, start } from "./lifecycle.ts";
 import { emptyHost, type HostState } from "./state.ts";
 import { hostVerbs } from "./verbs.ts";

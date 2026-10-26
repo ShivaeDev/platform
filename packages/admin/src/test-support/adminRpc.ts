@@ -1,8 +1,8 @@
 import { Effect, Layer, Option, Ref } from "effect";
 import { FetchHttpClient, HttpRouter } from "effect/http";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
-import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
-import type { UserSessionShape } from "@shivaedev/platform/server/rpc-server/session.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { AdminPermission } from "#permissions.ts";
 import { Access } from "./Access.ts";
 import type { pages } from "./jobsPages.ts";

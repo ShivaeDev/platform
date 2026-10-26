@@ -16,13 +16,13 @@ export default [
 			anything.except(
 				browserCode,
 				files("packages/access/src/permission.ts"),
-				packages("contract", "errors", "form", "react", "types"),
+				packages("contract", "errors", "form", "identity", "react", "types"),
 				modules("effect"),
 			),
 		)
 		.demonstratedBy({
-			illegal: ["packages/platform/src/rpc/identity.ts", external("node:fs")],
-			legal: ["packages/platform/src/rpc/identity.ts", external("effect")],
+			illegal: ["packages/platform/src/rpc/publicConfig.ts", external("node:fs")],
+			legal: ["packages/platform/src/rpc/publicConfig.ts", external("effect")],
 		}),
 	fence("platform-core-needs-no-optional-peer")
 		.because(

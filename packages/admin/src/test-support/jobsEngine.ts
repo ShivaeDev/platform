@@ -1,10 +1,10 @@
 import { Config, Context, Data, Effect, Exit, Layer, Option, Redacted, Schema, Scope } from "effect";
 import { Migrator } from "effect/sql";
 import { vi } from "vitest";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
-import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { hostChanges } from "@shivaedev/platform/server/hostChanges.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";

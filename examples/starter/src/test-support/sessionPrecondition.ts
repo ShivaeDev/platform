@@ -1,8 +1,8 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
 import { Effect, Redacted } from "effect";
-import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
-import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";
+import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { type RunningHost, secret } from "./host.ts";

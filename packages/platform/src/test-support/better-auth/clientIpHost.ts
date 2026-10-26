@@ -4,9 +4,9 @@ import { ConfigProvider, Effect, Layer, type Redacted } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcGroup } from "effect/rpc";
+import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { appHost } from "#server/appHost.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
-import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 
 export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (databaseUrl: Redacted.Redacted<string>, env: Record<string, string>) {
 	const pool = yield* authDatabase(databaseUrl);

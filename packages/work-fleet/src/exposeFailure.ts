@@ -1,6 +1,6 @@
 import { Effect } from "effect";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { FleetError, isFleetError } from "#errors.ts";
 import { StorageAdmission, StorageCapacity, StorageConflict, StorageQuota } from "#storage/errors.ts";

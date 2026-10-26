@@ -1,13 +1,13 @@
 import { Effect, Stream } from "effect";
 import { SqlClient } from "effect/sql";
 import { readKeys } from "@shivaedev/contract/keys.ts";
+import { createProvider, ORIGIN, signup } from "@shivaedev/identity/test-support/rpc/harness.ts";
+import { databaseUrl, postgres } from "@shivaedev/identity/test-support/rpc/postgres.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { followHints } from "./followHints.ts";
-import { createProvider, ORIGIN, signup } from "./harness.ts";
 import { openSessionKeysHost } from "./openSessionKeysHost.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
 import { type Boundary, Preferences } from "./sessionKeysApi.ts";
 
 const create = Effect.fnUntraced(function* () {

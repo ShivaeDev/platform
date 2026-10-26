@@ -1,7 +1,7 @@
 import type { Duration, Layer } from "effect";
 import type { HttpRouter, HttpStaticServer } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import type { SessionPolicy, SessionShape } from "#server/rpc-server/session.ts";
+import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppDatabaseOptions } from "./appHost.ts";
 
 export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> = {

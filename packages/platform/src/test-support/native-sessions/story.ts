@@ -1,8 +1,8 @@
 import { Effect, Fiber, Queue, Stream } from "effect";
+import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 import { type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
 import { type Account, authRequest, client, login, register } from "./requests.ts";
 

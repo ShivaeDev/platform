@@ -4,11 +4,11 @@ import { testUtils } from "better-auth/plugins";
 import { Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
+import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
+import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 import { appHost } from "#server/appHost.ts";
-import { authDatabase } from "#server/better-auth/mount.ts";
-import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
-import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { authenticatedUserWithProviderAccountsLayer } from "#server/rpc-server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
 export const socialHost = Effect.fn("SocialStory.socialHost")(function* (

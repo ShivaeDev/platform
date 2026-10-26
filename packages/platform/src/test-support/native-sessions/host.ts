@@ -6,12 +6,12 @@ import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { AppChanges, appHost } from "#server/appHost.ts";
-import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
-import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
 import { Api, diagnostic, handlers } from "./api.ts";
 
 export const NATIVE_ORIGIN = "capacitor://localhost";

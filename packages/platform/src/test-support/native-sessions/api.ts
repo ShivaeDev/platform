@@ -3,8 +3,8 @@ import { HttpServerRequest } from "effect/http";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { Identity, SessionUser } from "#rpc/identity.ts";
-import { AuthenticatedUser } from "#rpc/middleware.ts";
+import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
+import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 
 export const Api = contract("native", {
 	keyScope: "session",

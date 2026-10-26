@@ -1,7 +1,7 @@
 import type { Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
+import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppDatabaseOptions, AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#server/appHost.ts";
-import type { SessionShape } from "#server/rpc-server/session.ts";
 
 export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
 	| { readonly preflight: Layer.Layer<TServices, TError, TRequirements> }

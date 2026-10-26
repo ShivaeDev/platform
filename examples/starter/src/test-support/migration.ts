@@ -1,6 +1,6 @@
 import { getMigrations } from "better-auth/db/migration";
 import { Effect } from "effect";
-import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";

@@ -1,10 +1,10 @@
 import { Effect, Redacted } from "effect";
 import { Migrator } from "effect/sql";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { environmentVariable } from "@shivaedev/identity/test-support/environmentVariable.ts";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { signedInUser } from "#server/better-auth/testing.ts";
-import { environmentVariable } from "#test/environmentVariable.ts";
 import { startAdminHost } from "./adminHost.ts";
 import { adminVerbs } from "./adminVerbs.ts";
 

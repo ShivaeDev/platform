@@ -34,11 +34,11 @@ Finish `src/bookmarks.ts` by following [`notes.ts`](../../examples/starter/src/n
 
 The list query reads the collection list key, returns `Schema.Array(Bookmark.json)` and declares `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created item's key. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the error from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
 
-Apply `Authenticated` from `@shivaedev/platform/rpc/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; it does not implement authorization or SQL.
+Apply `Authenticated` from `@shivaedev/identity/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; it does not implement authorization or SQL.
 
 ## 6. Wire the host handlers
 
-Follow [`notesHost.ts`](../../examples/starter/src/server/notesHost.ts). Build `Bookmarks.toLayer` handlers that obtain `BookmarksService` and pass the current `Identity.id` to each method. Import `Identity` from `@shivaedev/platform/rpc/identity.ts`; never accept an owner id from the form or capture a user in a shared Layer.
+Follow [`notesHost.ts`](../../examples/starter/src/server/notesHost.ts). Build `Bookmarks.toLayer` handlers that obtain `BookmarksService` and pass the current `Identity.id` to each method. Import `Identity` from `@shivaedev/identity/identity.ts`; never accept an owner id from the form or capture a user in a shared Layer.
 
 Combine `Notes.merge(Bookmarks)` for the host's `group`, merge the bookmark handler Layer with the existing handlers and routes, and merge `BookmarksService.layer` into `services`. Preserve the notes producer wiring. Keep the existing session provider and migration loader so the new handlers use the same authenticated HTTP/NDJSON host and database.
 

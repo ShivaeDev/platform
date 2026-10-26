@@ -5,10 +5,10 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { collection, invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { AuthUnavailable, Conflict, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
+import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
+import { ManagementPermission, ToolsPermission } from "@shivaedev/identity/test-support/auth/permissions.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { Identity } from "#rpc/identity.ts";
-import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "#rpc/middleware.ts";
-import { ManagementPermission, ToolsPermission } from "#test/auth/permissions.ts";
 
 export const Preferences = collection("preferences", Schema.String);
 const get = query("get", { payload: { id: Schema.String }, reads: ({ id }) => [Preferences.item(id)], success: Schema.String });

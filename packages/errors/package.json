@@ -51,6 +51,7 @@
 	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",
 		"typescript": "catalog:",

@@ -1,5 +1,5 @@
 import type { Rpc, RpcGroup } from "effect/rpc";
-import { RequestTracing } from "#rpc/middleware.ts";
+import { RequestTracing } from "@shivaedev/identity/middleware.ts";
 
 export function tracedGroup<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>) {
 	const traced = group.middleware(RequestTracing);

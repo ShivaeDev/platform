@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Headers, HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
-import { localTransport } from "#server/rpc-server/local.ts";
+import { localTransport } from "@shivaedev/identity/server/local.ts";
 
 export const NativeOrigins = Schema.Array(
 	Schema.String.check(

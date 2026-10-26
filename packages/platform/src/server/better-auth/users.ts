@@ -1,9 +1,9 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { requirePermission } from "@shivaedev/identity/permission.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { SessionUser } from "#rpc/identity.ts";
-import { requirePermission } from "#rpc/permission.ts";
 import { type ChangeRoleInput, ChangeUserRoles, LastOwner, type UserListInput } from "#rpc/userRoles.ts";
 
 const StoredUser = Schema.Struct({

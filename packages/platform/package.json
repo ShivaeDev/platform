@@ -50,6 +50,7 @@
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/http": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/types": "workspace:*"

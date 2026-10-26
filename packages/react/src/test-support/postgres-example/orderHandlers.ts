@@ -1,7 +1,7 @@
 import { Effect, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { readKeys } from "@shivaedev/contract/keys.ts";
-import { Identity } from "@shivaedev/platform/rpc/identity.ts";
+import { Identity } from "@shivaedev/identity/identity.ts";
 import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
 import { ApplicationOrders, type Order, orders, type Rejected } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
