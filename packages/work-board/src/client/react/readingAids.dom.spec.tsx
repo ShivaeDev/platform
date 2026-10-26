@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
 import { criteriaTask, mergedTask, pullRequestFleet } from "#test/readingAidsFixture.ts";
-import { screenHeaderLayout } from "#test/screenEnvironment.ts";
+import { screenHeaderLayout } from "#test/screenHeaderLayout.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { componentScreen, routedScreen } from "#test/screenTraits.ts";
 import { FleetItemsContext } from "./FleetItemsContext.ts";
@@ -67,16 +67,19 @@ screenStory.it(
 screenStory.it(
 	"shrinks the pinned item header to its title while the reader scrolls, without moving the text below",
 	[screenHeaderLayout(145, 53), routedScreen({ "home.md": "# Home", "report.md": REPORT }, "/report.md")],
-	function* ({ findElement, scrollDocument }) {
+	function* ({ findElement, scrollDocument, readHeaderFootprints, readScrollPosition }) {
 		yield* eventually(() => expect(findElement("[data-page-header] [data-page-summary]")).not.toBeNull());
 		expect(findElement("[data-page-header]")?.hasAttribute("data-compact")).toBe(false);
-		scrollDocument(400);
+		const furtherScroll = 400;
+		scrollDocument(furtherScroll);
+		expect(readScrollPosition()).toBe(furtherScroll);
 		expect(findElement("[data-page-header]")?.hasAttribute("data-compact")).toBe(true);
 		expect(findElement("[data-page-header] h1")?.textContent).toContain("Long report");
-		expect(findElement<HTMLElement>("[data-page-header]")?.style.marginBottom).toBe("92px");
+		expect(new Set(readHeaderFootprints())).toEqual(new Set([145]));
 		scrollDocument(0);
+		expect(readScrollPosition()).toBe(0);
 		expect(findElement("[data-page-header]")?.hasAttribute("data-compact")).toBe(false);
-		expect(findElement<HTMLElement>("[data-page-header]")?.style.marginBottom).toBe("");
+		expect(new Set(readHeaderFootprints())).toEqual(new Set([145]));
 	},
 );
 
@@ -85,7 +88,8 @@ screenStory.it(
 	[routedScreen({ "home.md": "# Home", "note.md": "# Plain note\n\n## Section\n\nBody.\n" }, "/note.md")],
 	function* ({ findElement, scrollDocument }) {
 		yield* eventually(() => expect(findElement("[data-page-header]")).not.toBeNull());
-		scrollDocument(400);
+		const furtherScroll = 400;
+		scrollDocument(furtherScroll);
 		expect(findElement("[data-page-header]")?.hasAttribute("data-compact")).toBe(false);
 	},
 );

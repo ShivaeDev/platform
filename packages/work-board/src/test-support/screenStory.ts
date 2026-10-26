@@ -48,7 +48,7 @@ export const screenStory = storyKit({
 				restoreReading(...args);
 			},
 			...screenActions(story.tell),
-			...readingActions(story.tell),
+			...readingActions(engine, story.tell),
 			...timeActions(engine, story.tell),
 			...appearanceActions(story.tell),
 			...screenObservations(engine, story.tell),

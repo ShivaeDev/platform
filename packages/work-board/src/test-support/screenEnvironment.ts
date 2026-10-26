@@ -75,18 +75,6 @@ export function screenResultsLayout(top: number, header = 56, viewport = 900) {
 	);
 }
 
-export function screenHeaderLayout(expanded: number, compact: number) {
-	return screenStory.trait("workspace", `the browser lays out page headers ${expanded} pixels tall, or ${compact} pixels when compact`, () => {
-		const measure = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetHeight")?.get;
-		vi.spyOn(HTMLElement.prototype, "offsetHeight", "get").mockImplementation(function (this: HTMLElement) {
-			if (this.hasAttribute("data-page-header")) {
-				return this.hasAttribute("data-compact") ? compact : expanded;
-			}
-			return measure?.call(this) ?? 0;
-		});
-	});
-}
-
 export function screenHistory(state: unknown, path = "/") {
 	return screenStory.trait("workspace", `the browser remembers history at ${path}`, () => window.history.replaceState(state, "", path));
 }
