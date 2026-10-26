@@ -3,32 +3,17 @@
 	"plan": {
 		"changesets": [
 			{
-				"name": "admin-adoption-stories.md",
-				"text": "---\n\"@shivaedev/create-app\": minor\n---\n\n### Added\n\n- Generated apps include a development-server story covering admin routes, role enforcement and native jobs data through the existing RPC proxy.\n"
-			},
-			{
-				"name": "fleet-admission-fetch.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Serialize daemon fetches of main and retry concurrent ref updates up to three attempts so admission continues when another Git fetch advances main. Other fetch failures still surface.\n"
-			},
-			{
-				"name": "fleet-watch-liveness.md",
-				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Check daemon liveness independently of the watch stream so stalled provider work or stream delivery does not report a responsive daemon as unreachable.\n"
+				"name": "fleet-lost-thread-restart.md",
+				"text": "---\n\"@shivaedev/work-fleet\": patch\n---\n\n### Fixed\n\n- Automatically restart lost thread acknowledgements on a fresh thread when no branch, PR or worker output exists, retaining the reservation and area hold. Published work and exhausted automatic restarts still require an orchestrator decision.\n"
 			}
 		],
 		"releases": [
 			{
-				"bump": "minor",
-				"directory": "packages/create-app",
-				"from": "0.16.0",
-				"name": "@shivaedev/create-app",
-				"to": "0.17.0"
-			},
-			{
 				"bump": "patch",
 				"directory": "packages/work-fleet",
-				"from": "0.18.4",
+				"from": "0.18.5",
 				"name": "@shivaedev/work-fleet",
-				"to": "0.18.5"
+				"to": "0.18.6"
 			}
 		]
 	}
