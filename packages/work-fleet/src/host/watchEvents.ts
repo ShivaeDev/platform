@@ -14,6 +14,7 @@ export const eventKinds = [
 	"pr-stuck",
 	"pr-conflict",
 	"pr-auto-merge-off",
+	"pr-merged",
 	"pr-closed",
 ] as const;
 export type EventKind = (typeof eventKinds)[number];

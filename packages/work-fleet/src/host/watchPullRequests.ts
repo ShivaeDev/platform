@@ -2,7 +2,7 @@ import { join } from "node:path";
 import { Deferred, Effect, Layer } from "effect";
 import { type Options, WatchError } from "@shivaedev/pr-watch/model.ts";
 import { watch } from "@shivaedev/pr-watch/program.ts";
-import { watcherLayer } from "@shivaedev/pr-watch/watcherLayer.ts";
+import { watchPrLayer } from "#host/watchPrLayer.ts";
 import type { WatchState } from "#host/watchState.ts";
 import type { WatchStreamOptions } from "#host/watchStream.ts";
 
@@ -16,8 +16,8 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 	const start = Effect.fnUntraced(function* (repository: string, work: Map<number, string>) {
 		const settings: Options = {
 			apiUrl: options.apiUrl ?? "https://api.github.com",
-			events: ["dequeued", "stuck", "conflict", "auto-merge-off", "closed"],
-			fleet: false,
+			events: ["dequeued", "stuck", "conflict", "auto-merge-off", "merged", "closed"],
+			fleet: true,
 			interval: options.prIntervalMs ?? 60_000,
 			get numbers() {
 				return [...work.keys()];
@@ -35,7 +35,13 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 			});
 		}
 		yield* watch(settings, { heartbeat: 0, once: false }, write, () => Effect.void).pipe(
-			Effect.provide(Layer.fresh(watcherLayer)),
+			Effect.provide(
+				Layer.fresh(
+					watchPrLayer((number, message) =>
+						emit({ kind: "pr-error", message, number, pr: `https://github.com/${repository}/pull/${number}`, repository, workId: work.get(number) }),
+					),
+				),
+			),
 			Effect.catch((error) =>
 				error instanceof WatchError
 					? Deferred.fail(failed, error)
@@ -51,6 +57,9 @@ export const watchPullRequests = Effect.fn("FleetWatch.watchPullRequests")(funct
 			return;
 		}
 		for (const state of states) {
+			if (state.stage === "done") {
+				continue;
+			}
 			const target = pullTarget(state.result?.pr);
 			if (target === undefined) {
 				continue;

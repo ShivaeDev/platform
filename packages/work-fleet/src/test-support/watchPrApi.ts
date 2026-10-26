@@ -16,6 +16,7 @@ export const watchPrApi = Effect.gen(function* () {
 	const repository = "example/repository";
 	const base = `repos/${repository}`;
 	let observations = 0;
+	const pulls = new Map<number, typeof pr>();
 	let pr: {
 		"auto_merge": { "merge_method": string } | null;
 		head: { ref: string; sha: string };
@@ -35,9 +36,17 @@ export const watchPrApi = Effect.gen(function* () {
 		state: "open",
 		title: "Ship the change",
 	};
-	function pull(changes: Partial<typeof pr>) {
-		pr = { ...pr, ...changes };
-		github.reply(`${base}/pulls/7`, pr);
+	function pull(changes: Partial<typeof pr>, number = 7) {
+		const value = { ...(pulls.get(number) ?? pr), ...changes, number };
+		pulls.set(number, value);
+		if (number === 7) {
+			pr = value;
+		}
+		github.reply(`${base}/pulls/${number}`, value);
+		github.reply(
+			`${base}/pulls?state=open&per_page=100`,
+			[...pulls.values()].filter((entry) => entry.state === "open" && !entry.merged),
+		);
 	}
 	function queue(queued: boolean, reason = "") {
 		github.reply(`${base}/git/matching-refs/heads/gh-readonly-queue/`, queued ? [{ ref: "refs/heads/gh-readonly-queue/main/pr-7-head" }] : []);
@@ -70,7 +79,11 @@ export const watchPrApi = Effect.gen(function* () {
 					return true;
 				}),
 			),
-		fail: (status: number) => github.reply(`${base}/pulls/7`, { message: "GitHub unavailable" }, { status }),
+		awaitRequests: (path: string, count: number) =>
+			until(() => Effect.sync(() => server.requests.filter((request) => request.path === path).length >= count)),
+		fail: (status: number, number = 7) =>
+			github.reply(`${base}/pulls/${number}`, { message: status === 422 ? "too many files changed" : "GitHub unavailable" }, { status }),
+		failRepository: (status: number) => github.reply(`${base}/pulls?state=open&per_page=100`, { message: "GitHub unavailable" }, { status }),
 		pr: `https://github.com/${repository}/pull/7`,
 		pull,
 		queue,
