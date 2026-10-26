@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 function stuck(header: HTMLElement) {
 	const top = Number.parseFloat(getComputedStyle(header).top) || 0;
@@ -8,10 +8,9 @@ function stuck(header: HTMLElement) {
 
 export function useCompactHeader(sticky: boolean) {
 	const ref = useRef<HTMLElement>(null);
-	const expandedRef = useRef(0);
 	const compactRef = useRef(false);
 	const [compact, setCompact] = useState(false);
-	const [gap, setGap] = useState(0);
+	const [height, setHeight] = useState(0);
 	useEffect(() => {
 		const header = ref.current;
 		function update() {
@@ -20,7 +19,7 @@ export function useCompactHeader(sticky: boolean) {
 				return;
 			}
 			if (next && header) {
-				expandedRef.current = header.offsetHeight;
+				setHeight(header.offsetHeight);
 			}
 			compactRef.current = next;
 			setCompact(next);
@@ -33,9 +32,5 @@ export function useCompactHeader(sticky: boolean) {
 			window.removeEventListener("resize", update);
 		};
 	}, [sticky]);
-	useLayoutEffect(() => {
-		// The compact header keeps its expanded footprint, so the text below it does not jump when it shrinks.
-		setGap(compact && ref.current ? Math.max(0, expandedRef.current - ref.current.offsetHeight) : 0);
-	}, [compact]);
-	return { compact, gap, ref };
+	return { compact, height, ref };
 }

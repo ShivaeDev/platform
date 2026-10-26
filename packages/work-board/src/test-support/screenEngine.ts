@@ -27,6 +27,7 @@ export interface ScreenEngine {
 	drawings?: DiagramDrawing[];
 	files: Readonly<Record<string, string>>;
 	fleet?: BoardFixtureOptions["fleet"];
+	headerFootprints?: number[];
 	health?: boolean;
 	heldAnswerRefresh?: { readonly gate: Deferred.Deferred<void>; started: boolean };
 	heldRead?: { readonly url: string; readonly gate: Deferred.Deferred<void>; started: boolean };

@@ -41,7 +41,7 @@ function LayoutArticle({ node, children, ...props }: ComponentProps<"article"> &
 function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"header"> & ExtraProps) {
 	const { actions, answer, introduction, lead, file, identified } = useContext(LayoutContext);
 	const introducing = props.className?.split(" ").includes("item-introduction") ?? false;
-	const { compact, gap, ref } = useCompactHeader(introducing && identified);
+	const { compact, height, ref } = useCompactHeader(introducing && identified);
 	if (!introducing) {
 		return createElement("header", props, children);
 	}
@@ -52,13 +52,16 @@ function LayoutHeader({ node: _node, children, ...props }: ComponentProps<"heade
 	return createElement(
 		Fragment,
 		null,
+		// Reserve the expanded grid row in the same commit; measuring after compaction lets scroll anchoring move the reader first.
+		compact
+			? createElement("div", { "aria-hidden": true, className: "pointer-events-none col-span-full row-start-1 -mt-3", style: { height } })
+			: null,
 		createElement(PageHeader, {
 			...props,
 			actions,
-			className: `${props.className} col-span-full bg-background pb-4 ${identified ? "sticky top-[var(--board-header-height,0px)] z-10 -mt-3 border-border border-b pt-3" : ""}`,
+			className: `${props.className} col-span-full row-start-1 self-start bg-background pb-4 ${identified ? "sticky top-[var(--board-header-height,0px)] z-10 -mt-3 border-border border-b pt-3" : ""}`,
 			compact,
 			ref,
-			style: gap > 0 ? { marginBottom: gap } : undefined,
 			summary: leading.length > 0 || introduction ? createElement(Fragment, null, ...leading, introduction) : undefined,
 			title,
 			titleProps,
