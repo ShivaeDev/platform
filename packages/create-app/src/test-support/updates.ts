@@ -68,6 +68,7 @@ export const updates = storyKit({
 				const manifest = JSON.parse(readFileSync(manifestPath, "utf8"));
 				writeFileSync(manifestPath, JSON.stringify({ ...manifest, version }));
 			},
+			starterFile: (path: string) => readFileSync(join(engine.source.starter, path), "utf8"),
 			*update() {
 				story.tell("the user runs create-app update in the app");
 				yield* engine.source.pack();

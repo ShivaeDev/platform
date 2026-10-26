@@ -8,6 +8,28 @@ const dashboardFiles = [
 	"src/server/readOnlyDashboardWorker.ts",
 ];
 
+updates.it("adds Users to an existing app while keeping its custom admin title", [], function* (app) {
+	const path = "src/modules/notes/admin.ts";
+	const current = app.starterFile(path);
+	const before = current
+		.replace(/^import \{ UsersPage \}.*\n/gmu, "")
+		.replace("adminRegistry(JobsPage, StatisticsPage, UsersPage)", "adminRegistry(JobsPage, StatisticsPage)");
+	app.setVersion("0.1.0");
+	app.revise({ [path]: before });
+	expect((yield* app.create()).status).toBe(0);
+	app.publish();
+	app.edit(path, app.read(path).replace("Note statistics", "Acme statistics"));
+	app.git("add", "--all");
+	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Name statistics");
+	app.setVersion("0.2.0");
+	app.revise({ [path]: current });
+	const result = yield* app.update();
+	expect(result.status, result.stderr).toBe(0);
+	expect(app.read(path)).toContain("Acme statistics");
+	expect(app.read(path)).toContain("adminRegistry(JobsPage, StatisticsPage, UsersPage)");
+	expect(app.read(path)).toContain('import { UsersPage } from "@shivaedev/admin/users/page.ts"');
+});
+
 updates.it("removes the old dashboard while merging customized admin views", [], function* (app) {
 	app.setVersion("0.1.0");
 	app.revise(Object.fromEntries(dashboardFiles.map((file) => [file, "export const dashboard = true;\n"])));

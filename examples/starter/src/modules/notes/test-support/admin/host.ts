@@ -40,7 +40,19 @@ export const adminHost = storyKit({
 			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 			return yield* RpcClient.make(Admin.group).pipe(Effect.provide(protocol));
 		}),
+		postAuthAdmin: (name: string, operation: string, body: object) =>
+			Effect.promise(async () => {
+				story.tell(`${name} calls the Better Auth ${operation} endpoint`);
+				const response = await fetch(`${engine.host.baseUrl}/api/auth/admin/${operation}`, {
+					body: JSON.stringify(body),
+					headers: { "content-type": "application/json", cookie: engine.cookies.get(name) ?? "", origin: engine.host.origin },
+					method: "POST",
+				});
+				await response.text();
+				return { status: response.status };
+			}),
 		request: (path: string) => Effect.promise(() => fetch(new URL(path, engine.url)).then((response) => response.text())),
+		roleChangeLogs: () => engine.host.logs.filter(({ message }) => Array.isArray(message) && message.includes("User role changed")),
 		startDevelopment: Effect.fn("AdminStory.startDevelopment")(function* () {
 			story.tell("start the app's Vite development server");
 			engine.url = (yield* developmentServer(engine.host.baseUrl)).url;

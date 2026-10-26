@@ -11,7 +11,7 @@ adminSetup.it(
 		yield* startApp();
 		expect((yield* signIn("first-admin@app.test", "first-admin-password-123")).status).toBe(200);
 		expect(yield* session()).toMatchObject({
-			user: { email: "first-admin@app.test", name: "Administrator", role: "admin" },
+			user: { email: "first-admin@app.test", name: "Administrator", role: "admin,owner" },
 		});
 		const duplicate = yield* createAdmin("first-admin@app.test", "another-admin-password-123");
 		expect(duplicate.code).not.toBe(0);

@@ -40,4 +40,6 @@ Run `pnpm run setup` after cloning the generated repository to install dependenc
 
 Run `pnpm dlx @shivaedev/create-app@latest update` in a generated app with a clean Git working tree to take later starter changes. The command reads `.create-app.json`, downloads the recorded generator’s starter and uses Git’s three-way merge to replay its changes against the current starter; app edits survive, deleted files stay deleted, and conflicts are listed and left for you to resolve. A successful merge records the current generator version; review the changes, run `pnpm install` and commit them yourself.
 
+The default starter mounts `/admin/users` beside Jobs. Administrators see paginated users; owners grant and revoke roles through the protected native RPC contract. New `admin:create` accounts hold both roles. Existing apps receive the Users registration and route through the same three-way updater, including conflicts when those parts were customized.
+
 The command also supports `--help` and `--version`. See the [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for the starter's application and deployment workflow.

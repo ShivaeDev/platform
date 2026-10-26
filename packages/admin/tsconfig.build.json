@@ -1,9 +1,10 @@
 {
 	"compilerOptions": {
+		"lib": ["ESNext", "DOM", "DOM.Iterable"],
 		"outDir": "dist",
 		"rootDir": "src"
 	},
-	"exclude": ["src/**/*.test.ts", "src/**/*.spec.ts", "src/**/test-support"],
+	"exclude": ["src/**/*.test.ts", "src/**/*.test.tsx", "src/**/*.spec.ts", "src/**/*.spec.tsx", "src/**/test-support"],
 	"extends": ["./tsconfig.json", "@shivaedev/quality/tsconfig/package.json"],
 	"include": ["src"]
 }

@@ -1,0 +1,61 @@
+import { Effect } from "effect";
+import { expect } from "vitest";
+import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
+
+adminHost.it("the last owner cannot be demoted", [adminAccount("owner", "admin,owner")], function* ({ openAdmin }) {
+	const client = yield* openAdmin("owner");
+	const { users } = yield* client["admin.users.list"]({ limit: 20 });
+	const owner = users[0];
+	if (owner === undefined) {
+		throw new Error("Owner was not listed");
+	}
+	expect(yield* Effect.flip(client["admin.users.changeRole"]({ grant: false, role: "owner", userId: owner.id }))).toMatchObject({
+		_tag: "LastOwner",
+		userId: owner.id,
+	});
+	expect((yield* client["admin.users.list"]({ limit: 20 })).users[0]?.roles).toEqual(["admin", "owner"]);
+});
+
+adminHost.it(
+	"the app routes role writes through its guarded users contract",
+	[adminAccount("owner", "admin,owner"), adminAccount("operator", "admin")],
+	function* ({ openAdmin, postAuthAdmin }) {
+		const client = yield* openAdmin("owner");
+		const { users } = yield* client["admin.users.list"]({ limit: 20 });
+		const owner = users.find(({ name }) => name === "owner");
+		if (owner === undefined) {
+			throw new Error("Owner was not listed");
+		}
+		for (const name of ["owner", "operator"]) {
+			expect((yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status).toBe(404);
+			expect((yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status).toBe(404);
+			expect((yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status).toBe(404);
+		}
+		expect((yield* client["admin.users.list"]({ limit: 20 })).users).toEqual(users);
+	},
+);
+
+adminHost.it(
+	"concurrent owner demotions leave one owner",
+	[adminAccount("alice", "admin,owner"), adminAccount("bob", "admin,owner")],
+	function* ({ openAdmin }) {
+		const alice = yield* openAdmin("alice");
+		const bob = yield* openAdmin("bob");
+		const { users } = yield* alice["admin.users.list"]({ limit: 20 });
+		const clients = { alice, bob };
+		const outcomes = yield* Effect.all(
+			users.map((user) => {
+				const client = user.name === "alice" ? clients.alice : clients.bob;
+				return Effect.result(client["admin.users.changeRole"]({ grant: false, role: "owner", userId: user.id }));
+			}),
+			{ concurrency: "unbounded" },
+		);
+		expect(outcomes.map((outcome) => outcome._tag).sort((left, right) => left.localeCompare(right))).toEqual(["Failure", "Success"]);
+		expect(outcomes.filter((outcome) => outcome._tag === "Failure").map((outcome) => outcome.failure)).toEqual([
+			expect.objectContaining({ _tag: "LastOwner" }),
+		]);
+		expect((yield* alice["admin.users.list"]({ limit: 20 })).users.filter(({ roles }) => roles.includes("owner")).map(({ name }) => name)).toEqual([
+			expect.stringMatching(/^(?:alice|bob)$/u),
+		]);
+	},
+);

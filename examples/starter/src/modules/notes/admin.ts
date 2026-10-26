@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { jobsPage } from "@shivaedev/admin/jobs/page.ts";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
+import { UsersPage } from "@shivaedev/admin/users/page.ts";
 import { contract } from "@shivaedev/effect-contract/contract.ts";
 import { query } from "@shivaedev/effect-contract/operation.ts";
 import { ServiceUnavailable } from "@shivaedev/platform/errors/taxonomy.ts";
@@ -17,4 +18,4 @@ export const StatisticsPage = adminPage({
 	id: "note-statistics",
 	route: { path: "/admin/notes", title: "Note statistics" },
 });
-export const Admin = adminRegistry(JobsPage, StatisticsPage);
+export const Admin = adminRegistry(JobsPage, StatisticsPage, UsersPage);
