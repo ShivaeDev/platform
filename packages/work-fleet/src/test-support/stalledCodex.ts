@@ -9,7 +9,7 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 	const hidden = new Set<string>();
 	let turns = 0;
 	let threads = 0;
-	let items = [{ id: "command", status: "inProgress", type: "commandExecution" }];
+	let items: { id: string; status?: string; text?: string; type: string }[] = [{ id: "command", status: "inProgress", type: "commandExecution" }];
 	const server = yield* codexServer((request) => {
 		requests.push(request);
 		switch (request.method) {
@@ -45,7 +45,11 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 		changeStatus: () => {
 			items = items.map((item) => ({ ...item, status: item.status === "inProgress" ? "completed" : "inProgress" }));
 		},
-		emit: () => server.notify("worker-thread", "item/commandExecution/outputDelta"),
+		complete: (id: string, output: string) => {
+			states.set(id, "completed");
+			items = [{ id: "answer", text: output, type: "agentMessage" }];
+		},
+		emit: (threadId = "worker-thread") => server.notify(threadId, "item/commandExecution/outputDelta"),
 		hidden,
 		requests,
 		states,

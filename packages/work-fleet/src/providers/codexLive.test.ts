@@ -23,7 +23,9 @@ timedProviderStory.it(
 	[cloudProvider],
 	function* ({ provider, replyWith, emitThreadEvent, dropConnections, requests, handshakes }) {
 		yield* replyWith(runningTurn);
-		expect((yield* provider.observe(receipt)).activityAt).toBeUndefined();
+		const subscribed = yield* provider.observe(receipt);
+		expect(subscribed.activityAt).toBeUndefined();
+		expect(subscribed.subscribedAt).toEqual(expect.any(Number));
 		yield* TestClock.adjust("1 minute");
 		yield* emitThreadEvent(receipt.sessionId, "item/agentMessage/delta");
 		const first = (yield* provider.observe(receipt)).activityAt;
@@ -31,9 +33,12 @@ timedProviderStory.it(
 		yield* emitThreadEvent(receipt.sessionId, "account/rateLimits/updated");
 		yield* emitThreadEvent("other-session", "item/agentMessage/delta");
 		yield* TestClock.adjust("1 minute");
-		expect((yield* provider.observe(receipt)).activityAt).toBe(first);
+		const quiet = yield* provider.observe(receipt);
+		expect(quiet.activityAt).toBe(first);
+		expect(quiet.subscribedAt).toBe(subscribed.subscribedAt);
 		yield* dropConnections();
-		yield* provider.observe(receipt);
+		const reconnected = yield* provider.observe(receipt);
+		expect(reconnected.subscribedAt).toBe((subscribed.subscribedAt ?? 0) + 2 * 60_000);
 		yield* TestClock.adjust("1 minute");
 		yield* emitThreadEvent(receipt.sessionId, "item/commandExecution/outputDelta");
 		expect((yield* provider.observe(receipt)).activityAt).toBe((first ?? 0) + 2 * 60_000);

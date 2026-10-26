@@ -12,22 +12,30 @@ export interface CodexActivity {
 	readonly at: (sessionId: string) => number | undefined;
 	readonly follow: (sessionId: string) => Effect.Effect<void, SessionFailure>;
 	readonly forget: (sessionId: string) => void;
+	readonly subscribedAt: (sessionId: string) => number | undefined;
 }
 
 // Codex Cloud hides a running turn's items until the turn ends, so live notifications are the only sign that a long turn still moves.
 export function codexLive(now: () => number) {
 	const activity = new Map<string, number>();
+	const subscriptions = new Map<string, number>();
 	const followed = new WeakMap<CodexConnection, Set<string>>();
 	function threads(connection: CodexConnection) {
 		const known = followed.get(connection) ?? new Set<string>();
 		followed.set(connection, known);
 		return known;
 	}
+	function subscribed(connection: CodexConnection, sessionId: string) {
+		if (!threads(connection).has(sessionId)) {
+			threads(connection).add(sessionId);
+			subscriptions.set(sessionId, now());
+		}
+	}
 	function follow(connection: CodexConnection, timeoutMs: number, sessionId: string) {
 		return threads(connection).has(sessionId)
 			? Effect.void
 			: request(connection, timeoutMs, "thread/resume", { excludeTurns: true, threadId: sessionId }).pipe(
-					Effect.andThen(Effect.sync(() => threads(connection).add(sessionId))),
+					Effect.andThen(Effect.sync(() => subscribed(connection, sessionId))),
 					Effect.asVoid,
 				);
 	}
@@ -37,10 +45,12 @@ export function codexLive(now: () => number) {
 			follow: (sessionId) => open.pipe(Effect.flatMap((connection) => follow(connection, timeoutMs, sessionId))),
 			forget: (sessionId) => {
 				activity.delete(sessionId);
+				subscriptions.delete(sessionId);
 			},
+			subscribedAt: (sessionId) => subscriptions.get(sessionId),
 		}),
 		followed: (connection: CodexConnection, sessionId: string) => {
-			threads(connection).add(sessionId);
+			subscribed(connection, sessionId);
 		},
 		notified: (method: string, params: unknown) => {
 			if (!moving(method)) {

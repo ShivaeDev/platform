@@ -15,6 +15,7 @@ export const SessionObservation = Schema.Struct({
 	progress: Schema.optional(Schema.Array(Schema.Struct({ id: Schema.String, status: Schema.optional(Schema.String) }))),
 	provisioning: Schema.Literals(["unknown", "ready"]),
 	receipt: SessionReceipt,
+	subscribedAt: Schema.optional(Schema.Number),
 	turnMissing: Schema.optional(Schema.Boolean),
 });
 export type SessionObservation = typeof SessionObservation.Type;

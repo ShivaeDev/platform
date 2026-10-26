@@ -35,7 +35,7 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 		marked,
 		"session-stalled",
 		`Provider turn showed no activity for ${minutes} minutes`,
-		"Retry in a fresh session or abandon the stalled turn and release ownership",
+		"Keep waiting, retry in a fresh session or abandon the stalled turn and release ownership",
 	);
 });
 
