@@ -573,7 +573,7 @@ const { cookies } = yield* Effect.promise(() => signedInUser(testAuth, {
 yield* seedCookies(cookies);
 ```
 
-`testAuth` is a test-only auth instance configured with Platform's `authTestUtils()` and the real host's database, secret and cookie policy. The seeded session travels on the document's fetch and stays hidden from `document.cookie` when HttpOnly. Use `http://localhost:<port>` for local DOM hosts with secure cookies: happy-dom matches secure cookies on localhost, but not on `http://127.0.0.1`. The listener can still bind to `127.0.0.1`.
+`testAuth` is a test-only auth instance configured with `testUtils()` from `better-auth/plugins` and the real host's database, secret and cookie policy. The seeded session travels on the document's fetch and stays hidden from `document.cookie` when HttpOnly. Use `http://localhost:<port>` for local DOM hosts with secure cookies: happy-dom matches secure cookies on localhost, but not on `http://127.0.0.1`. The listener can still bind to `127.0.0.1`.
 
 #### Social sign-in through an outbound provider
 

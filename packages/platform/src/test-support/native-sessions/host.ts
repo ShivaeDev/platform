@@ -1,6 +1,6 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { admin } from "better-auth/plugins";
+import { admin, testUtils } from "better-auth/plugins";
 import { ConfigProvider, Effect, Exit, Layer, Logger, Scope } from "effect";
 import { HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -10,7 +10,6 @@ import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { AppChanges, appHost } from "#server/appHost.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
-import { authTestUtils } from "#server/better-auth/testing.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
 import { Api, diagnostic, handlers } from "./api.ts";
@@ -29,7 +28,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		database: pool,
 		emailAndPassword: { autoSignIn: false, enabled: true },
 		logger: { disabled: true },
-		plugins: [admin(), authTestUtils()],
+		plugins: [admin(), testUtils()],
 		secret: "native-session-story-secret-with-at-least-32-characters",
 		session: { cookieCache: { enabled: false } },
 		trustedOrigins: [NATIVE_ORIGIN, ANDROID_ORIGIN, "http://127.0.0.1:*"],

@@ -83,7 +83,7 @@ catalog:
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.5
   esbuild: 0.28.2
-  better-auth: 1.7.10
+  better-auth: 1.7.11
   pg: 8.23.0
   pg-boss: 12.38.0
   satteri: 0.10.5

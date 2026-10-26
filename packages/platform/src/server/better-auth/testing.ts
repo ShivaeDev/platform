@@ -1,19 +1,7 @@
 import type { AuthContext } from "better-auth";
-import { testUtils } from "better-auth/plugins";
+import type { testUtils } from "better-auth/plugins";
 
-export function authTestUtils(options?: Parameters<typeof testUtils>[0]) {
-	const plugin = testUtils(options);
-	return {
-		...plugin,
-		init(context: Parameters<typeof plugin.init>[0]) {
-			const result = plugin.init(context);
-			// Remove this wrapper once Better Auth's testUtils omits undefined options.
-			return result.options === undefined ? { context: result.context } : { context: result.context, options: result.options };
-		},
-	};
-}
-
-type TestContext = ReturnType<ReturnType<typeof authTestUtils>["init"]>["context"];
+type TestContext = ReturnType<ReturnType<typeof testUtils>["init"]>["context"];
 type AccountContext = Pick<AuthContext, "internalAdapter">;
 
 export async function signedInUser(
