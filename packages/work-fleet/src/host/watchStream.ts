@@ -1,23 +1,38 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Clock, Console, Effect, Stream } from "effect";
+import { Clock, Effect, Stream } from "effect";
 import { FetchHttpClient, HttpClient } from "effect/http";
 import { daemonClient } from "#host/daemonClient.ts";
 import { readDaemonPort } from "#host/daemonPort.ts";
 import { type EventKind, type WatchEvent, watchTransitions } from "#host/watchEvents.ts";
+import { watchOutput } from "#host/watchOutput.ts";
 import type { WatchSnapshot, WatchState } from "#host/watchState.ts";
 
 export interface WatchStreamOptions {
+	readonly apiUrl?: string;
 	readonly board: string;
 	readonly events: readonly EventKind[];
+	readonly heartbeatMs?: number;
 	readonly intervalMs: number;
 	readonly port?: number;
+	readonly prEvents?: boolean;
+	readonly prIntervalMs?: number;
 	readonly stuckMs: number;
 	readonly timeoutMs?: number;
 	readonly workIds: readonly string[];
 }
 
-export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (options: WatchStreamOptions) {
+export const watchStream = Effect.fn("FleetWatch.watchStream")((options: WatchStreamOptions) => Effect.scoped(runWatchStream(options)));
+
+const runWatchStream = Effect.fnUntraced(function* (options: WatchStreamOptions) {
 	const transitions = watchTransitions(options.stuckMs);
+	const output = yield* watchOutput(options);
+	const { emit } = output;
+	const pullRequests = options.prEvents
+		? yield* Effect.flatMap(
+				Effect.promise(() => import("#host/watchPullRequests.ts")),
+				(module) => module.watchPullRequests(options, emit),
+			)
+		: { failed: Effect.never, update: (_states: readonly WatchState[]) => Effect.void };
 	let unreachable = false;
 	let outageEpoch: string | undefined;
 	let epoch: string | undefined;
@@ -40,11 +55,12 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 					return;
 				}
 			}
-			yield* Console.log(JSON.stringify(event));
+			yield* emit(event);
 		});
 	}
 	const receive = Effect.fnUntraced(function* (snapshot: typeof WatchSnapshot.Type) {
 		const now = yield* Clock.currentTimeMillis;
+		yield* output.answers(snapshot.answers ?? []);
 		if (epoch !== undefined && epoch !== snapshot.epoch) {
 			if (outageEpoch !== epoch) {
 				yield* print({ kind: "daemon-unreachable" });
@@ -56,12 +72,14 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 		epoch = snapshot.epoch;
 		if (snapshot.states) {
 			states = snapshot.states;
+			yield* pullRequests.update(states);
 			for (const event of transitions.update(states, now)) {
 				yield* print(event);
 			}
 		}
 	});
 	const health = Effect.gen(function* () {
+		yield* output.heartbeat;
 		if (!unreachable && states) {
 			for (const event of transitions.update(states, yield* Clock.currentTimeMillis)) {
 				yield* print(event);
@@ -97,7 +115,7 @@ export const watchStream = Effect.fn("FleetWatch.watchStream")(function* (option
 		Effect.andThen(Effect.sleep(options.intervalMs)),
 		Effect.forever,
 	);
-	const consume = Effect.all([connect, health, liveness], {
+	const consume = Effect.all([connect, health, liveness, pullRequests.failed], {
 		concurrency: "unbounded",
 		discard: true,
 	});

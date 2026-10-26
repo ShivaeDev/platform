@@ -1,10 +1,11 @@
-import { type Clock, Queue, type Scope } from "effect";
+import { type Clock, type Effect, Queue, type Scope } from "effect";
 import type { CodexCloudConfiguration } from "#providers/codexCloud.ts";
 import type { SessionTransport } from "#session/service.ts";
-import type { Handshake, WireRequest } from "#test/codex.ts";
+import type { codexServer, Handshake, WireRequest } from "#test/codex.ts";
 import { FUTURE_EXPIRY, syntheticToken } from "#test/codexCloud.ts";
 export interface ProviderState {
 	allowConnectionFailure: boolean;
+	backend: Effect.Success<ReturnType<typeof codexServer>> | undefined;
 	clock: Clock.Clock | undefined;
 	cloud: boolean;
 	failure: import("#session/schema.ts").SessionFailure | undefined;
@@ -22,6 +23,7 @@ export interface ProviderState {
 export function* newProvider() {
 	const state: ProviderState = {
 		allowConnectionFailure: false,
+		backend: undefined,
 		clock: undefined,
 		cloud: false,
 		failure: undefined,

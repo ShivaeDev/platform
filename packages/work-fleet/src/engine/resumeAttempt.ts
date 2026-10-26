@@ -10,7 +10,7 @@ export const resumeAttempt = Effect.fn("Fleet.resumeAttempt")(function* (
 	state: EngineState,
 	stored: Versioned<FleetRecord>,
 	attempt: Attempt,
-	recovery: { readonly stallRecovery: Attempt["stallRecovery"]; readonly observationRetries?: number },
+	recovery: { readonly observationRetries: number },
 ) {
 	const sessionId = attempt.receipt?.sessionId;
 	if (sessionId === undefined) {

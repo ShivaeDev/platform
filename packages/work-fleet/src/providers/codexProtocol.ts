@@ -29,5 +29,6 @@ export const Envelope = Schema.Struct({
 	error: Schema.optional(Schema.Unknown),
 	id: Schema.optional(Schema.Union([Schema.String, Schema.Number])),
 	method: Schema.optional(Schema.String),
+	params: Schema.optional(Schema.Unknown),
 	result: Schema.optional(Schema.Unknown),
 });

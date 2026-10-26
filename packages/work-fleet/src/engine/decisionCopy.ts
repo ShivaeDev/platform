@@ -11,6 +11,7 @@ export interface DecisionCopy {
 	readonly question?: {
 		readonly title: string;
 		readonly retry?: Choice;
+		readonly wait?: Choice;
 		readonly release: Choice;
 	};
 	readonly reason: string;
@@ -62,6 +63,7 @@ export function decisionCopy(decision: Pick<Decision, "code" | "publicationWork"
 			release: situation.release ?? RELEASE,
 			title: situation.question ?? "What should Fleet do next?",
 			...(situation.retry === undefined ? {} : { retry: situation.retry }),
+			...(situation.wait === undefined ? {} : { wait: situation.wait }),
 		},
 		reason: detailed ? `${situation.happened}\n\nDetails: ${decision.reason}` : situation.happened,
 		recommendation: situation.recommendation,

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Schema, Struct } from "effect";
 import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { AttemptProgress } from "#AttemptProgress.ts";
 import { AttentionOwner } from "#attention.ts";
@@ -14,7 +14,7 @@ export const Attempt = Schema.Struct({
 		Schema.Struct({
 			at: Schema.Number,
 			interruptError: Schema.optional(Schema.String),
-			observation: Schema.optional(SessionObservation),
+			observation: Schema.optional(Schema.Struct(Struct.omit(SessionObservation.fields, ["activityAt", "subscribedAt"]))),
 			observationError: Schema.optional(Schema.String),
 		}),
 	),
@@ -122,10 +122,7 @@ export const FleetView = Schema.Struct({
 		Schema.Struct({
 			...SessionReceipt.fields,
 			briefSteers: Attempt.fields.briefSteers,
-			interruptedAt: Schema.optional(Schema.Number),
-			interruptRequestedAt: Schema.optional(Schema.Number),
 			lastProgressAt: Schema.optional(Schema.Number),
-			steeredAt: Schema.optional(Schema.Number),
 		}),
 	),
 	stage: diagnostics.FleetStage,

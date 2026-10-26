@@ -42,5 +42,5 @@ export const recoverUnobservable = Effect.fn("Fleet.recoverUnobservable")(functi
 			attempts: stored.value.attempts.map((entry) => (entry.operationId === attempt.operationId ? { ...entry, status: "failed" as const } : entry)),
 		},
 	};
-	return yield* resumeAttempt(state, retired, attempt, { observationRetries: 1, stallRecovery: attempt.stallRecovery });
+	return yield* resumeAttempt(state, retired, attempt, { observationRetries: 1 });
 });

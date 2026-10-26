@@ -1,7 +1,7 @@
 import { Effect, Exit, type FileSystem, Redacted, Scope, Semaphore } from "effect";
 import type { ChildProcessSpawner } from "effect/process";
 import { type CodexLogin, codexAccessToken } from "#providers/codexLogin.ts";
-import { type CodexConnection, connect, failure, initialize, request } from "#providers/codexRpc.ts";
+import { type CodexConnection, type CodexNotified, connect, failure, initialize, request } from "#providers/codexRpc.ts";
 
 function cloudUrl(endpoint: string) {
 	return Effect.try({ catch: () => failure("unavailable", "Invalid Codex Cloud endpoint"), try: () => new URL(endpoint) }).pipe(
@@ -12,7 +12,12 @@ function cloudUrl(endpoint: string) {
 	);
 }
 // Connections reopen with a fresh login; a dropped socket fails in-flight mutations as ambiguous.
-export const codexCloudConnection = Effect.fn("CodexCloud.codexCloudConnection")(function* (endpoint: string, login: CodexLogin, timeoutMs: number) {
+export const codexCloudConnection = Effect.fn("CodexCloud.codexCloudConnection")(function* (
+	endpoint: string,
+	login: CodexLogin,
+	timeoutMs: number,
+	notified?: CodexNotified,
+) {
 	const url = yield* cloudUrl(endpoint);
 	const services = yield* Effect.context<FileSystem.FileSystem | ChildProcessSpawner.ChildProcessSpawner>();
 	const layerScope = yield* Effect.scope;
@@ -29,6 +34,7 @@ export const codexCloudConnection = Effect.fn("CodexCloud.codexCloudConnection")
 			const opened = yield* connect(
 				{ protocols: ["codex-app-server", `codex-client.${crypto.randomUUID()}`, `openai-bearer.${Redacted.value(token)}`], url },
 				timeoutMs,
+				notified,
 			);
 			yield* initialize(opened, timeoutMs, true);
 			return opened;
@@ -43,7 +49,9 @@ export const codexCloudConnection = Effect.fn("CodexCloud.codexCloudConnection")
 		lock,
 		1,
 	)(Effect.suspend(() => (current !== undefined && !current.connection.closed.value ? Effect.succeed(current.connection) : open)));
-	return function rpc(method: string, params: unknown, mutation = false) {
-		return connection.pipe(Effect.flatMap((opened) => request(opened, timeoutMs, method, params, mutation)));
+	return {
+		connection,
+		rpc: (method: string, params: unknown, mutation = false) =>
+			connection.pipe(Effect.flatMap((opened) => request(opened, timeoutMs, method, params, mutation))),
 	};
 });

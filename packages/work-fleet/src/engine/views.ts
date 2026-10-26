@@ -3,7 +3,7 @@ import { recoveryStatus } from "#engine/recoveryStatus.ts";
 import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
 import { fleetStage, waitingReason } from "#stage.ts";
 
-type ViewAttempt = Pick<Attempt, "receipt" | "briefSteers" | "stallRecovery" | "progress" | "overLimit" | "status" | "publishedRecovery" | "output">;
+type ViewAttempt = Pick<Attempt, "receipt" | "briefSteers" | "progress" | "overLimit" | "status" | "publishedRecovery" | "output">;
 type ViewRecord = Pick<FleetRecord, "workId" | "step" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result"> & {
 	readonly attempts: readonly ViewAttempt[];
 	readonly checks?: Pick<NonNullable<FleetRecord["checks"]>, "pending"> | undefined;
@@ -53,10 +53,7 @@ function sessionView(attempt: ViewAttempt) {
 				{
 					...attempt.receipt,
 					briefSteers: attempt.briefSteers,
-					interruptedAt: attempt.stallRecovery?.interruptedAt,
-					interruptRequestedAt: attempt.stallRecovery?.interruptRequestedAt,
 					lastProgressAt: attempt.progress?.at,
-					steeredAt: attempt.stallRecovery?.steeredAt,
 				},
 			];
 }

@@ -1,8 +1,9 @@
-import { Context, Effect, FileSystem, Layer, Schema } from "effect";
+import { Clock, Context, Effect, FileSystem, Layer, Schema } from "effect";
 import { ChildProcessSpawner } from "effect/process";
 import { defineService } from "@shivaedev/effect-service/defineService.ts";
 import { codexAdapter } from "#providers/codexAdapter.ts";
 import { codexCloudConnection } from "#providers/codexCloudConnection.ts";
+import { codexLive } from "#providers/codexLive.ts";
 import { decode, failure } from "#providers/codexRpc.ts";
 import type { ContinueSession, StartSession } from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";
@@ -58,7 +59,9 @@ const CodexCloud = defineService({
 		const config = yield* Schema.decodeUnknownEffect(CodexCloudConfiguration)(yield* CodexCloudConfig).pipe(
 			Effect.mapError(() => failure("unavailable", "Codex Cloud configuration needs an environment, workspace cwd and positive timeout")),
 		);
-		const rpc = yield* codexCloudConnection(config.endpoint ?? CODEX_CLOUD_ENDPOINT, config, config.requestTimeoutMs);
+		const clock = yield* Clock.Clock;
+		const live = codexLive(() => clock.currentTimeMillisUnsafe());
+		const { connection, rpc } = yield* codexCloudConnection(config.endpoint ?? CODEX_CLOUD_ENDPOINT, config, config.requestTimeoutMs, live.notified);
 		const sandboxPolicy = {
 			excludeSlashTmp: false,
 			excludeTmpdirEnvVar: false,
@@ -85,6 +88,7 @@ const CodexCloud = defineService({
 				: { approvalPolicy: "on-request", approvalsReviewer: "auto_review", sandboxPolicy };
 		});
 		const adapter = codexAdapter(rpc, {
+			activity: live.activity(connection, config.requestTimeoutMs),
 			beforeTurn: verifyEnvironment,
 			provisioning: "unknown",
 			recoveryGraceMs: config.recoveryGraceMs,

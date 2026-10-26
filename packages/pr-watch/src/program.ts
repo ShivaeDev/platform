@@ -1,7 +1,7 @@
 import { Effect, Exit } from "effect";
 import { argumentsFor, help } from "#arguments.ts";
 import { type Emit, health, makeOutput } from "#health.ts";
-import type { WatchError } from "#model.ts";
+import type { Options, WatchError } from "#model.ts";
 import { polling } from "#polling.ts";
 
 export const program = Effect.fn("PrWatch.program")(function* (
@@ -9,16 +9,25 @@ export const program = Effect.fn("PrWatch.program")(function* (
 	emit: Emit,
 	diagnostic: (message: string) => Effect.Effect<void, WatchError>,
 ) {
+	const parsed = yield* argumentsFor(args).pipe(
+		Effect.tapError((error) => health(emit, "error", { message: error.message }).pipe(Effect.andThen(health(emit, "stopped", { reason: "failed" })))),
+	);
+	if (parsed.help) {
+		yield* emit(help);
+		return;
+	}
+	yield* watch(parsed.options, { heartbeat: parsed.heartbeat, once: parsed.once }, emit, diagnostic);
+});
+
+export const watch = Effect.fn("PrWatch.watch")(function* (
+	options: Options,
+	settings: { readonly heartbeat: number; readonly once: boolean },
+	emit: Emit,
+	diagnostic: Emit,
+) {
 	const reported = new Set<string>();
-	let watching = true;
 	const run = Effect.gen(function* () {
-		const parsed = yield* argumentsFor(args);
-		if (parsed.help) {
-			watching = false;
-			yield* emit(help);
-			return;
-		}
-		const output = yield* makeOutput(emit, parsed.heartbeat);
+		const output = yield* makeOutput(emit, settings.heartbeat);
 		function report(message: string) {
 			if (reported.has(message)) {
 				return Effect.void;
@@ -32,7 +41,7 @@ export const program = Effect.fn("PrWatch.program")(function* (
 				Effect.andThen(diagnostic(message)),
 			);
 		}
-		yield* polling(parsed.options, parsed.once, output, { error: report, reset: () => reported.clear() });
+		yield* polling(options, settings.once, output, { error: report, reset: () => reported.clear() });
 	});
 	yield* run.pipe(
 		Effect.tapError((error) =>
@@ -46,9 +55,6 @@ export const program = Effect.fn("PrWatch.program")(function* (
 			}),
 		),
 		Effect.onExit((exit) => {
-			if (!watching) {
-				return Effect.void;
-			}
 			let reason = "completed";
 			if (exit._tag === "Failure") {
 				reason = Exit.hasInterrupts(exit) ? "interrupted" : "failed";

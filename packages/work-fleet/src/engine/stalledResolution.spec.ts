@@ -31,10 +31,8 @@ for (const scenario of [
 			yield* prepareWork("one");
 			yield* fleet.dispatch("one");
 			yield* fleet.reconcile("one");
-			for (let pass = 0; pass < 3; pass += 1) {
-				advanceTime(31 * 60_000);
-				yield* fleet.reconcile("one");
-			}
+			advanceTime(31 * 60_000);
+			yield* fleet.reconcile("one");
 			const stalled = yield* fleet.get("one");
 			expect(stalled.value.decision?.code).toBe("session-stalled");
 			yield* replaceStoredRecord({ ...stalled.value, decision: replacementDecision(stalled.value.decision, replaceDecision) });
@@ -52,7 +50,7 @@ for (const scenario of [
 				sessionUnusable: true,
 				status: "failed",
 			});
-			expect(providerInterruptions()).toEqual([receipt.turnId, receipt.turnId]);
+			expect(providerInterruptions()).toEqual([receipt.turnId]);
 			expect((yield* acknowledgeProviderTurn(attempt.operationId, receipt).pipe(Effect.result))._tag).toBe("Failure");
 			setTurnExecution(receipt, "completed", "Late abandoned output");
 			if (action === "retry") {

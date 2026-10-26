@@ -8,6 +8,9 @@ export function lostTurnProvider() {
 	const invisible = codexAdapter(
 		(method, params) =>
 			Effect.sync(() => {
+				if (method === "thread/items/list") {
+					return { data: [], nextCursor: null };
+				}
 				if (method !== "thread/turns/list" || typeof params !== "object" || params === null || !("threadId" in params)) {
 					throw new Error(`Unexpected lost-turn request: ${method}`);
 				}

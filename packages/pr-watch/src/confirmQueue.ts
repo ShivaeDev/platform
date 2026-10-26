@@ -12,6 +12,7 @@ const QueueResponse = Schema.Struct({
 							autoMergeRequest: Schema.NullOr(Schema.Struct({ enabledAt: Schema.String })),
 							mergeQueueEntry: Schema.NullOr(Schema.Struct({ id: Schema.String })),
 							state: Schema.Literals(["OPEN", "CLOSED", "MERGED"]),
+							timelineItems: Schema.optionalKey(Schema.Struct({ nodes: Schema.Array(Schema.Struct({ reason: Schema.String })) })),
 						}),
 					),
 				}),
@@ -26,6 +27,7 @@ const query = `query QueueEntry($owner: String!, $name: String!, $number: Int!) 
 			state
 			autoMergeRequest { enabledAt }
 			mergeQueueEntry { id }
+			timelineItems(last: 1, itemTypes: [DEQUEUED_EVENT]) { nodes { ... on DequeuedEvent { reason } } }
 		}
 	}
 }`;
@@ -48,5 +50,11 @@ export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (
 	if ((body.errors?.length ?? 0) > 0 || pr === undefined || pr === null || pr.state !== "OPEN") {
 		return yield* Effect.fail(new WatchError({ message: `Queue confirmation unavailable for PR #${snapshot.number}` }));
 	}
-	return { ...snapshot, autoMerge: pr.autoMergeRequest !== null, queued: pr.mergeQueueEntry !== null || pr.autoMergeRequest !== null };
+	const reason = pr.timelineItems?.nodes.at(-1)?.reason;
+	return {
+		...snapshot,
+		...(reason === undefined ? {} : { dequeueReason: reason }),
+		autoMerge: pr.autoMergeRequest !== null,
+		queued: pr.mergeQueueEntry !== null || pr.autoMergeRequest !== null,
+	};
 });

@@ -7,6 +7,7 @@ export const SessionReceipt = Schema.Struct({ sessionId: Schema.String, turnId: 
 export type SessionReceipt = typeof SessionReceipt.Type;
 
 export const SessionObservation = Schema.Struct({
+	activityAt: Schema.optional(Schema.Number),
 	capacity: Schema.optional(ProviderCapacity),
 	error: Schema.optional(Schema.String),
 	execution: Schema.Literals(["accepted", "running", "completed", "failed", "interrupted"]),
@@ -14,6 +15,7 @@ export const SessionObservation = Schema.Struct({
 	progress: Schema.optional(Schema.Array(Schema.Struct({ id: Schema.String, status: Schema.optional(Schema.String) }))),
 	provisioning: Schema.Literals(["unknown", "ready"]),
 	receipt: SessionReceipt,
+	subscribedAt: Schema.optional(Schema.Number),
 	turnMissing: Schema.optional(Schema.Boolean),
 });
 export type SessionObservation = typeof SessionObservation.Type;

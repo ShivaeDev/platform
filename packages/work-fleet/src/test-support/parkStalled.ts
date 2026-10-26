@@ -31,9 +31,7 @@ export function stalledTransport(transport: typeof SessionTransport.Service): ty
 export const parkStalled = Effect.fnUntraced(function* (advance: () => void) {
 	const fleet = yield* Fleet;
 	yield* fleet.reconcile("one");
-	for (let step = 0; step < 3; step += 1) {
-		advance();
-		yield* fleet.reconcile("one");
-	}
+	advance();
+	yield* fleet.reconcile("one");
 	return yield* fleet.get("one");
 });

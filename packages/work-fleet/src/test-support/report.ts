@@ -37,7 +37,7 @@ export function lostReportReceipt(root: string) {
 	return { board, count: () => publications, receipts: () => structuredClone(receipts) };
 }
 
-export function answerReport(root: string, decision: BoardDecision, action: "retry" | "release") {
+export function answerReport(root: string, decision: BoardDecision, action: "retry" | "release" | "wait") {
 	const response = responseMarkdown({
 		body: "Resolve the report decision.",
 		id: `synthetic.${action}`,

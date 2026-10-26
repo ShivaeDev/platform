@@ -10,6 +10,7 @@ import { Label } from "#client/react/components/ui/label.tsx";
 import { Textarea } from "#client/react/components/ui/textarea.tsx";
 import { AnswerMarkdown } from "./AnswerMarkdown.tsx";
 import { answerTextClass } from "./answerTextClass.ts";
+import { LazyInlineMarkdown } from "./lazyMarkdown.tsx";
 import { PromptChoices } from "./PromptChoices.tsx";
 import type { useResponseForm } from "./useResponseForm.ts";
 
@@ -65,7 +66,7 @@ function PromptField({
 	return (
 		<fieldset className="m-0 min-w-0 space-y-3 border-0 p-0" data-mode={prompt.mode} data-prompt={prompt.id} data-source={prompt.source}>
 			<legend className="mb-1 p-0 font-semibold text-base" id={`${fieldId}-legend`}>
-				{choices === undefined ? title : "Your answer"}
+				{choices === undefined ? <LazyInlineMarkdown document={document} source={title} /> : "Your answer"}
 			</legend>
 			{choices === undefined && heading.rest ? <AnswerMarkdown className="text-sm" file={document.file} source={heading.rest} /> : null}
 			<p className="text-muted-foreground text-sm">{guidance}</p>

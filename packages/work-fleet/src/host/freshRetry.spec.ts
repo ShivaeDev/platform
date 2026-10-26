@@ -9,10 +9,6 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 		function* (daemon) {
 			yield* daemon.approve("one");
 			yield* daemon.reconcile("one");
-			for (let step = 0; step < 3; step += 1) {
-				daemon.advanceTime(31 * 60_000);
-				yield* daemon.reconcile("one");
-			}
 			daemon.advanceTime(31 * 60_000);
 			const stalled = yield* daemon.reconcile("one");
 			expect(stalled.decision?.code).toBe("session-stalled");
@@ -41,7 +37,7 @@ for (const mode of ["scheduler", "dispatch"] as const) {
 			expect(launched.attempts.slice(0, -1)).toEqual(retried.attempts);
 			expect(launched.attempts.at(-1)).toMatchObject({ role: "worker", status: "running" });
 			expect(launched.attempts.at(-1)?.receipt?.sessionId).not.toBe(stalled.attempts.at(-1)?.receipt?.sessionId);
-			expect(daemon.providerLaunches()).toEqual(["operation-1", "operation-3"]);
+			expect(daemon.providerLaunches()).toEqual(["operation-1", "operation-2"]);
 			expect(launched.responses).toEqual(retried.responses);
 			expect(launched.history ?? []).toEqual([]);
 		},

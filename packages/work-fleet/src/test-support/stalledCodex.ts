@@ -9,7 +9,7 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 	const hidden = new Set<string>();
 	let turns = 0;
 	let threads = 0;
-	let items = [{ id: "command", status: "inProgress", type: "commandExecution" }];
+	let items: { id: string; status?: string; text?: string; type: string }[] = [{ id: "command", status: "inProgress", type: "commandExecution" }];
 	const server = yield* codexServer((request) => {
 		requests.push(request);
 		switch (request.method) {
@@ -23,9 +23,9 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 				return { turn: { id } };
 			}
 			case "thread/turns/list":
-				return { data: [...states].filter(([id]) => !hidden.has(id)).map(([id, status]) => ({ id, items, status })), nextCursor: null };
+				return { data: [...states].filter(([id]) => !hidden.has(id)).map(([id, status]) => ({ id, items: [], status })), nextCursor: null };
 			case "thread/items/list":
-				return { data: [], nextCursor: null };
+				return { data: items.toReversed().map((item) => ({ item })), nextCursor: null };
 			case "turn/interrupt": {
 				const params = Schema.decodeUnknownSync(TurnParams)(request.params);
 				if (!delayInterrupt) {
@@ -45,6 +45,11 @@ export const stalledCodex = Effect.fn("Test.stalledCodex")(function* (delayInter
 		changeStatus: () => {
 			items = items.map((item) => ({ ...item, status: item.status === "inProgress" ? "completed" : "inProgress" }));
 		},
+		complete: (id: string, output: string) => {
+			states.set(id, "completed");
+			items = [{ id: "answer", text: output, type: "agentMessage" }];
+		},
+		emit: (threadId = "worker-thread") => server.notify(threadId, "item/commandExecution/outputDelta"),
 		hidden,
 		requests,
 		states,

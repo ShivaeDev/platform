@@ -45,15 +45,15 @@ host.it("watch streams a maintainer decision and release once", [approvedWork(["
 	yield* daemon.reconcile("one");
 	yield* daemon.answer("one", undefined, true);
 	yield* daemon.awaitEvent("released");
+	yield* daemon.awaitEvent("board-answer");
 	yield* daemon.reconcile("one");
-	expect(daemon.eventLines()).toEqual([
-		expect.objectContaining({
-			kind: "waiting-on-you",
-			reason: "Which scope should ship?",
-			workId: "one",
-		}),
+	const expected = [
+		expect.objectContaining({ kind: "waiting-on-you", reason: "Which scope should ship?", workId: "one" }),
 		{ kind: "released", workId: "one" },
-	]);
+		expect.objectContaining({ author: "orchestrator", kind: "board-answer", workId: "one" }),
+	];
+	expect(daemon.eventLines()).toEqual(expect.arrayContaining(expected));
+	expect(daemon.eventLines()).toHaveLength(expected.length);
 });
 
 host.it("watch reports a background dispatch failure once", [approvedWork(["one"]), delayedRefresh(true)], function* (daemon) {

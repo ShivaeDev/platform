@@ -27,17 +27,10 @@ function progressBackend() {
 			case "turn/start":
 				return { turn: { id: Schema.decodeUnknownSync(Thread)(request.params).threadId } };
 			case "thread/turns/list":
+				return { data: [{ id: Schema.decodeUnknownSync(Thread)(request.params).threadId, items: [], status: "inProgress" }], nextCursor: null };
+			case "thread/items/list":
 				progress += 1;
-				return {
-					data: [
-						{
-							id: Schema.decodeUnknownSync(Thread)(request.params).threadId,
-							items: [{ id: `progress-${progress}`, status: "inProgress", type: "commandExecution" }],
-							status: "inProgress",
-						},
-					],
-					nextCursor: null,
-				};
+				return { data: [{ item: { id: `progress-${progress}`, status: "inProgress", type: "commandExecution" } }], nextCursor: null };
 			default:
 				return {};
 		}

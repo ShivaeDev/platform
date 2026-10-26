@@ -66,9 +66,10 @@ export const serviceSituations = {
 		"Check the details. Let Fleet try again once the cause is fixed, or stop here.",
 	),
 	"session-stalled": {
-		happened: "The worker stopped making progress, and nudging and interrupting it did not help.",
-		recommendation: "Fleet recommends starting over with a fresh worker.",
+		happened: "The worker has shown no activity for a while. Fleet has not interrupted it.",
+		recommendation: "Keep waiting if the worker may still be busy, or start over with a fresh worker.",
 		retry: FRESH_WORKER,
+		wait: { label: "Keep waiting", outcome: "Fleet keeps the same worker running and starts a new silence interval." },
 	},
 	"session-turn-missing": {
 		happened: "The worker's run can no longer be found, even after Fleet resumed it once.",

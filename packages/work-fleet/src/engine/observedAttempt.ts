@@ -6,7 +6,10 @@ export function observedAttempt(attempt: Attempt, observation: SessionObservatio
 		return attempt;
 	}
 	const signature = observation.progress === undefined ? undefined : JSON.stringify(observation.progress);
-	const progress = signature === undefined || signature === attempt.progress?.signature ? attempt.progress : { at: now, signature };
+	const observed = signature === undefined || signature === attempt.progress?.signature ? attempt.progress : { at: now, signature };
+	const since = Math.max(observation.activityAt ?? 0, observation.subscribedAt ?? 0);
+	const live = Math.min(since, now);
+	const progress = observed === undefined || live <= observed.at ? observed : { ...observed, at: live };
 	return {
 		...attempt,
 		missingSince: observation.turnMissing ? (attempt.missingSince ?? now) : undefined,
