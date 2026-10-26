@@ -1,4 +1,5 @@
 import { Context, type Effect, type Option } from "effect";
+import type { Permission } from "@shivaedev/access/permission.ts";
 import type { AuthUnavailable, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 export class RequestId extends Context.Service<RequestId, string>()("@shivaedev/platform/rpc/RequestId") {}
 export interface IdentityValue {
@@ -13,6 +14,7 @@ export interface ProviderAccountValue {
 export interface SessionUserValue extends IdentityValue {
 	readonly email: string;
 	readonly name: string;
+	readonly permissions?: readonly Permission[];
 	readonly role?: string | null | undefined;
 }
 export class SessionUser extends Context.Service<SessionUser, SessionUserValue>()("@shivaedev/platform/rpc/SessionUser") {}

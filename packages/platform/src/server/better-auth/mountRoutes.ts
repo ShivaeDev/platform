@@ -1,8 +1,10 @@
 import { Effect, Option } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/bearerSessions.ts";
 import { trustedProxyPeer } from "#server/rpc-server/local.ts";
 import { redact } from "#server/rpc-server/redact.ts";
+import { sessionPermissions } from "./sessionPermissions.ts";
 
 interface MountedAuth {
 	readonly $context: Promise<{ readonly authCookies: { readonly sessionToken: { readonly name: string } } }>;
@@ -11,6 +13,7 @@ interface MountedAuth {
 interface MountRouteOptions {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly clientIpHeader: string;
+	readonly roles?: RoleSet | undefined;
 	readonly trustedProxy?: string | undefined;
 }
 function replacesSession(request: Request, response: Response, native: boolean) {
@@ -22,7 +25,7 @@ function replacesSession(request: Request, response: Response, native: boolean) 
 		&& new URL(request.url).pathname.startsWith("/api/auth/sign-in/")
 	);
 }
-async function authResponse(auth: MountedAuth, web: Request, options: MountRouteOptions) {
+async function providerResponse(auth: MountedAuth, web: Request, options: MountRouteOptions) {
 	if (options.bearerSessions === undefined) {
 		return auth.handler(web);
 	}
@@ -40,6 +43,16 @@ async function authResponse(auth: MountedAuth, web: Request, options: MountRoute
 		}
 	}
 	return native ? response : cookieSessionResponse(response);
+}
+async function authResponse(auth: MountedAuth, web: Request, options: MountRouteOptions) {
+	const sessionRequest = options.roles !== undefined && new URL(web.url).pathname === "/api/auth/get-session";
+	const url = new URL(web.url);
+	if (sessionRequest) {
+		url.searchParams.set("disableCookieCache", "true");
+	}
+	const request = sessionRequest ? new Request(url, web) : web;
+	const response = await providerResponse(auth, request, options);
+	return sessionRequest && response.ok && options.roles !== undefined ? sessionPermissions(response, options.roles) : response;
 }
 export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
 	const isTrustedProxy = trustedProxyPeer(options.trustedProxy);

@@ -46,6 +46,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/access": "workspace:*",
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-sql": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",

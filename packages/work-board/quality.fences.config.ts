@@ -16,7 +16,10 @@ const markdownDependencies = modules(
 	"mdast",
 	"mdast-util-directive",
 );
-const browserDependencies = anyOf(folders("packages/platform/src/rpc"), files("packages/effect-trpc/src/rejectionDecoding.ts"));
+const browserDependencies = anyOf(
+	folders("packages/platform/src/rpc"),
+	files("packages/access/src/permission.ts", "packages/effect-trpc/src/rejectionDecoding.ts"),
+);
 
 export default [
 	fence("board-client-stays-browser-safe")

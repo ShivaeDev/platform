@@ -1,7 +1,7 @@
 import type { Rpc, RpcGroup } from "effect/rpc";
 import type { Contract } from "@shivaedev/effect-contract/contract.ts";
 import type { CommandShape, QueryShape, StreamShape } from "@shivaedev/effect-contract/operation.ts";
-import { AuthenticatedAdmin } from "@shivaedev/platform/rpc/middleware.ts";
+import { AdminPermission } from "#permissions.ts";
 
 export interface AdminRoute {
 	readonly path: string;
@@ -33,7 +33,7 @@ export function adminPage<
 	readonly contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams>;
 }): AdminPage & {
 	readonly id: TId;
-	readonly contract: Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, typeof AuthenticatedAdmin>, TStreams>;
+	readonly contract: Contract<TName, TQueries, TCommands, Rpc.AddMiddleware<TRpcs, typeof AdminPermission>, TStreams>;
 } {
-	return { ...page, [AdminPageTypeId]: true as const, contract: page.contract.middleware(AuthenticatedAdmin) };
+	return { ...page, [AdminPageTypeId]: true as const, contract: page.contract.middleware(AdminPermission) };
 }

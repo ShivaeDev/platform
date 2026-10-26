@@ -1,6 +1,7 @@
 import { Effect } from "effect";
-import { hasRole } from "@shivaedev/platform/rpc/hasRole.ts";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
+import { hasPermission } from "@shivaedev/platform/rpc/permission.ts";
+import { ChangeUserRoles } from "@shivaedev/platform/rpc/userRoles.ts";
 import { changeUserRole, listUsers } from "@shivaedev/platform/server/better-auth/users.ts";
 import { UsersPage } from "#users/page.ts";
 
@@ -9,6 +10,6 @@ export const usersHandlers = UsersPage.contract.application.toLayer({
 	"admin.users.list": (input) =>
 		Effect.gen(function* () {
 			const user = yield* SessionUser;
-			return { ...(yield* listUsers(input)), canChangeRoles: hasRole(user, "owner") };
+			return { ...(yield* listUsers(input)), canChangeRoles: hasPermission(user, ChangeUserRoles) };
 		}),
 });

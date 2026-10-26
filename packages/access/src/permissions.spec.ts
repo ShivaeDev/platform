@@ -32,3 +32,17 @@ accessStory.it("a signed-out caller must sign in", [], function* ({ requirePermi
 	expect(yield* requireAccess(ReadUsers, "alice").pipe(Effect.flip)).toBeInstanceOf(Unauthorized);
 	expect(canAccess(ReadUsers, "alice")).toBe(false);
 });
+
+accessStory.it("resolving a stored role returns only its declared grants", [], function* ({ resolve }) {
+	expect(yield* resolve("manager")).toEqual({
+		permissions: [
+			{ name: "users.read", strength: "any" },
+			{ name: "roles.assign", strength: "own" },
+		],
+		role: "manager",
+	});
+	expect(yield* resolve("guest")).toEqual({ permissions: [], role: "guest" });
+	expect(yield* resolve("unknown").pipe(Effect.flip)).toMatchObject({
+		_tag: "SchemaError",
+	});
+});

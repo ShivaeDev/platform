@@ -2,16 +2,16 @@ import { Effect, Layer } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
+import { AdminPermission } from "@shivaedev/admin/permissions.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { UsersPage } from "@shivaedev/admin/users/page.ts";
 import { bind } from "@shivaedev/effect-contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { AuthenticatedAdmin } from "@shivaedev/platform/rpc/middleware.ts";
 import { Admin, JobsPage, StatisticsPage } from "#modules/notes/admin.ts";
 import { noteQueue } from "#modules/notes/queue.ts";
 import { adminBackend } from "./backend.ts";
 
-const authenticated = Layer.succeed(AuthenticatedAdmin, (effect) =>
+const authenticated = Layer.succeed(AdminPermission, (effect) =>
 	effect.pipe(
 		Effect.provideService(Identity, { id: "alice" }),
 		Effect.provideService(SessionUser, { email: "alice@app.test", id: "alice", name: "Alice", role: "admin" }),

@@ -23,7 +23,7 @@ adminHost.it(
 
 adminHost.it(
 	"an owner grants and revokes roles through the mounted users area",
-	[adminAccount("owner", "admin,owner"), adminAccount("reader", "user,custom")],
+	[adminAccount("owner", "admin,owner"), adminAccount("reader", "user")],
 	function* ({ openAdmin, roleChangeLogs }) {
 		const owner = yield* openAdmin("owner");
 		const reader = yield* openAdmin("reader");
@@ -36,10 +36,7 @@ adminHost.it(
 		expect(yield* Effect.flip(owner["admin.users.changeRole"]({ grant: true, role: "admin", userId: "missing" }))).toMatchObject({
 			_tag: "NotFound",
 		});
-		for (const role of ["admin", "owner", "user"] as const) {
-			if (role === "user") {
-				yield* owner["admin.users.changeRole"]({ grant: false, role, userId: target.id });
-			}
+		for (const role of ["admin", "owner"] as const) {
 			yield* owner["admin.users.changeRole"]({ grant: true, role, userId: target.id });
 			expect((yield* owner["admin.users.list"]({ limit: 20 })).users.find(({ id }) => id === target.id)?.roles).toContain(role);
 			if (role === "admin") {
@@ -49,16 +46,13 @@ adminHost.it(
 			expect((yield* owner["admin.users.list"]({ limit: 20 })).users.find(({ id }) => id === target.id)?.roles).not.toContain(role);
 		}
 		expect(yield* Effect.flip(reader["admin.users.list"]({ limit: 20 }))).toMatchObject({ _tag: "Forbidden" });
-		expect((yield* owner["admin.users.list"]({ limit: 20 })).users.find(({ id }) => id === target.id)?.roles).toEqual(["custom"]);
+		expect((yield* owner["admin.users.list"]({ limit: 20 })).users.find(({ id }) => id === target.id)?.roles).toEqual(["user"]);
 		const actor = listed.users.find(({ name }) => name === "owner");
 		expect(roleChangeLogs().map(({ annotations }) => [annotations.role, annotations.grant])).toEqual([
 			["admin", true],
 			["admin", false],
 			["owner", true],
 			["owner", false],
-			["user", false],
-			["user", true],
-			["user", false],
 		]);
 		expect(roleChangeLogs()[0]?.annotations).toMatchObject({
 			actorId: actor?.id,

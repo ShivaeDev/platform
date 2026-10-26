@@ -1,6 +1,7 @@
 import { Effect, Fiber, Layer, Queue, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { SqlClient } from "effect/sql";
 import { AdminApi } from "./adminApi.ts";
 import type { AdminHost } from "./adminHost.ts";
 import { adminRouteVerbs } from "./adminRouteVerbs.ts";
@@ -28,6 +29,19 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 			story.tell("call the owner-only RPC");
 			return yield* call((client) => client.ownerTools());
 		}),
+		clientSession: Effect.fn("AuthStory.clientSession")(function* () {
+			story.tell("read the client session through the auth HTTP endpoint");
+			const response = yield* Effect.promise(() =>
+				fetch(`${host.baseUrl}/api/auth/get-session`, {
+					headers: host.headers,
+				}),
+			);
+			return {
+				payload: yield* Effect.promise(() => response.json()),
+				status: response.status,
+			};
+		}),
+		currentUserId: () => host.userId,
 		followAdminFeed: Effect.fn("AuthStory.followAdminFeed")(function* () {
 			story.tell("subscribe to the admin-only RPC stream");
 			const received = yield* Queue.unbounded<string>();
@@ -37,20 +51,23 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 		profile: Effect.fn("AuthStory.profile")(function* () {
 			story.tell("read the protected profile from the HTTP host");
 			const response = yield* Effect.promise(() => fetch(`${host.baseUrl}/profile`, { headers: host.headers }));
-			return { status: response.status, user: response.ok ? yield* Effect.promise(() => response.json()) : null };
+			return {
+				status: response.status,
+				user: response.ok ? yield* Effect.promise(() => response.json()) : null,
+			};
 		}),
+		readRecord: (id: string) => {
+			story.tell(`read record ${id} through the protected RPC`);
+			return call((client) => client.readRecord({ id }));
+		},
 		revokeSession: Effect.fn("AuthStory.revokeSession")(function* () {
 			story.tell("revoke the minted session through Better Auth");
 			yield* Effect.promise(() => host.auth.api.signOut({ headers: host.headers }));
 		}),
 		setRole: Effect.fn("AuthStory.setRole")(function* (role: "admin" | "user") {
 			story.tell(`an operator changes the current user's role to ${role}`);
-			const { test } = yield* Effect.promise(() => host.auth.$context);
-			const operator = yield* Effect.promise(() =>
-				host.auth.api.createUser({ body: { email: "operator@example.test", name: "Operator", role: "admin" } }),
-			);
-			const headers = yield* Effect.promise(() => test.getAuthHeaders({ userId: operator.user.id }));
-			yield* Effect.tryPromise(() => host.auth.api.setRole({ body: { role, userId: host.userId }, headers }));
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`update members set role = ${role} where id = ${host.userId}`;
 		}),
 	};
 }

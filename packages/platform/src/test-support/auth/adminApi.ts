@@ -1,22 +1,49 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { SqlClient } from "effect/sql";
+import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
-import { AuthenticatedAdmin, AuthenticatedOwner } from "#rpc/middleware.ts";
-import { adminRoute } from "#server/rpc-server/roles.ts";
+import { AuthenticatedUser } from "#rpc/middleware.ts";
+import { permissionRoute } from "#server/rpc-server/permissions.ts";
 import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/rpc-server/session.ts";
+import { ManagementPermission, TestRoles, ToolsPermission, UseTools } from "#test/auth/permissions.ts";
 
 export const AdminApi = RpcGroup.make(
-	Rpc.make("adminTools", { success: Schema.String }).middleware(AuthenticatedAdmin),
-	Rpc.make("adminFeed", { stream: true, success: Schema.String }).middleware(AuthenticatedAdmin),
-	Rpc.make("ownerTools", { success: Schema.String }).middleware(AuthenticatedOwner),
+	Rpc.make("readRecord", {
+		error: Schema.Union([Forbidden, Unauthorized, AuthUnavailable]),
+		payload: { id: Schema.String },
+		success: Schema.String,
+	}).middleware(AuthenticatedUser),
+	Rpc.make("adminTools", { success: Schema.String }).middleware(ToolsPermission),
+	Rpc.make("adminFeed", { stream: true, success: Schema.String }).middleware(ToolsPermission),
+	Rpc.make("ownerTools", { success: Schema.String }).middleware(ManagementPermission),
 );
-export const adminHandlers = AdminApi.toLayer({
-	adminFeed: () => Stream.concat(Stream.fromEffect(Effect.map(SessionUser, (user) => `Admin feed for ${user.email}`)), Stream.never),
-	adminTools: () => Effect.map(SessionUser, (user) => `Admin tools for ${user.email}`),
-	ownerTools: () => Effect.map(SessionUser, (user) => `Owner tools for ${user.email}`),
-});
+export function adminHandlers(state: { handlerRequests: string[] }) {
+	return AdminApi.toLayer({
+		adminFeed: () => Stream.concat(Stream.fromEffect(Effect.map(SessionUser, (user) => `Admin feed for ${user.email}`)), Stream.never),
+		adminTools: () =>
+			Effect.map(SessionUser, (user) => {
+				state.handlerRequests.push("adminTools");
+				return `Admin tools for ${user.email}`;
+			}),
+		ownerTools: () => Effect.map(SessionUser, (user) => `Owner tools for ${user.email}`),
+		readRecord: ({ id }) =>
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const [record] = yield* sql<{
+					id: string;
+				}>`select id from members where id = ${id}`.pipe(Effect.orDie);
+				if (record === undefined) {
+					return yield* Effect.die("Missing record fixture");
+				}
+				const user = yield* SessionUser;
+				const { role } = yield* TestRoles.resolve(user.role).pipe(Effect.mapError(() => new AuthUnavailable({ message: "Unknown role" })));
+				yield* TestRoles.requireAccess({ id: user.id, role }, UseTools, record.id);
+				return record.id;
+			}),
+	});
+}
 
 const routeErrors = {
 	AuthUnavailable: () => Effect.succeed(HttpServerResponse.empty({ status: 503 })),
@@ -25,7 +52,7 @@ const routeErrors = {
 };
 
 export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { handlerRequests: string[] }) {
-	const guarded = adminRoute(sessions);
+	const guarded = permissionRoute(sessions, UseTools);
 	const tools = guarded((request) =>
 		Effect.gen(function* () {
 			state.handlerRequests.push(request.method);

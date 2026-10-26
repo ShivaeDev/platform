@@ -162,7 +162,7 @@ For self-only features, declare `contract("preferences", { keyScope: "session", 
 
 The host's generated `$changes` handler accepts `{ queries: [{ query: "get", payload: { id: "theme" } }] }`, resolves the declared query dependencies during that subscription invocation, and passes the authenticated scope to the change stream. It does not accept physical subscription keys or a caller-selected scope. Missing request-local `Identity` on a session-scoped subscription is a configuration defect, with no unscoped fallback.
 
-`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `authenticatedAdminLayer` and `authenticatedOwnerLayer` run scoped command invalidation inside the authenticated invocation. Successful commands publish their scoped keys after commit and omit keys the handler's transactions already published. A rejected transaction publishes no keys.
+`authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and `permissionLayer` run scoped command invalidation inside the authenticated invocation. Successful commands publish their scoped keys after commit and omit keys the handler's transactions already published. A rejected transaction publishes no keys.
 
 Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$changes`. When migrating a custom change handler, accept query references and resolve them inside `Stream.unwrap`, after authentication has provided `Identity`:
 
@@ -397,68 +397,56 @@ const sessions = {
 
 An `AuthUnavailable` failure during revalidation leaves the stream running and the next interval checks again. During a session-store outage, the sign-out delivery window extends until a lookup succeeds. Initial session lookup failures still reject the subscription. Unary calls resolve their session once per call. `MaybeAuthenticated` streams that start anonymous continue without a session monitor; a signed-in optional stream ends with `Unauthorized` when its session is removed. Callers can subscribe again to continue anonymously.
 
-### Requiring a role
+### Requiring a permission
 
-Enable Better Auth's `admin()` plugin in the application's auth options and migrate its schema. The session provider's optional `user.role` is a comma-separated role list, and `hasRole(user, role)` from `@shivaedev/platform/rpc/hasRole.ts` reports whether that list includes a role. It reads only `role` from any user value, such as the request-local `SessionUser` or the user of a client session, and imports nothing from the server, so browser code reads roles the same way the server does.
+Declare application roles with `@shivaedev/access`. Each user row stores one declared role string. Supply the role set once through the existing auth configuration and reuse its returned session policy:
 
-An RPC declares the role it needs as middleware, the way it declares `AuthenticatedUser`: `AuthenticatedAdmin` requires `admin` and `AuthenticatedOwner` requires `owner`. Merge `authenticatedAdminLayer(sessions)` or `authenticatedOwnerLayer(sessions)` beside the handlers. The middleware resolves the session from the transport headers on every call, provides `Identity` and `SessionUser` to the handler, and fails in its declared error channel with `Unauthorized` when the caller is signed out and `Forbidden` when the role list lacks the role. The handler's own error schema does not list them, and the handler does not check the role. Each role is checked on its own: an owner who should also reach admin RPCs carries both roles.
+```ts
+import { permission } from "@shivaedev/access/permission.ts";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
+
+const UseTools = permission("tools.use");
+const Access = roleSet(role("member", []), role("operator", [UseTools]));
+const mounted = yield* betterAuthMount(authOptions, { roles: Access });
+const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) };
+```
+
+For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. An undeclared stored role fails with `AuthUnavailable` instead of silently granting an empty role.
+
+Declare a native middleware service for each required permission and provide its Layer beside the handlers:
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { AuthenticatedAdmin, AuthenticatedOwner } from "@shivaedev/platform/rpc/middleware.ts";
-import { authenticatedAdminLayer, authenticatedOwnerLayer } from "@shivaedev/platform/server/rpc-server/roles.ts";
+import { permissionMiddleware } from "@shivaedev/platform/rpc/permission.ts";
+import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
 
-export const Admin = RpcGroup.make(
-  Rpc.make("AdminTools", { success: Schema.String }).middleware(AuthenticatedAdmin),
-  Rpc.make("TransferOwnership", { success: Schema.String }).middleware(AuthenticatedOwner),
+class ToolsPermission extends permissionMiddleware<ToolsPermission>()("app/ToolsPermission", UseTools) {}
+const Tools = RpcGroup.make(Rpc.make("tools", { success: Schema.String }).middleware(ToolsPermission));
+const handlers = Tools.toLayer({ tools: () => Effect.map(SessionUser, (user) => user.email) }).pipe(
+  Layer.provideMerge(permissionLayer(ToolsPermission, sessions)),
 );
-
-export const AdminServer = Admin.toLayer({
-  AdminTools: () => Effect.map(SessionUser, (user) => `Admin tools for ${user.email}`),
-  TransferOwnership: () => Effect.map(SessionUser, (user) => `Owner ${user.email}`),
-}).pipe(Layer.provideMerge(Layer.merge(authenticatedAdminLayer(sessions), authenticatedOwnerLayer(sessions))));
 ```
 
-Removing a role takes effect on the next call with the same session, as long as the provider reads the role from storage; keep Better Auth's cookie cache disabled. A live stream behind role middleware rechecks the role at each session revalidation and ends with `Forbidden` once the role is gone.
+The middleware resolves and checks the session on every request before invoking the handler. It provides `Identity` and `SessionUser`, rejects signed-out callers with `Unauthorized`, and rejects missing grants with `Forbidden` in its declared error channel. A permission checks an exact name and strength; an `any` grant does not imply the corresponding `own` grant. Open streams recheck their required permission at the session revalidation interval and end with `Forbidden` after its removal.
 
-Use `adminRoute(sessions)` for host HTTP routes. It resolves the session through the transport-header and Origin policy, checks the role with `requireAdmin`, and provides `Identity` and `SessionUser` to the handler. Signed-out callers receive 401, missing admin roles and refused Origins receive 403, and an `AuthUnavailable` session provider failure receives 503. These rejections carry `Cache-Control: private, no-store` and never run the handler. The handler's response and typed failures pass through unchanged.
+For HTTP routes, use `permissionRoute(sessions, UseTools)` around the handler. It uses the same transport session and Origin policy, returns 401 for missing sessions, 403 for missing grants or refused Origins, and 503 for `AuthUnavailable`. Those rejections carry `Cache-Control: private, no-store`. The handler's response and typed failures pass through unchanged.
 
 ```ts
-import { Effect } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { adminRoute } from "@shivaedev/platform/server/rpc-server/roles.ts";
+import { permissionRoute } from "@shivaedev/platform/server/rpc-server/permissions.ts";
 
 const routes = HttpRouter.use((router) =>
-  router.add("GET", "/admin-tools", adminRoute(sessions)(() =>
-    Effect.map(SessionUser, (user) => HttpServerResponse.text(`Admin tools for ${user.email}`)),
+  router.add("GET", "/tools", permissionRoute(sessions, UseTools)(() =>
+    Effect.map(SessionUser, (user) => HttpServerResponse.text(user.email)),
   )),
 );
 ```
 
-The guard accepts any HTTP method and path. A mount can accept it as a parameter using only `effect` and `effect/http` types; the mount does not need to import Platform.
-
-For an admin SPA, guard its HTML fallback as well as its endpoints and assets. Register a guarded `/admin/*` route in `appHost({ routes, assets: { root: "dist", spa: true }, ... })`; the native wildcard also matches `/admin` and takes precedence over the general static SPA route:
-
-```ts
-import { NodeHttpPlatform, NodeServices } from "@effect/platform-node";
-import { Effect, Layer } from "effect";
-import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";
-import { adminRoute } from "@shivaedev/platform/server/rpc-server/roles.ts";
-
-const routes = HttpRouter.use((router) => Effect.gen(function* () {
-  const spa = yield* HttpStaticServer.make({ root: "dist", spa: true });
-  yield* router.add("*", "/admin/*", adminRoute(sessions)(() =>
-    spa.pipe(Effect.catch(HttpServerRespondable.toResponse)),
-  ));
-})).pipe(Layer.orDie, Layer.provide(NodeHttpPlatform.layer), Layer.provide(NodeServices.layer));
-```
-
-The admin handler serves existing files under `dist/admin` and falls back to `dist/index.html` for unknown HTML paths. Other application routes and the public SPA stay outside this mount. Admin RPCs on the shared `/rpc` endpoint still declare `AuthenticatedAdmin`; the HTTP route guard protects the admin document, while native RPC middleware protects each operation.
-
-`withSessionUser(policy, headers, operation)` resolves the session through the existing transport-header and Origin policy path and provides `Identity` and `SessionUser` only around the supplied Effect. It is also the boundary used by `authenticatedUserLayer`. Both the guard and identity boundary use public provider data, without reading Better Auth's tables or internal services. Keep Better Auth's cookie cache disabled for database-backed role removal to take effect on the next request, as in the starter.
+An operation on one record reads that record's owner and uses the application's access policy. With a request-local user, `const { role } = yield* Access.resolve(user.role)` recovers the application's closed role type; `yield* Access.requireAccess({ id: user.id, role }, UseTools, record.ownerId)` then permits an explicit `any` grant or an `own` grant for that owner. Keep these resource decisions in the handler or domain service. Browser interfaces can use `hasPermission(user, permission)` from `rpc/permission.ts` over the client session's grants; the server always resolves its own grants.
 
 ### Transport headers and request ids
 
@@ -880,14 +868,13 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | Module | Names and purpose |
 | --- | --- |
 | `rpc/identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services. |
-| `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `AuthenticatedAdmin`, `AuthenticatedOwner`, `MaybeAuthenticated`: native RPC middleware declarations. |
-| `rpc/hasRole.ts` | `hasRole(user, role)`: whether a user's comma-separated role list includes a role; browser-safe. |
-| `rpc/requireAdmin.ts` | `requireAdmin`: the signed-in user with an admin role, for HTTP routes. |
+| `rpc/middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations. |
+| `rpc/permission.ts` | Native permission middleware declarations and predicates over resolved grants. |
+| `server/rpc-server/permissions.ts` | Permission middleware Layers and HTTP route guards. |
 | `server/appHost.ts` | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
 | `server/boundedBody.ts` | `readBoundedBody`, `RequestBodyTooLarge`: bounded body bytes and a typed HTTP 413 failure. |
 | `server/otlpTracing.ts` | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers. |
 | `server/rpc-server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
-| `server/rpc-server/roles.ts` | `authenticatedAdminLayer`, `authenticatedOwnerLayer`: role middleware implementations; `adminRoute`: admin guard for host HTTP handlers. |
 | `server/rpc-server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups. |
 | `server/rpc-server/origin.ts` | `trustedOrigins({ allow, missing })`: an exact Origin allowlist. |
 | `server/rpc-server/local.ts` | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards. |

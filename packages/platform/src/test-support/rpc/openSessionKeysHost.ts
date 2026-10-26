@@ -11,12 +11,23 @@ import { Identity } from "#rpc/identity.ts";
 import { appHost } from "#server/appHost.ts";
 import { sessionCommandChanges } from "#server/commandChanges.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
-import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, resolveSession } from "#server/rpc-server/session.ts";
+import { permissionLayer } from "#server/rpc-server/permissions.ts";
+import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, resolveSession, type SessionShape } from "#server/rpc-server/session.ts";
+import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
 import type { Provider } from "./harness.ts";
 import { Api, CustomAuthenticated, handlers } from "./sessionKeysApi.ts";
 
-const Wire = RpcGroup.make(Rpc.make("account.$changes", { payload: Schema.Unknown, stream: true, success: LiveHint }));
+const Wire = RpcGroup.make(
+	Rpc.make("account.$changes", {
+		payload: Schema.Unknown,
+		stream: true,
+		success: LiveHint,
+	}),
+);
+
+function sessionWithAccounts<TSession extends SessionShape>(session: TSession) {
+	return { ...session, user: { ...session.user, providerAccounts: Effect.succeed([]), role: "admin,owner" } };
+}
 
 export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provider) {
 	const database = yield* PostgresTestDatabase;
@@ -24,16 +35,9 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 	const sessions = {
 		origin: () => true,
 		provider: {
-			get: (headers: Parameters<typeof lookup.get>[0]) =>
-				lookup.get(headers).pipe(
-					Effect.map(
-						Option.map((session) => ({
-							...session,
-							user: { ...session.user, providerAccounts: Effect.succeed([]), role: "admin,owner" },
-						})),
-					),
-				),
+			get: (headers: Parameters<typeof lookup.get>[0]) => lookup.get(headers).pipe(Effect.map(Option.map((session) => sessionWithAccounts(session)))),
 		},
+		roles: TestRoles,
 	};
 	const customAuth = Layer.succeed(CustomAuthenticated, (effect, { headers, rpc, payload }) =>
 		Effect.gen(function* () {
@@ -55,8 +59,8 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 						Layer.mergeAll(
 							authenticatedUserLayer(sessions),
 							authenticatedUserWithProviderAccountsLayer(sessions),
-							authenticatedAdminLayer(sessions),
-							authenticatedOwnerLayer(sessions),
+							permissionLayer(ToolsPermission, sessions),
+							permissionLayer(ManagementPermission, sessions),
 							customAuth,
 						),
 					),

@@ -10,9 +10,10 @@ import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
 import { appHost } from "#server/appHost.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
-import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { trustedOrigins } from "#server/rpc-server/origin.ts";
-import { authenticatedAdminLayer, authenticatedOwnerLayer } from "#server/rpc-server/roles.ts";
+import { permissionLayer } from "#server/rpc-server/permissions.ts";
+import { authenticatedUserLayer } from "#server/rpc-server/session.ts";
+import { ManagementPermission, TestRoles, ToolsPermission } from "#test/auth/permissions.ts";
 import { AdminApi, adminHandlers, adminRoutes } from "./adminApi.ts";
 import { countQueries } from "./countQueries.ts";
 
@@ -37,14 +38,15 @@ export const startAdminHost = Effect.gen(function* () {
 		lockTimeout: "5 seconds",
 		table: "auth_migrations",
 	});
-	const { auth } = yield* betterAuthMount(options);
+	const { auth, sessions: authSessions, routes } = yield* betterAuthMount(options, { roles: TestRoles });
 	yield* Effect.promise(async () => {
 		const context = await auth.$context;
 		await context.checkSchema?.();
 	});
 	const state: { handlerRequests: string[]; providerUnavailable: boolean } = { handlerRequests: [], providerUnavailable: false };
-	const provider = betterAuthSessions((headers) => auth.api.getSession({ headers }));
+	const provider = authSessions.provider;
 	const sessions = {
+		...authSessions,
 		origin: trustedOrigins({ allow: ["http://localhost:3000"], missing: "allow" }),
 		provider: {
 			get: (headers: Parameters<typeof provider.get>[0]) =>
@@ -58,8 +60,16 @@ export const startAdminHost = Effect.gen(function* () {
 		appHost({
 			config: { port: 0 },
 			group: AdminApi,
-			handlers: adminHandlers.pipe(Layer.provideMerge(Layer.merge(authenticatedAdminLayer(sessions), authenticatedOwnerLayer(sessions)))),
-			routes: adminRoutes(sessions, state),
+			handlers: adminHandlers(state).pipe(
+				Layer.provideMerge(
+					Layer.mergeAll(
+						permissionLayer(ToolsPermission, sessions),
+						permissionLayer(ManagementPermission, sessions),
+						authenticatedUserLayer(sessions),
+					),
+				),
+			),
+			routes: Layer.merge(routes, adminRoutes(sessions, state)),
 			sessions,
 		}),
 	);

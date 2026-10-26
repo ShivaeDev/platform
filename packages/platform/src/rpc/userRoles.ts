@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { permission } from "@shivaedev/access/permission.ts";
 
 export const UserRole = Schema.Literals(["user", "admin", "owner"]);
 export type UserRole = typeof UserRole.Type;
@@ -18,3 +19,5 @@ export const UserListInput = Schema.Struct({
 export const UserList = Schema.Struct({ next: Schema.OptionFromNullOr(Schema.String), users: Schema.Array(AppUser) });
 export const ChangeRoleInput = Schema.Struct({ grant: Schema.Boolean, role: UserRole, userId: Schema.String });
 export class LastOwner extends Schema.TaggedError<LastOwner>()("LastOwner", { userId: Schema.String }) {}
+
+export const ChangeUserRoles = permission("users.roles.change");
