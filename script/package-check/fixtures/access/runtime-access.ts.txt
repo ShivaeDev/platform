@@ -1,0 +1,19 @@
+import { Effect, Schema } from "effect";
+import { permission } from "@shivaedev/access/permission.ts";
+import { role } from "@shivaedev/access/role.ts";
+import { roleSet } from "@shivaedev/access/roleSet.ts";
+import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+
+const ReadUsers = permission("users.read");
+const Access = roleSet(role("member", [ReadUsers]), role("operator", [ReadUsers.any]));
+type Equal<A, B> = [A, B] extends [B, A] ? true : false;
+const closed: Equal<typeof Access.Role.Type, "member" | "operator"> = true;
+void closed;
+
+await Effect.runPromise(Effect.gen(function* () {
+  const role = yield* Schema.decodeUnknownEffect(Access.Role)("member");
+  const user = { id: "alice", role };
+  yield* Access.requireAccess(user, ReadUsers, "alice");
+  const refused = yield* Access.requireAccess(user, ReadUsers, "bob").pipe(Effect.flip);
+  if (!(refused instanceof Forbidden)) throw new Error("Packed access must use the shared Forbidden failure");
+}));

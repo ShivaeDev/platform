@@ -564,6 +564,31 @@ importers:
         specifier: 'catalog:'
         version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
+  packages/access:
+    dependencies:
+      '@shivaedev/effect-contract':
+        specifier: workspace:*
+        version: link:../effect-contract
+    devDependencies:
+      '@shivaedev/quality':
+        specifier: workspace:*
+        version: link:../quality
+      '@shivaedev/test-story':
+        specifier: workspace:*
+        version: link:../test-story
+      '@types/node':
+        specifier: 'catalog:'
+        version: 24.19.2
+      effect:
+        specifier: 'catalog:'
+        version: 4.0.5
+      typescript:
+        specifier: 'catalog:'
+        version: 7.0.2
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
+
   packages/admin:
     dependencies:
       '@shivaedev/effect-contract':

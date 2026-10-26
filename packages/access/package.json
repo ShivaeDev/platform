@@ -1,0 +1,70 @@
+{
+	"name": "@shivaedev/access",
+	"version": "0.0.0",
+	"description": "Browser-safe role declarations and permission checks for Effect applications",
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/access#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/access"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx",
+		"!src/**/*.spec.ts",
+		"!src/**/*.spec.tsx",
+		"!src/**/test-support",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/effect-contract": "workspace:*"
+	},
+	"devDependencies": {
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"effect": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"effect": "catalog:"
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}
