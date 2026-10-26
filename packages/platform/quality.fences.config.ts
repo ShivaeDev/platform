@@ -1,5 +1,5 @@
 import { fence } from "@shivaedev/quality/imports/fence.ts";
-import { anyOf, anything, external, folders, modules, packages, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
+import { anyOf, anything, external, files, folders, modules, packages, scopes } from "@shivaedev/quality/imports/fences/selectors.ts";
 import platformManifest from "./package.json" with { type: "json" };
 
 const WORKSPACE_SCOPE = "@shivaedev/";
@@ -13,7 +13,14 @@ export default [
 	fence("platform-client-stays-browser-safe")
 		.because("The rpc modules ship to browsers and reach only browser-safe code.")
 		.from(browserCode)
-		.mayNotReach(anything.except(browserCode, packages("effect-contract", "effect-form", "effect-react", "types"), modules("effect")))
+		.mayNotReach(
+			anything.except(
+				browserCode,
+				files("packages/access/src/permission.ts"),
+				packages("effect-contract", "effect-form", "effect-react", "types"),
+				modules("effect"),
+			),
+		)
 		.demonstratedBy({
 			illegal: ["packages/platform/src/rpc/identity.ts", external("node:fs")],
 			legal: ["packages/platform/src/rpc/identity.ts", external("effect")],
