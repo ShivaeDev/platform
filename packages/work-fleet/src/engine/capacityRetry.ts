@@ -27,7 +27,9 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 	error: SessionFailure,
 ) {
 	const restartReview = restartableReview(previous, error);
-	if (!(transientFailure(error) || restartReview)) {
+	const unavailableRestart =
+		error.reason === "unavailable" && previous.launchRetry !== undefined && previous.attempts.at(-1)?.abandoned?.observationError !== undefined;
+	if (!(transientFailure(error) || restartReview || unavailableRestart)) {
 		return false;
 	}
 	const current = yield* state.load(previous.workId);
@@ -35,7 +37,11 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 		return false;
 	}
 	const rejected = current.value.attempts.find((item) => item.operationId === operationId);
-	if (rejected === undefined || (rejected.receipt !== undefined && rejected.status !== "failed")) {
+	if (
+		rejected === undefined
+		|| (rejected.receipt !== undefined && rejected.status !== "failed")
+		|| (unavailableRestart && rejected.sessionId !== undefined)
+	) {
 		return false;
 	}
 	const rejectedAt = state.policy.now();
@@ -48,8 +54,9 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 			attempt.operationId === operationId
 				? {
 						...attempt,
-						output: error.message,
+						output: unavailableRestart ? undefined : error.message,
 						readRetry: undefined,
+						...(unavailableRestart ? { abandoned: { at: rejectedAt, observationError: error.message }, sessionUnusable: true } : {}),
 						...(restartReview ? { sessionUnusable: true } : {}),
 						...(freshThread ? { prompt: retryPrompt(previous, attempt), sessionUnusable: true } : {}),
 						status: "failed" as const,

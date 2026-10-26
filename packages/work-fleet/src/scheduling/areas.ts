@@ -37,7 +37,7 @@ export function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number
 	return (
 		!["done", "released"].includes(record.step)
 		&& record.attempts.length > 0
-		&& (record.step !== "queued" || executing(record))
+		&& (record.step !== "queued" || executing(record) || record.launchRetry !== undefined)
 		&& record.mergeAreasReleased !== true
 		&& !mergeWaitExpired(record, now, mergeWaitMs)
 	);
