@@ -46,7 +46,26 @@ await Effect.runPromise(program.pipe(Effect.provide(github)));
 
 The default base URL is `https://api.github.com`. Provide `GitHubConfig` from `@shivaedev/effect-github/GitHubConfig.ts` with `{ apiUrl }` for another GitHub API endpoint.
 
-`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST` or `PATCH` and decodes its response. JSON response bodies are bounded at 1 MiB. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
+`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST` or `PATCH` and decodes its response. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
+
+For large comparisons and listings, allow up to 16 MiB through the same bounded, Schema-decoded path instead of maintaining a separate fetch, body reader and decoder in the application.
+
+```ts
+import { GitHubConfig } from "@shivaedev/effect-github/GitHubConfig.ts";
+
+const largeGithub = GitHub.layer.pipe(
+  Layer.provide(FetchHttpClient.layer),
+  Layer.provide(GitHubToken.fromEnv),
+  Layer.provide(Layer.succeed(GitHubConfig)({
+    apiUrl: "https://api.github.com",
+    responseByteLimit: 16 * 1024 * 1024,
+  })),
+);
+const Comparison = Schema.Struct({ total_commits: Schema.Number });
+const comparison = read("/repos/acme/widgets/compare/main...feature", Comparison, 16 * 1024 * 1024);
+```
+
+`largeGithub` raises the client default; the final argument on `comparison` overrides the cap for that request, including when using a client with the default cap. A per-request cap can also lower the client default.
 
 For diff text and other raw bodies, obtain the service and call `text(path, accept, byteLimit)` or `bytes(path, accept, byteLimit)`. Both bound the body before returning it and use your chosen media type.
 
@@ -57,7 +76,7 @@ const diff = Effect.gen(function* () {
 });
 ```
 
-The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. Prefer the exported functions for Schema-decoded items. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
+The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Prefer the exported functions for Schema-decoded items. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
 
 ### Acting as a GitHub App
 
@@ -125,14 +144,16 @@ This decodes a signed `workflow_run` delivery with the fields the application ne
 
 ### Sticky comments and check runs
 
-Use the service's `upsertStickyComment` to keep a report in one pull-request comment. Pass a marker name; the method prefixes the body with `<!-- name -->`, searches comment pages, and edits the first match. It creates a comment when no match exists. An optional `author` login restricts matching to that author's comments, leaving another author's report alone. A forbidden comment write fails with a typed `RemoteHttpError` and creates no comment.
+Use the service's `upsertStickyComment` to keep a report in one pull-request comment. Pass a marker name; the method prefixes the body with `<!-- name -->`, searches comment pages, and edits the first match. It creates a comment when no match exists. By default the marker can appear anywhere in the existing body. An optional `author` login restricts matching to that author's comments, leaving another author's report alone.
+
+For a GitHub App, pass its numeric `appId`. Matching then requires the body to start with the marker, `performed_via_github_app.id` to equal that App ID, and `user.type` to be `"Bot"`. This replaces an application-owned comment scan and ownership predicate. The optional `author` login further restricts matching when supplied.
 
 ```ts
 const report = Effect.gen(function* () {
   const github = yield* GitHub;
   return yield* github.upsertStickyComment({
     owner: "acme", repo: "widgets", number: 1,
-    marker: "coverage", author: "coverage[bot]",
+    marker: "coverage", appId: 123456,
     body: "Coverage: 90%",
   });
 });
@@ -181,6 +202,19 @@ Use the result as a sticky comment body or check-run summary. The budget covers 
 
 `github.observations()` returns the latest `resource`, `limit`, `remaining`, `used` and UTC `reset` from response headers, including conditional and failed responses. Core and search budgets remain separate. A primary or secondary rate limit fails with `GitHubRateLimited` from `@shivaedev/effect-github/errors.ts`; its `retryAt` is a UTC `DateTime` usable directly by a job scheduler. Requests to a blocked resource fail locally until that instant. Each rate-limited failure records a log and span event with the request path and budget, excluding credentials and query strings.
 
-HTTP status failures use platform's typed `RemoteNotFound`, `RemoteUnauthorized` and other errors from `@shivaedev/platform/http-client/errors.ts`. An oversized body fails with `ResponseBodyTooLarge`; invalid response data fails with `Schema.SchemaError`. Transport failures use `GitHubTransportError`, which contains only the request path.
+A 403 with `"Resource not accessible by integration"` fails with `GitHubPermissionDenied`; a locked-conversation 403 fails with `GitHubConversationLocked`. Both come from `@shivaedev/effect-github/errors.ts` and carry the request `path`. Rate-limit detection takes precedence. Other 403s remain `RemoteHttpError`. Applications can handle these tags instead of parsing GitHub error messages:
+
+```ts
+const publishReport = report.pipe(
+  Effect.catchTag("GitHubPermissionDenied", ({ path }) =>
+    Effect.succeed({ published: false, reason: "permissions", path }),
+  ),
+  Effect.catchTag("GitHubConversationLocked", ({ path }) =>
+    Effect.succeed({ published: false, reason: "locked", path }),
+  ),
+);
+```
+
+Other HTTP status failures use platform's typed `RemoteNotFound`, `RemoteUnauthorized` and other errors from `@shivaedev/platform/http-client/errors.ts`. An oversized body fails with `ResponseBodyTooLarge`; invalid response data fails with `Schema.SchemaError`. Transport failures use `GitHubTransportError`, which contains only the request path.
 
 Install with `pnpm add @shivaedev/effect-github effect`. Choose and provide an Effect HTTP client appropriate to your runtime. Scheduling, retries and application policy stay with the caller.

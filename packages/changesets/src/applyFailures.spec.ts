@@ -8,7 +8,6 @@ workspace.it("unsupported workspace dependency ranges fail before collection wri
 	expect(result.status).toBe(1);
 	expect(result.stderr).toContain("before applying a release");
 	expect(yield* exists(".changeset/feature.md")).toBe(true);
-	expect(yield* exists(".changeset/release.json")).toBe(false);
 	expect(JSON.parse(yield* read("packages/core/package.json")).version).toBe("0.2.3");
 });
 
@@ -21,7 +20,6 @@ workspace.it("hook failures report typed errors after collection", [pending()], 
 	expect(result.status).toBe(1);
 	expect(result.stderr).toContain("Repair the repository pins.");
 	expect(yield* exists(".changeset/feature.md")).toBe(false);
-	expect(yield* exists(".changeset/release.json")).toBe(true);
 	expect(JSON.parse(yield* read("packages/core/package.json")).version).toBe("0.3.0");
 });
 

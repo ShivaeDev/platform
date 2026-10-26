@@ -7,7 +7,7 @@ import { EmptyState } from "./EmptyState.tsx";
 import { GoalAsks } from "./GoalAsks.tsx";
 import { GoalBreakdown } from "./GoalBreakdown.tsx";
 import { GoalProgress } from "./GoalProgress.tsx";
-import { goalCountOrder, goalStateColors, goalStateLabels } from "./goalCounts.ts";
+import { goalColors, goalCountOrder, goalStateLabels } from "./goalCounts.ts";
 import { Loading } from "./loading.tsx";
 import { routeQueryOptions } from "./routeQuery.ts";
 import type { ShellApi } from "./ShellApi.ts";
@@ -73,7 +73,7 @@ function GoalCountList({ counts }: { readonly counts: GoalCounts }) {
 		<ul aria-label="Linked work by state" className="!p-0 !list-none flex flex-wrap gap-x-5 gap-y-2" data-goal-counts="">
 			{goalCountOrder.map((status) => (
 				<li className="flex items-center gap-2" data-count={counts[status]} data-status={status} key={status}>
-					<span aria-hidden="true" className={`size-2 rounded-full ${counts[status] > 0 ? goalStateColors[status] : "bg-muted-foreground/30"}`} />
+					<span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: goalColors[status] }} />
 					<strong className="tabular-nums">{counts[status]}</strong>{" "}
 					{counts[status] > 0 ? (
 						<span data-status-token="">{goalStateLabels[status]}</span>

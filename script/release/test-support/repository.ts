@@ -4,6 +4,7 @@ import { Effect, FileSystem } from "effect";
 import { applyRelease } from "@shivaedev/changesets/applyRelease.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
+import { planPullRequest } from "#release/planPullRequest.ts";
 import config from "#release-config";
 import { copyRepository } from "./copyRepository.ts";
 import { git, initRepository } from "./git.ts";
@@ -88,7 +89,9 @@ export const repository = storyKit({
 				git(copy, "commit", "-m", "Copied repository");
 			});
 		}),
+		git: Effect.fn("ReleaseRepository.git")((...args: readonly string[]) => Effect.sync(() => git(root, ...args))),
 		gitCopy: Effect.fn("ReleaseRepository.gitCopy")((...args: readonly string[]) => Effect.sync(() => git(copy, ...args))),
+		plan: Effect.fn("ReleaseRepository.plan")(() => planPullRequest(root)),
 		read: Effect.fn("ReleaseRepository.read")(function* (relative: string) {
 			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, relative));
 		}),

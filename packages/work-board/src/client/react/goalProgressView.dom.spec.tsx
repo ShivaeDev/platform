@@ -41,7 +41,10 @@ screenStory.it(
 				["var(--color-parked)", "508"],
 				["var(--muted)", "508"],
 			]);
-			expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["2", "No linked work"]);
+			expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => [label.textContent, label.getAttribute("fill")])).toEqual([
+				["2", "#fff"],
+				["No linked work", null],
+			]);
 			expect([...findElements(`${progress} .recharts-legend-wrapper > div > div`)].map((entry) => entry.textContent)).toEqual([
 				"Done",
 				"Running",
@@ -86,7 +89,10 @@ screenStory.it(
 				["var(--muted)", "508"],
 			]),
 		);
-		expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => label.textContent)).toEqual(["100", "No linked work"]);
+		expect([...findElements(`${progress} .recharts-label-list text`)].map((label) => [label.textContent, label.getAttribute("fill")])).toEqual([
+			["100", "#000"],
+			["No linked work", null],
+		]);
 	},
 );
 

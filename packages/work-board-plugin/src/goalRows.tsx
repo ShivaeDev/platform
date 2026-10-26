@@ -1,13 +1,12 @@
 import type { RenderElement } from "claude-code";
 import type { WorkboardGoal } from "#types/index.d.ts";
+import { goalColors as colors, goalBarSource, goalStates as states } from "./goalProgress.ts";
 import { clip } from "./lines.ts";
 import type { PaneView, Table } from "./pane.tsx";
 import { goalOrder } from "./summary.ts";
 
 type Drawn = Extract<Table, { Svg: unknown }>;
 
-const states = ["done", "running", "blocked", "scheduled", "parked"] as const;
-const colors = { blocked: "#f87171", done: "#84b9a2", parked: "#929698", running: "#fbbf24", scheduled: "#8aafc5" };
 const BAR_HEIGHT = 6;
 const BAR_CELLS = 8;
 
@@ -24,7 +23,8 @@ export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): Rend
 			})}
 			<Text size="caption">
 				{states.map((state) => (
-					<Text color={colors[state]} key={state}>
+					<Text key={state}>
+						<Text color={colors[state]}>▰ </Text>
 						{state.charAt(0).toUpperCase() + state.slice(1)}{" "}
 					</Text>
 				))}
@@ -76,29 +76,12 @@ function countLabel(goal: WorkboardGoal): string {
 	return goal.total === 0 ? "" : `${goal.done}/${goal.total}`;
 }
 
-function barSource(goal: WorkboardGoal): string {
-	let offset = 0;
-	const segments = states
-		.map((state) => {
-			const width = percent(goal[state] / goal.total);
-			const segment = `<rect x="${offset}" width="${width}" height="${BAR_HEIGHT}" fill="${colors[state]}"/>`;
-			offset += width;
-			return segment;
-		})
-		.join("");
-	return `<svg xmlns="http://www.w3.org/2000/svg" width="100%" height="${BAR_HEIGHT}" viewBox="0 0 100 ${BAR_HEIGHT}" preserveAspectRatio="none">${segments}</svg>`;
-}
-
-function percent(share: number): number {
-	return Math.round(share * 1000) / 10;
-}
-
 function barLabel(goal: WorkboardGoal): string {
 	return `${goal.done} of ${goal.total} done, ${states.map((state) => `${goal[state]} ${state}`).join(", ")}`;
 }
 
 function svgBar(t: Drawn, goal: WorkboardGoal): RenderElement {
-	return <t.Svg alt={barLabel(goal)} height={BAR_HEIGHT} source={barSource(goal)} />;
+	return <t.Svg alt={barLabel(goal)} height={BAR_HEIGHT} source={goalBarSource(goal)} />;
 }
 
 function textBar(t: Table, goal: WorkboardGoal): RenderElement {
