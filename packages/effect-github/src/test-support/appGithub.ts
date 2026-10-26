@@ -53,6 +53,12 @@ export const appGithub = storyKit({
 					Effect.repeat({ while: (arrived) => arrived < count }),
 					Effect.asVoid,
 				),
+			downloadArchive: (byteLimit: number) =>
+				record(
+					Effect.flatMap(GitHub, (client) => client.downloadArtifactArchive({ artifactId: 7, byteLimit, owner: "acme", repo: "widgets" })).pipe(
+						Effect.provide(context),
+					),
+				),
 			exchanges: () => server.requests.filter(({ path }) => path === "/app/installations/7/access_tokens"),
 			holdExchange: () => server.hold("token"),
 			holdPulls: () => server.hold("pull", { once: false }),
@@ -67,6 +73,7 @@ export const appGithub = storyKit({
 			readScopedPull: () => record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(scopedContext))),
 			readWithInvalidKey: () =>
 				record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(layer({ installationId: 7 }, "invalid-private-key-secret")))),
+			rejectArchive: () => server.replyOnce("artifactRedirect", { status: 401 }),
 			rejectExchange: () =>
 				server.replyOnce("token", (request) => ({
 					body: { message: `${request.headers.authorization} ${PRIVATE_KEY} ${APP_TOKEN} ${WEBHOOK_SECRET}` },

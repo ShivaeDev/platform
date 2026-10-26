@@ -5,6 +5,12 @@ import { archiveWithHeldTail, unavailableArtifact } from "#test/artifactTraits.t
 import { FIXTURE_TOKEN } from "#test/fixtures.ts";
 import { github } from "#test/github.ts";
 
+github.it("an archive 401 with a plain token fails without retrying", [], function* ({ downloadArchive, rejectArchive, requests }) {
+	yield* rejectArchive();
+	expect(yield* Effect.flip(downloadArchive(8))).toMatchObject({ _tag: "RemoteUnauthorized", method: "GET", status: 401 });
+	expect(requests().map(({ path, status }) => ({ path, status }))).toEqual([{ path: "/repos/acme/widgets/actions/artifacts/7/zip", status: 401 }]);
+});
+
 github.it(
 	"downloads the archive within the caller's byte cap without forwarding credentials, even to the same origin",
 	[],

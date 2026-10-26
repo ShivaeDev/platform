@@ -4,6 +4,7 @@ import { authenticatedRequest } from "./authenticatedRequest.ts";
 import { GitHubArtifactError, GitHubArtifactTooLarge, GitHubTransportError } from "./errors.ts";
 import type { GitHubToken } from "./GitHubToken.ts";
 import type { RateLimits } from "./rateLimits.ts";
+import type { TokenRefresh } from "./TokenRefresh.ts";
 
 export interface ArtifactArchiveOptions {
 	readonly artifactId: number;
@@ -12,8 +13,14 @@ export interface ArtifactArchiveOptions {
 	readonly repo: string;
 }
 
-export function artifacts(apiUrl: string, client: HttpClient.HttpClient, token: GitHubToken["Service"], rates: RateLimits) {
-	const send = authenticatedRequest(HttpClient.withScope(client), token, rates);
+export function artifacts(
+	apiUrl: string,
+	client: HttpClient.HttpClient,
+	token: GitHubToken["Service"],
+	rates: RateLimits,
+	refresh: typeof TokenRefresh.Service = undefined,
+) {
+	const send = authenticatedRequest(HttpClient.withScope(client), token, rates, refresh);
 	const download = HttpClient.withScope(client);
 	return {
 		downloadArtifactArchive: (options: ArtifactArchiveOptions) =>
