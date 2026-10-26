@@ -4,6 +4,7 @@ import { answerQueueFailure } from "#test/answerRecordingFailure.ts";
 import { untilOutput } from "#test/follower.ts";
 import { type FollowOptions, followerProcess } from "#test/followerProcess.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { stalledWatchProxy } from "#test/stalledWatchProxy.ts";
 
 export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	function follower() {
@@ -37,6 +38,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				progress: [{ id: "review-inspection", status: "running" }],
 			});
 		},
+		stalledWatchProxy: () => stalledWatchProxy(engine.running.port),
 		watchEvents: (options: FollowOptions = {}) =>
 			Effect.gen(function* () {
 				tell("watch Fleet JSON events through the CLI");
