@@ -9,14 +9,7 @@ export default [
 	fence("admin-declarations-stay-browser-safe")
 		.because("Admin pages and their registry are shared with browser views; handler registration stays on the server.")
 		.from(browser)
-		.mayNotReach(
-			anything.except(
-				browser,
-				packages("effect-contract", "types"),
-				folders("packages/platform/src/rpc", "packages/platform/src/errors"),
-				modules("effect"),
-			),
-		)
+		.mayNotReach(anything.except(browser, packages("effect-contract", "types"), folders("packages/platform/src/rpc"), modules("effect")))
 		.demonstratedBy({
 			illegal: ["packages/admin/src/page.ts", external("node:fs")],
 			legal: ["packages/admin/src/page.ts", external("effect")],
@@ -29,7 +22,7 @@ export default [
 				client,
 				browser,
 				packages("effect-react", "effect-form", "effect-contract", "types"),
-				folders("packages/platform/src/rpc", "packages/platform/src/errors"),
+				folders("packages/platform/src/rpc"),
 				modules("effect", "react", "@effect/atom-react"),
 			),
 		)

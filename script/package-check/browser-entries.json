@@ -1,4 +1,5 @@
 {
+	"effect-contract": ["./errors/rejectedField.ts", "./errors/taxonomy.ts"],
 	"effect-trpc": ["./rejectionDecoding.ts"],
-	"platform": ["./errors/rejectedField.ts", "./errors/taxonomy.ts", "./rpc/identity.ts", "./rpc/middleware.ts"]
+	"platform": ["./rpc/identity.ts", "./rpc/middleware.ts"]
 }
