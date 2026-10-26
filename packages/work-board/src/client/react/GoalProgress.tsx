@@ -1,6 +1,6 @@
 import { cn } from "cn";
 import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
-import { goalCountOrder, goalStateColors, goalStateLabels, goalTotal } from "./goalCounts.ts";
+import { goalColors, goalCountOrder, goalStateLabels, goalTotal } from "./goalCounts.ts";
 
 export function GoalProgress({
 	counts,
@@ -31,11 +31,11 @@ export function GoalProgress({
 			<div className={cn("flex w-full overflow-hidden rounded-md bg-muted", size === "large" ? "h-2.5" : "h-1.5")} data-slot="progress-track">
 				{goalCountOrder.map((state) => (
 					<span
-						className={cn("h-full", goalStateColors[state])}
+						className="h-full"
 						data-count={counts[state]}
 						data-goal-state={state}
 						key={state}
-						style={{ width: `${total === 0 ? 0 : (counts[state] / total) * 100}%` }}
+						style={{ backgroundColor: goalColors[state], width: `${total === 0 ? 0 : (counts[state] / total) * 100}%` }}
 						title={`${goalStateLabels[state]}: ${counts[state]}`}
 					/>
 				))}

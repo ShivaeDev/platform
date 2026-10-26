@@ -56,7 +56,7 @@ Name the two H2 sections in words that fit the package; the split is what matter
 
 ## Changesets and releases
 
-For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, naming each affected package and its bump in YAML frontmatter (`"@shivaedev/example": minor`). Use minor for Added or Breaking behavior before 1.0 and patch for Changed or Fixed only, with `### Added`, `### Changed`, `### Fixed` or `### Breaking` headings and Markdown bullets. Choose a unique short filename; do not edit versions, `CHANGELOG.md` or release manifests outside a release PR. Internal docs, tests, tooling and refactors need no changeset. For a release PR, follow [the release steps](../../../docs/releases.md): review `pnpm changesets plan`, run `pnpm changesets apply`, and commit the generated versions, changelogs, `.changeset/release.json`, hook changes and deleted changesets.
+For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, naming each affected package and its bump in YAML frontmatter (`"@shivaedev/example": minor`). Use minor for Added or Breaking behavior before 1.0 and patch for Changed or Fixed only, with `### Added`, `### Changed`, `### Fixed` or `### Breaking` headings and Markdown bullets. Choose a unique short filename; do not edit versions or `CHANGELOG.md` outside a release PR. Internal docs, tests, tooling and refactors need no changeset. For a release PR, follow [the release steps](../../../docs/releases.md): review `pnpm changesets plan`, run `pnpm changesets apply`, and commit the generated versions, changelogs, hook changes and deleted changesets.
 
 ## Checklist
 

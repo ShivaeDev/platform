@@ -103,7 +103,6 @@
 	--color-agent-working: var(--status-agent-working);
 	--color-waiting-on-agents: var(--status-waiting-on-agents);
 	--color-blocked: var(--status-blocked);
-	--color-goal-running: var(--status-goal-running);
 	--color-done: var(--status-done);
 	--color-deferred: var(--status-deferred);
 	--radius-sm: calc(var(--radius) * 0.6);
@@ -120,7 +119,6 @@
 	--bg: var(--background);
 	--text: var(--foreground);
 	--surface: var(--secondary);
-	--status-goal-running: oklch(0.65 0.16 75);
 	--status-needs-you: oklch(0.52 0.13 65);
 	--status-agent-working: oklch(0.48 0.06 240);
 	--status-waiting-on-agents: oklch(0.5 0.05 280);
@@ -154,7 +152,6 @@
 }
 
 .dark {
-	--status-goal-running: oklch(0.82 0.16 75);
 	--status-needs-you: oklch(0.82 0.15 78);
 	--status-agent-working: oklch(0.74 0.05 240);
 	--status-waiting-on-agents: oklch(0.74 0.05 280);

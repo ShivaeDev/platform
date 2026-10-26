@@ -112,3 +112,20 @@ repository.it("applying a release aligns shared catalog entries alongside packag
 	expect(yield* read("examples/starter/published-versions.json")).toContain('"@shivaedev/platform": "0.15.1"');
 	expect(yield* check()).toBeUndefined();
 });
+
+repository.it("the release check rejects a tampered generated starter-pins input", [], function* ({ write, git, plan, read, apply, check }) {
+	yield* write(".changeset/pending.md", '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Pending behavior.\n');
+	yield* git("add", ".changeset/pending.md");
+	yield* git("commit", "-m", "Pending starter pin release");
+	yield* plan();
+	const generated = yield* read(".changeset/release-starter-pins.md");
+	yield* write(".changeset/release-starter-pins.md", generated.replace("latest released starter dependencies", "unreviewed starter dependencies"));
+	yield* apply();
+	expect(yield* check()).toContain("@shivaedev/create-app: release notes differ from changesets apply");
+});
+
+repository.it("the release check rejects an additional input created and consumed inside the release diff", [], function* ({ write, apply, check }) {
+	yield* write(".changeset/extra.md", '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- An extra unrecorded note.\n');
+	yield* apply();
+	expect(yield* check()).toContain("@shivaedev/platform: release notes differ from changesets apply");
+});

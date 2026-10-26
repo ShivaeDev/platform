@@ -19,10 +19,11 @@ export const GitHub = defineService({
 			apiUrl: config.apiUrl,
 			rates,
 			request: requests(yield* HttpClient.HttpClient, yield* GitHubToken, rates, yield* TokenRefresh),
+			responseByteLimit: config.responseByteLimit,
 		};
 	}),
-	methods: ({ apiUrl, rates, request }) => {
-		const { get, ...client } = representations(apiUrl, request, rates.resource);
+	methods: ({ apiUrl, rates, request, responseByteLimit }) => {
+		const { get, ...client } = representations(apiUrl, request, rates.resource, responseByteLimit);
 		return {
 			bytes: (path: string, accept: string, limit: number) => Effect.map(request(get(path, accept), limit), (entry) => entry.bytes),
 			...client,
@@ -37,17 +38,25 @@ export const GitHub = defineService({
 	requires: [HttpClient.HttpClient, GitHubToken],
 });
 
-export function read<TSchema extends Schema.Constraint>(path: string, schema: TSchema) {
-	return Effect.flatMap(GitHub, (github) => Effect.flatMap(github.read(path), (response) => response.decode(schema)));
+export function read<TSchema extends Schema.Constraint>(path: string, schema: TSchema, responseByteLimit?: number) {
+	return Effect.flatMap(GitHub, (github) => Effect.flatMap(github.read(path, responseByteLimit), (response) => response.decode(schema)));
 }
 
-export function list<TSchema extends Schema.Constraint>(path: string, schema: TSchema) {
-	return Stream.unwrap(Effect.flatMap(GitHub, (github) => github.list(path))).pipe(
+export function list<TSchema extends Schema.Constraint>(path: string, schema: TSchema, responseByteLimit?: number) {
+	return Stream.unwrap(Effect.flatMap(GitHub, (github) => github.list(path, undefined, responseByteLimit))).pipe(
 		Stream.mapEffect((response) => response.decode(Schema.Array(schema))),
 		Stream.flatMap(Stream.fromIterable),
 	);
 }
 
-export function write<TSchema extends Schema.Constraint>(method: "POST" | "PATCH", path: string, body: unknown, schema: TSchema) {
-	return Effect.flatMap(GitHub, (github) => Effect.flatMap(github.write(method, path, body), (response) => response.decode(schema)));
+export function write<TSchema extends Schema.Constraint>(
+	method: "POST" | "PATCH",
+	path: string,
+	body: unknown,
+	schema: TSchema,
+	responseByteLimit?: number,
+) {
+	return Effect.flatMap(GitHub, (github) =>
+		Effect.flatMap(github.write(method, path, body, responseByteLimit), (response) => response.decode(schema)),
+	);
 }

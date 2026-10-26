@@ -1,5 +1,13 @@
 import { Schema } from "effect";
 
+export class GitHubPermissionDenied extends Schema.TaggedError<GitHubPermissionDenied>()("GitHubPermissionDenied", {
+	path: Schema.String,
+}) {}
+
+export class GitHubConversationLocked extends Schema.TaggedError<GitHubConversationLocked>()("GitHubConversationLocked", {
+	path: Schema.String,
+}) {}
+
 export class GitHubRateLimited extends Schema.TaggedError<GitHubRateLimited>()("GitHubRateLimited", {
 	resource: Schema.String,
 	retryAt: Schema.DateTimeUtc,
