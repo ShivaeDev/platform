@@ -46,7 +46,26 @@ await Effect.runPromise(program.pipe(Effect.provide(github)));
 
 The default base URL is `https://api.github.com`. Provide `GitHubConfig` from `@shivaedev/effect-github/GitHubConfig.ts` with `{ apiUrl }` for another GitHub API endpoint.
 
-`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST` or `PATCH` and decodes its response. JSON response bodies are bounded at 1 MiB. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
+`read(path, schema)` decodes a JSON response. `list(path, itemSchema)` returns a Stream of decoded items across GitHub's Link pages, and stops fetching when consumption stops. `write(method, path, body, schema)` sends JSON with `POST` or `PATCH` and decodes its response. JSON response bodies default to a 1 MiB cap. Set `GitHubConfig.responseByteLimit` once for a client or pass a trailing byte-limit argument to these helpers for one request. The cap applies to each list page and is enforced while reading, before Schema decoding; exceeding it fails with typed `ResponseBodyTooLarge` without buffering the complete body. The conditional cache holds up to 1000 representations and keeps decoded values separate for each Schema.
+
+For large comparisons and listings, allow up to 16 MiB through the same bounded, Schema-decoded path instead of maintaining a separate fetch, body reader and decoder in the application.
+
+```ts
+import { GitHubConfig } from "@shivaedev/effect-github/GitHubConfig.ts";
+
+const largeGithub = GitHub.layer.pipe(
+  Layer.provide(FetchHttpClient.layer),
+  Layer.provide(GitHubToken.fromEnv),
+  Layer.provide(Layer.succeed(GitHubConfig)({
+    apiUrl: "https://api.github.com",
+    responseByteLimit: 16 * 1024 * 1024,
+  })),
+);
+const Comparison = Schema.Struct({ total_commits: Schema.Number });
+const comparison = read("/repos/acme/widgets/compare/main...feature", Comparison, 16 * 1024 * 1024);
+```
+
+`largeGithub` raises the client default; the final argument on `comparison` overrides the cap for that request, including when using a client with the default cap. A per-request cap can also lower the client default.
 
 For diffs and artifacts, obtain the service and call `text(path, accept, byteLimit)` or `bytes(path, accept, byteLimit)`. Both bound the body before returning it and use your chosen media type.
 
@@ -57,7 +76,7 @@ const diff = Effect.gen(function* () {
 });
 ```
 
-The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. Prefer the exported functions for Schema-decoded items. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
+The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Prefer the exported functions for Schema-decoded items. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
 
 ### Acting as a GitHub App
 
