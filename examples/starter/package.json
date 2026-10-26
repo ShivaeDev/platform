@@ -29,7 +29,7 @@
 		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
-		"@pg-boss/dashboard": "catalog:",
+		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/effect-contract": "workspace:*",
 		"@shivaedev/effect-form": "workspace:*",
 		"@shivaedev/effect-pg-boss": "workspace:*",

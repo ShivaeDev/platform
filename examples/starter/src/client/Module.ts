@@ -11,6 +11,7 @@ export interface RouteContext {
 
 export interface ClientModule {
 	readonly api: unknown;
+	readonly bindings?: readonly unknown[];
 	readonly routes: (context: RouteContext) => readonly AnyRoute[];
 }
 
@@ -19,5 +20,5 @@ export interface AppConnection {
 }
 
 export function connectModules(modules: readonly ClientModule[]): AppConnection {
-	return { ...Object.fromEntries(modules.map((module, index) => [index, module.api])), modules };
+	return { ...Object.fromEntries(modules.flatMap((module) => module.bindings ?? [module.api]).map((api, index) => [index, api])), modules };
 }

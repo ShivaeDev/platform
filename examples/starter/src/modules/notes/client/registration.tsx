@@ -2,14 +2,23 @@ import { createRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
 import { queryRoute } from "@shivaedev/effect-react/queryRoute.ts";
 import type { ClientModule, RouteContext } from "#client/Module.ts";
+import { type AdminClient, makeAdminClient } from "./admin.ts";
+import { adminRoutes } from "./adminRoutes.tsx";
 import { NoteEdit } from "./Edit.tsx";
 import { makeNotesClient, type NotesClient } from "./make.ts";
 import { NotFound } from "./NotFound.tsx";
 import { RouteFailure } from "./RouteFailure.tsx";
 import { NotesScreen } from "./Screen.tsx";
 
-export function notesRegistration(client: NotesClient = makeNotesClient(new URL("/rpc", window.location.href).href)): ClientModule {
-	return { api: client.api, routes: (context) => routes(client, context) };
+export function notesRegistration(
+	client: NotesClient = makeNotesClient(new URL("/rpc", window.location.href).href),
+	admin: AdminClient = makeAdminClient(new URL("/rpc", window.location.href).href),
+): ClientModule {
+	return {
+		api: client.api,
+		bindings: [client.api, admin.jobs, admin.statistics],
+		routes: (context) => [...routes(client, context), ...adminRoutes(admin, context)],
+	};
 }
 
 function routes(client: NotesClient, { root, auth, navigate }: RouteContext) {

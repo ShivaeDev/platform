@@ -19,19 +19,21 @@ updates.it("replays a later starter release and records it without committing", 
 	expect(app.git("status", "--porcelain").stdout).toContain("upgrade.txt");
 });
 
-updates.it("merges app edits in a file the starter also changes", [], function* (app) {
+updates.it("merges app-owned admin shell customizations with later template changes", [], function* (app) {
 	app.setVersion("0.1.0");
-	app.revise({ "upgrade.txt": "title\n\none\ntwo\nthree\n\nfooter\n" });
 	expect((yield* app.create()).status).toBe(0);
+	const path = "src/client/admin/Shell.tsx";
+	const shell = app.read(path);
 	app.publish();
-	app.edit("upgrade.txt", "app title\n\none\ntwo\nthree\n\nfooter\n");
+	app.edit(path, shell.replace("Your app", "Acme operations"));
 	app.git("add", "--all");
 	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Customize app");
 	app.setVersion("0.2.0");
-	app.revise({ "upgrade.txt": "title\n\none\ntwo\nthree\n\nstarter footer\n" });
+	app.revise({ [path]: shell.replace("Administration</p>", "Operator tools</p>") });
 	const result = yield* app.update();
 	expect(result.status, result.stderr).toBe(0);
-	expect(app.read("upgrade.txt")).toBe("app title\n\none\ntwo\nthree\n\nstarter footer\n");
+	expect(app.read(path)).toContain("Acme operations");
+	expect(app.read(path)).toContain("Operator tools</p>");
 });
 
 updates.it("leaves overlapping edits as listed Git conflicts and keeps the recorded version", [], function* (app) {

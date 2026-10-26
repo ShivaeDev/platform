@@ -22,7 +22,8 @@ appTooling.it("runs DOM stories while leaving slow stories out of the default ru
 appTooling.it("proxies framework routes with the original host and serves the application shell", [], function* ({ serve, request }) {
 	yield* serve();
 	expect(yield* request("/")).toContain("Application plugin");
-	for (const path of ["/api/auth/session", "/rpc", "/admin/jobs"]) {
+	expect(yield* request("/admin/jobs")).toContain("Application plugin");
+	for (const path of ["/api/auth/session", "/rpc"]) {
 		expect(yield* request(path)).toMatch(new RegExp(`^${path}\\|127\\.0\\.0\\.1:\\d+$`, "u"));
 	}
 });

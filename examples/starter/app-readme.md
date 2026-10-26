@@ -46,7 +46,7 @@ The built server serves the UI, authentication and RPC on port 3000 by default. 
 
 ## Inspect background jobs
 
-Open `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for the official pg-boss dashboard. It shows queues, jobs, failed jobs and the `count-note-words-dlq` dead-letter queue using the app's `DATABASE_URL`. Every dashboard page, data endpoint and asset requires an admin session. The app forces read-only mode and refuses write requests; deployment settings cannot enable retry, cancel, delete or send.
+Open `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views use native RPC and session-owned atoms. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. Both pages require the `admin` role; `owner` alone stays forbidden.
 
 After `pnpm migrate`, create an admin with a new email address:
 
@@ -56,7 +56,7 @@ ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm ad
 
 The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. It fails if the email already exists. Sign in with those credentials, then visit `/admin/jobs`.
 
-The pinned dashboard bundles the same pg-boss release as `@shivaedev/effect-pg-boss`. Startup checks that version agreement and fails with an upgrade message if they differ. Upgrade the dashboard and pg-boss together.
+To add a page, follow the note-statistics example: author an `adminPage` contract, include it in the registry, supply its server handlers and add its React route. Views live outside the stock shadcn folder and upgrade through create-app's three-way updater. Retry is opt-in: register `jobsPageWithRetry` and `jobsHandlersWithRetry`, bind that contract, and pass a runtime action for `retry.run` to `JobsView`.
 
 ## Deployment services
 
