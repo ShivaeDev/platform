@@ -4,6 +4,42 @@ import { releasePullRequest } from "#release/test-support/pullRequest.ts";
 const PENDING = '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- Keep a saved draft.\n';
 const LATER = PENDING.replace("Keep a saved draft.", "Restore the latest draft.");
 
+releasePullRequest.it(
+	"a conflicting release with successful CI is regenerated from current main",
+	[],
+	function* ({ pushMain, run, git, readGitHub, setCiRun, check }) {
+		yield* pushMain(".changeset/draft.md", PENDING);
+		yield* run();
+		yield* setCiRun("completed", "success");
+		const head = yield* git("rev-parse", "origin/release/next");
+		yield* pushMain(".changeset/draft.md", LATER);
+		expect(yield* run()).toBe("updated");
+		expect(yield* git("rev-parse", "origin/release/next")).not.toBe(head);
+		expect(yield* git("rev-parse", "origin/release/next^")).toBe(yield* git("rev-parse", "origin/main"));
+		const after = yield* readGitHub();
+		expect(after.body).toContain("Restore the latest draft.");
+		expect(after.body).not.toContain("Keep a saved draft.");
+		yield* check();
+	},
+);
+
+releasePullRequest.it(
+	"a conflicting release in the merge queue is held even with successful CI",
+	[],
+	function* ({ pushMain, run, git, readGitHub, setCiRun, queue }) {
+		yield* pushMain(".changeset/draft.md", PENDING);
+		yield* run();
+		yield* setCiRun("completed", "success");
+		yield* queue();
+		const head = yield* git("rev-parse", "origin/release/next");
+		const before = yield* readGitHub();
+		yield* pushMain(".changeset/draft.md", LATER);
+		expect(yield* run()).toBe("held: merge queue");
+		expect(yield* git("rev-parse", "origin/release/next")).toBe(head);
+		expect((yield* readGitHub()).body).toBe(before.body);
+	},
+);
+
 for (const [status, conclusion, reason] of [
 	["queued", null, "approved CI queued"],
 	["in_progress", null, "approved CI in_progress"],
