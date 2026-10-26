@@ -10,6 +10,7 @@ import type { HostDaemon } from "#test/startHostDaemon.ts";
 
 export class HostStoryScenario {
 	scheduled = false;
+	schedulerPaused: Effect.Effect<void> | undefined;
 	runningParts: HostParts | undefined;
 	reader: HostDaemon | undefined;
 	reviews: string[] = [];

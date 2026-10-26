@@ -4,6 +4,7 @@ import { Effect } from "effect";
 import { BadRequest } from "@shivaedev/platform/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
+import { githubPublication } from "#host/githubPublication.ts";
 import { githubResult } from "#host/githubResult.ts";
 import { httpGithubApi } from "#test/githubApi.ts";
 import { BASE, HEAD, PR, resultFixture } from "#test/githubResult.ts";
@@ -24,6 +25,10 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 	const merged = state.status === "MERGED";
 	const conclusion = state.failed ? "failure" : "success";
 	return {
+		"/repos/example/repository/git/matching-refs/heads/synthetic%2Fone": [{ ref: "refs/heads/synthetic/one" }],
+		"/repos/example/repository/pulls?state=all&head=example%3Asynthetic%2Fone&per_page=100": [
+			[{ "html_url": PR, "merged_at": merged ? "2026-01-01T00:00:00Z" : null, state: state.status === "OPEN" ? "open" : "closed" }],
+		],
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
 		"/repos/example/repository/rules/branches/main": [[]],
 		[`/repos/example/repository/commits/${state.head}/check-runs?per_page=100&filter=latest`]: [
@@ -107,6 +112,11 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		checksQuery: makeGithubChecks(github.pages),
 		conditionalHits,
 		deliveryQuery: githubDelivery(readPullRequest(github.get)),
+		publication: githubPublication(
+			{ ...host, worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" } },
+			github,
+			Effect.succeed("example/repository"),
+		),
 		requests,
 		resultQuery: (...args: Parameters<typeof adopt>) =>
 			adopt(...args).pipe(

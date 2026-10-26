@@ -1,20 +1,24 @@
 import { Clock, Effect, Schedule, Stream } from "effect";
 import { Fleet } from "#fleet.ts";
+import { executing } from "#model.ts";
 
 export const providerReadPause = Effect.fn("Fleet.providerReadPause")(function* (intervalMs: number) {
 	const fleet = yield* Fleet;
-	const nextRetry = fleet.listSnapshot().pipe(
+	const nextObservation = fleet.listSnapshot().pipe(
 		Effect.orDie,
 		Effect.map((records) => {
-			const retries = records.flatMap(({ value }) => {
+			const observations = records.flatMap(({ value }) => {
 				const retry = value.attempts.at(-1)?.readRetry;
-				return value.step !== "waiting" && retry !== undefined ? [retry.retryAt] : [];
+				if (value.step !== "waiting" && retry !== undefined) {
+					return [retry.retryAt];
+				}
+				return executing(value) ? [0] : [];
 			});
-			return retries.length === 0 ? undefined : Math.min(...retries);
+			return observations.length === 0 ? undefined : Math.min(...observations);
 		}),
 	);
-	// Submission fibers can persist an earlier retry after the scheduler begins its pause.
-	yield* Stream.fromEffectSchedule(nextRetry, Schedule.spaced(intervalMs)).pipe(
+	// GitHub pacing must not delay active turns, including submissions accepted after this pause starts.
+	yield* Stream.fromEffectSchedule(nextObservation, Schedule.spaced(intervalMs)).pipe(
 		Stream.changes,
 		Stream.switchMap((retryAt) =>
 			retryAt === undefined

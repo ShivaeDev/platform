@@ -97,11 +97,11 @@ function links(state: WatchState) {
 
 function eventFor(state: WatchState): WatchEvent | undefined {
 	const base = { workId: state.workId, ...links(state) };
-	if (state.answerFailure) {
+	if (state.answerFailure || state.blocker?.startsWith("Answer failed: ")) {
 		return {
 			...base,
 			kind: "answer-failed",
-			reason: state.answerFailure.error,
+			reason: state.answerFailure?.error ?? state.blocker?.slice("Answer failed: ".length),
 		};
 	}
 	if (state.stage === "done" || state.stage === "released") {

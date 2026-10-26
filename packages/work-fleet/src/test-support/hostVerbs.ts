@@ -39,6 +39,10 @@ import { watchScheduler } from "#test/watchScheduler.ts";
 
 export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		awaitSchedulerPause: () => {
+			tell("wait for the scheduler to enter its GitHub-paced pause");
+			return engine.schedulerPaused ?? Effect.die("Configure a paced scheduler first");
+		},
 		...admissionFetchVerbs(engine, tell),
 		...hostDatabaseVerbs(engine, tell),
 		...watchEventVerbs(engine, tell),
