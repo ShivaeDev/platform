@@ -28,7 +28,7 @@ To rename a package, change its manifest name and add a changeset naming the new
 - Rename `@shivaedev/old-name` to `@shivaedev/new-name`; change dependency declarations and imports to the new name.
 ```
 
-Keep the existing version and released changelog history when renaming in the same directory. The release plan advances the new name and leaves the old npm name alone; it does not publish or deprecate it. Release collection prepends notes without changing the old entries.
+A declared rename may also move the package folder. Keep the existing version and move its `CHANGELOG.md` with its released history unchanged. The check follows the `Rename` entry to the previous package even when its folder changes. The release plan advances the new name and leaves the old npm name alone; it does not publish or deprecate it. Release collection prepends notes without changing the old entries.
 
 To remove a package, name a remaining package and its bump in the changeset frontmatter. Add a `### Breaking` entry naming the removed package and explaining its replacement or migration steps. Do not put the removed name in frontmatter. The check rejects an undeclared disappearance and explains how to declare it; removed packages do not enter the release plan. Keep declarations pending until the release consumes them normally.
 
