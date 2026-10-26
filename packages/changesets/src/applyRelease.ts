@@ -51,11 +51,9 @@ export const applyRelease = Effect.fn("Changesets.applyRelease")(function* (root
 			];
 		}),
 	);
-	const manifest = { date, plan };
 	for (const write of writes) {
 		yield* fs.writeFileString(write.path, write.text);
 	}
-	yield* fs.writeFileString(join(root, ".changeset/release.json"), `${JSON.stringify(manifest, null, "\t")}\n`);
 	yield* Effect.forEach(plan.changesets, (source) => fs.remove(join(root, ".changeset", source.name)));
 	for (const hook of config.hooks ?? []) {
 		yield* hook({ plan, root });

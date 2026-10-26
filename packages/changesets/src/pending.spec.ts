@@ -32,7 +32,6 @@ workspace.it("plan and apply reject a pre-1.0 major without changing files", [pe
 		expect(result.stderr).toContain("use minor for breaking changes");
 	}
 	expect(yield* exists(".changeset/feature.md")).toBe(true);
-	expect(yield* exists(".changeset/release.json")).toBe(false);
 	expect(JSON.parse(yield* read("packages/core/package.json")).version).toBe("0.2.3");
 });
 workspace.it("check names a missing base and the fetch command", [], function* ({ cli }) {

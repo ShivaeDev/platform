@@ -61,11 +61,11 @@ workspace.it("check refuses changelog edits without a version bump", [], functio
 	expect(result.stderr).toContain("CHANGELOG.md changes require a version bump");
 });
 
-workspace.it("check refuses a version bump without a release manifest", [], function* ({ edit, cli }) {
+workspace.it("check refuses a version bump outside a release", [], function* ({ edit, cli }) {
 	yield* edit("packages/core/package.json", (text) => text.replace("0.2.3", "0.2.4"));
 	const result = yield* cli("check");
 	expect(result.status).toBe(1);
-	expect(result.stderr).toContain("A release needs .changeset/release.json");
+	expect(result.stderr).toContain("run changesets apply");
 });
 
 for (const action of ["delete", "edit"] as const) {
@@ -81,10 +81,3 @@ for (const action of ["delete", "edit"] as const) {
 		expect(result.stderr).toContain("keep pending changesets unchanged");
 	});
 }
-
-workspace.it("check refuses a release manifest change without a version bump", [], function* ({ write, cli }) {
-	yield* write(".changeset/release.json", JSON.stringify({ date: "2026-10-18", plan: { changesets: [], releases: [] } }));
-	const result = yield* cli("check");
-	expect(result.status).toBe(1);
-	expect(result.stderr).toContain("changes only with a release");
-});

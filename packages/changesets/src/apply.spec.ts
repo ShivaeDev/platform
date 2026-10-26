@@ -4,9 +4,9 @@ import { CORE, HISTORY } from "#test/fixture.ts";
 import { guardedCommits, pending, workspace } from "#test/workspace.ts";
 
 workspace.it(
-	"apply writes versions, UTC notes and the exact consumed inputs while preserving history",
+	"apply writes versions and UTC notes, deletes consumed inputs and preserves history",
 	[pending()],
-	function* ({ change, cli, read, exists, checkpoint }) {
+	function* ({ change, cli, read, exists, checkpoint, files }) {
 		yield* change(
 			"z-last",
 			{ [CORE]: "patch", "@test/api": "patch" },
@@ -28,9 +28,8 @@ workspace.it(
 		expect(JSON.parse(yield* read("packages/api/package.json")).dependencies[CORE]).toBe("workspace:*");
 		expect(yield* exists(".changeset/feature.md")).toBe(false);
 		expect(yield* exists(".changeset/z-last.md")).toBe(false);
-		const manifest = JSON.parse(yield* read(".changeset/release.json"));
-		expect(manifest.date).toBe(date);
-		expect(manifest.plan.changesets.map((source: { name: string }) => source.name)).toEqual(["a-first.md", "feature.md", "z-last.md"]);
+		expect(yield* exists(".changeset/a-first.md")).toBe(false);
+		expect(yield* files(".changeset")).toEqual([]);
 		expect((yield* cli("check")).status).toBe(0);
 		yield* change("later", { [CORE]: "patch" }, "### Fixed\n\n- A later fix.\n");
 		expect((yield* cli("check", "main")).status).toBe(0);

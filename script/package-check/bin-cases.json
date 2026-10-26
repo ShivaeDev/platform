@@ -3,7 +3,6 @@
 		"absent": [".changeset/feature.md"],
 		"args": ["apply"],
 		"expectedFiles": {
-			".changeset/release.json": "\"name\": \"feature.md\"",
 			"packages/demo/CHANGELOG.md": "- Packed CLI release.",
 			"packages/demo/package.json": "\"version\": \"0.2.0\""
 		},

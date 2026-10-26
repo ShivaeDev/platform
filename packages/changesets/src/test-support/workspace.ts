@@ -31,6 +31,9 @@ export const workspace = storyKit({
 		exists: Effect.fn("ChangesetsStory.exists")(function* (file: string) {
 			return yield* (yield* FileSystem.FileSystem).exists(join(root, file));
 		}),
+		files: Effect.fn("ChangesetsStory.files")(function* (directory: string) {
+			return yield* (yield* FileSystem.FileSystem).readDirectory(join(root, directory));
+		}),
 		git: Effect.fn("ChangesetsStory.git")((...args: readonly string[]) => Effect.sync(() => git(root, args))),
 		packageVersion: Effect.fn("ChangesetsStory.packageVersion")(function* (directory: string) {
 			const fs = yield* FileSystem.FileSystem;

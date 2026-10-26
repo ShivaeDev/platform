@@ -1,27 +1,30 @@
 import { expect } from "@effect/vitest";
-import { Schema } from "effect";
-import { ReleaseManifest } from "#model.ts";
 import { CORE, HISTORY } from "#test/fixture.ts";
-import { manifestFaults } from "#test/manifestFaults.ts";
 import { pending, released, workspace } from "#test/workspace.ts";
 
-const decode = Schema.decodeUnknownSync(Schema.fromJsonString(ReleaseManifest));
-const MANIFEST_PATH = ".changeset/release.json";
+workspace.it("check accepts a release derived from deleted base changesets", [pending(), released], function* ({ cli }) {
+	const result = yield* cli("check");
+	expect(result.status, result.stderr).toBe(0);
+});
 
-for (const { damage, message, name } of manifestFaults) {
-	workspace.it(`check rejects a ${name} in the release manifest`, [pending(), released], function* ({ edit, cli }) {
-		yield* edit(MANIFEST_PATH, (text) => JSON.stringify(damage(decode(text))));
-		const result = yield* cli("check");
-		expect(result.status).toBe(1);
-		expect(result.stderr).toContain(message);
-	});
+for (const note of ["", "- A different feature.\n"]) {
+	workspace.it(
+		`check rejects a consumed note ${note === "" ? "dropped" : "altered"} in the changelog`,
+		[pending(), released],
+		function* ({ edit, cli }) {
+			yield* edit("packages/core/CHANGELOG.md", (text) => text.replace("- A new feature.\n", note));
+			const result = yield* cli("check");
+			expect(result.status).toBe(1);
+			expect(result.stderr).toContain("release notes differ from changesets apply");
+		},
+	);
 }
 
 workspace.it("check rejects a consumed changeset left pending", [pending(), released], function* ({ change, cli }) {
 	yield* change("feature", { [CORE]: "minor" });
 	const result = yield* cli("check");
 	expect(result.status).toBe(1);
-	expect(result.stderr).toContain("consumed changesets must be deleted");
+	expect(result.stderr).toContain("run changesets apply");
 });
 
 for (const file of ["packages/core/CHANGELOG.md", "packages/dev/CHANGELOG.md"]) {
@@ -40,16 +43,36 @@ workspace.it("check refuses a released package without its generated notes", [pe
 	expect(result.stderr).toContain("release notes differ from changesets apply");
 });
 
-workspace.it("check refuses versions outside the recorded plan", [pending(), released], function* ({ edit, cli }) {
-	yield* edit("packages/dev/package.json", (text) => text.replace("1.0.0", "1.0.1"));
+for (const [file, to] of [
+	["packages/dev/package.json", "1.0.1"],
+	["packages/core/package.json", "0.4.0"],
+	["packages/peer/package.json", "1.0.0"],
+] as const) {
+	workspace.it(`check rejects a version outside the computed plan in ${file}`, [pending(), released], function* ({ edit, cli }) {
+		yield* edit(file, (text) => JSON.stringify({ ...JSON.parse(text), version: to }));
+		const result = yield* cli("check");
+		expect(result.status).toBe(1);
+		expect(result.stderr).toContain("version differs from the release plan");
+	});
+}
+
+workspace.it("check rejects an invalid release heading date", [pending(), released], function* ({ edit, cli }) {
+	yield* edit("packages/api/CHANGELOG.md", (text) => text.replace(/^(?<heading>## [^ ]+ - )[^\n]+/mu, "$<heading>2026-02-30"));
 	const result = yield* cli("check");
 	expect(result.status).toBe(1);
-	expect(result.stderr).toContain("version differs from the release plan");
+	expect(result.stderr).toContain("valid UTC YYYY-MM-DD release date");
 });
 
-workspace.it("a changeset added and consumed between base and head survives squash validation", [], function* ({ change, cli, checkpoint }) {
-	yield* change("branch-only", { [CORE]: "patch" }, "### Fixed\n\n- A branch-only fix.\n");
-	expect((yield* cli("apply")).status).toBe(0);
-	yield* checkpoint("released-head");
-	expect((yield* cli("check", "main")).status).toBe(0);
+workspace.it("check rejects mismatched release heading dates", [pending(), released], function* ({ edit, cli }) {
+	yield* edit("packages/core/CHANGELOG.md", (text) => text.replace(/^(?<heading>## [^ ]+ - )[^\n]+/mu, "$<heading>2026-01-02"));
+	const result = yield* cli("check");
+	expect(result.status).toBe(1);
+	expect(result.stderr).toContain("same UTC release date");
+});
+
+workspace.it("check rejects removing a package's released history", [], function* ({ remove, cli }) {
+	yield* remove("packages/core/package.json");
+	const result = yield* cli("check");
+	expect(result.status).toBe(1);
+	expect(result.stderr).toContain("restore the package and its released history");
 });
