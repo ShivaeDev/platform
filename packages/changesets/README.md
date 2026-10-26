@@ -30,6 +30,24 @@ The planner validates each named package's bump in each fragment before combinin
 
 The planner takes the highest requested bump for each package. Every published workspace dependent receives at least a patch, transitively, through dependencies, optional dependencies and peers. Private and development-only dependents do not receive an automatic release. A `major` bump on a `0.x` version fails: use `minor` for breaking changes before 1.0. Package versions must be stable `major.minor.patch` versions.
 
+### Rename or remove a package
+
+For a rename, change the manifest's name and declare the new name with its bump in changeset frontmatter. Add a `### Breaking` entry naming the old package and telling consumers how to migrate:
+
+```markdown
+---
+"@acme/new-name": minor
+---
+
+### Breaking
+
+- Rename `@acme/old-name` to `@acme/new-name`; change dependency declarations and imports to the new name.
+```
+
+When renaming in the same directory, keep the existing version and released changelog history. The release advances that version under the new name and prepends its notes without rewriting old entries. The plan releases the new name only; it does not publish or deprecate the old name.
+
+For a removal, name a remaining package and its bump in frontmatter, and add a `### Breaking` entry naming the removed package and its replacement or migration steps. The removed name belongs in the note, never in frontmatter. Removed packages are excluded from release planning. A package disappearing without this declaration fails the diff check with instructions for adding it. Declarations may be pending or consumed by the release; consumed inputs must already exist at the base, just like other release inputs.
+
 ### Configure the repository
 
 By default, package directories are `packages/*` and `examples/*`. Override them in `.changeset/changesets.config.ts` with relative directory paths or `parent/*` patterns. Hooks receive the release plan and run after collection. They are Effect functions with filesystem access and typed `ChangesetError` or platform failures.

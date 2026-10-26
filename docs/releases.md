@@ -14,6 +14,24 @@ A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming e
 
 Use minor for Added or Breaking behavior while a package is pre-1.0, and patch for Changed or Fixed only. Write Markdown bullets under `### Added`, `### Changed`, `### Fixed` or `### Breaking`. One file can name several packages and contain several entries and sections. Describe behavior a consumer would look for, within the tests that prove it. Do not change package versions or changelogs outside a release PR.
 
+## Rename or remove packages
+
+To rename a package, change its manifest name and add a changeset naming the new package with its bump. Under `### Breaking`, name the old package and explain the dependency and import changes consumers need:
+
+```markdown
+---
+"@shivaedev/new-name": minor
+---
+
+### Breaking
+
+- Rename `@shivaedev/old-name` to `@shivaedev/new-name`; change dependency declarations and imports to the new name.
+```
+
+Keep the existing version and released changelog history when renaming in the same directory. The release plan advances the new name and leaves the old npm name alone; it does not publish or deprecate it. Release collection prepends notes without changing the old entries.
+
+To remove a package, name a remaining package and its bump in the changeset frontmatter. Add a `### Breaking` entry naming the removed package and explaining its replacement or migration steps. Do not put the removed name in frontmatter. The check rejects an undeclared disappearance and explains how to declare it; removed packages do not enter the release plan. Keep declarations pending until the release consumes them normally.
+
 ## Release packages
 
 The release PR (`release/next`) collects the pending release plan until its CI is approved. To release, press **Approve and run** on the PR, then merge when the normal, full CI is green. The workflow uses only `GITHUB_TOKEN`; the wait for a maintainer's approval is intentional.

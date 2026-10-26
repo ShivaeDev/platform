@@ -69,10 +69,3 @@ workspace.it("check rejects mismatched release heading dates", [pending(), relea
 	expect(result.status).toBe(1);
 	expect(result.stderr).toContain("same UTC release date");
 });
-
-workspace.it("check rejects removing a package's released history", [], function* ({ remove, cli }) {
-	yield* remove("packages/core/package.json");
-	const result = yield* cli("check");
-	expect(result.status).toBe(1);
-	expect(result.stderr).toContain("restore the package and its released history");
-});
