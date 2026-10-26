@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import type { BoardDecisionReading } from "#board/schema.ts";
 import { ensureDecisionOwner } from "#engine/ensureDecisionOwner.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
@@ -29,8 +30,7 @@ export function makeHuman(state: EngineState) {
 			return yield* ensureDecisionOwner(state)(stored);
 		}
 		if (reading._tag !== "Response") {
-			const blocker = reading._tag === "Stale" ? reading.reason : "Several Board answers compete; explicitly supersede the other responses";
-			return yield* state.save(stored, { ...stored.value, blocker });
+			return yield* state.save(stored, { ...stored.value, blocker: unanswerable(reading) });
 		}
 		return yield* resolveCommand(state)(stored.value.workId, decision.id, reading.response.id).pipe(
 			Effect.catch((error) =>
@@ -40,6 +40,17 @@ export function makeHuman(state: EngineState) {
 			),
 		);
 	});
+}
+
+function unanswerable(reading: Exclude<BoardDecisionReading, { readonly _tag: "Pending" | "Response" }>) {
+	switch (reading._tag) {
+		case "Stale":
+			return reading.reason;
+		case "Closed":
+			return "The Board closed this decision; release the work to hand it back";
+		case "Ambiguous":
+			return "Several Board answers compete; explicitly supersede the other responses";
+	}
 }
 
 const recordAnswerFailure = Effect.fn("Fleet.recordAnswerFailure")(function* (state: EngineState, stored: Versioned<FleetRecord>, error: unknown) {

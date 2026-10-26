@@ -17,7 +17,7 @@ export const recordDecisionResponse = Effect.fn("FleetHost.recordDecisionRespons
 	const board = yield* BoardGateway;
 	const published = decision.published;
 	const reading = yield* board.readDecision(published);
-	if (reading._tag === "Stale" || reading._tag === "Ambiguous") {
+	if (reading._tag !== "Pending" && reading._tag !== "Response") {
 		return yield* Effect.fail(new Conflict({ message: "Reconcile the exact decision response before answering" }));
 	}
 	const id = `response.fleet-${action}.${published.questionId}`;

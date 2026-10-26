@@ -3,6 +3,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import type { ChangeResult } from "#policy.ts";
 
 interface PullRequest {
@@ -39,6 +40,7 @@ export const predictionRepository = Effect.acquireRelease(
 		git("push", "origin", "main");
 		const results = new Map<string, typeof ChangeResult.Type>();
 		const prs = new Map<string, PullRequest>();
+		const unreadable = new Set<string>();
 		function result(id: string) {
 			const value = results.get(id);
 			if (value === undefined) {
@@ -70,6 +72,7 @@ export const predictionRepository = Effect.acquireRelease(
 				}
 				return pr.merged ? { head: value.head, revision: git("rev-parse", "origin/main"), url: value.pr } : undefined;
 			},
+			failPublication: (id: string) => unreadable.add(id),
 			git,
 			github: {
 				get: (endpoint: string) =>
@@ -105,7 +108,10 @@ export const predictionRepository = Effect.acquireRelease(
 				git("push", "origin", `worker-${id}`);
 				record(id, Object.keys(resolution));
 			},
-			publication: (id: string) => ({ branch: `worker-${id}`, pullRequest: results.get(id)?.pr, remoteBranch: results.has(id) }),
+			publication: (id: string) =>
+				unreadable.has(id)
+					? Effect.fail(new ServiceUnavailable({ message: `Several open or merged PRs use worker-${id}; cannot select published work` }))
+					: Effect.succeed({ branch: `worker-${id}`, pullRequest: results.get(id)?.pr, remoteBranch: results.has(id) }),
 			push: (id: string, files: Readonly<Record<string, string>>) => {
 				git("switch", "-c", `worker-${id}`, "origin/main");
 				write(files);

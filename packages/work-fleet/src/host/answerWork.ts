@@ -35,6 +35,10 @@ export const answerWork = Effect.fn("FleetHost.answerWork")(function* <E = never
 			return yield* queue?.() ?? fleet.queueAnswer(workId, text);
 		}
 		yield* checkDecision(current, original);
+		const released = release && current.decision !== undefined ? yield* fleet.releaseClosed(workId, current.decision.id) : undefined;
+		if (released !== undefined) {
+			return released;
+		}
 		const response = yield* publishAnswer(host, workId, original, text, release, beforePublish);
 		recorded = response;
 		return yield* resolve(workId, response.decisionId, response.responseId).pipe(

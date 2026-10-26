@@ -20,6 +20,10 @@ export function enginePredictionVerbs(state: EngineStory, tell: (line: string) =
 			return main().refresh;
 		},
 		admittedPredictionMain: () => main().current,
+		failPublication: (id: string) => {
+			repository().failPublication(id);
+			tell(`${id}'s published work becomes unreadable`);
+		},
 		mergeWatchedPr: (id: string) => {
 			repository().merge(id);
 			tell(`merge ${id}'s PR`);

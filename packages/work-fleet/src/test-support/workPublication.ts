@@ -6,7 +6,13 @@ import type { BoardWork } from "#policy.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
 
 export const WORK_BRANCH = "synthetic/one";
-export const WORK_PR = "https://github.com/example/repository/pull/7";
+export const WORK_PR = workPr(0);
+
+type PullRequestState = "open" | "closed" | "merged";
+
+export function workPr(index: number) {
+	return `https://github.com/example/repository/pull/${7 + index}`;
+}
 
 export function workPublication() {
 	const github = syntheticGithub();
@@ -18,13 +24,15 @@ export function workPublication() {
 	return {
 		branch: () => github.reply(refs, [{ ref: `refs/heads/${WORK_BRANCH}` }]),
 		neighbour: () => github.reply(refs, [{ ref: `refs/heads/${WORK_BRANCH}-other` }]),
-		pullRequest: (state: "open" | "closed" | "merged" = "open") => {
-			const pr = {
-				"html_url": WORK_PR,
-				"merged_at": state === "merged" ? "2026-01-01T00:00:00Z" : null,
-				state: state === "open" ? "open" : "closed",
-			};
-			github.reply(pulls, [pr]);
+		pullRequests: (...states: readonly PullRequestState[]) => {
+			github.reply(
+				pulls,
+				states.map((state, index) => ({
+					"html_url": workPr(index),
+					"merged_at": state === "merged" ? "2026-01-01T00:00:00Z" : null,
+					state: state === "open" ? "open" : "closed",
+				})),
+			);
 		},
 		pullsUnavailable: () => {
 			github.reply(pulls, {}, { status: 503 });

@@ -41,7 +41,7 @@ export function lostAcknowledgement() {
 export function publishedWork(kind: "none" | "branch" | "pr") {
 	return engine.trait("configuration", `published work is ${kind}`, (state) => {
 		if (kind === "pr") {
-			publication(state).pullRequest();
+			publication(state).pullRequests("open");
 		} else if (kind === "branch") {
 			publication(state).branch();
 		} else {
