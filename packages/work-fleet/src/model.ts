@@ -122,10 +122,7 @@ export const FleetView = Schema.Struct({
 		Schema.Struct({
 			...SessionReceipt.fields,
 			briefSteers: Attempt.fields.briefSteers,
-			interruptedAt: Schema.optional(Schema.Number),
-			interruptRequestedAt: Schema.optional(Schema.Number),
 			lastProgressAt: Schema.optional(Schema.Number),
-			steeredAt: Schema.optional(Schema.Number),
 		}),
 	),
 	stage: diagnostics.FleetStage,

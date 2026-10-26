@@ -66,7 +66,7 @@ export const serviceSituations = {
 		"Check the details. Let Fleet try again once the cause is fixed, or stop here.",
 	),
 	"session-stalled": {
-		happened: "The worker stopped making progress, and nudging and interrupting it did not help.",
+		happened: "The worker has shown no activity for a while. Fleet has not interrupted it.",
 		recommendation: "Fleet recommends starting over with a fresh worker.",
 		retry: FRESH_WORKER,
 	},

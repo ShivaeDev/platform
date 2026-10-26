@@ -34,6 +34,8 @@ export function cloudFanout() {
 						nextCursor: null,
 					};
 				}
+				case "thread/items/list":
+					return { data: [], nextCursor: null };
 				default:
 					return {};
 			}

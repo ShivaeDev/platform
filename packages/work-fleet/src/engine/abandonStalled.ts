@@ -48,7 +48,7 @@ export const abandonStalled = Effect.fn("Fleet.abandonStalled")(function* (state
 
 function hasStalledAttempt(record: FleetRecord): boolean {
 	const latest = record.attempts.at(-1);
-	return record.decision?.code === "session-stalled" || (latest?.sessionUnusable === true && (latest.stallRecovery?.count ?? 0) >= 2);
+	return record.decision?.code === "session-stalled" || (latest?.sessionUnusable === true && latest.stallRecovery !== undefined);
 }
 
 function lastObservation(attempt: Attempt): SessionObservation | undefined {

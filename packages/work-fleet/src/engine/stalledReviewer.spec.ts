@@ -3,7 +3,7 @@ import { isolatedEngine } from "#test/engineStory.ts";
 import { nativeStalledTurn } from "#test/nativeStalledTurn.ts";
 
 isolatedEngine.it(
-	"a stalled reviewer continues its own thread with read-only access",
+	"a silent reviewer asks the orchestrator without messaging its thread",
 	[nativeStalledTurn()],
 	function* ({ nativeRequests, setNativeTurnState, advanceTime, fleet, prepareWork }) {
 		yield* prepareWork("one");
@@ -11,36 +11,14 @@ isolatedEngine.it(
 		setNativeTurnState("turn-1", "completed");
 		expect((yield* fleet.reconcile("one")).value.step).toBe("reviewing");
 		advanceTime(31 * 60_000);
-		yield* fleet.reconcile("one");
-		advanceTime(30 * 60_000);
-		const retried = yield* fleet.reconcile("one");
-		expect(retried.value.attempts.at(-1)).toMatchObject({
-			receipt: { sessionId: "reviewer-thread", turnId: "turn-3" },
-			reviewHead: "head-one-0",
+		const stalled = yield* fleet.reconcile("one");
+		expect(stalled.value).toMatchObject({ decision: { code: "session-stalled" }, step: "waiting" });
+		expect(stalled.value.attempts.at(-1)).toMatchObject({
+			receipt: { sessionId: "reviewer-thread", turnId: "turn-2" },
 			role: "reviewer",
-			stallRecovery: { count: 2 },
+			sessionUnusable: true,
+			status: "running",
 		});
-		expect(
-			nativeRequests()
-				.filter((request) => request.method === "turn/steer")
-				.at(-1)?.params,
-		).toMatchObject({
-			expectedTurnId: "turn-2",
-			threadId: "reviewer-thread",
-		});
-		expect(
-			nativeRequests()
-				.filter((request) => request.method === "turn/start")
-				.at(-1)?.params,
-		).toMatchObject({
-			approvalPolicy: "never",
-			sandboxPolicy: { networkAccess: true, type: "readOnly" },
-			threadId: "reviewer-thread",
-		});
-		expect(
-			nativeRequests()
-				.filter((request) => request.method === "thread/start")
-				.map((request) => request.params),
-		).toMatchObject([{ cwd: "/synthetic" }, { cwd: "/synthetic", sandbox: "read-only" }]);
+		expect(nativeRequests().filter((request) => ["turn/steer", "turn/interrupt"].includes(request.method))).toEqual([]);
 	},
 );

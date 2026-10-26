@@ -34,6 +34,8 @@ export function disconnectRecovery(delayedReads: number) {
 						nextCursor: null,
 					};
 				}
+				case "thread/items/list":
+					return { data: [], nextCursor: null };
 				default:
 					return {};
 			}

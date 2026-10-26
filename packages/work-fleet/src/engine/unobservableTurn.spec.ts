@@ -8,10 +8,10 @@ import { unobservableTurn } from "#test/unobservableTurn.ts";
 const reconcile = Fleet.pipe(Effect.flatMap((fleet) => fleet.reconcile("one")));
 
 isolatedEngine.it(
-	"a stall recovery turn becomes visible after two observation passes across restart",
+	"an acknowledged turn becomes visible after two observation passes across restart",
 	[unobservableTurn()],
 	function* ({ nativeRequests, showNativeTurn, advanceTime, fleet, afterRestart, publishedDecisions }) {
-		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-2" });
+		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-1" });
 
 		for (let pass = 0; pass < 2; pass += 1) {
 			advanceTime(1 * 60_000);
@@ -20,7 +20,7 @@ isolatedEngine.it(
 			expect(pending.value.attempts.at(-1)?.missingSince).toBeDefined();
 			expect(pending.value.decision).toBeUndefined();
 		}
-		showNativeTurn("turn-2");
+		showNativeTurn("turn-1");
 		const visible = yield* fleet.reconcile("one");
 		expect(visible.value.step).toBe("working");
 		expect(visible.value.attempts.at(-1)?.missingSince).toBeUndefined();
@@ -29,60 +29,52 @@ isolatedEngine.it(
 			nativeRequests()
 				.filter((request) => request.method === "turn/start")
 				.map((request) => request.params),
-		).toMatchObject([
-			{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" },
-			{ "clientUserMessageId": "operation-2", "threadId": "worker-thread" },
-		]);
+		).toMatchObject([{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" }]);
 		expect(publishedDecisions()).toHaveLength(0);
 	},
 );
 
-for (const progressingTurn of ["turn-1", "provider-followup"]) {
-	isolatedEngine.it(
-		`progress on ${progressingTurn} keeps an invisible acknowledged turn working past its grace period`,
-		[unobservableTurn()],
-		function* ({ nativeRequests, addProviderItem, setNativeTurnState, advanceTime, fleet, afterRestart, publishedDecisions }) {
-			expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-2" });
+isolatedEngine.it(
+	"progress on another running turn keeps an invisible acknowledged turn working past its grace period",
+	[unobservableTurn()],
+	function* ({ nativeRequests, addProviderItem, setNativeTurnState, advanceTime, fleet, afterRestart, publishedDecisions }) {
+		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-1" });
 
-			yield* fleet.reconcile("one");
-			setNativeTurnState(progressingTurn, "inProgress");
-			for (let pass = 0; pass < 3; pass += 1) {
-				advanceTime(6 * 60_000);
-				addProviderItem();
-				const current = yield* afterRestart(reconcile);
-				expect(current.value.step).toBe("working");
-				expect(current.value.attempts.at(-1)?.progress?.at).toBe((61 + (pass + 1) * 6) * 60_000);
-				expect(current.value.decision).toBeUndefined();
-			}
-			expect(
-				nativeRequests()
-					.filter((request) => request.method === "turn/start")
-					.map((request) => request.params),
-			).toMatchObject([
-				{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" },
-				{ "clientUserMessageId": "operation-2", "threadId": "worker-thread" },
-			]);
-			expect(publishedDecisions()).toHaveLength(0);
-		},
-	);
-}
+		yield* fleet.reconcile("one");
+		setNativeTurnState("provider-followup", "inProgress");
+		for (let pass = 0; pass < 3; pass += 1) {
+			advanceTime(6 * 60_000);
+			addProviderItem();
+			const current = yield* afterRestart(reconcile);
+			expect(current.value.step).toBe("working");
+			expect(current.value.attempts.at(-1)?.progress?.at).toBe((pass + 1) * 6 * 60_000);
+			expect(current.value.decision).toBeUndefined();
+		}
+		expect(
+			nativeRequests()
+				.filter((request) => request.method === "turn/start")
+				.map((request) => request.params),
+		).toMatchObject([{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" }]);
+		expect(publishedDecisions()).toHaveLength(0);
+	},
+);
 
 isolatedEngine.it(
 	"an invisible turn resumes once on the same thread and a second consecutive loss asks and can be released across restart",
 	[unobservableTurn()],
 	function* ({ nativeRequests, hideNativeTurn, advanceTime, fleet, afterRestart, respond, publishedDecisions }) {
-		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-2" });
+		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-1" });
 
 		yield* fleet.reconcile("one");
 		advanceTime(4 * 60_000);
-		expect((yield* fleet.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1", "operation-2"]);
+		expect((yield* fleet.reconcile("one")).value.attempts.map((entry) => entry.operationId)).toEqual(["operation-1"]);
 		advanceTime(1 * 60_000);
 		const resumed = yield* afterRestart(reconcile);
 		expect(resumed.value.step).toBe("working");
 		expect(resumed.value.decision).toBeUndefined();
-		expect(resumed.value.attempts.at(-1)).toMatchObject({ observationRetries: 1, receipt: { sessionId: "worker-thread", turnId: "turn-3" } });
-		expect(resumed.value.attempts[1]?.status).toBe("failed");
-		hideNativeTurn("turn-3");
+		expect(resumed.value.attempts.at(-1)).toMatchObject({ observationRetries: 1, receipt: { sessionId: "worker-thread", turnId: "turn-2" } });
+		expect(resumed.value.attempts[0]?.status).toBe("failed");
+		hideNativeTurn("turn-2");
 		yield* afterRestart(reconcile);
 		advanceTime(5 * 60_000);
 		const lost = yield* afterRestart(reconcile);
@@ -98,7 +90,6 @@ isolatedEngine.it(
 		).toMatchObject([
 			{ "clientUserMessageId": "operation-1", "threadId": "worker-thread" },
 			{ "clientUserMessageId": "operation-2", "threadId": "worker-thread" },
-			{ "clientUserMessageId": "operation-3", "threadId": "worker-thread" },
 		]);
 		expect(
 			nativeRequests()
@@ -119,19 +110,19 @@ isolatedEngine.it(
 	"observing the resumed turn resets consecutive visibility losses",
 	[unobservableTurn()],
 	function* ({ hideNativeTurn, advanceTime, fleet, afterRestart, publishedDecisions }) {
-		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-2" });
+		expect((yield* fleet.get("one")).value.attempts.at(-1)?.receipt).toEqual({ sessionId: "worker-thread", turnId: "turn-1" });
 
 		yield* fleet.reconcile("one");
 		advanceTime(5 * 60_000);
 		yield* fleet.reconcile("one");
 		const visible = yield* afterRestart(reconcile);
 		expect(visible.value.attempts.at(-1)?.observationRetries).toBeUndefined();
-		hideNativeTurn("turn-3");
+		hideNativeTurn("turn-2");
 		yield* fleet.reconcile("one");
 		advanceTime(5 * 60_000);
 		const resumed = yield* afterRestart(reconcile);
 		expect(resumed.value.step).toBe("working");
-		expect(resumed.value.attempts.at(-1)?.receipt?.turnId).toBe("turn-4");
+		expect(resumed.value.attempts.at(-1)?.receipt?.turnId).toBe("turn-3");
 		expect(publishedDecisions()).toHaveLength(0);
 	},
 );

@@ -77,6 +77,8 @@ export function restartBackend(boundary: Boundary) {
 					return turnStart(request);
 				case "thread/turns/list":
 					return turnList();
+				case "thread/items/list":
+					return { data: [], nextCursor: null };
 				default:
 					return {};
 			}
