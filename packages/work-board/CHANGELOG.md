@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.32.1 - 2026-10-26
+
+### Fixed
+
+- Render question prompts and option descriptions as Markdown on the answer form, preserving formatted emphasis, inline code, links and lists while recording selections and free text.
+
 ## 0.32.0 - 2026-10-26
 
 ### Added

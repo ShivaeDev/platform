@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/access",
-	"version": "0.0.0",
+	"version": "0.1.0",
 	"description": "Browser-safe role declarations and permission checks for Effect applications",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/access#readme",
 	"bugs": {

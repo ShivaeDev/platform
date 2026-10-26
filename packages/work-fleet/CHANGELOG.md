@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.20.0 - 2026-10-26
+
+### Added
+
+- Work Fleet watches recorded Board responses once per response, including questions outside running Fleet work, with the question, item and author.
+- Work Fleet's JSON watch accepts `--pr-events` to combine Fleet transitions with PR dequeue reasons, stuck queues, conflicts, disabled auto-merge, closed PRs and GitHub health events. Heartbeats are disabled unless `--heartbeat` is set.
+- PR Watch exposes its watch runner and production watcher layer for applications that compose its polling engine, and includes GitHub's recorded reason in dequeue events.
+- PR Watch reports stuck queue entries with conflicts or failing checks even when GitHub has cleared auto-merge.
+
+### Fixed
+
+- Select the published PR on a worker branch while ignoring closed, unmerged duplicates, so one merged or open PR resolves the work's evidence; only several open or merged PRs on one branch still wait.
+- Keep one item's unreadable published work out of another item's merge prediction, so its failure no longer appears in that item's status.
+- Release waiting work whose Board decision `close-finished-decisions` already closed, instead of failing with "Reconcile the exact decision response before answering".
+- Stop interrupting working agents: a turn that stays silent for `stallMinutes` now asks the orchestrator to retry in a fresh session or abandon it, and Fleet no longer steers, interrupts or continues the thread on its own.
+- Count live Codex events as progress, so a long Cloud turn that keeps working is no longer reported as stalled while its items stay hidden. Fleet subscribes to each running thread and subscribes again after a reconnect or restart.
+- Read a running Codex turn's progress from its latest item instead of downloading every item of the thread on each poll.
+- Count worker silence from the current live subscription or later activity, so restarting or reconnecting Fleet gives a busy worker a full stall interval. Stalled workers can keep waiting with a fresh interval, and new activity or completion automatically closes the stall decision and continues their result.
+- Watch only open pull requests, following each through its first merged or closed poll. Report a refused PR once and back off without stopping other PR events or the combined watch.
+
+### Breaking
+
+- `FleetView` sessions no longer carry `steeredAt`, `interruptRequestedAt` or `interruptedAt`, and status output no longer lists Fleet stall steer or interrupt times. Read `lastProgressAt` and the `session-stalled` decision instead.
+
 ## 0.19.0 - 2026-10-26
 
 ### Added

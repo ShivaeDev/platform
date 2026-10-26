@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0 - 2026-10-26
+
+### Added
+
+- Accept package renames and removals declared in Breaking changeset notes, preserve released history for in-place renames, and release only remaining package names.
+
 ## 0.2.0 - 2026-10-26
 
 ### Breaking

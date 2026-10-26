@@ -1,11 +1,10 @@
----
-"@shivaedev/platform": minor
-"@shivaedev/access": minor
-"@shivaedev/admin": minor
----
+# Changelog
+
+## 0.1.0 - 2026-10-26
 
 ### Added
 
+- Declare application permissions, explicit role grants and a closed role-name Schema in the browser-safe `@shivaedev/access` package. Check exact permissions and record ownership with predicates or typed `Forbidden` and `Unauthorized` enforcement effects.
 - Access role sets resolve stored role strings into their decoded role and declared permissions.
 - Platform resolves application roles per request, exposes grants to handlers and the client session, and enforces declared permissions on RPCs and HTTP routes.
 
