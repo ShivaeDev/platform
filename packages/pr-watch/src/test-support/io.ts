@@ -19,11 +19,23 @@ export const makeIo = Effect.gen(function* () {
 	const control: {
 		failure?: Operation;
 		transportFails: boolean;
+		transportStalls: boolean;
+		transportPending: boolean;
 		replacement?: {
 			started: Deferred.Deferred<void>;
 			finish: Deferred.Deferred<void>;
 		};
-	} = { transportFails: false };
+	} = { transportFails: false, transportPending: false, transportStalls: false };
+	const stall = Effect.suspend(() => {
+		control.transportPending = true;
+		return Effect.never.pipe(
+			Effect.ensuring(
+				Effect.sync(() => {
+					control.transportPending = false;
+				}),
+			),
+		);
+	});
 	function failure(method: Operation) {
 		return Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method, module: "FileSystem" }));
 	}
@@ -54,7 +66,13 @@ export const makeIo = Effect.gen(function* () {
 			urls.push(request.url);
 			return request;
 		}),
-		(effect, request) => Effect.suspend(() => (control.transportFails ? transportFailure(request) : effect)),
+		(effect, request) =>
+			Effect.suspend(() => {
+				if (control.transportStalls) {
+					return stall;
+				}
+				return control.transportFails ? transportFailure(request) : effect;
+			}),
 	);
 	return {
 		control,

@@ -57,7 +57,7 @@ for (const status of [500, 403, 429]) {
 		expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 		expect((yield* h.saved()).prs["1"]?.dirty).toBe(false);
 		expect(h.lines).toEqual([]);
-		expect(h.diagnostics).toEqual([status === 500 ? "GitHub request failed" : "GitHub quota cooldown"]);
+		expect(h.diagnostics).toEqual([status === 500 ? "GitHub HTTP 500 (GET /repos/acme/project/commits/sha1/status)" : "GitHub rate limit (core)"]);
 	});
 }
 watch.it("a failed queue request does not imply dequeue", [queuedPulls(1)], function* (h) {

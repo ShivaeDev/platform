@@ -37,26 +37,27 @@ watch.it("quota pacing explains a half-hour polling gap while heartbeats continu
 	expect(h.cliLines().at(-1)).toMatchObject({ event: "stopped", reason: "interrupted" });
 });
 
-watch.it("a filtered continuous CLI exits on a request error with JSON health lines", [], function* (h) {
-	h.reply("/pulls/1", { body: {}, status: 500 });
+watch.it("a filtered continuous CLI exits on bad credentials with JSON health lines", [], function* (h) {
+	h.reply("/pulls/1", { body: {}, status: 401 });
 	yield* h.cliStart("--events", "dequeued", "--heartbeat", "0");
 	const code = yield* h.cliFinish();
 	expect(code).toBe(1);
 	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "stopped"]);
-	expect(h.cliLines()[0]).toMatchObject({ at: expect.any(String), message: "GitHub request failed" });
-	expect(h.cliStderr()).toContain("GitHub request failed");
+	expect(h.cliLines()[0]).toMatchObject({ at: expect.any(String), message: "GitHub HTTP 401 (GET /repos/acme/project/pulls/1)" });
+	expect(h.cliStderr()).toContain("GitHub HTTP 401");
 });
 
-watch.it("a filtered rate-limited CLI reports the retry instant and exits without plain stdout logs", [], function* (h) {
+watch.it("a filtered rate-limited CLI reports the retry instant and remains interruptible", [], function* (h) {
 	h.throttled(900);
 	const now = yield* Clock.currentTimeMillis;
 	yield* h.cliStart("--events", "merged", "--heartbeat", "0");
-	const code = yield* h.cliFinish();
-	expect(code).toBe(1);
-	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "cooldown", "stopped"]);
+	yield* h.cliWaitFor("cooldown");
+	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "cooldown"]);
 	const retryAt = Date.parse(h.cliLines()[1].nextPollAt);
 	const minimumCooldown = 890_000;
 	expect(retryAt - now).toBeGreaterThan(minimumCooldown);
+	yield* h.cliStop();
+	expect(yield* h.cliFinish()).toBe(0);
 });
 
 watch.it("invalid startup state prints an error and stop even with a transition filter", [historyIs("broken")], function* (h) {

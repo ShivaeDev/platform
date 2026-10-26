@@ -56,7 +56,12 @@ export default defineConfig({
 		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
 		"boundaries/http-status": {
 			options: {
-				edge: ["packages/effect-github/src/status.ts", "packages/platform/src/server/rpc-server/**", "packages/platform/src/server/node-http/**"],
+				edge: [
+					"packages/effect-github/src/status.ts",
+					"packages/pr-watch/src/requestFailure.ts",
+					"packages/platform/src/server/rpc-server/**",
+					"packages/platform/src/server/node-http/**",
+				],
 			},
 		},
 		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },

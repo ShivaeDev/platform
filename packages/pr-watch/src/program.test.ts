@@ -23,11 +23,12 @@ watch.it("once fails on request failure and help prints the CLI usage", [githubR
 	expect(h.lines.at(-1)).toContain("pr-watch --repo OWNER/REPO");
 });
 watch.it(
-	"a failed initial fleet snapshot stops visibly and a restart retains the discovered PR",
+	"a failed initial fleet snapshot retains the discovered PR across a restart",
 	[githubReplies("/pulls/1", { body: {}, status: 500 })],
 	function* (h) {
 		yield* h.start();
-		yield* h.finish();
+		yield* h.waitForPollWait();
+		yield* h.interrupt();
 		expect(h.eventNames()).toEqual(["error", "stopped"]);
 		h.merged(1);
 		h.openPulls();

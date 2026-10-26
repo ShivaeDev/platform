@@ -2,14 +2,14 @@ import { Effect, Exit } from "effect";
 import { argumentsFor, help } from "#arguments.ts";
 import { type Emit, health, makeOutput } from "#health.ts";
 import type { WatchError } from "#model.ts";
-import { Watcher } from "#Watcher.ts";
+import { polling } from "#polling.ts";
 
 export const program = Effect.fn("PrWatch.program")(function* (
 	args: readonly string[],
 	emit: Emit,
 	diagnostic: (message: string) => Effect.Effect<void, WatchError>,
 ) {
-	let reported: string | undefined;
+	const reported = new Set<string>();
 	let watching = true;
 	const run = Effect.gen(function* () {
 		const parsed = yield* argumentsFor(args);
@@ -18,32 +18,26 @@ export const program = Effect.fn("PrWatch.program")(function* (
 			yield* emit(help);
 			return;
 		}
-		const watcher = yield* Watcher;
 		const output = yield* makeOutput(emit, parsed.heartbeat);
-		let state = yield* watcher.load(parsed.options);
 		function report(message: string) {
+			if (reported.has(message)) {
+				return Effect.void;
+			}
 			return health(output.emit, "error", { message }).pipe(
 				Effect.tap(
 					Effect.sync(() => {
-						reported = message;
+						reported.add(message);
 					}),
 				),
 				Effect.andThen(diagnostic(message)),
 			);
 		}
-		while (true) {
-			reported = undefined;
-			state = yield* watcher.poll(parsed.options, state, output.emit, report);
-			if (parsed.once) {
-				return;
-			}
-			yield* output.waitForPoll(parsed.options.interval, yield* watcher.delay(parsed.options.interval));
-		}
+		yield* polling(parsed.options, parsed.once, output, { error: report, reset: () => reported.clear() });
 	});
 	yield* run.pipe(
 		Effect.tapError((error) =>
 			Effect.gen(function* () {
-				if (reported !== error.message) {
+				if (!reported.has(error.message)) {
 					yield* health(emit, "error", { message: error.message });
 				}
 				if (error.retryAt !== undefined) {
