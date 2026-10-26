@@ -1,7 +1,21 @@
 import { waitingOwner } from "#attention.ts";
 import type { WatchState } from "#host/watchState.ts";
 
-export const eventKinds = ["waiting-on-orchestrator", "waiting-on-you", "done", "released", "stuck", "dispatch-failed", "answer-failed"] as const;
+export const eventKinds = [
+	"waiting-on-orchestrator",
+	"waiting-on-you",
+	"done",
+	"released",
+	"stuck",
+	"dispatch-failed",
+	"answer-failed",
+	"board-answer",
+	"pr-dequeued",
+	"pr-stuck",
+	"pr-conflict",
+	"pr-auto-merge-off",
+	"pr-closed",
+] as const;
 export type EventKind = (typeof eventKinds)[number];
 export interface WatchEvent {
 	readonly head?: string;

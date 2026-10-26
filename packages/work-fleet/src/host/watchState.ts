@@ -16,7 +16,21 @@ export const WatchState = Schema.Struct({
 });
 export type WatchState = typeof WatchState.Type;
 
+export const BoardAnswer = Schema.Struct({
+	author: Schema.String,
+	item: Schema.String,
+	kind: Schema.Literal("board-answer"),
+	question: Schema.String,
+	reason: Schema.String,
+	recordedAt: Schema.Number,
+	request: Schema.String,
+	responseId: Schema.String,
+	unblocks: Schema.Array(Schema.String),
+	workId: Schema.String,
+});
+
 export const WatchSnapshot = Schema.Struct({
+	answers: Schema.optional(Schema.Array(BoardAnswer)),
 	epoch: Schema.String,
 	states: Schema.optional(Schema.Array(WatchState)),
 });

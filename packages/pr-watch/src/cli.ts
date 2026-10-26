@@ -1,31 +1,10 @@
 #!/usr/bin/env node
 import process from "node:process";
-import { NodeFileSystem } from "@effect/platform-node";
-import { Effect, Layer, Logger } from "effect";
-import { FetchHttpClient } from "effect/http";
-import { GitHub as GitHubClient } from "@shivaedev/effect-github/GitHub.ts";
-import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
-import { GitHub } from "#GitHub.ts";
-import { GitHubHttp } from "#GitHubHttp.ts";
+import { Effect, Logger } from "effect";
 import { WatchError } from "#model.ts";
 import { program } from "#program.ts";
-import { StateFile } from "#StateFile.ts";
-import { Watcher } from "#Watcher.ts";
+import { watcherLayer } from "#watcherLayer.ts";
 
-const services = Watcher.layer.pipe(
-	Layer.provide(
-		Layer.mergeAll(
-			StateFile.layer,
-			GitHub.layer.pipe(Layer.provide(GitHubHttp.layer.pipe(Layer.provide(GitHubClient.layer), Layer.provide(GitHubToken.fromEnv)))),
-		),
-	),
-	Layer.provide(
-		Layer.mergeAll(
-			NodeFileSystem.layer,
-			FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" }))),
-		),
-	),
-);
 function write(stream: NodeJS.WriteStream) {
 	return (line: string) =>
 		Effect.tryPromise({
@@ -38,7 +17,7 @@ process.once("SIGINT", () => abort.abort());
 process.once("SIGTERM", () => abort.abort());
 try {
 	await Effect.runPromise(
-		program(process.argv.slice(2), write(process.stdout), write(process.stderr)).pipe(Effect.provide(services), Effect.provide(Logger.layer([]))),
+		program(process.argv.slice(2), write(process.stdout), write(process.stderr)).pipe(Effect.provide(watcherLayer), Effect.provide(Logger.layer([]))),
 		{
 			signal: abort.signal,
 		},

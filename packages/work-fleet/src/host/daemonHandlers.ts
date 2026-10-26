@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Fiber, Layer, Redacted, Stream } from "effect";
 import { SqlClient } from "effect/sql";
-import { Forbidden, NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
 import { databaseAddress } from "@shivaedev/platform/server/databaseAddress.ts";
 import { exposeFailure } from "#exposeFailure.ts";
 import { answerRecords } from "#host/answerRecords.ts";
@@ -20,6 +20,7 @@ import { LiveConfig } from "#host/liveConfig.ts";
 import { nameStoredThreads } from "#host/nameThreads.ts";
 import { decisionResponses } from "#host/releaseWork.ts";
 import { settleFinishedDecisions } from "#host/settleFinishedDecisions.ts";
+import { watchBoardAnswers } from "#host/watchBoardAnswers.ts";
 
 export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
@@ -40,9 +41,15 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	const follow = yield* read(daemonSnapshots(host));
 	const watchSnapshots = yield* read(daemonSnapshots(host, true));
 	const epoch = crypto.randomUUID();
+	const boardAnswers = yield* watchBoardAnswers(host.boardDir).pipe(
+		Stream.map((snapshot) => ({ ...snapshot, epoch })),
+		Stream.mapError((error) => new ServiceUnavailable({ message: error.message })),
+		Stream.share({ capacity: 1, replay: 1, strategy: "sliding" }),
+	);
 	function watch(workIds: readonly string[]) {
 		return watchSnapshots(workIds, true).pipe(
 			Stream.map((states) => ({ epoch, states })),
+			Stream.merge(boardAnswers),
 			Stream.merge(Stream.tick("1 second").pipe(Stream.map(() => ({ epoch }))), { haltStrategy: "left" }),
 		);
 	}

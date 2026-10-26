@@ -8,6 +8,7 @@ export class WatchError extends Schema.TaggedError<WatchError>()("WatchError", {
 export const Snapshot = Schema.Struct({
 	autoMerge: Schema.Boolean,
 	branch: Schema.String,
+	dequeueReason: Schema.optionalKey(Schema.String),
 	dirty: Schema.Boolean,
 	failed: Schema.Boolean,
 	merged: Schema.Boolean,

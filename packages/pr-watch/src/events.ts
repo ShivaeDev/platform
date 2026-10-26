@@ -4,7 +4,7 @@ export const eventKinds = ["merged", "closed", "conflict", "queued", "dequeued",
 export type EventKind = (typeof eventKinds)[number];
 
 function stuck(pr: Snapshot): boolean {
-	return pr.state === "open" && pr.autoMerge && (pr.dirty || pr.failed);
+	return pr.state === "open" && (pr.autoMerge || pr.queued) && (pr.dirty || pr.failed);
 }
 function openEvents(before: Snapshot, after: Snapshot): readonly EventKind[] {
 	const transitions: readonly (readonly [boolean, EventKind])[] = [
@@ -34,5 +34,13 @@ export function events(before: Snapshot | undefined, after: Snapshot, selected?:
 	}
 	return found
 		.filter((event) => selected === undefined || selected.includes(event))
-		.map((event) => JSON.stringify({ branch: after.branch, event, number: after.number, title: after.title }));
+		.map((event) =>
+			JSON.stringify({
+				branch: after.branch,
+				event,
+				number: after.number,
+				title: after.title,
+				...(event === "dequeued" ? { reason: after.dequeueReason ?? "Queue entry removed; GitHub supplied no reason" } : {}),
+			}),
+		);
 }
