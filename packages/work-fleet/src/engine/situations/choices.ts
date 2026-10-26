@@ -10,6 +10,7 @@ export interface Situation {
 	readonly recommendation: string;
 	readonly release?: Choice;
 	readonly retry?: Choice;
+	readonly wait?: Choice;
 }
 
 export const RELEASE: Choice = {

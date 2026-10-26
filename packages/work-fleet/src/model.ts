@@ -14,7 +14,7 @@ export const Attempt = Schema.Struct({
 		Schema.Struct({
 			at: Schema.Number,
 			interruptError: Schema.optional(Schema.String),
-			observation: Schema.optional(Schema.Struct(Struct.omit(SessionObservation.fields, ["activityAt"]))),
+			observation: Schema.optional(Schema.Struct(Struct.omit(SessionObservation.fields, ["activityAt", "subscribedAt"]))),
 			observationError: Schema.optional(Schema.String),
 		}),
 	),

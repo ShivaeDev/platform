@@ -31,6 +31,9 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 		return { action: "continue", published, response } as const;
 	}
 	const action = yield* guidedAction(response);
+	if (action === "wait" && decision.code !== "session-stalled") {
+		return yield* new BadRequest({ message: "Only a stalled session permits keep waiting" });
+	}
 	const explanation = releaseOnly(decision);
 	if (action === "retry" && explanation !== undefined) {
 		return yield* new BadRequest({ message: "This decision only permits release; choose release to stop and hand back" });
@@ -42,8 +45,8 @@ const guidedAction = Effect.fn("Fleet.guidedAction")(function* (response: Record
 	const answers = response.response.answers?.filter((answer) => answer.prompt === "fleet-action") ?? [];
 	const selected = answers[0]?.selected;
 	const action = selected?.[0];
-	if (answers.length !== 1 || selected?.length !== 1 || (action !== "retry" && action !== "release")) {
-		return yield* Effect.fail(new BadRequest({ message: "Choose one guided Fleet retry or release action; free text cannot authorize it" }));
+	if (answers.length !== 1 || selected?.length !== 1 || (action !== "retry" && action !== "release" && action !== "wait")) {
+		return yield* Effect.fail(new BadRequest({ message: "Choose one guided Fleet retry, release or wait action; free text cannot authorize it" }));
 	}
 	return action;
 });

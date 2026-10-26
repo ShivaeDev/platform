@@ -20,6 +20,10 @@ export function engineNativeVerbs(state: EngineStory, tell: (line: string) => vo
 			tell("the provider streams a live event on the worker thread");
 			server().emit();
 		},
+		finishNativeTurn: (id: string, output: string) => {
+			tell(`the provider completes ${id}`);
+			server().finish(id, output);
+		},
 		hideNativeTurn: (id: string) => {
 			if (!server().states.has(id)) {
 				throw new Error(`No ${id} turn is available to hide`);

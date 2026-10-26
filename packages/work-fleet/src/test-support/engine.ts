@@ -25,7 +25,7 @@ export interface EngineFixture<TBoardError = never> extends Omit<EngineProvider,
 	readonly occupy: (owner: string) => Effect.Effect<void, unknown>;
 	readonly priority: (workId: string, priority: Priority) => void;
 	readonly replaceRecord: (value: FleetRecord) => Effect.Effect<void, unknown>;
-	readonly respond: (decisionId: string, action: "retry" | "release", type?: "answer" | "clarify" | "not_now") => string;
+	readonly respond: (decisionId: string, action: "retry" | "release" | "wait", type?: "answer" | "clarify" | "not_now") => string;
 	readonly restart: <TResult, TFailure>(
 		effect: Effect.Effect<TResult, TFailure, typeof Fleet.Identifier>,
 		configure?: (policy: FleetConfiguration) => FleetConfiguration,

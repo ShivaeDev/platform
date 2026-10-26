@@ -5,8 +5,9 @@ export function decisionAnswer({ question }: DecisionCopy) {
 	if (question === undefined) {
 		return undefined;
 	}
+	const wait = question.wait === undefined ? "" : `${option("wait", question.wait)}\n`;
 	const retry = question.retry === undefined ? "" : `${option("retry", question.retry)}\n`;
-	return `::::question{id="fleet-action" select="one"}\n### ${question.title}\n\n${retry}${option("release", question.release)}::::`;
+	return `::::question{id="fleet-action" select="one"}\n### ${question.title}\n\n${wait}${retry}${option("release", question.release)}::::`;
 }
 
 function option(id: string, choice: Choice) {

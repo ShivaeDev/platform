@@ -37,6 +37,7 @@ export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provision
 				progress: latest === undefined ? [] : [{ id: latest.id, status: latest.status }],
 				provisioning,
 				receipt,
+				subscribedAt: activity?.subscribedAt?.(receipt.sessionId),
 			};
 		}
 		const items = yield* turns.readItems(receipt);

@@ -72,7 +72,7 @@ export function scriptedBoard(options: EngineOptions, decisions: string[], getWo
 					})
 				: Effect.fail(new BoardFailure({ message: "Use a Markdown Board to record reports" })),
 	});
-	function respond(decisionId: string, action: "retry" | "release", type: "answer" | "clarify" | "not_now" = "answer") {
+	function respond(decisionId: string, action: "retry" | "release" | "wait", type: "answer" | "clarify" | "not_now" = "answer") {
 		const receipt = publications.get(decisionId);
 		if (receipt === undefined) {
 			throw new Error("Decision must be published before a response is recorded");

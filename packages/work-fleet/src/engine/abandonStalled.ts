@@ -52,7 +52,7 @@ function hasStalledAttempt(record: FleetRecord): boolean {
 }
 
 // Live activity is a transient provider signal, so the abandoned evidence keeps only the observed turn.
-function withoutActivity({ activityAt: _activityAt, ...observation }: SessionObservation) {
+function withoutActivity({ activityAt: _activityAt, subscribedAt: _subscribedAt, ...observation }: SessionObservation) {
 	return observation;
 }
 

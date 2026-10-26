@@ -8,6 +8,7 @@ import type { EngineState } from "#engine/makeState.ts";
 import { recoverMissingTurn } from "#engine/recoverMissingTurn.ts";
 import { requestRework } from "#engine/requestRework.ts";
 import { resolveExecution } from "#engine/resolveExecution.ts";
+import { resumeStalled } from "#engine/resumeStalled.ts";
 import { correctWorkerReport, workerReportFailure } from "#engine/workerReport.ts";
 import { executing, type FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
@@ -32,6 +33,9 @@ export function applyResolution(state: EngineState) {
 			if (recovered !== undefined) {
 				return yield* closeDecisions(state)(recovered);
 			}
+		}
+		if (action === "wait") {
+			return yield* resumeStalled(state, stored, responses);
 		}
 		if (action === "continue") {
 			return yield* continueWorker(state)(stored, responses, body).pipe(Effect.flatMap(closeDecisions(state)));

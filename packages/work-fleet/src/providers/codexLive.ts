@@ -12,11 +12,13 @@ export interface CodexActivity {
 	readonly at: (sessionId: string) => number | undefined;
 	readonly follow: (sessionId: string) => Effect.Effect<void, SessionFailure>;
 	readonly forget: (sessionId: string) => void;
+	readonly subscribedAt?: (sessionId: string) => number | undefined;
 }
 
 // Codex Cloud hides a running turn's items until the turn ends, so live notifications are the only sign that a long turn still moves.
 export function codexLive(now: () => number) {
 	const activity = new Map<string, number>();
+	const subscriptions = new Map<string, number>();
 	const followed = new WeakMap<CodexConnection, Set<string>>();
 	function threads(connection: CodexConnection) {
 		const known = followed.get(connection) ?? new Set<string>();
@@ -27,7 +29,12 @@ export function codexLive(now: () => number) {
 		return threads(connection).has(sessionId)
 			? Effect.void
 			: request(connection, timeoutMs, "thread/resume", { excludeTurns: true, threadId: sessionId }).pipe(
-					Effect.andThen(Effect.sync(() => threads(connection).add(sessionId))),
+					Effect.andThen(
+						Effect.sync(() => {
+							threads(connection).add(sessionId);
+							subscriptions.set(sessionId, now());
+						}),
+					),
 					Effect.asVoid,
 				);
 	}
@@ -38,9 +45,11 @@ export function codexLive(now: () => number) {
 			forget: (sessionId) => {
 				activity.delete(sessionId);
 			},
+			subscribedAt: (sessionId) => subscriptions.get(sessionId),
 		}),
 		followed: (connection: CodexConnection, sessionId: string) => {
 			threads(connection).add(sessionId);
+			subscriptions.set(sessionId, now());
 		},
 		notified: (method: string, params: unknown) => {
 			if (!moving(method)) {

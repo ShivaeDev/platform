@@ -69,6 +69,7 @@ export const serviceSituations = {
 		happened: "The worker has shown no activity for a while. Fleet has not interrupted it.",
 		recommendation: "Fleet recommends starting over with a fresh worker.",
 		retry: FRESH_WORKER,
+		wait: { label: "Keep waiting", outcome: "Fleet keeps the same worker running and starts the silence clock again." },
 	},
 	"session-turn-missing": {
 		happened: "The worker's run can no longer be found, even after Fleet resumed it once.",

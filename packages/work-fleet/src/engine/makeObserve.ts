@@ -5,6 +5,7 @@ import { observedAttempt } from "#engine/observedAttempt.ts";
 import { reconcileAttempt } from "#engine/reconcileAttempt.ts";
 import { recoverStall } from "#engine/recoverStall.ts";
 import { recoverUnobservable } from "#engine/recoverUnobservable.ts";
+import { resumeActiveStall } from "#engine/resumeStalled.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
 import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
@@ -35,7 +36,12 @@ export function makeObserve(state: EngineState) {
 			attempt.operationId === latest.operationId ? observedAttempt(attempt, observation, state.policy.now()) : attempt,
 		);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: observationBlocker(stored.value, latest) });
-		return yield* advanceObservation(state, stored, observation, paused);
+		stored = yield* resumeActiveStall(state, stored, latest, observation);
+		const stillPaused = stored.value.step === "waiting";
+		if (latest.role === "reviewer" && !stillPaused) {
+			return stored;
+		}
+		return yield* advanceObservation(state, stored, observation, stillPaused);
 	});
 }
 
@@ -116,7 +122,7 @@ const advanceObservation = Effect.fn("Fleet.advanceObservation")(function* (
 	);
 	const recovered =
 		(yield* recoverUnobservable(state, stored, attempt, observation.progress === undefined ? undefined : observation.progress.length === 0))
-		?? (yield* recoverStall(state, stored, attempt));
+		?? (yield* recoverStall(state, stored, attempt, observation.subscribedAt));
 	if (recovered !== undefined) {
 		return recovered;
 	}

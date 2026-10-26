@@ -36,7 +36,7 @@ export function makeReview(state: EngineState) {
 		const attempts = recordObservation(stored.value.attempts, observation, state.policy.now());
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
 		const latest = stored.value.attempts.at(-1);
-		const recovered = (yield* recoverUnobservable(state, stored, latest)) ?? (yield* recoverStall(state, stored, latest));
+		const recovered = (yield* recoverUnobservable(state, stored, latest)) ?? (yield* recoverStall(state, stored, latest, observation.subscribedAt));
 		if (recovered !== undefined) {
 			return recovered;
 		}

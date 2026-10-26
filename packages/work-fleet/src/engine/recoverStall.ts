@@ -9,13 +9,14 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 	state: EngineState,
 	stored: Versioned<FleetRecord>,
 	attempt: Attempt | undefined,
+	subscribedAt?: number,
 ) {
 	if (stored.value.step === "waiting" || attempt?.receipt === undefined) {
 		return undefined;
 	}
 	const now = state.policy.now();
 	const minutes = (yield* state.current).stallMinutes ?? 30;
-	if (!stalled(attempt, now, minutes)) {
+	if (!stalled(attempt, now, minutes, subscribedAt)) {
 		return undefined;
 	}
 	const work = yield* state.board.get(stored.value.workId);
@@ -35,12 +36,14 @@ export const recoverStall = Effect.fn("Fleet.recoverStall")(function* (
 		marked,
 		"session-stalled",
 		`Provider turn showed no activity for ${minutes} minutes`,
-		"Retry in a fresh session or abandon the stalled turn and release ownership",
+		"Keep waiting, retry in a fresh session or abandon the stalled turn and release ownership",
 	);
 });
 
-function stalled(attempt: Attempt, now: number, minutes: number) {
+function stalled(attempt: Attempt, now: number, minutes: number, subscribedAt = 0) {
 	return (
-		attempt.status === "running" && attempt.progress !== undefined && now - Math.max(attempt.progress.at, attempt.submittedAt) >= minutes * 60_000
+		attempt.status === "running"
+		&& attempt.progress !== undefined
+		&& now - Math.max(attempt.progress.at, attempt.submittedAt, subscribedAt) >= minutes * 60_000
 	);
 }
