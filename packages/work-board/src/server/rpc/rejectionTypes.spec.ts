@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Tracer } from "effect";
 import { expect } from "vitest";
-import { Forbidden, InternalServerError, NotFound } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden, InternalServerError, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
 boardStory.it(

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { ANSWER_RECORDED } from "#attention.ts";
 import type { daemonClient } from "#host/daemonClient.ts";
 import type { FleetRecord } from "#model.ts";

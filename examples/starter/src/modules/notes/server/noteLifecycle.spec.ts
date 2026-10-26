@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { app, legacyNote, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor, storedNotes }) {

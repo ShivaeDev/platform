@@ -1,6 +1,6 @@
 import { Cause, Context, ErrorReporter, Predicate, type References } from "effect";
-import { redact } from "#server/rpc-server/redact.ts";
-import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
+import { redact } from "#redact.ts";
+import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#sensitive.ts";
 
 function reporterHints(error: Error, sensitive: SensitiveKey) {
 	return {

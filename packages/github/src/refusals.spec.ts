@@ -1,6 +1,6 @@
 import { DateTime, Effect } from "effect";
 import { expect } from "vitest";
-import { RemoteHttpError } from "@shivaedev/platform/http-client/errors.ts";
+import { RemoteHttpError } from "@shivaedev/http/errors.ts";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
 import { budgetHeaders } from "#test/budgetHeaders.ts";
 import { github } from "#test/github.ts";

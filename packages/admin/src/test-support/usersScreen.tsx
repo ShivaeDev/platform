@@ -3,7 +3,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { act } from "react";
 import { bind } from "@shivaedev/contract/bind.ts";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/platform/rpc/identity.ts";
 import { type ChangeRoleInput, LastOwner } from "@shivaedev/platform/rpc/userRoles.ts";
 import { render } from "@shivaedev/react/client/testing.ts";

@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { RemoteNotFound, ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
+import { RemoteNotFound, ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
 import { GitHubPermissionDenied } from "#errors.ts";
 import { FIXTURE_TOKEN } from "#test/fixtures.ts";
 import { github } from "#test/github.ts";

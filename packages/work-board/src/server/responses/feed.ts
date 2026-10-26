@@ -1,5 +1,5 @@
 import { Clock, Effect, Schedule, Stream } from "effect";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { watchChanges } from "#server/files/changes.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";

@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { HostFixture } from "#test/fleetHost.ts";
 import { fixedMainSource, MAIN } from "#test/mainSource.ts";
 

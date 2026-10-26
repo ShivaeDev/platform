@@ -1,6 +1,6 @@
 import { Clock, DateTime, Effect, Layer, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { GitHubRateLimited } from "@shivaedev/github/errors.ts";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";

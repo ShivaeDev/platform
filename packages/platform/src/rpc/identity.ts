@@ -1,6 +1,6 @@
 import { Context, type Effect, type Option } from "effect";
 import type { Permission } from "@shivaedev/access/permission.ts";
-import type { AuthUnavailable, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import type { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 export class RequestId extends Context.Service<RequestId, string>()("@shivaedev/platform/rpc/RequestId") {}
 export interface IdentityValue {
 	readonly id: string;

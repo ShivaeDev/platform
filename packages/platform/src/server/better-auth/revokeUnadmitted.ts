@@ -1,5 +1,5 @@
 import { type Config, Effect } from "effect";
-import type { AuthUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/signInGate.ts";
 
 export interface RevokedSessions {

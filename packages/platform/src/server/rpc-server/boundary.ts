@@ -1,5 +1,5 @@
 import { Cause, Effect, Schema } from "effect";
-import { isSensitiveKey, redactText } from "./sensitive.ts";
+import { isSensitiveKey, redactText } from "@shivaedev/errors/sensitive.ts";
 export interface RpcBoundaryOptions<E> {
 	readonly message?: string;
 	readonly unexpected: (message: string) => E;

@@ -1,8 +1,8 @@
 import { Effect, Exit, Layer, Tracer } from "effect";
+import { redact } from "@shivaedev/errors/redact.ts";
+import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
+import { REDACTED, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { redactRecord } from "#server/redactingDiagnostics.ts";
-import { redact } from "#server/rpc-server/redact.ts";
-import { redactDiagnosticCause } from "#server/rpc-server/redactCause.ts";
-import { REDACTED, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
 
 function redactLinks(values: readonly Tracer.SpanLink[], sensitive: SensitiveKey) {
 	return values.map((link) => ({ ...link, attributes: redactRecord(link.attributes, sensitive) }));

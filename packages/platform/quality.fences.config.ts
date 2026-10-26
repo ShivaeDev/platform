@@ -13,7 +13,12 @@ export default [
 		.because("The rpc modules ship to browsers and reach only browser-safe code.")
 		.from(browserCode)
 		.mayNotReach(
-			anything.except(browserCode, files("packages/access/src/permission.ts"), packages("contract", "form", "react", "types"), modules("effect")),
+			anything.except(
+				browserCode,
+				files("packages/access/src/permission.ts"),
+				packages("contract", "errors", "form", "react", "types"),
+				modules("effect"),
+			),
 		)
 		.demonstratedBy({
 			illegal: ["packages/platform/src/rpc/identity.ts", external("node:fs")],

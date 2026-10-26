@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { type HttpClient, HttpClientRequest } from "effect/http";
-import { readBoundedBody } from "@shivaedev/platform/http-client/body.ts";
-import { ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
+import { readBoundedBody } from "@shivaedev/http/body.ts";
+import { ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
 import { authenticatedRequest } from "./authenticatedRequest.ts";
 import { type CachedResponse, responseCache } from "./cache.ts";
 import { GitHubTransportError } from "./errors.ts";

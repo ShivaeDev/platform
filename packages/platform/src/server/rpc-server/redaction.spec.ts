@@ -1,7 +1,7 @@
 import { inspect } from "node:util";
 import { Cause, ErrorReporter, Exit } from "effect";
 import { expect } from "vitest";
-import { redactDefect } from "#server/rpc-server/redactCause.ts";
+import { redactDefect } from "@shivaedev/errors/redactCause.ts";
 import { redaction } from "#test/rpc/redaction.ts";
 
 redaction.it("stackless ignored external errors keep their reporting policy after redaction", [], function* ({ report }) {

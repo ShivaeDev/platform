@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, Forbidden, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { releaseReceipts } from "#engine/releaseReceipts.ts";
 import type { FleetRecord } from "#model.ts";

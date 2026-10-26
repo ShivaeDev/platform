@@ -48,6 +48,8 @@
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/http": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/types": "workspace:*"

@@ -1,4 +1,4 @@
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { QuestionPreview } from "#browser/responses/schema.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";

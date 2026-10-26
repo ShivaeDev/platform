@@ -1,5 +1,5 @@
 import { Effect, Result } from "effect";
-import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { validateResult } from "#completion.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { completeReport } from "#engine/completeReport.ts";

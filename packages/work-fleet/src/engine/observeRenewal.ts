@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";

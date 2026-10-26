@@ -2,7 +2,7 @@ import { Effect, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
 import { permissionRoute } from "#server/rpc-server/permissions.ts";

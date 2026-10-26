@@ -1,5 +1,5 @@
 import { Predicate, Redacted } from "effect";
-import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
+import { isSensitiveKey, REDACTED, redactErrorStack, redactText, type SensitiveKey } from "#sensitive.ts";
 
 const MAX_DEPTH = 8;
 const MAX_ENTRIES = 50;

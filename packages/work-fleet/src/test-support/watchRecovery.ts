@@ -3,7 +3,7 @@ import { Context, Effect, Layer, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import { RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { appHost } from "@shivaedev/platform/server/appHost.ts";
 import { withLive } from "@shivaedev/test/withLive.ts";
 import { Follow, RPC_PATH } from "#host/daemonContract.ts";

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { HttpServerError, type HttpServerRequest } from "effect/http";
-import { readBoundedBody } from "./boundedBody.ts";
+import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 
 export function boundedRpcRequest(request: HttpServerRequest.HttpServerRequest): HttpServerRequest.HttpServerRequest {
 	const arrayBuffer = readBoundedBody(request).pipe(

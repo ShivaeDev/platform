@@ -1,6 +1,6 @@
 import { Cache, Clock, Context, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
-import { readBoundedJson } from "@shivaedev/platform/http-client/body.ts";
+import { readBoundedJson } from "@shivaedev/http/body.ts";
 import { type AppCredentials, appJwt } from "#appJwt.ts";
 import { GitHubAppError } from "#errors.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";

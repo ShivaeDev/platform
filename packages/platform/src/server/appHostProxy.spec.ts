@@ -1,6 +1,6 @@
 import { Result } from "effect";
 import { expect } from "vitest";
-import { AuthUnavailable, Conflict, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable, Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { postgresFeature } from "#test/app-host/database.ts";
 import { forwarded } from "#test/app-host/options.ts";
 import { configuration, environment, host } from "#test/app-host/story.ts";

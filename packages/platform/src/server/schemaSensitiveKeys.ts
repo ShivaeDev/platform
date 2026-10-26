@@ -1,6 +1,6 @@
 import { Predicate, type Schema, type SchemaAST } from "effect";
 import { Rpc, type RpcGroup } from "effect/rpc";
-import { isSensitiveKey } from "#server/rpc-server/sensitive.ts";
+import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
 
 function children(ast: SchemaAST.AST): readonly SchemaAST.AST[] {
 	switch (ast._tag) {

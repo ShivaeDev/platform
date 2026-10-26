@@ -1,8 +1,8 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { HttpClient, type HttpClientResponse } from "effect/http";
-import { readBoundedText } from "@shivaedev/platform/http-client/body.ts";
-import { filterStatus } from "@shivaedev/platform/http-client/filterStatus.ts";
-import { parseRetryAfter } from "@shivaedev/platform/http-client/parseRetryAfter.ts";
+import { readBoundedText } from "@shivaedev/http/body.ts";
+import { filterStatus } from "@shivaedev/http/filterStatus.ts";
+import { parseRetryAfter } from "@shivaedev/http/parseRetryAfter.ts";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
 
 export function isUnauthorized(response: HttpClientResponse.HttpClientResponse) {

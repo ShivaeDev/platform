@@ -1,9 +1,9 @@
 import { Effect, Layer } from "effect";
 import type { OtlpResource, OtlpTracer } from "effect/observability";
 import { OtlpSerialization } from "effect/observability";
+import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { RedactionPolicy } from "#server/RedactionPolicy.ts";
 import { redactOtlpUrl } from "#server/redactOtlpUrl.ts";
-import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
 
 function otlpSensitive(sensitive: SensitiveKey): SensitiveKey {
 	return (key) => sensitive(key) || ["db.user", "db.user.name", "db.connection_string"].includes(key.toLowerCase());

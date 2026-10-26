@@ -1,5 +1,5 @@
 import { Cause, Effect } from "effect";
-import { BadRequest, Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
 import { failureMessage } from "#engine/failureMessage.ts";
 import { dispatchApproved } from "#host/admission.ts";

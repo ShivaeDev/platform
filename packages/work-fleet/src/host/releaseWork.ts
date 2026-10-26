@@ -1,6 +1,6 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer } from "effect";
-import { Conflict, Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { Fleet } from "#fleet.ts";

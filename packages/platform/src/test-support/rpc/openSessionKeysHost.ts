@@ -3,8 +3,8 @@ import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effe
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator } from "effect/sql";
-import { Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { Identity } from "#rpc/identity.ts";

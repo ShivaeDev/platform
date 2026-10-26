@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { ResponseBodyTooLarge } from "@shivaedev/platform/http-client/errors.ts";
+import { ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
 import { invalidResponse, jsonResponses, seventeenMiB, unfinishedResponse } from "#test/jsonResponses.ts";
 
 for (const operation of ["read", "list", "write"] as const) {

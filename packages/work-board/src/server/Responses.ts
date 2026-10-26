@@ -1,5 +1,5 @@
 import { Clock, Effect, Fiber, FiberSet, FileSystem, Path, Schema, Semaphore } from "effect";
-import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, Forbidden, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { AnswerInput, DraftInput, RecordedResponse } from "#browser/responses/schema.ts";

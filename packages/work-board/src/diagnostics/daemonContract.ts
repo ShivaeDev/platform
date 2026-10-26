@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { CodexLimits, GithubLimits } from "#browser/diagnostics/schema.ts";
 import { FleetItems } from "./fleetItems.ts";
 import { FleetHealth } from "./health.ts";

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { applyResolution } from "#engine/applyResolution.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";

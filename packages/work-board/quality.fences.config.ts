@@ -27,7 +27,7 @@ export default [
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
-				packages("contract", "form", "react", "types"),
+				packages("contract", "errors", "form", "react", "types"),
 				modules(
 					"effect",
 					"react",
@@ -58,7 +58,7 @@ export default [
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
-				packages("contract", "form", "types"),
+				packages("contract", "errors", "form", "types"),
 				modules("effect"),
 				modules("react"),
 			),

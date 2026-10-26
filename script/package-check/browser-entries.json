@@ -1,5 +1,5 @@
 {
 	"access": ["./permission.ts", "./role.ts", "./roleSet.ts"],
-	"contract": ["./errors/rejectedField.ts", "./errors/taxonomy.ts"],
+	"errors": ["./redact.ts", "./redactCause.ts", "./rejectedField.ts", "./sensitive.ts", "./taxonomy.ts"],
 	"platform": ["./rpc/identity.ts", "./rpc/middleware.ts"]
 }

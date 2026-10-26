@@ -235,6 +235,6 @@ const publishReport = report.pipe(
 );
 ```
 
-Other HTTP status failures use platform's typed `RemoteNotFound`, `RemoteUnauthorized` and other errors from `@shivaedev/platform/http-client/errors.ts`. An oversized body fails with `ResponseBodyTooLarge`; invalid response data fails with `Schema.SchemaError`. Transport failures use `GitHubTransportError`, which contains only the request path.
+Other HTTP status failures use platform's typed `RemoteNotFound`, `RemoteUnauthorized` and other errors from `@shivaedev/http/errors.ts`. An oversized body fails with `ResponseBodyTooLarge`; invalid response data fails with `Schema.SchemaError`. Transport failures use `GitHubTransportError`, which contains only the request path.
 
 Install with `pnpm add @shivaedev/github effect`. Choose and provide an Effect HTTP client appropriate to your runtime. Scheduling, retries beyond the single installation-token refresh, and application policy stay with the caller.

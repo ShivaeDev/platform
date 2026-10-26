@@ -4,7 +4,7 @@ import { Context, Effect, Exit, Layer, Scope, Stream } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
-import type { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { DAEMON_RPC_PATH, DaemonReadContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 

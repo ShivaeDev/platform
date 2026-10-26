@@ -1,6 +1,6 @@
 import { inspect } from "node:util";
 import { expect, it } from "vitest";
-import { redact } from "#server/rpc-server/redact.ts";
+import { redact } from "#redact.ts";
 
 it("credential-shaped keys are redacted whatever their casing or separator", () => {
 	const keys = [

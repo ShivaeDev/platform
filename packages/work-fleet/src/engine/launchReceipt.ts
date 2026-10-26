@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
 
 export const launchReceipt = Effect.fn("Fleet.launchReceipt")(function* (record: FleetRecord, role: "worker" | "repair") {

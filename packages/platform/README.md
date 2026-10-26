@@ -27,7 +27,7 @@ const Handlers = Account.toLayer({
 
 There are three parts to a native RPC boundary:
 
-1. **The shared contract** names Schema errors and middleware tags. The browser imports these declarations too, so `contract/errors/` and Platform's `rpc/` contain browser-safe data and services.
+1. **The shared contract** names Schema errors and middleware tags. The browser imports these declarations too, so `@shivaedev/errors` and Platform's `rpc/` contain browser-safe data and services.
 2. **The server composition** implements the tags with Layers from `rpc-server/`. A session provider resolves a session; an Origin policy decides whether its request may reach that provider; tracing supplies a request id and diagnostic context.
 3. **The feature handler** reads `Identity`, `OptionalIdentity` or `RequestId` and runs application code. Authentication supplies a user id. Authorization still decides whether that user may perform this operation.
 
@@ -73,20 +73,7 @@ The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABAS
 
 RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byte count or override it with `config.maxBodySize`, a nonnegative safe integer. An oversized NDJSON body, fixed-length or chunked, returns a 4xx before any RPC handler runs. This limit applies to the host's RPC route.
 
-For a native Node HTTP route, use `readBoundedBody` from `@shivaedev/platform/server/boundedBody.ts` with Effect's `HttpIncomingMessage.MaxBodySize`. It returns an `ArrayBuffer` without decoding the bytes. Oversized `content-length` headers are rejected before reading; chunked overflow drains the remaining body and preserves the connection for another request. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413; other read errors remain native `HttpServerError` failures. Consume the body once through this reader and decode the result in the application.
-
-```ts
-import { ByteSize, Effect } from "effect";
-import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http";
-import { readBoundedBody } from "@shivaedev/platform/server/boundedBody.ts";
-
-const routes = HttpRouter.add("POST", "/webhook", (request) =>
-  readBoundedBody(request).pipe(
-    Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
-    Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(64 * 1024)),
-  ),
-);
-```
+For a native Node HTTP route outside RPC, read the request body with `readBoundedBody` from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme), which rejects oversized bodies with a typed 413 failure.
 
 RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
@@ -269,7 +256,7 @@ Declare the RPC group in a shared module:
 ```ts
 import { Effect, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated } from "@shivaedev/platform/rpc/middleware.ts";
 
@@ -357,7 +344,7 @@ Pass Better Auth's account lookup as the second argument to `betterAuthSessions`
 ```ts
 import { SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/platform/rpc/middleware.ts";
-import { AuthUnavailable, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
 
 const sessions = {
@@ -505,7 +492,7 @@ At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections an
 
 ```ts
 import { Schema } from "effect";
-import { Conflict, InternalServerError } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError]);
@@ -550,36 +537,13 @@ The policy matches field names, not arbitrary occurrences of their values in pro
 
 For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` returns a key predicate with `maskFailure(tag: string | undefined, reason: "Fail" | "Die")`. Pass both to `redactingRpcSerialization(wire, sensitive, sensitive.maskFailure)`. The serializer correlates request tags and response IDs, including batches, before masking a whole error or defect root. Unassociated defects use the conservative policy across the host's defect schemas.
 
-`redactWire(value, sensitive?)` applies the same sensitive-key and credential masking without diagnostic summaries or truncation. `redactText(text, sensitive, maxLength?)` keeps its default 2,048-character diagnostic limit; passing `Infinity` keeps complete public text.
+The masking primitives, `redact`, `redactWire`, `redactText`, `redactCause` and `isSensitiveKey`, live in [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme).
 
-For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` accepts a key predicate; `isSensitiveKey` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
+For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` accepts a key predicate; `isSensitiveKey` from `@shivaedev/errors/sensitive.ts` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` from `@shivaedev/errors/redactCause.ts` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
 
 ### Calling outside APIs
 
-Use Effect's HTTP client with `filterStatus`, `paginate` and the bounded body readers:
-
-```ts
-import { Effect, Schema, Stream } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
-import { readBoundedJson } from "@shivaedev/platform/http-client/body.ts";
-import { filterStatus } from "@shivaedev/platform/http-client/filterStatus.ts";
-import { paginate } from "@shivaedev/platform/http-client/paginate.ts";
-
-const items = Effect.gen(function* () {
-  const client = filterStatus(yield* HttpClient.HttpClient);
-  return yield* paginate(client, HttpClientRequest.get("https://api.example/items")).pipe(
-    Stream.mapEffect((response) => readBoundedJson(response, 64 * 1024, Schema.Array(Schema.String))),
-    Stream.runCollect,
-    Effect.map((pages) => pages.flat()),
-  );
-});
-```
-
-Provide a native client Layer such as `FetchHttpClient.layer` from `effect/http`. `filterStatus` passes 2xx responses through and fails other statuses with Schema tagged errors from `http-client/errors.ts`: `RemoteUnauthorized` (401), `RemoteNotFound` (404), `RemoteGone` (410), `RemoteRateLimited` (429, or 503 carrying `Retry-After`) and `RemoteHttpError` for other statuses. Errors carry the method, URL without its query string and status, without headers or body. `RemoteRateLimited.retryAfter` is an optional UTC `DateTime`: delay-seconds use Effect's clock, and HTTP dates name the instant directly. Missing or invalid values leave it undefined.
-
-`paginate` follows quoted or unquoted `rel=next`, including headers with multiple links and relations, resolves relative links and stops at the last page. Taking one page sends one request. A next link on another origin fails with `PaginationLinkError` before that request is sent.
-
-`readBoundedBody(response, limit)` returns bytes; `readBoundedText` decodes UTF-8, and `readBoundedJson(response, limit, schema)` decodes JSON through the supplied Schema. Limits are bytes. An oversized `Content-Length` fails with `ResponseBodyTooLarge` before reading the body; a chunked body that exceeds the limit fails during the read. The error carries `limit`.
+Use Effect's HTTP client with the status, pagination and bounded body helpers of [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme).
 
 ### Promise callers: one application runtime
 
@@ -816,7 +780,6 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/rpc-server/transportHeaders.ts` | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision. |
 | `server/rpc-server/boundary.ts` | `rpcBoundary(schema, { unexpected, message? })`: declared failures pass through, unexpected failures become one declared rejection. |
 | `server/rpc-server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`. |
-| `server/rpc-server/redact.ts`, `server/rpc-server/redactCause.ts`, `server/rpc-server/sensitive.ts` | `redact`, `redactCause`, `redactDiagnosticCause`, `redactDefect`, `redactingErrorReporter`, `isSensitiveKey`, `redactText`: diagnostic redaction. |
 | `server/schemaSensitiveKeys.ts`, `server/RedactionPolicy.ts` | `schemaSensitiveKeys(group, extraKeys?)`, `RedactionPolicy`: derive and provide an app's diagnostic key predicate. |
 | `server/redactingDiagnostics.ts`, `server/redactingTracer.ts`, `server/redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
 | `server/runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
@@ -840,7 +803,7 @@ Role writes require an owner `SessionUser`, serialize role changes in a transact
 pnpm add @shivaedev/platform effect@4.0.5
 ```
 
-Effect is the only required peer. The peer-free implementation lives in the shared `rpc/` folder and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `rpc/` modules and the error schemas from `@shivaedev/contract/errors/taxonomy.ts`.
+Effect is the only required peer. The peer-free implementation lives in the shared `rpc/` folder and the `server/node-http/`, `server/rpc-server/` and `server/runtime/` folders; a module's import path is its path under `src/`. The core RPC declarations, server middleware, runtime and Node HTTP modules can be imported without the optional peers, including the Promise-based `betterAuthSessions` function. The runtime uses Node's `AsyncLocalStorage`; browser consumers import the shared `rpc/` modules and the error schemas from `@shivaedev/errors/taxonomy.ts`.
 
 Install the optional peers for the selected integration:
 

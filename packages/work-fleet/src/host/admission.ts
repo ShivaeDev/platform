@@ -1,5 +1,5 @@
 import { Effect, FileSystem, Schema } from "effect";
-import { BadRequest, Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { boardDocuments, boardSnapshot } from "#board/documents.ts";
 import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
 import { inBoardReadPass, workMetadata } from "#board/readPass.ts";

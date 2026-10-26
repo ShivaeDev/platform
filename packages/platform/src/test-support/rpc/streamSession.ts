@@ -3,7 +3,7 @@ import { testUtils } from "better-auth/plugins";
 import { type Duration, Effect, Fiber, Layer, Option, Queue, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
-import { AuthUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, OptionalIdentity, SessionUser, SessionUserWithProviderAccounts } from "@shivaedev/platform/rpc/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "@shivaedev/platform/rpc/middleware.ts";
 import { signedInUser } from "@shivaedev/platform/server/better-auth/testing.ts";

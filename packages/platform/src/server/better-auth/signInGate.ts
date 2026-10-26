@@ -1,7 +1,7 @@
 import { Cache, type Config, Duration, Effect, Exit } from "effect";
-import { AuthUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { redact } from "@shivaedev/errors/redact.ts";
+import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#rpc/identity.ts";
-import { redact } from "#server/rpc-server/redact.ts";
 
 export interface SignInPolicy<E = never, R = never> {
 	readonly accounts?: Config.Config<readonly ProviderAccountValue[]> | undefined;

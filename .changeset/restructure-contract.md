@@ -4,4 +4,5 @@
 
 ### Breaking
 
-- Rename `@shivaedev/effect-contract` to `@shivaedev/contract`. Change dependency declarations and imports from `@shivaedev/effect-contract/...` to `@shivaedev/contract/...`; module paths inside the package are unchanged.
+- Rename `@shivaedev/effect-contract` to `@shivaedev/contract`. Change dependency declarations and imports from `@shivaedev/effect-contract/...` to `@shivaedev/contract/...`.
+- Move `errors/taxonomy.ts` and `errors/rejectedField.ts` to `@shivaedev/errors`. Import the failure classes from `@shivaedev/errors/taxonomy.ts` and `rejectedField` from `@shivaedev/errors/rejectedField.ts`.

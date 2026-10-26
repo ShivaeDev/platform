@@ -49,6 +49,7 @@
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/react": "workspace:*"

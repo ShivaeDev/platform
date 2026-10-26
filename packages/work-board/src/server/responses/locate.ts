@@ -1,5 +1,5 @@
 import { Effect, type FileSystem } from "effect";
-import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { BadRequest, NotFound, PreconditionFailed, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
 import { currentDocument } from "#server/currentDocument.ts";

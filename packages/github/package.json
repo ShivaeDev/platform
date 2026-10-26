@@ -48,8 +48,8 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/contract": "workspace:*",
-		"@shivaedev/platform": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/http": "workspace:*",
 		"@shivaedev/service": "workspace:*"
 	},
 	"devDependencies": {

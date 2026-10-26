@@ -5,7 +5,7 @@ import { Duration, Effect, Exit, Layer, Scope } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Migrator } from "effect/sql";
-import { AuthUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#server/appHost.ts";

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict, Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { EngineState } from "#engine/makeState.ts";

@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Stream, Tracer } from "effect";
 import { expect, vi } from "vitest";
-import { InternalServerError } from "@shivaedev/contract/errors/taxonomy.ts";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { waitFor } from "#test/live.ts";
 import * as hints from "./hints.ts";

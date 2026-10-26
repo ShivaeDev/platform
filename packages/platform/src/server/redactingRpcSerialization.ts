@@ -1,7 +1,7 @@
 import { Predicate } from "effect";
 import type { RpcSerialization } from "effect/rpc";
-import { redactWire } from "#server/rpc-server/redact.ts";
-import { REDACTED, type SensitiveKey } from "#server/rpc-server/sensitive.ts";
+import { redactWire } from "@shivaedev/errors/redact.ts";
+import { REDACTED, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 
 function isRequestId(value: unknown): value is string | number {
 	return typeof value === "string" || typeof value === "number";

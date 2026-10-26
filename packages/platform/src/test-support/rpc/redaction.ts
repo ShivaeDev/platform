@@ -1,9 +1,9 @@
 import { Cause, Effect, ErrorReporter, Layer } from "effect";
 import { Headers } from "effect/http";
 import { RpcTest } from "effect/rpc";
+import { redactingErrorReporter } from "@shivaedev/errors/redactCause.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
-import { redactingErrorReporter } from "#server/rpc-server/redactCause.ts";
 import { requestTracingLayer } from "#server/rpc-server/tracing.ts";
 import { Crashes, Handlers } from "./defectFixture.ts";
 import { recorder } from "./harness.ts";

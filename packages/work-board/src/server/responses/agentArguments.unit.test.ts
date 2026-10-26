@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { it } from "@shivaedev/test/it.ts";
 import { agentArguments, agentUrl } from "./agentArguments.ts";
 

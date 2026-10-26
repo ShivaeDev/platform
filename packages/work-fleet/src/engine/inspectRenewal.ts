@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { validateResult } from "#completion.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { observeRenewal, priorBoardWork } from "#engine/observeRenewal.ts";

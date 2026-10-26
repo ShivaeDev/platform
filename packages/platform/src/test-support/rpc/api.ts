@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcClient, type RpcClientError, RpcGroup } from "effect/rpc";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, OptionalIdentity, RequestId } from "#rpc/identity.ts";
 import { Authenticated, MaybeAuthenticated, RequestTracing } from "#rpc/middleware.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";

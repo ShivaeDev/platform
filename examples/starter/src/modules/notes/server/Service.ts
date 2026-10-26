@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { Create, type Delete, Update } from "#modules/notes/notes.ts";

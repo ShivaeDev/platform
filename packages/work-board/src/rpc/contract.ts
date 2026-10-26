@@ -1,8 +1,8 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { InternalServerError, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { query, stream } from "@shivaedev/contract/operation.ts";
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { RequestTracing } from "@shivaedev/platform/rpc/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/Navigation.ts";

@@ -1,8 +1,8 @@
 import type { BetterAuthOptions, ValidateUserInfoResult, ValidateUserInfoSource } from "better-auth";
 import { APIError } from "better-auth/api";
 import { Effect, Exit } from "effect";
+import { redact } from "@shivaedev/errors/redact.ts";
 import { fromStorage, type PolicyStorage, type SignInGate } from "#server/better-auth/signInGate.ts";
-import { redact } from "#server/rpc-server/redact.ts";
 
 type SessionCreateBefore = NonNullable<NonNullable<NonNullable<NonNullable<BetterAuthOptions["databaseHooks"]>["session"]>["create"]>["before"]>;
 type ValidateUserInfo = NonNullable<NonNullable<BetterAuthOptions["user"]>["validateUserInfo"]>;

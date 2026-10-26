@@ -2,7 +2,7 @@ import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { RpcClientError } from "effect/rpc/RpcClientError";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { isFleetError } from "#errors.ts";
 import { DaemonContract, RPC_PATH } from "#host/daemonContract.ts";

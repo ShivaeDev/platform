@@ -1,6 +1,6 @@
 import { type FileHandle, lstat, realpath } from "node:fs/promises";
 import process from "node:process";
-import { Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { PublicationUncertain } from "#rpc/rejections.ts";
 
 export function directoryPath(directory: FileHandle, expected: string): string {

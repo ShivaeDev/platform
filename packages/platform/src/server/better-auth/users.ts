@@ -1,6 +1,6 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { AuthUnavailable, NotFound } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { SessionUser } from "#rpc/identity.ts";
 import { requirePermission } from "#rpc/permission.ts";

@@ -1,5 +1,5 @@
 import { Effect, Option } from "effect";
-import { BadRequest } from "@shivaedev/contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { reportedRevision } from "#host/reportRevision.ts";
 import type { FleetRecord } from "#model.ts";

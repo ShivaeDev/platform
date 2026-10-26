@@ -8,3 +8,6 @@
 - Remove `@shivaedev/effect-changes-prisma`, the Prisma Classic change recorder. Applications on Prisma stay on its last published version; the native path is `@shivaedev/changes` bound through `@shivaedev/sql`.
 - Remove `@shivaedev/effect-trpc`, the tRPC integration. Applications on tRPC stay on its last published version; the native path is Effect RPC declared through `@shivaedev/contract`.
 - Remove Platform's Prisma and tRPC adapters: `server/better-auth/adapter.ts` (`effectPrismaAdapter`) and `server/testing/makePlatformIt.ts` with its types. Better Auth runs on its own `pg` pool through `server/better-auth/mount.ts`, and tests use `@shivaedev/test-story` kits.
+- Move `http-client/*` to `@shivaedev/http`: import `body.ts`, `errors.ts`, `filterStatus.ts`, `nextLink.ts`, `paginate.ts` and `parseRetryAfter.ts` from `@shivaedev/http/...`.
+- Move `server/boundedBody.ts` to `@shivaedev/http/server/boundedBody.ts`.
+- Move `server/rpc-server/sensitive.ts`, `server/rpc-server/redact.ts` and `server/rpc-server/redactCause.ts` to `@shivaedev/errors/sensitive.ts`, `@shivaedev/errors/redact.ts` and `@shivaedev/errors/redactCause.ts`.

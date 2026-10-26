@@ -2,7 +2,7 @@ import { Effect, type Layer, Option, Schema } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import { AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthSessions } from "#server/rpc-server/adapters/betterAuthSessions.ts";
 import { permissionLayer } from "#server/rpc-server/permissions.ts";
 import { authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer } from "#server/rpc-server/session.ts";

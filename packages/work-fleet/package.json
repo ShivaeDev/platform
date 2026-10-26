@@ -51,6 +51,7 @@
 	"dependencies": {
 		"@effect/sql-pg": "catalog:",
 		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/github": "workspace:*",
 		"@shivaedev/platform": "workspace:*",
 		"@shivaedev/pr-watch": "workspace:*",

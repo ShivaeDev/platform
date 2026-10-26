@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { Diagnostics } from "#diagnostics/source.ts";
 import { HandoffsService } from "#server/handoffs/Service.ts";
 import { identityUrl } from "#server/metadata/links.ts";

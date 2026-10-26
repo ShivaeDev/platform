@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { eventually } from "@shivaedev/react/client/testing.ts";
 import { notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 

@@ -1,6 +1,6 @@
 import { execFile } from "node:child_process";
 import { Clock, Context, Effect, Layer, Schedule, Semaphore } from "effect";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";

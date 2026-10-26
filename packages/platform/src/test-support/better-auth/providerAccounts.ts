@@ -1,7 +1,7 @@
 import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
-import { AuthUnavailable, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUserWithProviderAccounts } from "#rpc/identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "#rpc/middleware.ts";
 

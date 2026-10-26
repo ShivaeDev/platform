@@ -1,8 +1,8 @@
 import { Effect, Schema } from "effect";
 import { HttpServerRequest } from "effect/http";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { Forbidden } from "@shivaedev/contract/errors/taxonomy.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "#rpc/identity.ts";
 import { AuthenticatedUser } from "#rpc/middleware.ts";
 

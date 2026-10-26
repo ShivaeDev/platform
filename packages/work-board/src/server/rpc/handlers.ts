@@ -1,5 +1,5 @@
 import { Clock, Effect, Layer, Ref, Stream } from "effect";
-import { InternalServerError, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
 import { requestTracingLayer } from "@shivaedev/platform/server/rpc-server/tracing.ts";
 import { laneRows, openLaneCount } from "#browser/views/nowLanes.ts";

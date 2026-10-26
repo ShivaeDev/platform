@@ -1,9 +1,9 @@
 import { Effect, Option } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import { redact } from "@shivaedev/errors/redact.ts";
 import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/bearerSessions.ts";
 import { trustedProxyPeer } from "#server/rpc-server/local.ts";
-import { redact } from "#server/rpc-server/redact.ts";
 import { sessionPermissions } from "./sessionPermissions.ts";
 
 interface MountedAuth {

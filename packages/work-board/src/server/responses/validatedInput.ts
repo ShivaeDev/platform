@@ -1,4 +1,4 @@
-import { Conflict } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { answerBody } from "#browser/responses/answerBody.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { DraftInput, PromptAnswer } from "#browser/responses/schema.ts";

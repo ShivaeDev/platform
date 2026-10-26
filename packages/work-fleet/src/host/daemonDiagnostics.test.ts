@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { fleetDaemon } from "#test/daemonStory.ts";
 
 fleetDaemon.it("Fleet store failures reach HTTP RPC clients as ServiceUnavailable", [], function* (daemon) {

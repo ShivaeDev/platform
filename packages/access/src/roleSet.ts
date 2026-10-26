@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { Forbidden, Unauthorized } from "@shivaedev/contract/errors/taxonomy.ts";
+import { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { OwnPermission, Permission } from "#permission.ts";
 import type { Role as RoleDefinition } from "#role.ts";
 

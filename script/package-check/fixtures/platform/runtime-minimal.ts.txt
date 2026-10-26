@@ -1,4 +1,4 @@
-import { InternalServerError, ServiceUnavailable } from "@shivaedev/contract/errors/taxonomy.ts"
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts"
 import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts"
 import { nodeSubscriptionSignal } from "@shivaedev/platform/server/node-http/subscriptionSignal.ts"
 import { Identity } from "@shivaedev/platform/rpc/identity.ts"

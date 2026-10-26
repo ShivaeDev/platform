@@ -2,9 +2,9 @@ import { Effect, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { readBoundedBody, readBoundedJson, readBoundedText } from "#http-client/body.ts";
-import { filterStatus } from "#http-client/filterStatus.ts";
-import { paginate } from "#http-client/paginate.ts";
+import { readBoundedBody, readBoundedJson, readBoundedText } from "#body.ts";
+import { filterStatus } from "#filterStatus.ts";
+import { paginate } from "#paginate.ts";
 
 const Items = Schema.Array(Schema.String);
 

@@ -1,5 +1,6 @@
-import { Effect, Stream } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
+import { Effect } from "effect";
+import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { readBoundedBody } from "@shivaedev/http/body.ts";
 import { authenticatedRequest } from "./authenticatedRequest.ts";
 import { GitHubArtifactError, GitHubArtifactTooLarge, GitHubTransportError } from "./errors.ts";
 import type { GitHubToken } from "./GitHubToken.ts";
@@ -44,32 +45,13 @@ export function artifacts(
 					if (response.status < 200 || response.status >= 300) {
 						return yield* new GitHubArtifactError({ stage: "download", status: response.status });
 					}
-					return yield* readArchive(response, options.byteLimit).pipe(
-						Effect.catchTag("HttpClientError", () => Effect.fail(new GitHubTransportError({ path }))),
+					return yield* readBoundedBody(response, options.byteLimit).pipe(
+						Effect.catchTags({
+							HttpClientError: () => Effect.fail(new GitHubTransportError({ path })),
+							ResponseBodyTooLarge: ({ limit }) => Effect.fail(new GitHubArtifactTooLarge({ limit })),
+						}),
 					);
 				}),
 			),
 	};
 }
-
-const readArchive = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, limit: number) {
-	const chunks: Uint8Array[] = [];
-	let size = 0;
-	yield* response.stream.pipe(
-		Stream.runForEach((chunk) => {
-			size += chunk.byteLength;
-			if (size > limit) {
-				return Effect.fail(new GitHubArtifactTooLarge({ limit }));
-			}
-			chunks.push(chunk);
-			return Effect.void;
-		}),
-	);
-	const bytes = new Uint8Array(size);
-	let offset = 0;
-	for (const chunk of chunks) {
-		bytes.set(chunk, offset);
-		offset += chunk.byteLength;
-	}
-	return bytes;
-});
