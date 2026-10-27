@@ -6,7 +6,8 @@ import { writeFlakyTests } from "#flakyTests.ts";
 import { RerunJunitReporter } from "#internal/junit.ts";
 import { mergeAttempt } from "#internal/mergeAttempt.ts";
 import { attemptPaths, reportPaths } from "#internal/reportPaths.ts";
-import { failedFiles, readSnapshot, type Snapshot, saveSnapshot, tests } from "#internal/snapshot.ts";
+import { failedFiles, readSnapshot, type Snapshot, saveSnapshot } from "#internal/snapshot.ts";
+import { rerunTestIds } from "#internal/suiteFailures.ts";
 import { TimedJsonReporter } from "#internal/TimedJsonReporter.ts";
 
 export interface Attempt {
@@ -48,8 +49,7 @@ const failedSpecifications = Effect.fn("VitestRerun.failedSpecifications")(funct
 		if (file === undefined) {
 			return [];
 		}
-		const runnable = tests(file.tasks).filter((test) => !["pass", "skip", "todo"].includes(test.result?.state ?? test.mode));
-		return [spec.project.createSpecification(spec.moduleId, file.tasks.length === 0 ? {} : { testIds: runnable.map((test) => test.id) }, spec.pool)];
+		return [spec.project.createSpecification(spec.moduleId, file.tasks.length === 0 ? {} : { testIds: rerunTestIds(file) }, spec.pool)];
 	});
 });
 

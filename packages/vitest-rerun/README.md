@@ -30,7 +30,7 @@ The final JUnit and JSON reports still describe the whole run, so CI, coverage a
 
 ### How a run works
 
-`vitest-rerun` runs `vitest run` once in a child process with Vitest's own retries turned off. If tests failed, it starts a new process that runs only the failed tests: tests that passed are skipped by their Vitest test IDs, including passing tests in a failed file. A file that failed to load runs again in full. Each rerun is one more attempt, and only tests still failing take part in the next one. The run ends when every test passes or the reruns are used up, and its exit code is the last attempt's: `0` when everything passed, `1` when a test is still failing, and `2` for invalid options.
+`vitest-rerun` runs `vitest run` once in a child process with Vitest's own retries turned off. If tests failed, it starts a new process that runs only the failed tests: tests that passed are skipped by their Vitest test IDs, including passing tests in a failed file. A failed suite hook reruns the tests in its suite, including those that already passed, so the hook has a fresh outcome. A file-level hook failure or a file that failed to load runs the file again in full. Each rerun is one more attempt, and only tests still failing take part in the next one. The run ends when every test passes or the reruns are used up, and its exit code is the last attempt's: `0` when everything passed, `1` when a test is still failing, and `2` for invalid options.
 
 An unhandled error, such as an exception thrown after a test finished, cannot be fixed by running a test again, so a run with one is not rerun and fails.
 
@@ -50,24 +50,24 @@ A run first deletes the reports of an earlier run in its output directory, then 
 | --- | --- |
 | `tests.json` | Vitest's JSON report for the whole run, with each test's final result and a `durationMs` per file that adds up every attempt. |
 | `tests.junit.xml` | The JUnit report for the whole run, written with `addFileAttribute`. |
-| `flaky-tests.json` | Written only when a test failed and then passed on a rerun. |
+| `flaky-tests.json` | Written when a test, suite hook or file load failed and then recovered on a rerun. |
 | `tests.attempt-<n>.json`, `tests.attempt-<n>.junit.xml` | The raw reports of each attempt, kept once a rerun happens. |
 
-Coverage, when enabled, merges every attempt into the configured reports directory, so tests that passed the first time keep their coverage and rerun coverage adds to it. Reruns use their own Vite cache in `<output-dir>/vite-rerun`, so the first attempt's results cache, which Vitest uses to order test files, stays intact. Each recovered test also prints a `- Flaky:` line, which is appended to the GitHub Actions job summary when `GITHUB_STEP_SUMMARY` is set; a file that failed to load and then passed is reported there as a collection failure.
+Coverage, when enabled, merges every attempt into the configured reports directory, so tests that passed the first time keep their coverage and rerun coverage adds to it. Reruns use their own Vite cache in `<output-dir>/vite-rerun`, so the first attempt's results cache, which Vitest uses to order test files, stays intact. Each recovered test, suite hook or file load also prints a `- Flaky:` line, which is appended to the GitHub Actions job summary when `GITHUB_STEP_SUMMARY` is set; a file that failed to load and then passed is reported there as a collection failure.
 
 ### flaky-tests.json
 
-The file holds one entry per test that passed only on a rerun:
+The file holds one entry per test, suite hook or file load that recovered on a rerun:
 
 | Field | Value |
 | --- | --- |
-| `classname` | The JUnit `classname` of the test's `testcase`, exactly as in `tests.junit.xml`. |
-| `name` | The JUnit `name` of the test's `testcase`: its describe blocks and title joined by ` > `. |
+| `classname` | The file's JUnit `classname`, exactly as in `tests.junit.xml`. |
+| `name` | For a test, its JUnit `name`: describe blocks and title joined by ` > `. For a suite hook, the suite path followed by ` (suite hook)`, or the file path for a file-level hook. For a file load, `file failed to load`. |
 | `file` | The test file's path relative to the Vitest root, the same as the JUnit `file` attribute. |
-| `attempts` | How many attempts the test took, counting the one that passed. |
+| `attempts` | How many attempts the failure took to recover, counting the one that passed. |
 | `messages` | The error message of each failed attempt, in order. |
 
-The JUnit `classname` is the file's path relative to the Vitest root. When the test runs in a named Vitest project, the project comes first, as in `|unit| src/checkout.test.ts`, so a file that runs in two projects has a distinct `classname` in each. A file that failed to load has no test to name, so it appears only in the job summary.
+The JUnit `classname` is the file's path relative to the Vitest root. When the test runs in a named Vitest project, the project comes first, as in `|unit| src/checkout.test.ts`, so a file that runs in two projects has a distinct `classname` in each. Suite-hook and file-load entries use the same fields as tests, with the file's JUnit classname and a name that identifies the failure.
 
 Read the file with the `FlakyTests` schema from `@shivaedev/vitest-rerun/flakyTests.ts`:
 

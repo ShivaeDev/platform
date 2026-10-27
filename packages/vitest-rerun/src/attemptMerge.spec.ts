@@ -49,11 +49,13 @@ rerunStory.it("a failed test that the next attempt skips stays failed and is not
 	expect(merged.failures).toStrictEqual({});
 });
 
-rerunStory.it("a file that only failed to load is recovered in the summary, not as a flaky test", [collectionFailsOnce()], function* ({ attempts }) {
+rerunStory.it("a file that only failed to load is recorded when it recovers", [collectionFailsOnce()], function* ({ attempts }) {
 	const first = yield* attempts.record();
 	const merged = attempts.merge(first, yield* attempts.record());
 	expect(attempts.states(merged)).toMatchObject({ "collected.spec.ts": "pass" });
-	expect(merged.flaky).toStrictEqual([]);
+	expect(merged.flaky).toStrictEqual([
+		{ attempts: 2, classname: "collected.spec.ts", file: "collected.spec.ts", messages: ["Collection fails once"], name: "file failed to load" },
+	]);
 	expect(merged.summary).toStrictEqual(["- Flaky: collected.spec.ts — collection failure"]);
 });
 

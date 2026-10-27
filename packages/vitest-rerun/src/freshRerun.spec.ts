@@ -36,7 +36,7 @@ rerunStory.it("an unhandled error is not rerun", [failsTimes(1), leavesUnhandled
 });
 
 rerunStory.it(
-	"a file that failed to load recovers in the rerun and is reported in the summary only",
+	"a file that failed to load recovers in the rerun and is recorded",
 	[collectionFailsOnce(), passes()],
 	function* ({ files, reports, runner }) {
 		expect((yield* runner.run()).status).toBe(0);
@@ -47,7 +47,15 @@ rerunStory.it(
 			{ name: "passes", state: "passed" },
 		]);
 		expect(reports.summary()).toContain("- Flaky: collected.spec.ts — collection failure");
-		expect(yield* reports.flakyTests()).toBeUndefined();
+		expect(yield* reports.testcases()).toContainEqual({
+			classname: "collected.spec.ts",
+			failed: false,
+			file: "collected.spec.ts",
+			name: "passes once collected",
+		});
+		expect(yield* reports.flakyTests()).toStrictEqual([
+			{ attempts: 2, classname: "collected.spec.ts", file: "collected.spec.ts", messages: ["Collection fails once"], name: "file failed to load" },
+		]);
 	},
 );
 

@@ -4,6 +4,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Snapshot } from "#internal/snapshot.ts";
+import { failingHook } from "./failingHook.ts";
 import { reportVerbs } from "./reports.ts";
 import {
 	alwaysFailing,
@@ -140,5 +141,11 @@ export function gainsTest() {
 export function losesTest() {
 	return rerunStory.trait("tests", "a later attempt misses a failed test of the first attempt", (suite) =>
 		writeFile(suite, "losing.spec.ts", losingTest),
+	);
+}
+
+export function hookFails(hook: "beforeAll" | "afterAll", times = 1, topLevel = false) {
+	return rerunStory.trait("tests", `${hook} fails ${times} times${topLevel ? " at file level" : " in a nested suite"}`, (suite) =>
+		writeFile(suite, "hooks.spec.ts", failingHook(hook, times, topLevel)),
 	);
 }
