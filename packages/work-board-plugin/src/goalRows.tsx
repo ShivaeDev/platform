@@ -8,7 +8,7 @@ import { goalOrder } from "./summary.ts";
 type Drawn = Extract<Table, { Svg: unknown }>;
 
 const BAR_HEIGHT = 6;
-const BAR_CELLS = 8;
+const BAR_CELLS = 12;
 
 export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): RenderElement {
 	const { Box, Text } = t;
@@ -86,17 +86,20 @@ function svgBar(t: Drawn, goal: WorkboardGoal): RenderElement {
 
 function textBar(t: Table, goal: WorkboardGoal): RenderElement {
 	const { Text } = t;
+	const active = states.filter((state) => goal[state] > 0);
+	const available = BAR_CELLS - active.length + 1;
 	let reached = 0;
 	let cells = 0;
 	return (
 		<Text>
-			{states.map((state) => {
+			{active.map((state, index) => {
 				reached += goal[state];
-				const end = Math.round((BAR_CELLS * reached) / goal.total);
+				const end = Math.round((available * reached) / goal.total);
 				const width = end - cells;
 				cells = end;
 				return (
 					<Text color={colors[state]} key={state}>
+						{index === 0 ? "" : " "}
 						{"▰".repeat(width)}
 					</Text>
 				);

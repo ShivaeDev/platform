@@ -1,11 +1,11 @@
 import type { WorkboardBlock, WorkboardBoard, WorkboardFlight, WorkboardGoal, WorkboardGoalRef } from "#types/index.d.ts";
-import { STAGES } from "./answers.ts";
+import { type FlightState, flightState, flightStates } from "./flightState.ts";
 
 type ReadyBoard = Extract<WorkboardBoard, { kind: "ready" }>;
 
-export interface StageCount {
+export interface FlightCount {
 	count: number;
-	stage: string;
+	state: FlightState;
 }
 
 export interface FlightGroup {
@@ -48,8 +48,10 @@ export function goalOrder(goals: readonly WorkboardGoal[]): WorkboardGoal[] {
 	return [...goals].sort((a, b) => goalRank(a) - goalRank(b) || goalShare(a) - goalShare(b));
 }
 
-export function stageCounts(flights: readonly WorkboardFlight[]): StageCount[] {
-	return STAGES.map((stage) => ({ count: flights.filter((flight) => flight.stage === stage).length, stage })).filter((entry) => entry.count > 0);
+export function flightCounts(flights: readonly WorkboardFlight[]): FlightCount[] {
+	return flightStates
+		.map((state) => ({ count: flights.filter((flight) => flightState(flight) === state).length, state }))
+		.filter((entry) => entry.count > 0);
 }
 
 export function flightGroups(flights: readonly WorkboardFlight[]): FlightGroup[] {

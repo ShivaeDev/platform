@@ -1,5 +1,6 @@
 import type { Elements, RenderElement, RenderSurface } from "claude-code";
 import type { WorkboardAsk, WorkboardBlock, WorkboardBoard } from "#types/index.d.ts";
+import { flightColors } from "./flightState.ts";
 import { flightHeading, flightRows } from "./flights.tsx";
 import { goalRows } from "./goalRows.tsx";
 import { clip, waitingLine } from "./lines.ts";
@@ -54,7 +55,9 @@ function titled<T>(t: Table, title: string, block: WorkboardBlock<T>): RenderEle
 	const { Box, Text } = t;
 	return (
 		<Box flexDirection="row" gap={1}>
-			<Text weight="semibold">{title}</Text>
+			<Text {...(title === "Needs you" ? { color: flightColors.you } : {})} weight="semibold">
+				{title}
+			</Text>
 			<Text dimColor tabular>{`(${countOf(block)})`}</Text>
 		</Box>
 	);

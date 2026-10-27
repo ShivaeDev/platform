@@ -1,21 +1,11 @@
-import type { Color, RenderElement } from "claude-code";
+import type { RenderElement } from "claude-code";
 import type { WorkboardBlock, WorkboardFlight } from "#types/index.d.ts";
+import { flightColors, flightLabels, flightReason, flightState } from "./flightState.ts";
 import { clip, formatAge, prLabel } from "./lines.ts";
 import type { Table } from "./pane.tsx";
-import { type FlightGroup, flightGroups, stageCounts } from "./summary.ts";
+import { type FlightGroup, flightCounts, flightGroups } from "./summary.ts";
 
-const STAGE_COLORS: Readonly<Record<string, Color>> = {
-	adopting: "#39c5cf",
-	executing: "#3fb950",
-	repairing: "#e3913b",
-	reviewing: "#a371f7",
-};
-const DOT = "●";
 const OTHER = "Other";
-
-function stageColor(stage: string): Color {
-	return STAGE_COLORS[stage] ?? "subtle";
-}
 
 export function flightHeading(t: Table, flights: WorkboardBlock<WorkboardFlight>): RenderElement | null {
 	if (flights.problem !== null || flights.items.length === 0) {
@@ -25,10 +15,9 @@ export function flightHeading(t: Table, flights: WorkboardBlock<WorkboardFlight>
 	return (
 		<Box columnGap={2} flexDirection="row" flexWrap="wrap">
 			<Text weight="semibold">In flight</Text>
-			{stageCounts(flights.items).map(({ stage, count }) => (
-				<Text key={`stage:${stage}`}>
-					<Text color={stageColor(stage)}>{DOT}</Text>
-					{` ${count} ${stage}`}
+			{flightCounts(flights.items).map(({ state, count }) => (
+				<Text color={flightColors[state]} key={`state:${state}`}>
+					{`${count} ${flightLabels[state]}`}
 				</Text>
 			))}
 		</Box>
@@ -56,17 +45,24 @@ function flightRow(t: Table, flight: WorkboardFlight, columns: number): RenderEl
 	const { Box, Text, Link } = t;
 	const age = formatAge(flight.inStageMs);
 	const pr = flight.prUrl === null ? null : { href: flight.prUrl, label: prLabel(flight.prUrl) };
-	const room = columns - DOT.length - age.length - 2 - (pr === null ? 0 : pr.label.length + 1);
+	const state = flightState(flight);
+	const reason = flightReason(flight);
+	const room = columns - age.length - 1 - (pr === null ? 0 : pr.label.length + 1);
 	return (
-		<Box flexDirection="row" gap={1} key={`flight:${flight.workId}`}>
-			<Text color={stageColor(flight.stage)}>{DOT}</Text>
-			<Box flexGrow={1} flexShrink={1}>
-				<Text wrap="truncate-end">{clip(flight.title, room)}</Text>
+		<Box flexDirection="column" key={`flight:${flight.workId}`}>
+			<Box flexDirection="row" gap={1}>
+				<Box flexGrow={1} flexShrink={1}>
+					<Text wrap="truncate-end">{clip(flight.title, room)}</Text>
+				</Box>
+				<Text dimColor tabular>
+					{age}
+				</Text>
+				{pr !== null && <Link href={pr.href} label={pr.label} />}
 			</Box>
-			<Text dimColor tabular>
-				{age}
+			<Text color={flightColors[state]} size="footnote" wrap="wrap">
+				{flightLabels[state]}
+				{reason === null ? "" : ` · ${reason}`}
 			</Text>
-			{pr !== null && <Link href={pr.href} label={pr.label} />}
 		</Box>
 	);
 }

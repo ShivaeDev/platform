@@ -19,11 +19,13 @@ export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<strin
 			const document = isRecord(row.document) ? row.document : {};
 			const goalId = goalIdOf(document.metadata, titles);
 			return {
+				attentionOwner: text(row.attentionOwner),
 				goal: goalId === null ? null : { id: goalId, title: titles.get(goalId) ?? goalId },
 				inStageMs: entered === null ? null : Math.max(0, now - entered),
 				prUrl: text(row.prUrl) ?? null,
 				stage: text(row.stage) ?? "unknown",
 				title: text(document.title) ?? workId,
+				waitingReason: text(row.waitingReason),
 				workId,
 			};
 		});
