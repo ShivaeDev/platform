@@ -1,3 +1,5 @@
+import { themeColor } from "./themeColor.ts";
+
 type Color = readonly [number, number, number];
 
 function hex(value: string): Color {
@@ -29,12 +31,7 @@ export function colorContrast(css: string, theme: "light" | "dark", foreground: 
 		return opacity === undefined ? literal : blend(literal, underneath === undefined ? token("background") : resolve(underneath), Number(opacity));
 	}
 	function token(tokenName: string): Color {
-		const value = css.match(new RegExp(`--${tokenName}:\\s*light-dark\\((#[a-f0-9]{6}),\\s*(#[a-f0-9]{6})\\)`, "iu"));
-		const selected = value?.[theme === "light" ? 1 : 2];
-		if (selected === undefined) {
-			throw new Error(`Missing ${theme} token ${tokenName}`);
-		}
-		return hex(selected);
+		return hex(themeColor(css, theme, tokenName));
 	}
 	const surface = resolve(background);
 	const [name = "", opacity] = foreground.split("/");
