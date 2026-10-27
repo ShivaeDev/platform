@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import type { RecordedResponse } from "@shivaedev/work-board/server/integration/responses.ts";
+import { withBoardReadPass } from "#board/readPass.ts";
 import { releaseOnly } from "#engine/decisionCopy.ts";
 import type { BoardGateway, Decision } from "#policy.ts";
 
@@ -13,7 +14,7 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	if (published === undefined) {
 		return yield* Effect.fail(new Conflict({ message: "Board decision publication must be reconciled first" }));
 	}
-	const reading = yield* board.readDecision(published);
+	const reading = yield* withBoardReadPass(board.readDecision(published), { fresh: true });
 	if (reading._tag !== "Response" || reading.response.id !== responseId) {
 		return yield* Effect.fail(new Conflict({ message: "Board response is missing, ambiguous, superseded or belongs to changed context" }));
 	}
