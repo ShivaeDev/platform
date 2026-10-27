@@ -4,7 +4,7 @@ import { previouslyMergedBranch, recentDeliveredId } from "#test/deliveredId.ts"
 import { task } from "#test/fleetHost.ts";
 import { HEAD, PR } from "#test/githubResult.ts";
 import { noChangeHost } from "#test/hostScenarioTraits.ts";
-import { approvedWork, host } from "#test/hostStory.ts";
+import { approvedWork, boardWork, host } from "#test/hostStory.ts";
 import { prepared } from "#test/preparation.ts";
 
 for (const delivery of ["record", "branch"] as const) {
@@ -93,5 +93,22 @@ host.it(
 		expect(work.readBoard("one.md")).toBe(original);
 		expect(yield* work.storedRecord("one")).toEqual(before);
 		expect(work.providerStarts()).toEqual([]);
+	},
+);
+
+host.it(
+	"a new report brief cannot reuse an id delivered by a merged PR",
+	[boardWork({ "one.md": task("one", "approved").replace("kind: task", "kind: task\ndelivers: report") }), previouslyMergedBranch],
+	function* (work) {
+		const original = work.readBoard("one.md");
+		const message = `id one was delivered in ${PR}; give this brief a new id`;
+		expect(yield* work.admit()).toContain(`one: ${message}`);
+		expect(yield* work.approve("one").pipe(Effect.flip)).toMatchObject({ message });
+		const board = yield* work.boardHttp();
+		const document = yield* Effect.promise(() => board.client.run(board.client.api.document.run({ url: "/one.md" })));
+		expect(document.diagnostics).toContainEqual({ field: "id", line: 2, message });
+		yield* work.schedulerPass();
+		expect(work.providerStarts()).toEqual([]);
+		expect(work.readBoard("one.md")).toBe(original);
 	},
 );

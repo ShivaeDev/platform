@@ -29,7 +29,7 @@ export const deliveredIdProblem = Effect.fn("Fleet.deliveredIdProblem")(function
 	if (prior !== undefined) {
 		return refusal(work.workId, prior.result?.kind === "change" ? prior.result.pr : `the done record for ${work.workId}`);
 	}
-	if (state.integrations.publication === undefined || state.board.sourceCreatedAt === undefined || work.deliverable === "report") {
+	if (state.integrations.publication === undefined || state.board.sourceCreatedAt === undefined) {
 		return undefined;
 	}
 	const publication = yield* state.integrations.publication(work);
