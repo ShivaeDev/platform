@@ -30,7 +30,7 @@ export function requestRework(state: EngineState) {
 					"Requested changes to the existing PR:",
 					body,
 					`Continue on the same branch and PR (${record.result?.kind === "change" ? record.result.pr : ""}). Do not open another PR.`,
-					"Run focused tests with pnpm --filter <package> test <paths> and the root pnpm ready fast static gate (Biome lint and format checks, repository rules, the changelog check and typechecking). CI runs the full test suite, builds and package archive checks across its shards. Push the changes and watch CI for the new head. Return the required FLEET_HEAD and final FLEET_PR report.",
+					"Run focused tests with pnpm --filter <package> test <paths> and the root pnpm ready fast static gate (Biome lint and format checks, repository rules, the changelog check and typechecking). CI runs the full test suite, builds and package archive checks across its shards. Then push the changes and watch CI for the new head. Return the required FLEET_HEAD and final FLEET_PR report.",
 				].join("\n\n"),
 				responses: responses ?? record.responses,
 				review: undefined,
