@@ -23,18 +23,17 @@ export const makeHintPolicy = Effect.fnUntraced(function* (capacity: number, ret
 		Effect.forever,
 		Effect.forkScoped,
 	);
+	function rememberFailure(key: Key) {
+		return Effect.gen(function* () {
+			if (failed.size === 0) {
+				yield* Queue.offer(wake, undefined);
+			}
+			failed.set(JSON.stringify(key), key);
+			return false;
+		});
+	}
 	return (keys: readonly Key[]) =>
-		Effect.filter(keys, (key) =>
-			Cache.get(cache, new Data.Class<Key>(key)).pipe(
-				Effect.catch(() =>
-					Effect.gen(function* () {
-						if (failed.size === 0) {
-							yield* Queue.offer(wake, undefined);
-						}
-						failed.set(JSON.stringify(key), key);
-						return false;
-					}),
-				),
-			),
-		);
+		Effect.filter(keys, (key) => Cache.get(cache, new Data.Class<Key>(key)).pipe(Effect.catch(() => rememberFailure(key))), {
+			concurrency: "unbounded",
+		});
 });

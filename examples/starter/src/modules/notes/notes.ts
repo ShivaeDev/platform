@@ -1,10 +1,12 @@
-import { Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { Model } from "effect/schema";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { collection } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import type { ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { IdentityValue } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({
@@ -18,6 +20,9 @@ export const NoteEditFields = Schema.Struct({ title: Note.fields.title, version:
 const NoteId = Schema.Struct({ id: Schema.Number });
 const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
 export const notes = collection("notes", Schema.Number);
+export const notesReadPolicies = {
+	[notes.name]: (_key, viewer) => Effect.succeed(Option.isSome(viewer)),
+} satisfies ModuleReadPolicies<IdentityValue>;
 export const Get = query("get", {
 	payload: NoteId,
 	reads: ({ id }) => [notes.item(id)],
