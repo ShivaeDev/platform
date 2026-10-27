@@ -24,6 +24,7 @@ engine.it(
 		const held = (yield* fleet.reconcile("package")).value;
 		expect(held.blocker).toBe("Held behind sweep catalog");
 		expect(held.sweepHold?.context).toBe(brief);
+		expect(held.mergeAreasReleased).toBe(true);
 		yield* fleet.reconcile("catalog");
 		const previousReviews = reviewedHeads();
 		observeSweepPr("catalog", "merged");

@@ -1,10 +1,14 @@
 import { waitingOwner } from "#attention.ts";
 import { recoveryStatus } from "#engine/recoveryStatus.ts";
 import type { Attempt, FleetRecord, FleetViews } from "#model.ts";
+import { waitCycles } from "#scheduling/adapters/waitCycles.ts";
 import { fleetStage, waitingReason } from "#stage.ts";
 
 type ViewAttempt = Pick<Attempt, "receipt" | "briefSteers" | "progress" | "overLimit" | "status" | "publishedRecovery" | "output">;
-type ViewRecord = Pick<FleetRecord, "workId" | "step" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result"> & {
+type ViewRecord = Pick<
+	FleetRecord,
+	"workId" | "step" | "attentionOwner" | "blocker" | "decision" | "outcome" | "launchRetry" | "result" | "predictedConflictHold" | "sweepHold"
+> & {
 	readonly attempts: readonly ViewAttempt[];
 	readonly checks?: Pick<NonNullable<FleetRecord["checks"]>, "pending"> | undefined;
 	readonly report?: Pick<NonNullable<FleetRecord["report"]>, "sourcePath"> | undefined;
@@ -18,6 +22,16 @@ export function newestCompletion<A extends { readonly completedAt?: unknown; rea
 }
 
 export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
+	const cycles = waitCycles(
+		records.map((record) => ({
+			item: record.workId,
+			mergePrs: record.predictedConflictHold?.prs,
+			pr: record.result?.kind === "change" ? record.result.pr : undefined,
+			reason: record.blocker,
+			sweepItem: record.sweepHold?.workId,
+			waiting: fleetStage(record) === "waiting",
+		})),
+	);
 	const items = records
 		.filter((record) => record.step !== "released" || waitingOwner(record) !== undefined)
 		.map((record) => ({
@@ -34,6 +48,7 @@ export function views(records: readonly ViewRecord[]): typeof FleetViews.Type {
 			sessions: record.attempts.flatMap(sessionView),
 			stage: fleetStage(record),
 			workId: record.workId,
+			...cycles.get(record.workId),
 		}));
 	return {
 		active: items.filter((item) => item.stage !== "done" && item.attentionOwner === undefined),
