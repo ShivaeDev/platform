@@ -1,6 +1,7 @@
 import { createMemoryHistory, createRootRouteWithContext, createRoute, createRouter } from "@tanstack/react-router";
 import { Option } from "effect";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { authAction } from "#client/authAction.ts";
 import { useCan } from "#client/permissionBoundary.ts";
 import { useQuery } from "#client/resultState.ts";
 import { useLoaderQuery } from "#client/useLoaderQuery.ts";
@@ -9,7 +10,7 @@ import type { PermissionSession } from "#permissions.ts";
 import { queryRoute } from "#queryRoute.ts";
 import { ReadNotes } from "./feature.ts";
 import type { Host } from "./host.ts";
-import { Login } from "./view.tsx";
+import { Login, SignOutButton } from "./view.tsx";
 
 function Controls() {
 	const can = useCan();
@@ -27,11 +28,21 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 	const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry; host: Host; auth: typeof auth }>()({
 		beforeLoad: permissionGuard({ session: () => auth.current, signIn: "/login" }),
 	});
+	const signOut = authAction(async () => {
+		auth.current = undefined;
+		await router.invalidate();
+		return { data: undefined, error: null };
+	});
 	const note = createRoute({
 		component: () => {
 			const { id } = note.useParams();
 			const query = useLoaderQuery(host.api.get.query({ id }), note.useLoaderData());
-			return <h1>{query.data}</h1>;
+			return (
+				<>
+					<h1>{query.data}</h1>
+					<SignOutButton action={signOut} />
+				</>
+			);
 		},
 		getParentRoute: () => root,
 		path: "/notes/$id",
@@ -51,7 +62,7 @@ export function permissionApp(host: Host, registry: AtomRegistry.AtomRegistry, s
 		component: Login,
 		getParentRoute: () => root,
 		path: "/login",
-		validateSearch: (search: Record<string, unknown>) => ({ returnTo: typeof search.returnTo === "string" ? search.returnTo : "/controls" }),
+		validateSearch: (search: Record<string, unknown>) => (typeof search.returnTo === "string" ? { returnTo: search.returnTo } : {}),
 	});
 	const router = createRouter({
 		context: { auth, host, registry },

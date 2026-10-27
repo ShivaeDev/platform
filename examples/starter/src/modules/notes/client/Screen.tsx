@@ -1,8 +1,7 @@
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
-import { useEffect } from "react";
-import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
+import { useSignOut } from "@shivaedev/react/client/useSignOut.ts";
 import type { AuthActions } from "#client/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
@@ -15,12 +14,10 @@ export function NotesScreen({
 	client,
 	loaded,
 	signOut,
-	onSignedOut,
 }: {
 	readonly client: NotesClient;
 	readonly loaded: readonly (typeof Note.Type)[];
 	readonly signOut?: AuthActions["signOut"];
-	readonly onSignedOut?: (() => void) | undefined;
 }) {
 	const query = useLoaderQuery(client.api.list.query(), loaded);
 	const rows = query.data;
@@ -33,7 +30,7 @@ export function NotesScreen({
 				<a className="inline-block text-sm underline" href="/admin/jobs">
 					Administration
 				</a>
-				{signOut !== undefined && <SignOut action={signOut} onSignedOut={onSignedOut} />}
+				{signOut !== undefined && <SignOut action={signOut} />}
 			</header>
 			<section aria-label="Add a note">
 				<Card>
@@ -57,14 +54,9 @@ export function NotesScreen({
 	);
 }
 
-function SignOut({ action, onSignedOut }: { readonly action: AuthActions["signOut"]; readonly onSignedOut: (() => void) | undefined }) {
-	const state = useAction(action);
+function SignOut({ action }: { readonly action: AuthActions["signOut"] }) {
+	const state = useSignOut(action, { signIn: "/sign-in" });
 	const failure = AsyncResult.error(state.result);
-	useEffect(() => {
-		if (AsyncResult.isSuccess(state.result) && !state.pending) {
-			onSignedOut?.();
-		}
-	}, [state.result, state.pending, onSignedOut]);
 	return (
 		<>
 			<Button disabled={state.pending} onClick={() => state.dispatch()} variant="outline">

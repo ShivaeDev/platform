@@ -12,7 +12,7 @@ const columnHelper = createColumnHelper<DataTableFeatures, SavedNote>();
 const columns = columnHelper.columns([
 	columnHelper.accessor("title", {
 		cell: ({ row }) => (
-			<Link className="break-words underline" params={{ noteId: String(row.original.id) }} to="/notes/$noteId">
+			<Link className="break-words underline" params={{ noteId: row.original.id }} to="/notes/$noteId">
 				{row.original.title}
 			</Link>
 		),
