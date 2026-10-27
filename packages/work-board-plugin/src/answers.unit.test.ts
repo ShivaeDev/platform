@@ -4,7 +4,7 @@ import { flightsOf, goalsOf, goalTitlesOf } from "#answers.ts";
 const NOW = 1_800_000_000_000;
 
 describe("Fleet items and goals", () => {
-	it("keeps working stages, links each item to the goal it implements and times its stage", () => {
+	it("keeps unfinished stages, links each item to the goal it implements and times its stage", () => {
 		const titles = goalTitlesOf({
 			closedGoals: [{ id: "goal.closed", title: "Closed goal" }],
 			deferredGoals: [{ id: "goal.parked", title: "Parked goal" }],
@@ -40,6 +40,7 @@ describe("Fleet items and goals", () => {
 					workId: "task.linked",
 				},
 				{ goal: null, inStageMs: null, prUrl: null, stage: "working", title: "task.loose", workId: "task.loose" },
+				{ goal: null, inStageMs: null, prUrl: null, stage: "queued", title: "task.waiting", workId: "task.waiting" },
 			],
 			problem: null,
 		});

@@ -15,6 +15,7 @@ export function flightHeading(t: Table, flights: WorkboardBlock<WorkboardFlight>
 	return (
 		<Box columnGap={2} flexDirection="row" flexWrap="wrap">
 			<Text weight="semibold">In flight</Text>
+			<Text dimColor tabular>{`(${flights.items.length})`}</Text>
 			{flightCounts(flights.items).map(({ state, count }) => (
 				<Text color={flightColors[state]} key={`state:${state}`}>
 					{`${count} ${flightLabels[state]}`}

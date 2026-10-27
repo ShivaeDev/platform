@@ -1,7 +1,7 @@
 import type { WorkboardBlock, WorkboardFlight, WorkboardGoal } from "#types/index.d.ts";
 import { isRecord, records, text } from "./rpc.ts";
 
-export const STAGES = ["working", "reviewing", "waiting"] as const;
+export const STAGES = ["queued", "working", "reviewing", "waiting"] as const;
 const STAGE_NAMES: ReadonlySet<unknown> = new Set(STAGES);
 
 export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<string, string> = new Map()): WorkboardBlock<WorkboardFlight> {

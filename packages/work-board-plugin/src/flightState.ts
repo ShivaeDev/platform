@@ -1,14 +1,15 @@
 import type { WorkboardFlight } from "#types/index.d.ts";
 import { goalColors } from "./goalProgress.ts";
 
-export const flightStates = ["working", "dependency", "checks", "you", "orchestrator", "automation", "waiting"] as const;
+export const flightStates = ["working", "blocked", "queued", "checks", "you", "orchestrator", "automation", "waiting"] as const;
 export type FlightState = (typeof flightStates)[number];
 
 export const flightLabels = {
 	automation: "Waiting on automation",
+	blocked: "Blocked",
 	checks: "Waiting on CI or review",
-	dependency: "Waiting on task or area",
 	orchestrator: "Waiting on orchestrator",
+	queued: "Queued",
 	waiting: "Waiting (reason unavailable)",
 	working: "Working",
 	you: "Waiting on you",
@@ -16,20 +17,39 @@ export const flightLabels = {
 
 export const flightColors = {
 	automation: "#00868b",
+	blocked: goalColors.blocked,
 	checks: "#00868b",
-	dependency: "#9467cd",
 	orchestrator: "#9467cd",
+	queued: goalColors.scheduled,
 	waiting: goalColors.parked,
 	working: goalColors.running,
 	you: goalColors.scheduled,
 } as const;
 
+export function notStartedState(flight: WorkboardFlight): "blocked" | "queued" | null {
+	const reason = flight.waitingReason ?? "";
+	if (reason.startsWith("waiting for dependency ")) {
+		return "blocked";
+	}
+	if (
+		flight.stage === "queued"
+		|| reason.startsWith("waiting for area ")
+		|| reason.startsWith("execution capacity is occupied")
+		|| reason.startsWith("waiting for open PRs to merge:")
+		|| /^waiting for \d+ review or repair launches to go first/u.test(reason)
+	) {
+		return "queued";
+	}
+	return null;
+}
+
 export function flightState(flight: WorkboardFlight): FlightState {
+	const admission = notStartedState(flight);
+	if (admission !== null) {
+		return admission;
+	}
 	if (flight.attentionOwner === "maintainer") {
 		return "you";
-	}
-	if (/^waiting for (?:dependency|area) /u.test(flight.waitingReason ?? "")) {
-		return "dependency";
 	}
 	if (flight.stage === "reviewing" || /\b(?:CI|checks|review)\b/iu.test(flight.waitingReason ?? "")) {
 		return "checks";
@@ -44,5 +64,11 @@ export function flightState(flight: WorkboardFlight): FlightState {
 }
 
 export function flightReason(flight: WorkboardFlight): string | null {
-	return flight.waitingReason ?? (flight.stage === "reviewing" ? "Reviewing" : null);
+	if (flight.waitingReason !== undefined) {
+		return flight.waitingReason;
+	}
+	if (flight.stage === "queued") {
+		return "Waiting for a worker slot";
+	}
+	return flight.stage === "reviewing" ? "Reviewing" : null;
 }

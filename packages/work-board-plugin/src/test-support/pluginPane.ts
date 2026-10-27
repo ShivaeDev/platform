@@ -4,6 +4,7 @@ import { createRoot } from "react-dom/client";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { readBoard } from "#board.ts";
 import { paneView } from "#pane.tsx";
+import { bandLine } from "#summary.ts";
 import { installPaneJsx, paneElements, reactPane } from "#test/paneElements.ts";
 import { reply, success } from "#test/rpcReplies.ts";
 
@@ -22,14 +23,24 @@ export const pluginPane = storyKit({
 				Reflect.deleteProperty(globalThis, "h");
 			}),
 		);
-		return { container, root };
+		return { container, root, summary: "" };
 	},
 	name: "Claude plugin pane",
 	stages: ["board"],
-	verbs: ({ container, root }, story) => ({
+	verbs: (engine, story) => ({
+		band: () => engine.summary,
 		screen: () => {
 			story.tell("read the rendered pane");
-			return container;
+			return engine.container;
+		},
+		section: (title: string) => {
+			story.tell(`read the ${title} section`);
+			const heading = [...engine.container.querySelectorAll("span")].find((node) => node.textContent === title);
+			const section = heading?.parentElement?.parentElement;
+			if (!section) {
+				throw new Error(`The pane has no ${title} section`);
+			}
+			return section;
 		},
 		show: (items: readonly unknown[], goals: readonly unknown[], surface: "desktop" | "terminal" = "desktop", columns = 80) =>
 			Effect.promise(async () => {
@@ -39,8 +50,9 @@ export const pluginPane = storyKit({
 					"/repo",
 					1_800_000_000_000,
 				);
+				engine.summary = board.kind === "ready" ? bandLine(board) : "";
 				await act(() =>
-					root.render(
+					engine.root.render(
 						reactPane(paneView(paneElements, { board, columns, onOpen: () => undefined, onRefresh: () => undefined, surface, updated: "just now" })),
 					),
 				);

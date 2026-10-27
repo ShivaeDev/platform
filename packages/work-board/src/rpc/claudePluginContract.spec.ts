@@ -50,6 +50,7 @@ boardStory.it(
 						title: "Build the page",
 						workId: "task.build",
 					},
+					{ goal: null, inStageMs: NOW - STARTED, prUrl: null, stage: "queued", title: "task.queued", workId: "task.queued" },
 				],
 				problem: null,
 			},
@@ -71,7 +72,13 @@ boardStory.it(
 		const tools = { ask, now: NOW };
 		const [summary, waiting, card] = yield* Effect.promise(() => Promise.all([overview(tools), needsYou(tools), item(tools, "task.build")]));
 		expect(summary).toMatchObject({
-			fleet: { items: [{ goal: { id: "project.launch" }, workId: "task.build" }], state: "ready" },
+			fleet: {
+				items: [
+					{ goal: { id: "project.launch" }, workId: "task.build" },
+					{ stage: "queued", workId: "task.queued" },
+				],
+				state: "ready",
+			},
 			goals: { done: 1, total: 2 },
 			needsYou: { count: 1, you: [{ id: "task.build", reason: "Choose the launch scope", title: "Build the page" }] },
 		});
