@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-service` to `@shivaedev/service`. Change dependency declarations and imports from `@shivaedev/effect-service/...` to `@shivaedev/service/...`; module paths inside the package are unchanged.
+
 ## 0.4.1 - 2026-10-24
 
 ### Changed

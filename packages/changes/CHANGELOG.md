@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-changes` to `@shivaedev/changes`. Change dependency declarations and imports from `@shivaedev/effect-changes/...` to `@shivaedev/changes/...`; module paths inside the package are unchanged.
+
 ## 0.3.2 - 2026-10-24
 
 ### Changed

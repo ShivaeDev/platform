@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/changesets` to `@shivaedev/releases`, and its command from `changesets` to `releases`. Change dependency declarations and imports from `@shivaedev/changesets/...` to `@shivaedev/releases/...`; module paths inside the package are unchanged.
+
 ## 0.3.0 - 2026-10-26
 
 ### Added

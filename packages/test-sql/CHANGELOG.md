@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-test-sql` to `@shivaedev/test-sql`. Change dependency declarations and imports from `@shivaedev/effect-test-sql/...` to `@shivaedev/test-sql/...`; module paths inside the package are unchanged.
+
 ## 0.9.3 - 2026-10-25
 
 ### Changed

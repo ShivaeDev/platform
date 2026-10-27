@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.7.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-form` to `@shivaedev/form`. Change dependency declarations and imports from `@shivaedev/effect-form/...` to `@shivaedev/form/...`; module paths inside the package are unchanged.
+
 ## 0.6.2 - 2026-10-24
 
 ### Changed
