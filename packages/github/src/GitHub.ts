@@ -55,6 +55,15 @@ export function list<TSchema extends Schema.Constraint>(path: string, schema: TS
 	);
 }
 
+export function listBounded<TSchema extends Schema.Constraint>(path: string, schema: TSchema, pageCap: number, responseByteLimit?: number) {
+	return Stream.unwrap(Effect.flatMap(GitHub, (github) => github.list(path, undefined, responseByteLimit))).pipe(
+		Stream.take(pageCap),
+		Stream.mapEffect((page) => Effect.map(page.decode(Schema.Array(schema)), (items) => ({ items, truncated: page.hasNext }))),
+		Stream.runCollect,
+		Effect.map((pages) => ({ items: pages.flatMap((page) => page.items), truncated: pages.at(-1)?.truncated ?? false })),
+	);
+}
+
 export function write<TSchema extends Schema.Constraint>(
 	method: "POST" | "PATCH",
 	path: string,

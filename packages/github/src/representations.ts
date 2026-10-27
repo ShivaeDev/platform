@@ -1,6 +1,7 @@
 import { Effect, Stream } from "effect";
 import { HttpClient, HttpClientRequest, type HttpClientResponse } from "effect/http";
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { nextLink } from "@shivaedev/http/nextLink.ts";
 import { paginate } from "@shivaedev/http/paginate.ts";
 import type { CachedResponse } from "#cache.ts";
 import { jsonResponse } from "#json.ts";
@@ -40,7 +41,7 @@ export function representations(
 		return Effect.succeed(
 			paginate(client, get(path)).pipe(
 				Stream.mapEffect((response) => Effect.fromNullishOr(entries.get(response))),
-				Stream.map(jsonResponse),
+				Stream.map((entry) => ({ ...jsonResponse(entry), hasNext: nextLink(entry.response.headers.link) !== undefined })),
 			),
 		);
 	}

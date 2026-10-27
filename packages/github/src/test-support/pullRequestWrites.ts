@@ -4,16 +4,26 @@ import type { PullRequestComment } from "#stickyComments.ts";
 
 const CommentBody = Schema.Struct({ body: Schema.String });
 const Output = Schema.Struct({ summary: Schema.String, text: Schema.optional(Schema.String), title: Schema.String });
-const Create = Schema.Struct({ headSha: Schema.String, name: Schema.String, output: Schema.optional(Output), status: Schema.String }).pipe(
-	Schema.encodeKeys({ headSha: "head_sha" }),
-);
-const Update = Schema.Struct({ conclusion: Schema.optional(Schema.String), output: Schema.optional(Output), status: Schema.String });
+const Create = Schema.Struct({
+	detailsUrl: Schema.optional(Schema.String),
+	headSha: Schema.String,
+	name: Schema.String,
+	output: Schema.optional(Output),
+	status: Schema.String,
+}).pipe(Schema.encodeKeys({ detailsUrl: "details_url", headSha: "head_sha" }));
+const Update = Schema.Struct({
+	conclusion: Schema.optional(Schema.String),
+	detailsUrl: Schema.optional(Schema.String),
+	output: Schema.optional(Output),
+	status: Schema.String,
+}).pipe(Schema.encodeKeys({ detailsUrl: "details_url" }));
 
 export function pullRequestWrites() {
 	const state: {
 		comments: (typeof PullRequestComment.Encoded)[];
 		checks: Array<{
 			id: number;
+			detailsUrl: string | null;
 			headSha: string;
 			name: string;
 			status: string;
@@ -24,8 +34,8 @@ export function pullRequestWrites() {
 	function commentBody(request: FakeHttpRequest) {
 		return Schema.decodeUnknownSync(Schema.fromJsonString(CommentBody))(request.body.toString());
 	}
-	function checkBody({ headSha, ...check }: (typeof state.checks)[number]) {
-		return { ...check, "head_sha": headSha };
+	function checkBody({ detailsUrl, headSha, ...check }: (typeof state.checks)[number]) {
+		return { ...check, "details_url": detailsUrl, "head_sha": headSha };
 	}
 	return {
 		routes: {
@@ -54,6 +64,7 @@ export function pullRequestWrites() {
 					const check = {
 						...input,
 						conclusion: null,
+						detailsUrl: input.detailsUrl ?? null,
 						id: state.checks.length + 1,
 						output: { summary: input.output?.summary ?? null, text: input.output?.text ?? null, title: input.output?.title ?? null },
 					};
@@ -83,6 +94,7 @@ export function pullRequestWrites() {
 					const edited = {
 						...check,
 						conclusion: input.conclusion ?? check.conclusion,
+						detailsUrl: input.detailsUrl ?? check.detailsUrl,
 						output: {
 							summary: input.output?.summary ?? check.output.summary,
 							text: input.output?.text ?? check.output.text,
