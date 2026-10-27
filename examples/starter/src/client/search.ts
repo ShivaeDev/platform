@@ -9,7 +9,7 @@ export function parseSearch(search: string): ParsedSearch {
 	return { ...Object.fromEntries(new URLSearchParams(search)), [ORIGINAL_SEARCH]: search };
 }
 
-export function stringifySearch(search: Record<string, unknown>): string {
+export function stringifySearch(search: object): string {
 	if (ORIGINAL_SEARCH in search && typeof search[ORIGINAL_SEARCH] === "string") {
 		const original = search[ORIGINAL_SEARCH];
 		const parsed = parseSearch(original);

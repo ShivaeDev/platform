@@ -2,7 +2,7 @@ import { createRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
 import type { ReactElement } from "react";
 import { queryRoute } from "@shivaedev/react/queryRoute.ts";
-import type { RouteContext } from "#client/Module.ts";
+import type { ClientModule, RouteContext } from "#client/Module.ts";
 import { type AdminClient, makeAdminClient } from "./admin.ts";
 import { adminRoutes } from "./adminRoutes.tsx";
 import { NoteEdit } from "./Edit.tsx";
@@ -14,11 +14,11 @@ import { NotesScreen } from "./Screen.tsx";
 export function notesRegistration(
 	client: NotesClient = makeNotesClient(new URL("/rpc", window.location.href).href),
 	admin: AdminClient = makeAdminClient(new URL("/rpc", window.location.href).href),
-) {
+): ClientModule<ReturnType<typeof routes>[number] | ReturnType<typeof adminRoutes>[number]> {
 	return {
 		api: client.api,
 		bindings: [client.api, admin.jobs, admin.statistics, admin.users],
-		routes: (context: RouteContext) => [...routes(client, context), ...adminRoutes(admin, context)],
+		routes: (context) => [...routes(client, context), ...adminRoutes(admin, context)],
 	};
 }
 

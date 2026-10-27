@@ -1,8 +1,9 @@
-import { type AnyRoute, createRoute, createRouter, type RouterHistory, redirect, useRouterState } from "@tanstack/react-router";
+import { type AnyRoute, createRoute, createRouter, type RouterHistory, useRouterState } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactElement, ReactNode } from "react";
 import type { PermissionSession } from "@shivaedev/react/permissions.ts";
 import { signInSearch } from "@shivaedev/react/signInSearch.ts";
+import { routerRedirect } from "#client/adapters/routerRedirect.ts";
 import type { AuthActions } from "./auth.ts";
 import { Home } from "./Home.tsx";
 import { LoginScreen } from "./LoginScreen.tsx";
@@ -24,7 +25,7 @@ export function appRouter<TRoute extends AnyRoute>(
 			const { returnTo } = signInSearch({ ...location, href: search.returnTo ?? "/" });
 			const current = session();
 			if (current !== null && current !== undefined && returnTo !== undefined) {
-				throw redirect({ href: returnTo });
+				routerRedirect(returnTo);
 			}
 		},
 		component: (): ReactElement => {
