@@ -62,7 +62,7 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 				if (current?.status === "pending") {
 					return current;
 				}
-				const row = yield* repository.upsert(
+				const { row } = yield* repository.upsert(
 					{
 						"accepted_at": yield* Clock.currentTimeMillis,
 						"completed_at": null,

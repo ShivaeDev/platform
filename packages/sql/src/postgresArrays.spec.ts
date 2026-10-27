@@ -42,8 +42,8 @@ postgres.it(
 				{ updateColumns: ["values"] },
 			),
 		).toEqual([
-			{ id: 3, values: [4, 5] },
-			{ id: 4, values: [] },
+			{ inserted: false, row: { id: 3, values: [4, 5] } },
+			{ inserted: false, row: { id: 4, values: [] } },
 		]);
 		expect(
 			yield* sql`select id, pg_typeof(values)::text as type, values is null as missing, cardinality(values)::int as size from ${sql(tableName)} where id = 4`,

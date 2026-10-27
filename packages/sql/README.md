@@ -305,9 +305,9 @@ The application creates `readings` with `PRIMARY KEY (source, sequence)`; `seque
 | Method | Input | Result |
 | --- | --- | --- |
 | `insertOrIgnore` | Model insert input | `Option.some` of the decoded inserted model, or `Option.none` when the declared key conflicts. |
-| `upsert` | Model insert input and `{ updateColumns: [...] }` | The decoded inserted or updated model. |
+| `upsert` | Model insert input and `{ updateColumns: [...] }` | `{ row, inserted }`, with the decoded model and a boolean identifying an insert. |
 | `insertManyOrIgnore` | Readonly array of model insert inputs | Decoded inserted models; conflicting rows are omitted. |
-| `upsertMany` | Readonly array of model insert inputs and `{ updateColumns: [...] }` | Decoded inserted or updated models. |
+| `upsertMany` | Readonly array of model insert inputs and `{ updateColumns: [...] }` | An array of `{ row, inserted }` results. |
 
 All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
@@ -337,7 +337,9 @@ const result = yield* pullRequests.upsert(incoming, {
 
 `updateWhere` uses the repository filter shape: equality, `in`, ranges and text patterns combine with AND. A field names the stored column; `{ excluded: "field" }` refers to an incoming column of the same decoded type, in equality or range operands. Literal values pass through their field codecs. The condition becomes `DO UPDATE SET ... WHERE ...`, separate from the index predicate `conflictWhere`, and does not restrict inserts. PostgreSQL evaluates it while holding the conflicting row lock, so an older or equal incoming timestamp cannot overwrite a newer stored revision.
 
-With `updateWhere`, the typed result is `{ _tag: "Inserted", row }`, `{ _tag: "Updated", row }` or `{ _tag: "Unchanged" }`. Changed rows are decoded models; unchanged results carry no row and announce no change keys. Omitting `updateWhere` keeps the model result. `UpsertFilter` and `UpsertResult` are exported from `@shivaedev/sql/conditionalUpsert.ts`.
+On PostgreSQL, `upsert` returns `{ row, inserted }`: `row` is the decoded model and `inserted` is `true` for an insert and `false` for an update. Read the model from `saved.row` or destructure `{ row }`. `upsertMany` returns the same shape for each returned row. `UpsertRow` is exported from `@shivaedev/sql/upsertResult.ts`.
+
+With `updateWhere`, the typed result is `{ _tag: "Inserted", row, inserted: true }`, `{ _tag: "Updated", row, inserted: false }` or `{ _tag: "Unchanged" }`. Unchanged results carry no row and announce no change keys. `UpsertFilter` and `UpsertResult` are exported from `@shivaedev/sql/conditionalUpsert.ts`.
 
 `upsertMany(inputs, { updateColumns, updateWhere })` accepts the same condition and returns one tagged result per input, in input order. It executes one statement per input inside one transaction, so a later failure rolls back earlier writes. This uses more database round trips than an unconditional batch. Other batch calls use the chunked statements described below.
 
@@ -345,7 +347,7 @@ Versioned repositories with `conflictColumns` offer `insertOrIgnore`, including 
 
 ### Batch writes
 
-Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs. Unconditional batch methods return an array of decoded models; conditional upserts return the tagged outcomes described above. Empty inputs return `[]` without writing.
+Every unversioned repository also offers `insertMany(inputs)`, without requiring `conflictColumns`. Each batch method accepts a readonly array of decoded model insert inputs. `insertMany` and `insertManyOrIgnore` return decoded models; `upsertMany` returns `{ row, inserted }` results, or the tagged outcomes described above when conditional. Empty inputs return `[]` without writing.
 
 ```ts
 const saved = yield* readings.upsertMany(
@@ -580,29 +582,29 @@ The application's startup runs migrations and keeps its database scope alive for
 
 Query decoding and invalid limits can fail with `SchemaError`; SQL statement failures remain `SqlError`. `findById` adds `NoSuchElementError` for a missing row. Unversioned `update` defects if it returns no row unless called with `{ onMissing: "fail" }`, which keeps `NoSuchElementError` in the error channel. Versioned updates and deletes instead fail with typed `OptimisticConcurrencyError` when their ID and expected version match no row. A failed `COMMIT` is a typed `SqlError` like any other statement failure.
 
-Map a known constraint at the operation that understands it, after the transaction has rolled back:
+Map named constraints at the operation that understands them. `mapSqlError` returns a mapper for `transact`'s `onSqlError` or `Effect.mapError` on an Effect whose error is `SqlError`:
 
 ```ts
-import type { SqlError } from "effect/sql/SqlError";
+import { mapSqlError } from "@shivaedev/sql/mapSqlError.ts";
+import { transact } from "@shivaedev/sql/transact.ts";
 
-class NameTaken extends Data.TaggedError("NameTaken") {}
-
-const knownNameConflict = (error: SqlError): Effect.Effect<never, NameTaken | SqlError> =>
-  error.reason._tag === "UniqueViolation" &&
-  error.reason.constraint === "invoice_line_name_key"
-    ? Effect.fail(new NameTaken())
-    : Effect.fail(error);
-
-const insertNamedLine = Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient;
-  const lines = yield* makeInvoiceLines;
-  return yield* sql
-    .withTransaction(lines.insert({ amount: 52, name: "Consulting", note: null }))
-    .pipe(Effect.catchTag("SqlError", knownNameConflict));
+const onSqlError = mapSqlError({
+  constraints: {
+    "invoice_line_name_key": () => new NameTaken(),
+    "invoice_line_invoice_fkey": () => new InvoiceMissing(),
+    "invoice_line_amount_check": () => new InvalidAmount(),
+  },
+  fallback: (error) => new StorageUnavailable({ reason: error.message }),
 });
+
+const insertNamedLine = lines.insert({ amount: 52, name: "Consulting", note: null }).pipe(
+  transact({ onSqlError }),
+);
 ```
 
-The migration owns the constraint name `invoice_line_name_key`. The mapper recognizes that named unique violation and keeps other failures intact. Put recovery outside the transaction so earlier writes in the operation roll back too. Domain error presentation belongs to the application.
+The mapper handles named unique violations and PostgreSQL foreign-key and check violations. Every other `SqlError`, including unknown constraints, goes to `fallback`. Each callback receives the original error. The inferred error type contains exactly the mapped errors and the fallback; `transact` also preserves other typed failures from the operation. Constraint names belong to the application's migration; error types and presentation belong to the application.
+
+Recover outside `transact` so earlier writes roll back before handling a mapped domain error. A losing unique-key insert can then catch `NameTaken` and read the winner's row without a private transaction error. See the [constraint-failures guide](../../docs/framework/constraint-errors.md).
 
 For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 

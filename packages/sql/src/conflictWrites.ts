@@ -7,6 +7,7 @@ import { type ConditionalUpsert, type ConditionalUpsertMany, makeConditionalUpse
 import { type InsertFromSelect, makeInsertFromSelect } from "#insertFromSelect.ts";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
+import { makeUpsertDecoder, upsertReturning } from "./upsertResult.ts";
 
 export type InsertColumn<TModel extends Model.Any> = Extract<keyof TModel["insert"]["Type"] & keyof TModel["fields"], string>;
 export type ConflictColumns<TModel extends Model.Any> = readonly [InsertColumn<TModel>, ...InsertColumn<TModel>[]];
@@ -53,6 +54,7 @@ export function makeConflictWrites(
 	const { tableName, spanPrefix } = options;
 	const encode = Schema.encodeEffect(model.insert);
 	const decode = Schema.decodeUnknownEffect(model);
+	const decodeUpsert = makeUpsertDecoder(model);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const conditional = makeConditionalUpsert(model, sql, options);
 	const clause = makeConflictClause(model, sql, options);
@@ -60,7 +62,7 @@ export function makeConflictWrites(
 		return Effect.gen(function* () {
 			const encoded = yield* record(yield* encode(input));
 			const suffix = yield* clause(encoded, updateColumns);
-			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix} returning *`;
+			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix} returning ${updateColumns === undefined ? sql`*` : upsertReturning(sql)}`;
 		});
 	}
 	return {
@@ -79,7 +81,7 @@ export function makeConflictWrites(
 				? Effect.gen(function* () {
 						const rows = yield* yield* statement(input, settings.updateColumns);
 						yield* options.changes.record(rows);
-						return yield* decode(rows[0]);
+						return yield* decodeUpsert(rows[0]);
 					}).pipe(options.changes.write, Effect.withSpan(`${spanPrefix}.upsert`))
 				: conditional([input], { ...settings, updateWhere: settings.updateWhere }).pipe(Effect.map((results) => results[0])),
 		upsertMany: (
@@ -87,7 +89,7 @@ export function makeConflictWrites(
 			settings: { readonly updateColumns: readonly string[]; readonly updateWhere?: Readonly<Record<string, unknown>> },
 		) =>
 			settings.updateWhere === undefined
-				? makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns))(inputs)
+				? makeInsertMany(model, sql, options, "upsertMany", (row) => clause(row, settings.updateColumns), true)(inputs)
 				: conditional(inputs, { ...settings, updateWhere: settings.updateWhere }),
 	};
 }

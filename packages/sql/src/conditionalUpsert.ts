@@ -5,6 +5,7 @@ import type { SqlError } from "effect/sql/SqlError";
 import { makeConflictClause } from "#makeConflictClause.ts";
 import type { Comparisons, FindManyFilter } from "#repositoryFilter.ts";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
+import { makeUpsertDecoder, type UpsertRow, upsertReturning } from "./upsertResult.ts";
 
 type Fields<TModel extends Model.Any> = Schema.Struct.Type<TModel["fields"]>;
 interface Incoming<TModel extends Model.Any, TValue> {
@@ -19,8 +20,8 @@ export type UpsertFilter<TModel extends Model.Any> = {
 		| Comparisons<Fields<TModel>[TKey], NonNullable<Fields<TModel>[TKey]> | Incoming<TModel, NonNullable<Fields<TModel>[TKey]>>>;
 };
 export type UpsertResult<TRow> =
-	| { readonly _tag: "Inserted"; readonly row: TRow }
-	| { readonly _tag: "Updated"; readonly row: TRow }
+	| { readonly _tag: "Inserted"; readonly row: TRow; readonly inserted: true }
+	| { readonly _tag: "Updated"; readonly row: TRow; readonly inserted: false }
 	| { readonly _tag: "Unchanged" };
 export interface ConditionalUpsert<TModel extends Model.Any, TOptions, TServices> {
 	(
@@ -34,7 +35,7 @@ export interface ConditionalUpsert<TModel extends Model.Any, TOptions, TServices
 	(
 		input: TModel["insert"]["Type"],
 		options: TOptions & { readonly updateWhere?: never },
-	): Effect.Effect<TModel["Type"], SqlError | Schema.SchemaError, TServices>;
+	): Effect.Effect<UpsertRow<TModel["Type"]>, SqlError | Schema.SchemaError, TServices>;
 }
 export interface ConditionalUpsertMany<TModel extends Model.Any, TOptions, TServices> {
 	(
@@ -48,7 +49,7 @@ export interface ConditionalUpsertMany<TModel extends Model.Any, TOptions, TServ
 	(
 		inputs: readonly TModel["insert"]["Type"][],
 		options: TOptions & { readonly updateWhere?: never },
-	): Effect.Effect<TModel["Type"][], SqlError | Schema.SchemaError, TServices>;
+	): Effect.Effect<UpsertRow<TModel["Type"]>[], SqlError | Schema.SchemaError, TServices>;
 }
 
 export function makeConditionalUpsert(
@@ -65,7 +66,7 @@ export function makeConditionalUpsert(
 ) {
 	const encode = Schema.encodeEffect(model.insert);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
-	const decode = Schema.decodeUnknownEffect(model);
+	const decode = makeUpsertDecoder(model);
 	const clause = makeConflictClause(model, sql, options);
 	return (
 		inputs: readonly unknown[],
@@ -76,7 +77,7 @@ export function makeConditionalUpsert(
 				Effect.gen(function* () {
 					const row = yield* record(yield* encode(input));
 					const suffix = yield* clause(row, settings.updateColumns, settings.updateWhere);
-					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning *, (xmax = 0) as ${sql("effectSqlInserted")}`;
+					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning ${upsertReturning(sql)}`;
 				}),
 			);
 			const changedRows: Readonly<Record<string, unknown>>[] = [];
@@ -88,7 +89,10 @@ export function makeConditionalUpsert(
 					if (row === undefined) {
 						return { _tag: "Unchanged" } as const;
 					}
-					return { _tag: row.effectSqlInserted ? "Inserted" : "Updated", row: yield* decode(row) } as const;
+					const result = yield* decode(row);
+					return result.inserted
+						? ({ ...result, _tag: "Inserted", inserted: true } as const)
+						: ({ ...result, _tag: "Updated", inserted: false } as const);
 				}),
 			);
 			yield* options.changes.record(changedRows);
