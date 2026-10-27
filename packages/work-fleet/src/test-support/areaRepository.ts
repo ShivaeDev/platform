@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { engine } from "#test/engineStory.ts";
 
 export const areaRepository = engine.trait("work", "the Board is inside a repository with package and tooling folders", (state) => {
-	for (const directory of [".git", "packages/react", "packages/work-fleet/scheduling", "examples/jobs/server", "script/release", ".github"]) {
+	for (const directory of [".git", "packages/react", "packages/work-fleet/src/scheduling", "examples/jobs/src/server", "script/release", ".github"]) {
 		mkdirSync(join(state.root, directory), { recursive: true });
 	}
 	writeFileSync(join(state.root, ".git/HEAD"), "ref: refs/heads/main\n");

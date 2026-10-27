@@ -7,7 +7,7 @@ export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait:
 	const root = mkdtempSync(join(tmpdir(), "fleet-board-"));
 	yield* Effect.addFinalizer(() => Effect.sync(() => rmSync(root, { force: true, recursive: true })));
 	if (trait === "withDependency") {
-		for (const area of ["packages/work-fleet/host", "packages/work-board/ui"]) {
+		for (const area of ["packages/work-fleet/src/host", "packages/work-board/src/ui"]) {
 			mkdirSync(join(root, area), { recursive: true });
 		}
 		writeFileSync(

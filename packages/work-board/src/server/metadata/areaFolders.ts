@@ -32,13 +32,19 @@ export const childFolders = Effect.fn("WorkBoard.childFolders")(function* (paren
 	return yield* Effect.filter(yield* fs.readDirectory(parent), (name) => isDirectory(path.join(parent, name)));
 });
 
-export const packageFolders = Effect.fn("WorkBoard.packageFolders")(function* (repository: string) {
+export interface AreaFolder {
+	readonly folder: string;
+	readonly subfolders: string;
+}
+
+export const areaFolders = Effect.fn("WorkBoard.areaFolders")(function* (repository: string) {
 	const path = yield* Path.Path;
-	const bases = new Map<string, string>();
+	const bases = new Map<string, AreaFolder>();
 	for (const prefix of ["packages", "examples", ""]) {
 		for (const name of yield* childFolders(path.join(repository, prefix))) {
 			if (!(["packages", "examples", "node_modules", ".git"].includes(name) || bases.has(name))) {
-				bases.set(name, path.join(repository, prefix, name));
+				const folder = path.join(repository, prefix, name);
+				bases.set(name, { folder, subfolders: prefix === "" ? folder : path.join(folder, "src") });
 			}
 		}
 	}

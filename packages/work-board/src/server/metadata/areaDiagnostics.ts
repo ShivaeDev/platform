@@ -1,5 +1,5 @@
-import { Effect, Option, Path } from "effect";
-import { isDirectory, repositoryRoot } from "./areaFolders.ts";
+import { Effect, Path } from "effect";
+import { areaFolders, isDirectory, repositoryRoot } from "./areaFolders.ts";
 import { areaSuggestion } from "./areaSuggestion.ts";
 import type { Diagnostic, ParsedMetadata } from "./parse.ts";
 
@@ -18,13 +18,16 @@ export const areaDiagnostics = Effect.fn("WorkBoard.areaDiagnostics")(function* 
 	}
 	const path = yield* Path.Path;
 	const repository = yield* repositoryRoot(root);
+	const bases = yield* areaFolders(repository);
 	const diagnostics: Diagnostic[] = [];
 	for (const area of areas) {
-		const locations = ["packages", "examples", ""].map((prefix) => path.join(repository, prefix, area));
-		if (isAreaPath(area) && Option.isSome(yield* Effect.findFirst(locations, isDirectory))) {
+		const [name = "", ...folders] = area.split("/");
+		const base = bases.get(name);
+		const location = base && (folders.length === 0 ? base.folder : path.join(base.subfolders, ...folders));
+		if (isAreaPath(area) && location !== undefined && (yield* isDirectory(location))) {
 			continue;
 		}
-		const suggestion = yield* areaSuggestion(repository, area);
+		const suggestion = yield* areaSuggestion(bases, area);
 		diagnostics.push({
 			field: "areas",
 			line: parsed.lines.areas ?? 2,

@@ -1,14 +1,13 @@
 import { Effect, Path } from "effect";
-import { childFolders, packageFolders } from "./areaFolders.ts";
+import { type AreaFolder, childFolders } from "./areaFolders.ts";
 import { nearestArea } from "./nearestArea.ts";
 
-export const areaSuggestion = Effect.fn("WorkBoard.areaSuggestion")(function* (repository: string, area: string) {
+export const areaSuggestion = Effect.fn("WorkBoard.areaSuggestion")(function* (bases: ReadonlyMap<string, AreaFolder>, area: string) {
 	const path = yield* Path.Path;
 	const segments = area.split("/");
-	const bases = yield* packageFolders(repository);
 	const first = nearestArea(segments[0] ?? "", [...bases.keys()]);
 	let suggestion = first;
-	let parent = first === undefined ? undefined : bases.get(first);
+	let parent = first === undefined ? undefined : bases.get(first)?.subfolders;
 	for (const segment of segments.slice(1)) {
 		if (parent === undefined) {
 			break;

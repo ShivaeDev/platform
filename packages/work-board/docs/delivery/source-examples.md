@@ -66,11 +66,11 @@ Work fields use the [shared vocabulary](../../README.md#work-vocabulary). No sec
 
 Fleet's add-on fields `fleet-launch` and `fleet-priority` are accepted without a diagnostic; Fleet interprets them. Board validates the shared approval and deliverable fields.
 
-### Pick scheduling areas for a brief
+### Size a task and pick its scheduling areas
 
-Name the deepest folders the change will edit and list each one. A package area is its folder name under `packages/` or `examples/`, optionally followed by a subfolder: `react`, `work-fleet/src/scheduling` or `jobs/src/server`. Top-level folders such as `script/release` and `.github` are also areas. Paths follow the actual repository layout. Board checks the enclosing Git checkout, or the Board folder when it is outside a checkout; an invalid area shows a nearest existing path suggestion, and Fleet refuses to dispatch that brief with the same diagnostic.
+One task carries one goal inside its one to three home packages, usually 300 to 1,500 changed lines. Its areas name those home packages. Split a goal only when its packages are independent, when one part is a foundation other tasks build on, when one step is risky enough to land alone, or when it would exceed about 1,500 lines. A change that touches every package goes out as one sweep task.
 
-Use a whole package only when the change really spans it: a package area blocks every task in its subfolders until merge. List separate folders for unrelated edits so other work can run beside them. `*` covers the whole repository and conflicts with every area.
+A subfolder area is the exception, for a task that stays inside one stable folder of a busy package. A package area blocks every task in its subfolders until merge. Areas use the package folder name under `packages/` or `examples/`, optionally followed by a folder inside its `src/`: `react`, `work-fleet/scheduling` for `packages/work-fleet/src/scheduling`, or `jobs/server` for `packages/jobs/src/server`. Top-level folders such as `script/release` and `.github` are also areas. Board checks the enclosing Git checkout, or the Board folder when it is outside a checkout; an invalid area shows a nearest existing path suggestion, and Fleet refuses to dispatch that brief with the same diagnostic. `*` covers the whole repository and conflicts with every area.
 
 A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. File and generated heading URLs work alongside it; pinned and recent documents refer to file paths.
 
