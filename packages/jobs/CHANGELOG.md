@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-pg-boss` to `@shivaedev/jobs`. Change dependency declarations and imports from `@shivaedev/effect-pg-boss/...` to `@shivaedev/jobs/...`; module paths inside the package are unchanged.
+
 ## 0.19.0 - 2026-10-25
 
 ### Added

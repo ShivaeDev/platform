@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.10.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-test` to `@shivaedev/test`. Change dependency declarations and imports from `@shivaedev/effect-test/...` to `@shivaedev/test/...`; module paths inside the package are unchanged.
+
 ## 0.9.0 - 2026-10-25
 
 ### Added

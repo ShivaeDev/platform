@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/react",
-	"version": "0.18.1",
+	"version": "0.19.0",
 	"description": "React query, action, editor and session hooks for native Effect atoms",
 	"keywords": [
 		"effect"

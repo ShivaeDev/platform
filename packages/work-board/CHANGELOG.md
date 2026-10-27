@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.32.2 - 2026-10-27
+
+### Changed
+
+- Read the shared expected failures from `@shivaedev/errors`, the package they moved to from `@shivaedev/contract`, and request identity from `@shivaedev/identity`, the package it moved to from `@shivaedev/platform`.
+- Depend on `@shivaedev/server` for the application host instead of `@shivaedev/platform`.
+
 ## 0.32.1 - 2026-10-26
 
 ### Fixed

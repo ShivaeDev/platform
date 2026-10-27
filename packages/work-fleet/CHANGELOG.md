@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.20.1 - 2026-10-27
+
+### Changed
+
+- Read the shared expected failures from `@shivaedev/errors`, the package they moved to from `@shivaedev/contract`.
+- Depend on `@shivaedev/server` for the application host instead of `@shivaedev/platform`.
+
 ## 0.20.0 - 2026-10-26
 
 ### Added
