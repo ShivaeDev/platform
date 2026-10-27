@@ -1,6 +1,7 @@
 import { NodeHttpServerRequest, NodeStream } from "@effect/platform-node";
 import { Data, Effect, Stream } from "effect";
 import { HttpIncomingMessage, HttpServerError, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 export class RequestBodyTooLarge
 	extends Data.TaggedError("RequestBodyTooLarge")<{
@@ -10,7 +11,7 @@ export class RequestBodyTooLarge
 	implements HttpServerRespondable.Respondable
 {
 	[HttpServerRespondable.symbol]() {
-		return Effect.succeed(HttpServerResponse.empty({ status: 413 }));
+		return Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("PayloadTooLarge") }));
 	}
 }
 

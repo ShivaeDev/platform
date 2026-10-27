@@ -1,8 +1,9 @@
 import { Effect, Exit, Scope } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { otlpReceiver as makeReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 
 export async function otlpReceiver(
-	status: number | ((attempt: number) => number | undefined) = 200,
+	status: number | ((attempt: number) => number | undefined) = HttpStatus.fromLiteral("OK"),
 	answer: string | null = "{}",
 	path = "/v1/traces",
 ) {

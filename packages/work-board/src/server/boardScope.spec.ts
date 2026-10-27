@@ -1,4 +1,5 @@
 import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
@@ -9,7 +10,7 @@ boardStory.it(
 		const url = yield* Effect.scoped(
 			Effect.gen(function* () {
 				const board = yield* start();
-				expect((yield* request("/")).status).toBe(200);
+				expect((yield* request("/")).status).toBe(HttpStatus.fromLiteral("OK"));
 				return board.url;
 			}),
 		);
@@ -29,7 +30,7 @@ boardStory.it(
 			}),
 		).pipe(Effect.forkChild);
 		const url = yield* Deferred.await(listening);
-		expect((yield* request("/")).status).toBe(200);
+		expect((yield* request("/")).status).toBe(HttpStatus.fromLiteral("OK"));
 		yield* Fiber.interrupt(owner);
 		const stopped = yield* Fiber.await(owner);
 		expect(Exit.isFailure(stopped) && Cause.hasInterrupts(stopped.cause)).toBe(true);

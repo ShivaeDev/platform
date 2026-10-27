@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { sensitiveFailureTag } from "#test/app-host/sensitiveFailureTag.ts";
 import { host } from "#test/app-host/story.ts";
@@ -9,7 +10,7 @@ for (const source of ["schema", "host"] as const) {
 			`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { _tag: value }, tag: "taggedFailure" })}\n`,
 			false,
 		);
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(response.body).toContain('"_tag":"Fail"');
 		expect(response.body).toContain('"detail":"public detail"');
 		expect(response.body).not.toContain(value);

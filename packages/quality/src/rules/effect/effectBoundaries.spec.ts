@@ -22,7 +22,8 @@ effectPolicyStory.it(
 	],
 	function* ({ lint }) {
 		const result = yield* lint();
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stdout).toContain("effect/boundary");
 		expect(result.stdout).toMatch(/src\/iteration\.ts:\d+ {2}Uses await\./u);
 		expect(result.stdout).toMatch(/src\/disposal\.ts:\d+ {2}Uses await\./u);

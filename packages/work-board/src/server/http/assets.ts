@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { Effect, FileSystem, Path, Schema } from "effect";
 import { type HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { INITIAL_THEME_SCRIPT, THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { HEADERS, respond } from "./respond.ts";
@@ -18,7 +19,7 @@ function cacheable(request: HttpServerRequest.HttpServerRequest, body: string | 
 	const headers = { "cache-control": cacheControl, etag };
 	const known = (request.headers["if-none-match"] ?? "").split(",").map((tag) => tag.trim().replace(/^W\//u, ""));
 	if (known.includes(etag.slice(2)) || known.includes("*")) {
-		return HttpServerResponse.empty({ headers: { ...HEADERS, ...headers }, status: 304 });
+		return HttpServerResponse.empty({ headers: { ...HEADERS, ...headers }, status: HttpStatus.fromLiteral("NotModified") });
 	}
 	return HttpServerResponse.setHeaders(respond(body, contentType), headers);
 }
@@ -41,7 +42,7 @@ export function mermaidFile(root: string) {
 		const path = yield* Path.Path;
 		const file = path.resolve(root, new URL(request.url, "http://127.0.0.1").pathname.slice(MERMAID.length));
 		if (!(file.startsWith(`${root}${path.sep}`) && file.endsWith(".mjs") && (yield* fs.exists(file)))) {
-			return respond("Not found", "text/plain", 404);
+			return respond("Not found", "text/plain", HttpStatus.fromLiteral("NotFound"));
 		}
 		// Mermaid's build names every file under chunks/ after its content hash; only its entry keeps a fixed name.
 		const hashed = file.startsWith(path.join(root, "chunks") + path.sep);
@@ -87,7 +88,7 @@ const reactChunk = Effect.fn("WorkBoard.reactChunk")(function* (request: HttpSer
 	const name = new URL(request.url, "http://127.0.0.1").pathname.slice("/_board/react-assets/".length);
 	const type = /^[a-zA-Z\d_-]+\.(?<extension>js|woff2)$/u.exec(name)?.groups?.extension;
 	if (!type) {
-		return respond("Not found", "text/plain", 404);
+		return respond("Not found", "text/plain", HttpStatus.fromLiteral("NotFound"));
 	}
 	// vite.config.ts names every file under react-assets/ with its content hash.
 	return yield* bundledAsset(`react-assets/${name}`, CHUNK_TYPES[type] ?? "text/javascript", IMMUTABLE)(request);
@@ -100,7 +101,7 @@ function bundledAsset(file: string, contentType: string, cacheControl: string) {
 			Effect.map((body) => cacheable(request, body, contentType, cacheControl)),
 			Effect.catchIf(
 				(error) => error.reason._tag === "NotFound",
-				() => Effect.succeed(respond(missingBundle(file), "text/plain", 500)),
+				() => Effect.succeed(respond(missingBundle(file), "text/plain", HttpStatus.fromLiteral("InternalServerError"))),
 			),
 		);
 	});

@@ -1,4 +1,5 @@
 import { Effect, Exit, Schema, Scope } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
 import { httpProbe } from "#test/httpProbe.ts";
@@ -8,9 +9,9 @@ const routes = {
 		path: "/repos/:owner/:repo/contents/:path*",
 		reply: ({ params }: { readonly params: Readonly<Record<string, string>> }) => ({ body: params }),
 	},
-	invalidRest: { path: "/invalid/:path*/tail", reply: () => ({ status: 200 }) },
+	invalidRest: { path: "/invalid/:path*/tail", reply: () => ({ status: HttpStatus.fromLiteral("OK") }) },
 	items: { pages: [["paper", "ink"], ["pens"], ["staples"]], path: "/items" },
-	message: { method: "POST", path: "/messages", reply: () => ({ body: { saved: true }, status: 201 }) },
+	message: { method: "POST", path: "/messages", reply: () => ({ body: { saved: true }, status: HttpStatus.fromLiteral("Created") }) },
 	user: { path: "/users/:id", reply: ({ params }: { readonly params: Readonly<Record<string, string>> }) => ({ body: { id: params.id } }) },
 };
 

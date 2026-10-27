@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { textDiagnostics } from "#test/app-host/diagnostics.ts";
 import { host } from "#test/app-host/story.ts";
@@ -10,7 +11,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 		function* ({ request, close, exports }) {
 			expect(
 				(yield* request("/diagnostics", { headers: { authorization: "Bearer hidden-header-token", cookie: "session=hidden-header-cookie" } })).status,
-			).toBe(500);
+			).toBe(HttpStatus.fromLiteral("InternalServerError"));
 			yield* close();
 			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			expect(exports()[0]?.contentType).toBe(protocol === "http/json" ? "application/json" : "application/x-protobuf");

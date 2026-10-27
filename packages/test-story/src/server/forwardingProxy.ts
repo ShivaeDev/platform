@@ -1,6 +1,7 @@
 import { createServer, type RequestListener, request } from "node:http";
 import { isIP } from "node:net";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { loopbackServer } from "#internal/loopback.ts";
 
 export interface ForwardingProxyOptions {
@@ -31,7 +32,7 @@ export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, op
 				method: incoming.method,
 			},
 			(result) => {
-				response.writeHead(result.statusCode ?? 502, result.headers);
+				response.writeHead(result.statusCode ?? HttpStatus.fromLiteral("BadGateway"), result.headers);
 				result.pipe(response);
 			},
 		);
@@ -39,7 +40,7 @@ export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, op
 			if (response.headersSent) {
 				response.destroy(error);
 			} else {
-				response.writeHead(502).end();
+				response.writeHead(HttpStatus.fromLiteral("BadGateway")).end();
 			}
 		});
 		response.on("close", () => outgoing.destroy());

@@ -1,4 +1,5 @@
 import { Context, Effect, Layer } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
@@ -25,7 +26,7 @@ const definition = {
 				const client = Context.get(yield* Layer.build(github.layer), GithubApi);
 				return { ...github, client };
 			}),
-		cli: (responses: ReadonlyMap<string, string>, status = 200) =>
+		cli: (responses: ReadonlyMap<string, string>, status: number = HttpStatus.fromLiteral("OK")) =>
 			Effect.gen(function* () {
 				story.tell("connect Fleet through GitHub HTTP");
 				const cli = githubCliApi(responses, status);

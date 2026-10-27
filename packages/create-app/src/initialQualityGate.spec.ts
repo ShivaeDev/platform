@@ -40,7 +40,8 @@ application.it(
 	[failingQualityGate, installedPackageManager],
 	function* ({ cli, exists, git }) {
 		const result = yield* cli(["my-app"]);
-		expect(result.status, result.stdout + result.stderr).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode, result.stdout + result.stderr).toBe(1);
 		expect(exists(".git/hooks/pre-commit")).toBe(true);
 		expect(exists(".git/initial-gate.json")).toBe(true);
 		expect(result.stderr).toContain("commit -m Initialize a generated app failed");

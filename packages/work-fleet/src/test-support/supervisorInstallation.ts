@@ -73,8 +73,8 @@ export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallatio
 			readFileSync(daemonFile, "utf8")
 				.replace("HttpRouter, HttpServerResponse", "HttpRouter, HttpServerRequest, HttpServerResponse")
 				.replace(
-					"HttpServerResponse.empty({ status: 204 })",
-					'Effect.gen(function* () { const request = yield* HttpServerRequest.HttpServerRequest; if (request.url.includes("?slow")) { yield* Effect.logInfo("slow live request started"); yield* Effect.sleep("22 seconds"); } return HttpServerResponse.empty({ status: 204 }); })',
+					'HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NoContent") })',
+					'Effect.gen(function* () { const request = yield* HttpServerRequest.HttpServerRequest; if (request.url.includes("?slow")) { yield* Effect.logInfo("slow live request started"); yield* Effect.sleep("22 seconds"); } return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NoContent") }); })',
 				),
 		);
 	}
@@ -83,7 +83,11 @@ export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallatio
 		boardCli,
 		boardDir,
 		changeBoardCode: () => writeFileSync(boardFile, readFileSync(boardFile, "utf8").replace(/(?<url>url: `http:[^`]+)\/`/u, "$<url>/replacement`")),
-		changeCode: () => writeFileSync(daemonFile, readFileSync(daemonFile, "utf8").replace("status: 204", "status: 201")),
+		changeCode: () =>
+			writeFileSync(
+				daemonFile,
+				readFileSync(daemonFile, "utf8").replace('status: HttpStatus.fromLiteral("NoContent")', 'status: HttpStatus.fromLiteral("Created")'),
+			),
 		cli,
 		daemonFile,
 		root,
@@ -91,7 +95,10 @@ export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallatio
 			const next = join(root, "fleet-next");
 			cpSync(installed, next, { recursive: true });
 			const nextDaemon = join(next, "src/host/daemon.ts");
-			writeFileSync(nextDaemon, readFileSync(nextDaemon, "utf8").replace("status: 204", "status: 201"));
+			writeFileSync(
+				nextDaemon,
+				readFileSync(nextDaemon, "utf8").replace('status: HttpStatus.fromLiteral("NoContent")', 'status: HttpStatus.fromLiteral("Created")'),
+			);
 			const link = join(modules, "work-fleet");
 			symlinkSync(next, `${link}.next`);
 			renameSync(`${link}.next`, link);

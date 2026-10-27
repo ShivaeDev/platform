@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 export interface GitHubAccount {
@@ -22,7 +23,7 @@ export function fakeGitHub(accounts: ReadonlyMap<string, GitHubAccount>) {
 					const callback = new URL(query.get("redirect_uri") ?? "");
 					callback.searchParams.set("state", query.get("state") ?? "");
 					callback.searchParams.set("code", `story-code-${String(headers["x-github-account"])}`);
-					return { headers: { location: callback.href }, status: 302 };
+					return { headers: { location: callback.href }, status: HttpStatus.fromLiteral("Found") };
 				},
 			},
 			emails: {
@@ -30,13 +31,15 @@ export function fakeGitHub(accounts: ReadonlyMap<string, GitHubAccount>) {
 				reply: ({ headers }) => {
 					const account = accountOf(accounts, headers.authorization);
 					return account === undefined
-						? { body: { message: "Bad credentials" }, status: 401 }
+						? { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") }
 						: { body: [{ email: `${account.login}@github.test`, primary: true, verified: true }] };
 				},
 			},
 			membership: {
 				path: `/orgs/${ORGANIZATION}/members/:id`,
-				reply: ({ params }) => ({ status: accounts.get(params.id ?? "")?.member === true ? 204 : 404 }),
+				reply: ({ params }) => ({
+					status: accounts.get(params.id ?? "")?.member === true ? HttpStatus.fromLiteral("NoContent") : HttpStatus.fromLiteral("NotFound"),
+				}),
 			},
 			token: {
 				method: "POST",
@@ -51,7 +54,7 @@ export function fakeGitHub(accounts: ReadonlyMap<string, GitHubAccount>) {
 				reply: ({ headers }) => {
 					const account = accountOf(accounts, headers.authorization);
 					return account === undefined
-						? { body: { message: "Bad credentials" }, status: 401 }
+						? { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") }
 						: { body: { "avatar_url": null, email: null, id: Number(account.id), login: account.login, name: account.login } };
 				},
 			},

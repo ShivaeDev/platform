@@ -58,7 +58,8 @@ function names(prefix: string, specifier: string): boolean {
 }
 
 export function engineOf(endpoint: Endpoint): string | undefined {
-	if (endpoint.kind === "file") {
+	// HttpStatus only maps names to numbers; importing it acquires no network services.
+	if (endpoint.kind === "file" || endpoint.specifier === "effect/http/HttpStatus") {
 		return undefined;
 	}
 	return ENGINES.find(([, prefixes]) => prefixes.some((prefix) => names(prefix, endpoint.specifier) || names(prefix, endpoint.package)))?.[0];

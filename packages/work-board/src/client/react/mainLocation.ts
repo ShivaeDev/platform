@@ -1,4 +1,5 @@
 import type { Cause } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 export interface MainLocation {
 	readonly failure?: Cause.Cause<unknown> | undefined;
@@ -12,4 +13,4 @@ export interface MainLocation {
 
 export const NOT_FOUND_PROJECTION = "not-found";
 
-export const emptyMainLocation: MainLocation = { file: "", projection: "document", route: "", status: 200, view: "" };
+export const emptyMainLocation: MainLocation = { file: "", projection: "document", route: "", status: HttpStatus.fromLiteral("OK"), view: "" };

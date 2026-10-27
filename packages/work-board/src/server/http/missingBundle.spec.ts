@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
@@ -16,23 +17,23 @@ for (const [missing, type, content] of assets) {
 			const message = `Work Board browser bundle assets/${missing} is missing. Run pnpm --filter @shivaedev/work-board build:browser from the repository root to build it.`;
 			try {
 				expect(board.logged.filter(({ level }) => level === "Warn")).toEqual([{ level: "Warn", message: [message] }]);
-				expect((yield* Effect.promise(() => fetch(board.url))).status).toBe(200);
+				expect((yield* Effect.promise(() => fetch(board.url))).status).toBe(HttpStatus.fromLiteral("OK"));
 				for (const [asset, healthyType, healthyContent] of assets.filter(([candidate]) => candidate !== missing)) {
 					const response = yield* Effect.promise(() => fetch(`${board.url}/_board/${asset}`));
-					expect(response.status).toBe(200);
+					expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 					expect(response.headers.get("content-type")).toBe(healthyType);
 					expect(yield* Effect.promise(() => response.text())).toContain(healthyContent);
 				}
 				for (let request = 0; request < 2; request += 1) {
 					const response = yield* Effect.promise(() => fetch(`${board.url}/_board/${missing}`));
-					expect(response.status).toBe(500);
+					expect(response.status).toBe(HttpStatus.fromLiteral("InternalServerError"));
 					expect(response.headers.get("content-type")).toBe("text/plain; charset=utf-8");
 					expect(yield* Effect.promise(() => response.text())).toBe(message);
 				}
 				expect(board.logged.filter(({ level }) => level === "Warn")).toEqual([{ level: "Warn", message: [message] }]);
 				editFile(missing, content);
 				const response = yield* Effect.promise(() => fetch(`${board.url}/_board/${missing}`));
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 				expect(response.headers.get("content-type")).toBe(type);
 				expect(yield* Effect.promise(() => response.text())).toBe(content);
 			} finally {

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { screenStory } from "#test/screenStory.ts";
@@ -21,14 +22,18 @@ for (const { kind, url } of [
 					failWorkspace();
 				}
 				yield* Effect.promise(() => follow(url));
-				yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(failed ? "503" : "200"));
+				yield* eventually(() =>
+					expect(readAttribute("#doc", "data-status")).toBe(
+						failed ? String(HttpStatus.fromLiteral("ServiceUnavailable")) : String(HttpStatus.fromLiteral("OK")),
+					),
+				);
 				expect(readAttribute("#doc", "data-projection")).toBe(kind);
 				const before = readDocumentReads();
 				const beforeIndex = readIndexReads();
 				const projection = findElement("[data-react-projection]");
 				recoverWorkspace();
 				yield* Effect.promise(() => follow(url));
-				yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200"));
+				yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("OK"))));
 				expect(readAttribute("#doc", "data-route")).toBe(url);
 				expect(readIndexReads()).toBe(beforeIndex + (failed ? 1 : 0));
 				expect(readDocumentReads().filter((read) => read === url)).toHaveLength(

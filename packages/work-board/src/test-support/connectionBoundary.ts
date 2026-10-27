@@ -1,6 +1,7 @@
 import { createServer, request } from "node:http";
 import type { Socket } from "node:net";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { boardStory } from "./boardStory.ts";
 import type { BoardEngine } from "./storyEngine.ts";
 import { served } from "./storyEngine.ts";
@@ -16,7 +17,7 @@ export function connectionBoundary(browserClient: (url: string) => NonNullable<B
 				return;
 			}
 			const upstream = request(new URL(incoming.url ?? "/", board.url), { headers: incoming.headers, method: incoming.method }, (response) => {
-				outgoing.writeHead(response.statusCode ?? 500, response.headers);
+				outgoing.writeHead(response.statusCode ?? HttpStatus.fromLiteral("InternalServerError"), response.headers);
 				response.pipe(outgoing);
 			});
 			upstream.on("socket", (socket) => {

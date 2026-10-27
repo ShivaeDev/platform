@@ -1,6 +1,7 @@
 import { renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardHome, boardStory } from "#test/boardStory.ts";
 import { faultyWatch } from "#test/faults.ts";
@@ -34,7 +35,7 @@ boardStory.it(
 			"/reference/guide/loop/guide/start.md",
 			"/reference/../guide/start.md",
 		]) {
-			expect((yield* request(path)).status).toBe(404);
+			expect((yield* request(path)).status).toBe(HttpStatus.fromLiteral("NotFound"));
 		}
 		const search = yield* rpcSearch(board, "Reference passage");
 		expect(search.results).toEqual(
@@ -82,14 +83,14 @@ boardStory.it(
 			expect((yield* rpcSearch(board, "Reference passage")).total).toBe(0);
 			reference.write("guide/added.md", "# Added reference\n");
 			yield* changesUntil(events, "reference/guide/added.md");
-			expect((yield* request("/reference/guide/added.md")).status).toBe(200);
+			expect((yield* request("/reference/guide/added.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 			renameSync(join(reference.root, "guide/added.md"), join(reference.root, "guide/moved.md"));
 			yield* changesUntil(events, "reference/guide/moved.md");
-			expect((yield* request("/reference/guide/added.md")).status).toBe(404);
-			expect((yield* request("/reference/guide/moved.md")).status).toBe(200);
+			expect((yield* request("/reference/guide/added.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+			expect((yield* request("/reference/guide/moved.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 			rmSync(join(reference.root, "guide/moved.md"));
 			yield* changesUntil(events, "reference/guide/moved.md");
-			expect((yield* request("/reference/guide/moved.md")).status).toBe(404);
+			expect((yield* request("/reference/guide/moved.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 		} finally {
 			yield* events.close();
 		}
@@ -134,7 +135,7 @@ boardStory.it(
 			);
 			expect((yield* retargetedDocument).source).toContain("New live replacement");
 			expect((yield* watcher).watching).toBe(true);
-			expect((yield* request("/reference/guide/next.md")).status).toBe(404);
+			expect((yield* request("/reference/guide/next.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 			replacement.write("guide/start.md", "# Retargeted live reference\n");
 			const retargeted = search("Retargeted live reference");
 			yield* changesUntilShown(
@@ -157,7 +158,7 @@ boardStory.it(
 		yield* board.stop();
 		referenceLink(reference, "guide/leak.md", join(replacement.root, "guide/start.md"));
 		board = yield* start({ home: "plan.md" });
-		expect((yield* request("/reference/guide/leak.md")).status).toBe(404);
+		expect((yield* request("/reference/guide/leak.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 		expect(yield* Effect.map(rpcDocument(board, "/"), (data) => data.source)).not.toContain("leak.md");
 		expect((yield* rpcSearch(board, "Replacement guide")).total).toBe(0);
 	},

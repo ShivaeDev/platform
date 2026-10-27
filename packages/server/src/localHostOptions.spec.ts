@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
 import { AppChanges } from "#appHost.ts";
@@ -15,7 +16,7 @@ host.it(
 	[lifecycleServices],
 	function* ({ ping, health, hasService, lifecycle, close, request }) {
 		expect(yield* ping()).toBe("pong");
-		expect(yield* health()).toMatchObject({ body: "", status: 503 });
+		expect(yield* health()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
 		expect(yield* hasService(SqlClient.SqlClient)).toBe(false);
 		expect(yield* hasService(AppChanges)).toBe(false);
 		expect(lifecycle()).toEqual(["started"]);
@@ -27,7 +28,7 @@ host.it(
 host.it("rpcPath serves the native client at the chosen route instead of /rpc", [sessionPolicy, rpcPath("/custom/rpc")], function* ({ ping, post }) {
 	expect(yield* ping()).toBe("pong");
 	const status = yield* post({});
-	expect(status).toBe(404);
+	expect(status).toBe(HttpStatus.fromLiteral("NotFound"));
 });
 host.it(
 	"loopback policy refuses origin, Host, content type and proxy forwarding",
@@ -41,11 +42,11 @@ host.it(
 			{ host: "elsewhere.test", origin: "https://elsewhere.test", "x-forwarded-host": "elsewhere.test", "x-forwarded-proto": "https" },
 		]) {
 			const status = yield* post(headers);
-			expect(status).toBe(403);
+			expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		}
 	},
 );
 host.it("application routes retain native typed failures at the HTTP boundary", [failedRoute], function* ({ request, ping }) {
-	expect((yield* request("/failed")).status).toBe(500);
+	expect((yield* request("/failed")).status).toBe(HttpStatus.fromLiteral("InternalServerError"));
 	expect(yield* ping()).toBe("pong");
 });

@@ -1,4 +1,5 @@
 import { Cause, Effect, Exit } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { allowedList, organizationRule, signInPolicy } from "#test/sign-in-policy/story.ts";
 
@@ -16,7 +17,7 @@ signInPolicy.it(
 );
 
 signInPolicy.it("an email sign-up is refused while a policy is active", [allowedList("github:1001")], function* ({ signUpWithEmail, storedUsers }) {
-	expect(yield* signUpWithEmail("dana@example.test")).toEqual({ code: "sign_in_refused", status: 403 });
+	expect(yield* signUpWithEmail("dana@example.test")).toEqual({ code: "sign_in_refused", status: HttpStatus.fromLiteral("Forbidden") });
 	expect(yield* storedUsers()).toEqual([]);
 });
 
@@ -123,7 +124,7 @@ signInPolicy.it(
 	[],
 	function* ({ revokeUnadmitted, signIn, signUpWithEmail, storedSessions, whoami }) {
 		expect(yield* signIn("bob")).toEqual({ signedIn: true });
-		expect(yield* signUpWithEmail("dana@example.test")).toEqual({ code: undefined, status: 200 });
+		expect(yield* signUpWithEmail("dana@example.test")).toEqual({ code: undefined, status: HttpStatus.fromLiteral("OK") });
 		expect(yield* whoami("bob")).toMatchObject({ _tag: "Success" });
 		expect(yield* revokeUnadmitted()).toEqual({ sessions: 0, users: 0 });
 		expect(yield* storedSessions()).toEqual({ "bob@github.test": 1, "dana@example.test": 1 });

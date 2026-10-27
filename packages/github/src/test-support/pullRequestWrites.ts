@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { PullRequestComment } from "#stickyComments.ts";
 
@@ -43,7 +44,7 @@ export function pullRequestWrites() {
 				path: "/repos/acme/widgets/check-runs/:id",
 				reply: (request: FakeHttpRequest) => {
 					const check = state.checks.find(({ id }) => id === Number(request.params.id));
-					return check === undefined ? { status: 404 } : { body: checkBody(check) };
+					return check === undefined ? { status: HttpStatus.fromLiteral("NotFound") } : { body: checkBody(check) };
 				},
 			},
 			comments: {
@@ -69,7 +70,7 @@ export function pullRequestWrites() {
 						output: { summary: input.output?.summary ?? null, text: input.output?.text ?? null, title: input.output?.title ?? null },
 					};
 					state.checks.push(check);
-					return { body: checkBody(check), status: 201 };
+					return { body: checkBody(check), status: HttpStatus.fromLiteral("Created") };
 				},
 			},
 			createComment: {
@@ -78,7 +79,7 @@ export function pullRequestWrites() {
 				reply: (request: FakeHttpRequest) => {
 					const comment = { ...commentBody(request), id: state.comments.length + 1, user: { login: "coverage[bot]" } };
 					state.comments.push(comment);
-					return { body: comment, status: 201 };
+					return { body: comment, status: HttpStatus.fromLiteral("Created") };
 				},
 			},
 			editCheck: {
@@ -89,7 +90,7 @@ export function pullRequestWrites() {
 					const index = state.checks.findIndex(({ id }) => id === Number(request.params.id));
 					const check = state.checks[index];
 					if (check === undefined) {
-						return { status: 404 };
+						return { status: HttpStatus.fromLiteral("NotFound") };
 					}
 					const edited = {
 						...check,
@@ -113,7 +114,7 @@ export function pullRequestWrites() {
 					const index = state.comments.findIndex(({ id }) => id === Number(request.params.id));
 					const comment = state.comments[index];
 					if (comment === undefined) {
-						return { status: 404 };
+						return { status: HttpStatus.fromLiteral("NotFound") };
 					}
 					state.comments[index] = { ...comment, ...commentBody(request) };
 					return { body: state.comments[index] };

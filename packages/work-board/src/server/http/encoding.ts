@@ -1,6 +1,7 @@
 import { brotliCompress, constants, gzip } from "node:zlib";
 import { Effect } from "effect";
 import { HttpBody, type HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 type Encoding = "br" | "gzip";
 
@@ -62,7 +63,12 @@ export const encodeResponse = Effect.fn("WorkBoard.encodeResponse")(function* (
 	cache?: EncodedBodies,
 ) {
 	const { body } = response;
-	if (response.status !== 200 || body._tag !== "Uint8Array" || !COMPRESSIBLE.test(body.contentType) || response.headers["content-encoding"]) {
+	if (
+		response.status !== HttpStatus.fromLiteral("OK")
+		|| body._tag !== "Uint8Array"
+		|| !COMPRESSIBLE.test(body.contentType)
+		|| response.headers["content-encoding"]
+	) {
 		return response;
 	}
 	const varied = HttpServerResponse.setHeader(response, "vary", "accept-encoding");

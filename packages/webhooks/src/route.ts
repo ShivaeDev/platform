@@ -1,5 +1,6 @@
 import { type Context, Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
@@ -28,15 +29,17 @@ export function webhookRoute<TJobs, R>(options: WebhookRouteOptions<TJobs, R>) {
 					const source = Object.hasOwn(options.sources, name) ? options.sources[name] : undefined;
 					const key = keys.get(name);
 					if (source === undefined || key === undefined) {
-						return HttpServerResponse.empty({ status: 404 });
+						return HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") });
 					}
 					const body = new Uint8Array(yield* readBoundedBody(request));
 					return yield* receive(name, source, key, body, request.headers, jobs).pipe(Effect.provideContext(context));
 				}).pipe(
-					Effect.catchTag("RequestBodyTooLarge", () => Effect.succeed(HttpServerResponse.empty({ status: 413 }))),
-					Effect.catchTag("WebhookUnauthorized", () => Effect.succeed(HttpServerResponse.empty({ status: 401 }))),
-					Effect.catchTag("SchemaError", () => Effect.succeed(HttpServerResponse.empty({ status: 400 }))),
-					Effect.catch(() => Effect.succeed(HttpServerResponse.empty({ status: 503 }))),
+					Effect.catchTag("RequestBodyTooLarge", () =>
+						Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("PayloadTooLarge") })),
+					),
+					Effect.catchTag("WebhookUnauthorized", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") }))),
+					Effect.catchTag("SchemaError", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("BadRequest") }))),
+					Effect.catch(() => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") }))),
 				),
 			);
 		}).pipe(Effect.orDie),

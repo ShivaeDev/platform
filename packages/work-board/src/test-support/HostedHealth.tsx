@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { useState } from "react";
 import { LiveControls } from "#client/react/LiveControls.tsx";
 import { MainLocationContext, useMainLocation } from "#client/react/MainLocationContext.ts";
@@ -23,14 +24,21 @@ export function HostedHealth({ client }: { readonly client: LiveClient }) {
 		failure: pageFailureCauses.unavailable,
 		projection: "system",
 		route: "/_board/system",
-		status: 503,
+		status: HttpStatus.fromLiteral("ServiceUnavailable"),
 	});
 	return (
 		<MainLocationContext.Provider value={page}>
 			<Controls client={client} />
 			<button
 				data-document
-				onClick={() => setPage({ ...emptyMainLocation, failure: pageFailureCauses.unavailable, route: "/broken.md", status: 503 })}
+				onClick={() =>
+					setPage({
+						...emptyMainLocation,
+						failure: pageFailureCauses.unavailable,
+						route: "/broken.md",
+						status: HttpStatus.fromLiteral("ServiceUnavailable"),
+					})
+				}
 				type="button"
 			>
 				Document

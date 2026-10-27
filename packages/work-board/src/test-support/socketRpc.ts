@@ -1,6 +1,7 @@
 import { renameSync } from "node:fs";
 import { request } from "node:http";
 import { createServer } from "node:net";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 function frames(body: string): readonly unknown[] {
 	return body
@@ -59,7 +60,7 @@ export function socketExchange(socketPath: string, exchange: SocketExchange): Pr
 				});
 				response.on("end", () => {
 					const status = response.statusCode ?? 0;
-					resolve({ ok: status >= 200 && status < 300, status, text });
+					resolve({ ok: status >= HttpStatus.fromLiteral("OK") && status < HttpStatus.fromLiteral("MultipleChoices"), status, text });
 				});
 			},
 		);

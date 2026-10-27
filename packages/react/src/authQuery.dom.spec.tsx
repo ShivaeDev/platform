@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { authReads, pendingAuthRead } from "#test/authQueryStories.tsx";
 
@@ -8,7 +9,9 @@ authReads.it("renders a successful Better Auth read through useQuery", [pendingA
 });
 authReads.it("keeps returned auth errors in the typed failure channel", [pendingAuthRead()], function* ({ refuse, text, observe }) {
 	yield* refuse();
-	yield* observe("the typed auth failure is rendered", () => expect(text()).toContain('"error":{"code":"REFUSED","status":403}'));
+	yield* observe("the typed auth failure is rendered", () =>
+		expect(text()).toContain(`"error":${JSON.stringify({ code: "REFUSED", status: HttpStatus.fromLiteral("Forbidden") })}`),
+	);
 });
 authReads.it("renders a rejected promise as AuthActionUnavailable", [pendingAuthRead()], function* ({ reject, text, observe }) {
 	yield* reject();

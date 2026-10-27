@@ -3,6 +3,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { type Duration, Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
 import { type SupervisorState, supervisionStatus } from "#host/supervisorState.ts";
 import { launchSupervisorCli } from "#test/launchSupervisorCli.ts";
@@ -68,7 +69,7 @@ export class SupervisorStoryEngine {
 						return false;
 					}
 					return yield* engine.http(state, name).pipe(
-						Effect.map(({ status }) => status >= 200 && status < 300),
+						Effect.map(({ status }) => status >= HttpStatus.fromLiteral("OK") && status < HttpStatus.fromLiteral("MultipleChoices")),
 						Effect.orElseSucceed(() => false),
 					);
 				}),
@@ -92,7 +93,7 @@ export class SupervisorStoryEngine {
 					return false;
 				}
 				return yield* engine.http(state, "daemon").pipe(
-					Effect.map(({ status }) => status >= 200 && status < 300),
+					Effect.map(({ status }) => status >= HttpStatus.fromLiteral("OK") && status < HttpStatus.fromLiteral("MultipleChoices")),
 					Effect.orElseSucceed(() => false),
 				);
 			}),

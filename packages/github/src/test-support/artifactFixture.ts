@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpReply, FakeHttpRoute } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 export function artifactFixture(origin: () => string) {
@@ -13,7 +14,11 @@ export function artifactFixture(origin: () => string) {
 		},
 		artifactRedirect: {
 			path: "/repos/acme/widgets/actions/artifacts/7/zip",
-			reply: () => state.redirect ?? { headers: { Location: `${origin()}/storage/archive.zip?signature=storage-secret` }, status: 302 },
+			reply: () =>
+				state.redirect ?? {
+					headers: { Location: `${origin()}/storage/archive.zip?signature=storage-secret` },
+					status: HttpStatus.fromLiteral("Found"),
+				},
 		},
 	} satisfies Record<string, FakeHttpRoute>;
 	return { routes, state };

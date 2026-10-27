@@ -1,5 +1,6 @@
 import { Effect, Layer, Option } from "effect";
 import { type HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { type AuthUnavailable, Forbidden, type Unauthorized } from "@shivaedev/errors/taxonomy.ts";
@@ -34,7 +35,11 @@ export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
 function rejection(error: Unauthorized | Forbidden | AuthUnavailable) {
 	return HttpServerResponse.empty({
 		headers: { "cache-control": "private, no-store" },
-		status: { AuthUnavailable: 503, Forbidden: 403, Unauthorized: 401 }[error._tag],
+		status: {
+			AuthUnavailable: HttpStatus.fromLiteral("ServiceUnavailable"),
+			Forbidden: HttpStatus.fromLiteral("Forbidden"),
+			Unauthorized: HttpStatus.fromLiteral("Unauthorized"),
+		}[error._tag],
 	});
 }
 

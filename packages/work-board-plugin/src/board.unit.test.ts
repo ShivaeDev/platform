@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { describe, expect, it } from "vitest";
 import { readBoard } from "#board.ts";
 import { failure, reply, success } from "#test/rpcReplies.ts";
@@ -51,7 +52,7 @@ describe("the Board's RPC stream", () => {
 	});
 
 	it("turns a refused request and a stream without exits into an error", () => {
-		expect(readBoard({ ok: false, status: 503, text: "busy\n" }, "/repo", NOW)).toEqual({
+		expect(readBoard({ ok: false, status: HttpStatus.fromLiteral("ServiceUnavailable"), text: "busy\n" }, "/repo", NOW)).toEqual({
 			kind: "error",
 			message: "The Work Board for /repo refused the request (503): busy",
 		});

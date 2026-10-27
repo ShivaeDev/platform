@@ -1,4 +1,5 @@
 import { Cause, Exit, Option } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { nativeTracing } from "#test/app-host/nativeTracing.ts";
 import { schemaDiagnostics } from "#test/app-host/schemaDiagnostics.ts";
@@ -58,7 +59,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				visible: "ordinary prose stays visible",
 			};
 			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "diagnose" })}\n`, false);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.body).toContain('"_tag":"Rejected"');
 			for (const key of ["sealed", "sensitiveNote", "customerRef", "mailingLine", "internalReference", "privateLabels", "recoveryCodes"]) {
 				expect(response.body).toContain(`"${key}":"<redacted>"`);

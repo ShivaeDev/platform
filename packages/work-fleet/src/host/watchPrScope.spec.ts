@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { HEAD, PR } from "#test/githubResult.ts";
 import { host, storedWork } from "#test/hostStory.ts";
 
@@ -46,7 +47,7 @@ host.it(
 	function* (daemon) {
 		const github = yield* daemon.prApi();
 		github.pull({}, 8);
-		github.fail(422);
+		github.fail(HttpStatus.fromLiteral("UnprocessableEntity"));
 		yield* daemon.watchEvents({ apiUrl: github.url, prEvents: true, prInterval: 0.1 });
 		yield* daemon.awaitEvent("pr-error");
 		yield* github.awaitPoll();
@@ -56,7 +57,7 @@ host.it(
 		github.pull({ state: "closed" }, 8);
 		yield* daemon.awaitEvent("pr-closed");
 		expect(github.requests().filter(({ path }) => path === "/repos/example/repository/pulls/7")).toEqual([
-			{ path: "/repos/example/repository/pulls/7", status: 422 },
+			{ path: "/repos/example/repository/pulls/7", status: HttpStatus.fromLiteral("UnprocessableEntity") },
 		]);
 		expect(daemon.eventLines().filter((line) => typeof line === "object" && line !== null && "kind" in line && line.kind === "pr-error")).toEqual([
 			expect.objectContaining({ kind: "pr-error", message: expect.stringContaining("422"), number: 7, pr: PR, workId: "huge" }),

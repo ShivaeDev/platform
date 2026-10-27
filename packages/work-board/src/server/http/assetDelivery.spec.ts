@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
@@ -15,7 +16,7 @@ boardStory.it("compresses scripts, styles, the page shell and RPC answers for a 
 			["br;q=0.5, *;q=0", "br"],
 		] as const) {
 			const compressed = yield* exchange(path, { "accept-encoding": accept });
-			expect(compressed.status).toBe(200);
+			expect(compressed.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(compressed.headers["content-encoding"]).toBe(encoding);
 			expect(compressed.headers.vary).toBe("accept-encoding");
 			expect(compressed.text).toBe(plain.text);
@@ -37,7 +38,7 @@ boardStory.it("caches content-hashed chunks for a year while the shell and fixed
 	const chunk = /react-assets\/(?<name>[\w-]+\.js)/u.exec(entry.text)?.groups?.name;
 	expect(chunk).toBeDefined();
 	const hashed = yield* exchange(`/_board/react-assets/${chunk}`);
-	expect(hashed.status).toBe(200);
+	expect(hashed.status).toBe(HttpStatus.fromLiteral("OK"));
 	expect(hashed.headers["cache-control"]).toBe("max-age=31536000, immutable");
 	const mermaid = yield* exchange("/_board/mermaid/mermaid.esm.min.mjs");
 	expect(mermaid.headers["cache-control"]).toBe("no-cache");
@@ -49,7 +50,7 @@ boardStory.it("caches content-hashed chunks for a year while the shell and fixed
 		expect(fresh.headers["cache-control"]).toBe("no-cache");
 		expect(fresh.headers.etag).toMatch(/^W\/"[\w-]+"$/u);
 		const revalidated = yield* exchange(path, { "if-none-match": fresh.headers.etag ?? "" });
-		expect(revalidated.status).toBe(304);
+		expect(revalidated.status).toBe(HttpStatus.fromLiteral("NotModified"));
 		expect(revalidated.text).toBe("");
 		expect(revalidated.headers.etag).toBe(fresh.headers.etag);
 	}
@@ -71,11 +72,13 @@ boardStory.it(
 			expect(first.headers["content-encoding"]).toBe("br");
 			editFile("react.js", `export const build = "${"second".repeat(400)}";`);
 			const rebuilt = yield* exchange("/_board/react.js", { "accept-encoding": "br", "if-none-match": first.headers.etag ?? "" });
-			expect(rebuilt.status).toBe(200);
+			expect(rebuilt.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(rebuilt.headers.etag).not.toBe(first.headers.etag);
 			expect(rebuilt.text).toContain("secondsecond");
 			expect(rebuilt.text).not.toContain("first");
-			expect((yield* exchange("/_board/react.js", { "accept-encoding": "br", "if-none-match": rebuilt.headers.etag ?? "" })).status).toBe(304);
+			expect((yield* exchange("/_board/react.js", { "accept-encoding": "br", "if-none-match": rebuilt.headers.etag ?? "" })).status).toBe(
+				HttpStatus.fromLiteral("NotModified"),
+			);
 		} finally {
 			yield* board.stop();
 		}

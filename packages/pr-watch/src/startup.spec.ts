@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { checksAre, githubReplies, hasPull, openPulls, statusIs, watchesFleet } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -37,7 +38,10 @@ watch.it(
 );
 watch.it(
 	"an incomplete initial observation reports stuck only after valid evidence arrives",
-	[hasPull(1, { mergeable: false, "mergeable_state": "dirty" }), githubReplies("/commits/sha1/status", { body: {}, status: 500 })],
+	[
+		hasPull(1, { mergeable: false, "mergeable_state": "dirty" }),
+		githubReplies("/commits/sha1/status", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") }),
+	],
 	function* (h) {
 		yield* Effect.result(h.poll);
 		const events = h.events();

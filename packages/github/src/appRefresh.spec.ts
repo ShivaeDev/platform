@@ -1,4 +1,5 @@
 import { Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { appGithub } from "#test/appGithub.ts";
 
@@ -14,7 +15,11 @@ appGithub.it(
 			{ method: "POST", path: "/app/installations/7/access_tokens" },
 		]);
 		const reads = requests().filter(({ path }) => path === "/repos/acme/widgets/pulls/1");
-		expect(reads.map(({ status }) => status)).toEqual([200, 401, 200]);
+		expect(reads.map(({ status }) => status)).toEqual([
+			HttpStatus.fromLiteral("OK"),
+			HttpStatus.fromLiteral("Unauthorized"),
+			HttpStatus.fromLiteral("OK"),
+		]);
 		expect(reads[1]?.headers.authorization).toBe(reads[0]?.headers.authorization);
 		expect(reads[2]?.headers.authorization).not.toBe(reads[0]?.headers.authorization);
 	},
@@ -24,7 +29,7 @@ appGithub.it("a second resource 401 fails typed after exactly one refresh", [], 
 	yield* readPull();
 	yield* rejectPull();
 	yield* rejectPull();
-	expect(yield* Effect.flip(readPull())).toMatchObject({ _tag: "RemoteUnauthorized", method: "GET", status: 401 });
+	expect(yield* Effect.flip(readPull())).toMatchObject({ _tag: "RemoteUnauthorized", method: "GET", status: HttpStatus.fromLiteral("Unauthorized") });
 	expect(exchanges()).toMatchObject([
 		{ method: "POST", path: "/app/installations/7/access_tokens" },
 		{ method: "POST", path: "/app/installations/7/access_tokens" },
@@ -33,7 +38,7 @@ appGithub.it("a second resource 401 fails typed after exactly one refresh", [], 
 		requests()
 			.filter(({ path }) => path === "/repos/acme/widgets/pulls/1")
 			.map(({ status }) => status),
-	).toEqual([200, 401, 401]);
+	).toEqual([HttpStatus.fromLiteral("OK"), HttpStatus.fromLiteral("Unauthorized"), HttpStatus.fromLiteral("Unauthorized")]);
 });
 
 appGithub.it(
@@ -64,7 +69,7 @@ appGithub.it(
 			{ method: "POST", path: "/app/installations/7/access_tokens" },
 			{ method: "POST", path: "/app/installations/7/access_tokens" },
 		]);
-		const unauthorized = requests().filter(({ status }) => status === 401);
+		const unauthorized = requests().filter(({ status }) => status === HttpStatus.fromLiteral("Unauthorized"));
 		expect(unauthorized).toHaveLength(readers);
 		expect([...new Set(unauthorized.map(({ headers }) => headers.authorization))]).toEqual([requests()[1]?.headers.authorization]);
 	},

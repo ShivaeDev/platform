@@ -37,7 +37,8 @@ host.it(
 			["dependent", dependencyReason],
 		] as const) {
 			const outcome = yield* daemon.wait(workId, 100);
-			expect(outcome.code).toBe(2);
+			const exitCode = outcome.code;
+			expect(exitCode).toBe(2);
 			expect(outcome.summary).toContain(reason);
 		}
 		daemon.writeBoard("external.md", task("external").replace("kind: task", "kind: task\nstatus: done"));

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { ORIGIN, type Provider } from "./harness.ts";
 
 export function expireSession(provider: Provider, token: string) {
@@ -20,7 +21,7 @@ export function signOut(provider: Provider, headers: Record<string, string>) {
 				method: "POST",
 			}),
 		);
-		if (response.status !== 200) {
+		if (response.status !== HttpStatus.fromLiteral("OK")) {
 			throw new Error(`Cannot sign out: Better Auth returned HTTP ${response.status}`);
 		}
 	});

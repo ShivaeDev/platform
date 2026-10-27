@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
@@ -21,7 +22,7 @@ for (const collision of [false, true]) {
 				for (const slash of ["", "/"]) {
 					const url = `/_board/item/${id}${slash}`;
 					const page = yield* get(url);
-					expect(page.status).toBe(200);
+					expect(page.status).toBe(HttpStatus.fromLiteral("OK"));
 					const document = yield* Effect.promise(() => client.run(client.api.document.run({ url })));
 					expect(document).toMatchObject({ file: "identified.md", identity: "source.md", source: "# Identified item" });
 				}
@@ -47,7 +48,7 @@ for (const collision of [false, true]) {
 			for (const slash of ["", "/"]) {
 				const url = `/_board/item/missing.md${slash}`;
 				const missing = yield* get(url);
-				expect(missing.status).toBe(404);
+				expect(missing.status).toBe(HttpStatus.fromLiteral("NotFound"));
 				yield* Effect.promise(() => expect(client.run(client.api.document.run({ url }))).rejects.toBeInstanceOf(NotFound));
 			}
 		},

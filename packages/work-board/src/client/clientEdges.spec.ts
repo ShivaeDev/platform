@@ -1,6 +1,7 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, SchemaIssue } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 
@@ -15,7 +16,7 @@ boardStory.it(
 				name: "AbortError",
 			}),
 		);
-		expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
+		expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(HttpStatus.fromLiteral("OK"));
 	},
 );
 
@@ -29,7 +30,7 @@ boardStory.it(
 				name: "AbortError",
 			}),
 		);
-		expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
+		expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(HttpStatus.fromLiteral("OK"));
 	},
 );
 

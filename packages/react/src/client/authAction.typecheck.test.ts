@@ -1,9 +1,12 @@
 import type { Cause, Option } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type AuthActionUnavailable, authAction } from "#client/authAction.ts";
 import { useAction } from "#client/resultState.ts";
 
 const signIn = authAction(async (input: { readonly email: string }, _signal) =>
-	input.email.length > 0 ? { data: { session: "signed-in" }, error: null } : { data: null, error: { code: "INVALID_EMAIL" as const, status: 401 } },
+	input.email.length > 0
+		? { data: { session: "signed-in" }, error: null }
+		: { data: null, error: { code: "INVALID_EMAIL" as const, status: HttpStatus.fromLiteral("Unauthorized") } },
 );
 
 export function useSignIn() {

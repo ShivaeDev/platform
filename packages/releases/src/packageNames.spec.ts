@@ -26,14 +26,16 @@ workspace.it("a declared rename releases the new name and preserves released his
 	expect(yield* read("packages/core/CHANGELOG.md")).toContain(`\n${HISTORY.slice("# Changelog\n".length).trimStart()}`);
 	yield* edit("packages/core/CHANGELOG.md", (text) => text.replace("Released history.", "Rewritten history."));
 	const rewritten = yield* cli("check");
-	expect(rewritten.status).toBe(1);
+	const exitCode = rewritten.status;
+	expect(exitCode).toBe(1);
 	expect(rewritten.stderr).toContain("restore released history");
 });
 
 workspace.it("an undeclared removal explains how a remaining package declares it", [], function* ({ remove, cli }) {
 	yield* remove("packages/dev/package.json");
 	const result = yield* cli("check");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("@test/dev");
 	expect(result.stderr).toContain(".changeset/<name>.md");
 	expect(result.stderr).toContain("### Breaking");
@@ -64,7 +66,8 @@ for (const [label, body] of [
 		yield* change("retire", { [CORE]: "minor" }, body);
 		yield* remove("packages/dev/package.json");
 		const result = yield* cli("check");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("### Breaking");
 	});
 }
@@ -73,6 +76,7 @@ workspace.it("a rename requires the new package in declaration frontmatter", [],
 	yield* change("rename", { [CORE]: "minor" }, "### Breaking\n\n- Rename `@test/dev` to `@test/renamed`; use the new package name.\n");
 	yield* edit("packages/dev/package.json", (text) => text.replace("@test/dev", "@test/renamed"));
 	const result = yield* cli("check");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("name the new package and its bump in frontmatter");
 });

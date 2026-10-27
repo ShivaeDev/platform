@@ -3,6 +3,7 @@ import { createConnection } from "node:net";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import { workRpcs } from "#rpc/contract.ts";
 import { RPC_PATH } from "#server/http/rpcPolicy.ts";
@@ -76,7 +77,9 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 				.serve(
 					Effect.gen(function* () {
 						const request = yield* HttpServerRequest.HttpServerRequest;
-						return request.method === "POST" && request.url === RPC_PATH ? yield* rpc : HttpServerResponse.empty({ status: 404 });
+						return request.method === "POST" && request.url === RPC_PATH
+							? yield* rpc
+							: HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NotFound") });
 					}),
 				)
 				.pipe(Scope.provide(scope));

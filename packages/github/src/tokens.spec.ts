@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { GitHubTransportError } from "#errors.ts";
 import { FIXTURE_TOKEN } from "#test/fixtures.ts";
@@ -40,9 +41,9 @@ github.it("a transport failure retains neither credentials nor the query in its 
 
 github.it(
 	"a custom GitHubToken authenticates without automatic installation refresh",
-	[routeAnswers({ status: 401 })],
+	[routeAnswers({ status: HttpStatus.fromLiteral("Unauthorized") })],
 	function* ({ readPull, requests }) {
-		expect(yield* Effect.flip(readPull())).toMatchObject({ _tag: "RemoteUnauthorized", status: 401 });
+		expect(yield* Effect.flip(readPull())).toMatchObject({ _tag: "RemoteUnauthorized", status: HttpStatus.fromLiteral("Unauthorized") });
 		expect(requests().map(({ headers, method }) => ({ authorization: headers.authorization, method }))).toEqual([
 			{ authorization: `Bearer ${FIXTURE_TOKEN}`, method: "GET" },
 		]);

@@ -1,4 +1,5 @@
 import { Effect, Schema } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { RemoteNotFound, ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
 import { GitHubPermissionDenied } from "#errors.ts";
@@ -15,11 +16,15 @@ github.it("decodes a read and sends GitHub's version, media type and bearer toke
 	});
 });
 
-github.it("fails typed on a missing resource without retaining the query", [routeAnswers({ status: 404 })], function* ({ readPull }) {
-	const error = yield* Effect.flip(readPull());
-	expect(error).toBeInstanceOf(RemoteNotFound);
-	expect(JSON.stringify(error)).not.toContain("query-secret");
-});
+github.it(
+	"fails typed on a missing resource without retaining the query",
+	[routeAnswers({ status: HttpStatus.fromLiteral("NotFound") })],
+	function* ({ readPull }) {
+		const error = yield* Effect.flip(readPull());
+		expect(error).toBeInstanceOf(RemoteNotFound);
+		expect(JSON.stringify(error)).not.toContain("query-secret");
+	},
+);
 
 github.it("fails typed when GitHub's JSON breaks the requested Schema", [routeAnswers({ body: { number: "one" } })], function* ({ readPull }) {
 	expect(yield* Effect.flip(readPull())).toBeInstanceOf(Schema.SchemaError);
@@ -30,7 +35,7 @@ github.it(
 	[
 		routeAnswers({
 			body: { "documentation_url": "/rate limit", message: "Resource not accessible by integration" },
-			status: 403,
+			status: HttpStatus.fromLiteral("Forbidden"),
 		}),
 	],
 	function* ({ readPull }) {

@@ -1,5 +1,6 @@
 import { Effect, FileSystem } from "effect";
 import type { HttpServerRequest } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { currentDocument } from "#server/currentDocument.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
@@ -27,26 +28,26 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 			return respond(shell(requested || "Today", changes.realRoot), "text/html", status);
 		}
 		if (!(requested || expectedIdentity)) {
-			return layout(200);
+			return layout(HttpStatus.fromLiteral("OK"));
 		}
 		const file = (yield* changes.files).find((candidate) => candidate.path === requested);
 		if (!file) {
-			return layout(404);
+			return layout(HttpStatus.fromLiteral("NotFound"));
 		}
 		return yield* Effect.gen(function* () {
 			const real = yield* markdownPath(options.root, changes.realRoot, file.path);
 			if (!real) {
-				return layout(404);
+				return layout(HttpStatus.fromLiteral("NotFound"));
 			}
 			const fs = yield* FileSystem.FileSystem;
 			const source = yield* fs.readFileString(real);
 			if (expectedIdentity) {
 				const { document, snapshot } = currentDocument(yield* index, file.path, source, options.home);
 				if (document.parsed.fields.id !== expectedIdentity || snapshot.model.ids.get(expectedIdentity)?.length !== 1) {
-					return layout(404);
+					return layout(HttpStatus.fromLiteral("NotFound"));
 				}
 			}
-			return layout(200);
-		}).pipe(Effect.catch(() => Effect.succeed(layout(500))));
+			return layout(HttpStatus.fromLiteral("OK"));
+		}).pipe(Effect.catch(() => Effect.succeed(layout(HttpStatus.fromLiteral("InternalServerError")))));
 	});
 }

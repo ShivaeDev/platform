@@ -1,6 +1,7 @@
 import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Clock, Effect, Stream } from "effect";
 import { FetchHttpClient, HttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { daemonClient } from "#host/daemonClient.ts";
 import { readDaemonPort } from "#host/daemonPort.ts";
 import { type EventKind, type WatchEvent, watchTransitions } from "#host/watchEvents.ts";
@@ -91,7 +92,7 @@ const runWatchStream = Effect.fnUntraced(function* (options: WatchStreamOptions)
 		const alive = yield* Effect.gen(function* () {
 			const port = yield* readDaemonPort(options.board, options.port).pipe(Effect.provide(NodeServices.layer));
 			const response = yield* HttpClient.get(`http://127.0.0.1:${port}/live`);
-			return response.status === 204;
+			return response.status === HttpStatus.fromLiteral("NoContent");
 		}).pipe(
 			Effect.timeout("1 second"),
 			Effect.orElseSucceed(() => false),

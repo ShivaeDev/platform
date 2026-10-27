@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { Request } from "happy-dom";
 import type BrowserWindow from "happy-dom/lib/window/BrowserWindow.js";
 
@@ -8,7 +9,9 @@ export function documentRedirect(request: Request, window: BrowserWindow, target
 			headers.delete(name);
 		}
 	}
-	const get = (status === 303 && request.method !== "HEAD") || ([301, 302].includes(status) && request.method === "POST");
+	const get =
+		(status === HttpStatus.fromLiteral("SeeOther") && request.method !== "HEAD")
+		|| (Array.of<number>(HttpStatus.fromLiteral("MovedPermanently"), HttpStatus.fromLiteral("Found")).includes(status) && request.method === "POST");
 	if (get) {
 		headers.delete("content-type");
 		headers.delete("content-length");

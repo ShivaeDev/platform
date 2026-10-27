@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { archiveFixture, finishedBrief } from "#test/archiveFixture.ts";
 import { boardStory, deferredServing } from "#test/boardStory.ts";
@@ -47,7 +48,7 @@ boardStory.it("an archived identity refuses a new brief", [archiveFixture()], fu
 	yield* events.next();
 	board.editFile("tasks/new.md", finishedBrief("old", "ready"));
 	yield* events.changed("tasks/new.md");
-	expect((yield* board.get("/_board/item/old/")).status).toBe(409);
+	expect((yield* board.get("/_board/item/old/")).status).toBe(HttpStatus.fromLiteral("Conflict"));
 	expect((yield* board.readDocument("tasks/new.md")).diagnostics).toContainEqual(
 		expect.objectContaining({ field: "id", message: expect.stringContaining("Duplicate") }),
 	);

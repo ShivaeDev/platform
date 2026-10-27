@@ -1,5 +1,6 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
 import { eventually } from "@shivaedev/react/client/testing.ts";
@@ -59,7 +60,7 @@ export const openLogin = Effect.fn("ScreenStory.openLogin")(function* (engine: S
 				: Promise.resolve(
 						engine.login.outcome === undefined
 							? { data: {}, error: null }
-							: { data: null, error: { message: engine.login.outcome, status: 401, statusText: "Unauthorized" } },
+							: { data: null, error: { message: engine.login.outcome, status: HttpStatus.fromLiteral("Unauthorized"), statusText: "Unauthorized" } },
 					);
 		}),
 	};
@@ -93,7 +94,10 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 			? undefined
 			: authAction(() => {
 					engine.signOutCalls.push(undefined);
-					return Promise.resolve({ data: null, error: { message: signOutFailure, status: 400, statusText: "Bad Request" } });
+					return Promise.resolve({
+						data: null,
+						error: { message: signOutFailure, status: HttpStatus.fromLiteral("BadRequest"), statusText: "Bad Request" },
+					});
 				});
 	engine.client.api.list.query();
 	view.registry.mount(engine.client.api[LiveConnection].connection);

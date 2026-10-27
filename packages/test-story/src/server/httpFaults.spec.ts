@@ -1,4 +1,5 @@
 import { Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
@@ -8,7 +9,7 @@ httpFaultApp.it("releases a held call when the named authorized route arrives", 
 	const client = yield* request();
 	yield* paused.waiting;
 	const body = yield* Effect.forkChild(client.finished);
-	expect(yield* requestRejected()).toMatchObject({ status: 401 });
+	expect(yield* requestRejected()).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
 	expect(body.pollUnsafe()).toBeUndefined();
 	const trigger = yield* request("/trigger");
 	expect(yield* trigger.finished).toEqual({ bytes: Buffer.from('{"triggered":true}'), kind: "complete" });
@@ -19,12 +20,15 @@ httpFaultApp.it("replaces an already arrived request with a scripted status repl
 	const paused = yield* hold("data");
 	const client = yield* request();
 	yield* paused.waiting;
-	yield* fault("data", { kind: "status", reply: { body: { error: "late failure" }, headers: { "retry-after": "2" }, status: 503 } });
-	expect(yield* client.headers).toMatchObject({ headers: { "retry-after": "2" }, status: 503 });
+	yield* fault("data", {
+		kind: "status",
+		reply: { body: { error: "late failure" }, headers: { "retry-after": "2" }, status: HttpStatus.fromLiteral("ServiceUnavailable") },
+	});
+	expect(yield* client.headers).toMatchObject({ headers: { "retry-after": "2" }, status: HttpStatus.fromLiteral("ServiceUnavailable") });
 	expect(yield* client.finished).toEqual({ bytes: Buffer.from('{"error":"late failure"}'), kind: "complete" });
 	yield* paused.release;
 	const next = yield* request();
-	expect(yield* next.headers).toMatchObject({ status: 200 });
+	expect(yield* next.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 });
 
 httpFaultApp.it("drops an arrived connection before any response headers", [], function* ({ hold, request, fault }) {
@@ -41,7 +45,7 @@ httpFaultApp.it("resets a reply after the client has received its first body chu
 	const client = yield* request();
 	yield* sendChunk();
 	expect(yield* client.nextChunk).toEqual(Buffer.from("partial body"));
-	expect(yield* client.headers).toMatchObject({ status: 200 });
+	expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 	yield* fault("data", { kind: "reset" });
 	expect(yield* client.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
 });
@@ -53,7 +57,7 @@ httpFaultApp.it("closes stalled and held connections with its scope", [], functi
 	const headers = yield* request("/trigger");
 	yield* stalled.waiting;
 	yield* held.waiting;
-	expect(yield* body.headers).toMatchObject({ status: 200 });
+	expect(yield* body.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 	yield* close();
 	expect(yield* body.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
 	expect(yield* headers.headers).toMatchObject({ code: "ECONNRESET", kind: "error" });

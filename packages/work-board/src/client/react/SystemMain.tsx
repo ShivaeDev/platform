@@ -1,4 +1,5 @@
 import { Option } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { useContext } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { MainLocation } from "./mainLocation.ts";
@@ -28,7 +29,7 @@ export function SystemMain({
 	return (
 		<ProjectionFrame
 			atom={atom}
-			location={() => ({ file: "System", status: 200, view: "system" })}
+			location={() => ({ file: "System", status: HttpStatus.fromLiteral("OK"), view: "system" })}
 			onPage={onPage}
 			render={(data) => <SystemPage data={data} needsYou={needsYou} sourceProblems={sourceProblems} />}
 			route="system"

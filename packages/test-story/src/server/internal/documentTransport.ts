@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { IFetchInterceptor } from "happy-dom";
 import FetchRequestHeaderUtility from "happy-dom/lib/fetch/utilities/FetchRequestHeaderUtility.js";
 import WindowBrowserContext from "happy-dom/lib/window/WindowBrowserContext.js";
@@ -20,7 +21,17 @@ export function documentTransport(fetch: typeof globalThis.fetch): IFetchInterce
 				const { release, response } = await documentRequest(fetch, current, body, headers);
 				const responseHeaders = documentResponseHeaders(response, current, frame);
 				const location = response.headers.get("location");
-				if (![301, 302, 303, 307, 308].includes(response.status) || location === null || current.redirect === "manual") {
+				if (
+					!Array.of<number>(
+						HttpStatus.fromLiteral("MovedPermanently"),
+						HttpStatus.fromLiteral("Found"),
+						HttpStatus.fromLiteral("SeeOther"),
+						HttpStatus.fromLiteral("TemporaryRedirect"),
+						HttpStatus.fromLiteral("PermanentRedirect"),
+					).includes(response.status)
+					|| location === null
+					|| current.redirect === "manual"
+				) {
 					return documentResponse(response, current, frame, release, redirects > 0, responseHeaders);
 				}
 				await response.body?.cancel();

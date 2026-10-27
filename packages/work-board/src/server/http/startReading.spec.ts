@@ -1,8 +1,9 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory } from "#test/boardStory.ts";
 
 boardStory.it("offers copyable source without writing project files or hiding missing documents", [], function* ({ get, rpc, viewHtml, files }) {
-	expect((yield* get("/")).status).toBe(200);
+	expect((yield* get("/")).status).toBe(HttpStatus.fromLiteral("OK"));
 	const html = yield* viewHtml("/_board/start");
 	expect(html).toMatch(/>Start your workspace<\/h1>/u);
 	expect(html).toContain("never writes them for you");
@@ -10,8 +11,8 @@ boardStory.it("offers copyable source without writing project files or hiding mi
 	expect(start.empty).toBe(true);
 	expect(start.templates.some((template) => template.source.includes("example.report"))).toBe(true);
 	expect(files()).toEqual(["board.sock"]);
-	expect((yield* get("/missing.md")).status).toBe(404);
-	expect((yield* get("/_board/start", "outside.example")).status).toBe(403);
+	expect((yield* get("/missing.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+	expect((yield* get("/_board/start", "outside.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 });
 boardStory.it(
 	"reads copied templates as related documents with no fabricated evidence",

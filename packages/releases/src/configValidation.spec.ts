@@ -9,7 +9,8 @@ for (const { config, message, name } of [
 	workspace.it(`check explains a ${name}`, [], function* ({ write, cli }) {
 		yield* write(".changeset/changesets.config.ts", `export default ${config};\n`);
 		const result = yield* cli("check");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain(message);
 	});
 }
@@ -17,7 +18,8 @@ for (const { config, message, name } of [
 workspace.it("check rejects duplicate workspace package names", [], function* ({ edit, cli }) {
 	yield* edit("packages/dev/package.json", (text) => text.replace("@test/dev", "@test/core"));
 	const result = yield* cli("check");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("Workspace package names must be unique");
 });
 

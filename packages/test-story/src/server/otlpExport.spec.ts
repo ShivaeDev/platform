@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { lifecycle, otlpApp } from "#test/otlpApp.ts";
 
@@ -62,7 +63,7 @@ for (const protobuf of [false, true]) {
 lifecycle.it("releases its listening port with the scope", [], function* ({ close, send, url }) {
 	const address = url();
 	const status = yield* send("/v1/traces", "application/json", Buffer.from("{}"));
-	expect(status).toBe(200);
+	expect(status).toBe(HttpStatus.fromLiteral("OK"));
 	yield* close();
 	yield* Effect.promise(() => expect(fetch(`${address}/v1/traces`)).rejects.toThrow());
 });
@@ -72,12 +73,12 @@ lifecycle.it("keeps malformed export bytes and continues receiving", [], functio
 	const empty = Buffer.from("{}");
 	for (const contentType of ["application/json", "application/x-protobuf"]) {
 		const status = yield* send("/v1/traces", contentType, malformed);
-		expect(status).toBe(400);
+		expect(status).toBe(HttpStatus.fromLiteral("BadRequest"));
 	}
 	for (const [path, contentType, expectedStatus] of [
-		["/wrong", "application/json", 404],
-		["/v1/traces", "text/plain", 415],
-		["/v1/traces", "application/json; charset=utf-8", 200],
+		["/wrong", "application/json", HttpStatus.fromLiteral("NotFound")],
+		["/v1/traces", "text/plain", HttpStatus.fromLiteral("UnsupportedMediaType")],
+		["/v1/traces", "application/json; charset=utf-8", HttpStatus.fromLiteral("OK")],
 	] as const) {
 		const status = yield* send(path, contentType, empty);
 		expect(status).toBe(expectedStatus);

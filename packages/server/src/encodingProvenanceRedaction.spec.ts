@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { branchedEncoding, scalarEncoding } from "#test/app-host/encodingProvenance.ts";
 import { host } from "#test/app-host/story.ts";
@@ -13,7 +14,7 @@ host.it(
 			postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: String(swap), payload: { swap, value }, tag: "branched" })}\n`, false),
 		);
 		for (const response of responses) {
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.body).toContain('"_tag":"Fail"');
 			expect(response.body).toContain('"left":"<redacted>"');
 			expect(response.body).toContain('"right":"<redacted>"');
@@ -46,7 +47,7 @@ for (const source of ["schema", "host"] as const) {
 		function* ({ postNdjson, logs, close, exportedSpans }) {
 			const value = "private scalar contact";
 			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { value }, tag: "scalar" })}\n`, false);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.body).toContain('"_tag":"Fail"');
 			expect(response.body).toContain('"profile":"<redacted>"');
 			expect(response.body).toContain('"visible":"public control"');

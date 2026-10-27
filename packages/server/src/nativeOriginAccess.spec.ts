@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { ANDROID_ORIGIN, NATIVE_ORIGIN } from "#test/native-sessions/host.ts";
 import { forwardedNative, origins, proxyTrust, withoutNativeOrigins } from "#test/native-sessions/originStory.ts";
@@ -7,7 +8,7 @@ for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
 		const session = yield* mintSession();
 		const headers = { authorization: `Bearer ${session.credential}`, origin };
 		const rpc = yield* profile(session.user.id, headers);
-		expect(rpc.status).toBe(200);
+		expect(rpc.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(rpc.body).toContain(session.user.email);
 		expect(rpc.headers.get("access-control-allow-origin")).toBe(origin);
 		expect(rpc.headers.get("vary")).toContain("Origin");
@@ -26,10 +27,10 @@ origins.it("refuses all other origins before session authorization", [], functio
 	for (const origin of ["https://attacker.example", "capacitor://localhost.evil", "https://localhost:444", "null"]) {
 		const headers = { authorization: `Bearer ${session.credential}`, origin };
 		const rpc = yield* profile(session.user.id, headers);
-		expect(rpc).toMatchObject({ body: "Local same-origin requests only", status: 403 });
+		expect(rpc).toMatchObject({ body: "Local same-origin requests only", status: HttpStatus.fromLiteral("Forbidden") });
 		expect(rpc.headers.get("access-control-allow-origin")).toBeNull();
 		const auth = yield* request("/api/auth/get-session", { headers });
-		expect(auth.status).toBe(403);
+		expect(auth.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		expect(auth.headers.get("access-control-allow-origin")).toBeNull();
 	}
 	expect(lookups()).toBe(before);
@@ -39,7 +40,7 @@ origins.it("answers only configured native preflights with the route's methods a
 	for (const path of ["/rpc", "/api/auth/sign-in/email"]) {
 		for (const origin of [NATIVE_ORIGIN, ANDROID_ORIGIN]) {
 			const response = yield* preflight(path, origin);
-			expect(response.status).toBe(204);
+			expect(response.status).toBe(HttpStatus.fromLiteral("NoContent"));
 			expect(response.headers.get("access-control-allow-origin")).toBe(origin);
 			expect(response.headers.get("vary")).toContain("Origin");
 			expect(response.headers.get("access-control-allow-methods")).toBe(path === "/rpc" ? "POST" : "GET, POST");
@@ -47,7 +48,7 @@ origins.it("answers only configured native preflights with the route's methods a
 			expect(response.headers.get("access-control-allow-credentials")).toBeNull();
 		}
 		const refused = yield* preflight(path, "https://attacker.example");
-		expect(refused.status).toBe(403);
+		expect(refused.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		expect(refused.headers.get("access-control-allow-origin")).toBeNull();
 	}
 	expect(lookups()).toBe(0);
@@ -72,14 +73,16 @@ origins.it(
 
 origins.it("keeps native RPC closed without host opt-in", [withoutNativeOrigins], function* ({ mintSession, profile, preflight, lookups }) {
 	const session = yield* mintSession();
-	expect((yield* profile(session.user.id, { authorization: `Bearer ${session.credential}`, origin: NATIVE_ORIGIN })).status).toBe(403);
+	expect((yield* profile(session.user.id, { authorization: `Bearer ${session.credential}`, origin: NATIVE_ORIGIN })).status).toBe(
+		HttpStatus.fromLiteral("Forbidden"),
+	);
 	expect((yield* preflight("/rpc", NATIVE_ORIGIN)).headers.get("access-control-allow-origin")).toBeNull();
 	expect(lookups()).toBe(0);
 });
 
 for (const [peer, status] of [
-	["127.0.0.1", 200],
-	["127.0.0.2", 403],
+	["127.0.0.1", HttpStatus.fromLiteral("OK")],
+	["127.0.0.2", HttpStatus.fromLiteral("Forbidden")],
 ] as const) {
 	origins.it(
 		`validates the forwarded native peer against ${peer}`,
@@ -88,7 +91,7 @@ for (const [peer, status] of [
 			const session = yield* mintSession();
 			const result = yield* profile(session.user.id, { authorization: `Bearer ${session.credential}`, origin: NATIVE_ORIGIN });
 			expect(result.status).toBe(status);
-			if (status === 200) {
+			if (status === HttpStatus.fromLiteral("OK")) {
 				expect(result.body).toContain(session.user.email);
 			} else {
 				expect(lookups()).toBe(0);
@@ -105,7 +108,7 @@ for (const [authority, protocol] of [
 		`rejects native forwarding with ${authority} and ${protocol}`,
 		[proxyTrust("127.0.0.1"), forwardedNative(authority, protocol)],
 		function* ({ profile, lookups }) {
-			expect((yield* profile("unknown", { origin: NATIVE_ORIGIN })).status).toBe(403);
+			expect((yield* profile("unknown", { origin: NATIVE_ORIGIN })).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 			expect(lookups()).toBe(0);
 		},
 	);
@@ -120,9 +123,9 @@ origins.it("rejects message-supplied credentials and still enforces NDJSON", [],
 	]);
 	expect(forged.body).toContain('"_tag":"Unauthorized"');
 	const wrongOrigin = yield* profile(session.user.id, { origin: "https://attacker.example" }, [["origin", NATIVE_ORIGIN]]);
-	expect(wrongOrigin.status).toBe(403);
+	expect(wrongOrigin.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 	const wrongType = yield* profile(session.user.id, { "content-type": "text/plain", origin: NATIVE_ORIGIN });
-	expect(wrongType.status).toBe(403);
+	expect(wrongType.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 });
 
 origins.it("delivers incremental native NDJSON updates and releases server work when fetch aborts", [], function* ({ mintSession, stream }) {

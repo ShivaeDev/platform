@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 export function oauthProvider() {
@@ -9,7 +10,7 @@ export function oauthProvider() {
 					const callback = new URL(query.get("redirect_uri") ?? "");
 					callback.searchParams.set("state", query.get("state") ?? "");
 					callback.searchParams.set("code", "story-code");
-					return { headers: { location: callback.href }, status: 302 };
+					return { headers: { location: callback.href }, status: HttpStatus.fromLiteral("Found") };
 				},
 			},
 			emails: {

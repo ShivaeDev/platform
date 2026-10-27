@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { GitHubArtifactError, GitHubArtifactTooLarge } from "#errors.ts";
 import { archiveWithHeldTail, unavailableArtifact } from "#test/artifactTraits.ts";
@@ -7,8 +8,14 @@ import { github } from "#test/github.ts";
 
 github.it("an archive 401 with a plain token fails without retrying", [], function* ({ downloadArchive, rejectArchive, requests }) {
 	yield* rejectArchive();
-	expect(yield* Effect.flip(downloadArchive(8))).toMatchObject({ _tag: "RemoteUnauthorized", method: "GET", status: 401 });
-	expect(requests().map(({ path, status }) => ({ path, status }))).toEqual([{ path: "/repos/acme/widgets/actions/artifacts/7/zip", status: 401 }]);
+	expect(yield* Effect.flip(downloadArchive(8))).toMatchObject({
+		_tag: "RemoteUnauthorized",
+		method: "GET",
+		status: HttpStatus.fromLiteral("Unauthorized"),
+	});
+	expect(requests().map(({ path, status }) => ({ path, status }))).toEqual([
+		{ path: "/repos/acme/widgets/actions/artifacts/7/zip", status: HttpStatus.fromLiteral("Unauthorized") },
+	]);
 });
 
 github.it(
@@ -36,9 +43,9 @@ github.it(
 	},
 );
 
-for (const status of [404, 410] as const) {
+for (const status of [HttpStatus.fromLiteral("NotFound"), HttpStatus.fromLiteral("Gone")] as const) {
 	github.it(
-		`fails typed for a ${status === 404 ? "missing" : "expired"} artifact without requesting storage`,
+		`fails typed for a ${status === HttpStatus.fromLiteral("NotFound") ? "missing" : "expired"} artifact without requesting storage`,
 		[unavailableArtifact(status)],
 		function* ({ downloadArchive, requests }) {
 			expect(yield* Effect.flip(downloadArchive(8))).toEqual(new GitHubArtifactError({ stage: "redirect", status }));

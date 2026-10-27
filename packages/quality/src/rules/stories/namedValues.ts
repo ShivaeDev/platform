@@ -3,7 +3,7 @@ import { defineRule } from "#rule.ts";
 import { isSpec, memberName, nodesWhere, numericValue, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
-	"Passes a numeric literal or a matcher-only spec-local numeric const to toBe or toHaveLength. Assert the observed items, write the literal where accepted (zero, or a status or exit code), or derive the value from the story's inputs.";
+	'Passes a numeric literal or a matcher-only spec-local numeric const to toBe or toHaveLength. Assert the observed items, write the literal where accepted (zero or a process exitCode), or derive the value from the story\'s inputs. For HTTP statuses, import * as HttpStatus from "effect/http/HttpStatus" and use HttpStatus.fromLiteral("NotFound"), for example.';
 
 function matcherCall(node: ts.Node): node is ts.CallExpression {
 	return ts.isCallExpression(node) && ["toBe", "toHaveLength"].includes(memberName(node.expression) ?? "");
@@ -52,7 +52,7 @@ function matcherAliases(source: ts.SourceFile): ReadonlySet<ts.Node> {
 	);
 }
 
-function codeSubject(expression: ts.Expression): boolean {
+function exitCodeSubject(expression: ts.Expression): boolean {
 	const value = unwrapped(expression);
 	if (!(ts.isPropertyAccessExpression(value) || ts.isElementAccessExpression(value))) {
 		return false;
@@ -72,13 +72,13 @@ function codeSubject(expression: ts.Expression): boolean {
 		return false;
 	}
 	const subject = unwrapped(argument);
-	return ["status", "code", "exitCode"].includes(ts.isIdentifier(subject) ? subject.text : (memberName(subject) ?? ""));
+	return (ts.isIdentifier(subject) ? subject.text : memberName(subject)) === "exitCode";
 }
 
 function numericAssertion(node: ts.Node): boolean {
 	return (
 		matcherCall(node)
-		&& !codeSubject(node.expression)
+		&& !exitCodeSubject(node.expression)
 		&& node.arguments.some((argument) => {
 			const value = numericValue(argument);
 			return value !== undefined && value !== 0;
