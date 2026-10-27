@@ -1,0 +1,11 @@
+{"path":"examples/starter/package.json","rule":"code/unused","count":6}
+{"path":"examples/starter/src/client/auth.ts","rule":"code/unused","count":1}
+{"path":"examples/starter/src/modules/notes/notes.ts","rule":"code/unused","count":3}
+{"path":"examples/starter/src/modules/notes/server/migrations/0002_notes.ts","rule":"code/unused","count":1}
+{"path":"examples/starter/src/modules/notes/test-support/applicationState.ts","rule":"code/unused","count":1}
+{"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"code/unused","count":1}
+{"path":"package.json","rule":"code/unused","count":1}
+{"path":"script/starter-published.ts","rule":"code/unused","count":1}
+{"path":"script/starter-published/documentation.ts","rule":"code/unused","count":1}
+{"path":"script/starter-published/installDocumentation.ts","rule":"code/unused","count":1}
+{"path":"script/test/vitest.config.ts","rule":"code/unused","count":1}

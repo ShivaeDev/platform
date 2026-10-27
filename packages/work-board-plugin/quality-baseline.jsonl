@@ -1,0 +1,9 @@
+{"path":"packages/work-board-plugin/src/claude-code.d.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/connect.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/findBoard.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/flights.tsx","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/goalRows.tsx","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/pane.tsx","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/register.tsx","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/registerTools.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board-plugin/src/serveTools.ts","rule":"code/unused","count":1}

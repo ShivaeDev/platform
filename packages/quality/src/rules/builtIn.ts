@@ -41,8 +41,10 @@ import { manifestsSourceFirst } from "./manifestsSourceFirst.ts";
 import { maxDepth } from "./maxDepth.ts";
 import { maxLines } from "./maxLines.ts";
 import { noBarrel } from "./noBarrel.ts";
+import { unusedCode } from "./unusedCode.ts";
 
 export const builtInRules = [
+	unusedCode,
 	maxLines,
 	maxDepth,
 	noBarrel,

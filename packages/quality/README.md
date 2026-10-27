@@ -214,6 +214,14 @@ Run `quality baseline install-driver` from your checkout's setup script. It sets
 
 Git calls `quality baseline merge <ancestor> <current> <other>`. Entries are keyed by path and rule. Removing an ancestor entry on either side removes it from the result; retained counts take the minimum of the two sides, and entries newly added on either side survive. The command writes the result to `<current>`, so parallel reductions of neighbouring entries merge without a text conflict.
 
+### Unused code
+
+`code/unused` uses knip to report unused files, value and type exports, unused dependencies (including development and optional peer dependencies), and imports missing from the package manifest in every workspace. It runs through `quality lint` and the normal report and baseline. The rule accepts no options or permanent exceptions; Quality supplies knip’s entry points without a repository knip config.
+
+Package `exports` are public API, including wildcard targets and source conditions. Package `bin` and scripts, test and story globs, tool configs and `src/test-support` provide the other entry points. Imports reachable from those entries count as used. An internal module can be used while one of its exports remains unused.
+
+For adoption, run `quality baseline write --rule code/unused` and review the recorded debt. Burn it down by deleting unused code, removing unused dependency declarations, declaring missing dependencies, or connecting code to a real entry point. Run `quality baseline tighten` after repairs, or `quality baseline prune` across the repository. Do not add an entry point just to hide dead code.
+
 ### What the rules check
 
 `quality lint` prints each failing rule's guidance with its findings, so the finding is the reference for what to change. The built-in rules fall into these groups:

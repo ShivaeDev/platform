@@ -66,6 +66,7 @@
 		"@biomejs/biome": "catalog:",
 		"@shivaedev/types": "workspace:*",
 		"ignore": "catalog:",
+		"knip": "catalog:",
 		"sort-package-json": "catalog:",
 		"typescript": "catalog:compiler-api"
 	},

@@ -1,0 +1,8 @@
+{"path":"packages/work-board/package.json","rule":"code/unused","count":4}
+{"path":"packages/work-board/src/client/react/lazyChunks.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board/src/client/react/libraryPaging.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board/src/client/react/liveReady.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board/src/client/react/navigationTarget.ts","rule":"code/unused","count":2}
+{"path":"packages/work-board/src/client/react/searchCommands.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board/src/client/react/useSavedViews.ts","rule":"code/unused","count":1}
+{"path":"packages/work-board/src/client/react/visualSources.ts","rule":"code/unused","count":1}
