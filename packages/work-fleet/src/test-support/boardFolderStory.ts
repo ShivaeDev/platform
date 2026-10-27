@@ -6,6 +6,7 @@ import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
 import { boardFolder } from "#test/boardFolder.ts";
 import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
+import { captureLogs } from "#test/captureLogs.ts";
 
 interface FolderState {
 	board: typeof BoardGateway.Service | undefined;
@@ -32,6 +33,7 @@ export const boardFolderStory = storyKit({
 		if (board === undefined) {
 			throw new Error("The Board folder did not open");
 		}
+		const logs = captureLogs();
 		return {
 			askFiles: (maintainer?: string) => {
 				story.tell("read the Board inbox over HTTP");
@@ -47,6 +49,11 @@ export const boardFolderStory = storyKit({
 				story.tell("open a Board HTTP reader");
 				return boardHttp(state.root, ...args);
 			},
+			readBrief: (id: string) => {
+				story.tell(`Fleet reads the Board brief ${id}`);
+				return board.get(id).pipe(Effect.provide(logs.layer));
+			},
+			recordedBoardLogs: () => logs.entries,
 			reopenBoard: () => {
 				story.tell("reopen the Board folder");
 				return Layer.build(Layer.fresh(markdownBoard(state.root))).pipe(Effect.map((services) => Context.get(services, BoardGateway)));

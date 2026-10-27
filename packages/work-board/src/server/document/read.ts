@@ -104,7 +104,11 @@ export function readDocument({ changes, fleetPort, home, pullRequests = Effect.s
 		const briefProblems = yield* briefDiagnostic(parsed, real, fleetPort);
 		return {
 			...targets,
-			diagnostics: [...(model.diagnostics.get(file.path) ?? parsed.diagnostics), ...(yield* areaDiagnostics(root, parsed)), ...briefProblems],
+			diagnostics: [
+				...(model.diagnostics.get(file.path) ?? parsed.diagnostics),
+				...(yield* areaDiagnostics(root, parsed, file.path)),
+				...briefProblems,
+			],
 			file: file.path,
 			...(identity ? { identity } : {}),
 			metadata: parsed.fields,
