@@ -3,7 +3,7 @@ import { flightsOf, goalsOf, goalTitlesOf } from "./answers.ts";
 import { refusedLine, silentLine } from "./lines.ts";
 import { isRecord, type RpcExit, type RpcInit, type RpcReply, readExits, records, rpcInit, text } from "./rpc.ts";
 
-const QUERIES = ["inbox", "fleetItems", "goals", "server"] as const;
+const QUERIES = ["inbox", "overview", "server"] as const;
 type Query = (typeof QUERIES)[number];
 type Exits = ReadonlyMap<Query, RpcExit>;
 
@@ -24,11 +24,12 @@ export function readBoard(response: RpcReply, directory: string, now: number): W
 	}
 	const server = answerTo(exits, "server");
 	const url = isRecord(server) && text(server.directory) !== undefined ? (text(server.url) ?? null) : null;
-	const titles = goalTitlesOf(answerTo(exits, "goals"));
+	const overview = answerTo(exits, "overview");
+	const titles = goalTitlesOf(isRecord(overview) ? overview.goals : undefined);
 	return {
 		asks: block(exits, "inbox", (value) => asksOf(value, url)),
-		flights: block(exits, "fleetItems", (value) => flightsOf(value, now, titles)),
-		goals: block(exits, "goals", goalsOf),
+		flights: block(exits, "overview", (value) => flightsOf(isRecord(value) ? value.fleet : undefined, now, titles)),
+		goals: block(exits, "overview", (value) => goalsOf(isRecord(value) ? value.goals : undefined)),
 		kind: "ready",
 	};
 }

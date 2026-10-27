@@ -9,10 +9,12 @@ import { countOf } from "./summary.ts";
 export type Table = Elements[RenderSurface];
 
 export interface PaneView {
+	achievedOpen: boolean;
 	board: WorkboardBoard;
 	columns: number;
 	onOpen: (ask: WorkboardAsk) => void;
 	onRefresh: () => void;
+	onToggleAchieved: () => void;
 	surface: RenderSurface;
 	updated: string | null;
 }

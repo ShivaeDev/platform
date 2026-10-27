@@ -12,7 +12,7 @@ import { Responses } from "#server/Responses.ts";
 import { searchMatch } from "#server/search/match.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { fleetItems } from "#server/views/fleetItems.ts";
-import { goals } from "#server/views/goals.ts";
+import { overview } from "#server/views/overview.ts";
 import { projectionQueries } from "#server/views/projectionQueries.ts";
 import { remainingQueries } from "#server/views/remainingQueries.ts";
 import { Workspace } from "#server/workspace.ts";
@@ -55,10 +55,10 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 			"work-board.document": ({ url }) => Effect.suspend(() => document(url)).pipe(documentBoundary),
 			"work-board.fleetItems": () => fleetItems(fleetFolder, options.fleetPort).pipe(readBoundary),
 			"work-board.goals": () =>
-				Effect.gen(function* () {
-					const snapshot = yield* index;
-					return goals(snapshot, yield* fleetOver(snapshot));
-				}).pipe(readBoundary),
+				overview(fleetFolder, options.fleetPort).pipe(
+					Effect.map((data) => data.goals),
+					readBoundary,
+				),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.inbox": () => Effect.suspend(() => projections.inbox()).pipe(readBoundary),
 			"work-board.library": (input) =>
@@ -72,6 +72,7 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 					const now = openLaneCount(laneRows(work.rows, fleet, yield* Clock.currentTimeMillis).lanes);
 					return navigationData(yield* changes.files, home, snapshot, now);
 				}).pipe(readBoundary),
+			"work-board.overview": () => overview(fleetFolder, options.fleetPort).pipe(readBoundary),
 			"work-board.result": ({ url }) => remaining.result(url).pipe(documentBoundary),
 			"work-board.search": ({ query, records }) =>
 				Effect.map(index, (snapshot) => ({

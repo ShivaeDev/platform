@@ -66,12 +66,16 @@ for (const standing of [false, true]) {
 	pluginPane.it(
 		`distinguishes all tasks done from achieved and restores the bar for an open task (standing: ${standing})`,
 		[],
-		function* ({ show, section }) {
+		function* ({ show, section, click }) {
 			const complete = { counts: { done: 2 }, id: "goal.complete", standing, title: "Complete tasks" };
 			const achieved = { ...complete, id: "goal.achieved", standing: false, status: "done", title: "Achieved goal" };
 			yield* show([], [complete, achieved]);
 			let goals = section("Goals");
 			expect(goals.textContent).toContain("✓ all tasks done");
+			expect(goals.textContent).not.toContain("Achieved goal");
+			expect(goals.textContent).toContain("Achieved (1)");
+			yield* click("Achieved (1)");
+			expect(goals.textContent).toContain("Achieved goal");
 			expect(goals.textContent).toContain("✓ achieved");
 			const check = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ all tasks done");
 			const achievedCheck = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ achieved");
@@ -81,6 +85,9 @@ for (const standing of [false, true]) {
 			goals = section("Goals");
 			expect(goals.textContent).not.toContain("all tasks done");
 			expect(goals.querySelector("[role=img]")?.getAttribute("aria-label")).toContain("2 of 3 done");
+			expect(goals.textContent).toContain("Achieved goal");
+			yield* click("Achieved (1)");
+			expect(goals.textContent).not.toContain("Achieved goal");
 		},
 	);
 }

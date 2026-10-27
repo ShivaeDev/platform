@@ -4,12 +4,17 @@ type Item = typeof FleetItem.Type;
 type Agent = typeof FleetAgent.Type;
 type Attempt = NonNullable<Item["execution"]>["attempts"][number];
 
+export function fleetInFlight(item: Item): boolean {
+	return item.execution === undefined
+		? (item.inFlight ?? (item.agents?.some((agent) => agent.running) || item.stage === "working" || item.stage === "reviewing"))
+		: item.execution.attempts.some((attempt) => attempt.started) && !["done", "released"].includes(item.execution.step);
+}
+
 export function fleetAgents(item: Item): Pick<Item, "agents" | "inFlight"> {
 	const execution = item.execution;
 	if (execution === undefined) {
-		return {};
+		return { inFlight: fleetInFlight(item) };
 	}
-	const inFlight = execution.attempts.some((attempt) => attempt.started) && !["done", "released"].includes(execution.step);
 	const latest = new Map<string, Attempt>();
 	for (const [index, attempt] of execution.attempts.entries()) {
 		latest.set(attempt.sessionId ?? `scheduled:${attempt.role}:${index}`, attempt);
@@ -27,7 +32,7 @@ export function fleetAgents(item: Item): Pick<Item, "agents" | "inFlight"> {
 			agents.push({ finishedAt: null, id: `planned:${role}`, role, running: false, startedAt: null, state: "not started yet" });
 		}
 	}
-	return { agents, inFlight };
+	return { agents, inFlight: fleetInFlight(item) };
 }
 
 function agentState(item: Item, attempt: Attempt): Agent["state"] {
