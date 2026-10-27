@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { workMetadata } from "#board/readPass.ts";
 import { approveBrief } from "#engine/approveBrief.ts";
 import { briefChanged, stopChangedBrief } from "#engine/boardBrief.ts";
+import { refuseDeliveredId } from "#engine/deliveredId.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
@@ -30,6 +31,7 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 	if (!ready) {
 		return yield* approveBrief(state)(stored, work);
 	}
+	yield* refuseDeliveredId(state, work);
 	const published = yield* ensurePublication(state)(stored);
 	return yield* requestRework(state)(
 		{

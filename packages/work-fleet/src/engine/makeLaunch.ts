@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { admit } from "#admit.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
+import { refuseDeliveredId } from "#engine/deliveredId.ts";
 import { launchInput } from "#engine/launchInput.ts";
 import { launchObservationRetries } from "#engine/launchObservationRetries.ts";
 import { launchRecord } from "#engine/launchRecord.ts";
@@ -29,6 +30,7 @@ export function makeLaunch(state: EngineState) {
 		const stored = input;
 		const policy = yield* state.current;
 		const work = yield* board.get(stored.value.workId, { fresh: true });
+		yield* refuseDeliveredId(state, work);
 		const released = yield* releaseClosedPreparation(state, stored, work);
 		if (released !== undefined) {
 			return released;

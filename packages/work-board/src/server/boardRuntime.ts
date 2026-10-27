@@ -51,6 +51,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 			Layer.provide([
 				Layer.succeed(WorkspaceConfig, {
 					changes,
+					fleetPort: options.fleetPort,
 					home,
 					index: Effect.provideContext(index, platform),
 					indexing: SubscriptionRef.changes(indexing),

@@ -47,6 +47,7 @@
 {"path":"packages/work-fleet/src/engine/decisionPublication.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/engine/decisionUpgrade.spec.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-fleet/src/engine/deliverPendingAnswers.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/work-fleet/src/engine/deliveredId.ts","rule":"effect/service-parameters","count":4}
 {"path":"packages/work-fleet/src/engine/deliveryRecoveryMatrix.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/engine/dispatchCommand.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/dispatchFailure.ts","rule":"effect/service-parameters","count":1}
@@ -210,6 +211,7 @@
 {"path":"packages/work-fleet/src/host/supervisorCode.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/supervisorPort.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/supervisorState.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-fleet/src/host/taskLaunch.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/host/waitOutcome.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/host/watch.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/host/watchEvents.ts","rule":"effect/service-parameters","count":1}

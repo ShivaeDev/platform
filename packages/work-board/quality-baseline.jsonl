@@ -264,6 +264,7 @@
 {"path":"packages/work-board/src/server/diagnostics/fleetHealth.ts","rule":"effect/boundary","count":21}
 {"path":"packages/work-board/src/server/document/answerBody.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/document/body.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/server/document/briefDiagnostic.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/document/indexed.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/document/mentions.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/document/read.test.ts","rule":"effect/boundary","count":10}

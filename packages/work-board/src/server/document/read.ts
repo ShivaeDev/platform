@@ -2,6 +2,7 @@ import { Effect, FileSystem } from "effect";
 import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { currentDocument } from "#server/currentDocument.ts";
+import { briefDiagnostic } from "#server/document/briefDiagnostic.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
 import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
@@ -66,7 +67,7 @@ function referenceDetails(
 	]);
 }
 
-export function readDocument({ changes, home, pullRequests = Effect.succeed(undefined), root, realRoot, writable }: WorkspaceSettings) {
+export function readDocument({ changes, fleetPort, home, pullRequests = Effect.succeed(undefined), root, realRoot, writable }: WorkspaceSettings) {
 	return Effect.fn("WorkBoard.document")(function* (url: string, snapshot: Snapshot) {
 		const files = yield* changes.files;
 		const { file, item } = yield* selected(url, snapshot, files, home);
@@ -100,9 +101,10 @@ export function readDocument({ changes, home, pullRequests = Effect.succeed(unde
 		const mentions = documentMentions(parsed.fields.nextAction, document, model);
 		const requests = documentRequests(document, source, current.snapshot);
 		const pulls = yield* pullRequests;
+		const briefProblems = yield* briefDiagnostic(parsed, real, fleetPort);
 		return {
 			...targets,
-			diagnostics: [...(model.diagnostics.get(file.path) ?? parsed.diagnostics), ...(yield* areaDiagnostics(root, parsed))],
+			diagnostics: [...(model.diagnostics.get(file.path) ?? parsed.diagnostics), ...(yield* areaDiagnostics(root, parsed)), ...briefProblems],
 			file: file.path,
 			...(identity ? { identity } : {}),
 			metadata: parsed.fields,

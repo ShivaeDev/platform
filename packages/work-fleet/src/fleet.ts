@@ -3,6 +3,7 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 import { admissionOrder } from "#engine/admissionOrder.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
 import { continueCommand } from "#engine/continueCommand.ts";
+import { deliveredIdProblem } from "#engine/deliveredId.ts";
 import { dispatchCommand } from "#engine/dispatchCommand.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { makeAdvance } from "#engine/makeAdvance.ts";
@@ -38,6 +39,10 @@ export const Fleet = defineService({
 	}),
 	methods: (state) => ({
 		admissionOrder: admissionOrder(state),
+		briefProblem: (workId: string, sourcePath: string) =>
+			state.board
+				.get(workId)
+				.pipe(Effect.flatMap((work) => (work.sourcePath === sourcePath ? deliveredIdProblem(state, work) : Effect.succeed(undefined)))),
 		continue: continueCommand(state, state.launch),
 		dispatch: dispatchCommand(state, state.launch),
 		get: (workId: string) => state.load(workId),

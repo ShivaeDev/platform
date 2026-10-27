@@ -7,10 +7,11 @@ import type { BoardWork } from "#policy.ts";
 
 const References = Schema.Array(Schema.Struct({ ref: Schema.String }));
 const PullRequest = Schema.Struct({
+	createdAt: Schema.optional(Schema.String),
 	htmlUrl: Schema.String,
 	mergedAt: Schema.NullOr(Schema.String),
 	state: Schema.Literals(["open", "closed"]),
-}).pipe(Schema.encodeKeys({ htmlUrl: "html_url", mergedAt: "merged_at" }));
+}).pipe(Schema.encodeKeys({ createdAt: "created_at", htmlUrl: "html_url", mergedAt: "merged_at" }));
 type PullRequest = typeof PullRequest.Type;
 const PullRequests = Schema.Array(Schema.Array(PullRequest));
 
@@ -38,7 +39,7 @@ export function githubPublication(host: FleetHost, read: GithubRead, repository:
 		if (!published && pulls._tag === "Failure") {
 			return yield* pulls.failure;
 		}
-		return { branch, pullRequest: selected?.htmlUrl, pullRequestState: publicationState(selected), remoteBranch };
+		return observedPublication(branch, remoteBranch, selected);
 	});
 }
 
@@ -47,4 +48,14 @@ function publicationState(pr: PullRequest | undefined) {
 		return undefined;
 	}
 	return pr.mergedAt === null ? pr.state : ("merged" as const);
+}
+
+function observedPublication(branch: string, remoteBranch: boolean, selected: PullRequest | undefined) {
+	return {
+		branch,
+		pullRequest: selected?.htmlUrl,
+		pullRequestCreatedAt: selected?.createdAt === undefined ? undefined : Date.parse(selected.createdAt),
+		pullRequestState: publicationState(selected),
+		remoteBranch,
+	};
 }
