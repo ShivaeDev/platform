@@ -4,6 +4,7 @@ import { act } from "react";
 import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
+import { JobsView } from "#client/admin/JobsView.tsx";
 import { connectModules } from "#client/Module.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
 import { UsersPage } from "#modules/notes/admin.ts";
@@ -115,4 +116,9 @@ export const unavailableHealth = adminScreens.trait("backend", "the health backe
 });
 export const countedNotes = adminScreens.trait("backend", "the backend has counted notes across users", (engine) => {
 	engine.client.backend.state.statistics = { notes: 7, pending: 2, words: 53 };
+});
+
+export const emptyJobsScreen = adminScreens.trait("screen", "the Jobs view has no registered queues", function* (engine) {
+	const view = yield* acquireScreen(engine);
+	yield* Effect.promise(() => view.render(<JobsView api={engine.client.jobs} queues={[]} />));
 });

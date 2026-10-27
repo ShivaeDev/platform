@@ -1,6 +1,6 @@
 import { Effect, Option, Schema } from "effect";
 import type { PgBossClient } from "#client.ts";
-import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
+import type { JobPayloadSchema } from "#definition.ts";
 import { type PgBossError, type PgBossPayloadError, toPgBossError } from "#error.ts";
 import { type DeadLetteredJob, deadLetterQueueName, type JobPage, type JobPageOptions } from "#health.ts";
 import { decodeStoredData, quotedSchema } from "#internal/storedRows.ts";
@@ -39,11 +39,11 @@ export function deadLetteredJobsFor(client: PgBossClient, schema: string): PgBos
 	return (queue, options) => listJobs(client, schema, "deadLetteredJobs", queue, options);
 }
 
-function listJobs<const TName extends string, const TPayload extends JobPayloadSchema>(
+function listJobs<const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 	client: PgBossClient,
 	schema: string,
 	listing: Listing,
-	queue: Pick<QueueDefinition<TName, TPayload>, "name" | "schema">,
+	queue: { readonly name: TName; readonly schema: TPayload },
 	options: JobPageOptions,
 ): Effect.Effect<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]> {
 	return Effect.tryPromise({

@@ -13,7 +13,23 @@ export const jobsStory = storyKit({
 	runIf: postgresConfigured,
 	stages: ["session"],
 	verbs: (
-		{ api, registry, run, deliveries, client, jobs, privateQueue, queue, registrationReads, responses, sendInvalid, stopJobs, sync, testing },
+		{
+			api,
+			registry,
+			run,
+			deliveries,
+			client,
+			jobs,
+			privateQueue,
+			queue,
+			registrationReads,
+			responses,
+			scheduled,
+			sendInvalid,
+			stopJobs,
+			sync,
+			testing,
+		},
 		story,
 	) => ({
 		api,
@@ -52,6 +68,7 @@ export const jobsStory = storyKit({
 		sendSync: () => jobs.enqueue(sync, { key: "sync-key" }).pipe(Effect.map(Option.getOrThrow)),
 		settle: () => testing.waitForIdle,
 		stopJobs: () => stopJobs,
+		triggerSchedule: () => testing.trigger(scheduled),
 		waitForHealth: (ready: (health: typeof JobsHealth.Type) => boolean) =>
 			client["admin.jobs.health"]().pipe(Effect.repeat({ schedule: Schedule.spaced("25 millis"), until: ready }), Effect.timeout("10 seconds")),
 	}),

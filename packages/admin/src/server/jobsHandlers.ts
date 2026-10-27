@@ -1,8 +1,9 @@
 import { type Context, DateTime, Effect, Option } from "effect";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
+import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import type { jobsPage } from "#jobs/page.ts";
-import { JobsPayloadInvalid, type JobsQueue, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
+import { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
 
 export function jobsFailures<A, R>(effect: Effect.Effect<A, PgBossError | PgBossPayloadError, R>) {
 	return effect.pipe(
@@ -12,14 +13,14 @@ export function jobsFailures<A, R>(effect: Effect.Effect<A, PgBossError | PgBoss
 	);
 }
 
-export function jobsReadHandlers<const TQueues extends readonly JobsQueue[], TService>(
+export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TService>(
 	page: { readonly queues: TQueues },
 	service: Context.Service<TService, PgBossService>,
 ) {
 	function registered(name: string) {
 		const queues: readonly TQueues[number][] = page.queues;
 		const queue = queues.find((candidate) => candidate.name === name);
-		return queue === undefined ? Effect.fail(new JobsQueueUnregistered({ queue: name })) : Effect.succeed(queue);
+		return queue === undefined ? Effect.fail(new JobsQueueUnregistered({ queue: name })) : Effect.succeed(jobsQueue(queue));
 	}
 	return {
 		"admin.jobs.counts": ({ queue }: { readonly queue: string }) =>
@@ -32,13 +33,13 @@ export function jobsReadHandlers<const TQueues extends readonly JobsQueue[], TSe
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
 				const jobs = yield* service;
-				return yield* jobsFailures(jobs.deadLetteredJobs<string, TQueues[number]["schema"]>(definition, options));
+				return yield* jobsFailures(jobs.deadLetteredJobs<string, JobsPayload<TQueues[number]>>(definition, options));
 			}),
 		"admin.jobs.failed": ({ queue, ...options }: { readonly queue: string; readonly limit: number; readonly cursor?: string }) =>
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
 				const jobs = yield* service;
-				return yield* jobsFailures(jobs.failedJobs<string, TQueues[number]["schema"]>(definition, options));
+				return yield* jobsFailures(jobs.failedJobs<string, JobsPayload<TQueues[number]>>(definition, options));
 			}),
 		"admin.jobs.health": () =>
 			Effect.gen(function* () {
@@ -58,7 +59,7 @@ export function jobsReadHandlers<const TQueues extends readonly JobsQueue[], TSe
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
 				const jobs = yield* service;
-				return Option.map(yield* jobsFailures(jobs.getJob<string, TQueues[number]["schema"]>(definition, id)), (job) => ({
+				return Option.map(yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id)), (job) => ({
 					attempt: job.startedOn === null ? 0 : job.retryCount + 1,
 					completedOn: Option.map(Option.fromNullishOr(job.completedOn), DateTime.makeUnsafe),
 					createdOn: DateTime.makeUnsafe(job.createdOn),
@@ -75,7 +76,7 @@ export function jobsReadHandlers<const TQueues extends readonly JobsQueue[], TSe
 	};
 }
 
-export function jobsHandlers<const TQueues extends readonly JobsQueue[], TService>(
+export function jobsHandlers<const TQueues extends readonly JobsEntry[], TService>(
 	page: ReturnType<typeof jobsPage<TQueues>>,
 	service: Context.Service<TService, PgBossService>,
 ) {

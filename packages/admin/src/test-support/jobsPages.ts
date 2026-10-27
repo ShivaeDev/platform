@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts";
 import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
 import { Users } from "./pages.ts";
@@ -7,6 +7,7 @@ import { Users } from "./pages.ts";
 export const Mail = defineQueue({ name: "mail", schema: Schema.Struct({ id: Schema.NumberFromString }) });
 export const Sync = defineQueue({ name: "sync", schema: Schema.Struct({ key: Schema.String }) });
 export const Private = defineQueue({ name: "private", schema: Schema.Struct({ id: Schema.Number }) });
+export const Scheduled = defineSchedule({ cron: "0 0 1 1 *", name: "scheduled", queue: { retryLimit: 0 } });
 export function pages() {
-	return adminRegistry(jobsPageWithRetry({ name: Mail.name, schema: Mail.schema }, { name: Sync.name, schema: Sync.schema }), Users);
+	return adminRegistry(jobsPageWithRetry({ name: Mail.name, schema: Mail.schema }, { name: Sync.name, schema: Sync.schema }, Scheduled), Users);
 }

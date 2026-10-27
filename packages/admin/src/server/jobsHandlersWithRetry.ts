@@ -1,10 +1,11 @@
 import { type Context, Effect, Option } from "effect";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
+import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import { JobsNotFailed, type jobsPageWithRetry } from "#jobs/retryPage.ts";
-import { type JobsQueue, JobsQueueUnregistered } from "#jobs/schemas.ts";
+import { JobsQueueUnregistered } from "#jobs/schemas.ts";
 import { jobsFailures, jobsReadHandlers } from "./jobsHandlers.ts";
 
-export function jobsHandlersWithRetry<const TQueues extends readonly JobsQueue[], TService>(
+export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[], TService>(
 	page: ReturnType<typeof jobsPageWithRetry<TQueues>>,
 	service: Context.Service<TService, PgBossService>,
 ) {
@@ -12,12 +13,14 @@ export function jobsHandlersWithRetry<const TQueues extends readonly JobsQueue[]
 		...jobsReadHandlers(page, service),
 		"admin.jobs.retry": ({ queue, id }) =>
 			Effect.gen(function* () {
-				const definition = page.queues.find((candidate) => candidate.name === queue);
-				if (definition === undefined) {
+				const entries: readonly TQueues[number][] = page.queues;
+				const entry = entries.find((candidate) => candidate.name === queue);
+				if (entry === undefined) {
 					return yield* Effect.fail(new JobsQueueUnregistered({ queue }));
 				}
+				const definition = jobsQueue(entry);
 				const jobs = yield* service;
-				const job = yield* jobsFailures(jobs.getJob<string, TQueues[number]["schema"]>(definition, id));
+				const job = yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id));
 				if (Option.isNone(job) || job.value.state !== "failed") {
 					return yield* Effect.fail(new JobsNotFailed({ id, queue }));
 				}
