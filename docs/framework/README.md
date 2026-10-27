@@ -21,7 +21,7 @@ user-facing text, layout and deployment choices.
 | Declare services | [service](../../packages/service/README.md) | Declare dependencies and initialization; native Context and Layer own composition. |
 | Persist data and run migrations | [sql](../../packages/sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
 | Announce committed changes | [changes](../../packages/changes/README.md) | Repositories announce table and row keys at commit; command declarations name additional dependencies. |
-| Declare queries and commands | [contract](../../packages/contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
+| Declare queries and commands | [contract](../../packages/contract/README.md) | Describe payloads, results, rejections, query read policies and record or bucket scopes; native RPC owns handlers and transport. |
 | Share expected failures | [errors](../../packages/errors/README.md) | Use the shared failure taxonomy and field rejections on both sides of RPC; redact sensitive values before they reach logs or traces. |
 | Resolve identity and permissions | [identity](../../packages/identity/README.md) | Use its RPC middleware and server modules; applications decide session, Origin and permission policy. |
 | Receive signed webhooks | [webhooks](../../packages/webhooks/README.md) | Verify raw deliveries and record receipts with queued jobs in one SQL transaction; applications register sources, schemas and workers. |
@@ -67,7 +67,7 @@ SQL with composed schemas remains useful for joins, aggregates and other unusual
 queries; the framework does not require a second authored ORM model or a general
 database language.
 
-Return ordinary values from queries and commands. Database hosts deliver commit-bound change hints across processes, and React session boundaries connect bound queries automatically. Queries remain the source of current values; explicit live APIs support other transports and lifecycle owners.
+Return ordinary values from queries and commands. Database hosts deliver commit-bound change hints across processes, and React session boundaries connect bound queries automatically. Each live query declares its own read policy and record or bucket scope. A list with extra filters still reruns for any change in its bucket. The session supplies the viewer, and the same policy guards reads and subscriptions. `changes/keys.ts` owns the keys writers and subscribers share. Queries remain the source of current values; explicit live APIs support other transports and lifecycle owners.
 Reuse native migration execution and the durable job system. Keep application
 authorization, UI wording and layout, native device behavior and offline conflict
 policy in applications.

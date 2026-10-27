@@ -1,4 +1,4 @@
-import { Effect, Schema, Stream } from "effect";
+import { Effect, Option, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
@@ -9,7 +9,7 @@ import { Get, List } from "./notes.ts";
 
 export const Follow = stream("follow", {
 	payload: Schema.Struct({ id: Schema.Number }),
-	reads: ({ id }) => Get.reads({ id }),
+	reads: ({ id }) => Get.reads({ id }, Option.none()),
 	success: Schema.String,
 });
 const Plain = contract("plain", { queries: [List] });

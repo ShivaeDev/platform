@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { describe, expect } from "vitest";
-import { collection, invalidationKeys, readKeys } from "#keys.ts";
+import { collection, invalidationKeys, readKeys } from "@shivaedev/changes/keys.ts";
 import { notesStory } from "#test/notesStory.ts";
 
 const orders = collection("orders", Schema.Number);

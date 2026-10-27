@@ -2,11 +2,11 @@ import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys, Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
 import { invalidateLive } from "#internal/liveInvalidation.ts";
-import { invalidationKeys, Key, type KeyContext, readKeys } from "#keys.ts";
 
 export const LiveHint = Schema.Union([
-	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key) }),
+	Schema.Struct({ _tag: Schema.Literal("Changed"), keys: Schema.Array(Key), queryIndexes: Schema.optional(Schema.Array(Schema.Number)) }),
 	Schema.Struct({ _tag: Schema.Literal("Resync") }),
 ]);
 export type LiveHint = typeof LiveHint.Type;

@@ -1,5 +1,6 @@
 import { dirname, join } from "node:path";
 import { FileSystem } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { writeJson } from "#package-check/io.ts";
 import type { Manifest } from "#package-check/model.ts";
 import { archives } from "./archives.ts";
@@ -93,7 +94,7 @@ export const unrelatedBrowserClient = exportTraits(
 	{
 		"server.js": `import { createServer } from "node:http";
 const server = createServer((request, response) => {
-  response.writeHead(200, { "content-type": "text/javascript" });
+  response.writeHead(${HttpStatus.fromLiteral("OK")}, { "content-type": "text/javascript" });
   response.end(request.url === "/_board/react.js" ? "const unrelated = true; export { unrelated as session };" : "work-board");
 });
 server.listen(0, "127.0.0.1", () => console.log("http://127.0.0.1:" + server.address().port));

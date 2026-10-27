@@ -2,9 +2,9 @@ import { Deferred, Effect, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection, invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 
 export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", { reason: Schema.String }) {}
@@ -16,7 +16,7 @@ const Rename = command("rename", {
 	rejections: { Rejected, Unauthorized },
 	success: Schema.String,
 });
-const List = query("list", { reads: () => [rows.list], success: Schema.String });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [rows.list], success: Schema.String });
 const Commands = contract("completions", { commands: [Rename], queries: [List] });
 
 export function completionClient() {

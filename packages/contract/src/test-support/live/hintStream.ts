@@ -1,5 +1,5 @@
 import { Effect, Ref, Stream } from "effect";
-import type { Key } from "#keys.ts";
+import type { Key } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
 import type { makeLiveServer } from "#makeLiveServer.ts";
 

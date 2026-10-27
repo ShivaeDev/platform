@@ -2,7 +2,7 @@ import { Context, Effect, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
-import { invalidationKeys } from "@shivaedev/contract/keys.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";

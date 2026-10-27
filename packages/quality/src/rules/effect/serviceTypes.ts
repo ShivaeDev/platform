@@ -33,6 +33,7 @@ export function serviceTypes(checker: ts.TypeChecker) {
 			&& [...shapes].some(
 				(shape) =>
 					(shape.getCallSignatures().length === 0 || type.getCallSignatures().length > 0)
+					&& (type === shape || type.getCallSignatures().every((signature) => !(signature.getReturnType().flags & ts.TypeFlags.Any)))
 					&& shape.getProperties().every((property) => type.getProperty(property.name) !== undefined)
 					&& checker.isTypeAssignableTo(type, shape),
 			);
@@ -84,7 +85,7 @@ export function serviceTypes(checker: ts.TypeChecker) {
 		return (
 			implementation(type)
 			|| checker.getIndexInfosOfType(type).some((index) => carries(index.type, seen))
-			|| type.getProperties().some((property) => carries(checker.getTypeOfSymbol(property), seen))
+			|| type.getProperties().some((property) => !(property.flags & ts.SymbolFlags.Method) && carries(checker.getTypeOfSymbol(property), seen))
 		);
 	}
 	return {

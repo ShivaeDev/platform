@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { withBoardReadPass } from "#board/readPass.ts";
 import type { BoardDecisionReading } from "#board/schema.ts";
 import { ensureDecisionOwner } from "#engine/ensureDecisionOwner.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
@@ -25,7 +26,8 @@ export function makeHuman(state: EngineState) {
 		if (published === undefined) {
 			return stored;
 		}
-		const reading = yield* state.board.readDecision(published);
+		const observed = yield* state.board.readDecision(published);
+		const reading = observed._tag === "Response" ? yield* withBoardReadPass(state.board.readDecision(published), { fresh: true }) : observed;
 		if (reading._tag === "Pending") {
 			return yield* ensureDecisionOwner(state)(stored);
 		}

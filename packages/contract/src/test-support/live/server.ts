@@ -1,6 +1,6 @@
 import { Deferred, Effect, PubSub, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys, type Key } from "#keys.ts";
+import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#serverMetadata.ts";
@@ -43,7 +43,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const connectionSessions: string[] = [];
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
-		"notes.$changes": ({ queries }) => hints.stream(queryKeys(LiveNotes.declaration.queries, queries)),
+		"notes.$changes": ({ queries }) => Stream.unwrap(Effect.map(queryKeys(LiveNotes.declaration.queries, queries), (keys) => hints.stream(keys))),
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
 				const local = yield* server.implementation["notes.get"]({ id });

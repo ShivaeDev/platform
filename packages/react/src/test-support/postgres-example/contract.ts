@@ -1,7 +1,7 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Rpc } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
@@ -13,6 +13,7 @@ export class Rejected extends Schema.TaggedError<Rejected>()("Rejected", {}) {}
 export const orders = collection("orders", Order.fields.id);
 export const GetOrder = query("get", {
 	payload: { id: Order.fields.id },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ id }) => [orders.item(id)],
 	rejections: { Missing, Unavailable },
 	success: Order,

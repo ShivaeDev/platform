@@ -21,8 +21,8 @@ export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, chan
 				}
 				function handler({ queries }: { readonly queries: readonly QueryReference[] }) {
 					return Stream.unwrap(
-						Effect.map(resolveChanges(rpc, queries), ({ keys, context }) =>
-							Option.isSome(changes) ? changes.value.stream(keys, context) : Stream.never,
+						Effect.map(resolveChanges(rpc, queries), ({ subscription, context }) =>
+							Option.isSome(changes) ? changes.value.subscribe(subscription, context) : Stream.never,
 						),
 					);
 				}

@@ -2,7 +2,7 @@ import { Effect, Layer, PubSub, Schema, Stream } from 'effect';
 import * as Atom from 'effect/reactivity/Atom';
 import * as AtomRegistry from 'effect/reactivity/AtomRegistry';
 import * as AsyncResult from 'effect/reactivity/AsyncResult';
-import { collection, readKeys } from '@shivaedev/contract/keys.ts';
+import { collection, readKeys } from '@shivaedev/changes/keys.ts';
 import { live, LiveHint } from '@shivaedev/contract/live.ts';
 import { resumeSignal } from '@shivaedev/contract/resume.ts';
 const workspace = collection('workspace', Schema.String);

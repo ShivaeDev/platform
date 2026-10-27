@@ -7,13 +7,13 @@ Declare a feature's queries, commands, streams, expected failures and refresh de
 A feature often repeats its inputs, results and errors on both sides of an RPC boundary, then separately wires which views a write should refresh. Those copies are easy to make disagree. Put the boundary and its dependencies together:
 
 ```ts
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 
 const notes = collection("notes", Schema.Number);
-const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Rename = command("rename", {
   payload: { id: Schema.Number, title: Schema.String },
   invalidates: ({ id }) => [notes.item(id)],
@@ -62,9 +62,9 @@ The request transform is optional and its native HTTP client type is inferred. T
 Keep the shared declaration in a module that both server and client can import:
 
 ```ts
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 
@@ -78,12 +78,14 @@ export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing"
 export const notes = collection("notes", Note.fields.id);
 
 export const Get = query("get", {
+  readPolicy: () => Effect.succeed(true),
   payload: { id: Schema.Number },
   success: Note,
   rejections: { NoteMissing },
   reads: ({ id }) => [notes.item(id)],
 });
 export const List = query("list", {
+  readPolicy: () => Effect.succeed(true),
   success: Schema.Array(Note),
   reads: () => [notes.list],
 });
@@ -102,7 +104,7 @@ export const Create = command("create", {
 export const Notes = contract("notes", { queries: [Get, List], commands: [Rename, Create] });
 ```
 
-Save this module as `notes.ts`. The payload can be struct fields, as in `Get`, or a schema, as in `Create`. An omitted payload or success is `Schema.Void`; no declared rejections gives `Schema.Never`. The `reads` callback receives the decoded payload. `invalidates` receives the decoded payload and successful result, so a create call can invalidate the ID the server assigned.
+Save this module as `notes.ts`. The payload can be struct fields, as in `Get`, or a schema, as in `Create`. An omitted payload or success is `Schema.Void`; no declared rejections gives `Schema.Never`. The server resolves `reads` with the decoded payload and session viewer. For local command dependencies, the browser also evaluates it with `Option.none()`; return no viewer keys for that case. Authorized subscription scopes always come from the server. `invalidates` receives the decoded payload, successful result and optional session viewer, so a create call can invalidate the ID the server assigned.
 
 The collection's ID schema gives `item` its ID type. Here, `notes.item` takes a number. Query and command callbacks retain their payload and result types, including when the operations are declared inline inside `contract`.
 
@@ -113,7 +115,7 @@ Operation names must differ within a contract, including across queries, command
 Import the shared expected failures from `@shivaedev/errors/taxonomy.ts`: `NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable`. Each class is a tagged error schema with a string `message`; `BadRequest` and `Conflict` also accept an optional string `field`. Declare only the failures an operation can return:
 
 ```ts
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { Rpc } from "effect/rpc";
 import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 
@@ -315,7 +317,7 @@ const self = api.self.query(undefined);
 const save = api.save.run({ title: "My preferences" });
 ```
 
-The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command`, `collection` and `bind` from contract's defining modules, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
+The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command` and `bind` from contract's defining modules, `collection` from `@shivaedev/changes/keys.ts`, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
 
 ```tsx
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
@@ -382,7 +384,7 @@ const changes = Stream.unwrap(NotesClient.use((client) =>
 ));
 ```
 
-The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Subscription handlers resolve keys with `queryKeys(Notes.declaration.queries, queries)` from `serverMetadata.ts`, or the stream RPC's `ChangesReads` annotation, before calling `makeLiveServer.stream`. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
+The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers yield the Effect from the `ChangesQueries` annotation's `resolve(references)` method, call `querySubscription(requests, viewer)` and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
 For a custom transport or explicit pause/status controls, the native live APIs remain available:
 
@@ -470,76 +472,31 @@ Call the release functions and dispose the registry when the application's root 
 
 Import `makeLiveServer` from `@shivaedev/contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.
 
-Declare each module's collection policies beside its contract. A policy receives `(key, viewer)`, where `viewer` is an `Option` containing the resolved identity, or `None` for an anonymous caller. Merge the modules once; a collection absent from every policy map is denied. Collection names have one owning module.
+### Query policies, record keys and buckets
+
+A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. Policies may use browser-safe Effect service tags whose implementations the server supplies.
 
 ```ts
-import { Effect, Option } from "effect";
-import { mergeReadPolicies, type ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
-import type { IdentityValue } from "@shivaedev/identity/identity.ts";
+import { Effect, Option, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
+import { query } from "@shivaedev/contract/operation.ts";
 
-export const spacesReadPolicies = {
-  [mySpaces.name]: (key, viewer) => Effect.succeed(
-    key._tag === "Item" && Option.isSome(viewer) && key.id === viewer.value.id,
-  ),
-} satisfies ModuleReadPolicies<IdentityValue>;
-
-const modules = [documentsRegistration, spacesRegistration];
-const readPolicy = mergeReadPolicies(...modules.map((module) => module.readPolicies));
-const host = appHost({ group, handlers, services, sessions, readPolicy });
-```
-
-The starter carries `readPolicies` on each module registration. The host runs authorization inside the existing native session middleware, so the policy sees that request's identity without another session lookup. Its policy may require services supplied by the host's `services` Layer and may fail with `Forbidden` or `AuthUnavailable`. Policies with other typed failures can use custom native middleware as described below.
-
-A per-viewer read such as “my spaces” keeps the member id in its key: `reads: ({ memberId }) => [mySpaces.item(memberId)]`. Writers publish to that same member key when membership changes; removing the id would break that routing. The policy compares the key's member id with the viewer, and the query selects that member's spaces.
-
-Use native requests for membership checks that many keys share. Create the resolver once for the module's policy, rather than once per key. The application supplies `spaceOf(key)` and `checkMembership(space, viewer)`, which performs its membership lookup and returns `Effect<boolean, AuthUnavailable>`:
-
-```ts
-import { Effect, Exit, Option, Request, RequestResolver } from "effect";
-import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
-import type { IdentityValue } from "@shivaedev/identity/identity.ts";
-
-interface Membership extends Request.Request<boolean, AuthUnavailable> {
-  readonly _tag: "Membership";
-  readonly space: string;
-  readonly viewer: string;
-}
-const Membership = Request.tagged<Membership>("Membership");
-const membership = RequestResolver.makeGrouped<Membership, string>({
-  key: ({ request }) => JSON.stringify([request.space, request.viewer]),
-  resolver: (entries) => Effect.gen(function* () {
-    const { space, viewer } = entries[0].request;
-    const allowed = yield* checkMembership(space, viewer);
-    for (const entry of entries) {
-      entry.completeUnsafe(Exit.succeed(allowed));
-    }
-  }),
+const notes = collection("notes", Schema.Number, { userId: Schema.String });
+const Mine = query("mine", {
+  payload: { title: Schema.String },
+  success: Schema.Array(Schema.String),
+  readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+  reads: (_input, viewer) => Option.isSome(viewer)
+    ? [notes.bucket.userId(viewer.value.id)]
+    : [],
 });
-export const documentsReadPolicies = {
-  [documents.name]: (key, viewer) => Option.isNone(viewer)
-    ? Effect.succeed(false)
-    : Effect.request(Membership({ space: spaceOf(key), viewer: viewer.value.id }), membership),
-} satisfies ModuleReadPolicies<IdentityValue, AuthUnavailable>;
 ```
 
-Query authorization and hint filtering check keys concurrently, allowing N keys in one space to share one resolver call. Ordinary policies returning plain Effects work too; they need no requests or resolvers.
+A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Declare bucket fields on the collection model with their schemas. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. Writers explicitly announce the record and affected buckets with the same constructors from `@shivaedev/changes/keys.ts`.
 
-For a custom host, call `authorizeReads(effect, request, policy, viewer, denied)` in native authorization middleware after resolving the session. It checks every declared query read key before running the handler and supplies the same policy to `makeLiveServer` streams, with the request's Effect context. The viewer may be any application-defined type. A `false` returns the supplied denial; a failed policy returns its original typed error. Declare those failures alongside the denial in the middleware's error schema so they reach the client, for example `error: Schema.Union([Denied, GitHubUnavailable])`.
+The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Without `readPolicy`, a query has no authorized live subscription: `MissingReadPolicy` tells its author to declare one. Bound query atoms also refuse a missing policy before their first read. Ordinary one-off `run` calls remain available. Reads outside a declared query acquire no automatic subscription.
 
-Each changed hint checks its keys against that viewer's policy before delivery and omits denied keys. An empty hint is suppressed. Item and list keys are checked independently: allow a list key when the viewer may read that list, even when a changed item is private to another viewer. The list query still selects its visible rows. Without a supplied `ReadPolicy`, streams keep the default of allowing their subscribed keys; applications own the policy.
-
-A failed hint check omits that key without ending the stream. The subscription rechecks failed keys after one second and repeats while checks fail. Once allowed, the key reaches the existing consumer even without another change or a reconnect. A `false` does not schedule a recheck. Interruption of the subscription stops its pending rechecks.
-
-Successful boolean results are memoised per subscription stream and key for one second by default, including `false`; failures are never memoised. Queries always run their policy afresh. The memo holds at most the subscription's key count. It can delay filtering a revoked key from hints by at most that window; hints contain keys, and the subsequent query still checks current access before returning data. Set `ReadPolicyMemoWindow` around the request effect to shorten the window or use `0` to turn memoisation off:
-
-```ts
-import { ReadPolicyMemoWindow } from "@shivaedev/contract/readPolicy.ts";
-
-authorizeReads(effect, request, canRead, viewer, Effect.fail(new Denied())).pipe(
-  Effect.provideService(ReadPolicyMemoWindow, "100 millis"),
-);
-```
+The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering changed keys, the stream rechecks the owning query's policy without memoization. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
 
 ### Live hints in stories
 
@@ -561,15 +518,16 @@ Import the module that defines the name; the package has no root entry.
 
 | Module | Functions and schemas |
 | --- | --- |
-| `operation.ts` | `query(name, { payload?, success?, rejections?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
+| `operation.ts` | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
 | `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
-| `keys.ts` | `collection(name, idSchema)`; `Key` schema; `readKeys(keys, context?)` and `invalidationKeys(keys, context?)`. |
 | `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
+| `querySubscription.ts` | `querySubscription(requests, viewer)` checks each referenced query and captures its scopes and ongoing authorization. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
-| `readPolicy.ts` | `authorizeReads(effect, request, policy, viewer, denied)`; `ReadKeyPolicy` and collection-indexed `ModuleReadPolicies`; `mergeReadPolicies(...modules)`, which denies unclaimed collections; `ReadPolicy`, the request-local fallible key policy used by server hint streams; `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>` controlling each stream's memo duration. |
-| `serverMetadata.ts` | `KeyScope`, `QueryReads`, `CommandInvalidation`, `ChangesReads`, `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
+| `readPolicy.ts` | `QueryReadPolicy`, `Viewer`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`. |
+| `readPolicyErrors.ts` | `MissingReadPolicy` and `QueryReadDenied`. |
+| `serverMetadata.ts` | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 | `testing.ts` | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys. |
 

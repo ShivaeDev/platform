@@ -1,7 +1,7 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { SqlClient } from "effect/sql";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection, invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
@@ -20,8 +20,16 @@ export const Preferences = contract("preferences", {
 	],
 	keyScope: "session",
 	queries: [
-		query("self", { reads: () => [preferences.item(0)], success: Schema.String }),
-		query("list", { reads: () => [preferences.list], success: Schema.Array(Schema.String) }),
+		query("self", {
+			readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+			reads: () => [preferences.item(0)],
+			success: Schema.String,
+		}),
+		query("list", {
+			readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+			reads: () => [preferences.list],
+			success: Schema.Array(Schema.String),
+		}),
 	],
 }).middleware(Authenticated);
 

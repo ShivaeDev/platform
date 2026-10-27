@@ -9,6 +9,7 @@ export class NotFound extends Schema.TaggedError<NotFound>()("NotFound", { id: S
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.String }) {}
 const Get = query("get", {
 	payload: { id: Schema.String, page: Schema.Number },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [],
 	rejections: { NoteMissing, NotFound },
 	success: Schema.Struct({ id: Schema.String, title: Schema.String }),

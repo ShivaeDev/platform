@@ -1,19 +1,20 @@
-import { type Context, type Duration, Effect, Layer, type Stream } from "effect";
+import type { Duration, Effect, Layer, Stream } from "effect";
 import type { Headers } from "effect/http";
-import { FetchHttpClient } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
+import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
+import type { Rpc, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts";
 import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared, Tag } from "#contract.ts";
 import { bindingOwner } from "#internal/bindingOwner.ts";
 import { boundCommand, boundQuery, boundStream } from "#internal/clientOperations.ts";
+import { type HttpGroup, httpClient } from "#internal/httpClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import type { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { ResumeSource } from "#resume.ts";
 
 export type Failure<R extends Rpc.Any> =
@@ -33,7 +34,10 @@ export interface QueryOptions {
 }
 
 export interface BoundQuery<R extends Rpc.Any, TSelf> {
-	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R>>>;
+	readonly query: (
+		payload: Rpc.Payload<R>,
+		options?: QueryOptions,
+	) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R> | MissingReadPolicy>>;
 	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>;
 }
 
@@ -127,24 +131,15 @@ export function makeClient<
 			: { readonly registry?: AtomRegistry.AtomRegistry }),
 ): MadeClient<TName, TQueries, TCommands, TRpcs, TStreams, TExtra>;
 export function makeClient(
-	contract: {
-		readonly annotations: Context.Context<never>;
-		readonly requests: ReadonlyMap<string, Rpc.Any>;
+	contract: HttpGroup & {
 		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
 	},
 	options: ClientOptions & {
-		readonly group?: { readonly annotations: Context.Context<never>; readonly requests: ReadonlyMap<string, Rpc.Any> };
+		readonly group?: HttpGroup;
 		readonly registry?: AtomRegistry.AtomRegistry;
 	},
 ): Layer.Layer<never> {
-	const source = options.group ?? contract;
-	const group = RpcGroup.make(...source.requests.values()).annotateMerge(source.annotations);
-	const protocol = RpcClient.layerProtocolHttp(options).pipe(
-		Layer.provide([options.httpClient ?? FetchHttpClient.layer, options.serialization ?? RpcSerialization.layerNdjson]),
-	);
-	const Client = AtomRpc.Service<unknown>()(`${contract.declaration.name}/Client`, { group, protocol });
-	const api = bindApi(contract, Client, options);
-	const client = RpcClient.make(group).pipe(Effect.provide(protocol));
-	const layer = Layer.effect(Client, RpcClient.make(group, { flatten: true })).pipe(Layer.provide(protocol));
-	return Object.assign(layer, { api, Client, client, runtime: Client.runtime });
+	const connection = httpClient(contract.declaration.name, options.group ?? contract, options);
+	const api = bindApi(contract, connection.Client, options);
+	return Object.assign(connection, { api });
 }
