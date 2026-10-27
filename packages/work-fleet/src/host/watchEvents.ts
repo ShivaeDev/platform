@@ -1,5 +1,6 @@
 import { waitingOwner } from "#attention.ts";
 import type { WatchState } from "#host/watchState.ts";
+import { WAIT_CYCLE } from "#scheduling/adapters/waitCycles.ts";
 
 export const eventKinds = [
 	"waiting-on-orchestrator",
@@ -56,7 +57,7 @@ export function watchTransitions(stuckMs: number) {
 			stage: state.stage,
 			stuck: stale,
 		});
-		return initial ? [] : events;
+		return initial ? events.filter((event) => event.kind === "stuck" && event.reason?.startsWith(WAIT_CYCLE)) : events;
 	}
 	return {
 		reset: () => {
@@ -112,6 +113,9 @@ function links(state: WatchState) {
 
 function eventFor(state: WatchState): WatchEvent | undefined {
 	const base = { workId: state.workId, ...links(state) };
+	if (state.blocker?.startsWith(WAIT_CYCLE)) {
+		return { ...base, kind: "stuck", reason: state.blocker };
+	}
 	if (state.answerFailure || state.blocker?.startsWith("Answer failed: ")) {
 		return {
 			...base,
