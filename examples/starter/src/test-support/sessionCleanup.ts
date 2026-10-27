@@ -1,8 +1,14 @@
+import { createRequire } from "node:module";
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
+import type { ViteUserConfig } from "vitest/config";
 import * as VitestNode from "vitest/node";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+
+const {
+	default: { test: _test, ...viteConfig },
+}: { readonly default: ViteUserConfig } = createRequire(import.meta.url)(fileURLToPath(new URL("../../vitest.config.ts", import.meta.url)));
 
 export const sessionCleanup = storyKit({
 	clock: "live",
@@ -22,7 +28,7 @@ export const sessionCleanup = storyKit({
 						root: fileURLToPath(new URL("../..", import.meta.url)),
 						watch: false,
 					},
-					{ resolve: { conditions: ["source"] }, ssr: { resolve: { conditions: ["source"] } } },
+					viteConfig,
 					{ stderr: new PassThrough(), stdout: new PassThrough() },
 				);
 				const { testModules } = await vitest.start().finally(() => vitest.close());
