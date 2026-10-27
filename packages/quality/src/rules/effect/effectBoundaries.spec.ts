@@ -64,7 +64,12 @@ effectPolicyStory.it(
 			path: "src/adapters/ambient.ts",
 		});
 		const ambient = yield* lint();
-		for (const message of ["Ambient time is banned", "Ambient randomness is banned", "console.* is banned", "process.env is banned"]) {
+		for (const message of [
+			"Ambient time is banned",
+			"Ambient randomness is banned. Use Effect's Crypto service for secure values and Random for non-secure values.",
+			"console.* is banned",
+			"process.env is banned",
+		]) {
 			expect(ambient.stdout).toContain(message);
 		}
 	},
