@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.33.0 - 2026-10-27
+
+### Added
+
+- Fleet exposes the current cycle's agent attempts with recorded turn start and finish times. Board projects each agent's activity and whether the task has started into its Fleet overview.
+- Validate scheduling areas against repository folders, suggest the nearest existing path for invalid areas, and refuse to dispatch invalid briefs.
+
+### Breaking
+
+- Scheduling areas that do not name existing folders are invalid. Replace free-text labels with package folder names, optionally followed by a folder inside its `src/`, or top-level repository folders. Use `*` for a repository-wide claim.
+
 ## 0.32.2 - 2026-10-27
 
 ### Changed

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.21.0 - 2026-10-27
+
+### Added
+
+- Fleet exposes the current cycle's agent attempts with recorded turn start and finish times. Board projects each agent's activity and whether the task has started into its Fleet overview.
+- Validate scheduling areas against repository folders, suggest the nearest existing path for invalid areas, and refuse to dispatch invalid briefs.
+
+### Changed
+
+- Bare `work-fleet watch` follows actionable Fleet transitions, Board answers and PR queue and health events without quiet heartbeats. It prints one text event per line; use `--json` for JSON lines and `--events released` to include releases.
+
+### Fixed
+
+- Keep merged work finished after release, record exact reviewed delivery outcomes, and require an explicit dispatch of a changed brief to start new work.
+- Stop running work from the CLI with an acknowledged interruption and closing Board response while preserving its branch and PR.
+- Exclude the orchestrator's own release and answer responses from `watch --events board-answer`.
+
+### Breaking
+
+- Scheduling areas that do not name existing folders are invalid. Replace free-text labels with package folder names, optionally followed by a folder inside its `src/`, or top-level repository folders. Use `*` for a repository-wide claim.
+
 ## 0.20.1 - 2026-10-27
 
 ### Changed
