@@ -48,7 +48,7 @@
 	"quality": {
 		"args": ["baseline", "write"],
 		"expectedFiles": {
-			"quality-baseline.jsonl": "{\"path\":\"sample/a.ts\",\"rule\":\"biome/lint/suspicious/noExplicitAny\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"biome/plugin\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"structure/max-lines\",\"count\":6}\n"
+			"quality-baseline.jsonl": "{\"path\":\"sample/a.ts\",\"rule\":\"biome/lint/suspicious/noExplicitAny\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"biome/plugin\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"code/unused\",\"count\":1}\n{\"path\":\"sample/a.ts\",\"rule\":\"structure/max-lines\",\"count\":6}\n"
 		},
 		"files": {
 			".gitignore": "node_modules/\n",
