@@ -28,7 +28,7 @@ export const answers = storyKit({
 	verbs: (engine, story) => ({
 		...answerHostVerbs(engine, story.tell),
 		...answerReceiptVerbs(engine, story.tell),
-		...answerPullRequestVerbs(engine),
+		...answerPullRequestVerbs(engine, story.tell),
 		...answerQueueVerbs(engine),
 		...answerReplacementVerbs(engine),
 		...answerPublicationVerbs(engine),

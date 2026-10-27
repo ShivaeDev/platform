@@ -33,6 +33,7 @@ export function answerHostVerbs(engine: AnswerHostEngine, tell: (line: string) =
 		applied: (workId = "one") => appliedAnswer(engine.running.client, workId),
 		cliAnswer: (workId: string, text: string, release = false) => cli(["answer", workId, ...(release ? ["--release"] : [text])]),
 		cliRelease: (...workIds: readonly string[]) => cli(["release", ...workIds]),
+		cliStatus: () => cli(["status"]),
 		dispatch: (workId = "one") => {
 			tell(`dispatch ${workId}`);
 			return dispatchAndWait(engine.running.client, workId);

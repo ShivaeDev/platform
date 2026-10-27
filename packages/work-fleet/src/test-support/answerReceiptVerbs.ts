@@ -20,6 +20,8 @@ export function answerReceiptVerbs(engine: AnswerHostEngine, tell: (line: string
 		defer: (decision: Decision, type: "clarify" | "not_now") => answerWorker(engine.host.host.boardDir, decision, `response.worker.${type}`, type),
 		failCompletion: () => answerCompletionFailure(engine.host.host),
 		failQueue: () => answerQueueFailure(engine.host.host),
+		failRecordedRequest: (request: AnswerRequest, message: string) =>
+			answerStore(engine.host.host.namespace).pipe(Effect.flatMap((store) => store.finish(request, message))),
 		failRecording: (fail: boolean) => answerRecordingFailure(engine.host.host, fail),
 		holdBoardReadsOnce: (blocker: string, workId = "one") => {
 			tell(`hold Fleet's Board reads once ${workId} shows "${blocker}"`);

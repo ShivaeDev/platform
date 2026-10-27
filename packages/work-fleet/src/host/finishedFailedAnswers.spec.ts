@@ -30,13 +30,15 @@ for (const [step, status] of [
 				question: published.questionId,
 				type: "answer",
 			});
-			expect((yield* fleet.status()).waiting.orchestrator).toMatchObject([{ blocker: expect.stringContaining("Answer failed:"), workId: "one" }]);
+			expect((yield* fleet.status()).waiting.orchestrator).toMatchObject(
+				step === "waiting" ? [{ blocker: expect.stringContaining("Answer failed:"), workId: "one" }] : [],
+			);
 			const reason = `Closed because ${step === "waiting" ? "Board" : "Fleet"} work one is ${step === "waiting" ? status : step}.`;
 			const preview = yield* fleet.cli(["close-finished-decisions", "--dry-run"]);
 			expect(preview).toMatchObject({ code: 0, stdout: expect.stringContaining("1 decision(s) would close.") });
 			expect(preview.stdout).toContain(reason);
 			expect(board.metadataParse(fleet.readBoard(published.sourcePath)).fields.attention).toMatchObject([{ state: "open" }]);
-			expect((yield* fleet.status()).waiting.orchestrator).toMatchObject([{ workId: "one" }]);
+			expect((yield* fleet.status()).waiting.orchestrator).toMatchObject(step === "waiting" ? [{ workId: "one" }] : []);
 			expect(yield* fleet.cli(["close-finished-decisions"])).toMatchObject({ code: 0, stdout: expect.stringContaining("1 decision(s) closed.") });
 			expect(board.metadataParse(fleet.readBoard(published.sourcePath)).fields).toMatchObject({
 				attention: [{ state: "closed" }],
