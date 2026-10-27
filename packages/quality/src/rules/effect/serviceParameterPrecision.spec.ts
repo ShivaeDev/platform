@@ -7,6 +7,7 @@ const ORDINARY_PARAMETERS = [
 	{ name: "schema", type: "Schema.Schema<string>" },
 	{ name: "record", type: "Record<string, unknown>" },
 	{ name: "tuple", type: "readonly [string, number]" },
+	{ name: "lookalike", type: "{ readonly read: () => Effect.Effect<string> }" },
 ];
 
 for (const { name, type } of ORDINARY_PARAMETERS) {
