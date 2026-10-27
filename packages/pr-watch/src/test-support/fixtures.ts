@@ -52,9 +52,9 @@ export function github(engine: Engine, tell: (line: string) => void) {
 			tell(`GitHub confirms queue membership: ${JSON.stringify(response)}`);
 			engine.setGraphql(response);
 		},
-		queueEntryIs: (number: number, autoMerge: boolean, queued: boolean) => {
-			tell(`PR #${number} confirms auto-merge=${autoMerge}, queued=${queued}`);
-			engine.setQueue(number, autoMerge, queued);
+		queueEntryIs: (number: number, autoMerge: boolean, queued: boolean, reason?: string) => {
+			tell(`PR #${number} confirms auto-merge=${autoMerge}, queued=${queued}, reason=${reason}`);
+			engine.setQueue(number, autoMerge, queued, reason);
 		},
 		queueHas,
 		quotaRemaining: (remaining: number) =>

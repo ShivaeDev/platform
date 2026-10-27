@@ -19,15 +19,15 @@ const QueueResponse = Schema.Struct({
 			),
 		}),
 	),
-	errors: Schema.optionalKey(Schema.Array(Schema.Unknown)),
 });
+const QueueErrors = Schema.Struct({ errors: Schema.optionalKey(Schema.Array(Schema.Struct({ message: Schema.String }))) });
 const query = `query QueueEntry($owner: String!, $name: String!, $number: Int!) {
 	repository(owner: $owner, name: $name) {
 		pullRequest(number: $number) {
 			state
 			autoMergeRequest { enabledAt }
 			mergeQueueEntry { id }
-			timelineItems(last: 1, itemTypes: [DEQUEUED_EVENT]) { nodes { ... on DequeuedEvent { reason } } }
+			timelineItems(last: 1, itemTypes: [REMOVED_FROM_MERGE_QUEUE_EVENT]) { nodes { ... on RemovedFromMergeQueueEvent { reason } } }
 		}
 	}
 }`;
@@ -43,11 +43,17 @@ export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (
 	}
 	const [owner, name] = options.repository.split("/");
 	const response = yield* http.post(url.href, { query, variables: { name, number: snapshot.number, owner } });
+	const { errors } = yield* Schema.decodeUnknownEffect(QueueErrors)(response).pipe(
+		Effect.mapError(() => new WatchError({ message: "Invalid GitHub queue confirmation" })),
+	);
+	if (errors !== undefined && errors.length > 0) {
+		return yield* Effect.fail(new WatchError({ message: `GitHub queue confirmation: ${errors.map((error) => error.message).join("; ")}` }));
+	}
 	const body = yield* Schema.decodeUnknownEffect(QueueResponse)(response).pipe(
 		Effect.mapError(() => new WatchError({ message: "Invalid GitHub queue confirmation" })),
 	);
 	const pr = body.data?.repository?.pullRequest;
-	if ((body.errors?.length ?? 0) > 0 || pr === undefined || pr === null || pr.state !== "OPEN") {
+	if (pr === undefined || pr === null || pr.state !== "OPEN") {
 		return yield* Effect.fail(new WatchError({ message: `Queue confirmation unavailable for PR #${snapshot.number}` }));
 	}
 	const reason = pr.timelineItems?.nodes.at(-1)?.reason;
