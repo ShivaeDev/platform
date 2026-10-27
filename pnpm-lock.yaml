@@ -1751,6 +1751,12 @@ importers:
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../test-story
+      '@shivaedev/work-board':
+        specifier: workspace:*
+        version: link:../work-board
+      '@shivaedev/work-fleet':
+        specifier: workspace:*
+        version: link:../work-fleet
       '@types/node':
         specifier: 'catalog:'
         version: 24.19.2

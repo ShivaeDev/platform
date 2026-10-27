@@ -18,6 +18,7 @@ const OPEN_LABEL = "Open board";
 const board = atom({ key: "board", plugin: "workboard" } as const, { kind: "loading" });
 const seenAsks = atom({ key: "seenAsks", plugin: "workboard" } as const, null);
 const updatedAt = atom({ key: "updatedAt", plugin: "workboard" } as const, null);
+const achievedOpen = atom({ key: "achievedOpen", plugin: "workboard" } as const, false);
 
 async function refresh($: EngineInterface): Promise<void> {
 	const next = await load($);
@@ -99,10 +100,12 @@ export const register: Register = (on) => {
 		const stamp = await read($, updatedAt);
 
 		return paneView($.ui.resolve(e), {
+			achievedOpen: await read($, achievedOpen),
 			board: state,
 			columns: Math.max(16, e.props.bodyColumns),
 			onOpen: (ask) => openUrl($, ask.url),
 			onRefresh: () => void refresh($),
+			onToggleAchieved: () => void update($, achievedOpen, (open) => !open),
 			surface: e.surface,
 			updated: updatedLabel(stamp, await $.clock.now()),
 		});

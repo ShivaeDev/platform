@@ -26,6 +26,8 @@
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
+		"@shivaedev/work-board": "workspace:*",
+		"@shivaedev/work-fleet": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",

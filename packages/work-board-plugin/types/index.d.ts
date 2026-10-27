@@ -59,7 +59,7 @@ export type WorkboardBoard =
 
 declare module "claude-code" {
 	interface PluginState {
-		workboard: { board: WorkboardBoard; seenAsks: readonly string[] | null; updatedAt: number | null };
+		workboard: { achievedOpen: boolean; board: WorkboardBoard; seenAsks: readonly string[] | null; updatedAt: number | null };
 	}
 	interface McpToolInputs {
 		"mcp__workboard__board_overview": Record<never, never>;

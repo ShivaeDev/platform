@@ -10,6 +10,7 @@ import { Library, LibraryInput } from "#browser/navigation/library.ts";
 import { searchMatches } from "#browser/search/nameMatch.ts";
 import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
+import { OverviewProjection } from "#browser/views/OverviewProjection.ts";
 import { ResultProjection } from "#browser/views/ResultProjection.ts";
 import { DiagnosticsProjection, HandoffProjection, StartProjection } from "#browser/views/remaining.ts";
 import { BoardProjection, InboxProjection, WorkProjection } from "#browser/views/schema.ts";
@@ -62,6 +63,11 @@ const ReadFleetItems = query("fleetItems", {
 	success: FleetItemsProjection,
 });
 const ReadGoals = query("goals", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: GoalsProjection });
+const ReadOverview = query("overview", {
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: OverviewProjection,
+});
 const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
 const ReadHandoff = query("handoff", {
 	payload: { url: PageUrl },
@@ -113,6 +119,7 @@ export const workContract = contract("work-board", {
 		ReadDiagnostics,
 		ReadFleetItems,
 		ReadGoals,
+		ReadOverview,
 		ReadStart,
 		ReadHandoff,
 		ReadResult,

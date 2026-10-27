@@ -60,7 +60,9 @@ export async function needsYou({ ask, now }: Board) {
 }
 
 export async function overview({ ask, now }: Board) {
-	const [inbox, fleetItems, goalList] = await ask([query("inbox"), query("fleetItems"), query("goals")]);
+	const [inbox, snapshot] = await ask([query("inbox"), query("overview")]);
+	const fleetItems = isRecord(snapshot) ? snapshot.fleet : undefined;
+	const goalList = isRecord(snapshot) ? snapshot.goals : undefined;
 	const you = records(isRecord(inbox) ? inbox.you : undefined).map((row) => ({ id: row.id, reason: row.reason, title: row.title }));
 	const flights = flightsOf(fleetItems, now, goalTitlesOf(goalList));
 	const goals = goalsOf(goalList).items;
