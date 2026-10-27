@@ -27,11 +27,11 @@ for (const kind of ["query", "action"] as const) {
 			rejectNext();
 			for (let failures = 1; failures <= 2; failures += 1) {
 				yield* execute();
-				expect(view.rechecks).toHaveLength(failures);
+				expect(view.rechecks).toEqual(Array.from({ length: failures }, (_, generation) => `session-${generation}`));
 				expect(view.current().data).toEqual(Option.some("Saved order"));
 				expect(Option.getOrThrow(Option.flatMap(view.current().cause, Cause.findErrorOption))).toBe(view.denied);
 				yield* rerender();
-				expect(view.rechecks).toHaveLength(failures);
+				expect(view.rechecks).toEqual(Array.from({ length: failures }, (_, generation) => `session-${generation}`));
 			}
 		},
 	);
