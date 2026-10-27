@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/react/client/testing.ts";
 import { screens as signInApp } from "#modules/notes/test-support/screens.ts";
-import { signInVisitor } from "#test-support/signInVisitor.tsx";
+import { signInVisitor } from "#modules/notes/test-support/signInVisitor.tsx";
 
 const SIGNED_TARGET =
 	"/resume?resume=%2Foauth%2Fconsent%3Fscope%3Da%2520b&scope=a%20b&lower=%2f&repeat=first&repeat=last&empty&code=123&state=%22signed%22&signature=a%2Bb%2Fc%3D";
