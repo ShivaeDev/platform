@@ -30,7 +30,7 @@ export function cliVerbs(
 				"1",
 				...extra,
 			],
-			{ stdio: ["ignore", "pipe", "pipe"] },
+			{ env: engine.cliEnvironment, stdio: ["ignore", "pipe", "pipe"] },
 		);
 	}
 	return {

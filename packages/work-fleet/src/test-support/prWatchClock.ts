@@ -1,5 +1,5 @@
 import { NodeServices } from "@effect/platform-node";
-import { Clock, Duration, Effect, FileSystem } from "effect";
+import { Clock, ConfigProvider, Duration, Effect, FileSystem, Layer } from "effect";
 import { TestClock } from "effect/testing";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { eventKinds } from "#host/watchEvents.ts";
@@ -33,7 +33,7 @@ export const prWatchClock = storyKit({
 		return { api, clock, lines, watcher };
 	},
 	inspect: (engine) => ({ lines: engine.lines, requests: engine.api.requests() }),
-	layer: NodeServices.layer,
+	layer: Layer.merge(NodeServices.layer, ConfigProvider.layer(ConfigProvider.fromEnvRecord({ "GH_TOKEN": "fleet-watch-test-token" }))),
 	name: "Fleet PR watch clock",
 	stages: ["observation"],
 	verbs: (engine, story) => ({
