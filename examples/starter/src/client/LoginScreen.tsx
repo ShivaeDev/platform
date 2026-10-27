@@ -2,7 +2,7 @@ import { RegistryContext } from "@effect/atom-react";
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import { useContext, useEffect, useId, useState } from "react";
+import { useContext, useEffect, useEffectEvent, useId, useRef, useState } from "react";
 import { useAction } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
@@ -14,12 +14,15 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 	const [mode, setMode] = useState<"sign-in" | "sign-up">("sign-in");
 	const [credentials, setCredentials] = useState({ email: "", name: "", password: "" });
 	const action = useAction(auth.submit);
+	const submittedRef = useRef(false);
 	const failure = AsyncResult.error(action.result);
+	const authenticated = useEffectEvent(onAuthenticated);
 	useEffect(() => {
-		if (AsyncResult.isSuccess(action.result) && !action.pending) {
-			onAuthenticated();
+		if (submittedRef.current && AsyncResult.isSuccess(action.result) && !action.pending) {
+			submittedRef.current = false;
+			authenticated();
 		}
-	}, [action.result, action.pending, onAuthenticated]);
+	}, [action.result, action.pending]);
 	const submitLabel = mode === "sign-in" ? "Sign in" : "Create account";
 	const buttonLabel = action.pending ? "Please wait…" : submitLabel;
 	return (
@@ -30,6 +33,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 				className="space-y-4"
 				onSubmit={(event) => {
 					event.preventDefault();
+					submittedRef.current = true;
 					action.dispatch({ credentials, mode });
 				}}
 			>
@@ -80,6 +84,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 			<Button
 				disabled={action.pending}
 				onClick={() => {
+					submittedRef.current = false;
 					setMode(mode === "sign-in" ? "sign-up" : "sign-in");
 					registry.set(auth.submit, Atom.Reset);
 				}}

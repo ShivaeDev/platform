@@ -1,4 +1,4 @@
-import type { AnyRouter } from "@tanstack/react-router";
+import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { vi } from "vitest";
 import type { Rendered } from "@shivaedev/react/client/testing.ts";
@@ -10,12 +10,14 @@ export interface Screen {
 	auth: ReturnType<typeof appAuth> | undefined;
 	client: ReturnType<typeof notesClient>;
 	consoleErrors: () => readonly (readonly unknown[])[];
+	history: RouterHistory | undefined;
 	login: {
 		authenticated: (string | undefined)[];
 		calls: { credentials: Credentials; mode: string }[];
 		outcome: string | undefined;
 		unavailable: boolean;
 	};
+	routeErrors: unknown[];
 	router: AnyRouter | undefined;
 	signOutCalls: undefined[];
 	switchSession: ((id: string) => Promise<void>) | undefined;
@@ -28,7 +30,9 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 		auth: undefined,
 		client: notesClient(),
 		consoleErrors: () => [],
+		history: undefined,
 		login: { authenticated: [], calls: [], outcome: undefined, unavailable: false },
+		routeErrors: [],
 		router: undefined,
 		signOutCalls: [],
 		switchSession: undefined,

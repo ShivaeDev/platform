@@ -23,11 +23,18 @@ export function authScreenVerbs(engine: Screen, tell: (line: string) => void) {
 				engine.login.unavailable = true;
 			}),
 		authRequests: () => auth().requests,
+		caught: () => engine.routeErrors,
 		expireSession: () =>
 			Effect.sync(() => {
 				tell("the notes session expires");
 				engine.client.session.signedIn = false;
 			}),
+		href: () => {
+			if (engine.history === undefined) {
+				throw new Error("No app history is open");
+			}
+			return engine.history.location.href;
+		},
 		lastAuthenticationMode: () => engine.login.calls.at(-1)?.mode,
 		recoverSessionCheck: () =>
 			Effect.sync(() => {
