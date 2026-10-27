@@ -52,7 +52,7 @@ app.it(
 		const { notes: alice } = actor();
 		const original = yield* alice.create({ title: "Alice's note" });
 		const bob = actor("bob").notes;
-		expect(yield* bob.get({ id: original.id }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
+		expect(yield* bob.get({ id: original.id }).pipe(Effect.flip)).toMatchObject({ _tag: "QueryReadDenied" });
 		expect(yield* bob.update({ ...original, title: "Another account" }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
 		expect(yield* bob.delete({ id: original.id, version: original.version }).pipe(Effect.flip)).toMatchObject({ _tag: "NotFound" });
 		const signedOut = yield* anonymous();

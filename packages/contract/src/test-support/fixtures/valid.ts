@@ -9,6 +9,7 @@ import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
 import { command, query } from "#operation.ts";
+import type { MissingReadPolicy } from "#readPolicyErrors.ts";
 import { Create, type Denied, Get, Note, NoteMissing, Notes, notes, type Rename } from "#test/notes.ts";
 
 export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
@@ -18,7 +19,9 @@ export class Client extends AtomRpc.Service<Client>()("fixture/Client", {
 
 export const api = bind(Notes, Client);
 
-export const noteQuery: Atom.Atom<AsyncResult.AsyncResult<Note, NoteMissing | Denied | RpcClientError>> = api.get.query({ id: 1 });
+export const noteQuery: Atom.Atom<AsyncResult.AsyncResult<Note, NoteMissing | Denied | MissingReadPolicy | RpcClientError>> = api.get.query({
+	id: 1,
+});
 export const listQuery = api.list.query();
 export const readOnce: Effect.Effect<Note, NoteMissing | Denied | RpcClientError, Client> = api.get.run({ id: 1 });
 
