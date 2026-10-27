@@ -6,7 +6,7 @@ import { watch } from "#test/watch.ts";
 watch.it("quota headers slow down polling and honor retry-after without further requests", [quotaRemaining(5000)], function* (h) {
 	yield* h.poll;
 	expect(yield* h.delay()).toBe(h.options.interval);
-	yield* h.quotaRemaining(400);
+	yield* h.quotaRemaining(9);
 	yield* h.poll;
 	expect(yield* h.delay()).toBeGreaterThanOrEqual(600_000);
 	h.throttled(900);
@@ -30,6 +30,9 @@ watch.it("exhausted quota defers polling until reset without making another requ
 	const requests = [...h.requests];
 	expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
 	expect(h.requests).toEqual(requests);
+	expect(h.events().filter((event) => event.event === "cooldown")).toEqual([
+		expect.objectContaining({ message: `GitHub quota cooldown (core: 0/5000 remaining; reset ${new Date(reset * 1000).toISOString()})` }),
+	]);
 });
 watch.it("a permission failure retains the snapshot for a later invocation", [], function* (h) {
 	yield* h.poll;

@@ -39,6 +39,7 @@ export const GitHub = defineService({
 					const lists = yield* Effect.forEach(bodies, (body) => decode(Schema.Array(ListedPull), body));
 					return lists.flat().map((pr) => pr.number);
 				}),
+			pacing: http.pacing,
 			queue: (options: Options) =>
 				Effect.gen(function* () {
 					const bodies = yield* pages(options, "/git/matching-refs/heads/gh-readonly-queue/");

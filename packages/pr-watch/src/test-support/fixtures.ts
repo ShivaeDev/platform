@@ -7,6 +7,15 @@ export interface Check {
 	readonly conclusion: string | null;
 	readonly status: string;
 }
+export function quotaHeaders(resource: string, remaining: number, limit: number, reset: number) {
+	return {
+		"x-ratelimit-limit": String(limit),
+		"x-ratelimit-remaining": String(remaining),
+		"x-ratelimit-reset": String(reset / 1000),
+		"x-ratelimit-resource": resource,
+		"x-ratelimit-used": String(limit - remaining),
+	};
+}
 export function github(engine: Engine, tell: (line: string) => void) {
 	function reply(path: string, response: Reply) {
 		tell(`GitHub replies to ${path}: ${JSON.stringify(response)}`);
