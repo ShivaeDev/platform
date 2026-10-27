@@ -13,6 +13,9 @@ import { queryReactivity } from "./queryReactivity.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
+const queryIds = new WeakMap<object, number>();
+let nextQueryId = 0;
+
 type ErasedStreamingClient = AtomRpc.AtomRpcClient<
 	unknown,
 	string,
@@ -39,8 +42,14 @@ export function boundQuery(
 				);
 			}
 			const atom = service.query(tag, payload, options);
+			let id = queryIds.get(atom);
+			if (id === undefined) {
+				id = nextQueryId;
+				nextQueryId += 1;
+				queryIds.set(atom, id);
+			}
 			const local = query.reads(payload, Option.none());
-			const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${JSON.stringify(payload)}` }];
+			const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${id}` }];
 			const dependencies =
 				local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
 			const reference = { payload, query: query.name };
