@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { validateReview } from "#completion.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
 import { makeDeliver } from "#engine/makeDeliver.ts";
@@ -33,7 +33,7 @@ export function makeReview(state: EngineState) {
 		const receipt = yield* obtainReview(state)(stored, work, result);
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
-		const attempts = recordObservation(stored.value.attempts, observation, state.policy.now());
+		const attempts = recordObservation(stored.value.attempts, observation, state.policy.now(), yield* Clock.currentTimeMillis);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: undefined });
 		const latest = stored.value.attempts.at(-1);
 		const recovered = (yield* recoverUnobservable(state, stored, latest)) ?? (yield* recoverStall(state, stored, latest));
@@ -84,11 +84,11 @@ function finishReviewObservation(state: EngineState) {
 	});
 }
 
-function recordObservation(attempts: readonly Attempt[], observation: SessionObservation, now: number): readonly Attempt[] {
+function recordObservation(attempts: readonly Attempt[], observation: SessionObservation, now: number, observedAt: number): readonly Attempt[] {
 	const { receipt } = observation;
 	return attempts.map((attempt) =>
 		attempt.receipt?.turnId === receipt.turnId && attempt.receipt.sessionId === receipt.sessionId
-			? observedAttempt(attempt, observation, now)
+			? observedAttempt(attempt, observation, now, observedAt)
 			: attempt,
 	);
 }

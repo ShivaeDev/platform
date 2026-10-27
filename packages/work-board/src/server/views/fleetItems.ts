@@ -8,6 +8,7 @@ import { requestInbox } from "#server/attention/requestInbox.ts";
 import { daemonUnavailable, readDaemon } from "#server/diagnostics/daemon.ts";
 import { itemRequests } from "#server/document/requests.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { fleetAgents } from "#server/views/fleetAgents.ts";
 import { itemsOf } from "#server/views/items.ts";
 import { mergeWaits } from "#server/views/mergeWaits.ts";
 import { Workspace } from "#server/workspace.ts";
@@ -59,6 +60,7 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 			completed: data.completed.map((item) => ({ ...item, document: documents.get(item.workId) ?? null })),
 			items: data.items.map((item) => ({
 				...item,
+				...fleetAgents(item),
 				document: documents.get(item.workId) ?? null,
 				...(item.stage === "waiting" && item.attentionOwner === "maintainer" && ready.has(item.workId) ? { readyToMerge: true } : {}),
 			})),

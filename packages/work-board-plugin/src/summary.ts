@@ -1,12 +1,6 @@
 import type { WorkboardBlock, WorkboardBoard, WorkboardFlight, WorkboardGoal, WorkboardGoalRef } from "#types/index.d.ts";
-import { type FlightState, flightState, flightStates, notStartedState } from "./flightState.ts";
 
 type ReadyBoard = Extract<WorkboardBoard, { kind: "ready" }>;
-
-export interface FlightCount {
-	count: number;
-	state: FlightState;
-}
 
 export interface FlightGroup {
 	goal: WorkboardGoalRef | null;
@@ -30,7 +24,7 @@ export function bandLine(board: ReadyBoard): string {
 		total += goal.total;
 	}
 	const progress = goals.problem === null ? `${done}/${total}` : "?";
-	return `Needs you ${countOf(asks)} · In flight ${countOf(splitFlights(flights).inFlight)} · Goals ${progress}`;
+	return `Needs you ${countOf(asks)} · In flight ${countOf(flights)} · Goals ${progress}`;
 }
 
 export function goalShare(goal: WorkboardGoal): number {
@@ -48,12 +42,6 @@ export function goalOrder(goals: readonly WorkboardGoal[]): WorkboardGoal[] {
 	return [...goals].sort((a, b) => goalRank(a) - goalRank(b) || goalShare(a) - goalShare(b));
 }
 
-export function flightCounts(flights: readonly WorkboardFlight[]): FlightCount[] {
-	return flightStates
-		.map((state) => ({ count: flights.filter((flight) => flightState(flight) === state).length, state }))
-		.filter((entry) => entry.count > 0);
-}
-
 export function flightGroups(flights: readonly WorkboardFlight[]): FlightGroup[] {
 	const groups = new Map<string | null, FlightGroup>();
 	for (const flight of flights) {
@@ -66,13 +54,4 @@ export function flightGroups(flights: readonly WorkboardFlight[]): FlightGroup[]
 	goals.sort((a, b) => b.items.length - a.items.length || (a.goal?.title ?? "").localeCompare(b.goal?.title ?? ""));
 	const other = groups.get(null);
 	return other === undefined ? goals : [...goals, other];
-}
-
-export function splitFlights(block: WorkboardBlock<WorkboardFlight>) {
-	const inFlight: WorkboardBlock<WorkboardFlight> = { items: [], problem: block.problem };
-	const notStarted: WorkboardBlock<WorkboardFlight> = { items: [], problem: block.problem };
-	for (const item of block.items) {
-		(notStartedState(item) === null ? inFlight : notStarted).items.push(item);
-	}
-	return { inFlight, notStarted };
 }

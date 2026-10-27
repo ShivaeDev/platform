@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { admissionItems, reviewSlotWait } from "#test/admissionItems.ts";
+import { admissionItems, coding } from "#test/admissionItems.ts";
 import { pluginPane } from "#test/pluginPane.ts";
 
 const GOAL = { counts: { blocked: 1, done: 1, parked: 1, running: 1, scheduled: 1 }, id: "goal.colors", title: "Ship the Board" };
@@ -25,65 +25,62 @@ for (const surface of ["desktop", "terminal"] as const) {
 	});
 }
 
-pluginPane.it("keeps started work in flight through checks, review, merge and questions", [], function* ({ show, section }) {
-	yield* show(admissionItems, []);
+pluginPane.it("lists only started tasks with agent activity and turn durations", [], function* ({ show, section, screen, band }) {
+	yield* show(admissionItems, [GOAL]);
 	const flight = section("In flight");
-	for (const label of [
-		"Build the pane",
-		"Waiting for required checks: typecheck",
-		"Reviewing",
-		"Approve the merge",
-		"Which approach should I use?",
-	]) {
-		expect(flight.textContent).toContain(label);
+	expect(flight.textContent).toContain("Build the pane");
+	expect(flight.textContent).toContain("worker · coding2m");
+	expect(flight.textContent).toContain("reviewer · not started yet");
+	const reviewer = [...flight.querySelectorAll("span")].find((node) => node.textContent === "reviewer · not started yet");
+	expect(reviewer?.parentElement?.children.length).toBe(1);
+	expect(flight.textContent).toContain("Times: current or finished agent turn");
+	for (const title of ["Ship the integration", "Render the Board", "Run the next worker", "Not started", "Queued", "Waiting on task or area"]) {
+		expect(screen().textContent).not.toContain(title);
 	}
-	for (const title of ["Ship the integration", "Render the Board", "Run the next worker", "Wait for execution capacity"]) {
-		expect(flight.textContent).not.toContain(title);
-	}
+	expect(screen().querySelector("[role=img]")?.getAttribute("aria-label")).toContain("1 blocked, 1 scheduled");
+	expect(band()).toBe("Needs you 0 · In flight 1 · Goals 1/5");
 });
 
-pluginPane.it("shows an approved dependency wait as blocked and names its task", [], function* ({ show, section }) {
-	yield* show(admissionItems, []);
-	const blocked = section("Blocked");
-	expect(blocked.textContent).toContain("Ship the integration");
-	const reason = [...blocked.querySelectorAll("span")].find(
-		(node) => node.textContent === "Blocked · waiting for dependency task.foundation: not done on the Board",
+for (const state of ["reviewing", "addressing review", "fixing CI", "waiting for CI", "waiting for merge", "waiting on an answer"] as const) {
+	pluginPane.it(`shows an agent ${state} with a finished turn's fixed duration`, [], function* ({ show, section }) {
+		yield* show(
+			[
+				{
+					...coding,
+					agents: [
+						{ finishedAt: 61_000, id: "worker", role: "worker", startedAt: 1000, state: state === "reviewing" ? "done" : state },
+						{ finishedAt: null, id: "reviewer", role: "reviewer", startedAt: null, state: state === "reviewing" ? state : "not started yet" },
+					],
+				},
+			],
+			[],
+		);
+		const flight = section("In flight");
+		expect(flight.textContent).toContain(state);
+		expect(flight.textContent).toContain("1m");
+		expect(flight.textContent).not.toContain("1d");
+	});
+}
+
+for (const standing of [false, true]) {
+	pluginPane.it(
+		`distinguishes all tasks done from achieved and restores the bar for an open task (standing: ${standing})`,
+		[],
+		function* ({ show, section }) {
+			const complete = { counts: { done: 2 }, id: "goal.complete", standing, title: "Complete tasks" };
+			const achieved = { ...complete, id: "goal.achieved", standing: false, status: "done", title: "Achieved goal" };
+			yield* show([], [complete, achieved]);
+			let goals = section("Goals");
+			expect(goals.textContent).toContain("✓ all tasks done");
+			expect(goals.textContent).toContain("✓ achieved");
+			const check = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ all tasks done");
+			const achievedCheck = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ achieved");
+			expect(check?.style.color).not.toBe(achievedCheck?.style.color);
+			expect(goals.querySelector("[role=img]")).toBeNull();
+			yield* show([], [{ ...complete, counts: { done: 2, scheduled: 1 } }, achieved]);
+			goals = section("Goals");
+			expect(goals.textContent).not.toContain("all tasks done");
+			expect(goals.querySelector("[role=img]")?.getAttribute("aria-label")).toContain("2 of 3 done");
+		},
 	);
-	expect(reason?.style.color).toBe("#d74253");
-	expect(section("Not started").contains(blocked)).toBe(true);
-});
-
-pluginPane.it("queues approved area and slot waits and names what each waits for", [], function* ({ show, section }) {
-	yield* show(admissionItems, []);
-	const queued = section("Queued");
-	for (const label of ["Render the Board", "Run the next worker", "Wait for execution capacity"]) {
-		expect(queued.textContent).toContain(label);
-	}
-	for (const label of [
-		"Queued · waiting for area work-board held by task.other",
-		"Queued · Waiting for a worker slot",
-		"Queued · execution capacity is occupied (limit 2)",
-	]) {
-		const reason = [...queued.querySelectorAll("span")].find((node) => node.textContent === label);
-		expect(reason?.style.color, label).toBe("#ad7400");
-	}
-	expect(section("Not started").contains(queued)).toBe(true);
-});
-
-pluginPane.it("counts only started work in the pane and band and counts blocked and queued separately", [], function* ({ show, section, band }) {
-	yield* show(admissionItems, []);
-	expect(section("In flight").firstElementChild?.textContent).toBe("In flight(5)1 Working2 Waiting on CI or review2 Waiting on you");
-	expect(section("Not started").firstElementChild?.textContent).toBe("Not started(4)");
-	expect(section("Blocked").firstElementChild?.textContent).toBe("Blocked(1)");
-	expect(section("Queued").firstElementChild?.textContent).toBe("Queued(3)");
-	expect(band()).toBe("Needs you 0 · In flight 5 · Goals 0/0");
-});
-
-pluginPane.it("keeps an existing PR in flight while its reviewer waits for an execution slot", [], function* ({ show, section, band }) {
-	yield* show([...admissionItems, reviewSlotWait], []);
-	const flight = section("In flight");
-	expect(flight.textContent).toContain("Review the existing PR");
-	expect(flight.querySelector("a")?.getAttribute("href")).toBe("https://github.com/example/project/pull/12");
-	expect(section("Queued").textContent).not.toContain("Review the existing PR");
-	expect(band()).toBe("Needs you 0 · In flight 6 · Goals 0/0");
-});
+}

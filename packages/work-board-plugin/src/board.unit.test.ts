@@ -53,7 +53,9 @@ describe("the Board's RPC stream", () => {
 			},
 			flights: { items: [], problem: null },
 			goals: {
-				items: [{ blocked: 0, done: 1, id: "goal.a", parked: 1, running: 0, scheduled: 0, standing: false, title: "Goal A", total: 2 }],
+				items: [
+					{ achieved: false, blocked: 0, done: 1, id: "goal.a", parked: 1, running: 0, scheduled: 0, standing: false, title: "Goal A", total: 2 },
+				],
 				problem: null,
 			},
 			kind: "ready",

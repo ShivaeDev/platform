@@ -1,4 +1,4 @@
-import { Effect, Option } from "effect";
+import { Clock, Effect, Option } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { observedAttempt } from "#engine/observedAttempt.ts";
@@ -32,8 +32,9 @@ export function makeObserve(state: EngineState) {
 		stored = yield* load(stored.value.workId);
 		const observation = yield* sessions.observe(receipt);
 		yield* validateReceipt(observation.receipt, receipt);
+		const observedAt = yield* Clock.currentTimeMillis;
 		const attempts = stored.value.attempts.map((attempt) =>
-			attempt.operationId === latest.operationId ? observedAttempt(attempt, observation, state.policy.now()) : attempt,
+			attempt.operationId === latest.operationId ? observedAttempt(attempt, observation, state.policy.now(), observedAt) : attempt,
 		);
 		stored = yield* save(stored, { ...stored.value, attempts, blocker: observationBlocker(stored.value, latest) });
 		stored = yield* resumeObservedStall(state, stored, latest, observation);

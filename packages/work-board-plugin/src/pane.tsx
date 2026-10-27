@@ -1,10 +1,10 @@
 import type { Elements, RenderElement, RenderSurface } from "claude-code";
-import type { WorkboardAsk, WorkboardBlock, WorkboardBoard, WorkboardFlight } from "#types/index.d.ts";
-import { flightColors, notStartedState } from "./flightState.ts";
+import type { WorkboardAsk, WorkboardBlock, WorkboardBoard } from "#types/index.d.ts";
 import { flightHeading, flightRows } from "./flights.tsx";
+import { goalColors } from "./goalProgress.ts";
 import { goalRows } from "./goalRows.tsx";
 import { clip, waitingLine } from "./lines.ts";
-import { countOf, splitFlights } from "./summary.ts";
+import { countOf } from "./summary.ts";
 
 export type Table = Elements[RenderSurface];
 
@@ -38,16 +38,14 @@ export function paneView(t: Table, view: PaneView): RenderElement {
 	}
 
 	const { asks, flights, goals } = view.board;
-	const { inFlight, notStarted } = splitFlights(flights);
 
 	return (
 		<Box flexDirection="column" gap={1}>
 			{header}
 			{section(t, titled(t, "Needs you", asks), asks, "Nothing waits on you.", (items) => askRows(t, items, view))}
-			{section(t, flightHeading(t, inFlight) ?? titled(t, "In flight", inFlight), inFlight, "Nothing in flight.", (items) =>
+			{section(t, flightHeading(t, flights) ?? titled(t, "In flight", flights), flights, "Nothing in flight.", (items) =>
 				flightRows(t, items, view.columns),
 			)}
-			{section(t, titled(t, "Not started", notStarted), notStarted, "Nothing waiting to start.", (items) => admissionRows(t, items, view.columns))}
 			{section(t, titled(t, "Goals", goals), goals, "No open goals.", (items) => goalRows(t, items, view))}
 		</Box>
 	);
@@ -57,7 +55,7 @@ function titled<T>(t: Table, title: string, block: WorkboardBlock<T>): RenderEle
 	const { Box, Text } = t;
 	return (
 		<Box flexDirection="row" gap={1}>
-			<Text {...(title === "Needs you" ? { color: flightColors.you } : {})} weight="semibold">
+			<Text {...(title === "Needs you" ? { color: goalColors.scheduled } : {})} weight="semibold">
 				{title}
 			</Text>
 			<Text dimColor tabular>{`(${countOf(block)})`}</Text>
@@ -90,22 +88,6 @@ function askRows(t: Table, asks: WorkboardAsk[], view: PaneView): RenderElement 
 			{asks.map((ask) => (
 				<Button key={ask.key} label={clip(ask.title, view.columns)} onPress={() => view.onOpen(ask)} plain />
 			))}
-		</Box>
-	);
-}
-
-function admissionRows(t: Table, items: WorkboardFlight[], columns: number): RenderElement {
-	const { Box } = t;
-	return (
-		<Box flexDirection="column">
-			{(["blocked", "queued"] as const).map((state) => {
-				const block = { items: items.filter((item) => notStartedState(item) === state), problem: null };
-				return (
-					<Box key={state}>
-						{section(t, titled(t, state === "blocked" ? "Blocked" : "Queued", block), block, "None.", (rows) => flightRows(t, rows, columns))}
-					</Box>
-				);
-			})}
 		</Box>
 	);
 }

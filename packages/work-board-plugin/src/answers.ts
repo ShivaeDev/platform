@@ -12,16 +12,23 @@ export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<strin
 		return { items: [], problem: `Fleet is unavailable: ${text(value.reason) ?? "no reason given"}` };
 	}
 	const items = records(value.items)
-		.filter((row) => STAGE_NAMES.has(row.stage))
+		.filter((row) => STAGE_NAMES.has(row.stage) && row.inFlight === true)
 		.map((row) => {
 			const workId = text(row.workId) ?? "unknown";
-			const entered = typeof row.stageEnteredAt === "number" ? row.stageEnteredAt : null;
 			const document = isRecord(row.document) ? row.document : {};
 			const goalId = goalIdOf(document.metadata, titles);
 			return {
+				agents: records(row.agents).map((agent) => ({
+					id: text(agent.id) ?? "agent",
+					role: text(agent.role) ?? "agent",
+					state: text(agent.state) ?? "not started yet",
+					turnMs:
+						typeof agent.startedAt === "number" && (agent.running === true || typeof agent.finishedAt === "number")
+							? Math.max(0, (typeof agent.finishedAt === "number" ? agent.finishedAt : now) - agent.startedAt)
+							: null,
+				})),
 				attentionOwner: text(row.attentionOwner),
 				goal: goalId === null ? null : { id: goalId, title: titles.get(goalId) ?? goalId },
-				inStageMs: entered === null ? null : Math.max(0, now - entered),
 				prUrl: text(row.prUrl) ?? null,
 				stage: text(row.stage) ?? "unknown",
 				title: text(document.title) ?? workId,
@@ -33,7 +40,7 @@ export function flightsOf(value: unknown, now: number, titles: ReadonlyMap<strin
 }
 
 export function goalsOf(value: unknown): WorkboardBlock<WorkboardGoal> {
-	const rows = isRecord(value) ? records(value.goals) : [];
+	const rows = isRecord(value) ? [...records(value.goals), ...records(value.closedGoals).filter((row) => row.status === "done")] : [];
 	const items = rows.map((row) => {
 		const counts = isRecord(row.counts) ? row.counts : {};
 		function count(state: string) {
@@ -46,6 +53,7 @@ export function goalsOf(value: unknown): WorkboardBlock<WorkboardGoal> {
 		const scheduled = count("scheduled");
 		const id = text(row.id) ?? "goal";
 		return {
+			achieved: row.status === "done",
 			blocked,
 			done,
 			id,
