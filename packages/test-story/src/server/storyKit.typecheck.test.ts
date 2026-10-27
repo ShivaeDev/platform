@@ -117,8 +117,8 @@ it("refuses traits and body effects that need a service the layer does not provi
 });
 
 it("refuses a hook that needs a service the layer does not provide", () => {
-	// @ts-expect-error The kit has no layer to provide the Ledger that create needs.
 	storyKit({
+		// @ts-expect-error The kit has no layer to provide the Ledger that create needs.
 		*create() {
 			const shelfOf: Shelf = { books: yield* Ledger };
 			return shelfOf;

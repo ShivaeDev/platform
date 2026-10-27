@@ -1,6 +1,8 @@
 import type { TestContext } from "@effect/vitest";
 import type { Effect, Layer, Scope } from "effect";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
+import { compose } from "#internal/compose.ts";
+import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#internal/compositionTypes.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#internal/hooked.ts";
 import type { AfterResults, InferredDefinition, LegacyDefinition } from "#internal/hookInference.ts";
 import type { LooseDefinition } from "#internal/seed.ts";
@@ -97,6 +99,7 @@ export interface StoryKit<TEngine, TStage extends string, TVerbs, TRun extends A
 	readonly traits: <const TGiven extends readonly Trait<TEngine, TStage, unknown>[]>(
 		...given: TGiven
 	) => Trait<TEngine, TStage, TraitServices<TGiven[number]>>;
+	readonly [kitDefinition]: KitDefinition<TEngine, TStage, TVerbs, TRun, TProvided>;
 }
 
 export function storyKit<
@@ -125,8 +128,11 @@ export function storyKit<
 >(
 	definition: LegacyDefinition<TEngine, TStage, TVerbs, TProvided, TCreate, TAfter, TStep, TFailed, TDiagnose>,
 ): StoryKit<TEngine, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
-export function storyKit(definition: LooseDefinition): unknown {
+export function storyKit<const TKits extends KitList>(definition: Composition<TKits>): ComposedKit<TKits>;
+export function storyKit(input: LooseDefinition | Composition<KitList>): unknown {
+	const definition = "extends" in input ? compose(input.name, input.extends) : input;
 	return {
+		[kitDefinition]: definition,
 		it: storyIt(definition),
 		trait: (stage: string, line: string, apply: EffectHook<[engine: unknown], AnyEffect, void>) =>
 			trait(stage, line, (engine: unknown) => hooked(() => apply(engine))),

@@ -153,6 +153,36 @@ export default defineConfig({
 
 `genreTags(...kitNames)` declares one tag per kit, named after it: `bakery-story` and `mill-story` here, and `game-store-story` for a kit named "game store". A kit tags its tests only with a genre the config declares, because Vitest refuses a test whose tag the config leaves out, so a config without the line runs every story untagged and prints nothing about it. With the tags declared, `vitest run --tags-filter=mill-story` runs the mill's stories and skips the bakery's, and `--tags-filter` takes any of Vitest's tag expressions, such as `'!mill-story'`. A root config whose inline projects extend the package's config gets these tags from it, so `--tags-filter` works from the root too.
 
+#### Composing feature kits
+
+Compose kits when one story crosses features that already have their own engines, traits and verbs. Keep each feature kit independent; an integration kit imports the kits and their public trait factories, so neither feature needs to import the other's internals.
+
+```ts
+import { expect } from "vitest";
+import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { bakery, hasDough, ovenIsLit } from "./bakery.ts";
+import { mill, sailsAreTurning } from "./mill.ts";
+
+export const village = storyKit({
+  extends: [mill, bakery],
+  name: "village",
+});
+
+village.it("mills flour and bakes loaves", [sailsAreTurning(), ovenIsLit(), hasDough(2)], function* ({ miller, oven, story }) {
+  miller.grinds(3);
+  yield* oven.bakesEverything();
+  expect(story.engine.sacks).toBe(3);
+  expect(story.engine.sails).toBe("turning");
+  expect(oven.loaves()).toBe(2);
+});
+```
+
+`extends` takes one or more kits. The composed engine includes each kit's engine fields, the body receives all their verbs, and traits from either kit work directly. Types for engines, stages, verbs and layer services remain inferred. A composed kit can itself appear in `extends`.
+
+Creation runs in dependency order, left to right, before any traits. Stages and their `after` hooks then run in that same order, regardless of the order traits appear in the spec. All creation, traits, hooks and the body share one per-test Scope, whose finalizers release resources in reverse acquisition order, including after a failed story. Feature verbs retain their own `runUntil` hooks, so the bakery's waiting verb still steps the bakery. Use each feature's waiting verbs when driving a composed story.
+
+Top-level engine fields, verb names and trait stage names must be unique across the kits. A collision fails typechecking with a message such as `Cannot compose story kits: duplicate verb names` and the conflicting name. Give stages feature-specific names when composing; a trait's stage selects its feature's setup hooks. Traits remain the existing `kit.trait` values and `kit.traits` combinations.
+
 #### Routing outbound HTTP
 
 When application code calls a hard-coded third-party URL, set `outbound` on its kit to send those requests to a fake server:
