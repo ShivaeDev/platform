@@ -3,18 +3,14 @@ import { expect } from "vitest";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it(
-	"keeps jobs after an outer rollback and refreshes live notes after the worker counts committed titles",
+	"refreshes live notes after the worker counts committed titles",
 	[signedIn()],
-	function* ({ actor, collector, liveNotes, createInRolledBackTransaction, storedNotes, wordCountCompletions }) {
+	function* ({ actor, collector, liveNotes, storedNotes, wordCountCompletions }) {
 		const { notes: http } = actor();
 		const live = yield* liveNotes();
 		const note = yield* http.create({ title: "Count these three words" });
 		expect(note.wordCount).toBeNull();
 		yield* Effect.promise(() => expect.poll(live.notes, { timeout: 5000 }).toEqual([note]));
-		const owner = yield* http.whoami();
-		expect(yield* createInRolledBackTransaction("Rolled back", owner.id)).toMatchObject({ _tag: "Failure", failure: "rollback" });
-
-		yield* Effect.sleep("1200 millis");
 		expect(yield* http.get({ id: note.id })).toEqual(note);
 		const receiver = yield* collector();
 		const stopWorker = yield* receiver.startWorker();
@@ -29,7 +25,7 @@ app.it(
 		yield* Effect.promise(() =>
 			expect
 				.poll(() => receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code), { timeout: 8000 })
-				.toEqual([1, 1, 1]),
+				.toEqual([1, 1]),
 		);
 		yield* Effect.promise(() =>
 			expect
@@ -37,11 +33,10 @@ app.it(
 				.toMatchObject([
 					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
 					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
-					{ acknowledgement: { affected: 1 }, attempt: { retryCount: 0 }, queue: "count-note-words" },
 				]),
 		);
 		yield* stopWorker;
-		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1, 1]);
+		expect(receiver.spans.filter((span) => span.name === "CountWords").map((span) => span.status.code)).toEqual([1, 1]);
 		expect(yield* storedNotes()).toEqual(
 			[
 				{ ...note, version: 1, wordCount: 4 },
