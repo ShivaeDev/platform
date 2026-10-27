@@ -1,8 +1,22 @@
 import { expect } from "vitest";
 import { effectPolicyStory, policyFiles } from "#effect-policy-story";
-import { REJECTED_SERVICE_SOURCE, SERVICE_CASES, SERVICE_DECLARATION } from "#test/effectPolicyFiles.ts";
+import { DATA_WITH_CALLABLE_SERVICE, REJECTED_SERVICE_SOURCE, SERVICE_CASES, SERVICE_DECLARATION } from "#test/effectPolicyFiles.ts";
 
 const REJECTED_PATHS = ["src/store.ts", "src/adapters/store.ts"];
+
+effectPolicyStory.it(
+	"collection methods and schema internals do not turn data into callable services while implementations are refused",
+	[policyFiles({ content: DATA_WITH_CALLABLE_SERVICE, path: "src/collections.ts" })],
+	function* ({ lint }) {
+		const result = yield* lint();
+		expect(result.status).toBe(1);
+		expect(result.stdout.match(/Parameter .+ carries a service\./gu)).toEqual([
+			"Parameter lookup carries a service.",
+			"Parameter invalidate carries a service.",
+			"Parameter services carries a service.",
+		]);
+	},
+);
 
 effectPolicyStory.it(
 	"aliases, interfaces, constraints, inferred and destructured parameters and factory methods carry services",
