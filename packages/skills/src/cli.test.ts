@@ -10,10 +10,11 @@ skills.it("check asks for sync until sync copies the shipped skills", [shippedSk
 	expect(before.stderr).toContain(RUN_SYNC);
 	expect(yield* cli.sync()).toMatchObject({
 		status: 0,
-		stdout: `Synced pr-description, story-testing from @shivaedev/skills ${repository.version()}.\n`,
+		stdout: `Synced pr-description, story-testing, visual-pages from @shivaedev/skills ${repository.version()}.\n`,
 	});
 	expect(yield* repository.read(".claude/skills/pr-description/SKILL.md")).toContain("name: pr-description");
 	expect(yield* repository.read(".agents/skills/story-testing/SKILL.md")).toContain("# Story testing");
 	expect(yield* repository.read(".claude/skills/story-testing/SKILL.md")).toBe(yield* repository.read(".agents/skills/story-testing/SKILL.md"));
+	expect(yield* repository.read(".claude/skills/visual-pages/SKILL.md")).toContain("name: visual-pages");
 	expect(yield* cli.check()).toMatchObject({ status: 0, stdout: `The shared skills match @shivaedev/skills ${repository.version()}.\n` });
 });
