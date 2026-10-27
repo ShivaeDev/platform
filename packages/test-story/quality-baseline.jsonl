@@ -18,6 +18,7 @@
 {"path":"packages/test-story/src/server/internal/fakeHttpGates.ts","rule":"effect/boundary","count":1}
 {"path":"packages/test-story/src/server/internal/fakeHttpReceive.ts","rule":"effect/boundary","count":9}
 {"path":"packages/test-story/src/server/internal/fakeHttpSend.ts","rule":"effect/boundary","count":14}
+{"path":"packages/test-story/src/server/internal/installDomTimers.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/test-story/src/server/internal/installOutbound.ts","rule":"effect/boundary","count":7}
 {"path":"packages/test-story/src/server/internal/loopback.ts","rule":"effect/boundary","count":2}
 {"path":"packages/test-story/src/server/internal/narration.ts","rule":"effect/service-parameters","count":1}

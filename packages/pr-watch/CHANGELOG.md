@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-10-27
+
+### Fixed
+
+- Pace PR polling only when remaining GitHub quota cannot sustain the observed request demand until reset. Ignore expired observations and name the limiting budget, remaining count, limit and reset time in quota pacing cooldowns.
+
 ## 0.5.1 - 2026-10-27
 
 ### Changed

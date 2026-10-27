@@ -1,6 +1,13 @@
 import { createAuthClient } from "better-auth/react";
+import { Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { type AuthActionUnavailable, authAction } from "@shivaedev/react/client/authAction.ts";
+
+export const SessionAccess = Schema.Struct({
+	user: Schema.Struct({
+		permissions: Schema.optionalKey(Schema.Array(Schema.Struct({ name: Schema.String, strength: Schema.Literals(["own", "any"]) }))),
+	}),
+});
 
 export interface Credentials {
 	readonly email: string;

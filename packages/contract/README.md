@@ -478,6 +478,20 @@ authorizeReads(effect, request, canRead, Effect.fail(new Denied())).pipe(
 );
 ```
 
+### Live hints in stories
+
+Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle. The contract's viewer story kit exposes these as `listen(viewer, queries)` and `heard(viewer, keys)`.
+
+```ts
+const alice = yield* watchHints(aliceChanges);
+const bob = yield* watchHints(bobChanges);
+yield* renameNote;
+expect(yield* heard(alice, [notes.item(1)])).toBe(true);
+expect(yield* heard(bob, [notes.item(1)], { within: "50 millis" })).toBe(false);
+```
+
+`heard` returns `true` once a delivered `Changed` hint contains all the requested keys, including hints received before the call. Extra keys are allowed; `Resync` does not count. It returns `false` when no matching hint arrives within `within` (one second by default). Waiting uses the story's Effect clock, so a test clock controls expiry. Stream failures stay in the typed error channel. Keep expectations in the spec; the support verbs need no retry loops or hidden assertions.
+
 ### API by module
 
 Import the module that defines the name; the package has no root entry.
@@ -494,6 +508,7 @@ Import the module that defines the name; the package has no root entry.
 | `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local fallible key policy used by server hint streams; `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>` controlling each stream's memo duration. |
 | `serverMetadata.ts` | `KeyScope`, `QueryReads`, `CommandInvalidation`, `ChangesReads`, `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
+| `testing.ts` | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys. |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 

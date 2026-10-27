@@ -1,5 +1,6 @@
 import type { AnyRootRoute, AnyRoute } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { PermissionSession } from "@shivaedev/react/permissions.ts";
 import type { AuthActions } from "./auth.ts";
 
 export interface RouteContext {
@@ -7,6 +8,7 @@ export interface RouteContext {
 	readonly navigate: (path: string) => void;
 	readonly registry: AtomRegistry.AtomRegistry;
 	readonly root: AnyRootRoute;
+	readonly session: () => PermissionSession | null | undefined;
 }
 
 export interface ClientModule {

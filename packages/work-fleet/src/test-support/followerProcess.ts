@@ -20,10 +20,12 @@ export interface Follower {
 
 export interface FollowOptions {
 	readonly apiUrl?: string;
+	readonly cwd?: string;
 	readonly events?: string;
 	readonly follow?: boolean;
 	readonly heartbeat?: number;
 	readonly interval?: number;
+	readonly json?: boolean;
 	readonly port?: number;
 	readonly prEvents?: boolean;
 	readonly prInterval?: number;
@@ -50,11 +52,10 @@ export function followerProcess(
 					cli,
 					command,
 					...ids,
-					"--board",
-					dirname(configFile),
+					...(options.cwd === undefined ? ["--board", dirname(configFile)] : []),
 					...followArguments(options),
 				],
-				{ stdio: ["ignore", "pipe", "pipe"] },
+				{ cwd: options.cwd, stdio: ["ignore", "pipe", "pipe"] },
 			);
 			let stdout = "";
 			let stderr = "";
@@ -104,8 +105,9 @@ function followArguments(options: FollowOptions) {
 		timeout: options.follow && options.timeout === undefined ? undefined : (options.timeout ?? 20),
 	};
 	return [
+		...(options.json ? ["--json"] : []),
 		...(options.follow ? ["--follow"] : []),
-		...(options.prEvents ? ["--pr-events"] : []),
+		...(options.prEvents === undefined ? [] : ["--pr-events", String(options.prEvents)]),
 		...Object.entries(values).flatMap(([flag, value]) => (value === undefined ? [] : [`--${flag}`, String(value)])),
 	];
 }

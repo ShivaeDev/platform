@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import type { BetterAuthRateLimitOptions } from "better-auth";
+import type { BetterAuthOptions, BetterAuthRateLimitOptions } from "better-auth";
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
@@ -8,17 +8,35 @@ import { betterAuthMount } from "#server/better-auth/mount.ts";
 
 export interface MountEngine {
 	authDown: boolean;
+	readonly authOptions: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">;
 	readonly consumed: Array<{ readonly key: string; readonly rule: { readonly max: number; readonly window: number } }>;
 	readonly env: Record<string, string>;
 	readonly logs: Array<{ readonly level: LogLevel.LogLevel; readonly message: unknown; readonly traceId: string | undefined }>;
+	readonly providerLogs: Array<{ level: string; message: string }>;
 	readonly rateLimit: BetterAuthRateLimitOptions;
 	readonly urls: string[];
+}
+
+export function emptyMount(): MountEngine {
+	return {
+		authDown: false,
+		authOptions: {},
+		consumed: [],
+		env: {},
+		logs: [],
+		providerLogs: [],
+		rateLimit: { enabled: false, max: 2, window: 60 },
+		urls: [],
+	};
 }
 
 function applicationProvider(engine: MountEngine) {
 	return {
 		id: "application-provider",
 		onRequest: (request: Request) => {
+			if (new URL(request.url).pathname !== "/api/auth/visitor") {
+				return Promise.resolve();
+			}
 			if (engine.authDown) {
 				throw Object.assign(new Error("Authentication provider is down: token=provider-token", { cause: new Error("password=database-password") }), {
 					cookie: "session=provider-cookie",
@@ -39,7 +57,10 @@ export const startMountHost = Effect.fn("AuthMountStory.startMountHost")(functio
 		engine.logs.push({ level: logLevel, message, traceId: Context.getOrUndefined(fiber.context, Tracer.ParentSpan)?.traceId });
 	});
 	const auth = yield* betterAuthMount({
-		logger: { disabled: true },
+		...engine.authOptions,
+		advanced: { disableOriginCheck: false },
+		emailAndPassword: { autoSignIn: false, enabled: true },
+		logger: { log: (level, message) => engine.providerLogs.push({ level, message }) },
 		"onAPIError": { throw: true },
 		plugins: [applicationProvider(engine)],
 		rateLimit: engine.rateLimit,

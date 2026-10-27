@@ -6,7 +6,7 @@ import { adminStory, registrationStory, signedIn } from "#test/story.ts";
 for (const [label, traits, error] of [
 	["signed out", [], "Unauthorized"],
 	["a member", [signedIn("user")], "Forbidden"],
-	["an owner without admin", [signedIn("owner")], "Forbidden"],
+	["a role assigner without read access", [signedIn("assigner")], "Forbidden"],
 ] as const) {
 	adminStory.it(
 		`refuses ${label} on every operation and generated subscription`,
@@ -54,4 +54,18 @@ registrationStory.it("rejects missing and unregistered handler pages", [], funct
 
 registrationStory.it("rejects colliding generated subscriptions", [], function* ({ duplicate }) {
 	expect(() => duplicate("changes")).toThrow("Duplicate admin RPC tag: admin.jobs.$changes");
+});
+
+adminStory.it("a users reader cannot read jobs", [signedIn("auditor")], function* ({ profile, userChanges, failed, changes }) {
+	expect(yield* profile()).toBe("operator@example.test");
+	expect(yield* userChanges()).toEqual([{ _tag: "Resync" }]);
+	expect(yield* Effect.flip(failed())).toMatchObject({ _tag: "Forbidden" });
+	expect(yield* Effect.flip(changes())).toMatchObject({ _tag: "Forbidden" });
+});
+
+adminStory.it("a jobs reader cannot read users", [signedIn("operator")], function* ({ profile, userChanges, failed, changes }) {
+	expect(yield* failed()).toEqual(["mail-42"]);
+	expect(yield* changes()).toEqual([{ _tag: "Resync" }]);
+	expect(yield* Effect.flip(profile())).toMatchObject({ _tag: "Forbidden" });
+	expect(yield* Effect.flip(userChanges())).toMatchObject({ _tag: "Forbidden" });
 });

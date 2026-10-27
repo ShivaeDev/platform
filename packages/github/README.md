@@ -76,7 +76,15 @@ const diff = Effect.gen(function* () {
 });
 ```
 
-The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Prefer the exported functions for Schema-decoded items. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
+The service's `read(path)` and `write(method, path, body)` return a representation with a generic `decode(schema)` method. Its `list(path)` returns an Effect containing a Stream of page representations. These methods accept the same trailing byte limit: `read(path, byteLimit)`, `write(method, path, body, byteLimit)` and `list(path, beforeRequest, byteLimit)`; pass `undefined` for `beforeRequest` when no pacing callback is needed. Prefer the exported functions for Schema-decoded items. Each page representation exposes `hasNext`, which reports whether its Link header names a next page without fetching it. A caller with a pacing policy can pass `github.list(path, beforeRequest)`: the callback receives the resource name before each page request, and its typed failure stops the stream. `github.resource(path)` returns the observed resource for that path, defaulting to core or search before the first response.
+
+Use `listBounded(path, itemSchema, pageCap, byteLimit?)` to collect a prefix within a positive page cap. It returns `{ items, truncated }`; `truncated` is true exactly when the last fetched page names a next page. It never requests or decodes a page beyond the cap, and uses the same pagination and per-page byte limits as `list`.
+
+```ts
+import { listBounded } from "@shivaedev/github/GitHub.ts";
+
+const issues = listBounded("/repos/acme/widgets/issues", Issue, 2);
+```
 
 ### Acting as a GitHub App
 
@@ -143,6 +151,8 @@ A missing (404) or expired (410) artifact fails with `GitHubArtifactError({ stag
 
 ### Verifying webhooks
 
+Use [`@shivaedev/webhooks`](https://github.com/ShivaeDev/platform/tree/main/packages/webhooks#readme) to receive deliveries through the application host with receipts, deduplication and transactional job enqueueing. This package owns signature verification only.
+
 Pass the raw request bytes and the `X-Hub-Signature-256` header to `verifyWebhook` before parsing the body. It checks HMAC SHA-256 with a constant-time comparison, then decodes JSON with your Schema. A missing header, tampered body or wrong secret fails with `GitHubWebhookSignatureError` before Schema decoding.
 
 ```ts
@@ -160,7 +170,7 @@ const receiveWorkflowRun = (
 ) => verifyWebhook(rawBody, signature, secret, WorkflowRun);
 ```
 
-This decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
+Omit the Schema argument to verify the signature only, without decoding the body. With a Schema, this decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
 
 ### Sticky comments and check runs
 
@@ -179,13 +189,14 @@ const report = Effect.gen(function* () {
 });
 ```
 
-`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; completion requires a conclusion. Output contains `title`, `summary` and optional `text`. Request and response Schemas are exported from `checkRuns.ts`.
+`createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; completion requires a conclusion. Output contains `title`, `summary` and optional `text`. An optional `detailsUrl` on creation and either update shape links to an external report; the returned `CheckRun.detailsUrl` is the GitHub URL or `null` when none exists. It is sent and decoded as `details_url`. Request and response Schemas are exported from `checkRuns.ts`.
 
 ```ts
 const check = (headSha: string) => Effect.gen(function* () {
   const github = yield* GitHub;
   const created = yield* github.createCheckRun("acme", "widgets", {
     headSha, name: "Coverage", status: "queued",
+    detailsUrl: "https://reports.example/coverage",
   });
   yield* github.updateCheckRun("acme", "widgets", created.id, {
     status: "in_progress", output: { title: "Coverage", summary: "Measuring" },

@@ -612,4 +612,18 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
 
-The `withChangeCoverage(body)` story verb from `testing.ts` checks PostgreSQL transaction write counters before commit and fails with `UnannouncedWrites` for tables without a recorded table key. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.
+The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit. Each written table must have its table key or at least one declared covering key recorded; otherwise `UnannouncedWrites` fails the transaction. Declare a module's domain read keys by table, including for raw SQL writes:
+
+```ts
+const coverage = { covers: { orders: ["dashboard:orders"] } };
+
+yield* withChangeCoverage(
+  Effect.gen(function* () {
+    yield* sql`update orders set status = 'closed' where id = ${id}`;
+    yield* invalidateOnCommit(["dashboard:orders"]);
+  }),
+  coverage,
+).pipe(expectPublished(["dashboard:orders"]));
+```
+
+`body.pipe(expectPublished(keys))` compares the distinct published keys, regardless of order, and preserves the body's result. Put it outside the committing transaction. It observes the existing change channel and leaves delivery intact; recorded keys from rolled-back writes do not count. A mismatch fails with `PublishedKeysMismatch`, whose `expected`, `actual` and message show both key sets. The assertion happens after the body, so a mismatch does not roll back a committed write. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.

@@ -20,7 +20,14 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 		return { document: undefined, problem: undefined };
 	}
 	const parsed = boardApi.metadataParse(source);
-	const diagnostics = parsed.diagnostics.filter(
+	const areas = yield* boardApi
+		.areaDiagnostics(root, parsed)
+		.pipe(
+			Effect.mapError(
+				(error) => new BoardFailure({ code: "incomplete-observation", message: `Board area folders could not be read: ${file} (${error.message})` }),
+			),
+		);
+	const diagnostics = [...parsed.diagnostics, ...areas].filter(
 		(diagnostic) => !((diagnostic.field === "pr" || diagnostic.field === "branch") && diagnostic.message.startsWith("Unknown field ")),
 	);
 	return {

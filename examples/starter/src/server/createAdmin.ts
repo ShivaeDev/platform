@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { Config, Effect, Redacted } from "effect";
 import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { Owner } from "#roles/Owner.ts";
 import { authOptions } from "#server/authOptions.ts";
 
 export const createAdmin = Effect.fn("App.createAdmin")(function* () {
@@ -11,5 +12,5 @@ export const createAdmin = Effect.fn("App.createAdmin")(function* () {
 	const email = yield* Config.String("ADMIN_EMAIL");
 	const name = yield* Config.String("ADMIN_NAME").pipe(Config.withDefault("Administrator"));
 	const password = yield* Config.Redacted("ADMIN_PASSWORD");
-	return yield* Effect.tryPromise(() => auth.api.createUser({ body: { email, name, password: Redacted.value(password), role: ["admin", "owner"] } }));
+	return yield* Effect.tryPromise(() => auth.api.createUser({ body: { email, name, password: Redacted.value(password), role: Owner.name } }));
 });

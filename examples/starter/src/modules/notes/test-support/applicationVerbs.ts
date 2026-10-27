@@ -8,7 +8,6 @@ import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 import type { Engine } from "./applicationState.ts";
-import { createInRolledBackTransaction } from "./createInRolledBackTransaction.ts";
 import { liveNotes } from "./live.ts";
 import { requests } from "./requests.ts";
 import { storedNotes } from "./stored.ts";
@@ -61,7 +60,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return makeAuth({ baseUrl, fetchOptions: { headers: { cookie, origin } } });
 		},
 		authenticateResponse: (name: string, path: string) => authPost(host().baseUrl, path, credentials(name), "", host().origin),
-		createInRolledBackTransaction: (title: string, ownerId: string) => createInRolledBackTransaction(host(), story.tell, title, ownerId),
 		failNextNoteJob: Effect.fn("AppStory.failNextNoteJob")(function* () {
 			story.tell("the queue client rejects the next word-count send");
 			yield* host().jobsTesting.failNextSend(CountWords);

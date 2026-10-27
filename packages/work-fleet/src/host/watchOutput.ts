@@ -1,7 +1,11 @@
 import { Clock, Console, Effect } from "effect";
 import type { BoardAnswer } from "#host/watchState.ts";
 
-export const watchOutput = Effect.fnUntraced(function* (options: { readonly events: readonly string[]; readonly heartbeatMs?: number }) {
+export const watchOutput = Effect.fnUntraced(function* (options: {
+	readonly events: readonly string[];
+	readonly heartbeatMs?: number;
+	readonly json?: boolean;
+}) {
 	const startedAt = yield* Clock.currentTimeMillis;
 	const seenResponses = new Set<string>();
 	let lastOutputAt = startedAt;
@@ -10,7 +14,16 @@ export const watchOutput = Effect.fnUntraced(function* (options: { readonly even
 		if (!(options.events.includes(event.kind) || health)) {
 			return;
 		}
-		yield* Console.log(JSON.stringify(event));
+		yield* Console.log(
+			options.json
+				? JSON.stringify(event)
+				: [
+						event.kind,
+						...Object.entries(event)
+							.filter(([key, value]) => key !== "kind" && value !== undefined)
+							.map(([key, value]) => `${key}=${JSON.stringify(value)}`),
+					].join(" "),
+		);
 		lastOutputAt = yield* Clock.currentTimeMillis;
 	});
 	return {

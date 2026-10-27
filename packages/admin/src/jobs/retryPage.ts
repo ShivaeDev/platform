@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import { adminPage } from "#page.ts";
+import { JobsPermission } from "#permissions.ts";
 import { jobsKeys } from "./keys.ts";
 import { jobsPage } from "./page.ts";
 import { JobsFailures, type JobsQueue } from "./schemas.ts";
@@ -32,6 +33,7 @@ export function jobsPageWithRetry<const TQueues extends readonly JobsQueue[]>(..
 				queries: page.contract.declaration.queries,
 			}),
 			id: page.id,
+			permission: JobsPermission,
 			route: page.route,
 		}),
 		{ queues },

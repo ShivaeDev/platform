@@ -9,3 +9,5 @@
 {"path":"packages/admin/src/server/jobsHandlers.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/boundary","count":2}
 {"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/admin/src/server/users.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/admin/src/users/page.ts","rule":"effect/service-parameters","count":1}

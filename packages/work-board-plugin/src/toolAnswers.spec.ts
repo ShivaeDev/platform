@@ -31,7 +31,9 @@ boardTools.it(
 			fleet: { reason: "Fleet is not configured", state: "unavailable" },
 			goals: {
 				done: 1,
-				goals: [{ blocked: 0, done: 1, id: "goal.a", parked: 3, running: 0, scheduled: 0, standing: false, title: "Goal A", total: 4 }],
+				goals: [
+					{ achieved: false, blocked: 0, done: 1, id: "goal.a", parked: 3, running: 0, scheduled: 0, standing: false, title: "Goal A", total: 4 },
+				],
 				total: 4,
 			},
 			needsYou: { complete: true, count: 1, you: [{ id: "decision.a", reason: "Pick one", title: "Decide" }] },

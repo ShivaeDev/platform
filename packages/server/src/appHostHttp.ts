@@ -42,7 +42,7 @@ export function appHostHttp<
 	const sensitive = schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const { bodySize, trustedProxy, nativeOrigins } = yield* hostTransport(options);
+			const { bodySize, host, trustedProxy, nativeOrigins } = yield* hostTransport(options);
 			const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
 				options.policy === "loopback"
 					? requestTracingLayer({ sensitive })
@@ -79,7 +79,6 @@ export function appHostHttp<
 			const server = Layer.unwrap(
 				Effect.gen(function* () {
 					const port = options.config?.port ?? (yield* Config.Int("PORT").pipe(Config.withDefault(3000)));
-					const host = options.config?.host ?? (yield* Config.String("HOST").pipe(Config.withDefault("127.0.0.1")));
 					return NodeHttpServer.layer(createServer, {
 						gracefulShutdownTimeout: options.config?.gracefulShutdownTimeout,
 						host,
@@ -91,6 +90,9 @@ export function appHostHttp<
 				}),
 			);
 			const applicationRoutes = (options.routes ?? Layer.empty).pipe(
+				Layer.provide(
+					HttpRouter.middleware((effect) => Effect.provideService(effect, HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize))).layer,
+				),
 				Layer.provide(options.nativeOrigins === undefined ? Layer.empty : nativeClientOrigins(nativeOrigins, trustedProxy, true)),
 			);
 			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, applicationRoutes), { disableLogger: true }).pipe(

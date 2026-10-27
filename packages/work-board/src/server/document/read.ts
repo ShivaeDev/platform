@@ -4,6 +4,7 @@ import type { Document } from "#browser/document/schema.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
+import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
 import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { vocabularyMessage } from "#server/metadata/vocabulary.ts";
@@ -101,7 +102,7 @@ export function readDocument({ changes, home, pullRequests = Effect.succeed(unde
 		const pulls = yield* pullRequests;
 		return {
 			...targets,
-			diagnostics: model.diagnostics.get(file.path) ?? parsed.diagnostics,
+			diagnostics: [...(model.diagnostics.get(file.path) ?? parsed.diagnostics), ...(yield* areaDiagnostics(root, parsed))],
 			file: file.path,
 			...(identity ? { identity } : {}),
 			metadata: parsed.fields,

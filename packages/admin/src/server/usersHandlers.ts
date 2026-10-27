@@ -1,15 +1,21 @@
 import { Effect } from "effect";
+import type { roleSet } from "@shivaedev/access/roleSet.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
+import { AssignRoles } from "#permissions.ts";
 import { changeUserRole, listUsers } from "#server/users.ts";
-import { UsersPage } from "#users/page.ts";
-import { ChangeUserRoles } from "#users/roles.ts";
+import type { usersPage } from "#users/page.ts";
 
-export const usersHandlers = UsersPage.contract.application.toLayer({
-	"admin.users.changeRole": changeUserRole,
-	"admin.users.list": (input) =>
-		Effect.gen(function* () {
-			const user = yield* SessionUser;
-			return { ...(yield* listUsers(input)), canChangeRoles: hasPermission(user, ChangeUserRoles) };
-		}),
-});
+export function usersHandlers<const TRole extends string>(
+	page: ReturnType<typeof usersPage<TRole>>,
+	access: Pick<ReturnType<typeof roleSet<TRole>>, "Role" | "hasPermission">,
+) {
+	return page.contract.application.toLayer({
+		"admin.users.changeRole": (input) => changeUserRole(access, input),
+		"admin.users.list": (input) =>
+			Effect.gen(function* () {
+				const user = yield* SessionUser;
+				return { ...(yield* listUsers(access, input)), canChangeRoles: hasPermission(user, AssignRoles) };
+			}),
+	});
+}

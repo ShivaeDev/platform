@@ -48,9 +48,9 @@ The built server serves the UI, authentication and RPC on port 3000 by default. 
 
 ## Inspect background jobs
 
-Open `/admin` or `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views register native contracts with [`@shivaedev/admin`](https://github.com/ShivaeDev/platform/tree/main/packages/admin) and use the existing `/rpc` transport and session-owned atoms. Vite serves the React routes and proxies their RPC calls to the app host. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. Both pages require the `admin` role; `owner` alone stays forbidden.
+Open `/admin` or `/admin/jobs` on the app host (port 3000 locally, or through Vite on port 5173) for health, queue counts, paginated failed and dead-lettered jobs, and job detail. These app-owned views register native contracts with [`@shivaedev/admin`](https://github.com/ShivaeDev/platform/tree/main/packages/admin) and use the existing `/rpc` transport and session-owned atoms. Vite serves the React routes and proxies their RPC calls to the app host. The default Jobs registration is read-only. `/admin/notes` is an example app page with note statistics across all users. The pages require `jobs.read` and `notes.statistics.read`; client routes use the same grants with one permission fallback.
 
-After `pnpm migrate`, create an admin and owner with a new email address:
+After `pnpm migrate`, create an owner with a new email address:
 
 ```sh
 ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
@@ -72,4 +72,4 @@ For Railway, install its CLI, link an empty project and follow the [deployment g
 
 Read the [framework docs](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md) for design boundaries and the [quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md) for local database and hosting details.
 
-`/admin/users` lists names, email addresses, roles and sign-up times. Owners who also hold `admin` can grant and revoke Platform roles; the server rejects demotion of the final owner. The bootstrap command creates both roles. Existing apps receive the Users route through the create-app updater; a database without an owner can bootstrap a new administrator. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. There is no durable audit-history store. This app disables Better Auth’s browser endpoints for setting roles, updating users and creating users so role writes use the guarded native contract; the server-side bootstrap API remains available.
+`/admin/users` lists names, email addresses, roles and sign-up times for callers with `users.read`. Callers with `roles.assign` choose each user's single role from the code-defined role set; the server refuses to remove its final role assigner. The bootstrap command creates an `owner` with all admin domain permissions. Existing apps receive the route wiring through the create-app updater; migrate stored comma-separated roles to one declared role string before starting the new app. Role changes emit actor and timestamp logs through Effect and invalidate the user list after commit. This app disables Better Auth's browser endpoints for setting roles, updating users and creating users so role writes use the guarded native contract; the server-side bootstrap API remains available.

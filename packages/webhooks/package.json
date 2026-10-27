@@ -1,0 +1,87 @@
+{
+	"name": "@shivaedev/webhooks",
+	"version": "0.1.0",
+	"description": "Verified webhook receipts and transactional job delivery over Effect HTTP",
+	"keywords": [
+		"effect"
+	],
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/webhooks#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/webhooks"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json",
+		"./internal/*": null
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.test.tsx",
+		"!src/**/*.spec.ts",
+		"!src/**/*.spec.tsx",
+		"!src/**/test-support",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/github": "workspace:*",
+		"@shivaedev/http": "workspace:*",
+		"@shivaedev/jobs": "workspace:*",
+		"@shivaedev/sql": "workspace:*"
+	},
+	"devDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/server": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"effect": "catalog:",
+		"pg-boss": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@effect/platform-node": {
+			"optional": true
+		}
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	}
+}

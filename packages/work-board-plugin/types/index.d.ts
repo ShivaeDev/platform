@@ -9,10 +9,17 @@ export interface WorkboardGoalRef {
 	title: string;
 }
 
+export interface WorkboardAgent {
+	id: string;
+	role: string;
+	state: string;
+	turnMs: number | null;
+}
+
 export interface WorkboardFlight {
+	agents: WorkboardAgent[];
 	attentionOwner?: string | undefined;
 	goal: WorkboardGoalRef | null;
-	inStageMs: number | null;
 	prUrl: string | null;
 	stage: string;
 	title: string;
@@ -21,6 +28,7 @@ export interface WorkboardFlight {
 }
 
 export interface WorkboardGoal {
+	achieved: boolean;
 	blocked: number;
 	done: number;
 	id: string;

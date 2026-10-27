@@ -9,6 +9,7 @@ const domEnvironment: Environment = {
 		const load = createRequire(import.meta.url);
 		const { documentTransport }: typeof import("#internal/documentTransport.ts") = load("#internal/documentTransport.ts");
 		const { installOutbound }: typeof import("#internal/installOutbound.ts") = load("#internal/installOutbound.ts");
+		const { installDomTimers }: typeof import("#internal/installDomTimers.ts") = load("#internal/installDomTimers.ts");
 		const native = Object.fromEntries(
 			["fetch", "AbortController", "AbortSignal", "Headers", "Request", "Response"].map((name) => [name, Reflect.get(global, name)]),
 		);
@@ -21,6 +22,7 @@ const domEnvironment: Environment = {
 		});
 		win.happyDOM.settings.fetch.interceptor = documentTransport(global.fetch);
 		const { keys, originals } = populateGlobal(global, win, { bindFunctions: true });
+		const restoreTimers = installDomTimers(global);
 		for (const [name, value] of Object.entries(native)) {
 			Object.defineProperty(global, name, { configurable: true, value, writable: true });
 		}
@@ -33,6 +35,7 @@ const domEnvironment: Environment = {
 					await win.happyDOM.abort();
 					win.close();
 				} finally {
+					restoreTimers();
 					for (const key of keys) {
 						Reflect.deleteProperty(target, key);
 					}

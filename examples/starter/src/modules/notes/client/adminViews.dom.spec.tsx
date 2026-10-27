@@ -116,3 +116,14 @@ adminScreens.it("navigates to the app's statistics page", [countedNotes, adminSc
 	expect(content.querySelector("dl")?.textContent).toContain("Words53");
 	expect(content.querySelector("dl")?.textContent).toContain("Pending counts2");
 });
+
+adminScreens.it(
+	"shows the single fallback to a user without users.read",
+	[adminScreen("/admin/users", "user")],
+	function* ({ screenContent, activeAdminStreams }) {
+		const content = yield* screenContent();
+		yield* eventually(() => expect(content.querySelector("h1")?.textContent).toBe("Permission denied"));
+		expect(content.querySelector('[aria-label="App users"]')).toBeNull();
+		expect(activeAdminStreams()).toBe(0);
+	},
+);

@@ -8,6 +8,7 @@ import { testingClient } from "#internal/testingClient.ts";
 import { testingDeferrals } from "#internal/testingDeferrals.ts";
 import { type TestingWork, testingIdle } from "#internal/testingIdle.ts";
 import { testingOperation, testingReadout } from "#internal/testingReadout.ts";
+import { testingSchedules } from "#internal/testingSchedules.ts";
 import { testingSignal } from "#internal/testingSignal.ts";
 import { testingSnapshot } from "#internal/testingSnapshot.ts";
 
@@ -56,6 +57,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 	};
 	return {
 		...testingDeferrals(client, () => schema, signal.changed),
+		...testingSchedules(client, signal.changed),
 		checkBatchWindow: (queue: Pick<QueueDefinition, "name" | "workerOptions">, millisecondsPerJob: number) =>
 			testingOperation(
 				"checkBatchWindow",

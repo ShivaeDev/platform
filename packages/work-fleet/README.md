@@ -91,7 +91,7 @@ A review with a lost thread acknowledgement or an unobservable submitted turn is
 
 ### Run Fleet and the Board
 
-Run one foreground supervisor for each Board directory:
+In the Platform repository, `pnpm fleet` runs the CLI from source: use `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`. Run one foreground supervisor for each Board directory:
 
 ```sh
 work-fleet up <board-dir> --port 3457 --board-port 4747 --home index.md --responses
@@ -167,14 +167,14 @@ After the sweep merges, each held PR receives one repair turn on its existing br
 
 ### Schedule areas and dependencies
 
-Use `areas` to name the code areas a task changes. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/host` block each other, while `work-fleet/host` and `work-fleet/cli` stay independent. The area `*` overlaps every area. Areas are labels, not filesystem paths. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.
+Use `areas` to name existing repository folders a task changes: a package folder under `packages/` or `examples/`, optionally followed by a folder inside its `src/`, or a top-level folder such as `script/release` or `.github`. Name the one to three home packages for the task’s one goal; use a subfolder only when the task stays inside one stable folder of a busy package. See the [Board’s task sizing guide](../work-board/docs/delivery/source-examples.md#size-a-task-and-pick-its-scheduling-areas). Board reports invalid areas with a nearest existing path suggestion, and Fleet refuses to dispatch them with the same diagnostic. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/host` block each other, while `work-fleet/host` and `work-fleet/scheduling` stay independent. The area `*` overlaps every area. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.
 
 ```yaml
 ---
 id: task.follow-up
 kind: task
 fleet: approved
-areas: [work-fleet/host, work-board/ui]
+areas: [work-fleet, work-board]
 relationships:
   - kind: depends_on
     target: task.foundation
@@ -186,7 +186,7 @@ An overlapping task waits on automation, with a reason such as `waiting for area
 
 The Git-backed host also predicts conflicts as reconciliation observes worker pushes. It uses `git merge-tree --write-tree --name-only` without checking out a branch, comparing the pushed head with current main and every other open PR it watches, including foreign reservations and worker PRs not yet adopted. Conflicts between PRs include only files both branches changed from their merge base with current main; a stale branch's conflict with main stays on that PR. `mergePrediction` records each conflict's two heads, PR URL (`main` for the base branch), file names and UTC observation time in typed PostgreSQL rows. A later-opened conflicting PR waits before review and merge readiness with an automation reason such as `waiting for https://github.com/example/project/pull/7 to merge: conflicting packages/work-fleet/src/storage/fleetMigrations.ts`. This hold survives restarts and remains independent of `areaMergeWaitMs`. When the earlier PR merges, Fleet continues the held worker on the same branch and PR once to fetch and merge main, resolve the conflicts, then receive fresh review and checks. Non-conflicting PRs proceed in parallel. Custom integrations can supply `FleetIntegrations.predict(pr, watchedPrs)`; a custom `MainSource` can supply `mergeConflicts(head, otherHeads)` to enable the host's prediction integration.
 
-Reserve a PR Fleet did not launch with `work-fleet reserve-pr <url> --areas work-fleet --areas work-board/ui`. Fleet uses the matching Board task's areas when its `pr:` URL, `branch:` name or configured worker branch matches the PR; otherwise it uses the repeated `--areas` values. PR reservations hold those areas and an open-PR backlog slot until a scheduler pass observes the PR merged or closed, including after release or renewed preparation. Observation uses conditional GitHub requests with a cached ETag per PR; unchanged PRs return 304 without spending the GitHub rate limit. Failed GitHub reads retain the reservation. Reservations persist in PostgreSQL.
+Reserve a PR Fleet did not launch with `work-fleet reserve-pr <url> --areas work-fleet --areas work-board/client`. Fleet uses the matching Board task's areas when its `pr:` URL, `branch:` name or configured worker branch matches the PR; otherwise it uses the repeated `--areas` values. PR reservations hold those areas and an open-PR backlog slot until a scheduler pass observes the PR merged or closed, including after release or renewed preparation. Observation uses conditional GitHub requests with a cached ETag per PR; unchanged PRs return 304 without spending the GitHub rate limit. Failed GitHub reads retain the reservation. Reservations persist in PostgreSQL.
 
 Fleet identifies work by its authored brief: the Markdown title and body, criteria, Board kind, deliverable kind and authored relationships. Bookkeeping fields such as `status`, `next_action` and `owner` do not change that revision. Editing them on working or reviewing items preserves the attempts; editing them on work with an open decision preserves the question and its recorded answers. Criteria or body edits refresh eligible queued and working items in place. Work waiting on a human decision still stops with Board context changed; an answer to the earlier decision cannot authorize execution against the changed brief. This revision rule applies to every status, including `done`: marking working items done leaves its original work and decision intact and resolvable. Done work can be queued again only after its authored brief changes; unchanged source or bookkeeping edits leave its accepted outcome intact. Saved whole-file revisions are compared through their exact saved source without rewriting records or publication receipts; records without that source still need renewed preparation when their revision differs. Approval remains a separate execution requirement.
 
@@ -269,13 +269,15 @@ Automatic reconciliation refreshes eligible edited briefs in place. Explicit dis
 
 `wait --interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting.
 
-`work-fleet watch --board <dir>` continuously prints one JSON object per line from the daemon's stored Fleet state. It does not read the generated status Markdown. Its first snapshot establishes a baseline without replaying existing transitions. Each later transition prints once. Stop with Ctrl-C or `--timeout <seconds>` (exit 4).
+`work-fleet watch` follows newly launched work and continuously prints one text event per line, with no blank or decorative lines, from the daemon's stored Fleet state. From the repository root it uses `.work`, like other work commands; `--board <dir>` selects another Board. PR queue and health events are included, and quiet heartbeats are disabled. Use `--json` for one JSON object per line, `--pr-events false` to disable PR monitoring, or `--heartbeat <seconds>` to emit quiet heartbeats. It does not read the generated status Markdown. Its first snapshot establishes a baseline without replaying existing transitions. Each later transition prints once. Stop with Ctrl-C or `--timeout <seconds>` (exit 4).
 
 ```sh
-work-fleet watch --board .work --events waiting-on-orchestrator,waiting-on-you,done,released --stuck-after 1800
+pnpm fleet watch
+pnpm fleet watch --json
+pnpm fleet watch --events released
 ```
 
-`--events` accepts a comma-separated list of the following kinds; omitted, all kinds are enabled. Unknown kinds fail at startup. `--events` also selects JSON output when positional work IDs restrict the stream.
+`--events` accepts a comma-separated list of the following kinds; omitted, every kind except `released` is enabled. Unknown kinds fail at startup. With `--events` or `--json`, positional work IDs restrict the continuous stream to those items.
 
 | Kind | Transition |
 | --- | --- |
@@ -286,16 +288,19 @@ work-fleet watch --board .work --events waiting-on-orchestrator,waiting-on-you,d
 | `stuck` | Working or reviewing work has no progress for `--stuck-after` seconds (default 1800). Further progress permits a later stuck event. |
 | `dispatch-failed` | Background dispatch fails; ordinary dependency and area waits are excluded. |
 | `answer-failed` | A recorded answer fails to apply. |
+| `board-answer` | Another person answers a Board question. |
+| `pr-merged`, `pr-closed` | A watched PR merges or closes. |
+| `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention. |
 
-Item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR therefore includes its reason, PR URL and reviewed head SHA.
+Text events start with the event kind followed by named JSON values, so multiline details stay on one line. With `--json`, item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR therefore includes its reason, PR URL and reviewed head SHA.
 
 ```json
 {"kind":"waiting-on-orchestrator","workId":"one","pr":"https://github.com/example/repository/pull/7","head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","reason":"Reviewed PR is ready to merge"}
 ```
 
-The daemon sends a heartbeat every second. Three seconds without a stream item reconnects the subscription. JSON watch checks the daemon's `/live` HTTP route independently every half second with a one-second deadline; the route uses no database or provider calls. A failed liveness check prints `{"kind":"daemon-unreachable"}` once; recovery prints `{"kind":"daemon-back"}` once. Stalled provider work or stream delivery leaves a responsive daemon quiet. Both health events bypass `--events`. Watch reconnects at `--interval` seconds (default 0.5), rereading the Board's port file each time. A new daemon instance, including a supervisor restart on the same port, prints the health pair and establishes a fresh baseline without replaying historical transitions.
+The daemon sends a heartbeat every second. Three seconds without a stream item reconnects the subscription. The event watcher checks the daemon's `/live` HTTP route independently every half second with a one-second deadline; the route uses no database or provider calls. A failed liveness check prints `daemon-unreachable` once; recovery prints `daemon-back` once. With `--json`, these are JSON objects with the corresponding `kind`. Stalled provider work or stream delivery leaves a responsive daemon quiet. Both health events bypass `--events`. Watch reconnects at `--interval` seconds (default 0.5), rereading the Board's port file each time. A new daemon instance, including a supervisor restart on the same port, prints the health pair and establishes a fresh baseline without replaying historical transitions.
 
-With positional IDs and without `--events`, `watch <ids...>` prints text outcomes and exits 0 after every selected item reports done, waiting or released. Duplicate IDs report once; unknown IDs remain pending. Use the JSON command for a continuous orchestrator stream.
+With positional IDs and without event flags (`--json`, `--events`, `--pr-events` or a positive `--heartbeat`), `watch <ids...>` prints text outcomes and exits 0 after every selected item reports done, waiting or released. Duplicate IDs report once; unknown IDs remain pending. Use `watch --json <ids...>` or `watch --events <kinds> <ids...>` for a continuous event stream restricted to those IDs.
 
 `watch --follow` keeps running even when no work is active or every item has reported. With no IDs, it watches all items, including items launched later; explicit IDs restrict it to those items. Its first snapshot reports current waiting waits and records done or released history without printing it, then it prints one line when an item enters done, waiting or released. Human waits include the owner and reason; a reviewed PR ready for a human merge is a waiting wait on the maintainer. A new decision prints again, even if its reason is unchanged. An item that leaves waiting for repair and returns with the same reason reports again. Repeated snapshots of the same outcome do not print again. Reconnecting after a daemon restart preserves those states: unchanged history stays quiet, and an outcome that changed during the gap prints once. Stop the follower with Ctrl-C, or set an explicit `--timeout`.
 

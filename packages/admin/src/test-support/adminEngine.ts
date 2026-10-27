@@ -7,7 +7,7 @@ import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
-import { AdminPermission } from "#permissions.ts";
+import { JobsPermission, UsersPermission } from "#permissions.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "./Access.ts";
 import { Jobs, Registry, Users } from "./pages.ts";
@@ -27,11 +27,12 @@ export const adminEngine = Effect.gen(function* () {
 		}),
 	});
 	const changes = hostChanges(registration.group, AppChanges).pipe(Layer.provide(Layer.succeed(AppChanges, live)));
-	const auth = permissionLayer(AdminPermission, {
+	const policy = {
 		origin: () => true,
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
-	});
+	};
+	const auth = Layer.merge(permissionLayer(JobsPermission, policy), permissionLayer(UsersPermission, policy));
 	const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(Layer.mergeAll(registration.handlers, changes, auth)));
 	return { client, session };
 });

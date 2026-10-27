@@ -242,6 +242,7 @@
 {"path":"packages/work-board/src/render/visualFailures.unit.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/responses/current.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/rpc/PageUrl.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-board/src/rpc/claudePluginAgents.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/rpc/claudePluginContract.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/attention/answerSummary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/attention/answerSummary.ts","rule":"effect/service-parameters","count":5}
@@ -302,12 +303,15 @@
 {"path":"packages/work-board/src/server/integration/board.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/livePage.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/liveUpdates.spec.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-board/src/server/metadata/areaDiagnostics.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/server/metadata/areaSuggestion.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/metadata/attentionProblems.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/metadata/backlinks.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/work-board/src/server/metadata/fields.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/metadata/links.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/metadata/locations.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/metadata/model.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/work-board/src/server/metadata/nearestArea.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/metadata/parse.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/metadata/problems.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/work-board/src/server/metadata/referencesOf.ts","rule":"effect/service-parameters","count":1}
@@ -390,6 +394,7 @@
 {"path":"packages/work-board/src/server/search/readDocument.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/search/snapshot.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/search/updateEntries.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/work-board/src/server/views/fleetAgents.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/views/fleetApproval.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/views/fleetItems.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/views/goalCounts.ts","rule":"effect/service-parameters","count":3}

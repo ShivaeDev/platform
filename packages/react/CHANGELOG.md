@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.20.0 - 2026-10-27
+
+### Added
+
+- Read session grants with `can` and `useCan`, guard TanStack routes with `staticData.permission` and `permissionGuard`, and render one `PermissionBoundary` fallback for refused routes and forbidden queries. Signed-out route visits redirect to the application's sign-in path with their return location.
+
 ## 0.19.0 - 2026-10-27
 
 ### Breaking

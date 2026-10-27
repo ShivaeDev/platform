@@ -7,6 +7,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
 import { createEngine } from "./createEngine.ts";
 import { appScript, installDatabaseProbe } from "./environment.ts";
+import { runAdminStories } from "./runAdminStories.ts";
 
 export const application = storyKit({
 	after: {
@@ -92,6 +93,10 @@ export const application = storyKit({
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
 			readPacked: (path: string) => engine.source.readPacked(path),
+			runAdminStories: () => {
+				story.tell("the generated app runs its admin stories against workspace sources");
+				return runAdminStories(target());
+			},
 			runDatabaseProbe: () => {
 				story.tell("the app runs the database probe");
 				installDatabaseProbe(target());

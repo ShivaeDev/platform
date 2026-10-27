@@ -58,9 +58,12 @@
 {"path":"packages/jobs/src/server/internal/testingIdle.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/testingIdle.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/jobs/src/server/internal/testingReadout.ts","rule":"effect/service-parameters","count":4}
+{"path":"packages/jobs/src/server/internal/testingSchedules.ts","rule":"effect/boundary","count":6}
+{"path":"packages/jobs/src/server/internal/testingSchedules.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/jobs/src/server/internal/testingSnapshot.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/testingSnapshot.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/jobs/src/server/internal/tracing.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/jobs/src/server/internal/transactionDb.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/waitForBatchExpiry.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/jobs/src/server/jobControl.spec.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/postgres.spec.ts","rule":"effect/boundary","count":7}

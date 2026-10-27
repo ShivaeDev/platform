@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
@@ -7,6 +7,9 @@ export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait:
 	const root = mkdtempSync(join(tmpdir(), "fleet-board-"));
 	yield* Effect.addFinalizer(() => Effect.sync(() => rmSync(root, { force: true, recursive: true })));
 	if (trait === "withDependency") {
+		for (const area of ["packages/work-fleet/src/host", "packages/work-board/src/ui"]) {
+			mkdirSync(join(root, area), { recursive: true });
+		}
 		writeFileSync(
 			join(root, "task.md"),
 			"---\nid: task.one\nkind: task\nareas: [work-fleet/host, work-board/ui]\nstatus: done\nrelationships:\n  - kind: depends_on\n    target: task.before\n---\n# Useful work\n",

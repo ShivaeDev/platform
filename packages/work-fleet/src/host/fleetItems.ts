@@ -7,6 +7,21 @@ import { fleetStage, waitingReason } from "#stage.ts";
 function item(record: FleetRecord) {
 	return {
 		attentionOwner: waitingOwner(record),
+		execution: {
+			attempts: record.attempts.map((attempt) => ({
+				finishedAt: attempt.finishedAt,
+				fixingCi: (attempt.checkFailures?.length ?? 0) > 0,
+				id: attempt.operationId,
+				role: attempt.role,
+				sessionId: attempt.sessionId ?? attempt.receipt?.sessionId,
+				started: attempt.receipt !== undefined,
+				startedAt: attempt.startedAt,
+				status: attempt.status,
+			})),
+			mergeReady: record.decision?.code === "reviewed-pr-ready",
+			question: record.decision?.code === "worker-question",
+			step: record.step,
+		},
 		prUrl: record.result?.kind === "change" ? record.result.pr : undefined,
 		waitingReason: waitingReason(record),
 		...(record.review?.document && record.review.head === record.result?.head

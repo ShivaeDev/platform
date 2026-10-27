@@ -22,6 +22,7 @@
 {"path":"packages/work-fleet/src/board/writeStatus.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/completion.ts","rule":"effect/service-parameters","count":7}
 {"path":"packages/work-fleet/src/engine/abandonStalled.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/work-fleet/src/engine/acknowledgedAttempt.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/admissionOrder.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/admissionRecoveryMatrix.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/engine/applyResolution.ts","rule":"effect/service-parameters","count":2}

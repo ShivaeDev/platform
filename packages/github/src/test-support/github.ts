@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option, Redacted, type Schema, Stream } from "e
 import { FetchHttpClient } from "effect/http";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { GitHub, list, read, write } from "#GitHub.ts";
+import { GitHub, list, listBounded, read, write } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
 import { artifactFixture } from "./artifactFixture.ts";
@@ -21,10 +21,12 @@ export const github = storyKit({
 			headers: Record<string, string>;
 			items: Array<{ number: number; title: string }>;
 			reply: FakeHttpReply | undefined;
+			pageReplies: Map<number, FakeHttpReply>;
 		} = {
 			etag: '"pull-1"',
 			headers: {},
 			items: Array.from({ length: 5 }, (_, index) => ({ number: index + 1, title: `Pull request ${index + 1}` })),
+			pageReplies: new Map(),
 			reply: undefined,
 		};
 		const archive = artifactFixture(() => server.url);
@@ -49,6 +51,10 @@ export const github = storyKit({
 					path: "/repos/acme/widgets/pulls",
 					reply: ({ query }) => {
 						const page = Number(query.get("page") ?? 1);
+						const scripted = state.pageReplies.get(page);
+						if (scripted !== undefined) {
+							return scripted;
+						}
 						const more = page * 2 < state.items.length;
 						return {
 							body: state.items.slice((page - 1) * 2, page * 2),
@@ -97,6 +103,7 @@ export const github = storyKit({
 						Stream.runCollect,
 					),
 				),
+			readPullsBounded: (pageCap: number, byteLimit?: number) => run(listBounded("/repos/acme/widgets/pulls", PullRequest, pageCap, byteLimit)),
 			readWithEnvironment: (variables: Record<string, string>) => readWithEnvironment(server.url, variables),
 			rejectArchive: () => server.replyOnce("artifactRedirect", { status: 401 }),
 			requests: () => server.requests,

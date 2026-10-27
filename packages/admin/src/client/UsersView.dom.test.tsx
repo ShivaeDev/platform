@@ -12,7 +12,7 @@ usersScreen.it("renders users and pages through the bound contract", [readOnlyAd
 	expect(screen.textContent).toContain("user");
 	expect(screen.querySelector("time")?.dateTime).toBe("2026-10-20T12:34:56.000Z");
 	expect(screen.querySelector("time")?.textContent).toBe("2026-10-20T12:34:56.000Z");
-	expect(screen.querySelector("input")).toBeNull();
+	expect(screen.querySelector("select")).toBeNull();
 	yield* click("nav button:last-child");
 	yield* eventually(() => expect(screen.textContent).toContain("bob@app.test"));
 	expect(screen.querySelector<HTMLButtonElement>("nav button:last-child")?.disabled).toBe(true);
@@ -20,29 +20,37 @@ usersScreen.it("renders users and pages through the bound contract", [readOnlyAd
 	yield* eventually(() => expect(screen.textContent).toContain("alice@app.test"));
 });
 
-usersScreen.it("sends grants and revocations and refreshes the shown role", [], function* ({ open, content, click, requests }) {
+usersScreen.it("assigns any declared role and refreshes the shown role", [], function* ({ open, content, chooseRole, requests }) {
 	yield* open();
 	const screen = content();
-	const selector = 'input[aria-label="admin for alice@app.test"]';
-	yield* eventually(() => expect(screen.querySelector(selector)).not.toBeNull());
-	yield* click(selector);
-	yield* eventually(() => expect(screen.querySelector<HTMLInputElement>(selector)?.checked).toBe(true));
-	expect(requests()).toEqual([{ grant: true, role: "admin", userId: "alice" }]);
-	yield* click(selector);
-	yield* eventually(() => expect(screen.querySelector<HTMLInputElement>(selector)?.checked).toBe(false));
-	expect(requests()[1]).toEqual({ grant: false, role: "admin", userId: "alice" });
+	yield* eventually(() => expect(screen.querySelector("select")).not.toBeNull());
+	expect([...screen.querySelectorAll("option")].map((option) => option.value)).toEqual([
+		"user",
+		"assigner",
+		"admin",
+		"owner",
+		"delegate",
+		"auditor",
+		"operator",
+	]);
+	yield* chooseRole("auditor");
+	yield* eventually(() => expect(screen.querySelector("select")?.value).toBe("auditor"));
+	expect(requests()).toEqual([{ role: "auditor", userId: "alice" }]);
+	yield* chooseRole("user");
+	yield* eventually(() => expect(screen.querySelector("select")?.value).toBe("user"));
+	expect(requests()[1]).toEqual({ role: "user", userId: "alice" });
 });
 
 for (const [reason, message] of [
-	["last", "The last owner cannot be demoted"],
-	["forbidden", "Owner role required"],
+	["last", "The last user who can assign roles cannot be removed"],
+	["forbidden", "Permission required to assign roles"],
 ] as const) {
-	usersScreen.it(`shows the server's ${reason} role refusal`, [rejectedRoleChange(reason)], function* ({ open, content, click }) {
+	usersScreen.it(`shows the server's ${reason} role refusal`, [rejectedRoleChange(reason)], function* ({ open, content, chooseRole }) {
 		yield* open();
 		const screen = content();
-		yield* eventually(() => expect(screen.querySelector("input")).not.toBeNull());
-		yield* click('input[aria-label="admin for alice@app.test"]');
+		yield* eventually(() => expect(screen.querySelector("select")).not.toBeNull());
+		yield* chooseRole("admin");
 		yield* eventually(() => expect(screen.querySelector('[role="alert"]')?.textContent).toContain(message));
-		expect(screen.querySelector<HTMLInputElement>('input[aria-label="admin for alice@app.test"]')?.checked).toBe(false);
+		expect(screen.querySelector("select")?.value).toBe("user");
 	});
 }
