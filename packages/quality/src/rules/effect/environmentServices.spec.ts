@@ -9,7 +9,8 @@ effectPolicyStory.it(
 	[policyFiles({ content: DATA_WITH_CALLABLE_SERVICE, path: "src/collections.ts" })],
 	function* ({ lint }) {
 		const result = yield* lint();
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stdout.match(/Parameter .+ carries a service\./gu)).toEqual([
 			"Parameter lookup carries a service.",
 			"Parameter invalidate carries a service.",
