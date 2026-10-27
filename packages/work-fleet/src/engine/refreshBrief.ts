@@ -14,7 +14,7 @@ import type { Versioned } from "#storage/model.ts";
 
 export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
 	const ready = stored.value.step === "waiting" && stored.value.decision?.code === "reviewed-pr-ready" && stored.value.result?.kind === "change";
-	const reapproved = stored.value.decision?.code === "approval-required";
+	const reapproved = stored.value.decision?.code === "approval-required" && stored.value.attempts.length > 0;
 	const changed = briefChanged(stored.value, work) || preparedSchedulingChanged(stored.value, work);
 	if (
 		["done", "released"].includes(stored.value.step)
