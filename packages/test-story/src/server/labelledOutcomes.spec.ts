@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "#outcomes.ts";
+import { OUTCOME_STORIES } from "#test/failureReport.ts";
 import { outcomeTable, ReadoutUnavailable } from "#test/outcomeTable.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
@@ -29,14 +30,14 @@ storyRunner.it(
 			stories: [
 				{
 					diffs: [expect.stringContaining('"first reading"')],
-					errors: [expect.stringContaining("at src/test-support/outcomeStories.ts:5:")],
+					errors: [expect.stringContaining(`at ${OUTCOME_STORIES}:5:9`)],
 					name: "Outcome Table Story: one wrong row",
 					state: "failed",
 					tags: [],
 				},
 				{
 					diffs: [expect.stringContaining('"second reading"')],
-					errors: [expect.stringContaining("at src/test-support/outcomeStories.ts:12:")],
+					errors: [expect.stringContaining(`at ${OUTCOME_STORIES}:12:9`)],
 					name: "Outcome Table Story: two wrong rows",
 					state: "failed",
 					tags: [],
