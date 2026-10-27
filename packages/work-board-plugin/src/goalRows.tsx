@@ -8,7 +8,7 @@ import { goalOrder } from "./summary.ts";
 type Drawn = Extract<Table, { Svg: unknown }>;
 
 const BAR_HEIGHT = 6;
-const BAR_CELLS = 12;
+const BAR_CELLS = 16;
 
 export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): RenderElement {
 	const { Box, Text } = t;
@@ -18,7 +18,7 @@ export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): Rend
 	return (
 		<Box flexDirection="column">
 			{goalOrder(goals).map((goal) => {
-				const open = goal.standing || (goal.total > 0 && goal.done < goal.total);
+				const open = !goal.achieved;
 				return goalRow(t, goal, { countWidth, drawn, open, titleRoom });
 			})}
 			<Text size="caption">
@@ -63,11 +63,14 @@ function goalRow(t: Table, goal: WorkboardGoal, layout: GoalRowLayout): RenderEl
 
 function goalBar(t: Table, goal: WorkboardGoal, layout: GoalRowLayout): RenderElement {
 	const { Text } = t;
+	if (goal.achieved) {
+		return <Text color={colors.done}>✓ achieved</Text>;
+	}
+	if (goal.total > 0 && goal.done === goal.total) {
+		return <Text dimColor>✓ all tasks done</Text>;
+	}
 	if (goal.total === 0) {
 		return <Text dimColor>—</Text>;
-	}
-	if (!layout.open) {
-		return <Text dimColor>✓</Text>;
 	}
 	return layout.drawn === null ? textBar(t, goal) : svgBar(layout.drawn, goal);
 }

@@ -1,6 +1,7 @@
-import { Effect } from "effect";
+import { Clock, Effect } from "effect";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { observedAttempt } from "#engine/observedAttempt.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
 import type { SessionReceipt } from "#session/schema.ts";
@@ -16,8 +17,9 @@ export function observeRenewal({ sessions, save }: EngineState) {
 				new Forbidden({ message: "Existing worker observation changed the exact receipt; reconcile ownership before renewal" }),
 			);
 		}
+		const now = yield* Clock.currentTimeMillis;
 		const attempts = stored.value.attempts.map((attempt) =>
-			attempt.operationId === worker.operationId ? { ...attempt, output: observation.output, status: observation.execution } : attempt,
+			attempt.operationId === worker.operationId ? observedAttempt(attempt, observation, now) : attempt,
 		);
 		const observed = yield* save(stored, { ...stored.value, attempts });
 		if (observation.execution === "accepted" || observation.execution === "running") {

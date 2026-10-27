@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { admissionItems, coding } from "#test/admissionItems.ts";
 import { pluginPane } from "#test/pluginPane.ts";
 
 const GOAL = { counts: { blocked: 1, done: 1, parked: 1, running: 1, scheduled: 1 }, id: "goal.colors", title: "Ship the Board" };
@@ -24,38 +25,62 @@ for (const surface of ["desktop", "terminal"] as const) {
 	});
 }
 
-pluginPane.it("names working, dependency, held area, CI, review and maintainer work and counts each state", [], function* ({ show, screen }) {
-	yield* show(
-		[
-			{ document: { title: "Build the pane" }, stage: "working", workId: "build" },
-			{
-				attentionOwner: "automation",
-				stage: "waiting",
-				waitingReason: "waiting for dependency task.foundation: not done on the Board",
-				workId: "dependent",
-			},
-			{ attentionOwner: "orchestrator", stage: "waiting", waitingReason: "waiting for area work-board held by task.other", workId: "area" },
-			{ attentionOwner: "automation", stage: "waiting", waitingReason: "Waiting for required checks: typecheck", workId: "ci" },
-			{ stage: "reviewing", workId: "review" },
-			{ attentionOwner: "maintainer", stage: "waiting", waitingReason: "Approve the merge", workId: "merge" },
-		],
-		[],
-	);
-	const pane = screen();
-	for (const [label, color] of [
-		["Working", "#2879da"],
-		["Waiting on task or area · waiting for dependency task.foundation: not done on the Board", "#9467cd"],
-		["Waiting on task or area · waiting for area work-board held by task.other", "#9467cd"],
-		["Waiting on CI or review · Waiting for required checks: typecheck", "#00868b"],
-		["Waiting on CI or review · Reviewing", "#00868b"],
-		["Waiting on you · Approve the merge", "#ad7400"],
-		["1 Working", "#2879da"],
-		["2 Waiting on task or area", "#9467cd"],
-		["2 Waiting on CI or review", "#00868b"],
-		["1 Waiting on you", "#ad7400"],
-	]) {
-		const text = [...pane.querySelectorAll("span")].find((node) => node.textContent === label);
-		expect(text, label).toBeDefined();
-		expect(text?.style.color, label).toBe(color);
+pluginPane.it("lists only started tasks with agent activity and turn durations", [], function* ({ show, section, screen, band }) {
+	yield* show(admissionItems, [GOAL]);
+	const flight = section("In flight");
+	expect(flight.textContent).toContain("Build the pane");
+	expect(flight.textContent).toContain("worker · coding2m");
+	expect(flight.textContent).toContain("reviewer · not started yet");
+	const reviewer = [...flight.querySelectorAll("span")].find((node) => node.textContent === "reviewer · not started yet");
+	expect(reviewer?.parentElement?.children.length).toBe(1);
+	expect(flight.textContent).toContain("Times: current or finished agent turn");
+	for (const title of ["Ship the integration", "Render the Board", "Run the next worker", "Not started", "Queued", "Waiting on task or area"]) {
+		expect(screen().textContent).not.toContain(title);
 	}
+	expect(screen().querySelector("[role=img]")?.getAttribute("aria-label")).toContain("1 blocked, 1 scheduled");
+	expect(band()).toBe("Needs you 0 · In flight 1 · Goals 1/5");
 });
+
+for (const state of ["reviewing", "addressing review", "fixing CI", "waiting for CI", "waiting for merge", "waiting on an answer"] as const) {
+	pluginPane.it(`shows an agent ${state} with a finished turn's fixed duration`, [], function* ({ show, section }) {
+		yield* show(
+			[
+				{
+					...coding,
+					agents: [
+						{ finishedAt: 61_000, id: "worker", role: "worker", startedAt: 1000, state: state === "reviewing" ? "done" : state },
+						{ finishedAt: null, id: "reviewer", role: "reviewer", startedAt: null, state: state === "reviewing" ? state : "not started yet" },
+					],
+				},
+			],
+			[],
+		);
+		const flight = section("In flight");
+		expect(flight.textContent).toContain(state);
+		expect(flight.textContent).toContain("1m");
+		expect(flight.textContent).not.toContain("1d");
+	});
+}
+
+for (const standing of [false, true]) {
+	pluginPane.it(
+		`distinguishes all tasks done from achieved and restores the bar for an open task (standing: ${standing})`,
+		[],
+		function* ({ show, section }) {
+			const complete = { counts: { done: 2 }, id: "goal.complete", standing, title: "Complete tasks" };
+			const achieved = { ...complete, id: "goal.achieved", standing: false, status: "done", title: "Achieved goal" };
+			yield* show([], [complete, achieved]);
+			let goals = section("Goals");
+			expect(goals.textContent).toContain("✓ all tasks done");
+			expect(goals.textContent).toContain("✓ achieved");
+			const check = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ all tasks done");
+			const achievedCheck = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ achieved");
+			expect(check?.style.color).not.toBe(achievedCheck?.style.color);
+			expect(goals.querySelector("[role=img]")).toBeNull();
+			yield* show([], [{ ...complete, counts: { done: 2, scheduled: 1 } }, achieved]);
+			goals = section("Goals");
+			expect(goals.textContent).not.toContain("all tasks done");
+			expect(goals.querySelector("[role=img]")?.getAttribute("aria-label")).toContain("2 of 3 done");
+		},
+	);
+}

@@ -1,7 +1,7 @@
 import type { Attempt } from "#model.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
-export function observedAttempt(attempt: Attempt, observation: SessionObservation, now: number): Attempt {
+export function observedAttempt(attempt: Attempt, observation: SessionObservation, now: number, observedAt = now): Attempt {
 	if (attempt.abandoned !== undefined) {
 		return attempt;
 	}
@@ -12,6 +12,7 @@ export function observedAttempt(attempt: Attempt, observation: SessionObservatio
 	const progress = observed === undefined || live <= observed.at ? observed : { ...observed, at: live };
 	return {
 		...attempt,
+		finishedAt: ["completed", "failed", "interrupted"].includes(observation.execution) ? (attempt.finishedAt ?? observedAt) : undefined,
 		missingSince: observation.turnMissing ? (attempt.missingSince ?? now) : undefined,
 		observationRetries: observation.turnMissing ? attempt.observationRetries : undefined,
 		output: observation.output,

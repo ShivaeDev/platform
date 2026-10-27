@@ -1,7 +1,7 @@
 import type { Elements, RenderElement, RenderSurface } from "claude-code";
 import type { WorkboardAsk, WorkboardBlock, WorkboardBoard } from "#types/index.d.ts";
-import { flightColors } from "./flightState.ts";
 import { flightHeading, flightRows } from "./flights.tsx";
+import { goalColors } from "./goalProgress.ts";
 import { goalRows } from "./goalRows.tsx";
 import { clip, waitingLine } from "./lines.ts";
 import { countOf } from "./summary.ts";
@@ -55,7 +55,7 @@ function titled<T>(t: Table, title: string, block: WorkboardBlock<T>): RenderEle
 	const { Box, Text } = t;
 	return (
 		<Box flexDirection="row" gap={1}>
-			<Text {...(title === "Needs you" ? { color: flightColors.you } : {})} weight="semibold">
+			<Text {...(title === "Needs you" ? { color: goalColors.scheduled } : {})} weight="semibold">
 				{title}
 			</Text>
 			<Text dimColor tabular>{`(${countOf(block)})`}</Text>

@@ -35,7 +35,9 @@ test.it(
 		yield* journal.acknowledgeSession("synthetic-worker", "session");
 		const receipt = { sessionId: "session", turnId: "turn" };
 		yield* journal.acknowledgeTurn("synthetic-worker", receipt);
-		expect((yield* store.load("one"))?.value.attempts).toEqual([{ ...namedAttempt("worker"), receipt, sessionId: "session", status: "accepted" }]);
+		expect((yield* store.load("one"))?.value.attempts).toEqual([
+			{ ...namedAttempt("worker"), receipt, sessionId: "session", startedAt: expect.any(Number), status: "accepted" },
+		]);
 		const acknowledged = yield* store.load("one");
 		expect(yield* journal.acknowledgeTurn("synthetic-worker", { ...receipt, turnId: "wrong" }).pipe(Effect.flip)).toMatchObject({
 			reason: "persistence",

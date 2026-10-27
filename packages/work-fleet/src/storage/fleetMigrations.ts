@@ -95,5 +95,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				yield* sql`alter table ${sql(childTable(namespace, path))} add column "reportRevision" text`;
 			}
 		}),
+		"28_agent_turn_times": Effect.gen(function* () {
+			for (const path of [["attempts"], ["history", "attempts"]]) {
+				yield* sql`alter table ${sql(childTable(namespace, path))} add column "startedAt" double precision, add column "finishedAt" double precision`;
+			}
+		}),
 	});
 });

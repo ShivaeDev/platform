@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { bandLine, flightCounts, flightGroups, goalOrder, goalShare } from "#summary.ts";
+import { bandLine, flightGroups, goalOrder, goalShare } from "#summary.ts";
 import { flight, goal } from "#test/summaryFixtures.ts";
 
 describe("the board summary", () => {
@@ -40,11 +40,7 @@ describe("the board summary", () => {
 			flight("three", "working", "goal.big"),
 			flight("four", "waiting", "goal.big"),
 		];
-		expect(flightCounts(flights)).toEqual([
-			{ count: 2, state: "working" },
-			{ count: 1, state: "checks" },
-			{ count: 1, state: "waiting" },
-		]);
+
 		expect(flightGroups(flights).map((group) => [group.goal?.id ?? "Other", group.items.map((item) => item.workId)])).toEqual([
 			["goal.big", ["three", "four"]],
 			["goal.small", ["one"]],

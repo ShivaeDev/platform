@@ -1,9 +1,10 @@
-import { Context, Effect, Layer } from "effect";
+import { Clock, Context, Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineService } from "@shivaedev/service/defineService.ts";
+import { acknowledgedAttempt } from "#engine/acknowledgedAttempt.ts";
 import { operationRecord } from "#engine/operationRecord.ts";
 import { threadName } from "#engine/threadNames.ts";
-import { type Attempt, allAttempts, backlog, executing, FleetRecord } from "#model.ts";
+import { allAttempts, backlog, executing, FleetRecord } from "#model.ts";
 import { checkLaunchAdmission, needsLaunchRecords } from "#scheduling/admission.ts";
 import { requeue } from "#scheduling/areas.ts";
 import { SessionFailure, type SessionReceipt } from "#session/schema.ts";
@@ -77,7 +78,8 @@ const FleetSessionJournal = defineService({
 						}),
 					);
 				}
-				const attempts = stored.value.attempts.map((attempt) => acknowledgedAttempt(attempt, operationId, sessionId, receipt));
+				const now = yield* Clock.currentTimeMillis;
+				const attempts = stored.value.attempts.map((attempt) => acknowledgedAttempt(attempt, operationId, sessionId, now, receipt));
 				yield* store.compareAndSet(stored.value.workId, stored.version, { ...stored.value, attempts });
 				rememberNamingWork(namingWork, stored.value, operationId, sessionId, receipt);
 			}).pipe(
@@ -132,14 +134,4 @@ function operationThreadName(record: FleetRecord | undefined, operationId: strin
 	return matches.length === 1 && name !== undefined
 		? Effect.succeed(name)
 		: Effect.fail(new SessionFailure({ message: "Submission intent is missing or ambiguous", reason: "persistence" }));
-}
-
-function acknowledgedAttempt(attempt: Attempt, operationId: string, sessionId: string, receipt?: SessionReceipt): Attempt {
-	if (attempt.operationId !== operationId) {
-		return attempt;
-	}
-	if (receipt === undefined) {
-		return { ...attempt, sessionId };
-	}
-	return { ...attempt, receipt, sessionId, status: attempt.status === "submitting" ? "accepted" : attempt.status };
 }

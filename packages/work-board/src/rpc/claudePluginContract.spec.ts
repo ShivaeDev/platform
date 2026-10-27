@@ -25,7 +25,19 @@ const aLaunch = projectFiles(
 const aBuildInFlight = fleetReports({
 	completed: [],
 	items: [
-		{ prUrl: "https://github.com/example/project/pull/7", stage: "working", stageEnteredAt: STARTED, updatedAt: STARTED, workId: "task.build" },
+		{
+			execution: {
+				attempts: [{ fixingCi: false, id: "worker", role: "worker", sessionId: "worker", started: true, startedAt: STARTED, status: "running" }],
+				mergeReady: false,
+				question: false,
+				step: "working",
+			},
+			prUrl: "https://github.com/example/project/pull/7",
+			stage: "working",
+			stageEnteredAt: STARTED,
+			updatedAt: STARTED,
+			workId: "task.build",
+		},
 		{ stage: "queued", stageEnteredAt: STARTED, updatedAt: STARTED, workId: "task.queued" },
 	],
 });
@@ -43,8 +55,11 @@ boardStory.it(
 			flights: {
 				items: [
 					{
+						agents: [
+							{ id: "worker", role: "worker", state: "coding", turnMs: NOW - STARTED },
+							{ id: "planned:reviewer", role: "reviewer", state: "not started yet", turnMs: null },
+						],
 						goal: { id: "project.launch", title: "Launch" },
-						inStageMs: NOW - STARTED,
 						prUrl: "https://github.com/example/project/pull/7",
 						stage: "working",
 						title: "Build the page",
@@ -54,7 +69,20 @@ boardStory.it(
 				problem: null,
 			},
 			goals: {
-				items: [{ blocked: 1, done: 1, id: "project.launch", parked: 0, running: 0, scheduled: 0, standing: false, title: "Launch", total: 2 }],
+				items: [
+					{
+						achieved: false,
+						blocked: 1,
+						done: 1,
+						id: "project.launch",
+						parked: 0,
+						running: 0,
+						scheduled: 0,
+						standing: false,
+						title: "Launch",
+						total: 2,
+					},
+				],
 				problem: null,
 			},
 			kind: "ready",
@@ -71,7 +99,10 @@ boardStory.it(
 		const tools = { ask, now: NOW };
 		const [summary, waiting, card] = yield* Effect.promise(() => Promise.all([overview(tools), needsYou(tools), item(tools, "task.build")]));
 		expect(summary).toMatchObject({
-			fleet: { items: [{ goal: { id: "project.launch" }, workId: "task.build" }], state: "ready" },
+			fleet: {
+				items: [{ goal: { id: "project.launch" }, workId: "task.build" }],
+				state: "ready",
+			},
 			goals: { done: 1, total: 2 },
 			needsYou: { count: 1, you: [{ id: "task.build", reason: "Choose the launch scope", title: "Build the page" }] },
 		});
@@ -103,6 +134,7 @@ boardStory.it(
 			throw new Error("Expected a readable Board");
 		}
 		expect(result.goals.items.find((goal) => goal.id === "goal.progress")).toEqual({
+			achieved: false,
 			blocked: 4,
 			done: 1,
 			id: "goal.progress",
