@@ -7,6 +7,7 @@ import { useContext, useEffect, useState } from "react";
 import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts";
 import type { AtomServices } from "#fieldRejection.ts";
 import { acceptLoaderQuery } from "#internal/queryHandoff.ts";
+import { usePermissionFailure } from "#internal/usePermissionFailure.ts";
 import { useQueryNotice } from "#internal/useQueryNotice.ts";
 import type { NoticeDescriptor } from "#notices.ts";
 import { type ActionOptions, useActionSource } from "./actionCompletion.ts";
@@ -79,7 +80,9 @@ export function useQuery<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, o
 	}
 	useRecheckOnUnauthorized(result);
 	useQueryNotice(result, Option.isSome(data), options.notice);
-	return { ...state(result, data), refresh: useAtomRefresh(atom) };
+	const refresh = useAtomRefresh(atom);
+	usePermissionFailure(AsyncResult.cause(result));
+	return { ...state(result, data), refresh };
 }
 export interface ActionState<TInput, A, E> extends ResultState<A, E> {
 	readonly dispatch: (input: TInput) => void;

@@ -11,7 +11,7 @@ export default [
 			anything.except(
 				browserCode,
 				files("packages/test/src/eventually.ts", "packages/test/src/withLive.ts"),
-				packages("contract", "errors", "form", "types"),
+				packages("access", "contract", "errors", "form", "types"),
 				modules("effect", "@effect/atom-react", "@tanstack/react-router", "react", "react-dom", "vitest"),
 			),
 		)

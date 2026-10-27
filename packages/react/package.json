@@ -52,7 +52,9 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/access": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/form": "workspace:*",
 		"@shivaedev/test": "workspace:*"
 	},

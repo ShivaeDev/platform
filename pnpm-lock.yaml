@@ -1102,9 +1102,15 @@ importers:
 
   packages/react:
     dependencies:
+      '@shivaedev/access':
+        specifier: workspace:*
+        version: link:../access
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@shivaedev/form':
         specifier: workspace:*
         version: link:../form

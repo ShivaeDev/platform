@@ -704,6 +704,81 @@ const query = Atom.swr(atom, {
 
 `atom` is the underlying native query. `Atom.swr` owns the staleness decision; the signal only reports that the application resumed.
 
+### Session permissions and guarded routes
+
+Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` reads exact name and strength grants without making a request. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
+
+Declare a route's requirement in TanStack's native `staticData.permission`. Install `permissionGuard` once as the root route's `beforeLoad`; it checks the matched routes before their loaders run. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure.
+
+```tsx
+import { RegistryContext } from "@effect/atom-react";
+import { createRootRouteWithContext, createRoute, createRouter, RouterProvider } from "@tanstack/react-router";
+import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { permission } from "@shivaedev/access/permission.ts";
+import { PermissionBoundary, useCan } from "@shivaedev/react/client/permissionBoundary.ts";
+import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
+import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
+import { can, type PermissionSession } from "@shivaedev/react/permissions.ts";
+import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { api, registry } from "./notes-client.ts";
+import { auth, SignIn } from "./auth.tsx";
+
+const ReadNotes = permission("notes.read");
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
+  beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
+});
+const note = createRoute({
+  getParentRoute: () => root,
+  path: "/notes/$id",
+  staticData: { permission: ReadNotes },
+  ...queryRoute(({ params }: { params: { id: string }; search: Record<string, never> }) =>
+    api.get.query({ id: params.id, page: 1 }),
+  ),
+  component: () => {
+    const query = useLoaderQuery(api.get.query({ ...note.useParams(), page: 1 }), note.useLoaderData());
+    return <h1>{query.data.title}</h1>;
+  },
+});
+const login = createRoute({
+  getParentRoute: () => root,
+  path: "/login",
+  validateSearch: (search: Record<string, unknown>) => ({
+    returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
+  }),
+  component: () => {
+    const { returnTo } = login.useSearch();
+    return <SignIn onSignedIn={() => router.navigate({ href: returnTo })} />;
+  },
+});
+const router = createRouter({
+  context: { registry },
+  routeTree: root.addChildren([note, login]),
+  disableGlobalCatchBoundary: true,
+});
+
+function Controls() {
+  const can = useCan();
+  return can(ReadNotes) ? <button type="button">Read notes</button> : null;
+}
+
+export function App({ session }: { readonly session: PermissionSession | undefined }) {
+  return (
+    <PermissionBoundary session={session} fallback={<h1>Permission denied</h1>}>
+      <RegistryContext.Provider value={registry}>
+        <Controls />
+        <RouterProvider router={router} />
+      </RegistryContext.Provider>
+    </PermissionBoundary>
+  );
+}
+
+const showNotes = can(auth.session, ReadNotes);
+```
+
+`auth` owns the current session and passes it to `App`; `SignIn` updates that session before invoking `onSignedIn`. Use the session's registry for router context and React, as with other query routes. Importing `permissionGuard` augments TanStack's `StaticDataRouteOption`; route options and their inference remain native.
+
+`PermissionBoundary` renders the app's one fallback at the denied URL for a refused route, a loader's `Forbidden`, or a `useQuery`/`useLoaderQuery` result tagged `Forbidden`. Other errors propagate to an enclosing error boundary. Set TanStack's `disableGlobalCatchBoundary: true` and leave permission failures to this boundary; a route-specific `errorComponent` that consumes an error owns its rendering instead. Without a permission boundary, query failures keep their normal typed state. Like a React error boundary, remount it to clear a caught failure.
+
 ### API
 
 `useQuery(atom)` and `useAction(atom)` return these shared fields:
