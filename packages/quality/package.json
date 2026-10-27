@@ -59,7 +59,7 @@
 	"scripts": {
 		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
 		"ready": "pnpm typecheck && pnpm test && pnpm build",
-		"test": "vitest run",
+		"test": "vitest run --configLoader native",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
