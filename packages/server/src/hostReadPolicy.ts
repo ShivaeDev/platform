@@ -4,7 +4,7 @@ import { authorizeReads, type ReadKeyPolicy } from "@shivaedev/contract/readPoli
 import { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, type IdentityValue, OptionalIdentity } from "@shivaedev/identity/identity.ts";
 
-class HostReadPolicy extends RpcMiddleware.Service<HostReadPolicy>()("@shivaedev/server/ReadPolicy", {
+export class HostReadPolicy extends RpcMiddleware.Service<HostReadPolicy>()("@shivaedev/server/ReadPolicy", {
 	error: Schema.Union([Forbidden, AuthUnavailable]),
 }) {}
 
