@@ -69,25 +69,32 @@ for (const standing of [false, true]) {
 		function* ({ show, section, click }) {
 			const complete = { counts: { done: 2 }, id: "goal.complete", standing, title: "Complete tasks" };
 			const achieved = { ...complete, id: "goal.achieved", standing: false, status: "done", title: "Achieved goal" };
-			yield* show([], [complete, achieved]);
+			const another = { ...achieved, id: "goal.another", title: "Another achieved goal" };
+			yield* show([], [achieved, complete, another]);
 			let goals = section("Goals");
+			expect(goals.textContent).toContain("Complete tasks");
 			expect(goals.textContent).toContain("✓ all tasks done");
 			expect(goals.textContent).not.toContain("Achieved goal");
-			expect(goals.textContent).toContain("Achieved (1)");
-			yield* click("Achieved (1)");
+			expect(goals.textContent).not.toContain("Another achieved goal");
+			expect(goals.querySelectorAll("button")).toHaveLength(1);
+			expect(goals.textContent).toContain("Achieved (2)");
+			yield* click("Achieved (2)");
 			expect(goals.textContent).toContain("Achieved goal");
+			expect(goals.textContent).toContain("Another achieved goal");
+			expect(goals.textContent?.indexOf("Complete tasks")).toBeLessThan(goals.textContent?.indexOf("Achieved (2)") ?? 0);
 			expect(goals.textContent).toContain("✓ achieved");
 			const check = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ all tasks done");
 			const achievedCheck = [...goals.querySelectorAll("span")].find((node) => node.textContent === "✓ achieved");
 			expect(check?.style.color).not.toBe(achievedCheck?.style.color);
 			expect(goals.querySelector("[role=img]")).toBeNull();
-			yield* show([], [{ ...complete, counts: { done: 2, scheduled: 1 } }, achieved]);
+			yield* show([], [{ ...complete, counts: { done: 2, scheduled: 1 } }, achieved, another]);
 			goals = section("Goals");
 			expect(goals.textContent).not.toContain("all tasks done");
 			expect(goals.querySelector("[role=img]")?.getAttribute("aria-label")).toContain("2 of 3 done");
 			expect(goals.textContent).toContain("Achieved goal");
-			yield* click("Achieved (1)");
+			yield* click("Achieved (2)");
 			expect(goals.textContent).not.toContain("Achieved goal");
+			expect(goals.textContent).not.toContain("Another achieved goal");
 		},
 	);
 }

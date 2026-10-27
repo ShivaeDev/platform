@@ -45,16 +45,24 @@ host.it("lists all five running tasks when Fleet's wire reply omits execution de
 	expect(pane.screen().querySelector("[role=img]")?.getAttribute("aria-label")).toContain("5 running");
 });
 
-host.it("reports an unreachable Fleet in the overview and pane", [paneProject], function* ({ approve, boardHttp, stop, start, port, story }) {
-	yield* approve("task.build");
-	const board = yield* boardHttp();
-	const pane = yield* fleetPane(board.url, story.engine.fixture.host.boardDir);
-	const fleetPort = port();
-	yield* stop();
-	expect((yield* pane.overview()).fleet).toMatchObject({ state: "unavailable" });
-	yield* pane.refresh();
-	expect(pane.screen().textContent).toContain("Fleet is unavailable:");
-	expect(pane.screen().textContent).not.toContain("Nothing in flight.");
-	yield* start(fleetPort);
-	expect(yield* pane.refresh()).toMatchObject({ flights: { items: [{ workId: "task.build" }], problem: null }, goals: { items: [{ running: 1 }] } });
-});
+host.it(
+	"reports an unreachable Fleet in the overview and pane",
+	[paneProject],
+	function* ({ approve, askWorker, boardHttp, stop, start, port, story }) {
+		yield* approve("task.build");
+		yield* askWorker("task.build");
+		const board = yield* boardHttp();
+		const pane = yield* fleetPane(board.url, story.engine.fixture.host.boardDir);
+		const fleetPort = port();
+		yield* stop();
+		expect((yield* pane.overview()).fleet).toMatchObject({ state: "unavailable" });
+		yield* pane.refresh();
+		expect(pane.screen().textContent).toContain("Fleet is unavailable:");
+		expect(pane.screen().textContent).not.toContain("Nothing in flight.");
+		yield* start(fleetPort);
+		expect(yield* pane.refresh()).toMatchObject({
+			flights: { items: [{ workId: "task.build" }], problem: null },
+			goals: { items: [{ running: 1 }] },
+		});
+	},
+);
