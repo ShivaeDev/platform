@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
+import { refuseDeliveredId } from "#engine/deliveredId.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { inspectRenewal } from "#engine/inspectRenewal.ts";
@@ -16,6 +17,7 @@ export function prepareCommand(state: EngineState) {
 	const { store, board, save } = state;
 	return Effect.fn("Fleet.prepare")(function* (input: PrepareWork) {
 		const work = yield* board.get(input.workId);
+		yield* refuseDeliveredId(state, work);
 		if (!work.approved) {
 			return yield* Effect.fail(
 				withFailureContext(new Forbidden({ message: "Current Board revision needs maintainer approval" }), { code: "approval-required" }),

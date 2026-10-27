@@ -27,14 +27,21 @@ export const DiagnosticsSnapshot = Schema.Struct({
 });
 export type DiagnosticsSnapshot = typeof DiagnosticsSnapshot.Type;
 
+const briefProblem = query("briefProblem", {
+	payload: { sourcePath: Schema.String, workId: Schema.String },
+	reads: () => [],
+	rejections: { ServiceUnavailable },
+	success: Schema.NullOr(Schema.String),
+});
+
 const fleetItems = query("fleetItems", { payload: {}, reads: () => [], rejections: { ServiceUnavailable }, success: FleetItems });
 
 export const DiagnosticsContract = contract("daemon", {
-	queries: [query("diagnostics", { payload: {}, reads: () => [], success: DiagnosticsSnapshot }), fleetItems],
+	queries: [query("diagnostics", { payload: {}, reads: () => [], success: DiagnosticsSnapshot }), fleetItems, briefProblem],
 });
 
 export const DaemonReadContract = contract("daemon", {
-	queries: [query("diagnostics", { payload: {}, reads: () => [], success: Schema.Unknown }), fleetItems],
+	queries: [query("diagnostics", { payload: {}, reads: () => [], success: Schema.Unknown }), fleetItems, briefProblem],
 });
 export const DAEMON_RPC_PATH = "/_fleet/rpc";
 export const DAEMON_PORT = 3457;

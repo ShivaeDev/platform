@@ -24,4 +24,5 @@ export interface BoardGatewayService {
 		action: "retry" | "release",
 		text?: string,
 	) => Effect.Effect<string, BoardFailure>;
+	readonly sourceCreatedAt?: (sourcePath: string) => Effect.Effect<number | undefined, BoardFailure>;
 }

@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Path, Schema } from "effect";
+import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
@@ -61,9 +61,15 @@ const MarkdownBoard = defineService({
 			};
 		});
 		const publish = publishBoard(root, realRoot, documents);
-		return { documents, get, path, publish, realRoot, root, snapshot, sources };
+		function sourceCreatedAt(sourcePath: string) {
+			return fs.stat(sourcePath).pipe(
+				Effect.map((info) => Option.getOrUndefined(Option.map(info.birthtime, (time) => time.getTime()))),
+				Effect.mapError((error) => new BoardFailure({ message: error.message })),
+			);
+		}
+		return { documents, get, path, publish, realRoot, root, snapshot, sourceCreatedAt, sources };
 	}),
-	methods: ({ root, realRoot, documents, get, publish, path, snapshot, sources }) => ({
+	methods: ({ root, realRoot, documents, get, publish, path, snapshot, sources, sourceCreatedAt }) => ({
 		...BoardGateway.of({
 			acknowledgeDecision: acknowledgeDecision(root, realRoot, snapshot),
 			closeFinishedDecisions: closeFinishedDecisions(root, realRoot, sources),
@@ -109,6 +115,7 @@ const MarkdownBoard = defineService({
 			readDecision: decisionReading(documents),
 			report: publishReport(root, realRoot, documents),
 			respond: recordDecisionResponse(root, realRoot, documents),
+			sourceCreatedAt,
 		}),
 	}),
 	requires: [BoardRoot, FileSystem.FileSystem, Path.Path],
