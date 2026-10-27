@@ -38,11 +38,12 @@ export function visitor(role: Role | undefined, initial = "/notes/first", server
 		const denied =
 			(initial.startsWith("/notes/") && role !== undefined && role !== "reader")
 			|| ((initial === "/query" || initial.startsWith("/notes/")) && serverRole !== undefined && serverRole !== "reader");
+		const unavailable = initial === "/notes/offline";
 		const view = yield* screen.open(
 			null,
-			denied
+			denied || unavailable
 				? {
-						onCaughtError: screenWarnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")),
+						onCaughtError: screenWarnings.expectCaughtError((error) => Predicate.isTagged(error, unavailable ? "ServiceUnavailable" : "Forbidden")),
 					}
 				: undefined,
 		);

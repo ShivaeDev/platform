@@ -1,4 +1,4 @@
-import { getRouteApi, RouterProvider, useRouter } from "@tanstack/react-router";
+import { CatchBoundary, getRouteApi, RouterProvider, useRouter } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { PermissionBoundary } from "#client/permissionBoundary.ts";
@@ -37,9 +37,15 @@ export function PermissionApp({ app }: { readonly app: App }): ReactNode {
 	const [current, apply] = useState(app.auth.current);
 	return (
 		<ApplySessionContext.Provider value={apply}>
-			<PermissionBoundary fallback={<h1>Permission denied</h1>} session={current}>
-				<RouterProvider router={app.router} />
-			</PermissionBoundary>
+			<CatchBoundary errorComponent={ApplicationFailure} getResetKey={() => "app"}>
+				<PermissionBoundary fallback={<h1>Permission denied</h1>} session={current}>
+					<RouterProvider router={app.router} />
+				</PermissionBoundary>
+			</CatchBoundary>
 		</ApplySessionContext.Provider>
 	);
+}
+
+function ApplicationFailure() {
+	return <h1>Application unavailable</h1>;
 }

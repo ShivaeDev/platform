@@ -6,6 +6,7 @@ import * as NetAddress from "effect/net/NetAddress";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { bind } from "@shivaedev/contract/bind.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { Notes, ReadPermission, type Role, Roles } from "./feature.ts";
 
@@ -26,7 +27,8 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 	};
 	const handlers = Notes.toLayer({
 		"permissionNotes.$changes": () => Stream.never,
-		"permissionNotes.get": ({ id }) => Effect.succeed(`Note ${id}`),
+		"permissionNotes.get": ({ id }) =>
+			id === "offline" ? Effect.fail(new ServiceUnavailable({ message: "Query service unavailable" })) : Effect.succeed(`Note ${id}`),
 	});
 	const routes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "http" }).pipe(
 		Layer.provide([handlers, permissionLayer(ReadPermission, sessions), RpcSerialization.layerJson]),

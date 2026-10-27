@@ -69,3 +69,16 @@ permissionScreens.it("the same boundary renders a Forbidden from a component que
 	expect(router.state.location.href).toBe("/query");
 	expect(host.requests).toEqual(["POST /rpc/"]);
 });
+
+permissionScreens.it(
+	"unrelated query failures reach the app's normal error boundary",
+	[visitor("reader", "/notes/offline")],
+	function* ({ route, observe }) {
+		const { host, view, router } = route();
+		yield* observe("the application handles its unavailable query", () =>
+			expect(view.container.querySelector("h1")?.textContent).toBe("Application unavailable"),
+		);
+		expect(router.state.location.href).toBe("/notes/offline");
+		expect(host.requests).toEqual(["POST /rpc/"]);
+	},
+);
