@@ -2,7 +2,7 @@ import { spawn } from "node:child_process";
 import { dirname } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { Effect } from "effect";
+import { Config, Effect } from "effect";
 
 interface FollowRun {
 	readonly code: number | null;
@@ -41,7 +41,8 @@ export function followerProcess(
 	ready: Promise<void> = Promise.resolve(),
 ) {
 	return Effect.acquireRelease(
-		Effect.sync(() => {
+		Effect.gen(function* () {
+			const path = yield* Config.String("PATH");
 			const cli = fileURLToPath(new URL("../cli.ts", import.meta.url));
 			const child = spawn(
 				process.execPath,
@@ -55,7 +56,7 @@ export function followerProcess(
 					...(options.cwd === undefined ? ["--board", dirname(configFile)] : []),
 					...followArguments(options),
 				],
-				{ cwd: options.cwd, stdio: ["ignore", "pipe", "pipe"] },
+				{ cwd: options.cwd, env: { "GH_TOKEN": "fleet-watch-test-token", "PATH": path }, stdio: ["ignore", "pipe", "pipe"] },
 			);
 			let stdout = "";
 			let stderr = "";

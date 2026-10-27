@@ -2,12 +2,12 @@ import { NodeFileSystem } from "@effect/platform-node";
 import { Clock, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";
-import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { GitHub } from "@shivaedev/pr-watch/GitHub.ts";
 import { GitHubHttp } from "@shivaedev/pr-watch/GitHubHttp.ts";
 import type { WatchError } from "@shivaedev/pr-watch/model.ts";
 import { StateFile } from "@shivaedev/pr-watch/StateFile.ts";
 import { Watcher } from "@shivaedev/pr-watch/Watcher.ts";
+import { githubToken } from "#host/githubToken.ts";
 
 type Report = (number: number, message: string) => Effect.Effect<void>;
 
@@ -62,7 +62,7 @@ export function watchPrLayer(report: Report) {
 	const github = Layer.effect(GitHub)(prGitHub(report)).pipe(Layer.provide(GitHub.layer));
 	return Watcher.layer.pipe(
 		Layer.provide(Layer.merge(StateFile.layer, github)),
-		Layer.provide(GitHubHttp.layer.pipe(Layer.provide(GitHubClient.layer), Layer.provide(GitHubToken.fromEnv))),
+		Layer.provide(GitHubHttp.layer.pipe(Layer.provide(GitHubClient.layer), Layer.provide(githubToken))),
 		Layer.provide(
 			Layer.merge(NodeFileSystem.layer, FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" })))),
 		),
