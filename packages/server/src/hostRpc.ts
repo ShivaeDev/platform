@@ -9,6 +9,8 @@ class HostedReadPolicy extends RpcMiddleware.Service<HostedReadPolicy>()("@shiva
 	error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
 }) {}
 
+export type { HostedReadPolicy };
+
 export const rpcCacheControl: HttpEffect.PreResponseHandler = (_, response) =>
 	Effect.succeed(HttpServerResponse.setHeader(response, "cache-control", "private, no-store"));
 
