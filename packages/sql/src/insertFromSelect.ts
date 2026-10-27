@@ -40,7 +40,7 @@ export function makeInsertFromSelect<TServices = never>(
 			const suffix = yield* prepare(names);
 			const statement = yield* source.statement;
 			const rows =
-				yield* sql`insert into ${sql(options.tableName)} (${target}) select ${selected} from (${statement}) as ${sql("source")} where true ${suffix} returning *`;
+				yield* sql`insert into ${sql(options.tableName)} (${target}) select ${selected} from (${statement}) as ${sql("source")} where true ${suffix} returning ${options.changes.returning()}`;
 			yield* options.changes.record(rows);
 			return yield* decode(rows);
 		}).pipe(options.changes.write, Effect.withSpan(`${options.spanPrefix}.${operation}`));

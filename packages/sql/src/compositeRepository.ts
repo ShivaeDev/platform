@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 import type { Model } from "effect/schema";
 import { type SqlClient, SqlSchema } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { type RepositoryChanges, repositoryChanges } from "#repositoryChanges.ts";
+import type { RepositoryChanges } from "#repositoryChanges.ts";
 import type { RepositoryListFilter } from "#repositoryFilter.ts";
 import { repositoryWrites } from "#repositoryWrites.ts";
 import type { IdColumn, NativeRepository } from "#versionedRepository.ts";
@@ -58,7 +58,7 @@ export function makeCompositeCrud(
 		readonly tableName: string;
 		readonly spanPrefix: string;
 	},
-	supplied?: RepositoryChanges,
+	changes: RepositoryChanges,
 ) {
 	const { columns, tableName, spanPrefix } = options;
 	const fields = Object.fromEntries(
@@ -87,13 +87,7 @@ export function makeCompositeCrud(
 		Request: Key,
 		Result: model,
 	});
-	const changes = supplied ?? {
-		record: (rows: readonly Readonly<Record<string, unknown>>[]) =>
-			Effect.flatMap(repositoryChanges(sql, tableName, columns), (boundary) => boundary.record(rows)),
-		write<A, E, R>(effect: Effect.Effect<A, E, R>) {
-			return Effect.flatMap(repositoryChanges(sql, tableName, columns), (boundary) => boundary.write(effect));
-		},
-	};
+
 	return {
 		...repositoryWrites(model, sql, { ...options, idColumns: columns }, changes),
 		findById: (id: unknown) => find(id).pipe(Effect.withSpan(`${spanPrefix}.findById`)),

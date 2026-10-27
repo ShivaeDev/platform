@@ -20,14 +20,16 @@ export function repositoryWrites(
 	function insert(input: unknown) {
 		return Effect.flatMap(record(input), (row) =>
 			(Object.keys(row).length === 0
-				? sql`insert into ${sql(tableName)} default values returning *`
-				: sql`insert into ${sql(tableName)} ${sql.insert(row)} returning *`
+				? sql`insert into ${sql(tableName)} default values returning ${changes.returning()}`
+				: sql`insert into ${sql(tableName)} ${sql.insert(row)} returning ${changes.returning()}`
 			).pipe(Effect.tap(changes.record)),
 		);
 	}
 	function update(input: unknown) {
 		return Effect.flatMap(record(input), (row) =>
-			sql`update ${sql(tableName)} set ${sql.update(row, idColumns)} where ${predicate(row)} returning *`.pipe(Effect.tap(changes.record)),
+			sql`update ${sql(tableName)} set ${sql.update(row, idColumns)} where ${predicate(row)} returning ${changes.returning()}`.pipe(
+				Effect.tap(changes.record),
+			),
 		);
 	}
 	const insertRow = SqlSchema.findOne({ execute: insert, Request: model.insert, Result: model });
@@ -43,7 +45,7 @@ export function repositoryWrites(
 	const removeByKey = SqlSchema.void({
 		execute: (id) =>
 			Effect.flatMap(record({ [idColumn]: id }), (encoded) =>
-				sql`delete from ${sql(tableName)} where ${predicate(encoded)} returning *`.pipe(Effect.tap(changes.record)),
+				sql`delete from ${sql(tableName)} where ${predicate(encoded)} returning ${changes.returning()}`.pipe(Effect.tap(changes.record)),
 			),
 		Request: key,
 	});
@@ -52,7 +54,7 @@ export function repositoryWrites(
 			? removeByKey(input)
 			: Effect.flatMap(filterRecord(input), (filter) =>
 					Effect.flatMap(where(filter, true), (clause) =>
-						sql`delete from ${sql(tableName)} where ${clause} returning *`.pipe(Effect.tap(changes.record), Effect.asVoid),
+						sql`delete from ${sql(tableName)} where ${clause} returning ${changes.returning()}`.pipe(Effect.tap(changes.record), Effect.asVoid),
 					),
 				);
 	}

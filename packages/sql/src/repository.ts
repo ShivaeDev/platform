@@ -119,7 +119,7 @@ export function makeRepository<TModel extends Model.Any, TId extends IdColumn<TM
 		const sql = yield* SqlClient.SqlClient;
 		const composite = typeof options.idColumn === "object";
 		const idColumns = (composite ? options.idColumn : [options.idColumn]).map(String);
-		const changes = yield* repositoryChanges(sql, options.tableName, idColumns);
+		const changes = yield* repositoryChanges(sql, options.tableName, idColumns, model.fields);
 		const crud = makeCompositeCrud(model, sql, { ...options, columns: idColumns }, changes);
 		const queries = makeQueries(model, sql, options);
 		return options.versionColumn === undefined

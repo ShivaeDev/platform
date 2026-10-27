@@ -23,7 +23,7 @@ const rows = yield* lines.findMany({
 
 The application owns the database schema and its native Effect `SqlClient` layer. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
-Repository writes announce their table and returned row keys automatically. A single write returning more than 1,000 rows across all its chunks announces only the table and `<table>:*`; writes returning up to 1,000 rows keep their item keys. Effect-contract item reads also react to the collection-wide key. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `changes`; this package supplies the SQL boundary and the Reactivity publisher.
+Repository writes announce their table and returned row keys automatically. Every written row keeps its record key, including in bulk writes. Fields marked with `bucket` also announce their old and new bucket keys. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
@@ -425,7 +425,25 @@ const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
 
-Repository writes returning more than 1,000 rows announce the table key and `<table>:*` instead of per-row item keys, counted across all chunks of each call. Calls returning up to 1,000 rows keep their table and item keys. Effect-contract item reads register the collection-wide key automatically; code registering raw `<table>:<id>` Reactivity keys must also register `<table>:*`. Command invalidation keys are unchanged.
+Mark bucket fields on the model with `bucket` from `@shivaedev/changes/buckets.ts`:
+
+```ts
+import { bucket } from "@shivaedev/changes/buckets.ts";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
+
+class Note extends Model.Class<Note>("Note")({
+  id: Schema.Number,
+  listId: bucket(Schema.Number),
+  owner: bucket(Schema.String),
+  title: Schema.String,
+}) {}
+
+const notes = collection("notes", Note.fields.id, { listId: Note.fields.listId, owner: Note.fields.owner });
+```
+
+Use the repository's table name as the collection name in query read keys. Every inserted, updated or deleted row announces its record key and each declared bucket from the old and new stored values. An insert belongs only to its new buckets; a move announces both sides; a delete announces the old buckets. Bucket codecs decode stored values before producing keys, so a `bucket(Schema.NumberFromString)` field matches a numeric query bucket even when stored as text. Nullable and optional bucket values contribute no key when absent. Bucket codecs must need no services and decode to strings, numbers or absent values.
+
+Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without bucket fields keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
 
 The transaction rules follow the database owner:
 
@@ -614,18 +632,20 @@ JSON and JSONB columns are not supported. A repository write of a plain object t
 
 The package's PostgreSQL tests use a disposable database through `PLATFORM_SQL_TEST_DATABASE_URL`. Without the URL they skip locally; under `CI`, collection fails at the shared gate.
 
-The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit. Each written table must have its table key or at least one declared covering key recorded; otherwise `UnannouncedWrites` fails the transaction. Declare a module's domain read keys by table, including for raw SQL writes:
+The sql story kit exposes `withChangeCoverage` and `expectPublished`, also exported from `@shivaedev/sql/testing.ts`. `withChangeCoverage(body, { covers })` checks PostgreSQL transaction write counters before commit and requires every declared record and bucket key to be recorded. Repository writes supply these declarations automatically. Raw writes must declare their affected keys through `covers` and record them through the same after-commit path; a table key alone covers nothing. Missing announcements fail with `UnannouncedWrites` and roll back the transaction.
 
 ```ts
-const coverage = { covers: { orders: ["dashboard:orders"] } };
+const changed = [notes.item(id), notes.bucket.listId(oldList), notes.bucket.listId(newList), notes.bucket.owner(owner)];
 
 yield* withChangeCoverage(
   Effect.gen(function* () {
-    yield* sql`update orders set status = 'closed' where id = ${id}`;
-    yield* invalidateOnCommit(["dashboard:orders"]);
+    yield* sql`update notes set "listId" = ${newList} where id = ${id}`;
+    yield* invalidateOnCommit(invalidationKeys(changed));
   }),
-  coverage,
-).pipe(expectPublished(["dashboard:orders"]));
+  { covers: { notes: changed } },
+);
 ```
+
+The coverage check verifies the declarations, not the contents of arbitrary SQL. Raw writers must declare every affected record and bucket, including unchanged buckets. Transaction statistics retain writes from rolled-back savepoints, so those writes still need declarations during a coverage check.
 
 `body.pipe(expectPublished(keys))` compares the distinct published keys, regardless of order, and preserves the body's result. Put it outside the committing transaction. It observes the existing change channel and leaves delivery intact; recorded keys from rolled-back writes do not count. A mismatch fails with `PublishedKeysMismatch`, whose `expected`, `actual` and message show both key sets. The assertion happens after the body, so a mismatch does not roll back a committed write. See [automatic change delivery](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for host defaults and coverage limits.

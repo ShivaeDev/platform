@@ -9,7 +9,7 @@ import { hasNotificationRows, listeningForChanges } from "#test/sqlTraits.ts";
 
 for (const operation of ["insertFromSelect", "insertFromSelectOrIgnore"] as const) {
 	postgres.it(
-		`${operation} announces the collection when its selection returns 1001 rows`,
+		`${operation} announces every record when its selection returns 1001 rows`,
 		[listeningForChanges(), hasInsertSelectRows()],
 		function* ({ insertSelect, notifications }) {
 			const { source, target, targetTable } = insertSelect();
@@ -17,14 +17,21 @@ for (const operation of ["insertFromSelect", "insertFromSelectOrIgnore"] as cons
 				Array.from({ length: 1001 }, (_, index) => ({ amount: index, displayName: `row ${index}`, sourceKey: index + 5, status: "bulk" })),
 			);
 			const { binding, state } = notifications();
-			yield* target[operation](source.select({ where: { status: "bulk" } }), columns).pipe(Effect.provideContext(binding));
-			yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[targetTable, `${targetTable}:*`]])));
+			const inserted = yield* target[operation](source.select({ where: { status: "bulk" } }), columns).pipe(Effect.provideContext(binding));
+			yield* eventually(
+				Effect.try(() =>
+					expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([
+						targetTable,
+						...inserted.map(({ id }) => `${targetTable}:${id}`),
+					]),
+				),
+			);
 		},
 	);
 }
 
 postgres.it(
-	"a filter deleting more than 1000 rows announces the collection",
+	"a filter deleting more than 1000 rows announces every deleted record",
 	[listeningForChanges(), hasNotificationRows()],
 	function* ({ makeRepository, notificationTable, notifications }) {
 		const tableName = notificationTable();
@@ -32,6 +39,13 @@ postgres.it(
 		const rows = yield* makeRepository(AnnouncedRow, { idColumn: "id", spanPrefix: "Rows", tableName });
 		yield* rows.insertMany(Array.from({ length: 1001 }, (_, id) => ({ id, parent: null })));
 		yield* rows.delete({ parent: null }).pipe(Effect.provideContext(binding));
-		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:*`]])));
+		yield* eventually(
+			Effect.try(() =>
+				expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([
+					tableName,
+					...Array.from({ length: 1001 }, (_, id) => `${tableName}:${id}`),
+				]),
+			),
+		);
 	},
 );

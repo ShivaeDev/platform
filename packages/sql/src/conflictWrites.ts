@@ -62,7 +62,7 @@ export function makeConflictWrites(
 		return Effect.gen(function* () {
 			const encoded = yield* record(yield* encode(input));
 			const suffix = yield* clause(encoded, updateColumns);
-			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix} returning ${updateColumns === undefined ? sql`*` : upsertReturning(sql)}`;
+			return sql`insert into ${sql(tableName)} ${sql.insert(encoded)} ${suffix} returning ${options.changes.returning(updateColumns === undefined ? sql`*` : upsertReturning(sql))}`;
 		});
 	}
 	return {

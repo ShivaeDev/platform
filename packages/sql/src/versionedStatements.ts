@@ -37,7 +37,6 @@ export function versionedStatements(model: Model.Any, sql: SqlClient.SqlClient, 
 	const validateVersion = Schema.decodeUnknownEffect(Version);
 	const clause =
 		options.conflictColumns === undefined ? undefined : makeConflictClause(model, sql, { ...options, conflictColumns: options.conflictColumns });
-	const returningKeys = sql.csv(idColumns.map((column) => sql`${sql(column)}`));
 	function key(input: unknown) {
 		return idColumns.length === 1 ? { [idColumns[0] ?? ""]: input } : input;
 	}
@@ -86,5 +85,5 @@ export function versionedStatements(model: Model.Any, sql: SqlClient.SqlClient, 
 			};
 		});
 	}
-	return { insert, remove, returningKeys, update };
+	return { insert, remove, update };
 }
