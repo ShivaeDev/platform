@@ -8,7 +8,7 @@ import { pendingPostgresMigrations } from "#pendingPostgresMigrations.ts";
 import { readPostgresRelease } from "#postgresRelease.ts";
 import { makeRepository } from "#repository.ts";
 import type { crossTableReads } from "#test/cross-table/reads.ts";
-import { withChangeCoverage } from "#testing.ts";
+import { expectPublished, withChangeCoverage } from "#testing.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
 import type { arraySamples } from "./arraySamples.ts";
 import { captureStatement } from "./captureStatement.ts";
@@ -101,6 +101,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		conflictAccounts: engine.conflictAccounts.get,
 		constrainedItems: engine.constrainedItems.get,
 		crossTableReads: engine.crossTableReads.get,
+		expectPublished,
 		explain: (statement: readonly [string, readonly unknown[]]) => explain(engine.sql, statement),
 		generatedRows: engine.generatedRows.get,
 		groupedResults: engine.groupedResults.get,
