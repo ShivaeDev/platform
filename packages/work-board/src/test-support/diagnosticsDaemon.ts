@@ -16,9 +16,11 @@ export const rawDiagnosticsDaemon = Effect.fn("Test.rawDiagnosticsDaemon")(funct
 	read: () => unknown,
 	port = 0,
 	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
+	briefProblem: (workId: string, sourcePath: string) => string | null = () => null,
 ) {
 	const handlers = DaemonReadContract.toLayer({
 		"daemon.$changes": () => Stream.never,
+		"daemon.briefProblem": ({ workId, sourcePath }) => Effect.sync(() => briefProblem(workId, sourcePath)),
 		"daemon.diagnostics": () => Effect.sync(read),
 		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
 	});

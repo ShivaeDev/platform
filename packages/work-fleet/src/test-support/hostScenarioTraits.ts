@@ -8,6 +8,7 @@ import { enginePolicy } from "#test/enginePolicy.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { host } from "#test/hostStory.ts";
 import { MAIN } from "#test/mainSource.ts";
+import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { stalledTransport } from "#test/parkStalled.ts";
 import { configurePublishedBranch } from "#test/publishedHostBranch.ts";
 
@@ -51,3 +52,10 @@ export function localBoard(options: { ignored?: boolean; inside?: boolean } = {}
 export const fakeCodex = host.trait("configuration", "workers use the fake Codex wire provider", configureCodexHost);
 
 export const publishedHostBranch = host.trait("configuration", "the worker repository contains its published branch", configurePublishedBranch);
+
+export const previouslyMergedBranch = host.trait("configuration", "the id branch has an earlier merged PR", function* (engine) {
+	const github = yield* mergedReviewGithub();
+	github.state.status = "MERGED";
+	engine.pullRequest = github;
+	engine.integrations = engineIntegrations({ ...github, publicationQuery: github.publication }, []);
+});
