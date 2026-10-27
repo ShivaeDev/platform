@@ -4,6 +4,7 @@ import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { cycle } from "#engine/scheduler.ts";
 import { Fleet, type PrepareWork } from "#fleet.ts";
 import type { FleetRecord } from "#model.ts";
+import { answerReadbackVerbs } from "#test/answerReadbackVerbs.ts";
 import { boardReadRetry } from "#test/boardReadRetry.ts";
 import type { EngineFixture } from "#test/engine.ts";
 import { finishWorkers, prepareWork } from "#test/engine.ts";
@@ -126,6 +127,7 @@ export function engineVerbs(state: EngineStory, story: Story<EngineStory, Effect
 	};
 	return {
 		...verbs,
+		...answerReadbackVerbs(state, story.tell),
 		publications: enginePublicationVerbs(state, story.tell),
 		...engineBoardSchedulerVerbs(state, story.tell),
 		...engineProtocolVerbs(state, story.tell),
