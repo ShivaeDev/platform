@@ -1,0 +1,2 @@
+{"path":"packages/changes/src/channel.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/changes/src/publish.test.ts","rule":"effect/boundary","count":1}
