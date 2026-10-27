@@ -2,6 +2,7 @@ import { type Duration, Effect, Ref, Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { LiveHint } from "#live.ts";
+import { heard, watchHints } from "#testing.ts";
 import { type Notes, viewerEngine } from "./viewerEngine.ts";
 import { viewerPage } from "./viewerPage.ts";
 
@@ -17,10 +18,13 @@ export const viewerStory = storyKit({
 			story.tell(`${viewer} reads note ${id}`);
 			return engine.client("notes.get", { id }, { headers: { viewer } });
 		},
+		heard,
 		list: (viewer: string) => {
 			story.tell(`${viewer} lists visible notes`);
 			return engine.client("notes.list", undefined, { headers: { viewer } });
 		},
+		listen: (viewer: string, queries: Rpc.Payload<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Notes>, "notes.$changes">>["queries"]) =>
+			watchHints(engine.client("notes.$changes", { queries }, { headers: { viewer } })),
 		memoWindow: (window: Duration.Input) => Ref.set(engine.memoWindow, window),
 		openPage: (viewer: string, id: number) => {
 			story.tell(`${viewer} opens the page for note ${id}`);
