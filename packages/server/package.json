@@ -50,6 +50,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/http": "workspace:*",

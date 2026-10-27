@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { describe, expect } from "vitest";
 import { Follow } from "#test/edgeEngine.ts";
 import { Get, Note, NoteMissing } from "#test/notes.ts";
@@ -26,7 +26,7 @@ describe("contract", () => {
 
 notesStory.it("streams decode payloads and elements with declared read keys through bound native RPC", [], function* ({ follow }) {
 	expect(yield* follow(2)).toEqual(["note:2", "done"]);
-	expect(Follow.reads({ id: 2 })).toEqual(Get.reads({ id: 2 }));
+	expect(Follow.reads({ id: 2 })).toEqual(Get.reads({ id: 2 }, Option.none()));
 	expect(Follow.error).toBe(Schema.Never);
 });
 

@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { expect, it } from "vitest";
-import { collection } from "#keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { query } from "#operation.ts";
 import { changesRpc } from "#serverMetadata.ts";
 

@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { RequestTracing } from "@shivaedev/identity/middleware.ts";
@@ -8,18 +8,21 @@ import { responseRejections } from "#rpc/rejections.ts";
 
 const locate = query("question", {
 	payload: { item: Schema.String, request: Schema.String },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: responseRejections,
 	success: QuestionPreview,
 });
 const awaitResponse = query("awaitResponse", {
 	payload: { after: Schema.optional(Schema.String), question: Schema.String },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: responseRejections,
 	success: WaitReading,
 });
 const read = query("responses", {
 	payload: { question: Schema.String },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: responseRejections,
 	success: Reading,

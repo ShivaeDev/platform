@@ -1,30 +1,62 @@
 import { Context, Effect, Layer, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
+import { collection, type Key } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection, type Key } from "@shivaedev/contract/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { type ModuleReadPolicies, mergeReadPolicies } from "@shivaedev/contract/readPolicy.ts";
 import type { IdentityValue } from "@shivaedev/identity/identity.ts";
 import { Authenticated, AuthenticatedUser, MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import { AppChanges, appHost } from "#appHost.ts";
 import type { HostState } from "#test/app-host/state.ts";
 
+class ReadChecks extends Context.Service<ReadChecks, Check[]>()("test/ReadChecks") {}
+class ReadStore extends Context.Service<ReadStore, Map<string, string>>()("test/ReadStore") {}
 export const documents = collection("documents", Schema.String);
-const Get = query("get", { payload: { owner: Schema.String }, reads: ({ owner }) => [documents.item(owner)], success: Schema.String });
+const Get = query("get", {
+	payload: { owner: Schema.String },
+	readPolicy: ({ owner }, viewer) =>
+		Effect.gen(function* () {
+			(yield* ReadChecks).push({ key: documents.item(owner), viewer });
+			const rows = yield* ReadStore;
+			return Option.isSome(viewer) && owner === viewer.value.id && rows.has(owner);
+		}),
+	reads: ({ owner }) => [documents.item(owner)],
+	success: Schema.String,
+});
 const Account = contract("account", { queries: [Get] }).middleware(Authenticated);
 const Profile = contract("profile", { queries: [Get] }).middleware(AuthenticatedUser);
-const Public = contract("public", { queries: [query("read", { reads: () => [documents.list], success: Schema.String })] }).middleware(
-	MaybeAuthenticated,
-);
-export const Api = Account.merge(Profile, Public);
+const Public = contract("public", {
+	queries: [
+		query("read", {
+			readPolicy: (_payload, viewer) =>
+				Effect.map(ReadChecks, (checks) => {
+					checks.push({ key: documents.list, viewer });
+					return true;
+				}),
+			reads: () => [documents.list],
+			success: Schema.String,
+		}),
+	],
+}).middleware(MaybeAuthenticated);
+const Plain = contract("plain", {
+	queries: [
+		query("get", {
+			readPolicy: (_payload, viewer) =>
+				Effect.map(ReadChecks, (checks) => {
+					checks.push({ key: documents.item("private"), viewer });
+					return false;
+				}),
+			reads: () => [documents.item("private")],
+			success: Schema.String,
+		}),
+	],
+});
+export const Api = Account.merge(Profile, Public, Plain);
 export interface Check {
 	readonly key: Key;
 	readonly viewer: Option.Option<IdentityValue>;
 }
-class ReadStore extends Context.Service<ReadStore, Map<string, string>>()("test/ReadStore") {}
-
 export function policyHost(state: HostState, checks: Check[]) {
 	const sessions = {
 		origin: () => true,
@@ -36,14 +68,6 @@ export function policyHost(state: HostState, checks: Check[]) {
 			},
 		},
 	};
-	const policies = {
-		[documents.name]: (key, viewer) =>
-			Effect.gen(function* () {
-				checks.push({ key, viewer });
-				const rows = yield* ReadStore;
-				return key._tag === "List" || (Option.isSome(viewer) && key.id === viewer.value.id && rows.has(viewer.value.id));
-			}),
-	} satisfies ModuleReadPolicies<IdentityValue, never, ReadStore>;
 	function read({ owner }: { owner: string }) {
 		return Effect.map(ReadStore, (rows) => rows.get(owner) ?? "Missing");
 	}
@@ -54,10 +78,17 @@ export function policyHost(state: HostState, checks: Check[]) {
 			Account.application.toLayer({ "account.get": read }),
 			Profile.application.toLayer({ "profile.get": read }),
 			Public.application.toLayer({ "public.read": () => Effect.succeed("Public documents") }),
+			Plain.application.toLayer({
+				"plain.get": () =>
+					Effect.sync(() => {
+						state.calls.push("plain.get");
+						return "Private document";
+					}),
+			}),
 			authenticatedUserLayer(sessions),
 		),
-		readPolicy: mergeReadPolicies(policies),
-		services: Layer.merge(
+		services: Layer.mergeAll(
+			Layer.succeed(ReadChecks, checks),
 			Layer.succeed(
 				ReadStore,
 				new Map([

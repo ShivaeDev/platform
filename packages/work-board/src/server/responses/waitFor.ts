@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import * as Clock from "effect/Clock";
 import * as Effect from "effect/Effect";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import type { QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { WaitReading } from "#browser/responses/schema.ts";
 import { ResponseRejection, Unanswered } from "#rpc/rejections.ts";
@@ -21,12 +22,15 @@ function resultFor(reading: WaitReading) {
 	return Effect.succeed(undefined);
 }
 
-function retryable(error: ResponseRejection | RpcClientError) {
-	return !Schema.is(ResponseRejection)(error) || error._tag === "ServiceUnavailable" || error._tag === "InternalServerError";
+function retryable(error: ResponseRejection | RpcClientError | QueryReadDenied) {
+	return (
+		error._tag !== "QueryReadDenied"
+		&& (!Schema.is(ResponseRejection)(error) || error._tag === "ServiceUnavailable" || error._tag === "InternalServerError")
+	);
 }
 
 export const waitForResponse = Effect.fn("WorkBoard.waitForResponse")(function* (
-	read: () => Effect.Effect<WaitReading, ResponseRejection | RpcClientError>,
+	read: () => Effect.Effect<WaitReading, ResponseRejection | RpcClientError | QueryReadDenied>,
 	diagnostic: (text: string) => void,
 ) {
 	let known: WaitReading | undefined;

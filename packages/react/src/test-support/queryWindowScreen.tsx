@@ -2,9 +2,9 @@ import { Effect, PubSub, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { vi } from "vitest";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -13,7 +13,12 @@ import { QueryWindowPage } from "./QueryWindowPage.tsx";
 import { clickButton, Screen } from "./Screen.ts";
 
 const notes = collection("notes", Schema.Number);
-const Get = query("get", { payload: { id: Schema.String }, reads: () => [notes.list], success: Schema.Number });
+const Get = query("get", {
+	payload: { id: Schema.String },
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [notes.list],
+	success: Schema.Number,
+});
 const Notes = contract("notes", { queries: [Get] });
 
 export const queryWindowScreen = storyKit({

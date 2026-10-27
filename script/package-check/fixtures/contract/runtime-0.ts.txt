@@ -1,4 +1,4 @@
-import { collection, invalidationKeys } from '@shivaedev/contract/keys.ts';
+import { collection, invalidationKeys } from '@shivaedev/changes/keys.ts';
 import { contract } from '@shivaedev/contract/contract.ts';
 import { query } from '@shivaedev/contract/operation.ts';
 import { Effect, Schema, Stream } from 'effect';

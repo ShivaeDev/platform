@@ -1,15 +1,22 @@
 import { Deferred, Effect, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import type { ResumeSource } from "#resumeSignal.ts";
 
 const notes = collection("resumeNotes", Schema.Number);
 const Notes = contract("resumeNotes", {
-	queries: [query("get", { payload: { id: Schema.Number }, reads: ({ id }) => [notes.item(id)], success: Schema.String })],
+	queries: [
+		query("get", {
+			payload: { id: Schema.Number },
+			readPolicy: () => Effect.succeed(true),
+			reads: ({ id }) => [notes.item(id)],
+			success: Schema.String,
+		}),
+	],
 });
 
 export function resumeLiveClient(resume?: ResumeSource) {

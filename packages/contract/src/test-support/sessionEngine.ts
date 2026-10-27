@@ -5,9 +5,9 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
+import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
-import { invalidationKeys, type Key } from "#keys.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { type QueryReference, queryKeys } from "#serverMetadata.ts";
 import { Guard, Preferences, Save, Session } from "./sessionContract.ts";
@@ -31,14 +31,16 @@ export const sessionEngine = Effect.gen(function* () {
 	const handlers = Preferences.toLayer({
 		"preferences.$changes": ({ queries }) =>
 			Stream.unwrap(
-				Effect.map(Session, (session) =>
-					server
-						.stream(queryKeys(Preferences.declaration.queries, queries), { scope: session })
+				Effect.gen(function* () {
+					const session = yield* Session;
+					const keys = yield* queryKeys(Preferences.declaration.queries, queries);
+					return server
+						.stream(keys, { scope: session })
 						.pipe(
 							Stream.ensuring(Effect.sync(() => subscriptions.delete(session))),
 							Stream.onStart(Effect.sync(() => subscriptions.set(session, queries))),
-						),
-				),
+						);
+				}),
 			),
 		"preferences.get": ({ id }) => read(`get:${id}`),
 		"preferences.list": () => Effect.map(read("list"), (title) => [title]),

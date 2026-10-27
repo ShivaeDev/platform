@@ -11,9 +11,9 @@ import { AppChanges, appHost } from "#appHost.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("test/ChangesGreeting") {}
 class Observed extends RpcMiddleware.Service<Observed, { provides: Greeting }>()("test/ObservedChanges") {}
-const Api = contract("idle", { queries: [query("greet", { payload: { name: Schema.String }, reads: () => [], success: Schema.String })] }).middleware(
-	Observed,
-);
+const Api = contract("idle", {
+	queries: [query("greet", { payload: { name: Schema.String }, readPolicy: () => Effect.succeed(true), reads: () => [], success: Schema.String })],
+}).middleware(Observed);
 
 const openHost = Effect.fn("Test.openHost")(function* (live: boolean) {
 	const started = yield* Deferred.make<void>();

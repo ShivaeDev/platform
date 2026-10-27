@@ -29,5 +29,18 @@ type Renamed = StoreShape;
 interface Wrapper { readonly store: Renamed }
 ${SERVICE_CASES.join("\n")}`;
 
+export const DATA_WITH_CALLABLE_SERVICE = `import { Context, Effect, Option, Schema } from "effect";
+interface Row { readonly id: string }
+type Invalidate = (payload: unknown, result: unknown) => readonly Row[];
+export class Invalidation extends Context.Service<Invalidation, Invalidate>()("Invalidation") {}
+type Lookup = <T extends "get">(tag: T) => T extends "get" ? Effect.Effect<string> : never;
+export class LookupService extends Context.Service<LookupService, Lookup>()("Lookup") {}
+export const rows = (values: readonly Row[]) => values.map(({ id }) => id);
+export const viewer = (value: Option.Option<Row>) => Option.isSome(value);
+export const schema = (codec: Schema.Top) => codec;
+export const client = (lookup: Lookup) => lookup;
+export const direct = (invalidate: Invalidate) => invalidate;
+export const nested = (services: { readonly invalidate: Invalidate }) => services.invalidate;`;
+
 export const PROMISE_BRIDGE =
 	"export async function bridge() { try { await new Promise((resolve) => resolve(1)).then(String); } finally { throw new Error('bad'); } }";

@@ -20,7 +20,11 @@ queryWindowScreen.it("queries refetch on independent windows over one connection
 	expect(test.reads()).toEqual({ dashboard: before.dashboard + 1, detail: before.detail + 1, inherited: before.inherited + 1 });
 	expect(test.subscriptions()).toMatchObject([
 		{
-			queries: [{ payload: { id: "detail" }, query: "get" }],
+			queries: [
+				{ payload: { id: "detail" }, query: "get" },
+				{ payload: { id: "dashboard" }, query: "get" },
+				{ payload: { id: "inherited" }, query: "get" },
+			],
 		},
 	]);
 });
@@ -38,7 +42,11 @@ queryWindowScreen.it("changing a query window keeps its connection and cached re
 	expect(test.reads()).toEqual(before);
 	expect(test.subscriptions()).toMatchObject([
 		{
-			queries: [{ payload: { id: "detail" }, query: "get" }],
+			queries: [
+				{ payload: { id: "detail" }, query: "get" },
+				{ payload: { id: "dashboard" }, query: "get" },
+				{ payload: { id: "inherited" }, query: "get" },
+			],
 		},
 	]);
 	yield* test.advance(50);
@@ -55,7 +63,11 @@ queryWindowScreen.it("changing a query window keeps its connection and cached re
 	expect(test.reads()).toEqual({ dashboard: before.dashboard + 1, detail: before.detail + 2, inherited: before.inherited + 1 });
 	expect(test.subscriptions()).toMatchObject([
 		{
-			queries: [{ payload: { id: "detail" }, query: "get" }],
+			queries: [
+				{ payload: { id: "detail" }, query: "get" },
+				{ payload: { id: "dashboard" }, query: "get" },
+				{ payload: { id: "inherited" }, query: "get" },
+			],
 		},
 	]);
 });

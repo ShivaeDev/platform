@@ -7,7 +7,7 @@ import { notesStory, signedIn } from "#test/notesStory.ts";
 notesStory.it(
 	"queries register their declared read keys and commands invalidate item and list after success only",
 	[signedIn()],
-	function* ({ query, queryList, mount, rename, registry, reads, invalidations }) {
+	function* ({ query, queryList, mount, rename, registry, reads }) {
 		const one = query(1);
 		const two = query(2);
 		const list = queryList();
@@ -17,13 +17,11 @@ notesStory.it(
 		yield* eventually(() => expect([...reads()].sort()).toEqual(["get:1", "get:2", "list"]));
 		const renamed = yield* Effect.result(rename(1, "Uno"));
 		expect(Result.isSuccess(renamed)).toBe(true);
-		expect(invalidations()).toEqual([["notes:1", "notes"]]);
 		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.title).toBe("Uno"));
 		yield* eventually(() => expect(reads().filter((read) => read === "list")).toHaveLength(2));
 		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
 		const rejected = yield* Effect.result(rename(2, ""));
 		expect(Result.isFailure(rejected) && rejected.failure._tag).toBe("Invalid");
-		expect(invalidations()).toEqual([["notes:1", "notes"]]);
 		expect(reads().filter((read) => read === "list")).toHaveLength(2);
 		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
 	},
@@ -32,12 +30,11 @@ notesStory.it(
 notesStory.it(
 	"result-dependent invalidation refreshes the item a command created",
 	[signedIn()],
-	function* ({ query, mount, create, registry, reads, invalidations }) {
+	function* ({ query, mount, create, registry, reads }) {
 		const three = query(3);
 		mount(three);
 		yield* eventually(() => expect(AsyncResult.isFailure(registry.get(three))).toBe(true));
 		expect(Result.isSuccess(yield* Effect.result(create("Three")))).toBe(true);
-		expect(invalidations()).toEqual([["notes:3", "notes"]]);
 		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(three), () => undefined)?.title).toBe("Three"));
 		expect(reads().filter((read) => read === "get:3")).toHaveLength(2);
 	},

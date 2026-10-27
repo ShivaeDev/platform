@@ -1,6 +1,7 @@
 import { Effect, type Layer, Schema } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
+import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import {
 	AuthUnavailable,
 	BadRequest,
@@ -37,7 +38,7 @@ void [handlersWithout, unguarded, optional];
 Effect.gen(function* () {
 	const client = yield* RpcTest.makeClient(Guarded);
 	const failure = yield* Effect.flip(client.Mine());
-	expectTypeOf(failure).toEqualTypeOf<NotFound | Unauthorized | AuthUnavailable | Forbidden>();
+	expectTypeOf(failure).toEqualTypeOf<NotFound | Unauthorized | AuthUnavailable | Forbidden | MissingReadPolicy | QueryReadDenied>();
 }).pipe(
 	Effect.provide(Handlers),
 	Effect.provide(

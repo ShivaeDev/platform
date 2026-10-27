@@ -34,6 +34,11 @@ export const NotesService = defineService({
 			});
 		}
 		return {
+			canRead: (id: number, ownerId: string) =>
+				repository.findMany({ limit: 1, where: { id } }).pipe(
+					Effect.map((rows) => rows[0] === undefined || rows[0].ownerId === ownerId),
+					Effect.mapError(unavailable),
+				),
 			create: ({ title }: typeof Create.payload.Type, ownerId: string) =>
 				Effect.gen(function* () {
 					const trimmed = title.trim();

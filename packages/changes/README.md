@@ -18,6 +18,23 @@ yield* Effect.gen(function* () {
 
 `membershipChanges` is the channel defined below. It groups notifications by subject and domain, so another write to the same member inside this transaction does not add a second notification. A nested transaction that rolls back contributes no notification, and a failed outer commit publishes nothing. Feature code describes what changed; the native transaction decides whether it happened.
 
+## Record keys and buckets
+
+`keys.ts` owns the shared dependency format for contract queries, committed writes and subscriptions. An item key identifies a record by id. A bucket identifies every row with a declared field value; a collection list key covers the whole collection.
+
+```ts
+import { Schema } from "effect";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
+
+const notes = collection("notes", Schema.Number, { userId: Schema.String, listId: Schema.Number });
+const keys = [notes.item(1), notes.bucket.userId("alice"), notes.bucket.listId(42)];
+const invalidations = invalidationKeys(keys);
+```
+
+Use `readKeys(keys)` to register dependencies with native Reactivity and `invalidationKeys(keys)` when announcing committed writes. A bucket changes only when the writer explicitly names it. Its value is typed by the declared field schema. A filtered list query still reads its entire bucket and reruns when any row there changes. Record changes also invalidate the collection list, while buckets remain explicit. The channel can buffer these keys until commit just like any other change vocabulary.
+
+Query read policies belong to the contract. The query checks its session viewer before its record or bucket scope can become a subscription; a change key grants no read permission. See the [contract query guide](../contract/README.md#query-policies-record-keys-and-buckets).
+
 ## Using it
 
 ### How to think about it

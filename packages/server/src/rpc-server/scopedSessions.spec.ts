@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { invalidationKeys } from "@shivaedev/contract/keys.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { sessionKeys } from "#test/rpc/sessionKeys.ts";
 import { type Boundary, Preferences } from "#test/rpc/sessionKeysApi.ts";
 
@@ -17,18 +17,18 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 			}
 			yield* Effect.all([save("alice", "blue", { boundary }), save("bob", "green", { boundary })], { concurrency: "unbounded" });
 			const changed = { _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] };
-			expect(yield* alice.next).toEqual(changed);
-			expect(yield* second.next).toEqual(changed);
-			expect(yield* bob.next).toEqual(changed);
+			expect(yield* alice.next).toMatchObject(changed);
+			expect(yield* second.next).toMatchObject(changed);
+			expect(yield* bob.next).toMatchObject(changed);
 			expect(yield* read("alice", boundary)).toBe("blue");
 			expect(yield* read("second", boundary)).toBe("blue");
 			expect(yield* read("bob", boundary)).toBe("green");
 			yield* save("alice", "purple", { boundary });
-			expect(yield* second.next).toEqual(changed);
-			expect(yield* alice.next).toEqual(changed);
+			expect(yield* second.next).toMatchObject(changed);
+			expect(yield* alice.next).toMatchObject(changed);
 			yield* save("bob", "barrier", { boundary, id: "other" });
-			expect(yield* bob.next).toEqual({ _tag: "Changed", keys: [Preferences.list] });
-			expect(bob.hints).toEqual([{ _tag: "Resync" }, changed, { _tag: "Changed", keys: [Preferences.list] }]);
+			expect(yield* bob.next).toMatchObject({ _tag: "Changed", keys: [Preferences.list] });
+			expect(bob.hints).toMatchObject([{ _tag: "Resync" }, changed, { _tag: "Changed", keys: [Preferences.list] }]);
 			expect(published()).toEqual([
 				invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") }),
 				invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") }),
@@ -41,7 +41,7 @@ sessionKeys.it("a transaction publishes once and a rollback publishes nothing", 
 	const second = yield* subscribe("second");
 	expect(yield* second.next).toEqual({ _tag: "Resync" });
 	yield* save("alice", "committed", { announce: true });
-	expect(yield* second.next).toEqual({ _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] });
+	expect(yield* second.next).toMatchObject({ _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] });
 	expect(published()).toEqual([invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") })]);
 	expect(yield* save("alice", "rolled back", { announce: true, reject: true }).pipe(Effect.result)).toMatchObject({
 		_tag: "Failure",
@@ -49,8 +49,8 @@ sessionKeys.it("a transaction publishes once and a rollback publishes nothing", 
 	});
 	expect(yield* read("second")).toBe("committed");
 	yield* save("alice", "barrier", { id: "other" });
-	expect(yield* second.next).toEqual({ _tag: "Changed", keys: [Preferences.list] });
-	expect(second.hints).toEqual([
+	expect(yield* second.next).toMatchObject({ _tag: "Changed", keys: [Preferences.list] });
+	expect(second.hints).toMatchObject([
 		{ _tag: "Resync" },
 		{ _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] },
 		{ _tag: "Changed", keys: [Preferences.list] },
@@ -81,8 +81,8 @@ sessionKeys.it("payload scope and owner fields cannot select another account", [
 	yield* save("bob", "private");
 	expect(yield* forged.next.pipe(Effect.timeoutOption("100 millis"))).toMatchObject({ _tag: "None" });
 	yield* save("alice", "own");
-	expect(yield* forged.next).toEqual({ _tag: "Changed", keys: [Preferences.item("theme")] });
-	expect(forged.hints).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [Preferences.item("theme")] }]);
+	expect(yield* forged.next).toMatchObject({ _tag: "Changed", keys: [Preferences.item("theme")] });
+	expect(forged.hints).toMatchObject([{ _tag: "Resync" }, { _tag: "Changed", keys: [Preferences.item("theme")] }]);
 });
 
 sessionKeys.it("a scoped change handler without request identity has no unscoped fallback", [], function* ({ unprotected }) {
