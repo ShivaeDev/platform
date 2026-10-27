@@ -12,6 +12,17 @@ import { questionPublicationVerbs } from "#test/questionPublicationVerbs.ts";
 
 export function hostBoardVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
+		awaitBoardResponse: (ready: (source: string) => boolean) => {
+			tell("wait for a closing Board response");
+			const directory = join(engine.fixture.host.boardDir, "responses");
+			function read() {
+				return (existsSync(directory) ? readdirSync(directory) : [])
+					.filter((file) => file.startsWith("response."))
+					.map((file) => readFileSync(join(directory, file), "utf8"))
+					.find(ready);
+			}
+			return until(() => Effect.sync(() => read() !== undefined)).pipe(Effect.map(read));
+		},
 		awaitBoardSource: (file: string, ready: (source: string) => boolean) => {
 			tell(`wait for the generated Board source ${file}`);
 			const path = join(engine.fixture.host.boardDir, file);

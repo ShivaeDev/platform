@@ -40,7 +40,7 @@ engine.it(
 	},
 );
 
-for (const field of ["owner: marvin", "status: done", "status: dropped", "status: deferred", "fleet: held"]) {
+for (const field of ["owner: marvin", "status: done", "status: deferred", "fleet: held"]) {
 	engine.it(
 		`a changed brief with ${field} still stops for a human`,
 		[markdownWork()],

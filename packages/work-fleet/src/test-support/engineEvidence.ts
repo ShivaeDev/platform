@@ -12,6 +12,7 @@ export function engineEvidence(state: EngineStory) {
 		launches: () => [...fixture().launched],
 		mergedHeads: () => [...fixture().merged],
 		providerCalls: () => structuredClone(fixture().settings),
+		providerInterrupts: () => structuredClone(fixture().interrupted),
 		providerOperationCount: () => fixture().operations.size,
 		providerOperations: () => [...fixture().operations.keys()],
 		providerStarts: () => structuredClone(fixture().starts),

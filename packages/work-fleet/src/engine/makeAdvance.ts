@@ -16,11 +16,13 @@ import { reconcileBrief } from "#engine/refreshBrief.ts";
 import { releaseClosedPreparation } from "#engine/releaseClosedPreparation.ts";
 import { observeReleasedDeliveries } from "#engine/releasedDeliveries.ts";
 import { settleReleasedWork } from "#engine/settleReleasedWork.ts";
+import { reconcileStop } from "#engine/stopCommand.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 export function makeAdvance(state: EngineState, launch: ReturnType<typeof makeLaunch>) {
 	return Effect.fn("Fleet.advance")(function* (workId: string) {
 		let stored = yield* state.load(workId);
+		stored = yield* reconcileStop(state, stored);
 		stored = yield* holdPendingReady(state, stored);
 		stored = yield* closeDecisions(state)(stored);
 		stored = yield* observeReleasedDeliveries(state, stored);

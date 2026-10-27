@@ -36,7 +36,7 @@ export function hostIntegrations(host: FleetHost) {
 				delivery: githubDelivery(readPullRequest(github.get)),
 				isAncestor: reportRevision(main.repositoryRoot, host.repository.remote),
 				main: main.observe,
-				publication: githubPublication(host, github, repository),
+				...(host.worker === undefined ? {} : { publication: githubPublication(host, github, repository) }),
 				result:
 					host.result === "github"
 						? githubResult(host, github, repository)

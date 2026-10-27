@@ -3,6 +3,7 @@ import { capacityRetry } from "#engine/capacityRetry.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { readRetry } from "#engine/readRetry.ts";
+import { STOP_REASON } from "#engine/stopCommand.ts";
 import type { SessionFailure } from "#session/schema.ts";
 import { requestTimedOut } from "#session/transientFailure.ts";
 
@@ -14,7 +15,7 @@ export const submissionFailure = Effect.fn("Fleet.submissionFailure")(function* 
 	recommendation: string,
 ) {
 	let current = yield* state.load(workId);
-	if (current.value.decision !== undefined) {
+	if (current.value.decision !== undefined || current.value.releaseReason?.startsWith(STOP_REASON)) {
 		return;
 	}
 	if (requestTimedOut(error)) {

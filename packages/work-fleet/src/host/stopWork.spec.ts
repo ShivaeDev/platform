@@ -7,11 +7,12 @@ import { stopWorkStory } from "#test/recoveryStories.ts";
 host.it(stopWorkStory.name, [approvedWork(["one"]), humanDelivery, publishedBranch, publishedHostBranch, fakeCodex], function* (daemon) {
 	const worker = yield* daemon.dispatch("one");
 	const branch = daemon.workerBranchHead();
-	const refused = yield* daemon.cli(["release", "one"]);
-	expect(refused.code).toBe(1);
 	const stopped = yield* daemon.cli(["stop", "one"]);
-	expect(stopped).toEqual({ code: 0, stderr: "", stdout: "one released" });
-	expect(refused.stderr).toContain("work-fleet stop one");
+	expect(stopped).toEqual({
+		code: 0,
+		stderr: "",
+		stdout: "one released: Work cancelled by orchestrator. Pull request preserved: https://github.com/example/repository/pull/7",
+	});
 	const record = yield* daemon.get("one");
 	expect(record.step).toBe("released");
 	expect(record.attempts).toMatchObject([{ receipt: worker.attempts[0]?.receipt, status: "interrupted" }]);
@@ -19,6 +20,7 @@ host.it(stopWorkStory.name, [approvedWork(["one"]), humanDelivery, publishedBran
 	expect(daemon.githubMutations()).toEqual([]);
 	yield* daemon.schedulerPass();
 	expect((yield* daemon.get("one")).step).toBe("released");
+	expect(daemon.readBoard(`responses/${record.responses?.at(-1)?.responseId}.md`)).toContain("Work cancelled by orchestrator.");
 	expect(record.responses).toMatchObject([{ action: "release", boardAcknowledged: true }]);
 	expect(daemon.boardAcknowledgements()).toMatchObject([{ disposition: "applied" }]);
 	expect(daemon.codexTurnState(worker.attempts[0]?.receipt?.turnId ?? "")).toBe("interrupted");

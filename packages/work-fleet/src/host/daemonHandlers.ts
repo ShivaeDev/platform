@@ -4,7 +4,6 @@ import { SqlClient } from "effect/sql";
 import { Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { databaseAddress } from "@shivaedev/server/databaseAddress.ts";
 import { exposeFailure } from "#exposeFailure.ts";
-import { Fleet } from "#fleet.ts";
 import { answerRecords } from "#host/answerRecords.ts";
 import { answerRequests } from "#host/answerRequests.ts";
 import { answerWork } from "#host/answerWork.ts";
@@ -87,11 +86,6 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 	function settle<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(Effect.forkIn(scope), Effect.flatMap(Fiber.join));
 	}
-	const stop = Effect.fn("FleetDaemon.stop")(function* (workId: string) {
-		const fleet = yield* Fleet;
-		yield* fleet.stop(workId);
-		return (yield* answerWork(host, workId, { release: true })).value;
-	});
 	return Layer.merge(
 		diagnostics,
 		ClientContract.application.toLayer(
@@ -107,7 +101,7 @@ export const daemonHandlers = Effect.fn("FleetDaemon.daemonHandlers")(function* 
 					"daemon.release": ({ workIds }) => exposeFailure(settle(Effect.forEach(workIds, acceptRelease))),
 					"daemon.reserve-pr": ({ areas, pr }) => exposeFailure(settle(reserveForeignPr(host, pr, areas))),
 					"daemon.status": ({ workId }) => exposeFailure(workId === undefined ? status : read(fleetStatus(host, workId))),
-					"daemon.stop": ({ workId }) => exposeFailure(settle(withResponses(stop(workId)))),
+					"daemon.stop": ({ workId }) => exposeFailure(settle(withResponses(dispatch.stop(workId)))),
 					"daemon.watch": ({ workIds }) => watch(workIds),
 				}),
 			),

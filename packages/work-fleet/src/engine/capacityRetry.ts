@@ -3,6 +3,7 @@ import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { restartableReview } from "#engine/restartableReview.ts";
 import { retryPrompt } from "#engine/retryPrompt.ts";
+import { STOP_REASON } from "#engine/stopCommand.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import { SessionFailure } from "#session/schema.ts";
 import { busyThread, transientFailure } from "#session/transientFailure.ts";
@@ -38,7 +39,8 @@ export const capacityRetry = Effect.fn("Fleet.capacityRetry")(function* (
 	}
 	const rejected = current.value.attempts.find((item) => item.operationId === operationId);
 	if (
-		rejected === undefined
+		current.value.releaseReason?.startsWith(STOP_REASON)
+		|| rejected === undefined
 		|| (rejected.receipt !== undefined && rejected.status !== "failed")
 		|| (unavailableRestart && rejected.sessionId !== undefined)
 	) {
