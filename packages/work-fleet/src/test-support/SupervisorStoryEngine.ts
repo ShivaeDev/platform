@@ -2,7 +2,7 @@ import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
-import { Effect, Fiber } from "effect";
+import { type Duration, Effect, Fiber } from "effect";
 import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
 import { type SupervisorState, supervisionStatus } from "#host/supervisorState.ts";
 import { launchSupervisorCli } from "#test/launchSupervisorCli.ts";
@@ -13,6 +13,7 @@ export class SupervisorStoryEngine {
 	process: Effect.Success<ReturnType<typeof launchSupervisorCli>> | undefined;
 	stalePid: number | undefined;
 	delayedLive = false;
+	stubbornChild: "daemon" | "board" | undefined;
 	pending: Fiber.Fiber<{ readonly body: string; readonly status: number }, unknown> | undefined;
 
 	get fixture() {
@@ -23,7 +24,7 @@ export class SupervisorStoryEngine {
 	}
 
 	deploy = Effect.fn("SupervisorStory.deploy")(function* (this: SupervisorStoryEngine) {
-		this.installation = yield* supervisorInstallation(this.delayedLive);
+		this.installation = yield* supervisorInstallation(this.delayedLive, this.stubbornChild);
 	});
 
 	start = Effect.fn("SupervisorStory.start")(function* (this: SupervisorStoryEngine) {
@@ -42,7 +43,7 @@ export class SupervisorStoryEngine {
 		return supervisionStatus(this.fixture.boardDir);
 	}
 
-	until(condition: () => Effect.Effect<boolean, unknown>) {
+	until(condition: () => Effect.Effect<boolean, unknown>, timeout: Duration.Input = "30 seconds") {
 		const engine = this;
 		return Effect.gen(function* () {
 			while (!(yield* condition())) {
@@ -52,24 +53,26 @@ export class SupervisorStoryEngine {
 				yield* Effect.sleep("100 millis");
 			}
 		}).pipe(
-			Effect.timeout("30 seconds"),
+			Effect.timeout(timeout),
 			Effect.tapError(() => Effect.logError(this.inspect())),
 		);
 	}
 
 	ready(name: "daemon" | "board", previousPid?: number | null) {
 		const engine = this;
-		return this.until(() =>
-			Effect.gen(function* () {
-				const state = yield* engine.state().pipe(Effect.orElseSucceed(() => undefined));
-				if (state === undefined || state[name].pid === null || state[name].pid === previousPid) {
-					return false;
-				}
-				return yield* engine.http(state, name).pipe(
-					Effect.map(({ status }) => status >= 200 && status < 300),
-					Effect.orElseSucceed(() => false),
-				);
-			}),
+		return this.until(
+			() =>
+				Effect.gen(function* () {
+					const state = yield* engine.state().pipe(Effect.orElseSucceed(() => undefined));
+					if (state === undefined || state[name].pid === null || state[name].pid === previousPid) {
+						return false;
+					}
+					return yield* engine.http(state, name).pipe(
+						Effect.map(({ status }) => status >= 200 && status < 300),
+						Effect.orElseSucceed(() => false),
+					);
+				}),
+			"60 seconds",
 		);
 	}
 

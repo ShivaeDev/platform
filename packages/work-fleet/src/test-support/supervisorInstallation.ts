@@ -6,8 +6,13 @@ import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Redacted } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { codexServer } from "#test/codex.ts";
+import { stubbornSupervisorChild } from "#test/stubbornSupervisorChild.ts";
+import { supervisorBoardInstallation } from "#test/supervisorBoardInstallation.ts";
 
-export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallation")(function* (delayedLive = false) {
+export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallation")(function* (
+	delayedLive = false,
+	stubbornChild?: "daemon" | "board",
+) {
 	const database = yield* PostgresTestDatabase;
 	const provider = yield* codexServer(() => ({}));
 	const fs = yield* FileSystem.FileSystem;
@@ -22,9 +27,9 @@ export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallatio
 	mkdirSync(installed, { recursive: true });
 	cpSync(join(source, "src"), join(installed, "src"), { recursive: true });
 	cpSync(join(source, "package.json"), join(installed, "package.json"));
-	symlinkSync(join(source, "node_modules"), join(installed, "node_modules"));
-	const boardPackage = createRequire(join(installed, "package.json")).resolve("@shivaedev/work-board/package.json");
-	const boardCli = join(dirname(boardPackage), "src/server/cli.ts");
+	const boardPackage = createRequire(join(source, "package.json")).resolve("@shivaedev/work-board/package.json");
+	const board = supervisorBoardInstallation(dirname(boardPackage), installed, root);
+	const boardCli = join(board, "src/server/cli.ts");
 	const cli = join(installed, "src/cli.ts");
 	writeFileSync(
 		join(boardDir, "question.md"),
@@ -57,6 +62,10 @@ export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallatio
 		"-m",
 		"Consumer fixture",
 	]);
+	if (stubbornChild !== undefined) {
+		stubbornSupervisorChild(stubbornChild === "daemon" ? cli : join(board, "src/server/serve-cli.ts"), stubbornChild);
+	}
+	const boardFile = join(board, "src/server/serve.ts");
 	const daemonFile = join(installed, "src/host/daemon.ts");
 	if (delayedLive) {
 		writeFileSync(
@@ -73,6 +82,7 @@ export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallatio
 	return {
 		boardCli,
 		boardDir,
+		changeBoardCode: () => writeFileSync(boardFile, readFileSync(boardFile, "utf8").replace(/(?<url>url: `http:[^`]+)\/`/u, "$<url>/replacement`")),
 		changeCode: () => writeFileSync(daemonFile, readFileSync(daemonFile, "utf8").replace("status: 204", "status: 201")),
 		cli,
 		daemonFile,

@@ -65,9 +65,10 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 			// Short private names preserve owner-only access within board.sock's pathname budget.
 			const staging = yield* fs.makeTempDirectoryScoped({ directory: root, prefix: ".s" });
 			const pending = paths.join(staging, "s");
-			const server = yield* NodeHttpServer.make(createServer, {
+			const node = createServer();
+			const server = yield* NodeHttpServer.make(() => node, {
 				disablePreemptiveShutdown: !drainRequests,
-				gracefulShutdownTimeout: Duration.infinity,
+				gracefulShutdownTimeout: Duration.seconds(5),
 				path: pending,
 			}).pipe(Scope.provide(scope));
 			yield* fs.chmod(pending, 0o600);
@@ -79,6 +80,12 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 					}),
 				)
 				.pipe(Scope.provide(scope));
+			yield* Effect.addFinalizer(() =>
+				Effect.sync(() => {
+					const deadline = setTimeout(() => node.closeAllConnections(), 5000);
+					node.once("close", () => clearTimeout(deadline));
+				}),
+			).pipe(Scope.provide(scope));
 			// Unpublish while this listener still answers probes, before Node closes its private bind path.
 			yield* Effect.acquireRelease(fs.rename(pending, path), () => fs.remove(path, { force: true }).pipe(Effect.orDie)).pipe(Scope.provide(scope));
 		}),
