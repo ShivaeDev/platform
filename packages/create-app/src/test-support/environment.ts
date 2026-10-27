@@ -1,13 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Schema } from "effect";
 import { databaseProbe } from "./databaseProbe.ts";
-import { starterModules } from "./starterModules.ts";
+import { linkStarterModules } from "./starterModules.ts";
 
 export function appScript(app: string, script: string, args: readonly string[] = []) {
 	if (!existsSync(join(app, "node_modules"))) {
-		symlinkSync(starterModules(), join(app, "node_modules"));
+		linkStarterModules(app);
 	}
 	const manifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) })))(
 		readFileSync(join(app, "package.json"), "utf8"),

@@ -393,45 +393,9 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)
-      '@shivaedev/access':
-        specifier: workspace:*
-        version: link:../../packages/access
-      '@shivaedev/admin':
-        specifier: workspace:*
-        version: link:../../packages/admin
-      '@shivaedev/contract':
-        specifier: workspace:*
-        version: link:../../packages/contract
-      '@shivaedev/errors':
-        specifier: workspace:*
-        version: link:../../packages/errors
-      '@shivaedev/form':
-        specifier: workspace:*
-        version: link:../../packages/form
-      '@shivaedev/identity':
-        specifier: workspace:*
-        version: link:../../packages/identity
-      '@shivaedev/jobs':
-        specifier: workspace:*
-        version: link:../../packages/jobs
-      '@shivaedev/local-postgres':
-        specifier: workspace:*
-        version: link:../../packages/local-postgres
       '@shivaedev/platform':
         specifier: workspace:*
         version: link:../../packages/platform
-      '@shivaedev/react':
-        specifier: workspace:*
-        version: link:../../packages/react
-      '@shivaedev/server':
-        specifier: workspace:*
-        version: link:../../packages/server
-      '@shivaedev/service':
-        specifier: workspace:*
-        version: link:../../packages/service
-      '@shivaedev/sql':
-        specifier: workspace:*
-        version: link:../../packages/sql
       '@tanstack/react-router':
         specifier: 'catalog:'
         version: 1.170.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
@@ -475,9 +439,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../../packages/test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../../packages/test-sql
@@ -977,6 +938,9 @@ importers:
 
   packages/platform:
     dependencies:
+      '@effect/atom-react':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)(react@19.3.1)(scheduler@0.28.0)
       '@effect/platform-node':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)(redis@6.2.1(@opentelemetry/api@1.9.1))
@@ -989,30 +953,54 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
+      '@shivaedev/admin':
+        specifier: workspace:*
+        version: link:../admin
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
+      '@shivaedev/form':
+        specifier: workspace:*
+        version: link:../form
+      '@shivaedev/github':
+        specifier: workspace:*
+        version: link:../github
       '@shivaedev/http':
         specifier: workspace:*
         version: link:../http
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity
+      '@shivaedev/jobs':
+        specifier: workspace:*
+        version: link:../jobs
       '@shivaedev/local-postgres':
         specifier: workspace:*
         version: link:../local-postgres
+      '@shivaedev/react':
+        specifier: workspace:*
+        version: link:../react
       '@shivaedev/server':
         specifier: workspace:*
         version: link:../server
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
+      '@tanstack/react-router':
+        specifier: 'catalog:'
+        version: 1.170.45(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       better-auth:
         specifier: 'catalog:'
         version: 1.7.11(@opentelemetry/api@1.9.1)(mysql2@3.15.3)(pg@8.23.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(vitest@5.0.5)
@@ -1022,6 +1010,18 @@ importers:
       pg:
         specifier: 'catalog:'
         version: 8.23.0
+      pg-boss:
+        specifier: 'catalog:'
+        version: 12.38.0(@opentelemetry/api@1.9.1)
+      react:
+        specifier: 'catalog:'
+        version: 19.3.1
+      react-dom:
+        specifier: 'catalog:'
+        version: 19.3.1(react@19.3.1)
+      vitest:
+        specifier: 'catalog:'
+        version: 5.0.5(@opentelemetry/api@1.9.1)(@types/node@24.19.2)(@vitest/coverage-v8@5.0.5)(happy-dom@21.0.3)(vite@8.3.4(@types/node@24.19.2)(esbuild@0.28.2)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/pr-watch:
     dependencies:

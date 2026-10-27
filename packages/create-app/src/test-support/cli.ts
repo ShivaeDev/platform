@@ -6,7 +6,7 @@ import { fileURLToPath } from "node:url";
 import { Config, Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { setupInstaller } from "./setupInstaller.ts";
-import { starterModules } from "./starterModules.ts";
+import { hoistedPieces, starterModules } from "./starterModules.ts";
 
 export function appFolder(
 	root: string,
@@ -38,7 +38,7 @@ export function appFolder(
 		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
 		const modules = starterModules();
 		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
-		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, quality, typecheckExit), { mode: 0o755 });
+		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, hoistedPieces(), quality, typecheckExit), { mode: 0o755 });
 	}
 	if (installer !== undefined) {
 		rmSync(join(bin, "pnpm"));

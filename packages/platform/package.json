@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/platform",
 	"version": "0.34.0",
-	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
+	"description": "One dependency for the ShivaeDev Effect application stack",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
@@ -22,24 +22,40 @@
 	],
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
+		"@shivaedev/admin": "workspace:*",
+		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/form": "workspace:*",
+		"@shivaedev/github": "workspace:*",
 		"@shivaedev/http": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
+		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
+		"@shivaedev/react": "workspace:*",
 		"@shivaedev/server": "workspace:*",
+		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
 	"peerDependencies": {
+		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
+		"@tanstack/react-router": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
-		"pg": "catalog:"
+		"pg": "catalog:",
+		"pg-boss": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
+		"vitest": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@effect/atom-react": {
+			"optional": true
+		},
 		"@effect/platform-node": {
 			"optional": true
 		},
@@ -49,10 +65,25 @@
 		"@effect/vitest": {
 			"optional": true
 		},
+		"@tanstack/react-router": {
+			"optional": true
+		},
 		"better-auth": {
 			"optional": true
 		},
 		"pg": {
+			"optional": true
+		},
+		"pg-boss": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		},
+		"vitest": {
 			"optional": true
 		}
 	},

@@ -9,6 +9,7 @@ import { blockedEntries, exportEntries, packedFiles } from "#package-check/expor
 import { command, requireThat, writeJson } from "#package-check/io.ts";
 import type { Package } from "#package-check/model.ts";
 import type { Scenario } from "#package-check/scenarios.ts";
+import { checkUnhoisted } from "#package-check/unhoisted.ts";
 import { writeFixtures } from "#package-check/writeFixtures.ts";
 
 const compilerOptions = {
@@ -37,7 +38,7 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const imports = yield* writeFixtures(root, pkg, consumer, scenario?.fixtures);
-	const { dependencies, tarballs } = yield* consumerDependencies(pkg, packages, imports, scenario?.omitOptionalPeers);
+	const { dependencies, tarballs } = yield* consumerDependencies(pkg, packages, imports, scenario?.omitOptionalPeers, scenario?.shell !== undefined);
 	yield* writeJson(join(consumer, "package.json"), {
 		dependencies,
 		name: "packed-consumer",
@@ -48,7 +49,7 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 		},
 		type: "module",
 	});
-	yield* fs.writeFileString(join(consumer, "pnpm-workspace.yaml"), yield* consumerWorkspace(root, pkg, tarballs));
+	yield* fs.writeFileString(join(consumer, "pnpm-workspace.yaml"), yield* consumerWorkspace(root, pkg, tarballs, scenario?.shell));
 	yield* writeJson(
 		join(consumer, "tsconfig.json"),
 		scenario?.tsconfig === undefined
@@ -79,6 +80,10 @@ export const checkConsumer = Effect.fn("Packed.checkConsumer")(function* (
 	);
 	yield* command(consumer, "pnpm", ["install", "--ignore-scripts", "--frozen-lockfile=false", "--store-dir", store]);
 	yield* checkEffectCopies(consumer, catalog);
+	if (scenario?.shell === "unhoisted") {
+		yield* checkUnhoisted(pkg, consumer);
+		return;
+	}
 	yield* checkBrowserEntries(root, pkg, packages, consumer);
 	if (scenario?.omitOptionalPeers) {
 		yield* checkOptionalPeers(pkg, consumer);

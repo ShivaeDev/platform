@@ -32,6 +32,22 @@
 			"run": ["local-guard.ts"]
 		}
 	],
+	"platform": [
+		{
+			"entries": [],
+			"fixtures": ["shell.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": ["shell.ts"],
+			"shell": "hoisted"
+		},
+		{
+			"entries": [],
+			"fixtures": ["shell.ts.txt"],
+			"omitOptionalPeers": false,
+			"run": [],
+			"shell": "unhoisted"
+		}
+	],
 	"pr-watch": [
 		{
 			"entries": ["./Watcher.ts", "./GitHub.ts", "./GitHubHttp.ts", "./StateFile.ts"],

@@ -4,6 +4,9 @@ packages:
 
 nodeOptions: --conditions=source
 
+# Applications depend on @shivaedev/platform alone; hoisting links the pieces it brings so they resolve by their own names.
+publicHoistPattern: ["@shivaedev/*"]
+
 overrides:
   # Recharts pins an unattested reselect release; use its attested compatible successor.
   "recharts>reselect": "catalog:"
