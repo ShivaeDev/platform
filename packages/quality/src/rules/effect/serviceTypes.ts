@@ -5,7 +5,6 @@ const CONTEXT = "~effect/Context";
 
 export function serviceTypes(checker: ts.TypeChecker) {
 	const shapes = new Set<ts.Type>();
-	const implementations = new Map<ts.Type, boolean>();
 	const carried = new Map<ts.Type, boolean>();
 	function propertyType(type: ts.Type, name: string): ts.Type | undefined {
 		const property = type.getProperty(name);
@@ -16,7 +15,13 @@ export function serviceTypes(checker: ts.TypeChecker) {
 			return;
 		}
 		const shape = propertyType(type, "Service");
-		if (shape !== undefined && (shape.getProperties().length > 0 || shape.getCallSignatures().length > 0)) {
+		if (
+			shape !== undefined
+			&& shape.flags & ts.TypeFlags.Object
+			&& (shape.getProperties().length > 0 || shape.getCallSignatures().length > 0)
+			&& checker.getIndexInfosOfType(shape).length === 0
+			&& (shape.getCallSignatures().length === 0 || type.getProperty("~effect/Context/Reference") === undefined)
+		) {
 			shapes.add(shape);
 		}
 	}
@@ -24,21 +29,12 @@ export function serviceTypes(checker: ts.TypeChecker) {
 		return ["~effect/Effect", "~effect/Stream"].some((brand) => type.getProperty(brand) !== undefined);
 	}
 	function implementation(type: ts.Type): boolean {
-		const known = implementations.get(type);
-		if (known !== undefined) {
-			return known;
+		if (shapes.has(type)) {
+			return true;
 		}
-		const result =
-			Boolean(type.flags & ts.TypeFlags.Object)
-			&& [...shapes].some(
-				(shape) =>
-					(shape.getCallSignatures().length === 0 || type.getCallSignatures().length > 0)
-					&& (type === shape || type.getCallSignatures().every((signature) => !(signature.getReturnType().flags & ts.TypeFlags.Any)))
-					&& shape.getProperties().every((property) => type.getProperty(property.name) !== undefined)
-					&& checker.isTypeAssignableTo(type, shape),
-			);
-		implementations.set(type, result);
-		return result;
+		const declaration = type.getSymbol()?.valueDeclaration;
+		const contextual = declaration !== undefined && ts.isObjectLiteralExpression(declaration) ? checker.getContextualType(declaration) : undefined;
+		return contextual !== undefined && shapes.has(contextual);
 	}
 	function nonEmptyContext(context: ts.Type): boolean {
 		const variance = propertyType(context, "_Services");

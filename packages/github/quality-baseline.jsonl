@@ -1,12 +1,3 @@
-{"path":"packages/github/src/GitHub.ts","rule":"effect/service-parameters","count":4}
-{"path":"packages/github/src/appJwt.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/github/src/artifacts.ts","rule":"effect/service-parameters","count":3}
-{"path":"packages/github/src/authenticatedRequest.ts","rule":"effect/service-parameters","count":3}
-{"path":"packages/github/src/cache.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/github/src/json.ts","rule":"effect/service-parameters","count":4}
+{"path":"packages/github/src/artifacts.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/github/src/markdownRows.ts","rule":"effect/boundary","count":1}
-{"path":"packages/github/src/markdownRows.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/github/src/rateLimits.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/github/src/requests.ts","rule":"effect/service-parameters","count":3}
-{"path":"packages/github/src/status.ts","rule":"effect/service-parameters","count":3}
-{"path":"packages/github/src/verifyWebhook.ts","rule":"effect/service-parameters","count":5}
+{"path":"packages/github/src/requests.ts","rule":"effect/service-parameters","count":1}
