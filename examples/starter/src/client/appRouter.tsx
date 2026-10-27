@@ -1,7 +1,6 @@
 import { createRootRouteWithContext, createRoute, createRouter, type RouterHistory, useRouterState } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { ReactNode } from "react";
-import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
 import type { PermissionSession } from "@shivaedev/react/permissions.ts";
 import type { AuthActions } from "./auth.ts";
 import { Home } from "./Home.tsx";
@@ -15,9 +14,7 @@ export function appRouter(
 	history?: RouterHistory,
 	session: () => PermissionSession | null | undefined = () => undefined,
 ) {
-	const root = createRootRouteWithContext<{ readonly registry: AtomRegistry.AtomRegistry }>()({
-		beforeLoad: permissionGuard({ session, signIn: "/sign-in" }),
-	});
+	const root = createRootRouteWithContext<{ readonly registry: AtomRegistry.AtomRegistry }>()();
 	const login = createRoute({
 		component: () => {
 			const { returnTo } = login.useSearch();
@@ -27,7 +24,7 @@ export function appRouter(
 		path: "/sign-in",
 		validateSearch: (search: Record<string, unknown>) => ({ returnTo: typeof search.returnTo === "string" ? search.returnTo : "/" }),
 	});
-	const routes = client.modules.flatMap((module) => module.routes({ auth, navigate: (to) => void router.navigate({ to }), registry, root }));
+	const routes = client.modules.flatMap((module) => module.routes({ auth, navigate: (to) => void router.navigate({ to }), registry, root, session }));
 	const home = createRoute({ component: () => <Home auth={auth} />, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
 		context: { registry },
