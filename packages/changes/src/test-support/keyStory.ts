@@ -8,7 +8,8 @@ export const rows = collection("rows", Schema.Number, { listId: Schema.Number, u
 export const keyStory = storyKit({
 	create: () =>
 		Effect.gen(function* () {
-			const reactivity = yield* Reactivity.make;
+			const provided = yield* Effect.serviceOption(Reactivity.Reactivity);
+			const reactivity = provided._tag === "Some" ? provided.value : yield* Reactivity.make;
 			const refreshed: string[] = [];
 			const channel = makeChannel<Key>({
 				key: JSON.stringify,

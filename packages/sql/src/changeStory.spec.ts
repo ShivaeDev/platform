@@ -1,16 +1,18 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { expect } from "vitest";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { AnnouncedRow } from "#test/AnnouncedRow.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { hasNotificationRows } from "#test/sqlTraits.ts";
 
-postgres.it("declared domain read keys cover raw SQL writes", [hasNotificationRows()], function* (test) {
+postgres.it("declared record keys cover raw SQL writes", [hasNotificationRows()], function* (test) {
 	const table = test.notificationTable();
-	const covers = { [table]: ["dashboard:activity"] };
+	const rows = collection(table, Schema.Number);
+	const covers = { [table]: [rows.item(1)] };
 	yield* test.withChangeCoverage(
 		Effect.gen(function* () {
 			yield* test.sql`insert into ${test.sql(table)} (id) values (1)`;
-			yield* test.invalidateOnCommit(["dashboard:activity"]);
+			yield* test.invalidateOnCommit(invalidationKeys([rows.item(1)]));
 		}),
 		{ covers },
 	);
@@ -20,7 +22,7 @@ postgres.it("declared domain read keys cover raw SQL writes", [hasNotificationRo
 		.withChangeCoverage(
 			Effect.gen(function* () {
 				yield* test.sql`insert into ${test.sql(table)} (id) values (2)`;
-				yield* test.invalidateOnCommit(["dashboard:activity"]);
+				yield* test.invalidateOnCommit(invalidationKeys([rows.item(1)]));
 			}),
 		)
 		.pipe(Effect.flip);

@@ -1,11 +1,13 @@
 import { Data, Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { ChangeObserver, transact } from "./transact.ts";
+import { type BucketKey, type ItemKey, invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { ChangeDeclarations } from "#ChangeDeclarations.ts";
+import { ChangeObserver, transact } from "#transact.ts";
 
 export class UnannouncedWrites extends Data.TaggedError("UnannouncedWrites")<{ readonly tables: readonly string[] }> {}
 
 export interface ChangeCoverage {
-	readonly covers: Readonly<Record<string, readonly unknown[]>>;
+	readonly covers: Readonly<Record<string, readonly (ItemKey | BucketKey)[]>>;
 }
 
 interface TableWrites {
@@ -21,13 +23,22 @@ export const withChangeCoverage = Effect.fn("Changes.withChangeCoverage")(functi
 	const observer = yield* ChangeObserver;
 	const sql = yield* SqlClient.SqlClient;
 	const named = new Set<unknown>();
+	const declarations = new Map<string, { keys: Set<string>; rows: number }>();
+	const outer = yield* ChangeDeclarations;
 	const written = sql<TableWrites>`select relid, relname, (n_tup_ins + n_tup_upd + n_tup_del)::int as writes from pg_stat_xact_user_tables`;
 	const checked = Effect.gen(function* () {
 		const before = new Map((yield* written).map((row) => [row.relid, row.writes]));
 		const result = yield* body;
-		const missing = (yield* written).filter(
-			(row) => row.writes > (before.get(row.relid) ?? 0) && !named.has(row.relname) && !options?.covers[row.relname]?.some((key) => named.has(key)),
-		);
+		const missing = (yield* written).filter((row) => {
+			const count = row.writes - (before.get(row.relid) ?? 0);
+			if (count <= 0) {
+				return false;
+			}
+			const automatic = declarations.get(row.relname);
+			const explicit = options?.covers[row.relname] ?? [];
+			const expected = [...(automatic?.keys ?? []), ...invalidationKeys(explicit)];
+			return (count > (automatic?.rows ?? 0) && explicit.length === 0) || expected.some((key) => !named.has(key));
+		});
 		if (missing.length > 0) {
 			return yield* Effect.fail(new UnannouncedWrites({ tables: missing.map((row) => row.relname).sort() }));
 		}
@@ -35,6 +46,20 @@ export const withChangeCoverage = Effect.fn("Changes.withChangeCoverage")(functi
 	});
 	return yield* checked.pipe(
 		transact({ onSqlError: (error) => error }),
+		Effect.provideService(ChangeDeclarations, {
+			declare: (table, keys, rows) =>
+				Effect.andThen(
+					Effect.sync(() => {
+						const entry = declarations.get(table) ?? { keys: new Set<string>(), rows: 0 };
+						for (const key of keys) {
+							entry.keys.add(key);
+						}
+						entry.rows += rows;
+						declarations.set(table, entry);
+					}),
+					outer.declare(table, keys, rows),
+				),
+		}),
 		Effect.provideService(ChangeObserver, (event) => {
 			if (event._tag === "Recorded") {
 				for (const key of event.changes) {
