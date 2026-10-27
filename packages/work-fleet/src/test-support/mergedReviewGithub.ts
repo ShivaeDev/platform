@@ -74,10 +74,14 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		unavailableReads: 0,
 	};
 	const requests: string[] = [];
+	const mutations: { readonly method: string; readonly path: string }[] = [];
 	const conditionalHits: string[] = [];
 	const server = createServer((request, response) => {
 		const path = request.url ?? "";
 		requests.push(path);
+		if (request.method !== undefined && request.method !== "GET") {
+			mutations.push({ method: request.method, path });
+		}
 		if (state.unavailableReads > 0) {
 			state.unavailableReads -= 1;
 			response.writeHead(503).end();
@@ -112,6 +116,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		checksQuery: makeGithubChecks(github.pages),
 		conditionalHits,
 		deliveryQuery: githubDelivery(readPullRequest(github.get)),
+		mutations,
 		publication: githubPublication(
 			{ ...host, worker: { branchPrefix: "synthetic/", sharedEnvironment: "/synthetic/env.sh" } },
 			github,

@@ -38,6 +38,12 @@ export const ClientContract = contract("daemon", {
 			rejections: fleetRejections,
 			success: Schema.Array(FleetRecord),
 		}),
+		command("stop", {
+			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
+			payload: { workId: Schema.String },
+			rejections: fleetRejections,
+			success: FleetRecord,
+		}),
 		command("answer", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
 			payload: { release: Schema.optional(Schema.Boolean), text: Schema.optional(Schema.String), workId: Schema.String },

@@ -46,7 +46,9 @@ function releaseItem(root: string, background: boolean) {
 			return yield* background ? Effect.succeed(stored) : fleet.reconcile(workId);
 		}
 		if (stored.value.step !== "waiting") {
-			return yield* Effect.fail(new Forbidden({ message: "Only waiting work can be released" }));
+			return yield* Effect.fail(
+				new Forbidden({ message: `Only waiting work can be released; use work-fleet stop ${workId} to interrupt running work` }),
+			);
 		}
 		if (stored.value.decision?.published === undefined) {
 			stored = yield* fleet.reconcile(workId);

@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import { failureCode } from "#engine/failureCode.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { settleMergedDelivery } from "#engine/settleMergedDelivery.ts";
 import type { FleetCycleSnapshot, FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -37,5 +38,8 @@ export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliver
 	if (record === stored.value && history.every((cycle, index) => cycle === stored.value.history?.[index])) {
 		return stored;
 	}
-	return yield* state.save(stored, { ...record, history: record.history === undefined ? undefined : history });
+	const updated = yield* state.save(stored, { ...record, history: record.history === undefined ? undefined : history });
+	return record.step === "released" && record.result?.kind === "change" && record.mergedDelivery?.revision !== undefined
+		? yield* settleMergedDelivery(state, updated, record.result, { ...record.mergedDelivery, revision: record.mergedDelivery.revision }, false)
+		: updated;
 });

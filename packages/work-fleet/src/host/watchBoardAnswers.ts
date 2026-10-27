@@ -17,7 +17,8 @@ export function watchBoardAnswers(root: string) {
 					return readings.flatMap(({ question, responses: recorded }) => {
 						const attention = board.metadataParse(question.context).fields.attention?.find((request) => request.id === question.question.request);
 						const unblocks = attention?.unblocks ?? [];
-						return recorded.map((response) => ({
+						const external = recorded.filter((response) => response.response.author !== "orchestrator");
+						return external.map((response) => ({
 							author: response.response.author,
 							item: question.question.item,
 							kind: "board-answer" as const,

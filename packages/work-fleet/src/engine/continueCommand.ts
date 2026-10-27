@@ -7,6 +7,7 @@ import { failureMessage } from "#engine/failureMessage.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
+import { sweepMerged } from "#scheduling/sweeps.ts";
 import type { StorageCapacity } from "#storage/errors.ts";
 import type { Versioned } from "#storage/model.ts";
 
@@ -14,6 +15,9 @@ export function continueCommand(state: EngineState, launch: ReturnType<typeof ma
 	return Effect.fn("Fleet.continue")(
 		function* (workId: string, message: string) {
 			let stored = yield* state.load(workId);
+			if (sweepMerged(stored.value)) {
+				return yield* new Forbidden({ message: "Merged work needs a changed brief and explicit dispatch" });
+			}
 			if (!message.trim()) {
 				return yield* Effect.fail(new BadRequest({ message: "Continuation needs a message" }));
 			}

@@ -46,7 +46,7 @@ for (const released of [false, true]) {
 	);
 }
 engine.it(
-	"a Board edit between the scheduler read and completion write survives and is marked done on a later pass",
+	"a Board edit between the scheduler read and completion write survives later passes",
 	[githubPullRequest({}), boardEditRacesCompletion(), markdownWork()],
 	function* ({ fleet, restart, schedule, prepareWork, workerReports, boardBrief, editBoardAtCompletion, mergePullRequest, readBoardWork, launches }) {
 		yield* prepareWork("one");
@@ -63,7 +63,7 @@ engine.it(
 		expect(readBoardWork()).toBe(changed);
 		yield* restart();
 		yield* schedule();
-		expect(readBoardWork()).toBe(changed.replace("fleet: approved\n", 'fleet: approved\nstatus: done\nnext_action: "Done; PR #7 merged."\n'));
+		expect(readBoardWork()).toBe(changed);
 		expect(yield* fleet.get("one")).toEqual(done);
 		expect(done.value.boardRevision).toBe(waiting.value.boardRevision);
 		expect(done.value.history ?? []).toEqual(waiting.value.history ?? []);

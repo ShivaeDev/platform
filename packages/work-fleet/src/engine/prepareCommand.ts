@@ -5,9 +5,11 @@ import { ensurePublication } from "#engine/ensurePublication.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { inspectRenewal } from "#engine/inspectRenewal.ts";
 import type { EngineState } from "#engine/makeState.ts";
+import { observeReleasedDeliveries } from "#engine/releasedDeliveries.ts";
 import type { PrepareWork } from "#fleet.ts";
 import { executing, type FleetCycleSnapshot, type FleetRecord } from "#model.ts";
 import type { BoardWork } from "#policy.ts";
+import { sweepMerged } from "#scheduling/sweeps.ts";
 import type { Versioned } from "#storage/model.ts";
 
 export function prepareCommand(state: EngineState) {
@@ -38,10 +40,11 @@ export function prepareCommand(state: EngineState) {
 			sweep: work.sweep,
 			workId: work.workId,
 		};
-		const existing = yield* store.load(work.workId);
+		let existing = yield* store.load(work.workId);
 		if (existing === undefined) {
 			return yield* store.insert(current);
 		}
+		existing = yield* observeReleasedDeliveries(state, existing);
 		if (unusedPreparation(existing.value)) {
 			return yield* save(existing, { ...current, dispatchNow: existing.value.dispatchNow, history: existing.value.history });
 		}
@@ -93,7 +96,7 @@ const renewable = Effect.fn("Fleet.renewable")(function* (record: FleetRecord, w
 	if (executing(record)) {
 		return yield* Effect.fail(new Forbidden({ message: "Reconcile and confirm terminal execution before renewing preparation" }));
 	}
-	if (record.step === "done" && !briefChanged(record, work)) {
+	if ((record.step === "done" || sweepMerged(record)) && !briefChanged(record, work)) {
 		return yield* Effect.fail(new Forbidden({ message: "Completed work needs a newly approved Board context before renewal" }));
 	}
 });
