@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { createRequire } from "node:module";
 import { Effect, FileSystem, Path, Schema } from "effect";
 import { type HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
-import { InternalServerError } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { INITIAL_THEME_SCRIPT, THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { HEADERS, respond } from "./respond.ts";
 

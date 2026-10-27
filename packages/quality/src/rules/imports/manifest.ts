@@ -3,6 +3,7 @@ import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { builtinName } from "#imports/resolve.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
+import { type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule, type RuleInputs } from "#rule.ts";
 import { bundleInputs } from "./bundleInputs.ts";
@@ -21,7 +22,10 @@ function packageName(specifier: string): string {
 }
 
 interface ManifestDependencies {
+	readonly application: boolean;
 	readonly development: ReadonlySet<string>;
+	readonly entryPoints: readonly EntryPoint[];
+	readonly private: boolean;
 	readonly privateFiles: ReadonlySet<string>;
 	readonly runtime: ReadonlySet<string>;
 	readonly shipped: ReadonlySet<string>;
@@ -38,7 +42,12 @@ function names(manifest: object, field: string): readonly string[] {
 	return Object.keys(value);
 }
 
-async function manifestDependencies(inputs: RuleInputs, owner: WorkspacePackage, graph: ImportGraph): Promise<ManifestDependencies> {
+async function manifestDependencies(
+	inputs: RuleInputs,
+	owner: WorkspacePackage,
+	graph: ImportGraph,
+	workspace: ReadonlyMap<string, string>,
+): Promise<ManifestDependencies> {
 	const path = posix.join(owner.directory, "package.json");
 	try {
 		const text = await inputs.readText(path);
@@ -51,8 +60,11 @@ async function manifestDependencies(inputs: RuleInputs, owner: WorkspacePackage,
 		}
 		return {
 			...bundleInputs(graph, owner, manifest, (candidate) => developmentFile(owner, candidate)),
+			application: isApplication(manifest),
 			development: new Set(names(manifest, "devDependencies")),
-			shipped: new Set(["dependencies", "peerDependencies", "optionalDependencies"].flatMap((field) => names(manifest, field))),
+			entryPoints: await entryPointsOf(inputs, owner.directory, manifest, workspace),
+			private: Reflect.get(manifest, "private") === true,
+			shipped: new Set(SHIPPED_FIELDS.flatMap((field) => names(manifest, field))),
 		};
 	} catch (cause) {
 		throw new Error(`cannot read dependency policy at ${path}: ${cause instanceof Error ? cause.message : String(cause)}`, { cause });
@@ -70,12 +82,35 @@ function developmentImport(policy: ManifestDependencies | undefined, owner: Work
 	return developmentFile(owner, path) || policy?.privateFiles.has(path);
 }
 
+function declares(policy: ManifestDependencies, target: string, development: boolean): boolean {
+	return (
+		policy.shipped.has(target)
+		|| (development && policy.development.has(target))
+		|| (policy.application && provider(policy.entryPoints, target, development, true) !== undefined)
+	);
+}
+
+function undeclared(owner: WorkspacePackage, policy: ManifestDependencies | undefined, target: string, development: boolean): string {
+	const missing = policy?.private === true ? provider(policy.entryPoints, target, development, false) : undefined;
+	const entryPoint =
+		missing === undefined
+			? ""
+			: ` An application can instead add "${missing.name}" to ${missing.testOnly ? "devDependencies" : "dependencies"}, which brings it.`;
+	const scope = development
+		? " Tooling, test code and export-blocked bundle inputs may also use devDependencies."
+		: " devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code.";
+	return `Imports workspace package "${target}" without declaring it in ${posix.join(owner.directory, "package.json")}. Add it to dependencies, peerDependencies or optionalDependencies, or remove the import.${entryPoint}${scope}`;
+}
+
 export const importsManifest = defineRule({
 	check: async (inputs) => {
 		const graph = await importGraph(inputs);
 		const root: WorkspacePackage | undefined = (await inputs.readText("package.json")) === undefined ? undefined : { directory: ".", name: "." };
 		const owners = [...graph.packages, ...(root === undefined ? [] : [root])];
-		const policies = new Map(await Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph)] as const)));
+		const workspace = new Map(graph.packages.map((owner) => [owner.name, owner.directory]));
+		const policies = new Map(
+			await Promise.all(owners.map(async (owner) => [owner, await manifestDependencies(inputs, owner, graph, workspace)] as const)),
+		);
 		const runtime = new Set([...policies.values()].flatMap((policy) => [...policy.runtime]));
 		const named = new Map(graph.packages.map((owner) => [owner.name, owner]));
 		const requests = [...graph.edges, ...graph.unresolved.filter((request) => request.missing === undefined)];
@@ -88,21 +123,14 @@ export const importsManifest = defineRule({
 				return [];
 			}
 			const policy = policies.get(owner);
-			const development = developmentImport(policy, owner, request.from, runtime);
-			if (policy?.shipped.has(target.name) || (development && policy?.development.has(target.name))) {
+			const development = developmentImport(policy, owner, request.from, runtime) === true;
+			if (policy !== undefined && declares(policy, target.name, development)) {
 				return [];
 			}
-			return [
-				{
-					file: request.from,
-					line: request.line,
-					message: `Imports workspace package "${target.name}" without declaring it in ${posix.join(owner.directory, "package.json")}. Add it to dependencies, peerDependencies or optionalDependencies, or remove the import.${development ? " Tooling, test code and export-blocked bundle inputs may also use devDependencies." : " devDependencies are only available to tests, test support, tooling and export-blocked bundle inputs unreachable from runtime code."}`,
-					subject: target.name,
-				},
-			];
+			return [{ file: request.from, line: request.line, message: undeclared(owner, policy, target.name, development), subject: target.name }];
 		});
 	},
 	description:
-		"Workspace imports follow the importing package's manifest; devDependencies are available only outside runtime code, including export-blocked bundle inputs.",
+		"Workspace imports follow the importing package's manifest; devDependencies are available only outside runtime code, including export-blocked bundle inputs, and an application also reaches the dependencies of the entry points it declares: @shivaedev/platform for any code and @shivaedev/test-story for test code.",
 	id: "imports/manifest",
 });

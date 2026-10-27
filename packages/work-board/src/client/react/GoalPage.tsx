@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { GoalCriteria } from "./GoalCriteria.tsx";
 import { GoalWorkTable } from "./GoalWorkTable.tsx";

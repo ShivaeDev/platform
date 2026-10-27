@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
 import type { FleetHost } from "#host/config.ts";
 import { type GithubRead, githubJson } from "#host/github.ts";

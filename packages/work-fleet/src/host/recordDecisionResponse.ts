@@ -1,5 +1,5 @@
 import { Clock, Effect, FileSystem, Schema } from "effect";
-import { BadRequest, Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { responses as responsesApi } from "@shivaedev/work-board/server/integration/responses.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { BoardGateway, type Decision } from "#policy.ts";

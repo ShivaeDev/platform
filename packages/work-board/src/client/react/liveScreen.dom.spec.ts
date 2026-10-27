@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { inboxQuestion } from "#test/inboxFixture.ts";
 import { BOARD, FILES } from "#test/live.ts";
 import { screenWorkspace } from "#test/screenEnvironment.ts";

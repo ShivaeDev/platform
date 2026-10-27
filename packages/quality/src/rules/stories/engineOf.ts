@@ -50,7 +50,7 @@ const ENGINES: ReadonlyArray<readonly [string, readonly string[]]> = [
 		],
 	],
 	["the DOM", ["@happy-dom/", "@playwright/test", "@testing-library/", "happy-dom", "jsdom", "playwright", "react-dom"]],
-	["a story engine", ["@shivaedev/effect-test-sql", "@shivaedev/local-postgres", "@shivaedev/test-story"]],
+	["a story engine", ["@shivaedev/test-sql", "@shivaedev/local-postgres", "@shivaedev/test-story"]],
 ];
 
 function names(prefix: string, specifier: string): boolean {

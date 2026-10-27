@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { useEffect } from "react";
-import { useAction } from "@shivaedev/effect-react/client/resultState.ts";
-import { useLoaderQuery } from "@shivaedev/effect-react/client/useLoaderQuery.ts";
+import { useAction } from "@shivaedev/react/client/resultState.ts";
+import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
 import type { AuthActions } from "#client/auth.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";

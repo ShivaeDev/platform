@@ -1,6 +1,6 @@
 # PostgreSQL migrations
 
-Use `migratePostgres` from `@shivaedev/effect-sql/migrations.ts` with Effect's numbered migration
+Use `migratePostgres` from `@shivaedev/sql/migrations.ts` with Effect's numbered migration
 loaders. It serializes runners for one ledger, including the first run on an
 empty database, and executes each pending batch in a transaction.
 
@@ -43,7 +43,7 @@ Migration-body SQL failures propagate as native `MigrationError` defects; a type
 
 ## Check the ledger before serving
 
-`assertPostgresMigrations` from `@shivaedev/effect-sql/assertPostgresMigrations.ts` checks that the loader's migration IDs and names are present in the ledger. It does not execute migrations or create the ledger. Missing or pending migrations and a mismatched name fail with `MigrationError`. A loader whose entries are a subset of the applied ledger passes.
+`assertPostgresMigrations` from `@shivaedev/sql/assertPostgresMigrations.ts` checks that the loader's migration IDs and names are present in the ledger. It does not execute migrations or create the ledger. Missing or pending migrations and a mismatched name fail with `MigrationError`. A loader whose entries are a subset of the applied ledger passes.
 
 Pass `migrations: { loader: migrations, table: "app_migrations", mode: "check" }` to `appHost` to use this assertion during database initialization. The starter uses check mode for its web and worker processes; run `pnpm migrate` separately to apply migrations. The assertion checks the ledger, not table structure or edited migration content.
 

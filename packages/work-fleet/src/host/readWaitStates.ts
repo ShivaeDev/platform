@@ -2,7 +2,7 @@ import * as Effect from "effect/Effect";
 import * as Schema from "effect/Schema";
 import * as Struct from "effect/Struct";
 import { Model } from "effect/schema";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { waitingOwner } from "#attention.ts";
 import { recoveryStatus } from "#engine/recoveryStatus.ts";
 import { State } from "#host/waitOutcome.ts";

@@ -1,12 +1,12 @@
 import { Effect, Layer, Option, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
-import { makeLiveServer } from "@shivaedev/effect-contract/makeLiveServer.ts";
-import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
-import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
-import { hostChanges } from "@shivaedev/platform/server/hostChanges.ts";
-import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
-import type { UserSessionShape } from "@shivaedev/platform/server/rpc-server/session.ts";
+import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { AdminPermission } from "#permissions.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "./Access.ts";

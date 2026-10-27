@@ -1,6 +1,6 @@
 import { Effect, Redacted } from "effect";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
-import { transact } from "@shivaedev/effect-sql/transact.ts";
+import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
+import { transact } from "@shivaedev/sql/transact.ts";
 import { CountWords, NoteJobs } from "./jobs.ts";
 import { makeNotesRepository } from "./makeRepository.ts";
 

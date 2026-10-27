@@ -3,7 +3,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, Layer } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
 import { boardSubscription } from "#test/boardSubscription.ts";

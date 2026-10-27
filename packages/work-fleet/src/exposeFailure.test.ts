@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Cause, Effect } from "effect";
-import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { failureContext, withFailureContext } from "#engine/failureContext.ts";
 import { failureOwner } from "#engine/failureOwner.ts";
 import { daemonError } from "#host/daemonClient.ts";

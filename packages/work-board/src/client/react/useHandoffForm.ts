@@ -1,7 +1,7 @@
 import { useAtomRef } from "@effect/atom-react";
 import { Equal, Option, Schema } from "effect";
 import { useEffect, useState } from "react";
-import { useCreate } from "@shivaedev/effect-react/client/create.ts";
+import { useCreate } from "@shivaedev/react/client/create.ts";
 import { HandoffInput, type HandoffPreview } from "#browser/handoffs/schema.ts";
 import type { HandoffProjection } from "#browser/views/remaining.ts";
 import { closedStatus } from "#browser/views/workStatus.ts";

@@ -1,6 +1,6 @@
 import { isRedirect, type LoaderFnContext, redirect } from "@tanstack/react-router";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { loadQuery } from "@shivaedev/react/loadQuery.ts";
 import { resultUrl } from "#responses/url.ts";
 import type { ShellOptions } from "./BoardShell.tsx";
 import { documentRoute } from "./documentRoute.ts";

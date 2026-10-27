@@ -1,4 +1,4 @@
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { Metrics } from "#client/admin/Metrics.tsx";
 import { QueryPanel } from "#client/admin/QueryPanel.tsx";
 import type { AdminClient } from "./admin.ts";

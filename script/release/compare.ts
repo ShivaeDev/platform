@@ -13,7 +13,7 @@ export const compareRelease = Effect.fn("Release.compareRelease")(function* (roo
 		const text = git("show", `${head}:${path}`);
 		const date = /^# Changelog\n\n## [^\n ]+ - (?<date>\d{4}-\d{2}-\d{2})\n/u.exec(text)?.groups?.date;
 		if (date === undefined) {
-			throw new Error("The standing release needs a dated changelog heading; rerun changesets apply.");
+			throw new Error("The standing release needs a dated changelog heading; rerun releases apply.");
 		}
 		return { base: git("rev-parse", `${head}^`), date, tree: git("rev-parse", `${head}^{tree}`) };
 	});

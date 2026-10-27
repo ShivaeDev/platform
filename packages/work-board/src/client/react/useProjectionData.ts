@@ -2,7 +2,7 @@ import { Cause, Option, Predicate } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import { useEffect, useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { ProjectionRoute } from "./projectionRoute.ts";
 import type { RemainingRoute } from "./remainingRoute.ts";
 

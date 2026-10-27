@@ -1,4 +1,6 @@
-const KEY = /^(?:packages|"packages"|'packages')\s*:/u;
+function keyPattern(key: string): RegExp {
+	return new RegExp(`^(?:${key}|"${key}"|'${key}')\\s*:`, "u");
+}
 
 const ITEM = "-";
 
@@ -25,20 +27,20 @@ function withoutComment(line: string): string {
 	return line.trimEnd();
 }
 
-function scalar(raw: string): string {
+function scalar(raw: string, key: string): string {
 	const value = raw.trim();
 	if (value.startsWith('"') && value.endsWith('"') && value.length > 1) {
 		try {
 			return String(JSON.parse(value));
 		} catch (error) {
-			throw failure(`cannot read "${value}" in packages`, error);
+			throw failure(`cannot read "${value}" in ${key}`, error);
 		}
 	}
 	if (value.startsWith("'") && value.endsWith("'") && value.length > 1) {
 		return value.slice(1, -1).replaceAll("''", "'");
 	}
 	if (value === "" || value.includes(": ") || value.endsWith(":") || ["[", "{", "'", '"'].some((opening) => value.startsWith(opening))) {
-		throw failure(`cannot read "${value}" in packages`);
+		throw failure(`cannot read "${value}" in ${key}`);
 	}
 	return value;
 }
@@ -51,20 +53,20 @@ interface FlowScan {
 	quote: string | undefined;
 }
 
-function flowScalar(raw: string): string {
+function flowScalar(raw: string, key: string): string {
 	const value = raw.trim();
 	const quoted = value.startsWith('"') || value.startsWith("'");
 	if (!quoted && FLOW_INDICATOR.test(value)) {
-		throw failure(`cannot read "${value}" in packages; quote a pattern that holds { } [ ] or ,`);
+		throw failure(`cannot read "${value}" in ${key}; quote a pattern that holds { } [ ] or ,`);
 	}
-	return scalar(value);
+	return scalar(value, key);
 }
 
-function closed(scan: FlowScan, rest: string): readonly string[] {
+function closed(scan: FlowScan, rest: string, key: string): readonly string[] {
 	if (rest.trim() !== "") {
-		throw failure(`cannot read "${rest.trim()}" after the packages list`);
+		throw failure(`cannot read "${rest.trim()}" after the ${key} list`);
 	}
-	return [...scan.entries, scan.current].filter((entry) => entry.trim() !== "").map(flowScalar);
+	return [...scan.entries, scan.current].filter((entry) => entry.trim() !== "").map((entry) => flowScalar(entry, key));
 }
 
 function scanned(scan: FlowScan, char: string): "close" | undefined {
@@ -83,20 +85,20 @@ function scanned(scan: FlowScan, char: string): "close" | undefined {
 	return undefined;
 }
 
-function flowList(lines: readonly string[]): readonly string[] {
+function flowList(lines: readonly string[], key: string): readonly string[] {
 	const scan: FlowScan = { current: "", entries: [], quote: undefined };
 	for (const [number, line] of lines.map(withoutComment).entries()) {
 		for (let index = number === 0 ? 1 : 0; index < line.length; index += 1) {
 			if (scanned(scan, line[index] ?? "") === "close") {
-				return closed(scan, line.slice(index + 1));
+				return closed(scan, line.slice(index + 1), key);
 			}
 		}
 		scan.current += " ";
 	}
-	throw failure("the packages list never closes");
+	throw failure(`the ${key} list never closes`);
 }
 
-function blockList(lines: readonly string[]): readonly string[] {
+function blockList(lines: readonly string[], key: string): readonly string[] {
 	const patterns: string[] = [];
 	for (const line of lines.map(withoutComment)) {
 		const trimmed = line.trim();
@@ -108,27 +110,32 @@ function blockList(lines: readonly string[]): readonly string[] {
 			break;
 		}
 		if (!item) {
-			throw failure(`cannot read "${trimmed}" in packages`);
+			throw failure(`cannot read "${trimmed}" in ${key}`);
 		}
-		patterns.push(scalar(trimmed.slice(ITEM.length)));
+		patterns.push(scalar(trimmed.slice(ITEM.length), key));
 	}
 	return patterns;
 }
 
-export function pnpmWorkspacePatterns(text: string): readonly string[] {
+export function pnpmWorkspaceList(text: string, key: string): readonly string[] {
+	const pattern = keyPattern(key);
 	const lines = text.split(LINE_BREAK);
-	const start = lines.findIndex((line) => KEY.test(line));
+	const start = lines.findIndex((line) => pattern.test(line));
 	if (start === -1) {
 		return [];
 	}
 	const rest = withoutComment(lines[start] ?? "")
-		.replace(KEY, "")
+		.replace(pattern, "")
 		.trim();
 	if (rest.startsWith("[")) {
-		return flowList([rest, ...lines.slice(start + 1)]);
+		return flowList([rest, ...lines.slice(start + 1)], key);
 	}
 	if (rest !== "") {
-		throw failure(`cannot read "${rest}" in packages`);
+		throw failure(`cannot read "${rest}" in ${key}`);
 	}
-	return blockList(lines.slice(start + 1));
+	return blockList(lines.slice(start + 1), key);
+}
+
+export function pnpmWorkspacePatterns(text: string): readonly string[] {
+	return pnpmWorkspaceList(text, "packages");
 }

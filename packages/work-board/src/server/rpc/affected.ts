@@ -1,4 +1,4 @@
-import type { Key } from "@shivaedev/effect-contract/keys.ts";
+import type { Key } from "@shivaedev/contract/keys.ts";
 import { documents, identities, index, navigation } from "#rpc/keys.ts";
 import { referencesFrom } from "#server/metadata/backlinks.ts";
 import type { MetadataModel } from "#server/metadata/model.ts";

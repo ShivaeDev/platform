@@ -3,7 +3,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Deferred, Effect, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
 
 export async function deployPort() {
 	const server = createServer();

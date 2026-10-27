@@ -1,6 +1,6 @@
 import { Clock, Deferred, Effect, Fiber } from "effect";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
-import { withLive } from "@shivaedev/effect-test/withLive.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
+import { withLive } from "@shivaedev/test/withLive.ts";
 import { storyKit } from "#storyKit.ts";
 
 function* drain() {

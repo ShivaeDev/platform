@@ -17,8 +17,8 @@ const markdownDependencies = modules(
 	"mdast-util-directive",
 );
 const browserDependencies = anyOf(
-	folders("packages/platform/src/rpc"),
-	files("packages/access/src/permission.ts", "packages/effect-trpc/src/rejectionDecoding.ts"),
+	files("packages/identity/src/identity.ts", "packages/identity/src/middleware.ts", "packages/identity/src/permission.ts"),
+	files("packages/access/src/permission.ts"),
 );
 
 export default [
@@ -30,7 +30,7 @@ export default [
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
-				packages("effect-contract", "effect-form", "effect-react", "types"),
+				packages("contract", "errors", "form", "react", "types"),
 				modules(
 					"effect",
 					"react",
@@ -49,7 +49,7 @@ export default [
 		)
 		.demonstratedBy({
 			illegal: ["packages/work-board/src/client/handoffs/form.ts", external("node:fs")],
-			legal: ["packages/work-board/src/client/handoffs/form.ts", "packages/effect-form/src/form.ts"],
+			legal: ["packages/work-board/src/client/handoffs/form.ts", "packages/form/src/form.ts"],
 		}),
 	fence("document-rendering-stays-browser-safe")
 		.because(
@@ -61,7 +61,7 @@ export default [
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
-				packages("effect-contract", "effect-form", "types"),
+				packages("contract", "errors", "form", "types"),
 				modules("effect"),
 				modules("react"),
 			),

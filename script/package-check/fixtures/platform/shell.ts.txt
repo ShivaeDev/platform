@@ -1,0 +1,12 @@
+import { Identity } from "@shivaedev/identity/identity.ts"
+import { isUnauthorized } from "@shivaedev/react/client/resultState.ts"
+import { makePlatformRuntime } from "@shivaedev/server/runtime/makePlatform.ts"
+import { Cause, Layer } from "effect"
+
+const runtime = makePlatformRuntime(Layer.succeed(Identity, { id: "application" }))
+const identity = await runtime.runPromise(Identity)
+await runtime.dispose()
+
+if (identity.id !== "application" || isUnauthorized(Cause.fail("refused"))) {
+	throw new Error("The pieces platform brings misbehaved")
+}

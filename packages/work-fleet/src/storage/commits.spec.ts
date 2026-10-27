@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { CommittedSink, transact } from "@shivaedev/effect-sql/transact.ts";
+import { CommittedSink, transact } from "@shivaedev/sql/transact.ts";
 import { record } from "#test/storage.ts";
 import { isolatedStorage } from "#test/storageStory.ts";
 

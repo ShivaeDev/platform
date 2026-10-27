@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { Conflict, Forbidden, PreconditionFailed, type ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict, Forbidden, PreconditionFailed, type ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Question } from "#browser/responses/schema.ts";
 import { refreshWritten } from "#server/files/changes.ts";
 import { documentSource } from "#server/metadata/model.ts";

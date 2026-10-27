@@ -1,5 +1,5 @@
 import { Context, Effect, Layer } from "effect";
-import type { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { resolveHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";

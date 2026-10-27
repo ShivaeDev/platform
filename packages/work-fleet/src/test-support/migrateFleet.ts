@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { migratePostgres } from "@shivaedev/effect-sql/migrations.ts";
+import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { fleetMigrations } from "#storage/fleetMigrations.ts";
 
 export const migrateFleet = Effect.fn("FleetFixture.migrateFleet")(function* (namespace: string, lastMigration?: string) {

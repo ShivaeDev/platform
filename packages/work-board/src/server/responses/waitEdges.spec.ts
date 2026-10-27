@@ -1,7 +1,7 @@
 import { Clock, Effect, Fiber } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { waitForResponse } from "#server/responses/waitFor.ts";
 import { aQuestionnaire, boardStory } from "#test/boardStory.ts";
 import { recordedEdgeResponse } from "#test/responseEdges.ts";

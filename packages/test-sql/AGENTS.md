@@ -1,0 +1,5 @@
+# @shivaedev/test-sql
+
+You are changing the PostgreSQL isolation layer for Effect tests. Prepare migrations and optional fixtures once, let ordinary tests use the application's native SQL services inside a transaction that rolls back, and give tests that need real commits a database cloned from the prepared template. Usage is in [README.md](README.md).
+
+Native Effect semantics win first: preserve typed failures, defects, interruption, scopes, transaction ownership and savepoints. Compose `test`'s runner and `sql`'s migration and transaction paths; do not add another runner, migration engine or transaction engine. Resource lifetimes come next: close preparation connections before cloning, close test connections before dropping their database, and drop the template after its shared database. Keep PostgreSQL's row locks visible in the documentation. Prove database behavior against real PostgreSQL before claiming it; compiler and packed-consumer checks establish the public types and distribution separately.

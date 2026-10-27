@@ -1,9 +1,9 @@
 import { createMemoryHistory, RouterProvider } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
-import { authAction } from "@shivaedev/effect-react/client/authAction.ts";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
-import { loadQuery } from "@shivaedev/effect-react/loadQuery.ts";
+import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
+import { authAction } from "@shivaedev/react/client/authAction.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
+import { loadQuery } from "@shivaedev/react/loadQuery.ts";
 import { App } from "#client/App.tsx";
 import { appRouter } from "#client/appRouter.tsx";
 import type { AuthActions, Credentials } from "#client/auth.ts";

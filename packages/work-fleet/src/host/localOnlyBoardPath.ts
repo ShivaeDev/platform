@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { isAbsolute, relative, sep } from "node:path";
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 
 export function localOnlyBoardPath(boardDir: string, repositoryRoot: string) {
 	const path = relative(repositoryRoot, boardDir);

@@ -1,5 +1,5 @@
 import { expect } from "@effect/vitest";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { capacity } from "./capacity.ts";
 
 it("recognizes only explicit structured provider capacity errors", () => {

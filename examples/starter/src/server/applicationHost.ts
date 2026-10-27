@@ -1,11 +1,11 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
 import { AdminPermission } from "@shivaedev/admin/permissions.ts";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
-import { authDatabase, betterAuthMount } from "@shivaedev/platform/server/better-auth/mount.ts";
-import { permissionLayer } from "@shivaedev/platform/server/rpc-server/permissions.ts";
-import { authenticatedUserLayer } from "@shivaedev/platform/server/rpc-server/session.ts";
+import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
+import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
+import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";

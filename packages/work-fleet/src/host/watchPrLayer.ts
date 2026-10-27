@@ -1,8 +1,8 @@
 import { NodeFileSystem } from "@effect/platform-node";
 import { Clock, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub as GitHubClient } from "@shivaedev/effect-github/GitHub.ts";
-import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
+import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";
+import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { GitHub } from "@shivaedev/pr-watch/GitHub.ts";
 import { GitHubHttp } from "@shivaedev/pr-watch/GitHubHttp.ts";
 import type { WatchError } from "@shivaedev/pr-watch/model.ts";

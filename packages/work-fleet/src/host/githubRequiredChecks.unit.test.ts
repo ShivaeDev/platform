@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { ADOPTED_HEAD, checkRun, commitStatus, githubFixture, githubResult } from "#test/githubChecks.ts";
 
 it.effect("keeps missing required contexts pending and ignores non-required pending checks", function* () {

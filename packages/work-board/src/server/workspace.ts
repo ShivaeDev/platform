@@ -1,5 +1,5 @@
 import { Context, Effect, FileSystem, Path, type PlatformError, type Stream } from "effect";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { readDocument } from "#server/document/read.ts";

@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { type ReactNode, useContext } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { FleetItemsContext } from "#client/react/FleetItemsContext.ts";
 import { useLiveRead } from "#client/react/liveReady.ts";
 import { routeQueryOptions } from "#client/react/routeQuery.ts";

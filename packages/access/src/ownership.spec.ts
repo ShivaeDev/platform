@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { accessStory, signedIn } from "#test/accessStory.ts";
 import { ReadUsers } from "#test/policy.ts";
 

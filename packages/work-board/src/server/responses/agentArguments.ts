@@ -1,5 +1,5 @@
 import { Clock, Effect, Schema } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { flags } from "./flags.ts";
 
 const followArguments = Effect.fn("WorkBoard.followArguments")(function* (args: readonly string[]) {

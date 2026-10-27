@@ -1,0 +1,13 @@
+import assert from "node:assert/strict"
+import { Effect, Schema } from "effect"
+import { Model } from "effect/schema"
+import { assertModelColumns } from "@shivaedev/test-sql/server/assertModelColumns.ts"
+import { migrationUpgrade } from "@shivaedev/test-sql/server/migrationUpgrade.ts"
+
+class Item extends Model.Class<Item>("Item")({ id: Model.GeneratedByDb(Schema.Number), name: Schema.String }) {}
+const types = { id: "integer", name: "text" }
+Effect.runSync(assertModelColumns([{ name: "name", type: "text" }, { name: "id", type: "integer" }], Item, types))
+const failure = Effect.runSync(assertModelColumns([{ name: "id", type: "bigint" }], Item, types).pipe(Effect.flip))
+assert.equal(failure._tag, "ModelColumnMismatch")
+assert.deepEqual(failure.problems, ["Wrong type for id: expected integer, received bigint", "Missing column: name"])
+assert.equal(typeof migrationUpgrade, "function")

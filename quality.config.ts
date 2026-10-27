@@ -2,6 +2,7 @@ import { defineConfig } from "@shivaedev/quality/config.ts";
 import { catalogOnly } from "#quality/catalogOnly.ts";
 import { catalogOverrides } from "#quality/catalogOverrides.ts";
 import { exactCatalogVersion } from "#quality/exactCatalogVersion.ts";
+import { libraryTiers } from "#quality/libraryTiers.ts";
 import { migrationConvention } from "#quality/migrationConvention.ts";
 import { unreadable } from "#quality/unreadable.ts";
 import { workspaceSection } from "#quality/workspaceSection.ts";
@@ -14,19 +15,13 @@ export default defineConfig({
 			"rules": ["biome/files/includes"],
 		},
 		{
-			"files": ["packages/effect-test/src/anyTestLayer.ts", "packages/effect-trpc/src/server/testing/AnyTestLayer.ts"],
+			"files": ["packages/test/src/anyTestLayer.ts"],
 			"reason":
-				"effect-test declares the shared test Layer bound; effect-trpc preserves the same type at its public compatibility path. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
+				"test declares the shared test Layer bound. Layer's output slot is contravariant, so a never-only bound contextually types the caller's Layer.succeed so its service infers as never and the harness loses its types. any preserves service inference, and the never-output member accepts Layers that provide nothing, such as Layer.empty.",
 			"rules": ["biome/lint/suspicious/noExplicitAny"],
 		},
 		{
-			"files": ["packages/effect-prisma/src/test-support/FakeResult.ts"],
-			"reason":
-				"Test doubles for Prisma Next's AsyncIterableResult, a lazy thenable that is also async-iterable. The relation runtime must be exercised against that exact shape, so the doubles define then() and run their query on each consumption.",
-			"rules": ["biome/lint/suspicious/noThenProperty"],
-		},
-		{
-			"files": ["packages/effect-test/src/makeEffectIt.ts"],
+			"files": ["packages/test/src/makeEffectIt.ts"],
 			"reason":
 				"Vitest parses a fixture's first parameter to discover the fixtures it depends on and throws unless it is an object destructuring pattern. The worker-scoped Layer fixture depends on none, so its pattern is empty.",
 			"rules": ["biome/lint/correctness/noEmptyPattern"],
@@ -51,20 +46,20 @@ export default defineConfig({
 			rules: ["biome/lint/correctness/noUndeclaredDependencies"],
 		},
 	],
-	local: [catalogOnly, catalogOverrides, exactCatalogVersion, migrationConvention, unreadable, workspaceSection],
+	local: [catalogOnly, catalogOverrides, exactCatalogVersion, libraryTiers, migrationConvention, unreadable, workspaceSection],
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["packages/platform/src/server/better-auth/**"] } },
+		"boundaries/auth-sql": { options: { owners: ["packages/admin/src/server/users.ts", "packages/identity/src/server/better-auth/**"] } },
 		"boundaries/http-status": {
 			options: {
 				edge: [
-					"packages/effect-github/src/status.ts",
+					"packages/github/src/status.ts",
+					"packages/identity/src/server/**",
 					"packages/pr-watch/src/requestFailure.ts",
-					"packages/platform/src/server/rpc-server/**",
-					"packages/platform/src/server/node-http/**",
+					"packages/server/src/rpc-server/**",
+					"packages/server/src/node-http/**",
 				],
 			},
 		},
-		"imports/resolvable": { options: { generated: ["packages/effect-changes-prisma/src/test-support/generated"] } },
 	},
 	sources: ["packages", "examples", "script"],
 });

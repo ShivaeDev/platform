@@ -1,5 +1,5 @@
 import { Layer, type Redacted } from "effect";
-import type { PgBossClientFactory } from "@shivaedev/effect-pg-boss/server/client.ts";
+import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { notesWorker } from "#modules/notes/server/worker.ts";
 
 const foundationWorker: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number) => Layer.Layer<never> = () => Layer.empty;

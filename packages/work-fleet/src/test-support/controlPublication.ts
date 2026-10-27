@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { queryObjects } from "node:v8";
 import { Context, Deferred, Effect, Fiber } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { HealthPublication } from "#engine/health.ts";
 import { daemonRequest } from "#host/daemonClient.ts";

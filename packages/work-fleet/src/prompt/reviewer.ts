@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetError } from "#errors.ts";
 import type { Checks, Review, WorkResult } from "#policy.ts";
 import { cloudStartup } from "#prompt/worker.ts";

@@ -1,3 +1,0 @@
-{"path":"packages/effect-changes-prisma/src/coverageCheck.spec.ts","rule":"tests/spec-helpers","count":1}
-{"path":"packages/effect-changes-prisma/src/timeout.spec.ts","rule":"tests/story-specs","count":1}
-{"path":"packages/effect-changes-prisma/src/transaction.ts","rule":"files/named-after-export","count":1}

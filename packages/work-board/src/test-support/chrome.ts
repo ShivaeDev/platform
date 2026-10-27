@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { renderRouter } from "./renderRouter.tsx";
 
 export async function chrome(files: Record<string, string>, url = "/notes/plan.md") {

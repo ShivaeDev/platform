@@ -1,4 +1,4 @@
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { failureContext, withFailureContext } from "#engine/failureContext.ts";
 
 export type GithubPause = "rate-limit" | "reserve";

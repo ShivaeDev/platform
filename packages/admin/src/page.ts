@@ -1,6 +1,6 @@
 import type { Rpc, RpcGroup } from "effect/rpc";
-import type { Contract } from "@shivaedev/effect-contract/contract.ts";
-import type { CommandShape, QueryShape, StreamShape } from "@shivaedev/effect-contract/operation.ts";
+import type { Contract } from "@shivaedev/contract/contract.ts";
+import type { CommandShape, QueryShape, StreamShape } from "@shivaedev/contract/operation.ts";
 import { AdminPermission } from "#permissions.ts";
 
 export interface AdminRoute {

@@ -53,17 +53,6 @@
 			"matchPackageNames": ["effect", "@effect/**"]
 		},
 		{
-			"description": "Platform is retiring Prisma Classic packages, so keep the pinned version until removal instead of adding a new provenance trust exception for each unattested release.",
-			"enabled": false,
-			"matchPackageNames": ["prisma", "@prisma/**"]
-		},
-		{
-			"description": "Prisma Next packages must share one version.",
-			"groupName": "prisma next",
-			"groupSlug": "prisma-next",
-			"matchPackageNames": ["@prisma-next/**"]
-		},
-		{
 			"description": "`@types/pg` describes the `pg` runtime, so both move in one update and never drift apart. The update runs whenever either side has one instead of waiting for the daily patch window.",
 			"groupName": "pg",
 			"groupSlug": "pg",
@@ -78,11 +67,6 @@
 			"groupSlug": "node-types",
 			"matchPackageNames": ["@types/node"],
 			"versioning": "npm"
-		},
-		{
-			"allowedVersions": "<=1.2.3",
-			"description": "`@vercel/detect-agent` publishes from a private repository since 1.2.4, so its releases carry no provenance attestation and `trustPolicy: no-downgrade` refuses them (https://github.com/vercel/vercel/issues/17408). The workspace pins 1.2.3 for `@prisma-next/cli-telemetry`; drop this rule with that pin.",
-			"matchPackageNames": ["@vercel/detect-agent"]
 		},
 		{
 			"allowedVersions": "<1.8.0",

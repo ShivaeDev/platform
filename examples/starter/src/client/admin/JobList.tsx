@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { JobDetail, JobRecord } from "./JobDetail.tsx";
 import { JobPagination } from "./JobPagination.tsx";
 import { JobTable } from "./JobTable.tsx";

@@ -1,5 +1,5 @@
 import { Deferred, Effect } from "effect";
-import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import type { BoardDecision } from "#board/schema.ts";
 import { conflictingPr } from "#engine/deliveryFailure.ts";
 import { withFailureContext } from "#engine/failureContext.ts";

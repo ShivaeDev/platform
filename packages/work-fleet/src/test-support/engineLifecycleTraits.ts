@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 

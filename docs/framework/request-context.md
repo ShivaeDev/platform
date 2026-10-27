@@ -1,18 +1,18 @@
 # Errors and request context for native RPC
 
-Applications built on tRPC tend to carry their own copies of the same error classes, request id reference, optional identity service and request logging. Effect Contract provides the shared errors; Platform provides request context for native Effect RPC. The [Platform README](../../packages/platform/README.md) teaches the API; this guide explains the decisions behind it.
+Applications tend to carry their own copies of the same error classes, request id reference, optional identity service and request logging. Effect Contract provides the shared errors; Platform provides request context for native Effect RPC. The [Platform README](../../packages/platform/README.md) teaches the API; this guide explains the decisions behind it.
 
 ## Where the modules run
 
-`@shivaedev/effect-contract/errors/*.ts` and `@shivaedev/platform/rpc/*.ts` run in the browser and on the server: Schema error classes, `rejectedField`, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/platform/server/rpc-server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and redaction. Quality's `effect-contract-never-imports-server` and `platform-client-stays-browser-safe` import fences keep the shared modules browser-safe.
+`@shivaedev/errors/*.ts` and the `identity.ts`, `middleware.ts` and `permission.ts` modules of `@shivaedev/identity` run in the browser and on the server: Schema error classes, `rejectedField`, the redaction policy, `RequestId`, `Identity`, `OptionalIdentity` and the middleware tags an `RpcGroup` declares. The middleware tags live there because the shared `RpcGroup` declaration names them and the client imports that declaration. `@shivaedev/identity/server/**/*.ts` holds the server Layers: session middleware, Better Auth sessions, Origin policy and request tracing; `@shivaedev/server` adds the redacting tracer. Quality's `errors-stay-browser-safe`, `contract-never-imports-server` and `identity-client-stays-browser-safe` import fences keep the shared modules browser-safe.
 
 ## Errors
 
-`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable` are `Schema.TaggedError` classes. Use them directly as native RPC error schemas or as effect-contract rejections. `AuthUnavailable` tells a provider outage apart from a signed-out user. The message is for diagnostics and a fallback display; applications choose their own wording per tag.
+`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable` are `Schema.TaggedError` classes. Use them directly as native RPC error schemas or as contract rejections. `AuthUnavailable` tells a provider outage apart from a signed-out user. The message is for diagnostics and a fallback display; applications choose their own wording per tag.
 
 `rejectedField` is the canonical definition of a field rejection: a value with a string `_tag`, a string `field` and a string `message`, as an instance or as encoded JSON. An untagged `{ field, message }` is not one, so a defect or an arbitrary thrown object with those keys is never shown as a field message. Code that maps rejections to form fields starts from this check and keeps only fields the form has.
 
-Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them. On tRPC, `rejectWith` from `@shivaedev/effect-trpc/server/rejection.ts` sends the same classes as declared rejections; see the [effect-trpc README](../../packages/effect-trpc/README.md).
+Unexpected failures stay defects rather than declared errors carrying a server-written message. Native RPC sends them as defects, and request tracing redacts and logs them.
 
 ## Request id, identity and logging
 
@@ -42,7 +42,7 @@ The `headers` that native RpcServer passes to middleware are not the HTTP reques
 
 `resolveSession`, and therefore `authenticatedLayer` and `maybeAuthenticatedLayer`, ignore message headers. They read the `HttpServerRequest` that RpcServer runs each request with: the POST for HTTP and the upgrade request for WebSocket. Both the Origin policy and the session provider see only those headers. When there is no `HttpServerRequest`, as with `RpcTest`, workers or a raw socket server, the RPC headers are used, because there are no transport headers to prefer and no browser attaches ambient credentials.
 
-An application-owned middleware that reads any header for a security decision calls `transportHeaders(headers)` from `@shivaedev/platform/server/rpc-server/transportHeaders.ts` instead of using `headers` directly. The request id is still read from the RPC headers, so a client can set it per call.
+An application-owned middleware that reads any header for a security decision calls `transportHeaders(headers)` from `@shivaedev/identity/server/transportHeaders.ts` instead of using `headers` directly. The request id is still read from the RPC headers, so a client can set it per call.
 
 ## Origin policy
 
@@ -76,7 +76,7 @@ const host = appHost({ group, handlers, routes: mounted.routes, sessions, native
 
 `nativeOrigins` admits only those exact origins on RPC and `/api/auth/*` routes; wildcards, patterns and non-origin URLs are rejected at startup. The host answers their preflights and echoes the origin with `Vary: Origin`, allows `Authorization` and `Content-Type`, and exposes `set-auth-token` on auth responses. RPC allows POST; auth allows GET and POST. It never sends `Access-Control-Allow-Credentials`. Every admitted native request loses its cookies before session resolution: only its signed bearer session can authenticate it. This prevents an allowed origin from opening a cookie CSRF path. A cookie-only native request is anonymous and protected RPCs reject it. App authorization stays application-owned.
 
-Omitting `nativeOrigins` retains the existing transport policy. The option retains trusted-proxy peer and forwarded-authority checks, NDJSON content-type enforcement, bounded bodies, transport-only identity, redaction and session authorization. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [Platform README](../../packages/platform/README.md#bundled-native-clients) shows the complete host composition.
+Omitting `nativeOrigins` retains the existing transport policy. The option retains trusted-proxy peer and forwarded-authority checks, NDJSON content-type enforcement, bounded bodies, transport-only identity, redaction and session authorization. Native HTTP calls without an Origin can use the existing guard with an explicitly permissive session origin policy. The [identity README](../../packages/identity/README.md#bundled-native-clients) shows the complete host composition.
 
 ## Limits
 

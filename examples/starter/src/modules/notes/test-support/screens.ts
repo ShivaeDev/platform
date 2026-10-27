@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CodePreviewLine } from "#modules/notes/client/CodePreview.tsx";
 import { requireSetup } from "#modules/notes/test-support/requireSetup.ts";

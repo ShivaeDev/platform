@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { command, writeJson } from "#package-check/io.ts";
 import { generateStarter } from "#starter-published/generate.ts";
 
-const unpublished = { name: "@shivaedev/effect-sql", version: "999.0.0" };
+const unpublished = { name: "@shivaedev/sql", version: "999.0.0" };
 
 export const generator = storyKit({
 	clock: "live",
@@ -33,7 +33,7 @@ export const generator = storyKit({
 			`#!/usr/bin/env node\nimport { mkdirSync, writeFileSync } from "node:fs";\nimport { origin } from ${JSON.stringify(unpublished.name)};\nmkdirSync(process.argv[2]);\nwriteFileSync(\`\${process.argv[2]}/origin\`, origin);\n`,
 		);
 		const archive = join(archives, "create-app.tgz");
-		const dependencyArchive = join(archives, "effect-sql.tgz");
+		const dependencyArchive = join(archives, "sql.tgz");
 		yield* command(dependency, "pnpm", ["pack", "--out", dependencyArchive]);
 		yield* command(createApp, "pnpm", ["pack", "--out", archive]);
 		const tarballs = { "@shivaedev/create-app": archive, [unpublished.name]: dependencyArchive };

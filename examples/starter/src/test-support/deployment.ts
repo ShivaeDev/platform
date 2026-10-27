@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { deployPort } from "#test-support/deployChild.ts";
 import { postgres } from "#test-support/postgres.ts";

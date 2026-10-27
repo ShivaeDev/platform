@@ -2,7 +2,7 @@ import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { bind } from "@shivaedev/effect-contract/bind.ts";
+import { bind } from "@shivaedev/contract/bind.ts";
 import { Notes } from "#modules/notes/notes.ts";
 
 export function makeNotesClient(url: string, transformClient?: NonNullable<Parameters<typeof RpcClient.layerProtocolHttp>[0]["transformClient"]>) {

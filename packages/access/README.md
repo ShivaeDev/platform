@@ -55,7 +55,7 @@ const decodeRole = Schema.decodeUnknownEffect(Access.Role);
 
 ### Check grants and enforce actions
 
-`hasPermission(role, permission)` checks the exact listed grant. `requirePermission(user, permission)` enforces that same check. A user supplies `{ id, role }`; a `null` or `undefined` user fails with `Unauthorized`, and a missing grant fails with `Forbidden`. These are the shared failures from `@shivaedev/effect-contract/errors/taxonomy.ts`.
+`hasPermission(role, permission)` checks the exact listed grant. `requirePermission(user, permission)` enforces that same check. A user supplies `{ id, role }`; a `null` or `undefined` user fails with `Unauthorized`, and a missing grant fails with `Forbidden`. These are the shared failures from `@shivaedev/errors/taxonomy.ts`.
 
 ```ts
 const user = { id: "alice", role: "operator" } as const;

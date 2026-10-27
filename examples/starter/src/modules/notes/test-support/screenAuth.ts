@@ -1,4 +1,4 @@
-import { authAction } from "@shivaedev/effect-react/client/authAction.ts";
+import { authAction } from "@shivaedev/react/client/authAction.ts";
 import type { AuthActions } from "#client/auth.ts";
 
 export function screenAuth(): AuthActions {

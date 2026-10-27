@@ -89,3 +89,13 @@ exportsStory.it("a source tree can be checked without a package manifest", [], f
 	expect(listed.stdout).toContain("exactly one non-null wildcard; found 0");
 	expect(listed.stdout).toContain('Export "./client.ts"');
 });
+
+exportsStory.it(
+	"a package without modules exports only its exact assets",
+	[workspaceWithExports({ "./package.json": "./package.json" })],
+	function* ({ lint, writesExports }) {
+		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
+		yield* writesExports({ ".": "./dist/index.js", "./package.json": "./package.json" });
+		expect((yield* lint()).stdout).toContain("exactly one non-null wildcard; found 0");
+	},
+);

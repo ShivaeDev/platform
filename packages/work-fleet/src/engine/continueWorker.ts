@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Forbidden } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { approveBrief } from "#engine/approveBrief.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
 import { makeLaunch } from "#engine/makeLaunch.ts";

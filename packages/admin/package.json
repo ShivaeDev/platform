@@ -48,15 +48,18 @@
 	},
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
-		"@shivaedev/effect-contract": "workspace:*",
-		"@shivaedev/effect-pg-boss": "workspace:*",
-		"@shivaedev/effect-react": "workspace:*",
-		"@shivaedev/platform": "workspace:*"
+		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
+		"@shivaedev/jobs": "workspace:*",
+		"@shivaedev/react": "workspace:*",
+		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
-		"@shivaedev/effect-test-sql": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/server": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",

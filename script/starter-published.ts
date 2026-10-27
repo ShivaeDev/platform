@@ -49,8 +49,8 @@ const program = Effect.gen(function* () {
 	yield* installDocumentation(root, documentation, versions, tarballs);
 	yield* checkDocumentation(documentation, entries, versions, source);
 	const database = yield* Config.String("TEST_DATABASE_URL").pipe(
-		Config.orElse(() => Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL")),
-		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_EFFECT_SQL_TEST_DATABASE_URL)),
+		Config.orElse(() => Config.String("PLATFORM_SQL_TEST_DATABASE_URL")),
+		Effect.catch(() => Effect.map(postgresTestEnvironment, (env) => env.PLATFORM_SQL_TEST_DATABASE_URL)),
 	);
 	const registryVersion = values.registry ? (values["create-app-version"] ?? "latest") : undefined;
 	for (const minimal of [false, true]) {

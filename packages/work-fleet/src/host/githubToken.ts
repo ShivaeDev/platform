@@ -1,7 +1,7 @@
 import { Config, Effect, Layer, Option, Redacted, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 
 export const githubToken = Layer.effect(GitHubToken)(
 	Effect.gen(function* () {

@@ -1,4 +1,4 @@
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import type { Prompt } from "#browser/responses/Prompt.ts";
 import type { Metadata } from "#metadata/schema.ts";
 

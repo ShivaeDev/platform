@@ -3,6 +3,8 @@
 		"noEmit": false,
 		"declaration": true,
 		"declarationMap": true,
+		"module": "NodeNext",
+		"moduleResolution": "NodeNext",
 		"sourceMap": true,
 		"rewriteRelativeImportExtensions": true
 	},

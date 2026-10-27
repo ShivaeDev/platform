@@ -1,5 +1,5 @@
 import { expect, vi } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import type { Document } from "#browser/document/schema.ts";
 import { answerCardFixture } from "#test/answerCardFixture.ts";
 import { screenStory } from "#test/screenStory.ts";

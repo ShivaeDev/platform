@@ -2,16 +2,16 @@
 
 Database-backed Platform hosts and React session boundaries provide live queries by default. Declare read keys, bind the contract with an NDJSON client, and return the binding from the session's `connect`, directly or as a property such as `api`. See [commit-bound changes](./changes.md). Explicit coordination remains useful for custom streams or application pause/status controls.
 
-`effect-contract/live.ts` composes an opt-in hint stream with the same native
+`contract/live.ts` composes an opt-in hint stream with the same native
 Reactivity instance that owns a consumer's AtomRpc queries. It owns neither a
 cache nor authoritative data. Ordinary typed queries establish current values;
 the application discovers dependencies and decides which keys changed.
 
-The worked example is the [HTTP consumer test](../../packages/effect-contract/src/liveConsumer.spec.ts): it mounts two documents and a derived list, and its contract declares a streaming operation alongside its queries.
+The worked example is the [HTTP consumer test](../../packages/contract/src/liveConsumer.spec.ts): it mounts two documents and a derived list, and its contract declares a streaming operation alongside its queries.
 
 ## Server and client composition
 
-Use `stream` from `effect-contract/operation.ts` with `LiveHint` as its `success` schema and application failures in `rejections`. Add it to the contract's `streams` array. For HTTP streaming, both sides use native
+Use `stream` from `contract/operation.ts` with `LiveHint` as its `success` schema and application failures in `rejections`. Add it to the contract's `streams` array. For HTTP streaming, both sides use native
 `RpcSerialization.layerNdjson`; ordinary `layerJson` buffers the entire response
 and cannot deliver an unending subscription's hints. The fixture uses native
 `RpcServer.layerHttp`, a loopback Node HTTP server, native FetchHttpClient,
@@ -85,13 +85,13 @@ retaining no unbounded key list. It is not a count of complete source history.
 Unpausing always requests full scoped reconciliation and clears that count.
 An optional native atom in `resume` requests the same reconciliation when it
 changes; while paused, it records the need for reconciliation without fetching.
-`effect-contract/resume.ts` supplies the browser-safe `resumeSignal`: visible
+`contract/resume.ts` supplies the browser-safe `resumeSignal`: visible
 `online` and `visibilitychange` events and an optional injected native source.
 The live helper initializes derived resume atoms before observing them, so
 source listeners attach even without a separate UI subscriber. Their finalizers
 release on registry teardown.
 
-`effect-react/resumeSignal.ts` delegates to the shared implementation.
+`react/resumeSignal.ts` delegates to the shared implementation.
 
 An ended or failed stream enters `reconnecting` and retries after one second by
 default. `retryDelay` lets the consumer choose a positive native Duration for its

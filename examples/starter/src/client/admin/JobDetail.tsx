@@ -1,5 +1,5 @@
 import { DateTime, Option } from "effect";
-import { useAction, useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Card, CardContent } from "#client/ui/card.tsx";
 import type { AdminJob, JobsViewClient, RetryJob } from "./jobsTypes.ts";

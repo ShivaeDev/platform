@@ -7,7 +7,7 @@ import {
 	NotFound,
 	PreconditionFailed,
 	ServiceUnavailable,
-} from "@shivaedev/effect-contract/errors/taxonomy.ts";
+} from "@shivaedev/errors/taxonomy.ts";
 
 export class PublicationUncertain extends Schema.TaggedError<PublicationUncertain>()("PublicationUncertain", { message: Schema.String }) {}
 export class Unanswered extends Schema.TaggedError<Unanswered>()("Unanswered", { message: Schema.String }) {}

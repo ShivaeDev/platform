@@ -2,7 +2,7 @@
 
 Effect's `Rpc`, `RpcGroup`, and `AtomRpc` share one Schema contract between typed
 handlers and clients. This guide shows them directly. Applications can declare
-the same contracts with [`@shivaedev/effect-contract`](../../packages/effect-contract/README.md),
+the same contracts with [`@shivaedev/contract`](../../packages/contract/README.md),
 which produces these native definitions and adds typed rejections and
 reactivity keys; the starter uses it. Handlers, middleware and clients
 remain the native components below.
@@ -46,7 +46,7 @@ operations remain ordinary native RPC contracts.
 ## Client state
 
 Once a host provides an `AtomRpc.Service` named `NotesApi`, consumers can pass its
-atoms to Platform's React hooks:
+atoms to the React hooks of `react`:
 
 ```ts
 const note = useQuery(
@@ -65,12 +65,12 @@ invalidated. Invalidation does not automatically broadcast changes to other clie
 
 ## Public client configuration
 
-Use Platform's `publicConfig(schema)` and `publicConfigLayer(declaration, path?)` as the one path for public server configuration. Declare the public fields once in a shared Schema, merge the generated contract into the host's RPC group, and merge its server Layer into the handlers. The Layer loads the declared fields through native `Config.schema` during startup; missing or invalid required values fail with a typed `ConfigError`. Undeclared server configuration never enters the response.
+Use contract's `publicConfig(schema)` and server's `publicConfigLayer(declaration, path?)` as the one path for public server configuration. Declare the public fields once in a shared Schema, merge the generated contract into the host's RPC group, and merge its server Layer into the handlers. The Layer loads the declared fields through native `Config.schema` during startup; missing or invalid required values fail with a typed `ConfigError`. Undeclared server configuration never enters the response.
 
-Read the generated `get` query with effect-contract's `bind` and effect-react's `useQuery` on the existing native atom runtime. No application-written RPC or separate client configuration store is needed. The generated query has no session middleware and can be merged alongside authenticated contracts for use before sign-in. Keep secrets outside the public Schema. The [Platform guide](../../packages/platform/README.md#public-client-configuration) shows the shared declaration, host composition and client binding.
+Read the generated `get` query with contract's `bind` and react's `useQuery` on the existing native atom runtime. No application-written RPC or separate client configuration store is needed. The generated query has no session middleware and can be merged alongside authenticated contracts for use before sign-in. Keep secrets outside the public Schema. The [Platform guide](../../packages/server/README.md#public-client-configuration) shows the shared declaration, host composition and client binding.
 
 ## Application boundaries
 
 Applications choose their host transport, credentials and reconnection policy.
-The shared invalidation declarations live in `@shivaedev/effect-contract`;
-`transact` in `@shivaedev/effect-sql` publishes invalidations only after commit.
+The shared invalidation declarations live in `@shivaedev/contract`;
+`transact` in `@shivaedev/sql` publishes invalidations only after commit.

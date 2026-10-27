@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
 import { directoryNotifications } from "#test/directoryNotifications.ts";
 import { changesUntil, rpcDocument, rpcNavigation, rpcPaths, rpcWatcher } from "#test/nativeRpc.ts";

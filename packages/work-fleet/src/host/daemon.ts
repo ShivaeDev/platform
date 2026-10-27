@@ -1,6 +1,6 @@
 import { Context, Deferred, Duration, Effect, Fiber, Layer, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";

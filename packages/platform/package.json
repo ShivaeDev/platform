@@ -1,7 +1,7 @@
 {
 	"name": "@shivaedev/platform",
 	"version": "0.34.0",
-	"description": "Opinionated Effect application infrastructure for ShivaeDev services",
+	"description": "One dependency for the ShivaeDev Effect application stack",
 	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme",
 	"bugs": {
 		"url": "https://github.com/ShivaeDev/platform/issues"
@@ -12,88 +12,50 @@
 		"directory": "packages/platform"
 	},
 	"license": "MIT",
-	"sideEffects": false,
 	"type": "module",
-	"imports": {
-		"#test/*": "./src/test-support/*",
-		"#*.ts": {
-			"source": "./src/*.ts",
-			"types": "./dist/*.d.ts",
-			"default": "./dist/*.js"
-		}
-	},
 	"exports": {
-		"./*.ts": {
-			"source": "./src/*.ts",
-			"types": "./dist/*.d.ts",
-			"default": "./dist/*.js"
-		},
 		"./package.json": "./package.json"
 	},
 	"files": [
-		"dist",
-		"src",
-		"!src/**/*.test.ts",
-		"!src/**/*.spec.ts",
-		"!src/**/test-support",
 		"CHANGELOG.md",
 		"README.md"
 	],
-	"scripts": {
-		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
-		"ready": "pnpm typecheck && pnpm test && pnpm build",
-		"test": "vitest run",
-		"typecheck": "tsc --noEmit"
-	},
 	"dependencies": {
 		"@shivaedev/access": "workspace:*",
-		"@shivaedev/effect-contract": "workspace:*",
-		"@shivaedev/effect-sql": "workspace:*",
+		"@shivaedev/admin": "workspace:*",
+		"@shivaedev/changes": "workspace:*",
+		"@shivaedev/contract": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/form": "workspace:*",
+		"@shivaedev/github": "workspace:*",
+		"@shivaedev/http": "workspace:*",
+		"@shivaedev/identity": "workspace:*",
+		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
+		"@shivaedev/react": "workspace:*",
+		"@shivaedev/server": "workspace:*",
+		"@shivaedev/service": "workspace:*",
+		"@shivaedev/sql": "workspace:*",
 		"@shivaedev/types": "workspace:*"
 	},
-	"devDependencies": {
+	"peerDependencies": {
+		"@effect/atom-react": "catalog:",
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@prisma-next/adapter-postgres": "catalog:",
-		"@prisma-next/contract": "catalog:",
-		"@prisma-next/postgres": "catalog:",
-		"@prisma-next/sql-contract": "catalog:",
-		"@prisma-next/sql-orm-client": "catalog:",
-		"@prisma-next/target-postgres": "catalog:",
-		"@shivaedev/effect-pg-boss": "workspace:*",
-		"@shivaedev/effect-prisma": "workspace:*",
-		"@shivaedev/effect-test": "workspace:*",
-		"@shivaedev/effect-test-sql": "workspace:*",
-		"@shivaedev/effect-trpc": "workspace:*",
-		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test-story": "workspace:*",
-		"@trpc/client": "catalog:",
-		"@trpc/server": "catalog:",
-		"@types/node": "catalog:",
-		"@types/pg": "catalog:",
+		"@tanstack/react-router": "catalog:",
 		"better-auth": "catalog:",
 		"effect": "catalog:",
 		"pg": "catalog:",
 		"pg-boss": "catalog:",
-		"superjson": "catalog:",
-		"typescript": "catalog:",
+		"react": "catalog:",
+		"react-dom": "catalog:",
 		"vitest": "catalog:"
 	},
-	"peerDependencies": {
-		"@effect/platform-node": "catalog:",
-		"@effect/sql-pg": "catalog:",
-		"@effect/vitest": "catalog:",
-		"@prisma-next/sql-orm-client": "catalog:",
-		"@shivaedev/effect-prisma": "workspace:*",
-		"@shivaedev/effect-trpc": "workspace:*",
-		"@trpc/server": "catalog:",
-		"better-auth": "catalog:",
-		"effect": "catalog:",
-		"pg": "catalog:"
-	},
 	"peerDependenciesMeta": {
+		"@effect/atom-react": {
+			"optional": true
+		},
 		"@effect/platform-node": {
 			"optional": true
 		},
@@ -103,22 +65,25 @@
 		"@effect/vitest": {
 			"optional": true
 		},
-		"@prisma-next/sql-orm-client": {
-			"optional": true
-		},
-		"@shivaedev/effect-prisma": {
-			"optional": true
-		},
-		"@shivaedev/effect-trpc": {
-			"optional": true
-		},
-		"@trpc/server": {
+		"@tanstack/react-router": {
 			"optional": true
 		},
 		"better-auth": {
 			"optional": true
 		},
 		"pg": {
+			"optional": true
+		},
+		"pg-boss": {
+			"optional": true
+		},
+		"react": {
+			"optional": true
+		},
+		"react-dom": {
+			"optional": true
+		},
+		"vitest": {
 			"optional": true
 		}
 	},

@@ -8,13 +8,13 @@ import { checkDocumentation, readDocumentation } from "#starter-published/docume
 import { packedInstaller } from "#starter-published/packedInstaller.ts";
 import { runStarter } from "#starter-published/run.ts";
 
-const versions = { "@shivaedev/effect-contract": "0.1.0" };
+const versions = { "@shivaedev/contract": "0.1.0" };
 
 export const app = storyKit({
 	after: {
 		*source(engine) {
 			const fs = yield* FileSystem.FileSystem;
-			yield* command(join(engine.root, "source"), "pnpm", ["pack", "--out", join(engine.root, "archives/effect-contract.tgz")]);
+			yield* command(join(engine.root, "source"), "pnpm", ["pack", "--out", join(engine.root, "archives/contract.tgz")]);
 			engine.path = yield* packedInstaller(process.cwd(), engine.root, engine.tarballs);
 			yield* command(engine.directory, "env", [`PATH=${engine.path}`, "pnpm", "install"]);
 			yield* fs.makeDirectory(join(engine.directory, "node_modules/.bin"), { recursive: true });
@@ -25,15 +25,15 @@ export const app = storyKit({
 	*create() {
 		const fs = yield* FileSystem.FileSystem;
 		const root = yield* fs.makeTempDirectoryScoped({ prefix: "published-starter-story-" });
-		for (const path of ["source", "archives", "app", "docs/framework", "examples/starter", "packages/effect-contract"]) {
+		for (const path of ["source", "archives", "app", "docs/framework", "examples/starter", "packages/contract"]) {
 			yield* fs.makeDirectory(join(root, path), { recursive: true });
 		}
-		for (const path of ["docs/framework/quickstart.md", "examples/starter/README.md", "packages/effect-contract/README.md"]) {
+		for (const path of ["docs/framework/quickstart.md", "examples/starter/README.md", "packages/contract/README.md"]) {
 			yield* fs.writeFileString(join(root, path), "");
 		}
 		const directory = join(root, "app");
 		yield* writeJson(join(directory, "package.json"), {
-			dependencies: { "@shivaedev/effect-contract": "0.1.0" },
+			dependencies: { "@shivaedev/contract": "0.1.0" },
 			private: true,
 			scripts: { ci: "node ci.js", setup: "pnpm install" },
 			type: "module",
@@ -41,9 +41,9 @@ export const app = storyKit({
 		yield* fs.writeFileString(join(directory, "pnpm-workspace.yaml"), "packages: []\n");
 		yield* fs.writeFileString(
 			join(directory, "ci.js"),
-			'import { writeFileSync } from "node:fs";\nimport { query } from "@shivaedev/effect-contract/operation.ts";\nwriteFileSync("ci-result.json", JSON.stringify({ cwd: process.cwd(), database: process.env.TEST_DATABASE_URL, query }));\n',
+			'import { writeFileSync } from "node:fs";\nimport { query } from "@shivaedev/contract/operation.ts";\nwriteFileSync("ci-result.json", JSON.stringify({ cwd: process.cwd(), database: process.env.TEST_DATABASE_URL, query }));\n',
 		);
-		const tarballs: Record<string, string> = { "@shivaedev/effect-contract": join(root, "archives/effect-contract.tgz") };
+		const tarballs: Record<string, string> = { "@shivaedev/contract": join(root, "archives/contract.tgz") };
 		return { database: "postgres://localhost/starter-story", directory, path: "", root, tarballs };
 	},
 	layer: NodeServices.layer,
@@ -65,7 +65,7 @@ export const app = storyKit({
 			command(engine.directory, "node", [
 				"--input-type=module",
 				"--eval",
-				'import { query } from "@shivaedev/effect-contract/operation.ts"; console.log(query);',
+				'import { query } from "@shivaedev/contract/operation.ts"; console.log(query);',
 			]),
 		run: () => runStarter(engine.directory, engine.database).pipe(Effect.match({ onFailure: (error) => error.message, onSuccess: () => undefined })),
 		setup: () => command(engine.directory, "env", [`PATH=${engine.path}`, "pnpm", "run", "setup"]),

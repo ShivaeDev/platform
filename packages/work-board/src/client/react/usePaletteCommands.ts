@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { routeQueryOptions } from "#client/react/routeQuery.ts";
 import type { ShellApi } from "#client/react/ShellApi.ts";
 import { matchingCommands, needsYouCommands, type SearchItem } from "#client/react/searchCommands.ts";

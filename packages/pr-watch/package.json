@@ -49,15 +49,15 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
-		"@shivaedev/effect-github": "workspace:*",
-		"@shivaedev/effect-service": "workspace:*"
+		"@shivaedev/github": "workspace:*",
+		"@shivaedev/service": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/platform-node-shared": "catalog:",
 		"@effect/vitest": "catalog:",
-		"@shivaedev/effect-test": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",

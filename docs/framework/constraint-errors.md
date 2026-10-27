@@ -4,7 +4,7 @@ Effect SQL already gives us a useful vocabulary. `SqlError.reason` distinguishes
 conflicts and other categories. `UniqueViolation.constraint` identifies the
 violated constraint. We do not need a second framework-wide SQL error hierarchy.
 
-Map a known constraint to a domain error at the owning operation. The following pattern is for writes that record no invalidations. For writes that announce changes, use `transact` from `@shivaedev/effect-sql/transact.ts` and its `onSqlError` option to map the error after rollback, as in the [order service](../../packages/effect-react/src/test-support/order-example/service.ts).
+Map a known constraint to a domain error at the owning operation. The following pattern is for writes that record no invalidations. For writes that announce changes, use `transact` from `@shivaedev/sql/transact.ts` and its `onSqlError` option to map the error after rollback, as in the [order service](../../packages/react/src/test-support/order-example/service.ts).
 
 ```ts
 sql.withTransaction(save).pipe(

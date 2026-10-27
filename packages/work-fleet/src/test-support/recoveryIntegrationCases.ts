@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { Fleet } from "#fleet.ts";
 import { HEAD } from "#test/githubResult.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";

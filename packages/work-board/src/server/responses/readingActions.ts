@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { responseUrl } from "#responses/url.ts";
 import { authoredQuestion } from "#server/attention/inbox.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";

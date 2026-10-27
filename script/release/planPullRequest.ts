@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
-import { planRelease } from "@shivaedev/changesets/planner.ts";
+import { planRelease } from "@shivaedev/releases/planner.ts";
 import config from "#release-config";
 import { starterPinsInput } from "./starterPinsInput.ts";
 

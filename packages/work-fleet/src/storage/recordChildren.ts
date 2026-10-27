@@ -3,7 +3,7 @@ import { Effect, Schema } from "effect";
 import { Model } from "effect/schema";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { type Collection, collections, columnSchema, type Shape, shapeColumns } from "#storage/recordShape.ts";
 
 export function childTable(namespace: string, path: readonly string[]) {

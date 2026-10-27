@@ -1,8 +1,8 @@
 import { ConfigProvider, Effect, Layer, Logger, Redacted, References } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { makePgBossTesting } from "@shivaedev/effect-pg-boss/server/testing.ts";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { applicationHost } from "#server/applicationHost.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";

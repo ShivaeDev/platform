@@ -78,3 +78,24 @@ updates.it("keeps a minimal app free of notes when a later starter adds example 
 	expect(app.read("foundation.txt")).toBe("new foundation\n");
 	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ minimal: true, name: "my-app", version: "0.2.0" });
 });
+
+updates.it("moves an app that listed pieces directly onto platform and the hoist setting", [], function* (app) {
+	const manifest = app.starterFile("package.json");
+	const workspace = app.starterFile("pnpm-workspace.copy.yaml");
+	const listed = JSON.parse(manifest);
+	app.setVersion("0.1.0");
+	app.revise({
+		"package.json": `${JSON.stringify({ ...listed, dependencies: { ...listed.dependencies, "@shivaedev/sql": "workspace:*" } }, null, "\t")}\n`,
+		"pnpm-workspace.copy.yaml": workspace.replace(/\n#[^\n]*\npublicHoistPattern:[^\n]*\n/u, "\n"),
+	});
+	expect((yield* app.create()).status).toBe(0);
+	expect(JSON.parse(app.read("package.json")).dependencies["@shivaedev/sql"]).toBeDefined();
+	expect(app.read("pnpm-workspace.yaml")).not.toContain("publicHoistPattern");
+	app.publish();
+	app.setVersion("0.2.0");
+	app.revise({ "package.json": manifest, "pnpm-workspace.copy.yaml": workspace });
+	const result = yield* app.update();
+	expect(result.status, result.stderr).toBe(0);
+	expect(JSON.parse(app.read("package.json")).dependencies["@shivaedev/sql"]).toBeUndefined();
+	expect(app.read("pnpm-workspace.yaml")).toContain('\npublicHoistPattern: ["@shivaedev/*"]\n');
+});

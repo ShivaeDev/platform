@@ -1,0 +1,103 @@
+import * as PgClient from "@effect/sql-pg/PgClient";
+import { Context, Effect, Layer, Redacted, Scope } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { Migrator, SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
+import { expectTypeOf } from "vitest";
+import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
+import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";
+import { makePostgresTestLayer } from "./postgres.ts";
+import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
+import { withTestTransaction } from "./withTestTransaction.ts";
+
+class Missing extends Context.Service<Missing, string>()("@types/Missing") {}
+
+const body = Effect.gen(function* () {
+	yield* Scope.Scope;
+	yield* Missing;
+	return yield* Effect.succeed(42);
+});
+const rollback = withTestTransaction(body);
+expectTypeOf<Effect.Success<typeof rollback>>().toEqualTypeOf<number>();
+expectTypeOf<Effect.Error<typeof rollback>>().toEqualTypeOf<SqlError>();
+expectTypeOf<Effect.Services<typeof rollback>>().toEqualTypeOf<Missing | SqlClient.SqlClient | Reactivity.Reactivity>();
+
+const isolated = withIsolatedDatabase(
+	Effect.gen(function* () {
+		yield* PgClient.PgClient;
+		yield* SqlClient.SqlClient;
+		yield* Reactivity.Reactivity;
+		yield* Missing;
+		return yield* Effect.fail("refused" as const);
+	}),
+);
+expectTypeOf<Effect.Error<typeof isolated>>().toEqualTypeOf<"refused" | SqlError>();
+expectTypeOf<Effect.Services<typeof isolated>>().toEqualTypeOf<Missing | PostgresTestDatabase>();
+
+const options = {
+	migrations: { loader: Migrator.fromRecord({}), lockTimeout: "5 seconds" as const },
+	url: Redacted.make("postgresql://typecheck"),
+};
+const layer = makePostgresTestLayer(options);
+expectTypeOf<Layer.Services<typeof layer>>().toEqualTypeOf<never>();
+expectTypeOf<Layer.Success<typeof layer>>().toEqualTypeOf<PostgresTestServices | PostgresTestDatabase>();
+const required = makePostgresTestLayer({ ...options, fixtures: Effect.service(Missing) });
+expectTypeOf<Layer.Services<typeof required>>().toEqualTypeOf<Missing>();
+const requiredLoader = makePostgresTestLayer({
+	...options,
+	fixtures: (url) =>
+		Effect.gen(function* () {
+			expectTypeOf(url).toEqualTypeOf<Redacted.Redacted<string>>();
+			yield* Scope.Scope;
+			yield* Missing;
+			return yield* Effect.fail("loader refused" as const);
+		}),
+});
+expectTypeOf<Layer.Services<typeof requiredLoader>>().toEqualTypeOf<Missing>();
+expectTypeOf<Layer.Error<typeof requiredLoader>>().toEqualTypeOf<SqlError | "loader refused" | Migrator.MigrationError>();
+
+const initialized = makePostgresTestLayer({ initialize: Effect.service(Missing), url: options.url });
+expectTypeOf<Layer.Services<typeof initialized>>().toEqualTypeOf<Missing>();
+expectTypeOf<Layer.Success<typeof initialized>>().toEqualTypeOf<PostgresTestServices | PostgresTestDatabase>();
+const initializedLoader = makePostgresTestLayer({
+	fixtures: Effect.fail("fixtures refused" as const),
+	initialize: (url) =>
+		Effect.gen(function* () {
+			expectTypeOf(url).toEqualTypeOf<Redacted.Redacted<string>>();
+			yield* Scope.Scope;
+			yield* PgClient.PgClient;
+			yield* SqlClient.SqlClient;
+			yield* Reactivity.Reactivity;
+			yield* Missing;
+			return yield* Effect.fail("initializer refused" as const);
+		}),
+	url: options.url,
+});
+expectTypeOf<Layer.Services<typeof initializedLoader>>().toEqualTypeOf<Missing>();
+expectTypeOf<Layer.Error<typeof initializedLoader>>().toEqualTypeOf<
+	SqlError | Migrator.MigrationError | "initializer refused" | "fixtures refused"
+>();
+
+// @ts-expect-error Choose an initializer or migrations, not both.
+makePostgresTestLayer({ ...options, initialize: Effect.void });
+// @ts-expect-error A preparation strategy is required.
+makePostgresTestLayer({ url: options.url });
+
+const { effectApp } = makeEffectIt({
+	around: withTestTransaction,
+	layer,
+	makeHarness: () => Effect.map(SqlClient.SqlClient, (sql) => ({ sql })),
+});
+effectApp("keeps SQL harness types", function* ({ sql }) {
+	expectTypeOf(sql).toEqualTypeOf<SqlClient.SqlClient>();
+	yield* Scope.Scope;
+	yield* withIsolatedDatabase(Effect.service(PgClient.PgClient));
+});
+// @ts-expect-error The PostgreSQL test Layer does not supply Missing.
+effectApp("rejects an unmet body service", function* () {
+	return yield* Missing;
+});
+
+makeEffectIt({ around: withIsolatedDatabase, layer, makeHarness: () => Effect.void });
+// @ts-expect-error An isolated wrapper needs the database service.
+makeEffectIt({ around: withIsolatedDatabase, layer: Layer.empty, makeHarness: () => Effect.void });

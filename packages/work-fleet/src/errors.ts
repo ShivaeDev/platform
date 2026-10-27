@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 
 export const fleetRejections = { BadRequest, Conflict, Forbidden, NotFound, ServiceUnavailable };
 export const FleetError = Schema.Union(Object.values(fleetRejections));

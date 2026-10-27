@@ -27,3 +27,14 @@ application.it(
 		}
 	},
 );
+
+application.it("gives a generated app platform as its one framework dependency and hoists the pieces it brings", [], function* ({ cli, read }) {
+	expect((yield* cli(["demo", "--no-git"])).status).toBe(0);
+	const manifest = JSON.parse(read("package.json"));
+	expect(Object.keys(manifest.dependencies).filter((name) => name.startsWith("@shivaedev/"))).toEqual(["@shivaedev/platform"]);
+	expect(Object.keys(manifest.devDependencies).filter((name) => name.startsWith("@shivaedev/"))).toEqual([
+		"@shivaedev/quality",
+		"@shivaedev/test-story",
+	]);
+	expect(read("pnpm-workspace.yaml")).toContain('\npublicHoistPattern: ["@shivaedev/*"]\n');
+});

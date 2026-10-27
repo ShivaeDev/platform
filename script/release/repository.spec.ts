@@ -30,7 +30,7 @@ repository.it("the pin check names a drifted pnpm pin and its repair", [], funct
 	const original = yield* read("examples/starter/package.json");
 	yield* write("examples/starter/package.json", original.replace("pnpm@12.13.0", "pnpm@12.8.1"));
 	expect(yield* check()).toBe(
-		"examples/starter/package.json: pnpm pin 12.8.1 differs from root package.json pnpm version 12.13.0. Run pnpm changesets apply for a release, or set packageManager to pnpm@12.13.0 in examples/starter/package.json.",
+		"examples/starter/package.json: pnpm pin 12.8.1 differs from root package.json pnpm version 12.13.0. Run pnpm releases apply for a release, or set packageManager to pnpm@12.13.0 in examples/starter/package.json.",
 	);
 });
 
@@ -91,7 +91,7 @@ repository.it("the catalog check reports every shared entry that differs from th
 	const original = yield* read("examples/starter/pnpm-workspace.copy.yaml");
 	yield* write("examples/starter/pnpm-workspace.copy.yaml", original.replace("1.57.0", "1.55.0").replace("24.19.2", "24.19.1"));
 	expect(yield* check()).toBe(
-		"examples/starter/pnpm-workspace.copy.yaml: catalog entry lucide-react pins 1.55.0, but root pnpm-workspace.yaml pins 1.57.0.\nexamples/starter/pnpm-workspace.copy.yaml: catalog entry @types/node pins 24.19.1, but root pnpm-workspace.yaml pins 24.19.2.\nRun pnpm changesets apply for a release, or align these starter catalog entries with the root catalog.",
+		"examples/starter/pnpm-workspace.copy.yaml: catalog entry lucide-react pins 1.55.0, but root pnpm-workspace.yaml pins 1.57.0.\nexamples/starter/pnpm-workspace.copy.yaml: catalog entry @types/node pins 24.19.1, but root pnpm-workspace.yaml pins 24.19.2.\nRun pnpm releases apply for a release, or align these starter catalog entries with the root catalog.",
 	);
 });
 
@@ -121,11 +121,11 @@ repository.it("the release check rejects a tampered generated starter-pins input
 	const generated = yield* read(".changeset/release-starter-pins.md");
 	yield* write(".changeset/release-starter-pins.md", generated.replace("latest released starter dependencies", "unreviewed starter dependencies"));
 	yield* apply();
-	expect(yield* check()).toContain("@shivaedev/create-app: release notes differ from changesets apply");
+	expect(yield* check()).toContain("@shivaedev/create-app: release notes differ from releases apply");
 });
 
 repository.it("the release check rejects an additional input created and consumed inside the release diff", [], function* ({ write, apply, check }) {
 	yield* write(".changeset/extra.md", '---\n"@shivaedev/platform": patch\n---\n\n### Fixed\n\n- An extra unrecorded note.\n');
 	yield* apply();
-	expect(yield* check()).toContain("@shivaedev/platform: release notes differ from changesets apply");
+	expect(yield* check()).toContain("@shivaedev/platform: release notes differ from releases apply");
 });

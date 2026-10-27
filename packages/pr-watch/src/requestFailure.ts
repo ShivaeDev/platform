@@ -1,5 +1,5 @@
 import { Cause, DateTime, Schema } from "effect";
-import { GitHubRateLimited, GitHubTransportError } from "@shivaedev/effect-github/errors.ts";
+import { GitHubRateLimited, GitHubTransportError } from "@shivaedev/github/errors.ts";
 import { WatchError } from "#model.ts";
 
 const HttpFailure = Schema.Struct({

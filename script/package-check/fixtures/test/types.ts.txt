@@ -1,0 +1,62 @@
+import { Context, Effect, Layer } from "effect"
+import { eventually } from "@shivaedev/test/eventually.ts"
+import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts"
+
+class Token extends Context.Service<Token, string>()("@consumer/Token") {}
+
+const { effectApp } = makeEffectIt({
+  layer: Layer.succeed(Token, "typed"),
+  around: (effect) => effect,
+  makeHarness: () =>
+    Effect.map(Token, (token) => ({ token })),
+})
+
+effectApp("retains packed harness types", function* (harness, context) {
+  const token: string = harness.token
+  void token
+  void context.task.name
+  const value: string = yield* Token
+  void value
+  const later: string = yield* eventually(Effect.succeed("ready"), {
+    interval: "1 millis",
+    times: 2,
+  })
+  void later
+
+  // @ts-expect-error Packed harnesses do not widen unknown properties.
+  harness.missing
+})
+
+effectApp("accepts a live clock override", function* () {
+  return yield* Token
+}, { clock: "live" })
+
+const scoped = makeEffectIt({
+  around: effect => Effect.gen(function* () {
+    yield* Effect.addFinalizer(() => Effect.void)
+    return yield* effect
+  }),
+  layer: Layer.empty,
+  makeHarness: () => Effect.acquireRelease(Effect.succeed("scoped"), () => Effect.void),
+})
+scoped.effectApp("uses per-test Scope", function* () { yield* Effect.addFinalizer(() => Effect.void) })
+scoped.effectApp.each([1])("scopes table bodies %s", function* () { yield* Effect.addFinalizer(() => Effect.void) })
+
+
+effectApp("retains packed Effect-returning fixture types", (harness, context) => {
+  const token: string = harness.token
+  void token
+  void context.task.name
+  return Effect.service(Token)
+})
+
+effectApp.each([{ id: 1 as const }])("retains packed Effect-returning case types", (item, harness) => {
+  const id: 1 = item.id
+  const token: string = harness.token
+  void id
+  void token
+  return Effect.service(Token)
+})
+
+// @ts-expect-error Packed Effect-returning bodies cannot use a service absent from the Layer.
+scoped.effectApp("rejects an unprovided service", () => Effect.service(Token))

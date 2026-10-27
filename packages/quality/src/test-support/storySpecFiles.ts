@@ -42,5 +42,5 @@ export const prerequisiteFiles: readonly SeedFile[] = [
 	{ content: '{"name":"gate","dependencies":{"runner":"workspace:*"}}', path: "modules/quality/package.json" },
 	{ content: '{"name":"optional"}', path: "modules/optional/package.json" },
 	{ content: '{"name":"app","devDependencies":{"@shivaedev/test-story":"workspace:*"}}', path: "modules/app/package.json" },
-	{ content: '{"name":"@shivaedev/effect-test"}', path: "modules/unrelated/package.json" },
+	{ content: '{"name":"@shivaedev/test"}', path: "modules/unrelated/package.json" },
 ];

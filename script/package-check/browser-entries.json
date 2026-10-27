@@ -1,6 +1,5 @@
 {
 	"access": ["./permission.ts", "./role.ts", "./roleSet.ts"],
-	"effect-contract": ["./errors/rejectedField.ts", "./errors/taxonomy.ts"],
-	"effect-trpc": ["./rejectionDecoding.ts"],
-	"platform": ["./rpc/identity.ts", "./rpc/middleware.ts"]
+	"errors": ["./boundary.ts", "./redact.ts", "./redactCause.ts", "./rejectedField.ts", "./sensitive.ts", "./taxonomy.ts"],
+	"identity": ["./identity.ts", "./middleware.ts", "./permission.ts"]
 }

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { documentRequests } from "#server/document/requests.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { capturedQuestionnaire, questionnaireSource } from "#test/questionnaire.ts";

@@ -6,7 +6,7 @@ import { app } from "./app.ts";
 export const existingOverrides = app.trait("source", "the workspace has a stale archive, another override and a catalog", function* ({ directory }) {
 	yield* (yield* FileSystem.FileSystem).writeFileString(
 		join(directory, "pnpm-workspace.yaml"),
-		'packages: []\n\noverrides:\n  "@shivaedev/effect-contract": "file:../archives/old.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/effect-contract": 0.9.0\n',
+		'packages: []\n\noverrides:\n  "@shivaedev/contract": "file:../archives/old.tgz"\n  effect: 4.0.4\n\ncatalog:\n  "@shivaedev/contract": 0.9.0\n',
 	);
 });
 

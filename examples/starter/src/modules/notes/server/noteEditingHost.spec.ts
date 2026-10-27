@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it(

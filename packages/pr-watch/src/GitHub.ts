@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { confirmQueue } from "./confirmQueue.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "./model.ts";

@@ -1,0 +1,85 @@
+import { Context, Effect, Schema } from "effect"
+import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts"
+import { makePgBoss } from "@shivaedev/jobs/server/service.ts"
+import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts"
+
+class Mail extends Context.Service<Mail, { send(id: number): Effect.Effect<void> }>()("@consumer/Mail") {}
+
+const Queue = defineQueue({
+  name: "mail",
+  queue: { notify: true, policy: "standard", partition: true, heartbeatSeconds: 10, warningQueueSize: 100 },
+  schema: Schema.Struct({ id: Schema.NumberFromString }),
+  worker: { batchSize: 2, localConcurrency: 5, pollingIntervalSeconds: 1 },
+})
+// @ts-expect-error Durable payloads must be object schemas.
+defineQueue({ name: "primitive", schema: Schema.String })
+const Cleanup = defineSchedule({ name: "cleanup", cron: "0 * * * *" })
+const Jobs = makePgBoss("@consumer/Jobs")
+const testing = makePgBossTesting({ retryPolicy: testRetryPolicy })
+const testingLayer = Jobs.layer({ clientFactory: testing.clientFactory, jobs: [Queue] })
+const readout = Effect.gen(function* () {
+  const jobs = yield* testing.jobs(Queue)
+  for (const job of jobs) {
+    const id: number = job.data.id
+    // @ts-expect-error Testing readouts decode payloads through the packed package.
+    const encoded: string = job.data.id
+    void id
+    void encoded
+  }
+  yield* testing.failNextSend(Queue)
+  yield* testing.expireAfter(Queue, 2)
+  yield* testing.checkBatchWindow(Queue, 100)
+  yield* testing.checkSchemaVersion(45)
+  const revision = yield* testing.revision
+  yield* testing.waitForChange(revision)
+})
+void testingLayer
+void readout
+const layer = Jobs.layer({
+  connectionString: "postgresql://compile-only",
+  jobs: [
+    Queue.handle(({ id }) => Effect.flatMap(Mail, (mail) => mail.send(id))),
+    Cleanup.run(Effect.void),
+  ],
+})
+
+const boot = Effect.asVoid(Jobs).pipe(Effect.provide(layer))
+// @ts-expect-error Worker dependencies remain required through the packed package.
+Effect.runPromise(boot)
+Effect.runPromise(boot.pipe(Effect.provideService(Mail, { send: () => Effect.void })))
+
+const OtherJobs = makePgBoss("@consumer/OtherJobs")
+const otherLayer = OtherJobs.layer({ connectionString: "postgresql://compile-only", jobs: [] })
+// @ts-expect-error A different jobs Layer leaves Jobs unprovided through the packed package.
+Effect.runPromise(Effect.asVoid(Jobs).pipe(Effect.provide(otherLayer)))
+
+const program = Effect.gen(function* () {
+  const jobs = yield* Jobs
+  yield* jobs.enqueue(Queue, { id: 1 })
+  yield* jobs.counts(Queue)
+  yield* jobs.retry(Queue, "job-id")
+  const job = yield* jobs.getJob(Queue, "job-id")
+  if (job._tag === "Some") {
+    const id: number = job.value.data.id
+    // @ts-expect-error Lookup returns decoded payloads through the packed package.
+    const encoded: string = job.value.data.id
+    void id
+    void encoded
+  }
+  // @ts-expect-error Decoded payload fields remain strongly typed.
+  yield* jobs.enqueue(Queue, { id: "1" })
+})
+void program
+
+const followUp = Jobs.layer({
+  jobs: [Queue.handle(({ id }) => Effect.gen(function* () {
+    const jobs = yield* Jobs
+    const mail = yield* Mail
+    yield* mail.send(id)
+    yield* jobs.enqueue(Queue, { id })
+  }))],
+})
+const followUpBoot = Effect.asVoid(Jobs).pipe(Effect.provide(followUp))
+// @ts-expect-error Follow-up handlers still require their domain services.
+Effect.runPromise(followUpBoot)
+Effect.runPromise(followUpBoot.pipe(Effect.provideService(Mail, { send: () => Effect.void })))

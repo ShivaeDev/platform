@@ -10,14 +10,14 @@ app.it(
 		documentationFixture(
 			[
 				"```ts",
-				'import { query as subscribe, type Streaming } from "@shivaedev/effect-contract/operation.ts";',
-				'import type { Contract } from "@shivaedev/effect-contract/contract.ts";',
-				'import * as keys from "@shivaedev/effect-contract/keys.ts";',
+				'import { query as subscribe, type Streaming } from "@shivaedev/contract/operation.ts";',
+				'import type { Contract } from "@shivaedev/contract/contract.ts";',
+				'import * as keys from "@shivaedev/contract/keys.ts";',
 				"```",
-				"Import `resumeSignal` from `@shivaedev/effect-contract/resume.ts`.",
+				"Import `resumeSignal` from `@shivaedev/contract/resume.ts`.",
 				"| `resume.ts` | `resumeSignal` |",
 			].join("\n"),
-			"packages/effect-contract/README.md",
+			"packages/contract/README.md",
 		),
 	],
 	function* ({ documentation, documentedEntries }) {
@@ -27,8 +27,8 @@ app.it(
 				expect.objectContaining({ name: "query", typeOnly: false }),
 				expect.objectContaining({ name: "Streaming", typeOnly: true }),
 				expect.objectContaining({ name: "Contract", typeOnly: true }),
-				expect.objectContaining({ specifier: "@shivaedev/effect-contract/keys.ts" }),
-				expect.objectContaining({ name: "resumeSignal", specifier: "@shivaedev/effect-contract/resume.ts" }),
+				expect.objectContaining({ specifier: "@shivaedev/contract/keys.ts" }),
+				expect.objectContaining({ name: "resumeSignal", specifier: "@shivaedev/contract/resume.ts" }),
 			]),
 		);
 	},
@@ -42,12 +42,12 @@ for (const modules of [
 		`checks every comma-separated module in the ${modules[0]} table cell`,
 		[
 			unpublishedContract,
-			documentationFixture(`| ${modules.map((path) => `\`${path}\``).join(", ")} | Supporting types |`, "packages/effect-contract/README.md"),
+			documentationFixture(`| ${modules.map((path) => `\`${path}\``).join(", ")} | Supporting types |`, "packages/contract/README.md"),
 		],
 		function* ({ documentation }) {
 			const failure = yield* documentation();
 			for (const path of modules) {
-				expect(failure).toContain(`@shivaedev/effect-contract/${path}`);
+				expect(failure).toContain(`@shivaedev/contract/${path}`);
 			}
 		},
 	);
@@ -67,16 +67,16 @@ app.it(
 				"### Install",
 				"Save your configuration as `app.ts`.",
 			].join("\n"),
-			"packages/effect-contract/README.md",
+			"packages/contract/README.md",
 		),
 	],
 	function* ({ documentation }) {
 		const failure = yield* documentation();
 		for (const path of ["draft.ts", "refs.ts", "status.ts", "shape.ts"]) {
-			expect(failure).toContain(`@shivaedev/effect-contract/${path}`);
+			expect(failure).toContain(`@shivaedev/contract/${path}`);
 		}
 		for (const path of ["notes.ts", "app.ts"]) {
-			expect(failure).not.toContain(`@shivaedev/effect-contract/${path}`);
+			expect(failure).not.toContain(`@shivaedev/contract/${path}`);
 		}
 	},
 );
@@ -86,15 +86,15 @@ app.it(
 	[
 		unpublishedContract,
 		documentationFixture(
-			'```ts\nimport { query, stream as subscribe } from "@shivaedev/effect-contract/operation.ts";\n```\nImport `makeLiveServer` from `@shivaedev/effect-contract/makeLiveServer.ts`.',
-			"packages/effect-contract/README.md",
+			'```ts\nimport { query, stream as subscribe } from "@shivaedev/contract/operation.ts";\n```\nImport `makeLiveServer` from `@shivaedev/contract/makeLiveServer.ts`.',
+			"packages/contract/README.md",
 		),
 	],
 	function* ({ documentation }) {
 		const failure = yield* documentation();
-		expect(failure).toContain("@shivaedev/effect-contract@0.1.0: import stream from @shivaedev/effect-contract/operation.ts");
-		expect(failure).toContain("import makeLiveServer from @shivaedev/effect-contract/makeLiveServer.ts");
-		expect(failure).toContain("packages/effect-contract/README.md");
+		expect(failure).toContain("@shivaedev/contract@0.1.0: import stream from @shivaedev/contract/operation.ts");
+		expect(failure).toContain("import makeLiveServer from @shivaedev/contract/makeLiveServer.ts");
+		expect(failure).toContain("packages/contract/README.md");
 		expect(failure).not.toContain("import query");
 	},
 );

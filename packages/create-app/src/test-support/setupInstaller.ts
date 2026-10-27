@@ -1,4 +1,4 @@
-export function setupInstaller(pnpm: string, modules: string, quality: string, typecheckExit?: number) {
+export function setupInstaller(pnpm: string, modules: string, hoisted: string, quality: string, typecheckExit?: number) {
 	const qualityBin = `#!/usr/bin/env node
 import("node:child_process").then(({ spawnSync }) => {
   const result = spawnSync(process.execPath, ["--conditions=source", ${JSON.stringify(quality)}, ...process.argv.slice(2)], { stdio: "inherit" });
@@ -24,6 +24,12 @@ if (args[0] === "install") {
       }
     } else if (!name.startsWith(".")) {
       fs.symlinkSync(fs.realpathSync(join(modules, name)), join("node_modules", name));
+    }
+  }
+  const hoisted = ${JSON.stringify(hoisted)};
+  for (const dependency of fs.readdirSync(hoisted)) {
+    if (!fs.existsSync(join("node_modules/@shivaedev", dependency))) {
+      fs.symlinkSync(fs.realpathSync(join(hoisted, dependency)), join("node_modules/@shivaedev", dependency));
     }
   }
   for (const name of fs.readdirSync(join(modules, ".bin"))) {

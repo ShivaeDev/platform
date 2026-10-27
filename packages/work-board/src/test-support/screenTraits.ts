@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
 import { act } from "react";
-import { eventually, render } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually, render } from "@shivaedev/react/client/testing.ts";
 import { ANSWER_SOURCE, answerDraft, answerFiles, answerPreview } from "./answerDraft.tsx";
 import { mountDocument } from "./documentRendering.ts";
 import type { BoardFixtureOptions } from "./inMemoryBoard.ts";

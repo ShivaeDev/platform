@@ -1,5 +1,5 @@
 import { Effect, Schema } from "effect";
-import { BadRequest, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { conflictingPr, movedPrHead } from "#engine/deliveryFailure.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import type { FleetError } from "#errors.ts";

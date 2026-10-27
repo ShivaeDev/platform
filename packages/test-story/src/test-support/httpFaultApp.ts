@@ -1,6 +1,6 @@
 import { Effect, Exit, Scope } from "effect";
 import * as TestClock from "effect/testing/TestClock";
-import { eventually } from "@shivaedev/effect-test/eventually.ts";
+import { eventually } from "@shivaedev/test/eventually.ts";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
 import { httpProbe } from "#test/httpProbe.ts";

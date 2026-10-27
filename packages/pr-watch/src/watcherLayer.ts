@@ -1,8 +1,8 @@
 import { NodeFileSystem } from "@effect/platform-node";
 import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
-import { GitHub as GitHubClient } from "@shivaedev/effect-github/GitHub.ts";
-import { GitHubToken } from "@shivaedev/effect-github/GitHubToken.ts";
+import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";
+import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 import { GitHub } from "#GitHub.ts";
 import { GitHubHttp } from "#GitHubHttp.ts";
 import { StateFile } from "#StateFile.ts";

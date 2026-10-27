@@ -2,8 +2,8 @@ import { resolve } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import type { Pool } from "pg";
-import { pgBossSchema } from "@shivaedev/effect-pg-boss/server/schema.ts";
-import { migrationsFromDirectory } from "@shivaedev/effect-sql/migrationsFromDirectory.ts";
+import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
+import { migrationsFromDirectory } from "@shivaedev/sql/migrationsFromDirectory.ts";
 import { notesMigrations } from "#modules/notes/server/migrations.ts";
 import { AuthMigrationDatabase } from "#server/AuthMigrationDatabase.ts";
 

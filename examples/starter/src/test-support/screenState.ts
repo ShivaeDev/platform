@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { type Rendered, render } from "@shivaedev/effect-react/client/testing.ts";
+import { type Rendered, render } from "@shivaedev/react/client/testing.ts";
 
 export interface ScreenSurface {
 	view: Rendered | undefined;

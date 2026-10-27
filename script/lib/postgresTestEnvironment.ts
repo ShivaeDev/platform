@@ -6,19 +6,17 @@ export const postgresTestEnvironment = Effect.gen(function* () {
 	const base = assertLocalDatabase(connection, ["platform_test"]);
 	function select(name: string) {
 		return Effect.gen(function* () {
-			const database = `platform_test_effect_${name.toLowerCase()}`;
+			const database = `platform_test_${name.toLowerCase()}`;
 			const url = new URL(base);
 			url.pathname = `/${database}`;
-			const value = yield* Config.String(`PLATFORM_EFFECT_${name}_TEST_DATABASE_URL`).pipe(Config.withDefault(url.toString()));
+			const value = yield* Config.String(`PLATFORM_${name}_TEST_DATABASE_URL`).pipe(Config.withDefault(url.toString()));
 			assertLocalDatabase(value, [database]);
 			return value;
 		});
 	}
 	return yield* Effect.all({
-		"PLATFORM_EFFECT_CHANGES_PRISMA_TEST_DATABASE_URL": select("CHANGES_PRISMA"),
-		"PLATFORM_EFFECT_PG_BOSS_TEST_DATABASE_URL": select("PG_BOSS"),
-		"PLATFORM_EFFECT_PRISMA_TEST_DATABASE_URL": select("PRISMA"),
-		"PLATFORM_EFFECT_SQL_TEST_DATABASE_URL": select("SQL"),
-		"PLATFORM_EFFECT_TEST_SQL_TEST_DATABASE_URL": select("TEST_SQL"),
+		"PLATFORM_JOBS_TEST_DATABASE_URL": select("JOBS"),
+		"PLATFORM_SQL_TEST_DATABASE_URL": select("SQL"),
+		"PLATFORM_TEST_SQL_TEST_DATABASE_URL": select("TEST_SQL"),
 	});
 });

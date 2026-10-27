@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import type { DraftInput, Question } from "#browser/responses/schema.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { questionFrom, responseFrom } from "./records.ts";

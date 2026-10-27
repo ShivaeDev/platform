@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { anEndedWatcher, fileReadingStory, readableFiles } from "#test/fileReadingStory.ts";
 
 fileReadingStory.it(

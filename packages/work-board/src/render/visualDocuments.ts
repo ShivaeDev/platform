@@ -1,7 +1,7 @@
 import type { Root, RootContent } from "mdast";
 import type { ContainerDirective, LeafDirective, TextDirective } from "mdast-util-directive";
 import { SKIP, visit as visitNodes } from "unist-util-visit";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { errorMessage } from "#errorMessage.ts";
 import { renderVisual } from "./visual.ts";
 

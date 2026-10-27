@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { transact } from "@shivaedev/effect-sql/transact.ts";
+import { transact } from "@shivaedev/sql/transact.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import type { FleetRecord } from "#model.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";

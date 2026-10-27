@@ -4,6 +4,7 @@ import { anything, external, files, folders, modules, packages } from "@shivaede
 const server = folders("packages/admin/src/server", "packages/admin/src/test-support");
 const client = folders("packages/admin/src/client");
 const browser = folders("packages/admin/src").except(server, client);
+const identityDeclarations = files("packages/identity/src/identity.ts", "packages/identity/src/middleware.ts", "packages/identity/src/permission.ts");
 
 export default [
 	fence("admin-declarations-stay-browser-safe")
@@ -13,8 +14,8 @@ export default [
 			anything.except(
 				browser,
 				files("packages/access/src/permission.ts"),
-				packages("effect-contract", "types"),
-				folders("packages/platform/src/rpc"),
+				packages("contract", "errors", "types"),
+				identityDeclarations,
 				modules("effect"),
 			),
 		)
@@ -30,8 +31,8 @@ export default [
 				client,
 				browser,
 				files("packages/access/src/permission.ts"),
-				packages("effect-react", "effect-form", "effect-contract", "types"),
-				folders("packages/platform/src/rpc"),
+				packages("react", "form", "contract", "errors", "types"),
+				identityDeclarations,
 				modules("effect", "react", "@effect/atom-react"),
 			),
 		)

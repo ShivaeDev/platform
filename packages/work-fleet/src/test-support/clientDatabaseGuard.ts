@@ -7,7 +7,7 @@ function forbidden(): never {
 	process.exit(97);
 }
 
-const databaseUrl = Effect.runSync(Config.option(Config.String("PLATFORM_EFFECT_SQL_TEST_DATABASE_URL")));
+const databaseUrl = Effect.runSync(Config.option(Config.String("PLATFORM_SQL_TEST_DATABASE_URL")));
 const databasePort = Option.map(databaseUrl, (url) => Number(new URL(url).port || "5432"));
 const connect = net.Socket.prototype.connect;
 

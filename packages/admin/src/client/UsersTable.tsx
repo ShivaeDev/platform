@@ -1,6 +1,6 @@
 import { DateTime } from "effect";
-import { type AppUser, type ChangeRoleInput, UserRole } from "@shivaedev/platform/rpc/userRoles.ts";
 import type { UsersList } from "#users/page.ts";
+import { type AppUser, type ChangeRoleInput, UserRole } from "#users/roles.ts";
 
 interface RoleControls {
 	readonly dispatch: (input: typeof ChangeRoleInput.Type) => void;

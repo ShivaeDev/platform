@@ -1,17 +1,4 @@
 {
-	"changesets": {
-		"absent": [".changeset/feature.md"],
-		"args": ["apply"],
-		"expectedFiles": {
-			"packages/demo/CHANGELOG.md": "- Packed CLI release.",
-			"packages/demo/package.json": "\"version\": \"0.2.0\""
-		},
-		"files": {
-			".changeset/feature.md": "---\n\"@packed/demo\": minor\n---\n\n### Added\n\n- Packed CLI release.\n",
-			"packages/demo/package.json": "{\"name\":\"@packed/demo\",\"version\":\"0.1.0\"}\n"
-		},
-		"output": "@packed/demo: 0.1.0 -> 0.2.0 (minor)"
-	},
 	"create-app": {
 		"args": ["my-app"],
 		"checkVersion": true,
@@ -19,20 +6,11 @@
 			"my-app/.env.example": "DATABASE_URL=",
 			"my-app/package.json": "\"name\": \"my-app\"",
 			"my-app/pnpm-lock.yaml": "@shivaedev/platform",
-			"my-app/pnpm-workspace.yaml": "packages: []"
+			"my-app/pnpm-workspace.yaml": "publicHoistPattern: [\"@shivaedev/*\"]"
 		},
 		"files": {},
 		"output": "pnpm dev",
 		"packedInstall": true
-	},
-	"effect-prisma-normalize": {
-		"args": ["raw-contract.d.ts"],
-		"expectedFiles": {
-			"raw-contract.d.ts": "export type Row = { readonly createdAt: Date };\n"
-		},
-		"files": {
-			"raw-contract.d.ts": "export type Row = { readonly createdAt: Timestamp<6> };\n"
-		}
 	},
 	"heavy-lock": {
 		"absent": ["locks/heavy-process.lock"],
@@ -79,6 +57,19 @@
 			"sample/a.ts": "export function parse(text: string): any {\n\treturn JSON.parse(text);\n}\n\nexport function now(): number {\n\treturn Date.now();\n}\n"
 		},
 		"output": "recorded"
+	},
+	"releases": {
+		"absent": [".changeset/feature.md"],
+		"args": ["apply"],
+		"expectedFiles": {
+			"packages/demo/CHANGELOG.md": "- Packed CLI release.",
+			"packages/demo/package.json": "\"version\": \"0.2.0\""
+		},
+		"files": {
+			".changeset/feature.md": "---\n\"@packed/demo\": minor\n---\n\n### Added\n\n- Packed CLI release.\n",
+			"packages/demo/package.json": "{\"name\":\"@packed/demo\",\"version\":\"0.1.0\"}\n"
+		},
+		"output": "@packed/demo: 0.1.0 -> 0.2.0 (minor)"
 	},
 	"shivaedev-skills": {
 		"args": ["sync"],

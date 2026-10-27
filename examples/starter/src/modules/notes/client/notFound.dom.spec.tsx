@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { notesApp, notesHostScreen, signedInAccount } from "#modules/notes/test-support/app.tsx";
 
 notesApp.it(

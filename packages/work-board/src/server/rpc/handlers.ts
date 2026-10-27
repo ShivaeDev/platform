@@ -1,7 +1,7 @@
 import { Clock, Effect, Layer, Ref, Stream } from "effect";
-import { InternalServerError, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { rpcBoundary } from "@shivaedev/platform/server/rpc-server/boundary.ts";
-import { requestTracingLayer } from "@shivaedev/platform/server/rpc-server/tracing.ts";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { requestTracingLayer } from "@shivaedev/identity/server/tracing.ts";
 import { laneRows, openLaneCount } from "#browser/views/nowLanes.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { DocumentRejection, ResponseRejection } from "#rpc/rejections.ts";

@@ -1,6 +1,6 @@
 import { Effect, type FileSystem, type Path, type Scope } from "effect";
 import { HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
-import { loopbackOnly } from "@shivaedev/platform/server/rpc-server/local.ts";
+import { loopbackOnly } from "@shivaedev/identity/server/local.ts";
 import type { Diagnostics } from "#diagnostics/source.ts";
 import { responseUrl, resultUrl } from "#responses/url.ts";
 import type { BoardOptions } from "#server/board.ts";

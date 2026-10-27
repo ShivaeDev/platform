@@ -1,11 +1,11 @@
 import { Schema } from "effect";
 import { Model } from "effect/schema";
-import { contract } from "@shivaedev/effect-contract/contract.ts";
-import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { collection } from "@shivaedev/effect-contract/keys.ts";
-import { command, query } from "@shivaedev/effect-contract/operation.ts";
-import { fieldRejection } from "@shivaedev/effect-contract/rejection.ts";
-import { AuthenticatedUser } from "@shivaedev/platform/rpc/middleware.ts";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { collection } from "@shivaedev/contract/keys.ts";
+import { command, query } from "@shivaedev/contract/operation.ts";
+import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({
 	id: Model.Field({ json: Schema.Number, select: Schema.Number, update: Schema.Number }),

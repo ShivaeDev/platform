@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { Model } from "effect/schema";
-import { makeRepository } from "@shivaedev/effect-sql/repository.ts";
+import { makeRepository } from "@shivaedev/sql/repository.ts";
 import { Note } from "#modules/notes/notes.ts";
 
 export class StoredNote extends Model.Class<StoredNote>("StoredNote")({

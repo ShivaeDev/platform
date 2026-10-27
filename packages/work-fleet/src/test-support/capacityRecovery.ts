@@ -1,4 +1,4 @@
-import { withTestTransaction } from "@shivaedev/effect-test-sql/server/withTestTransaction.ts";
+import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { SessionFailure } from "#session/schema.ts";
 import { type EngineStory, newEngineState } from "#test/engineState.ts";

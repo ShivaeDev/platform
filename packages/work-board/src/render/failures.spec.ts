@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { highlighterStartupFails, markdownPluginFails, renderFailureStory } from "#test/renderFailureStory.ts";
 import { RenderFailed } from "./Failed.ts";
 

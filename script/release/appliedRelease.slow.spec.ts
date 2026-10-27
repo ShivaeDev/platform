@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
-import { ReleasePlan } from "@shivaedev/changesets/model.ts";
+import { ReleasePlan } from "@shivaedev/releases/model.ts";
 import { pending, platform } from "#release/test-support/platform.ts";
 
 const Inventory = Schema.Struct({ packages: Schema.Array(Schema.Struct({ name: Schema.String, version: Schema.String })) });
@@ -18,10 +18,10 @@ platform.it(
 		};
 		const board = yield* read(paths["@shivaedev/work-board"]);
 		const fleet = yield* read(paths["@shivaedev/work-fleet"]);
-		const planned = yield* run("changesets", "plan", "--json");
+		const planned = yield* run("releases", "plan", "--json");
 		expect(planned.status, planned.stderr).toBe(0);
 		const plan = Schema.decodeUnknownSync(Schema.fromJsonString(ReleasePlan))(planned.stdout);
-		const applied = yield* run("changesets", "apply");
+		const applied = yield* run("releases", "apply");
 		expect(applied.status, applied.stderr).toBe(0);
 		const updatedPins = Schema.decodeUnknownSync(Versions)(yield* read("examples/starter/published-versions.json"));
 		for (const [name, version] of Object.entries(pins)) {

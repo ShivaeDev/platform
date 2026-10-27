@@ -1,6 +1,6 @@
 import { Cause, Context, Effect, type Scope, Tracer } from "effect";
-import type { AnyTestLayer } from "@shivaedev/effect-test/anyTestLayer.ts";
-import type { EffectClock } from "@shivaedev/effect-test/types.ts";
+import type { AnyTestLayer } from "@shivaedev/test/anyTestLayer.ts";
+import type { EffectClock } from "@shivaedev/test/types.ts";
 import { refusal } from "#internal/errors.ts";
 import { type AnyEffect, type EffectHook, type Hook, hooked } from "#internal/hooked.ts";
 import { type Narration, tellGiven } from "#internal/narration.ts";

@@ -1,6 +1,6 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { readReviewerVerdict, reviewerPrompt } from "#prompt/reviewer.ts";
 
 const receipt = { sessionId: "review-session", turnId: "review-turn" };

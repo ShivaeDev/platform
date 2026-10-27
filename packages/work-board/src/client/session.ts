@@ -1,4 +1,4 @@
-import type { ResumeWindow } from "@shivaedev/effect-contract/resume.ts";
+import type { ResumeWindow } from "@shivaedev/contract/resume.ts";
 import { browserClient } from "#browserClient.ts";
 
 type BrowserEnvironment = ResumeWindow & {

@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { useId, useRef } from "react";
 import { flushSync } from "react-dom";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { Item } from "#client/react/LibraryContext.ts";
 import { type Entry, HistoryEntry } from "./HistoryEntry.tsx";
 import { useNow } from "./now.ts";

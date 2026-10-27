@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/effect-react/client/testing.ts";
+import { eventually } from "@shivaedev/react/client/testing.ts";
 import { goalChartChunkFails } from "#test/goalChartChunkFails.ts";
 import { goalPageFixture } from "#test/goalPageFixture.ts";
 import { screenChartLayout } from "#test/screenEnvironment.ts";

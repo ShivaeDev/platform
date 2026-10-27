@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 
 export function readCommand(command: string, args: readonly string[], cwd?: string, input?: string) {
 	return Effect.scoped(

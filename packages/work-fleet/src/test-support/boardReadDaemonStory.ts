@@ -1,6 +1,6 @@
 import { NodeServices } from "@effect/platform-node";
 import { Clock, Effect, Layer } from "effect";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { withBoardReadPass } from "#board/readPass.ts";
 import { boardReadCounts } from "#test/boardReadCounts.ts";

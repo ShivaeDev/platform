@@ -4,7 +4,7 @@ import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Effect, FileSystem, Redacted } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { codexServer } from "#test/codex.ts";
 
 export const supervisorInstallation = Effect.fn("FleetTest.supervisorInstallation")(function* (delayedLive = false) {

@@ -1,7 +1,7 @@
 import { relative, resolve } from "node:path";
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";

@@ -7,6 +7,7 @@ export const consumerDependencies = Effect.fn("Packed.consumerDependencies")(fun
 	packages: readonly Package[],
 	imports: ReadonlySet<string>,
 	omitOptionalPeers = false,
+	shell = false,
 ) {
 	const closure = workspaceClosure(pkg, packages, imports, omitOptionalPeers);
 	const dependencies: Record<string, string> = {
@@ -20,7 +21,11 @@ export const consumerDependencies = Effect.fn("Packed.consumerDependencies")(fun
 	}
 	const tarballs = Object.fromEntries([...closure.values()].map((entry) => [entry.manifest.name, entry.tarball]));
 	for (const [name, tarball] of Object.entries(tarballs)) {
-		dependencies[name] = `file:${tarball}`;
+		if (shell && name !== pkg.manifest.name) {
+			delete dependencies[name];
+		} else {
+			dependencies[name] = `file:${tarball}`;
+		}
 	}
 	for (const name of imports) {
 		yield* requireThat(

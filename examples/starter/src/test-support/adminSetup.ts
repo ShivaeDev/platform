@@ -1,8 +1,8 @@
 import { Effect } from "effect";
-import { PostgresTestDatabase } from "@shivaedev/effect-test-sql/server/database.ts";
-import { migrationSteps } from "@shivaedev/effect-test-sql/server/migrationSteps.ts";
-import { withIsolatedDatabase } from "@shivaedev/effect-test-sql/server/withIsolatedDatabase.ts";
-import { authDatabase } from "@shivaedev/platform/server/better-auth/mount.ts";
+import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { migrationSteps } from "@shivaedev/test-sql/server/migrationSteps.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrations } from "#server/migrations.ts";
 import { type RunningHost, startHost } from "#test-support/host.ts";

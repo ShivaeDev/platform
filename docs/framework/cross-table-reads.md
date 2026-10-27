@@ -4,7 +4,7 @@ A dashboard can read tables owned by different repositories without adding joins
 
 ## Compose the models' field schemas
 
-The [pull-request module](../../packages/effect-sql/src/test-support/cross-table/pullRequests.ts) describes `id: Schema.Int`, `title: Schema.String` and `updated_at: Schema.DateTimeUtcFromDate`. The [report module](../../packages/effect-sql/src/test-support/cross-table/reports.ts) describes `id: Schema.Int`, `pull_request_id: Schema.Int` and `score: Schema.NumberFromString.check(Schema.isFinite())`. Each passes its model to `makeRepository` for its own table.
+The [pull-request module](../../packages/sql/src/test-support/cross-table/pullRequests.ts) describes `id: Schema.Int`, `title: Schema.String` and `updated_at: Schema.DateTimeUtcFromDate`. The [report module](../../packages/sql/src/test-support/cross-table/reports.ts) describes `id: Schema.Int`, `pull_request_id: Schema.Int` and `score: Schema.NumberFromString.check(Schema.isFinite())`. Each passes its model to `makeRepository` for its own table.
 
 PostgreSQL stores the IDs in `integer` columns, the title and score in `text` columns, and `updated_at` in a UTC `timestamptz` column. Reports have a unique foreign key to a pull request, so a pull request has at most one report. There are no JSON columns. The score codec deliberately makes the stored text a finite number in application code; the timestamp codec turns the driver's `Date` into `DateTime.Utc`.
 
@@ -12,12 +12,12 @@ Use the models' `.fields` schemas for the read result, including their storage c
 
 ## Own the query in the dashboard service
 
-This is the [dashboard service](../../packages/effect-sql/src/test-support/cross-table/dashboard.ts), quoted exactly. The table names are application configuration; the fixture supplies isolated names. Both repositories and this service use the same native `SqlClient`.
+This is the [dashboard service](../../packages/sql/src/test-support/cross-table/dashboard.ts), quoted exactly. The table names are application configuration; the fixture supplies isolated names. Both repositories and this service use the same native `SqlClient`.
 
 ```ts
 import { Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { PullRequest } from "./pullRequests.ts";
 import { Report } from "./reports.ts";
 
@@ -103,12 +103,12 @@ This effect still requires the application's `SqlClient`. Import `DateTime` and 
 
 Column names inside SQL text are not checked at compile time. Neither a composed result schema nor a typed request proves that a SQL identifier exists or that a join condition is correct. PostgreSQL reports statement failures as typed `SqlError`; decoding the result at the boundary fails with typed `SchemaError` when a returned value violates the composed schema. For example, a stored score of `invalid` cannot decode through `Report.fields.score`. Do not cast driver rows to the expected result type: that removes this check.
 
-The [PostgreSQL story](../../packages/effect-sql/src/crossTableReads.spec.ts) runs these queries over two repositories' tables through the `postgres` kit. It exercises matched and unmatched rows, numeric and UTC result decoding, a UTC bound encoded into a `Date` parameter, an invalid persisted score in the typed error channel, and optional single-row reads. This proves the application composition against PostgreSQL; it adds no effect-sql API or repository join builder.
+The [PostgreSQL story](../../packages/sql/src/crossTableReads.spec.ts) runs these queries over two repositories' tables through the `postgres` kit. It exercises matched and unmatched rows, numeric and UTC result decoding, a UTC bound encoded into a `Date` parameter, an invalid persisted score in the typed error channel, and optional single-row reads. This proves the application composition against PostgreSQL; it adds no sql API or repository join builder.
 
 After `./script/update`, run the story against the local PostgreSQL database:
 
 ```sh
-PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_effect_sql pnpm --filter @shivaedev/effect-sql test src/crossTableReads.spec.ts
+PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/crossTableReads.spec.ts
 ```
 
-Without `PLATFORM_EFFECT_SQL_TEST_DATABASE_URL` the PostgreSQL kit skips locally; under CI, a missing URL fails collection rather than silently skipping these stories.
+Without `PLATFORM_SQL_TEST_DATABASE_URL` the PostgreSQL kit skips locally; under CI, a missing URL fails collection rather than silently skipping these stories.

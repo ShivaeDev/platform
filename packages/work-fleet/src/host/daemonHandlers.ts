@@ -1,8 +1,8 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Context, Effect, Fiber, Layer, Redacted, Stream } from "effect";
 import { SqlClient } from "effect/sql";
-import { Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { databaseAddress } from "@shivaedev/platform/server/databaseAddress.ts";
+import { Forbidden, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { databaseAddress } from "@shivaedev/server/databaseAddress.ts";
 import { exposeFailure } from "#exposeFailure.ts";
 import { answerRecords } from "#host/answerRecords.ts";
 import { answerRequests } from "#host/answerRequests.ts";

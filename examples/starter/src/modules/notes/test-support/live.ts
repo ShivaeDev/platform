@@ -3,7 +3,7 @@ import { HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
-import { LiveConnection } from "@shivaedev/effect-contract/automaticLive.ts";
+import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import type { RunningHost } from "#test-support/host.ts";
 

@@ -1,8 +1,8 @@
 import { Context, Effect, Layer, Schema, Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
-import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { SessionUser } from "@shivaedev/platform/rpc/identity.ts";
+import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { adminRegistry } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Failed, Jobs, JobsContract, Registry, Users } from "#test/pages.ts";

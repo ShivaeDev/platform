@@ -2,6 +2,8 @@
 
 Start a new app with the [quickstart](./quickstart.md) and [copyable starter](../../examples/starter).
 
+An application depends on [`@shivaedev/platform`](../../packages/platform/README.md), which brings every package below, and on `@shivaedev/test-story` and `@shivaedev/quality` for development. It imports each module from the package that owns it, by that package's name; the table names the owner of each job.
+
 Platform gives an Effect application one path from its data schemas to services,
 persistence, operations and client state. Shared conventions remove repeated
 wiring while keeping native Effect dependencies, errors, scopes and interruption
@@ -16,26 +18,23 @@ user-facing text, layout and deployment choices.
 
 | Job | Package | Boundary |
 | --- | --- | --- |
-| Declare services | [effect-service](../../packages/effect-service/README.md) | Declare dependencies and initialization; native Context and Layer own composition. |
-| Persist data and run migrations | [effect-sql](../../packages/effect-sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
-| Announce committed changes | [effect-changes](../../packages/effect-changes/README.md) | Repositories announce table and row keys at commit; command declarations name additional dependencies. |
-| Declare queries and commands | [effect-contract](../../packages/effect-contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
-| Resolve identity | [platform](../../packages/platform/README.md) | Use its RPC middleware and server modules; applications decide session and Origin policy. |
-| Render queries and invoke actions | [effect-react](../../packages/effect-react/README.md) | Bind native atoms to React; session boundaries own registries and live connections. |
-| Route React screens | [effect-react/router.ts](../../packages/effect-react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
-| Edit and submit data | [effect-form](../../packages/effect-form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
-| Run durable jobs | [effect-pg-boss](../../packages/effect-pg-boss/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
+| Declare services | [service](../../packages/service/README.md) | Declare dependencies and initialization; native Context and Layer own composition. |
+| Persist data and run migrations | [sql](../../packages/sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
+| Announce committed changes | [changes](../../packages/changes/README.md) | Repositories announce table and row keys at commit; command declarations name additional dependencies. |
+| Declare queries and commands | [contract](../../packages/contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
+| Share expected failures | [errors](../../packages/errors/README.md) | Use the shared failure taxonomy and field rejections on both sides of RPC; redact sensitive values before they reach logs or traces. |
+| Resolve identity and permissions | [identity](../../packages/identity/README.md) | Use its RPC middleware and server modules; applications decide session, Origin and permission policy. |
+| Call outside HTTP APIs | [http](../../packages/http/README.md) | Use the native HTTP client with its typed failures, pagination and bounded bodies; applications own retries and credentials. |
+| Host the application | [server](../../packages/server/README.md) | Compose the app host, health, tracing export, migrations and development mode; applications supply their RPC groups and routes. |
+| Render queries and invoke actions | [react](../../packages/react/README.md) | Bind native atoms to React; session boundaries own registries and live connections. |
+| Route React screens | [react/router.ts](../../packages/react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
+| Edit and submit data | [form](../../packages/form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
+| Run durable jobs | [jobs](../../packages/jobs/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
 | Author administrator pages | [admin](../../packages/admin/README.md) | Register native contracts behind the declared `OpenAdmin` permission; applications own React views on the existing RPC transport. |
-| Test Effect code | [effect-test](../../packages/effect-test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |
-| Isolate PostgreSQL tests | [effect-test-sql](../../packages/effect-test-sql/README.md) | Prepare migrations and fixtures once; use rollback or cloned databases for real commits. |
+| Test Effect code | [test](../../packages/test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |
+| Isolate PostgreSQL tests | [test-sql](../../packages/test-sql/README.md) | Prepare migrations and fixtures once; use rollback or cloned databases for real commits. |
 | Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |
 
-The Prisma and tRPC integrations serve applications using those stacks:
-[effect-prisma](../../packages/effect-prisma/README.md) integrates Prisma Next,
-[effect-changes-prisma](../../packages/effect-changes-prisma/README.md) binds
-commit-bound changes to Prisma Classic on PostgreSQL, and
-[effect-trpc](../../packages/effect-trpc/README.md) integrates tRPC procedures.
-Choose the package for the stack the application actually uses.
 
 ## Design priorities
 
@@ -64,7 +63,7 @@ Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in
 
 The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Use each package's README for its mental model and API.
 
-- [Native RPC](./native-rpc.md) explains handlers, middleware and transport, including the [one path for public client configuration](./native-rpc.md#public-client-configuration): a shared Schema, startup-loaded public fields and an effect-react query without an application-written RPC.
+- [Native RPC](./native-rpc.md) explains handlers, middleware and transport, including the [one path for public client configuration](./native-rpc.md#public-client-configuration): a shared Schema, startup-loaded public fields and an react query without an application-written RPC.
 - [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
 - [Live updates](./live-updates.md) explains default query refresh and explicit hint-stream coordination.

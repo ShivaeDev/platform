@@ -1,7 +1,7 @@
 import { Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
 import { ConnectionError, SqlError } from "effect/sql/SqlError";
-import { appHost } from "@shivaedev/platform/server/appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
 import { diagnostics } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { HealthSnapshot } from "#engine/health.ts";
 import { FleetRepository } from "#engine/repository.ts";

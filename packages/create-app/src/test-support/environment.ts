@@ -1,13 +1,13 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, symlinkSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Schema } from "effect";
 import { databaseProbe } from "./databaseProbe.ts";
-import { starterModules } from "./starterModules.ts";
+import { linkStarterModules } from "./starterModules.ts";
 
 export function appScript(app: string, script: string, args: readonly string[] = []) {
 	if (!existsSync(join(app, "node_modules"))) {
-		symlinkSync(starterModules(), join(app, "node_modules"));
+		linkStarterModules(app);
 	}
 	const manifest = Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ scripts: Schema.Record(Schema.String, Schema.String) })))(
 		readFileSync(join(app, "package.json"), "utf8"),
@@ -20,7 +20,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 			"-u",
 			"DATABASE_URL",
 			"-u",
-			"PLATFORM_EFFECT_SQL_TEST_DATABASE_URL",
+			"PLATFORM_SQL_TEST_DATABASE_URL",
 			"sh",
 			"-c",
 			`${manifest.scripts[script]} "$@"`,
@@ -36,7 +36,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 
 export function installDatabaseProbe(app: string) {
 	const environment = join(app, ".env.local");
-	const line = "PLATFORM_EFFECT_SQL_TEST_DATABASE_URL=postgresql://invalid:invalid@127.0.0.1:1/invalid";
+	const line = "PLATFORM_SQL_TEST_DATABASE_URL=postgresql://invalid:invalid@127.0.0.1:1/invalid";
 	if (!readFileSync(environment, "utf8").split("\n").includes(line)) {
 		writeFileSync(environment, `${line}\n`, { flag: "a" });
 	}

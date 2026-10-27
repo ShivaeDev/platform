@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { useMemo, useRef, useState } from "react";
 import { flushSync } from "react-dom";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { Library, LibraryFile, LibraryInput, LibraryView } from "#browser/navigation/library.ts";
 import { kindLabel, statusLabel } from "#browser/views/statusLabel.ts";
 import { Button } from "#client/react/components/ui/button.tsx";

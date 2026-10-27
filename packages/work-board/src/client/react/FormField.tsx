@@ -1,6 +1,6 @@
 import { type ReactNode, useId, useLayoutEffect, useRef } from "react";
-import { useField } from "@shivaedev/effect-form/client/react.ts";
-import type { Fields, Form, Name } from "@shivaedev/effect-form/shape.ts";
+import { useField } from "@shivaedev/form/client/react.ts";
+import type { Fields, Form, Name } from "@shivaedev/form/shape.ts";
 import { Input } from "#client/react/components/ui/input.tsx";
 import { Label } from "#client/react/components/ui/label.tsx";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "#client/react/components/ui/select.tsx";

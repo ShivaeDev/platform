@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { InternalServerError } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
 import { fleetReports } from "#test/storyTraits.ts";
 

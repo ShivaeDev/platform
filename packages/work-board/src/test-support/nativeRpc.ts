@@ -2,7 +2,7 @@ import { NodeHttpClient } from "@effect/platform-node";
 import { Effect, Exit, Layer, Scope, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import type { LiveHint } from "@shivaedev/effect-contract/live.ts";
+import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { documents } from "#rpc/keys.ts";
 import type { RunningBoard } from "#test/board.ts";

@@ -52,7 +52,7 @@ These fields belong inside the record's `handoff` mapping. Recipient and `by` ar
 
 Same-ID preparation retries preserve raw receipt bytes and extra metadata, even if the original source disappears. Different direction or a moved/duplicate record identity is a conflict. Initial preparation checks the reviewed source revision and path. Later reads qualify earlier or unavailable context and retain saved history. Malformed or ambiguous history stays unavailable; task status does not supply a missing receipt.
 
-Browser drafts use effect-form persistence with a seven-day lifetime and 256 KiB limit per draft. Clearing the current draft restores its form’s initial values without deleting saved records or other drafts. There is no special acknowledgment command, editor lock or universal transaction with unrelated editors.
+Browser drafts use form persistence with a seven-day lifetime and 256 KiB limit per draft. Clearing the current draft restores its form’s initial values without deleting saved records or other drafts. There is no special acknowledgment command, editor lock or universal transaction with unrelated editors.
 
 ## Native integration
 

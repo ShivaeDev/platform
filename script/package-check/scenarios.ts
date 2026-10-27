@@ -7,6 +7,7 @@ const Scenario = Schema.Struct({
 	fixtures: Schema.Array(Schema.String),
 	omitOptionalPeers: Schema.Boolean,
 	run: Schema.Array(Schema.String),
+	shell: Schema.optional(Schema.Literals(["hoisted", "unhoisted"])),
 	tsconfig: Schema.optional(Schema.String),
 });
 export type Scenario = typeof Scenario.Type;

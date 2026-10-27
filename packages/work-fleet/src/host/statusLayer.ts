@@ -1,5 +1,5 @@
 import { Clock, Console, Context, Effect, FileSystem, Layer, type Option, Queue, Ref, Semaphore } from "effect";
-import { defineService } from "@shivaedev/effect-service/defineService.ts";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import type { FleetHealth } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { publishAfterBoardPass } from "#board/readPass.ts";

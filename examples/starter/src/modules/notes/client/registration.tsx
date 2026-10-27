@@ -1,6 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
-import { queryRoute } from "@shivaedev/effect-react/queryRoute.ts";
+import { queryRoute } from "@shivaedev/react/queryRoute.ts";
 import type { ClientModule, RouteContext } from "#client/Module.ts";
 import { type AdminClient, makeAdminClient } from "./admin.ts";
 import { adminRoutes } from "./adminRoutes.tsx";

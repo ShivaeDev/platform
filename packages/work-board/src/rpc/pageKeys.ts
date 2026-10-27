@@ -1,4 +1,4 @@
-import type { Key } from "@shivaedev/effect-contract/keys.ts";
+import type { Key } from "@shivaedev/contract/keys.ts";
 import { documents, identities, index, workspace } from "./keys.ts";
 
 export function pageKeys(url: string): readonly Key[] {

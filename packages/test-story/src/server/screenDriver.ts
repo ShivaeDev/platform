@@ -1,5 +1,5 @@
 import { Data, Effect, Schedule } from "effect";
-import { withLive } from "@shivaedev/effect-test/withLive.ts";
+import { withLive } from "@shivaedev/test/withLive.ts";
 import { accessibility, targetName } from "#internal/screenAccessibility.ts";
 import { screenElements } from "#internal/screenElements.ts";
 

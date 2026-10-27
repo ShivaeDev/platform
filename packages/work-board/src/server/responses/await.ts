@@ -1,5 +1,5 @@
 import { Clock, Effect } from "effect";
-import { NotFound } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { NotFound } from "@shivaedev/errors/taxonomy.ts";
 import type { Reading } from "#browser/responses/schema.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
 import { outcome } from "./outcome.ts";

@@ -1,4 +1,4 @@
-import { Conflict } from "@shivaedev/effect-contract/errors/taxonomy.ts";
+import { Conflict } from "@shivaedev/errors/taxonomy.ts";
 import { withFailureContext } from "./failureContext.ts";
 
 export const MOVED_PR_HEAD_REASON = "PR head differs from the reviewed head; review the current revision before accepting delivery";

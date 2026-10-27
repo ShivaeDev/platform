@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { BadRequest } from "@shivaedev/effect-contract/errors/taxonomy.ts";
-import { it } from "@shivaedev/effect-test/it.ts";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { it } from "@shivaedev/test/it.ts";
 import { agentArguments, agentUrl } from "./agentArguments.ts";
 
 const cases: readonly [readonly string[], string][] = [

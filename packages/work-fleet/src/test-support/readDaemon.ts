@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Clock, Context, Effect, Layer, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { AppChanges } from "@shivaedev/platform/server/appHost.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
 import type { HostParts } from "#host/commands.ts";
 import type { FleetHost } from "#host/config.ts";
 import { daemonHostOptions, daemonHttpLayer, daemonLayer } from "#host/daemon.ts";

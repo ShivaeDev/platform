@@ -1,6 +1,6 @@
 # Starter application
 
-This private application is the source template that `@shivaedev/create-app` packages for new Platform apps. Keep it small enough to understand in one sitting: one domain table, an authenticated notes workflow and a sign-in screen. Better Auth owns its account and session tables; the starter's numbered migration path creates them. Prefer native Effect composition and the framework's existing path over helpers that obscure it.
+This private application is the source template that `@shivaedev/create-app` packages for new Platform apps. Keep it small enough to understand in one sitting: one domain table, an authenticated notes workflow and a sign-in screen. Better Auth owns its account and session tables; the starter's numbered migration path creates them. Prefer native Effect composition and the framework's existing path over helpers that obscure it. Like every generated app, the starter depends on `@shivaedev/platform` and takes `@shivaedev/test-story` and `@shivaedev/quality` for development; it reaches the pieces through the workspace root's `publicHoistPattern`, and `pnpm-workspace.copy.yaml` carries the same setting into generated apps.
 
 The application owns its UI and local session policy. Shared declarations stay browser safe; PostgreSQL, services and the app host stay on the server. Keep the pnpm catalog and TypeScript configuration self-contained so generating the app does not require repository files.
 

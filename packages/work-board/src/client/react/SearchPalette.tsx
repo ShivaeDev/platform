@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { type KeyboardEvent, type RefObject, useEffect, useId, useRef, useState } from "react";
-import { useQuery } from "@shivaedev/effect-react/client/resultState.ts";
+import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { ActiveDescendant } from "#client/react/ActiveDescendant.tsx";
 import { Button } from "#client/react/components/ui/button.tsx";
 import { Checkbox } from "#client/react/components/ui/checkbox.tsx";
