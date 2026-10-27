@@ -35,6 +35,28 @@ A **collection key** names a dependency. Its item key identifies one item; its l
 
 Optional live hints use those same keys. A hint asks for another read; it does not supply a replacement value, a journal entry or proof that a query is fresh.
 
+### Build an HTTP client
+
+Use `makeClient` once per session to bind a contract to an HTTP endpoint:
+
+```ts
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { Notes } from "./notes.ts";
+
+const { api, runtime } = makeClient(Notes, {
+  url: "/rpc",
+  transformClient: (client) => HttpClient.mapRequest(
+    client,
+    HttpClientRequest.setHeader("authorization", "Bearer session-token"),
+  ),
+});
+const note = api.get.query({ id: 1 });
+const rename = runtime.fn(api.rename.run);
+```
+
+The request transform is optional and its native HTTP client type is inferred. Tests can set cookie and Origin headers through the same option. The default transport uses Fetch and NDJSON; `httpClient` and `serialization` accept native Layers for another HTTP client or codec. `group` can supply a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer that a host can pass to `ManagedRuntime.make`. It also exposes the native `Client` service and a scoped `client` Effect for callers outside React. Session-scoped contracts require `registry` in the options, just as `bind` does.
+
 ### 1. Once per feature: schemas and operations
 
 Keep the shared declaration in a module that both server and client can import:

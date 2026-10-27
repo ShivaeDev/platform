@@ -1,11 +1,10 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Context, Effect, Layer, Option, Stream } from "effect";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
+import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { RpcSerialization, RpcServer } from "effect/rpc";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { Notes, ReadPermission, type Role, Roles } from "./feature.ts";
@@ -54,12 +53,9 @@ export const openHost = Effect.fnUntraced(function* (initial: Role | undefined) 
 		return yield* Effect.die(new Error("Expected a TCP host"));
 	}
 	const url = `http://127.0.0.1:${address.port}/rpc`;
-	class Client extends AtomRpc.Service<Client>()("test/PermissionRoutes", {
-		group: Notes,
-		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
-	}) {}
+	const { api } = makeRpcClient(Notes, { serialization: RpcSerialization.layerJson, url });
 	return {
-		api: bind(Notes, Client),
+		api,
 		payload: (role: Role) => Effect.map(Roles.resolve(role), (access) => ({ user: { id: "alice", ...access } })),
 		requests,
 		state,

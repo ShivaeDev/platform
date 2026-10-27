@@ -2,8 +2,9 @@ import { NodeHttpClient } from "@effect/platform-node";
 import { Context, Deferred, Effect, Layer } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { type Order, Orders } from "./contract.ts";
 import { listenServer } from "./listenServer.ts";
 import { StoryDatabase } from "./postgres.ts";
@@ -11,15 +12,13 @@ import { orderWebHandler } from "./runtime.ts";
 import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
 
 function client(url: string, token?: string) {
-	return RpcClient.make(Orders).pipe(
-		Effect.provide(
-			RpcClient.layerProtocolHttp({
-				transformClient: (http) =>
-					token === undefined ? http : HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
-				url,
-			}).pipe(Layer.provide([NodeHttpClient.layerNodeHttp, RpcSerialization.layerJson])),
-		),
-	);
+	return makeClient(Orders, {
+		httpClient: NodeHttpClient.layerNodeHttp,
+		serialization: RpcSerialization.layerJson,
+		transformClient: (http) =>
+			token === undefined ? http : HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+		url,
+	}).client;
 }
 
 export interface Screen {
