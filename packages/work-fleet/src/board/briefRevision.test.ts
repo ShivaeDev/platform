@@ -6,7 +6,7 @@ for (const [field, source] of [
 	["status", dependencySource.replace("status: draft", "status: done")],
 	["next_action", dependencySource.replace("Implement the work.", "Work completed.")],
 	["owner", dependencySource.replace("kind: task", "kind: task\nowner: marvin")],
-	["areas", dependencySource.replace("kind: task", "kind: task\nareas: [another-area]")],
+	["areas", dependencySource.replace("kind: task", "kind: task\nareas: ['*']")],
 	["approval", dependencySource.replace("fleet: approved", "fleet: held")],
 	["launch settings", dependencySource.replace("fleet: approved", "fleet: approved\nfleet-launch: { model: another-model }")],
 ] as const) {

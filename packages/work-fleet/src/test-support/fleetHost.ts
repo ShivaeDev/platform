@@ -61,7 +61,17 @@ const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
 	const database = yield* PostgresTestDatabase;
 	return yield* Effect.sync(() => {
 		const boardDir = mkdtempSync(join(tmpdir(), directoryPrefix));
-		for (const area of ["fleet/host", "shared", "other", "free", "packages/work-fleet/host", "packages/work-board/ui", "documentation"]) {
+		for (const area of [
+			"fleet/host",
+			"shared",
+			"other",
+			"free",
+			"packages/work-fleet/host",
+			"packages/work-board/ui",
+			"documentation",
+			"navigation",
+			"documents",
+		]) {
 			mkdirSync(join(boardDir, area), { recursive: true });
 		}
 		const settings: HostConfig = {

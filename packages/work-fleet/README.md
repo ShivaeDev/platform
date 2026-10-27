@@ -167,7 +167,7 @@ After the sweep merges, each held PR receives one repair turn on its existing br
 
 ### Schedule areas and dependencies
 
-Use `areas` to name existing repository folders a task changes: a package folder under `packages/` or `examples/`, optionally followed by a subfolder, or a top-level folder such as `script/release` or `.github`. Name each deepest folder the change will edit; use a whole package only when the change spans it. Board reports invalid areas with a nearest existing path suggestion, and Fleet refuses to dispatch them with the same diagnostic. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/src/host` block each other, while `work-fleet/src/host` and `work-fleet/src/cli` stay independent. The area `*` overlaps every area. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.
+Use `areas` to name existing repository folders a task changes: a package folder under `packages/` or `examples/`, optionally followed by a subfolder, or a top-level folder such as `script/release` or `.github`. Name each deepest folder the change will edit; use a whole package only when the change spans it. Board reports invalid areas with a nearest existing path suggestion, and Fleet refuses to dispatch them with the same diagnostic. Two areas overlap when they are equal or one is a `/`-prefix of the other: `work-fleet` and `work-fleet/src/host` block each other, while `work-fleet/src/host` and `work-fleet/src/scheduling` stay independent. The area `*` overlaps every area. Fleet serializes overlapping claims; disjoint areas and tasks without areas can run concurrently within capacity and quota limits.
 
 ```yaml
 ---
