@@ -9,10 +9,7 @@ fleetSupervisor.it(
 		yield* fleet.start();
 		yield* fleet.ready("daemon");
 		yield* fleet.ready("board");
-		const before = yield* fleet.state();
-		if (before === undefined) {
-			throw new Error("Expected running children");
-		}
+		const before = yield* fleet.running();
 		const original = { directory: fleet.boardDir(), url: `http://127.0.0.1:${before.board.port}/` };
 		expect(yield* fleet.serverInfo(before.board.port)).toEqual(original);
 		expect(yield* fleet.socketServerInfo()).toContainEqual(expect.objectContaining({ exit: { _tag: "Success", value: original } }));
@@ -40,10 +37,7 @@ for (const name of ["daemon", "board"] as const) {
 			yield* fleet.start();
 			yield* fleet.ready("daemon");
 			yield* fleet.ready("board");
-			const before = yield* fleet.state();
-			if (before === undefined || before.daemon.pid === null || before.board.pid === null) {
-				throw new Error("Expected running children");
-			}
+			const before = yield* fleet.running();
 			const sibling = name === "daemon" ? "board" : "daemon";
 			const started = yield* Clock.currentTimeMillis;
 			if (name === "daemon") {
@@ -55,10 +49,7 @@ for (const name of ["daemon", "board"] as const) {
 			if (name === "board") {
 				yield* fleet.ready("daemon", before.daemon.pid);
 			}
-			const siblingPid = (yield* fleet.state())?.[sibling].pid;
-			if (siblingPid === undefined || siblingPid === null) {
-				throw new Error("Expected a running sibling");
-			}
+			const siblingPid = yield* fleet.runningPid(sibling);
 			yield* fleet.crash(siblingPid);
 			yield* fleet.ready(sibling, siblingPid);
 			expect((yield* fleet.state())?.[name].pid).toBe(before[name].pid);

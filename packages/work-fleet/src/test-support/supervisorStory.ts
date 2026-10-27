@@ -76,6 +76,23 @@ export const fleetSupervisor = storyKit({
 			),
 		request: (state: NonNullable<Effect.Success<ReturnType<typeof engine.state>>>, name: "daemon" | "board", path?: string) =>
 			engine.http(state, name, path),
+		running: () =>
+			engine
+				.state()
+				.pipe(
+					Effect.flatMap((state) =>
+						state === undefined || state.daemon.pid === null || state.board.pid === null
+							? Effect.die(new Error("Expected running children"))
+							: Effect.succeed(state),
+					),
+				),
+		runningPid: (name: "daemon" | "board") =>
+			engine.state().pipe(
+				Effect.flatMap((state) => {
+					const pid = state?.[name].pid;
+					return pid === undefined || pid === null ? Effect.die(new Error(`Expected a running ${name}`)) : Effect.succeed(pid);
+				}),
+			),
 		serverInfo: (port: number) => supervisorBoardCall(port, (client) => client("work-board.server", undefined)),
 		socketServerInfo: () => supervisorSocketCall(join(engine.fixture.boardDir, "board.sock")),
 		stalePid: () => engine.stalePid,
