@@ -5,6 +5,7 @@ import type { FileSystemWrapper } from "./board.ts";
 import { held } from "./browser.ts";
 import { fileVerbs } from "./fileVerbs.ts";
 import { livePageVerbs } from "./livePageVerbs.ts";
+import { metadataScreen } from "./metadataScreen.tsx";
 import { migrationVerbs } from "./migrationVerbs.ts";
 import { nativeVerbs } from "./nativeVerbs.ts";
 import { questionnaireSource } from "./questionnaire.ts";
@@ -61,6 +62,10 @@ export const boardStory = storyKit({
 			return engine.linked;
 		},
 		notes: engine.notes,
+		openMetadata: (file: string) => {
+			story.tell(`the reader opens source diagnostics for ${file}`);
+			return metadataScreen(engine, file);
+		},
 		get outside() {
 			if (!engine.outside) {
 				throw new Error("No outside folder was prepared");

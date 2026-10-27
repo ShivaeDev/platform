@@ -1,6 +1,7 @@
 import { type Changes as InternalChanges, watchChanges } from "#server/files/changes.ts";
 import { type MarkdownFile as InternalMarkdownFile, listMarkdown } from "#server/files/list.ts";
 import { markdownPath } from "#server/files/markdownPath.ts";
+import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
 import {
 	type MetadataDocument as InternalMetadataDocument,
 	type MetadataModel as InternalMetadataModel,
@@ -25,6 +26,7 @@ const snapshot: (
 ) => Effect.Effect<Effect.Effect<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>> = searchSnapshot;
 
 export const board = {
+	areaDiagnostics,
 	listMarkdown,
 	markdownPath,
 	metadataModel,
