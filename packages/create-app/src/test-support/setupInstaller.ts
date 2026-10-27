@@ -15,8 +15,19 @@ const fs = require("node:fs");
 const { join } = require("node:path");
 const args = process.argv.slice(2);
 if (args[0] === "install") {
+  const qualityRoot = ${JSON.stringify(dirname(dirname(quality)))};
+  const qualityPackage = join(__dirname, "quality-package");
+  fs.rmSync(qualityPackage, { recursive: true, force: true });
+  fs.mkdirSync(qualityPackage, { recursive: true });
+  for (const entry of fs.readdirSync(qualityRoot)) {
+    if (entry !== "package.json") fs.symlinkSync(join(qualityRoot, entry), join(qualityPackage, entry));
+  }
+  const qualityManifest = JSON.parse(fs.readFileSync(join(qualityRoot, "package.json"), "utf8"));
+  qualityManifest.bin = { quality: "./quality.js" };
+  fs.writeFileSync(join(qualityPackage, "package.json"), JSON.stringify(qualityManifest));
+  fs.writeFileSync(join(qualityPackage, "quality.js"), ${JSON.stringify(qualityBin)}, { mode: 0o755 });
   const manifest = JSON.parse(fs.readFileSync("package.json", "utf8"));
-  manifest.devDependencies["@shivaedev/quality"] = "link:" + ${JSON.stringify(dirname(dirname(quality)))};
+  manifest.devDependencies["@shivaedev/quality"] = "link:" + qualityPackage;
   fs.writeFileSync("package.json", JSON.stringify(manifest, null, "\\t") + "\\n");
   fs.writeFileSync("pnpm-lock.yaml", "lockfileVersion: 9.0\\n");
   const modules = ${JSON.stringify(modules)};
