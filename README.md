@@ -82,7 +82,7 @@ corepack enable
 pnpm ready
 ```
 
-`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. `pnpm ready` is the explicit handoff gate. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
+`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup never stops or removes an existing service or volume.
 
@@ -111,13 +111,7 @@ Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-
 
 ### Heavy runs
 
-`build`, `typecheck`, `test` and `test:package`, and so every step of `ready`,
-queue on a machine-wide lock shared with other repositories; a waiting run names
-the holder, and CI skips the lock. Run the scripts directly: they take the lock
-themselves, so do not wrap them in a lock by hand. Run other heavy commands,
-such as a focused PostgreSQL suite, through `pnpm heavy <command>`. The scripts
-run [`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work
-before anything is built; its README describes the protocol.
+`build`, `typecheck`, `test` and `test:package` queue on a machine-wide lock shared with other repositories; a waiting run names the holder, and CI skips the lock. The root `ready` takes this lock only during typechecking. Run the scripts directly: they take the lock themselves, so do not wrap them in a lock by hand. Run other heavy commands, such as a focused PostgreSQL suite, through `pnpm heavy <command>`. The scripts run [`@shivaedev/heavy-lock`](./packages/heavy-lock) from source, so they work before anything is built; its README describes the protocol.
 
 ### Packed consumers
 

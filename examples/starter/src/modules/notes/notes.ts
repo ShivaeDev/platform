@@ -6,7 +6,7 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import type { ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import type { IdentityValue } from "@shivaedev/identity/identity.ts";
+import { Identity, type IdentityValue, OptionalIdentity } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 
 export class Note extends Model.Class<Note>("Note")({
@@ -21,7 +21,12 @@ const NoteId = Schema.Struct({ id: Schema.Number });
 const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
 export const notes = collection("notes", Schema.Number);
 export const notesReadPolicies = {
-	[notes.name]: (_key, viewer) => Effect.succeed(Option.isSome(viewer)),
+	[notes.name]: () =>
+		Effect.gen(function* () {
+			const identity = yield* Effect.serviceOption(Identity);
+			const optional = yield* Effect.serviceOption(OptionalIdentity);
+			return Option.isSome(Option.orElse(identity, () => Option.flatten(optional)));
+		}),
 } satisfies ModuleReadPolicies<IdentityValue>;
 export const Get = query("get", {
 	payload: NoteId,

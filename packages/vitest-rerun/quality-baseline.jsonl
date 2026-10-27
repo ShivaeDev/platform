@@ -1,0 +1,7 @@
+{"path":"packages/vitest-rerun/src/cli.ts","rule":"effect/boundary","count":1}
+{"path":"packages/vitest-rerun/src/internal/TimedJsonReporter.ts","rule":"effect/boundary","count":3}
+{"path":"packages/vitest-rerun/src/internal/TimedJsonReporter.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/vitest-rerun/src/internal/attempt.ts","rule":"effect/boundary","count":1}
+{"path":"packages/vitest-rerun/src/internal/junit.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/vitest-rerun/src/internal/mergeAttempt.ts","rule":"effect/boundary","count":2}
+{"path":"packages/vitest-rerun/src/internal/runAttempt.ts","rule":"effect/boundary","count":4}

@@ -25,3 +25,10 @@ boardStory.it("a renamed package is invalid and suggests its existing name", [ar
 		{ field: "areas", line: 4, message: 'Area "effect-react" does not name an existing repository folder. Did you mean "react"?' },
 	]);
 });
+
+for (const status of ["done", "dropped"]) {
+	boardStory.it(`a ${status} brief has no diagnostic for a renamed area`, [areaRepository(["effect-react"])], function* (board) {
+		board.editFile("task.md", `---\nid: task\nkind: task\nstatus: ${status}\nareas: [effect-react]\n---\n# Work`);
+		expect((yield* board.readDocument("task.md")).diagnostics).toEqual([]);
+	});
+}

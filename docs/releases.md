@@ -49,7 +49,7 @@ The repository uses the workspace `@shivaedev/releases` package. To inspect or p
 1. Run `pnpm releases plan` (or `pnpm releases plan --json`) and review the requested bumps and automatic dependent releases.
 2. Use the automated release PR when starter pins change; it derives the `@shivaedev/create-app` patch automatically.
 3. Run `pnpm releases apply` from the repository root. It bumps versions, collects changelogs and deletes consumed changesets. The repository config hook aligns existing starter pins in `examples/starter/published-versions.json` and the released binaries' `packageInfo.ts` version constants.
-4. Review and commit all generated files. Run `pnpm ready`, then open the pull request.
+4. Review and commit all generated files. Run focused tests with `pnpm --filter <package> test <paths>` and the root `pnpm ready` fast static gate (Biome lint and format checks, repository rules, the changelog check and typechecking), then open the pull request. CI runs the full test suite, builds and package archive checks across its shards.
 
 Published workspace dependents receive at least a patch transitively, including optional dependencies and peers. Private packages and development-only dependents do not receive automatic releases. Workspace wildcard declarations stay intact; exact, caret and tilde workspace references advance with the release. After a squash merge, the version diff, deleted changesets and changelogs still show the release plan and collected inputs. Existing changelog history stays unchanged.
 

@@ -66,7 +66,7 @@ Follow [`notesMigration.spec.ts`](../../examples/starter/src/server/notesMigrati
 pnpm test src/server/noteLifecycle.spec.ts src/server/bookmarksMigration.spec.ts
 ```
 
-Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database and `pnpm ready` supplies the test URLs. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.
+Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database. Run focused tests with `pnpm --filter <package> test <paths>` and set the package database URL listed in the [root README](../../README.md#development). The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.
 
 ## 10. Prove the DOM path
 
