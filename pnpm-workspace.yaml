@@ -7,6 +7,9 @@ nodeOptions: --conditions=source
 # Applications depend on @shivaedev/platform alone; hoisting links the pieces it brings so they resolve by their own names.
 publicHoistPattern: ["@shivaedev/*"]
 
+# Libraries test through test-story, which depends on test-sql, so test packages form development-only cycles. Builds resolve workspace sources through the source condition, so their order inside a cycle does not matter.
+ignoreWorkspaceCycles: true
+
 overrides:
   # Recharts pins an unattested reselect release; use its attested compatible successor.
   "recharts>reselect": "catalog:"

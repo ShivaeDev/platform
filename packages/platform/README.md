@@ -28,7 +28,7 @@ Add `@shivaedev/platform` to `dependencies`, add `@shivaedev/test-story` and `@s
 publicHoistPattern: ["@shivaedev/*"]
 ```
 
-The application lists no piece beside platform, and no test piece beside `@shivaedev/test-story`, which brings `@shivaedev/test`. Quality checks this: `manifests/application` asks for the hoist setting and names any duplicate entry to remove, and `imports/manifest` and Biome's undeclared-dependency check accept an application's imports of the pieces its entry points bring. `create-app` writes this setup for a new application and `create-app update` brings an existing one to it.
+The application lists no piece beside platform, and no test piece beside `@shivaedev/test-story`, which brings `@shivaedev/test` and `@shivaedev/test-sql`. Quality checks this: `manifests/application` asks for the hoist setting and names any duplicate entry to remove, and `imports/manifest` and Biome's undeclared-dependency check accept an application's imports of the pieces its entry points bring. `create-app` writes this setup for a new application and `create-app update` brings an existing one to it.
 
 Platform forwards the pieces' peer dependencies as optional peers. Install the ones the pieces you use need, such as `effect`, `react`, `react-dom`, `pg`, `pg-boss` and `better-auth`; the starter lists them.
 

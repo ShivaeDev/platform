@@ -6,7 +6,7 @@
 			"my-app/.env.example": "DATABASE_URL=",
 			"my-app/package.json": "\"name\": \"my-app\"",
 			"my-app/pnpm-lock.yaml": "@shivaedev/platform",
-			"my-app/pnpm-workspace.yaml": "packages: []"
+			"my-app/pnpm-workspace.yaml": "publicHoistPattern: [\"@shivaedev/*\"]"
 		},
 		"files": {},
 		"output": "pnpm dev",

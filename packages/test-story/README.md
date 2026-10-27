@@ -655,6 +655,8 @@ pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.5 effect@4.0.5 vite
 
 `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories.
 
+Test-story is an application's one test dependency: it brings [`@shivaedev/test`](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) and [`@shivaedev/test-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/test-sql#readme), which an application on `@shivaedev/platform` imports by their own names without listing them. `@effect/sql-pg` is an optional peer for `test-sql`'s PostgreSQL helpers; install it when the stories use them. A library that tests with test-story still declares `test` or `test-sql` directly when it imports them.
+
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
 - Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.

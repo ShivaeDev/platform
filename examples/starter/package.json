@@ -46,7 +46,6 @@
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@tailwindcss/vite": "catalog:",
 		"@types/node": "catalog:",

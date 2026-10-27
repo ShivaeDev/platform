@@ -30,6 +30,8 @@ pnpm ready
 
 Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose role can create disposable databases. The foundation’s story kits live in `src/test-support`; the notes module’s kits live in `src/modules/notes/test-support` and cover its PostgreSQL, HTTP, schema and happy-dom behavior. Extend those kits for new features. `pnpm ready` runs the same peer, lint, typecheck, build and test commands as `.github/workflows/ci.yml`. Use `pnpm lint` to check the code and `pnpm format` to apply formatting and fixes.
 
+The app depends on [`@shivaedev/platform`](https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme), which brings every runtime piece of the framework, and on `@shivaedev/test-story` and `@shivaedev/quality` for development. Import each piece by its own name, such as `@shivaedev/sql/repository.ts`, without listing it in `package.json`; `publicHoistPattern` in `pnpm-workspace.yaml` makes the pieces resolvable, and `pnpm lint` rejects a piece listed beside the entry point that brings it.
+
 The Quality baseline only goes down. Use `pnpm baseline write --rule <id>` only to record findings for a new rule added by a Quality upgrade. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app. Never raise a baseline to make a check pass.
 
 With a clean Git working tree, run `pnpm dlx @shivaedev/create-app@latest update` from this app to merge later template changes while preserving your edits and deleted files. Review the changes and any listed Git conflicts, run `pnpm install`, and commit them yourself; `.create-app.json` records the generator version after a successful merge.

@@ -439,9 +439,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../../packages/quality
-      '@shivaedev/test-sql':
-        specifier: workspace:*
-        version: link:../../packages/test-sql
       '@shivaedev/test-story':
         specifier: workspace:*
         version: link:../../packages/test-story
@@ -1448,9 +1445,15 @@ importers:
 
   packages/test-story:
     dependencies:
+      '@effect/sql-pg':
+        specifier: 'catalog:'
+        version: 4.0.5(effect@4.0.5)
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
+      '@shivaedev/test-sql':
+        specifier: workspace:*
+        version: link:../test-sql
       dom-accessibility-api:
         specifier: 'catalog:'
         version: 0.7.1

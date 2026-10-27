@@ -48,6 +48,7 @@
 	},
 	"dependencies": {
 		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
 		"dom-accessibility-api": "catalog:"
 	},
 	"devDependencies": {
@@ -60,12 +61,16 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"effect": "catalog:",
 		"happy-dom": "catalog:",
 		"vitest": "catalog:"
 	},
 	"peerDependenciesMeta": {
+		"@effect/sql-pg": {
+			"optional": true
+		},
 		"happy-dom": {
 			"optional": true
 		}
