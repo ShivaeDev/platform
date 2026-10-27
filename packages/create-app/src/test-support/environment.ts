@@ -5,7 +5,7 @@ import { Schema } from "effect";
 import { databaseProbe } from "./databaseProbe.ts";
 import { linkStarterModules } from "./starterModules.ts";
 
-export function appScript(app: string, script: string, args: readonly string[] = []) {
+export function appScript(app: string, script: string, args: readonly string[] = [], environment: readonly string[] = []) {
 	if (!existsSync(join(app, "node_modules"))) {
 		linkStarterModules(app);
 	}
@@ -21,6 +21,7 @@ export function appScript(app: string, script: string, args: readonly string[] =
 			"DATABASE_URL",
 			"-u",
 			"PLATFORM_SQL_TEST_DATABASE_URL",
+			...environment,
 			"sh",
 			"-c",
 			`${manifest.scripts[script]} "$@"`,

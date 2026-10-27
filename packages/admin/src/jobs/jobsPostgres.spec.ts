@@ -126,7 +126,7 @@ jobsStory.it(
 for (const [role, traits, error] of [
 	["signed out", [], "Unauthorized"],
 	["member", [jobsRole("user")], "Forbidden"],
-	["owner without admin", [jobsRole("owner")], "Forbidden"],
+	["role assigner without jobs.read", [jobsRole("assigner")], "Forbidden"],
 ] as const) {
 	jobsStory.it(`refuses a ${role} across all Jobs reads`, traits, function* ({ counts, deadLettered, failed, health, job, registrationReads }) {
 		for (const read of [counts(), deadLettered(1), failed(1), health(), job("missing")]) {

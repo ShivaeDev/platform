@@ -2,20 +2,25 @@ import { Effect, Layer } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { jobsPageWithRetry } from "@shivaedev/admin/jobs/retryPage.ts";
-import { AdminPermission } from "@shivaedev/admin/permissions.ts";
+import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
-import { UsersPage } from "@shivaedev/admin/users/page.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
-import { Admin, JobsPage, StatisticsPage } from "#modules/notes/admin.ts";
+import { StatisticsPermission } from "#appPermissions.ts";
+import { Admin, JobsPage, StatisticsPage, UsersPage } from "#modules/notes/admin.ts";
 import { noteQueue } from "#modules/notes/queue.ts";
 import { adminBackend } from "./backend.ts";
 
-const authenticated = Layer.succeed(AdminPermission, (effect) =>
-	effect.pipe(
+function session<A, E, R>(effect: Effect.Effect<A, E, R>) {
+	return effect.pipe(
 		Effect.provideService(Identity, { id: "alice" }),
 		Effect.provideService(SessionUser, { email: "alice@app.test", id: "alice", name: "Alice", role: "admin" }),
-	),
+	);
+}
+const authenticated = Layer.mergeAll(
+	Layer.succeed(JobsPermission, session),
+	Layer.succeed(UsersPermission, session),
+	Layer.succeed(StatisticsPermission, session),
 );
 
 export function adminClient(retry = false) {

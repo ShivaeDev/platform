@@ -21,10 +21,10 @@ adminHost.it(
 );
 
 adminHost.it(
-	"keeps both app admin pages forbidden to ordinary users and owners without admin",
-	[adminAccount("reader"), adminAccount("owner", "owner")],
+	"keeps both app admin pages forbidden to users without the domain permissions",
+	[adminAccount("reader"), adminAccount("reader-two")],
 	function* ({ openAdmin }) {
-		for (const name of ["reader", "owner", "visitor"]) {
+		for (const name of ["reader", "reader-two", "visitor"]) {
 			const client = yield* openAdmin(name);
 			for (const query of [Effect.result(client["admin.notes.statistics"]()), Effect.result(client["admin.jobs.health"]())]) {
 				const result = yield* query;

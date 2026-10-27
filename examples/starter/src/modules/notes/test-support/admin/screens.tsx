@@ -1,8 +1,12 @@
 import { createMemoryHistory } from "@tanstack/react-router";
-import { Deferred, Effect } from "effect";
+import { Deferred, Effect, Predicate } from "effect";
+import { act } from "react";
+import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { AppAccess } from "#AppAccess.ts";
 import { connectModules } from "#client/Module.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
+import { UsersPage } from "#modules/notes/admin.ts";
 import { adminRoutes } from "#modules/notes/client/adminRoutes.tsx";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
 import type { ScreenSurface } from "#test-support/screenState.ts";
@@ -10,6 +14,8 @@ import { acquireScreen, screenView } from "#test-support/screenState.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { failedJob } from "./backend.ts";
 import { adminClient } from "./client.ts";
+
+const warnings = expectNoReactWarnings();
 
 interface Screen extends ScreenSurface {
 	client: ReturnType<typeof adminClient>;
@@ -43,20 +49,28 @@ export const adminScreens = storyKit({
 				engine.client.backend.state.retryFails = true;
 			}),
 		releaseHealth: () =>
-			Effect.sync(() => {
+			Effect.promise(async () => {
 				const gate = engine.client.backend.state.gate;
 				if (gate === undefined) {
 					throw new Error("Health is not held");
 				}
-				Effect.runSync(Deferred.succeed(gate, undefined));
-				engine.client.backend.state.gate = undefined;
+				await act(() => {
+					Effect.runSync(Deferred.succeed(gate, undefined));
+					engine.client.backend.state.gate = undefined;
+				});
 			}),
 	}),
 });
 
-export function adminScreen(path = "/admin/jobs") {
+export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Type = "admin") {
 	return adminScreens.trait("screen", `the admin opens ${path}`, function* (engine) {
-		const view = yield* acquireScreen(engine);
+		const access = yield* AppAccess.resolve(role);
+		const view = yield* acquireScreen(
+			engine,
+			AppAccess.hasPermission(role, UsersPage.route.permission)
+				? undefined
+				: { onCaughtError: warnings.expectCaughtError((error) => Predicate.isTagged(error, "Forbidden")) },
+		);
 		const other = adminClient();
 		const history = createMemoryHistory({ initialEntries: [path] });
 		const auth = screenAuth();
@@ -70,7 +84,16 @@ export function adminScreen(path = "/admin/jobs") {
 			return undefined;
 		}
 		function show(id: string) {
-			return view.render(<SessionApp auth={auth} connect={connect} history={history} recheck={recheck} sessionId={id} />);
+			return view.render(
+				<SessionApp
+					auth={auth}
+					connect={connect}
+					history={history}
+					recheck={recheck}
+					session={{ user: { permissions: access.permissions } }}
+					sessionId={id}
+				/>,
+			);
 		}
 		engine.switchSession = () => show("bob");
 		yield* Effect.promise(() => show("alice"));

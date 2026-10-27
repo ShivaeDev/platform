@@ -31,7 +31,7 @@ user-facing text, layout and deployment choices.
 | Route React screens | [react/router.ts](../../packages/react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
 | Edit and submit data | [form](../../packages/form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
 | Run durable jobs | [jobs](../../packages/jobs/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
-| Author administrator pages | [admin](../../packages/admin/README.md) | Register native contracts behind the declared `OpenAdmin` permission; applications own React views on the existing RPC transport. |
+| Author administrator pages | [admin](../../packages/admin/README.md) | Register native contracts behind each page's declared domain permission; applications own React views on the existing RPC transport. |
 | Test Effect code | [test](../../packages/test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |
 | Isolate PostgreSQL tests | [test-sql](../../packages/test-sql/README.md) | Prepare migrations and fixtures once; use rollback or cloned databases for real commits. |
 | Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |

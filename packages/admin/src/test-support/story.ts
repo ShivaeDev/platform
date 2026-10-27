@@ -54,7 +54,7 @@ export const registrationStory = storyKit({
 			return adminRegistry(Jobs, {
 				...other,
 				id: kind === "id" ? Jobs.id : "another",
-				route: kind === "path" ? Jobs.route : { path: "/admin/another", title: "Another" },
+				route: kind === "path" ? Jobs.route : { ...other.route, path: "/admin/another", title: "Another" },
 			});
 		},
 		register: (handlers: Readonly<Record<string, Layer.Any>>) => Reflect.apply(registerAdmin, undefined, [Registry, handlers]),

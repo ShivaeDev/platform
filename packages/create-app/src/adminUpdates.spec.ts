@@ -12,7 +12,8 @@ updates.it("adds Users to an existing app while keeping its custom admin title",
 	const path = "src/modules/notes/admin.ts";
 	const current = app.starterFile(path);
 	const before = current
-		.replace(/^import \{ UsersPage \}.*\n/gmu, "")
+		.replace(/^import \{ usersPage \}.*\n/gmu, "")
+		.replace(/^export const UsersPage =.*\n/gmu, "")
 		.replace("adminRegistry(JobsPage, StatisticsPage, UsersPage)", "adminRegistry(JobsPage, StatisticsPage)");
 	app.setVersion("0.1.0");
 	app.revise({ [path]: before });
@@ -27,7 +28,7 @@ updates.it("adds Users to an existing app while keeping its custom admin title",
 	expect(result.status, result.stderr).toBe(0);
 	expect(app.read(path)).toContain("Acme statistics");
 	expect(app.read(path)).toContain("adminRegistry(JobsPage, StatisticsPage, UsersPage)");
-	expect(app.read(path)).toContain('import { UsersPage } from "@shivaedev/admin/users/page.ts"');
+	expect(app.read(path)).toContain('import { usersPage } from "@shivaedev/admin/users/page.ts"');
 });
 
 updates.it("removes the old dashboard while merging customized admin views", [], function* (app) {
@@ -81,4 +82,26 @@ updates.it("lists customized admin view conflicts while removing the old dashboa
 		expect(app.exists(file), file).toBe(false);
 	}
 	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.1.0");
+});
+
+updates.it("merges permission imports and role files while preserving an app's custom grants", [], function* (app) {
+	const path = "src/AppAccess.ts";
+	const current = app.starterFile(path);
+	app.setVersion("0.1.0");
+	app.revise({
+		[path]:
+			'import { roleSet } from "@shivaedev/access/roleSet.ts";\nimport { role } from "@shivaedev/access/role.ts";\nimport { OpenAdmin } from "@shivaedev/admin/permissions.ts";\nexport const AppAccess = roleSet(role("user", []), role("admin", [OpenAdmin]));\n',
+	});
+	expect((yield* app.create()).status).toBe(0);
+	app.publish();
+	const role = "src/roles/Owner.ts";
+	app.edit(role, app.read(role).replace("[ReadUsers,", "[ReadUsers, ReadUsers.any,"));
+	app.git("add", "--all");
+	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Customize grants");
+	app.setVersion("0.2.0");
+	app.revise({ [path]: current });
+	const result = yield* app.update();
+	expect(result.status, result.stderr).toBe(0);
+	expect(app.read(path)).toBe(current);
+	expect(app.read(role)).toContain("ReadUsers.any");
 });

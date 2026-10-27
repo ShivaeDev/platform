@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { adminPage } from "#page.ts";
+import { JobsPermission } from "#permissions.ts";
 import { jobsKeys } from "./keys.ts";
 import { deadLetteredSchema, JobsFailures, JobsHealth, type JobsQueue, jobPage, jobSchema, PageFields, QueueCounts } from "./schemas.ts";
 
@@ -39,6 +40,7 @@ export function jobsPage<const TQueues extends readonly JobsQueue[]>(...queues: 
 			],
 		}),
 		id: "jobs",
+		permission: JobsPermission,
 		route: { path: "/admin/jobs", title: "Jobs" },
 	});
 	return Object.assign(page, { queues });

@@ -4,7 +4,8 @@ import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 import { usersHandlers } from "@shivaedev/admin/server/usersHandlers.ts";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { Admin, JobsPage, NoteStatistics, StatisticsPage } from "#modules/notes/admin.ts";
+import { AppAccess } from "#AppAccess.ts";
+import { Admin, JobsPage, NoteStatistics, StatisticsPage, UsersPage } from "#modules/notes/admin.ts";
 import { NoteJobs } from "./jobs.ts";
 
 const statistics = StatisticsPage.contract.application.toLayer(
@@ -26,5 +27,5 @@ const statistics = StatisticsPage.contract.application.toLayer(
 export const adminRegistration = registerAdmin(Admin, {
 	jobs: jobsHandlers(JobsPage, NoteJobs),
 	"note-statistics": statistics,
-	users: usersHandlers,
+	users: usersHandlers(UsersPage, AppAccess),
 });

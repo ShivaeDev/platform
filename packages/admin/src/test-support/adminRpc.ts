@@ -3,18 +3,19 @@ import { FetchHttpClient, HttpRouter } from "effect/http";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
-import { AdminPermission } from "#permissions.ts";
+import { JobsPermission, UsersPermission } from "#permissions.ts";
 import { Access } from "./Access.ts";
 import type { pages } from "./jobsPages.ts";
 
 type Group = ReturnType<typeof pages>["group"];
 export const adminRpc = Effect.fnUntraced(function* (group: Group, handlers: Layer.Layer<Rpc.ToHandler<RpcGroup.Rpcs<Group>>>) {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
-	const auth = permissionLayer(AdminPermission, {
+	const policy = {
 		origin: () => true,
 		provider: { get: () => Ref.get(session) },
 		roles: Access,
-	});
+	};
+	const auth = Layer.merge(permissionLayer(JobsPermission, policy), permissionLayer(UsersPermission, policy));
 	const app = HttpRouter.toWebHandler(
 		RpcServer.layerHttp({ group, path: "/rpc", protocol: "http" }).pipe(Layer.provide([handlers, auth, RpcSerialization.layerJson])),
 		{ disableLogger: true },

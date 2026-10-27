@@ -1,11 +1,13 @@
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
-import { OpenAdmin } from "#permissions.ts";
-import { ChangeUserRoles } from "#users/roles.ts";
+import { AssignRoles, ReadJobs, ReadUsers } from "#permissions.ts";
 
 export const Access = roleSet(
 	role("user", []),
-	role("owner", [ChangeUserRoles]),
-	role("admin", [OpenAdmin]),
-	role("admin,owner", [OpenAdmin, ChangeUserRoles]),
+	role("assigner", [AssignRoles]),
+	role("admin", [ReadUsers, ReadJobs]),
+	role("owner", [ReadUsers, ReadJobs, AssignRoles]),
+	role("delegate", [ReadUsers, AssignRoles]),
+	role("auditor", [ReadUsers]),
+	role("operator", [ReadJobs]),
 );

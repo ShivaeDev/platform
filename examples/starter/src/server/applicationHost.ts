@@ -1,12 +1,13 @@
 import { Config, Effect, Layer, Option, Redacted } from "effect";
 import { HttpStaticServer } from "effect/http";
-import { AdminPermission } from "@shivaedev/admin/permissions.ts";
+import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
+import { StatisticsPermission } from "#appPermissions.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { serverModules } from "./modules.ts";
@@ -49,7 +50,9 @@ export function applicationHost(config?: {
 						handlers: Layer.mergeAll(
 							modules.handlers,
 							authenticatedUserLayer(sessions),
-							permissionLayer(AdminPermission, sessions),
+							permissionLayer(JobsPermission, sessions),
+							permissionLayer(UsersPermission, sessions),
+							permissionLayer(StatisticsPermission, sessions),
 							routes,
 							HttpStaticServer.layer({ root: "dist", spa: true }),
 						),

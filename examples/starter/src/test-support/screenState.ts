@@ -1,14 +1,15 @@
 import { Effect } from "effect";
+import type { RootOptions } from "react-dom/client";
 import { type Rendered, render } from "@shivaedev/react/client/testing.ts";
 
 export interface ScreenSurface {
 	view: Rendered | undefined;
 }
 
-export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (engine: ScreenSurface) {
+export const acquireScreen = Effect.fn("ScreenStory.acquireScreen")(function* (engine: ScreenSurface, options?: RootOptions) {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	engine.view = yield* Effect.acquireRelease(
-		Effect.promise(() => render(null)),
+		Effect.promise(() => render(null, options)),
 		(view) => Effect.promise(view.unmount),
 	);
 	return engine.view;

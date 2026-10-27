@@ -8,16 +8,18 @@ import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { render } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { UsersView } from "#client/UsersView.ts";
-import { AdminPermission } from "#permissions.ts";
-import { UsersPage } from "#users/page.ts";
-import { type ChangeRoleInput, LastOwner } from "#users/roles.ts";
+import { UsersPermission } from "#permissions.ts";
+import { usersPage } from "#users/page.ts";
+import { type ChangeRoleInput, LastRoleAssigner } from "#users/roles.ts";
+import { Access } from "./Access.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 
-const authenticated = Layer.succeed(AdminPermission, (effect) =>
+const UsersPage = usersPage(Access);
+const authenticated = Layer.succeed(UsersPermission, (effect) =>
 	effect.pipe(
 		Effect.provideService(Identity, { id: "owner" }),
-		Effect.provideService(SessionUser, { email: "owner@app.test", id: "owner", name: "Owner", role: "admin,owner" }),
+		Effect.provideService(SessionUser, { email: "owner@app.test", id: "owner", name: "Owner", role: "owner" }),
 	),
 );
 
@@ -27,18 +29,18 @@ export const usersScreen = storyKit({
 	name: "admin users screen",
 	stages: ["caller"],
 	verbs: (engine, story) => {
-		const requests: (typeof ChangeRoleInput.Type)[] = [];
-		const user = { createdAt: DateTime.makeUnsafe("2026-10-20T12:34:56Z"), email: "alice@app.test", id: "alice", name: "Alice", roles: ["user"] };
-		function change(input: typeof ChangeRoleInput.Type): Effect.Effect<void, Forbidden | LastOwner> {
-			return Effect.suspend((): Effect.Effect<void, Forbidden | LastOwner> => {
+		const requests: ChangeRoleInput[] = [];
+		const user = { createdAt: DateTime.makeUnsafe("2026-10-20T12:34:56Z"), email: "alice@app.test", id: "alice", name: "Alice", role: "user" };
+		function change(input: ChangeRoleInput): Effect.Effect<void, Forbidden | LastRoleAssigner> {
+			return Effect.suspend((): Effect.Effect<void, Forbidden | LastRoleAssigner> => {
 				requests.push(input);
 				if (engine.rejection === "last") {
-					return Effect.fail(new LastOwner({ userId: input.userId }));
+					return Effect.fail(new LastRoleAssigner({ userId: input.userId }));
 				}
 				if (engine.rejection === "forbidden") {
-					return Effect.fail(new Forbidden({ message: "Owner role required" }));
+					return Effect.fail(new Forbidden({ message: "Permission required to assign roles" }));
 				}
-				user.roles = input.grant ? [...user.roles, input.role] : user.roles.filter((role) => role !== input.role);
+				user.role = input.role;
 				return Effect.void;
 			});
 		}
@@ -61,6 +63,18 @@ export const usersScreen = storyKit({
 		const changeRole = Client.runtime.fn(api.changeRole.run);
 		let container: HTMLElement | undefined;
 		return {
+			chooseRole: (role: string) =>
+				Effect.promise(async () => {
+					story.tell(`assign ${role} to Alice`);
+					const select = container?.querySelector("select");
+					if (!select) {
+						throw new Error("Missing role select");
+					}
+					await act(() => {
+						select.value = role;
+						select.dispatchEvent(new Event("change", { bubbles: true }));
+					});
+				}),
 			click: (selector: string) =>
 				Effect.promise(async () => {
 					story.tell(`click ${selector}`);
@@ -80,7 +94,7 @@ export const usersScreen = storyKit({
 				Effect.gen(function* () {
 					story.tell("open the package users view");
 					const view = yield* Effect.acquireRelease(
-						Effect.promise(() => render(<UsersView changeRole={changeRole} list={api.list.query} />)),
+						Effect.promise(() => render(<UsersView changeRole={changeRole} list={api.list.query} roles={Access.Role.literals} />)),
 						(screen) => Effect.promise(screen.unmount),
 					);
 					container = view.container;
@@ -90,7 +104,7 @@ export const usersScreen = storyKit({
 	},
 });
 
-export const readOnlyAdmin = usersScreen.trait("caller", "the admin is not an owner", (engine) => {
+export const readOnlyAdmin = usersScreen.trait("caller", "the caller cannot assign roles", (engine) => {
 	engine.owner = false;
 });
 export function rejectedRoleChange(reason: "last" | "forbidden") {
