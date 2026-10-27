@@ -29,6 +29,16 @@ Exceptions apply first, then the baseline. With the default rule settings, remai
 
 The work has three parts: connect the repository to the shared tools once; describe an import boundary when its architecture needs one; run the gate and repair findings every day. Writing local rules is not an adoption requirement.
 
+### Effect boundaries and services
+
+`effect/boundary` checks every TypeScript or JavaScript source in Quality's inventory, including shipped code, tooling and specs. It reports async functions, methods and arrows, await (including `for await`), `new Promise(...)`, `.then(...)`, try statements and throw statements. Model the work with Effect, fail with a tagged error, and use `Effect.die` for defects. Effect's resource and finalizer primitives model cleanup.
+
+Only folders named `adapters/` or `test-support/`, at any depth, are exempt from this boundary rule. An `adapters/` folder bridges an outside library and hands the rest of the application Effect values. The name is fixed by convention, with no config or copied Biome plugin globs. Code that cannot be Effect belongs in that bridge or calls for a better Effect primitive. Adapter code still follows `effect/service-parameters` and the ambient time, randomness, console and environment bans.
+
+`effect/service-parameters` reports parameters carrying a service in exported functions and public methods, including returned factories. It follows service classes and tags, non-empty Contexts and service implementation shapes through aliases, interfaces, generic constraints, inferred parameters and destructuring. Read services from Effect's environment instead. An Effect or Stream requiring a service is a computation and is accepted. Methods implementing a service and functions constructing Layers may take services as parameters. Only `test-support/` folders are exempt from this rule; `adapters/` folders are checked.
+
+Both rules refuse config exceptions and inline suppressions. Record existing debt with `quality baseline write --rule effect/boundary` and `quality baseline write --rule effect/service-parameters`; the normal report and baseline burn-down apply.
+
 ### 1. Once per repository: connect the shared policy
 
 A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. Baseline entries for `packages/<package>/...` live in `packages/<package>/quality-baseline.jsonl`; entries outside packages live in the root `quality-baseline.jsonl`. A package with no entries has no shard file. Permanent exceptions belong in `quality.config.ts`.

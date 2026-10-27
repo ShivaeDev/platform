@@ -1,0 +1,6 @@
+{"path":"packages/local-postgres/src/server/localConnections.ts","rule":"effect/boundary","count":5}
+{"path":"packages/local-postgres/src/server/localContainer.ts","rule":"effect/boundary","count":6}
+{"path":"packages/local-postgres/src/server/localDocker.ts","rule":"effect/boundary","count":1}
+{"path":"packages/local-postgres/src/server/localPostgres.ts","rule":"effect/boundary","count":7}
+{"path":"packages/local-postgres/src/server/localPostgresErrors.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/local-postgres/src/server/runningVersion.spec.ts","rule":"effect/boundary","count":1}

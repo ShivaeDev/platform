@@ -2,6 +2,7 @@
 	"compilerOptions": {
 		"paths": {
 			"#baseline-workspace": ["../../script/quality/test-support/baselineWorkspace.ts"],
+			"#effect-policy-story": ["../../script/quality/test-support/effectPolicyStory.ts"],
 			"#exports-story": ["../../script/quality/test-support/exportsStory.ts"],
 			"#rule-story": ["../../script/quality/test-support/ruleKit.ts"]
 		}
