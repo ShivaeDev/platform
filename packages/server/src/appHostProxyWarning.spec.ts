@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { configuration, environment, host, sessionPolicy } from "#test/app-host/story.ts";
 
@@ -9,7 +10,7 @@ for (const source of ["environment", "config"]) {
 			const warnings = logs().filter(({ level }) => level === "Warn");
 			expect(warnings).toEqual([expect.objectContaining({ message: [expect.stringMatching(/TRUSTED_PROXY.*config\.trustedProxy/u)] })]);
 			const status = yield* post({ host: "app.example", "x-forwarded-host": "app.example", "x-forwarded-proto": "https" });
-			expect(status).toBe(403);
+			expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
 			expect(logs().filter(({ level }) => level === "Warn")).toEqual(warnings);
 		},
 	);

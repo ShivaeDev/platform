@@ -1,8 +1,9 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { host } from "#test/app-host/story.ts";
 import { collector, flushable } from "#test/app-host/telemetry.ts";
 
-for (const status of [400, 503, undefined]) {
+for (const status of [HttpStatus.fromLiteral("BadRequest"), HttpStatus.fromLiteral("ServiceUnavailable"), undefined]) {
 	host.it(
 		`warns once on the first export failure (${status}), with the redacted collector answer when present`,
 		[
@@ -34,9 +35,26 @@ for (const status of [400, 503, undefined]) {
 }
 host.it(
 	"warns again after the collector recovers",
-	[collector({ status: (attempt) => [400, 400, 200, 400][attempt - 1] ?? 200 })],
+	[
+		collector({
+			status: (attempt) =>
+				[
+					HttpStatus.fromLiteral("BadRequest"),
+					HttpStatus.fromLiteral("BadRequest"),
+					HttpStatus.fromLiteral("OK"),
+					HttpStatus.fromLiteral("BadRequest"),
+				][attempt - 1] ?? HttpStatus.fromLiteral("OK"),
+		}),
+	],
 	function* ({ ping, collectorResponses }) {
 		expect(yield* ping()).toBe("pong");
-		expect(yield* collectorResponses([400, 400, 200, 400])).toEqual([1, 1, 1, 2]);
+		expect(
+			yield* collectorResponses([
+				HttpStatus.fromLiteral("BadRequest"),
+				HttpStatus.fromLiteral("BadRequest"),
+				HttpStatus.fromLiteral("OK"),
+				HttpStatus.fromLiteral("BadRequest"),
+			]),
+		).toEqual([1, 1, 1, 2]);
 	},
 );

@@ -1,5 +1,6 @@
 import { type ClientRequest, createServer, request } from "node:http";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 export const stalledWatchProxy = Effect.fn("DaemonTest.stalledWatchProxy")(function* (port: number) {
 	const subscribed = Promise.withResolvers<void>();
@@ -12,7 +13,7 @@ export const stalledWatchProxy = Effect.fn("DaemonTest.stalledWatchProxy")(funct
 				subscribed.resolve();
 				return;
 			}
-			outgoing.writeHead(response.statusCode ?? 502, response.headers);
+			outgoing.writeHead(response.statusCode ?? HttpStatus.fromLiteral("BadGateway"), response.headers);
 			response.pipe(outgoing);
 		});
 		requests.add(upstream);

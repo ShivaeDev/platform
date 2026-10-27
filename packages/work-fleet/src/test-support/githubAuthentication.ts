@@ -1,4 +1,5 @@
 import { ConfigProvider, Context, Effect, Layer } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { fakeGitHub } from "@shivaedev/github/test-support/fakeGitHub.ts";
 import { telemetry } from "@shivaedev/github/test-support/telemetry.ts";
@@ -48,7 +49,7 @@ export const githubAuthentication = storyKit({
 		},
 		limit: () => {
 			story.tell("GitHub rate limits Fleet's next read");
-			fake.reply(ENDPOINT, { message: "API rate limit exceeded" }, { headers: { "retry-after": "60" }, status: 403 });
+			fake.reply(ENDPOINT, { message: "API rate limit exceeded" }, { headers: { "retry-after": "60" }, status: HttpStatus.fromLiteral("Forbidden") });
 		},
 		requests: () => server.requests,
 		telemetry: () => ({

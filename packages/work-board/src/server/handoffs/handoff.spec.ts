@@ -1,6 +1,7 @@
 import { readFileSync, renameSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { folder } from "#test/board.ts";
 import { boardStory } from "#test/boardStory.ts";
@@ -24,7 +25,7 @@ boardStory.it(
 		const retry = yield* Effect.promise(() => client.mutate(client.handoffs.prepareHandoff.run(draft)));
 		expect(retry).toEqual(saved);
 		const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
-		expect(page.status).toBe(200);
+		expect(page.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain("Copy prompt");
 	},
 );
@@ -53,7 +54,7 @@ boardStory.it(
 		expect(reading.records[0]?.handoff.state).toBe("acknowledged");
 		expect(reading.unknown).toEqual([]);
 		const page = yield* Effect.promise(() => fetch(`${board.url}/_board/handoff?item=task.keyboard`));
-		expect(page.status).toBe(200);
+		expect(page.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(yield* Effect.promise(() => renderRemaining(board.url, "/_board/handoff?item=task.keyboard"))).toContain(
 			"Written for an earlier version of",
 		);

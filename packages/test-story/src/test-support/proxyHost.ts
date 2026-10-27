@@ -1,5 +1,6 @@
 import { createServer, type RequestListener } from "node:http";
 import { Effect, Exit, Scope } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type ForwardingProxyOptions, forwardingProxy } from "#forwardingProxy.ts";
 import { loopbackServer } from "#internal/loopback.ts";
 import { storyKit } from "#storyKit.ts";
@@ -13,7 +14,11 @@ export const proxyHost = storyKit({
 			for await (const chunk of request) {
 				chunks.push(Buffer.from(chunk));
 			}
-			response.writeHead(201, { "content-type": "application/json", "set-cookie": ["first=one", "second=two"], "x-host": "reached" });
+			response.writeHead(HttpStatus.fromLiteral("Created"), {
+				"content-type": "application/json",
+				"set-cookie": ["first=one", "second=two"],
+				"x-host": "reached",
+			});
 			response.end(
 				JSON.stringify({
 					body: Buffer.concat(chunks).toString(),

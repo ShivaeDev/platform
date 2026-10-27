@@ -1,5 +1,6 @@
 import { Effect, type FileSystem, type Path, type Scope } from "effect";
 import { HttpRouter, type HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { loopbackOnly } from "@shivaedev/identity/server/local.ts";
 import type { Diagnostics } from "#diagnostics/source.ts";
 import { responseUrl, resultUrl } from "#responses/url.ts";
@@ -54,7 +55,7 @@ export function boardRoutes(options: BoardOptions, runtime: Effect.Success<Retur
 					const service = yield* Responses;
 					const preview = yield* service.locate(params.get("item") ?? "", params.get("request") ?? "");
 					return HttpServerResponse.redirect(responseUrl(preview.item, preview.request));
-				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", 409)))),
+				}).pipe(Effect.catch(() => Effect.succeed(respond("Response unavailable", "text/html", HttpStatus.fromLiteral("Conflict"))))),
 			);
 			yield* serve("/_board/result", (request) =>
 				Effect.succeed(HttpServerResponse.redirect(resultUrl(new URL(request.url, "http://127.0.0.1").searchParams.get("item")))),

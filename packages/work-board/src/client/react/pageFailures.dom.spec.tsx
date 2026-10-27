@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { unavailableWorkspace } from "#test/screenEnvironment.ts";
@@ -97,7 +98,7 @@ for (const url of ["/_board/goals/zzz", "/_board/zzz", "/notes"]) {
 			yield* eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("Page not found"));
 			expect(readText("#doc [data-slot=empty-description]")).toBe(`Nothing on the Board lives at ${url}. The link may be old or mistyped.`);
 			expect(readText("#doc h1")).toBeUndefined();
-			expect(readAttribute("#doc", "data-status")).toBe("404");
+			expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("NotFound")));
 			yield* eventually(() => expect(readText("#breadcrumbs")).toBe("Workspace/ Page not found"));
 			expect(findElements("#doc [data-slot=empty] a").map((link) => [link.textContent, link.getAttribute("href")])).toEqual([
 				["Back to Today", "/"],
@@ -114,7 +115,7 @@ for (const url of ["/notes/broken%E0.md", "/_board/item/broken%E0"]) {
 		function* ({ readAttribute, readText, readTitle }) {
 			yield* eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("Page not found"));
 			expect(readText("#doc [data-slot=empty-description]")).toBe(`Nothing on the Board lives at ${url}. The link may be old or mistyped.`);
-			expect(readAttribute("#doc", "data-status")).toBe("404");
+			expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("NotFound")));
 			yield* eventually(() => expect(readText("#breadcrumbs")).toBe("Workspace/ Page not found"));
 			expect(readTitle()).toBe("Page not found · Work Board");
 		},

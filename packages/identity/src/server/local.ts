@@ -1,5 +1,6 @@
 import { Effect, Option } from "effect";
 import { HttpServerRequest, HttpServerResponse, HttpTraceContext } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization } from "effect/rpc";
 import { proxyAddresses, proxyMatches } from "./trustedProxy.ts";
 import { trustedProxyRanges as normalizedRanges } from "./trustedProxyRanges.ts";
@@ -40,7 +41,7 @@ export function loopbackOnly<E, R>(
 	return (request: HttpServerRequest.HttpServerRequest) =>
 		loopbackHost(request.headers.host) && Option.match(request.remoteAddress, { onNone: () => true, onSome: loopbackAddress })
 			? handler(request)
-			: Effect.succeed(HttpServerResponse.text("Only loopback hosts are served", { status: 403 }));
+			: Effect.succeed(HttpServerResponse.text("Only loopback hosts are served", { status: HttpStatus.fromLiteral("Forbidden") }));
 }
 export function trustedProxyPeer(trustedProxy?: string): (address: string) => boolean {
 	const addresses = trustedProxy === undefined ? undefined : proxyAddresses(trustedProxy);
@@ -86,7 +87,7 @@ export function localRpcGuard<E, R>(
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
 		return allowed(request) && contentType === serialization.contentType
 			? yield* continueHttpTrace(effect, request)
-			: HttpServerResponse.text("Local same-origin requests only", { status: 403 });
+			: HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 	});
 }
 

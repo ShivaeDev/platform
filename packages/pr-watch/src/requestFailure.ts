@@ -1,4 +1,5 @@
 import { Cause, DateTime, Schema } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHubRateLimited, GitHubTransportError } from "@shivaedev/github/errors.ts";
 import type { RateLimitObservation } from "@shivaedev/github/rateLimits.ts";
 import { WatchError } from "#model.ts";
@@ -32,7 +33,7 @@ export function requestFailure(cause: unknown, observations: readonly RateLimitO
 	if (Schema.is(HttpFailure)(cause)) {
 		return new WatchError({
 			message: `GitHub HTTP ${cause.status} (${cause.method} ${new URL(cause.url).pathname})`,
-			retryable: cause.status >= 500 && cause.status < 600,
+			retryable: cause.status >= HttpStatus.fromLiteral("InternalServerError") && cause.status < 600,
 			...(cause.retryAfter === undefined ? {} : { retryAt: DateTime.toEpochMillis(cause.retryAfter) }),
 		});
 	}

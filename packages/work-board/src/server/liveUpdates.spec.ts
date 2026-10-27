@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { describe, expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { faultyWatch } from "#test/faults.ts";
@@ -131,8 +132,8 @@ describe("a folder whose own name starts with a dot", () => {
 			expect(yield* rpcPaths(board)).toContain("/notes/log.md");
 			expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
 			expect((yield* rpcDocument(board, "/notes/log.md")).source).toContain("# Log");
-			expect((yield* Effect.promise(() => fetch(`${board.url}/.hidden/x.md`))).status).toBe(404);
-			expect((yield* Effect.promise(() => fetch(`${board.url}/node_modules/x.md`))).status).toBe(404);
+			expect((yield* Effect.promise(() => fetch(`${board.url}/.hidden/x.md`))).status).toBe(HttpStatus.fromLiteral("NotFound"));
+			expect((yield* Effect.promise(() => fetch(`${board.url}/node_modules/x.md`))).status).toBe(HttpStatus.fromLiteral("NotFound"));
 			const events = yield* watchProject();
 			expect(yield* events.next()).toEqual({ _tag: "Resync" });
 			expect((yield* rpcWatcher(board)).watching).toBe(true);

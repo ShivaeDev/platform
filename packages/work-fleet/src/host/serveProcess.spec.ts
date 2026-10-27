@@ -11,6 +11,7 @@ describe("work-fleet daemon command", () => {
 		expect(root.stdout).toContain("serve");
 		expect(root.stdout).not.toMatch(/work-fleet run\b/u);
 		const removed = yield* cli.run(["run", "."]);
-		expect(removed.code).toBe(1);
+		const exitCode = removed.code;
+		expect(exitCode).toBe(1);
 	});
 });

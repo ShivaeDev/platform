@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { makeAuth } from "#client/auth.ts";
 
 export function appAuth(options: {
@@ -39,7 +40,7 @@ export function appAuth(options: {
 				if (url.pathname === "/api/auth/get-session") {
 					return Promise.resolve(
 						Response.json(sessionFailure ? { code: "UNAVAILABLE", message: "Session check unavailable" } : session, {
-							status: sessionFailure ? 500 : 200,
+							status: sessionFailure ? HttpStatus.fromLiteral("InternalServerError") : HttpStatus.fromLiteral("OK"),
 						}),
 					);
 				}
@@ -54,7 +55,9 @@ export function appAuth(options: {
 						options.onSessionChange?.(false);
 						return Promise.resolve(Response.json({ success: true }));
 					}
-					return Promise.resolve(Response.json({ code: "REFUSED", message: options.signOutFailure }, { status: 400 }));
+					return Promise.resolve(
+						Response.json({ code: "REFUSED", message: options.signOutFailure }, { status: HttpStatus.fromLiteral("BadRequest") }),
+					);
 				}
 				return Promise.reject(new Error(`Unexpected auth request: ${url}`));
 			},

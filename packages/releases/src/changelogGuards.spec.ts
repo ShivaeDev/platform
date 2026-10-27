@@ -7,7 +7,8 @@ for (const changelog of ["# Notes\n", "# Changelog\n\n## Unreleased\n\n### Added
 		yield* write("packages/core/CHANGELOG.md", changelog);
 		yield* checkpoint();
 		const result = yield* cli("apply");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("use a '# Changelog' title and move Unreleased notes");
 	});
 }
@@ -17,6 +18,7 @@ workspace.it("apply refuses collecting into a version that already has notes", [
 	yield* change("next", { [CORE]: "minor" });
 	yield* edit("packages/core/package.json", (text) => text.replace("0.3.0", "0.2.3"));
 	const result = yield* cli("apply");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("version 0.3.0 already has notes");
 });

@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { engine } from "#test/engineStory.ts";
 import { humanMergeRequired, independentReviewFailsOnce, markdownWork, noChangeReported, requiredChecksFailOnce } from "#test/engineTraits.ts";
 
@@ -30,11 +31,11 @@ engine.it(
 			return yield* Effect.die(new Error("Expected a published Board decision"));
 		}
 		const page = yield* requestBoardPage(`/_board/respond?item=${published.itemId}&request=${published.request}`, "manual");
-		expect(page.status).toBe(302);
+		expect(page.status).toBe(HttpStatus.fromLiteral("Found"));
 		const location = `/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`;
 		expect(page.location).toBe(location);
 		const answerCard = yield* requestBoardPage(location);
-		expect(answerCard.status).toBe(200);
+		expect(answerCard.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(answerCard.text).toContain("/_board/react.js");
 		const answer = yield* recordBoardResponse({
 			answers: [{ prompt: "fleet-action", selected: ["retry"], text: "Keep exact revision checks." }],

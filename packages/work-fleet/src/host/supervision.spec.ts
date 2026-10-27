@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fleetSupervisor, slowLiveRequest, staleSupervisor } from "#test/supervisorStory.ts";
 
 fleetSupervisor.it(
@@ -14,7 +15,7 @@ fleetSupervisor.it(
 			throw new Error("Expected supervision status");
 		}
 		const home = yield* fleet.request(state, "board", "/home.md");
-		expect(home.status).toBe(200);
+		expect(home.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(home.body).toContain("<title>home.md</title>");
 		expect((yield* fleet.navigation(state.board.port)).home?.file).toBe("home.md");
 		expect((yield* fleet.inbox(state.board.port)).you).toEqual(expect.arrayContaining([expect.objectContaining({ id: "decision.operator" })]));
@@ -107,7 +108,7 @@ fleetSupervisor.it(
 		}
 		yield* fleet.beginRequest();
 		yield* fleet.changeCode();
-		expect((yield* fleet.finishRequest()).status).toBe(204);
+		expect((yield* fleet.finishRequest()).status).toBe(HttpStatus.fromLiteral("NoContent"));
 		yield* fleet.awaitRevision(before.daemon.revision);
 		const after = yield* fleet.state();
 		if (after === undefined) {
@@ -117,7 +118,7 @@ fleetSupervisor.it(
 		expect(after.daemon.restarts).toBe(before.daemon.restarts + 1);
 		expect(after.board).toEqual(before.board);
 		const response = yield* fleet.request(after, "daemon");
-		expect(response.status).toBe(201);
+		expect(response.status).toBe(HttpStatus.fromLiteral("Created"));
 		expect(fleet.log()).toContain(`code changed to ${after.daemon.revision}`);
 	},
 	60_000,
@@ -143,7 +144,7 @@ fleetSupervisor.it(
 		expect(after.daemon.pid).not.toBe(before.daemon.pid);
 		expect(after.daemon.restarts).toBe(before.daemon.restarts + 1);
 		expect(after.board).toEqual(before.board);
-		expect((yield* fleet.request(after, "daemon")).status).toBe(201);
+		expect((yield* fleet.request(after, "daemon")).status).toBe(HttpStatus.fromLiteral("Created"));
 	},
 	60_000,
 );

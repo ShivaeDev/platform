@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { WAIT_EXIT } from "#host/wait.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
 
@@ -19,7 +20,7 @@ host.it(
 		}
 		const board = yield* daemon.boardHttp();
 		const page = yield* daemon.respondRedirect(board, published.itemId, published.request);
-		expect(page.status).toBe(302);
+		expect(page.status).toBe(HttpStatus.fromLiteral("Found"));
 		expect(page.headers.get("location")).toBe(
 			`/_board/item/${encodeURIComponent(published.itemId)}/#answer-card-${encodeURIComponent(published.request)}`,
 		);

@@ -1,4 +1,5 @@
 import type { ServerResponse } from "node:http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpReply, FakeHttpRequest, FakeHttpRoute } from "#fakeHttpService.ts";
 import type { fakeHttpControls } from "#internal/fakeHttpControls.ts";
 import { fakeHttpSend, fakeHttpStrike } from "#internal/fakeHttpSend.ts";
@@ -9,7 +10,7 @@ function pageReply(route: FakeHttpRoute, request: FakeHttpRequest): FakeHttpRepl
 	}
 	const page = Number(request.query.get("page") ?? "1");
 	if (!Number.isInteger(page) || page < 1) {
-		return { body: { error: "page must be a positive integer" }, status: 400 };
+		return { body: { error: "page must be a positive integer" }, status: HttpStatus.fromLiteral("BadRequest") };
 	}
 	return { body: { items: route.pages[page - 1] ?? [], next: page < route.pages.length ? page + 1 : null } };
 }
@@ -43,6 +44,6 @@ export async function fakeHttpAnswer(
 		}
 		reply = controls.reply(after.reply, request);
 	}
-	tell(`fake HTTP answered ${method} ${path} with ${reply.status ?? 200}`);
+	tell(`fake HTTP answered ${method} ${path} with ${reply.status ?? HttpStatus.fromLiteral("OK")}`);
 	await fakeHttpSend(response, reply, controls.stallBody(name, request));
 }

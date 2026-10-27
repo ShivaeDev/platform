@@ -1,4 +1,5 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage } from "node:http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { orderWebHandler } from "./runtime.ts";
 
 function toHeaders(incoming: IncomingHttpHeaders): Headers {
@@ -47,7 +48,7 @@ export async function listenServer(app: ReturnType<typeof orderWebHandler>) {
 			if (outgoing.destroyed) {
 				return;
 			}
-			outgoing.writeHead(500);
+			outgoing.writeHead(HttpStatus.fromLiteral("InternalServerError"));
 			outgoing.end(String(error));
 		} finally {
 			incoming.off("aborted", abort);

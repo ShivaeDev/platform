@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { enterprise, hasPull, queuedPulls } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -92,7 +93,7 @@ for (const data of [undefined, null, { repository: null }]) {
 	});
 }
 const confirmations = [
-	{ body: {}, status: 500 },
+	{ body: {}, status: HttpStatus.fromLiteral("InternalServerError") },
 	{ body: { data: null, errors: [{ message: "Unavailable" }] } },
 	{ body: { data: { repository: { pullRequest: null } } } },
 	{ body: { data: { repository: { pullRequest: { autoMergeRequest: null, mergeQueueEntry: null, state: "CLOSED" } } } } },
@@ -119,7 +120,7 @@ watch.it("terminal PRs need no queue confirmation", [queuedPulls(1)], function* 
 	yield* h.poll;
 	h.queueHas();
 	h.merged(1);
-	h.queueConfirmationIs({ body: {}, status: 500 });
+	h.queueConfirmationIs({ body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 	yield* h.poll;
 	expect(h.eventNames()).toEqual(["merged"]);
 	expect(h.requests.some((request) => request.path === "/graphql")).toBe(false);

@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { documentSourceId } from "#client/document/layout.ts";
 import { HomeBoard } from "./HomeBoard.tsx";
 import type { MainLocation } from "./mainLocation.ts";
@@ -29,7 +30,7 @@ export function ProjectionMain({
 					location={(data) => ({
 						failure: data.complete ? undefined : pageFailureCauses.unavailable,
 						file: "Today",
-						status: data.complete ? 200 : 503,
+						status: data.complete ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("ServiceUnavailable"),
 						view: "today",
 					})}
 					render={(data) => <TodayPage api={api} data={data} />}
@@ -40,7 +41,7 @@ export function ProjectionMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.board.query({ url }, routeQueryOptions)}
-					location={(data) => ({ file: data.document.file, identity: data.document.identity, status: 200, view: "" })}
+					location={(data) => ({ file: data.document.file, identity: data.document.identity, status: HttpStatus.fromLiteral("OK"), view: "" })}
 					render={(data) => <HomeBoard data={data} />}
 					source={(data) => documentSourceId(data.document)}
 				/>
@@ -53,7 +54,7 @@ export function ProjectionMain({
 					location={(data) => ({
 						failure: data.validBoard ? undefined : pageFailureCauses.notFound,
 						file: "Work",
-						status: data.validBoard ? 200 : 404,
+						status: data.validBoard ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("NotFound"),
 						view: "work",
 					})}
 					render={(data) => <WorkPage api={api} data={data} />}

@@ -1,4 +1,5 @@
 import { type Cause, Clock, Duration, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
@@ -28,10 +29,10 @@ function membershipRule(account: ProviderAccountValue) {
 	return account.providerId === "github"
 		? Effect.tryPromise(async () => {
 				const { status } = await fetch(`https://api.github.com/orgs/${ORGANIZATION}/members/${account.accountId}`);
-				if (status !== 204 && status !== 404) {
+				if (status !== HttpStatus.fromLiteral("NoContent") && status !== HttpStatus.fromLiteral("NotFound")) {
 					throw new Error(`GitHub answered the membership check with HTTP ${status}`);
 				}
-				return status === 204;
+				return status === HttpStatus.fromLiteral("NoContent");
 			})
 		: Effect.succeed(false);
 }

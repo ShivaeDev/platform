@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { watch } from "#test/watch.ts";
 
@@ -48,7 +49,7 @@ watch.it("a failed later checks page retains the last successful snapshot", [], 
 		"/commits/sha1/check-runs?per_page=100&filter=latest",
 		{ "check_runs": [{ conclusion: "failure", status: "completed" }] },
 		"/checks?page=2",
-		{ body: {}, status: 500 },
+		{ body: {}, status: HttpStatus.fromLiteral("InternalServerError") },
 	);
 	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 	expect(h.events()).toEqual([]);

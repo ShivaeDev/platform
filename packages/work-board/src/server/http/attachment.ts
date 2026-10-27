@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Path } from "effect";
 import type { HttpServerRequest } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { attachmentType } from "#path/attachment.ts";
 import { within } from "#server/files/list.ts";
 import { respond } from "./respond.ts";
@@ -9,7 +10,11 @@ const MAX_BYTES = 16 * 1024 * 1024;
 export function attachment(root: string, realRoot: string) {
 	return Effect.fn("WorkBoard.attachment")(function* (request: HttpServerRequest.HttpServerRequest) {
 		function missing() {
-			return respond("Local image unavailable: unsupported type, missing file or workspace boundary.", "text/plain", 404);
+			return respond(
+				"Local image unavailable: unsupported type, missing file or workspace boundary.",
+				"text/plain",
+				HttpStatus.fromLiteral("NotFound"),
+			);
 		}
 		let relative: string;
 		try {
@@ -37,10 +42,12 @@ export function attachment(root: string, realRoot: string) {
 				return missing();
 			}
 			if (info.size > BigInt(MAX_BYTES)) {
-				return respond("Local image exceeds the 16 MiB limit.", "text/plain", 413);
+				return respond("Local image exceeds the 16 MiB limit.", "text/plain", HttpStatus.fromLiteral("PayloadTooLarge"));
 			}
 			const body = yield* fs.readFile(real);
-			return body.byteLength > MAX_BYTES ? respond("Local image exceeds the 16 MiB limit.", "text/plain", 413) : respond(body, type);
+			return body.byteLength > MAX_BYTES
+				? respond("Local image exceeds the 16 MiB limit.", "text/plain", HttpStatus.fromLiteral("PayloadTooLarge"))
+				: respond(body, type);
 		}).pipe(Effect.orElseSucceed(missing));
 	});
 }

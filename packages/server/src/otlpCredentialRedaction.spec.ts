@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { credentialDiagnostics } from "#test/app-host/credentialDiagnostics.ts";
 import { host } from "#test/app-host/story.ts";
@@ -8,7 +9,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 		`redacts bare signatures and PEM private keys before ${protocol} export`,
 		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), credentialDiagnostics],
 		function* ({ request, close, exports }) {
-			expect((yield* request("/credentials")).status).toBe(200);
+			expect((yield* request("/credentials")).status).toBe(HttpStatus.fromLiteral("OK"));
 			yield* close();
 			expect(exports()).toMatchObject([{ path: "/v1/traces" }]);
 			const body = exports()[0]?.body;

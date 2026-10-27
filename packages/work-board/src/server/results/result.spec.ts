@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/test/eventually.ts";
 import { revisionOf } from "#server/responses/records.ts";
@@ -16,7 +17,7 @@ boardStory.it(
 	function* ({ notes, board, readResult }) {
 		const before = readdirSync(notes.root);
 		const page = yield* Effect.promise(() => fetch(board.url + REVIEW_PATH));
-		expect(page.status).toBe(200);
+		expect(page.status).toBe(HttpStatus.fromLiteral("OK"));
 		const body = yield* readResult();
 		expect(body).toContain(">Ready</span>");
 		expect(body).toContain("No evidence recorded");

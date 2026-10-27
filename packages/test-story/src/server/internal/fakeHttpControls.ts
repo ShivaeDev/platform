@@ -1,5 +1,6 @@
 import type { ServerResponse } from "node:http";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type {
 	FakeHttpFault,
 	FakeHttpHoldOptions,
@@ -68,7 +69,7 @@ export function fakeHttpControls(tell: (line: string) => void, now: () => number
 			Effect.sync(() => {
 				scripts.make(route, { kind: "status", reply }, scope, false);
 				tell(
-					`fake HTTP ${fakeHttpSelection(route, scope).label} will answer once with ${typeof reply === "function" ? "a request-time reply" : (reply.status ?? 200)}`,
+					`fake HTTP ${fakeHttpSelection(route, scope).label} will answer once with ${typeof reply === "function" ? "a request-time reply" : (reply.status ?? HttpStatus.fromLiteral("OK"))}`,
 				);
 			}),
 		releaseOnArrival: (route: string, arrival: string, scope?: FakeHttpScope) =>

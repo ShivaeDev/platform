@@ -72,7 +72,8 @@ updates.it("lists customized admin view conflicts while removing the old dashboa
 	}
 	app.revise({ [path]: shell.replace("Your app", "New app name") });
 	const result = yield* app.update();
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain(`Resolve these conflicts, then commit your changes:\n${path}`);
 	expect(app.git("diff", "--name-only", "--diff-filter=U").stdout).toBe(`${path}\n`);
 	expect(app.read(path)).toContain("<<<<<<< ours");

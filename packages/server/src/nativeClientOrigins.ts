@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Headers, HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { localTransport } from "@shivaedev/identity/server/local.ts";
 
 export const NativeOrigins = Schema.Array(
@@ -32,7 +33,7 @@ export function nativeClientOrigins(origins: readonly string[], trustedProxy: st
 				return yield* effect;
 			}
 			if ((auth || request.method === "OPTIONS") && !allowed(request)) {
-				return HttpServerResponse.text("Local same-origin requests only", { status: 403 });
+				return HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 			}
 			if (!origins.includes(request.headers.origin ?? "")) {
 				return yield* effect;

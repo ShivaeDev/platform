@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Option, Redacted, type Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHub, list, listBounded, read, write } from "#GitHub.ts";
@@ -44,7 +45,9 @@ export const github = storyKit({
 							return state.reply;
 						}
 						const headers = { ...state.headers, "ETag": state.etag };
-						return request.headers["if-none-match"] === state.etag ? { headers, status: 304 } : { body: state.items[0], headers };
+						return request.headers["if-none-match"] === state.etag
+							? { headers, status: HttpStatus.fromLiteral("NotModified") }
+							: { body: state.items[0], headers };
 					},
 				},
 				pulls: {
@@ -105,7 +108,7 @@ export const github = storyKit({
 				),
 			readPullsBounded: (pageCap: number, byteLimit?: number) => run(listBounded("/repos/acme/widgets/pulls", PullRequest, pageCap, byteLimit)),
 			readWithEnvironment: (variables: Record<string, string>) => readWithEnvironment(server.url, variables),
-			rejectArchive: () => server.replyOnce("artifactRedirect", { status: 401 }),
+			rejectArchive: () => server.replyOnce("artifactRedirect", { status: HttpStatus.fromLiteral("Unauthorized") }),
 			requests: () => server.requests,
 			search: () => run(read("/search/issues?private=query-secret", PullRequest)),
 			setBudget: (resource: string, remaining: number, reset: number) =>

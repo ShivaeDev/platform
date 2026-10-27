@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createServer } from "node:http";
 import { join } from "node:path";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 export const releases = Effect.fn("CreateAppStory.releases")(function* (root: string) {
 	const archives = new Map<string, Uint8Array>();
@@ -11,7 +12,7 @@ export const releases = Effect.fn("CreateAppStory.releases")(function* (root: st
 			const version = request.url.slice(1, -4);
 			const archive = archives.get(version);
 			if (archive === undefined) {
-				response.writeHead(404).end();
+				response.writeHead(HttpStatus.fromLiteral("NotFound")).end();
 			} else {
 				response.end(archive);
 			}

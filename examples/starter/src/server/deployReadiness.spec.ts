@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { deployment } from "#test-support/deployment.ts";
 
@@ -30,9 +31,9 @@ deployment.it(
 		expect(yield* worker.ready).toBe("worker");
 		const web = yield* startProcess("web", port);
 		const address = yield* web.ready;
-		expect((yield* health(address)).status).toBe(200);
+		expect((yield* health(address)).status).toBe(HttpStatus.fromLiteral("OK"));
 		const signup = yield* signUpAt(address, "deploy");
-		expect(signup.status).toBe(200);
+		expect(signup.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(signup.cookie).toContain("session_token=");
 		expect([...web.logs, ...web.errors].join("\n")).not.toContain("Database schema mismatch");
 		expect(worker.logs.filter((line) => line.includes("migrations") || line.includes("Worker "))).toEqual([

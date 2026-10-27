@@ -1,4 +1,5 @@
 import { Result } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { AuthUnavailable, Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { postgresFeature } from "#test/app-host/database.ts";
@@ -30,7 +31,7 @@ for (const { config, env, accepted, host: bindAddress, name } of [
 				const refused = yield* call("alice", false, headers);
 				expect(Result.isFailure(refused) && refused.failure._tag).toBe("RpcClientError");
 				const status = yield* post(headers);
-				expect(status).toBe(403);
+				expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
 				expect(lookups()).toEqual([]);
 				return;
 			}
@@ -47,7 +48,7 @@ for (const { config, env, accepted, host: bindAddress, name } of [
 			const before = [...lookups()];
 			for (const refusedHeaders of [{ origin: "https://elsewhere.example" }, { "content-type": "application/json" }]) {
 				const status = yield* post(refusedHeaders);
-				expect(status).toBe(403);
+				expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
 			}
 			expect(lookups()).toEqual(before);
 		},

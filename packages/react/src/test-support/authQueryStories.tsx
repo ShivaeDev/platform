@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authQuery } from "#client/authQuery.ts";
 import type { Rendered } from "#client/testing.ts";
@@ -41,7 +42,10 @@ export const authReads = storyKit(
 					}
 					return current(state).view.render(<AuthRead query={state.query(input)} />);
 				}),
-			refuse: () => screen.act("the auth read is refused", () => current(state).resolve({ data: null, error: { code: "REFUSED", status: 403 } })),
+			refuse: () =>
+				screen.act("the auth read is refused", () =>
+					current(state).resolve({ data: null, error: { code: "REFUSED", status: HttpStatus.fromLiteral("Forbidden") } }),
+				),
 			reject: () => screen.act("the auth connection rejects", () => current(state).reject("offline")),
 			request: () => ({ aborted: current(state).signal.aborted, inputs: state.inputs }),
 			succeed: (data: string) => screen.act("the auth read succeeds", () => current(state).resolve({ data, error: null })),

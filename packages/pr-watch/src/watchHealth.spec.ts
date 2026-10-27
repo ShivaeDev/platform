@@ -1,4 +1,5 @@
 import { Clock } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { historyIs, queuedPulls } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -38,10 +39,11 @@ watch.it("quota pacing explains a half-hour polling gap while heartbeats continu
 });
 
 watch.it("a filtered continuous CLI exits on bad credentials with JSON health lines", [], function* (h) {
-	h.reply("/pulls/1", { body: {}, status: 401 });
+	h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("Unauthorized") });
 	yield* h.cliStart("--events", "dequeued", "--heartbeat", "0");
 	const code = yield* h.cliFinish();
-	expect(code).toBe(1);
+	const exitCode = code;
+	expect(exitCode).toBe(1);
 	expect(h.cliLines().map((line) => line.event)).toEqual(["error", "stopped"]);
 	expect(h.cliLines()[0]).toMatchObject({ at: expect.any(String), message: "GitHub HTTP 401 (GET /repos/acme/project/pulls/1)" });
 	expect(h.cliStderr()).toContain("GitHub HTTP 401");
@@ -62,7 +64,8 @@ watch.it("a filtered rate-limited CLI reports the retry instant and remains inte
 
 watch.it("invalid startup state prints an error and stop even with a transition filter", [historyIs("broken")], function* (h) {
 	const result = yield* h.cliRun("--fleet", "--events", "dequeued");
-	expect(result.code).toBe(1);
+	const exitCode = result.code;
+	expect(exitCode).toBe(1);
 	expect(
 		result.stdout
 			.trim()

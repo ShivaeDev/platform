@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { githubReplies } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -16,15 +17,19 @@ watch.it("one long-running process discovers a later PR and stops on interruptio
 	const requests = [...h.requests];
 	expect(yield* h.requestsAfterPause()).toEqual(requests);
 });
-watch.it("once fails on request failure and help prints the CLI usage", [githubReplies("/pulls/1", { body: {}, status: 500 })], function* (h) {
-	expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
-	expect(h.events().map((event) => event.event)).toEqual(["error", "stopped"]);
-	yield* h.help();
-	expect(h.lines.at(-1)).toContain("pr-watch --repo OWNER/REPO");
-});
+watch.it(
+	"once fails on request failure and help prints the CLI usage",
+	[githubReplies("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") })],
+	function* (h) {
+		expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
+		expect(h.events().map((event) => event.event)).toEqual(["error", "stopped"]);
+		yield* h.help();
+		expect(h.lines.at(-1)).toContain("pr-watch --repo OWNER/REPO");
+	},
+);
 watch.it(
 	"a failed initial fleet snapshot retains the discovered PR across a restart",
-	[githubReplies("/pulls/1", { body: {}, status: 500 })],
+	[githubReplies("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") })],
 	function* (h) {
 		yield* h.start();
 		yield* h.waitForPollWait();

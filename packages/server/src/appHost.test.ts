@@ -1,4 +1,5 @@
 import { Effect, Result } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { AuthUnavailable, Conflict, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { failedMigration, migratedSql, postgresFeature } from "#test/app-host/database.ts";
@@ -30,7 +31,7 @@ host.it(
 		}
 		const before = lookups().length;
 		for (const headers of [{ origin: "http://elsewhere.test" }, { "content-type": "application/json" }, { host: "elsewhere.test" }]) {
-			expect(yield* post(headers)).toBe(403);
+			expect(yield* post(headers)).toBe(HttpStatus.fromLiteral("Forbidden"));
 		}
 		expect(lookups()).toHaveLength(before);
 		yield* close();

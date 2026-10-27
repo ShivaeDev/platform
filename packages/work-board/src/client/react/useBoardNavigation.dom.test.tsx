@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { observedBrowserMotion } from "#test/browserMotion.ts";
@@ -32,7 +33,7 @@ screenStory.it(
 		readMotion,
 		readScrollPosition,
 	}) {
-		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200"));
+		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("OK"))));
 		yield* eventually(() => expect(readFocus()?.id).toBe("heading-evidence"));
 		const previousLocation = location();
 		const doc = findElement("#doc");
@@ -43,11 +44,11 @@ screenStory.it(
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
 		yield* eventually(() => expect(readText("#navigation-status")).toBe("Couldn't refresh this page"));
 		expect(readAttribute("#navigation-status", "data-state")).toBe("failed");
-		expect(readAttribute("#doc", "data-status")).toBe("503");
+		expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("ServiceUnavailable")));
 		expect(readText("#doc")).toContain("Read this passage.");
 		recoverDocument();
 		yield* Effect.promise(() => refreshDocument("/notes/plan.md"));
-		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("200"));
+		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("OK"))));
 		yield* eventually(() => expect(readText("#navigation-status")).toBe(""));
 		yield* Effect.promise(() => frame());
 		expect(location()).toBe(previousLocation);

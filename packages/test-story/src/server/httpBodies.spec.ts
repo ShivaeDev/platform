@@ -1,13 +1,14 @@
 import { Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
 httpFaultApp.it("flushes status and headers while its body waits for release", [], function* ({ stall, replyOnce, request }) {
-	yield* replyOnce("data", { body: { released: true }, headers: { "x-story": "stalled" }, status: 202 });
+	yield* replyOnce("data", { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") });
 	const paused = yield* stall("data");
 	const client = yield* request();
 	yield* paused.waiting;
-	expect(yield* client.headers).toMatchObject({ headers: { "x-story": "stalled" }, kind: "headers", status: 202 });
+	expect(yield* client.headers).toMatchObject({ headers: { "x-story": "stalled" }, kind: "headers", status: HttpStatus.fromLiteral("Accepted") });
 	const body = yield* Effect.forkChild(client.finished);
 	const other = yield* request("/trigger");
 	yield* other.finished;
@@ -20,7 +21,7 @@ httpFaultApp.it("delivers binary reply bytes with the supplied content type exac
 	const bytes = Uint8Array.from([0, 255, 128, 13, 10]);
 	yield* replyOnce("data", { body: bytes, headers: { "content-type": "image/png" } });
 	const client = yield* request();
-	expect(yield* client.headers).toMatchObject({ headers: { "content-type": "image/png" }, status: 200 });
+	expect(yield* client.headers).toMatchObject({ headers: { "content-type": "image/png" }, status: HttpStatus.fromLiteral("OK") });
 	expect(yield* client.finished).toEqual({ bytes: Buffer.from(bytes), kind: "complete" });
 	const next = yield* request();
 	expect(yield* next.finished).toEqual({ bytes: Buffer.from('{"ready":true}'), kind: "complete" });
@@ -45,7 +46,7 @@ httpFaultApp.it("lets a client abandon a stalled body and serves a later request
 	const paused = yield* stall("data");
 	const client = yield* request();
 	yield* paused.waiting;
-	expect(yield* client.headers).toMatchObject({ kind: "headers", status: 200 });
+	expect(yield* client.headers).toMatchObject({ kind: "headers", status: HttpStatus.fromLiteral("OK") });
 	yield* client.abort;
 	expect(yield* client.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
 	yield* paused.release;
@@ -58,8 +59,8 @@ httpFaultApp.it("keeps later matching bodies stalled until the same release", []
 	const first = yield* request();
 	yield* paused.waiting;
 	const second = yield* request();
-	expect(yield* first.headers).toMatchObject({ status: 200 });
-	expect(yield* second.headers).toMatchObject({ status: 200 });
+	expect(yield* first.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+	expect(yield* second.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 	const pending = yield* Effect.forkChild(second.finished);
 	const trigger = yield* request("/trigger");
 	yield* trigger.finished;

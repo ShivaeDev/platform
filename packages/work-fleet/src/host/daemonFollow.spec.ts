@@ -30,7 +30,8 @@ daemonFollow.it("a persistent PostgreSQL failure ends every wait and watch after
 	yield* daemon.invalidate();
 	const results = yield* daemon.followerExits(["waiter", "watcher"]);
 	for (const result of results) {
-		expect(result.code).toBe(1);
+		const exitCode = result.code;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain(`Fleet daemon could not read work states after ${retryAttempts} consecutive attempts`);
 	}
 	expect(daemon.failedReads().slice(before.length)).toEqual(

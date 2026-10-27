@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardFilesystem, boardStory, projectFiles } from "#test/boardStory.ts";
 import { silentWatch } from "#test/faults.ts";
@@ -37,6 +38,6 @@ boardStory.it(
 		const edited = yield* readDocument("note.md");
 		expect(edited.identity).toBeUndefined();
 		expect(JSON.stringify(edited.diagnostics)).toContain("Duplicate ID other");
-		expect((yield* get("/_board/item/original/")).status).toBe(404);
+		expect((yield* get("/_board/item/original/")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	},
 );

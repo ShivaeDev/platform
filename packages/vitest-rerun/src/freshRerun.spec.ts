@@ -30,7 +30,8 @@ rerunStory.it("a run removes the reports of an earlier run", [staleReports(), pa
 });
 
 rerunStory.it("an unhandled error is not rerun", [failsTimes(1), leavesUnhandledError()], function* ({ files, reports, runner }) {
-	expect((yield* runner.run()).status).toBe(1);
+	const exitCode = (yield* runner.run()).status;
+	expect(exitCode).toBe(1);
 	expect(files.read("attempts.txt")).toBe("attempt\n");
 	expect(reports.file("tests.attempt-2.json")).toBeUndefined();
 });
@@ -53,7 +54,8 @@ rerunStory.it(
 
 rerunStory.it("a rerun count that is not a whole number is rejected", [passes()], function* ({ files, runner }) {
 	const run = yield* runner.run("--reruns", "two");
-	expect(run.status).toBe(2);
+	const exitCode = run.status;
+	expect(exitCode).toBe(2);
 	expect(run.output).toContain('--reruns expects a whole number, got "two"');
 	expect(files.read("passed.txt")).toBeUndefined();
 });

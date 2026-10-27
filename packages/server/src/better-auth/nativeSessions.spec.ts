@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { cookieOnly, nativeSessions, nativeTransport, signedIn } from "#test/native-sessions/story.ts";
 
@@ -12,7 +13,10 @@ nativeSessions.it(
 		const session = account("alice");
 		expect(session.credential).toEqual(expect.stringContaining("."));
 		expect(session.exposed).toContain("set-auth-token");
-		expect(yield* getSession({ origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({ body: { user: session.user }, status: 200 });
+		expect(yield* getSession({ origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({
+			body: { user: session.user },
+			status: HttpStatus.fromLiteral("OK"),
+		});
 		expect(yield* profile("alice", { origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({
 			_tag: "Success",
 			success: { email: session.user.email, id: session.user.id, name: session.user.name, role: "user" },
@@ -34,7 +38,7 @@ nativeSessions.it(
 		expect(yield* getSession(headers)).toMatchObject({ body: { user: account("bob").user } });
 		expect(yield* profile("bob", headers)).toMatchObject({ _tag: "Success", success: { id: account("bob").user.id } });
 		const status = yield* signout("bob", headers);
-		expect(status).toBe(200);
+		expect(status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(yield* profile("bob", headers)).toMatchObject(unauthorized);
 		expect(yield* profile("alice")).toMatchObject({ _tag: "Success" });
 	},
@@ -71,7 +75,7 @@ nativeSessions.it(
 			"Bearer invalid.signature",
 		]) {
 			expect(yield* profile("alice", { authorization })).toMatchObject(unauthorized);
-			expect(yield* getSession({ authorization })).toMatchObject({ body: null, status: 200 });
+			expect(yield* getSession({ authorization })).toMatchObject({ body: null, status: HttpStatus.fromLiteral("OK") });
 		}
 	},
 );
@@ -79,14 +83,14 @@ nativeSessions.it(
 nativeSessions.it("expired bearer sessions fail typed", [alice], function* ({ expire, profile, bearer, getSession }) {
 	yield* expire();
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
-	expect(yield* getSession(bearer("alice"))).toMatchObject({ body: null, status: 200 });
+	expect(yield* getSession(bearer("alice"))).toMatchObject({ body: null, status: HttpStatus.fromLiteral("OK") });
 });
 
 nativeSessions.it("sign-out revokes the bearer and ends its open NDJSON change subscription", [alice], function* ({ subscribe, signout, profile }) {
 	const subscription = yield* subscribe("alice");
 	yield* subscription.next;
 	const status = yield* signout("alice");
-	expect(status).toBe(200);
+	expect(status).toBe(HttpStatus.fromLiteral("OK"));
 	expect(yield* subscription.ended).toMatchObject(unauthorized);
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 });

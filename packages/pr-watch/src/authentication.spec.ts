@@ -25,7 +25,8 @@ watch.it("the CLI watches with the signed-in gh token when no environment token 
 
 watch.it("the CLI refuses to watch without GitHub authentication", [signedOutGh], function* (story) {
 	const result = yield* story.cliRun("1", "--once");
-	expect(result.code).toBe(1);
+	const exitCode = result.code;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh");
 	expect(story.requests).toEqual([]);
 });

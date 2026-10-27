@@ -1,23 +1,25 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { HttpClient, type HttpClientResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedText } from "@shivaedev/http/body.ts";
 import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import { parseRetryAfter } from "@shivaedev/http/parseRetryAfter.ts";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
 
 export function isUnauthorized(response: HttpClientResponse.HttpClientResponse) {
-	return response.status === 401;
+	return response.status === HttpStatus.fromLiteral("Unauthorized");
 }
 
 export function isUnchanged(response: HttpClientResponse.HttpClientResponse) {
-	return response.status === 304;
+	return response.status === HttpStatus.fromLiteral("NotModified");
 }
 
 export const checkStatus = Effect.fnUntraced(function* (response: HttpClientResponse.HttpClientResponse, resource: string, failures = 0) {
 	const { status, headers } = response;
-	if (status === 403 || status === 429) {
-		const limitedByHeaders = status === 429 || headers["x-ratelimit-remaining"] === "0" || headers["retry-after"] !== undefined;
-		const message = !limitedByHeaders && status === 403 ? yield* responseMessage(response) : undefined;
+	if (status === HttpStatus.fromLiteral("Forbidden") || status === HttpStatus.fromLiteral("TooManyRequests")) {
+		const limitedByHeaders =
+			status === HttpStatus.fromLiteral("TooManyRequests") || headers["x-ratelimit-remaining"] === "0" || headers["retry-after"] !== undefined;
+		const message = !limitedByHeaders && status === HttpStatus.fromLiteral("Forbidden") ? yield* responseMessage(response) : undefined;
 		const limitedByMessage = message !== undefined && /rate limit/iu.test(message);
 		if (limitedByHeaders || limitedByMessage) {
 			return yield* refuseRateLimit(response, resource, failures);

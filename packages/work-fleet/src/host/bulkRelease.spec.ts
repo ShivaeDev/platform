@@ -13,7 +13,8 @@ host.it(
 			["two", "deferred"],
 		] as const) {
 			const started = yield* daemon.dispatch(id);
-			expect((yield* daemon.cli(["release", id])).code).toBe(1);
+			const exitCode = (yield* daemon.cli(["release", id])).code;
+			expect(exitCode).toBe(1);
 			let published: BoardDecision | undefined;
 			if (id === "one") {
 				const waiting = yield* daemon.workerQuestion(id);

@@ -1,4 +1,5 @@
 import type { Cause } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { useLayoutEffect, useRef } from "react";
 import { flushSync } from "react-dom";
 import type { Document } from "#browser/document/schema.ts";
@@ -62,7 +63,7 @@ export function useDocumentPage({
 }
 
 function contentReady(main: HTMLElement, data: Document | undefined, status: string, pending: boolean) {
-	if (pending || (!data && status === "200")) {
+	if (pending || (!data && status === String(HttpStatus.fromLiteral("OK")))) {
 		return false;
 	}
 	return !data || main.querySelector<HTMLElement>("article.doc")?.dataset.source === documentSourceId(data);

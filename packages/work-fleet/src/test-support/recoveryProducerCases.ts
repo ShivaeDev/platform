@@ -1,6 +1,7 @@
 import { writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { ConnectionError, SqlError } from "effect/sql/SqlError";
 import { Fleet } from "#fleet.ts";
 import { GithubApi } from "#host/githubApi.ts";
@@ -13,7 +14,7 @@ import { launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts
 export function recoveryProducerCases(): readonly RecoveryCase[] {
 	let restored = false;
 	let context: RecoveryContext | undefined;
-	const failedHttp = githubCliApi(new Map([["synthetic", "{}"]]), 503);
+	const failedHttp = githubCliApi(new Map([["synthetic", "{}"]]), HttpStatus.fromLiteral("ServiceUnavailable"));
 	const failedProductionRead = GithubApi.pipe(
 		Effect.flatMap((github) => github.get("synthetic")),
 		Effect.provide(failedHttp.layer),

@@ -1,12 +1,19 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { adminApplication, adminRole, unavailableAdminProvider } from "#test/app-host/admin.ts";
 import { host } from "#test/app-host/story.ts";
 
 for (const { name, traits, token, status, failure } of [
-	{ failure: "Unauthorized", name: "signed-out", status: 401, token: "", traits: [] },
-	{ failure: "Forbidden", name: "non-admin", status: 403, token: "member", traits: [adminRole("user")] },
-	{ failure: "Forbidden", name: "owner without admin", status: 403, token: "member", traits: [adminRole("owner")] },
-	{ failure: "AuthUnavailable", name: "provider-unavailable", status: 503, token: "member", traits: [unavailableAdminProvider] },
+	{ failure: "Unauthorized", name: "signed-out", status: HttpStatus.fromLiteral("Unauthorized"), token: "", traits: [] },
+	{ failure: "Forbidden", name: "non-admin", status: HttpStatus.fromLiteral("Forbidden"), token: "member", traits: [adminRole("user")] },
+	{ failure: "Forbidden", name: "owner without admin", status: HttpStatus.fromLiteral("Forbidden"), token: "member", traits: [adminRole("owner")] },
+	{
+		failure: "AuthUnavailable",
+		name: "provider-unavailable",
+		status: HttpStatus.fromLiteral("ServiceUnavailable"),
+		token: "member",
+		traits: [unavailableAdminProvider],
+	},
 ]) {
 	host.it(
 		`the ${name} caller cannot enter admin routes or RPCs and rejections cannot be cached`,
@@ -19,7 +26,7 @@ for (const { name, traits, token, status, failure } of [
 				expect(response.body).toBe("");
 			}
 			const rpc = yield* adminRpc(["adminRead", "adminReject", "adminStream"], token);
-			expect(rpc.status).toBe(200);
+			expect(rpc.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(rpc.cacheControl).toBe("private, no-store");
 			for (const id of ["1", "2", "3"]) {
 				expect(rpc.messages).toContainEqual(
@@ -49,7 +56,7 @@ host.it(
 			["/admin/jobs/detail", "<main>Hosted app</main>"],
 		]) {
 			const response = yield* request(path, { headers: { accept: "text/html", authorization: "member" } });
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.body).toBe(body);
 		}
 		const rpc = yield* adminRpc(["adminRead"], "member");
@@ -57,7 +64,7 @@ host.it(
 		expect(rpc.messages).toContainEqual(expect.objectContaining({ _tag: "Exit", exit: { _tag: "Success", value: "member@example.test" } }));
 		expect(calls()).toEqual(["/admin", "/admin/", "/admin/tools.js", "/admin/jobs/detail", "adminRead"]);
 		const publicPage = yield* request("/sign-in", { headers: { accept: "text/html" } });
-		expect(publicPage.status).toBe(200);
+		expect(publicPage.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(publicPage.body).toBe("<main>Hosted app</main>");
 	},
 );
@@ -66,14 +73,14 @@ host.it(
 	"revoking admin blocks the next route and RPC with the same session",
 	[adminApplication, adminRole("admin")],
 	function* ({ request, adminRpc, setAdminRole, calls, clearCalls }) {
-		expect((yield* request("/admin", { headers: { accept: "text/html", authorization: "member" } })).status).toBe(200);
+		expect((yield* request("/admin", { headers: { accept: "text/html", authorization: "member" } })).status).toBe(HttpStatus.fromLiteral("OK"));
 		expect((yield* adminRpc(["adminRead"], "member")).messages).toContainEqual(
 			expect.objectContaining({ exit: { _tag: "Success", value: "member@example.test" } }),
 		);
 		setAdminRole("user");
 		clearCalls();
 		const route = yield* request("/admin/jobs/detail", { headers: { accept: "text/html", authorization: "member" } });
-		expect(route.status).toBe(403);
+		expect(route.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		expect(route.headers.get("cache-control")).toBe("private, no-store");
 		const rpc = yield* adminRpc(["adminRead"], "member");
 		expect(rpc.cacheControl).toBe("private, no-store");

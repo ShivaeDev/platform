@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { authPost } from "#test-support/authHttp.ts";
 import type { RunningHost } from "#test-support/host.ts";
 import { notesHttp } from "./http.ts";
@@ -7,7 +8,7 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 	const signOut = Effect.fn("AppStory.signOut")(function* (cookie: string) {
 		tell("the signed-in user signs out");
 		const response = yield* authPost(host.baseUrl, "sign-out", {}, cookie, host.origin);
-		if (response.status !== 200) {
+		if (response.status !== HttpStatus.fromLiteral("OK")) {
 			return yield* Effect.die(`Could not sign out: HTTP ${response.status}`);
 		}
 	});

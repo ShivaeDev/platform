@@ -1,4 +1,5 @@
 import { Clock, Context, Effect, Layer, Stream } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { run } from "#engine/scheduler.ts";
 import { Fleet } from "#fleet.ts";
 import { schedulerPause } from "#host/commands.ts";
@@ -97,7 +98,11 @@ function budgetFixture(mode: "delivery" | "limit" | "reserve", remaining?: numbe
 		const checks = githubFixture();
 		checks.reply(ADOPTED_HEAD, [[checkRun()]]);
 		for (const [path, body] of unslurped(checks.responses)) {
-			github.reply(path, mode === "limit" ? { message: "API rate limit exceeded for user." } : body, mode === "limit" ? { status: 403 } : {});
+			github.reply(
+				path,
+				mode === "limit" ? { message: "API rate limit exceeded for user." } : body,
+				mode === "limit" ? { status: HttpStatus.fromLiteral("Forbidden") } : {},
+			);
 		}
 	}
 	return github;

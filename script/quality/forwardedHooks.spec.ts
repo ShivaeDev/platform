@@ -32,7 +32,8 @@ hookStory.it("runs a global reference-transaction guard added after installation
 hookStory.it("preserves a forwarded hook's arguments, stdin and failing exit status", [globalHook()], ({ git, hooks, recorded }) => {
 	expect(hooks.run("install").status).toBe(CLI_EXIT.passed);
 	hooks.writeGlobal("pre-push", '#!/bin/sh\nprintf "%s\\n" "$@" >> pre-push.log\ncat >> pre-push.log\nexit 7\n');
-	expect(git.runHook("pre-push", ["origin", "destination with spaces"], "pending refs\n").status).toBe(7);
+	const exitCode = git.runHook("pre-push", ["origin", "destination with spaces"], "pending refs\n").status;
+	expect(exitCode).toBe(7);
 	expect(recorded.hookLog("pre-push")).toBe("origin\ndestination with spaces\npending refs\n");
 });
 

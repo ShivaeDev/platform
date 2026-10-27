@@ -23,7 +23,8 @@ rerunStory.it("a test that fails once and then passes is listed with its JUnit i
 });
 
 rerunStory.it("a test that keeps failing stays failed and is not flaky", [alwaysFails()], function* ({ files, reports, runner }) {
-	expect((yield* runner.run()).status).toBe(1);
+	const exitCode = (yield* runner.run()).status;
+	expect(exitCode).toBe(1);
 	expect(files.read("broken.txt")).toBe("attempt\nattempt\n");
 	expect(yield* reports.testcases()).toEqual([{ classname: "broken.spec.ts", failed: true, file: "broken.spec.ts", name: "stays broken" }]);
 	expect(yield* reports.flakyTests()).toBeUndefined();
@@ -69,13 +70,15 @@ rerunStory.it("every rerun counts as an attempt and keeps its failure message", 
 });
 
 rerunStory.it("a test still failing after its last rerun stays failed", [failsTimes(2)], function* ({ files, reports, runner }) {
-	expect((yield* runner.run()).status).toBe(1);
+	const exitCode = (yield* runner.run()).status;
+	expect(exitCode).toBe(1);
 	expect(files.read("attempts.txt")).toBe("attempt\nattempt\n");
 	expect(yield* reports.flakyTests()).toBeUndefined();
 });
 
 rerunStory.it("no reruns fail on the first attempt", [failsTimes(1)], function* ({ files, reports, runner }) {
-	expect((yield* runner.run("--reruns", "0")).status).toBe(1);
+	const exitCode = (yield* runner.run("--reruns", "0")).status;
+	expect(exitCode).toBe(1);
 	expect(files.read("attempts.txt")).toBe("attempt\n");
 	expect(reports.file("tests.attempt-1.json")).toBeUndefined();
 	expect(yield* reports.flakyTests()).toBeUndefined();

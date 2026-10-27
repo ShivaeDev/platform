@@ -3,6 +3,7 @@ import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import { Context, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { requests } from "./requests.ts";
 import { RuntimeValue } from "./runtimeLayer.ts";
 import { type HostState, io, runtimeOf } from "./state.ts";
@@ -27,7 +28,9 @@ export function runtimeVerbs(state: HostState, tell: (line: string) => void) {
 			.request(path)
 			.pipe(
 				Effect.flatMap((result) =>
-					result.status === 200 ? Effect.succeed(result.body) : Effect.fail(new Error(`Runtime route returned ${result.status}: ${result.body}`)),
+					result.status === HttpStatus.fromLiteral("OK")
+						? Effect.succeed(result.body)
+						: Effect.fail(new Error(`Runtime route returned ${result.status}: ${result.body}`)),
 				),
 			);
 	}

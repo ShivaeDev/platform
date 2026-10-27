@@ -1,4 +1,5 @@
 import { Effect, Stream } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { waitFor } from "#test/live.ts";
@@ -18,15 +19,15 @@ boardStory.it("reads typed documents, stable item URLs, navigation, search throu
 	expect((yield* Effect.promise(() => client.read(client.api.search.query({ query: "Read this" })))).results).toEqual(
 		expect.arrayContaining([expect.objectContaining({ file: "note.md", kind: "passage" })]),
 	);
-	expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(200);
-	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/native.js`))).status).toBe(404);
+	expect((yield* Effect.promise(() => fetch(`${board.url}/note.md`))).status).toBe(HttpStatus.fromLiteral("OK"));
+	expect((yield* Effect.promise(() => fetch(`${board.url}/_board/native.js`))).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	const boardUrl = board.url;
 	for (const [asset, type] of [
 		["react.js", "text/javascript"],
 		["react.css", "text/css"],
 	]) {
 		const response = yield* Effect.promise(() => fetch(`${boardUrl}/_board/${asset}`));
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(response.headers.get("content-type")).toBe(type);
 		expect(yield* Effect.promise(() => response.text())).not.toBe("");
 	}
@@ -35,7 +36,7 @@ boardStory.it("reads typed documents, stable item URLs, navigation, search throu
 	expect(fonts.some((font) => font?.includes("geist-latin-wght")) && fonts.some((font) => font?.includes("geist-mono-latin-wght"))).toBe(true);
 	for (const font of new Set(fonts)) {
 		const response = yield* Effect.promise(() => fetch(`${boardUrl}${font}`));
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(response.headers.get("content-type")).toBe("font/woff2");
 	}
 });
@@ -75,14 +76,14 @@ boardStory.it("enforces same-origin and loopback guards at the native route", re
 	const blocked = yield* Effect.promise(() =>
 		fetch(`${board.url}/_board/rpc`, { body: "", headers: { origin: "https://remote.example" }, method: "POST" }),
 	);
-	expect(blocked.status).toBe(403);
+	expect(blocked.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 	const rebound = yield* post("/_board/rpc", { host: "remote.example" });
-	expect(rebound.status).toBe(403);
+	expect(rebound.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 });
 
 boardStory.it("requires the RPC content type even with responses disabled", readingProject, function* ({ board, post }) {
 	const blocked = yield* post("/_board/rpc", { "content-type": "application/json", origin: board.url });
-	expect(blocked.status).toBe(403);
+	expect(blocked.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 });
 
 boardStory.it(
@@ -132,7 +133,7 @@ boardStory.it("sets the Board response headers on native RPC responses", reading
 			method: "POST",
 		}),
 	);
-	expect(response.status).toBe(200);
+	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 	expect(response.headers.get("cache-control")).toBe("private, no-store");
 	expect(response.headers.get("x-content-type-options")).toBe("nosniff");
 	expect(yield* Effect.promise(() => response.text())).toContain("example.goal");
