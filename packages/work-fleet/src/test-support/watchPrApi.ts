@@ -87,7 +87,8 @@ export const watchPrApi = Effect.gen(function* () {
 		pr: `https://github.com/${repository}/pull/7`,
 		pull,
 		queue,
-		requests: () => server.requests.map(({ headers, path, status }) => ({ authorization: headers.authorization, path, status })),
+		requestHeaders: () => server.requests.map(({ headers, path }) => ({ authorization: headers.authorization, path })),
+		requests: () => server.requests.map(({ path, status }) => ({ path, status })),
 		url: server.url,
 	};
 });

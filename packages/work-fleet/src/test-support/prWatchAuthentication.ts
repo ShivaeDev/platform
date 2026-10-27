@@ -38,7 +38,7 @@ export const prWatchAuthentication = storyKit({
 					() => Effect.void,
 				);
 			}),
-		requests: engine.api.requests,
+		requests: engine.api.requestHeaders,
 		start: (variables: Record<string, string>) => {
 			story.tell("start Fleet's PR watcher");
 			return Layer.build(
