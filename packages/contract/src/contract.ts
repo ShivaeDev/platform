@@ -1,14 +1,19 @@
-import { Context, type Schema } from "effect";
+import { Context, Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
 import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
+import { QueryReadDenied } from "#readPolicyErrors.ts";
 import { CommandInvalidation, changesRpc, KeyScope, QueryDefinition } from "#serverMetadata.ts";
 
 export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
 
+type OperationError<TOperation extends OperationShape> = TOperation extends QueryShape
+	? Schema.Union<readonly [TOperation["error"], typeof QueryReadDenied]>
+	: TOperation["error"];
+
 export type OperationRpc<TContract extends string, TOperation> = TOperation extends OperationShape
 	? TOperation extends StreamShape
 		? Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], RpcSchema.Stream<TOperation["success"], TOperation["error"]>, Schema.Never>
-		: Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], TOperation["success"], TOperation["error"]>
+		: Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], TOperation["success"], OperationError<TOperation>>
 	: never;
 
 export interface Declared<
@@ -122,7 +127,7 @@ export function contract(
 	assertUnique([...queries, ...commands, ...streams]);
 	const rpcs = [...queries, ...commands, ...streams].map((operation) =>
 		Rpc.make(`${name}.${operation.name}`, {
-			error: operation.error,
+			error: operation.kind === "query" ? Schema.Union([operation.error, QueryReadDenied]) : operation.error,
 			payload: operation.payload,
 			stream: operation.kind === "stream",
 			success: operation.success,

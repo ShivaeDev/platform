@@ -39,7 +39,20 @@ const Public = contract("public", {
 		}),
 	],
 }).middleware(MaybeAuthenticated);
-export const Api = Account.merge(Profile, Public);
+const Plain = contract("plain", {
+	queries: [
+		query("get", {
+			readPolicy: (_payload, viewer) =>
+				Effect.map(ReadChecks, (checks) => {
+					checks.push({ key: documents.item("private"), viewer });
+					return false;
+				}),
+			reads: () => [documents.item("private")],
+			success: Schema.String,
+		}),
+	],
+});
+export const Api = Account.merge(Profile, Public, Plain);
 export interface Check {
 	readonly key: Key;
 	readonly viewer: Option.Option<IdentityValue>;
@@ -65,6 +78,13 @@ export function policyHost(state: HostState, checks: Check[]) {
 			Account.application.toLayer({ "account.get": read }),
 			Profile.application.toLayer({ "profile.get": read }),
 			Public.application.toLayer({ "public.read": () => Effect.succeed("Public documents") }),
+			Plain.application.toLayer({
+				"plain.get": () =>
+					Effect.sync(() => {
+						state.calls.push("plain.get");
+						return "Private document";
+					}),
+			}),
 			authenticatedUserLayer(sessions),
 		),
 		services: Layer.mergeAll(

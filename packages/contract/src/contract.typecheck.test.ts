@@ -38,6 +38,8 @@ const Mixed = contract("mixed", {
 	queries: [query("read", { reads: () => [], success: Schema.Number })],
 	streams: [stream("follow", { reads: () => [], success: Schema.String })],
 });
+type MixedRead = Rpc.ExtractTag<RpcGroup.Rpcs<typeof Mixed>, "mixed.read">;
+expectTypeOf<Rpc.ErrorExit<MixedRead>>().toEqualTypeOf<QueryReadDenied>();
 const handlers = Mixed.application.of({
 	"mixed.follow": () => Stream.empty,
 	"mixed.read": () => Effect.succeed(1),

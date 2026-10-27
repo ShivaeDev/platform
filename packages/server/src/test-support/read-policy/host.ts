@@ -39,9 +39,11 @@ export const readPolicyHost = storyKit({
 		}
 		return {
 			checks: () => state.checks.map(({ key, viewer }) => ({ key, viewer: Option.getOrUndefined(viewer) })),
+			handledReads: () => state.calls,
 			heard,
 			listen,
 			lookups: () => state.lookups,
+			plainRead: () => Effect.flatMap(client("alice"), (rpc) => rpc("plain.get", undefined)),
 			publicRead: (viewer?: string) => Effect.flatMap(client(viewer), (rpc) => rpc("public.read", undefined)),
 			publish: () =>
 				Effect.flatMap(context(state), (services) =>
