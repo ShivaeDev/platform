@@ -1,5 +1,4 @@
 import { expect } from "@effect/vitest";
-import { DAEMON_PORT } from "#host/daemon.ts";
 import { fleetDaemon } from "#test/daemonStory.ts";
 
 fleetDaemon.it("a follower's owned daemon stays reachable without a discovery file", [], function* (daemon) {
@@ -65,7 +64,7 @@ for (const ids of [[], ["done", "gone", "active", "waiting"]]) {
 			const live = "active waiting (waiting on you): Reviewed PR is ready to merge\n";
 			yield* daemon.awaitOutput(live);
 			expect(daemon.output()).toBe(`${initial}active released\ngone done\nactive done\n${live}`);
-			expect(daemon.errors()).not.toContain(`127.0.0.1:${DAEMON_PORT}`);
+			expect(new Set(daemon.errors().match(/127\.0\.0\.1:\d+/gu))).toEqual(new Set([`127.0.0.1:${port}`]));
 			expect(daemon.isRunning()).toBe(true);
 		},
 	);
