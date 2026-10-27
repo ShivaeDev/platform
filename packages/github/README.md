@@ -143,6 +143,8 @@ A missing (404) or expired (410) artifact fails with `GitHubArtifactError({ stag
 
 ### Verifying webhooks
 
+Use [`@shivaedev/webhooks`](https://github.com/ShivaeDev/platform/tree/main/packages/webhooks#readme) to receive deliveries through the application host with receipts, deduplication and transactional job enqueueing. This package owns signature verification only.
+
 Pass the raw request bytes and the `X-Hub-Signature-256` header to `verifyWebhook` before parsing the body. It checks HMAC SHA-256 with a constant-time comparison, then decodes JSON with your Schema. A missing header, tampered body or wrong secret fails with `GitHubWebhookSignatureError` before Schema decoding.
 
 ```ts
@@ -160,7 +162,7 @@ const receiveWorkflowRun = (
 ) => verifyWebhook(rawBody, signature, secret, WorkflowRun);
 ```
 
-This decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
+Omit the Schema argument to verify the signature only, without decoding the body. With a Schema, this decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
 
 ### Sticky comments and check runs
 

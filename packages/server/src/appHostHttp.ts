@@ -91,6 +91,9 @@ export function appHostHttp<
 				}),
 			);
 			const applicationRoutes = (options.routes ?? Layer.empty).pipe(
+				Layer.provide(
+					HttpRouter.middleware((effect) => Effect.provideService(effect, HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize))).layer,
+				),
 				Layer.provide(options.nativeOrigins === undefined ? Layer.empty : nativeClientOrigins(nativeOrigins, trustedProxy, true)),
 			);
 			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, applicationRoutes), { disableLogger: true }).pipe(

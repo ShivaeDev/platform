@@ -36,7 +36,8 @@
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
-		"@shivaedev/types": "workspace:*"
+		"@shivaedev/types": "workspace:*",
+		"@shivaedev/webhooks": "workspace:*"
 	},
 	"peerDependencies": {
 		"@effect/atom-react": "catalog:",

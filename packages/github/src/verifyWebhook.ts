@@ -1,12 +1,12 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { Effect, Redacted, Schema } from "effect";
-import { GitHubWebhookSignatureError } from "./errors.ts";
+import { GitHubWebhookSignatureError } from "#errors.ts";
 
-export const verifyWebhook = Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
+const verify = Effect.fnUntraced(function* <TSchema extends Schema.Constraint>(
 	body: Uint8Array,
 	signature: string | undefined,
 	secret: Redacted.Redacted<string>,
-	schema: TSchema,
+	schema?: TSchema,
 ) {
 	if (signature === undefined || !/^sha256=[0-9a-f]{64}$/u.test(signature)) {
 		return yield* new GitHubWebhookSignatureError();
@@ -15,5 +15,28 @@ export const verifyWebhook = Effect.fnUntraced(function* <TSchema extends Schema
 	if (!timingSafeEqual(expected, Buffer.from(signature.slice(7), "hex"))) {
 		return yield* new GitHubWebhookSignatureError();
 	}
+	if (schema === undefined) {
+		return;
+	}
 	return yield* Schema.decodeUnknownEffect(Schema.fromJsonString(schema))(new TextDecoder().decode(body));
 });
+
+export function verifyWebhook(
+	body: Uint8Array,
+	signature: string | undefined,
+	secret: Redacted.Redacted<string>,
+): Effect.Effect<void, GitHubWebhookSignatureError>;
+export function verifyWebhook<TSchema extends Schema.Constraint>(
+	body: Uint8Array,
+	signature: string | undefined,
+	secret: Redacted.Redacted<string>,
+	schema: TSchema,
+): Effect.Effect<TSchema["Type"], GitHubWebhookSignatureError | Schema.SchemaError, TSchema["DecodingServices"]>;
+export function verifyWebhook<TSchema extends Schema.Constraint>(
+	body: Uint8Array,
+	signature: string | undefined,
+	secret: Redacted.Redacted<string>,
+	schema?: TSchema,
+) {
+	return verify(body, signature, secret, schema);
+}
