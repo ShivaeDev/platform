@@ -8,6 +8,7 @@ import { clientEngine } from "#test/clientEngine.ts";
 import { connectionSecurity } from "#test/connectionSecurity.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
+import { scheduledTesting } from "#test/scheduledTesting.ts";
 import { settlementProbe } from "#test/settlementProbe.ts";
 import { testingEngine } from "#test/testingEngine.ts";
 import { testingProducer, testingVerbs, testingWorker } from "#test/testingProducer.ts";
@@ -39,6 +40,7 @@ export const boss = storyKit({
 			...waitingVerbs(),
 			budgets: budgetVerbs(state.budget, runtime),
 			observeSettlement: settlementProbe,
+			schedules: scheduledTesting(runtime),
 			traces: tracingVerbs(state.trace, runtime),
 			...testingVerbs(state.testingState),
 			settle: () =>

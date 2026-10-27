@@ -132,6 +132,8 @@ The queue takes `{ userId: number }` in application code and stores `{ userId: s
 
 The schedule runs a payload-free Effect. This schedule registers its cron expression with `tz: "UTC"`. The package creates a `<name>-dlq` dead-letter queue for both kinds of worker and supplies `retryLimit: 3` and `retryBackoff: true` by default. The email queue above overrides the retry limit to five. These are pg-boss registration settings; pg-boss runs the retry and scheduling engine.
 
+Only a Layer whose `jobs` list contains a schedule registration such as `cleanupWorker` registers that cron. A request runtime that declares only queues never runs scheduled Effects. A development process that starts the worker runs its schedules locally too; leave schedule registrations out of that worker when the app should not run them in development.
+
 The Layer requires the workers' Effect services. Leaving `Mail` unprovided leaves that requirement in the resulting Effect's type. A primitive Schema such as `Schema.String` is rejected as a queue definition because the durable contract must be an object.
 
 ### Backlog throughput and concurrency
@@ -475,6 +477,8 @@ emailStories.it("decodes the queued email", [], function* ({ enqueue, testing })
 ```
 
 Set `retryPolicy: testRetryPolicy` through the controller to override queue and send settings with `retryDelay: 0` and `retryBackoff: false`. A failing worker can then exhaust its native retries without production backoff. The policy applies to subsequently sent jobs; it does not rewrite jobs already stored.
+
+`schedules()` lists registered schedules as `{ name, cron, timezone }` entries from PostgreSQL. `trigger(schedule)` takes a schedule definition, such as `Cleanup`, and enqueues one run now using its stored schedule data and options. Register `Cleanup.run(effect)` in the testing Layer first, then yield `testing.trigger(Cleanup)` and `testing.waitForIdle` before observing the Effect's result. An unregistered schedule fails with `PgBossTestingError` (`operation: "trigger"`).
 
 `failNextSend(queue)` arms one send failure for that queue. The next valid `enqueue` fails with the usual typed `PgBossError` (`operation: "enqueue"`); the following send proceeds normally.
 
