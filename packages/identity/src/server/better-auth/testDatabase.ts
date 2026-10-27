@@ -3,9 +3,13 @@ import type { Pool } from "pg";
 
 export function authTestDatabase(pool: Pool) {
 	return {
-		expireSessions: Effect.tryPromise(async () => {
-			await pool.query('update "session" set "expiresAt" = now() - interval \'1 second\'');
-		}),
+		expireSessions: (userId?: string) =>
+			Effect.tryPromise(async () => {
+				await pool.query(
+					`update "session" set "expiresAt" = now() - interval '1 second'${userId === undefined ? "" : ' where "userId" = $1'}`,
+					userId === undefined ? [] : [userId],
+				);
+			}),
 		omitImageColumn: Effect.tryPromise(async () => {
 			await pool.query('alter table "user" drop column image');
 		}),

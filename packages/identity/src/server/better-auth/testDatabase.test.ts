@@ -35,3 +35,15 @@ authStorage.it(
 authStorage.it("a missing image column is refused by the mounted provider", [mintedAccounts(), missingImageColumn()], function* ({ session }) {
 	expect(yield* session("alice")).toEqual({ body: "Authentication is temporarily unavailable", status: 503 });
 });
+
+authStorage.it(
+	"expiring one user's sessions leaves another user signed in",
+	[mintedAccounts()],
+	function* ({ session, storedUsers, expireSessions }) {
+		const users = yield* storedUsers();
+		expect(yield* session("alice")).toMatchObject({ body: { user: { email: "alice@storage.test" } }, status: 200 });
+		yield* expireSessions(users[0]?.id);
+		expect(yield* session("alice")).toEqual({ body: null, status: 200 });
+		expect(yield* session("bob")).toMatchObject({ body: { user: { email: "bob@storage.test" } }, status: 200 });
+	},
+);

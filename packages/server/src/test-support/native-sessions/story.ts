@@ -46,7 +46,7 @@ export const nativeSessions = storyKit({
 			bearer,
 			browserLogin: (name: string) => login(host, name, true),
 			diagnostics: () => ({ logs: JSON.stringify(host.logs), spans: JSON.stringify(host.receiver.spans) }),
-			expire: () => authTestDatabase(host.pool).expireSessions,
+			expire: () => authTestDatabase(host.pool).expireSessions(),
 			getSession: (headers: Record<string, string>) =>
 				Effect.gen(function* () {
 					story.tell("read the session through the mounted auth route");
