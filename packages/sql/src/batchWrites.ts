@@ -4,6 +4,7 @@ import type { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import type { Fragment } from "effect/sql/Statement";
 import type { RepositoryChanges } from "./repositoryChanges.ts";
+import { makeUpsertDecoder, upsertReturning } from "./upsertResult.ts";
 
 export type InsertMany<TModel extends Model.Any, TServices = never> = (
 	inputs: readonly TModel["insert"]["Type"][],
@@ -19,10 +20,13 @@ export function makeInsertMany<TServices = never>(
 	options: { readonly tableName: string; readonly spanPrefix: string; readonly changes: RepositoryChanges },
 	operation: string,
 	prepare: (row: Readonly<Record<string, unknown>>) => Effect.Effect<Fragment, Schema.SchemaError, TServices> = () => Effect.succeed(sql``),
+	upsert = false,
 ) {
 	const encode = Schema.encodeEffect(model.insert);
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
+	const decodeUpsert = makeUpsertDecoder(model);
+	const returning = upsert ? upsertReturning(sql) : sql`*`;
 	return (inputs: readonly unknown[]) =>
 		Effect.gen(function* () {
 			if (inputs.length === 0) {
@@ -41,9 +45,9 @@ export function makeInsertMany<TServices = never>(
 			let parameters = 0;
 			let suffix: Fragment = sql``;
 			const flush = Effect.gen(function* () {
-				const returned = yield* sql`insert into ${sql(options.tableName)} (${names}) values ${sql.csv(chunk)} ${suffix} returning *`;
+				const returned = yield* sql`insert into ${sql(options.tableName)} (${names}) values ${sql.csv(chunk)} ${suffix} returning ${returning}`;
 				changedRows.push(...returned);
-				for (const row of yield* decode(returned)) {
+				for (const row of yield* upsert ? Effect.forEach(returned, decodeUpsert) : decode(returned)) {
 					results.push(row);
 				}
 				chunk = [];

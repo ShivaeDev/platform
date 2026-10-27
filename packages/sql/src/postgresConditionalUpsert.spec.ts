@@ -10,7 +10,7 @@ import { transaction } from "#test/transaction.ts";
 postgres.it("a missing pull request inserts and reports a decoded row", [hasPullRequests()], function* ({ pullRequests }) {
 	const { rows } = pullRequests();
 	const result = yield* rows.upsert(pull(12), syncOptions);
-	expect(result).toEqual({ _tag: "Inserted", row: pull(12) });
+	expect(result).toEqual({ _tag: "Inserted", inserted: true, row: pull(12) });
 	if (result._tag !== "Unchanged") {
 		expect(result.row).toBeInstanceOf(PullRequest);
 	}
@@ -20,7 +20,7 @@ postgres.it("a missing pull request inserts and reports a decoded row", [hasPull
 postgres.it("a newer incoming revision replaces the stored pull request", [hasPullRequests()], function* ({ pullRequests }) {
 	const { rows } = pullRequests();
 	yield* rows.insert(pull(12));
-	expect(yield* rows.upsert(pull(13), syncOptions)).toEqual({ _tag: "Updated", row: pull(13) });
+	expect(yield* rows.upsert(pull(13), syncOptions)).toEqual({ _tag: "Updated", inserted: false, row: pull(13) });
 	expect(yield* rows.findById(1)).toEqual(pull(13));
 });
 
@@ -61,7 +61,7 @@ postgres.it(
 		const older = yield* rows.upsert(pull(11), syncOptions).pipe(Effect.forkChild);
 		yield* eventually(Effect.flatMap(waitingOn(pid), (waiting) => Effect.try(() => expect(waiting).toBe(true))));
 		yield* Deferred.succeed(release, undefined);
-		expect(yield* Fiber.join(newer)).toEqual({ _tag: "Updated", row: pull(13) });
+		expect(yield* Fiber.join(newer)).toEqual({ _tag: "Updated", inserted: false, row: pull(13) });
 		expect(yield* Fiber.join(older)).toEqual({ _tag: "Unchanged" });
 		expect(yield* rows.findById(1)).toEqual(pull(13));
 	},
@@ -71,10 +71,10 @@ postgres.it("a conditional batch reports each inserted, updated and unchanged in
 	const { rows } = pullRequests();
 	yield* rows.insertMany([pull(12, 1), pull(12, 2), pull(12, 3)]);
 	expect(yield* rows.upsertMany([pull(13, 1), pull(11, 2), pull(12, 3), pull(14, 4)], syncOptions)).toEqual([
-		{ _tag: "Updated", row: pull(13, 1) },
+		{ _tag: "Updated", inserted: false, row: pull(13, 1) },
 		{ _tag: "Unchanged" },
 		{ _tag: "Unchanged" },
-		{ _tag: "Inserted", row: pull(14, 4) },
+		{ _tag: "Inserted", inserted: true, row: pull(14, 4) },
 	]);
 	expect(yield* rows.findMany({ orderBy: { direction: "asc", field: "id" } })).toEqual([pull(13, 1), pull(12, 2), pull(12, 3), pull(14, 4)]);
 });
@@ -97,7 +97,11 @@ postgres.it("update conditions combine encoded literals, lists, patterns and inc
 			"updated_at": { gte: pull(11).updated_at, lt: { excluded: "updated_at" } },
 		},
 	} as const;
-	expect(yield* rows.upsert(pull(13), options)).toEqual({ _tag: "Updated", row: { ...pull(12), "updated_at": pull(13).updated_at } });
+	expect(yield* rows.upsert(pull(13), options)).toEqual({
+		_tag: "Updated",
+		inserted: false,
+		row: { ...pull(12), "updated_at": pull(13).updated_at },
+	});
 	expect(yield* rows.upsert(pull(14), { updateColumns: ["updated_at"], updateWhere: { title: { excluded: "title" } } })).toEqual({
 		_tag: "Unchanged",
 	});
@@ -109,8 +113,8 @@ mapped.it("conditional upserts preserve typed outcomes with the default snake_ca
 	const original = { createdAt: new Date("2026-10-25T12:00:00Z"), id: 1 };
 	const newer = { ...original, createdAt: new Date("2026-10-25T13:00:00Z") };
 	const options = { updateColumns: ["createdAt"], updateWhere: { createdAt: { lt: { excluded: "createdAt" } } } } as const;
-	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Inserted", row: original });
-	expect(yield* rows.upsert(newer, options)).toEqual({ _tag: "Updated", row: newer });
+	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Inserted", inserted: true, row: original });
+	expect(yield* rows.upsert(newer, options)).toEqual({ _tag: "Updated", inserted: false, row: newer });
 	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Unchanged" });
 	expect(yield* rows.findById(1)).toEqual(newer);
 });

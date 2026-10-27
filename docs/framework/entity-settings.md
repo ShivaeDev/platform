@@ -49,7 +49,7 @@ The migration makes `entity_settings."entityId"` both a primary key and a foreig
 After authorization and application validation, the service saves with the repository's conflict operation:
 
 ```ts
-const saved = yield* repository.upsert(input, {
+const { row: saved } = yield* repository.upsert(input, {
 	updateColumns: ["title", "pageSize"],
 });
 yield* invalidateOnCommit(invalidationKeys(SaveSettings.invalidates(input, saved)));

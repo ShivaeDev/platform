@@ -3,6 +3,7 @@ import { Model } from "effect/schema";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf, it } from "vitest";
 import { makeRepository } from "#repository.ts";
+import type { UpsertRow } from "#upsertResult.ts";
 
 class Prefix extends Context.Service<Prefix, string>()("ingest/Prefix") {}
 const Source = Schema.String.pipe(
@@ -31,7 +32,7 @@ const program = Effect.gen(function* () {
 	readings.upsertMany([input], { updateColumns: ["amount"] });
 	expectTypeOf<Effect.Success<ReturnType<typeof readings.insertMany>>>().toEqualTypeOf<Reading[]>();
 	expectTypeOf<Effect.Success<ReturnType<typeof readings.insertManyOrIgnore>>>().toEqualTypeOf<Reading[]>();
-	expectTypeOf<Effect.Success<ReturnType<typeof readings.upsertMany>>>().toEqualTypeOf<Reading[]>();
+	expectTypeOf<Effect.Success<ReturnType<typeof readings.upsertMany>>>().toEqualTypeOf<UpsertRow<Reading>[]>();
 	expectTypeOf<Effect.Error<ReturnType<typeof readings.upsertMany>>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
 	expectTypeOf<Effect.Services<ReturnType<typeof readings.insertMany>>>().toEqualTypeOf<Prefix>();
 	expectTypeOf<Effect.Services<ReturnType<typeof readings.insertManyOrIgnore>>>().toEqualTypeOf<Prefix>();
@@ -51,7 +52,7 @@ const program = Effect.gen(function* () {
 	// @ts-expect-error Batch update columns cannot be empty.
 	readings.upsertMany([input], { updateColumns: [] });
 	expectTypeOf<Effect.Success<ReturnType<typeof readings.insertOrIgnore>>>().toEqualTypeOf<Option.Option<Reading>>();
-	expectTypeOf<Effect.Success<ReturnType<typeof readings.upsert>>>().toEqualTypeOf<Reading>();
+	expectTypeOf<Effect.Success<ReturnType<typeof readings.upsert>>>().toEqualTypeOf<UpsertRow<Reading>>();
 	expectTypeOf<Effect.Error<ReturnType<typeof readings.upsert>>>().toEqualTypeOf<SqlError | Schema.SchemaError>();
 	expectTypeOf<Effect.Services<ReturnType<typeof readings.insertOrIgnore>>>().toEqualTypeOf<Prefix>();
 	expectTypeOf<Effect.Services<ReturnType<typeof readings.upsert>>>().toEqualTypeOf<Prefix>();

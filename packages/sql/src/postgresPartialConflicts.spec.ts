@@ -27,9 +27,9 @@ postgres.it("partial-index upserts update matches and insert rows outside the pr
 	const { rows } = partialConflicts();
 	const input = { a: "one", b: 1, kind: "X", value: 10 };
 	const original = yield* rows.upsert(input, { updateColumns: ["value"] });
-	expect(yield* rows.upsert({ ...input, value: 20 }, { updateColumns: ["value"] })).toEqual({ ...original, value: 20 });
+	expect(yield* rows.upsert({ ...input, value: 20 }, { updateColumns: ["value"] })).toEqual({ inserted: false, row: { ...original.row, value: 20 } });
 	const outside = yield* rows.upsert({ ...input, kind: "Y" }, { updateColumns: ["value"] });
-	expect(outside.id).not.toBe(original.id);
+	expect(outside.row.id).not.toBe(original.row.id);
 	const updated = yield* rows.upsertMany(
 		[
 			{ ...input, value: 30 },
@@ -37,11 +37,11 @@ postgres.it("partial-index upserts update matches and insert rows outside the pr
 		],
 		{ updateColumns: ["value"] },
 	);
-	expect(updated[0]).toEqual({ ...original, value: 30 });
-	expect(updated[1]).toMatchObject({ ...input, kind: "Y", value: 40 });
-	expect(updated[1]?.id).not.toBe(outside.id);
-	expect(yield* rows.findById(original.id)).toEqual(updated[0]);
-	expect(yield* rows.findById(outside.id)).toEqual(outside);
+	expect(updated[0]).toEqual({ inserted: false, row: { ...original.row, value: 30 } });
+	expect(updated[1]).toMatchObject({ inserted: true, row: { ...input, kind: "Y", value: 40 } });
+	expect(updated[1]?.row.id).not.toBe(outside.row.id);
+	expect(yield* rows.findById(original.row.id)).toEqual(updated[0]?.row);
+	expect(yield* rows.findById(outside.row.id)).toEqual(outside.row);
 });
 
 postgres.it(

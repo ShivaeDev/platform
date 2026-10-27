@@ -39,11 +39,11 @@ postgres.it("PostgreSQL batch upserts update only selected columns and insert ne
 	yield* readings.insertMany(batch);
 	const changes = [...batch.map((row) => ({ ...row, amount: row.amount + 10, label: "ignored" })), { amount: 5, label: "new", source: "new" }];
 	const updated = yield* readings.upsertMany(changes, { updateColumns: ["amount"] });
-	expect(updated.map(({ source }) => source)).toEqual(changes.map(({ source }) => source));
-	expect(updated.every((row) => row instanceof Reading)).toBe(true);
-	expect(updated[0]).toMatchObject({ amount: 10, label: "original", source: "meter-0" });
-	expect(updated[1000]).toMatchObject({ amount: 1010, label: "original", source: "meter-1000" });
-	expect(updated[1001]).toMatchObject({ amount: 5, label: "new", source: "new" });
+	expect(updated.map(({ row }) => row.source)).toEqual(changes.map(({ source }) => source));
+	expect(updated.every(({ row }) => row instanceof Reading)).toBe(true);
+	expect(updated[0]).toMatchObject({ inserted: false, row: { amount: 10, label: "original", source: "meter-0" } });
+	expect(updated[1000]).toMatchObject({ inserted: false, row: { amount: 1010, label: "original", source: "meter-1000" } });
+	expect(updated[1001]).toMatchObject({ inserted: true, row: { amount: 5, label: "new", source: "new" } });
 	expect(yield* statements).toEqual([1000, 1, 0, 1]);
 	expect((yield* readings.findMany({ where: { source: "meter-1000" } }))[0]).toMatchObject({ amount: 1010, label: "original" });
 });
@@ -55,9 +55,9 @@ postgres.it(
 		const { readings, plain, statements, calls } = batchFixture();
 		const batch = [...inputs(1000), { amount: -1, label: "invalid", source: "invalid" }];
 		for (const write of [
-			() => plain.insertMany(batch),
-			() => readings.insertManyOrIgnore(batch),
-			() => readings.upsertMany(batch, { updateColumns: ["amount"] }),
+			() => plain.insertMany(batch).pipe(Effect.asVoid),
+			() => readings.insertManyOrIgnore(batch).pipe(Effect.asVoid),
+			() => readings.upsertMany(batch, { updateColumns: ["amount"] }).pipe(Effect.asVoid),
 		]) {
 			const failure = yield* write().pipe(Effect.flip);
 			expect(failure).toBeInstanceOf(SqlError);

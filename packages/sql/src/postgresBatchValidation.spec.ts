@@ -43,10 +43,10 @@ postgres.it(
 					],
 					{ updateColumns: ["amount"] },
 				);
-				expect(updated.every((row) => row instanceof Measurement)).toBe(true);
+				expect(updated.every(({ row }) => row instanceof Measurement)).toBe(true);
 				expect(updated).toEqual([
-					{ ...input, amount: 20 },
-					{ ...input, sequence: 3 },
+					{ inserted: false, row: { ...input, amount: 20 } },
+					{ inserted: true, row: { ...input, sequence: 3 } },
 				]);
 				expect(yield* readings.findById({ sequence: 1, source: "meter" })).toEqual({ ...input, amount: 20 });
 				expect(yield* sql`select source, amount from ${sql(tableName)} where sequence = 1`).toEqual([{ amount: "20", source: "encoded/meter" }]);
