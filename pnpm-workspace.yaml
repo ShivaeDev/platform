@@ -56,7 +56,7 @@ catalog:
   happy-dom: 21.0.3
   dom-accessibility-api: 0.7.1
   mermaid: 12.2.0
-  ignore: 7.0.12
+  ignore: 7.0.13
   sort-package-json: 4.1.0
   "@prisma-next/adapter-postgres": 0.16.0
   "@prisma-next/adapter-sqlite": 0.16.0
