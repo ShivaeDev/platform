@@ -8,6 +8,7 @@ import type { Snapshot } from "#server/search/snapshot.ts";
 
 export interface WorkspaceOptions {
 	readonly changes: Changes;
+	readonly fleetPort?: number | null | undefined;
 	readonly home?: string | undefined;
 	readonly index: Effect.Effect<Snapshot, PlatformError.PlatformError>;
 	readonly indexing?: Stream.Stream<Indexing | undefined> | undefined;

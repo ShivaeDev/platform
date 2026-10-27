@@ -3,6 +3,7 @@ import { workRevision } from "#board/workRevision.ts";
 import { abandonStalled } from "#engine/abandonStalled.ts";
 import { authorizeBrief, briefChanged } from "#engine/boardBrief.ts";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { refuseDeliveredId } from "#engine/deliveredId.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import { launchPrompt } from "#engine/makeLaunch.ts";
 import type { EngineState } from "#engine/makeState.ts";
@@ -23,6 +24,7 @@ export function approveBrief(state: EngineState) {
 		preserveDecision = false,
 	) {
 		yield* authorizeBrief(work);
+		yield* refuseDeliveredId(state, work);
 		const stored = yield* ensurePublication(state)(input).pipe(Effect.flatMap((current) => abandonStalled(state, current)));
 		const record = stored.value;
 		const approvedPrompt = prompt ?? (yield* revisedPrompt(record, work, state.board.get));

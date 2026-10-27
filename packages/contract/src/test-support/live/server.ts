@@ -43,7 +43,7 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 	const connectionSessions: string[] = [];
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
-		"notes.$changes": ({ queries }) => hints.stream(queryKeys(LiveNotes.declaration.queries, queries)),
+		"notes.$changes": ({ queries }) => Stream.unwrap(Effect.map(queryKeys(LiveNotes.declaration.queries, queries), (keys) => hints.stream(keys))),
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
 				const local = yield* server.implementation["notes.get"]({ id });

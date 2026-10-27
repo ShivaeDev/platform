@@ -13,7 +13,7 @@ export function commandChanges<A, E, R>(effect: Effect.Effect<A, E, R>, rpc: Rpc
 	if (Option.isNone(invalidates)) {
 		return effect;
 	}
-	const declared = invalidates.value;
+	const declared = invalidates.value.invalidates;
 	return Effect.gen(function* () {
 		const context = yield* sessionKeyContext(rpc);
 		const sql = yield* Effect.serviceOption(SqlClient.SqlClient);

@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Path, type PlatformError, SubscriptionRef } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, type PlatformError, Schedule, SubscriptionRef } from "effect";
 import { DiagnosticsConfig, DiagnosticsSources } from "#diagnostics/source.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import type { BoardOptions } from "#server/board.ts";
@@ -40,6 +40,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 			Effect.andThen(pullRequests),
 		),
 	);
+	yield* index.pipe(Effect.ignore, Effect.repeat(Schedule.spaced("1 hour")), Effect.forkScoped);
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
 		boardServices({
@@ -51,6 +52,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 			Layer.provide([
 				Layer.succeed(WorkspaceConfig, {
 					changes,
+					fleetPort: options.fleetPort,
 					home,
 					index: Effect.provideContext(index, platform),
 					indexing: SubscriptionRef.changes(indexing),

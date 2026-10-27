@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { archiveVerbs } from "./archiveVerbs.ts";
 import { attentionVerbs } from "./attentionVerbs.ts";
 import type { FileSystemWrapper } from "./board.ts";
 import { held } from "./browser.ts";
@@ -29,6 +30,7 @@ export const boardStory = storyKit({
 	name: "board",
 	stages: ["project", "reader"],
 	verbs: (engine, story) => ({
+		...archiveVerbs(engine, story.tell),
 		...readingVerbs(engine, story.tell),
 		...migrationVerbs(engine, story.tell),
 		...responseServiceVerbs(engine, story.tell),

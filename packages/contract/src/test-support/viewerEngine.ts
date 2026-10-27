@@ -68,7 +68,7 @@ export const viewerEngine = Effect.gen(function* () {
 			Stream.unwrap(
 				Effect.gen(function* () {
 					const viewer = yield* CurrentViewer;
-					const requests = Context.getUnsafe(changesRpc.annotations, ChangesQueries)({ queries });
+					const requests = yield* Context.getUnsafe(changesRpc.annotations, ChangesQueries).resolve(queries);
 					const subscription = yield* querySubscription(requests, viewer);
 					return live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
 				}),

@@ -358,7 +358,7 @@
 					}
 				},
 				"useIframeSandbox": "error",
-				"useIncludes": "error",
+				"useIncludes": { "fix": "none", "level": "error" },
 				"useNamedCaptureGroup": "error",
 				"useNamedLayer": "error",
 				"usePromiseRejectErrors": "error",

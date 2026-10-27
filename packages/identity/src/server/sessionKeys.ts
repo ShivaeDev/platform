@@ -23,7 +23,7 @@ export const resolveChanges = Effect.fnUntraced(function* (rpc: Pick<Rpc.AnyWith
 	const identity = yield* Effect.serviceOption(Identity);
 	const current = yield* CurrentViewer;
 	const viewer = Option.orElse(identity, () => current);
-	const queries = Context.getUnsafe(rpc.annotations, ChangesQueries)({ queries: references });
+	const queries = yield* Context.getUnsafe(rpc.annotations, ChangesQueries).resolve(references);
 	const subscription = yield* querySubscription(queries, viewer);
 	return { context: yield* sessionKeyContext(rpc), subscription };
 });

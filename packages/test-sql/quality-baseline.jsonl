@@ -1,0 +1,6 @@
+{"path":"packages/test-sql/src/server/assertModelColumns.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/test-sql/src/server/internal/databaseCleanup.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/test-sql/src/server/internal/databaseOwner.ts","rule":"effect/boundary","count":1}
+{"path":"packages/test-sql/src/server/internal/databases.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/test-sql/src/server/migrationSteps.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/test-sql/src/server/migrationUpgrade.ts","rule":"effect/service-parameters","count":1}

@@ -26,8 +26,8 @@ export const authorizeReads = Effect.fnUntraced(function* <A, E, R>(
 	viewer: Option.Option<Viewer>,
 ) {
 	const definition = Context.getOption(request.rpc.annotations, QueryDefinition);
-	if (Option.isSome(definition) && definition.value.readPolicy !== undefined) {
-		yield* checkQuery(definition.value, request.payload, viewer);
+	if (Option.isSome(definition) && definition.value.definition.readPolicy !== undefined) {
+		yield* checkQuery(definition.value.definition, request.payload, viewer);
 	}
 	return yield* Effect.provideService(effect, CurrentViewer, viewer);
 });

@@ -1,22 +1,24 @@
-import { Context, Option, Schema } from "effect";
+import { Context, Effect, Option, Schema } from "effect";
 import { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 import { LiveHint } from "#live.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import type { Viewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
-export class QueryDefinition extends Context.Service<QueryDefinition, QueryShape>()("@shivaedev/contract/QueryDefinition") {}
+export class QueryDefinition extends Context.Service<QueryDefinition, { readonly definition: QueryShape }>()("@shivaedev/contract/QueryDefinition") {}
 export interface QueryRequest {
 	readonly payload: unknown;
 	readonly query: QueryShape;
 }
-export class ChangesQueries extends Context.Service<ChangesQueries, Bivariant<(payload: unknown) => readonly QueryRequest[]>>()(
-	"@shivaedev/contract/ChangesQueries",
-) {}
+export class ChangesQueries extends Context.Service<
+	ChangesQueries,
+	{
+		readonly resolve: (references: readonly QueryReference[]) => Effect.Effect<readonly QueryRequest[]>;
+	}
+>()("@shivaedev/contract/ChangesQueries") {}
 
-export class CommandInvalidation extends Context.Service<CommandInvalidation, CommandShape["invalidates"]>()(
+export class CommandInvalidation extends Context.Service<CommandInvalidation, { readonly invalidates: CommandShape["invalidates"] }>()(
 	"@shivaedev/contract/CommandInvalidation",
 ) {}
 
@@ -31,19 +33,21 @@ type ReferenceSchema<TQuery extends QueryShape> = TQuery extends QueryShape
 	? Schema.Struct<{ query: Schema.Literal<TQuery["name"]>; payload: TQuery["payload"] }>
 	: never;
 
-export function queryKeys(
+function resolveQueries(queries: readonly QueryShape[], requested: readonly QueryReference[]) {
+	return Effect.forEach(requested, (reference) => {
+		const query = queries.find((candidate) => candidate.name === reference.query);
+		return query === undefined ? Effect.die(new Error(`Unknown query: ${reference.query}`)) : Effect.succeed({ payload: reference.payload, query });
+	});
+}
+
+export const queryKeys = Effect.fnUntraced(function* (
 	queries: readonly QueryShape[],
 	requested: readonly QueryReference[],
 	viewer: Option.Option<Viewer> = Option.none(),
-): readonly Key[] {
-	return requested.flatMap((reference) => {
-		const declared = queries.find((candidate) => candidate.name === reference.query);
-		if (declared === undefined) {
-			throw new Error(`Unknown query: ${reference.query}`);
-		}
-		return declared.reads(reference.payload, viewer);
-	});
-}
+): Effect.fn.Return<readonly Key[]> {
+	const resolved = yield* resolveQueries(queries, requested);
+	return resolved.flatMap(({ query, payload }) => query.reads(payload, viewer));
+});
 
 function referenceSchemas<const TQueries extends readonly QueryShape[]>(
 	queries: TQueries,
@@ -58,13 +62,5 @@ export function changesRpc<const TName extends string, const TQueries extends re
 		payload: { queries: referenceSchemas(queries) },
 		stream: true,
 		success: LiveHint,
-	}).annotate(ChangesQueries, ({ queries: requested }: { readonly queries: readonly QueryReference[] }) =>
-		requested.map((reference) => {
-			const query = queries.find((candidate) => candidate.name === reference.query);
-			if (query === undefined) {
-				throw new Error(`Unknown query: ${reference.query}`);
-			}
-			return { payload: reference.payload, query };
-		}),
-	);
+	}).annotate(ChangesQueries, { resolve: (references) => resolveQueries(queries, references) });
 }

@@ -1,0 +1,5 @@
+{"path":"packages/http/src/body.ts","rule":"effect/service-parameters","count":4}
+{"path":"packages/http/src/filterStatus.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/http/src/paginate.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/http/src/parseRetryAfter.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/http/src/server/boundedBody.ts","rule":"effect/service-parameters","count":1}

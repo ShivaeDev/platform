@@ -27,7 +27,14 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 	return {
 		"/repos/example/repository/git/matching-refs/heads/synthetic%2Fone": [{ ref: "refs/heads/synthetic/one" }],
 		"/repos/example/repository/pulls?state=all&head=example%3Asynthetic%2Fone&per_page=100": [
-			[{ "html_url": PR, "merged_at": merged ? "2026-01-01T00:00:00Z" : null, state: state.status === "OPEN" ? "open" : "closed" }],
+			[
+				{
+					"created_at": "2026-01-01T00:00:00Z",
+					"html_url": PR,
+					"merged_at": merged ? "2026-01-01T00:00:00Z" : null,
+					state: state.status === "OPEN" ? "open" : "closed",
+				},
+			],
 		],
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
 		"/repos/example/repository/rules/branches/main": [[]],

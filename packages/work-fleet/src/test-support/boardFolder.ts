@@ -3,7 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Effect } from "effect";
 
-export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait: "withDependency" | "ambiguousIdentity") {
+export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait: "withDependency" | "ambiguousIdentity" | "retiredAreas") {
 	const root = mkdtempSync(join(tmpdir(), "fleet-board-"));
 	yield* Effect.addFinalizer(() => Effect.sync(() => rmSync(root, { force: true, recursive: true })));
 	if (trait === "withDependency") {
@@ -14,6 +14,12 @@ export const boardFolder = Effect.fn("BoardStory.boardFolder")(function* (trait:
 			join(root, "task.md"),
 			"---\nid: task.one\nkind: task\nareas: [work-fleet/host, work-board/ui]\nstatus: done\nrelationships:\n  - kind: depends_on\n    target: task.before\n---\n# Useful work\n",
 		);
+	} else if (trait === "retiredAreas") {
+		mkdirSync(join(root, "archive"));
+		for (const status of ["done", "dropped", "ready"]) {
+			const file = status === "ready" ? "archive/ready.md" : `${status}.md`;
+			writeFileSync(join(root, file), `---\nid: ${status}\nkind: task\nstatus: ${status}\nareas: [removed-package]\n---\n# Historical work\n`);
+		}
 	} else {
 		for (const name of ["one.md", "two.md"]) {
 			writeFileSync(join(root, name), "---\nid: same\n---\nWork\n");

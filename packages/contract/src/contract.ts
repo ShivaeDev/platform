@@ -61,9 +61,9 @@ function assertUnique(operations: readonly OperationShape[]) {
 function annotations(operation: QueryShape | CommandShape | StreamShape, keyScope: "session" | undefined) {
 	const scope = keyScope === undefined ? Context.empty() : Context.make(KeyScope, keyScope);
 	if (operation.kind === "command") {
-		return Context.add(scope, CommandInvalidation, operation.invalidates);
+		return Context.add(scope, CommandInvalidation, { invalidates: operation.invalidates });
 	}
-	return operation.kind === "query" ? Context.add(scope, QueryDefinition, operation) : scope;
+	return operation.kind === "query" ? Context.add(scope, QueryDefinition, { definition: operation }) : scope;
 }
 
 type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;

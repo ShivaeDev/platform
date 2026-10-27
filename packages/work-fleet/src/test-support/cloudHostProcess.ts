@@ -7,6 +7,7 @@ import { loadHost } from "#host/configFile.ts";
 import { serveFleet } from "#host/daemon.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
+import { unpublishedHostIntegrations } from "#test/unpublishedHostIntegrations.ts";
 
 const configFile = process.argv[2];
 if (configFile === undefined) {
@@ -18,6 +19,7 @@ await Effect.runPromise(
 		const parts = {
 			...productionParts(host),
 			github: syntheticGithub().layer,
+			integrations: unpublishedHostIntegrations(host),
 			main: fixedMainSource(),
 		};
 		return yield* serveFleet(host, parts, 0);

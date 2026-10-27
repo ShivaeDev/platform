@@ -48,7 +48,8 @@ export async function openHost() {
 						Effect.gen(function* () {
 							const { id } = yield* Identity;
 							yield* connected(id);
-							return live.stream(queryKeys(Notes.declaration.queries, queries), { scope: id });
+							const keys = yield* queryKeys(Notes.declaration.queries, queries);
+							return live.stream(keys, { scope: id });
 						}),
 					),
 				"liveSession.get": () =>

@@ -362,7 +362,7 @@ const changes = Stream.unwrap(NotesClient.use((client) =>
 ));
 ```
 
-The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers resolve references through the `ChangesQueries` annotation, call `querySubscription(requests, viewer)` and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
+The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers yield the Effect from the `ChangesQueries` annotation's `resolve(references)` method, call `querySubscription(requests, viewer)` and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
 For a custom transport or explicit pause/status controls, the native live APIs remain available:
 
@@ -505,7 +505,7 @@ Import the module that defines the name; the package has no root entry.
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
 | `readPolicy.ts` | `QueryReadPolicy`, `Viewer`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`. |
 | `readPolicyErrors.ts` | `MissingReadPolicy` and `QueryReadDenied`. |
-| `serverMetadata.ts` | `KeyScope`, `CommandInvalidation`, `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
+| `serverMetadata.ts` | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 | `testing.ts` | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys. |
 
