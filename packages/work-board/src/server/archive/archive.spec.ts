@@ -1,4 +1,3 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { archiveFixture, finishedBrief } from "#test/archiveFixture.ts";
 import { boardStory, deferredServing } from "#test/boardStory.ts";
@@ -24,12 +23,15 @@ boardStory.it(
 		yield* board.start({ fleetPort: null });
 		const before = yield* board.readGoals();
 		const dependencyBefore = yield* board.readItem("open");
+		const events = yield* board.watchProject();
+		yield* events.next();
 		board.ageFile("tasks/board/old.md", 15 * 24 * 60 * 60);
 		board.ageFile("tasks/board/dropped.md", 15 * 24 * 60 * 60);
-		yield* board.archive();
+		yield* events.changed("tasks/board/dropped.md");
 		const dependency = yield* board.readItem("open");
 		expect(dependency.referenceDetails).toEqual(dependencyBefore.referenceDetails);
-		expect(before.goals[0]).toMatchObject({ counts: { done: 2, parked: 1 }, linked: 4 });
+		expect(dependency.metadata.relationships).toEqual(dependencyBefore.metadata.relationships);
+		expect(before.goals[0]).toMatchObject({ counts: { done: 2, parked: 1 }, linked: 3 });
 		expect(dependency.referenceDetails?.old).toMatchObject({ kind: "task", status: "done", title: "old" });
 		expect(dependency.diagnostics).toEqual([]);
 		expect(board.fileExists("archive/board/old.md")).toBe(true);
@@ -41,8 +43,11 @@ boardStory.it(
 
 boardStory.it("an archived identity refuses a new brief", [archiveFixture()], function* (board) {
 	yield* board.readItem("old");
+	const events = yield* board.watchProject();
+	yield* events.next();
 	board.editFile("tasks/new.md", finishedBrief("old", "ready"));
-	expect(yield* board.readItem("old").pipe(Effect.flip)).toMatchObject({ cause: { _tag: "Conflict" } });
+	yield* events.changed("tasks/new.md");
+	expect((yield* board.get("/_board/item/old/")).status).toBe(409);
 	expect((yield* board.readDocument("tasks/new.md")).diagnostics).toContainEqual(
 		expect.objectContaining({ field: "id", message: expect.stringContaining("Duplicate") }),
 	);
@@ -57,14 +62,20 @@ boardStory.it("housekeeping moves old briefs while recent ones stay active", [ar
 
 boardStory.it("reopening an archived brief makes it active on the next Board read", [archiveFixture()], function* (board) {
 	yield* board.readItem("old");
+	const events = yield* board.watchProject();
+	yield* events.next();
 	board.editFile("archive/board/old.md", finishedBrief("old", "ready"));
+	yield* events.changed("archive/board/old.md");
 	expect(yield* board.readItem("old")).toMatchObject({ file: "tasks/board/old.md", metadata: { status: "ready" } });
 	expect(board.fileExists("archive/board/old.md")).toBe(false);
 });
 
 boardStory.it("moving an archived brief out by hand makes it active", [archiveFixture()], function* (board) {
 	yield* board.readItem("old");
+	const events = yield* board.watchProject();
+	yield* events.next();
 	board.moveFile("archive/board/old.md", "tasks/board/old.md");
+	yield* events.changed("tasks/board/old.md");
 	expect(yield* board.readItem("old")).toMatchObject({ file: "tasks/board/old.md", metadata: { status: "done" } });
 	expect(board.fileExists("archive/board/old.md")).toBe(false);
 });

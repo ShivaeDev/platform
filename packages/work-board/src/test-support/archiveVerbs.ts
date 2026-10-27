@@ -24,7 +24,7 @@ export function archiveVerbs(engine: BoardEngine, tell: (line: string) => void) 
 				return client.run(client.api.goals.run());
 			}),
 		readItem: (id: string) =>
-			Effect.tryPromise(() => {
+			Effect.promise(() => {
 				tell(`look up item ${id} through Board RPC`);
 				const { client } = served(engine);
 				return client.run(client.api.document.run({ url: `/_board/item/${id}/` }));
