@@ -384,6 +384,30 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 
 The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
 
+`authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
+
+```tsx
+const consent = authQuery((requestId: string, signal) =>
+  authClient.getConsent({ query: { requestId }, fetchOptions: { signal } }),
+);
+
+function Consent({ requestId }: { requestId: string }) {
+  const query = useQuery(consent(requestId));
+  const failure = AsyncResult.error(query.result);
+  return (
+    <>
+      {query.pending && <p>Loading…</p>}
+      {Option.isSome(query.data) && <p>{query.data.value.title}</p>}
+      {Option.isSome(failure) && <p role="alert">Could not read consent</p>}
+    </>
+  );
+}
+```
+
+The example uses an application-owned Better Auth client endpoint. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+
 ### Commands with a pending display value
 
 Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:

@@ -5,8 +5,8 @@ import { act, createElement } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
 import { type Create, useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
-import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { Rendered } from "#client/testing.ts";
+import { UnstableSession } from "./UnstableSession.tsx";
 
 export class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}
 
@@ -55,16 +55,19 @@ export async function saveSession(view: Rendered, kind: "create" | "editor") {
 	const denied = new Unauthorized({ message: "Session expired before saving" });
 	const rechecks: string[] = [];
 	const held: Held = {};
-	const boundary = {
-		children: () => createElement(kind === "create" ? CreateProbe : EditorProbe, { denied, held }),
-		connect: () => undefined,
-		identify: (session: string) => session,
-		recheck: () => rechecks.push("expired-session"),
-		session: "expired-session",
-	};
 	function render() {
 		return act(async () => {
-			await view.render(createElement(SessionBoundary<string, undefined>, boundary));
+			await view.render(
+				createElement(
+					UnstableSession,
+					{
+						onRecheck: () => {
+							rechecks.push("expired-session");
+						},
+					},
+					createElement(kind === "create" ? CreateProbe : EditorProbe, { denied, held }),
+				),
+			);
 			await Promise.resolve();
 		});
 	}

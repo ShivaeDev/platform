@@ -82,3 +82,16 @@ permissionScreens.it(
 		expect(host.requests).toEqual(["POST /rpc/"]);
 	},
 );
+
+permissionScreens.it(
+	"explicit sign-out drops the return target when guards rerun before the auth action resolves",
+	[visitor("reader", "/notes/first?tab=history")],
+	function* ({ route, observe, signOut }) {
+		const { view, router } = route();
+		yield* observe("the protected note is open", () => expect(view.container.querySelector("h1")?.textContent).toBe("Note first"));
+		yield* signOut();
+		yield* observe("the sign-in screen is open", () => expect(view.container.querySelector("h1")?.textContent).toBe("Sign in"));
+		expect(router.state.location.href).toBe("/login");
+		expect(router.state.location.search).toEqual({});
+	},
+);

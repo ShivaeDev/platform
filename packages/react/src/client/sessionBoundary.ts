@@ -4,6 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { createContext, createElement, Fragment, type ReactNode, useContext, useEffect, useState } from "react";
 import { DraftSessionContext } from "@shivaedev/form/client/react.ts";
 import { registerSessionRecheck } from "#internal/sessionRecheck.ts";
+import { useLatestCallback } from "#internal/useLatestCallback.ts";
 import { mountLive } from "./mountLive.ts";
 import { useDraftOwner } from "./useDraftOwner.ts";
 export interface SessionBoundaryProps<TSession, TClient> {
@@ -62,9 +63,10 @@ interface GenerationProps<TSession, TClient> {
 	readonly session: TSession;
 }
 function Generation<TSession, TClient>({ session, connect, recheck, children, liveCoalesceWindow }: GenerationProps<TSession, TClient>): ReactNode {
+	const recheckLatest = useLatestCallback(recheck);
 	const [open] = useState(() => (registry: AtomRegistry.AtomRegistry) => connect(session, registry));
 	const [owned, own] = useState(() => owning(open));
-	useEffect(() => registerSessionRecheck(owned.registry, recheck), [owned, recheck]);
+	useEffect(() => registerSessionRecheck(owned.registry, recheckLatest), [owned, recheckLatest]);
 	useEffect(() => {
 		owned.mounted += 1;
 		const stopLive = mountLive(owned.registry, owned.client, liveCoalesceWindow);
@@ -82,7 +84,7 @@ function Generation<TSession, TClient>({ session, connect, recheck, children, li
 	}, [owned, liveCoalesceWindow, open]);
 	return createElement(
 		RecheckContext.Provider,
-		{ value: recheck },
+		{ value: recheckLatest },
 		createElement(RegistryContext.Provider, { value: owned.registry }, children(owned.client)),
 	);
 }

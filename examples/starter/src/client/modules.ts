@@ -1,7 +1,7 @@
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
-import { type ClientModule, connectModules } from "./Module.ts";
+import { connectModules } from "./Module.ts";
 
-const modules: readonly (() => ClientModule)[] = [notesRegistration];
+const modules = [notesRegistration];
 
 export function clientModules() {
 	return connectModules(modules.map((module) => module()));

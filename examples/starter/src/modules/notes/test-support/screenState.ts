@@ -1,7 +1,7 @@
+import type { AnyRouter } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { vi } from "vitest";
 import type { Rendered } from "@shivaedev/react/client/testing.ts";
-import type { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import type { appAuth } from "#test-support/appAuth.ts";
@@ -16,7 +16,7 @@ export interface Screen {
 		outcome: string | undefined;
 		unavailable: boolean;
 	};
-	router: ReturnType<typeof appRouter> | undefined;
+	router: AnyRouter | undefined;
 	signOutCalls: undefined[];
 	switchSession: ((id: string) => Promise<void>) | undefined;
 	view: Rendered | undefined;
