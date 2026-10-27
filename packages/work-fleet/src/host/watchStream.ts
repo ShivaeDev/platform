@@ -13,6 +13,7 @@ export interface WatchStreamOptions {
 	readonly events: readonly EventKind[];
 	readonly heartbeatMs?: number;
 	readonly intervalMs: number;
+	readonly json?: boolean;
 	readonly port?: number;
 	readonly prEvents?: boolean;
 	readonly prIntervalMs?: number;

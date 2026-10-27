@@ -91,7 +91,7 @@ A review with a lost thread acknowledgement or an unobservable submitted turn is
 
 ### Run Fleet and the Board
 
-Run one foreground supervisor for each Board directory:
+In the Platform repository, `pnpm fleet` runs the CLI from source: use `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`. Run one foreground supervisor for each Board directory:
 
 ```sh
 work-fleet up <board-dir> --port 3457 --board-port 4747 --home index.md --responses
@@ -269,13 +269,15 @@ Automatic reconciliation refreshes eligible edited briefs in place. Explicit dis
 
 `wait --interval <seconds>` controls reconnect delay and defaults to 15. An item not yet recorded keeps waiting.
 
-`work-fleet watch --board <dir>` continuously prints one JSON object per line from the daemon's stored Fleet state. It does not read the generated status Markdown. Its first snapshot establishes a baseline without replaying existing transitions. Each later transition prints once. Stop with Ctrl-C or `--timeout <seconds>` (exit 4).
+`work-fleet watch` follows newly launched work and continuously prints one text event per line, with no blank or decorative lines, from the daemon's stored Fleet state. From the repository root it uses `.work`, like other work commands; `--board <dir>` selects another Board. PR queue and health events are included, and quiet heartbeats are disabled. Use `--json` for one JSON object per line, `--pr-events false` to disable PR monitoring, or `--heartbeat <seconds>` to emit quiet heartbeats. It does not read the generated status Markdown. Its first snapshot establishes a baseline without replaying existing transitions. Each later transition prints once. Stop with Ctrl-C or `--timeout <seconds>` (exit 4).
 
 ```sh
-work-fleet watch --board .work --events waiting-on-orchestrator,waiting-on-you,done,released --stuck-after 1800
+pnpm fleet watch
+pnpm fleet watch --json
+pnpm fleet watch --events released
 ```
 
-`--events` accepts a comma-separated list of the following kinds; omitted, all kinds are enabled. Unknown kinds fail at startup. `--events` also selects JSON output when positional work IDs restrict the stream.
+`--events` accepts a comma-separated list of the following kinds; omitted, every kind except `released` is enabled. Unknown kinds fail at startup. With `--events` or `--json`, positional work IDs restrict the continuous stream to those items.
 
 | Kind | Transition |
 | --- | --- |
@@ -286,16 +288,19 @@ work-fleet watch --board .work --events waiting-on-orchestrator,waiting-on-you,d
 | `stuck` | Working or reviewing work has no progress for `--stuck-after` seconds (default 1800). Further progress permits a later stuck event. |
 | `dispatch-failed` | Background dispatch fails; ordinary dependency and area waits are excluded. |
 | `answer-failed` | A recorded answer fails to apply. |
+| `board-answer` | Another person answers a Board question. |
+| `pr-merged`, `pr-closed` | A watched PR merges or closes. |
+| `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention. |
 
-Item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR therefore includes its reason, PR URL and reviewed head SHA.
+Text events start with the event kind followed by named JSON values, so multiline details stay on one line. With `--json`, item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR therefore includes its reason, PR URL and reviewed head SHA.
 
 ```json
 {"kind":"waiting-on-orchestrator","workId":"one","pr":"https://github.com/example/repository/pull/7","head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","reason":"Reviewed PR is ready to merge"}
 ```
 
-The daemon sends a heartbeat every second. Three seconds without a stream item reconnects the subscription. JSON watch checks the daemon's `/live` HTTP route independently every half second with a one-second deadline; the route uses no database or provider calls. A failed liveness check prints `{"kind":"daemon-unreachable"}` once; recovery prints `{"kind":"daemon-back"}` once. Stalled provider work or stream delivery leaves a responsive daemon quiet. Both health events bypass `--events`. Watch reconnects at `--interval` seconds (default 0.5), rereading the Board's port file each time. A new daemon instance, including a supervisor restart on the same port, prints the health pair and establishes a fresh baseline without replaying historical transitions.
+The daemon sends a heartbeat every second. Three seconds without a stream item reconnects the subscription. The event watcher checks the daemon's `/live` HTTP route independently every half second with a one-second deadline; the route uses no database or provider calls. A failed liveness check prints `daemon-unreachable` once; recovery prints `daemon-back` once. With `--json`, these are JSON objects with the corresponding `kind`. Stalled provider work or stream delivery leaves a responsive daemon quiet. Both health events bypass `--events`. Watch reconnects at `--interval` seconds (default 0.5), rereading the Board's port file each time. A new daemon instance, including a supervisor restart on the same port, prints the health pair and establishes a fresh baseline without replaying historical transitions.
 
-With positional IDs and without `--events`, `watch <ids...>` prints text outcomes and exits 0 after every selected item reports done, waiting or released. Duplicate IDs report once; unknown IDs remain pending. Use the JSON command for a continuous orchestrator stream.
+With positional IDs and without event flags (`--json`, `--events`, `--pr-events` or a positive `--heartbeat`), `watch <ids...>` prints text outcomes and exits 0 after every selected item reports done, waiting or released. Duplicate IDs report once; unknown IDs remain pending. Use `watch --json <ids...>` or `watch --events <kinds> <ids...>` for a continuous event stream restricted to those IDs.
 
 `watch --follow` keeps running even when no work is active or every item has reported. With no IDs, it watches all items, including items launched later; explicit IDs restrict it to those items. Its first snapshot reports current waiting waits and records done or released history without printing it, then it prints one line when an item enters done, waiting or released. Human waits include the owner and reason; a reviewed PR ready for a human merge is a waiting wait on the maintainer. A new decision prints again, even if its reason is unchanged. An item that leaves waiting for repair and returns with the same reason reports again. Repeated snapshots of the same outcome do not print again. Reconnecting after a daemon restart preserves those states: unchanged history stays quiet, and an outcome that changed during the gap prints once. Stop the follower with Ctrl-C, or set an explicit `--timeout`.
 
