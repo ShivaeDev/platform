@@ -1,0 +1,11 @@
+{"path":"packages/admin/src/client/UsersTable.tsx","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/client/UsersView.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/jobs/page.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/jobs/retryPage.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/jobs/schemas.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/admin/src/page.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/registry.ts","rule":"effect/boundary","count":1}
+{"path":"packages/admin/src/registry.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/server/jobsHandlers.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/boundary","count":2}
+{"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/service-parameters","count":2}

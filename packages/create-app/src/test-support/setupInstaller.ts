@@ -1,4 +1,7 @@
+import { dirname } from "node:path";
+
 export function setupInstaller(pnpm: string, modules: string, hoisted: string, quality: string, typecheckExit?: number) {
+	// pnpm rebuilds the seeded install before a package script, so it must keep the workspace Quality engine.
 	const qualityBin = `#!/usr/bin/env node
 import("node:child_process").then(({ spawnSync }) => {
   const result = spawnSync(process.execPath, ["--conditions=source", ${JSON.stringify(quality)}, ...process.argv.slice(2)], { stdio: "inherit" });
@@ -12,6 +15,9 @@ const fs = require("node:fs");
 const { join } = require("node:path");
 const args = process.argv.slice(2);
 if (args[0] === "install") {
+  const manifest = JSON.parse(fs.readFileSync("package.json", "utf8"));
+  manifest.devDependencies["@shivaedev/quality"] = "link:" + ${JSON.stringify(dirname(dirname(quality)))};
+  fs.writeFileSync("package.json", JSON.stringify(manifest, null, "\\t") + "\\n");
   fs.writeFileSync("pnpm-lock.yaml", "lockfileVersion: 9.0\\n");
   const modules = ${JSON.stringify(modules)};
   fs.rmSync("node_modules", { recursive: true, force: true });
