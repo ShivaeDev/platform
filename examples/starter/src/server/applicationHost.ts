@@ -56,6 +56,7 @@ export function applicationHost(config?: {
 							routes,
 							HttpStaticServer.layer({ root: "dist", spa: true }),
 						),
+						readPolicy: modules.readPolicy,
 						services: modules.services(databaseUrl, config?.jobsClientFactory, config?.poolSizes?.jobs),
 						sessions,
 					};

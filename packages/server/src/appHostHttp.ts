@@ -2,7 +2,7 @@ import { createServer } from "node:http";
 import { NodeHttpServer, NodeServices } from "@effect/platform-node";
 import { ByteSize, Config, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse, HttpStaticServer } from "effect/http";
-import { type Rpc, RpcSerialization, RpcServer } from "effect/rpc";
+import { type Rpc, RpcSerialization } from "effect/rpc";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "@shivaedev/identity/server/session.ts";
@@ -13,6 +13,8 @@ import type { databaseLayer } from "#databaseLayer.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostChanges } from "#hostChanges.ts";
 import type { HostOptions, HostPolicy } from "#hostOptions.ts";
+import { hostReadPolicy } from "#hostReadPolicy.ts";
+import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import { hostTransport } from "#hostTransport.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
@@ -21,10 +23,6 @@ import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
-import { tracedGroup } from "#tracedGroup.ts";
-
-const rpcCacheControl: HttpEffect.PreResponseHandler = (_, response) =>
-	Effect.succeed(HttpServerResponse.setHeader(response, "cache-control", "private, no-store"));
 
 export function appHostHttp<
 	TRpcs extends Rpc.Any,
@@ -50,7 +48,7 @@ export function appHostHttp<
 			const routes = HttpRouter.use((router) =>
 				Effect.gen(function* () {
 					const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
-					const handler = yield* RpcServer.toHttpEffect(tracedGroup(options.group)).pipe(
+					const handler = yield* hostRpc(options.group, options.readPolicy !== undefined).pipe(
 						Effect.provideService(RpcSerialization.RpcSerialization, wire),
 					);
 					const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
@@ -67,6 +65,7 @@ export function appHostHttp<
 					});
 				}),
 			).pipe(
+				Layer.provide(options.readPolicy === undefined ? Layer.empty : hostReadPolicy(options.readPolicy)),
 				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
 				Layer.provide(RpcSerialization.layerNdjson),
 				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy)),
