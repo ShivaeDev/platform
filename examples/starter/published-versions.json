@@ -19,5 +19,6 @@
 	"@shivaedev/test": "0.10.0",
 	"@shivaedev/test-sql": "0.10.0",
 	"@shivaedev/test-story": "0.21.0",
-	"@shivaedev/types": "0.3.0"
+	"@shivaedev/types": "0.3.0",
+	"@shivaedev/webhooks": "0.0.0"
 }

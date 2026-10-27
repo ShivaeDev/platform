@@ -53,3 +53,9 @@ appGithub.it(
 		}
 	},
 );
+
+appGithub.it("signature-only verification accepts signed bytes without decoding JSON", [], function* ({ verifySignature }) {
+	const body = Buffer.from("not-json");
+	expect(yield* verifySignature(body, webhookSignature(body))).toBeUndefined();
+	expect(yield* Effect.flip(verifySignature(body, undefined))).toEqual(new GitHubWebhookSignatureError());
+});

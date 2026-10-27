@@ -24,6 +24,7 @@ user-facing text, layout and deployment choices.
 | Declare queries and commands | [contract](../../packages/contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
 | Share expected failures | [errors](../../packages/errors/README.md) | Use the shared failure taxonomy and field rejections on both sides of RPC; redact sensitive values before they reach logs or traces. |
 | Resolve identity and permissions | [identity](../../packages/identity/README.md) | Use its RPC middleware and server modules; applications decide session, Origin and permission policy. |
+| Receive signed webhooks | [webhooks](../../packages/webhooks/README.md) | Verify raw deliveries and record receipts with queued jobs in one SQL transaction; applications register sources, schemas and workers. |
 | Call outside HTTP APIs | [http](../../packages/http/README.md) | Use the native HTTP client with its typed failures, pagination and bounded bodies; applications own retries and credentials. |
 | Host the application | [server](../../packages/server/README.md) | Compose the app host, health, tracing export, migrations and development mode; applications supply their RPC groups and routes. |
 | Render queries and invoke actions | [react](../../packages/react/README.md) | Bind native atoms to React; session boundaries own registries and live connections. |

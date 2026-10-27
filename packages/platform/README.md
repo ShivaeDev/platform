@@ -46,6 +46,7 @@ Only applications depend on platform. A library, or an application published for
 | Request identity, sessions, permissions and Better Auth | [`@shivaedev/identity`](https://github.com/ShivaeDev/platform/tree/main/packages/identity#readme) |
 | Roles and permission sets | [`@shivaedev/access`](https://github.com/ShivaeDev/platform/tree/main/packages/access#readme) |
 | The application host | [`@shivaedev/server`](https://github.com/ShivaeDev/platform/tree/main/packages/server#readme) |
+| Receiving signed webhooks | [`@shivaedev/webhooks`](https://github.com/ShivaeDev/platform/tree/main/packages/webhooks#readme) |
 | Calls to outside HTTP APIs | [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme) |
 | Client state in React | [`@shivaedev/react`](https://github.com/ShivaeDev/platform/tree/main/packages/react#readme) |
 | Forms | [`@shivaedev/form`](https://github.com/ShivaeDev/platform/tree/main/packages/form#readme) |

@@ -93,6 +93,7 @@ export const appGithub = storyKit({
 				record(verifyWebhook(body, signature, Redacted.make(secret), schema)),
 			verifyDelivery: (body = WORKFLOW_BODY, signature: string | undefined = webhookSignature(), secret = WEBHOOK_SECRET) =>
 				record(verifyWebhook(body, signature, Redacted.make(secret), WorkflowDelivery)),
+			verifySignature: (body: Uint8Array, signature: string | undefined) => record(verifyWebhook(body, signature, Redacted.make(WEBHOOK_SECRET))),
 		};
 	},
 });
