@@ -7,13 +7,14 @@ Admin tooling starts with an explicit list of pages and the operations each page
 ```ts
 const Jobs = adminPage({
   id: "jobs",
+  permission: JobsPermission,
   route: { path: "/admin/jobs", title: "Jobs" },
   contract: contract("admin.jobs", { queries: [Failed] }),
 });
 const Admin = adminRegistry(Jobs);
 ```
 
-The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `AdminPermission`, which checks the `OpenAdmin` permission (`admin.open`). A query-only contract has no command. The application grants this permission to its chosen roles.
+The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `JobsPermission`, which checks `ReadJobs` (`jobs.read`). A query-only contract has no command. The application grants this permission to its chosen roles.
 
 ## Use native contracts and Layers
 
@@ -21,6 +22,7 @@ Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react`. Decl
 
 ```ts
 import { Schema } from "effect";
+import { JobsPermission } from "@shivaedev/admin/permissions.ts";
 import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
@@ -32,6 +34,7 @@ const Failed = query("failed", {
 });
 const Jobs = adminPage({
   id: "jobs",
+  permission: JobsPermission,
   route: { path: "/admin/jobs", title: "Jobs" },
   contract: contract("admin.jobs", { queries: [Failed] }),
 });
@@ -45,7 +48,7 @@ Register server handler Layers by page id:
 ```ts
 import { Effect, Layer } from "effect";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { AdminPermission, OpenAdmin } from "@shivaedev/admin/permissions.ts";
+import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 
 const registration = registerAdmin(Admin, {
@@ -54,11 +57,11 @@ const registration = registerAdmin(Admin, {
   }),
 });
 const handlers = registration.handlers.pipe(
-  Layer.provideMerge(permissionLayer(AdminPermission, sessions)),
+  Layer.provideMerge(permissionLayer(JobsPermission, sessions)),
 );
 ```
 
-Declare application roles with `@shivaedev/access`, grant `OpenAdmin` explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
+Declare application roles with `@shivaedev/access`, grant the relevant domain permissions explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
 
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
@@ -110,15 +113,17 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `OpenAdmin`, through the same page middleware. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs`, through the same page middleware. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.
 
 ## Built-in Users page
 
-`UsersPage` from `@shivaedev/admin/users/page.ts` declares `/admin/users`. Add it to the same registry as Jobs and register `users: usersHandlers` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers use the application's existing Effect SQL client against Better Auth's default PostgreSQL `user` table, with the admin plugin's `role` column. They do not create another user store. Custom Better Auth table or column names are not supported by these handlers.
+Call `usersPage(AppAccess)` from `@shivaedev/admin/users/page.ts` with the application's code-defined role set. Add the returned page to the same registry as Jobs and register `users: usersHandlers(UsersPage, AppAccess)` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers use the application's existing Effect SQL client against Better Auth's default PostgreSQL `user` table and its `role` column. Custom table or column names are not supported.
 
-Bind `UsersPage.contract` to the registry's native AtomRpc client, then mount the package view in the application's admin shell. The view uses semantic HTML and Tailwind utility classes; Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in `src/client/entry.css`, as the starter does:
+Each user stores one role string accepted by `AppAccess.Role`. Each role declares an explicit permission list in application code. The Users area assigns roles; it does not edit their grants.
+
+Bind the page's contract to the registry's native AtomRpc client, then mount the view in the application's admin shell. Tailwind applications include `@source "../../node_modules/@shivaedev/admin/src/client";` in `src/client/entry.css`:
 
 ```tsx
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
@@ -126,13 +131,17 @@ import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 const users = bind(UsersPage.contract, Client);
 const changeRole = Client.runtime.fn(users.changeRole.run);
 
-<UsersView list={users.list.query} changeRole={changeRole} />;
+<UsersView roles={AppAccess.Role.literals} list={users.list.query} changeRole={changeRole} />;
 ```
 
-`admin.users.list` takes `{ limit, cursor? }` (1–100 users), returns `{ users, next, canChangeRoles }`, and orders pages by user id. Each user has id, name, email, roles and a UTC sign-up time. All reads and subscriptions require `OpenAdmin`. Callers granted `ChangeUserRoles` (`users.roles.change`) from `@shivaedev/admin/users/roles.ts` see role controls. `admin.users.changeRole` takes `{ userId, role, grant }` for the `user`, `admin` and `owner` roles that module declares, with the browser-safe user schemas and the typed `LastOwner` failure. It returns typed `Forbidden` without that permission, `LastOwner` when revoking the final owner, and `NotFound` for a missing user. Role changes preserve other roles, invalidate the list after commit, and emit an Effect log with actor id, target id, role, action and timestamp. There is no durable audit-history store.
+`admin.users.list` takes `{ limit, cursor? }` (1–100 users) and returns `{ users, next, canChangeRoles }` ordered by user id. Each user has id, name, email, role and a UTC sign-up time. The page's operations and generated subscription require `ReadUsers` (`users.read`), enforced by `UsersPermission`. Supply `permissionLayer(UsersPermission, sessions)` alongside the application's other handler Layers.
 
-The handlers call `listUsers({ limit, cursor? })` and `changeUserRole({ userId, role, grant })` from `@shivaedev/admin/server/users.ts`, which an application can also call from its own server code. Role writes require an owner `SessionUser` and serialize role changes in a transaction.
+`admin.users.changeRole` takes `{ userId, role }`; its role Schema is the application's declared role union. The handler also requires `AssignRoles` (`roles.assign`). The view shows a role select only to callers with that permission. Role writes serialize in a transaction and return `LastRoleAssigner` if replacing the final holder's role would remove `roles.assign`, regardless of the role's name. A missing user returns `NotFound`. Changes invalidate the list after commit and emit an Effect log with actor id, target id, role and timestamp.
 
-Keep Better Auth cookie caching disabled so requests see current roles. Applications must route role writes through this operation to retain its permission and last-owner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
+Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAccess, input)` from `@shivaedev/admin/server/users.ts` on the server. These enforce their respective domain permissions using `SessionUser`.
 
-The starter mounts Users beside Jobs and bootstraps new administrators with both `admin` and `owner`. Existing generated apps receive this wiring through `pnpm dlx @shivaedev/create-app@latest update` after release; review conflicts and install dependencies. For an existing database with no owner, bootstrap a new administrator with `pnpm admin:create`.
+Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
+
+## Client permission routes
+
+`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract and exposes its permission as `page.route.permission`. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` on the root route and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback. The starter uses this path for Users, Jobs and note statistics.

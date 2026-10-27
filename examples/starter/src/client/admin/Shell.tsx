@@ -1,9 +1,11 @@
 import { Link } from "@tanstack/react-router";
 import type { ReactNode } from "react";
+import type { Permission } from "@shivaedev/access/permission.ts";
+import { useCan } from "@shivaedev/react/client/permissionBoundary.ts";
 
 export interface AdminNavigation {
 	readonly id: string;
-	readonly route: { readonly path: string; readonly title: string };
+	readonly route: { readonly path: string; readonly permission: Permission; readonly title: string };
 }
 
 export function AdminShell({
@@ -15,6 +17,7 @@ export function AdminShell({
 	readonly title: string;
 	readonly children: ReactNode;
 }) {
+	const can = useCan();
 	return (
 		<div className="mx-auto grid min-h-screen w-full max-w-7xl content-start gap-6 p-4 sm:p-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10 lg:py-10">
 			<aside className="space-y-5">
@@ -24,16 +27,11 @@ export function AdminShell({
 					</Link>
 				</div>
 				<nav aria-label="Administration" className="flex flex-wrap gap-2 lg:flex-col">
-					{pages.map((page) => (
-						<Link
-							activeProps={{ className: "bg-muted font-semibold" }}
-							className="rounded-md px-3 py-2 text-sm hover:bg-muted"
-							key={page.id}
-							to={page.route.path}
-						>
-							{page.route.title}
-						</Link>
-					))}
+					{pages
+						.filter((page) => can(page.route.permission))
+						.map((page) => (
+							<AdminLink key={page.id} page={page} />
+						))}
 				</nav>
 			</aside>
 			<main className="min-w-0 space-y-6">
@@ -44,5 +42,13 @@ export function AdminShell({
 				{children}
 			</main>
 		</div>
+	);
+}
+
+function AdminLink({ page }: { readonly page: AdminNavigation }) {
+	return (
+		<Link activeProps={{ className: "bg-muted font-semibold" }} className="rounded-md px-3 py-2 text-sm hover:bg-muted" to={page.route.path}>
+			{page.route.title}
+		</Link>
 	);
 }

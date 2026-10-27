@@ -1,4 +1,5 @@
-import type { Auth } from "./auth.ts";
+import { Schema } from "effect";
+import { type Auth, SessionAccess } from "./auth.ts";
 import { SessionApp } from "./SessionApp.tsx";
 import { ThemeToggle } from "./ThemeToggle.tsx";
 
@@ -38,6 +39,7 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			connect={connect}
 			history={history}
 			recheck={() => void session.refetch()}
+			session={session.data === null ? null : Schema.decodeUnknownSync(SessionAccess)(session.data)}
 			sessionId={session.data?.session.id ?? "anonymous"}
 		/>
 	);

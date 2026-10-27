@@ -2,10 +2,9 @@ import { Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { UsersPage } from "@shivaedev/admin/users/page.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import type { RetryJob } from "#client/admin/jobsTypes.ts";
-import { Admin, JobsPage, StatisticsPage } from "#modules/notes/admin.ts";
+import { Admin, JobsPage, StatisticsPage, UsersPage } from "#modules/notes/admin.ts";
 
 export function makeAdminClient(url: string, transformClient?: NonNullable<Parameters<typeof RpcClient.layerProtocolHttp>[0]["transformClient"]>) {
 	class Client extends AtomRpc.Service<Client>()("app/AdminClient", {

@@ -7,23 +7,24 @@ import type { UsersList } from "#users/page.ts";
 import type { ChangeRoleInput, UserListInput } from "#users/roles.ts";
 import { UsersTable } from "./UsersTable.tsx";
 
-export interface UsersViewProps {
-	readonly changeRole: Atom.AtomResultFn<typeof ChangeRoleInput.Type, void, unknown>;
+export interface UsersViewProps<TRole extends string> {
+	readonly changeRole: Atom.AtomResultFn<ChangeRoleInput<TRole>, void, unknown>;
 	readonly list: (input: typeof UserListInput.Type) => Atom.Atom<AsyncResult.AsyncResult<typeof UsersList.Type, unknown>>;
+	readonly roles: readonly TRole[];
 }
 
 function failure(cause: Cause.Cause<unknown>): string {
 	const error = Option.getOrUndefined(Cause.findErrorOption(cause));
-	if (Predicate.isTagged(error, "LastOwner")) {
-		return "The last owner cannot be demoted. Grant owner to another user first.";
+	if (Predicate.isTagged(error, "LastRoleAssigner")) {
+		return "The last user who can assign roles cannot be removed. Assign another user permission to change roles first.";
 	}
 	if (Predicate.isTagged(error, "Forbidden")) {
-		return "Owner role required to change roles.";
+		return "Permission required to assign roles.";
 	}
 	return "Could not change the role. Try again.";
 }
 
-export function UsersView({ list, changeRole }: UsersViewProps) {
+export function UsersView<TRole extends string>({ list, changeRole, roles }: UsersViewProps<TRole>) {
 	const [cursors, setCursors] = useState<readonly string[]>([]);
 	const cursor = cursors.at(-1);
 	const state = useQuery(list({ ...(cursor === undefined ? {} : { cursor }), limit: 20 }));
@@ -40,7 +41,7 @@ export function UsersView({ list, changeRole }: UsersViewProps) {
 		state.pending ? createElement("p", { role: "status" }, "Loading users…") : null,
 		Option.isSome(state.cause) ? createElement("p", { role: "alert" }, "Could not load users. Try refreshing.") : null,
 		Option.isSome(action.cause) ? createElement("p", { role: "alert" }, failure(action.cause.value)) : null,
-		data === undefined ? null : createElement(UsersTable, { data, dispatch: action.dispatch, pending: action.pending }),
+		data === undefined ? null : createElement(UsersTable<TRole>, { data, dispatch: action.dispatch, pending: action.pending, roles }),
 		data === undefined
 			? null
 			: createElement(

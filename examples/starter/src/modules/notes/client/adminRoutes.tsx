@@ -1,10 +1,10 @@
 import { createRoute, redirect } from "@tanstack/react-router";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
-import { UsersPage } from "@shivaedev/admin/users/page.ts";
+import { AppAccess } from "#AppAccess.ts";
 import { JobsView } from "#client/admin/JobsView.tsx";
 import { AdminShell } from "#client/admin/Shell.tsx";
 import type { RouteContext } from "#client/Module.ts";
-import { Admin, JobsPage, StatisticsPage } from "#modules/notes/admin.ts";
+import { Admin, JobsPage, StatisticsPage, UsersPage } from "#modules/notes/admin.ts";
 import type { AdminClient } from "./admin.ts";
 import { NoteStatisticsView } from "./StatisticsView.tsx";
 
@@ -20,11 +20,12 @@ export function adminRoutes(client: AdminClient, { root }: RouteContext) {
 		createRoute({
 			component: () => (
 				<AdminShell pages={Admin.pages} title={UsersPage.route.title}>
-					<UsersView changeRole={client.changeRole} list={client.users.list.query} />
+					<UsersView changeRole={client.changeRole} list={client.users.list.query} roles={AppAccess.Role.literals} />
 				</AdminShell>
 			),
 			getParentRoute: () => root,
 			path: UsersPage.route.path,
+			staticData: { permission: UsersPage.route.permission },
 		}),
 		createRoute({
 			component: () => (
@@ -34,6 +35,7 @@ export function adminRoutes(client: AdminClient, { root }: RouteContext) {
 			),
 			getParentRoute: () => root,
 			path: JobsPage.route.path,
+			staticData: { permission: JobsPage.route.permission },
 		}),
 		createRoute({
 			component: () => (
@@ -43,6 +45,7 @@ export function adminRoutes(client: AdminClient, { root }: RouteContext) {
 			),
 			getParentRoute: () => root,
 			path: StatisticsPage.route.path,
+			staticData: { permission: StatisticsPage.route.permission },
 		}),
 	];
 }

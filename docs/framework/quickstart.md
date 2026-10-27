@@ -27,7 +27,7 @@ After `pnpm migrate`, provision an administrator with a new email address:
 ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm admin:create
 ```
 
-Sign in with those credentials, then open `/admin/jobs`. The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. Existing email addresses are rejected. Every admin query and change subscription requires the declared `OpenAdmin` permission: signed-out requests receive `Unauthorized`, and roles without that grant receive `Forbidden`.
+Sign in with those credentials, then open `/admin/jobs`. The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. Existing email addresses are rejected. Every admin query and change subscription requires its declared domain permission (`jobs.read`, `users.read` or `notes.statistics.read`): signed-out requests receive `Unauthorized`, and roles without that grant receive `Forbidden`.
 
 The registry in `src/modules/notes/admin.ts` lists the authored pages; `src/modules/notes/server/adminRegistration.ts` supplies handlers on the existing `/rpc` host. Each page wraps a native contract contract. The default Jobs page declares no commands. Retry requires an explicit `jobsPageWithRetry` contract, `jobsHandlersWithRetry` registration and a bound retry action in the app view. React views belong to the application; the admin package adds no UI components or transport.
 

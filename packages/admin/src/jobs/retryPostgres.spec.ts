@@ -65,7 +65,7 @@ jobsStory.it("rejects dead-letter copies, unregistered queues and jobs that are 
 for (const [role, traits, error] of [
 	["signed out", [], "Unauthorized"],
 	["member", [jobsRole("user")], "Forbidden"],
-	["owner without admin", [jobsRole("owner")], "Forbidden"],
+	["role assigner without jobs.read", [jobsRole("assigner")], "Forbidden"],
 ] as const) {
 	jobsStory.it(`refuses a ${role} retry of a failed job`, traits, function* (test) {
 		const id = yield* test.send(42);
