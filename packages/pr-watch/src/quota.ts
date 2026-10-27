@@ -6,26 +6,25 @@ export function quotaRetryAt(observations: readonly RateLimitObservation[], retr
 }
 
 export function pollDelay(observations: readonly RateLimitObservation[], interval: number, requests: number, now: number, retryAt = 0): number {
-	return Math.max(
-		interval,
-		quotaRetryAt(observations, retryAt) - now,
-		...observations.map((budget) => {
-			const ratio = budget.remaining / Math.max(1, budget.limit);
-			const reset = DateTime.toEpochMillis(budget.reset);
-			const paced = budget.remaining > 0 && ratio < 0.5 ? Math.ceil((Math.max(0, reset - now) * requests) / budget.remaining) : 0;
-			return Math.max(interval * slowdown(ratio), paced);
-		}),
-	);
+	return pollPacing(observations, interval, requests, now, retryAt).delay;
 }
-function slowdown(ratio: number): number {
-	if (ratio < 0.1) {
-		return 10;
+export function quotaMessage(budget: RateLimitObservation): string {
+	return `${budget.resource}: ${budget.remaining}/${budget.limit} remaining; reset ${DateTime.formatIso(budget.reset)}`;
+}
+
+export function pollPacing(observations: readonly RateLimitObservation[], interval: number, requests: number, now: number, retryAt = 0) {
+	let delay = Math.max(interval, retryAt - now);
+	let message = "GitHub retry-after";
+	for (const budget of observations) {
+		const untilReset = DateTime.toEpochMillis(budget.reset) - now;
+		if (untilReset <= 0) {
+			continue;
+		}
+		const paced = budget.remaining === 0 ? untilReset : Math.min(untilReset, Math.ceil((untilReset * requests) / budget.remaining));
+		if (paced > interval && paced >= delay) {
+			delay = paced;
+			message = `GitHub quota pacing (${quotaMessage(budget)})`;
+		}
 	}
-	if (ratio < 0.2) {
-		return 5;
-	}
-	if (ratio < 0.5) {
-		return 2;
-	}
-	return 1;
+	return { delay, message };
 }

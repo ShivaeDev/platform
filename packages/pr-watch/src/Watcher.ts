@@ -68,6 +68,7 @@ export const Watcher = defineService({
 		return {
 			delay: github.delay,
 			load: (options: Options) => file.load(options.stateFile, options.repository),
+			pacing: github.pacing,
 			poll: (
 				options: Options,
 				previous: State,

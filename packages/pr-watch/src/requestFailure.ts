@@ -1,6 +1,8 @@
 import { Cause, DateTime, Schema } from "effect";
 import { GitHubRateLimited, GitHubTransportError } from "@shivaedev/github/errors.ts";
+import type { RateLimitObservation } from "@shivaedev/github/rateLimits.ts";
 import { WatchError } from "#model.ts";
+import { quotaMessage } from "#quota.ts";
 
 const HttpFailure = Schema.Struct({
 	method: Schema.String,
@@ -9,13 +11,14 @@ const HttpFailure = Schema.Struct({
 	url: Schema.String,
 });
 
-export function requestFailure(cause: unknown): WatchError {
+export function requestFailure(cause: unknown, observations: readonly RateLimitObservation[] = []): WatchError {
 	if (cause instanceof WatchError) {
 		return cause;
 	}
 	if (cause instanceof GitHubRateLimited) {
+		const budget = observations.find((entry) => entry.resource === cause.resource);
 		return new WatchError({
-			message: `GitHub rate limit (${cause.resource})`,
+			message: `GitHub rate limit (${budget === undefined ? cause.resource : quotaMessage(budget)})`,
 			retryAt: DateTime.toEpochMillis(cause.retryAt),
 			retryable: true,
 		});

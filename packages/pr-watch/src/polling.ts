@@ -24,8 +24,10 @@ export const polling = Effect.fn("PrWatch.polling")(function* (
 			}
 			yield* report.error(error.message);
 			state = yield* watcher.load(options);
-			const delay = yield* retries.delay(error, yield* watcher.delay(options.interval));
-			yield* output.waitForPoll(options.interval, delay, `Retrying: ${error.message}`);
+			const pacing = yield* watcher.pacing(options.interval);
+			const delay = yield* retries.delay(error, pacing.delay);
+			const reason = pacing.delay > options.interval ? `; ${pacing.message}` : "";
+			yield* output.waitForPoll(options.interval, delay, `Retrying: ${error.message}${reason}`);
 			continue;
 		}
 		state = result.success;
@@ -33,6 +35,7 @@ export const polling = Effect.fn("PrWatch.polling")(function* (
 		if (once) {
 			return;
 		}
-		yield* output.waitForPoll(options.interval, yield* watcher.delay(options.interval));
+		const pacing = yield* watcher.pacing(options.interval);
+		yield* output.waitForPoll(options.interval, pacing.delay, pacing.message);
 	}
 });

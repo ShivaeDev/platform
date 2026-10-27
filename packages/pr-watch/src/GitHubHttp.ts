@@ -2,7 +2,7 @@ import { Clock, Effect, Schema, Stream } from "effect";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { WatchError } from "#model.ts";
-import { pollDelay, quotaRetryAt } from "#quota.ts";
+import { pollPacing, quotaMessage, quotaRetryAt } from "#quota.ts";
 import { requestFailure } from "#requestFailure.ts";
 
 export const GitHubHttp = defineService({
@@ -15,14 +15,20 @@ export const GitHubHttp = defineService({
 			return Effect.gen(function* () {
 				const now = yield* Clock.currentTimeMillis;
 				const observations = yield* state.github.observations();
-				if (quotaRetryAt(observations, state.retryAt) > now) {
-					return yield* new WatchError({ message: "GitHub quota cooldown", retryAt: quotaRetryAt(observations, state.retryAt), retryable: true });
+				const retryAt = quotaRetryAt(observations, state.retryAt);
+				if (retryAt > now) {
+					const budget = observations.find((entry) => entry.remaining === 0 && quotaRetryAt([entry]) === retryAt);
+					return yield* new WatchError({
+						message: budget === undefined ? "GitHub retry-after cooldown" : `GitHub quota cooldown (${quotaMessage(budget)})`,
+						retryAt,
+						retryable: true,
+					});
 				}
 				return yield* operation;
 			}).pipe(
 				Effect.scoped,
 				Effect.timeout("30 seconds"),
-				Effect.mapError(requestFailure),
+				Effect.catch((cause) => Effect.flatMap(state.github.observations(), (observations) => Effect.fail(requestFailure(cause, observations)))),
 				Effect.tapError((error) =>
 					Effect.sync(() => {
 						if (error.retryAt !== undefined) {
@@ -38,15 +44,17 @@ export const GitHubHttp = defineService({
 				return operation;
 			});
 		}
+		function pacing(interval: number) {
+			return Effect.gen(function* () {
+				const now = yield* Clock.currentTimeMillis;
+				const observations = yield* state.github.observations();
+				const result = pollPacing(observations, interval, Math.max(1, state.requests), now, state.retryAt);
+				state.requests = 0;
+				return result;
+			});
+		}
 		return {
-			delay: (interval: number) =>
-				Effect.gen(function* () {
-					const now = yield* Clock.currentTimeMillis;
-					const observations = yield* state.github.observations();
-					const delay = pollDelay(observations, interval, Math.max(1, state.requests), now, state.retryAt);
-					state.requests = 0;
-					return delay;
-				}),
+			delay: (interval: number) => pacing(interval).pipe(Effect.map((result) => result.delay)),
 			get: (url: string) => request(counted(state.github.read(url)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
 			list: (url: string) =>
 				request(
@@ -55,6 +63,7 @@ export const GitHubHttp = defineService({
 						Stream.runCollect,
 					),
 				),
+			pacing,
 			post: (url: string, body: unknown) =>
 				request(counted(state.github.write("POST", url, body)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
 		};
