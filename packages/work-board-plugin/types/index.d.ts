@@ -10,11 +10,13 @@ export interface WorkboardGoalRef {
 }
 
 export interface WorkboardFlight {
+	attentionOwner?: string | undefined;
 	goal: WorkboardGoalRef | null;
 	inStageMs: number | null;
 	prUrl: string | null;
 	stage: string;
 	title: string;
+	waitingReason?: string | undefined;
 	workId: string;
 }
 
