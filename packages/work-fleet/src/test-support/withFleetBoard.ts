@@ -11,6 +11,9 @@ export const createFleetBoard = Effect.fn("Test.createFleetBoard")(function* (op
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const root = yield* fs.makeTempDirectoryScoped({ prefix: "fleet-http-postgres-" });
+	for (const area of ["shared", "feature"]) {
+		yield* fs.makeDirectory(path.join(root, area));
+	}
 	const source = "---\nid: one\nkind: task\nfleet: approved\n---\n# Scoped work\n\nPreserve review and required validation.\n";
 	yield* fs.writeFileString(path.join(root, "one.md"), source);
 	const board = markdownBoard(root).pipe(Layer.provide(NodeServices.layer));

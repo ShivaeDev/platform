@@ -1,4 +1,4 @@
-import { mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, renameSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import * as NodeServices from "@effect/platform-node/NodeServices";
@@ -61,6 +61,9 @@ const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
 	const database = yield* PostgresTestDatabase;
 	return yield* Effect.sync(() => {
 		const boardDir = mkdtempSync(join(tmpdir(), directoryPrefix));
+		for (const area of ["fleet/host", "shared", "other", "free", "packages/work-fleet/host", "packages/work-board/ui", "documentation"]) {
+			mkdirSync(join(boardDir, area), { recursive: true });
+		}
 		const settings: HostConfig = {
 			intervalSeconds: 1,
 			namespace: STORAGE_NAMESPACE,

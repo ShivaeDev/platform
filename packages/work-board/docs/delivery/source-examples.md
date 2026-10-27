@@ -55,7 +55,7 @@ Work fields use the [shared vocabulary](../../README.md#work-vocabulary). No sec
 | `criteria` | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file |
 | `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, `relates_to` or `replaces`; target is an item ID or `item.id#criterion-id` |
 | `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
-| `areas` | List of nonblank area labels; Board checks the shape and Fleet reads it for area claims |
+| `areas` | List of existing repository folders for Fleet scheduling, or `*` for the whole repository |
 | `evidence` | List of records described below |
 | `attention` | List of explicit request records; [shapes and reading rules](./attention-examples.md) |
 | `options` | List of at most 32 `{ label, description }` records with unique nonblank labels of at most 128 characters and nonblank descriptions of at most 8192 characters; on a `question` item they form one single-choice prompt and cannot be combined with question directives |
@@ -65,6 +65,12 @@ Work fields use the [shared vocabulary](../../README.md#work-vocabulary). No sec
 | `request_receipt` | Optional immutable acknowledgement of an exact managed decision request; [response and acknowledgement rules](../../README.md#record-a-human-response) |
 
 Fleet's add-on fields `fleet-launch` and `fleet-priority` are accepted without a diagnostic; Fleet interprets them. Board validates the shared approval and deliverable fields.
+
+### Pick scheduling areas for a brief
+
+Name the deepest folders the change will edit and list each one. A package area is its folder name under `packages/` or `examples/`, optionally followed by a subfolder: `react`, `work-fleet/src/scheduling` or `jobs/src/server`. Top-level folders such as `script/release` and `.github` are also areas. Paths follow the actual repository layout. Board checks the enclosing Git checkout, or the Board folder when it is outside a checkout; an invalid area shows a nearest existing path suggestion, and Fleet refuses to dispatch that brief with the same diagnostic.
+
+Use a whole package only when the change really spans it: a package area blocks every task in its subfolders until merge. List separate folders for unrelated edits so other work can run beside them. `*` covers the whole repository and conflicts with every area.
 
 A unique ID resolves at `/_board/item/work.search/`. This URL survives file and heading renames while the ID remains unchanged and unique. A criterion resolves at `/_board/item/work.search/#criterion-keyboard`. File and generated heading URLs work alongside it; pinned and recent documents refer to file paths.
 
