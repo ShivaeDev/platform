@@ -1,3 +1,4 @@
+import { NodeCrypto } from "@effect/platform-node";
 import { Context, type Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
@@ -107,11 +108,15 @@ export const appHost: AppHostFactory = <
 	>,
 ) => {
 	if ("application" in options) {
-		return deferredHost(options.application, appDatabase(options), AppChanges).pipe(Layer.provideMerge(options.preflight ?? Layer.empty));
+		return deferredHost(options.application, appDatabase(options), AppChanges).pipe(
+			Layer.provideMerge(options.preflight ?? Layer.empty),
+			Layer.provide(NodeCrypto.layer),
+		);
 	}
 	return options.migrations === undefined
-		? appHostHttp(options, AppChanges).pipe(Layer.provideMerge(options.preflight ?? Layer.empty))
+		? appHostHttp(options, AppChanges).pipe(Layer.provideMerge(options.preflight ?? Layer.empty), Layer.provide(NodeCrypto.layer))
 		: migratedHost({ ...options, migrations: options.migrations }, appDatabase({ ...options, migrations: options.migrations }), AppChanges).pipe(
 				Layer.provideMerge(options.preflight ?? Layer.empty),
+				Layer.provide(NodeCrypto.layer),
 			);
 };

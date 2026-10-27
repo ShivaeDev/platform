@@ -1,8 +1,9 @@
-import { Effect, FileSystem, Path } from "effect";
+import { Effect, FileSystem, Path, Schema } from "effect";
 import { type Changes, refreshWritten } from "#server/files/changes.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 
 const RETENTION = 14 * 24 * 60 * 60 * 1000;
+const ArchivedIdentities = Schema.fromJsonString(Schema.Array(Schema.String));
 
 function destination(document: MetadataDocument, now: number) {
 	const { kind, status } = document.parsed.fields;
@@ -26,11 +27,13 @@ export const archiveDocuments = Effect.fn("WorkBoard.archiveDocuments")(function
 	root: string,
 	documents: readonly MetadataDocument[],
 	now: number,
-	previous: readonly MetadataDocument[] = [],
 ) {
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	const restored = new Set(previous.filter((document) => document.file.startsWith("archive/")).map(identity));
+	const stateFile = path.join(root, ".board-archive.json");
+	const saved = (yield* fs.exists(stateFile)) ? yield* fs.readFileString(stateFile) : "[]";
+	const restored = new Set(yield* Schema.decodeUnknownEffect(ArchivedIdentities)(saved).pipe(Effect.orDie));
+	const archived = new Set(documents.filter((document) => document.file.startsWith("archive/")).map(identity));
 	const moved: string[] = [];
 	for (const document of documents) {
 		const target = destination(document, now);
@@ -43,9 +46,31 @@ export const archiveDocuments = Effect.fn("WorkBoard.archiveDocuments")(function
 			continue;
 		}
 		yield* fs.makeDirectory(path.dirname(path.join(root, target)), { recursive: true });
-		yield* fs.link(path.join(root, document.file), path.join(root, target));
+		let chosen = target;
+		let suffix = 0;
+		while (
+			!(yield* fs.link(path.join(root, document.file), path.join(root, chosen)).pipe(
+				Effect.as(true),
+				Effect.catchIf(
+					(error) => error.reason._tag === "AlreadyExists",
+					() => Effect.succeed(false),
+				),
+			))
+		) {
+			suffix += 1;
+			chosen = `${target.slice(0, -3)}-${suffix}.md`;
+		}
 		yield* fs.remove(path.join(root, document.file));
-		moved.push(document.file, target);
+		if (chosen.startsWith("archive/")) {
+			archived.add(identity({ ...document, file: chosen }));
+		} else {
+			archived.delete(identity(document));
+		}
+		moved.push(document.file, chosen);
+	}
+	const next = JSON.stringify([...archived].sort());
+	if (next !== saved) {
+		yield* fs.writeFileString(stateFile, next);
 	}
 	return moved;
 });

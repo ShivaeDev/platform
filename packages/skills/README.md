@@ -42,7 +42,11 @@ Put the selection in the repository's `package.json`:
 
 `pr-description` is the shipped skill for writing a pull request title and body. Its instructions use Why and How, with Decisions and Callouts when needed. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/pr-description/SKILL.md) before adopting that format.
 
-`story-testing` teaches how to write and review Platform application stories, including their setups and test kits. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) for the rules. Both skill folders ship in the package; select `story-testing` to sync its instructions and receive later changes through the same dependency-update and sync path.
+`story-testing` teaches how to write and review Platform application stories, including their setups and test kits. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) for the rules.
+
+`visual-pages` is a design language for claude.ai Artifacts and other HTML pages: reports, explainers, decision pages, trackers, dashboards and replays that carry their answer in figures rather than prose. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/visual-pages/SKILL.md) before adopting its stance.
+
+Every skill folder ships in the package; select a name to sync its instructions and receive later changes through the same dependency-update and sync path.
 
 An unknown name stops `sync` before it copies selected skills, and the error lists the shipped names. Omitting `shivaedevSkills` also stops `sync` with a message asking for a selection. To remove all managed skills, keep the field and set it to `[]`; local skills remain.
 

@@ -5,6 +5,8 @@ import { noJsdoc } from "#rules/comments/noJsdoc.ts";
 import { noLineReference } from "#rules/comments/noLineReference.ts";
 import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
+import { effectBoundary } from "#rules/effect/boundary.ts";
+import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
@@ -43,6 +45,8 @@ import { maxLines } from "./maxLines.ts";
 import { noBarrel } from "./noBarrel.ts";
 
 export const builtInRules = [
+	effectBoundary,
+	serviceParameters,
 	maxLines,
 	maxDepth,
 	noBarrel,

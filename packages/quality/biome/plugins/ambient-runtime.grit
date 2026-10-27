@@ -6,7 +6,9 @@ or {
 		`Date.now()` as $match,
 		`new Date()` as $match
 	} where { register_diagnostic(span=$match, message="Ambient time is banned. Read time through Effect's Clock service.") },
-	`Math.random()` as $match where { register_diagnostic(span=$match, message="Ambient randomness is banned. Use Effect's Random service.") },
+	`Math.random()` as $match where {
+		register_diagnostic(span=$match, message="Ambient randomness is banned. Use Effect's Crypto service for secure values and Random for non-secure values.")
+	},
 	or {
 		`console.$method($...)` as $match,
 		`console[$method]($...)` as $match

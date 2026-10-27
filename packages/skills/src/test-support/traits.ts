@@ -54,5 +54,5 @@ export function invalidSelection(content: string) {
 
 export const shippedSkills = skills.trait("selected", "the repository selects the package's shipped skills", function* (engine) {
 	engine.installed = yield* readInstalled(fileURLToPath(new URL("../..", import.meta.url)));
-	yield* select(engine.repo, ["pr-description", "story-testing"]);
+	yield* select(engine.repo, ["pr-description", "story-testing", "visual-pages"]);
 });

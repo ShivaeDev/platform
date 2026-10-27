@@ -1,4 +1,4 @@
-import type { Effect, Layer } from "effect";
+import type { Crypto, Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { HostPreflight } from "#AppHostInput.ts";
@@ -8,7 +8,7 @@ import type { appHostHttp, deferredHost } from "#appHostHttp.ts";
 type PreflightHost<THost extends Layer.Any, TServices, TError, TRequirements> = Layer.Layer<
 	Layer.Success<THost> | TServices,
 	Layer.Error<THost> | TError,
-	Exclude<Layer.Services<THost>, TServices> | TRequirements
+	Exclude<Layer.Services<THost>, TServices | Crypto.Crypto> | Exclude<TRequirements, Crypto.Crypto>
 >;
 
 export interface AppHostFactory {

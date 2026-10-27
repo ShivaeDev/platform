@@ -52,6 +52,7 @@
 		"dom-accessibility-api": "catalog:"
 	},
 	"devDependencies": {
+		"@effect/platform-node": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/quality": "workspace:*",
 		"@types/node": "catalog:",
@@ -61,6 +62,7 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"effect": "catalog:",

@@ -116,7 +116,6 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 			root,
 			documents.map((document) => ({ ...document, modified: modified.get(document.file) ?? now })),
 			now,
-			hit?.documents,
 		);
 		housekeptAt = now;
 		if (moved.length > 0) {

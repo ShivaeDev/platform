@@ -1,4 +1,4 @@
-import type { Effect, Layer, Scope } from "effect";
+import type { Crypto, Effect, Layer, Scope } from "effect";
 import type { AnyEffect, Hook, HookEffects, HookValue, ServicesOf } from "#internal/hooked.ts";
 import type { StoryKitDefinition } from "#storyKit.ts";
 
@@ -6,9 +6,9 @@ export type AfterResults<TStage extends string> = {
 	readonly [TKey in TStage]?: Generator<AnyEffect, void, never> | Effect.Effect<void, unknown, unknown> | void;
 };
 
-type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope>] extends [TProvided]
+type LayerFor<THooks, TProvided> = [Exclude<ServicesOf<THooks>, Scope.Scope | Crypto.Crypto>] extends [TProvided]
 	? unknown
-	: { readonly layer: Layer.Layer<Exclude<ServicesOf<THooks>, Scope.Scope>, unknown, never> };
+	: { readonly layer: Layer.Layer<Exclude<ServicesOf<THooks>, Scope.Scope | Crypto.Crypto>, unknown, never> };
 
 export type InferredDefinition<
 	TCreate extends () => unknown,

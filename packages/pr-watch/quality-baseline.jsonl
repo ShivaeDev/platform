@@ -1,0 +1,9 @@
+{"path":"packages/pr-watch/src/arguments.ts","rule":"effect/boundary","count":8}
+{"path":"packages/pr-watch/src/arguments.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/pr-watch/src/cli.ts","rule":"effect/boundary","count":3}
+{"path":"packages/pr-watch/src/confirmQueue.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/pr-watch/src/events.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/pr-watch/src/polling.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/pr-watch/src/program.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/pr-watch/src/quota.ts","rule":"effect/service-parameters","count":4}
+{"path":"packages/pr-watch/src/requestFailure.ts","rule":"effect/service-parameters","count":1}
