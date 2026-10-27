@@ -1,8 +1,9 @@
-import { Config, type Duration, Effect, Redacted, Ref, SubscriptionRef } from "effect";
+import { Config, Duration, Effect, Redacted, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Hydration from "effect/reactivity/Hydration";
 import { Migrator, SqlClient } from "effect/sql";
+import { vi } from "vitest";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -65,6 +66,10 @@ export const postgresLive = storyKit({
 	name: "committed live notes over HTTP",
 	stages: ["consumer"],
 	verbs: ({ client, registry, server }, story) => ({
+		advanceWindow: (window: Duration.Input) =>
+			Effect.promise(() => vi.advanceTimersByTimeAsync(Duration.toMillis(Duration.fromInputUnsafe(window)))).pipe(
+				Effect.tap(() => Effect.sync(() => vi.useRealTimers())),
+			),
 		body: (id: number) => AsyncResult.getOrElse(registry.get(client.api.get.query({ id })), () => undefined)?.body,
 		disconnect: () => Effect.promise(server.disconnect),
 		edit: (id: number, body: string) => {
@@ -72,6 +77,10 @@ export const postgresLive = storyKit({
 			return Effect.promise(() => server.edit(id, body));
 		},
 		gateReads: (gate: Effect.Effect<void>) => Ref.set(server.gate, gate),
+		holdWindow: Effect.acquireRelease(
+			Effect.sync(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })),
+			() => Effect.sync(() => vi.useRealTimers()),
+		).pipe(Effect.asVoid),
 		list: () => AsyncResult.getOrElse(registry.get(client.api.list.query(undefined)), () => []),
 		mount: <A>(atom: import("effect/reactivity/Atom").Atom<A>) => registry.mount(atom),
 		open: (window?: Duration.Input) => {
@@ -97,6 +106,12 @@ export const postgresLive = storyKit({
 		serialized: () => client.api.get.query({ id: 1 }, { serializationKey: "note-one" }),
 		shortLived: () => client.api.get.query({ id: 1 }, { timeToLive: "1 second" }),
 		status: () => registry.get(client.status),
+		waitForHints: (count: number) =>
+			SubscriptionRef.changes(client.received).pipe(
+				Stream.filter((counts) => counts.Changed >= count),
+				Stream.take(1),
+				Stream.runDrain,
+			),
 		waiting: (id: number) => registry.get(client.api.get.query({ id })).waiting,
 	}),
 });

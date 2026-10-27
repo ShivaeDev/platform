@@ -1,4 +1,4 @@
-import { Data, Deferred, Duration, Effect, Option } from "effect";
+import { Data, Deferred, Effect, Option } from "effect";
 import type { SendOptions } from "pg-boss";
 import { vi } from "vitest";
 import type { PgBossService } from "#service.ts";
@@ -46,9 +46,7 @@ export function* testingWorker(state: State) {
 			}
 			return testing.stuck.value === "first" && testing.attempts.length > 1
 				? Effect.void
-				: Effect.never.pipe(
-						Effect.onInterrupt(() => Effect.map(job.remainingBudget, (budget) => testing.interruptions.push(Duration.toMillis(budget)))),
-					);
+				: Effect.never.pipe(Effect.onInterrupt(() => Effect.sync(() => testing.interruptions.push(job.id))));
 		}
 		if (testing.paused) {
 			return Deferred.succeed(testing.entered, undefined).pipe(Effect.andThen(Deferred.await(testing.release)));

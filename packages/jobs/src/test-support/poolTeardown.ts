@@ -8,6 +8,7 @@ import { defaultClientFactory, type PgBossClientFactory } from "#client.ts";
 import { makePgBoss } from "#service.ts";
 import { disconnectGate } from "#test/disconnectGate.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
+import { waitingVerbs } from "#test/waitingVerbs.ts";
 
 const Jobs = makePgBoss("@test/PoolTeardown");
 export const poolTeardown = storyKit({
@@ -32,6 +33,7 @@ export const poolTeardown = storyKit({
 	runIf: postgresConfigured,
 	stages: [],
 	verbs: ({ gate, name, scope, stopped }, story) => ({
+		...waitingVerbs(),
 		backends: Effect.fn("PoolTeardown.backends")(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			return yield* sql<{ readonly pid: number }>`select pid from pg_stat_activity where application_name = ${name}`;

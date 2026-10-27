@@ -7,7 +7,7 @@ import { makePgBossTesting, testRetryPolicy } from "#testing.ts";
 
 export function* testingEngine() {
 	const attempts: number[] = [];
-	const interruptions: number[] = [];
+	const interruptions: string[] = [];
 	const workerIds: string[] = [];
 	const readout: JobWithMetadata<{ readonly id: number }>[] = [];
 	return {
