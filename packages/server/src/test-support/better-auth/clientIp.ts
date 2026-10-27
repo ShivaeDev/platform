@@ -1,3 +1,4 @@
+import { request } from "node:http";
 import { Effect } from "effect";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
 import { postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
@@ -31,25 +32,15 @@ export const clientIp = storyKit({
 			throw new Error("The client IP story host has not started");
 		}
 		const { baseUrl, pool } = host;
-		function emailRequest(path: string, headers: Record<string, string>) {
-			return Effect.promise(async () => {
-				const response = await fetch(`${baseUrl}/api/auth/${path}/email`, {
-					body: JSON.stringify({ email: "alice@example.test", name: "Alice", password: "story-password-123" }),
-					headers: { "content-type": "application/json", origin: baseUrl, ...headers },
-					method: "POST",
-				});
-				await response.text();
-				return response.status;
-			});
-		}
+
 		return {
-			signIn: (headers: Record<string, string>) => {
+			signIn: (headers: Record<string, string>, peer?: string) => {
 				story.tell(`Alice signs in over HTTP with ${JSON.stringify(headers)}`);
-				return emailRequest("sign-in", headers);
+				return emailRequest(baseUrl, "sign-in", headers, peer);
 			},
 			signUp: () => {
 				story.tell("Alice registers an email and password over HTTP without signing in");
-				return emailRequest("sign-up", {});
+				return emailRequest(baseUrl, "sign-up", {});
 			},
 			storedSessions: () => {
 				story.tell("read the session IP addresses stored in PostgreSQL");
@@ -63,4 +54,30 @@ export function proxyEnvironment(env: Record<string, string>) {
 	return clientIp.trait("configured", `proxy configuration is ${JSON.stringify(env)}`, (engine) => {
 		Object.assign(engine.env, env);
 	});
+}
+
+export const noProxy = clientIp.trait("configured", "no trusted proxy is configured", (engine) => {
+	delete engine.env.TRUSTED_PROXY;
+});
+
+function emailRequest(baseUrl: string, path: string, headers: Record<string, string>, localAddress = "127.0.0.1") {
+	return Effect.promise(
+		() =>
+			new Promise<number>((resolve, reject) => {
+				const outgoing = request(
+					`${baseUrl}/api/auth/${path}/email`,
+					{
+						headers: { "content-type": "application/json", origin: baseUrl, ...headers },
+						localAddress,
+						method: "POST",
+					},
+					(response) => {
+						response.resume();
+						response.on("end", () => resolve(response.statusCode ?? 0));
+					},
+				);
+				outgoing.on("error", reject);
+				outgoing.end(JSON.stringify({ email: "alice@example.test", name: "Alice", password: "story-password-123" }));
+			}),
+	);
 }

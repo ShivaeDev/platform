@@ -4,12 +4,12 @@ import { Pool, type PoolClient, type PoolConfig } from "pg";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import type { GetSession } from "#server/adapters/betterAuthSessions.ts";
 import { type BearerSessionsOptions, sessionHeaders, withBearerSessions } from "#server/better-auth/bearerSessions.ts";
+import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { memoryRateLimit } from "#server/better-auth/memoryRateLimit.ts";
 import { mountRoutes } from "#server/better-auth/mountRoutes.ts";
 import { type RevokeUnadmitted, revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
-import { trustedProxyRanges } from "#server/local.ts";
 import type { SessionShape } from "#server/session.ts";
 import { mountedSessions } from "./mountedSessions.ts";
 
@@ -29,7 +29,6 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const trustedProxy = Option.getOrUndefined(yield* Config.String("TRUSTED_PROXY").pipe(Config.option));
 	const clientIpHeader = yield* Config.String("AUTH_CLIENT_IP_HEADER").pipe(Config.withDefault("x-forwarded-for"));
 	const rateLimitEnabled = yield* Config.Boolean("AUTH_RATE_LIMIT_ENABLED").pipe(Config.withDefault(true));
-	const trustedProxies = trustedProxyRanges(trustedProxy);
 	const context = yield* Effect.context<R>();
 	const run = Effect.runPromiseWith(context);
 	const policy = mount.signIn ?? {};
@@ -48,14 +47,14 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 			...options.advanced,
 			ipAddress: {
 				...options.advanced?.ipAddress,
-				ipAddressHeaders: trustedProxies.length === 0 ? [] : [clientIpHeader],
-				trustedProxies,
+				ipAddressHeaders: [PEER_IP_HEADER],
+				trustedProxies: [],
 			},
 		},
 		"baseURL":
 			options.baseURL
 			?? Option.getOrElse(origin, () => ({
-				allowedHosts: ["127.0.0.1:*"],
+				allowedHosts: ["127.0.0.1:*", "localhost:*"],
 				protocol: "http" as const,
 			})),
 		databaseHooks: gate.active ? gated.databaseHooks : options.databaseHooks,
@@ -65,12 +64,14 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 			enabled: rateLimitEnabled,
 		},
 		secret,
-		trustedOrigins: options.trustedOrigins ?? [Option.getOrElse(origin, () => "http://127.0.0.1:*")],
+		trustedOrigins:
+			options.trustedOrigins ?? Option.match(origin, { onNone: () => ["http://127.0.0.1:*", "http://localhost:*"], onSome: (url) => [url] }),
 		user: gate.active ? gated.user : options.user,
 	});
 	const authRoutes = mountRoutes(auth, {
 		bearerSessions: mount.bearerSessions,
 		clientIpHeader,
+		ipv6Subnet: options.advanced?.ipAddress?.ipv6Subnet,
 		roles: mount.roles,
 		trustedProxy,
 	});

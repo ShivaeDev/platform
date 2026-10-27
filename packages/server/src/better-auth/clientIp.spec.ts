@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { clientIp, proxyEnvironment } from "#test/better-auth/clientIp.ts";
+import { clientIp, noProxy, proxyEnvironment } from "#test/better-auth/clientIp.ts";
 
 const realIp = proxyEnvironment({ "AUTH_CLIENT_IP_HEADER": "x-real-ip" });
 const untrustedPeer = proxyEnvironment({ "TRUSTED_PROXY": "127.0.0.2" });
@@ -29,10 +29,7 @@ for (const header of [[], [realIp]]) {
 			expect(status).toBe(200);
 			status = yield* signIn({ "x-forwarded-for": "198.51.100.99", "x-real-ip": "203.0.113.10" });
 			expect(status).toBe(200);
-			const sessions = yield* storedSessions();
-			expect(sessions).toEqual([{ ipAddress: expect.toBeOneOf([null, expect.any(String)]) }]);
-			expect(sessions[0]?.ipAddress).not.toBe("198.51.100.99");
-			expect(sessions[0]?.ipAddress).not.toBe("203.0.113.10");
+			expect(yield* storedSessions()).toEqual([{ ipAddress: "127.0.0.1" }]);
 		},
 	);
 }
@@ -50,7 +47,7 @@ clientIp.it("sign-in limits follow X-Real-IP despite changing forged forwarding 
 	expect(status).toBe(200);
 });
 
-clientIp.it("an untrusted peer's forged X-Real-IP values share the sign-in path limit", [realIp, untrustedPeer], function* ({ signUp, signIn }) {
+clientIp.it("an untrusted peer's forged X-Real-IP values share that peer's sign-in limit", [realIp, untrustedPeer], function* ({ signUp, signIn }) {
 	let status = yield* signUp();
 	expect(status).toBe(200);
 	status = yield* signIn({ "x-real-ip": "203.0.113.10" });
@@ -59,4 +56,18 @@ clientIp.it("an untrusted peer's forged X-Real-IP values share the sign-in path 
 	expect(status).toBe(200);
 	status = yield* signIn({ "x-real-ip": "203.0.113.30" });
 	expect(status).toBe(429);
+});
+
+clientIp.it("two peers without a proxy have separate sign-in limits and stored addresses", [noProxy], function* ({ signUp, signIn, storedSessions }) {
+	let status = yield* signUp();
+	expect(status).toBe(200);
+	for (const forged of ["198.51.100.10", "198.51.100.20"]) {
+		status = yield* signIn({ "x-forwarded-for": forged, "x-platform-client-ip": forged });
+		expect(status).toBe(200);
+	}
+	status = yield* signIn({ "x-forwarded-for": "198.51.100.30" });
+	expect(status).toBe(429);
+	status = yield* signIn({ "x-forwarded-for": "198.51.100.30" }, "127.0.0.2");
+	expect(status).toBe(200);
+	expect(yield* storedSessions()).toEqual(expect.arrayContaining([{ ipAddress: "127.0.0.1" }, { ipAddress: "127.0.0.2" }]));
 });
