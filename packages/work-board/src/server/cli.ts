@@ -2,7 +2,10 @@
 import process from "node:process";
 
 const action = process.argv[2];
-if (action === "migrate") {
+if (action === "archive") {
+	const entry = await import("#server/archive/run.ts");
+	entry.runArchive();
+} else if (action === "migrate") {
 	const entry = await import("#server/migration/runMigrate.ts");
 	entry.runMigrate();
 } else if (action === "mcp") {

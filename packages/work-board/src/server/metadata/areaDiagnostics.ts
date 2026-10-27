@@ -11,7 +11,10 @@ function isAreaPath(area: string) {
 	);
 }
 
-export const areaDiagnostics = Effect.fn("WorkBoard.areaDiagnostics")(function* (root: string, parsed: ParsedMetadata) {
+export const areaDiagnostics = Effect.fn("WorkBoard.areaDiagnostics")(function* (root: string, parsed: ParsedMetadata, file = "") {
+	if (parsed.fields.status === "done" || parsed.fields.status === "dropped" || file.startsWith("archive/")) {
+		return [];
+	}
 	const areas = parsed.fields.areas?.filter((area) => area !== "*") ?? [];
 	if (areas.length === 0) {
 		return [];

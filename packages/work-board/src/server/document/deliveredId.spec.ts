@@ -28,3 +28,25 @@ boardStory.it(
 		expect(readFileSync(`${notes.root}/new.md`, "utf8")).toBe(SOURCE);
 	},
 );
+
+for (const status of ["done", "dropped"]) {
+	boardStory.it(
+		`a ${status} brief keeps historical areas and identity quiet without asking Fleet`,
+		[projectFiles({ "archive/old.md": SOURCE.replace("fleet: approved", `status: ${status}\nareas: [removed-package]`) }), deferredServing],
+		function* ({ start, readDocument }) {
+			const requested: string[] = [];
+			const daemon = yield* rawDiagnosticsDaemon(
+				() => ({}),
+				0,
+				undefined,
+				(id) => {
+					requested.push(id);
+					return "The original task path was delivered.";
+				},
+			);
+			yield* start({ fleetPort: daemon.port });
+			expect((yield* readDocument("archive/old.md")).diagnostics).toEqual([]);
+			expect(requested).toEqual([]);
+		},
+	);
+}
