@@ -5,7 +5,7 @@ import { engine } from "#test/engineStory.ts";
 import { workerTurnDisappears } from "#test/engineTurnTraits.ts";
 import { QUESTION } from "#test/workerQuestion.ts";
 
-for (const status of ["done", "dropped", "deferred", "dropped"]) {
+for (const status of ["done", "dropped", "deferred"]) {
 	for (const lostAcknowledgement of [false, true]) {
 		engine.it(
 			`a legacy lost turn with ${lostAcknowledgement ? "a missing" : "a recorded"} receipt releases when its Board status is ${status}`,
@@ -26,10 +26,13 @@ for (const status of ["done", "dropped", "deferred", "dropped"]) {
 				yield* restart();
 				const released = yield* fleet.reconcile("one");
 				expect(released.value.step).toBe("released");
-				expect(released.value.releaseReason).toBe(`Board status is ${status}`);
+				expect(released.value.releaseReason).toBe(
+					status === "dropped" ? "Work cancelled because Board status is dropped." : `Board status is ${status}`,
+				);
 				expect(released.value.outcome).toBeUndefined();
 				expect(released.value.decision).toBeUndefined();
-				expect(released.value.supersededDecisions).toMatchObject([{ boardAcknowledged: true, published: waiting.value.decision?.published }]);
+				expect(released.value.supersededDecisions).toHaveLength(status === "dropped" ? 2 : 1);
+				expect(released.value.supersededDecisions?.[0]).toMatchObject({ boardAcknowledged: true, published: waiting.value.decision?.published });
 				expect(executing(released.value)).toBe(false);
 				expect(released.value.attempts[0]).toMatchObject({ sessionUnusable: true, status: "failed" });
 				expect(released.value.attempts[0]?.receipt).toEqual(waiting.value.attempts[0]?.receipt);

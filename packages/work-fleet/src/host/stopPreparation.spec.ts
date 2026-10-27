@@ -1,15 +1,15 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { delayedRefresh } from "#test/hostCommandDelaysTraits.ts";
-import { approvedWork, host } from "#test/hostStory.ts";
+import { approvedWork, host, storedWork } from "#test/hostStory.ts";
 
 host.it("stop cancels a preparing dispatch before a worker or Fleet record exists", [approvedWork(["one"]), delayedRefresh()], function* (daemon) {
 	yield* daemon.request("daemon.dispatch", { workId: "one" });
 	yield* daemon.awaitDelay();
-	expect(yield* daemon.cli(["stop", "one"], { selection: "port" })).toEqual({
-		code: 0,
-		stderr: "",
-		stdout: "one released: Work cancelled by orchestrator.",
+	expect(yield* daemon.request("daemon.stop", { workId: "one" })).toEqual({
+		releaseReason: "Work cancelled by orchestrator.",
+		stage: "released",
+		workId: "one",
 	});
 	expect(yield* daemon.request("daemon.dispatch-status", { workId: "one" })).toMatchObject({ status: "cancelled" });
 	expect(daemon.readBoard(`responses/${daemon.responseFiles().at(-1)}`)).toContain("Work cancelled by orchestrator.");
@@ -33,3 +33,20 @@ host.it("dropping a brief cancels its preparing dispatch without waiting for mai
 	);
 	expect(daemon.providerLaunches()).toEqual([]);
 });
+
+host.it(
+	"stop cancels a new preparation after an earlier run was released",
+	[approvedWork(["one"]), storedWork("one", "released"), delayedRefresh()],
+	function* (daemon) {
+		yield* daemon.request("daemon.dispatch", { workId: "one" });
+		yield* daemon.awaitDelay();
+		expect(yield* daemon.request("daemon.stop", { workId: "one" })).toMatchObject({
+			releaseReason: "Work cancelled by orchestrator.",
+			stage: "released",
+		});
+		expect(yield* daemon.request("daemon.dispatch-status", { workId: "one" })).toMatchObject({ status: "cancelled" });
+		yield* daemon.releaseDelay();
+		yield* daemon.schedulerPass();
+		expect(daemon.providerLaunches()).toEqual([]);
+	},
+);

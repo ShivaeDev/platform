@@ -1,5 +1,5 @@
 import { relative } from "node:path";
-import { Cause, Effect, Fiber, Stream } from "effect";
+import { Cause, Effect, Fiber, PubSub, Stream } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import type { DispatchRequest } from "#DispatchRequest.ts";
@@ -48,24 +48,28 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 		);
 		running.set(request.id, { fiber, request, sourcePath: source.sourcePath });
 	});
-	const changes = yield* boardApi.watchChanges(host.boardDir);
-	yield* Stream.fromPubSub(changes.events).pipe(
-		Stream.runForEach((change) =>
-			Effect.forEach([...running.values()], (active) => {
-				if (change._tag === "Changed" && !change.paths.includes(relative(changes.realRoot, active.sourcePath))) {
-					return Effect.void;
-				}
-				return board.get(active.request.workId, { fresh: true }).pipe(
-					Effect.flatMap((work) => {
-						active.sourcePath = work.sourcePath;
-						return work.status === "dropped" ? stop(work.workId, "Work cancelled because Board status is dropped.").pipe(Effect.asVoid) : Effect.void;
-					}),
-					Effect.catchCause(Effect.logError),
-				);
-			}),
-		),
-		Effect.forkIn(scope),
-	);
+	function observeDropped(realRoot: string, paths?: readonly string[]) {
+		return Effect.forEach([...running.values()], (active) => {
+			if (paths !== undefined && !paths.includes(relative(realRoot, active.sourcePath))) {
+				return Effect.void;
+			}
+			return board.get(active.request.workId, { fresh: true }).pipe(
+				Effect.flatMap((work) => {
+					active.sourcePath = work.sourcePath;
+					return work.status === "dropped" ? stop(work.workId, "Work cancelled because Board status is dropped.").pipe(Effect.asVoid) : Effect.void;
+				}),
+				Effect.catchCause(Effect.logError),
+			);
+		});
+	}
+	yield* Effect.gen(function* () {
+		const changes = yield* boardApi.watchChanges(host.boardDir);
+		const events = yield* PubSub.subscribe(changes.events);
+		yield* observeDropped(changes.realRoot);
+		yield* Stream.fromSubscription(events).pipe(
+			Stream.runForEach((change) => observeDropped(changes.realRoot, change._tag === "Changed" ? change.paths : undefined)),
+		);
+	}).pipe(Effect.forkIn(scope));
 	for (const request of yield* store.list()) {
 		if (request.status === "pending") {
 			yield* start(request);

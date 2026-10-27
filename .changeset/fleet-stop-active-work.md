@@ -9,5 +9,5 @@
 
 ### Breaking
 
-- `Fleet.stop` now completes cancellation and returns released work. Use its result directly instead of resolving a separate release response.
+- `Fleet.stop` now completes cancellation and returns released work. Use its result directly instead of resolving a separate release response. Custom Board gateways implement `respond` to persist its closing response.
 - The `daemon.stop` response can be a released preparation summary when a dispatch was stopped before its Fleet record existed. Clients must use the shared `workId`, `stage` and `releaseReason` fields, and query `fleet.get` separately when they need a prepared record. Dispatch status also includes `cancelled`.

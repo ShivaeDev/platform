@@ -21,7 +21,7 @@ export const interruptWork = Effect.fn("Fleet.interruptWork")(function* (state: 
 	}).pipe(Effect.timeout("5 seconds"), Effect.result);
 	return {
 		...(interrupted._tag === "Success"
-			? { status: "interrupted" as const, terminalReceipts: interrupted.success }
+			? { status: interrupted.success.length === 0 ? ("failed" as const) : ("interrupted" as const), terminalReceipts: interrupted.success }
 			: { abandoned: { at: state.policy.now(), interruptError: interrupted.failure.message }, status: "failed" as const }),
 		output: undefined,
 		sessionUnusable: true,

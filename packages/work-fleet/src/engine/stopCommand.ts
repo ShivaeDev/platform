@@ -82,8 +82,8 @@ export const reconcileStop = Effect.fn("Fleet.reconcileStop")(function* (state: 
 	if (["done", "released"].includes(stored.value.step)) {
 		return stored;
 	}
-	const work = yield* state.board.get(stored.value.workId);
-	return work.status === "dropped" || stored.value.releaseReason?.startsWith(STOP_REASON)
+	const work = yield* state.board.get(stored.value.workId).pipe(Effect.result);
+	return (work._tag === "Success" && work.success.status === "dropped") || stored.value.releaseReason?.startsWith(STOP_REASON)
 		? yield* stopWork(state, stored, `${STOP_REASON} because Board status is dropped.`)
 		: stored;
 });

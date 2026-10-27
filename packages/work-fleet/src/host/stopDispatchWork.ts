@@ -9,12 +9,11 @@ import { BoardFailure, BoardGateway, FleetIntegrations } from "#policy.ts";
 export function stopDispatchWork<E>(cancel: (workId: string, reason: string) => Effect.Effect<DispatchRequest | undefined, E>) {
 	return Effect.fn("FleetDaemon.stopWork")(function* (workId: string, reason = `${STOP_REASON} by orchestrator.`) {
 		const fleet = yield* Fleet;
-		const before = yield* fleet.get(workId).pipe(Effect.catchTag("NotFound", () => Effect.succeed(undefined)));
-		if (before !== undefined && ["done", "released"].includes(before.value.step)) {
-			return (yield* fleet.stop(workId)).value;
-		}
 		const request = yield* cancel(workId, reason);
 		const current = yield* fleet.get(workId).pipe(Effect.catchTag("NotFound", () => Effect.succeed(undefined)));
+		if (request?.status === "pending" && (current === undefined || ["done", "released"].includes(current.value.step))) {
+			return yield* closePreparation(workId, request.id, reason);
+		}
 		if (current !== undefined || request === undefined) {
 			return (yield* fleet.stop(workId)).value;
 		}
