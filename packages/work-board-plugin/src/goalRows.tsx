@@ -11,16 +11,14 @@ const BAR_HEIGHT = 6;
 const BAR_CELLS = 16;
 
 export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): RenderElement {
-	const { Box, Text } = t;
+	const { Box, Text, Button } = t;
 	const countWidth = Math.max(1, ...goals.map((goal) => countLabel(goal).length));
 	const titleRoom = view.columns - BAR_CELLS - countWidth - 2;
+	const achieved = goals.filter((goal) => goal.achieved);
 	const drawn = view.surface !== "terminal" && "Svg" in t ? t : null;
 	return (
 		<Box flexDirection="column">
-			{goalOrder(goals).map((goal) => {
-				const open = !goal.achieved;
-				return goalRow(t, goal, { countWidth, drawn, open, titleRoom });
-			})}
+			{goalOrder(goals.filter((goal) => !goal.achieved)).map((goal) => goalRow(t, goal, { countWidth, drawn, open: true, titleRoom }))}
 			<Text size="caption">
 				{states.map((state) => (
 					<Text key={state}>
@@ -29,6 +27,12 @@ export function goalRows(t: Table, goals: WorkboardGoal[], view: PaneView): Rend
 					</Text>
 				))}
 			</Text>
+			{achieved.length > 0 && (
+				<Box flexDirection="column">
+					<Button label={`${view.achievedOpen ? "▾" : "▸"} Achieved (${achieved.length})`} onPress={view.onToggleAchieved} plain />
+					{view.achievedOpen ? goalOrder(achieved).map((goal) => goalRow(t, goal, { countWidth, drawn, open: false, titleRoom })) : null}
+				</Box>
+			)}
 		</Box>
 	);
 }

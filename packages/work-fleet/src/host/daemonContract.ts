@@ -9,6 +9,7 @@ import { DaemonStatus } from "#host/configSettings.ts";
 import { WatchSnapshot } from "#host/watchState.ts";
 import { FleetRecord } from "#model.ts";
 import { FleetContract, fleetRecords } from "#operations.ts";
+import { StoppedPreparation } from "#StoppedPreparation.ts";
 
 const { DAEMON_RPC_PATH, DiagnosticsContract } = diagnosticsApi;
 
@@ -42,7 +43,7 @@ export const ClientContract = contract("daemon", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],
 			payload: { workId: Schema.String },
 			rejections: fleetRejections,
-			success: FleetRecord,
+			success: Schema.Union([FleetRecord, StoppedPreparation]),
 		}),
 		command("answer", {
 			invalidates: ({ workId }) => [fleetRecords.list, fleetRecords.item(workId)],

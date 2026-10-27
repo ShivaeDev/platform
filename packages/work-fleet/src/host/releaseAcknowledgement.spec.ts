@@ -33,7 +33,7 @@ answers.it("release confirms during a blocked launch and applies its accepted re
 
 answers.it("release reports refusal for running work or an unrecorded request", [], function* (host) {
 	yield* host.dispatch();
-	expect((yield* host.cliRelease("one")).code).toBe(1);
+	expect(yield* host.cliRelease("one")).toMatchObject({ code: 1, stderr: expect.stringContaining("work-fleet stop one") });
 	yield* host.question();
 	yield* host.failRecording(true);
 	expect((yield* host.cliRelease("one")).code).toBe(1);

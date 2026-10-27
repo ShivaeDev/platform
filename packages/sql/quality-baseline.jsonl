@@ -15,7 +15,6 @@
 {"path":"packages/sql/src/migrations.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/pinnedGroups.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/sql/src/postgresBatchValidation.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/sql/src/postgresConstraints.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/postgresLatestPerGroup.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/sql/src/postgresListenerCleanup.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/repository.ts","rule":"effect/service-parameters","count":4}
@@ -25,6 +24,7 @@
 {"path":"packages/sql/src/repositoryWrites.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/repositoryWrites.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/sql/src/tupleIn.ts","rule":"effect/service-parameters","count":3}
+{"path":"packages/sql/src/upsertResult.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/sql/src/versionedRepository.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/sql/src/versionedStatements.ts","rule":"effect/boundary","count":2}
 {"path":"packages/sql/src/versionedStatements.ts","rule":"effect/service-parameters","count":2}

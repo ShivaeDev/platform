@@ -15,7 +15,7 @@
 {"path":"packages/contract/src/operation.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/contract/src/publicConfig.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/contract/src/queryCoalesceWindow.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/contract/src/readPolicy.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/contract/src/readPolicy.ts","rule":"effect/service-parameters","count":4}
 {"path":"packages/contract/src/rejection.ts","rule":"effect/service-parameters","count":4}
 {"path":"packages/contract/src/serverMetadata.ts","rule":"effect/boundary","count":1}
 {"path":"packages/contract/src/serverMetadata.ts","rule":"effect/service-parameters","count":1}

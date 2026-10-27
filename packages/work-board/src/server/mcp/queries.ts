@@ -25,14 +25,14 @@ export const needsYou = Effect.fn("BoardMcp.needsYou")(function* (client: BoardC
 });
 
 export const overview = Effect.fn("BoardMcp.overview")(function* (client: BoardClient) {
-	const { fleet, goals, needs } = yield* Effect.all(
+	const { needs, snapshot } = yield* Effect.all(
 		{
-			fleet: client("work-board.fleetItems", undefined),
-			goals: client("work-board.goals", undefined),
 			needs: needsYou(client),
+			snapshot: client("work-board.overview", undefined),
 		},
 		{ concurrency: "unbounded" },
 	);
+	const { fleet, goals } = snapshot;
 	return {
 		fleet: fleet.state === "ready" ? { items: fleet.items, state: fleet.state } : fleet,
 		goals: { closedGoals: goals.closedGoals, deferredGoals: goals.deferredGoals, goals: goals.goals },

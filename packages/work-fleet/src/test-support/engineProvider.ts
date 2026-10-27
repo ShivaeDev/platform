@@ -1,24 +1,9 @@
 import { Effect, Layer } from "effect";
 import { type LaunchSettings, SessionFailure, type SessionObservation, type SessionReceipt, type StartSession } from "#session/schema.ts";
 import { SessionTransport } from "#session/service.ts";
+import { acceptTurn } from "#test/acceptTurn.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
 import { reviewerObservation } from "#test/reviewerObservation.ts";
-
-const acceptTurn = Effect.fnUntraced(function* (options: EngineOptions, turns: number) {
-	const failure = options.submissionFailure?.("turn");
-	if (failure !== undefined) {
-		return yield* Effect.fail(failure);
-	}
-	if (turns === 2 && options.continuationGate !== undefined) {
-		yield* options.continuationGate;
-	}
-	if (options.rejectTurn) {
-		return yield* Effect.fail(new SessionFailure({ message: "Provider rejected turn before acceptance", reason: "rejected" }));
-	}
-	if (options.unavailableTurn) {
-		return yield* Effect.fail(new SessionFailure({ message: "Provider unavailable after session acknowledgement", reason: "unavailable" }));
-	}
-});
 
 export function engineProvider(options: EngineOptions, reviews: string[]) {
 	const launched: string[] = [];
@@ -27,6 +12,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	let reviewFailed = false;
 	let reviewLost = options.lostReviewAcknowledgement ?? false;
 	const archived: string[] = [];
+	const interrupted: SessionReceipt[] = [];
 	let archiveFailed = false;
 	const settings: { readonly call: "session" | "turn"; readonly operationId: string; readonly settings: LaunchSettings | undefined }[] = [];
 	const observations = new Map<string, SessionObservation>();
@@ -58,7 +44,16 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 				}
 				archived.push(sessionId);
 			}),
-		interrupt: (receipt) => Effect.succeed(receipt),
+		interrupt: (receipt) =>
+			Effect.gen(function* () {
+				interrupted.push(receipt);
+				yield* options.interruptGate ?? Effect.void;
+				const observation = observations.get(receipt.turnId);
+				if (observation !== undefined) {
+					observations.set(receipt.turnId, { ...observation, execution: "interrupted" });
+				}
+				return receipt;
+			}),
 		observe: (receipt) =>
 			Effect.gen(function* () {
 				if (reviewers.has(receipt.turnId)) {
@@ -127,6 +122,7 @@ export function engineProvider(options: EngineOptions, reviews: string[]) {
 	return {
 		archived,
 		failedObservations,
+		interrupted,
 		launched,
 		loseAcknowledgement: () => {
 			lost = true;

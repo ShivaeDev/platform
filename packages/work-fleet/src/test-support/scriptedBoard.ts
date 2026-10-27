@@ -71,6 +71,15 @@ export function scriptedBoard(options: EngineOptions, decisions: string[], getWo
 						workRevision: work.revision,
 					})
 				: Effect.fail(new BoardFailure({ message: "Use a Markdown Board to record reports" })),
+		respond: (decision, action, body) =>
+			Effect.sync(() => {
+				const id = respond(decision.id, action);
+				const response = responses.get(decision.published.questionId);
+				if (response !== undefined) {
+					responses.set(decision.published.questionId, { ...response, body: body ?? response.body });
+				}
+				return id;
+			}),
 	});
 	function respond(decisionId: string, action: "retry" | "release", type: "answer" | "clarify" | "not_now" = "answer") {
 		const receipt = publications.get(decisionId);

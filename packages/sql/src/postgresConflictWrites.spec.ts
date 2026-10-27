@@ -20,8 +20,8 @@ postgres.it(
 					expect(original).toMatchObject({ id: 1 });
 					expect(yield* accounts.insertOrIgnore({ ...input, amount: 99 })).toEqual(Option.none());
 					const updated = yield* accounts.upsert({ ...input, amount: 60, origin: "changed" }, { updateColumns: ["amount"] });
-					expect(updated).toEqual({ ...original, amount: 60 });
-					expect(yield* accounts.findById(original.id)).toEqual(updated);
+					expect(updated).toEqual({ inserted: false, row: { ...original, amount: 60 } });
+					expect(yield* accounts.findById(original.id)).toEqual(updated.row);
 					expect(yield* sql`select "externalKey", amount from ${sql(tableName)}`).toEqual([{ amount: "60", externalKey: "prefix:one" }]);
 					const unique = yield* transaction(accounts.insertOrIgnore({ ...input, externalKey: "two" })).pipe(Effect.flip);
 					expect(unique).toMatchObject({ _tag: "SqlError", reason: { _tag: "UniqueViolation" } });
@@ -41,7 +41,7 @@ postgres.it(
 					const conflictColumns: readonly ["externalKey"] = JSON.parse('["missing"]');
 					const invalid = yield* makeRepository(Account, { conflictColumns, idColumn: "id", spanPrefix: "Invalid", tableName });
 					expect(yield* invalid.insertOrIgnore(input).pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
-					expect(yield* accounts.findMany()).toEqual([updated]);
+					expect(yield* accounts.findMany()).toEqual([updated.row]);
 				}),
 			);
 		}).pipe(Effect.provideService(Prefix, "prefix:"));

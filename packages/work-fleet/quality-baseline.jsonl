@@ -8,6 +8,7 @@
 {"path":"packages/work-fleet/src/board/migrationDecision.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/publicationFailure.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/board/readPass.ts","rule":"effect/service-parameters","count":4}
+{"path":"packages/work-fleet/src/board/recordDecisionResponse.ts","rule":"effect/service-parameters","count":4}
 {"path":"packages/work-fleet/src/board/reportContent.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/board/reportFiles.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/board/reportIdentity.ts","rule":"effect/service-parameters","count":1}
@@ -57,6 +58,7 @@
 {"path":"packages/work-fleet/src/engine/guardLostTurn.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/inspectRenewal.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/integrationReadRetry.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-fleet/src/engine/interruptWork.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/invalidPriorReview.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/launchInput.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/launchObservationRetries.ts","rule":"effect/service-parameters","count":1}
@@ -134,7 +136,8 @@
 {"path":"packages/work-fleet/src/engine/settleReleasedWork.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/work-fleet/src/engine/stableBlockers.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/engine/steerBrief.ts","rule":"effect/service-parameters","count":5}
-{"path":"packages/work-fleet/src/engine/stopCommand.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/engine/stopCommand.ts","rule":"effect/service-parameters","count":5}
+{"path":"packages/work-fleet/src/engine/stopWork.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/engine/submissionFailure.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-fleet/src/engine/submitLaunch.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/sweepPriority.spec.ts","rule":"effect/boundary","count":2}

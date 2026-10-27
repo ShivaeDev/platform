@@ -37,7 +37,9 @@ export const boardTools = storyKit({
 
 export function boardAnswers(answers: Readonly<Record<string, unknown>>) {
 	return boardTools.trait("answers", "the Board answers its read-only queries", (engine) => {
-		Object.assign(engine.answers, answers);
+		Object.assign(engine.answers, answers, {
+			"work-board.overview": { fleet: answers["work-board.fleetItems"], goals: answers["work-board.goals"] },
+		});
 	});
 }
 

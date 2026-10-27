@@ -42,7 +42,7 @@ postgres.it(
 				{ updateColumns: ["parent"] },
 			)
 			.pipe(Effect.provideContext(binding));
-		expect(updated.map(({ id, parent }) => ({ id, parent }))).toEqual(inputs.map(({ id }) => ({ id, parent: 0 })));
+		expect(updated.map(({ row: { id, parent } }) => ({ id, parent }))).toEqual(inputs.map(({ id }) => ({ id, parent: 0 })));
 		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:*`]])));
 	},
 );

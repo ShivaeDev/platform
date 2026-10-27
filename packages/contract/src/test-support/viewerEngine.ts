@@ -1,4 +1,4 @@
-import { Context, type Duration, Effect, Layer, Ref, Schema } from "effect";
+import { Context, type Duration, Effect, Layer, Option, Ref, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
 import { contract } from "#contract.ts";
@@ -42,7 +42,7 @@ export const viewerEngine = Effect.gen(function* () {
 			? Effect.fail(new Denied())
 			: Ref.get(memoWindow).pipe(
 					Effect.flatMap((window) =>
-						authorizeReads(effect, request, canRead, Effect.fail(new Denied())).pipe(
+						authorizeReads(effect, request, canRead, Option.some(viewer), Effect.fail(new Denied())).pipe(
 							Effect.provideService(ReadPolicyMemoWindow, window),
 							Effect.provideService(Session, viewer),
 						),

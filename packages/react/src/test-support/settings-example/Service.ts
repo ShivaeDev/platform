@@ -53,7 +53,7 @@ export const SettingsService = defineService({
 					});
 				}
 				const repository = yield* SettingsRepository;
-				const saved = yield* repository.upsert(input, {
+				const { row: saved } = yield* repository.upsert(input, {
 					updateColumns: ["title", "pageSize"],
 				});
 				yield* invalidateOnCommit(invalidationKeys(SaveSettings.invalidates(input, saved)));

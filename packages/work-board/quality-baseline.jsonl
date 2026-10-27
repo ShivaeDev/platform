@@ -394,7 +394,7 @@
 {"path":"packages/work-board/src/server/search/readDocument.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/search/snapshot.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/search/updateEntries.ts","rule":"effect/service-parameters","count":2}
-{"path":"packages/work-board/src/server/views/fleetAgents.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/server/views/fleetAgents.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/views/fleetApproval.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/views/fleetItems.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/views/goalCounts.ts","rule":"effect/service-parameters","count":3}

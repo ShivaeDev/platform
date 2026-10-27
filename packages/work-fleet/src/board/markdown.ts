@@ -11,6 +11,7 @@ import { fleetApproved, fleetDeliverable, fleetPriority } from "#board/fleetFiel
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { recordBoardSource, workMetadata } from "#board/readPass.ts";
+import { recordDecisionResponse } from "#board/recordDecisionResponse.ts";
 import { upgradeDecisionClosure } from "#board/upgradeDecisionClosure.ts";
 import { workRevision } from "#board/workRevision.ts";
 import { writeCompletion } from "#board/writeCompletion.ts";
@@ -107,6 +108,7 @@ const MarkdownBoard = defineService({
 			get,
 			readDecision: decisionReading(documents),
 			report: publishReport(root, realRoot, documents),
+			respond: recordDecisionResponse(root, realRoot, documents),
 		}),
 	}),
 	requires: [BoardRoot, FileSystem.FileSystem, Path.Path],

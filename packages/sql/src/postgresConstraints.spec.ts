@@ -1,32 +1,47 @@
-import { Effect, Result } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
-import { namedUniqueViolation } from "#test/constrainedItems.ts";
 import { hasConstrainedItems } from "#test/repositoryTraits.ts";
 import { postgres } from "#test/sqlStory.ts";
-import { transaction } from "#test/transaction.ts";
 
 postgres.it(
-	"known unique constraints become domain failures after rollback; other SQL failures remain intact",
+	"a named unique violation becomes a domain error after all writes roll back",
 	[hasConstrainedItems()],
-	function* ({ constrainedItems }) {
-		const { items, unique } = constrainedItems();
+	function* ({ constrainedItems, transact }) {
+		const { items, onSqlError } = constrainedItems();
 		yield* items.insert({ name: "Original", quantity: 1 });
-		const duplicateProgram = Effect.gen(function* () {
+		const duplicate = yield* Effect.gen(function* () {
 			yield* items.insert({ name: "Must roll back", quantity: 2 });
 			return yield* items.insert({ name: "Original", quantity: 3 });
-		});
-		const duplicate = yield* transaction(duplicateProgram).pipe(Effect.catchTag("SqlError", namedUniqueViolation(unique)), Effect.result);
-		expect(Result.isFailure(duplicate) && duplicate.failure._tag).toBe("NameTaken");
+		}).pipe(transact({ onSqlError }), Effect.flip);
+		expect(duplicate._tag).toBe("NameTaken");
 		expect(yield* items.findMany({ select: ["name", "quantity"] })).toEqual([{ name: "Original", quantity: 1 }]);
-		const invalid = yield* transaction(items.insert({ name: "Invalid", quantity: -1 })).pipe(
-			Effect.catchTag("SqlError", namedUniqueViolation(unique)),
-			Effect.result,
-		);
-		if (!Result.isFailure(invalid) || invalid.failure._tag !== "SqlError") {
-			throw new Error("Expected the original SQL failure");
-		}
-		expect(invalid.failure.reason._tag).toBe("ConstraintError");
-		expect(invalid.failure.isRetryable).toBe(false);
-		expect(yield* items.findMany({ select: ["name"] })).toEqual([{ name: "Original" }]);
+	},
+);
+
+postgres.it(
+	"named foreign-key and check violations map to distinct domain errors",
+	[hasConstrainedItems()],
+	function* ({ constrainedItems, transact }) {
+		const { items, onSqlError } = constrainedItems();
+		const foreign = yield* items.insert({ name: "Orphan", parentId: -1, quantity: 1 }).pipe(transact({ onSqlError }), Effect.flip);
+		const check = yield* items.insert({ name: "Invalid", quantity: -1 }).pipe(transact({ onSqlError }), Effect.flip);
+		expect(foreign._tag).toBe("ParentMissing");
+		expect(check._tag).toBe("InvalidQuantity");
+		expect(yield* items.findMany()).toEqual([]);
+	},
+);
+
+postgres.it(
+	"plain Effect pipelines map SQL failures and send other constraints to the fallback",
+	[hasConstrainedItems()],
+	function* ({ constrainedItems, sql }) {
+		const { items, onSqlError, tableName } = constrainedItems();
+		const check = yield* sql`insert into ${sql(tableName)} (name, quantity) values ('Invalid', -1)`.pipe(Effect.mapError(onSqlError), Effect.flip);
+		const notNull = yield* sql`insert into ${sql(tableName)} (name) values ('Missing quantity')`.pipe(Effect.mapError(onSqlError), Effect.flip);
+		const syntax = yield* sql`select nonexistent_column from ${sql(tableName)}`.pipe(Effect.mapError(onSqlError), Effect.flip);
+		expect(check._tag).toBe("InvalidQuantity");
+		expect(notNull._tag).toBe("StorageUnavailable");
+		expect(syntax._tag).toBe("StorageUnavailable");
+		expect(yield* items.findMany()).toEqual([]);
 	},
 );

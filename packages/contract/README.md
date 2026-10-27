@@ -448,21 +448,62 @@ Call the release functions and dispose the registry when the application's root 
 
 Import `makeLiveServer` from `@shivaedev/contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.
 
-For viewer-scoped hints, call `authorizeReads` once in the application's native authorization middleware, after resolving the session:
+Declare each module's collection policies beside its contract. A policy receives `(key, viewer)`, where `viewer` is an `Option` containing the resolved identity, or `None` for an anonymous caller. Merge the modules once; a collection absent from every policy map is denied. Collection names have one owning module.
 
 ```ts
-import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
+import { Effect, Option } from "effect";
+import { mergeReadPolicies, type ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
+import type { IdentityValue } from "@shivaedev/identity/identity.ts";
 
-const guard = Layer.succeed(Guard, (effect, request) =>
-  Effect.flatMap(resolveSession(request.headers), (session) =>
-    authorizeReads(effect, request, (key) => canRead(session, key), Effect.fail(new Denied())).pipe(
-      Effect.provideService(Session, session),
-    ),
+export const spacesReadPolicies = {
+  [mySpaces.name]: (key, viewer) => Effect.succeed(
+    key._tag === "Item" && Option.isSome(viewer) && key.id === viewer.value.id,
   ),
-);
+} satisfies ModuleReadPolicies<IdentityValue>;
+
+const modules = [documentsRegistration, spacesRegistration];
+const readPolicy = mergeReadPolicies(...modules.map((module) => module.readPolicies));
+const host = appHost({ group, handlers, services, sessions, readPolicy });
 ```
 
-The application supplies `resolveSession`, `canRead` and its middleware's `Denied` failure. Apply this middleware to the contract, including its reserved change stream. The policy returns `Effect<boolean, PolicyError, PolicyServices>` for a key. `authorizeReads` checks every declared query read key before running its handler and supplies the same policy to `makeLiveServer` streams, with the request's Effect context. Queries need no additional authorization declaration. A `false` returns the supplied denial; a failed policy returns its original typed error. Declare policy errors alongside the denial in the native middleware's error schema so they reach the client, for example `error: Schema.Union([Denied, GitHubUnavailable])`.
+The starter carries `readPolicies` on each module registration. The host runs authorization inside the existing native session middleware, so the policy sees that request's identity without another session lookup. Its policy may require services supplied by the host's `services` Layer and may fail with `Forbidden` or `AuthUnavailable`. Policies with other typed failures can use custom native middleware as described below.
+
+A per-viewer read such as “my spaces” keeps the member id in its key: `reads: ({ memberId }) => [mySpaces.item(memberId)]`. Writers publish to that same member key when membership changes; removing the id would break that routing. The policy compares the key's member id with the viewer, and the query selects that member's spaces.
+
+Use native requests for membership checks that many keys share. Create the resolver once for the module's policy, rather than once per key. The application supplies `spaceOf(key)` and `checkMembership(space, viewer)`, which performs its membership lookup and returns `Effect<boolean, AuthUnavailable>`:
+
+```ts
+import { Effect, Exit, Option, Request, RequestResolver } from "effect";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
+import type { IdentityValue } from "@shivaedev/identity/identity.ts";
+
+interface Membership extends Request.Request<boolean, AuthUnavailable> {
+  readonly _tag: "Membership";
+  readonly space: string;
+  readonly viewer: string;
+}
+const Membership = Request.tagged<Membership>("Membership");
+const membership = RequestResolver.makeGrouped<Membership, string>({
+  key: ({ request }) => JSON.stringify([request.space, request.viewer]),
+  resolver: (entries) => Effect.gen(function* () {
+    const { space, viewer } = entries[0].request;
+    const allowed = yield* checkMembership(space, viewer);
+    for (const entry of entries) {
+      entry.completeUnsafe(Exit.succeed(allowed));
+    }
+  }),
+});
+export const documentsReadPolicies = {
+  [documents.name]: (key, viewer) => Option.isNone(viewer)
+    ? Effect.succeed(false)
+    : Effect.request(Membership({ space: spaceOf(key), viewer: viewer.value.id }), membership),
+} satisfies ModuleReadPolicies<IdentityValue, AuthUnavailable>;
+```
+
+Query authorization and hint filtering check keys concurrently, allowing N keys in one space to share one resolver call. Ordinary policies returning plain Effects work too; they need no requests or resolvers.
+
+For a custom host, call `authorizeReads(effect, request, policy, viewer, denied)` in native authorization middleware after resolving the session. It checks every declared query read key before running the handler and supplies the same policy to `makeLiveServer` streams, with the request's Effect context. The viewer may be any application-defined type. A `false` returns the supplied denial; a failed policy returns its original typed error. Declare those failures alongside the denial in the middleware's error schema so they reach the client, for example `error: Schema.Union([Denied, GitHubUnavailable])`.
 
 Each changed hint checks its keys against that viewer's policy before delivery and omits denied keys. An empty hint is suppressed. Item and list keys are checked independently: allow a list key when the viewer may read that list, even when a changed item is private to another viewer. The list query still selects its visible rows. Without a supplied `ReadPolicy`, streams keep the default of allowing their subscribed keys; applications own the policy.
 
@@ -473,7 +514,7 @@ Successful boolean results are memoised per subscription stream and key for one 
 ```ts
 import { ReadPolicyMemoWindow } from "@shivaedev/contract/readPolicy.ts";
 
-authorizeReads(effect, request, canRead, Effect.fail(new Denied())).pipe(
+authorizeReads(effect, request, canRead, viewer, Effect.fail(new Denied())).pipe(
   Effect.provideService(ReadPolicyMemoWindow, "100 millis"),
 );
 ```
@@ -505,7 +546,7 @@ Import the module that defines the name; the package has no root entry.
 | `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
-| `readPolicy.ts` | `authorizeReads(effect, request, policy, denied)`; `ReadPolicy`, the request-local fallible key policy used by server hint streams; `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>` controlling each stream's memo duration. |
+| `readPolicy.ts` | `authorizeReads(effect, request, policy, viewer, denied)`; `ReadKeyPolicy` and collection-indexed `ModuleReadPolicies`; `mergeReadPolicies(...modules)`, which denies unclaimed collections; `ReadPolicy`, the request-local fallible key policy used by server hint streams; `ReadPolicyMemoWindow`, a `Context.Reference<Duration.Input>` controlling each stream's memo duration. |
 | `serverMetadata.ts` | `KeyScope`, `QueryReads`, `CommandInvalidation`, `ChangesReads`, `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
 | `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
 | `testing.ts` | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys. |

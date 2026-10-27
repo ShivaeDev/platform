@@ -3,6 +3,20 @@ import type { Rpc } from "effect/rpc";
 import type { Key } from "./keys.ts";
 import { QueryReads } from "./serverMetadata.ts";
 
+export type ReadKeyPolicy<TViewer, E = never, R = never> = (key: Key, viewer: Option.Option<TViewer>) => Effect.Effect<boolean, E, R>;
+
+export type ModuleReadPolicies<TViewer, E = never, R = never> = Readonly<Record<string, ReadKeyPolicy<TViewer, E, R>>>;
+
+export function mergeReadPolicies<TViewer = unknown, E = never, R = never>(
+	...modules: readonly ModuleReadPolicies<TViewer, E, R>[]
+): ReadKeyPolicy<TViewer, E, R> {
+	return (key, viewer) => {
+		const module = modules.find((policies) => Object.hasOwn(policies, key.collection));
+		const policy = module?.[key.collection];
+		return policy === undefined ? Effect.succeed(false) : policy(key, viewer);
+	};
+}
+
 export const ReadPolicy = Context.Reference<(key: Key) => Effect.Effect<boolean, unknown>>("@shivaedev/contract/ReadPolicy", {
 	defaultValue: () => () => Effect.succeed(true),
 });
@@ -11,22 +25,22 @@ export const ReadPolicyMemoWindow = Context.Reference<Duration.Input>("@shivaede
 	defaultValue: () => "1 second",
 });
 
-export const authorizeReads = Effect.fnUntraced(function* <A, E, R, TPolicyServices, TDenied, TPolicyError>(
+export const authorizeReads = Effect.fnUntraced(function* <A, E, R, TViewer, TPolicyServices, TDenied, TPolicyError>(
 	effect: Effect.Effect<A, E, R>,
 	request: { readonly rpc: Rpc.AnyWithProps; readonly payload: unknown },
-	policy: (key: Key) => Effect.Effect<boolean, TPolicyError, TPolicyServices>,
+	policy: ReadKeyPolicy<TViewer, TPolicyError, TPolicyServices>,
+	viewer: Option.Option<TViewer>,
 	denied: Effect.Effect<never, TDenied>,
 ) {
 	const context = yield* Effect.context<TPolicyServices>();
 	function canRead(key: Key) {
-		return Effect.provideContext(policy(key), context);
+		return Effect.provideContext(policy(key, viewer), context);
 	}
 	const reads = Context.getOption(request.rpc.annotations, QueryReads);
 	if (Option.isSome(reads)) {
-		for (const key of reads.value(request.payload)) {
-			if (!(yield* canRead(key))) {
-				return yield* denied;
-			}
+		const allowed = yield* Effect.forEach(reads.value(request.payload), canRead, { concurrency: "unbounded" });
+		if (allowed.includes(false)) {
+			return yield* denied;
 		}
 	}
 	return yield* Effect.provideService(effect, ReadPolicy, canRead);

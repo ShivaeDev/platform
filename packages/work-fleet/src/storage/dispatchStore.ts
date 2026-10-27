@@ -14,7 +14,7 @@ class DispatchRow extends Model.Class<DispatchRow>("FleetDispatch")({
 	"ignore_areas": Schema.NullOr(Schema.Boolean),
 	now: Schema.NullOr(Schema.Boolean),
 	"request_id": Schema.String,
-	status: Schema.Literals(["pending", "completed", "failed"]),
+	status: Schema.Literals(["pending", "completed", "failed", "cancelled"]),
 	"work_id": Schema.String,
 }) {}
 
@@ -62,7 +62,7 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 				if (current?.status === "pending") {
 					return current;
 				}
-				const row = yield* repository.upsert(
+				const { row } = yield* repository.upsert(
 					{
 						"accepted_at": yield* Clock.currentTimeMillis,
 						"completed_at": null,
@@ -79,7 +79,7 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 			}),
 		);
 	});
-	const finish = Effect.fn("FleetDispatch.finish")(function* (request: DispatchRequest, error?: string) {
+	const finish = Effect.fn("FleetDispatch.finish")(function* (request: DispatchRequest, error?: string, status?: "cancelled") {
 		yield* locked(
 			request.workId,
 			Effect.gen(function* () {
@@ -94,7 +94,7 @@ export const dispatchStore = Effect.fn("FleetDispatch.dispatchStore")(function* 
 					"ignore_areas": current.ignoreAreas ?? null,
 					now: current.now ?? null,
 					"request_id": request.id,
-					status: error === undefined ? "completed" : "failed",
+					status: status ?? (error === undefined ? "completed" : "failed"),
 					"work_id": request.workId,
 				});
 			}),

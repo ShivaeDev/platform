@@ -24,7 +24,7 @@ engine.it(
 		expect(providerStarts()).toHaveLength(starts);
 		expect((yield* fleet.get("two")).value).toMatchObject({
 			attempts: [],
-			releaseReason: "Not launched because current Board status is dropped",
+			releaseReason: "Work cancelled because Board status is dropped.",
 			step: "released",
 		});
 		const waiting = views((yield* fleet.list()).map(({ value }) => value)).waiting;
@@ -52,7 +52,7 @@ engine.it(
 		expect(providerStarts()).toHaveLength(starts);
 	},
 );
-for (const status of ["done", "dropped", "deferred", "dropped"]) {
+for (const status of ["done", "dropped", "deferred"]) {
 	engine.it(
 		`launch bypasses the scheduler snapshot when Markdown status becomes ${status} during assessment`,
 		[workClosesDuringAssessment(), markdownWork()],
@@ -64,7 +64,8 @@ for (const status of ["done", "dropped", "deferred", "dropped"]) {
 			yield* schedule();
 			expect((yield* fleet.get("one")).value).toMatchObject({
 				attempts: [],
-				releaseReason: `Not launched because current Board status is ${status}`,
+				releaseReason:
+					status === "dropped" ? "Work cancelled because Board status is dropped." : `Not launched because current Board status is ${status}`,
 				step: "released",
 			});
 			expect(providerStarts()).toEqual([]);

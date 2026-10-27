@@ -2,6 +2,7 @@ import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.t
 import type { GoalCounts } from "#browser/views/GoalsProjection.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
+import { fleetInFlight } from "./fleetAgents.ts";
 import type { Item } from "./items.ts";
 
 export function goalCounts(snapshot: Snapshot, fleet?: FleetItemsProjection) {
@@ -10,14 +11,14 @@ export function goalCounts(snapshot: Snapshot, fleet?: FleetItemsProjection) {
 	function state(item: Item): keyof GoalCounts {
 		const fields = item.document.parsed.fields;
 		const run = runs.get(item.id);
+		if (run && fleetInFlight(run)) {
+			return "running";
+		}
 		if (fields.status === "done") {
 			return "done";
 		}
 		if (waiting.has(item.id) || run?.stage === "waiting") {
 			return "blocked";
-		}
-		if (run?.stage === "working" || run?.stage === "reviewing") {
-			return "running";
 		}
 		if (run?.stage === "done") {
 			return "done";

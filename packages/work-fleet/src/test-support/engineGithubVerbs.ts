@@ -82,6 +82,7 @@ export function engineGithubVerbs(state: EngineStory, tell: (line: string) => vo
 			}
 			return [...state.github.conditionalHits];
 		},
+		githubMutations: () => structuredClone(state.github?.mutations ?? []),
 		githubRecovers: () =>
 			change("GitHub reads recover", () => {
 				state.githubUnavailable = false;

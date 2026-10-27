@@ -7,6 +7,7 @@ import { recoverStall } from "#engine/recoverStall.ts";
 import { recoverUnobservable } from "#engine/recoverUnobservable.ts";
 import { resumeObservedStall } from "#engine/resumeStalled.ts";
 import { retryTerminal } from "#engine/retryTerminal.ts";
+import { STOP_REASON } from "#engine/stopCommand.ts";
 import { type Attempt, executing, type FleetRecord } from "#model.ts";
 import { reportedQuestion } from "#prompt/worker.ts";
 import type { SessionObservation } from "#session/schema.ts";
@@ -30,6 +31,9 @@ export function makeObserve(state: EngineState) {
 		}
 		const receipt = latest.receipt ?? (yield* reconcileAttempt(state)(stored, latest));
 		stored = yield* load(stored.value.workId);
+		if (stored.value.releaseReason?.startsWith(STOP_REASON)) {
+			return stored;
+		}
 		const observation = yield* sessions.observe(receipt);
 		yield* validateReceipt(observation.receipt, receipt);
 		const observedAt = yield* Clock.currentTimeMillis;
@@ -73,7 +77,10 @@ function observationBlocker(record: FleetRecord, attempt: Attempt) {
 }
 
 function observable(record: FleetRecord) {
-	return record.step === "working" || (!["done", "released"].includes(record.step) && executing(record));
+	return (
+		!record.releaseReason?.startsWith(STOP_REASON)
+		&& (record.step === "working" || (!["done", "released"].includes(record.step) && executing(record)))
+	);
 }
 
 function finishObservation(state: EngineState) {

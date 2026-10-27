@@ -35,6 +35,8 @@ npx @shivaedev/work-board .work
 
 Without a `.work` folder, the pane and every tool say the session's folder has no Work Board and how to start one; with a Board that is not running, they say so and name the start command. The band stays hidden until the Board answers. Pressing a Needs you item opens it with `open -g` at the URL the Board says it is served on, so opening items works on macOS.
 
+The pane folds goals with status `done` under an “Achieved (N)” row, closed by default. Click it to show those goals. Open goals stay visible, including goals whose tasks are all done. In flight and goal running counts use the same Board overview snapshot. If Fleet cannot be reached, In flight shows why it is unavailable.
+
 The plugin only reads the Board. Answer decisions in the Board itself or through [`@shivaedev/work-board`](../work-board/README.md).
 
 ### Developing it
@@ -44,4 +46,4 @@ pnpm --filter @shivaedev/work-board-plugin test
 pnpm --filter @shivaedev/work-board-plugin typecheck
 ```
 
-The pane, the band, the toasts, the hooks and the tool registration are not tested automatically. Check them by hand: start Claude Code with `--plugin-dir packages/work-board-plugin`, or list the folder in `CLAUDE_CODE_PLUGIN_DIRS`, in a folder with a running Work Board, then open `/workboard`.
+Pane stories render the element port with React in happy-dom. Check the runtime hooks, band and toasts by hand: start Claude Code with `--plugin-dir packages/work-board-plugin`, or list the folder in `CLAUDE_CODE_PLUGIN_DIRS`, in a folder with a running Work Board, then open `/workboard`.

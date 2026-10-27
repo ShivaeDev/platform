@@ -63,6 +63,57 @@ const Edit = command("edit", {
 
 An item invalidation refreshes that item and its collection list, leaving unrelated item queries alone. Each query reads its own item or list keys. Do not add one broad shared read key to every query: invalidating it refetches every reader. Full reconciliation instead uses the session's explicit `resyncKeys`, listing its item keys and list keys. Invalidating `documents.list` alone does not invalidate separately registered document items. Reconciliation uses exact read keys, without the item-to-list mutation convention. A function in `resyncKeys` can supply a changing session scope.
 
+## Module read policies and viewers
+
+Declare each module's collection policy beside its contract and carry its `readPolicies` in its server registration. The starter's server merges registrations with `mergeReadPolicies(...modules.map((module) => module.readPolicies))` and passes the resulting `readPolicy` to `appHost`. An unclaimed collection is denied. The host runs `authorizeReads` inside its native session middleware: policies receive `(key, viewer)`, with `Option.some({ id })` for the resolved identity or `Option.none()` for an anonymous request. Queries and hint delivery use the same policy.
+
+```ts
+export const spacesReadPolicies = {
+  [mySpaces.name]: (key, viewer) => Effect.succeed(
+    key._tag === "Item" && Option.isSome(viewer) && key.id === viewer.value.id,
+  ),
+} satisfies ModuleReadPolicies<IdentityValue>;
+
+const readPolicy = mergeReadPolicies(documentsReadPolicies, spacesReadPolicies);
+const host = appHost({ group, handlers, services, sessions, readPolicy });
+```
+
+A per-viewer query such as “my spaces” keeps the member id in its read key: `reads: ({ memberId }) => [mySpaces.item(memberId)]`. Writers publish to that member key when membership changes. The policy compares the member id with the viewer; hiding the member id from the key would stop those writer hints from reaching the read.
+
+Membership policies can batch through native Effect requests. In this example the application supplies `spaceOf(key)` and `checkMembership(space, viewer)`, returning `Effect<boolean, AuthUnavailable>`. Keep one resolver for the module's policy:
+
+```ts
+import { Effect, Exit, Option, Request, RequestResolver } from "effect";
+import type { ModuleReadPolicies } from "@shivaedev/contract/readPolicy.ts";
+import { mergeReadPolicies } from "@shivaedev/contract/readPolicy.ts";
+import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import type { IdentityValue } from "@shivaedev/identity/identity.ts";
+
+interface Membership extends Request.Request<boolean, AuthUnavailable> {
+  readonly _tag: "Membership";
+  readonly space: string;
+  readonly viewer: string;
+}
+const Membership = Request.tagged<Membership>("Membership");
+const membership = RequestResolver.makeGrouped<Membership, string>({
+  key: ({ request }) => JSON.stringify([request.space, request.viewer]),
+  resolver: (entries) => Effect.gen(function* () {
+    const { space, viewer } = entries[0].request;
+    const allowed = yield* checkMembership(space, viewer);
+    for (const entry of entries) {
+      entry.completeUnsafe(Exit.succeed(allowed));
+    }
+  }),
+});
+export const documentsReadPolicies = {
+  [documents.name]: (key, viewer) => Option.isNone(viewer)
+    ? Effect.succeed(false)
+    : Effect.request(Membership({ space: spaceOf(key), viewer: viewer.value.id }), membership),
+} satisfies ModuleReadPolicies<IdentityValue, AuthUnavailable>;
+```
+
+Both query authorization and live-hint filtering check keys concurrently, so N keys in one space reach one resolver call. Plain Effect policies keep working unchanged. Hint filtering omits denied keys and suppresses empty hints; it never treats a hint as authoritative data. The [contract read-policy guide](../../packages/contract/README.md#server-hint-streams) covers typed failures and stream memoization. Custom hosts call `authorizeReads(effect, request, policy, viewer, denied)` after resolving their session.
+
 ## Coalescing commits
 
 Changed hints merge their keys over a fixed window that starts at the first hint. The default is 20 ms. Each affected bound query refetches at most once for that window. If a refetch is still in flight, further windows mark it dirty; it refetches once more after settling and reads the newest value. Native atoms continue to own values, query identity and disposal.

@@ -2,8 +2,8 @@ import { spawn } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const DATABASE_GUARD = fileURLToPath(new URL("./clientDatabaseGuard.ts", import.meta.url));
-const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
+const DATABASE_GUARD = fileURLToPath(import.meta.resolve("./clientDatabaseGuard.ts"));
+const CLI = fileURLToPath(import.meta.resolve("../cli.ts"));
 
 export interface CliRun {
 	readonly code: number | null;

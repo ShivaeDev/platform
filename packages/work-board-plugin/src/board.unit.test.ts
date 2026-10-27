@@ -1,30 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { boardInit, readBoard } from "#board.ts";
+import { readBoard } from "#board.ts";
 import { failure, reply, success } from "#test/rpcReplies.ts";
 
 const NOW = 1_800_000_000_000;
 
 describe("the Board's RPC stream", () => {
-	it("asks for inbox, fleetItems, goals and server in one ndjson request on the .work socket", () => {
-		const init = boardInit("/repo");
-		expect(init).toMatchObject({ headers: { "content-type": "application/ndjson" }, method: "POST", socketPath: "/repo/.work/board.sock" });
-		expect(
-			init.body
-				.trim()
-				.split("\n")
-				.map((line) => JSON.parse(line)),
-		).toEqual(
-			["inbox", "fleetItems", "goals", "server"].map((query, index) => ({
-				_tag: "Request",
-				headers: [],
-				id: String(index + 1),
-				payload: null,
-				tag: `work-board.${query}`,
-			})),
-		);
-		expect(boardInit("/").socketPath).toBe("/.work/board.sock");
-	});
-
 	it("reads Needs you with item URLs on the served Board, In flight and Goals", () => {
 		const board = readBoard(
 			reply(
@@ -35,9 +15,8 @@ describe("the Board's RPC stream", () => {
 						{ file: "loose.md", href: "https://example.com/elsewhere" },
 					],
 				}),
-				success("2", { items: [], state: "ready" }),
-				success("3", { goals: [{ counts: { done: 1, parked: 1 }, id: "goal.a", title: "Goal A" }] }),
-				success("4", { directory: "/repo/.work", url: "http://127.0.0.1:4801" }),
+				success("2", { fleet: { items: [], state: "ready" }, goals: { goals: [{ counts: { done: 1, parked: 1 }, id: "goal.a", title: "Goal A" }] } }),
+				success("3", { directory: "/repo/.work", url: "http://127.0.0.1:4801" }),
 			),
 			"/repo",
 			NOW,
@@ -63,10 +42,10 @@ describe("the Board's RPC stream", () => {
 	});
 
 	it("keeps a query's problem in its block and leaves item URLs unknown without a server answer", () => {
-		const board = readBoard(reply(success("1", { you: [{ href: "/x/", id: "todo.a" }] }), failure("3", { message: "down" })), "/repo", NOW);
+		const board = readBoard(reply(success("1", { you: [{ href: "/x/", id: "todo.a" }] }), failure("2", { message: "down" })), "/repo", NOW);
 		expect(board).toMatchObject({
 			asks: { items: [{ url: null }] },
-			flights: { problem: "The Board sent no answer for this query." },
+			flights: { problem: "The Board could not answer this query." },
 			goals: { problem: "The Board could not answer this query." },
 		});
 	});

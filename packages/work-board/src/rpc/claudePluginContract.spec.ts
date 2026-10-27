@@ -72,11 +72,11 @@ boardStory.it(
 				items: [
 					{
 						achieved: false,
-						blocked: 1,
+						blocked: 0,
 						done: 1,
 						id: "project.launch",
 						parked: 0,
-						running: 0,
+						running: 1,
 						scheduled: 0,
 						standing: false,
 						title: "Launch",

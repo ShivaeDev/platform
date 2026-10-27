@@ -38,6 +38,7 @@ export interface EngineOptions {
 	readonly deliveryQuery?: (result: typeof ChangeResult.Type) => Effect.Effect<Delivery | undefined, FleetError>;
 	readonly denyDelivery?: boolean;
 	readonly foreignBacklog?: boolean;
+	readonly interruptGate?: Effect.Effect<void>;
 	readonly launch?: LaunchSettings;
 	readonly lostAcknowledgement?: boolean;
 	readonly lostContinuationAcknowledgement?: boolean;
