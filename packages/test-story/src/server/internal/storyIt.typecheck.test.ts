@@ -76,8 +76,8 @@ storyKit({
 	verbs: () => ({}),
 });
 
-// @ts-expect-error Scoped creation still needs a Layer for an unrelated service.
 storyKit({
+	// @ts-expect-error Scoped creation still needs a Layer for an unrelated service.
 	*create() {
 		yield* Effect.addFinalizer(() => Effect.void);
 		return yield* Missing;
@@ -86,8 +86,8 @@ storyKit({
 	stages: ["built"],
 	verbs: () => ({}),
 });
-// @ts-expect-error Scoped after hooks still need a Layer for an unrelated service.
 storyKit({
+	// @ts-expect-error Scoped after hooks still need a Layer for an unrelated service.
 	after: {
 		*built() {
 			yield* Effect.addFinalizer(() => Effect.void);
@@ -99,8 +99,8 @@ storyKit({
 	stages: ["built"],
 	verbs: () => ({}),
 });
-// @ts-expect-error Scoped run hooks still need a Layer for an unrelated service.
 storyKit({
+	// @ts-expect-error Scoped run hooks still need a Layer for an unrelated service.
 	create: () => ({}),
 	name: "missing run service",
 	run: {
