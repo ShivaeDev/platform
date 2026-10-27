@@ -32,6 +32,19 @@ A **session generation** is the string returned by `identify(session)`. `Session
 
 `useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
 
+### Read the current time
+
+`useNow(interval, runtime?)` from `@shivaedev/react/client/useNow.ts` returns epoch milliseconds from Effect's `Clock` and re-renders at the given interval in milliseconds. Pass the component's atom runtime to use its clock:
+
+```ts
+import { useNow } from "@shivaedev/react/client/useNow.ts";
+
+const now = useNow(60_000, client.runtime);
+const minutesAgo = Math.floor((now - savedAt) / 60_000);
+```
+
+Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
+
 ### 1. Once per application: own the registry
 
 For a screen without a session boundary, wrap it in the native provider:

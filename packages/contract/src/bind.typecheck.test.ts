@@ -1,13 +1,15 @@
 import type { Effect } from "effect";
-import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { mapRequest } from "effect/http/HttpClient";
+import { setHeader, setHeaders } from "effect/http/HttpClientRequest";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
 import type { RpcClient, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
-import { type Bound, bind } from "#bind.ts";
+import { type Bound, bind, makeClient } from "#bind.ts";
 import type { ResumeSource } from "#resume.ts";
-import { Notes } from "#test/notes.ts";
+import { type Note, Notes } from "#test/notes.ts";
 import { Preferences } from "#test/sessionContract.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
@@ -46,3 +48,21 @@ bind(Preferences, scopedClient, { registry, resume });
 bind(Preferences, scopedClient);
 // @ts-expect-error A resume source does not replace the session's registry.
 bind(Preferences, scopedClient, { resume });
+
+const httpClient = makeClient(Notes, {
+	transformClient: (http) => mapRequest(http, setHeaders({ cookie: "session=test", origin: "https://app.test" })),
+	url: "https://app.test/rpc",
+});
+expectTypeOf(httpClient.api.get.run).parameter(0).toEqualTypeOf<{ readonly id: number }>();
+expectTypeOf<Effect.Success<ReturnType<typeof httpClient.api.get.run>>>().toEqualTypeOf<Note>();
+httpClient.runtime.atom(httpClient.api.get.run({ id: 1 }));
+httpClient.runtime.fn(httpClient.api.rename.run);
+makeClient(Notes, {
+	transformClient: (http) => mapRequest(http, setHeader("authorization", "Bearer token")),
+	url: "https://app.test/rpc",
+});
+makeClient(Preferences, { registry: AtomRegistry.make(), url: "https://app.test/rpc" });
+// @ts-expect-error A session-scoped client needs its registry.
+makeClient(Preferences, { url: "https://app.test/rpc" });
+// @ts-expect-error Payload types survive client construction.
+httpClient.api.get.run({ id: "1" });

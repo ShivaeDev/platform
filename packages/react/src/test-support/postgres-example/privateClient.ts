@@ -1,18 +1,19 @@
-import { Context, Effect, Layer, ManagedRuntime, Stream } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { Effect, ManagedRuntime, Stream } from "effect";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { Preferences } from "./privateFeature.ts";
 
 export async function privateClient(url: string, account: "alice" | "bob") {
-	const acquire = RpcClient.make(Preferences, { flatten: true });
-	const Client = Context.Service<Effect.Success<typeof acquire>>("private/Client");
-	const protocol = RpcClient.layerProtocolHttp({
+	const registry = AtomRegistry.make();
+	const connection = makeClient(Preferences, {
+		registry,
 		transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", `Bearer ${account}-session`)),
 		url,
-	}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
-	const runtime = ManagedRuntime.make(Layer.effect(Client, acquire).pipe(Layer.provideMerge(protocol)));
-	const client = await runtime.runPromise(Client);
+	});
+	const runtime = ManagedRuntime.make(connection);
+	const client = await runtime.runPromise(connection.Client);
 	const delivered: Array<{ readonly hint: LiveHint; readonly title: string; readonly list: readonly string[] }> = [];
 	runtime.runFork(
 		client("preferences.$changes", {
@@ -31,7 +32,7 @@ export async function privateClient(url: string, account: "alice" | "bob") {
 		),
 	);
 	return {
-		close: () => runtime.dispose(),
+		close: () => runtime.dispose().finally(() => registry.dispose()),
 		delivered,
 		read: () => runtime.runPromise(client("preferences.self", undefined)),
 		save: (title: string) => runtime.runPromise(client("preferences.save", { title }).pipe(Effect.result)),

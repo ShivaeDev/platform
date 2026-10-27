@@ -94,7 +94,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 			}),
 		"notes.whoami": () => Effect.map(SessionUser, (user) => user),
 	});
-	class Client extends AtomRpc.Service<Client>()("app/NotesClient", {
+	class Client extends AtomRpc.Service<Client>()("notes/Client", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 		protocol: handlers.pipe(Layer.provideMerge(authentication)),

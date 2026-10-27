@@ -25,7 +25,7 @@ const authenticated = Layer.mergeAll(
 
 export function adminClient(retry = false) {
 	const backend = adminBackend();
-	class Client extends AtomRpc.Service<Client>()("app/AdminClient", {
+	class Client extends AtomRpc.Service<Client>()("admin.users/Client", {
 		group: Admin.group,
 		makeEffect: RpcTest.makeClient(Admin.group, { flatten: true }),
 		protocol: Admin.group.toLayer(backend.handlers).pipe(Layer.provideMerge(authenticated)),
@@ -38,7 +38,7 @@ export function adminClient(retry = false) {
 	}
 	const page = jobsPageWithRetry(noteQueue);
 	const registry = adminRegistry(page, StatisticsPage, UsersPage);
-	class RetryClient extends AtomRpc.Service<RetryClient>()("app/AdminClient", {
+	class RetryClient extends AtomRpc.Service<RetryClient>()("admin.users/Client", {
 		group: registry.group,
 		makeEffect: RpcTest.makeClient(registry.group, { flatten: true }),
 		protocol: registry.group.toLayer({ ...backend.handlers, "admin.jobs.retry": backend.retry }).pipe(Layer.provideMerge(authenticated)),

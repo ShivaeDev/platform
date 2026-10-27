@@ -1,10 +1,10 @@
 import { Effect, Layer } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Admin } from "#modules/notes/admin.ts";
+import { Admin, UsersPage } from "#modules/notes/admin.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
@@ -33,12 +33,12 @@ export const adminHost = storyKit({
 		}),
 		openAdmin: Effect.fn("AdminStory.openAdmin")(function* (name = "visitor") {
 			story.tell(`${name} opens the admin RPC`);
-			const protocol = RpcClient.layerProtocolHttp({
+			return yield* makeClient(UsersPage.contract, {
+				group: Admin.group,
 				transformClient: (client) =>
 					HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie: engine.cookies.get(name) ?? "", origin: engine.url })),
 				url: `${engine.url}/rpc`,
-			}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
-			return yield* RpcClient.make(Admin.group).pipe(Effect.provide(protocol));
+			}).client;
 		}),
 		postAuthAdmin: (name: string, operation: string, body: object) =>
 			Effect.promise(async () => {
