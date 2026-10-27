@@ -15,6 +15,7 @@ export interface StoriesRun {
 }
 
 export interface StoryResult {
+	readonly diffs?: readonly (string | undefined)[];
 	readonly errors: readonly string[];
 	readonly name: string;
 	readonly state: string;
@@ -63,6 +64,7 @@ export async function runStories({
 			],
 			stories: testModules.flatMap((module) =>
 				[...module.children.allTests()].map((test) => ({
+					...(test.result().errors?.length ? { diffs: (test.result().errors ?? []).map((error) => error.diff) } : {}),
 					errors: (test.result().errors ?? []).map((error) => error.message),
 					name: test.name,
 					state: test.result().state,

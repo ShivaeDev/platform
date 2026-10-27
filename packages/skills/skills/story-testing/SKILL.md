@@ -34,6 +34,8 @@ A verb performs an action, not a whole scenario that returns the numbers the spe
 
 Good: a verb submits a title, a readout returns the displayed title, and the spec compares it with the requested title. Bad: a “save succeeds” helper runs setup, saves and asserts internally.
 
+After one action, check several outcomes with `outcomes` from `@shivaedev/test-story/server/outcomes.ts`, called in the spec: each row is `label: [readout, expected]`, where the readout is an Effect. Write each label once, beside its observation and expected value. For one outcome, keep a plain `expect` in the spec.
+
 ## Observe the job's result
 
 Never count pg-boss jobs or touch the `pgboss` schema. Queue storage is an implementation detail, and an enqueued job does not prove the work ran. Assert what the jobs did through the application's visible results.
