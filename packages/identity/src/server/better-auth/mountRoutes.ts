@@ -1,9 +1,9 @@
-import { Effect, Option } from "effect";
+import { Effect } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/bearerSessions.ts";
-import { trustedProxyPeer } from "#server/local.ts";
+import { clientIpHeaders } from "./clientIp.ts";
 import { sessionPermissions } from "./sessionPermissions.ts";
 
 interface MountedAuth {
@@ -13,6 +13,7 @@ interface MountedAuth {
 interface MountRouteOptions {
 	readonly bearerSessions?: BearerSessionsOptions | undefined;
 	readonly clientIpHeader: string;
+	readonly ipv6Subnet?: number | undefined;
 	readonly roles?: RoleSet | undefined;
 	readonly trustedProxy?: string | undefined;
 }
@@ -55,15 +56,12 @@ async function authResponse(auth: MountedAuth, web: Request, options: MountRoute
 	return sessionRequest && response.ok && options.roles !== undefined ? sessionPermissions(response, options.roles) : response;
 }
 export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
-	const isTrustedProxy = trustedProxyPeer(options.trustedProxy);
+	const setClientIp = clientIpHeaders(options);
 	return HttpRouter.use((router) =>
 		router.add("*", "/api/auth/*", (request) =>
 			Effect.gen(function* () {
 				const web = yield* HttpServerRequest.toWeb(request);
-				if (!Option.exists(request.remoteAddress, isTrustedProxy)) {
-					web.headers.delete("x-forwarded-for");
-					web.headers.delete(options.clientIpHeader);
-				}
+				setClientIp(request, web);
 				return HttpServerResponse.fromWeb(
 					yield* Effect.tryPromise(() => authResponse(auth, web, options)).pipe(
 						Effect.tapError((error) => Effect.logError("Authentication provider failed", redact(error.cause))),

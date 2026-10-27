@@ -1,9 +1,10 @@
-import { Config, Effect, Option, Schema } from "effect";
+import { Config, Effect, Option, Result, Schema } from "effect";
+import * as NetAddress from "effect/net/NetAddress";
 import { TrustedProxy } from "@shivaedev/identity/server/trustedProxy.ts";
 import { NativeOrigins } from "#nativeClientOrigins.ts";
 
 interface Options {
-	readonly config?: { readonly maxBodySize?: number; readonly trustedProxy?: string };
+	readonly config?: { readonly host?: string; readonly maxBodySize?: number; readonly trustedProxy?: string };
 	readonly nativeOrigins?: readonly string[];
 	readonly policy?: "loopback" | undefined;
 }
@@ -19,8 +20,20 @@ export const hostTransport = Effect.fn("Platform.hostTransport")(function* (opti
 	if (trustedProxy !== undefined) {
 		yield* Schema.decodeUnknownEffect(TrustedProxy)(trustedProxy).pipe(Effect.mapError((cause) => new Config.ConfigError(cause)));
 	}
+	const host = options.config?.host ?? (yield* Config.String("HOST").pipe(Config.withDefault("127.0.0.1")));
+	const loopback =
+		host.toLowerCase() === "localhost"
+		|| Result.match(NetAddress.ipFromString(host), {
+			onFailure: () => false,
+			onSuccess: (address) => NetAddress.isLoopback(NetAddress.toCanonical(address)),
+		});
+	if (options.policy !== "loopback" && !loopback && trustedProxy === undefined) {
+		yield* Effect.logWarning(
+			"RPC forwarding is refused without a trusted proxy. Set TRUSTED_PROXY or config.trustedProxy for this non-loopback HOST.",
+		);
+	}
 	const nativeOrigins = yield* Schema.decodeUnknownEffect(NativeOrigins)(options.nativeOrigins ?? []).pipe(
 		Effect.mapError((cause) => new Config.ConfigError(cause)),
 	);
-	return { bodySize, nativeOrigins, trustedProxy };
+	return { bodySize, host, nativeOrigins, trustedProxy };
 });
