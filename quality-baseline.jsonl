@@ -1,4 +1,4 @@
-{"path":"examples/starter/package.json","rule":"code/unused","count":6}
+{"path":"examples/starter/package.json","rule":"code/unused","count":5}
 {"path":"examples/starter/src/client/auth.ts","rule":"code/unused","count":1}
 {"path":"examples/starter/src/modules/notes/notes.ts","rule":"code/unused","count":3}
 {"path":"examples/starter/src/modules/notes/server/migrations/0002_notes.ts","rule":"code/unused","count":1}

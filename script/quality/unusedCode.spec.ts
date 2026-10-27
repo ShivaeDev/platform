@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { dependencyDebt, unusedRepository } from "#quality/test-support/unusedRepository.ts";
+import { dependencyDebt, providedDependency, unusedRepository } from "#quality/test-support/unusedRepository.ts";
 
 unusedRepository.it(
 	"reports unused files and exports while keeping exact and wildcard public API, bins, stories and spec helpers",
@@ -34,4 +34,11 @@ unusedRepository.it("passes with existing findings recorded by the normal baseli
 	const result = yield* cli("lint");
 	expect(result.status).toBe(0);
 	expect(result.stdout).toContain("quality: passed.");
+});
+
+unusedRepository.it("counts imports through the application's declared dependency entry point", [providedDependency], function* ({ cli }) {
+	const result = yield* cli("lint");
+	expect(result.stdout).toContain("error code/unused");
+	expect(result.stdout).not.toContain("Unused dependency. Remove it from the package manifest if it is no longer needed: @shivaedev/platform");
+	expect(result.stdout).not.toContain("Missing package dependency. Declare it in the importing package's manifest: @demo/component");
 });

@@ -4,6 +4,7 @@ import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { runQuality } from "#quality-fixtures/cli.ts";
 import { writes } from "#quality-fixtures/hookRepository.ts";
+import { linkWorkspace } from "#quality-fixtures/imports.ts";
 import { qualityTree } from "#quality-fixtures/qualityTree.ts";
 
 function repository() {
@@ -57,5 +58,26 @@ export const dependencyDebt = unusedRepository.trait(
 			'{"name":"app","private":true,"type":"module","bin":{"app":"./dist/launch.js"},"scripts":{"start":"node wrapper.ts -- node src/start.ts"},"dependencies":{"left-pad":"1.3.0"}}',
 		);
 		writes(root, "packages/app/src/start.ts", 'import "missing-package";\nimport { used } from "./values.ts";\nconsole.log(used);\n');
+	},
+);
+
+export const providedDependency = unusedRepository.trait(
+	"repository",
+	"an application imports a piece brought by its declared entry point",
+	(root) => {
+		writes(
+			root,
+			"packages/app/package.json",
+			'{"name":"app","private":true,"type":"module","scripts":{"start":"node src/start.ts"},"dependencies":{"@shivaedev/platform":"workspace:*"}}',
+		);
+		writes(root, "packages/platform/package.json", '{"name":"@shivaedev/platform","dependencies":{"@demo/component":"workspace:*"}}');
+		writes(
+			root,
+			"packages/component/package.json",
+			'{"name":"@demo/component","exports":{"./*.ts":{"source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}}}',
+		);
+		writes(root, "packages/component/src/component.ts", "export const component = 1;\n");
+		writes(root, "packages/app/src/start.ts", 'import { component } from "@demo/component/component.ts";\nconsole.log(component);\n');
+		linkWorkspace(root, "@demo/component", "packages/component");
 	},
 );

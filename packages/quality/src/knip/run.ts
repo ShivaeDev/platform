@@ -6,6 +6,7 @@ import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
+import { entryPointFindings } from "./entryPointFindings.ts";
 import { knipFindings } from "./findings.ts";
 
 const BIN = join(dirname(createRequire(import.meta.url).resolve("knip")), "..", "bin", "knip.js");
@@ -17,7 +18,7 @@ export async function runKnip(inputs: RuleInputs) {
 	}
 	const configuration = await knipConfiguration(inputs);
 	const checked = new Set([...inputs.files, ...Object.keys(configuration.workspaces).map((directory) => posix.join(directory, "package.json"))]);
-	return Effect.runPromise(
+	const findings = await Effect.runPromise(
 		Effect.scoped(
 			Effect.gen(function* () {
 				const fs = yield* FileSystem.FileSystem;
@@ -43,4 +44,5 @@ export async function runKnip(inputs: RuleInputs) {
 			}),
 		).pipe(Effect.provide(NodeServices.layer)),
 	);
+	return entryPointFindings(inputs, findings);
 }
