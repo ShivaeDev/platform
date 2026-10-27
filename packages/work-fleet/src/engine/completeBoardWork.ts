@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { briefChanged } from "#engine/boardBrief.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { FleetRecord } from "#model.ts";
 import type { Versioned } from "#storage/model.ts";
@@ -23,10 +24,13 @@ export function boardCompletionAction(record: FleetRecord) {
 export function completeBoardWork(state: EngineState) {
 	return Effect.fn("Fleet.completeBoardWork")(function* (stored: Versioned<FleetRecord>) {
 		const action = boardCompletionAction(stored.value);
-		if (action !== undefined && stored.value.boardSourcePath !== undefined && state.board.complete !== undefined) {
-			yield* state.board
-				.complete(stored.value.workId, stored.value.boardSourcePath, action)
-				.pipe(Effect.catchTag("BoardFailure", (error) => Effect.logWarning(error.message)));
+		const complete = state.board.complete;
+		const sourcePath = stored.value.boardSourcePath;
+		if (action !== undefined && sourcePath !== undefined && complete !== undefined) {
+			yield* state.board.get(stored.value.workId).pipe(
+				Effect.flatMap((work) => (briefChanged(stored.value, work) ? Effect.void : complete(stored.value.workId, sourcePath, action))),
+				Effect.catchTag("BoardFailure", (error) => Effect.logWarning(error.message)),
+			);
 		}
 		if (state.board.closeFinishedDecisions !== undefined) {
 			yield* state.board

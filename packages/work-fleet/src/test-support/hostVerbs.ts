@@ -9,6 +9,7 @@ import { approvalBackoffVerbs } from "#test/approvalBackoff.ts";
 import { retainedBoardSnapshots } from "#test/boardReadStory.ts";
 import { cloudHostVerbs } from "#test/cloudHost.ts";
 import { cloudNamingVerbs } from "#test/cloudNaming.ts";
+import { codexHostVerbs } from "#test/codexHost.ts";
 import { continuationCloudVerbs } from "#test/continuationCloud.ts";
 import { answerAndWait, appliedAnswer, dispatchAndWait, waitForRecord } from "#test/daemonActions.ts";
 import { daemonResourceVerbs } from "#test/daemonResourceVerbs.ts";
@@ -32,6 +33,7 @@ import { hostRequestVerbs } from "#test/hostRequestVerbs.ts";
 import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
+import { publicationReadouts } from "#test/publishedHostBranch.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
 import { watchEventVerbs } from "#test/watchEventVerbs.ts";
 import { watchReview } from "#test/watchReview.ts";
@@ -44,6 +46,8 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 			return engine.schedulerPaused ?? Effect.die("Configure a paced scheduler first");
 		},
 		...admissionFetchVerbs(engine, tell),
+		...codexHostVerbs(engine, tell),
+		...publicationReadouts(engine),
 		...hostDatabaseVerbs(engine, tell),
 		...watchEventVerbs(engine, tell),
 		...watchReview(engine, tell),

@@ -3,6 +3,7 @@ import { cycle } from "#engine/scheduler.ts";
 import { providerCapacityRejected } from "#test/engineCapacityTraits.ts";
 import { reviewAndChecksRequestRepairs, workerGuidance } from "#test/engineLifecycleTraits.ts";
 import { engine } from "#test/engineStory.ts";
+import { humanMergeRequired } from "#test/engineTraits.ts";
 
 const GUIDANCE = "Follow synthetic repository conventions.\nVerify changes locally.";
 
@@ -10,7 +11,7 @@ describe("worker guidance through PostgreSQL", () => {
 	for (const guidance of [undefined, GUIDANCE]) {
 		engine.it(
 			`first turns, repairs and manual continuations ${guidance === undefined ? "omit" : "include"} guidance`,
-			[reviewAndChecksRequestRepairs(guidance)],
+			[reviewAndChecksRequestRepairs(guidance), humanMergeRequired()],
 			function* ({ fleet, prepareWork, finishWorkers, providerStarts, turnOutputById }) {
 				yield* prepareWork("one");
 
@@ -20,7 +21,7 @@ describe("worker guidance through PostgreSQL", () => {
 				finishWorkers();
 				const checkRepair = yield* fleet.reconcile("one");
 				finishWorkers();
-				expect((yield* fleet.reconcile("one")).value.step).toBe("done");
+				expect((yield* fleet.reconcile("one")).value.step).toBe("waiting");
 				const manual = yield* fleet.continue("one", "Check another case");
 				for (const [record, role] of [
 					[first, "worker"],

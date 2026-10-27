@@ -2,12 +2,14 @@ import { Effect, Layer } from "effect";
 import { unchanged } from "#host/mainSource.ts";
 import { FleetPolicy } from "#policy.ts";
 import { SessionFailure } from "#session/schema.ts";
+import { configureCodexHost } from "#test/codexHost.ts";
 import { engineIntegrations } from "#test/engineIntegrations.ts";
 import { enginePolicy } from "#test/enginePolicy.ts";
 import { engineProvider } from "#test/engineProvider.ts";
 import { host } from "#test/hostStory.ts";
 import { MAIN } from "#test/mainSource.ts";
 import { stalledTransport } from "#test/parkStalled.ts";
+import { configurePublishedBranch } from "#test/publishedHostBranch.ts";
 
 export const noChangeHost = host.trait("configuration", "workers report no change against unchanged main", (engine) => {
 	engine.integrations = engineIntegrations(
@@ -45,3 +47,7 @@ export function localBoard(options: { ignored?: boolean; inside?: boolean } = {}
 		engine.localBoardOptions = options;
 	});
 }
+
+export const fakeCodex = host.trait("configuration", "workers use the fake Codex wire provider", configureCodexHost);
+
+export const publishedHostBranch = host.trait("configuration", "the worker repository contains its published branch", configurePublishedBranch);

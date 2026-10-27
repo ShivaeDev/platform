@@ -4,6 +4,7 @@ import { boardDocuments, boardSnapshot } from "#board/documents.ts";
 import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
 import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
+import { STOP_REASON } from "#engine/stopCommand.ts";
 import { Fleet } from "#fleet.ts";
 import type { FleetHost } from "#host/config.ts";
 import { refreshForeignReservations } from "#host/foreignReservations.ts";
@@ -69,20 +70,24 @@ export type Approval = "board" | "explicit";
 export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* (
 	host: FleetHost,
 	work: BoardWork,
-	record: FleetRecord | undefined,
+	input: FleetRecord | undefined,
 	approval: Approval,
 ) {
 	if (!work.approved || ["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")) {
 		return;
 	}
+	const fleet = yield* Fleet;
+	const record = input?.step === "released" && input.result?.kind === "change" ? (yield* fleet.reconcile(work.workId)).value : input;
+	if (record !== undefined && sweepMerged(record) && !(approval === "explicit" && briefChanged(record, work))) {
+		return;
+	}
 	if (record?.step === "queued" && record.launchRetry !== undefined) {
 		return;
 	}
-	const fleet = yield* Fleet;
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
 	const reapproved = record !== undefined && approval === "explicit" && (record.step === "released" || briefChanged(record, work));
-	const released = record?.step === "released" && !sweepMerged(record);
+	const released = record?.step === "released" && record.result?.kind !== "change" && record.releaseReason !== STOP_REASON && !sweepMerged(record);
 	if (record !== undefined && !released && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}

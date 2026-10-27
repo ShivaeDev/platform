@@ -88,3 +88,16 @@ export const answerCommand = Command.make(
 		yield* Console.log(workSummary(value));
 	}),
 ).pipe(Command.withDescription("Answer the waiting worker question or Fleet decision; read text from stdin if omitted, or use --release"));
+
+export const stopCommand = Command.make(
+	"stop",
+	{ board, config, port, workId: Argument.String("id") },
+	Effect.fn("WorkFleetCli.stop")(function* (input) {
+		const stopped = yield* daemonRequest(
+			yield* clientPort(input),
+			(client) => client("daemon.stop", { workId: input.workId }),
+			`stop ${input.workId}`,
+		);
+		yield* Console.log(workSummary(stopped));
+	}),
+).pipe(Command.withDescription("Interrupt running work and record its closing Board response, preserving its branch and PR"));

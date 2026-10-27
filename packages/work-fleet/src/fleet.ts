@@ -17,6 +17,7 @@ import { releaseClosedCommand } from "#engine/releaseClosedCommand.ts";
 import { FleetRepository } from "#engine/repository.ts";
 import { resolveCommand } from "#engine/resolveCommand.ts";
 import { cleanupSessions } from "#engine/sessionCleanup.ts";
+import { stopCommand } from "#engine/stopCommand.ts";
 import { BoardGateway, FleetIntegrations, FleetPolicy } from "#policy.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import type { LaunchSettings } from "#session/schema.ts";
@@ -55,6 +56,7 @@ export const Fleet = defineService({
 			),
 		resolve: (workId: string, decisionId: string, responseId: string) =>
 			resolveCommand(state)(workId, decisionId, responseId).pipe(Effect.flatMap(cleanupSessions(state))),
+		stop: stopCommand(state),
 	}),
 	requires: [FleetRepository, BoardGateway, FleetPolicy, FleetIntegrations, SessionService],
 });

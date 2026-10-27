@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { highPrioritySecond, sharedArea } from "#test/engineSchedulingTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
+import { noChangeReported } from "#test/engineTraits.ts";
 
 for (const dispatch of ["direct", "scheduler"] as const) {
 	isolatedEngine.it(
@@ -105,17 +106,21 @@ isolatedEngine.it("an unreadable earlier waiter cannot block the current area ho
 	expect((yield* fleet.get("one")).value).toMatchObject({ attempts: [], step: "queued" });
 });
 
-isolatedEngine.it("continuing done work must resolve earlier waiters before reacquiring its area", [sharedArea], function* (fleet) {
-	fleet.setDependencies("one", ["dependency"]);
-	yield* fleet.prepareWork("one");
-	yield* fleet.prepareWork("two");
-	yield* fleet.dispatch("two");
-	fleet.finishWorkers();
-	expect((yield* fleet.reconcile("two")).value.step).toBe("done");
-	fleet.unavailableWork("one", true);
-	expect(yield* fleet.attemptContinue("two", "Follow up on the implementation")).toMatchObject({
-		_tag: "BoardFailure",
-		message: "Board work unavailable",
-	});
-	expect((yield* fleet.get("two")).value.step).toBe("done");
-});
+isolatedEngine.it(
+	"continuing done work must resolve earlier waiters before reacquiring its area",
+	[sharedArea, noChangeReported()],
+	function* (fleet) {
+		fleet.setDependencies("one", ["dependency"]);
+		yield* fleet.prepareWork("one");
+		yield* fleet.prepareWork("two");
+		yield* fleet.dispatch("two");
+		fleet.finishWorkers();
+		expect((yield* fleet.reconcile("two")).value.step).toBe("done");
+		fleet.unavailableWork("one", true);
+		expect(yield* fleet.attemptContinue("two", "Follow up on the implementation")).toMatchObject({
+			_tag: "BoardFailure",
+			message: "Board work unavailable",
+		});
+		expect((yield* fleet.get("two")).value.step).toBe("done");
+	},
+);

@@ -58,6 +58,7 @@ engine.it(
 		fleet.mergePullRequest();
 		yield* fleet.schedule();
 		expect(fleet.readBoardPublication(waiting.sourcePath).fields.attention).toMatchObject([{ state: "open" }]);
+		fleet.writeBoardWork("one.md", fleet.readBoardWork().replace("kind: task", "kind: task\nstatus: done"));
 		yield* fleet.schedule();
 		expect(fleet.readBoardPublication(waiting.sourcePath).fields.attention).toMatchObject([{ state: "closed" }]);
 		expect(fleet.readBoardWork(waiting.sourcePath)).toContain("Closed because Board work one is done.");
