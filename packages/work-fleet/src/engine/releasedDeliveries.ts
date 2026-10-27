@@ -39,7 +39,11 @@ export const observeReleasedDeliveries = Effect.fn("Fleet.observeReleasedDeliver
 		return stored;
 	}
 	const updated = yield* state.save(stored, { ...record, history: record.history === undefined ? undefined : history });
-	return record.step === "released" && record.result?.kind === "change" && record.mergedDelivery?.revision !== undefined
+	return record.step === "released"
+		&& record.decision === undefined
+		&& record.result?.kind === "change"
+		&& record.mergedDelivery?.revision !== undefined
+		&& record.mergedDelivery.head === record.result.head
 		? yield* settleMergedDelivery(state, updated, record.result, { ...record.mergedDelivery, revision: record.mergedDelivery.revision }, false)
 		: updated;
 });

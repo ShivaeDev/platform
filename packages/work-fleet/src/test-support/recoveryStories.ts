@@ -19,7 +19,15 @@ export const lostThreadRestartStory = {
 	spec: "lostThreadRestart.spec.ts",
 };
 
+export const stopWorkStory = {
+	code: "fleet-invalid",
+	name: "stop interrupts working Codex work and closes its Board response",
+	sites: ['engine/stopCommand.ts: "fleet-invalid"'],
+	spec: "host/stopWork.spec.ts",
+};
+
 export const recoveryStories = [
+	stopWorkStory,
 	publicationRecoveryStory,
 	terminalBriefRecoveryStory,
 	lostThreadRestartStory,
