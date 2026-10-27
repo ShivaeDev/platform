@@ -12,7 +12,15 @@ export default [
 	fence("identity-client-stays-browser-safe")
 		.because("The identity, middleware and permission modules ship to browsers inside shared RPC declarations and reach only browser-safe code.")
 		.from(browserCode)
-		.mayNotReach(anything.except(browserCode, files("packages/access/src/permission.ts"), packages("errors"), modules("effect")))
+		.mayNotReach(
+			anything.except(
+				files("packages/changes/src/keys.ts", "packages/contract/src/readPolicyErrors.ts"),
+				browserCode,
+				files("packages/access/src/permission.ts"),
+				packages("errors"),
+				modules("effect"),
+			),
+		)
 		.demonstratedBy({
 			illegal: ["packages/identity/src/identity.ts", external("node:fs")],
 			legal: ["packages/identity/src/identity.ts", external("effect")],
