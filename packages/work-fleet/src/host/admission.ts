@@ -17,6 +17,7 @@ import { coversRepository, preparationStop } from "#preparation/compatibility.ts
 import type { Preparation } from "#preparation/schema.ts";
 import { sweepMerged } from "#scheduling/sweeps.ts";
 import { LaunchSettings } from "#session/schema.ts";
+import { dispatchStore } from "#storage/dispatchStore.ts";
 
 // Workers start from current main, so the whole repository is their scope and preparation pins only the base.
 function preparation(main: MainSnapshot): Preparation {
@@ -87,7 +88,8 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 	const main = yield* MainSource;
 	const snapshot = yield* main.current;
 	const reapproved = record !== undefined && approval === "explicit" && (record.step === "released" || briefChanged(record, work));
-	const released = record?.step === "released" && record.result?.kind !== "change" && record.releaseReason !== STOP_REASON && !sweepMerged(record);
+	const released =
+		record?.step === "released" && record.result?.kind !== "change" && !record.releaseReason?.startsWith(STOP_REASON) && !sweepMerged(record);
 	if (record !== undefined && !released && !reapproved && !stalePreparation(record, work, snapshot) && !stoppedBehindMain(record)) {
 		return;
 	}
@@ -116,7 +118,9 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 	const fs = yield* FileSystem.FileSystem;
 	const snapshot = yield* boardSnapshot(host.boardDir, yield* fs.realPath(host.boardDir));
 	const failures = [...Array.from(snapshot.problems.values(), (problem) => problem.message), ...(yield* refreshForeignReservations())];
-	for (const workId of yield* approvedWorkIds(host)) {
+	const dispatches = yield* (yield* dispatchStore(host.namespace)).list();
+	const cancelled = new Set(dispatches.filter((request) => request.status === "cancelled").map((request) => request.workId));
+	for (const workId of (yield* approvedWorkIds(host)).filter((id) => !cancelled.has(id))) {
 		const admitted = yield* board.get(workId).pipe(
 			Effect.flatMap((work) => prepareApproved(host, work, records.get(workId), "board")),
 			Effect.result,

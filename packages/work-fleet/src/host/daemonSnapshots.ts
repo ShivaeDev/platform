@@ -66,6 +66,9 @@ function dispatchStates(states: readonly WatchState[], requests: readonly Dispat
 }
 
 function dispatchState(state: WatchState | undefined, request: DispatchRequest, watch: boolean): WatchState | undefined {
+	if (request.status === "cancelled") {
+		return state ?? { stage: "released", workId: request.workId };
+	}
 	if (request.status === "completed") {
 		return undefined;
 	}

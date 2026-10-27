@@ -351,9 +351,13 @@ work-fleet release sample-one sample-two --board ./notes
 
 The command records an explicit release response for each current waiting decision, including worker questions, then uses the same resolution path as a release answer. For running work, it points to `work-fleet stop <id>`. It supersedes an existing unambiguous response, refuses changed decision sources or competing responses, and can be repeated to recover a pending acknowledgement.
 
-### Stop running work
+### Stop active work
 
-Use `work-fleet stop <id>` to interrupt a running turn and record its closing Board release response. It leaves the branch and any open PR untouched and keeps the work released until explicit dispatch.
+Use `work-fleet release <id>` when work is waiting and its execution has ended. Use `work-fleet stop <id>` when work is no longer needed, including preparing, working, reviewing, repairing or waiting work. Stop interrupts the provider turn, waits for it to end, then frees the areas and execution slot and records a closing Board response that says the work was cancelled. The branch and any open PR stay intact; the command prints the PR URL and keeps the work released until explicit dispatch. Done, released and unknown work is refused with its state in the error.
+
+Stopping a dispatch still preparing main cancels it before any worker starts; its dispatch status is `cancelled`. It stays stopped across daemon restarts until an explicit dispatch. The daemon stop response can be a released preparation summary before a Fleet record exists. Custom Board gateways implement `respond` to record the closing response.
+
+A brief changed to `status: dropped` stops its active work automatically. If the provider cannot confirm the interrupt and terminal execution within five seconds, Fleet records the turn as abandoned, frees ownership and ignores later output from that turn.
 
 ### Continue a worker with new instructions
 

@@ -7,7 +7,7 @@ export const DispatchRequest = Schema.Struct({
 	id: Schema.String,
 	ignoreAreas: Schema.optional(Schema.Boolean),
 	now: Schema.optional(Schema.Boolean),
-	status: Schema.Literals(["pending", "completed", "failed"]),
+	status: Schema.Literals(["pending", "completed", "failed", "cancelled"]),
 	workId: Schema.String,
 });
 export type DispatchRequest = typeof DispatchRequest.Type;

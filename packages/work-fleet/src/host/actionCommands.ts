@@ -98,6 +98,6 @@ export const stopCommand = Command.make(
 			(client) => client("daemon.stop", { workId: input.workId }),
 			`stop ${input.workId}`,
 		);
-		yield* Console.log(workSummary(stopped));
+		yield* Console.log(`${stopped.workId} ${stopped.stage}: ${stopped.releaseReason}`);
 	}),
-).pipe(Command.withDescription("Interrupt running work and record its closing Board response, preserving its branch and PR"));
+).pipe(Command.withDescription("Cancel active work and record its closing Board response, preserving its branch and PR"));
