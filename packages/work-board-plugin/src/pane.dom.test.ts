@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { admissionItems } from "#test/admissionItems.ts";
+import { admissionItems, reviewSlotWait } from "#test/admissionItems.ts";
 import { pluginPane } from "#test/pluginPane.ts";
 
 const GOAL = { counts: { blocked: 1, done: 1, parked: 1, running: 1, scheduled: 1 }, id: "goal.colors", title: "Ship the Board" };
@@ -77,4 +77,13 @@ pluginPane.it("counts only started work in the pane and band and counts blocked 
 	expect(section("Blocked").firstElementChild?.textContent).toBe("Blocked(1)");
 	expect(section("Queued").firstElementChild?.textContent).toBe("Queued(3)");
 	expect(band()).toBe("Needs you 0 · In flight 5 · Goals 0/0");
+});
+
+pluginPane.it("keeps an existing PR in flight while its reviewer waits for an execution slot", [], function* ({ show, section, band }) {
+	yield* show([...admissionItems, reviewSlotWait], []);
+	const flight = section("In flight");
+	expect(flight.textContent).toContain("Review the existing PR");
+	expect(flight.querySelector("a")?.getAttribute("href")).toBe("https://github.com/example/project/pull/12");
+	expect(section("Queued").textContent).not.toContain("Review the existing PR");
+	expect(band()).toBe("Needs you 0 · In flight 6 · Goals 0/0");
 });

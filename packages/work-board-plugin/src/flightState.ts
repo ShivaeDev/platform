@@ -27,6 +27,9 @@ export const flightColors = {
 } as const;
 
 export function notStartedState(flight: WorkboardFlight): "blocked" | "queued" | null {
+	if (flight.prUrl !== null) {
+		return null;
+	}
 	const reason = flight.waitingReason ?? "";
 	if (reason.startsWith("waiting for dependency ")) {
 		return "blocked";
