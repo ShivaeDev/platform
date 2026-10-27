@@ -244,6 +244,7 @@
 {"path":"packages/work-board/src/rpc/PageUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/rpc/claudePluginAgents.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/rpc/claudePluginContract.spec.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-board/src/server/archive/documents.ts","rule":"effect/service-parameters","count":4}
 {"path":"packages/work-board/src/server/attention/answerSummary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/attention/answerSummary.ts","rule":"effect/service-parameters","count":5}
 {"path":"packages/work-board/src/server/attention/inbox.ts","rule":"effect/service-parameters","count":8}
@@ -257,7 +258,7 @@
 {"path":"packages/work-board/src/server/attention/standingQuestion.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/attention/status.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/boardSocket.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/work-board/src/server/cli.ts","rule":"effect/boundary","count":6}
+{"path":"packages/work-board/src/server/cli.ts","rule":"effect/boundary","count":7}
 {"path":"packages/work-board/src/server/currentDocument.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/server/diagnostics/codexProtocol.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/diagnostics/diagnosticsRpc.spec.ts","rule":"effect/boundary","count":1}
