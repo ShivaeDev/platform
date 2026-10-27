@@ -1,6 +1,7 @@
 import { Context, Effect, Layer, Schema, Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
+import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { adminRegistry } from "#registry.ts";
@@ -56,4 +57,4 @@ Jobs.contract.application.toLayer({
 });
 
 type ProfileRpc = Extract<RpcGroup.Rpcs<typeof Users.contract>, { readonly _tag: "admin.users.profile" }>;
-expectTypeOf<Rpc.Error<ProfileRpc>>().toEqualTypeOf<AuthUnavailable | Forbidden | Unauthorized>();
+expectTypeOf<Rpc.Error<ProfileRpc>>().toEqualTypeOf<AuthUnavailable | Forbidden | Unauthorized | MissingReadPolicy | QueryReadDenied>();

@@ -1,7 +1,7 @@
 import { type Duration, Effect, Layer, PubSub, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { type LiveHint, live } from "@shivaedev/contract/live.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";

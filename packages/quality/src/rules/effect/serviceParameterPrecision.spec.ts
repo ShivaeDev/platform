@@ -8,6 +8,8 @@ const ORDINARY_PARAMETERS = [
 	{ name: "record", type: "Record<string, unknown>" },
 	{ name: "tuple", type: "readonly [string, number]" },
 	{ name: "lookalike", type: "{ readonly read: () => Effect.Effect<string> }" },
+	{ name: "element", type: "Element" },
+	{ name: "referenceValue", type: "DefaultCallback" },
 ];
 
 for (const { name, type } of ORDINARY_PARAMETERS) {
@@ -21,11 +23,15 @@ import * as Atom from "effect/reactivity/Atom";
 import * as HttpMiddleware from "effect/http/HttpMiddleware";
 export const Window = Context.Service<Duration.Input>("Window");
 export const nameGenerator = HttpMiddleware.SpanNameGenerator;
+export const BrowserFetch = Context.Reference<typeof globalThis.fetch>("BrowserFetch", { defaultValue: () => globalThis.fetch });
+type DefaultCallback = (key: string) => boolean;
+export const DefaultCallbackReference = Context.Reference<DefaultCallback>("DefaultCallback", { defaultValue: () => (key) => key.length > 0 });
 export const ordinary = (${name}: ${type}) => ${name};
 export const tag = (serviceTag: typeof Store) => serviceTag;
 export const instance = (serviceInstance: Store) => serviceInstance;
 export const implementation = (serviceShape: StoreShape) => serviceShape;
-export const context = (services: Context.Context<Store>) => services;`,
+export const context = (services: Context.Context<Store>) => services;
+export const reference = (referenceKey: typeof BrowserFetch) => referenceKey;`,
 				path: "src/parameters.ts",
 			}),
 		],
@@ -39,6 +45,7 @@ export const context = (services: Context.Context<Store>) => services;`,
 				"Parameter serviceInstance carries a service.",
 				"Parameter serviceShape carries a service.",
 				"Parameter services carries a service.",
+				"Parameter referenceKey carries a service.",
 			]);
 		},
 	);

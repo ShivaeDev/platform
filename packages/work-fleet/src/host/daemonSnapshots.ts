@@ -44,7 +44,7 @@ export const daemonSnapshots = Effect.fn("FleetDaemon.daemonSnapshots")(function
 function withAnswerFailures(states: readonly WatchState[], requests: readonly AnswerRequest[]) {
 	return states.map((state) => {
 		const answer = requests.find((request) => request.work_id === state.workId && request.error !== null);
-		if (answer === undefined || answer.error === null) {
+		if (answer === undefined || answer.error === null || ["done", "released"].includes(state.stage)) {
 			return state;
 		}
 		return {

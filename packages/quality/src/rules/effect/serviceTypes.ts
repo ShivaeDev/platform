@@ -18,9 +18,9 @@ export function serviceTypes(checker: ts.TypeChecker) {
 		if (
 			shape !== undefined
 			&& shape.flags & ts.TypeFlags.Object
-			&& shape.getProperties().length > 0
-			&& shape.getCallSignatures().length === 0
+			&& (shape.getProperties().length > 0 || shape.getCallSignatures().length > 0)
 			&& checker.getIndexInfosOfType(shape).length === 0
+			&& (shape.getCallSignatures().length === 0 || type.getProperty("~effect/Context/Reference") === undefined)
 		) {
 			shapes.add(shape);
 		}
@@ -81,7 +81,7 @@ export function serviceTypes(checker: ts.TypeChecker) {
 		return (
 			implementation(type)
 			|| checker.getIndexInfosOfType(type).some((index) => carries(index.type, seen))
-			|| type.getProperties().some((property) => carries(checker.getTypeOfSymbol(property), seen))
+			|| type.getProperties().some((property) => !(property.flags & ts.SymbolFlags.Method) && carries(checker.getTypeOfSymbol(property), seen))
 		);
 	}
 	return {

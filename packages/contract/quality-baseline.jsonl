@@ -11,5 +11,4 @@
 {"path":"packages/contract/src/internal/queryReactivity.ts","rule":"effect/boundary","count":1}
 {"path":"packages/contract/src/internal/queryReactivity.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/contract/src/live.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/contract/src/serverMetadata.ts","rule":"effect/boundary","count":1}
 {"path":"packages/contract/src/testing.ts","rule":"effect/service-parameters","count":1}

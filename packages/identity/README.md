@@ -365,8 +365,8 @@ import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 const changesRpc = Api.requests.get("preferences.$changes")!;
 const handlers = Api.toLayer({
   "preferences.$changes": ({ queries }) => Stream.unwrap(
-    Effect.map(resolveChanges(changesRpc, queries), ({ keys, context }) =>
-      changes.stream(keys, context)
+    Effect.map(resolveChanges(changesRpc, queries), ({ subscription, context }) =>
+      changes.subscribe(subscription, context)
     )
   ),
   "preferences.get": getPreference,
@@ -374,26 +374,27 @@ const handlers = Api.toLayer({
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass both returned arguments to `changes.stream`.
+Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
-Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `sessionCommandChanges` before providing `Identity`:
+Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
 
 ```ts
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
+import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { sessionCommandChanges } from "@shivaedev/identity/server/commandChanges.ts";
+import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 
 const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, payload }) =>
   Effect.gen(function* () {
     const session = yield* requireTransportSession(headers, rpc);
-    return yield* sessionCommandChanges(effect, rpc, payload).pipe(
+    return yield* authorizeReads(commandChanges(effect, rpc, payload), { rpc, payload }, Option.some({ id: session.user.id })).pipe(
       Effect.provideService(Identity, { id: session.user.id })
     );
   })
 );
 ```
 
-`MyAuthentication` declares `provides: Identity` and its authentication errors. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `sessionCommandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
+`MyAuthentication` declares `provides: Identity`, its authentication errors and `MissingReadPolicy` and `QueryReadDenied` from `@shivaedev/contract/readPolicyErrors.ts`. Query policies receive the session viewer through `authorizeReads`. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `commandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
 
 ### Session freshness in streams
 

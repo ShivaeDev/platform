@@ -1,7 +1,9 @@
 import { Context, Effect, Option } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { KeyContext } from "@shivaedev/contract/keys.ts";
-import { ChangesReads, KeyScope, type QueryReference } from "@shivaedev/contract/serverMetadata.ts";
+import type { KeyContext } from "@shivaedev/changes/keys.ts";
+import { querySubscription } from "@shivaedev/contract/querySubscription.ts";
+import { CurrentViewer } from "@shivaedev/contract/readPolicy.ts";
+import { ChangesQueries, KeyScope, type QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "#identity.ts";
 
 export function sessionKeyContext(rpc: Pick<Rpc.AnyWithProps, "annotations">): Effect.Effect<KeyContext | undefined> {
@@ -17,9 +19,11 @@ export function sessionKeyContext(rpc: Pick<Rpc.AnyWithProps, "annotations">): E
 	});
 }
 
-export function resolveChanges(rpc: Pick<Rpc.AnyWithProps, "annotations">, references: readonly QueryReference[]) {
-	return Effect.map(sessionKeyContext(rpc), (context) => ({
-		context,
-		keys: Context.getUnsafe(rpc.annotations, ChangesReads)(references),
-	}));
-}
+export const resolveChanges = Effect.fnUntraced(function* (rpc: Pick<Rpc.AnyWithProps, "annotations">, references: readonly QueryReference[]) {
+	const identity = yield* Effect.serviceOption(Identity);
+	const current = yield* CurrentViewer;
+	const viewer = Option.orElse(identity, () => current);
+	const queries = yield* Context.getUnsafe(rpc.annotations, ChangesQueries).resolve(references);
+	const subscription = yield* querySubscription(queries, viewer);
+	return { context: yield* sessionKeyContext(rpc), subscription };
+});

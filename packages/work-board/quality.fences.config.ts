@@ -27,6 +27,7 @@ export default [
 		.from(folders("packages/work-board/src/client").except(markdownCode))
 		.mayNotReach(
 			anything.except(
+				files("packages/changes/src/keys.ts"),
 				boardCode,
 				browserDependencies,
 				markdownDependencies,
@@ -58,6 +59,7 @@ export default [
 		.from(markdownCode)
 		.mayNotReach(
 			anything.except(
+				files("packages/changes/src/keys.ts"),
 				boardCode,
 				browserDependencies,
 				markdownDependencies,

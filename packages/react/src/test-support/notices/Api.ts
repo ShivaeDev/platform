@@ -1,6 +1,6 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 
 export class Conflict extends Schema.TaggedError<Conflict>()("Conflict", { current: Schema.Number, expected: Schema.Number }) {}
@@ -27,6 +27,6 @@ const Save = command("save", {
 	success: Schema.String,
 });
 const Edit = command("edit", { invalidates: () => [rows.list], payload: { title: Schema.String } });
-const List = query("list", { reads: () => [rows.list], rejections: { Rejected }, success: Schema.String });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [rows.list], rejections: { Rejected }, success: Schema.String });
 const BreakReads = command("breakReads", { invalidates: () => [rows.list] });
 export const Api = contract("notices", { commands: [Remove, Restore, Save, Edit, BreakReads], queries: [List] });
