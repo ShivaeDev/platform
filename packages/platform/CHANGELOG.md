@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.36.0 - 2026-10-27
+
+### Added
+
+- Include webhooks as the package that receives signed webhooks.
+
 ## 0.35.0 - 2026-10-27
 
 ### Breaking

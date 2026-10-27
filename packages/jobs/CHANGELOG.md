@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.21.0 - 2026-10-27
+
+### Added
+
+- List registered schedules with `makePgBossTesting().schedules()` and enqueue an immediate run of a registered schedule with `trigger(schedule)`.
+
+### Fixed
+
+- Retry wakes wait until the persisted backoff deadline even when a host timer fires early.
+
+### Breaking
+
+- Enqueue inside a provided SQL client's transaction now commits and rolls back with that transaction through pg-boss's per-call database adapter. To retain independent enqueueing, call enqueue after the application transaction returns and handle its failure separately. Outside a transaction, behavior is unchanged.
+
 ## 0.20.0 - 2026-10-27
 
 ### Breaking

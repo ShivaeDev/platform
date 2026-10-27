@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.18.0 - 2026-10-27
+
+### Added
+
+- SQL stories can declare domain read keys that cover written tables with `withChangeCoverage(body, { covers })` and assert committed change keys with `expectPublished(keys)`.
+- Contract stories can observe a viewer's live stream with `watchHints` and use `heard(viewer, keys)` to await allowed hints or report denied keys as unheard on the story clock.
+
 ## 0.17.0 - 2026-10-27
 
 ### Added

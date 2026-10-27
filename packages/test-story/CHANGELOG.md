@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.21.1 - 2026-10-27
+
+### Fixed
+
+- Cancel timers armed in the DOM environment before removing its globals, so Better Auth's delayed session cleanup cannot access a removed `window`.
+
 ## 0.21.0 - 2026-10-27
 
 ### Added
