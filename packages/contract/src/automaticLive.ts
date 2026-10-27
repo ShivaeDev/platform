@@ -2,8 +2,9 @@ import { type Duration, Effect, Stream, SubscriptionRef } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
+import { type Key, readKeys } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
-import { type Key, readKeys } from "#keys.ts";
+import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import type { changesRpc, QueryReference } from "#serverMetadata.ts";
@@ -68,13 +69,17 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 			return Stream.never;
 		}
 		const queries = [...current.values()].map(({ reference }) => reference);
-		return Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries }))));
+		return Stream.unwrap(
+			service.use((client) =>
+				Effect.succeed(client(`${name}.$changes`, { queries }).pipe(Stream.map((hint) => queryHint(hint, [...current.values()])))),
+			),
+		);
 	}
 	const signal = resumeSignal({ ...(typeof window === "undefined" ? {} : { window }), ...(resume === undefined ? {} : { native: resume }) });
 	const subscription = live(service.runtime, {
 		keyContext: owner?.context,
 		resume: signal,
-		resyncKeys: (registry) => [...Effect.runSync(SubscriptionRef.get(registry.get(tracked))).values()].flatMap(({ keys }) => keys),
+		resyncKeys: (registry) => [...Effect.runSync(SubscriptionRef.get(registry.get(tracked))).values()].flatMap(({ keys }) => localQueryKeys(keys)),
 		stream: Stream.unwrap(
 			Effect.map(AtomRegistry.AtomRegistry, (registry) =>
 				Stream.zipLatest(SubscriptionRef.changes(registry.get(tracked)), AtomRegistry.toStream(registry, signal)).pipe(

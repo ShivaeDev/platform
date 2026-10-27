@@ -5,6 +5,7 @@ import { expectTypeOf } from "vitest";
 import { contract } from "#contract.ts";
 import type { LiveHint } from "#live.ts";
 import { command, query, stream } from "#operation.ts";
+import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 import { type Denied, type Guard, Notes } from "#test/notes.ts";
 
 type Rpcs = RpcGroup.Rpcs<typeof Notes>;
@@ -12,7 +13,7 @@ type Changes = Rpc.ExtractTag<Rpcs, "notes.$changes">;
 declare const client: RpcClient.RpcClient.Flat<Rpcs, RpcClientError>;
 
 const changes = client("notes.$changes", { queries: [{ payload: { id: 1 }, query: "get" }] });
-expectTypeOf(changes).toEqualTypeOf<Stream.Stream<LiveHint, Denied | RpcClientError>>();
+expectTypeOf(changes).toEqualTypeOf<Stream.Stream<LiveHint, Denied | MissingReadPolicy | QueryReadDenied | RpcClientError>>();
 expectTypeOf<Rpc.Payload<Changes>>().toEqualTypeOf<{
 	readonly queries: readonly (
 		| { readonly query: "get"; readonly payload: { readonly id: number } }

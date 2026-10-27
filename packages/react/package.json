@@ -63,6 +63,7 @@
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
 		"@effect/sql-sqlite-node": "catalog:",
+		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",

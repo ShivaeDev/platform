@@ -10,7 +10,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 
 const notes = { _tag: "List", collection: "loaderNotes" } as const;
-const Get = query("get", { reads: () => [notes], success: Schema.Struct({ title: Schema.String }) });
+const Get = query("get", { readPolicy: () => Effect.succeed(true), reads: () => [notes], success: Schema.Struct({ title: Schema.String }) });
 const Rename = command("rename", { invalidates: () => [notes], payload: { title: Schema.String } });
 const Notes = contract("loaderNotes", { commands: [Rename], queries: [Get] });
 

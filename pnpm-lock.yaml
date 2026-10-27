@@ -509,6 +509,9 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
@@ -594,6 +597,9 @@ importers:
 
   packages/contract:
     dependencies:
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/types':
         specifier: workspace:*
         version: link:../types
@@ -831,6 +837,9 @@ importers:
       '@shivaedev/access':
         specifier: workspace:*
         version: link:../access
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
@@ -1133,6 +1142,9 @@ importers:
       '@effect/sql-sqlite-node':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/identity':
         specifier: workspace:*
         version: link:../identity
@@ -1229,6 +1241,9 @@ importers:
 
   packages/server:
     dependencies:
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
@@ -1582,6 +1597,9 @@ importers:
 
   packages/work-board:
     dependencies:
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract
@@ -1790,6 +1808,9 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.5(effect@4.0.5)
+      '@shivaedev/changes':
+        specifier: workspace:*
+        version: link:../changes
       '@shivaedev/contract':
         specifier: workspace:*
         version: link:../contract

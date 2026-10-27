@@ -1,5 +1,5 @@
 import { Deferred, type Duration, Effect, Fiber, Stream, SubscriptionRef } from "effect";
-import type { Key } from "./keys.ts";
+import type { Key } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "./live.ts";
 
 export interface HintViewer<E> {
@@ -37,15 +37,5 @@ export const heard = Effect.fn("Live.heard")(function* <E>(
 });
 
 function namesKeys(hint: LiveHint, keys: readonly Key[]): boolean {
-	return (
-		hint._tag === "Changed"
-		&& keys.every((key) =>
-			hint.keys.some(
-				(actual) =>
-					actual._tag === key._tag
-					&& actual.collection === key.collection
-					&& (key._tag === "List" || (actual._tag === "Item" && actual.id === key.id)),
-			),
-		)
-	);
+	return hint._tag === "Changed" && keys.every((key) => hint.keys.some((actual) => JSON.stringify(actual) === JSON.stringify(key)));
 }

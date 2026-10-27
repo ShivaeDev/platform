@@ -1,7 +1,7 @@
 import { Context, type Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
 import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
-import { CommandInvalidation, changesRpc, KeyScope, QueryReads } from "#serverMetadata.ts";
+import { CommandInvalidation, changesRpc, KeyScope, QueryDefinition } from "#serverMetadata.ts";
 
 export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
 
@@ -63,7 +63,7 @@ function annotations(operation: QueryShape | CommandShape | StreamShape, keyScop
 	if (operation.kind === "command") {
 		return Context.add(scope, CommandInvalidation, operation.invalidates);
 	}
-	return operation.kind === "query" ? Context.add(scope, QueryReads, operation.reads) : scope;
+	return operation.kind === "query" ? Context.add(scope, QueryDefinition, operation) : scope;
 }
 
 type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;

@@ -1,9 +1,6 @@
 import type { Duration, Layer } from "effect";
 import type { HttpRouter, HttpStaticServer } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
-import type { ReadKeyPolicy } from "@shivaedev/contract/readPolicy.ts";
-import type { AuthUnavailable, Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import type { IdentityValue } from "@shivaedev/identity/identity.ts";
 import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppDatabaseOptions } from "./appHost.ts";
 
@@ -21,7 +18,6 @@ export type HostOptions<TRpcs extends Rpc.Any, THandlers, THandlerError, THandle
 	readonly group: RpcGroup.RpcGroup<TRpcs>;
 	readonly handlers: Layer.Layer<THandlers, THandlerError, THandlerRequirements>;
 	readonly nativeOrigins?: readonly string[];
-	readonly readPolicy?: ReadKeyPolicy<IdentityValue, AuthUnavailable | Forbidden, NoInfer<TServices>>;
 	readonly routes?: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;
 	readonly rpcPath?: HttpRouter.PathInput;
 } & (

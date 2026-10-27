@@ -816,7 +816,7 @@ import { act, createElement } from "react";
 import { expect } from "vitest";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/react/client/testing.ts";

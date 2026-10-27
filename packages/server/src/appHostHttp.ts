@@ -13,7 +13,6 @@ import type { databaseLayer } from "#databaseLayer.ts";
 import { healthRoute } from "#healthRoute.ts";
 import { hostChanges } from "#hostChanges.ts";
 import type { HostOptions, HostPolicy } from "#hostOptions.ts";
-import { hostReadPolicy } from "#hostReadPolicy.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import { hostTransport } from "#hostTransport.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
@@ -48,9 +47,7 @@ export function appHostHttp<
 			const routes = HttpRouter.use((router) =>
 				Effect.gen(function* () {
 					const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
-					const handler = yield* hostRpc(options.group, options.readPolicy !== undefined).pipe(
-						Effect.provideService(RpcSerialization.RpcSerialization, wire),
-					);
+					const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 					const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
 					if (nativeOrigins.length > 0) {
 						yield* router.add("OPTIONS", options.rpcPath ?? "/rpc", HttpServerResponse.text("Local same-origin requests only", { status: 403 }));
@@ -65,7 +62,6 @@ export function appHostHttp<
 					});
 				}),
 			).pipe(
-				Layer.provide(options.readPolicy === undefined ? Layer.empty : hostReadPolicy(options.readPolicy)),
 				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
 				Layer.provide(RpcSerialization.layerNdjson),
 				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy)),

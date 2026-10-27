@@ -1,47 +1,33 @@
-import { Context, type Duration, Effect, Option } from "effect";
+import { Context, Effect, Option } from "effect";
 import type { Rpc } from "effect/rpc";
-import type { Key } from "./keys.ts";
-import { QueryReads } from "./serverMetadata.ts";
+import type { QueryShape } from "#operation.ts";
+import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { QueryDefinition } from "#serverMetadata.ts";
 
-export type ReadKeyPolicy<TViewer, E = never, R = never> = (key: Key, viewer: Option.Option<TViewer>) => Effect.Effect<boolean, E, R>;
-
-export type ModuleReadPolicies<TViewer, E = never, R = never> = Readonly<Record<string, ReadKeyPolicy<TViewer, E, R>>>;
-
-export function mergeReadPolicies<TViewer = unknown, E = never, R = never>(
-	...modules: readonly ModuleReadPolicies<TViewer, E, R>[]
-): ReadKeyPolicy<TViewer, E, R> {
-	return (key, viewer) => {
-		const module = modules.find((policies) => Object.hasOwn(policies, key.collection));
-		const policy = module?.[key.collection];
-		return policy === undefined ? Effect.succeed(false) : policy(key, viewer);
-	};
+export interface Viewer {
+	readonly id: string;
 }
+export type QueryReadPolicy<TPayload> = (payload: TPayload, viewer: Option.Option<Viewer>) => Effect.Effect<boolean, never, unknown>;
 
-export const ReadPolicy = Context.Reference<(key: Key) => Effect.Effect<boolean, unknown>>("@shivaedev/contract/ReadPolicy", {
-	defaultValue: () => () => Effect.succeed(true),
+export const CurrentViewer = Context.Reference<Option.Option<Viewer>>("@shivaedev/contract/CurrentViewer", { defaultValue: Option.none });
+export const checkQuery = Effect.fnUntraced(function* (query: QueryShape, payload: unknown, viewer: Option.Option<Viewer>) {
+	if (query.readPolicy === undefined) {
+		return yield* new MissingReadPolicy({ message: `Declare a readPolicy on query ${query.name} before running it live or subscribing` });
+	}
+	const context = Context.makeUnsafe<unknown>((yield* Effect.context<never>()).mapUnsafe);
+	if (!(yield* Effect.provideContext(query.readPolicy(payload, viewer), context))) {
+		return yield* new QueryReadDenied({ message: `Read not allowed for query ${query.name}` });
+	}
 });
 
-export const ReadPolicyMemoWindow = Context.Reference<Duration.Input>("@shivaedev/contract/ReadPolicyMemoWindow", {
-	defaultValue: () => "1 second",
-});
-
-export const authorizeReads = Effect.fnUntraced(function* <A, E, R, TViewer, TPolicyServices, TDenied, TPolicyError>(
+export const authorizeReads = Effect.fnUntraced(function* <A, E, R>(
 	effect: Effect.Effect<A, E, R>,
 	request: { readonly rpc: Rpc.AnyWithProps; readonly payload: unknown },
-	policy: ReadKeyPolicy<TViewer, TPolicyError, TPolicyServices>,
-	viewer: Option.Option<TViewer>,
-	denied: Effect.Effect<never, TDenied>,
+	viewer: Option.Option<Viewer>,
 ) {
-	const context = yield* Effect.context<TPolicyServices>();
-	function canRead(key: Key) {
-		return Effect.provideContext(policy(key, viewer), context);
+	const definition = Context.getOption(request.rpc.annotations, QueryDefinition);
+	if (Option.isSome(definition) && definition.value.readPolicy !== undefined) {
+		yield* checkQuery(definition.value, request.payload, viewer);
 	}
-	const reads = Context.getOption(request.rpc.annotations, QueryReads);
-	if (Option.isSome(reads)) {
-		const allowed = yield* Effect.forEach(reads.value(request.payload), canRead, { concurrency: "unbounded" });
-		if (allowed.includes(false)) {
-			return yield* denied;
-		}
-	}
-	return yield* Effect.provideService(effect, ReadPolicy, canRead);
+	return yield* Effect.provideService(effect, CurrentViewer, viewer);
 });

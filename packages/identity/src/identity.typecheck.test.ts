@@ -2,6 +2,7 @@ import { Effect, type Layer, Option, Schema } from "effect";
 import { Headers } from "effect/http";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { expectTypeOf } from "vitest";
+import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { permissionLayer } from "#server/permissions.ts";
@@ -43,7 +44,7 @@ const adminPolicy = {
 Effect.gen(function* () {
 	const client = yield* RpcTest.makeClient(RpcGroup.make(AdminTools.middleware(ToolsPermission)));
 	const failure = yield* Effect.flip(client.AdminTools());
-	expectTypeOf(failure).toEqualTypeOf<Unauthorized | AuthUnavailable | Forbidden>();
+	expectTypeOf(failure).toEqualTypeOf<Unauthorized | AuthUnavailable | Forbidden | MissingReadPolicy | QueryReadDenied>();
 }).pipe(Effect.provide(adminHandlers), Effect.provide(permissionLayer(ToolsPermission, adminPolicy)), Effect.scoped);
 permissionLayer(ManagementPermission, adminPolicy);
 
@@ -57,7 +58,7 @@ authenticatedUserLayer({
 Effect.gen(function* () {
 	const client = yield* RpcTest.makeClient(Profile);
 	const failure = yield* Effect.flip(client.Whoami());
-	expectTypeOf(failure).toEqualTypeOf<Unauthorized | AuthUnavailable | Forbidden>();
+	expectTypeOf(failure).toEqualTypeOf<Unauthorized | AuthUnavailable | Forbidden | MissingReadPolicy | QueryReadDenied>();
 }).pipe(Effect.provide(handlers), Effect.scoped);
 
 function getSession() {

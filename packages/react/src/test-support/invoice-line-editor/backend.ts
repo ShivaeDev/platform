@@ -1,9 +1,9 @@
 import { Context, Deferred, Effect, Layer, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcMiddleware, RpcTest } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 
@@ -22,6 +22,7 @@ class Guard extends RpcMiddleware.Service<Guard, { provides: Principal }>()("inv
 const invoiceLines = collection("invoiceLines", InvoiceLine.fields.id);
 const GetInvoiceLine = query("get", {
 	payload: { id: Schema.Number },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ id }) => [invoiceLines.item(id)],
 	rejections: { InvoiceLineNotFound: {}, Unavailable },
 	success: InvoiceLine,

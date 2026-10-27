@@ -2,7 +2,7 @@ import { Context, Effect, Layer, Option } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
-import { invalidationKeys } from "@shivaedev/contract/keys.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { heard, watchHints } from "@shivaedev/contract/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, context, start } from "#test/app-host/lifecycle.ts";
@@ -34,7 +34,7 @@ export const readPolicyHost = storyKit({
 			);
 		}
 		function listen(viewer: string) {
-			const queries = ["alice", "bob"].map((owner) => ({ payload: { owner }, query: "get" as const }));
+			const queries = [viewer].map((owner) => ({ payload: { owner }, query: "get" as const }));
 			return Effect.flatMap(client(viewer), (rpc) => watchHints(rpc("account.$changes", { queries })));
 		}
 		return {

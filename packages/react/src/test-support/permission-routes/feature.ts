@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { permission } from "@shivaedev/access/permission.ts";
 import { role } from "@shivaedev/access/role.ts";
 import { roleSet } from "@shivaedev/access/roleSet.ts";
@@ -11,5 +11,11 @@ export const ReadNotes = permission("notes.read");
 export const Roles = roleSet(role("reader", [ReadNotes]), role("guest", []), role("supervisor", [ReadNotes.any]));
 export type Role = typeof Roles.Role.Type;
 export class ReadPermission extends permissionMiddleware<ReadPermission>()("test/ReadNotes", ReadNotes) {}
-const Get = query("get", { payload: { id: Schema.String }, reads: () => [], rejections: { ServiceUnavailable }, success: Schema.String });
+const Get = query("get", {
+	payload: { id: Schema.String },
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [],
+	rejections: { ServiceUnavailable },
+	success: Schema.String,
+});
 export const Notes = contract("permissionNotes", { queries: [Get] }).middleware(ReadPermission);

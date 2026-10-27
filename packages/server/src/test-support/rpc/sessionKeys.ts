@@ -1,6 +1,6 @@
 import { Effect, Stream } from "effect";
 import { SqlClient } from "effect/sql";
-import { readKeys } from "@shivaedev/contract/keys.ts";
+import { readKeys } from "@shivaedev/changes/keys.ts";
 import { createProvider, ORIGIN, signup } from "@shivaedev/identity/test-support/rpc/harness.ts";
 import { databaseUrl, postgres } from "@shivaedev/identity/test-support/rpc/postgres.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";

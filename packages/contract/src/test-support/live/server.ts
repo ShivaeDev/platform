@@ -1,6 +1,6 @@
 import { Deferred, Effect, PubSub, Ref, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys, type Key } from "#keys.ts";
+import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#serverMetadata.ts";

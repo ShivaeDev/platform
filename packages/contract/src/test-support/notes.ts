@@ -1,7 +1,7 @@
-import { Context, Schema } from "effect";
+import { Context, Effect, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "#contract.ts";
-import { collection } from "#keys.ts";
 import { command, query } from "#operation.ts";
 import { fieldRejection } from "#rejection.ts";
 
@@ -16,11 +16,12 @@ export const notes = collection("notes", Note.fields.id);
 
 export const Get = query("get", {
 	payload: { id: Schema.Number },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ id }) => [notes.item(id)],
 	rejections: { NoteMissing },
 	success: Note,
 });
-export const List = query("list", { reads: () => [notes.list], success: Schema.Array(Note) });
+export const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Note) });
 export const Rename = command("rename", {
 	invalidates: ({ id }) => [notes.item(id)],
 	payload: { id: Schema.Number, title: Schema.String },
