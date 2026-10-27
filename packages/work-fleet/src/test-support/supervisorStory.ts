@@ -10,6 +10,7 @@ import { boardSubscription } from "#test/boardSubscription.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { SupervisorStoryEngine } from "#test/SupervisorStoryEngine.ts";
 import { supervisorBoardCall } from "#test/supervisorBoardCall.ts";
+import { supervisorSocketCall } from "#test/supervisorSocketCall.ts";
 
 const layer = Layer.merge(postgresLayer, NodeServices.layer);
 
@@ -29,6 +30,11 @@ export const fleetSupervisor = storyKit({
 		beginRequest: () => engine.beginRequest(),
 		boardCli: (args: readonly string[]) => engine.run(args, engine.fixture.boardCli),
 		boardDir: () => engine.fixture.boardDir,
+		changeBoardCode: () =>
+			Effect.sync(() => {
+				story.tell("replace the installed Board server response");
+				engine.fixture.changeBoardCode();
+			}),
 		changeCode: () =>
 			Effect.sync(() => {
 				story.tell("replace the installed daemon's live response");
@@ -65,6 +71,8 @@ export const fleetSupervisor = storyKit({
 			),
 		request: (state: NonNullable<Effect.Success<ReturnType<typeof engine.state>>>, name: "daemon" | "board", path?: string) =>
 			engine.http(state, name, path),
+		serverInfo: (port: number) => supervisorBoardCall(port, (client) => client("work-board.server", undefined)),
+		socketServerInfo: () => supervisorSocketCall(join(engine.fixture.boardDir, "board.sock")),
 		stalePid: () => engine.stalePid,
 		start: () => {
 			story.tell("start Fleet and Board in a consumer repository");
@@ -77,6 +85,7 @@ export const fleetSupervisor = storyKit({
 				story.tell("upgrade the installed Fleet package");
 				engine.fixture.upgrade();
 			}),
+		waitForLog: (text: string) => engine.until(() => Effect.sync(() => engine.log().includes(text))),
 	}),
 });
 
@@ -84,3 +93,9 @@ export const staleSupervisor = fleetSupervisor.trait("ownership", "a dead superv
 export const slowLiveRequest = fleetSupervisor.trait("installation", "the installed daemon has a slow live request", (engine) => {
 	engine.delayedLive = true;
 });
+
+export function ignoresStop(name: "daemon" | "board") {
+	return fleetSupervisor.trait("installation", `the ${name} ignores SIGTERM`, (engine) => {
+		engine.stubbornChild = name;
+	});
+}

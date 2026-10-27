@@ -1,7 +1,7 @@
 import { realpathSync } from "node:fs";
 import { unlink } from "node:fs/promises";
 import process from "node:process";
-import { Clock, Console, Effect, Exit, Scope } from "effect";
+import { Clock, Console, Effect, Exit, Scope, Semaphore } from "effect";
 import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
 import { logSupervisor, startProcess } from "./supervisedProcess.ts";
 import { codeReader, type RunningCode } from "./supervisorCode.ts";
@@ -30,7 +30,7 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 			const owner = yield* processes.currentInstance("up", { boardPort: options.boardPort, daemonPort: options.daemonPort });
 			yield* processes.claimSupervisor(root, owner);
 			const log = logFile(root);
-			const parent = yield* Scope.Scope;
+			const publishing = yield* Semaphore.make(1);
 			const readCode = codeReader(root);
 			const codes = yield* Effect.try({ catch: (cause) => new Error(`Cannot read installed Fleet code: ${cause}`), try: readCode });
 			function empty(name: Name): ProcessState {
@@ -51,8 +51,11 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 					yield* logSupervisor(log, "stopped Fleet and Board; releasing board").pipe(Effect.orDie);
 				}),
 			);
+			const parent = yield* Scope.fork(yield* Scope.Scope, "parallel");
 			function publish() {
-				return saveState(root, { ...state, ...Object.fromEntries([...children].map(([name, child]) => [name, child.state])) });
+				return publishing.withPermit(
+					Effect.suspend(() => saveState(root, { ...state, ...Object.fromEntries([...children].map(([name, child]) => [name, child.state])) })),
+				);
 			}
 			const start = Effect.fnUntraced(function* (name: Name, code: RunningCode, restarts: number) {
 				const scope = yield* Scope.fork(parent, "sequential");
@@ -71,11 +74,12 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 				});
 				yield* publish();
 			});
-			const refresh = Effect.fnUntraced(function* (next: ReturnType<typeof readCode>) {
-				for (const [name, child] of children) {
+			const refresh = Effect.fnUntraced(function* (name: Name, next: ReturnType<typeof readCode>) {
+				const child = children.get(name);
+				if (child !== undefined) {
 					const exit = child.process.exit();
 					if (exit === undefined && next[name].revision === child.code.revision) {
-						continue;
+						return;
 					}
 					yield* logSupervisor(
 						log,
@@ -92,16 +96,18 @@ export const supervise = Effect.fn("FleetSupervisor.supervise")(function* (input
 				yield* start(name, codes[name], 0);
 			}
 			yield* Console.log(`Fleet up pid ${process.pid}; Fleet port ${options.daemonPort}, Board port ${options.boardPort}\nLogs: ${log}`);
-			for (;;) {
-				yield* Effect.sleep("1 second");
-				const next = yield* Effect.try({ catch: (cause) => new Error(`Cannot inspect installed Fleet code: ${cause}`), try: readCode }).pipe(
-					Effect.catch((error) => logSupervisor(log, error.message).pipe(Effect.as(undefined))),
-				);
-				if (next === undefined) {
-					continue;
+			const watch = Effect.fnUntraced(function* (name: Name) {
+				for (;;) {
+					yield* Effect.sleep("1 second");
+					const next = yield* Effect.try({ catch: (cause) => new Error(`Cannot inspect installed Fleet code: ${cause}`), try: readCode }).pipe(
+						Effect.catch((error) => logSupervisor(log, error.message).pipe(Effect.as(undefined))),
+					);
+					if (next !== undefined) {
+						yield* refresh(name, next);
+					}
 				}
-				yield* refresh(next);
-			}
+			});
+			yield* Effect.forEach(["daemon", "board"] as const, watch, { concurrency: "unbounded", discard: true });
 		}),
 	);
 });
