@@ -26,10 +26,17 @@ export const developmentApp = storyKit({
 		for (const [path, text] of Object.entries(developmentFiles)) {
 			yield* fs.writeFileString(join(root, path), text);
 		}
-		yield* fs.symlink(fileURLToPath(new URL("../../../../examples/starter/node_modules", import.meta.url)), join(root, "node_modules"));
+		yield* fs.symlink(fileURLToPath(new URL("../../../../node_modules", import.meta.url)), join(root, "node_modules"));
 		const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 		const child = yield* spawner.spawn(ChildProcess.make(process.execPath, ["--conditions=source", "runner.mjs"], { cwd: root }));
-		return { child, ready: new Map<string, { pid: number; value: string }>() };
+		const stderr: string[] = [];
+		yield* child.stderr.pipe(
+			Stream.decodeText(),
+			Stream.splitLines,
+			Stream.runForEach((line) => Effect.sync(() => stderr.push(line))),
+			Effect.forkScoped,
+		);
+		return { child, ready: new Map<string, { pid: number; value: string }>(), stderr };
 	},
 	layer: NodeServices.layer,
 	name: "development application",
