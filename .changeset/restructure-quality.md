@@ -12,3 +12,4 @@
 ### Changed
 
 - `@shivaedev/quality/tsconfig/package.json` resolves modules as `NodeNext`, so package builds emit declarations whose relative imports name resolvable files. Remove per-package `module` and `moduleResolution` overrides from build configs; type-checking through `tsconfig/base.json` is unchanged.
+- `appTestConfig` inlines every `@shivaedev` package for the test server instead of `@shivaedev/platform` alone, because an application now imports each framework piece by its own name.

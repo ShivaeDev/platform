@@ -57,4 +57,4 @@ Published workspace dependents receive at least a patch transitively, including 
 
 The check also requires starter pins to match the current workspace versions and include each pinned package's published framework dependencies. Align the dependency releases and starter pins; the automated release PR derives the `@shivaedev/create-app` patch when those pins change.
 
-Hooks run after collection. If a hook fails, review or restore the generated release diff before retrying. See the [Changesets package](../packages/releases/README.md) for its input format, plan and validation rules.
+Hooks run after collection. If a hook fails, review or restore the generated release diff before retrying. See the [releases package](../packages/releases/README.md) for its input format, plan and validation rules.

@@ -2,6 +2,8 @@
 
 Start a new app with the [quickstart](./quickstart.md) and [copyable starter](../../examples/starter).
 
+An application depends on [`@shivaedev/platform`](../../packages/platform/README.md), which brings every package below, and on `@shivaedev/test-story` and `@shivaedev/quality` for development. It imports each module from the package that owns it, by that package's name; the table names the owner of each job.
+
 Platform gives an Effect application one path from its data schemas to services,
 persistence, operations and client state. Shared conventions remove repeated
 wiring while keeping native Effect dependencies, errors, scopes and interruption
@@ -20,7 +22,10 @@ user-facing text, layout and deployment choices.
 | Persist data and run migrations | [sql](../../packages/sql/README.md) | Derive common operations from native models; use explicit SQL for unusual queries. |
 | Announce committed changes | [changes](../../packages/changes/README.md) | Repositories announce table and row keys at commit; command declarations name additional dependencies. |
 | Declare queries and commands | [contract](../../packages/contract/README.md) | Describe payloads, results, rejections and read keys; native RPC owns handlers and transport. |
-| Resolve identity | [platform](../../packages/platform/README.md) | Use its RPC middleware and server modules; applications decide session and Origin policy. |
+| Share expected failures | [errors](../../packages/errors/README.md) | Use the shared failure taxonomy and field rejections on both sides of RPC; redact sensitive values before they reach logs or traces. |
+| Resolve identity and permissions | [identity](../../packages/identity/README.md) | Use its RPC middleware and server modules; applications decide session, Origin and permission policy. |
+| Call outside HTTP APIs | [http](../../packages/http/README.md) | Use the native HTTP client with its typed failures, pagination and bounded bodies; applications own retries and credentials. |
+| Host the application | [server](../../packages/server/README.md) | Compose the app host, health, tracing export, migrations and development mode; applications supply their RPC groups and routes. |
 | Render queries and invoke actions | [react](../../packages/react/README.md) | Bind native atoms to React; session boundaries own registries and live connections. |
 | Route React screens | [react/router.ts](../../packages/react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components. |
 | Edit and submit data | [form](../../packages/form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |

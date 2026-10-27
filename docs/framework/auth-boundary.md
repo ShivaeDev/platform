@@ -1,6 +1,6 @@
 # BetterAuth at the native RPC boundary
 
-The native RPC stack can keep an application's existing authentication provider. An application that already resolves sessions with BetterAuth's `auth.api.getSession({ headers })` reuses it: Platform's session middleware calls that same API and provides a small request-local Effect service to handlers. Domain repositories do not need to know how authentication sessions are stored, and an Effect SQL adapter for auth is not a prerequisite.
+The native RPC stack can keep an application's existing authentication provider. An application that already resolves sessions with BetterAuth's `auth.api.getSession({ headers })` reuses it: Identity's session middleware calls that same API and provides a small request-local Effect service to handlers. Domain repositories do not need to know how authentication sessions are stored, and an Effect SQL adapter for auth is not a prerequisite.
 
 ```ts
 import { authenticatedLayer, maybeAuthenticatedLayer } from "@shivaedev/identity/server/session.ts";

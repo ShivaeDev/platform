@@ -34,8 +34,17 @@ Every package has a README for people and agents using it and a short `AGENTS.md
   stories over the real engine: one Effect story kit per engine with its own
   `it` that names every test after the engine's genre, traits per feature, and a
   failure that prints the story, where it stopped and the engine's state.
-- [`@shivaedev/platform`](./packages/platform): Shared errors, request identity,
-  Node HTTP cancellation and runtime ownership, plus optional auth.
+- [`@shivaedev/platform`](./packages/platform): The framework in one dependency: a code-free shell that depends on every runtime piece, for applications that import each piece by its own name.
+- [`@shivaedev/errors`](./packages/errors): The shared failure taxonomy, typed field rejections and redaction of sensitive values, safe in the browser.
+- [`@shivaedev/http`](./packages/http): Calls to outside HTTP APIs with typed failures, pagination and retry hints, and bounded request bodies.
+- [`@shivaedev/identity`](./packages/identity): Request identity, session resolution, transport trust and permission checks, with an optional Better Auth adapter.
+- [`@shivaedev/server`](./packages/server): The application host: HTTP and RPC serving, health, tracing export, the database layer and migrations, development mode and the Promise runtime.
+- [`@shivaedev/access`](./packages/access): Browser-safe role declarations and permission checks.
+- [`@shivaedev/admin`](./packages/admin): Explicit admin page contracts and a protected native Effect RPC registry.
+- [`@shivaedev/github`](./packages/github): Typed GitHub REST requests, conditional reads and resource budgets.
+- [`@shivaedev/pr-watch`](./packages/pr-watch): One REST watcher for pull request transitions across a repository.
+- [`@shivaedev/create-app`](./packages/create-app): Creates and installs an application from the maintained starter and merges later starter releases into it.
+- [`@shivaedev/releases`](./packages/releases): Explicit changesets and reproducible workspace releases.
 - [`@shivaedev/quality`](./packages/quality): Opinionated repository quality
   policy with shared tooling and minimal setup; counted existing debt keeps
   adoption practical without weakening the checks.
@@ -59,7 +68,7 @@ No package has a root entry or a module that re-exports another. Published packa
 
 ## Development
 
-For a new application, follow the [framework quickstart](./docs/framework/quickstart.md) and copy `examples/starter`.
+For a new application, follow the [framework quickstart](./docs/framework/quickstart.md). An application depends on `@shivaedev/platform` and takes `@shivaedev/test-story` and `@shivaedev/quality` for development, and its `pnpm-workspace.yaml` hoists `@shivaedev/*` so the pieces platform brings resolve; the [platform README](./packages/platform/README.md) explains the setup. This workspace hoists the scope too, because `examples/starter` resolves its pieces from the root.
 
 Requirements:
 

@@ -1,4 +1,4 @@
 {
 	"extends": "./tsconfig.base.json",
-	"include": ["script", "quality.config.ts", "vitest.config.ts", ".changeset"]
+	"include": ["script", "quality.config.ts", "quality.fences.config.ts", "vitest.config.ts", ".changeset"]
 }

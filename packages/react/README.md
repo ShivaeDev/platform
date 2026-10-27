@@ -168,7 +168,7 @@ Preferences.application.toLayer({
 });
 ```
 
-`store` is the application's persistence service. No owner or client key scope is accepted from a request. Platform's database app host resolves the server key scope from that same request-local identity. `List` and `Item` remain the key shapes; scope is an additional dimension, and the client registry's opaque scope is never sent as an owner id.
+`store` is the application's persistence service. No owner or client key scope is accepted from a request. The database app host of `@shivaedev/server` resolves the server key scope from that same request-local identity. `List` and `Item` remain the key shapes; scope is an additional dimension, and the client registry's opaque scope is never sent as an owner id.
 
 ### Trace an action across RPCs
 
@@ -188,7 +188,7 @@ const save = OrdersClient.runtime.fn((input: OrderInput) =>
 
 `OrdersClient`, `OrderInput` and `api` belong to the application. Dispatch `save` with `useAction(save)`. `actionTrace(effect, name?)` preserves the Effect's result, typed error and service requirements; its default span name is `ui.action`. Each execution starts a fresh trace, and RPCs run inside that Effect share it, including across asynchronous boundaries. Native atoms continue to own execution and cancellation. `useAction` also accepts ordinary native action atoms; wrap composite action Effects to group their RPCs.
 
-Use native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` for the browser RPC protocol. Effect sends the trace in the W3C `traceparent` HTTP header. Platform's appHost carries it into the RPC span and its SQL, and annotates the RPC span with `request.id`. Enqueued pg-boss jobs retain that span context; worker attempts start separate traces linked back to the sender.
+Use native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` for the browser RPC protocol. Effect sends the trace in the W3C `traceparent` HTTP header. The `appHost` of `@shivaedev/server` carries it into the RPC span and its SQL, and annotates the RPC span with `request.id`. Enqueued pg-boss jobs retain that span context; worker attempts start separate traces linked back to the sender.
 
 ### One supported path for query, command and form feedback
 

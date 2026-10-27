@@ -58,7 +58,7 @@ const handlers = registration.handlers.pipe(
 );
 ```
 
-Declare application roles with `@shivaedev/access`, grant `OpenAdmin` explicitly, and supply that role set through Platform's session or auth configuration.
+Declare application roles with `@shivaedev/access`, grant `OpenAdmin` explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
 
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
@@ -110,7 +110,7 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `OpenAdmin`, through the same page middleware. The handler uses jobs's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `OpenAdmin`, through the same page middleware. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.
 

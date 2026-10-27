@@ -12,7 +12,7 @@ This recipe uses Schema, an sql repository, an contract query and command, and a
 | [Repositories and migration](../../packages/react/src/test-support/settings-example/repository.ts) | Existing entity ownership, one settings row per entity, and the upsert conflict target. |
 | [Service](../../packages/react/src/test-support/settings-example/Service.ts) | Ownership checks, defaulting reads, validation and transactional upserts with committed invalidation. |
 | [Handlers](../../packages/react/src/test-support/settings-example/handlers.ts) | Request identity and authorized live subscriptions. |
-| [Host](../../packages/react/src/test-support/settings-example/startHost.ts) | Platform's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC. |
+| [Host](../../packages/react/src/test-support/settings-example/startHost.ts) | Server's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC. |
 | [Client](../../packages/react/src/test-support/settings-example/makeClient.ts) | Native AtomRpc, contract binding and entity-scoped live invalidation. |
 | [Editor](../../packages/react/src/test-support/settings-example/Editor.tsx) | `useEditor`, encoded input, form fields and rendered field errors. |
 | [Story kit](../../packages/react/src/test-support/settings-example/story.ts) | PostgreSQL configuration, cloned-database isolation and open-editor traits. |
@@ -58,7 +58,7 @@ return saved;
 
 The whole save effect runs inside `transact({ onSqlError: unavailable })`. The first save inserts a row; later saves update the named settings columns at the same entity id. `updateColumns` deliberately excludes the identity. The command declares `settings.item(entityId)` as its invalidation key, and the query declares the same key as a read dependency. `invalidateOnCommit` publishes that key after the transaction commits.
 
-The handler passes Platform's current `Identity.id` into each service call. The example's explicit `subscribe` RPC authorizes the entity before opening `AppChanges.stream` for its settings key. The client mounts that live connection and invalidates its existing query on hints. A second client's registry therefore reads the committed settings over HTTP and delivers them to its already-open editor. See [live updates](./live-updates.md) for the default session-managed path and other transport choices.
+The handler passes the current `Identity.id` into each service call. The example's explicit `subscribe` RPC authorizes the entity before opening `AppChanges.stream` for its settings key. The client mounts that live connection and invalidates its existing query on hints. A second client's registry therefore reads the committed settings over HTTP and delivers them to its already-open editor. See [live updates](./live-updates.md) for the default session-managed path and other transport choices.
 
 The host’s bearer-token sessions and permissive Origin policy are fixture choices. The handler also composes a test commit gate with the host’s existing `BeforeCommit` hook, preserving its PostgreSQL notification delivery; applications do not need that gate. Use your application's session provider and Origin policy, as described in [request context](./request-context.md).
 
