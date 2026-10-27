@@ -23,7 +23,6 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 		ChildProcess.make(process.execPath, [...process.execArgv, code.entry, ...args], {
 			env: { [processes.supervisorEnvironment]: token },
 			extendEnv: true,
-			forceKillAfter: "30 seconds",
 			stderr: "pipe",
 			stdin: "ignore",
 			stdout: "pipe",
