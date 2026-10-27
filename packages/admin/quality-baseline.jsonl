@@ -1,5 +1,6 @@
 {"path":"packages/admin/src/client/UsersTable.tsx","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/client/UsersView.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/jobs/entry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/jobs/page.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/jobs/retryPage.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/jobs/schemas.ts","rule":"effect/service-parameters","count":3}
