@@ -27,3 +27,9 @@ export function searchLimitedUntil(epochSeconds: number) {
 		state.reply = { body: { message: "API rate limit exceeded" }, headers: budgetHeaders("search", 0, epochSeconds), status: 403 };
 	});
 }
+
+export function pullRequestPageAnswers(page: number, reply: FakeHttpReply) {
+	return github.trait("github", `GitHub answers pull request page ${page}`, ({ state }) => {
+		state.pageReplies.set(page, reply);
+	});
+}
