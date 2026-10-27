@@ -7,7 +7,9 @@ export type ReadKeyPolicy<TViewer, E = never, R = never> = (key: Key, viewer: Op
 
 export type ModuleReadPolicies<TViewer, E = never, R = never> = Readonly<Record<string, ReadKeyPolicy<TViewer, E, R>>>;
 
-export function mergeReadPolicies<TViewer, E, R>(...modules: readonly ModuleReadPolicies<TViewer, E, R>[]): ReadKeyPolicy<TViewer, E, R> {
+export function mergeReadPolicies<TViewer = unknown, E = never, R = never>(
+	...modules: readonly ModuleReadPolicies<TViewer, E, R>[]
+): ReadKeyPolicy<TViewer, E, R> {
 	return (key, viewer) => {
 		const module = modules.find((policies) => Object.hasOwn(policies, key.collection));
 		const policy = module?.[key.collection];
