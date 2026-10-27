@@ -7,6 +7,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
 import { boardSubscription } from "#test/boardSubscription.ts";
+import { holdBoardRequest } from "#test/holdBoardRequest.ts";
 import { postgresEnabled, postgresLayer } from "#test/postgres.ts";
 import { SupervisorStoryEngine } from "#test/SupervisorStoryEngine.ts";
 import { supervisorBoardCall } from "#test/supervisorBoardCall.ts";
@@ -58,6 +59,10 @@ export const fleetSupervisor = storyKit({
 			return child.done;
 		},
 		finishRequest: () => engine.finishRequest(),
+		holdBoardRequest: () => {
+			story.tell("a client leaves a Board socket request body unfinished");
+			return holdBoardRequest(join(engine.fixture.boardDir, "board.sock"));
+		},
 		inbox: (port: number) => supervisorBoardCall(port, (client) => client("work-board.inbox", undefined)),
 		lockExists: () => existsSync(join(engine.fixture.boardDir, ".work-up.json")),
 		log: () => engine.log(),

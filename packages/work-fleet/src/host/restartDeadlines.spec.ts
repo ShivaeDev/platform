@@ -3,7 +3,7 @@ import { Clock } from "effect";
 import { fleetSupervisor, ignoresStop } from "#test/supervisorStory.ts";
 
 fleetSupervisor.it(
-	"restarts Board with an open browser subscription and serves replacement code over TCP and the socket",
+	"restarts Board onto new TCP and socket code with a subscription and an unfinished request open",
 	[],
 	function* (fleet) {
 		yield* fleet.start();
@@ -17,6 +17,7 @@ fleetSupervisor.it(
 		expect(yield* fleet.serverInfo(before.board.port)).toEqual(original);
 		expect(yield* fleet.socketServerInfo()).toContainEqual(expect.objectContaining({ exit: { _tag: "Success", value: original } }));
 		const subscription = yield* fleet.subscribe(before.board.port);
+		yield* fleet.holdBoardRequest();
 		yield* fleet.changeBoardCode();
 		yield* fleet.ready("board", before.board.pid);
 		yield* subscription.closed;
