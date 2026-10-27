@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
@@ -91,7 +92,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		}
 		if (state.unavailableReads > 0) {
 			state.unavailableReads -= 1;
-			response.writeHead(503).end();
+			response.writeHead(HttpStatus.fromLiteral("ServiceUnavailable")).end();
 			return;
 		}
 		const body = githubResponses(state)[path];
@@ -102,11 +103,11 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		response.setHeader("ETag", etag);
 		if (body !== undefined && request.headers["if-none-match"] === etag) {
 			conditionalHits.push(path);
-			response.writeHead(304).end();
+			response.writeHead(HttpStatus.fromLiteral("NotModified")).end();
 			return;
 		}
 		response.setHeader("Content-Type", "application/json");
-		response.writeHead(body === undefined ? 404 : 200).end(json);
+		response.writeHead(body === undefined ? HttpStatus.fromLiteral("NotFound") : HttpStatus.fromLiteral("OK")).end(json);
 	});
 	yield* Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve)));
 	yield* Effect.addFinalizer(() => Effect.promise(() => new Promise<void>((resolve) => server.close(() => resolve()))));

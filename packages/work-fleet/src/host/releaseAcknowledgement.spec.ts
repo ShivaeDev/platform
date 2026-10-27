@@ -36,7 +36,8 @@ answers.it("release reports refusal for running work or an unrecorded request", 
 	expect(yield* host.cliRelease("one")).toMatchObject({ code: 1, stderr: expect.stringContaining("work-fleet stop one") });
 	yield* host.question();
 	yield* host.failRecording(true);
-	expect((yield* host.cliRelease("one")).code).toBe(1);
+	const exitCode = (yield* host.cliRelease("one")).code;
+	expect(exitCode).toBe(1);
 	expect(yield* host.storedRequests()).toEqual([]);
 	expect(host.boardReceipts()).toEqual([]);
 	yield* host.failRecording(false);

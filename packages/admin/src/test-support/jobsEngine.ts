@@ -13,7 +13,7 @@ import { jobsHandlersWithRetry } from "#server/jobsHandlersWithRetry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { adminRpc } from "./adminRpc.ts";
 import { jobsClient } from "./jobsClient.ts";
-import { Mail, Private, pages, Sync } from "./jobsPages.ts";
+import { Mail, Private, pages, Scheduled, Sync } from "./jobsPages.ts";
 import { Users } from "./pages.ts";
 
 const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_JOBS_TEST_DATABASE_URL"))));
@@ -57,6 +57,7 @@ export const jobsEngine = Effect.gen(function* () {
 						return repeated ? Effect.succeed({ sent: id }) : Effect.fail(new WorkerRejected({ id }));
 					}),
 				),
+				Scheduled.run(Effect.fail(new WorkerRejected({ id: 0 }))),
 				Sync,
 				Private,
 			],
@@ -87,6 +88,7 @@ export const jobsEngine = Effect.gen(function* () {
 		privateQueue: Private,
 		queue: Mail,
 		registrationReads: () => readCount() - beforeRegistration,
+		scheduled: Scheduled,
 		sendInvalid: () =>
 			jobs
 				.enqueue(defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) }), { invalid: "payload" }, { retryLimit: 0 })

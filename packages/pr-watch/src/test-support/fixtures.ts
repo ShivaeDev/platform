@@ -1,4 +1,5 @@
 import { Clock, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { Engine } from "./engine.ts";
 import type { pull, Reply } from "./server.ts";
 
@@ -72,6 +73,7 @@ export function github(engine: Engine, tell: (line: string) => void) {
 			}),
 		reply,
 		statusIs,
-		throttled: (seconds: number) => reply("/commits/sha1/status", { body: {}, headers: { "retry-after": String(seconds) }, status: 429 }),
+		throttled: (seconds: number) =>
+			reply("/commits/sha1/status", { body: {}, headers: { "retry-after": String(seconds) }, status: HttpStatus.fromLiteral("TooManyRequests") }),
 	};
 }

@@ -8,7 +8,7 @@ screens.it(
 	[signedOutNotesRoute()],
 	function* ({ closeScreen, consoleErrors, alert, signInLink, form, noteCalls }) {
 		yield* eventually(() => expect(alert()).toBe("Sign in to view your notes."));
-		yield* eventually(() => expect(signInLink()).toBe("/sign-in"));
+		yield* eventually(() => expect(signInLink()).toBe("/sign-in?returnTo=%2F"));
 		expect(form()).toBeNull();
 		yield* eventually(() => expect(noteCalls()).toEqual([]));
 		yield* closeScreen();

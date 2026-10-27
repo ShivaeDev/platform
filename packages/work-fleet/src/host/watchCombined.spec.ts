@@ -1,4 +1,5 @@
 import { expect } from "@effect/vitest";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { task } from "#test/fleetHost.ts";
 import { HEAD } from "#test/githubResult.ts";
 import { approvedWork, boardWork, host } from "#test/hostStory.ts";
@@ -61,7 +62,7 @@ host.it(
 		yield* daemon.reviewReady("one");
 		yield* daemon.awaitEvent("waiting-on-orchestrator");
 		yield* github.awaitPoll();
-		github.fail(503);
+		github.fail(HttpStatus.fromLiteral("ServiceUnavailable"));
 		yield* daemon.awaitEvent("pr-error");
 		expect(daemon.watchRunning()).toBe(true);
 		github.pull({ state: "closed" });
@@ -76,14 +77,15 @@ host.it(
 	[approvedWork(["one"]), humanDelivery],
 	function* (daemon) {
 		const github = yield* daemon.prApi();
-		github.failRepository(401);
+		github.failRepository(HttpStatus.fromLiteral("Unauthorized"));
 		yield* daemon.watchEvents({ apiUrl: github.url, prEvents: true, prInterval: 0.1 });
 		yield* daemon.awaitSnapshot();
 		const worker = yield* daemon.dispatch("one");
 		daemon.finishReviewedWorker(worker);
 		yield* daemon.reviewReady("one");
 		const result = yield* daemon.awaitWatchExit();
-		expect(result.code).toBe(1);
+		const exitCode = result.code;
+		expect(exitCode).toBe(1);
 		expect(daemon.eventLines()).toEqual(
 			expect.arrayContaining([
 				expect.objectContaining({ kind: "pr-error", message: expect.stringMatching(/\S/u) }),

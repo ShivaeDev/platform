@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { timedHttpApp } from "#test/httpFaultApp.ts";
 
@@ -10,7 +11,7 @@ for (const control of ["failOnce", "replyOnce", "scriptFault", "afterFault"] as 
 				return {
 					body: { path: incoming.path, value: incoming.query.get("value") },
 					headers: { "x-ratelimit-reset": String(now + 60_000) },
-					status: 429,
+					status: HttpStatus.fromLiteral("TooManyRequests"),
 				};
 			}
 			if (control === "scriptFault" || control === "afterFault") {
@@ -20,17 +21,19 @@ for (const control of ["failOnce", "replyOnce", "scriptFault", "afterFault"] as 
 			}
 			yield* advanceTime(12_000);
 			const first = yield* request("/data?value=first");
-			expect(yield* first.headers).toMatchObject({ headers: { "x-ratelimit-reset": "72000" }, status: 429 });
+			expect(yield* first.headers).toMatchObject({ headers: { "x-ratelimit-reset": "72000" }, status: HttpStatus.fromLiteral("TooManyRequests") });
 			expect(yield* first.finished).toEqual({ bytes: Buffer.from('{"path":"/data?value=first","value":"first"}'), kind: "complete" });
 			yield* advanceTime(3000);
 			const second = yield* request("/data?value=second");
 			expect(yield* second.headers).toMatchObject(
-				control === "scriptFault" || control === "afterFault" ? { headers: { "x-ratelimit-reset": "75000" }, status: 429 } : { status: 200 },
+				control === "scriptFault" || control === "afterFault"
+					? { headers: { "x-ratelimit-reset": "75000" }, status: HttpStatus.fromLiteral("TooManyRequests") }
+					: { status: HttpStatus.fromLiteral("OK") },
 			);
 			yield* second.finished;
 			expect(requests()).toEqual([
 				"GET /data?value=first 429",
-				`GET /data?value=second ${control === "scriptFault" || control === "afterFault" ? 429 : 200}`,
+				`GET /data?value=second ${control === "scriptFault" || control === "afterFault" ? HttpStatus.fromLiteral("TooManyRequests") : HttpStatus.fromLiteral("OK")}`,
 			]);
 		},
 	);
@@ -44,9 +47,13 @@ timedHttpApp.it("builds an immediate fault from the held request at refusal time
 	yield* advanceTime(42_000);
 	yield* fault("data", {
 		kind: "status",
-		reply: (incoming, now) => ({ body: { value: incoming.query.get("value") }, headers: { "x-ratelimit-reset": String(now + 60_000) }, status: 429 }),
+		reply: (incoming, now) => ({
+			body: { value: incoming.query.get("value") },
+			headers: { "x-ratelimit-reset": String(now + 60_000) },
+			status: HttpStatus.fromLiteral("TooManyRequests"),
+		}),
 	});
-	expect(yield* client.headers).toMatchObject({ headers: { "x-ratelimit-reset": "102000" }, status: 429 });
+	expect(yield* client.headers).toMatchObject({ headers: { "x-ratelimit-reset": "102000" }, status: HttpStatus.fromLiteral("TooManyRequests") });
 	expect(yield* client.finished).toEqual({ bytes: Buffer.from('{"value":"held"}'), kind: "complete" });
 	expect(requests()).toEqual(["GET /data?value=held 429"]);
 });

@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
@@ -15,15 +16,15 @@ boardStory.it(
 			["result", "/_board/library?kind=result"],
 		]) {
 			const response = yield* get(`/_board/${route}`);
-			expect(response.status).toBe(302);
+			expect(response.status).toBe(HttpStatus.fromLiteral("Found"));
 			expect(response.location).toBe(location);
 		}
 		for (const route of ["/", "/note.md", "/_board/work", "/_board/start", "/_board/handoff", "/_board/system"]) {
 			const response = yield* get(route);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.body).toContain("data-board-react-root");
 			expect(response.body).not.toMatch(/<noscript|<template|<style|style\.css/u);
 		}
-		expect((yield* get("/_board/style.css")).status).toBe(404);
+		expect((yield* get("/_board/style.css")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	},
 );

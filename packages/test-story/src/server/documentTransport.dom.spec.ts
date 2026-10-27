@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { documentApp } from "#test/documentApp.ts";
 
@@ -16,8 +17,8 @@ documentApp.it(
 );
 
 for (const [status, method, body] of [
-	[302, "GET", ""],
-	[307, "POST", "story-body"],
+	[HttpStatus.fromLiteral("Found"), "GET", ""],
+	[HttpStatus.fromLiteral("TemporaryRedirect"), "POST", "story-body"],
 ] as const) {
 	documentApp.it(`a ${status} redirect sends ${method} with document cookies`, [], function* ({ post, cookies }) {
 		const response = yield* post(status, "story-body");
@@ -54,7 +55,7 @@ documentApp.it("refuses synchronous document requests before they reach the netw
 documentApp.it("releases its routed HTTP host when the story finishes", [], function* ({ hostUrl, loadPage }, context) {
 	const url = hostUrl();
 	const response = yield* loadPage();
-	expect(response.status).toBe(200);
+	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 	context.onTestFinished(async () => {
 		await expect(globalThis.fetch(`${url}/page`)).rejects.toThrow();
 	});

@@ -3,6 +3,7 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Clock, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { Options } from "#model.ts";
 import { type QueuePull, queueReply } from "./queue.ts";
 export interface Reply {
@@ -50,7 +51,7 @@ export async function startServer() {
 	}[] = [];
 	function defaultReply(path: string, body: { query: string; variables: { number: number } } | undefined): Reply {
 		if (!path.endsWith("/graphql") || body === undefined) {
-			return { body: {}, status: 404 };
+			return { body: {}, status: HttpStatus.fromLiteral("NotFound") };
 		}
 		return queueReply(body, queueEntries);
 	}
@@ -68,7 +69,7 @@ export async function startServer() {
 			.replaceAll('"', "")
 			.replaceAll(/[^\x20-\x7e]/gu, "")}"`;
 		const unchanged = reply.status === undefined && request.headers["if-none-match"] === etag;
-		const status = reply.status ?? (unchanged ? 304 : 200);
+		const status = reply.status ?? (unchanged ? HttpStatus.fromLiteral("NotModified") : HttpStatus.fromLiteral("OK"));
 		requests.push({
 			at: Effect.runSync(Clock.currentTimeMillis),
 			authorization: request.headers.authorization,

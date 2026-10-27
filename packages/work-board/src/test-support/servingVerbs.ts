@@ -1,6 +1,6 @@
 import { chmodSync, existsSync, readdirSync, rmSync, statSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Effect, Fiber } from "effect";
 import { rawExchange, rawGet, rawPost, startBoard } from "./board.ts";
 import { boardCommand } from "./boardCommand.ts";
 import { bundleBoard } from "./bundleBoard.ts";
@@ -11,6 +11,7 @@ import { mcpClient } from "./mcpClient.ts";
 import { rpcCall } from "./nativeRpc.ts";
 import { renderRemaining } from "./renderRemaining.tsx";
 import { attachServer, type ServingOptions, startProject } from "./servingEngine.ts";
+import { shutdownConnection } from "./shutdownConnection.ts";
 import { socketRpc, staleSocket } from "./socketRpc.ts";
 import { abandonedSocketStartup, socketStartup } from "./socketStartup.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";
@@ -50,6 +51,10 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 		leaveStaleSocket: () => {
 			tell("a stopped process leaves an unanswered Unix socket");
 			return Effect.promise(() => staleSocket(join(engine.notes.root, "board.sock")));
+		},
+		openShutdownConnection: (subscribe: boolean, tcp: boolean) => {
+			tell(`a ${tcp ? "TCP" : "socket"} client leaves ${subscribe ? "a subscription" : "an unfinished request"} open`);
+			return shutdownConnection(tcp ? served(engine).board.url : join(engine.notes.root, "board.sock"), subscribe);
 		},
 		permissions: (path: string, mode: number) => {
 			tell(`an outside editor changes permissions on ${path}`);
@@ -104,6 +109,10 @@ export function servingVerbs(engine: BoardEngine, tell: (line: string) => void) 
 			yield* attachServer(engine, board);
 			return board;
 		}),
+		stop: () => {
+			tell("the board begins shutdown");
+			return served(engine).board.stop().pipe(Effect.forkDetach, Effect.flatMap(Fiber.join), Effect.timeout("8 seconds"));
+		},
 		viewHtml: (path: string) => {
 			tell(`the reader renders ${path} from HTTP RPC data`);
 			return Effect.promise(() => renderRemaining(served(engine).board.url, path));

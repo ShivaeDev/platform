@@ -1,5 +1,6 @@
 import { Context, Effect, Layer } from "effect";
 import { HttpServer } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -60,7 +61,7 @@ export function foreignAreaVerbs(state: Effect.Success<ReturnType<typeof createF
 		},
 		prReadFails: () => {
 			story.tell("GitHub cannot observe the foreign PR");
-			state.github.reply(ENDPOINT, { message: "Unavailable" }, { status: 503 });
+			state.github.reply(ENDPOINT, { message: "Unavailable" }, { status: HttpStatus.fromLiteral("ServiceUnavailable") });
 		},
 		reservations: () => store.foreignReservations(),
 		reserve: (areas: readonly string[] = []) => {

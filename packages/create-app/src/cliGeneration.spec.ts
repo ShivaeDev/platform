@@ -51,14 +51,16 @@ application.it(
 );
 
 application.it("preserves the environment and refuses another run after installation failure", [installationFails()], function* ({ cli, read }) {
-	expect((yield* cli(["my-app", "--no-git"])).status).toBe(1);
+	const exitCode = (yield* cli(["my-app", "--no-git"])).status;
+	expect(exitCode).toBe(1);
 	const env = read(".env.local");
 	expect((yield* cli(["my-app", "--no-git"])).stderr).toContain("the destination must be an empty folder");
 	expect(read(".env.local")).toBe(env);
 });
 
 application.it("does not overwrite a user environment", [destination("environment")], function* ({ cli, read, files }) {
-	expect((yield* cli(["my-app"])).status).toBe(1);
+	const exitCode = (yield* cli(["my-app"])).status;
+	expect(exitCode).toBe(1);
 	expect(read(".env.local")).toBe("user settings");
 	expect(files()).toEqual([".env.local"]);
 });
@@ -82,7 +84,8 @@ application.it("accepts an existing empty folder", [destination("empty")], funct
 for (const kind of ["file", "nonempty"] as const) {
 	application.it(`refuses a ${kind} destination without writing or installing`, [destination(kind)], function* ({ cli, destinationContents }) {
 		const result = yield* cli(["my-app"]);
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("the destination must be an empty folder");
 		expect(destinationContents()).toEqual(kind === "file" ? { ".": "user data" } : { ".keep": "user data" });
 	});
@@ -90,7 +93,8 @@ for (const kind of ["file", "nonempty"] as const) {
 
 application.it("reports installation failure and leaves the app available for retry", [installationFails()], function* ({ cli, exists, git }) {
 	const result = yield* cli(["my-app"]);
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("pnpm run setup failed (exit 7)");
 	expect(result.stderr).toContain("Run pnpm run setup in my-app to retry");
 	expect(result.stdout).not.toContain("Next steps");
@@ -100,7 +104,8 @@ application.it("reports installation failure and leaves the app available for re
 
 application.it("rejects invalid package names before creating folders", [], function* ({ cli, workspaceExists }) {
 	for (const name of ["Bad Name", "node_modules", "favicon.ico"]) {
-		expect((yield* cli([name])).status).toBe(1);
+		const exitCode = (yield* cli([name])).status;
+		expect(exitCode).toBe(1);
 		expect(workspaceExists(name)).toBe(false);
 	}
 });

@@ -17,7 +17,8 @@ describe("Fleet commands without a daemon", () => {
 			const port = 0;
 			const result = yield* cli.run([command, ...args, "--port", String(port)]);
 			const { stderr } = result;
-			expect(result.code).toBe(1);
+			const exitCode = result.code;
+			expect(exitCode).toBe(1);
 			expect(stderr).toContain(`No Fleet daemon is running at 127.0.0.1:${port}`);
 			expect(stderr).toContain(`start work-fleet serve <board-dir> --port ${port}`);
 			expect(stderr).not.toContain("PostgreSQL");

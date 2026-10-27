@@ -1,7 +1,7 @@
-import { createServer } from "node:http";
-import { NodeHttpServer, NodeServices } from "@effect/platform-node";
-import { ByteSize, Config, Effect, Layer } from "effect";
+import { NodeServices } from "@effect/platform-node";
+import { ByteSize, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse, HttpStaticServer } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, RpcSerialization } from "effect/rpc";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
@@ -17,6 +17,7 @@ import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import { hostTransport } from "#hostTransport.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
+import { nodeHttpServer } from "#nodeHttpServer.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
@@ -50,7 +51,11 @@ export function appHostHttp<
 					const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 					const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
 					if (nativeOrigins.length > 0) {
-						yield* router.add("OPTIONS", options.rpcPath ?? "/rpc", HttpServerResponse.text("Local same-origin requests only", { status: 403 }));
+						yield* router.add(
+							"OPTIONS",
+							options.rpcPath ?? "/rpc",
+							HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") }),
+						);
 					}
 					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
 						HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
@@ -71,19 +76,7 @@ export function appHostHttp<
 					? Layer.empty
 					: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
 			const application = Layer.mergeAll(options.services ?? Layer.empty);
-			const server = Layer.unwrap(
-				Effect.gen(function* () {
-					const port = options.config?.port ?? (yield* Config.Int("PORT").pipe(Config.withDefault(3000)));
-					return NodeHttpServer.layer(createServer, {
-						gracefulShutdownTimeout: options.config?.gracefulShutdownTimeout,
-						host,
-						port,
-						...(options.config?.disablePreemptiveShutdown === undefined
-							? {}
-							: { disablePreemptiveShutdown: options.config.disablePreemptiveShutdown }),
-					});
-				}),
-			);
+			const server = nodeHttpServer(host, options.config);
 			const applicationRoutes = (options.routes ?? Layer.empty).pipe(
 				Layer.provide(
 					HttpRouter.middleware((effect) => Effect.provideService(effect, HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize))).layer,

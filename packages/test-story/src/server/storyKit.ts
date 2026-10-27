@@ -1,5 +1,5 @@
 import type { TestContext } from "@effect/vitest";
-import type { Effect, Layer, Scope } from "effect";
+import type { Crypto, Effect, Layer, Scope } from "effect";
 import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { compose } from "#internal/compose.ts";
 import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#internal/compositionTypes.ts";
@@ -48,7 +48,7 @@ export interface StoryKitDefinition<
 	TDiagnose extends AnyEffect,
 > {
 	readonly after?: { readonly [TKey in keyof TAfter]: EffectHook<[engine: TEngine], TAfter[TKey] & AnyEffect, void> };
-	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Scope.Scope>;
+	readonly around?: <A, E, R>(effect: Effect.Effect<A, E, R>) => Effect.Effect<A, unknown, R | NoInfer<TProvided> | Crypto.Crypto | Scope.Scope>;
 	readonly clock?: EffectClock;
 	readonly create: EffectHook<[], TCreate, TEngine>;
 	readonly inspect?: (engine: TEngine) => unknown;
@@ -69,10 +69,10 @@ export type StoryBody<TEngine, TVerbs, TRun extends AnyEffect, TEffect extends A
 ) => Generator<TEffect, unknown, never> | undefined;
 
 export type StoryTest<TEngine, TStage extends string, TVerbs, TRun extends AnyEffect, TProvided> = <
-	TEffect extends Needs<TProvided | Scope.Scope> = never,
+	TEffect extends Needs<TProvided | Crypto.Crypto | Scope.Scope> = never,
 >(
 	name: string,
-	given: readonly Trait<TEngine, TStage, TProvided | Scope.Scope>[],
+	given: readonly Trait<TEngine, TStage, TProvided | Crypto.Crypto | Scope.Scope>[],
 	body?: StoryBody<TEngine, TVerbs, TRun, TEffect>,
 	options?: number | EffectTestOptions,
 ) => void;

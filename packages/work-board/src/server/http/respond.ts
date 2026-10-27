@@ -1,4 +1,5 @@
 import { HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 
 const POLICY = [
 	"default-src 'self'",
@@ -14,7 +15,11 @@ const POLICY = [
 
 export const HEADERS = { "cache-control": "no-store", "content-security-policy": POLICY, "x-content-type-options": "nosniff" };
 
-export function respond(body: string | Uint8Array, contentType: string, status = 200): HttpServerResponse.HttpServerResponse {
+export function respond(
+	body: string | Uint8Array,
+	contentType: string,
+	status: number = HttpStatus.fromLiteral("OK"),
+): HttpServerResponse.HttpServerResponse {
 	return typeof body === "string"
 		? HttpServerResponse.text(body, { contentType: `${contentType}; charset=utf-8`, headers: HEADERS, status })
 		: HttpServerResponse.uint8Array(body, { contentType, headers: HEADERS, status });

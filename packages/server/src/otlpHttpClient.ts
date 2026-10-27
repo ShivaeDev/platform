@@ -1,5 +1,6 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactOtlpText } from "#safeOtlpSerialization.ts";
 
@@ -36,7 +37,7 @@ export function otlpHttpClient(timeout = 10_000) {
 					),
 				),
 				HttpClient.tap((response) => {
-					if (response.status >= 200 && response.status < 300) {
+					if (response.status >= HttpStatus.fromLiteral("OK") && response.status < HttpStatus.fromLiteral("MultipleChoices")) {
 						warned = false;
 						return Effect.void;
 					}

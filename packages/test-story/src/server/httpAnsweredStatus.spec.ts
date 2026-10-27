@@ -1,10 +1,11 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
 httpFaultApp.it("records normal answers, guard refusals and unmatched requests", [], function* ({ request, requestRejected, requests }) {
 	const normal = yield* request();
 	expect(yield* normal.finished).toMatchObject({ kind: "complete" });
-	expect(yield* requestRejected()).toMatchObject({ status: 401 });
+	expect(yield* requestRejected()).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
 	const missing = yield* request("/missing");
 	expect(yield* missing.finished).toMatchObject({ kind: "complete" });
 	expect(requests()).toEqual(["GET /data 200", "GET /trigger 401", "GET /missing 404"]);
@@ -17,7 +18,7 @@ for (const kind of ["drop", "reset"] as const) {
 		yield* paused.waiting;
 		expect(requests()).toEqual(["GET /data pending"]);
 		if (kind === "reset") {
-			expect(yield* client.headers).toMatchObject({ status: 200 });
+			expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 		}
 		yield* fault("data", { kind });
 		expect(yield* client.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
@@ -32,7 +33,7 @@ for (const gate of ["hold", "stall"] as const) {
 		yield* paused.waiting;
 		expect(requests()).toEqual(["GET /data pending"]);
 		if (gate === "stall") {
-			expect(yield* client.headers).toMatchObject({ status: 200 });
+			expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 		}
 		yield* client.abort;
 		yield* waitForDisconnect();
@@ -69,7 +70,7 @@ for (const kind of ["drop", "reset"] as const) {
 	httpFaultApp.it(`records a scripted ${kind} before the route reply as unanswered`, [], function* ({ scriptFault, request, requests }) {
 		yield* scriptFault("data", { kind });
 		const client = yield* request();
-		expect(yield* client.headers).toMatchObject(kind === "drop" ? { code: "ECONNRESET", kind: "error" } : { status: 200 });
+		expect(yield* client.headers).toMatchObject(kind === "drop" ? { code: "ECONNRESET", kind: "error" } : { status: HttpStatus.fromLiteral("OK") });
 		expect(yield* client.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
 		expect(requests()).toEqual(["GET /data unanswered"]);
 	});

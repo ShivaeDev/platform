@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { views } from "#engine/views.ts";
 import { renderStatus } from "#host/renderStatus.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
@@ -31,7 +32,7 @@ isolatedEngine.it(
 		}
 		expect(budgetRequests().length).toBeGreaterThan(observed);
 		const conditional = budgetRequests().slice(observed);
-		expect(conditional.map(({ status }) => status)).toEqual(conditional.map(() => 304));
+		expect(conditional.map(({ status }) => status)).toEqual(conditional.map(() => HttpStatus.fromLiteral("NotModified")));
 		expect(budgetRemaining()).toBe(spent);
 		mergeBudgetPullRequest();
 		const accepted = yield* fleet.reconcile("one");

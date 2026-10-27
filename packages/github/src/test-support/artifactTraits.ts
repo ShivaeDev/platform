@@ -1,8 +1,9 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { github } from "./github.ts";
 
-export function unavailableArtifact(status: 404 | 410) {
-	return github.trait("github", `the artifact archive is ${status === 404 ? "missing" : "expired"}`, ({ archive }) => {
+export function unavailableArtifact(status: ReturnType<typeof HttpStatus.fromLiteral<"NotFound" | "Gone">>) {
+	return github.trait("github", `the artifact archive is ${status === HttpStatus.fromLiteral("NotFound") ? "missing" : "expired"}`, ({ archive }) => {
 		archive.redirect = { status };
 	});
 }

@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { tracedRoutes } from "#test/app-host/diagnostics.ts";
 import { rpcPath } from "#test/app-host/options.ts";
@@ -11,8 +12,10 @@ host.it(
 		const traceId = "0123456789abcdef0123456789abcdef";
 		const parentSpanId = "0123456789abcdef";
 		expect(yield* ping()).toBe("pong");
-		expect((yield* request("/items/42?secret=value", { headers: { traceparent: `00-${traceId}-${parentSpanId}-01` } })).status).toBe(200);
-		expect((yield* request("/unknown/42")).status).toBe(404);
+		expect((yield* request("/items/42?secret=value", { headers: { traceparent: `00-${traceId}-${parentSpanId}-01` } })).status).toBe(
+			HttpStatus.fromLiteral("OK"),
+		);
+		expect((yield* request("/unknown/42")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 		yield* close();
 		const spans = exportedSpans();
 		const servers = spans.filter(({ kind, attributes }) => kind === 2 && attributes.some(({ key }) => key === "http.request.method"));

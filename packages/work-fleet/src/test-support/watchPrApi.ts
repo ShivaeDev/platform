@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { until } from "#test/cloudRestart.ts";
 
@@ -9,8 +10,8 @@ export const watchPrApi = Effect.gen(function* () {
 	};
 	const server = yield* fakeHttpService({
 		routes: {
-			graphql: { method: "POST", path: "/graphql", reply: () => replies.get("/graphql") ?? { status: 404 } },
-			rest: { path: "/:path*", reply: (request) => replies.get(request.path) ?? { status: 404 } },
+			graphql: { method: "POST", path: "/graphql", reply: () => replies.get("/graphql") ?? { status: HttpStatus.fromLiteral("NotFound") } },
+			rest: { path: "/:path*", reply: (request) => replies.get(request.path) ?? { status: HttpStatus.fromLiteral("NotFound") } },
 		},
 	});
 	const repository = "example/repository";
@@ -82,11 +83,16 @@ export const watchPrApi = Effect.gen(function* () {
 		awaitRequests: (path: string, count: number) =>
 			until(() => Effect.sync(() => server.requests.filter((request) => request.path === path).length >= count)),
 		fail: (status: number, number = 7) =>
-			github.reply(`${base}/pulls/${number}`, { message: status === 422 ? "too many files changed" : "GitHub unavailable" }, { status }),
+			github.reply(
+				`${base}/pulls/${number}`,
+				{ message: status === HttpStatus.fromLiteral("UnprocessableEntity") ? "too many files changed" : "GitHub unavailable" },
+				{ status },
+			),
 		failRepository: (status: number) => github.reply(`${base}/pulls?state=open&per_page=100`, { message: "GitHub unavailable" }, { status }),
 		pr: `https://github.com/${repository}/pull/7`,
 		pull,
 		queue,
+		requestHeaders: () => server.requests.map(({ headers, path }) => ({ authorization: headers.authorization, path })),
 		requests: () => server.requests.map(({ path, status }) => ({ path, status })),
 		url: server.url,
 	};

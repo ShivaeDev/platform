@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { auth, signedInWithRole } from "#test/auth/story.ts";
 
@@ -6,12 +7,12 @@ auth.it(
 	[signedInWithRole("admin")],
 	function* ({ openAdminTools, callAdminTools, profile }) {
 		expect(yield* profile()).toMatchObject({
-			status: 200,
+			status: HttpStatus.fromLiteral("OK"),
 			user: { email: "member@example.test", role: "admin" },
 		});
 		expect(yield* openAdminTools()).toEqual({
 			body: "Admin tools for member@example.test",
-			status: 200,
+			status: HttpStatus.fromLiteral("OK"),
 		});
 		expect(yield* callAdminTools()).toMatchObject({
 			_tag: "Success",
@@ -24,7 +25,7 @@ auth.it(
 	"a signed-in user without a role is forbidden by the admin and owner RPCs",
 	[signedInWithRole("user")],
 	function* ({ openAdminTools, callAdminTools, callOwnerTools }) {
-		expect((yield* openAdminTools()).status).toBe(403);
+		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		expect(yield* callAdminTools()).toMatchObject({
 			_tag: "Failure",
 			failure: { _tag: "Forbidden" },
@@ -37,7 +38,7 @@ auth.it(
 );
 
 auth.it("a signed-out caller is unauthorized by the admin and owner RPCs", [], function* ({ openAdminTools, callAdminTools, callOwnerTools }) {
-	expect((yield* openAdminTools()).status).toBe(401);
+	expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
 	expect(yield* callAdminTools()).toMatchObject({
 		_tag: "Failure",
 		failure: { _tag: "Unauthorized" },
@@ -71,9 +72,9 @@ auth.it(
 	"revoking a minted session closes the admin HTTP route and RPC",
 	[signedInWithRole("admin")],
 	function* ({ openAdminTools, callAdminTools, revokeSession }) {
-		expect((yield* openAdminTools()).status).toBe(200);
+		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("OK"));
 		yield* revokeSession();
-		expect((yield* openAdminTools()).status).toBe(401);
+		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
 		expect(yield* callAdminTools()).toMatchObject({
 			_tag: "Failure",
 			failure: { _tag: "Unauthorized" },
@@ -85,10 +86,10 @@ auth.it(
 	"removing the admin role closes access on the next call with the same session",
 	[signedInWithRole("admin")],
 	function* ({ openAdminTools, callAdminTools, setRole }) {
-		expect((yield* openAdminTools()).status).toBe(200);
+		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(yield* callAdminTools()).toMatchObject({ _tag: "Success" });
 		yield* setRole("user");
-		expect((yield* openAdminTools()).status).toBe(403);
+		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		expect(yield* callAdminTools()).toMatchObject({
 			_tag: "Failure",
 			failure: { _tag: "Forbidden" },
@@ -131,10 +132,10 @@ auth.it(
 					role: "admin",
 				},
 			},
-			status: 200,
+			status: HttpStatus.fromLiteral("OK"),
 		});
 		expect(yield* profile()).toMatchObject({
-			status: 200,
+			status: HttpStatus.fromLiteral("OK"),
 			user: {
 				permissions: [{ name: "tools.use", strength: "own" }],
 				role: "admin",
@@ -143,7 +144,7 @@ auth.it(
 		yield* setRole("user");
 		expect(yield* clientSession()).toMatchObject({
 			payload: { user: { permissions: [], role: "user" } },
-			status: 200,
+			status: HttpStatus.fromLiteral("OK"),
 		});
 	},
 );

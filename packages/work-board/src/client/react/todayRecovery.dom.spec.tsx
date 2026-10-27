@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { unavailableWorkspace } from "#test/screenEnvironment.ts";
@@ -23,12 +24,12 @@ screenStory.it(
 		refreshToday,
 	}) {
 		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("failed"));
-		expect(readAttribute("#doc", "data-status")).toBe("503");
+		expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("ServiceUnavailable")));
 		recoverWorkspace();
 		click("#home-open");
 		yield* eventually(() => expect(readText('[aria-label="Page health"]')).toBe("settled"));
 		expect(readText("#doc h1")).toBe("Today");
-		expect(readAttribute("#doc", "data-status")).toBe("200");
+		expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("OK")));
 		expect(findElements("[data-attention-id]").map((row) => row.getAttribute("data-attention-id"))).toEqual(
 			(yield* Effect.promise(readInbox)).you.map((item) => item.id),
 		);

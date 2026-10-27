@@ -1,5 +1,6 @@
 import { Effect, ManagedRuntime } from "effect";
 import { HttpBody, HttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
 import { requests } from "./requests.ts";
 import { type HostState, io } from "./state.ts";
@@ -18,7 +19,9 @@ export function timeoutVerbs(state: HostState, tell: (line: string) => void) {
 			requests(state, tell)
 				.request(`/trace/${encodeURIComponent(name)}`)
 				.pipe(
-					Effect.flatMap((response) => (response.status === 200 ? Effect.void : Effect.fail(new Error(`Trace route returned ${response.status}`)))),
+					Effect.flatMap((response) =>
+						response.status === HttpStatus.fromLiteral("OK") ? Effect.void : Effect.fail(new Error(`Trace route returned ${response.status}`)),
+					),
 				),
 		probeCollector: (timeout: number) =>
 			io(async () => {

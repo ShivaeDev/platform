@@ -1,6 +1,8 @@
 import { Effect } from "effect";
 import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 import type { RecordedResponse } from "@shivaedev/work-board/server/integration/responses.ts";
+import { withBoardReadPass } from "#board/readPass.ts";
+import type { BoardDecisionReading } from "#board/schema.ts";
 import { releaseOnly } from "#engine/decisionCopy.ts";
 import type { BoardGateway, Decision } from "#policy.ts";
 
@@ -13,9 +15,9 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	if (published === undefined) {
 		return yield* Effect.fail(new Conflict({ message: "Board decision publication must be reconciled first" }));
 	}
-	const reading = yield* board.readDecision(published);
+	const reading = yield* withBoardReadPass(board.readDecision(published), { fresh: true });
 	if (reading._tag !== "Response" || reading.response.id !== responseId) {
-		return yield* Effect.fail(new Conflict({ message: "Board response is missing, ambiguous, superseded or belongs to changed context" }));
+		return yield* Effect.fail(new Conflict({ message: responseConflict(reading, responseId) }));
 	}
 	const response = reading.response;
 	if (response.response.question !== published.questionId || response.response.reviewedRevision !== published.revision) {
@@ -40,6 +42,21 @@ export const readResolution = Effect.fn("Fleet.readResolution")(function* (
 	}
 	return { action, published, response } as const;
 });
+
+function responseConflict(reading: BoardDecisionReading, responseId: string) {
+	switch (reading._tag) {
+		case "Pending":
+			return `Board response ${responseId} is missing; record an answer to the current Fleet decision before applying it`;
+		case "Response":
+			return `Board response ${responseId} is superseded by ${reading.response.id}; apply the current response instead`;
+		case "Ambiguous":
+			return `Board responses compete (${reading.responseIds.join(", ")}); explicitly supersede the other responses before answering`;
+		case "Stale":
+			return `${reading.reason} Reconcile Fleet and answer the current decision`;
+		case "Closed":
+			return "The Board decision is closed; reconcile Fleet to observe completion or release the work to hand it back";
+	}
+}
 
 const guidedAction = Effect.fn("Fleet.guidedAction")(function* (response: RecordedResponse) {
 	const answers = response.response.answers?.filter((answer) => answer.prompt === "fleet-action") ?? [];

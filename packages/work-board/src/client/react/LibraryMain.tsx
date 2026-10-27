@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { LibraryPage } from "./LibraryPage.tsx";
 import type { MainLocation } from "./mainLocation.ts";
 import { ProjectionFrame } from "./ProjectionFrame.tsx";
@@ -15,7 +16,7 @@ export function LibraryMain({
 	return (
 		<ProjectionFrame
 			atom={libraryQuery(api, url)}
-			location={() => ({ file: "Library", status: 200, view: "library" })}
+			location={() => ({ file: "Library", status: HttpStatus.fromLiteral("OK"), view: "library" })}
 			onPage={onPage}
 			render={(data) => <LibraryPage api={api} data={data} key={url} url={url} />}
 			route="library"

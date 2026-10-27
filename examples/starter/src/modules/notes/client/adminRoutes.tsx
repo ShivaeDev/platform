@@ -1,4 +1,5 @@
-import { createRoute, redirect } from "@tanstack/react-router";
+import { type AnyRouter, createRoute, redirect } from "@tanstack/react-router";
+import type { ReactElement } from "react";
 import { UsersView } from "@shivaedev/admin/client/UsersView.ts";
 import { permissionGuard } from "@shivaedev/react/permissionGuard.ts";
 import { AppAccess } from "#AppAccess.ts";
@@ -13,43 +14,43 @@ export function adminRoutes(client: AdminClient, { root, session }: RouteContext
 	const guard = permissionGuard({ session, signIn: "/sign-in" });
 	return [
 		createRoute({
-			beforeLoad: () => {
-				throw redirect({ to: JobsPage.route.path });
+			beforeLoad: (): never => {
+				throw redirect<AnyRouter>({ href: JobsPage.route.path });
 			},
 			getParentRoute: () => root,
 			path: "/admin",
 		}),
 		createRoute({
-			beforeLoad: guard,
-			component: () => (
+			beforeLoad: (context): void => guard(context),
+			component: (): ReactElement => (
 				<AdminShell pages={Admin.pages} title={UsersPage.route.title}>
 					<UsersView changeRole={client.changeRole} list={client.users.list.query} roles={AppAccess.Role.literals} />
 				</AdminShell>
 			),
 			getParentRoute: () => root,
-			path: UsersPage.route.path,
+			path: "/admin/users",
 			staticData: { permission: UsersPage.route.permission },
 		}),
 		createRoute({
-			beforeLoad: guard,
-			component: () => (
+			beforeLoad: (context): void => guard(context),
+			component: (): ReactElement => (
 				<AdminShell pages={Admin.pages} title={JobsPage.route.title}>
 					<JobsView api={client.jobs} queues={JobsPage.queues} retry={client.retry} />
 				</AdminShell>
 			),
 			getParentRoute: () => root,
-			path: JobsPage.route.path,
+			path: "/admin/jobs",
 			staticData: { permission: JobsPage.route.permission },
 		}),
 		createRoute({
-			beforeLoad: guard,
-			component: () => (
+			beforeLoad: (context): void => guard(context),
+			component: (): ReactElement => (
 				<AdminShell pages={Admin.pages} title={StatisticsPage.route.title}>
 					<NoteStatisticsView client={client} />
 				</AdminShell>
 			),
 			getParentRoute: () => root,
-			path: StatisticsPage.route.path,
+			path: "/admin/notes",
 			staticData: { permission: StatisticsPage.route.permission },
 		}),
 	];

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { resolveHost } from "#host/config.ts";
 import { GithubApi } from "#host/githubApi.ts";
 import { githubPublication } from "#host/githubPublication.ts";
@@ -35,12 +36,12 @@ export function workPublication() {
 			);
 		},
 		pullsUnavailable: () => {
-			github.reply(pulls, {}, { status: 503 });
+			github.reply(pulls, {}, { status: HttpStatus.fromLiteral("ServiceUnavailable") });
 		},
 		query: (work: BoardWork) =>
 			Effect.gen(function* () {
 				return yield* githubPublication(host, yield* GithubApi, Effect.succeed("example/repository"))(work);
 			}).pipe(Effect.provide(github.layer)),
-		unavailable: () => github.reply(refs, {}, { status: 503 }),
+		unavailable: () => github.reply(refs, {}, { status: HttpStatus.fromLiteral("ServiceUnavailable") }),
 	};
 }

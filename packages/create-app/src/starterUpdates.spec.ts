@@ -30,7 +30,8 @@ updates.it("leaves overlapping edits as listed Git conflicts and keeps the recor
 	app.setVersion("0.2.0");
 	app.revise({ "upgrade.txt": "starter content\n" });
 	const result = yield* app.update();
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("Resolve these conflicts, then commit your changes:\nupgrade.txt");
 	expect(app.read("upgrade.txt")).toContain("<<<<<<< ours\napp content\n=======\nstarter content\n>>>>>>> theirs");
 	expect(app.git("diff", "--name-only", "--diff-filter=U").stdout).toBe("upgrade.txt\n");
@@ -59,7 +60,8 @@ updates.it("refuses a dirty working tree before fetching or changing files", [],
 	app.edit("README.md", "app draft\n");
 	app.setVersion("0.2.0");
 	const result = yield* app.update();
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("Refusing to update a dirty working tree");
 	expect(app.read("README.md")).toBe("app draft\n");
 	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.1.0");

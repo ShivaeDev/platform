@@ -5,7 +5,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
 import type { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
-import { DAEMON_RPC_PATH, DaemonReadContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
+import { type Brief, type BriefRefusal, DAEMON_RPC_PATH, DaemonReadContract, type DiagnosticsSnapshot } from "#diagnostics/daemonContract.ts";
 import type { FleetItems } from "#diagnostics/fleetItems.ts";
 
 export function diagnosticsDaemon(read: () => DiagnosticsSnapshot, port?: number, items?: Parameters<typeof rawDiagnosticsDaemon>[2]) {
@@ -16,11 +16,11 @@ export const rawDiagnosticsDaemon = Effect.fn("Test.rawDiagnosticsDaemon")(funct
 	read: () => unknown,
 	port = 0,
 	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
-	briefProblem: (workId: string, sourcePath: string) => string | null = () => null,
+	briefProblems: (briefs: readonly Brief[]) => readonly BriefRefusal[] = () => [],
 ) {
 	const handlers = DaemonReadContract.toLayer({
 		"daemon.$changes": () => Stream.never,
-		"daemon.briefProblem": ({ workId, sourcePath }) => Effect.sync(() => briefProblem(workId, sourcePath)),
+		"daemon.briefProblems": ({ briefs }) => Effect.sync(() => briefProblems(briefs)),
 		"daemon.diagnostics": () => Effect.sync(read),
 		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
 	});

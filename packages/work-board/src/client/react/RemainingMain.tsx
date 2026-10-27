@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { PullRequestsPage } from "#client/react/PullRequestsPage.tsx";
 import { GoalsPage } from "./GoalsPage.tsx";
 import { HandoffPage } from "./HandoffPage.tsx";
@@ -28,7 +29,7 @@ export function RemainingMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.fleetItems.query(undefined, routeQueryOptions)}
-					location={() => ({ file: "Pull requests", status: 200, view: "pull-requests" })}
+					location={() => ({ file: "Pull requests", status: HttpStatus.fromLiteral("OK"), view: "pull-requests" })}
 					render={(data) => <PullRequestsPage data={data} />}
 				/>
 			);
@@ -39,7 +40,7 @@ export function RemainingMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.goals.query(undefined, routeQueryOptions)}
-					location={() => ({ file: "Goals", status: 200, view: "goals" })}
+					location={() => ({ file: "Goals", status: HttpStatus.fromLiteral("OK"), view: "goals" })}
 					render={(data) => <GoalsPage data={data} />}
 				/>
 			);
@@ -48,7 +49,7 @@ export function RemainingMain({
 				<ProjectionFrame
 					{...options}
 					atom={api.start.query(undefined, routeQueryOptions)}
-					location={() => ({ file: "Getting started", status: 200, view: "start" })}
+					location={() => ({ file: "Getting started", status: HttpStatus.fromLiteral("OK"), view: "start" })}
 					render={(data) => <StartPage data={data} />}
 				/>
 			);
@@ -62,7 +63,7 @@ export function RemainingMain({
 					location={(data) => ({
 						failure: data.source || data.reading.records.length > 0 ? undefined : pageFailureCauses.conflict,
 						file: "Handoff",
-						status: data.source || data.reading.records.length > 0 ? 200 : 409,
+						status: data.source || data.reading.records.length > 0 ? HttpStatus.fromLiteral("OK") : HttpStatus.fromLiteral("Conflict"),
 						view: "handoff",
 					})}
 					render={(data) => <HandoffPage data={data} />}

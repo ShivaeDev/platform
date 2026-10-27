@@ -5,6 +5,7 @@ import { type FileSystemWrapper, type RunningBoard, startBoard } from "./board.t
 import type { BoardEngine } from "./storyEngine.ts";
 
 export interface ServingOptions {
+	drainRequests?: boolean;
 	fleetPort?: number | null;
 	home?: string;
 	maintainer?: string;
@@ -26,6 +27,7 @@ export function* startProject(engine: BoardEngine, options: ServingOptions = {})
 		options.fleetPort === undefined ? engine.fleetPort : options.fleetPort,
 		options.tracer,
 		options.path,
+		options.drainRequests,
 	);
 	yield* attachServer(engine, board);
 	return board;

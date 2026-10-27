@@ -1,4 +1,5 @@
 import { Cause, Config } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { cachedBody, echoRpc, message } from "#test/app-host/body.ts";
 import { configuration, environment, host, startupFails } from "#test/app-host/story.ts";
@@ -20,11 +21,11 @@ for (const { config, env, limit, name } of [
 			for (const chunked of [false, true]) {
 				clearCalls();
 				const refused = yield* postNdjson(oversized, chunked);
-				expect(refused.status).toBeGreaterThanOrEqual(400);
-				expect(refused.status).toBeLessThan(500);
+				expect(refused.status).toBeGreaterThanOrEqual(HttpStatus.fromLiteral("BadRequest"));
+				expect(refused.status).toBeLessThan(HttpStatus.fromLiteral("InternalServerError"));
 				expect(calls()).toEqual([]);
 				const response = yield* postNdjson(message(accepted), chunked);
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 				expect(response.body).toContain("accepted");
 				expect(calls()).toEqual([accepted]);
 			}
@@ -34,7 +35,7 @@ for (const { config, env, limit, name } of [
 host.it("the bounded reader retains cached text and array-buffer reads", [cachedBody], function* ({ request }) {
 	const body = '{"text":"é"}';
 	const response = yield* request("/body", { body, method: "POST" });
-	expect(response.status).toBe(200);
+	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 	expect(response.body).toBe(`${body}\n${body}\n${body}`);
 });
 for (const maxBodySize of [-1, 1.5, Number.POSITIVE_INFINITY, Number.MAX_SAFE_INTEGER + 1]) {

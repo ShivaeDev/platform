@@ -5,12 +5,14 @@ import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
 import { adminPage } from "#page.ts";
 import { JobsPermission } from "#permissions.ts";
+import { type JobsEntry, type JobsPayload, jobsQueue } from "./entry.ts";
 import { jobsKeys } from "./keys.ts";
-import { deadLetteredSchema, JobsFailures, JobsHealth, type JobsQueue, jobPage, jobSchema, PageFields, QueueCounts } from "./schemas.ts";
+import { deadLetteredSchema, JobsFailures, JobsHealth, jobPage, jobSchema, PageFields, QueueCounts } from "./schemas.ts";
 
-export function jobsPage<const TQueues extends readonly JobsQueue[]>(...queues: TQueues) {
-	const Job = Schema.Union(queues.map((queue: TQueues[number]) => jobSchema<TQueues[number]["schema"]>(queue)));
-	const DeadLettered = Schema.Union(queues.map((queue: TQueues[number]) => deadLetteredSchema<TQueues[number]["schema"]>(queue)));
+export function jobsPage<const TQueues extends readonly JobsEntry[]>(...queues: TQueues) {
+	const definitions = queues.map((queue: TQueues[number]) => jobsQueue(queue));
+	const Job = Schema.Union(definitions.map((queue) => jobSchema<JobsPayload<TQueues[number]>>(queue)));
+	const DeadLettered = Schema.Union(definitions.map((queue) => deadLetteredSchema<JobsPayload<TQueues[number]>>(queue)));
 	const page = adminPage({
 		contract: contract("admin.jobs", {
 			queries: [

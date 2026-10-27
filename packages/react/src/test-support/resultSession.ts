@@ -3,8 +3,8 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { type ActionState, type QueryState, useAction, useQuery } from "#client/resultState.ts";
-import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { Rendered } from "#client/testing.ts";
+import { UnstableSession } from "./UnstableSession.tsx";
 
 interface Held<A, E> {
 	current?: QueryState<A, E> | ActionState<void, A, E>;
@@ -26,14 +26,20 @@ export async function resultSession<A, E>(view: Rendered, kind: "query" | "actio
 	const action = Atom.fn<void>()(run);
 	const rechecks: string[] = [];
 	const held: Held<A, E> = {};
-	const boundary = {
-		children: () => (kind === "query" ? createElement(Query<A, E>, { atom: query, held }) : createElement(Action<A, E>, { atom: action, held })),
-		connect: () => undefined,
-		identify: (session: string) => session,
-		recheck: () => rechecks.push("session"),
-		session: "session",
-	};
-	await view.render(createElement(SessionBoundary<string, undefined>, boundary));
+	function render() {
+		return view.render(
+			createElement(
+				UnstableSession,
+				{
+					onRecheck: (generation) => {
+						rechecks.push(`session-${generation}`);
+					},
+				},
+				kind === "query" ? createElement(Query<A, E>, { atom: query, held }) : createElement(Action<A, E>, { atom: action, held }),
+			),
+		);
+	}
+	await render();
 	function current() {
 		if (held.current === undefined) {
 			throw new Error("Result hook did not render");
@@ -58,6 +64,6 @@ export async function resultSession<A, E>(view: Rendered, kind: "query" | "actio
 				await Promise.resolve();
 			}),
 		rechecks,
-		rerender: () => view.render(createElement(SessionBoundary<string, undefined>, boundary)),
+		rerender: render,
 	};
 }

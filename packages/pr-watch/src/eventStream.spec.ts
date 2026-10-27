@@ -38,7 +38,8 @@ watch.it("event selection emits multiple chosen transitions and acknowledges omi
 
 watch.it("an unknown event kind fails startup with valid choices before polling", [], function* (h) {
 	const result = yield* h.cliRun("--fleet", "--events", "dequed");
-	expect(result.code).toBe(1);
+	const exitCode = result.code;
+	expect(exitCode).toBe(1);
 	const lines = result.stdout
 		.trim()
 		.split("\n")

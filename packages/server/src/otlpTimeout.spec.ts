@@ -1,4 +1,5 @@
 import { HttpClientError } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
@@ -33,7 +34,7 @@ for (const { env, timeout } of timeouts) {
 					"OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1",
 					"OTEL_BSP_SCHEDULE_DELAY": "60000",
 				},
-				status: (attempt) => (attempt === 1 ? undefined : 200),
+				status: (attempt) => (attempt === 1 ? undefined : HttpStatus.fromLiteral("OK")),
 			}),
 			timedExports,
 		],

@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { app, behindProxy } from "#modules/notes/test-support/application.ts";
 
@@ -6,11 +7,11 @@ app.it(
 	[behindProxy()],
 	function* ({ authenticateResponse, notes, foreignRequest }) {
 		const result = yield* authenticateResponse("deployed", "sign-up/email");
-		expect(result.status).toBe(200);
+		expect(result.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(result.cookies.some((value) => value.startsWith("__Secure-better-auth.session_token=") && /; Secure(?:;|$)/iv.test(value))).toBe(true);
 		const cookie = result.cookie;
 		const client = yield* notes(cookie);
 		expect(yield* client.list()).toEqual([]);
-		expect((yield* foreignRequest(cookie)).status).toBe(403);
+		expect((yield* foreignRequest(cookie)).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 	},
 );

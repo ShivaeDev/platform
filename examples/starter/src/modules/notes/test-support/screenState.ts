@@ -1,7 +1,7 @@
+import type { AnyRouter, RouterHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { vi } from "vitest";
 import type { Rendered } from "@shivaedev/react/client/testing.ts";
-import type { appRouter } from "#client/appRouter.tsx";
 import type { Credentials } from "#client/auth.ts";
 import { notesClient } from "#modules/notes/test-support/client.ts";
 import type { appAuth } from "#test-support/appAuth.ts";
@@ -10,13 +10,15 @@ export interface Screen {
 	auth: ReturnType<typeof appAuth> | undefined;
 	client: ReturnType<typeof notesClient>;
 	consoleErrors: () => readonly (readonly unknown[])[];
+	history: RouterHistory | undefined;
 	login: {
 		authenticated: (string | undefined)[];
 		calls: { credentials: Credentials; mode: string }[];
 		outcome: string | undefined;
 		unavailable: boolean;
 	};
-	router: ReturnType<typeof appRouter> | undefined;
+	routeErrors: unknown[];
+	router: AnyRouter | undefined;
 	signOutCalls: undefined[];
 	switchSession: ((id: string) => Promise<void>) | undefined;
 	view: Rendered | undefined;
@@ -28,7 +30,9 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 		auth: undefined,
 		client: notesClient(),
 		consoleErrors: () => [],
+		history: undefined,
 		login: { authenticated: [], calls: [], outcome: undefined, unavailable: false },
+		routeErrors: [],
 		router: undefined,
 		signOutCalls: [],
 		switchSession: undefined,

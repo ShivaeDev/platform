@@ -1,4 +1,5 @@
 import { DateTime, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { RemoteHttpError } from "@shivaedev/http/errors.ts";
 import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
@@ -24,7 +25,7 @@ github.it("a locked conversation has its own typed outcome", [commentWriteRefuse
 github.it("an unrelated 403 remains an HTTP error", [commentWriteRefused("Forbidden")], function* ({ upsertComment }) {
 	const error = yield* Effect.flip(upsertComment({ body: "Coverage: 90%", marker: "coverage" }));
 	expect(error).toBeInstanceOf(RemoteHttpError);
-	expect(error).toMatchObject({ status: 403 });
+	expect(error).toMatchObject({ status: HttpStatus.fromLiteral("Forbidden") });
 });
 
 github.it(

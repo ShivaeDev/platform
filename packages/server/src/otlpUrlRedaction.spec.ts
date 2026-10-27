@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
@@ -12,7 +13,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				(yield* request("/api/auth/callback/github?code=c1&state=s1", {
 					headers: { referer: 'https://example.test/callback?code="c1"&state="s1"#"hidden-referer-fragment"' },
 				})).status,
-			).toBe(200);
+			).toBe(HttpStatus.fromLiteral("OK"));
 			yield* close();
 			const body = exports()
 				.map((exported) => exported.body)
@@ -40,7 +41,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 		`redacts URL attributes recursively on spans, events, links and resources under ${protocol}, including free text`,
 		[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), nestedUrlDiagnostics],
 		function* ({ request, close, exports }) {
-			expect((yield* request("/urls")).status).toBe(500);
+			expect((yield* request("/urls")).status).toBe(HttpStatus.fromLiteral("InternalServerError"));
 			yield* close();
 			const body = exports()
 				.map((exported) => exported.body)

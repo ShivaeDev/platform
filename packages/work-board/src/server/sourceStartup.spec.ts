@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 import { sourceCheckout } from "#test/sourceCheckout.ts";
@@ -9,7 +10,7 @@ boardStory.it(
 		const command = yield* launchCommand();
 		yield* command.listening();
 		const script = yield* get("/_board/react.js");
-		expect(script.status).toBe(200);
+		expect(script.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(script.body).toContain("current-checkout-browser");
 		expect(script.body).not.toContain("staleBrowserBuild");
 	},

@@ -17,10 +17,11 @@ const countWords = CountWords.handle(({ noteId }) =>
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
 
-export function notesWorker(url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number) {
+export function notesWorker(url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number, clientCacheKey?: symbol) {
 	return NoteJobs.layer({
 		...(max === undefined ? {} : { max }),
 		...(clientFactory === undefined ? {} : { clientFactory }),
+		...(clientCacheKey === undefined ? {} : { clientCacheKey }),
 		connectionString: Redacted.value(url),
 		jobs: [countWords],
 		migrate: false,

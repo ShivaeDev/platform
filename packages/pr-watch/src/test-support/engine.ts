@@ -1,4 +1,4 @@
-import { NodeFileSystem } from "@effect/platform-node";
+import { NodeServices } from "@effect/platform-node";
 import { ConfigProvider, Context, Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { Watcher } from "#Watcher.ts";
@@ -7,7 +7,7 @@ import { startServer } from "./server.ts";
 import { services } from "./services.ts";
 
 export const nativeIo = Layer.mergeAll(
-	NodeFileSystem.layer,
+	NodeServices.layer,
 	FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit)({ redirect: "error" }))),
 );
 export const makeEngine = Effect.gen(function* () {
@@ -20,8 +20,10 @@ export const makeEngine = Effect.gen(function* () {
 	const context = yield* Layer.build(Layer.fresh(layer));
 	const lines: string[] = [];
 	const diagnostics: string[] = [];
+	const cliEnvironment: NodeJS.ProcessEnv = { "GH_TOKEN": "test-token" };
 	return {
 		...server,
+		cliEnvironment,
 		context,
 		diagnostic: (line: string) =>
 			Effect.sync(() => {

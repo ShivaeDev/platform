@@ -1,5 +1,6 @@
 import { Effect, Layer, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHub, list, read } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
@@ -73,13 +74,13 @@ export const appGithub = storyKit({
 			readScopedPull: () => record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(scopedContext))),
 			readWithInvalidKey: () =>
 				record(read("/repos/acme/widgets/pulls/1", PullRequest).pipe(Effect.provide(layer({ installationId: 7 }, "invalid-private-key-secret")))),
-			rejectArchive: () => server.replyOnce("artifactRedirect", { status: 401 }),
+			rejectArchive: () => server.replyOnce("artifactRedirect", { status: HttpStatus.fromLiteral("Unauthorized") }),
 			rejectExchange: () =>
 				server.replyOnce("token", (request) => ({
 					body: { message: `${request.headers.authorization} ${PRIVATE_KEY} ${APP_TOKEN} ${WEBHOOK_SECRET}` },
-					status: 401,
+					status: HttpStatus.fromLiteral("Unauthorized"),
 				})),
-			rejectPull: () => server.replyOnce("pull", { status: 401 }),
+			rejectPull: () => server.replyOnce("pull", { status: HttpStatus.fromLiteral("Unauthorized") }),
 			requests: () => server.requests,
 			secrets: () => [
 				PRIVATE_KEY,

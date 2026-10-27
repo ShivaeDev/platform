@@ -37,6 +37,23 @@ user-facing text, layout and deployment choices.
 | Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |
 
 
+## Secure invite codes and tokens
+
+Use Effect's native `Crypto` service from `effect/Crypto` for secure values. The application host supplies the Node implementation, including during preflight and deferred application construction. It provides secure random bytes and numbers, UUIDv4/v7 and digests; Platform adds no wrapper. Use Effect's `Random` for non-secure choices such as sampling or jitter.
+
+```ts
+import { Effect } from "effect";
+import { Crypto } from "effect/Crypto";
+import * as Hex from "effect/encoding/Hex";
+
+const inviteCode = Effect.gen(function* () {
+  const crypto = yield* Crypto;
+  return Hex.encode(yield* crypto.randomBytes(8));
+});
+```
+
+Use `inviteCode` in the command that issues an invite, handling its typed failures through the command’s declared errors. This produces a short, 16-character hexadecimal invite code. Choose the byte count and expiry policy for the application's use. Story kits supply native `TestCrypto` with seed `0`, restarted for each story, so the same command can have an exact token assertion. Test values are deterministic and belong only in tests.
+
 ## Design priorities
 
 Native Effect comes first, then one path per job, then proven behavior, then

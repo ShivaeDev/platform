@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
 import { httpProbe } from "#test/httpProbe.ts";
@@ -16,7 +17,7 @@ export const scopedHttpApp = storyKit({
 					reply: ({ body, params }) => {
 						const comment = { pull: params.number, text: body.toString() };
 						comments.push(comment);
-						return { body: comment, status: 201 };
+						return { body: comment, status: HttpStatus.fromLiteral("Created") };
 					},
 				},
 				comments: { path: "/comments", reply: () => ({ body: comments }) },

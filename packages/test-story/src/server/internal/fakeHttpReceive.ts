@@ -1,4 +1,5 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpRequestRecord, FakeHttpRoute, FakeHttpServiceOptions } from "#fakeHttpService.ts";
 import { fakeHttpAnswer } from "#internal/fakeHttpAnswer.ts";
 import type { fakeHttpControls } from "#internal/fakeHttpControls.ts";
@@ -91,17 +92,17 @@ export async function fakeHttpReceive(
 		tell(`fake HTTP received ${method} ${path}`);
 		if (!decodeParams(params)) {
 			tell(`fake HTTP rejected ${method} ${path} with 400`);
-			await fakeHttpSend(response, { status: 400 });
+			await fakeHttpSend(response, { status: HttpStatus.fromLiteral("BadRequest") });
 			return;
 		}
 		if ((options.guard && !options.guard(request)) || (found?.route.guard && !found.route.guard(request))) {
 			tell(`fake HTTP rejected ${method} ${path} with 401`);
-			await fakeHttpSend(response, { status: 401 });
+			await fakeHttpSend(response, { status: HttpStatus.fromLiteral("Unauthorized") });
 			return;
 		}
 		if (!found) {
 			tell(`fake HTTP answered ${method} ${path} with 404`);
-			await fakeHttpSend(response, { status: 404 });
+			await fakeHttpSend(response, { status: HttpStatus.fromLiteral("NotFound") });
 			return;
 		}
 		await fakeHttpAnswer(found.name, found.route, request, response, controls, tell);
@@ -110,7 +111,7 @@ export async function fakeHttpReceive(
 		if (response.headersSent) {
 			response.destroy();
 		} else {
-			await fakeHttpSend(response, { status: 500 });
+			await fakeHttpSend(response, { status: HttpStatus.fromLiteral("InternalServerError") });
 		}
 	}
 }

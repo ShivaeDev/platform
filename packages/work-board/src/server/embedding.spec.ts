@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
@@ -13,7 +14,7 @@ boardStory.it(
 		}
 		expect(yield* viewHtml("/_board/start")).toMatch(/>Templates<\/h1>/u);
 		for (const path of ["/plan.md", "/_board/react.js"]) {
-			expect((yield* get(path, "untrusted.example")).status).toBe(403);
+			expect((yield* get(path, "untrusted.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		}
 		expect((yield* get("/health", "untrusted.example")).body).toBe("healthy");
 		yield* board.stop();

@@ -23,7 +23,8 @@ effectPolicyStory.it(
 	[policyFiles(...REJECTED_PATHS.map((path) => ({ content: REJECTED_SERVICE_SOURCE, path })))],
 	function* ({ lint }) {
 		const result = yield* lint();
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stdout).toContain("effect/service-parameters");
 		expect(result.stdout.match(/Parameter .+ carries a service\./gu)).toHaveLength(SERVICE_CASES.length * REJECTED_PATHS.length);
 		for (const name of ["store", "{ store }", "services"]) {

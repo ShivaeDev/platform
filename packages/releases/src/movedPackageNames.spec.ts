@@ -18,7 +18,8 @@ workspace.it(
 		expect(yield* read("packages/renamed/CHANGELOG.md")).toBe(HISTORY);
 		yield* edit("packages/renamed/CHANGELOG.md", (text) => text.replace("Released history.", "Rewritten history."));
 		const rewritten = yield* cli("check");
-		expect(rewritten.status).toBe(1);
+		let exitCode = rewritten.status;
+		expect(exitCode).toBe(1);
 		expect(rewritten.stderr).toContain("CHANGELOG.md changes require a version bump");
 		yield* edit("packages/renamed/CHANGELOG.md", (text) => text.replace("Rewritten history.", "Released history."));
 		const applied = yield* cli("apply");
@@ -29,7 +30,8 @@ workspace.it(
 		expect(yield* read("packages/renamed/CHANGELOG.md")).toContain(`\n${HISTORY.slice("# Changelog\n".length).trimStart()}`);
 		yield* edit("packages/renamed/CHANGELOG.md", (text) => text.replace("Released history.", "Rewritten history."));
 		const rewrittenRelease = yield* cli("check");
-		expect(rewrittenRelease.status).toBe(1);
+		exitCode = rewrittenRelease.status;
+		expect(exitCode).toBe(1);
 		expect(rewrittenRelease.stderr).toContain("restore released history");
 	},
 );
@@ -38,7 +40,8 @@ workspace.it("a folder move requires a rename declaration and explains how to ad
 	yield* edit("packages/dev/package.json", (text) => text.replace("@test/dev", "@test/renamed"));
 	yield* move("packages/dev", "packages/renamed");
 	const undeclared = yield* cli("check");
-	expect(undeclared.status).toBe(1);
+	const exitCode = undeclared.status;
+	expect(exitCode).toBe(1);
 	expect(undeclared.stderr).toContain("@test/dev: declare its rename or removal");
 	expect(undeclared.stderr).toContain(".changeset/<name>.md");
 	expect(undeclared.stderr).toContain("### Breaking");

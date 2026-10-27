@@ -1,5 +1,6 @@
 import { Effect, Option, Predicate } from "effect";
 import type { Headers } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import type { ProviderAccountValue } from "#identity.ts";
@@ -33,7 +34,7 @@ export function betterAuthSessions<TSession extends SessionShape>(getSession: Ge
 		}).pipe(
 			Effect.catch(
 				(cause): Effect.Effect<never, AuthUnavailable | Unauthorized> =>
-					Predicate.hasProperty(cause, "statusCode") && cause.statusCode === 401
+					Predicate.hasProperty(cause, "statusCode") && cause.statusCode === HttpStatus.fromLiteral("Unauthorized")
 						? Effect.fail(new Unauthorized({ message: "Authentication required" }))
 						: unavailable(cause),
 			),

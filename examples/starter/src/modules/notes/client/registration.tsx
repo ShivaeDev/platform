@@ -1,5 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
 import { Schema } from "effect";
+import type { ReactElement } from "react";
 import { queryRoute } from "@shivaedev/react/queryRoute.ts";
 import type { ClientModule, RouteContext } from "#client/Module.ts";
 import { type AdminClient, makeAdminClient } from "./admin.ts";
@@ -13,7 +14,7 @@ import { NotesScreen } from "./Screen.tsx";
 export function notesRegistration(
 	client: NotesClient = makeNotesClient(new URL("/rpc", window.location.href).href),
 	admin: AdminClient = makeAdminClient(new URL("/rpc", window.location.href).href),
-): ClientModule {
+): ClientModule<ReturnType<typeof routes>[number] | ReturnType<typeof adminRoutes>[number]> {
 	return {
 		api: client.api,
 		bindings: [client.api, admin.jobs, admin.statistics, admin.users],
@@ -23,14 +24,14 @@ export function notesRegistration(
 
 function routes(client: NotesClient, { root, auth, navigate }: RouteContext) {
 	const notes = createRoute({
-		component: () => <NotesScreen client={client} loaded={notes.useLoaderData()} onSignedOut={() => navigate("/sign-in")} signOut={auth.signOut} />,
+		component: (): ReactElement => <NotesScreen client={client} loaded={notes.useLoaderData()} signOut={auth.signOut} />,
 		errorComponent: RouteFailure,
 		getParentRoute: () => root,
 		...queryRoute(() => client.api.list.query()),
 		path: "/",
 	});
 	const note = createRoute({
-		component: () => {
+		component: (): ReactElement => {
 			const loaded = note.useLoaderData();
 			return <NoteEdit client={client} key={loaded.id} loaded={loaded} onDeleted={() => navigate("/")} />;
 		},

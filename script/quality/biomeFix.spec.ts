@@ -11,7 +11,8 @@ for (const formatter of ["quality fix", "biome check --write --unsafe"] as const
 			expect(read("src/contains.ts")).toBe(original);
 			expect(result.status).toBe(formatter === "quality fix" ? 0 : 1);
 			const finding = yield* lint();
-			expect(finding.status).toBe(1);
+			const exitCode = finding.status;
+			expect(exitCode).toBe(1);
 			expect(finding.stdout).toContain("error biome/lint/nursery/useIncludes (1)\n  src/contains.ts:2");
 		},
 	);

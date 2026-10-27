@@ -1,5 +1,6 @@
 import { Effect, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
@@ -46,9 +47,9 @@ export function adminHandlers(state: { handlerRequests: string[] }) {
 }
 
 const routeErrors = {
-	AuthUnavailable: () => Effect.succeed(HttpServerResponse.empty({ status: 503 })),
-	Forbidden: () => Effect.succeed(HttpServerResponse.empty({ status: 403 })),
-	Unauthorized: () => Effect.succeed(HttpServerResponse.empty({ status: 401 })),
+	AuthUnavailable: () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") })),
+	Forbidden: () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Forbidden") })),
+	Unauthorized: () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") })),
 };
 
 export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { handlerRequests: string[] }) {
@@ -60,7 +61,7 @@ export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { 
 			const identity = yield* Identity;
 			return HttpServerResponse.text(`Admin tools for ${user.email}`, {
 				headers: { "x-admin-id": identity.id },
-				status: request.method === "POST" ? 201 : 200,
+				status: request.method === "POST" ? HttpStatus.fromLiteral("Created") : HttpStatus.fromLiteral("OK"),
 			});
 		}),
 	);
@@ -70,7 +71,9 @@ export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { 
 			router.add("POST", "/admin-tools", tools),
 			router.add("GET", "/admin-failure", (request) =>
 				guarded(() => Effect.fail(new Forbidden({ message: "Handler failure" })))(request).pipe(
-					Effect.catchTag("Forbidden", (error) => Effect.succeed(HttpServerResponse.text(error.message, { status: 422 }))),
+					Effect.catchTag("Forbidden", (error) =>
+						Effect.succeed(HttpServerResponse.text(error.message, { status: HttpStatus.fromLiteral("UnprocessableEntity") })),
+					),
 				),
 			),
 			router.add("GET", "/profile", (request) =>

@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { hasMergedPull, watchesFleet } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -10,8 +11,8 @@ for (const merged of [false, true]) {
 		expect(state.prs["1"]).toMatchObject({ merged, state: "closed" });
 		expect(h.eventNames()).toEqual([merged ? "merged" : "closed"]);
 		const requests = h.requests.length;
-		h.reply("/pulls/1", { body: {}, status: 500 });
-		h.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: 500 });
+		h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
+		h.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		yield* h.poll;
 		yield* h.restart;
 		expect(h.requests).toHaveLength(requests);
@@ -32,7 +33,10 @@ watch.it("fleet retains terminal history and polls only new and still-open PRs",
 	const state = yield* h.poll;
 	expect(state.prs["1"]?.merged).toBe(true);
 	expect(Object.keys(state.prs)).toEqual(["1", "2", "3"]);
-	expect(h.requests.filter((request) => request.path.endsWith("/pulls/1")).map(({ status }) => status)).toEqual([200, 200]);
+	expect(h.requests.filter((request) => request.path.endsWith("/pulls/1")).map(({ status }) => status)).toEqual([
+		HttpStatus.fromLiteral("OK"),
+		HttpStatus.fromLiteral("OK"),
+	]);
 	expect(h.eventNames()).toEqual(["merged"]);
 });
 watch.it("a PR first observed as terminal is saved without a historical event and then pruned", [hasMergedPull(1)], function* (h) {

@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
 import { Cause, Clock, Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { folder } from "#test/board.ts";
 import { boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
@@ -40,7 +41,7 @@ boardStory.it(
 		const forged = yield* Effect.promise(() =>
 			fetch(`${board.url}/_board/rpc`, { body: "{}", headers: { "content-type": "text/plain", origin: board.url }, method: "POST" }),
 		);
-		expect(forged.status).toBe(403);
+		expect(forged.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		const page = yield* Effect.promise(() => fetch(`${board.url}/_board/respond?item=investigation.model&request=review-model`));
 		expect(page.headers.get("content-security-policy")).toContain("form-action 'none'");
 		const html = yield* Effect.promise(() => page.text());

@@ -1,7 +1,9 @@
 import { CatchBoundary, getRouteApi, RouterProvider, useRouter } from "@tanstack/react-router";
 import { Effect } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import { createContext, type ReactNode, useContext, useState } from "react";
 import { PermissionBoundary } from "#client/permissionBoundary.ts";
+import { useSignOut } from "#client/useSignOut.ts";
 import type { PermissionSession } from "#permissions.ts";
 import type { permissionApp } from "./app.tsx";
 
@@ -23,7 +25,7 @@ export function Login(): ReactNode {
 					host.state.role = "reader";
 					auth.current = await Effect.runPromise(host.payload("reader"));
 					apply(auth.current);
-					await router.navigate({ href: returnTo });
+					await router.navigate({ href: returnTo ?? "/controls" });
 				}}
 				type="button"
 			>
@@ -48,4 +50,13 @@ export function PermissionApp({ app }: { readonly app: App }): ReactNode {
 
 function ApplicationFailure() {
 	return <h1>Application unavailable</h1>;
+}
+
+export function SignOutButton({ action }: { readonly action: Atom.AtomResultFn<void, undefined, unknown> }) {
+	const signOut = useSignOut(action, { signIn: "/login" });
+	return (
+		<button onClick={signOut.dispatch} type="button">
+			Sign out
+		</button>
+	);
 }

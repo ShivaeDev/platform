@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { failureContext } from "#engine/failureContext.ts";
 import { githubRateLimited } from "#host/githubRateLimit.ts";
@@ -17,7 +18,7 @@ githubHost.it("records each response's rate-limit headers by resource with the t
 	expect(yield* client.observations()).toEqual([
 		{ limit: 5000, limitedBy: null, limitedUntil: null, observedAt: 5000, remaining: 4199, reset: 3600, resource: "core", used: 801 },
 	]);
-	expect(github.requests).toMatchObject([{ endpoint: PR, status: 200 }]);
+	expect(github.requests).toMatchObject([{ endpoint: PR, status: HttpStatus.fromLiteral("OK") }]);
 });
 
 githubHost.it("an unchanged resource is answered by a conditional request that spends no budget and keeps the cached body", [], function* (story) {
@@ -29,7 +30,11 @@ githubHost.it("an unchanged resource is answered by a conditional request that s
 	expect(yield* client.get(PR)).toBe(first);
 	expect(yield* client.get(PR)).toBe(first);
 	expect(github.budget.remaining).toBe(spent);
-	expect(github.requests.map(({ status }) => status)).toEqual([200, 304, 304]);
+	expect(github.requests.map(({ status }) => status)).toEqual([
+		HttpStatus.fromLiteral("OK"),
+		HttpStatus.fromLiteral("NotModified"),
+		HttpStatus.fromLiteral("NotModified"),
+	]);
 	expect(github.requests[1]?.etag).toBeDefined();
 	github.reply(PR, { number: 7, state: "closed" });
 	expect(JSON.parse(yield* client.get(PR))).toEqual({ number: 7, state: "closed" });
@@ -44,13 +49,18 @@ githubHost.it("pages follow Link headers and every page is conditional", [], fun
 	const client = github.client;
 	expect(JSON.parse(yield* client.pages(`${PR}/files?per_page=100`))).toEqual([[{ filename: "one.ts" }], [{ filename: "two.ts" }]]);
 	expect(JSON.parse(yield* client.pages(`${PR}/files?per_page=100`))).toEqual([[{ filename: "one.ts" }], [{ filename: "two.ts" }]]);
-	expect(github.requests.map(({ status }) => status)).toEqual([200, 200, 304, 304]);
+	expect(github.requests.map(({ status }) => status)).toEqual([
+		HttpStatus.fromLiteral("OK"),
+		HttpStatus.fromLiteral("OK"),
+		HttpStatus.fromLiteral("NotModified"),
+		HttpStatus.fromLiteral("NotModified"),
+	]);
 });
 
 githubHost.it("an exhausted budget stops every call to that resource until its reset", [], function* (story) {
 	const reset = 120;
 	const github = yield* story.api({ remaining: 0, reset });
-	github.reply(PR, { message: "API rate limit exceeded" }, { status: 403 });
+	github.reply(PR, { message: "API rate limit exceeded" }, { status: HttpStatus.fromLiteral("Forbidden") });
 	const client = github.client;
 	const limited = yield* client.get(PR).pipe(Effect.flip);
 	expect(githubRateLimited(limited)).toBe(true);
@@ -59,14 +69,14 @@ githubHost.it("an exhausted budget stops every call to that resource until its r
 	expect(yield* client.observations()).toMatchObject([{ limitedBy: "rate-limit", limitedUntil: 120_000, remaining: 0, resource: "core" }]);
 	yield* TestClock.adjust("119 seconds");
 	expect(githubRateLimited(yield* client.get(PR).pipe(Effect.flip))).toBe(true);
-	expect(github.requests).toMatchObject([{ endpoint: PR, status: 403 }]);
+	expect(github.requests).toMatchObject([{ endpoint: PR, status: HttpStatus.fromLiteral("Forbidden") }]);
 	github.budget.remaining = 5000;
 	github.reply(PR, { number: 7 });
 	yield* TestClock.adjust("1 second");
 	expect(JSON.parse(yield* client.get(PR))).toEqual({ number: 7 });
 	expect(github.requests).toMatchObject([
-		{ endpoint: PR, status: 403 },
-		{ endpoint: PR, status: 200 },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("Forbidden") },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("OK") },
 	]);
 	expect(yield* client.observations()).toMatchObject([{ limitedBy: null, limitedUntil: null, resource: "core" }]);
 });
@@ -89,39 +99,43 @@ githubHost.it("below the 20% reserve Fleet makes no call to that resource until 
 	yield* TestClock.adjust("599 seconds");
 	expect(githubRateLimited(yield* client.get(`${PR}/files`).pipe(Effect.flip))).toBe(true);
 	expect(github.requests).toMatchObject([
-		{ endpoint: PR, status: 200 },
-		{ endpoint: `${PR}/files`, status: 200 },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("OK") },
+		{ endpoint: `${PR}/files`, status: HttpStatus.fromLiteral("OK") },
 	]);
 	github.budget.remaining = 5000;
 	yield* TestClock.adjust("1 second");
 	expect(JSON.parse(yield* client.get(PR))).toEqual({ number: 7 });
 	expect(github.requests).toMatchObject([
-		{ endpoint: PR, status: 200 },
-		{ endpoint: `${PR}/files`, status: 200 },
-		{ endpoint: PR, status: 304 },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("OK") },
+		{ endpoint: `${PR}/files`, status: HttpStatus.fromLiteral("OK") },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("NotModified") },
 	]);
 });
 
 githubHost.it("a secondary limit waits for retry-after, or backs off from one minute when GitHub names no time", [], function* (story) {
 	const retryAfter = 90;
 	const github = yield* story.api();
-	github.reply(PR, { message: "You have exceeded a secondary rate limit" }, { headers: { "Retry-After": String(retryAfter) }, status: 403 });
+	github.reply(
+		PR,
+		{ message: "You have exceeded a secondary rate limit" },
+		{ headers: { "Retry-After": String(retryAfter) }, status: HttpStatus.fromLiteral("Forbidden") },
+	);
 	const client = github.client;
 	expect(failureContext(yield* client.get(PR).pipe(Effect.flip)).retryAt).toBe(retryAfter * 1000);
 	yield* TestClock.adjust("90 seconds");
-	github.reply(PR, { message: "You have exceeded a secondary rate limit" }, { status: 429 });
+	github.reply(PR, { message: "You have exceeded a secondary rate limit" }, { status: HttpStatus.fromLiteral("TooManyRequests") });
 	expect(failureContext(yield* client.get(PR).pipe(Effect.flip)).retryAt).toBe(90_000 + 120_000);
 	yield* TestClock.adjust("120 seconds");
 	expect(failureContext(yield* client.get(PR).pipe(Effect.flip)).retryAt).toBe(210_000 + 240_000);
 	expect(github.requests).toMatchObject([
-		{ endpoint: PR, status: 403 },
-		{ endpoint: PR, status: 429 },
-		{ endpoint: PR, status: 429 },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("Forbidden") },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("TooManyRequests") },
+		{ endpoint: PR, status: HttpStatus.fromLiteral("TooManyRequests") },
 	]);
 	yield* TestClock.adjust("240 seconds");
 	github.reply(PR, { number: 7 });
 	yield* client.get(PR);
-	github.reply(PR, { message: "You have exceeded a secondary rate limit" }, { status: 429 });
+	github.reply(PR, { message: "You have exceeded a secondary rate limit" }, { status: HttpStatus.fromLiteral("TooManyRequests") });
 	expect(failureContext(yield* client.get(PR).pipe(Effect.flip)).retryAt).toBe(450_000 + 60_000);
 });
 

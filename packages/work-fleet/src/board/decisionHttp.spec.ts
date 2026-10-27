@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { revisionOf } from "@shivaedev/work-board/server/responses/records.ts";
 import { boardFolderStory, folderContains } from "#test/boardFolderStory.ts";
 
@@ -27,7 +28,7 @@ boardFolderStory.it(
 			const page = yield* Effect.tryPromise(() =>
 				fetch(`${url}/_board/respond?item=${receipt.itemId}&request=${receipt.request}`, { redirect: "manual" }),
 			);
-			expect(page.status).toBe(302);
+			expect(page.status).toBe(HttpStatus.fromLiteral("Found"));
 			expect(page.headers.get("location")).toBe(
 				`/_board/item/${encodeURIComponent(receipt.itemId)}/#answer-card-${encodeURIComponent(receipt.request)}`,
 			);

@@ -1,5 +1,6 @@
 import { request } from "node:http";
 import { call, post } from "./fixture.ts";
+import { createInvite } from "./invites.ts";
 import { directPing, ping } from "./ping.ts";
 import { postBody } from "./postBody.ts";
 import { callPublicFailure } from "./publicFailureRpc.ts";
@@ -10,6 +11,10 @@ export function requests(state: HostState, tell: (line: string) => void) {
 		call: (token: string, reject = false, headers: Readonly<Record<string, string>> = {}) => {
 			tell(`the fixture RPC is called as ${token || "anonymous"}`);
 			return io(() => call(state.url, token, reject, headers));
+		},
+		createInvite: () => {
+			tell("the native RPC client requests an invite code");
+			return createInvite(state.url);
 		},
 		directPing: () => {
 			tell("an independent native RPC server uses the shared group without host middleware");

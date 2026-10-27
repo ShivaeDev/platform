@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { databaseHealth } from "#test/app-host/database.ts";
 import { assets } from "#test/app-host/options.ts";
@@ -9,15 +10,15 @@ for (const source of ["migrations", "services"] as const) {
 		[databaseHealth(source), assets],
 		function* ({ health, reachable, responsive, lookups }) {
 			for (const [available, status] of [
-				[true, 200],
-				[false, 503],
-				[true, 200],
+				[true, HttpStatus.fromLiteral("OK")],
+				[false, HttpStatus.fromLiteral("ServiceUnavailable")],
+				[true, HttpStatus.fromLiteral("OK")],
 			] as const) {
 				yield* reachable(available);
 				expect(yield* health()).toEqual({ body: "", cacheControl: "no-store", status });
 			}
 			yield* responsive(false);
-			expect(yield* health()).toMatchObject({ body: "", status: 503 });
+			expect(yield* health()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
 			expect(lookups()).toEqual([]);
 		},
 	);

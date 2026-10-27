@@ -1,5 +1,6 @@
 import { Context, Deferred, Duration, Effect, Fiber, Layer, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import { type HostParts, hostLayer, hostScheduler, productionParts } from "#host/commands.ts";
@@ -24,7 +25,7 @@ export function daemonHostOptions(host: FleetHost, parts: HostParts = production
 		group: DaemonContract,
 		handlers: Layer.merge(fleetHandlers, Layer.unwrap(daemonHandlers(host))),
 		policy: "loopback" as const,
-		routes: HttpRouter.use((router) => router.add("GET", "/live", HttpServerResponse.empty({ status: 204 }))),
+		routes: HttpRouter.use((router) => router.add("GET", "/live", HttpServerResponse.empty({ status: HttpStatus.fromLiteral("NoContent") }))),
 		rpcPath: RPC_PATH,
 		services: hostLayer(host, parts, watchedConfig(host), true),
 	};

@@ -17,6 +17,7 @@
 {"path":"packages/react/src/client/testing.ts","rule":"effect/boundary","count":15}
 {"path":"packages/react/src/client/testing.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/client/useLoaderQuery.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/react/src/client/useSignOut.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/fieldRejection.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/react/src/internal/loadedQuery.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/noticeEntry.ts","rule":"effect/service-parameters","count":3}

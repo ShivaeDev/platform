@@ -8,7 +8,8 @@ hookStory.it("blocks a commit when an included global guard fails", [globalHook(
 	const before = recorded.globalConfig();
 	const installed = hooks.run("install");
 	expect(installed.status).toBe(0);
-	expect(git.commit().status).toBe(1);
+	const exitCode = git.commit().status;
+	expect(exitCode).toBe(1);
 	expect(recorded.globalLog()).toBe("global\n");
 	expect(recorded.qualityLog()).toBe("quality\n");
 	expect(installed.stdout).toContain("chaining global pre-commit hook");
@@ -23,7 +24,8 @@ hookStory.it(
 		const before = recorded.globalConfig();
 		const installed = hooks.run("install");
 		expect(installed.status).toBe(0);
-		expect(git.commit().status).toBe(1);
+		const exitCode = git.commit().status;
+		expect(exitCode).toBe(1);
 		expect(recorded.globalLog()).toBe("global\n");
 		expect(recorded.qualityLog()).toBe("quality\n");
 		expect(installed.stdout).toContain("chaining global pre-commit hook");
@@ -35,7 +37,8 @@ hookStory.it(
 hookStory.it("blocks a commit when Quality fails alongside a passing global guard", [globalHook(), qualityFails()], ({ git, hooks, recorded }) => {
 	expect(hooks.run("install").status).toBe(0);
 	const commit = git.commit();
-	expect(commit.status).toBe(1);
+	const exitCode = commit.status;
+	expect(exitCode).toBe(1);
 	expect(commit.stderr).toContain("quality: pre-commit failed");
 	expect(recorded.globalLog()).toBe("global\n");
 	expect(recorded.qualityLog()).toBe("quality\n");
@@ -72,7 +75,8 @@ hookStory.it("runs Quality and the global guard without changing global config",
 
 hookStory.it("blocks a commit when the global guard fails and still runs Quality", [globalHook(7)], ({ git, hooks, recorded }) => {
 	expect(hooks.run("install").status).toBe(0);
-	expect(git.commit().status).toBe(1);
+	const exitCode = git.commit().status;
+	expect(exitCode).toBe(1);
 	expect(recorded.globalLog()).toBe("global\n");
 	expect(recorded.qualityLog()).toBe("quality\n");
 });
@@ -103,11 +107,13 @@ hookStory.it(
 );
 
 hookStory.it("reports an effective hooks path that stops running Quality", [], ({ git, hooks }) => {
-	expect(hooks.run("status").status).toBe(1);
+	let exitCode = hooks.run("status").status;
+	expect(exitCode).toBe(1);
 	expect(hooks.run("install").status).toBe(0);
 	expect(git.config("--local", "core.hooksPath", ".other-hooks").status).toBe(0);
 	const status = hooks.run("status");
-	expect(status.status).toBe(1);
+	exitCode = status.status;
+	expect(exitCode).toBe(1);
 	expect(status.stderr).toContain("does not run Quality's pre-commit hook");
 });
 
@@ -115,7 +121,8 @@ hookStory.it("restores global hooks on uninstall", [globalHook()], ({ git, hooks
 	const before = recorded.globalConfig();
 	expect(hooks.run("install").status).toBe(0);
 	expect(hooks.run("uninstall").status).toBe(0);
-	expect(git.config("--local", "--get", "core.hooksPath").status).toBe(1);
+	const exitCode = git.config("--local", "--get", "core.hooksPath").status;
+	expect(exitCode).toBe(1);
 	expect(git.commit().status).toBe(0);
 	expect(recorded.qualityLog()).toBe("");
 	expect(recorded.globalLog()).toBe("global\n");

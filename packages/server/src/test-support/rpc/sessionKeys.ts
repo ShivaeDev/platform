@@ -1,4 +1,5 @@
 import { Effect, Stream } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { readKeys } from "@shivaedev/changes/keys.ts";
 import { createProvider, ORIGIN, signup } from "@shivaedev/identity/test-support/rpc/harness.ts";
@@ -26,7 +27,7 @@ const create = Effect.fnUntraced(function* () {
 			}),
 		),
 	);
-	if (second.status !== 200) {
+	if (second.status !== HttpStatus.fromLiteral("OK")) {
 		return yield* Effect.die("Second sign-in failed");
 	}
 	const cookie = second.headers

@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { hasPull, historyIs, queuedPulls, quotaRemaining, watchesFleet, watchesPulls } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -15,7 +16,12 @@ watch.it("ETag 304 reuses snapshots without events or spending quota", [quotaRem
 		"/repos/acme/project/commits/sha1/check-runs?per_page=100&filter=latest",
 		"/repos/acme/project/commits/sha1/status",
 	]);
-	expect(last.map((request) => request.status)).toEqual([304, 304, 304, 304]);
+	expect(last.map((request) => request.status)).toEqual([
+		HttpStatus.fromLiteral("NotModified"),
+		HttpStatus.fromLiteral("NotModified"),
+		HttpStatus.fromLiteral("NotModified"),
+		HttpStatus.fromLiteral("NotModified"),
+	]);
 	expect(last.every((request) => request.etag !== undefined)).toBe(true);
 	expect(last.every((request) => request.authorization === "Bearer test-token")).toBe(true);
 	expect(h.lines).toEqual([]);
@@ -45,11 +51,15 @@ watch.it("multiple explicit PRs share one queue request per cycle", [watchesPull
 	yield* h.poll;
 	expect(h.eventNames()).toEqual(["closed", "merged"]);
 	expect(h.requests.filter((request) => request.path.includes("matching-refs"))).toMatchObject([
-		{ method: "GET", path: "/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/", status: 200 },
-		{ method: "GET", path: "/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/", status: 304 },
+		{ method: "GET", path: "/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/", status: HttpStatus.fromLiteral("OK") },
+		{ method: "GET", path: "/repos/acme/project/git/matching-refs/heads/gh-readonly-queue/", status: HttpStatus.fromLiteral("NotModified") },
 	]);
 });
-for (const status of [500, 403, 429]) {
+for (const status of [
+	HttpStatus.fromLiteral("InternalServerError"),
+	HttpStatus.fromLiteral("Forbidden"),
+	HttpStatus.fromLiteral("TooManyRequests"),
+]) {
 	watch.it(`HTTP ${status} produces no inferred events`, [], function* (h) {
 		yield* h.poll;
 		h.pullIs(1, { mergeable: false, "mergeable_state": "dirty" });
@@ -57,12 +67,16 @@ for (const status of [500, 403, 429]) {
 		expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 		expect((yield* h.saved()).prs["1"]?.dirty).toBe(false);
 		expect(h.lines).toEqual([]);
-		expect(h.diagnostics).toEqual([status === 500 ? "GitHub HTTP 500 (GET /repos/acme/project/commits/sha1/status)" : "GitHub rate limit (core)"]);
+		expect(h.diagnostics).toEqual([
+			status === HttpStatus.fromLiteral("InternalServerError")
+				? "GitHub HTTP 500 (GET /repos/acme/project/commits/sha1/status)"
+				: "GitHub rate limit (core)",
+		]);
 	});
 }
 watch.it("a failed queue request does not imply dequeue", [queuedPulls(1)], function* (h) {
 	yield* h.poll;
-	h.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: [], status: 500 });
+	h.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: [], status: HttpStatus.fromLiteral("InternalServerError") });
 	yield* Effect.result(h.poll);
 	expect(h.lines).toEqual([]);
 	h.queueHas();

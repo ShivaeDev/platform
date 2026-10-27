@@ -1,4 +1,5 @@
 import { Clock, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { quotaRemaining } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -36,14 +37,14 @@ watch.it("exhausted quota defers polling until reset without making another requ
 });
 watch.it("a permission failure retains the snapshot for a later invocation", [], function* (h) {
 	yield* h.poll;
-	h.reply("/commits/sha1/status", { body: {}, status: 403 });
+	h.reply("/commits/sha1/status", { body: {}, status: HttpStatus.fromLiteral("Forbidden") });
 	expect((yield* Effect.result(h.once()))._tag).toBe("Failure");
 	expect(h.eventNames()).toEqual(["error", "stopped"]);
 	h.statusIs(1, "success");
 	yield* h.poll;
 	expect(h.transitions()).toEqual([]);
 });
-for (const status of [429, 503]) {
+for (const status of [HttpStatus.fromLiteral("TooManyRequests"), HttpStatus.fromLiteral("ServiceUnavailable")]) {
 	watch.it(`an HTTP ${status} retry instant prevents further requests without inferring transitions`, [], function* (h) {
 		const retryAt = new Date((yield* Clock.currentTimeMillis) + 120_000);
 		h.reply("/commits/sha1/status", { body: {}, headers: { "retry-after": retryAt.toUTCString() }, status });

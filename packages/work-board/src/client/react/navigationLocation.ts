@@ -1,11 +1,12 @@
 import type { AnyRouter } from "@tanstack/react-router";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { readingEntry } from "#client/react/storedReadings.ts";
 
 export const REFRESH_FAILURE = "Couldn't refresh this page";
 
 // A page without a document already explains its failure in the body, so only a retained document needs the header to say it is out of date.
 export function navigationFailure({ file, status }: { readonly file: string; readonly status: number }) {
-	if (status < 400) {
+	if (status < HttpStatus.fromLiteral("BadRequest")) {
 		return undefined;
 	}
 	return file === "" ? "" : REFRESH_FAILURE;

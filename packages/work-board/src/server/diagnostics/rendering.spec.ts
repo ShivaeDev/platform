@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { SourceFailure } from "#diagnostics/source.ts";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
@@ -9,7 +10,7 @@ boardStory.it(
 	"serves System and renders each provider through normal HTTP",
 	[projectFiles({ "home.md": "# Home" }), diagnosticsSources(syntheticSources())],
 	function* ({ getPage, systemHtml }) {
-		expect((yield* getPage("/_board/system")).status).toBe(200);
+		expect((yield* getPage("/_board/system")).status).toBe(HttpStatus.fromLiteral("OK"));
 		const body = yield* systemHtml();
 		for (const text of ["24% used", "63% used", "4321 of 5000", "0 of 5000", "3 / 8", "Provider is at capacity", "Last scheduler pass"]) {
 			expect(body).toContain(text);
@@ -18,7 +19,7 @@ boardStory.it(
 		expect(body).not.toContain("Waiting on you");
 		expect(body).toContain("<dt>Waiting on orchestrator</dt><dd><strong>3</strong>");
 		expect(body).toContain("<dt>Waiting on automation</dt><dd><strong>1</strong>");
-		expect((yield* getPage("/_board/system", "example.invalid")).status).toBe(403);
+		expect((yield* getPage("/_board/system", "example.invalid")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 	},
 );
 

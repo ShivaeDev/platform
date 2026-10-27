@@ -1,5 +1,6 @@
 import { createServer, type IncomingHttpHeaders, type IncomingMessage, type ServerResponse } from "node:http";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { loopbackServer } from "#internal/loopback.ts";
 import { otlpReadout } from "#internal/otlpReadout.ts";
 
@@ -25,16 +26,16 @@ async function receive(request: IncomingMessage, response: ServerResponse, reque
 		const body = Buffer.concat(chunks);
 		requests.push({ body, headers: request.headers, path: request.url, rawHeaders: request.rawHeaders });
 		if (request.method !== "POST" || request.url !== (options.path ?? "/v1/traces")) {
-			response.writeHead(404).end();
+			response.writeHead(HttpStatus.fromLiteral("NotFound")).end();
 			return;
 		}
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim();
 		if (contentType !== "application/json" && contentType !== "application/x-protobuf") {
-			response.writeHead(415).end();
+			response.writeHead(HttpStatus.fromLiteral("UnsupportedMediaType")).end();
 			return;
 		}
 		spans.push(...otlpReadout(body, contentType));
-		const status = typeof options.status === "function" ? options.status(requests.length) : (options.status ?? 200);
+		const status = typeof options.status === "function" ? options.status(requests.length) : (options.status ?? HttpStatus.fromLiteral("OK"));
 		if (status === undefined) {
 			return;
 		}
@@ -45,7 +46,7 @@ async function receive(request: IncomingMessage, response: ServerResponse, reque
 			response.end(options.answer ?? "{}");
 		}
 	} catch {
-		response.writeHead(400).end();
+		response.writeHead(HttpStatus.fromLiteral("BadRequest")).end();
 	}
 }
 

@@ -1,4 +1,5 @@
 import { Effect, Fiber } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { GitHubAppError } from "#errors.ts";
@@ -61,6 +62,6 @@ appGithub.it("repository installation lookup and token exchange carry verifiable
 
 appGithub.it("an unauthorized exchange fails typed without issuing the API read", [], function* ({ rejectExchange, readPull, requests }) {
 	yield* rejectExchange();
-	expect(yield* Effect.flip(readPull())).toEqual(new GitHubAppError({ stage: "exchange", status: 401 }));
+	expect(yield* Effect.flip(readPull())).toEqual(new GitHubAppError({ stage: "exchange", status: HttpStatus.fromLiteral("Unauthorized") }));
 	expect(requests().map(({ path }) => path)).toEqual(["/app/installations/7/access_tokens"]);
 });

@@ -3,16 +3,17 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { command } from "@shivaedev/contract/operation.ts";
 import { adminPage } from "#page.ts";
 import { JobsPermission } from "#permissions.ts";
+import type { JobsEntry } from "./entry.ts";
 import { jobsKeys } from "./keys.ts";
 import { jobsPage } from "./page.ts";
-import { JobsFailures, type JobsQueue } from "./schemas.ts";
+import { JobsFailures } from "./schemas.ts";
 
 export class JobsNotFailed extends Schema.TaggedError<JobsNotFailed>()("JobsNotFailed", {
 	id: Schema.String,
 	queue: Schema.String,
 }) {}
 
-export function jobsPageWithRetry<const TQueues extends readonly JobsQueue[]>(...queues: TQueues) {
+export function jobsPageWithRetry<const TQueues extends readonly JobsEntry[]>(...queues: TQueues) {
 	const page = jobsPage(...queues);
 	return Object.assign(
 		adminPage({

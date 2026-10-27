@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import type { HttpServerRequest } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { Changes } from "#server/files/changes.ts";
 import { shell } from "#server/page/shell.ts";
 import type { searchSnapshot } from "#server/search/snapshot.ts";
@@ -23,9 +24,9 @@ export function identity(index: Effect.Success<ReturnType<typeof searchSnapshot>
 		if (snapshot.unavailable.length === 0 && matches.length === 1 && matches[0]) {
 			return yield* pages(request, matches[0].file, id);
 		}
-		let status = matches.length > 0 ? 409 : 404;
+		let status: number = matches.length > 0 ? HttpStatus.fromLiteral("Conflict") : HttpStatus.fromLiteral("NotFound");
 		if (snapshot.unavailable.length > 0) {
-			status = 503;
+			status = HttpStatus.fromLiteral("ServiceUnavailable");
 		}
 		return respond(shell(`Item ${id}`, changes.realRoot), "text/html", status);
 	});

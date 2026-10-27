@@ -68,7 +68,8 @@ fleetDaemon.it(
 fleetDaemon.it("an explicit watch timeout ends initial unreachable retries with exit 4", [daemonPortIsUnreachable()], function* (daemon) {
 	yield* daemon.watch(5, { timeout: 1 });
 	const result = yield* daemon.exit();
-	expect(result.code).toBe(4);
+	const exitCode = result.code;
+	expect(exitCode).toBe(4);
 	expect(result.stdout).toBe("");
 	expect(result.stderr).toContain(`No Fleet daemon is running at 127.0.0.1:${daemon.port()}`);
 	expect(result.stderr).toContain("watch: timed out waiting for Fleet work");
@@ -77,7 +78,8 @@ fleetDaemon.it("an explicit watch timeout ends initial unreachable retries with 
 fleetDaemon.it("watch reports an unreadable port file without inventing a daemon endpoint", [unreadablePortFile()], function* (daemon) {
 	yield* daemon.watch(0.05);
 	const result = yield* daemon.exit();
-	expect(result.code).toBe(1);
+	const exitCode = result.code;
+	expect(exitCode).toBe(1);
 	expect(result.stdout).toBe("");
 	expect(result.stderr).toContain("Cannot read Fleet daemon port from ");
 	expect(result.stderr).toContain(".fleet-port");
@@ -97,7 +99,8 @@ for (const args of [
 ] as const) {
 	fleetDaemon.it(`${args[0]} reports the unreadable Board port file`, [unreadablePortFile()], function* (daemon) {
 		const result = yield* daemon.client(args);
-		expect(result.code).toBe(1);
+		const exitCode = result.code;
+		expect(exitCode).toBe(1);
 		expect(result.stdout).toBe("");
 		expect(result.stderr).toContain("Cannot read Fleet daemon port from ");
 		expect(result.stderr).toContain(".fleet-port");
