@@ -1,4 +1,4 @@
-import { Deferred, Duration, Effect, Layer, Path, Stream } from "effect";
+import { Context, Deferred, Duration, Effect, Layer, Path, Scope, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { appHost } from "@shivaedev/server/appHost.ts";
@@ -37,32 +37,36 @@ export function serveBoard(options: ServeOptions) {
 				}),
 			);
 			const handlers = Layer.succeedContext(yield* Layer.build(subscriptions.pipe(Layer.provideMerge(runtime.rpcHandlers))));
-			const socket = Layer.effectDiscard(boardSocket(directory, handlers, options.drainRequests));
-			const host = appHost({
-				config: {
-					disablePreemptiveShutdown: options.drainRequests !== true,
-					gracefulShutdownTimeout: Duration.seconds(5),
-					host: HOST,
-					maxBodySize: 4 * MAX_BYTES + 4096,
-					port: options.port,
-				},
-				group: workRpcs,
-				handlers,
-				policy: "loopback",
-				routes: Layer.merge(boardRoutes(options, runtime), rpcPolicy),
-				rpcPath: RPC_PATH,
-				services: Layer.empty,
-			});
-			return Layer.effectDiscard(
-				Effect.gen(function* () {
-					const { address } = yield* HttpServer.HttpServer;
-					if (!NetAddress.isInetAddress(address)) {
-						return yield* Effect.die(new Error("The board browser server did not listen on TCP."));
-					}
-					yield* Deferred.succeed(info, { directory, url: `http://${HOST}:${address.port}/` });
-					yield* Effect.addFinalizer(() => Deferred.succeed(stopping, undefined));
+			const listeners = yield* Scope.fork(yield* Scope.Scope, "parallel");
+			const socketScope = yield* Scope.fork(listeners, "sequential");
+			yield* boardSocket(directory, handlers, options.drainRequests).pipe(Scope.provide(socketScope));
+			const httpScope = yield* Scope.fork(listeners, "sequential");
+			const host = yield* Layer.buildWithScope(
+				appHost({
+					config: {
+						disablePreemptiveShutdown: options.drainRequests !== true,
+						gracefulShutdownTimeout: Duration.seconds(5),
+						host: HOST,
+						maxBodySize: 4 * MAX_BYTES + 4096,
+						port: options.port,
+					},
+					group: workRpcs,
+					handlers,
+					policy: "loopback",
+					routes: Layer.merge(boardRoutes(options, runtime), rpcPolicy),
+					rpcPath: RPC_PATH,
+					services: Layer.empty,
 				}),
-			).pipe(Layer.provideMerge(Layer.merge(host, socket)));
+				httpScope,
+			);
+			const { address } = Context.get(host, HttpServer.HttpServer);
+			if (!NetAddress.isInetAddress(address)) {
+				return yield* Effect.die(new Error("The board browser server did not listen on TCP."));
+			}
+			yield* Deferred.succeed(info, { directory, url: `http://${HOST}:${address.port}/` });
+			return Layer.effectDiscard(Effect.addFinalizer(() => Deferred.succeed(stopping, undefined))).pipe(
+				Layer.provideMerge(Layer.succeedContext(host)),
+			);
 		}),
 	).pipe(Layer.provide(Highlighter.layer));
 }
