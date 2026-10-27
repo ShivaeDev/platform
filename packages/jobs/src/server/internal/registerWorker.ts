@@ -36,9 +36,13 @@ export function registerWorker(
 				const workId = await registration;
 				await Effect.runPromise(
 					Effect.gen(function* () {
-						const now = yield* Clock.currentTimeMillis;
-						// PostgreSQL timestamps retain sub-millisecond precision that Date drops.
-						yield* Effect.sleep(Math.max(0, job.startAfter.getTime() + 1 - now));
+						// Host timers can fire early; PostgreSQL also retains precision that Date drops.
+						const deadline = job.startAfter.getTime() + 1;
+						let remaining = deadline - (yield* Clock.currentTimeMillis);
+						while (remaining > 0) {
+							yield* Effect.sleep(remaining);
+							remaining = deadline - (yield* Clock.currentTimeMillis);
+						}
 						const workerIds = client
 							.getWipData?.()
 							.filter((worker) => worker.workId === workId)

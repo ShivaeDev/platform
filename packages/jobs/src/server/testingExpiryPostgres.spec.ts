@@ -14,7 +14,7 @@ postgresIt(
 		const id = Option.getOrThrow(yield* send(7));
 		expect(yield* settle()).toMatchObject([{ expireInSeconds: 1, id, retryCount: 1, retryLimit: 2, state: "completed" }]);
 		expect(attempts).toEqual([7, 7]);
-		expect(interruptions).toEqual([0]);
+		expect(interruptions).toEqual([id]);
 		expect(workerIds).toEqual([workerIds[0], workerIds[0]]);
 	},
 );
@@ -27,7 +27,7 @@ postgresIt(
 		const id = Option.getOrThrow(yield* send(8, { retryLimit: 1 }));
 		expect(yield* settle()).toMatchObject([{ id, output: { message: "handler execution exceeded 1s" }, retryCount: 1, state: "failed" }]);
 		expect(attempts).toEqual([8, 8]);
-		expect(interruptions).toEqual([0, 0]);
+		expect(interruptions).toEqual([id, id]);
 		expect(workerIds).toEqual([workerIds[0], workerIds[0]]);
 		const deadLetter = defineQueue({ name: deadLetterQueueName(queue.name), schema: queue.schema });
 		expect(yield* testing.jobs(deadLetter)).toMatchObject([{ data: { id: 8 }, sourceId: id, sourceRetryCount: 1 }]);

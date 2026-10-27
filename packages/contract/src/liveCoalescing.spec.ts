@@ -16,11 +16,14 @@ postgresLive.it("50 committed edits refetch the affected item and list once with
 	});
 	const burstSize = 50;
 	const before = test.reads();
+	yield* test.holdWindow;
 	for (let commit = 1; commit <= burstSize; commit += 1) {
 		yield* test.edit(1, `Commit ${commit}`);
 	}
-	yield* eventually(() => expect(test.received()).toBe(burstSize));
+	yield* test.waitForHints(burstSize);
+	expect(test.received()).toBe(burstSize);
 	expect(test.reads()).toEqual(before);
+	yield* test.advanceWindow("1 second");
 	yield* eventually(() => {
 		expect(test.body(1)).toBe("Commit 50");
 		expect(test.list().find(({ id }) => id === 1)?.body).toBe("Commit 50");
