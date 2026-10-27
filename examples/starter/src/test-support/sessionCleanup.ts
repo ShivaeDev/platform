@@ -1,7 +1,7 @@
 import { PassThrough } from "node:stream";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
-import { createVitest } from "vitest/node";
+import * as VitestNode from "vitest/node";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const sessionCleanup = storyKit({
@@ -13,7 +13,7 @@ export const sessionCleanup = storyKit({
 		run: () =>
 			Effect.promise(async () => {
 				story.tell("run the session subscription file through DOM teardown");
-				const vitest = await createVitest(
+				const vitest = await VitestNode.createVitest(
 					{
 						config: false,
 						environment: fileURLToPath(new URL("./sessionCleanupEnvironment.config.ts", import.meta.url)),
