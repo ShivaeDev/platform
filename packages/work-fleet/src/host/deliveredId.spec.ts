@@ -1,19 +1,15 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
+import { previouslyMergedBranch, recentDeliveredId } from "#test/deliveredId.ts";
 import { task } from "#test/fleetHost.ts";
 import { HEAD, PR } from "#test/githubResult.ts";
-import { noChangeHost, previouslyMergedBranch } from "#test/hostScenarioTraits.ts";
-import { approvedWork, host, storedWork } from "#test/hostStory.ts";
+import { noChangeHost } from "#test/hostScenarioTraits.ts";
+import { approvedWork, host } from "#test/hostStory.ts";
 
 for (const delivery of ["record", "branch"] as const) {
 	host.it(
 		`a new brief reusing a delivered id is invalid in Board and refused by Fleet (${delivery})`,
-		[
-			approvedWork(["one"]),
-			...(delivery === "record"
-				? [storedWork("one", "done", { boardSourcePath: "/earlier/brief.md", result: { head: HEAD, kind: "change", paths: ["src/one.ts"], pr: PR } })]
-				: [previouslyMergedBranch]),
-		],
+		[approvedWork(["one"]), delivery === "record" ? recentDeliveredId : previouslyMergedBranch],
 		function* (work) {
 			const original = work.readBoard("one.md");
 			const before = delivery === "record" ? yield* work.get("one") : undefined;
@@ -24,6 +20,8 @@ for (const delivery of ["record", "branch"] as const) {
 			const board = yield* work.boardHttp();
 			const document = yield* Effect.promise(() => board.client.run(board.client.api.document.run({ url: "/one.md" })));
 			expect(document.diagnostics).toContainEqual({ field: "id", line: 2, message });
+			const items = yield* Effect.promise(() => board.client.run(board.client.api.fleetItems.run(undefined)));
+			expect(items).toMatchObject({ completed: [], items: [], state: "ready" });
 			yield* work.schedulerPass();
 			expect(work.providerStarts()).toEqual([]);
 			expect(work.readBoard("one.md")).toBe(original);

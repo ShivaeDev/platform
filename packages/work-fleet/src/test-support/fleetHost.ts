@@ -15,6 +15,7 @@ import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
 import { syntheticGithub } from "#test/githubApi.ts";
 import { fixedMainSource } from "#test/mainSource.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
+import { unpublishedHostIntegrations } from "#test/unpublishedHostIntegrations.ts";
 
 export function task(id: string, fleet?: string, body = "Do the work.") {
 	return `---\nid: ${id}\nkind: task\n${fleet === undefined ? "" : `fleet: ${fleet}\n`}---\n# ${id}\n\n${body}\n`;
@@ -36,13 +37,15 @@ export function hostBoard(config?: string) {
 	return boardDir;
 }
 
-function hostParts(boardDir: string, provider: EngineProvider["transport"]): HostParts {
+function hostParts(host: FleetHost, provider: EngineProvider["transport"]): HostParts {
+	const boardDir = host.boardDir;
 	return {
 		board: Layer.merge(
 			markdownBoard(boardDir).pipe(Layer.provide(NodeServices.layer)),
 			Layer.succeed(ReportInspection)({ check: () => Effect.void }),
 		),
 		github: syntheticGithub().layer,
+		integrations: unpublishedHostIntegrations(host),
 		main: fixedMainSource(),
 		provider,
 	};
@@ -88,10 +91,11 @@ const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
 			writeFileSync(join(boardDir, file), source);
 		}
 		const provider = engineProvider({}, []);
+		const host = resolveHost(boardDir, settings, configFile);
 		return {
 			configFile,
-			host: resolveHost(boardDir, settings, configFile),
-			parts: hostParts(boardDir, provider.transport),
+			host,
+			parts: hostParts(host, provider.transport),
 			provider,
 			write: (file: string, source: string) => replaceFile(join(boardDir, file), source),
 		};
