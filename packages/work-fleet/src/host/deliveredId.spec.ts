@@ -5,6 +5,7 @@ import { task } from "#test/fleetHost.ts";
 import { HEAD, PR } from "#test/githubResult.ts";
 import { noChangeHost } from "#test/hostScenarioTraits.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
+import { prepared } from "#test/preparation.ts";
 
 for (const delivery of ["record", "branch"] as const) {
 	host.it(
@@ -16,6 +17,14 @@ for (const delivery of ["record", "branch"] as const) {
 			const failures = yield* work.admit();
 			const message = `id one was delivered in ${PR}; give this brief a new id`;
 			expect(failures).toContain(`one: ${message}`);
+			expect(
+				yield* work
+					.prepare({ cwd: "/synthetic-repository", preparation: prepared(), prompt: "Implement the brief", workId: "one" })
+					.pipe(Effect.flip),
+			).toMatchObject({ message });
+			if (delivery === "record") {
+				expect(yield* work.fleetDispatch("one").pipe(Effect.flip)).toMatchObject({ message });
+			}
 			expect(yield* work.approve("one").pipe(Effect.flip)).toMatchObject({ message });
 			const board = yield* work.boardHttp();
 			const document = yield* Effect.promise(() => board.client.run(board.client.api.document.run({ url: "/one.md" })));
@@ -46,12 +55,17 @@ host.it(
 		expect(dispatched.value.history).toMatchObject([{ step: "done" }]);
 		const expectedStarts = [...done.attempts, ...dispatched.value.attempts].map((attempt) => attempt.operationId);
 		expect(work.providerStarts().map((entry) => entry.operationId)).toEqual(expectedStarts);
+		const steers = work.providerSteers();
 		work.writeBoard("one.md", task("retired"));
 		const fresh = task("one", "approved", "A different brief.");
 		work.writeBoard("new.md", fresh);
 		expect(yield* work.approve("one").pipe(Effect.flip)).toMatchObject({ message: expect.stringContaining("give this brief a new id") });
 		yield* work.schedulerPass();
 		expect(work.readBoard("new.md")).toBe(fresh);
+		const retained = yield* work.storedRecord("one");
+		expect(retained.value.boardSourcePath).toBe(dispatched.value.boardSourcePath);
+		expect(retained.value.boardContext).toBe(dispatched.value.boardContext);
+		expect(work.providerSteers()).toEqual(steers);
 		expect(work.providerStarts().map((entry) => entry.operationId)).toEqual(expectedStarts);
 	},
 );
@@ -61,9 +75,9 @@ host.it(
 	[approvedWork(["one"]), noChangeHost],
 	function* (work) {
 		yield* work.admit();
-		const prepared = yield* work.storedRecord("one");
+		const queued = yield* work.storedRecord("one");
 		yield* work.store("one", {
-			...prepared.value,
+			...queued.value,
 			outcome: { head: HEAD, revision: HEAD, url: PR },
 			result: { head: HEAD, kind: "change", paths: ["src/one.ts"], pr: PR },
 			step: "done",
