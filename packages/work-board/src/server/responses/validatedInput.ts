@@ -17,8 +17,12 @@ function answerFor(prompt: Prompt, answer: PromptAnswer | undefined, required: b
 	if (answer.selected.some((id) => !prompt.options.some((option) => option.id === id))) {
 		throw new Conflict({ message: "A selected option is not in the reviewed template. Review the current options and select again." });
 	}
-	if (required && answer.selected.length === 0 && !answer.text.trim()) {
-		throw new Conflict({ message: "Answer every question with a selection or additional text, or use Clarify / Not now." });
+	if (required && answer.selected.length === 0 && (prompt.requireSelection || !answer.text.trim())) {
+		throw new Conflict({
+			message: prompt.requireSelection
+				? "Choose an option before recording this answer. Keep your instructions in the note, or use Clarify / Not now."
+				: "Answer every question with a selection or additional text, or use Clarify / Not now.",
+		});
 	}
 }
 export function validatedInput(input: DraftInput, context: string, request: string, file?: string): DraftInput {

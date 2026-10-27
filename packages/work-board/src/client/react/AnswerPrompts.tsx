@@ -43,7 +43,7 @@ function PromptField({
 	useLayoutEffect(() => ref.current?.setCustomValidity(error ?? ""), [error]);
 	const choices = document.metadata.options;
 
-	const guidance = promptGuidance(prompt.mode, choices !== undefined);
+	const guidance = promptGuidance(prompt, choices !== undefined);
 	const heading = promptHeading(prompt.source);
 	const title = heading.title ?? `Question ${index + 1}`;
 	function change(next: PromptAnswer) {
@@ -60,7 +60,7 @@ function PromptField({
 		change({ ...answer, selected });
 	}
 	let message = error;
-	if (error && answer.selected.length === 0 && !answer.text.trim()) {
+	if (error && !prompt.requireSelection && answer.selected.length === 0 && !answer.text.trim()) {
 		message = `Unanswered: “${title}”. Choose an option or answer in your own words.`;
 	}
 	return (
@@ -85,7 +85,7 @@ function PromptField({
 				</Button>
 			)}
 			<Label className="font-normal leading-normal" htmlFor={fieldId}>
-				{prompt.mode === "text" ? "Your answer" : "Add a note or answer in your own words (optional)"}
+				{promptLabel(prompt)}
 			</Label>
 			<Textarea
 				aria-describedby={`${fieldId}-error`}
@@ -106,7 +106,18 @@ function PromptField({
 	);
 }
 
-function promptGuidance(mode: Prompt["mode"], authored: boolean) {
+function promptLabel(prompt: Prompt) {
+	if (prompt.mode === "text") {
+		return "Your answer";
+	}
+	return prompt.requireSelection ? "Add a note (optional)" : "Add a note or answer in your own words (optional)";
+}
+
+function promptGuidance(prompt: Prompt, authored: boolean) {
+	if (prompt.requireSelection) {
+		return "Choose an option to continue. Add instructions in the note below.";
+	}
+	const mode = prompt.mode;
 	if (authored) {
 		return "Choose an option or write another answer. Nothing is selected for you.";
 	}

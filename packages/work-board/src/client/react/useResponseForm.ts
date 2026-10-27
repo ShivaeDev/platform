@@ -8,7 +8,6 @@ import type { PromptAnswer, QuestionPreview } from "#browser/responses/schema.ts
 import { formDraft } from "#client/formDraft.ts";
 import { type DraftInteraction, formStatus, responseSaved } from "#client/formStatus.ts";
 import { answerRecovery, recoveryText } from "#client/responses/answerRecovery.ts";
-import { authorLabel } from "#client/responses/authorLabel.ts";
 import { draftText } from "#client/responses/draftText.ts";
 import { type ResponseInput, responseFormSchema } from "#client/responses/formSchema.ts";
 import { initialResponse } from "#client/responses/initial.ts";
@@ -19,22 +18,21 @@ import { sourceChanged } from "#client/sourceChanged.ts";
 import type { Metadata } from "#metadata/schema.ts";
 import { createResponse } from "./createResponse.ts";
 import { useFormClient } from "./FormContext.ts";
-
-function authorOf(label: ReturnType<typeof authorLabel>) {
-	return label.read("") || "maintainer";
-}
+import { useResponseAuthor } from "./useResponseAuthor.ts";
 
 export function useResponseForm(source: QuestionPreview, prompts: readonly Prompt[], options?: Metadata["options"], supersedes?: string) {
 	const client = useFormClient();
 	const hasPrompts = prompts.length > 0;
-	const schema = useMemo(() => responseFormSchema(hasPrompts), [hasPrompts]);
+	const requiredSelections = prompts
+		.filter((prompt) => prompt.requireSelection)
+		.map((prompt) => prompt.id)
+		.join("\n");
+	const schema = useMemo(() => responseFormSchema(hasPrompts, requiredSelections.split("\n")), [hasPrompts, requiredSelections]);
 	const [preview, setPreview] = useState<ResponseInput>();
 	const [interaction, setInteraction] = useState<DraftInteraction>("draft");
 	const [attempted, setAttempted] = useState(false);
-	const [label] = useState(() =>
-		authorLabel(() => window.localStorage, typeof document === "undefined" ? undefined : document.documentElement.dataset.workspace),
-	);
-	const [initial] = useState(() => initialResponse(prompts, authorOf(label), supersedes));
+	const readAuthor = useResponseAuthor();
+	const [initial] = useState(() => initialResponse(prompts, readAuthor(), supersedes));
 	const draft = formDraft("response", source.item, source.request);
 	const created = useCreate({
 		create: (submission) => createResponse(client, source, submission),
@@ -48,12 +46,12 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const values = useAtomRef(form.values);
 	useEffect(() => {
 		if (Option.isSome(created.created)) {
-			form.receive({ ...initial, author: authorOf(label) });
+			form.receive({ ...initial, author: readAuthor() });
 			if (created.dirty) {
 				retainContext(form, created.created.value);
 			}
 		}
-	}, [form, created.created, created.dirty, initial, label]);
+	}, [form, created.created, created.dirty, initial, readAuthor]);
 	const same = values.question === source.id && values.revision === source.reviewedRevision;
 	const stale = Boolean(values.id) && !same;
 	const recovery = answerRecovery(values, !stale || values.answerContext === JSON.stringify([source.id, source.reviewedRevision]));
@@ -119,14 +117,14 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const summary = responseSummary(values, prompts, answers(values), attempted);
 	return {
 		answers: answers(values),
-		attempt: (author = authorOf(label)) => {
+		attempt: (author = readAuthor()) => {
 			setAttempted(true);
 			form.change("author", author);
 			showPreview();
 			return Schema.is(schema)(form.values.value);
 		},
 		attempted,
-		author: authorOf(label),
+		author: readAuthor(),
 		clear,
 		created: {
 			...created,

@@ -10,7 +10,7 @@ export function responseSummary(values: ResponseInput, prompts: readonly Prompt[
 		values.type === "answer"
 			? prompts.filter((prompt) => {
 					const answer = answers?.find((entry) => entry.prompt === prompt.id);
-					return !(answer?.text.trim() || answer?.selected.length);
+					return prompt.requireSelection ? !answer?.selected.length : !(answer?.text.trim() || answer?.selected.length);
 				})
 			: [];
 	return missing.length > 0
