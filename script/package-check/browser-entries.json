@@ -1,5 +1,7 @@
 {
 	"access": ["./permission.ts", "./role.ts", "./roleSet.ts"],
+	"changes": ["./keys.ts"],
+	"contract": ["./readPolicyErrors.ts"],
 	"errors": ["./boundary.ts", "./redact.ts", "./redactCause.ts", "./rejectedField.ts", "./sensitive.ts", "./taxonomy.ts"],
 	"identity": ["./identity.ts", "./middleware.ts", "./permission.ts"]
 }

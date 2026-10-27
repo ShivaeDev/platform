@@ -12,7 +12,7 @@ app.it(
 				"```ts",
 				'import { query as subscribe, type Streaming } from "@shivaedev/contract/operation.ts";',
 				'import type { Contract } from "@shivaedev/contract/contract.ts";',
-				'import * as keys from "@shivaedev/changes/keys.ts";',
+				'import * as keys from "@shivaedev/contract/keys.ts";',
 				"```",
 				"Import `resumeSignal` from `@shivaedev/contract/resume.ts`.",
 				"| `resume.ts` | `resumeSignal` |",
@@ -27,7 +27,7 @@ app.it(
 				expect.objectContaining({ name: "query", typeOnly: false }),
 				expect.objectContaining({ name: "Streaming", typeOnly: true }),
 				expect.objectContaining({ name: "Contract", typeOnly: true }),
-				expect.objectContaining({ specifier: "@shivaedev/changes/keys.ts" }),
+				expect.objectContaining({ specifier: "@shivaedev/contract/keys.ts" }),
 				expect.objectContaining({ name: "resumeSignal", specifier: "@shivaedev/contract/resume.ts" }),
 			]),
 		);
