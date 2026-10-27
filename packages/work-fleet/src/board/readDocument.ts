@@ -21,7 +21,7 @@ export const readDocument = Effect.fn("FleetBoard.readDocument")(function* (root
 	}
 	const parsed = boardApi.metadataParse(source);
 	const areas = yield* boardApi
-		.areaDiagnostics(root, parsed)
+		.areaDiagnostics(root, parsed, file)
 		.pipe(
 			Effect.mapError(
 				(error) => new BoardFailure({ code: "incomplete-observation", message: `Board area folders could not be read: ${file} (${error.message})` }),
