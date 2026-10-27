@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.22.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-sql` to `@shivaedev/sql`. Change dependency declarations and imports from `@shivaedev/effect-sql/...` to `@shivaedev/sql/...`; module paths inside the package are unchanged.
+
 ## 0.21.0 - 2026-10-25
 
 ### Added

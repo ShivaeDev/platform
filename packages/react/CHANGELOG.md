@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.0 - 2026-10-27
+
+### Breaking
+
+- Rename `@shivaedev/effect-react` to `@shivaedev/react`. Change dependency declarations and imports from `@shivaedev/effect-react/...` to `@shivaedev/react/...`; module paths inside the package are unchanged.
+
 ## 0.18.1 - 2026-10-26
 
 ### Changed
