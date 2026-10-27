@@ -1,4 +1,6 @@
-import { Effect } from "effect";
+import { execFileSync } from "node:child_process";
+import { join } from "node:path";
+import { Effect, FileSystem } from "effect";
 import type { FleetRecord } from "#model.ts";
 import { answerQueueFailure } from "#test/answerRecordingFailure.ts";
 import { untilOutput } from "#test/follower.ts";
@@ -8,6 +10,13 @@ import { stalledWatchProxy } from "#test/stalledWatchProxy.ts";
 import { watchPrApi } from "#test/watchPrApi.ts";
 
 export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
+	function start(options: FollowOptions) {
+		return Effect.gen(function* () {
+			tell("start the Fleet event watcher through the CLI");
+			const child = yield* followerProcess(engine.fixture.configFile, "watch", [], { timeout: 30, ...options });
+			engine.followers.set("events", child);
+		});
+	}
 	function follower() {
 		const watch = engine.followers.get("events");
 		if (!watch) {
@@ -41,13 +50,21 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 			});
 		},
 		prApi: () => watchPrApi,
-		stalledWatchProxy: () => stalledWatchProxy(engine.running.port),
-		watchEvents: (options: FollowOptions = {}) =>
+		repositoryWithBoard: () =>
 			Effect.gen(function* () {
-				tell("watch Fleet JSON events through the CLI");
-				const child = yield* followerProcess(engine.fixture.configFile, "watch", [], { timeout: 30, ...options });
-				engine.followers.set("events", child);
+				tell("create a repository with its Board in .work");
+				const fs = yield* FileSystem.FileSystem;
+				const root = yield* fs.makeTempDirectoryScoped();
+				execFileSync("git", ["init", "--quiet", root]);
+				yield* fs.symlink(engine.fixture.host.boardDir, join(root, ".work"));
+				return root;
 			}),
+		stalledWatchProxy: () => stalledWatchProxy(engine.running.port),
+		watchDefault: (options: FollowOptions = {}) => {
+			tell("watch Fleet with its default event selection and output");
+			return start(options);
+		},
+		watchEvents: (options: FollowOptions = {}) => start({ json: true, prEvents: false, ...options }),
 		watchRunning: () => follower().isRunning(),
 	};
 }

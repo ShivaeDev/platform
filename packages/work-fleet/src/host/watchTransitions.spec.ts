@@ -36,7 +36,7 @@ host.it(
 );
 
 host.it("watch streams a maintainer decision and release once", [approvedWork(["one"])], function* (daemon) {
-	yield* daemon.watchEvents();
+	yield* daemon.watchEvents({ events: "waiting-on-you,released" });
 	yield* daemon.awaitSnapshot();
 	const worker = yield* daemon.dispatch("one");
 	daemon.finishTurn(worker, "FLEET_MAINTAINER_QUESTION: Which scope should ship?");
