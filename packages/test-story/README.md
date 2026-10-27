@@ -469,6 +469,32 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
+For several outcomes after one action, use `outcomes` from `@shivaedev/test-story/server/outcomes.ts`. Each row puts its label beside an Effect readout and its expected value:
+
+```ts
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+
+accounts.it("removing Bob leaves Alice signed in", [bobAndAliceAreSignedIn()], function* ({ remove, request, sessions }) {
+  yield* remove("bob");
+
+  yield* outcomes({
+    "bob's next request": [request("bob"), "unauthorized"],
+    "bob's sessions": [sessions("bob"), 0],
+    "alice's next request": [request("alice"), "ok"],
+  });
+});
+```
+
+`outcomes` runs readouts in row order, then compares the actual and expected label-keyed objects with one native Vitest `toEqual`. Expected values follow their readout's success type and accept Vitest asymmetric matchers such as `expect.objectContaining(...)`. A failing readout keeps its typed error; an equality failure shows one labelled diff and the story report points to the `outcomes` call. For one outcome, keep a plain `expect`:
+
+```ts
+accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ remove, request }) {
+  yield* remove("bob");
+
+  expect(yield* request("bob")).toBe("unauthorized");
+});
+```
+
 ### Pinning time
 
 Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it explicitly with native `TestClock.adjust`:
@@ -668,6 +694,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | Module | Exports |
 | --- | --- |
 | `server/storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `server/outcomes.ts` | `outcomes(rows)` |
 | `server/domFetch.ts` | `domFetch(baseUrl)` |
 | `server/seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
 | `server/routeOutbound.ts` | `routeOutbound(routes)` |

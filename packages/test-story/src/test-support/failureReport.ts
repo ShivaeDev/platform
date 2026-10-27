@@ -4,6 +4,8 @@ import { fileURLToPath } from "node:url";
 
 export const STORIES = relative(process.cwd(), fileURLToPath(new URL("./failingStories.ts", import.meta.url)));
 
+export const OUTCOME_STORIES = relative(process.cwd(), fileURLToPath(new URL("./outcomeStories.ts", import.meta.url)));
+
 export const LARGE_BAKERY =
 	"node_modules/.cache/test-story/failingstories.ts--bakery-story-writes-a-bakery-too-large-to-print-to-a-file--bakery.json";
 
