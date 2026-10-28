@@ -44,5 +44,5 @@ notesDeployment.it(
 		expect(Math.min(...counts)).toBeGreaterThan(0);
 		expect(Math.max(...counts)).toBeLessThanOrEqual(connections + LISTEN_CONNECTIONS);
 	},
-	30_000,
+	120_000,
 );

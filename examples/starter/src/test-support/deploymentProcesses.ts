@@ -1,4 +1,4 @@
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { authPost, credentials } from "./authHttp.ts";

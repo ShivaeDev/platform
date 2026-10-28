@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Deferred, Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";

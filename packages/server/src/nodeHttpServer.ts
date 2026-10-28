@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { NodeHttpServer } from "@effect/platform-node";
+import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Config, type Duration, Effect, Layer } from "effect";
 
 export function nodeHttpServer(
@@ -13,7 +13,7 @@ export function nodeHttpServer(
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const port = config?.port ?? (yield* Config.Int("PORT").pipe(Config.withDefault(3000)));
-			return NodeHttpServer.layer(createServer, {
+			return NodeHttpServer.layerServer(createServer, {
 				gracefulShutdownTimeout: config?.gracefulShutdownTimeout,
 				host,
 				port,

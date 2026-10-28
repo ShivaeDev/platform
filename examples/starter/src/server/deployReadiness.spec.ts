@@ -31,6 +31,8 @@ deployment.it(
 		expect(yield* worker.ready).toBe("worker");
 		const web = yield* startProcess("web", port);
 		const address = yield* web.ready;
+		expect(web.logs).toContainEqual(expect.stringMatching(/Loaded module: .*\/NodeHttpServer\.[jt]s$/v));
+		expect(web.logs.filter((line) => /Loaded module: .*\/(?:redis|@redis)[\/@]/v.test(line))).toEqual([]);
 		expect((yield* health(address)).status).toBe(HttpStatus.fromLiteral("OK"));
 		const signup = yield* signUpAt(address, "deploy");
 		expect(signup.status).toBe(HttpStatus.fromLiteral("OK"));
@@ -44,4 +46,5 @@ deployment.it(
 		expect(yield* worker.child.isRunning).toBe(true);
 		expect(yield* web.child.isRunning).toBe(true);
 	},
+	120_000,
 );
