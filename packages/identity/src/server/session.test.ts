@@ -1,118 +1,179 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { trustedOrigins } from "#server/origin.ts";
-import { ORIGIN } from "#test/rpc/harness.ts";
-import { originPolicy, publicWithoutOrigin, sessions, signedUp } from "#test/rpc/sessionStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { appOrMissingOrigin, browserOrigins, greetingsWithoutOrigin, sessions, signedUp } from "#test/rpc/sessionStory.ts";
 
 sessions.it(
-	"Better Auth sessions give each concurrent native RPC request its own identity",
-	[originPolicy(), signedUp("alice", "bob")],
-	function* ({ account, whoami, readOwn, greeting, annotations, spans }) {
-		const alice = account("alice");
-		const bob = account("bob");
-		const users = Array.from({ length: 12 }, (_, index) => ({ ...(index % 2 === 0 ? alice : bob), requestId: `request-${index}` }));
-		const results = yield* Effect.all(
-			users.map((user, index) => whoami(index % 2 === 0 ? "alice" : "bob", { "x-request-id": user.requestId })),
-			{ concurrency: "unbounded" },
-		);
-		results.forEach((result, index) => {
-			expect(result).toMatchObject({ _tag: "Success", success: `${users[index]?.userId} ${users[index]?.requestId}` });
+	"when alice and bob call at the same time, each request answers with its own caller",
+	[browserOrigins, signedUp("alice", "bob")],
+	function* ({ aliceAndBobCallAtOnce }) {
+		expect(yield* aliceAndBobCallAtOnce()).toEqual({
+			"alice-1": "alice",
+			"alice-2": "alice",
+			"alice-3": "alice",
+			"bob-1": "bob",
+			"bob-2": "bob",
+			"bob-3": "bob",
 		});
-		const handled = annotations("handled");
-		expect(handled).toHaveLength(users.length);
-		for (const user of users) {
-			expect(handled).toContainEqual(expect.objectContaining({ requestId: user.requestId, "rpc.method": "Whoami", userId: user.userId }));
-			const span = spans().find((candidate) => candidate.attributes.get("request.id") === user.requestId);
-			expect(span?.name).toBe("Whoami");
-			expect(span?.attributes.get("user.id")).toBe(user.userId);
-		}
-		const denied = yield* readOwn("alice", "bob");
-		expect(denied).toMatchObject({ _tag: "Failure", failure: { _tag: "Forbidden", message: "Not your account" } });
-		expect(denied._tag === "Failure" && denied.failure).toBeInstanceOf(Forbidden);
-		expect(yield* greeting("bob")).toMatchObject({
-			_tag: "Success",
-			success: `hello ${bob.userId}`,
-		});
-		expect(yield* greeting()).toMatchObject({ _tag: "Success", success: "hello anonymous" });
 	},
 );
+
 sessions.it(
-	"missing sessions are unauthorized while provider failures are reported as unavailable",
-	[originPolicy(), signedUp("alice")],
-	function* ({ account, whoami, greeting, closeProvider, annotations, logs }) {
-		const alice = account("alice");
-		const missing = yield* whoami();
-		expect(missing).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(yield* whoami("alice", { cookie: `${alice.cookie}tampered` })).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Unauthorized" },
+	"when alice and bob call at the same time, each handler log names its own request's caller",
+	[browserOrigins, signedUp("alice", "bob")],
+	function* ({ aliceAndBobCallAtOnce, handledLogsByRequest }) {
+		yield* aliceAndBobCallAtOnce();
+
+		expect(yield* handledLogsByRequest()).toEqual({
+			"alice-1": { method: "Whoami", user: "alice" },
+			"alice-2": { method: "Whoami", user: "alice" },
+			"alice-3": { method: "Whoami", user: "alice" },
+			"bob-1": { method: "Whoami", user: "bob" },
+			"bob-2": { method: "Whoami", user: "bob" },
+			"bob-3": { method: "Whoami", user: "bob" },
 		});
-		expect(missing._tag === "Failure" && missing.failure).toBeInstanceOf(Unauthorized);
-		yield* closeProvider();
-		const outage = yield* whoami("alice");
-		expect(outage).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable", message: "Authentication is temporarily unavailable" } });
-		expect(outage._tag === "Failure" && outage.failure).toBeInstanceOf(AuthUnavailable);
-		expect(yield* greeting("alice")).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "AuthUnavailable" },
+	},
+);
+
+sessions.it(
+	"when alice and bob call at the same time, each request's span names its own caller",
+	[browserOrigins, signedUp("alice", "bob")],
+	function* ({ aliceAndBobCallAtOnce, spansByRequest }) {
+		yield* aliceAndBobCallAtOnce();
+
+		expect(yield* spansByRequest()).toEqual({
+			"alice-1": { name: "Whoami", user: "alice" },
+			"alice-2": { name: "Whoami", user: "alice" },
+			"alice-3": { name: "Whoami", user: "alice" },
+			"bob-1": { name: "Whoami", user: "bob" },
+			"bob-2": { name: "Whoami", user: "bob" },
+			"bob-3": { name: "Whoami", user: "bob" },
 		});
-		const failures = logs().filter(
-			(log) => log.level === "Error" && Array.isArray(log.message) && log.message.includes("Authentication provider failed"),
-		);
-		expect(failures.length).toBeGreaterThanOrEqual(2);
-		expect(failures[0]?.annotations).toMatchObject({ "rpc.method": "Whoami" });
-		expect(annotations("RPC failure")).toContainEqual(expect.objectContaining({ "rpc.failure": "AuthUnavailable" }));
 	},
 );
+
+sessions.it("a public greeting names bob when he is signed in", [browserOrigins, signedUp("bob")], function* ({ greeting }) {
+	expect(yield* greeting("bob")).toBe("hello bob");
+});
+
+sessions.it("a public greeting without a session greets an anonymous caller", [browserOrigins], function* ({ greeting }) {
+	expect(yield* greeting()).toBe("hello anonymous");
+});
+
+sessions.it("a caller without a session is unauthorized", [browserOrigins], function* ({ whoami }) {
+	expect(yield* whoami()).toBe("unauthorized");
+});
+
 sessions.it(
-	"sign-out through Better Auth's HTTP handler rejects the retained cookie as unauthorized",
-	[originPolicy(), signedUp("alice")],
-	function* ({ account, readOwn, signout }) {
-		const alice = account("alice");
-		expect(yield* readOwn("alice", "alice")).toMatchObject({ _tag: "Success", success: alice.userId });
-		yield* signout("alice");
-		const revoked = yield* readOwn("alice", "alice");
-		expect(revoked).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(revoked._tag === "Failure" && revoked.failure).toBeInstanceOf(Unauthorized);
+	"once the session provider's database closes, alice is told auth is unavailable",
+	[browserOrigins, signedUp("alice")],
+	function* ({ providerCloses, whoami }) {
+		expect(yield* whoami("alice")).toBe("alice");
+
+		yield* providerCloses();
+
+		expect(yield* whoami("alice")).toBe("auth unavailable");
 	},
 );
+
 sessions.it(
-	"a persisted Better Auth session with backdated expiry is unauthorized",
-	[originPolicy(), signedUp("alice")],
-	function* ({ account, readOwn, expire }) {
-		const alice = account("alice");
-		expect(yield* readOwn("alice", "alice")).toMatchObject({ _tag: "Success", success: alice.userId });
-		yield* expire("alice");
-		const expired = yield* readOwn("alice", "alice");
-		expect(expired).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(expired._tag === "Failure" && expired.failure).toBeInstanceOf(Unauthorized);
+	"once the session provider's database closes, alice's public greeting is told auth is unavailable too",
+	[browserOrigins, signedUp("alice")],
+	function* ({ greeting, providerCloses }) {
+		yield* providerCloses();
+
+		expect(yield* greeting("alice")).toBe("auth unavailable");
 	},
 );
+
 sessions.it(
-	"origin policy is an explicit decision evaluated before the provider is consulted",
-	[originPolicy(), originPolicy("permissive", trustedOrigins({ allow: [ORIGIN], missing: "allow" })), publicWithoutOrigin, signedUp("alice")],
-	function* ({ account, greeting, identity, lookups }) {
-		const alice = account("alice");
-		function ask(policy: string, headers: Record<string, string>) {
-			return identity({ cookie: alice.cookie, ...headers }, policy);
-		}
-		const success = { _tag: "Success", success: expect.stringContaining(`${alice.userId} `) };
-		const forbidden = { _tag: "Failure", failure: { _tag: "Forbidden", message: "Origin not allowed" } };
-		expect(yield* ask("browser", { origin: ORIGIN })).toMatchObject(success);
-		expect(yield* ask("browser", { origin: "capacitor://localhost" })).toMatchObject(success);
-		const before = lookups();
-		expect(yield* ask("browser", { origin: "https://attacker.example" })).toMatchObject(forbidden);
-		expect(yield* ask("browser", { origin: "null" })).toMatchObject(forbidden);
-		expect(yield* ask("browser", {})).toMatchObject(forbidden);
-		expect(yield* greeting("alice", { cookie: alice.cookie })).toMatchObject(forbidden);
-		expect(lookups()).toBe(before);
-		expect(yield* ask("permissive", {})).toMatchObject(success);
-		expect(yield* ask("permissive", { origin: "capacitor://localhost" })).toMatchObject(forbidden);
-		expect(yield* ask("custom", {})).toMatchObject(forbidden);
-		expect(yield* greeting("alice", { cookie: alice.cookie }, "custom")).toMatchObject({
-			_tag: "Success",
-			success: `hello ${alice.userId}`,
+	"a session provider failure is logged as an error and as an AuthUnavailable RPC failure for the method that hit it",
+	[browserOrigins, signedUp("alice")],
+	function* ({ providerCloses, providerFailureLogs, rpcFailures, whoami }) {
+		yield* providerCloses();
+
+		yield* whoami("alice");
+
+		yield* outcomes({
+			"provider failure logs": [providerFailureLogs(), [{ method: "Whoami" }]],
+			"RPC failures": [rpcFailures(), ["AuthUnavailable"]],
+		});
+	},
+);
+
+sessions.it(
+	"after alice signs out through Better Auth, her retained cookie is unauthorized",
+	[browserOrigins, signedUp("alice")],
+	function* ({ aliceSignsOut, whoami }) {
+		expect(yield* whoami("alice")).toBe("alice");
+
+		yield* aliceSignsOut();
+
+		expect(yield* whoami("alice")).toBe("unauthorized");
+	},
+);
+
+sessions.it(
+	"once alice's stored session has expired, her cookie is unauthorized",
+	[browserOrigins, signedUp("alice")],
+	function* ({ aliceSessionExpires, whoami }) {
+		expect(yield* whoami("alice")).toBe("alice");
+
+		yield* aliceSessionExpires();
+
+		expect(yield* whoami("alice")).toBe("unauthorized");
+	},
+);
+
+for (const from of ["the app", "the Capacitor shell"] as const) {
+	sessions.it(`the browser origin policy admits alice calling from ${from}`, [browserOrigins, signedUp("alice")], function* ({ whoami }) {
+		expect(yield* whoami("alice", { from })).toBe("alice");
+	});
+}
+
+for (const from of ["another site", "an opaque origin", "nowhere"] as const) {
+	sessions.it(
+		`the browser origin policy refuses alice calling from ${from} before asking the session provider`,
+		[browserOrigins, signedUp("alice")],
+		function* ({ sessionLookups, whoami }) {
+			yield* outcomes({
+				answer: [whoami("alice", { from }), "forbidden origin"],
+				"session lookups": [sessionLookups(), 0],
+			});
+		},
+	);
+}
+
+sessions.it(
+	"the browser origin policy refuses alice's public greeting without an origin",
+	[browserOrigins, signedUp("alice")],
+	function* ({ greeting }) {
+		expect(yield* greeting("alice", { from: "nowhere" })).toBe("forbidden origin");
+	},
+);
+
+sessions.it(
+	"a policy that allows a missing origin admits alice calling without one",
+	[appOrMissingOrigin, signedUp("alice")],
+	function* ({ whoami }) {
+		expect(yield* whoami("alice", { from: "nowhere" })).toBe("alice");
+	},
+);
+
+sessions.it(
+	"a policy that allows a missing origin still refuses an origin it does not list",
+	[appOrMissingOrigin, signedUp("alice")],
+	function* ({ whoami }) {
+		expect(yield* whoami("alice", { from: "the Capacitor shell" })).toBe("forbidden origin");
+	},
+);
+
+sessions.it(
+	"an origin policy that decides by RPC method admits alice's greeting without an origin and refuses her whoami",
+	[greetingsWithoutOrigin, signedUp("alice")],
+	function* ({ greeting, whoami }) {
+		yield* outcomes({
+			greeting: [greeting("alice", { from: "nowhere" }), "hello alice"],
+			whoami: [whoami("alice", { from: "nowhere" }), "forbidden origin"],
 		});
 	},
 );

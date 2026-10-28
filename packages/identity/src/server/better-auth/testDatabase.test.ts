@@ -1,53 +1,66 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { authStorage, mintedAccounts, missingImageColumn } from "#test/better-auth/database.ts";
 
-authStorage.it(
-	"reads stored identities and session ownership without exposing credentials",
-	[mintedAccounts()],
-	function* ({ session, storedUsers, storedSessions }) {
-		const users = yield* storedUsers();
-		expect(users).toEqual([
-			{ email: "alice@storage.test", id: expect.any(String) },
-			{ email: "bob@storage.test", id: expect.any(String) },
-		]);
-		expect(yield* session("alice")).toMatchObject({ body: { user: users[0] }, status: HttpStatus.fromLiteral("OK") });
-		expect(yield* session("bob")).toMatchObject({ body: { user: users[1] }, status: HttpStatus.fromLiteral("OK") });
-		expect(yield* storedSessions()).toEqual([
-			{ email: "alice@storage.test", id: expect.any(String), userId: users[0]?.id },
-			{ email: "bob@storage.test", id: expect.any(String), userId: users[1]?.id },
-		]);
-	},
-);
-
-authStorage.it(
-	"expiring sessions changes provider answers while keeping the accounts",
-	[mintedAccounts()],
-	function* ({ session, storedUsers, expireSessions }) {
-		expect(yield* session("alice")).toMatchObject({ body: { user: { email: "alice@storage.test" } }, status: HttpStatus.fromLiteral("OK") });
-		const users = yield* storedUsers();
-		yield* expireSessions();
-		expect(yield* session("alice")).toEqual({ body: null, status: HttpStatus.fromLiteral("OK") });
-		expect(yield* session("bob")).toEqual({ body: null, status: HttpStatus.fromLiteral("OK") });
-		expect(yield* storedUsers()).toEqual(users);
-	},
-);
-
-authStorage.it("a missing image column is refused by the mounted provider", [mintedAccounts(), missingImageColumn()], function* ({ session }) {
-	expect(yield* session("alice")).toEqual({
-		body: "Authentication is temporarily unavailable",
-		status: HttpStatus.fromLiteral("ServiceUnavailable"),
-	});
+authStorage.it("the test database lists each stored user by id and email only", [mintedAccounts()], function* ({ storedUserRows, userId }) {
+	expect(yield* storedUserRows()).toEqual([
+		{ email: "alice@storage.test", id: yield* userId("alice") },
+		{ email: "bob@storage.test", id: yield* userId("bob") },
+	]);
 });
 
 authStorage.it(
-	"expiring one user's sessions leaves another user signed in",
+	"the test database lists each stored session by its id and its owner's id and email only",
 	[mintedAccounts()],
-	function* ({ session, storedUsers, expireSessions }) {
-		const users = yield* storedUsers();
-		expect(yield* session("alice")).toMatchObject({ body: { user: { email: "alice@storage.test" } }, status: 200 });
-		yield* expireSessions(users[0]?.id);
-		expect(yield* session("alice")).toEqual({ body: null, status: 200 });
-		expect(yield* session("bob")).toMatchObject({ body: { user: { email: "bob@storage.test" } }, status: 200 });
+	function* ({ storedSessionRows, userId }) {
+		expect(yield* storedSessionRows()).toEqual([
+			{ email: "alice@storage.test", id: expect.any(String), userId: yield* userId("alice") },
+			{ email: "bob@storage.test", id: expect.any(String), userId: yield* userId("bob") },
+		]);
+	},
+);
+
+authStorage.it(
+	"expiring every stored session signs alice and bob out and keeps both their users",
+	[mintedAccounts()],
+	function* ({ expireAllSessions, signedInAs, storedUsers }) {
+		yield* outcomes({
+			"alice's cookie": [signedInAs("alice"), "alice"],
+			"bob's cookie": [signedInAs("bob"), "bob"],
+		});
+
+		yield* expireAllSessions();
+
+		yield* outcomes({
+			"alice's cookie": [signedInAs("alice"), "signed out"],
+			"bob's cookie": [signedInAs("bob"), "signed out"],
+			"stored users": [storedUsers(), ["alice", "bob"]],
+		});
+	},
+);
+
+authStorage.it(
+	"expiring alice's stored sessions signs her out and leaves bob signed in",
+	[mintedAccounts()],
+	function* ({ expireSessions, signedInAs }) {
+		yield* outcomes({
+			"alice's cookie": [signedInAs("alice"), "alice"],
+			"bob's cookie": [signedInAs("bob"), "bob"],
+		});
+
+		yield* expireSessions("alice");
+
+		yield* outcomes({
+			"alice's cookie": [signedInAs("alice"), "signed out"],
+			"bob's cookie": [signedInAs("bob"), "bob"],
+		});
+	},
+);
+
+authStorage.it(
+	"when the auth schema lacks the user image column, the mounted provider answers alice's session request as unavailable",
+	[mintedAccounts(), missingImageColumn()],
+	function* ({ signedInAs }) {
+		expect(yield* signedInAs("alice")).toBe("auth unavailable");
 	},
 );

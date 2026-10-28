@@ -23,6 +23,8 @@ export const Handlers = Accounts.toLayer({
 	ExternalRejection: () => Effect.fail("upstream rate limit"),
 	Register: () => Effect.fail(new Conflict({ field: "email", message: "Email already registered" })),
 });
+export const REGISTRATION_SECRETS = ["hunter2-plaintext", "key-plaintext", "refresh-plaintext", "note-plaintext"] as const;
+
 export const registration = {
 	devices: [{ name: "phone", refreshToken: "refresh-plaintext" }],
 	email: "alice@example.test",

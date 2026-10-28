@@ -67,12 +67,19 @@ export const policyHost = Effect.fnUntraced(function* (
 			Effect.scoped,
 		);
 	}
-	async function storedSessions() {
+	async function storedUsers() {
 		const { internalAdapter } = await mounted.auth.$context;
-		const users = await internalAdapter.listUsers(100, 0, { direction: "asc", field: "email" });
-		return Object.fromEntries(
-			await Promise.all(users.map(async ({ email, id }) => [email, (await internalAdapter.listSessions(id)).length] as const)),
-		);
+		const users = await internalAdapter.listUsers(1000, 0, { direction: "asc", field: "email" });
+		return users.map(({ email }) => email);
+	}
+	async function sessionDevices(email: string) {
+		const { internalAdapter } = await mounted.auth.$context;
+		const user = await internalAdapter.findUserByEmail(email);
+		if (user === null) {
+			return [];
+		}
+		const held = await internalAdapter.listSessions(user.user.id);
+		return held.map(({ userAgent }) => userAgent ?? "").sort();
 	}
 	async function seedGitHubUsers(count: number, now: Date) {
 		const { adapter } = await mounted.auth.$context;
@@ -100,7 +107,7 @@ export const policyHost = Effect.fnUntraced(function* (
 		});
 		return users.map(({ email }) => email).sort();
 	}
-	return { baseUrl, revokeUnadmitted: mounted.revokeUnadmitted, seedGitHubUsers, sessionHolders, storedSessions, whoami };
+	return { baseUrl, revokeUnadmitted: mounted.revokeUnadmitted, seedGitHubUsers, sessionDevices, sessionHolders, storedUsers, whoami };
 });
 
 export type PolicyHost = Effect.Success<ReturnType<typeof policyHost>>;

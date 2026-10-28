@@ -1,4 +1,4 @@
-import { type Cause, Clock, Duration, Effect } from "effect";
+import { Cause, Clock, Config, Effect, Exit, Option, Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -6,6 +6,7 @@ import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
+import type { RevokedSessions } from "#server/better-auth/revokeUnadmitted.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 import { emailSignUp, gitHubSignIn } from "./flows.ts";
@@ -13,7 +14,25 @@ import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
 import { type PolicyHost, policyHost } from "./host.ts";
 
 const people = { alice: "1001", bob: "1002", carol: "1003" } as const;
-type Person = keyof typeof people;
+export type Person = keyof typeof people;
+
+const RECHECK_INTERVAL = "1 second";
+const UNLISTED_USERS = 120;
+const malformedLists = { "a provider without an account id": "github", "an empty list": "" } as const;
+export type MalformedList = keyof typeof malformedLists;
+
+export type SignInAnswer = "signed in" | "refused" | "unavailable" | `failed: ${string}`;
+export type RequestAnswer = "ok" | "unauthorized" | "auth unavailable" | `failed: ${string}`;
+const signInRefusals = new Map<string | null, SignInAnswer>([
+	["sign_in_refused", "refused"],
+	["sign_in_unavailable", "unavailable"],
+]);
+const requestFailures = new Map<string, RequestAnswer>([
+	["AuthUnavailable", "auth unavailable"],
+	["Unauthorized", "unauthorized"],
+]);
+
+export type Revocation = RevokedSessions | "stopped by a configuration error" | "stopped by a failed policy check" | `stopped: ${string}`;
 
 interface Engine {
 	readonly accounts: Map<string, GitHubAccount>;
@@ -23,6 +42,10 @@ interface Engine {
 	readonly github: Effect.Success<ReturnType<typeof fakeGitHub>>;
 	readonly host: { current?: PolicyHost };
 	policy: SignInPolicy<Cause.UnknownError> | undefined;
+	revocation?: Revocation;
+	readonly signIns: Map<Person, SignInAnswer>;
+	readonly signUps: Map<string, string>;
+	startup?: string;
 }
 
 function membershipRule(account: ProviderAccountValue) {
@@ -35,6 +58,49 @@ function membershipRule(account: ProviderAccountValue) {
 				return status === HttpStatus.fromLiteral("NoContent");
 			})
 		: Effect.succeed(false);
+}
+
+function entriesOf(listed: readonly Person[]) {
+	return listed.map((person) => `github:${people[person]}`).join(",");
+}
+
+function nameOf(email: string) {
+	return email.slice(0, email.indexOf("@"));
+}
+
+function host(engine: Engine) {
+	if (engine.host.current === undefined) {
+		throw new Error("The sign-in policy host has not started");
+	}
+	return engine.host.current;
+}
+
+const signIn = Effect.fnUntraced(function* (engine: Engine, person: Person, device: string) {
+	const result = yield* Effect.promise(() => gitHubSignIn(host(engine).baseUrl, people[person], device));
+	if (result.signedIn) {
+		engine.cookies.set(person, result.cookie);
+	}
+	const answer: SignInAnswer = result.signedIn ? "signed in" : (signInRefusals.get(result.error) ?? `failed: ${result.error ?? "no error"}`);
+	engine.signIns.set(person, answer);
+	return answer;
+});
+
+const signedInOn = Effect.fnUntraced(function* (engine: Engine, person: Person, device: string) {
+	const answer = yield* signIn(engine, person, device);
+	if (answer !== "signed in") {
+		return yield* Effect.die(`${person} could not sign in on the ${device}: ${answer}`);
+	}
+});
+
+function revocationOf(exit: Exit.Exit<RevokedSessions, unknown>): Revocation {
+	if (Exit.isSuccess(exit)) {
+		return exit.value;
+	}
+	const error = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
+	if (Cause.isUnknownError(error)) {
+		return "stopped by a failed policy check";
+	}
+	return error instanceof Config.ConfigError ? "stopped by a configuration error" : `stopped: ${Cause.pretty(exit.cause)}`;
 }
 
 export const signInPolicy = storyKit({
@@ -58,6 +124,8 @@ export const signInPolicy = storyKit({
 			github,
 			host: {},
 			policy: undefined,
+			signIns: new Map(),
+			signUps: new Map(),
 		};
 		return engine;
 	},
@@ -65,104 +133,166 @@ export const signInPolicy = storyKit({
 	layer: postgres,
 	name: "sign-in policy",
 	runIf: databaseUrl !== undefined,
-	stages: ["policy"],
+	stages: ["policy", "sessions", "conditions"],
 	verbs: (engine, story) => {
 		engine.github.narrate(story.tell);
-		function host() {
-			if (engine.host.current === undefined) {
-				throw new Error("The sign-in policy host has not started");
-			}
-			return engine.host.current;
-		}
 		return {
-			allowOnly: (...entries: string[]) =>
+			corruptList: (kind: MalformedList) =>
 				Effect.sync(() => {
-					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${entries.join(",")}`);
-					engine.env.AUTH_ALLOWED_ACCOUNTS = entries.join(",");
-				}),
-			closeSessions: () =>
-				Effect.sync(() => {
-					story.tell("the application's own session hook stops admitting new sessions");
-					engine.app.sessionsOpen = false;
+					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${JSON.stringify(malformedLists[kind])}, ${kind}`);
+					engine.env.AUTH_ALLOWED_ACCOUNTS = malformedLists[kind];
 				}),
 			leaveOrganization: (person: Person) =>
 				Effect.sync(() => {
 					story.tell(`${person} leaves the ${ORGANIZATION} organization on GitHub`);
 					const account = engine.accounts.get(people[person]);
-					if (account !== undefined) {
-						account.member = false;
+					if (account === undefined) {
+						throw new Error(`No GitHub account for ${person}`);
 					}
+					account.member = false;
 				}),
-			membershipChecks: () => engine.github.requests.filter(({ path }) => path.startsWith(`/orgs/${ORGANIZATION}/`)).length,
-			membershipOutage: () => {
-				story.tell("GitHub stops answering organization membership checks");
-				return engine.github.scriptFault("membership", { kind: "drop" }, { repeat: true });
+			recheckIntervalPasses: () => {
+				story.tell(`the ${RECHECK_INTERVAL} recheck interval passes`);
+				return Effect.sleep(RECHECK_INTERVAL).pipe(Effect.andThen(Effect.sleep("50 millis")));
 			},
+			remove: (...removed: Person[]) =>
+				Effect.sync(() => {
+					story.tell(`the operator removes ${removed.join(" and ")} from AUTH_ALLOWED_ACCOUNTS`);
+					const entries = new Set((engine.env.AUTH_ALLOWED_ACCOUNTS ?? "").split(","));
+					for (const person of removed) {
+						entries.delete(`github:${people[person]}`);
+					}
+					engine.env.AUTH_ALLOWED_ACCOUNTS = [...entries].join(",");
+				}),
+			request: (person: Person) =>
+				Effect.gen(function* () {
+					story.tell(`${person} makes an authenticated request over native RPC`);
+					const result = yield* host(engine).whoami(engine.cookies.get(person) ?? "");
+					if (Result.isSuccess(result)) {
+						return "ok" satisfies RequestAnswer;
+					}
+					const tag = result.failure._tag;
+					return requestFailures.get(tag) ?? (`failed: ${tag}` satisfies RequestAnswer);
+				}),
 			restart: () =>
 				Effect.gen(function* () {
 					story.tell("the application restarts with the current configuration");
 					const database = yield* PostgresTestDatabase;
 					const restarted = yield* Effect.exit(policyHost(database.url, engine.env, engine.policy, engine.app));
-					if (restarted._tag === "Success") {
+					if (Exit.isSuccess(restarted)) {
 						engine.host.current = restarted.value;
+						engine.startup = "started";
+						return;
 					}
-					return restarted;
+					const error = Cause.findErrorOption(restarted.cause);
+					engine.startup =
+						error._tag === "Some" ? `refused to start: ${error.value.message.replaceAll(/\s+/gu, " ")}` : `crashed: ${Cause.pretty(restarted.cause)}`;
 				}),
-			revokeUnadmitted: () => {
-				story.tell("the operator revokes the sessions the current policy no longer admits");
-				return host().revokeUnadmitted;
-			},
-			seedGitHubUsers: (count: number) => {
-				story.tell(`${count} more GitHub users with one session each are already stored`);
-				return Effect.flatMap(Clock.currentTimeMillis, (now) => Effect.promise(() => host().seedGitHubUsers(count, new Date(now))));
-			},
+			revocation: () =>
+				Effect.sync(() => {
+					if (engine.revocation === undefined) {
+						throw new Error("No revocation has run");
+					}
+					return engine.revocation;
+				}),
+			revoke: () =>
+				Effect.gen(function* () {
+					story.tell("the operator revokes the sessions the current policy no longer admits");
+					engine.revocation = revocationOf(yield* Effect.exit(host(engine).revokeUnadmitted));
+				}),
 			sessionHolders: () => {
-				story.tell("read the users that still hold a session");
-				return Effect.promise(() => host().sessionHolders());
+				story.tell("read the users who still hold a stored session");
+				return Effect.promise(async () => (await host(engine).sessionHolders()).map(nameOf));
 			},
-			signIn: (person: Person) =>
-				Effect.promise(async () => {
-					story.tell(`${person} signs in with GitHub account ${people[person]}`);
-					const result = await gitHubSignIn(host().baseUrl, people[person]);
-					if (!result.signedIn) {
-						return result;
+			signIn: (person: Person) => {
+				story.tell(`${person} signs in with GitHub account ${people[person]}`);
+				return signIn(engine, person, "browser");
+			},
+			signInAnswer: (person: Person) =>
+				Effect.sync(() => {
+					const answer = engine.signIns.get(person);
+					if (answer === undefined) {
+						throw new Error(`${person} has not tried to sign in`);
 					}
-					engine.cookies.set(person, result.cookie);
-					return { signedIn: true } as const;
+					return answer;
 				}),
-			signUpWithEmail: (email: string) => {
-				story.tell(`${email} signs up with an email and password`);
-				return Effect.promise(() => emailSignUp(host().baseUrl, email));
-			},
-			storedSessions: () => {
-				story.tell("read the stored sessions of every user");
-				return Effect.promise(() => host().storedSessions());
+			signUpAnswer: (person: string) =>
+				Effect.sync(() => {
+					const answer = engine.signUps.get(person);
+					if (answer === undefined) {
+						throw new Error(`${person} has not tried to sign up`);
+					}
+					return answer;
+				}),
+			signUpWithEmail: (person: string) =>
+				Effect.promise(async () => {
+					story.tell(`${person} signs up with an email and password`);
+					const { code, ok } = await emailSignUp(host(engine).baseUrl, `${person}@example.test`);
+					if (ok) {
+						engine.signUps.set(person, "signed up");
+					} else {
+						engine.signUps.set(person, code === "sign_in_refused" ? "refused" : `failed: ${code ?? "no code"}`);
+					}
+				}),
+			startup: () =>
+				Effect.sync(() => {
+					if (engine.startup === undefined) {
+						throw new Error("The application has not restarted");
+					}
+					return engine.startup;
+				}),
+			storedSessions: (person: Person | "dana") => {
+				story.tell(`read the devices of ${person}'s stored sessions`);
+				return Effect.promise(() => host(engine).sessionDevices(person === "dana" ? "dana@example.test" : `${person}@github.test`));
 			},
 			storedUsers: () => {
 				story.tell("read the stored users");
-				return Effect.promise(async () => Object.keys(await host().storedSessions()));
-			},
-			waitForRecheck: (interval: Duration.Input) => {
-				story.tell(`the recheck interval of ${Duration.format(Duration.fromInputUnsafe(interval))} passes`);
-				return Effect.sleep(Duration.sum(Duration.fromInputUnsafe(interval), Duration.millis(50)));
-			},
-			whoami: (person: Person) => {
-				story.tell(`${person} asks who they are over native RPC`);
-				return host().whoami(engine.cookies.get(person) ?? "");
+				return Effect.promise(async () => (await host(engine).storedUsers()).map(nameOf));
 			},
 		};
 	},
 });
 
-export function allowedList(...entries: string[]) {
-	return signInPolicy.trait("policy", `AUTH_ALLOWED_ACCOUNTS lists ${entries.join(",")}`, (engine) => {
-		engine.env.AUTH_ALLOWED_ACCOUNTS = entries.join(",");
+export function allowed(...listed: Person[]) {
+	return signInPolicy.trait("policy", `AUTH_ALLOWED_ACCOUNTS lists ${listed.join(" and ")}'s GitHub accounts`, (engine) => {
+		engine.env.AUTH_ALLOWED_ACCOUNTS = entriesOf(listed);
 		engine.policy = { ...engine.policy, accounts: allowedAccounts };
 	});
 }
 
-export function organizationRule(recheckInterval: Duration.Input) {
-	return signInPolicy.trait("policy", `the application admits members of ${ORGANIZATION}, rechecked every ${String(recheckInterval)}`, (engine) => {
-		engine.policy = { ...engine.policy, recheckInterval, rule: membershipRule };
+export const organizationRule = signInPolicy.trait(
+	"policy",
+	`the application admits members of ${ORGANIZATION}, rechecked every ${RECHECK_INTERVAL}`,
+	(engine) => {
+		engine.policy = { ...engine.policy, recheckInterval: RECHECK_INTERVAL, rule: membershipRule };
+	},
+);
+
+export function signedIn(person: Person) {
+	return signInPolicy.trait("sessions", `${person} has signed in with GitHub in a browser`, (engine) => signedInOn(engine, person, "browser"));
+}
+
+export function signedInOnTwoDevices(person: Person) {
+	return signInPolicy.trait("sessions", `${person} has signed in with GitHub on a laptop and a phone`, function* (engine) {
+		yield* signedInOn(engine, person, "laptop");
+		yield* signedInOn(engine, person, "phone");
 	});
 }
+
+export const moreThanOnePageOfUnlistedUsers = signInPolicy.trait(
+	"sessions",
+	`${UNLISTED_USERS} unlisted GitHub users already hold a session each, more than the 100 users a revocation reads per page`,
+	(engine) => Effect.flatMap(Clock.currentTimeMillis, (now) => Effect.promise(() => host(engine).seedGitHubUsers(UNLISTED_USERS, new Date(now)))),
+);
+
+export const membershipChecksDown = signInPolicy.trait("conditions", "GitHub stops answering organization membership checks", (engine) =>
+	engine.github.scriptFault("membership", { kind: "drop" }, { repeat: true }),
+);
+
+export const applicationRefusesNewSessions = signInPolicy.trait(
+	"conditions",
+	"the application's own session hook stops admitting new sessions",
+	(engine) => {
+		engine.app.sessionsOpen = false;
+	},
+);

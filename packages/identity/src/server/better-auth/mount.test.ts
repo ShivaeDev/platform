@@ -1,113 +1,153 @@
-import { inspect } from "node:util";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { applicationRateLimit, applicationStorage, environment, memoryStorage, mount } from "#test/better-auth/mount.ts";
 
-mount.it("logs a redacted provider failure in the request trace before answering 503", [], function* ({ logs, request, stopAuth }) {
-	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(logs().filter((log) => log.level === "Error")).toEqual([]);
-	yield* stopAuth();
-	const traceId = "1234567890abcdef1234567890abcdef";
-	expect(yield* request({ traceparent: `00-${traceId}-1234567890abcdef-01` })).toEqual({
-		body: "Authentication is temporarily unavailable",
-		status: HttpStatus.fromLiteral("ServiceUnavailable"),
-	});
-	expect(logs().filter((log) => log.level === "Error")).toEqual([
-		{
-			level: "Error",
-			message: [
-				"Authentication provider failed",
-				expect.objectContaining({
-					cause: expect.objectContaining({ message: "password=<redacted>" }),
-					cookie: "<redacted>",
-					message: "Authentication provider is down: token=<redacted>",
-				}),
-			],
-			traceId,
-		},
-	]);
-	expect(inspect(logs(), { depth: 20 })).not.toMatch(/provider-token|database-password|provider-cookie/u);
+const TRACE_ID = "1234567890abcdef1234567890abcdef";
+
+mount.it("while the provider fails, a visitor's auth request is answered as unavailable", [], function* ({ providerFails, request }) {
+	expect(yield* request()).toBe("accepted");
+
+	yield* providerFails();
+
+	expect(yield* request()).toBe("unavailable");
 });
 
-for (const trust of [undefined, "127.0.0.2", "127.0.0.1", "127.0.0.0/8"]) {
-	for (const header of ["x-forwarded-for", "x-real-ip"]) {
-		mount.it(
-			`passes ${header} only from a trusted peer (${trust ?? "unset"})`,
-			[
-				environment({
-					"AUTH_CLIENT_IP_HEADER": header,
-					...(trust === undefined ? {} : { "TRUSTED_PROXY": trust }),
-				}),
+mount.it("a provider failure is logged as an error inside the visitor's request trace", [], function* ({ errorLogs, providerFails, requestInTrace }) {
+	yield* providerFails();
+
+	yield* requestInTrace(TRACE_ID);
+
+	expect(yield* errorLogs()).toEqual([{ message: "Authentication provider failed", traceId: TRACE_ID }]);
+});
+
+mount.it(
+	"the logged provider failure keeps its message but redacts the token, password and cookie",
+	[],
+	function* ({ loggedFailure, logsMentionProviderSecrets, providerFails, request }) {
+		yield* providerFails();
+
+		yield* request();
+
+		yield* outcomes({
+			"logged failure": [
+				loggedFailure(),
+				{ cause: "password=<redacted>", cookie: "<redacted>", message: "Authentication provider is down: token=<redacted>" },
 			],
-			function* ({ request }) {
-				const response = yield* request({ "x-forwarded-for": "198.51.100.10", "x-real-ip": "203.0.113.10" });
-				expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-				const trusted = trust === "127.0.0.1" || trust === "127.0.0.0/8";
-				expect(JSON.parse(response.body)).toEqual({
-					forwardedFor: trusted ? "198.51.100.10" : null,
-					realIp: trusted || header !== "x-real-ip" ? "203.0.113.10" : null,
+			"secrets anywhere in the logs": [logsMentionProviderSecrets(), []],
+		});
+	},
+);
+
+const untrustedPeers = { "a different trusted proxy address": { "TRUSTED_PROXY": "127.0.0.2" }, "no trusted proxy": {} };
+const trustedPeers = {
+	"the peer as trusted proxy": { "TRUSTED_PROXY": "127.0.0.1" },
+	"the peer's range as trusted proxy": { "TRUSTED_PROXY": "127.0.0.0/8" },
+};
+
+for (const header of ["x-forwarded-for", "x-real-ip"]) {
+	for (const [peer, trust] of Object.entries(untrustedPeers)) {
+		mount.it(
+			`with ${header} as client IP header and ${peer}, auth sees the connecting peer and none of the forwarded headers`,
+			[environment({ "AUTH_CLIENT_IP_HEADER": header, ...trust })],
+			function* ({ clientAuthSaw, forwardedHeadersAuthSaw, request }) {
+				yield* request("alice");
+
+				yield* outcomes({
+					"client auth saw": [clientAuthSaw(), "the connecting peer"],
+					"forwarded headers auth saw": [forwardedHeadersAuthSaw(), []],
+				});
+			},
+		);
+	}
+	for (const [peer, trust] of Object.entries(trustedPeers)) {
+		mount.it(
+			`with ${header} as client IP header and ${peer}, auth sees alice and the forwarded headers`,
+			[environment({ "AUTH_CLIENT_IP_HEADER": header, ...trust })],
+			function* ({ clientAuthSaw, forwardedHeadersAuthSaw, request }) {
+				yield* request("alice");
+
+				yield* outcomes({
+					"client auth saw": [clientAuthSaw(), "alice"],
+					"forwarded headers auth saw": [forwardedHeadersAuthSaw(), [...new Set(["x-forwarded-for", header])]],
 				});
 			},
 		);
 	}
 }
 
-mount.it("enables rate limits by default even when app options disable them", [], function* ({ request }) {
-	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
-});
+mount.it(
+	"even when the app's own options switch rate limiting off, a third auth request within a minute is rate limited",
+	[applicationRateLimit(false)],
+	function* ({ request, useAllowance }) {
+		expect(yield* useAllowance()).toEqual(["accepted", "accepted"]);
+
+		expect(yield* request()).toBe("rate limited");
+	},
+);
 
 mount.it(
-	"disables rate limits through Config",
+	"AUTH_RATE_LIMIT_ENABLED=false lets a third auth request within a minute through even when the app's options enable rate limiting",
 	[applicationRateLimit(true), environment({ "AUTH_RATE_LIMIT_ENABLED": "false" })],
-	function* ({ request }) {
-		for (let attempt = 0; attempt < 4; attempt += 1) {
-			expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-		}
+	function* ({ request, useAllowance }) {
+		expect(yield* useAllowance()).toEqual(["accepted", "accepted"]);
+
+		expect(yield* request()).toBe("accepted");
 	},
 );
 
 for (const header of ["x-forwarded-for", "x-real-ip"]) {
 	mount.it(
-		`isolates rate limits by ${header} from a trusted peer`,
-		[
-			environment({
-				"AUTH_CLIENT_IP_HEADER": header,
-				"AUTH_RATE_LIMIT_ENABLED": "true",
-				"TRUSTED_PROXY": "127.0.0.1",
-			}),
-		],
-		function* ({ request }) {
-			const alice = { [header]: "198.51.100.10" };
-			expect((yield* request(alice)).status).toBe(HttpStatus.fromLiteral("OK"));
-			expect((yield* request(alice)).status).toBe(HttpStatus.fromLiteral("OK"));
-			expect((yield* request(alice)).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
-			expect((yield* request({ [header]: "198.51.100.20" })).status).toBe(HttpStatus.fromLiteral("OK"));
+		`behind a trusted proxy that names clients in ${header}, alice using up her allowance leaves bob's requests accepted`,
+		[environment({ "AUTH_CLIENT_IP_HEADER": header, "TRUSTED_PROXY": "127.0.0.1" })],
+		function* ({ request, useAllowance }) {
+			expect(yield* useAllowance("alice")).toEqual(["accepted", "accepted"]);
+
+			yield* outcomes({
+				alice: [request("alice"), "rate limited"],
+				bob: [request("bob"), "accepted"],
+			});
 		},
 	);
 }
 
-for (const [name, storage] of [
-	["default", []],
-	["explicit memory", [memoryStorage]],
-] as const) {
-	mount.it(`starts each host with fresh rate-limit buckets (${name})`, storage, function* ({ request, startHost }) {
-		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
-		yield* startHost();
-		expect((yield* request({}, 1)).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect((yield* request({}, 1)).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect((yield* request({}, 1)).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
-		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
-	});
+for (const [storage, traits] of Object.entries({ "default storage": [], "explicit memory storage": [memoryStorage] })) {
+	mount.it(
+		`with ${storage}, a second auth host in the same process starts with its own rate-limit buckets`,
+		traits,
+		function* ({ request, requestSecondHost, startSecondHost, useAllowance }) {
+			expect(yield* useAllowance()).toEqual(["accepted", "accepted"]);
+
+			yield* startSecondHost();
+
+			yield* outcomes({
+				"first host": [request(), "rate limited"],
+				"second host": [requestSecondHost(), "accepted"],
+			});
+		},
+	);
 }
 
-mount.it("uses the application's custom storage for every request", [applicationStorage], function* ({ consumed, request }) {
-	for (let attempt = 0; attempt < 4; attempt += 1) {
-		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
-	}
-	expect(consumed()).toEqual(Array.from({ length: 4 }, () => ({ key: expect.any(String), rule: { max: 2, window: 60 } })));
-	expect(new Set(consumed().map(({ key }) => key)).size).toBe(1);
-});
+mount.it(
+	"the app's own rate-limit storage decides every auth request, asked with the app's rule for one client",
+	[applicationStorage],
+	function* ({ lastAnswer, request, storageCalls, useAllowance }) {
+		yield* useAllowance();
+
+		yield* request();
+
+		yield* outcomes({
+			"storage calls": [
+				storageCalls(),
+				{
+					clients: 1,
+					rules: [
+						{ max: 2, window: 60 },
+						{ max: 2, window: 60 },
+						{ max: 2, window: 60 },
+					],
+				},
+			],
+			"third request": [lastAnswer(), "accepted"],
+		});
+	},
+);

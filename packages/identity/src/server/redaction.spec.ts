@@ -1,76 +1,65 @@
-import { inspect } from "node:util";
-import { Cause, ErrorReporter, Exit } from "effect";
+import { ErrorReporter } from "effect";
 import { expect } from "vitest";
-import { redactDefect } from "@shivaedev/errors/redactCause.ts";
 import { redaction } from "#test/rpc/redaction.ts";
 
-redaction.it("stackless ignored external errors keep their reporting policy after redaction", [], function* ({ report }) {
-	const original = new Error("password=ignored-secret");
-	Object.defineProperty(original, ErrorReporter.ignore, { value: true });
-	delete original.stack;
-	const copy = redactDefect(original);
-	expect(copy).toBeInstanceOf(Error);
-	expect(copy).toMatchObject({ message: "password=<redacted>", stack: undefined });
-	expect(ErrorReporter.isIgnored(copy)).toBe(true);
-	const reports = yield* report(original);
-	expect(reports).toEqual([]);
-});
-redaction.it("defect logs keep the error's shape but redact its fields and cause", [], function* ({ crash, logs }) {
-	yield* crash("object");
-	yield* crash("error");
-	const defects = logs().filter((log) => log.level === "Error");
-	expect(inspect(defects, { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
-	expect(defects.map((log) => log.annotations["rpc.defect"])).toEqual([
-		[{ detail: "object defect", password: "<redacted>" }],
-		[expect.objectContaining({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect", name: "Error" })],
-	]);
-});
-redaction.it("provider failures are logged without credential fields", [], function* ({ providerFailure, logs }) {
-	yield* providerFailure();
-	const [failure] = logs().filter((log) => log.level === "Error");
-	expect(inspect(failure?.message, { depth: 20 })).toContain("database closed");
-	expect(inspect(logs(), { depth: 20 })).not.toContain("cookie-plaintext");
-});
-redaction.it("the cause seen by the client, error reporters and the server span has redacted defects", [], function* ({ crash, spans, reported }) {
-	const exits = [yield* crash("object"), yield* crash("error")];
-	expect(reported().map((cause) => Cause.squash(cause))).toMatchObject([
-		{ detail: "object defect", password: "<redacted>" },
-		{ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect" },
-	]);
-	expect(inspect(reported(), { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
-	expect(inspect(exits, { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
-	const serverSpans = spans().filter((span) => span.kind === "server" && span.name === "Crash");
-	expect(serverSpans.map((span) => span.status)).toMatchObject([
-		{ _tag: "Ended", exit: { _tag: "Failure", cause: { reasons: [{ _tag: "Die", defect: { detail: "object defect", password: "<redacted>" } }] } } },
-		{ _tag: "Ended", exit: { _tag: "Failure", cause: { reasons: [{ _tag: "Die", defect: { apiKey: "<redacted>", message: "leaky defect" } }] } } },
-	]);
-	expect(
-		inspect(
-			serverSpans.map((span) => [span.status, span.events, span.attributes]),
-			{ depth: 20 },
-		),
-	).not.toMatch(/hunter2-plaintext|key-plaintext|token-plaintext/u);
-	const [objectExit, errorExit] = exits;
-	expect(objectExit !== undefined && Exit.isFailure(objectExit) && Cause.squash(objectExit.cause)).toEqual({
-		detail: "object defect",
-		password: "<redacted>",
+const redacted = {
+	"an error defect": { apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, error: "Error", message: "leaky defect" },
+	"an object defect": { detail: "object defect", password: "<redacted>" },
+} as const;
+
+for (const kind of ["an error defect", "an object defect"] as const) {
+	const expected = redacted[kind];
+	redaction.it(`when a handler dies with ${kind}, the client sees it with its secrets redacted`, [], function* ({ crash, defectSeenByClient }) {
+		yield* crash(kind);
+
+		expect(yield* defectSeenByClient()).toEqual([expected]);
 	});
-	const defect = errorExit !== undefined && Exit.isFailure(errorExit) ? Cause.squash(errorExit.cause) : undefined;
-	expect(defect).toBeInstanceOf(Error);
-	expect(defect).toMatchObject({ apiKey: "<redacted>", cause: { reason: "nested", token: "<redacted>" }, message: "leaky defect" });
+
+	redaction.it(`when a handler dies with ${kind}, the error reporter gets it with its secrets redacted`, [], function* ({ crash, defectReported }) {
+		yield* crash(kind);
+
+		expect(yield* defectReported()).toEqual([expected]);
+	});
+
+	redaction.it(`when a handler dies with ${kind}, the server span ends with it redacted`, [], function* ({ crash, defectInServerSpan }) {
+		yield* crash(kind);
+
+		expect(yield* defectInServerSpan()).toEqual([expected]);
+	});
+
+	redaction.it(`when a handler dies with ${kind}, the defect log carries it redacted`, [], function* ({ crash, defectLogged }) {
+		yield* crash(kind);
+
+		expect(yield* defectLogged()).toEqual([[expected]]);
+	});
+
+	redaction.it(`when a handler dies with ${kind}, no observer sees any of its secrets anywhere`, [], function* ({ crash, secretsSeen }) {
+		yield* crash(kind);
+
+		expect(yield* secretsSeen()).toEqual({ client: [], "error reporter": [], logs: [], "server span": [] });
+	});
+}
+
+redaction.it("a session provider failure is logged with its message and a redacted cookie", [], function* ({ providerFailureLogged, providerFails }) {
+	yield* providerFails();
+
+	expect(yield* providerFailureLogged()).toEqual([{ cookie: "<redacted>", logged: "Authentication provider failed", message: "database closed" }]);
 });
-redaction.it("a redacting error reporter hands the wrapped reporter a redacted cause with the same reporting hints", [], function* ({ report }) {
+
+redaction.it("an external error marked as ignored stays unreported after redaction", [], function* ({ report }) {
+	const ignored = new Error("password=ignored-secret");
+	Object.defineProperty(ignored, ErrorReporter.ignore, { value: true });
+
+	expect(yield* report(ignored)).toEqual([]);
+});
+
+redaction.it("the redacting error reporter hands on the severity and attributes with secrets redacted", [], function* ({ report }) {
 	const defect = Object.assign(new Error("login failed for password=hunter2-plaintext"), {
 		[ErrorReporter.severity]: "Error",
 		[ErrorReporter.attributes]: { apiKey: "key-plaintext", userId: "u1" },
 	});
-	const reports = yield* report(defect);
-	expect(inspect(reports, { depth: 20 })).not.toMatch(/hunter2-plaintext|key-plaintext/u);
-	expect(reports).toEqual([
-		{
-			attributes: { apiKey: "<redacted>", userId: "u1" },
-			error: expect.objectContaining({ message: "login failed for password=<redacted>" }),
-			severity: "Error",
-		},
+
+	expect(yield* report(defect)).toEqual([
+		{ attributes: { apiKey: "<redacted>", userId: "u1" }, message: "login failed for password=<redacted>", severity: "Error" },
 	]);
 });

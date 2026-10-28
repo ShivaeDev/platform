@@ -11,7 +11,7 @@ function cookiesOf(response: Response) {
 		.join("; ");
 }
 
-export async function gitHubSignIn(baseUrl: string, accountId: string) {
+export async function gitHubSignIn(baseUrl: string, accountId: string, device: string) {
 	const start = await fetch(`${baseUrl}/api/auth/sign-in/social`, {
 		body: JSON.stringify({ "callbackURL": `${baseUrl}/signed-in`, "errorCallbackURL": `${baseUrl}/refused`, provider: "github" }),
 		headers: { "content-type": "application/json", origin: baseUrl },
@@ -19,7 +19,10 @@ export async function gitHubSignIn(baseUrl: string, accountId: string) {
 	});
 	const { url } = Schema.decodeUnknownSync(SocialSignIn)(await start.json());
 	const authorize = await fetch(url, { headers: { "x-github-account": accountId }, redirect: "manual" });
-	const callback = await fetch(authorize.headers.get("location") ?? "", { headers: { cookie: cookiesOf(start) }, redirect: "manual" });
+	const callback = await fetch(authorize.headers.get("location") ?? "", {
+		headers: { cookie: cookiesOf(start), "user-agent": device },
+		redirect: "manual",
+	});
 	const location = new URL(callback.headers.get("location") ?? "", baseUrl);
 	const cookie = cookiesOf(callback);
 	return location.pathname === "/signed-in" && cookie.length > 0
@@ -30,8 +33,8 @@ export async function gitHubSignIn(baseUrl: string, accountId: string) {
 export async function emailSignUp(baseUrl: string, email: string) {
 	const response = await fetch(`${baseUrl}/api/auth/sign-up/email`, {
 		body: JSON.stringify({ email, name: email, password: "story-password-123" }),
-		headers: { "content-type": "application/json", origin: baseUrl },
+		headers: { "content-type": "application/json", origin: baseUrl, "user-agent": "browser" },
 		method: "POST",
 	});
-	return { code: Schema.decodeUnknownSync(SignUpRefusal)(await response.json()).code, status: response.status };
+	return { code: Schema.decodeUnknownSync(SignUpRefusal)(await response.json()).code, ok: response.ok };
 }

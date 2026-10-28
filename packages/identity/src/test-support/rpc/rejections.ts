@@ -1,10 +1,12 @@
-import { Effect, Layer } from "effect";
+import { Cause, Effect, Exit, Layer } from "effect";
 import { RpcClient } from "effect/rpc";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { requestTracingLayer } from "#server/tracing.ts";
 import { httpClient, recorder, rpcHttp, serve } from "./harness.ts";
-import { Profiles, Handlers as RenameHandlers } from "./renameFixture.ts";
-import { Api, Handlers as SaveHandlers } from "./saveFixture.ts";
+import { rejectionAnswer } from "./rejectionAnswer.ts";
+import { Invalid, Profiles, Handlers as RenameHandlers, type RenameRejection } from "./renameFixture.ts";
+import { Api, Handlers as SaveHandlers, type SaveOutcome } from "./saveFixture.ts";
 
 const Group = Profiles.merge(Api);
 const createRejections = Effect.gen(function* () {
@@ -14,25 +16,72 @@ const createRejections = Effect.gen(function* () {
 	);
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 	const client = yield* RpcClient.make(Group).pipe(Effect.provide(httpClient(app, {})));
-	return { client, ...recorded };
+	const save: { outcome?: typeof SaveOutcome.Type; storageDetail: string } = { storageDetail: "" };
+	const rejected: { error?: unknown } = {};
+	return { client, rejected, save, ...recorded };
 });
 
-export const rejectionsOptions = {
-	clock: "live" as const,
+type Engine = Effect.Success<typeof createRejections>;
+
+function rejection(engine: Engine) {
+	if (!("error" in engine.rejected)) {
+		throw new Error("No call has been rejected");
+	}
+	return engine.rejected.error;
+}
+
+export const rejections = storyKit({
+	clock: "live",
 	create: () => createRejections,
 	name: "RPC rejection",
-	stages: [] as const,
-	verbs: (state: Effect.Success<typeof createRejections>, story: { tell: (line: string) => void }) => ({
-		rename: (name: string) => {
-			story.tell(`an anonymous caller renames a profile to ${JSON.stringify(name)} over HTTP`);
-			return Effect.flip(state.client.Rename({ name }));
+	stages: ["storage"],
+	verbs: (engine, story) => ({
+		rejection: () => Effect.sync(() => rejectionAnswer(rejection(engine))),
+		rejectionCause: () =>
+			Effect.sync(() => {
+				const error = rejection(engine);
+				return error instanceof Error && error.cause !== undefined ? String(error.cause) : "none";
+			}),
+		rejectionMentions: (text: string) => Effect.sync(() => JSON.stringify(rejection(engine)).includes(text)),
+		renameRejectedWith: (rejectWith: RenameRejection) => {
+			story.tell(`an anonymous caller renames a profile over HTTP, and the handler rejects it with ${rejectWith}`);
+			return Effect.flip(engine.client.Rename({ rejectWith })).pipe(Effect.map((error) => rejectionAnswer(error, { Invalid })));
 		},
-		save: (mode: string) => {
-			story.tell(`an anonymous caller saves in ${mode} mode over HTTP`);
-			return Effect.flip(state.client.Save({ mode }));
+		save: () => {
+			const { outcome, storageDetail } = engine.save;
+			if (outcome === undefined) {
+				throw new Error("The story has not said how storage behaves");
+			}
+			story.tell("an anonymous caller saves a profile over HTTP");
+			return Effect.gen(function* () {
+				engine.rejected.error = yield* Effect.flip(engine.client.Save({ outcome, storageDetail }));
+			});
 		},
-		spans: () => state.spans,
+		tracedCause: () =>
+			Effect.sync(() => {
+				const traced = engine.spans
+					.filter((span) => span.kind === "server" && span.name === "Save")
+					.flatMap((span) => (span.status._tag === "Ended" && Exit.isFailure(span.status.exit) ? span.status.exit.cause.reasons : []))
+					.filter(Cause.isFailReason)
+					.map(({ error }) => error)
+					.filter((error) => error instanceof InternalServerError)
+					.map((error) => (Cause.isCause(error.cause) ? Cause.squash(error.cause) : undefined));
+				return traced.map((cause) => (cause instanceof Error ? cause.message : String(cause)));
+			}),
 	}),
-};
+});
 
-export const rejections = storyKit(rejectionsOptions);
+function storage(line: string, outcome: typeof SaveOutcome.Type, storageDetail = "") {
+	return rejections.trait("storage", line, (engine) => {
+		engine.save.outcome = outcome;
+		engine.save.storageDetail = storageDetail;
+	});
+}
+
+export const nameTaken = storage("the profile name is already taken", "name taken");
+
+export const storageUnavailable = storage("storage reports itself unavailable", "storage unavailable");
+
+export function storageError(fault: "fails" | "crashes", secret: string) {
+	return storage(`storage ${fault} with an error that mentions ${secret}`, fault === "fails" ? "storage fails" : "storage crashes", secret);
+}

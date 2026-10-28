@@ -1,55 +1,66 @@
 import { expect } from "vitest";
-import { revalidationInterval, streamSession } from "#test/rpc/streamSession.ts";
+import { aliceSubscribesTo, anonymousSubscribesToOptional, revalidatesEvery, streamSession } from "#test/rpc/streamSession.ts";
 
 for (const method of ["Identity", "Profile", "Accounts", "Optional"] as const) {
 	streamSession.it(
-		`${method} streams end after sign-out even while idle`,
-		[revalidationInterval("5 seconds")],
-		function* ({ start, send, next, checked, signout, advance, userId }) {
-			const ended = yield* start(method);
-			yield* send("before");
-			expect(yield* next()).toBe(`${userId()}:before`);
-			yield* checked();
-			yield* signout();
-			yield* advance("5 seconds");
-			expect(yield* ended).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		`alice's idle ${method} stream ends as unauthorized at the app's next five-second check after she signs out`,
+		[revalidatesEvery("5 seconds"), aliceSubscribesTo(method)],
+		function* ({ aliceSignsOut, echo, revalidationIntervalPasses, streamEnd }) {
+			expect(yield* echo("hello")).toBe("alice: hello");
+
+			yield* aliceSignsOut();
+
+			yield* revalidationIntervalPasses();
+			expect(yield* streamEnd()).toBe("unauthorized");
 		},
 	);
 }
 
 streamSession.it(
-	"an anonymous optional stream keeps delivering across revalidation intervals",
-	[],
-	function* ({ start, send, next, checked, advance }) {
-		yield* start("Optional", false);
-		yield* send("before");
-		expect(yield* next()).toBe("anonymous:before");
-		yield* checked();
-		yield* advance("30 seconds");
-		yield* send("after");
-		expect(yield* next()).toBe("anonymous:after");
+	"without an app interval, alice's stream is checked after 30 seconds and ends once she has signed out",
+	[aliceSubscribesTo("Identity")],
+	function* ({ aliceSignsOut, revalidationIntervalPasses, streamEnd }) {
+		yield* aliceSignsOut();
+
+		yield* revalidationIntervalPasses();
+		expect(yield* streamEnd()).toBe("unauthorized");
 	},
 );
 
 streamSession.it(
-	"the default interval survives a session-store blip and checks again",
-	[],
-	function* ({ start, send, next, checked, blip, advance, signout, userId }) {
-		const ended = yield* start("Identity");
-		yield* send("before");
-		expect(yield* next()).toBe(`${userId()}:before`);
-		yield* checked();
-		yield* blip();
-		yield* advance("30 seconds");
-		yield* checked();
-		yield* send("after blip");
-		expect(yield* next()).toBe(`${userId()}:after blip`);
-		yield* advance("30 seconds");
-		yield* checked();
-		yield* send("after recovery");
-		expect(yield* next()).toBe(`${userId()}:after recovery`);
-		yield* signout();
-		yield* advance("30 seconds");
-		expect(yield* ended).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+	"an anonymous Optional stream keeps delivering after the default interval passes",
+	[anonymousSubscribesToOptional],
+	function* ({ echo, timePasses }) {
+		expect(yield* echo("hello")).toBe("anonymous: hello");
+
+		yield* timePasses("30 seconds");
+
+		expect(yield* echo("still here")).toBe("anonymous: still here");
+	},
+);
+
+streamSession.it(
+	"when the session store blips at a check, alice's stream stays open",
+	[aliceSubscribesTo("Identity")],
+	function* ({ echo, revalidationIntervalPasses, sessionStoreBlips }) {
+		yield* sessionStoreBlips();
+
+		yield* revalidationIntervalPasses();
+
+		expect(yield* echo("hello")).toBe("alice: hello");
+	},
+);
+
+streamSession.it(
+	"after a blipped check, the next check still ends alice's stream once she has signed out",
+	[aliceSubscribesTo("Identity")],
+	function* ({ aliceSignsOut, revalidationIntervalPasses, sessionStoreBlips, streamEnd }) {
+		yield* sessionStoreBlips();
+		yield* revalidationIntervalPasses();
+
+		yield* aliceSignsOut();
+
+		yield* revalidationIntervalPasses();
+		expect(yield* streamEnd()).toBe("unauthorized");
 	},
 );

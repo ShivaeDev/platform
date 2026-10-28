@@ -3,8 +3,9 @@ import { NodeHttpServer } from "@effect/platform-node";
 import { betterAuth } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
-import { ConfigProvider, Effect, Layer } from "effect";
+import { ConfigProvider, Effect, Layer, Option, Schema } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -14,6 +15,23 @@ import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.t
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
+
+type Person = "alice" | "bob";
+
+const SessionBody = Schema.NullOr(Schema.Struct({ user: Schema.Struct({ name: Schema.String }) }));
+
+interface MintedAccount {
+	readonly headers: Headers;
+	readonly userId: string;
+}
+
+function account(engine: { readonly accounts: Map<Person, MintedAccount> }, person: Person) {
+	const minted = engine.accounts.get(person);
+	if (minted === undefined) {
+		throw new Error(`No minted account exists for ${person}`);
+	}
+	return minted;
+}
 
 export const authStorage = storyKit({
 	after: {
@@ -51,51 +69,70 @@ export const authStorage = storyKit({
 		};
 		yield* Effect.promise(async () => (await getMigrations(options)).runMigrations());
 		return {
+			accounts: new Map<Person, MintedAccount>(),
 			auth: betterAuth({ ...options, "baseURL": "http://127.0.0.1:3000", plugins: [testUtils()] }),
 			baseUrl: "",
-			headers: new Map<string, Headers>(),
 			hosting: true,
 			options,
 			storage: authTestDatabase(pool),
+			swept: Option.none<number>(),
 		};
 	},
-	inspect: (engine) => ({ accounts: [...engine.headers.keys()], baseUrl: engine.baseUrl }),
+	inspect: (engine) => ({ accounts: [...engine.accounts.keys()], baseUrl: engine.baseUrl, swept: Option.getOrUndefined(engine.swept) }),
 	layer: postgres,
 	name: "auth storage fixtures",
 	runIf: databaseUrl !== undefined,
-	stages: ["accounts", "schema", "hosting"],
+	stages: ["accounts", "expiry", "schema", "hosting"],
 	verbs: (engine, story) => ({
-		expireSessions: (userId?: string) => {
-			story.tell("stored auth sessions expire");
-			return engine.storage.expireSessions(userId);
+		expireAllSessions: () => {
+			story.tell("every stored auth session expires");
+			return engine.storage.expireSessions();
 		},
-		session: (name: string) =>
+		expireSessions: (person: Person) => {
+			story.tell(`${person}'s stored auth sessions expire`);
+			return engine.storage.expireSessions(account(engine, person).userId);
+		},
+		signedInAs: (person: Person) =>
 			Effect.tryPromise(async () => {
-				story.tell(`${name} requests the mounted auth session over HTTP`);
-				const headers = engine.headers.get(name);
-				if (headers === undefined) {
-					throw new Error(`No minted account exists for ${name}`);
+				story.tell(`${person}'s cookie asks the mounted auth provider whose session it holds`);
+				const response = await fetch(`${engine.baseUrl}/api/auth/get-session`, { headers: account(engine, person).headers });
+				if (response.status === HttpStatus.fromLiteral("ServiceUnavailable")) {
+					return "auth unavailable";
 				}
-				const response = await fetch(`${engine.baseUrl}/api/auth/get-session`, { headers });
-				const body: unknown = response.headers.get("content-type")?.includes("application/json") ? await response.json() : await response.text();
-				return { body, status: response.status };
+				if (!response.ok) {
+					return `failed with HTTP ${response.status}`;
+				}
+				const { user } = Schema.decodeUnknownSync(SessionBody)(await response.json()) ?? { user: undefined };
+				return user?.name ?? "signed out";
 			}),
-		storedSessions: () => engine.storage.sessions,
-		storedUsers: () => engine.storage.users,
-		sweepExpiredSessions: () => {
-			story.tell("the worker sweeps expired auth sessions through the application SQL client");
-			return sweepExpiredSessions;
-		},
+		storedSessionRows: () => engine.storage.sessions,
+		storedSessions: (person: Person) =>
+			Effect.map(engine.storage.sessions, (rows) => rows.filter(({ userId }) => userId === account(engine, person).userId).length),
+		storedUserRows: () => engine.storage.users,
+		storedUsers: () => Effect.map(engine.storage.users, (rows) => rows.map(({ email }) => email.slice(0, email.indexOf("@")))),
+		sweepExpiredSessions: () =>
+			Effect.gen(function* () {
+				story.tell("the worker sweeps expired auth sessions through the application SQL client");
+				engine.swept = Option.some(yield* sweepExpiredSessions);
+			}),
+		sweptSessions: () => Effect.sync(() => Option.getOrThrowWith(engine.swept, () => new Error("No sweep has run"))),
+		userId: (person: Person) => Effect.sync(() => account(engine, person).userId),
 	}),
 });
 
 export function mintedAccounts() {
-	return authStorage.trait("accounts", "Alice and Bob already hold independent auth sessions", function* (engine) {
-		for (const name of ["alice", "bob"]) {
-			const { headers } = yield* Effect.promise(() => signedInUser(engine.auth, { email: `${name}@storage.test`, name }));
-			engine.headers.set(name, headers);
+	return authStorage.trait("accounts", "alice and bob already hold one auth session each", function* (engine) {
+		for (const person of ["alice", "bob"] as const) {
+			const { headers, user } = yield* Effect.promise(() => signedInUser(engine.auth, { email: `${person}@storage.test`, name: person }));
+			engine.accounts.set(person, { headers, userId: user.id });
 		}
 	});
+}
+
+export function expiredSession(person: Person) {
+	return authStorage.trait("expiry", `${person}'s stored auth session has expired`, (engine) =>
+		engine.storage.expireSessions(account(engine, person).userId),
+	);
 }
 
 export function missingImageColumn() {

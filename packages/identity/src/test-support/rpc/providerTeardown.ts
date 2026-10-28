@@ -1,64 +1,80 @@
-import { Context, Effect, Exit, Fiber, Redacted, Scope } from "effect";
-import { SqlClient } from "effect/sql";
+import { Effect, Exit, Fiber, Redacted, Scope } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { authDatabase } from "#server/better-auth/mount.ts";
 import { disconnectGate } from "#test/disconnectGate.ts";
-import { createProvider, signup } from "./harness.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
+
+interface Engine {
+	closing?: Fiber.Fiber<void>;
+	readonly gate: Effect.Success<ReturnType<typeof openGate>>;
+	pids: readonly number[];
+	readonly scope: Scope.Closeable;
+}
+
+const openGate = Effect.fnUntraced(function* () {
+	const database = yield* PostgresTestDatabase;
+	const gate = yield* Effect.acquireRelease(
+		Effect.promise(() => disconnectGate(Redacted.value(database.url))),
+		(resource) => Effect.promise(resource.close),
+	);
+	yield* Effect.addFinalizer(() => Effect.sync(gate.release));
+	return gate;
+});
+
+function closing(engine: Engine) {
+	if (engine.closing === undefined) {
+		throw new Error("The auth database scope has not started closing");
+	}
+	return engine.closing;
+}
 
 export const providerTeardown = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	*create() {
-		const database = yield* PostgresTestDatabase;
+	*create(): Effect.fn.Return<Engine, never, PostgresTestDatabase | Scope.Scope> {
+		const gate = yield* openGate();
 		const scope = yield* Scope.fork(yield* Scope.Scope);
-		const services = yield* database.isolated.pipe(Scope.provide(scope));
-		const url = Context.get(services, PostgresTestDatabase).url;
-		const name = new URL(Redacted.value(url)).pathname.slice(1);
-		const gate = yield* Effect.acquireRelease(
-			Effect.promise(() => disconnectGate(Redacted.value(url))),
-			(resource) => Effect.promise(resource.close),
-		).pipe(Scope.provide(scope));
-		yield* Effect.addFinalizer(() => Effect.sync(gate.release));
-		const provider = yield* createProvider(Redacted.make(gate.url)).pipe(Scope.provide(scope));
-		yield* Effect.promise(() => signup(provider, "alice"));
-		const pids = yield* Effect.promise(async () => {
-			const clients = await Promise.all([provider.database.connect(), provider.database.connect()]);
+		return { gate, pids: [], scope };
+	},
+	inspect: ({ pids }) => ({ pids }),
+	layer: postgres,
+	name: "auth database teardown",
+	runIf: databaseUrl !== undefined,
+	stages: ["pool"],
+	verbs: (engine, story) => ({
+		acknowledgeDisconnects: () => {
+			story.tell("PostgreSQL's disconnect acknowledgements reach the pool");
+			return Effect.sync(engine.gate.release);
+		},
+		closeOutcome: () => Fiber.join(closing(engine)).pipe(Effect.as("closed")),
+		closeProgress: () => Effect.sync(() => (closing(engine).pollUnsafe() === undefined ? "waiting" : "closed")),
+		closeScope: () =>
+			Effect.gen(function* () {
+				story.tell("the scope that owns the auth database closes while PostgreSQL's disconnect acknowledgements are held");
+				engine.closing = yield* Scope.close(engine.scope, Exit.void).pipe(Effect.forkChild);
+				yield* Effect.promise(() => engine.gate.disconnecting);
+			}),
+	}),
+});
+
+export const twoClientsConnected = providerTeardown.trait(
+	"pool",
+	"the auth database pool, reached through a proxy that can hold disconnect acknowledgements, has two clients connected",
+	function* (engine) {
+		const pool = yield* authDatabase(Redacted.make(engine.gate.url)).pipe(Scope.provide(engine.scope));
+		engine.pids = yield* Effect.promise(async () => {
+			const clients = await Promise.all([pool.connect(), pool.connect()]);
 			try {
-				return await Promise.all(clients.map(async (client) => (await client.query<{ pid: number }>("select pg_backend_pid() as pid")).rows[0]?.pid));
+				return await Promise.all(
+					clients.map(async (client) => (await client.query<{ pid: number }>("select pg_backend_pid() as pid")).rows[0]?.pid ?? 0),
+				);
 			} finally {
 				for (const client of clients) {
 					client.release();
 				}
 			}
 		});
-		return { database, gate, name, pids, provider, scope };
 	},
-	inspect: ({ name, pids }) => ({ name, pids }),
-	layer: postgres,
-	name: "RPC provider teardown",
-	runIf: databaseUrl !== undefined,
-	stages: [],
-	verbs: ({ database, gate, name, pids, provider, scope }, story) => ({
-		backends: Effect.fn("ProviderTeardown.backends")(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ pid: number }>`select pid from pg_stat_activity where ${sql.in("pid", pids)}`;
-		}),
-		close: (owner: "provider" | "scope") => {
-			story.tell(`close the ${owner} while PostgreSQL disconnect acknowledgements are held`);
-			return (owner === "provider" ? Effect.promise(provider.close) : Scope.close(scope, Exit.void)).pipe(Effect.forkChild);
-		},
-		closeDatabase: () => Scope.close(scope, Exit.void),
-		databases: Effect.fn("ProviderTeardown.databases")(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ datname: string }>`select datname from pg_database where datname = ${name}`;
-		}),
-		disconnecting: () => Effect.promise(() => gate.disconnecting),
-		openedBackendIds: () => [...pids].sort(),
-		releaseDisconnects: () => Effect.sync(gate.release),
-		shutdownResult: (fiber: Fiber.Fiber<void>) => Effect.sync(() => fiber.pollUnsafe()),
-		waitForDatabaseCleanup: () => database.awaitCleanup,
-		waitForShutdown: (fiber: Fiber.Fiber<void>) => Fiber.join(fiber),
-	}),
-});
+);
