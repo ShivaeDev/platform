@@ -53,9 +53,8 @@ export function applicationHost(config?: {
 							permissionLayer(JobsPermission, sessions),
 							permissionLayer(UsersPermission, sessions),
 							permissionLayer(StatisticsPermission, sessions),
-							routes,
-							HttpStaticServer.layer({ root: "dist", spa: true }),
 						),
+						routes: Layer.merge(routes, HttpStaticServer.layer({ root: "dist", spa: true })),
 						services: modules.services(databaseUrl, config?.jobsClientFactory, config?.poolSizes?.jobs),
 						sessions,
 					};

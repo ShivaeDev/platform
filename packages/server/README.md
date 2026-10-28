@@ -59,7 +59,29 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 Omit `services` when the app has no service Layer of its own. The host uses `Layer.empty`; handler requirements remain explicit, and a migrated host still provides its database services to handlers. Annotated options that declare service outputs, errors or requirements must supply a `services` Layer.
 
-`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/http` alongside the handler Layer. Native route Layers can register additional endpoints in that same composition; `routes` also accepts a native `Layer<never, never, HttpRouter>` for endpoints on the same listener. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses it for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
+Pass application HTTP endpoints through `routes`, including routes that read app services. Use `handlers` for RPC implementations and their middleware Layers. `routes` accepts native HTTP router Layers; the host supplies `services` during route construction and request handling, preserves route Layer build errors and leaves missing services in the host’s requirement type.
+
+```ts
+import { Effect, Layer } from "effect";
+import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/http";
+
+const Routes = HttpRouter.add(
+  "*",
+  "/.well-known/app",
+  AppMetadata.pipe(Effect.map(HttpServerResponse.text)),
+).pipe(
+  Layer.provide(HttpRouter.middleware(HttpMiddleware.cors({
+    allowedOrigins: ["*"],
+    allowedMethods: ["GET"],
+  })).layer),
+);
+
+const Server = appHost({ group: Api, handlers: Handlers, services: Services, routes: Routes, sessions });
+```
+
+`AppMetadata` is an app service supplied by `Services`. Register `OPTIONS` or `"*"` for a route whose native `HttpMiddleware.cors` must answer preflight. The host restricts foreign-origin preflights only on `rpcPath` (default `/rpc`) and `/api/auth/*`, including `/api/auth` itself. Application endpoints own their CORS policy. `nativeOrigins` lists exact native-client origins admitted by the host’s RPC and auth CORS policy; other foreign origins receive 403 on those paths.
+
+`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/http` into `routes`. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses `routes` for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `maxBodySize`, `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 

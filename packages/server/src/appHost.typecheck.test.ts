@@ -1,5 +1,5 @@
 import { type Config, Context, Effect, Layer, Option, Schema } from "effect";
-import { Headers, HttpRouter } from "effect/http";
+import { Headers, HttpRouter, HttpServerResponse } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { expectTypeOf, it } from "vitest";
@@ -125,4 +125,23 @@ it("annotated options require a preflight Layer for declared services, errors or
 	expectTypeOf<Layer.Services<typeof suppliedHost>>().toEqualTypeOf<PreflightInput>();
 	expectTypeOf<Extract<Layer.Success<typeof suppliedHost>, Required>>().toEqualTypeOf<Required>();
 	expectTypeOf<Extract<Layer.Error<typeof suppliedHost>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
+});
+
+const routeOptions = {
+	group: Api,
+	handlers: Api.toLayer({ read: () => Effect.succeed("ready") }),
+	policy: "loopback" as const,
+	routes: HttpRouter.add("GET", "/metadata", Required.pipe(Effect.map(HttpServerResponse.text))),
+};
+const routeIncomplete = appHost(routeOptions);
+const routeComplete = appHost({ ...routeOptions, services: Layer.succeed(Required, "metadata") });
+const routeMigrated = appHost({ ...routeOptions, migrations: options.migrations });
+const routeDeferred = appHost({ application: Effect.succeed(routeOptions), migrations: options.migrations });
+const routeFailing = appHost({ ...routeOptions, routes: HttpRouter.use(() => Effect.fail(new BuildFailure())) });
+it("preserves HTTP route requirements and construction errors through direct, migrated and deferred hosts", () => {
+	expectTypeOf<Layer.Services<typeof routeIncomplete>>().toEqualTypeOf<Required>();
+	expectTypeOf<Layer.Services<typeof routeComplete>>().toEqualTypeOf<never>();
+	expectTypeOf<Layer.Services<typeof routeMigrated>>().toEqualTypeOf<Required>();
+	expectTypeOf<Layer.Services<typeof routeDeferred>>().toEqualTypeOf<Required>();
+	expectTypeOf<Extract<Layer.Error<typeof routeFailing>, BuildFailure>>().toEqualTypeOf<BuildFailure>();
 });

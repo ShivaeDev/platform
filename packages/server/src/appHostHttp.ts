@@ -1,19 +1,14 @@
 import { NodeServices } from "@effect/platform-node";
-import { ByteSize, Effect, Layer } from "effect";
-import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse, HttpStaticServer } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
-import { type Rpc, RpcSerialization } from "effect/rpc";
-import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
-import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
-import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "@shivaedev/identity/server/session.ts";
-import { requestTracingLayer } from "@shivaedev/identity/server/tracing.ts";
+import { Effect, Layer } from "effect";
+import { HttpRouter, HttpStaticServer } from "effect/http";
+import type { Rpc } from "effect/rpc";
+import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppChanges, AppHttpHostOptions } from "#appHost.ts";
-import { boundedRpcRequest } from "#boundedRpcRequest.ts";
 import type { databaseLayer } from "#databaseLayer.ts";
 import { healthRoute } from "#healthRoute.ts";
-import { hostChanges } from "#hostChanges.ts";
-import type { HostOptions, HostPolicy } from "#hostOptions.ts";
-import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
+import { hostApplicationRoutes } from "#hostApplicationRoutes.ts";
+import type { HostOptions, HostPolicy, HostRouteRequirements } from "#hostOptions.ts";
+import { hostRpcRoutes } from "#hostRpcRoutes.ts";
 import { hostTransport } from "#hostTransport.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 import { nativeClientOrigins } from "#nativeClientOrigins.ts";
@@ -21,7 +16,6 @@ import { nodeHttpServer } from "#nodeHttpServer.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
-import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
 
 export function appHostHttp<
@@ -33,57 +27,41 @@ export function appHostHttp<
 	TServiceError,
 	TServiceRequirements,
 	TSession extends SessionShape,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 >(
-	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & HostPolicy<TSession>,
+	options: HostOptions<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TRouteError,
+		TRouteRequirements
+	> &
+		HostPolicy<TSession>,
 	changesService: typeof AppChanges,
 ) {
 	const sensitive = schemaSensitiveKeys(options.group, options.config?.sensitiveKeys);
 	return Layer.unwrap(
 		Effect.gen(function* () {
-			const { bodySize, host, trustedProxy, nativeOrigins } = yield* hostTransport(options);
-			const middleware: Layer.Layer<RequestTracing> | Layer.Layer<Authenticated | MaybeAuthenticated | RequestTracing> =
-				options.policy === "loopback"
-					? requestTracingLayer({ sensitive })
-					: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer({ sensitive }));
-			const routes = HttpRouter.use((router) =>
-				Effect.gen(function* () {
-					const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
-					const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
-					const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
-					if (nativeOrigins.length > 0) {
-						yield* router.add(
-							"OPTIONS",
-							options.rpcPath ?? "/rpc",
-							HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") }),
-						);
-					}
-					yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
-						HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
-						return guarded.pipe(
-							Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
-							Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
-							Effect.provideService(RpcSerialization.RpcSerialization, wire),
-						);
-					});
-				}),
-			).pipe(
-				Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
-				Layer.provide(RpcSerialization.layerNdjson),
-				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy)),
-			);
+			const transport = yield* hostTransport(options);
+			const { bodySize, host, trustedProxy, nativeOrigins } = transport;
+			const routes = hostRpcRoutes(options, changesService, transport, sensitive);
 			const assets =
 				options.assets === undefined
 					? Layer.empty
 					: HttpStaticServer.layer(typeof options.assets === "string" ? { root: options.assets } : options.assets);
 			const application = Layer.mergeAll(options.services ?? Layer.empty);
 			const server = nodeHttpServer(host, options.config);
-			const applicationRoutes = (options.routes ?? Layer.empty).pipe(
-				Layer.provide(
-					HttpRouter.middleware((effect) => Effect.provideService(effect, HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize))).layer,
-				),
-				Layer.provide(options.nativeOrigins === undefined ? Layer.empty : nativeClientOrigins(nativeOrigins, trustedProxy, true)),
+			const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
+			const httpRoutes = Layer.mergeAll(routes, healthRoute, assets, applicationRoutes).pipe(
+				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
+				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, true)),
 			);
-			return HttpRouter.serve(Layer.mergeAll(routes, healthRoute, assets, applicationRoutes), { disableLogger: true }).pipe(
+			return HttpRouter.serve(httpRoutes, { disableLogger: true }).pipe(
 				Layer.provideMerge(application),
 				Layer.provideMerge(server),
 				Layer.provide(NodeServices.layer),
@@ -102,9 +80,23 @@ export function migratedHost<
 	TServiceRequirements,
 	TMigrations,
 	TSession extends SessionShape,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 >(
-	options: HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
-		HostPolicy<TSession> & { readonly migrations: MigrationOptions<TMigrations> },
+	options: HostOptions<
+		TRpcs,
+		THandlers,
+		THandlerError,
+		THandlerRequirements,
+		TServices,
+		TServiceError,
+		TServiceRequirements,
+		TRouteError,
+		TRouteRequirements
+	> &
+		HostPolicy<TSession> & {
+			readonly migrations: MigrationOptions<TMigrations>;
+		},
 	database: ReturnType<typeof databaseLayer<TMigrations>>,
 	changesService: typeof AppChanges,
 ) {
@@ -124,9 +116,25 @@ export function deferredHost<
 	TSession extends SessionShape,
 	TApplicationError,
 	TApplicationRequirements,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 >(
 	application: Effect.Effect<
-		AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
+		AppHttpHostOptions<
+			TRpcs,
+			THandlers,
+			THandlerError,
+			THandlerRequirements,
+			TServices,
+			TServiceError,
+			TServiceRequirements,
+			TSession,
+			never,
+			never,
+			never,
+			TRouteError,
+			TRouteRequirements
+		>,
 		TApplicationError,
 		TApplicationRequirements
 	>,

@@ -7,7 +7,7 @@ import type { AppHostFactory } from "#AppHostFactory.ts";
 import type { AppHostInput, HostPreflight } from "#AppHostInput.ts";
 import { appHostHttp, deferredHost, migratedHost } from "#appHostHttp.ts";
 import { type DatabaseConfig, databaseLayer } from "#databaseLayer.ts";
-import type { HostOptions, HostPolicy } from "#hostOptions.ts";
+import type { HostCoreOptions, HostPolicy, HostRouteRequirements, HostRoutes } from "#hostOptions.ts";
 import type { MigrationOptions } from "#MigrationOptions.ts";
 
 export class AppChanges extends Context.Service<AppChanges, Effect.Success<typeof makeLiveServer>>()("@shivaedev/server/AppChanges") {}
@@ -33,8 +33,11 @@ export type AppHostOptions<
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-	HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
+	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostRoutes<TRouteError, TRouteRequirements> & {
 		readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
 		readonly policy?: undefined;
 		readonly sessions: SessionPolicy<TSession>;
@@ -52,8 +55,11 @@ export type AppLocalHostOptions<
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-	HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> & {
+	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostRoutes<TRouteError, TRouteRequirements> & {
 		readonly migrations: AppDatabaseOptions<TMigrations>["migrations"];
 		readonly policy: "loopback";
 		readonly sessions?: never;
@@ -71,8 +77,11 @@ export type AppHttpHostOptions<
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-	HostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostCoreOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements> &
+	HostRoutes<TRouteError, TRouteRequirements> &
 	HostPolicy<TSession> & { readonly migrations?: undefined };
 export const appHost: AppHostFactory = <
 	TRpcs extends Rpc.Any,
@@ -89,6 +98,8 @@ export const appHost: AppHostFactory = <
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 >(
 	options: AppHostInput<
 		TRpcs,
@@ -104,7 +115,9 @@ export const appHost: AppHostFactory = <
 		TApplicationRequirements,
 		TPreflight,
 		TPreflightError,
-		TPreflightRequirements
+		TPreflightRequirements,
+		TRouteError,
+		TRouteRequirements
 	>,
 ) => {
 	if ("application" in options) {
