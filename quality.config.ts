@@ -61,5 +61,5 @@ export default defineConfig({
 			},
 		},
 	},
-	sources: ["packages", "examples", "script"],
+	sources: [".agents", "AGENTS.md", "README.md", "docs", "examples", "packages", "script"],
 });

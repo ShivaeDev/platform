@@ -83,4 +83,4 @@ Add `--registry` to generate the app with the published `pnpm create @shivaedev/
 
 ## Deployment
 
-The [framework quickstart](../../docs/framework/quickstart.md#deploy) describes the Railway rollout, the worker drain and the timeouts this app configures.
+The [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) describes the Railway rollout, the worker drain and the timeouts this app configures.

@@ -1,6 +1,6 @@
 import { labelOf, outgoing, type Reached, type Trail, walkFrom } from "#imports/fences/reach.ts";
 import type { ImportEdge, ImportGraph } from "#imports/graph.ts";
-import { packageNameOf } from "#imports/resolve.ts";
+import { packageNameOf } from "#imports/packageName.ts";
 import { isTestSupport } from "#naming/testName.ts";
 import type { Finding, SourceFile } from "#rule.ts";
 import { parse } from "#rules/parse.ts";

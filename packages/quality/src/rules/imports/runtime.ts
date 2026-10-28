@@ -1,5 +1,5 @@
 import { importGraph } from "#imports/graph.ts";
-import { builtinName } from "#imports/resolve.ts";
+import { builtinName } from "#imports/packageName.ts";
 import { type Runtime, runtimeDeclarationProblems, runtimeOf } from "#imports/runtime.ts";
 import { isTestCode } from "#naming/testName.ts";
 import { defineRule } from "#rule.ts";

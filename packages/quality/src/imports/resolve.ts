@@ -1,17 +1,15 @@
 import { realpathSync } from "node:fs";
-import { isBuiltin } from "node:module";
 import { dirname, join, relative } from "node:path";
 import ts from "typescript";
 import { posix } from "#inventory/ignoreScope.ts";
 import type { Ambient } from "./ambient.ts";
 import type { ImportRequest } from "./extract.ts";
+import { builtinName, nameAt, packageNameOf } from "./packageName.ts";
 import type { Project } from "./projects.ts";
 
 export type Endpoint =
 	| { readonly kind: "file"; readonly path: string }
 	| { readonly kind: "external"; readonly package: string; readonly specifier: string };
-
-const NODE_PREFIX = "node:";
 
 const NODE_MODULES = "/node_modules/";
 
@@ -30,34 +28,6 @@ const presumingHost: ts.ModuleResolutionHost = {
 	directoryExists: () => true,
 	fileExists: (path) => !path.endsWith(`/${PACKAGE_JSON}`) || ts.sys.fileExists(path),
 };
-
-export function builtinName(specifier: string): string | undefined {
-	if (!isBuiltin(specifier)) {
-		return undefined;
-	}
-	return specifier.startsWith(NODE_PREFIX) ? specifier : `${NODE_PREFIX}${specifier}`;
-}
-
-const TYPES_SCOPE = "@types";
-
-const TYPES_SCOPE_SEPARATOR = "__";
-
-function typedName(name: string): string {
-	return name.includes(TYPES_SCOPE_SEPARATOR) ? `@${name.replace(TYPES_SCOPE_SEPARATOR, "/")}` : name;
-}
-
-function nameAt(path: string): string {
-	const [first = "", second] = path.split("/");
-	if (second === undefined || !first.startsWith("@")) {
-		return first;
-	}
-	return first === TYPES_SCOPE ? typedName(second) : `${first}/${second}`;
-}
-
-// The example checker and the graph name a package through this one function, so a fence example and a real import cannot disagree.
-export function packageNameOf(specifier: string): string {
-	return builtinName(specifier) ?? nameAt(specifier);
-}
 
 function assetOf(declaration: string): string {
 	return declaration.replace(ASSET_DECLARATION, "$<extension>");

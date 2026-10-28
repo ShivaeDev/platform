@@ -4,6 +4,7 @@ import ignore from "ignore";
 import type { SourceFile } from "#rule.ts";
 import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.ts";
 import { posix } from "./ignoreScope.ts";
+import { linesOf } from "./linesOf.ts";
 import { shadcnFolders } from "./shadcnFolders.ts";
 import { scopeAbove, walk } from "./walk.ts";
 
@@ -19,11 +20,6 @@ export interface Inventory {
 }
 
 const READ_CONCURRENCY = 16;
-
-export function linesOf(text: string): readonly string[] {
-	const lines = text.split("\n");
-	return lines.at(-1) === "" ? lines.slice(0, -1) : lines;
-}
 
 const zoneFiles = Effect.fn("Inventory.zoneFiles")(function* (
 	root: string,

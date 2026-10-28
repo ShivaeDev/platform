@@ -61,6 +61,8 @@ For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, nami
 
 ## Checklist
 
+Quality's `docs/references` rule checks links, heading anchors, documented module paths and named imports on every commit, and `docs/unversioned-installs` checks install commands for versions. The rest of this list is judgement only you can apply.
+
 - [ ] `AGENTS.md` is a short north star, with `CLAUDE.md` symlinked to it.
 - [ ] The README title is the package name, followed by the one-to-three-sentence why.
 - [ ] The README's first screen holds the human pitch and one small example, nothing else.

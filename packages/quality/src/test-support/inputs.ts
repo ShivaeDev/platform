@@ -1,4 +1,4 @@
-import { linesOf } from "#inventory/collect.ts";
+import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, Rule, RuleInputs } from "#rule.ts";
 import type { SeedFile } from "./tree.ts";
 

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { Effect } from "effect";
@@ -52,5 +52,12 @@ export function repositoryHas(...files: readonly SeedFile[]) {
 			mkdirSync(dirname(path), { recursive: true });
 			writeFileSync(path, file.content);
 		}
+	});
+}
+
+export function repositoryLinks(path: string, target: string) {
+	return ruleKit.trait("repository", `the repository links ${path} to ${target}`, (engine) => {
+		mkdirSync(dirname(join(engine.root, path)), { recursive: true });
+		symlinkSync(target, join(engine.root, path));
 	});
 }
