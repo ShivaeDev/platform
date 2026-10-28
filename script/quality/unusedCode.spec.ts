@@ -5,6 +5,7 @@ import {
 	nativeSuppressions,
 	optionsRequested,
 	providedDependency,
+	sourceImports,
 	unusedRepository,
 } from "#quality/test-support/unusedRepository.ts";
 
@@ -76,4 +77,10 @@ unusedRepository.it("keeps manifest Knip suppressions from hiding Quality findin
 	expect(result.stdout).toContain("Unused export. Remove the export or use it from an entry point: unused");
 	expect(result.stdout).toContain("Unused dependency. Remove it from the package manifest if it is no longer needed: left-pad");
 	expect(result.stdout).toContain("Missing package dependency. Declare it in the importing package's manifest: missing-package");
+});
+
+unusedRepository.it("follows source-conditioned import aliases before the package is built", [sourceImports], function* ({ cli }) {
+	const result = yield* cli("lint");
+	expect(result.stdout).toContain("packages/app/src/values.tsx:2  Unused export. Remove the export or use it from an entry point: unused.");
+	expect(result.stdout).not.toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/src/values.tsx");
 });

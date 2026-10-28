@@ -112,3 +112,19 @@ export const nativeSuppressions = unusedRepository.trait("repository", "the mani
 		}),
 	);
 });
+
+export const sourceImports = unusedRepository.trait("repository", "a clean package declares source-conditioned import aliases", (root) => {
+	writes(
+		root,
+		"packages/app/package.json",
+		JSON.stringify({
+			imports: { "#*.tsx": { default: "./dist/*.js", source: "./src/*.tsx", types: "./dist/*.d.ts" } },
+			name: "app",
+			private: true,
+			scripts: { start: "node src/start.ts" },
+			type: "module",
+		}),
+	);
+	writes(root, "packages/app/src/start.ts", 'import { used } from "#values.tsx";\nNumber.isFinite(used);\n');
+	writes(root, "packages/app/src/values.tsx", "export const used = 1;\nexport const unused = 2;\n");
+});

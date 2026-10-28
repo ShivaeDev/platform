@@ -8,10 +8,21 @@ import { KNIP_ISSUES } from "./findings.ts";
 const Manifest = Schema.Struct({
 	bin: Schema.optional(Schema.Unknown),
 	exports: Schema.optional(Schema.Unknown),
+	imports: Schema.optional(Schema.Record(Schema.String, Schema.Unknown)),
 	scripts: Schema.optional(Schema.Record(Schema.String, Schema.String)),
 });
 
 const ENTRIES = ["**/*.{test,spec,stories,story}.{ts,tsx,mts,cts,js,jsx,mjs,cjs}", "src/test-support/**", "*.config.{ts,mts,cts,js,mjs,cjs}"];
+
+function importPaths(imports: Readonly<Record<string, unknown>>) {
+	return Object.fromEntries(
+		Object.entries(imports).flatMap(([name, target]) => {
+			const selected = typeof target === "object" && target !== null && "source" in target ? target.source : target;
+			const paths = exportTargets(selected).filter((path) => path.startsWith("./"));
+			return paths.length === 0 ? [] : [[name, paths]];
+		}),
+	);
+}
 
 export async function knipConfiguration(inputs: RuleInputs) {
 	const packages = await workspacePackages(inputs);
@@ -29,7 +40,10 @@ export async function knipConfiguration(inputs: RuleInputs) {
 				(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
 			);
 			const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
-			return [directory, { entry: [...ENTRIES, ...publicFiles, ...bins, ...binaries, ...scripted], project: sources }] as const;
+			return [
+				directory,
+				{ entry: [...ENTRIES, ...publicFiles, ...bins, ...binaries, ...scripted], paths: importPaths(manifest.imports ?? {}), project: sources },
+			] as const;
 		}),
 	);
 	return {
