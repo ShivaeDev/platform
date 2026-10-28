@@ -59,7 +59,7 @@ export function appHostHttp<
 			const applicationRoutes = hostApplicationRoutes(options.routes, bodySize);
 			const httpRoutes = Layer.mergeAll(routes, healthRoute, assets, applicationRoutes).pipe(
 				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
-				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, true)),
+				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
 			);
 			return HttpRouter.serve(httpRoutes, { disableLogger: true }).pipe(
 				Layer.provideMerge(application),

@@ -20,7 +20,7 @@ export const NativeOrigins = Schema.Array(
 export function nativeClientOrigins(
 	origins: readonly string[],
 	trustedProxy: string | undefined,
-	auth = false,
+	auth: boolean | "preflight" = false,
 	rpcPath: HttpRouter.PathInput = "/rpc",
 ) {
 	const matchesPath = auth ? (path: string) => path === "/api/auth" || path.startsWith("/api/auth/") : (path: string) => path === rpcPath;
@@ -38,7 +38,7 @@ export function nativeClientOrigins(
 			if (!matchesPath(request.url.split("?")[0] ?? "")) {
 				return yield* effect;
 			}
-			if ((auth || request.method === "OPTIONS") && !allowed(request)) {
+			if ((auth === true || request.method === "OPTIONS") && !allowed(request)) {
 				return HttpServerResponse.text("Local same-origin requests only", {
 					status: HttpStatus.fromLiteral("Forbidden"),
 				});
