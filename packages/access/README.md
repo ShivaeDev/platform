@@ -51,7 +51,7 @@ const decodeUser = Schema.decodeUnknownEffect(AppUser);
 const decodeRole = Schema.decodeUnknownEffect(Access.Role);
 ```
 
-`AppRole` is `"member" | "operator" | "guest"`. An unknown stored name fails in the typed `SchemaError` channel. `yield* Access.resolve(stored)` decodes the same Schema and returns `{ role, permissions }`, with only the grants declared for that role. Platform accepts the role set through its existing session policy or Better Auth mount configuration.
+`AppRole` is `"member" | "operator" | "guest"`. An unknown stored name fails in the typed `SchemaError` channel. `yield* Access.resolve(stored)` decodes the same Schema and returns `{ role, permissions }`, with only the grants declared for that role. `@shivaedev/identity` accepts the role set as the `roles` option of its session policy and its Better Auth mount.
 
 ### Check grants and enforce actions
 

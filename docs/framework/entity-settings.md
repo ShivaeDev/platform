@@ -2,7 +2,7 @@
 
 Give an entity's settings a successful query value even before the first save. A screen then uses the same editor for defaults and stored values: it never creates a placeholder row or handles a missing-settings state. The application still owns authorization and validation policy.
 
-This recipe uses Schema, an sql repository, an contract query and command, and an react editor over form fields. It adds no framework helper. The executable example edits an entity's table title and rows per page over real PostgreSQL and authenticated HTTP.
+This recipe uses Schema, a `sql` repository, a `contract` query and command, and a `react` editor over `form` fields. It adds no framework helper. The executable example edits an entity's table title and rows per page over real PostgreSQL and authenticated HTTP.
 
 ## Code to read
 

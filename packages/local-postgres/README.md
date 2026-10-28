@@ -44,7 +44,7 @@ localPostgres(process.env).prepareDatabases([development, tests]);
 
 Generated applications use this configuration-driven approach. An allowlist built from the same URLs adds no restriction; preparation's own local-target check is the guard.
 
-Use `assertLocalDatabase` when the setup script owns a fixed set of database names, as this repository's `script/setup-database.ts` does. Its allowlist restricts configuration to the names the script intends to touch:
+Use `assertLocalDatabase` when the setup script owns a fixed set of database names, as the Platform repository's [`script/setup-database.ts`](https://github.com/ShivaeDev/platform/blob/main/script/setup-database.ts) does. Its allowlist restricts configuration to the names the script intends to touch:
 
 ```ts
 import { assertLocalDatabase, LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";

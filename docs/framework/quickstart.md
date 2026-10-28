@@ -15,7 +15,7 @@ Change the example’s shared operations in `src/modules/notes/notes.ts`, its ta
 
 The notes route loads an authenticated RPC query; the create command is also protected. Missing or revoked sessions return typed `Unauthorized` failures that the UI presents as a sign-in prompt. Each account sees its own notes. `SessionBoundary` replaces the query registry and drafts when the session changes. Better Auth's HTTP endpoints share the app host at `/api/auth/*`; Vite proxies both auth and RPC to that host during development.
 
-The starter uses strict application checking with `skipLibCheck: true`, matching Quality's application configuration. Better Auth's published declarations also reference runtimes this Node app does not use. Auth options live in `src/server/authOptions.ts`; the numbered migrations in `src/server/migrations/` call Better Auth's [programmatic migration API](https://better-auth.com/docs/concepts/database#programmatic-migrations), so no separate auth CLI step is needed. With `PUBLIC_URL` unset, auth accepts both `127.0.0.1` and `localhost` over HTTP on any port, including `http://localhost:5173` through the development proxy. `betterAuthMount` defaults `baseURL.allowedHosts` to `["127.0.0.1:*", "localhost:*"]` and `trustedOrigins` to `["http://127.0.0.1:*", "http://localhost:*"]`. Explicit `baseURL` (including `baseURL.allowedHosts`) and `trustedOrigins` in `authOptions.ts` replace their corresponding defaults; their lists are not merged.
+The starter uses strict application checking with `skipLibCheck: true`, matching Quality's application configuration. Better Auth's published declarations also reference runtimes this Node app does not use. Auth options live in `src/server/authOptions.ts`; the foundation migration `src/server/migrations/0001_auth.ts` calls Better Auth's [programmatic migration API](https://better-auth.com/docs/concepts/database#programmatic-migrations), so no separate auth CLI step is needed. With `PUBLIC_URL` unset, auth accepts both `127.0.0.1` and `localhost` over HTTP on any port, including `http://localhost:5173` through the development proxy. `betterAuthMount` defaults `baseURL.allowedHosts` to `["127.0.0.1:*", "localhost:*"]` and `trustedOrigins` to `["http://127.0.0.1:*", "http://localhost:*"]`. Explicit `baseURL` (including `baseURL.allowedHosts`) and `trustedOrigins` in `authOptions.ts` replace their corresponding defaults; their lists are not merged.
 
 ## Administer the app
 
@@ -29,14 +29,16 @@ ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm ad
 
 Sign in with those credentials, then open `/admin/jobs`. The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. Existing email addresses are rejected. Every admin query and change subscription requires its declared domain permission (`jobs.read`, `users.read` or `notes.statistics.read`): signed-out requests receive `Unauthorized`, and roles without that grant receive `Forbidden`.
 
-The registry in `src/modules/notes/admin.ts` lists the authored pages; `src/modules/notes/server/adminRegistration.ts` supplies handlers on the existing `/rpc` host. Each page wraps a native contract contract. The default Jobs page declares no commands. Retry requires an explicit `jobsPageWithRetry` contract, `jobsHandlersWithRetry` registration and a bound retry action in the app view. React views belong to the application; the admin package adds no UI components or transport.
+The registry in `src/modules/notes/admin.ts` lists the authored pages; `src/modules/notes/server/adminRegistration.ts` supplies handlers on the existing `/rpc` host. Each page wraps a native contract. The default Jobs page declares no commands. Retry requires an explicit `jobsPageWithRetry` contract, `jobsHandlersWithRetry` registration and a bound retry action in the app view. React views belong to the application; the admin package adds no UI components or transport.
 
 `--minimal` omits the notes module and its page registrations. Its foundation and reusable admin views compile independently of notes. Add page declarations, handlers and client routes with your own module when you need operator tooling.
 
 ## Add a job
 
-Define a payload Schema with `defineQueue` in `src/server/noteJobs.ts`, and register its handler in `src/server/noteWorker.ts`; the worker uses the host's `appDatabase` Layer.
-Register the queue definition in the request runtime's jobs Layer, then call `jobs.enqueue(queue, payload)` after the command's database transaction completes. Keep enqueueing independent of application SQL transactions and handle queue failures so a queue error cannot fail a note write. The starter logs failures and returns the saved note, leaving its word count pending when enqueueing fails.
+Give the queue's name and payload Schema a browser-safe module, as `src/modules/notes/queue.ts` does, and pass it to `defineQueue` in the module's `server/jobs.ts`. The module's server registration supplies a producer Layer that registers the queue definitions without starting a consumer, as `server/producer.ts` does. Register the handler in the module's `server/worker.ts` and add that worker to `src/server/workerModules.ts`; the worker process runs on the host's `appDatabase` Layer.
+
+Call `jobs.enqueue(queue, payload)` after the command's database transaction completes. Keep enqueueing independent of application SQL transactions and handle queue failures so a queue error cannot fail a note write. The starter logs failures and returns the saved note, leaving its word count pending when enqueueing fails.
+
 After the worker writes, call `invalidateOnCommit` with the contract's invalidation keys; PostgreSQL delivers the hint to the server and the mounted live subscription refetches the query.
 
 ## Deploy
@@ -86,7 +88,7 @@ Plaintext PostgreSQL is acceptable inside a private network such as Railway's: [
 DATABASE_URL=postgresql://user:password@db.example/app?sslmode=verify-full
 ```
 
-These drivers do not follow all libpq SSL-mode semantics. The installed `@effect/sql-pg` 4.0.5 and `pg-connection-string` 2.14.1 used by `pg` 8.23 behave as follows with their default settings:
+These drivers do not follow all libpq SSL-mode semantics. The catalog versions of `@effect/sql-pg`, and of `pg` with its `pg-connection-string` parser, behave as follows with their default settings:
 
 | Driver | `sslmode` behavior |
 | --- | --- |

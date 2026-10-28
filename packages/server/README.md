@@ -89,7 +89,7 @@ RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byt
 
 For a native Node HTTP route outside RPC, read the request body with `readBoundedBody` from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme), which rejects oversized bodies with a typed 413 failure.
 
-RPC uses the existing `localRpcGuard`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` beside the handlers as shown below. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+RPC uses `localRpcGuard` from `@shivaedev/identity/server/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
 Every response from the host's native RPC endpoint carries `Cache-Control: private, no-store`, including mixed public and authenticated batches, typed failures, transport rejections, body-read failures and streams. The host sets this at the outer response boundary without inspecting batch contents.
 
@@ -103,7 +103,7 @@ Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` w
 
 Pass `migrations.components` beside `loader` for storage managed by another engine. For pg-boss, register `pgBossSchema({ schema: "app_jobs" })` from `@shivaedev/jobs/server/schema.ts`, then start every jobs Layer with `migrate: false`. `check` and `wait` use the same `MigrationError` readout for pending ledger IDs and component names and details, including pg-boss’s installed and required versions.
 
-The host provides Effect's native `Crypto` service (`effect/Crypto`) to preflight, deferred application construction, application services and handlers. Generate invite codes and tokens through that service; see the [secure invite code example](../../docs/framework/README.md#secure-invite-codes-and-tokens). Use `Random` for non-secure choices.
+The host provides Effect's native `Crypto` service (`effect/Crypto`) to preflight, deferred application construction, application services and handlers. Generate invite codes and tokens through that service; see the [secure invite code example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md#secure-invite-codes-and-tokens). Use `Random` for non-secure choices.
 
 Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements other than `Crypto` remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
 
@@ -252,7 +252,7 @@ For native RPC serialization, `schemaSensitiveKeys(group, extraKeys?)` returns a
 
 The masking primitives, `redact`, `redactWire`, `redactText`, `redactCause` and `isSensitiveKey`, live in [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme).
 
-For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` accepts a key predicate; `isSensitiveKey` from `@shivaedev/errors/sensitive.ts` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` from `@shivaedev/errors/redactCause.ts` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
+For a native RPC server composed without `appHost`, `requestTracingLayer({ sensitive })` from `@shivaedev/identity/server/tracing.ts` accepts a key predicate; `isSensitiveKey` from `@shivaedev/errors/sensitive.ts` supplies the default credential rules. `redactingErrorReporter(reporter, sensitive?)` from `@shivaedev/errors/redactCause.ts` wraps an Effect error reporter and passes it redacted failure and defect causes while preserving reporting hints such as severity and redacted attributes.
 
 ### Calling outside APIs
 
@@ -320,16 +320,19 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | Module | Names and purpose |
 | --- | --- |
 | `appHost.ts` | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
+| `setupDatabases.ts` | `setupDatabases()`: prepare the local development and test databases. |
+| `development.ts` | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode. |
+| `rpc-server/publicConfigLayer.ts` | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config. |
 | `otlpTracing.ts` | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers. |
 | `schemaSensitiveKeys.ts`, `RedactionPolicy.ts` | `schemaSensitiveKeys(group, extraKeys?)`, `RedactionPolicy`: derive and provide an app's diagnostic key predicate. |
-| `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive)`: compose native diagnostic and NDJSON boundaries. |
+| `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive, maskFailure?)`: compose native diagnostic and NDJSON boundaries. |
 | `runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
 | `node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
 
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/server effect@4.0.5
+pnpm add @shivaedev/server effect
 ```
 
 Effect is the only required peer. The `node-http/`, `rpc-server/` and `runtime/` modules work without the optional peers; a module's import path is its path under `src/`. Every module is server code: the runtime uses Node's `AsyncLocalStorage`, and browser code imports contracts from `@shivaedev/contract`, identity declarations from `@shivaedev/identity` and error schemas from `@shivaedev/errors` instead.
@@ -339,6 +342,7 @@ Install the optional peers for the selected integration:
 | Integration | Additional peers |
 | --- | --- |
 | `appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
+| `development.ts` | `@effect/platform-node` |
 
 - The package needs Node 24 or newer.
 - `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.

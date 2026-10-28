@@ -145,7 +145,7 @@ const archive = Effect.gen(function* () {
 });
 ```
 
-Provide the same `appClient(privateKey)` Layer shown above. The result is a `Uint8Array` of archive bytes. The package counts bytes while streaming, independently of transport limits, and stops on overflow with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. This replaces application-owned redirect handling and archive body limits. It does not extract the ZIP.
+Provide an installation client such as `clients(privateKey).background` from the GitHub App example above. The result is a `Uint8Array` of archive bytes. The package counts bytes while streaming, independently of transport limits, and stops on overflow with `GitHubArtifactTooLarge({ limit })` from `errors.ts`. This replaces application-owned redirect handling and archive body limits. It does not extract the ZIP.
 
 A missing (404) or expired (410) artifact fails with `GitHubArtifactError({ stage: "redirect", status })`. A storage HTTP failure uses the same error with `stage: "download"`. Transport and GitHub rate-limit failures retain their usual typed errors.
 
@@ -248,4 +248,10 @@ const publishReport = report.pipe(
 
 Other HTTP status failures use the typed `RemoteNotFound`, `RemoteUnauthorized` and other errors from `@shivaedev/http/errors.ts`. An oversized body fails with `ResponseBodyTooLarge`; invalid response data fails with `Schema.SchemaError`. Transport failures use `GitHubTransportError`, which contains only the request path.
 
-Install with `pnpm add @shivaedev/github effect`. Choose and provide an Effect HTTP client appropriate to your runtime. Scheduling, retries beyond the single installation-token refresh, and application policy stay with the caller.
+### Install and limits
+
+```sh
+pnpm add @shivaedev/github effect
+```
+
+`effect` is a peer dependency, and the package needs Node.js 24 or later. Choose and provide an Effect HTTP client appropriate to your runtime. Scheduling, retries beyond the single installation-token refresh, and application policy stay with the caller.

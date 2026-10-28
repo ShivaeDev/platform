@@ -26,24 +26,11 @@ State belongs to an **atom in a registry**. A query hook reads that atom's nativ
 
 `useQuery` and `useAction` turn native results into `data`, `cause`, `pending` and `refreshing`. A query's same-identity refresh always keeps the last successful value, including after a typed failure, so a component can show data and an error together. An action uses the native result's retained success. Keep the atom's identity stable for the same work: declare it outside render or use the native family's identity, such as `AtomRpc.Service.query(...)`.
 
-An **editor** joins a query atom, an form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
+An **editor** joins a query atom, a form field schema and a save Effect. The query provides the row; `values(row)` converts it to input values; the schema decodes those values before the save runs. form owns the draft and the per-field merge. A **create form** uses the same submission rules without a query and starts a fresh form after success.
 
 A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. The boundary automatically mounts live connections on bound contract APIs returned by `connect`, directly or as client properties such as `api`. Use a Platform database host and NDJSON transport; the application needs no subscribe handler or `live()` call. Live changed hints coalesce over 20 ms by default. Set `liveCoalesceWindow` on `SessionBoundary` to a native Duration to choose the window for that session, or `0` for immediate per-hint refreshes. A bound query can override that default with `useQuery(atom, { coalesceWindow: "2 seconds" })`. Changing this option applies to subsequent windows without reconnecting or refetching any query; a window already started keeps its deadline. A refetch in flight runs once more after settling when further hints arrive. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
 `useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
-
-### Read the current time
-
-`useNow(interval, runtime?)` from `@shivaedev/react/client/useNow.ts` returns epoch milliseconds from Effect's `Clock` and re-renders at the given interval in milliseconds. Pass the component's atom runtime to use its clock:
-
-```ts
-import { useNow } from "@shivaedev/react/client/useNow.ts";
-
-const now = useNow(60_000, client.runtime);
-const minutesAgo = Math.floor((now - savedAt) / 60_000);
-```
-
-Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
 
 ### 1. Once per application: own the registry
 
@@ -170,7 +157,7 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 </SessionBoundary>
 ```
 
-`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. Existing one-argument `connect` callbacks continue to work. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
+`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
 
 Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, before and after migration:
 
@@ -277,7 +264,7 @@ const save = useCreate({
 
 Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
 
-The [notes feature](https://github.com/ShivaeDev/platform/tree/main/packages/react/src/test-support/feedback-path) composes these owners with the existing in-memory RPC fixture. Its [feedback stories](https://github.com/ShivaeDev/platform/blob/main/packages/react/src/feedbackPath.dom.spec.tsx) cover loading and retry, rejected fields, a held save, concurrent command notices, Undo and its version conflict, and retained content after a refresh failure. The [session story](https://github.com/ShivaeDev/platform/blob/main/packages/react/src/feedbackSession.dom.spec.tsx) replaces a session during a command and Undo: the outgoing registry is disposed, late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host. These are React render stories over test RPC handlers, not evidence of a deployed service.
+Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
 
 A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
 
@@ -522,11 +509,11 @@ export function App() {
 
 For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
 
-`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window. A DOM screen story proves the first render has the loaded value and the loopback RPC handler runs once.
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window: the first render has the loaded value and the RPC handler runs once.
 
 `useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
 
-`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount; a DOM story verifies the atom is gone after the idle window. A new `useLoaderQuery` reader suspends until its active `loadQuery` completes, so revisiting a cached route after invalidation renders the changed data on its first frame. Already mounted readers keep their data during refreshes.
+`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount, and the atom is gone after the idle window. A new `useLoaderQuery` reader suspends until its active `loadQuery` completes, so revisiting a cached route after invalidation renders the changed data on its first frame. Already mounted readers keep their data during refreshes.
 
 `loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
 
@@ -816,6 +803,19 @@ const showNotes = can(auth.session, ReadNotes);
 
 `PermissionBoundary` renders the app's one fallback at the denied URL for a refused route, a loader's `Forbidden`, or a `useQuery`/`useLoaderQuery` result tagged `Forbidden`. Other errors propagate to an enclosing error boundary. Set TanStack's `disableGlobalCatchBoundary: true` and leave permission failures to this boundary; a route-specific `errorComponent` that consumes an error owns its rendering instead. Without a permission boundary, query failures keep their normal typed state. Like a React error boundary, remount it to clear a caught failure.
 
+### Read the current time
+
+`useNow(interval, runtime?)` from `@shivaedev/react/client/useNow.ts` returns epoch milliseconds from Effect's `Clock` and re-renders at the given interval in milliseconds. Pass the component's atom runtime to use its clock:
+
+```ts
+import { useNow } from "@shivaedev/react/client/useNow.ts";
+
+const now = useNow(60_000, client.runtime);
+const minutesAgo = Math.floor((now - savedAt) / 60_000);
+```
+
+Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
+
 ### API
 
 `useQuery(atom)` and `useAction(atom)` return these shared fields:
@@ -828,7 +828,7 @@ const showNotes = can(auth.session, ReadNotes);
 | `pending` | The native result is waiting. |
 | `refreshing` | The result is waiting and successful data is available. |
 
-`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
+`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `notices`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
 
 Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
 
@@ -836,11 +836,11 @@ Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-l
 
 ### Render tests in happy-dom
 
-Use `@shivaedev/react/client/testing.ts` with Vitest's `happy-dom` environment. Install contract for the example's query and command declarations, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/react/client/testing.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
-pnpm add @shivaedev/contract
-pnpm add -D @shivaedev/test @effect/vitest@4.0.5 vitest happy-dom react-dom@19.3.0 @types/react-dom
+pnpm add @shivaedev/changes @shivaedev/contract
+pnpm add -D @shivaedev/test @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -943,16 +943,16 @@ Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their 
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/react @effect/atom-react@4.0.5 effect@4.0.5 react@19.3.0
+pnpm add @shivaedev/react @effect/atom-react effect react
 ```
 
-For editor, create or lower-level form modules, also install the optional form peer:
+`@shivaedev/form` and `@shivaedev/contract` install with the package as dependencies. Add form directly when the application imports its modules, such as `useField` for editor inputs:
 
 ```sh
 pnpm add @shivaedev/form
 ```
 
-Query, action, session and resume modules do not require form. The package needs Node 24 or newer.
+The package needs Node 24 or newer.
 
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.

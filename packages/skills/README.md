@@ -132,7 +132,7 @@ This program checks the current repository using the installed package. `NodeSer
 ### Install, setup and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/skills @effect/platform-node@4.0.5 @effect/platform-node-shared@4.0.5 effect@4.0.5
+pnpm add --save-dev @shivaedev/skills @effect/platform-node @effect/platform-node-shared effect
 ```
 
 The Effect and Node platform packages are peers, and the package requires Node.js 24 or newer. Run the CLI from the repository directory that contains the selection's `package.json`.

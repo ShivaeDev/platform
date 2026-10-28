@@ -114,7 +114,7 @@ An app says where its code runs through folder names. A package adopts the runti
 
 A package whose code all runs in one runtime declares it in its manifest instead of nesting everything in one folder: `"quality": { "runtime": "server" }` makes every source file server code, and `"client"` makes every file browser code. Package-root tooling stays server code. A declaration beside `src/client/` or `src/server/` is reported on the manifest, as is any value other than `"client"` or `"server"`; choose one convention per package.
 
-A package with a nonempty `bin` entry and no runtime folders is server code throughout. Runtime folders take precedence when a package also ships browser code. A Node library without a CLI declares `"runtime": "server"` or uses `src/server/`; `engines.node` alone does not say that a package is Node-only. Packages without runtime folders or a `bin` entry retain their existing source policies. Existing explicit fences continue to run in every package. Runtime folders are detected independently of `sources`, including empty folders; `sources` still selects the code that is checked.
+A package with a nonempty `bin` entry and no runtime folders is server code throughout. Runtime folders take precedence when a package also ships browser code. A Node library without a CLI declares `"runtime": "server"` or uses `src/server/`; `engines.node` alone does not say that a package is Node-only. A package with no runtime folders, runtime declaration or `bin` entry has no runtime policy beyond its tooling. Explicit fences run in every package. Runtime folders are detected independently of `sources`, including empty folders; `sources` still selects the code that is checked.
 
 Tooling is server code in every package, including the workspace root: files under its top-level `script/`, `scripts/` and `tooling/` folders, and top-level JavaScript or TypeScript config files such as `vitest.config.ts`. A tooling folder or config file nested under `src/` follows the source runtime policy. Browser and shared code cannot import package-root tooling.
 
@@ -122,7 +122,7 @@ The manifest owns ordinary workspace dependencies. An **application** is a packa
 
 When a package promises more, put `quality.fences.config.ts` beside its `package.json`, exporting an array of fences as the default. Quality discovers this file at the repository root and in workspace packages, even when `sources` includes only their source folders. The root config does not list boundary files.
 
-A **fence** is a prohibition on imports, with a reason and one illegal and one legal example. Quality validates all discovered fences together, so duplicate names or contradictory examples stop the run. An unreadable file or invalid default export also stops the run. Fences remain an internal `imports/fences` module of Quality and use its shared import graph, resolver and report.
+A **fence** is a prohibition on imports, with a reason and one illegal and one legal example. Quality validates all discovered fences together, so duplicate names or contradictory examples stop the run. An unreadable file or invalid default export also stops the run. The `imports/fences` rule checks them with Quality's shared import graph, resolver and report.
 
 ```ts
 import { fence } from "@shivaedev/quality/imports/fence.ts";
@@ -140,7 +140,7 @@ const uiBoundary = fence("ui-never-imports-server")
 export default [uiBoundary];
 ```
 
-This is `packages/ui/quality.fences.config.ts`; paths remain relative to the repository root. Existing fences supplied through `rules["imports/fences"].options.fences` join the same policy. This adds a fact about the repository's architecture to the shared import check. It does not select a different set of Quality rules. Use real checked files and workspace package names in these chains. The illegal chain must cross this fence alone; the legal chain must cross none. `mayNotImport` checks direct imports; `mayNotReach` also follows repository imports transitively; `mayImportOnly(...subjects).of(unit)` permits only named modules or folders of a unit. Fences count type imports but never hold test files or files under `test-support/`. The default `imports/no-test-code` rule rejects production imports of either, including type imports and re-exports. Move shared code into a production module that tests can import.
+This is `packages/ui/quality.fences.config.ts`; paths remain relative to the repository root. Fences supplied through `rules["imports/fences"].options.fences` join the same policy. This adds a fact about the repository's architecture to the shared import check. It does not select a different set of Quality rules. Use real checked files and workspace package names in these chains. The illegal chain must cross this fence alone; the legal chain must cross none. `mayNotImport` checks direct imports; `mayNotReach` also follows repository imports transitively; `mayImportOnly(...subjects).of(unit)` permits only named modules or folders of a unit. Fences count type imports but never hold test files or files under `test-support/`. The default `imports/no-test-code` rule rejects production imports of either, including type imports and re-exports. Move shared code into a production module that tests can import.
 
 The import rules resolve every literal specifier the way the TypeScript compiler does, with the nearest `tsconfig.json`, and stop the run when the sources hold no module at all. A relative or `#` import of a file that a generator writes before the tests run resolves only inside a folder that `imports/resolvable` lists as `generated`; the folder, or every file an import names in it, must be ignored by git:
 
@@ -209,7 +209,7 @@ When a Quality upgrade adds a check, or a reviewed change needs to record one ru
 quality baseline write --rule tests/story-setup
 ```
 
-Keep the default error level. The command replaces that rule's entries and leaves other rules' entries alone. Any new or raised count belongs in the review and the pull request's Callouts. The [debt and hook guide](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md) covers the baseline format, exception subjects, limit changes, renames and commit checks.
+Keep the default error level. The command replaces that rule's entries and leaves other rules' entries alone. Call out any new or raised count in the review and the pull request description. The [debt and hook guide](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md) covers the baseline format, exception subjects, limit changes, renames and commit checks.
 
 ### Baseline merges
 
@@ -220,7 +220,7 @@ Register the driver in `.gitattributes`:
 /packages/*/quality-baseline.jsonl merge=quality-baseline
 ```
 
-Run `quality baseline install-driver` from your checkout's setup script. It sets only repository-local `merge.quality-baseline.driver`; it leaves other Git settings alone. Platform's `pnpm run setup` includes this step. Each checkout needs the setting because Git does not copy local configuration when cloning.
+Run `quality baseline install-driver` from your checkout's setup script. It sets only repository-local `merge.quality-baseline.driver`; it leaves other Git settings alone. Each checkout needs the setting because Git does not copy local configuration when cloning.
 
 Git calls `quality baseline merge <ancestor> <current> <other>`. Entries are keyed by path and rule. Removing an ancestor entry on either side removes it from the result; retained counts take the minimum of the two sides, and entries newly added on either side survive. The command writes the result to `<current>`, so parallel reductions of neighbouring entries merge without a text conflict.
 
@@ -283,7 +283,9 @@ Import names from their defining module; there is no root entry. The package's `
 | `imports/fence.ts` | `fence` |
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external` |
 | `imports/fences/model.ts` | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External` |
-| `testProjects.ts` | `testProjects` |
+| `testProjects.ts` | `testProjects`, `TestProjectsOptions` |
+| `appViteConfig.ts` | `appViteConfig` |
+| `appTestConfig.ts` | `appTestConfig` |
 | `naming/testName.ts` | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName` |
 
 #### Config
@@ -339,14 +341,14 @@ quality hooks pre-commit [--config <file>]
 
 | Exit code | Meaning |
 | --- | --- |
-| `0` | Passed. Retained debt or loose baseline entries may remain; see the severity limitation below. |
+| `0` | Passed. Retained debt or loose baseline entries may remain. |
 | `1` | Failed: uncovered errors, stale exceptions or baseline entries for unknown or disabled rules. |
 | `2` | Could not run: invalid input or config, missing files or git history, a failed rule, fixes that do not settle, or invalid usage. |
 
 ### Install, shared tooling and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/quality @effect/platform-node@4.0.5 @effect/platform-node-shared@4.0.5 effect@4.0.5
+pnpm add --save-dev @shivaedev/quality @effect/platform-node @effect/platform-node-shared effect
 ```
 
 Node 24 or later is required. The CLI loads the TypeScript config through Node's native import; use erasable syntax and `.ts` extensions for relative TypeScript imports.
@@ -453,7 +455,7 @@ export default defineConfig({
 });
 ```
 
-Quality merges the Biome settings at lint and fix time; do not add or mirror an override in `biome.json`. Files are explicit repository paths. Biome exceptions cover individual lint rules or assist actions; whole checks, rule groups and globs are rejected. `biome/files/includes` is the directory exclusion form: keep `**` and list negative patterns naming directories, such as `!**/test-support/generated`. Quality's shipped exceptions remain part of its internal policy. [Exceptions and upgrades](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md#exceptions) describes subjects, stale entries and the upgrade command.
+Quality merges the Biome settings at lint and fix time; do not add or mirror an override in `biome.json`. Files are explicit repository paths. Biome exceptions cover individual lint rules or assist actions; whole checks, rule groups and globs are rejected. `biome/files/includes` is the directory exclusion form: keep `**` and list negative patterns naming directories, such as `!**/test-support/generated`. Quality's shipped exceptions are part of its internal policy. [Exceptions and upgrades](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md#exceptions) describes subjects, stale entries and the upgrade command.
 
 - The source inventory and Biome have their own scopes. `quality fix` runs Biome from the config's folder; it is not restricted to the source-rule inventory.
 - The installed hook checks files on disk, not only what is staged, and uses each committing worktree's config and dependencies. Installation sets repository-local `core.hooksPath`; the hook chains an executable global pre-commit hook without changing global configuration. Either hook's failure blocks the commit. `quality hooks status` reports when git's effective hooks path does not run Quality.

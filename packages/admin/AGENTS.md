@@ -1,9 +1,9 @@
 # @shivaedev/admin
 
-This package turns explicitly authored admin pages into one protected native Effect RPC group. Operators need a single place to find the tools an application exposes; an omitted permission check must never turn an admin page into a public operation.
+This package turns explicitly authored admin pages into one protected native Effect RPC group. Operators need a single place to find the tools an application exposes, and an omitted permission check must never turn an admin page into a public operation.
 
-Keep native contracts, handler Layers and their inferred requirements visible. Apply each page's declared permission middleware to the whole contract, including its generated change subscription. A read-only page declares queries and no commands. Registry composition rejects collisions instead of letting one page replace another.
+The ideal is a thin layer over native pieces: each page is a `@shivaedev/contract` contract with one permission middleware applied to every operation, including its generated change subscription, and registration keeps handler Layers and their inferred errors and requirements visible. The application owns its admin shell, custom views, session policy and RPC host; this package supplies page declarations, the registry, server registration and the built-in Jobs and Users pages that use the same contracts.
 
-Browser page declarations and route metadata stay independent of server registration. The application owns its admin shell, custom views, session policy and the existing RPC host. Built-in views live on the client side and use the same contracts; browser-safe declarations must not depend on React or server storage. Prefer that composition over another transport, UI framework or authorization policy. Prove access through native RPC and preserve handler types through registration.
+When goals conflict, a closed boundary comes first: every operation requires its page's permission, a read-only page declares queries and no commands, and registry composition rejects colliding ids, paths and RPC tags instead of letting one page replace another. Native contracts, Layers and inferred types come next, ahead of convenience wrappers. Then keep browser-safe declarations and route metadata independent of React, server storage and registration. Prefer composing with the application's existing host, UI and authorization over adding a transport, a UI framework or a policy of its own.
 
-See the [README](README.md) for usage and the [root guidance](../../AGENTS.md) for repository conventions.
+Read the [README](README.md) for the usage guide and the repository [AGENTS.md](../../AGENTS.md) for how the packages fit together.

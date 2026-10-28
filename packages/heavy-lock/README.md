@@ -156,7 +156,7 @@ The package also exposes the modules that implement the shared protocol, such as
 ### Install and environment
 
 ```sh
-pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node@4.0.5 @effect/platform-node-shared@4.0.5 effect@4.0.5
+pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node @effect/platform-node-shared effect
 ```
 
 The Effect packages are peers. The package requires Node 24 or later.

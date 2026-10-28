@@ -1,4 +1,4 @@
-# Work Fleet
+# @shivaedev/work-fleet
 
 Work Fleet is an optional execution addon to Work Board. A maintainer approves Board work; Fleet carries independent items through workers, independent review, scoped repair, required validation and observed human delivery, and the person sees work that is active, completed or needs one concrete decision. Board owns identity, context, relationships and human decisions, and stays useful without Fleet; its index and PubSub are rebuildable observations, not an attempts database. Fleet attaches durable execution and accepted outcomes to those Board IDs in an ordinary transactional SQL attachment, with no separate task queue, daemon-wide decision lock or event journal. A headless runtime still reads Board core, and the browser is optional.
 

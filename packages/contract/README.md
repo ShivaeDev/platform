@@ -267,13 +267,13 @@ The dependency rule is deliberately asymmetric:
 | `notes.item(1)` | `"notes:1"` | `"notes:1"` and `"notes"` |
 | `notes.list` | `"notes"` | `"notes"` |
 
-`readKeys` and `invalidationKeys` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
+`readKeys` and `invalidationKeys` from `@shivaedev/changes/keys.ts` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
 
 Client invalidation follows RPC success. Database hosts from `@shivaedev/server` also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
 
 ### Session-owned keys
 
-Before migration, an owner field exists only to give client reads and invalidations a key. The server already chooses the account from `Identity`:
+Without a session key scope, a self-only feature needs an owner field in its payloads only to give client reads and invalidations a key, even though the server already chooses the account from `Identity`:
 
 ```ts
 const preferences = collection("preferences", Schema.String);
@@ -295,7 +295,7 @@ const self = api.self.query({ ownerId: session.userId });
 const save = api.save.run({ ownerId: session.userId, title: "My preferences" });
 ```
 
-After migration, remove `ownerId` from both payload schemas and every call site. Add `keyScope: "session"` and keep a logical item key for the self-only record:
+With `keyScope: "session"`, the payloads and call sites drop `ownerId`, and the queries keep a logical item key for the self-only record:
 
 ```ts
 const preferences = collection("preferences", Schema.String);
@@ -333,9 +333,9 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 </SessionBoundary>
 ```
 
-`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. Existing one-argument `connect` callbacks continue to work. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
+`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. A `connect` callback that does not need the registry can omit its second argument. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
 
-Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, before and after migration:
+Handlers read the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, with or without the session key scope:
 
 ```ts
 Preferences.application.toLayer({
@@ -386,7 +386,7 @@ const changes = Stream.unwrap(NotesClient.use((client) =>
 
 The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers yield the Effect from the `ChangesQueries` annotation's `resolve(references)` method, call `querySubscription(requests, viewer)` and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
-For a custom transport or explicit pause/status controls, the native live APIs remain available:
+For a custom transport or explicit pause and status controls, use the native live APIs.
 
 Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription. The compiler rejects a unary client for a streaming operation.
 
@@ -500,7 +500,7 @@ The session middleware supplies the viewer and runs `authorizeReads(effect, requ
 
 ### Live hints in stories
 
-Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle. The contract's viewer story kit exposes these as `listen(viewer, queries)` and `heard(viewer, keys)`.
+Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
 
 ```ts
 const alice = yield* watchHints(aliceChanges);
@@ -521,7 +521,8 @@ Import the module that defines the name; the package has no root entry.
 | `operation.ts` | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
 | `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
-| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
+| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, transformClient?, httpClient?, serialization?, group?, registry? })`, which builds the HTTP client and binds it. |
+| `queryCoalesceWindow.ts` | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `querySubscription.ts` | `querySubscription(requests, viewer)` checks each referenced query and captures its scopes and ongoing authorization. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
@@ -536,7 +537,7 @@ A query atom takes native query options as its optional second argument, for exa
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/contract effect@4.0.5
+pnpm add @shivaedev/contract effect
 ```
 
 `effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.

@@ -4,7 +4,7 @@ The ShivaeDev framework for Effect applications in one dependency. Platform hold
 
 ## Why you want this
 
-An Effect application built on this framework uses a dozen packages that are released and tested together. Listing them one by one and keeping their versions aligned is busywork that drifts. Depend on platform instead and import what you need from the piece that owns it:
+An Effect application built on this framework uses many packages that are released and tested together. Listing them one by one and keeping their versions aligned is busywork that drifts. Depend on platform instead and import what you need from the piece that owns it:
 
 ```ts
 import { appHost } from "@shivaedev/server/appHost.ts";

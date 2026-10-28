@@ -53,6 +53,6 @@ A rule can require a test's name or report a fixture-writing call. It cannot est
 - A requirement for every repository to build its own rules or copy a complicated config before it can use Quality.
 - Application services, persistence, transactions, request identity, client state and other runtime framework jobs. Their owning packages implement them.
 - A replacement for TypeScript, Biome, Vitest or git.
-- Automatic approval of baseline growth or a exception reason. Review owns whether retained debt is justified.
+- Automatic approval of baseline growth or an exception reason. Review owns whether retained debt is justified.
 - A promise that static imports reproduce every runtime loader or that syntax rules prove business behavior.
 - Renaming public symbols or changing APIs to satisfy a rule whose maintainer decision remains open.
