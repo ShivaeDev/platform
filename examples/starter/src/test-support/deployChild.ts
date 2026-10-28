@@ -28,25 +28,16 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	const entry = kind === "migrate" ? "../server/migrate.ts" : "./deployApplication.ts";
 	const listenPort = kind === "web" && port === 0 ? yield* Effect.promise(deployPort) : port;
 	const address = `http://127.0.0.1:${listenPort}`;
+	const preload = fileURLToPath(new URL("./moduleLoads.ts", import.meta.url));
 	const child = yield* spawner.spawn(
-		ChildProcess.make(
-			process.execPath,
-			[
-				"--conditions=source",
-				"--import",
-				fileURLToPath(new URL("./moduleLoads.ts", import.meta.url)),
-				fileURLToPath(new URL(entry, import.meta.url)),
-				kind,
-			],
-			{
-				env: {
-					"DATABASE_URL": target.toString(),
-					...env,
-					...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(listenPort) } : {}),
-				},
-				extendEnv: false,
+		ChildProcess.make(process.execPath, ["--conditions=source", "--import", preload, fileURLToPath(new URL(entry, import.meta.url)), kind], {
+			env: {
+				"DATABASE_URL": target.toString(),
+				...env,
+				...(kind === "web" ? { "BETTER_AUTH_SECRET": "app-test-secret-with-at-least-32-characters", "PORT": String(listenPort) } : {}),
 			},
-		),
+			extendEnv: false,
+		}),
 	);
 	const started = yield* Deferred.make<string, Error>();
 	const waitingForSchema = yield* Deferred.make<void, Error>();
