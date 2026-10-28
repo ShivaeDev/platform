@@ -32,5 +32,5 @@ notesDeployment.it(
 			expect.poll(() => Effect.runPromise(notes["notes.get"]({ id: second.id })), { timeout: 8000 }).toMatchObject({ wordCount: 4 }),
 		);
 	},
-	160_000,
+	5 * 20_000 + 60_000,
 );

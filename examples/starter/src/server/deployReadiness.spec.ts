@@ -46,5 +46,5 @@ deployment.it(
 		expect(yield* worker.child.isRunning).toBe(true);
 		expect(yield* web.child.isRunning).toBe(true);
 	},
-	120_000,
+	4 * 20_000 + 40_000,
 );

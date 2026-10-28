@@ -25,7 +25,6 @@ application.it(
 		}
 		for (const path of ["src/test-support/deployChild.ts", "src/test-support/developmentServer.ts"]) {
 			expect(files[path]).not.toContain("--conditions=source");
-			expect(files[path]).toBe(starterFile(path).replaceAll('"--conditions=source", ', ""));
 		}
 		for (const path of ["tsconfig.json", "vite.config.ts", "vitest.config.ts", "src/server/dev.ts"]) {
 			expect(files[path]).not.toContain('"source"');

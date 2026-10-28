@@ -13,7 +13,7 @@ export function nodeHttpServer(
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const port = config?.port ?? (yield* Config.Int("PORT").pipe(Config.withDefault(3000)));
-			return NodeHttpServer.layerServer(createServer, {
+			return NodeHttpServer.layer(createServer, {
 				gracefulShutdownTimeout: config?.gracefulShutdownTimeout,
 				host,
 				port,
