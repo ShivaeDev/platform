@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.22.0 - 2026-10-28
+
+### Added
+
+- Compose independent feature kits with `storyKit({ name, extends: [first, second] })`, inferring their engines, traits, verbs and layer services in one per-test Scope with ordered creation and cleanup. Duplicate verb names, trait stage names and engine fields are rejected at the type level.
+- The application host provides Effect's native Crypto service during preflight and deferred construction as well as in application handlers, so commands can generate secure invite codes without ambient randomness.
+- Story kits provide native TestCrypto with a fresh seed of 0 for each story, making generated invite codes reproducible. The application’s @effect/platform-node peer supplies its digest implementation.
+- Ambient-randomness findings name Effect's Crypto service for secure values and Random for non-secure values.
+- `outcomes` checks Effect readouts in row order with one labelled Vitest equality diff, preserving readout error and requirement types and pointing story failures at the spec call.
+
 ## 0.21.1 - 2026-10-27
 
 ### Fixed

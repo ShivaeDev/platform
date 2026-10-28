@@ -1,5 +1,38 @@
 # Changelog
 
+## 0.43.0 - 2026-10-28
+
+### Added
+
+- The application host provides Effect's native Crypto service during preflight and deferred construction as well as in application handlers, so commands can generate secure invite codes without ambient randomness.
+- Story kits provide native TestCrypto with a fresh seed of 0 for each story, making generated invite codes reproducible. The application’s @effect/platform-node peer supplies its digest implementation.
+- Ambient-randomness findings name Effect's Crypto service for secure values and Random for non-secure values.
+
+### Changed
+
+- Keep Biome's `useIncludes` findings while disabling its automatic fix, so formatting leaves `indexOf` comparisons for developers to change by hand.
+
+### Fixed
+
+- Enforce declared query read policies at the hosted RPC handler boundary, including contracts without identity middleware, whose viewer is anonymous. Query RPC error schemas include `QueryReadDenied` so native clients receive typed refusals before handlers run.
+- Keep collection methods and untyped schema internals from making data parameters appear to carry callable services. Direct service implementations, nested dependency fields and service arrays remain subject to `effect/service-parameters`.
+- Pure unit tests can import `effect/http/HttpStatus` without being reported as network I/O; HTTP client imports still require a story.
+- Recognize service implementation parameters by their declared service shape instead of incidental assignability to a discovered service. Ordinary atoms, schemas, records and tuples no longer count as services; service tags, class instances, implementation shapes and non-empty Contexts remain checked.
+
+### Breaking
+
+- Enforce `effect/boundary` across source, tooling and specs: async, await, new Promise, .then, try and throw belong only in `adapters/` and `test-support/` folders at any depth. Use Effect and tagged failures elsewhere. The fixed `adapters/` convention bridges outside libraries to Effect values without consumer configuration.
+- Enforce `effect/service-parameters`: exported functions and public methods read services from Effect's environment, including aliased and wrapped implementation shapes. Effect and Stream requirements, service implementation methods and Layer constructors are accepted; only `test-support/` is exempt. Adapters still follow this rule and ambient runtime bans. Both rules refuse config exceptions and inline suppressions. Consumers adopting the upgrade record existing debt with `quality baseline write --rule effect/boundary` and `quality baseline write --rule effect/service-parameters`.
+- Apps get new findings from `react/jsx-conditionals` for `&&` and ternaries in JSX children. Decide before the JSX with early returns or a precomputed variable, or extract a component that returns `null`; inside `.map`, extract an item component. Attribute values remain accepted. Record existing findings with `quality baseline write --rule react/jsx-conditionals`. The shared Biome preset turns off `noLeakedRender`, whose ternary repair is also reported by the new rule.
+- Move key imports from `@shivaedev/contract/keys.ts` to `@shivaedev/changes/keys.ts`. Declare bucket fields with `collection(name, idSchema, fields)` and publish affected buckets alongside record keys.
+- Replace collection policy maps, `mergeReadPolicies`, `ReadPolicy` and `ReadPolicyMemoWindow` with each query's `readPolicy(payload, viewer)`. Declare the same query's live scope with `reads(payload, viewer)`. Bound query atoms and subscriptions refuse missing policies with a declaration error; one-off query `run` calls remain available. Denied queries refuse the entire subscription. Server adapters replace `QueryReads` and `ChangesReads` with `QueryDefinition` and `ChangesQueries`. Custom middleware calls `authorizeReads(effect, request, viewer)` and declares `MissingReadPolicy` and `QueryReadDenied` errors.
+- Custom subscription adapters yield `ChangesQueries.resolve(references)`, call `querySubscription(requests, viewer)` and pass the authorized result to `makeLiveServer.subscribe(subscription, context)`. Metadata values expose `QueryDefinition.definition` and `CommandInvalidation.invalidates` instead of bare definitions and callbacks. Yield the Effect returned by `queryKeys(queries, references)` when projecting keys for a custom stream. `resolveChanges` supplies the authorized subscription in hosted applications. Changed hints can carry query positions so bindings can rerun session-scoped reads without deriving session scopes in the browser.
+- Remove `appHost`'s `readPolicy` option and module policy registration. Session and permission middleware apply query policies using the current session viewer. Handle the new typed policy errors in native clients, including `QueryReadDenied` on query RPCs without identity middleware; widen explicit query error annotations accordingly.
+- Replace `sessionCommandChanges` with `commandChanges` for custom session middleware. Command invalidation callbacks can receive the session viewer as their third argument. Announce viewer buckets there; background writers must explicitly publish those bucket keys after commit.
+- Built-in admin queries declare their permission policies alongside their schemas and read scopes. Consumers keep supplying the existing session and permission middleware layers.
+- Local Work Board and Fleet queries declare their existing loopback read access explicitly so their generated live subscriptions remain available.
+- Bare HTTP status literals in tests are now reported by `tests/named-values`. Import `HttpStatus` from `effect/http/HttpStatus` and write `HttpStatus.fromLiteral("NotFound")` instead of `404`. Subjects named `status` or `code` no longer exempt numeric assertions; process `exitCode` literals remain accepted.
+
 ## 0.42.0 - 2026-10-27
 
 ### Added

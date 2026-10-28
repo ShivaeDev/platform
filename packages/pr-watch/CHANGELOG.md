@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.5.3 - 2026-10-28
+
+### Fixed
+
+- Confirm merge queue removal with GitHub's supported timeline event and preserve its dequeue reason.
+- Report GitHub's GraphQL error messages when queue confirmation fails.
+- Authenticate PR watching with `GH_TOKEN`, then `GITHUB_TOKEN`, then the signed-in `gh` account. Refuse to start with `GitHub authentication unavailable` when no token is available.
+
 ## 0.5.2 - 2026-10-27
 
 ### Fixed
