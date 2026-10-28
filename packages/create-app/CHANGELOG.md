@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.21.0 - 2026-10-28
+
+### Added
+
+- Application HTTP routes registered through `appHost.routes` can use app services, with route construction errors and missing dependencies retained in the host's types. Generated apps register HTTP routes and static assets through this option.
+- Application routes can answer foreign-origin preflights through native `HttpMiddleware.cors`. Host origin restrictions cover the configured RPC path and `/api/auth/*`, including `/api/auth`; other foreign origins still receive 403 there.
+- Identity exports `sweepExpiredSessions`, an Effect over the application's SQL client that deletes expired Better Auth sessions and returns the number removed without mounting auth.
+- The starter worker sweeps expired auth sessions daily at midnight UTC. New apps and apps using the starter updater receive the schedule.
+- `authTestDatabase(pool).expireSessions(userId)` expires only the selected user's sessions; omit the user id to expire every session.
+- Register schedule definitions beside queues on the admin Jobs page, with null payloads in failed runs, dead-letter listings and job lookups. Pages with no queues can register handlers and serve health.
+- Read stored jobs with null payload schemas through the jobs service without changing queue payload validation.
+- Show an empty state in the starter Jobs view when no queues or schedules are registered.
+
+### Breaking
+
+- Call `authTestDatabase(pool).expireSessions()` instead of yielding the `expireSessions` property directly.
+
 ## 0.20.0 - 2026-10-27
 
 ### Added

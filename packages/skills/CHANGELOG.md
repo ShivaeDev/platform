@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0 - 2026-10-28
+
+### Added
+
+- Ship the `visual-pages` skill, a design language for claude.ai Artifacts and other HTML pages that puts the answer in figures a reader takes in at a glance.
+
 ## 0.3.1 - 2026-10-24
 
 ### Changed

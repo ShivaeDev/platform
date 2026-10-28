@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.21.0 - 2026-10-28
+
+### Added
+
+- `@shivaedev/contract/bind.ts` builds a bound HTTP RPC client and atom runtime from a contract and URL, with an inferred request transform for cookies or bearer tokens.
+- `@shivaedev/react/client/useNow.ts` exports `useNow(interval, runtime?)` to render the runtime's Effect clock and refresh on the requested interval, including with TestClock.
+- `useSignOut` coordinates explicit sign-out with TanStack Router so `permissionGuard` and `signInSearch` omit the return target during the following session refresh.
+- `authQuery` turns Better Auth reads into input-keyed native query atoms, preserving typed auth errors, mapping rejected promises to `AuthActionUnavailable`, and aborting pending requests when their readers unmount.
+
+### Fixed
+
+- Session boundaries deliver the latest committed `recheck` to query, action and save hooks without repeating a refused result when the callback changes identity.
+
 ## 0.20.0 - 2026-10-27
 
 ### Added
