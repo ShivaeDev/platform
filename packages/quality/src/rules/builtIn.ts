@@ -18,6 +18,7 @@ import { importsManifest } from "#rules/imports/manifest.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
+import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { authSql } from "#rules/stories/authSql.ts";
 import { storyEngine } from "#rules/stories/engine.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
@@ -47,6 +48,7 @@ import { noBarrel } from "./noBarrel.ts";
 export const builtInRules = [
 	effectBoundary,
 	serviceParameters,
+	jsxConditionals,
 	maxLines,
 	maxDepth,
 	noBarrel,
