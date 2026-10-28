@@ -24,6 +24,7 @@ export const jsxAccepted: SeedFile = {
 		"function Item({ item }) { if (!item.visible) return null; return <li>{item.name}</li>; }",
 		'const Styled = ({ ready }) => <div className={ready ? "active" : "idle"} title={ready && "ready"} />;',
 		"const Wrapped = ({ ready }) => <Frame content={ready ? <X /> : null} />;",
+		"const Spread = ({ items }) => <>{items.map(item => <X {...(item.ready ? activeProps : idleProps)} />)}</>;",
 	].join("\n"),
 	path: "src/accepted.tsx",
 };

@@ -19,7 +19,7 @@
 {"path":"packages/work-board/src/client/react/DecisionOutcome.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"packages/work-board/src/client/react/DocumentAttention.tsx","rule":"react/jsx-conditionals","count":7}
 {"path":"packages/work-board/src/client/react/DocumentClaims.tsx","rule":"react/jsx-conditionals","count":3}
-{"path":"packages/work-board/src/client/react/DocumentContext.tsx","rule":"react/jsx-conditionals","count":2}
+{"path":"packages/work-board/src/client/react/DocumentContext.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/DocumentCriteria.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/work-board/src/client/react/DocumentEvidence.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/work-board/src/client/react/DocumentMain.tsx","rule":"react/jsx-conditionals","count":3}

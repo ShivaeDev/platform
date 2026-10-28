@@ -13,6 +13,9 @@ function childContext(node: ts.Node): { readonly mapped: boolean } | undefined {
 	let mapped = false;
 	let child = false;
 	for (let parent = node.parent; parent !== undefined; parent = parent.parent) {
+		if (!child && ts.isJsxSpreadAttribute(parent)) {
+			return undefined;
+		}
 		if (ts.isJsxExpression(parent)) {
 			if (!(child || ts.isJsxElement(parent.parent) || ts.isJsxFragment(parent.parent))) {
 				return undefined;
