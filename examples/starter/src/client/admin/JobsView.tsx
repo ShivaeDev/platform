@@ -24,7 +24,9 @@ export function JobsView({
 				<h2 className="font-semibold text-xl">Health</h2>
 				<QueryPanel state={health}>{(value) => <Metrics values={healthValues(value)} />}</QueryPanel>
 			</section>
-			{queues.length > 0 && (
+			{queues.length === 0 ? (
+				<p>No queues or schedules registered.</p>
+			) : (
 				<>
 					<QueuePicker queues={queues} select={selectQueue} value={queue} />
 					<QueueView api={api} key={queue} queue={queue} retry={retry} />

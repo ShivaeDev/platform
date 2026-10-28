@@ -1,9 +1,10 @@
-import { Effect, Schema } from "effect";
+import { Effect, Option, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection, invalidationKeys } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
+import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, Conflict, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
@@ -11,8 +12,18 @@ import { ManagementPermission, ToolsPermission } from "@shivaedev/identity/test-
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 
 export const Preferences = collection("preferences", Schema.String);
-const get = query("get", { payload: { id: Schema.String }, reads: ({ id }) => [Preferences.item(id)], success: Schema.String });
-const list = query("list", { payload: {}, reads: () => [Preferences.list], success: Schema.String });
+const get = query("get", {
+	payload: { id: Schema.String },
+	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	reads: ({ id }) => [Preferences.item(id)],
+	success: Schema.String,
+});
+const list = query("list", {
+	payload: {},
+	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	reads: () => [Preferences.list],
+	success: Schema.String,
+});
 const save = command("save", {
 	invalidates: ({ id }) => [Preferences.item(id), Preferences.list, Preferences.item(id)],
 	payload: { announce: Schema.Boolean, id: Schema.String, reject: Schema.Boolean, value: Schema.String },
@@ -23,7 +34,7 @@ function scoped<const TName extends string>(name: TName) {
 	return contract(name, { commands: [save], keyScope: "session", queries: [get, list] });
 }
 export class CustomAuthenticated extends RpcMiddleware.Service<CustomAuthenticated, { provides: Identity }>()("test/SessionKeysAuth", {
-	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden]),
+	error: Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]),
 }) {}
 export const Apis = {
 	account: scoped("account").middleware(Authenticated),

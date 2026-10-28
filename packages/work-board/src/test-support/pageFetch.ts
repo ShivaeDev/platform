@@ -1,4 +1,5 @@
 import { Buffer } from "node:buffer";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { IFetchInterceptor } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import type { RawResponse } from "./board.ts";
@@ -61,7 +62,7 @@ export function pageFetch({
 				? {
 						body: Buffer.from(theme.body),
 						headers: new window.Headers({ "content-type": "text/javascript" }),
-						ok: theme.status === 200,
+						ok: theme.status === HttpStatus.fromLiteral("OK"),
 						redirected: false,
 						status: theme.status,
 						statusText: "OK",

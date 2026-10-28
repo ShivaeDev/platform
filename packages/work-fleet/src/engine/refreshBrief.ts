@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { workMetadata } from "#board/readPass.ts";
 import { approveBrief } from "#engine/approveBrief.ts";
 import { briefChanged, stopChangedBrief } from "#engine/boardBrief.ts";
+import { refuseDeliveredId } from "#engine/deliveredId.ts";
 import { ensurePublication } from "#engine/ensurePublication.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { requestRework } from "#engine/requestRework.ts";
@@ -13,13 +14,14 @@ import type { Versioned } from "#storage/model.ts";
 
 export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: EngineState, stored: Versioned<FleetRecord>, work: BoardWork) {
 	const ready = stored.value.step === "waiting" && stored.value.decision?.code === "reviewed-pr-ready" && stored.value.result?.kind === "change";
+	const reapproved = stored.value.decision?.code === "approval-required" && stored.value.attempts.length > 0;
 	const changed = briefChanged(stored.value, work) || preparedSchedulingChanged(stored.value, work);
 	if (
 		["done", "released"].includes(stored.value.step)
-		|| (!ready && (stored.value.step === "waiting" || stored.value.decision !== undefined))
+		|| (!(ready || reapproved) && (stored.value.step === "waiting" || stored.value.decision !== undefined))
 		|| !work.approved
 		|| ["done", "superseded", "deferred", "dropped"].includes(work.status ?? "")
-		|| !changed
+		|| !(changed || reapproved)
 	) {
 		return stored;
 	}
@@ -30,6 +32,7 @@ export const refreshBrief = Effect.fn("Fleet.refreshBrief")(function* (state: En
 	if (!ready) {
 		return yield* approveBrief(state)(stored, work);
 	}
+	yield* refuseDeliveredId(state, work);
 	const published = yield* ensurePublication(state)(stored);
 	return yield* requestRework(state)(
 		{

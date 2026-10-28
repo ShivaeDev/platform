@@ -5,7 +5,8 @@ runner.effectApp(
 	"uses a numeric timeout to interrupt a stalled application",
 	function* ({ runVitest }) {
 		const result = yield* runVitest("timeoutFixture.ts");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.tests).toMatchObject([
 			{ status: "failed", title: "stalled application" },
 			{ status: "passed", title: "reports the numeric timeout and closes the interrupted test scope" },
@@ -18,7 +19,8 @@ runner.effectApp(
 	"reports a worker startup error and releases acquired resources before another test",
 	function* ({ runVitest }) {
 		const result = yield* runVitest("startupFailureFixture.ts");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.tests).toMatchObject([
 			{
 				failureMessages: [expect.stringContaining("database connection refused during worker startup")],

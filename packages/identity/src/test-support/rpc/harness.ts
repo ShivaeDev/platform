@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { Effect, Layer, Logger, Redacted, References, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
 import { Pool } from "pg";
 
@@ -81,7 +82,7 @@ export async function signup(provider: Provider, name: string) {
 			method: "POST",
 		}),
 	);
-	if (response.status !== 200) {
+	if (response.status !== HttpStatus.fromLiteral("OK")) {
 		throw new Error(`Better Auth sign-up failed: HTTP ${response.status}`);
 	}
 	const cookie = response.headers

@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { collection } from "#keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { eventually } from "#test/eventually.ts";
 import { liveNotesStory, liveSession, resyncingKeys } from "#test/liveNotesStory.ts";
 import { notes } from "#test/notes.ts";

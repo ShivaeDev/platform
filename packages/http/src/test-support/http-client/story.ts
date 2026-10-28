@@ -1,5 +1,6 @@
 import { Effect, Schema, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { readBoundedBody, readBoundedJson, readBoundedText } from "#body.ts";
@@ -10,7 +11,7 @@ const Items = Schema.Array(Schema.String);
 
 export const httpClient = storyKit({
 	*create() {
-		const replies: { answer: FakeHttpReply; body: FakeHttpReply } = { answer: { status: 200 }, body: {} };
+		const replies: { answer: FakeHttpReply; body: FakeHttpReply } = { answer: { status: HttpStatus.fromLiteral("OK") }, body: {} };
 		const links = new Map([
 			[1, '<../other>; rel=prev; title="with, comma", <2?cursor=two>; type="application/json"; rel="alternate next"'],
 			[2, '<1>; rel="prev", </pages/3>; rel=next'],

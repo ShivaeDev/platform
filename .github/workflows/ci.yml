@@ -23,7 +23,7 @@ concurrency:
 jobs:
   lint:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
@@ -33,6 +33,8 @@ jobs:
         if: github.event_name == 'pull_request'
         run: echo "CHANGELOG_BASE_REF=$(git rev-parse HEAD^1)" >> "$GITHUB_ENV"
       - uses: ./.github/actions/setup
+      - name: Load every package's focused-test config before builds
+        run: pnpm test:focused-config
       - run: pnpm lint
       - name: Test CI orchestration
         run: pnpm test:orchestration

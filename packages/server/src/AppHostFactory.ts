@@ -1,14 +1,15 @@
-import type { Effect, Layer } from "effect";
+import type { Crypto, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
-import type { HostPreflight } from "#AppHostInput.ts";
-import type { AppDatabaseOptions, AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#appHost.ts";
+import type { AppHostInput } from "#AppHostInput.ts";
+import type { AppDatabaseOptions, AppHttpHostOptions } from "#appHost.ts";
 import type { appHostHttp, deferredHost } from "#appHostHttp.ts";
+import type { HostRouteRequirements } from "#hostOptions.ts";
 
 type PreflightHost<THost extends Layer.Any, TServices, TError, TRequirements> = Layer.Layer<
 	Layer.Success<THost> | TServices,
 	Layer.Error<THost> | TError,
-	Exclude<Layer.Services<THost>, TServices> | TRequirements
+	Exclude<Layer.Services<THost>, TServices | Crypto.Crypto> | Exclude<TRequirements, Crypto.Crypto>
 >;
 
 export interface AppHostFactory {
@@ -27,44 +28,27 @@ export interface AppHostFactory {
 		TPreflight = never,
 		TPreflightError = never,
 		TPreflightRequirements = never,
+		TRouteError = never,
+		TRouteRequirements = HostRouteRequirements,
 	>(
-		options: HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
-			(
-				| (AppDatabaseOptions<TMigrations> & {
-						readonly application: Effect.Effect<
-							AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
-							TApplicationError,
-							TApplicationRequirements
-						>;
-				  })
-				| AppHostOptions<
-						TRpcs,
-						THandlers,
-						THandlerError,
-						THandlerRequirements,
-						TServices,
-						TServiceError,
-						TServiceRequirements,
-						TMigrations,
-						TSession,
-						TPreflight,
-						TPreflightError,
-						TPreflightRequirements
-				  >
-				| AppLocalHostOptions<
-						TRpcs,
-						THandlers,
-						THandlerError,
-						THandlerRequirements,
-						TServices,
-						TServiceError,
-						TServiceRequirements,
-						TMigrations,
-						TPreflight,
-						TPreflightError,
-						TPreflightRequirements
-				  >
-			),
+		options: AppHostInput<
+			TRpcs,
+			THandlers,
+			THandlerError,
+			THandlerRequirements,
+			TServices,
+			TServiceError,
+			TServiceRequirements,
+			TMigrations,
+			TSession,
+			TApplicationError,
+			TApplicationRequirements,
+			TPreflight,
+			TPreflightError,
+			TPreflightRequirements,
+			TRouteError,
+			TRouteRequirements
+		> & { readonly migrations: AppDatabaseOptions<TMigrations>["migrations"] },
 	): PreflightHost<
 		ReturnType<
 			typeof deferredHost<
@@ -78,7 +62,9 @@ export interface AppHostFactory {
 				TMigrations,
 				TSession,
 				TApplicationError,
-				TApplicationRequirements
+				TApplicationRequirements,
+				TRouteError,
+				TRouteRequirements
 			>
 		>,
 		NoInfer<TPreflight>,
@@ -98,6 +84,8 @@ export interface AppHostFactory {
 		TPreflight = never,
 		TPreflightError = never,
 		TPreflightRequirements = never,
+		TRouteError = never,
+		TRouteRequirements = HostRouteRequirements,
 	>(
 		options: AppHttpHostOptions<
 			TRpcs,
@@ -110,10 +98,25 @@ export interface AppHostFactory {
 			TSession,
 			TPreflight,
 			TPreflightError,
-			TPreflightRequirements
+			TPreflightRequirements,
+			TRouteError,
+			TRouteRequirements
 		>,
 	): PreflightHost<
-		ReturnType<typeof appHostHttp<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>>,
+		ReturnType<
+			typeof appHostHttp<
+				TRpcs,
+				THandlers,
+				THandlerError,
+				THandlerRequirements,
+				TServices,
+				TServiceError,
+				TServiceRequirements,
+				TSession,
+				TRouteError,
+				TRouteRequirements
+			>
+		>,
 		NoInfer<TPreflight>,
 		NoInfer<TPreflightError>,
 		NoInfer<TPreflightRequirements>

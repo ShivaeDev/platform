@@ -19,7 +19,7 @@ const invalidFixtures = {
 	keyId: "Argument of type 'string' is not assignable to parameter of type 'number'",
 	readsPayload: "Property 'slug' does not exist on type '{ readonly id: number; }'",
 	rejectionTag: "must have that _tag",
-	undeclaredRejection: "Property 'id' is missing in type 'Other' but required in type 'NoteMissing'",
+	undeclaredRejection: "Type 'Other' is not assignable to type 'NoteMissing | QueryReadDenied'",
 	unknownReject: "Property 'Other' does not exist",
 	wrongPayload: "Type 'string' is not assignable to type 'number'",
 	zeroRejections: "Property 'members' does not exist on type 'Never'",

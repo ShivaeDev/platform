@@ -44,6 +44,7 @@ export const Resolve = command("resolve", {
 });
 export const Get = query("get", {
 	payload: { workId: Schema.String },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ workId }) => [fleetRecords.item(workId)],
 	rejections,
 	success: FleetRecord,
@@ -54,7 +55,7 @@ export const Reassign = command("reassign", {
 	rejections,
 	success: FleetRecord,
 });
-export const Views = query("views", { reads: () => [fleetRecords.list], rejections, success: FleetViews });
+export const Views = query("views", { readPolicy: () => Effect.succeed(true), reads: () => [fleetRecords.list], rejections, success: FleetViews });
 export const FleetContract = contract("fleet", { commands: [Prepare, Dispatch, Continue, Reconcile, Resolve, Reassign], queries: [Views, Get] });
 
 export const fleetHandlers = FleetContract.application.toLayer(

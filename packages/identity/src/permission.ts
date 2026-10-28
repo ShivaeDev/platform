@@ -1,10 +1,11 @@
 import { Effect, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
+import { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { type Identity, SessionUser, type SessionUserValue } from "./identity.ts";
 
-const Failures = Schema.Union([Unauthorized, AuthUnavailable, Forbidden]);
+const Failures = Schema.Union([Unauthorized, AuthUnavailable, Forbidden, MissingReadPolicy, QueryReadDenied]);
 
 export function permissionMiddleware<TSelf>() {
 	return <const TName extends string>(name: TName, permission: Permission) =>

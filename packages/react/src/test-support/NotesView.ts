@@ -2,14 +2,14 @@ import { Effect, Option, Ref, Schema, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { createElement } from "react";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { useAction, useQuery } from "#client/resultState.ts";
 
 const notes = collection("notes", Schema.Number);
-const List = query("list", { reads: () => [notes.list], success: Schema.Array(Schema.String) });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Add = command("add", { invalidates: () => [notes.list], payload: { title: Schema.String } });
 const Notes = contract("notes", { commands: [Add], queries: [List] });
 const handlers = Notes.toLayer(

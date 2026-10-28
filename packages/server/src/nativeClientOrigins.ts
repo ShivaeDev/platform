@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { Headers, HttpMiddleware, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { localTransport } from "@shivaedev/identity/server/local.ts";
 
 export const NativeOrigins = Schema.Array(
@@ -16,7 +17,13 @@ export const NativeOrigins = Schema.Array(
 	),
 );
 
-export function nativeClientOrigins(origins: readonly string[], trustedProxy: string | undefined, auth = false) {
+export function nativeClientOrigins(
+	origins: readonly string[],
+	trustedProxy: string | undefined,
+	auth: boolean | "preflight" = false,
+	rpcPath: HttpRouter.PathInput = "/rpc",
+) {
+	const matchesPath = auth ? (path: string) => path === "/api/auth" || path.startsWith("/api/auth/") : (path: string) => path === rpcPath;
 	const allowed = localTransport(trustedProxy, origins);
 	const cors = HttpMiddleware.cors({
 		allowedHeaders: ["Authorization", "Content-Type"],
@@ -28,16 +35,20 @@ export function nativeClientOrigins(origins: readonly string[], trustedProxy: st
 	return HttpRouter.middleware((effect) =>
 		Effect.gen(function* () {
 			const request = yield* HttpServerRequest.HttpServerRequest;
-			if (auth && !request.url.split("?")[0]?.startsWith("/api/auth/")) {
+			if (!matchesPath(request.url.split("?")[0] ?? "")) {
 				return yield* effect;
 			}
-			if ((auth || request.method === "OPTIONS") && !allowed(request)) {
-				return HttpServerResponse.text("Local same-origin requests only", { status: 403 });
+			if ((auth === true || request.method === "OPTIONS") && !allowed(request)) {
+				return HttpServerResponse.text("Local same-origin requests only", {
+					status: HttpStatus.fromLiteral("Forbidden"),
+				});
 			}
 			if (!origins.includes(request.headers.origin ?? "")) {
 				return yield* effect;
 			}
-			const native = request.modify({ headers: Headers.remove(request.headers, "cookie") });
+			const native = request.modify({
+				headers: Headers.remove(request.headers, "cookie"),
+			});
 			return yield* cors(effect).pipe(Effect.provideService(HttpServerRequest.HttpServerRequest, native));
 		}),
 	).layer;

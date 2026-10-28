@@ -53,7 +53,7 @@ export function makeVersionedWrites(
 	function insert(input: unknown) {
 		return Effect.gen(function* () {
 			const statement = yield* statements.insert(input);
-			const rows = yield* sql`${statement} returning *`;
+			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			yield* changes.record(rows);
 			return yield* decodeRow(rows[0]);
 		}).pipe(changes.write, Effect.withSpan(`${spanPrefix}.insert`));
@@ -61,14 +61,14 @@ export function makeVersionedWrites(
 	function insertVoid(input: unknown) {
 		return Effect.gen(function* () {
 			const statement = yield* statements.insert(input);
-			const rows = yield* sql`${statement} returning ${statements.returningKeys}`;
+			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			yield* changes.record(rows);
 		}).pipe(changes.write, Effect.withSpan(`${spanPrefix}.insertVoid`));
 	}
 	function insertOrIgnore(input: unknown) {
 		return Effect.gen(function* () {
 			const statement = yield* statements.insert(input, true);
-			const rows = yield* sql`${statement} returning *`;
+			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			yield* changes.record(rows);
 			return rows.length === 0 ? Option.none() : Option.some(yield* decodeRow(rows[0]));
 		}).pipe(changes.write, Effect.withSpan(`${spanPrefix}.insertOrIgnore`));
@@ -76,7 +76,7 @@ export function makeVersionedWrites(
 	function update(input: Readonly<Record<string, unknown>>) {
 		return Effect.gen(function* () {
 			const { statement, classify } = yield* statements.update(input);
-			const rows = yield* sql`${statement} returning *`;
+			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			if (rows.length === 0) {
 				return yield* classify();
 			}
@@ -87,7 +87,7 @@ export function makeVersionedWrites(
 	function updateVoid(input: Readonly<Record<string, unknown>>) {
 		return Effect.gen(function* () {
 			const { statement, classify } = yield* statements.update(input);
-			const rows = yield* sql`${statement} returning ${statements.returningKeys}`;
+			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			if (rows.length === 0) {
 				return yield* classify();
 			}
@@ -97,7 +97,7 @@ export function makeVersionedWrites(
 	function deleteRow(id: unknown, expected: number) {
 		return Effect.gen(function* () {
 			const { statement, classify } = yield* statements.remove(id, expected);
-			const rows = yield* sql`${statement} returning ${statements.returningKeys}`;
+			const rows = yield* sql`${statement} returning ${changes.returning()}`;
 			if (rows.length === 0) {
 				return yield* classify();
 			}

@@ -26,6 +26,7 @@ export const permissionScreens = storyKit(
 		(state, screen) => ({
 			route: () => current(state),
 			signIn: () => screen.act("sign in as a reader", () => clickButton(current(state).view.container, "Sign in")),
+			signOut: () => screen.act("explicitly sign out", () => clickButton(current(state).view.container, "Sign out")),
 		}),
 	),
 );

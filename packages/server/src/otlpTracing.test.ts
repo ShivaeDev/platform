@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { OtlpExporter } from "effect/observability";
 import { expect } from "vitest";
 import { environment, host } from "#test/app-host/story.ts";
@@ -53,7 +54,7 @@ for (const env of [{}, { "OTEL_EXPORTER_OTLP_HEADERS": "authorization=secret", "
 		expect(yield* hasService(OtlpExporter.Flusher)).toBe(false);
 	});
 }
-for (const status of [undefined, 500]) {
+for (const status of [undefined, HttpStatus.fromLiteral("InternalServerError")]) {
 	host.it(
 		`collector failure (${status}) preserves requests and shutdown`,
 		[collector({ ...(status === undefined ? { offline: true } : { status }), env: { "OTEL_SERVICE_NAME": "unavailable-test" } })],

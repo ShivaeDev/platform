@@ -10,6 +10,7 @@ import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 import type { Engine } from "./applicationState.ts";
 import { liveNotes } from "./live.ts";
 import { requests } from "./requests.ts";
+import { rpcProfile } from "./rpcProfile.ts";
 import { storedNotes } from "./stored.ts";
 import { workerTracing } from "./workerTracing.ts";
 
@@ -86,6 +87,10 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			return headers.get("cookie") ?? "";
 		}),
 		notes: (cookie: string) => http().notes(cookie),
+		profile: (cookie: string) => {
+			story.tell("read the session profile through the bound RPC client");
+			return rpcProfile(host(), cookie);
+		},
 		runningHost: host,
 		signOut: (cookie: string) => http().signOut(cookie),
 		startWorker,

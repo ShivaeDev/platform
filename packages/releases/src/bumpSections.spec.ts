@@ -8,7 +8,8 @@ for (const section of ["Breaking", "Added"]) {
 		yield* change("larger", { [CORE]: "minor" });
 		for (const command of ["check", "plan", "apply"]) {
 			const result = yield* cli(command);
-			expect(result.status).toBe(1);
+			const exitCode = result.status;
+			expect(exitCode).toBe(1);
 			expect(result.stderr).toContain(`too-small.md: ${CORE} has a patch bump but its sections require at least minor`);
 		}
 	});
@@ -28,6 +29,7 @@ for (const { bump, body } of [
 workspace.it("every named package needs a sufficient bump", [], function* ({ change, cli }) {
 	yield* change("shared", { [CORE]: "minor", "@test/api": "patch" });
 	const result = yield* cli("check");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("shared.md: @test/api has a patch bump but its sections require at least minor");
 });

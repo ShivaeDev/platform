@@ -4,7 +4,7 @@ import type * as Atom from "effect/reactivity/Atom";
 import type { JobFields, JobsHealth, QueueCounts } from "@shivaedev/admin/jobs/schemas.ts";
 
 export type AdminJob = Schema.Struct.Type<typeof JobFields> & {
-	readonly data: object;
+	readonly data: object | null;
 	readonly queue: string;
 	readonly sourceId?: Option.Option<string>;
 	readonly sourceOutput?: unknown;

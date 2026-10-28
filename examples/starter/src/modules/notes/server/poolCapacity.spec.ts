@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { notesDeployment } from "#modules/notes/test-support/deployment.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
@@ -17,12 +18,12 @@ notesDeployment.it(
 		yield* web.ready;
 		yield* worker.ready;
 		const activity = yield* watchBackends();
-		expect((yield* signUpAt(web.url, "alice")).status).toBe(200);
+		expect((yield* signUpAt(web.url, "alice")).status).toBe(HttpStatus.fromLiteral("OK"));
 		const results = yield* Effect.all(
 			Array.from({ length: 8 }, (_, index) =>
 				Effect.gen(function* () {
 					const session = yield* signInAt(web.url, "alice");
-					expect(session.status).toBe(200);
+					expect(session.status).toBe(HttpStatus.fromLiteral("OK"));
 					const client = yield* notesAt(web.url, session.cookie);
 					const note = yield* client["notes.create"]({ title: `Concurrent note ${index}` });
 					return { client, note };

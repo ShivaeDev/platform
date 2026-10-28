@@ -9,6 +9,7 @@ export default [
 		.from(browserCode)
 		.mayNotReach(
 			anything.except(
+				files("packages/changes/src/keys.ts"),
 				browserCode,
 				files("packages/test/src/eventually.ts", "packages/test/src/withLive.ts"),
 				packages("access", "contract", "errors", "form", "types"),

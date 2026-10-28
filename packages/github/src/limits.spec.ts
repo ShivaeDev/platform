@@ -1,4 +1,5 @@
 import { DateTime, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { GitHubRateLimited } from "#errors.ts";
@@ -28,7 +29,7 @@ github.it(
 	},
 );
 
-for (const status of [403, 429]) {
+for (const status of [HttpStatus.fromLiteral("Forbidden"), HttpStatus.fromLiteral("TooManyRequests")]) {
 	github.it(
 		`a secondary ${status} limit prefers Retry-After and uses TestClock`,
 		[
@@ -63,7 +64,7 @@ github.it(
 		routeAnswers({
 			body: { message: "You have exceeded a secondary rate limit" },
 			headers: budgetHeaders("core", 40, 120),
-			status: 403,
+			status: HttpStatus.fromLiteral("Forbidden"),
 		}),
 	],
 	function* ({ readPull }) {
@@ -76,7 +77,7 @@ github.it(
 	[
 		routeAnswers({
 			headers: { ...budgetHeaders("search", 0, 900), "Retry-After": "Thu, 01 Jan 1970 00:02:00 GMT" },
-			status: 429,
+			status: HttpStatus.fromLiteral("TooManyRequests"),
 		}),
 	],
 	function* ({ search }) {
@@ -133,7 +134,7 @@ github.it(
 		routeAnswers({
 			body: { message: "Budget exhausted" },
 			headers: budgetHeaders("core", 0, 120),
-			status: 429,
+			status: HttpStatus.fromLiteral("TooManyRequests"),
 		}),
 	],
 	function* ({ readPull }) {

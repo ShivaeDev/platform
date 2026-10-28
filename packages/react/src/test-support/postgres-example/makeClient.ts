@@ -1,21 +1,17 @@
-import { Effect, Layer, Stream } from "effect";
+import { Effect, type Layer, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { live } from "@shivaedev/contract/live.ts";
 import { LiveOrders, Orders, orders } from "./contract.ts";
 
 export function makeClient(url: string, token?: string, httpClient: Layer.Layer<HttpClient.HttpClient> = FetchHttpClient.layer) {
-	class Client extends AtomRpc.Service<Client>()("postgres-example/Client", {
+	const { api, Client } = makeRpcClient(Orders, {
 		group: LiveOrders,
-		protocol: RpcClient.layerProtocolHttp({
-			transformClient: (client) =>
-				token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
-			url,
-		}).pipe(Layer.provide([httpClient, RpcSerialization.layerNdjson])),
-	}) {}
-	const api = bind(Orders, Client);
+		httpClient,
+		transformClient: (client) =>
+			token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+		url,
+	});
 	const subscription = live(Client.runtime, {
 		resyncKeys: [orders.item(1)],
 		stream: Stream.unwrap(Client.use((client) => Effect.succeed(client("subscribe", { id: 1 })))),

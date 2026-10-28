@@ -1,4 +1,5 @@
 import type { ServerResponse } from "node:http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpFault, FakeHttpReply } from "#fakeHttpService.ts";
 
 export function fakeHttpConnection(response: ServerResponse) {
@@ -41,7 +42,7 @@ export async function fakeHttpSend(response: ServerResponse, reply: FakeHttpRepl
 	}
 	const connection = fakeHttpConnection(response);
 	const body = replyBody(reply.body);
-	response.writeHead(reply.status ?? 200, { "content-type": "application/json", ...reply.headers });
+	response.writeHead(reply.status ?? HttpStatus.fromLiteral("OK"), { "content-type": "application/json", ...reply.headers });
 	if (pause) {
 		response.flushHeaders();
 		await connection.pause(pause());
@@ -56,7 +57,7 @@ export async function fakeHttpSend(response: ServerResponse, reply: FakeHttpRepl
 
 export async function fakeHttpStrike(response: ServerResponse, fault: Exclude<FakeHttpFault, { kind: "status" }>, reply: FakeHttpReply = {}) {
 	if (fault.kind === "reset") {
-		response.writeHead(reply.status ?? 200, { "content-type": "application/json", ...reply.headers });
+		response.writeHead(reply.status ?? HttpStatus.fromLiteral("OK"), { "content-type": "application/json", ...reply.headers });
 		response.flushHeaders();
 		await new Promise<void>((resolve) => response.write("", () => resolve()));
 	}

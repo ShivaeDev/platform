@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { createServer } from "node:http";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { makeGithubChecks } from "#host/githubChecks.ts";
 import { githubDelivery, readPullRequest } from "#host/githubDelivery.ts";
@@ -27,7 +28,14 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 	return {
 		"/repos/example/repository/git/matching-refs/heads/synthetic%2Fone": [{ ref: "refs/heads/synthetic/one" }],
 		"/repos/example/repository/pulls?state=all&head=example%3Asynthetic%2Fone&per_page=100": [
-			[{ "html_url": PR, "merged_at": merged ? "2026-01-01T00:00:00Z" : null, state: state.status === "OPEN" ? "open" : "closed" }],
+			[
+				{
+					"created_at": "2026-01-01T00:00:00Z",
+					"html_url": PR,
+					"merged_at": merged ? "2026-01-01T00:00:00Z" : null,
+					state: state.status === "OPEN" ? "open" : "closed",
+				},
+			],
 		],
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
 		"/repos/example/repository/rules/branches/main": [[]],
@@ -84,7 +92,7 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		}
 		if (state.unavailableReads > 0) {
 			state.unavailableReads -= 1;
-			response.writeHead(503).end();
+			response.writeHead(HttpStatus.fromLiteral("ServiceUnavailable")).end();
 			return;
 		}
 		const body = githubResponses(state)[path];
@@ -95,11 +103,11 @@ export const mergedReviewGithub = Effect.fn("Test.mergedReviewGithub")(function*
 		response.setHeader("ETag", etag);
 		if (body !== undefined && request.headers["if-none-match"] === etag) {
 			conditionalHits.push(path);
-			response.writeHead(304).end();
+			response.writeHead(HttpStatus.fromLiteral("NotModified")).end();
 			return;
 		}
 		response.setHeader("Content-Type", "application/json");
-		response.writeHead(body === undefined ? 404 : 200).end(json);
+		response.writeHead(body === undefined ? HttpStatus.fromLiteral("NotFound") : HttpStatus.fromLiteral("OK")).end(json);
 	});
 	yield* Effect.promise(() => new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve)));
 	yield* Effect.addFinalizer(() => Effect.promise(() => new Promise<void>((resolve) => server.close(() => resolve()))));

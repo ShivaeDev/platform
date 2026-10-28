@@ -1,4 +1,5 @@
 import { Context, Effect, Layer, Scope } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
 import { recordComposition } from "./compositionLifetime.ts";
@@ -15,7 +16,7 @@ export const stock = storyKit({
 	clock: "live",
 	*create() {
 		yield* recordComposition("stock create");
-		const service = yield* fakeHttpService({ routes: { stock: { path: "/stock", reply: () => ({ status: 404 }) } } });
+		const service = yield* fakeHttpService({ routes: { stock: { path: "/stock", reply: () => ({ status: HttpStatus.fromLiteral("NotFound") }) } } });
 		const traitEngine: unknown = undefined;
 		return { stock: { scope: yield* Scope.Scope, service, traitEngine } };
 	},

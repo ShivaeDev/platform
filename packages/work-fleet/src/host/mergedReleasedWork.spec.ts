@@ -49,7 +49,8 @@ for (const first of ["admission", "reconciliation", "preparation"]) {
 			yield* daemon.schedulerPass();
 			const finished = yield* daemon.get("one");
 			expect(finished.outcome).toEqual({ head: HEAD, revision: BASE, url: PR });
-			expect((yield* daemon.cli(["continue", "one", "Do this again."])).code).toBe(1);
+			const exitCode = (yield* daemon.cli(["continue", "one", "Do this again."])).code;
+			expect(exitCode).toBe(1);
 			expect(finished.attempts.map((attempt) => attempt.receipt)).toEqual(ready.attempts.map((attempt) => attempt.receipt));
 			daemon.writeBoard("one.md", task("one", "approved"));
 			yield* daemon.approve("one");

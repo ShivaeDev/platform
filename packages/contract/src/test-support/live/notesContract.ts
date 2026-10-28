@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "#contract.ts";
 import { LiveHint } from "#live.ts";
 import { query, stream } from "#operation.ts";
@@ -7,11 +7,12 @@ import { Unavailable } from "./contract.ts";
 
 export const Get = query("get", {
 	payload: LocalGet.payload,
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ id }) => [notes.item(id)],
 	rejections: { ...LocalGet.rejections, Unavailable },
 	success: LocalGet.success,
 });
-export const List = query("list", { reads: () => [notes.list], success: LocalList.success });
+export const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: LocalList.success });
 export const Subscribe = stream("subscribe", { reads: () => [notes.list], rejections: { Unavailable }, success: LiveHint });
 export const Watch = stream("watch", {
 	payload: { helper: Schema.Literals(["first", "second"]), id: Schema.Number },

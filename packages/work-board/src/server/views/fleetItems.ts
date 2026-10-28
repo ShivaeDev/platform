@@ -1,3 +1,4 @@
+import { join } from "node:path";
 import { Effect } from "effect";
 import { waitsOnYou } from "#browser/document/asks.ts";
 import type { AuthoredProgress, FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
@@ -6,6 +7,7 @@ import { DAEMON_PORT } from "#diagnostics/daemonContract.ts";
 import { inboxItems } from "#server/attention/inbox.ts";
 import { requestInbox } from "#server/attention/requestInbox.ts";
 import { daemonUnavailable, readDaemon } from "#server/diagnostics/daemon.ts";
+import { fleetChecksBrief } from "#server/document/briefDiagnostic.ts";
 import { itemRequests } from "#server/document/requests.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { fleetAgents } from "#server/views/fleetAgents.ts";
@@ -55,15 +57,33 @@ export function fleetItems(folder: string, fleetPort: number | null = DAEMON_POR
 		const documents = new Map(
 			itemsOf(snapshot).map(({ id, document, title }) => [id, { file: document.file, metadata: document.parsed.fields, title }]),
 		);
+		const settings = yield* workspace.settings();
+		const briefs = [...new Set([...data.completed, ...data.items].map((item) => item.workId))].flatMap((workId) => {
+			const matches = snapshot.model.ids.get(workId);
+			const document = matches?.length === 1 ? matches[0] : undefined;
+			return document !== undefined && fleetChecksBrief(document.parsed.fields.kind, document.parsed.fields.status)
+				? [{ sourcePath: join(settings.realRoot, document.file), workId }]
+				: [];
+		});
+		// One request covers the whole view: a request per brief kept views with many Fleet items waiting past client timeouts.
+		const refusals =
+			briefs.length === 0
+				? []
+				: yield* readDaemon(fleetPort, (client) => client("daemon.briefProblems", { briefs })).pipe(Effect.catch(() => Effect.succeed([])));
+		const refused = new Set(refusals.map((refusal) => refusal.workId));
 		const ready = mergeWaits(snapshot);
 		return {
-			completed: data.completed.map((item) => ({ ...item, document: documents.get(item.workId) ?? null })),
-			items: data.items.map((item) => ({
-				...item,
-				...fleetAgents(item),
-				document: documents.get(item.workId) ?? null,
-				...(item.stage === "waiting" && item.attentionOwner === "maintainer" && ready.has(item.workId) ? { readyToMerge: true } : {}),
-			})),
+			completed: data.completed
+				.filter((item) => !refused.has(item.workId))
+				.map((item) => ({ ...item, document: documents.get(item.workId) ?? null })),
+			items: data.items
+				.filter((item) => !refused.has(item.workId))
+				.map((item) => ({
+					...item,
+					...fleetAgents(item),
+					document: documents.get(item.workId) ?? null,
+					...(item.stage === "waiting" && item.attentionOwner === "maintainer" && ready.has(item.workId) ? { readyToMerge: true } : {}),
+				})),
 			state: "ready" as const,
 		};
 	});

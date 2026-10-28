@@ -45,7 +45,7 @@ export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
 				accountLookups += 1;
 				accountRequests.push(headers.get("cookie") ?? "");
 				if (expireBeforeAccounts) {
-					await Effect.runPromise(authTestDatabase(pool).expireSessions);
+					await Effect.runPromise(authTestDatabase(pool).expireSessions());
 				}
 				if (accountLookupFails) {
 					throw new Error("Account storage unavailable");

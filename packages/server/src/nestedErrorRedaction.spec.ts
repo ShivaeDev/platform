@@ -1,5 +1,6 @@
 import { inspect } from "node:util";
 import { Cause } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { nestedErrors } from "#test/app-host/nestedErrors.ts";
 import { host } from "#test/app-host/story.ts";
@@ -15,7 +16,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 					const secret = `private-inner-${field}`;
 					const payload = { field, kind, value: secret };
 					const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "nestedErrors" })}\n`, false);
-					expect(response.status).toBe(200);
+					expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 					expect(response.body).not.toContain(secret);
 					const log = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("nested errors"));
 					expect(log?.annotations).toMatchObject({

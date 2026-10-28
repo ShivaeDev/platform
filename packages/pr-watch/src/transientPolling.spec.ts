@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { hasPull } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -7,7 +8,7 @@ watch.it(
 	[],
 	function* (h) {
 		yield* h.poll;
-		h.reply("/pulls/1", { body: {}, status: 503 });
+		h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("ServiceUnavailable") });
 		yield* h.start("--interval", "60", "--heartbeat", "1500", "--events", "dequeued,stuck,conflict,auto-merge-off,closed");
 		yield* h.waitForPollWait();
 		expect(h.events()[0]).toMatchObject({ event: "error", message: expect.stringContaining("HTTP 503") });
@@ -40,7 +41,7 @@ watch.it(
 	{ clock: "test" },
 );
 
-for (const status of [401, 403, 404]) {
+for (const status of [HttpStatus.fromLiteral("Unauthorized"), HttpStatus.fromLiteral("Forbidden"), HttpStatus.fromLiteral("NotFound")]) {
 	watch.it(`HTTP ${status} stops the continuous watcher with its cause`, [], function* (h) {
 		h.reply("/pulls/1", { body: {}, status });
 		yield* h.start();
@@ -54,8 +55,8 @@ for (const status of [401, 403, 404]) {
 
 watch.it("a permanent failure is not masked by another PR's transient failure", [hasPull(2)], function* (h) {
 	h.openPulls(1, 2);
-	h.reply("/pulls/1", { body: {}, status: 401 });
-	h.reply("/pulls/2", { body: {}, status: 503 });
+	h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("Unauthorized") });
+	h.reply("/pulls/2", { body: {}, status: HttpStatus.fromLiteral("ServiceUnavailable") });
 	yield* h.start();
 	expect((yield* h.finish())._tag).toBe("Failure");
 	expect(h.eventNames()).toEqual(["error", "error", "stopped"]);
@@ -83,7 +84,7 @@ watch.it(
 	{ clock: "test" },
 );
 
-for (const status of [403, 503]) {
+for (const status of [HttpStatus.fromLiteral("Forbidden"), HttpStatus.fromLiteral("ServiceUnavailable")]) {
 	watch.it(
 		`HTTP ${status} with Retry-After waits before retrying and observing a merge`,
 		[],
@@ -93,7 +94,7 @@ for (const status of [403, 503]) {
 			yield* h.start("--heartbeat", "0");
 			yield* h.waitForPollWait();
 			expect(h.eventNames()).toEqual(["error", "cooldown"]);
-			expect(h.events()[0].message).toContain(status === 403 ? "rate limit" : "HTTP 503");
+			expect(h.events()[0].message).toContain(status === HttpStatus.fromLiteral("Forbidden") ? "rate limit" : "HTTP 503");
 			expect(h.events()[1]).toMatchObject({ delayMs: 2000, nextPollAt: new Date(2000).toISOString() });
 			const requests = [...h.requests];
 			h.merged(1);

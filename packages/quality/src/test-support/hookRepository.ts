@@ -23,7 +23,11 @@ export interface HookSetup {
 const CHECKS_LOG = "checks.log";
 
 const SOURCE_EXPORTS = {
-	"./*.ts": { default: "./dist/*.js", source: "./src/*.ts", types: "./dist/*.d.ts" },
+	"./*.ts": Object.fromEntries([
+		["source", "./src/*.ts"],
+		["types", "./dist/*.d.ts"],
+		["default", "./dist/*.js"],
+	]),
 };
 
 // Pre-commit scripts write to the hook's own output streams, so a run in this process reads what they did from a log.

@@ -1,8 +1,7 @@
-import { Layer } from "effect";
+import type { Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { RpcSerialization } from "effect/rpc";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { Orders } from "./contract.ts";
 
 export function makeClient({
@@ -14,15 +13,13 @@ export function makeClient({
 	readonly token?: string | undefined;
 	readonly httpClient?: Layer.Layer<HttpClient.HttpClient>;
 }) {
-	class Client extends AtomRpc.Service<Client>()("example/OrdersClient", {
-		group: Orders,
-		protocol: RpcClient.layerProtocolHttp({
-			transformClient: (client) =>
-				token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
-			url,
-		}).pipe(Layer.provide([httpClient, RpcSerialization.layerJson])),
-	}) {}
-	const api = bind(Orders, Client);
+	const { api, Client } = makeRpcClient(Orders, {
+		httpClient,
+		serialization: RpcSerialization.layerJson,
+		transformClient: (client) =>
+			token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+		url,
+	});
 	const renameOrder = Client.runtime.fn(api.save.run);
 
 	return { api, Client, renameOrder };

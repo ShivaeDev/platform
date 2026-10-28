@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { query, stream } from "@shivaedev/contract/operation.ts";
@@ -7,7 +7,6 @@ import { RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { Document } from "#browser/document/schema.ts";
 import { Navigation } from "#browser/Navigation.ts";
 import { Library, LibraryInput } from "#browser/navigation/library.ts";
-import { searchMatches } from "#browser/search/nameMatch.ts";
 import { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import { GoalsProjection } from "#browser/views/GoalsProjection.ts";
 import { OverviewProjection } from "#browser/views/OverviewProjection.ts";
@@ -20,86 +19,98 @@ import { responseContract } from "#rpc/responseContract.ts";
 import { index, navigation, watcher, workspace } from "./keys.ts";
 import { PageUrl } from "./PageUrl.ts";
 import { pageKeys } from "./pageKeys.ts";
+import { ReadSearch } from "./ReadSearch.ts";
 import { documentRejections } from "./rejections.ts";
 import { Server } from "./Server.ts";
 
-const Entry = Schema.Struct({
-	file: Schema.String,
-	href: Schema.String,
-	id: Schema.optional(Schema.String),
-	itemKind: Schema.optional(Schema.String),
-	kind: Schema.Literals(["document", "heading", "passage"]),
-	line: Schema.optional(Schema.Number),
-	match: Schema.Literals(searchMatches),
-	snippet: Schema.String,
-	status: Schema.optional(Schema.String),
-	text: Schema.String,
-	title: Schema.String,
-});
 const ReadDocument = query("document", {
 	payload: { url: PageUrl },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ url }) => [...pageKeys(url), index.list],
 	rejections: documentRejections,
 	success: Document,
 });
 const ReadBoard = query("board", {
 	payload: { url: PageUrl },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ url }) => pageKeys(url),
 	rejections: documentRejections,
 	success: BoardProjection,
 });
 const ReadWork = query("work", {
 	payload: { url: PageUrl },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: documentRejections,
 	success: WorkProjection,
 });
-const ReadInbox = query("inbox", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: InboxProjection });
-const ReadServer = query("server", { reads: () => [], rejections: { ServiceUnavailable }, success: Server });
-const ReadDiagnostics = query("diagnostics", { reads: () => [workspace.list], rejections: { InternalServerError }, success: DiagnosticsProjection });
+const ReadInbox = query("inbox", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: InboxProjection,
+});
+const ReadServer = query("server", { readPolicy: () => Effect.succeed(true), reads: () => [], rejections: { ServiceUnavailable }, success: Server });
+const ReadDiagnostics = query("diagnostics", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [workspace.list],
+	rejections: { InternalServerError },
+	success: DiagnosticsProjection,
+});
 const ReadFleetItems = query("fleetItems", {
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: { InternalServerError },
 	success: FleetItemsProjection,
 });
-const ReadGoals = query("goals", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: GoalsProjection });
+const ReadGoals = query("goals", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: GoalsProjection,
+});
 const ReadOverview = query("overview", {
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: { InternalServerError },
 	success: OverviewProjection,
 });
-const ReadStart = query("start", { reads: () => [workspace.list, index.list], rejections: { InternalServerError }, success: StartProjection });
+const ReadStart = query("start", {
+	readPolicy: () => Effect.succeed(true),
+	reads: () => [workspace.list, index.list],
+	rejections: { InternalServerError },
+	success: StartProjection,
+});
 const ReadHandoff = query("handoff", {
 	payload: { url: PageUrl },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: documentRejections,
 	success: HandoffProjection,
 });
 const ReadResult = query("result", {
 	payload: { url: PageUrl },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: documentRejections,
 	success: ResultProjection,
 });
 const ReadLibrary = query("library", {
 	payload: LibraryInput,
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, index.list],
 	rejections: { InternalServerError },
 	success: Library,
 });
 const ReadNavigation = query("navigation", {
 	payload: { current: Schema.String.check(Schema.isMaxLength(8192)) },
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, navigation.list, index.list],
 	rejections: { InternalServerError },
 	success: Navigation,
 });
-const ReadSearch = query("search", {
-	payload: { query: Schema.String.check(Schema.isMaxLength(8192)), records: Schema.optional(Schema.Boolean) },
-	reads: () => [workspace.list, index.list],
-	rejections: { InternalServerError },
-	success: Schema.Struct({ results: Schema.Array(Entry), total: Schema.Number, unavailable: Schema.Array(Schema.String) }),
-});
 const ReadWatcher = query("watcher", {
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [workspace.list, watcher.list],
 	rejections: { InternalServerError },
 	success: Schema.Struct({ watching: Schema.Boolean }),

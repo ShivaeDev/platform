@@ -19,14 +19,13 @@ export const answerRecords = Effect.fn("FleetHost.answerRecords")(function* (nam
 	);
 });
 
-export function withAnswerRequests<A extends { readonly workId: string; readonly launchRetry?: unknown }>(
-	records: readonly A[],
-	requests: readonly AnswerRequest[],
-) {
+export function withAnswerRequests<
+	A extends { readonly workId: string; readonly step?: string; readonly stage?: string; readonly launchRetry?: unknown },
+>(records: readonly A[], requests: readonly AnswerRequest[]) {
 	const byWork = new Map(requests.toReversed().map((request) => [request.work_id, request]));
 	return records.map((record) => {
 		const request = byWork.get(record.workId);
-		if (request === undefined) {
+		if (request === undefined || ["done", "released"].includes(record.step ?? record.stage ?? "")) {
 			return record;
 		}
 		const { launchRetry: _launchRetry, ...current } = record;

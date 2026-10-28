@@ -1,16 +1,15 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Effect, Layer, Schema, Stream } from "effect";
-import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
+import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { RpcSerialization, RpcServer } from "effect/rpc";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 
 const notes = { _tag: "List", collection: "loaderNotes" } as const;
-const Get = query("get", { reads: () => [notes], success: Schema.Struct({ title: Schema.String }) });
+const Get = query("get", { readPolicy: () => Effect.succeed(true), reads: () => [notes], success: Schema.Struct({ title: Schema.String }) });
 const Rename = command("rename", { invalidates: () => [notes], payload: { title: Schema.String } });
 const Notes = contract("loaderNotes", { commands: [Rename], queries: [Get] });
 
@@ -39,11 +38,7 @@ export const loaderHost = Effect.fnUntraced(function* () {
 		return yield* Effect.die("Expected a TCP host");
 	}
 	const url = `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}/rpc`;
-	class Client extends AtomRpc.Service<Client>()("test/LoaderHost", {
-		group: Notes,
-		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
-	}) {}
-	const api = bind(Notes, Client);
+	const { api, Client } = makeRpcClient(Notes, { serialization: RpcSerialization.layerJson, url });
 	const atom = api.get.query();
 	if (!atom.initialValueTarget) {
 		return yield* Effect.die("Expected a native reactive query source");

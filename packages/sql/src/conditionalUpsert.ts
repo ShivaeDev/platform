@@ -77,7 +77,7 @@ export function makeConditionalUpsert(
 				Effect.gen(function* () {
 					const row = yield* record(yield* encode(input));
 					const suffix = yield* clause(row, settings.updateColumns, settings.updateWhere);
-					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning ${upsertReturning(sql)}`;
+					return sql`insert into ${sql(options.tableName)} ${sql.insert(row)} ${suffix} returning ${options.changes.returning(upsertReturning(sql))}`;
 				}),
 			);
 			const changedRows: Readonly<Record<string, unknown>>[] = [];

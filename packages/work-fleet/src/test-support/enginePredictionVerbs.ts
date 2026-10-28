@@ -40,6 +40,7 @@ export function enginePredictionVerbs(state: EngineStory, tell: (line: string) =
 				prompt: `Implement ${id}`,
 				workId: id,
 			}),
+		publishedPredictionResult: (id: string) => repository().result(id),
 		pushWorkerBranch: (id: string, files: Readonly<Record<string, string>>) => {
 			repository().push(id, files);
 			tell(`worker ${id} pushes its branch and opens a PR`);

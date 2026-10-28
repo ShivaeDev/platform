@@ -4,9 +4,9 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { Rpc, RpcClient, RpcGroup, type RpcSchema, RpcSerialization } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { expectTypeOf } from "vitest";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "#bind.ts";
 import { contract } from "#contract.ts";
-import { collection } from "#keys.ts";
 import { command, query, stream } from "#operation.ts";
 import { Denied, Guard, NoteMissing } from "#test/notes.ts";
 

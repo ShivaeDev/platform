@@ -32,6 +32,19 @@ A **session generation** is the string returned by `identify(session)`. `Session
 
 `useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
 
+### Read the current time
+
+`useNow(interval, runtime?)` from `@shivaedev/react/client/useNow.ts` returns epoch milliseconds from Effect's `Clock` and re-renders at the given interval in milliseconds. Pass the component's atom runtime to use its clock:
+
+```ts
+import { useNow } from "@shivaedev/react/client/useNow.ts";
+
+const now = useNow(60_000, client.runtime);
+const minutesAgo = Math.floor((now - savedAt) / 60_000);
+```
+
+Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
+
 ### 1. Once per application: own the registry
 
 For a screen without a session boundary, wrap it in the native provider:
@@ -383,6 +396,30 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 ```
 
 The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+
+`authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
+
+```tsx
+const authSession = authQuery((disableCookieCache: boolean, signal) =>
+  authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
+);
+
+function Account() {
+  const query = useQuery(authSession(true));
+  const failure = AsyncResult.error(query.result);
+  return (
+    <>
+      {query.pending && <p>Loading…</p>}
+      {Option.isSome(query.data) && <p>{query.data.value?.user.name ?? "Signed out"}</p>}
+      {Option.isSome(failure) && <p role="alert">Could not read the session</p>}
+    </>
+  );
+}
+```
+
+The example uses the application's Better Auth client. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
 ### Commands with a pending display value
 
@@ -816,7 +853,7 @@ import { act, createElement } from "react";
 import { expect } from "vitest";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
 import { eventually, expectNoReactWarnings, render } from "@shivaedev/react/client/testing.ts";

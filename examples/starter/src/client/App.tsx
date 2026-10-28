@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { useCallback } from "react";
 import { type Auth, SessionAccess } from "./auth.ts";
 import { SessionApp } from "./SessionApp.tsx";
 import { ThemeToggle } from "./ThemeToggle.tsx";
@@ -16,6 +17,11 @@ export function App(props: { readonly auth: Auth } & Pick<SessionProps, "connect
 
 function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pick<SessionProps, "connect" | "history">) {
 	const session = auth.client.useSession();
+	const recheck = useCallback(() => {
+		if (session.data !== null) {
+			void session.refetch();
+		}
+	}, [session.data, session.refetch]);
 	if (session.isPending) {
 		return (
 			<p className="p-8" role="status">
@@ -38,7 +44,7 @@ function SessionContent({ auth, connect, history }: { readonly auth: Auth } & Pi
 			auth={auth.actions}
 			connect={connect}
 			history={history}
-			recheck={() => void session.refetch()}
+			recheck={recheck}
 			session={session.data === null ? null : Schema.decodeUnknownSync(SessionAccess)(session.data)}
 			sessionId={session.data?.session.id ?? "anonymous"}
 		/>

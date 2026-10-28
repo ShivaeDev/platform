@@ -40,7 +40,7 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 					execFile(
 						process.execPath,
 						["--conditions=source", fileURLToPath(new URL("../cli.ts", import.meta.url)), ...args(), ...extra],
-						{ timeout: 5000 },
+						{ env: engine.cliEnvironment, timeout: 5000 },
 						(error, stdout, stderr) => done({ code: error?.code ?? 0, stderr, stdout }),
 					);
 				});

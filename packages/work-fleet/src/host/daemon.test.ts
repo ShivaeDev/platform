@@ -1,5 +1,6 @@
 import { expect } from "@effect/vitest";
 import { Cause, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { fleetDaemon } from "#test/daemonStory.ts";
 import { task } from "#test/fleetHost.ts";
 import { boardWork } from "#test/hostStory.ts";
@@ -63,7 +64,7 @@ fleetDaemon.it(
 			{ "content-type": "application/ndjson", host: "example.invalid" },
 			{ "content-type": "text/plain" },
 		]) {
-			expect((yield* daemon.rawRequest(headers)).status).toBe(403);
+			expect((yield* daemon.rawRequest(headers)).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		}
 	},
 	30_000,

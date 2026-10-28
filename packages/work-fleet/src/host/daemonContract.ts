@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Effect, Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query, stream } from "@shivaedev/contract/operation.ts";
 import { diagnostics as diagnosticsApi } from "@shivaedev/work-board/server/integration/diagnostics.ts";
@@ -67,12 +67,14 @@ export const ClientContract = contract("daemon", {
 	queries: [
 		query("dispatch-status", {
 			payload: { workId: Schema.String },
+			readPolicy: () => Effect.succeed(true),
 			reads: ({ workId }) => [fleetRecords.item(workId)],
 			rejections: fleetRejections,
 			success: Schema.NullOr(DispatchRequest),
 		}),
 		query("status", {
 			payload: { workId: Schema.optional(Schema.String) },
+			readPolicy: () => Effect.succeed(true),
 			reads: ({ workId }) => [workId === undefined ? fleetRecords.list : fleetRecords.item(workId)],
 			rejections: fleetRejections,
 			success: DaemonStatus,

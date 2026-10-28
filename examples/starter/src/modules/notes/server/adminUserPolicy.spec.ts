@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { adminAccount, adminHost } from "#modules/notes/test-support/admin/host.ts";
 
@@ -27,9 +28,13 @@ adminHost.it(
 			throw new Error("Owner was not listed");
 		}
 		for (const name of ["owner", "operator"]) {
-			expect((yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status).toBe(404);
-			expect((yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status).toBe(404);
-			expect((yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status).toBe(404);
+			expect((yield* postAuthAdmin(name, "set-role", { role: "user", userId: owner.id })).status).toBe(HttpStatus.fromLiteral("NotFound"));
+			expect((yield* postAuthAdmin(name, "update-user", { data: { role: "user" }, userId: owner.id })).status).toBe(
+				HttpStatus.fromLiteral("NotFound"),
+			);
+			expect((yield* postAuthAdmin(name, "create-user", { email: "bypass@app.test", name: "Bypass", role: "owner" })).status).toBe(
+				HttpStatus.fromLiteral("NotFound"),
+			);
 		}
 		expect((yield* client["admin.users.list"]({ limit: 20 })).users).toEqual(users);
 	},

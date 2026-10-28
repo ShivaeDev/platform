@@ -17,7 +17,7 @@ function repository() {
 			path: "packages/app/package.json",
 		},
 		{ content: 'import { used } from "./values.ts";\nconsole.log(used);\n', path: "packages/app/src/start.ts" },
-		{ content: "export const used = 1;\nexport const unused = 2;\n", path: "packages/app/src/values.ts" },
+		{ content: "export const used = 1;\nexport const unused = 2;\nexport type Unused = string;\n", path: "packages/app/src/values.ts" },
 		{ content: "export const orphan = 1;\n", path: "packages/app/src/orphan.ts" },
 		{
 			content: '{"name":"library","type":"module","exports":{"./*.ts":{"source":"./src/*.ts","types":"./dist/*.d.ts","default":"./dist/*.js"}}}',
@@ -81,3 +81,34 @@ export const providedDependency = unusedRepository.trait(
 		linkWorkspace(root, "@demo/component", "packages/component");
 	},
 );
+
+export const exceptionRequested = unusedRepository.trait("repository", "an author requests an unused-code exception", (root) => {
+	writes(
+		root,
+		"quality.config.ts",
+		'export default { sources: ["packages"], exceptions: [{ files: ["packages/app/src/orphan.ts"], reason: "Kept for later.", rules: ["code/unused"] }] };\n',
+	);
+});
+
+export const optionsRequested = unusedRepository.trait("repository", "an author requests unused-code options", (root) => {
+	writes(root, "quality.config.ts", 'export default { sources: ["packages"], rules: { "code/unused": { options: { ignore: ["**"] } } } };\n');
+});
+
+export const nativeSuppressions = unusedRepository.trait("repository", "the manifest contains Knip suppressions", (root) => {
+	writes(
+		root,
+		"package.json",
+		JSON.stringify({
+			knip: {
+				ignore: ["**"],
+				ignoreDependencies: ["left-pad"],
+				ignoreExportsUsedInFile: true,
+				rules: { exports: "off", files: "off", unlisted: "off" },
+			},
+			name: "fixture",
+			private: true,
+			type: "module",
+			workspaces: ["packages/*"],
+		}),
+	);
+});

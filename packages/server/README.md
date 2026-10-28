@@ -59,7 +59,29 @@ NodeRuntime.runMain(Layer.launch(Server));
 
 Omit `services` when the app has no service Layer of its own. The host uses `Layer.empty`; handler requirements remain explicit, and a migrated host still provides its database services to handlers. Annotated options that declare service outputs, errors or requirements must supply a `services` Layer.
 
-`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/http` alongside the handler Layer. Native route Layers can register additional endpoints in that same composition; `routes` also accepts a native `Layer<never, never, HttpRouter>` for endpoints on the same listener. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses it for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
+Pass application HTTP endpoints through `routes`, including routes that read app services. Use `handlers` for RPC implementations and their middleware Layers. `routes` accepts native HTTP router Layers; the host supplies `services` during route construction and request handling, preserves route Layer build errors and leaves missing services in the host’s requirement type.
+
+```ts
+import { Effect, Layer } from "effect";
+import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/http";
+
+const Routes = HttpRouter.add(
+  "*",
+  "/.well-known/app",
+  AppMetadata.pipe(Effect.map(HttpServerResponse.text)),
+).pipe(
+  Layer.provide(HttpRouter.middleware(HttpMiddleware.cors({
+    allowedOrigins: ["*"],
+    allowedMethods: ["GET"],
+  })).layer),
+);
+
+const Server = appHost({ group: Api, handlers: Handlers, services: Services, routes: Routes, sessions });
+```
+
+`AppMetadata` is an app service supplied by `Services`. Register `OPTIONS` or `"*"` for a route whose native `HttpMiddleware.cors` must answer preflight. The host restricts foreign-origin preflights only on `rpcPath` (default `/rpc`) and `/api/auth/*`, including `/api/auth` itself. Application endpoints own their CORS policy. `nativeOrigins` lists exact native-client origins admitted by the host’s RPC and auth CORS policy; other foreign origins receive 403 on those paths.
+
+`assets` accepts a directory string or native `HttpStaticServer.layer` options. For a browser app whose routes must also work on direct navigation or reload, use `{ root: "dist", spa: true }` or merge `HttpStaticServer.layer({ root: "dist", spa: true })` from `effect/http` into `routes`. The [starter](https://github.com/ShivaeDev/platform/tree/main/examples/starter) uses `routes` for static assets and Better Auth at `/api/auth/*`, with provider-owned cookies and the host's RPC session middleware.
 
 The listener uses `HOST` or `127.0.0.1`, uses `PORT` or 3000, and reads `DATABASE_URL`. Set overrides in the one `config` object: `host`, `port` (0 selects an ephemeral port), `trustedProxy`, `maxBodySize`, `databaseUrl` (an Effect `Redacted<string>`), `applicationName`, and optional `changes`. Migration options accept `table` and `lockTimeout` (default `effect_sql_migrations` and five seconds). Native Layer failures remain in the build error channel; missing application dependencies remain in the requirement type.
 
@@ -81,7 +103,9 @@ Set `migrations.mode: "check"` on `appDatabase` or a database-backed `appHost` w
 
 Pass `migrations.components` beside `loader` for storage managed by another engine. For pg-boss, register `pgBossSchema({ schema: "app_jobs" })` from `@shivaedev/jobs/server/schema.ts`, then start every jobs Layer with `migrate: false`. `check` and `wait` use the same `MigrationError` readout for pending ledger IDs and component names and details, including pg-boss’s installed and required versions.
 
-Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
+The host provides Effect's native `Crypto` service (`effect/Crypto`) to preflight, deferred application construction, application services and handlers. Generate invite codes and tokens through that service; see the [secure invite code example](../../docs/framework/README.md#secure-invite-codes-and-tokens). Use `Random` for non-secure choices.
+
+Supply `preflight: AppConfigLive` to `appHost` to build a native Layer before checking or applying migrations, or constructing the application. Use it to validate configuration such as app IDs, keys and invite lists. Its errors stay in the returned Layer's typed error channel, its requirements other than `Crypto` remain external requirements, and its services are available to migrations, application construction, services and RPC handlers as well as callers of the host Layer. Preflight resources close with the host scope. The option also works without migrations.
 
 When construction itself touches the schema, use `appHost({ migrations, config, application })`. `application` is a native Effect that returns the HTTP host options (`group`, handler and service Layers, session policy, and optional HTTP config). The host first builds `appDatabase`, then evaluates this Effect in the host scope with SQL, Reactivity and `AppChanges` available. A failed migration or schema-current check prevents construction. Initialization requirements and errors stay in the returned Layer's types, and acquired resources close with the host scope.
 

@@ -26,7 +26,7 @@ export function makeInsertMany<TServices = never>(
 	const record = Schema.decodeUnknownEffect(Schema.Record(Schema.String, Schema.Unknown));
 	const decode = Schema.decodeUnknownEffect(Schema.Array(model));
 	const decodeUpsert = makeUpsertDecoder(model);
-	const returning = upsert ? upsertReturning(sql) : sql`*`;
+	const returning = options.changes.returning(upsert ? upsertReturning(sql) : sql`*`);
 	return (inputs: readonly unknown[]) =>
 		Effect.gen(function* () {
 			if (inputs.length === 0) {

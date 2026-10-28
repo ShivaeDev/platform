@@ -1,4 +1,5 @@
 import { Effect, PlatformError } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardFilesystem, boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { escapingLink, outsideFiles } from "#test/servingTraits.ts";
@@ -18,7 +19,7 @@ boardStory.it(
 		expect(common.results.length).toBeLessThanOrEqual(40);
 		expect((yield* search("impossible-asdf")).total).toBe(0);
 		expect(found.unavailable).toEqual([]);
-		expect((yield* post("/_board/rpc", { host: "evil.example" })).status).toBe(403);
+		expect((yield* post("/_board/rpc", { host: "evil.example" })).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 	},
 );
 boardStory.it(

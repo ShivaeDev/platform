@@ -1,4 +1,5 @@
 import { Cause, Config } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect, expectTypeOf } from "vitest";
 import { configuration, serverConfiguration } from "#test/public-config/story.ts";
 
@@ -40,7 +41,7 @@ configuration.it(
 	],
 	function* ({ response }) {
 		const { body, status } = yield* response();
-		expect(status).toBe(200);
+		expect(status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(body).toContain('"INSTALL_URL":"https://example.com/install"');
 		expect(body).toContain('"RETRY_LIMIT":"5"');
 		for (const privateText of ["SERVER_SECRET", "private-server-key", "UNDECLARED_URL", "https://private.example.com/admin"]) {

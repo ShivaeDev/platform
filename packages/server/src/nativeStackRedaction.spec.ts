@@ -1,4 +1,5 @@
 import { Cause } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { nativeStackDiagnostics, publicStackDiagnostics } from "#test/app-host/nativeStackDiagnostics.ts";
 import { host } from "#test/app-host/story.ts";
@@ -15,7 +16,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 				`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { depth: 10, kind: "interruption", marker: "public-frame" }, tag: "nativeStack" })}\n`,
 				false,
 			);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
 			expect(
 				reportedCauses()
@@ -44,7 +45,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 					`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { fiberId: INTERRUPTING_FIBER_ID, kind, marker }, tag: "nativeStack" })}\n`,
 					false,
 				);
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 				const reasons = reportedCauses().flatMap((cause) => cause.reasons);
 				expect(reasons.map((reason) => reason._tag)).toEqual(kind === "defect" ? ["Die"] : ["Die", "Interrupt"]);
 				if (kind === "interruption") {

@@ -21,7 +21,8 @@ host.it(
 		});
 		yield* daemon.waitForRecord("one", (record) => record.attempts.at(-1)?.receipt !== undefined);
 		expect(daemon.providerStarts()).toMatchObject([{ prompt: expect.stringContaining("Edited approved revision.") }]);
-		expect((yield* daemon.cli(["dispatch", "denied", ...flags])).code).toBe(1);
+		const exitCode = (yield* daemon.cli(["dispatch", "denied", ...flags])).code;
+		expect(exitCode).toBe(1);
 		expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([(yield* daemon.get("one")).attempts[0]?.operationId]);
 	},
 	30_000,

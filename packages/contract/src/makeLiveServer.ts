@@ -1,20 +1,18 @@
 import { Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { makeHintPolicy } from "#internal/makeHintPolicy.ts";
-import { type Key, type KeyContext, readKeys } from "#keys.ts";
+import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
+import { changedHint } from "#internal/queryHints.ts";
 import type { LiveHint } from "#live.ts";
+import type { QuerySubscription } from "#querySubscription.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${crypto.randomUUID()}`;
-	function stream(keys: readonly Key[], context?: KeyContext) {
+	function open(keys: readonly Key[], context?: KeyContext, subscription?: QuerySubscription) {
 		return Stream.unwrap(
 			Effect.gen(function* () {
 				const queue = yield* Queue.unbounded<LiveHint>();
-				const allowedKeys = yield* makeHintPolicy(keys.length, (retryKeys) =>
-					Queue.offer(queue, { _tag: "Changed", keys: retryKeys }).pipe(Effect.asVoid),
-				);
 				const pending = new Map<string, Key>();
 				let scheduled = false;
 				let resync = false;
@@ -57,12 +55,16 @@ export const makeLiveServer = Effect.gen(function* () {
 					}),
 				);
 				yield* Queue.offer(queue, { _tag: "Resync" });
+				function authorizeHint(hint: LiveHint) {
+					if (hint._tag === "Resync") {
+						return Effect.succeed(hint);
+					}
+					return Effect.map(subscription?.authorized ?? Effect.succeed(true), (allowed) =>
+						changedHint(allowed ? hint.keys : [], subscription?.scopes),
+					);
+				}
 				return Stream.fromQueue(queue).pipe(
-					Stream.mapEffect((hint) =>
-						hint._tag === "Resync"
-							? Effect.succeed(hint)
-							: Effect.map(allowedKeys(hint.keys), (allowed): LiveHint => ({ _tag: "Changed", keys: allowed })),
-					),
+					Stream.mapEffect(authorizeHint),
 					Stream.filter((hint) => hint._tag === "Resync" || hint.keys.length > 0),
 				);
 			}),
@@ -72,5 +74,9 @@ export const makeLiveServer = Effect.gen(function* () {
 		reactivity.invalidateUnsafe([resyncKey]);
 		return openStreams;
 	});
-	return { resync, stream };
+	return {
+		resync,
+		stream: (keys: readonly Key[], context?: KeyContext) => open(keys, context),
+		subscribe: (subscription: QuerySubscription, context?: KeyContext) => open(subscription.keys, context, subscription),
+	};
 });

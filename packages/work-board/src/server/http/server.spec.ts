@@ -1,6 +1,7 @@
 import { chmodSync, readFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { describe, expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { countingPaths, silentWatch } from "#test/faults.ts";
@@ -23,9 +24,9 @@ const readingProject = [
 describe("pages", () => {
 	boardStory.it("skips dot folders, node_modules and files that are not markdown", readingProject, function* ({ board, request }) {
 		expect(yield* rpcPaths(board)).toEqual(["/notes/log.md", "/plan.md"]);
-		expect((yield* request("/.drafts/hidden.md")).status).toBe(404);
-		expect((yield* request("/node_modules/pkg/readme.md")).status).toBe(404);
-		expect((yield* request("/notes/raw.txt")).status).toBe(404);
+		expect((yield* request("/.drafts/hidden.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+		expect((yield* request("/node_modules/pkg/readme.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+		expect((yield* request("/notes/raw.txt")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	});
 
 	boardStory.it("never enters dot folders or node_modules while listing", readingProject, function* ({ board, notes, start }) {
@@ -40,7 +41,7 @@ describe("pages", () => {
 	boardStory.it("never serves a file outside the folder", readingProject, function* ({ outside, get }) {
 		const outsidePath = `/..%2f${outside.root.split("/").at(-1)}%2fprivate.md`;
 		const response = yield* get(outsidePath);
-		expect(response.status).toBe(404);
+		expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
 		expect(response.body).not.toContain("Outside the folder");
 	});
 
@@ -57,26 +58,26 @@ describe("pages", () => {
 			const html = yield* Effect.promise(async () => (await fetch(`${board.url}/`)).text());
 			expect(html).not.toContain("leak.md");
 			expect(yield* rpcPaths(board)).toContain("/notes/elsewhere/private.md");
-			expect((yield* request("/notes/elsewhere/private.md")).status).toBe(200);
+			expect((yield* request("/notes/elsewhere/private.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(html).not.toContain("Outside the folder");
 			expect(yield* rpcPaths(board)).toContain("/notes/alias.md");
 			for (const path of ["/leak.md", `/up/${outside.root.split("/").at(-1)}/private.md`]) {
 				const response = yield* request(path);
-				expect(response.status).toBe(404);
+				expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
 				expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
 			}
-			expect((yield* request("/notes/alias.md")).status).toBe(200);
+			expect((yield* request("/notes/alias.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 		},
 	);
 
 	boardStory.it("checks where a listed file leads again before reading it", readingProject, function* ({ board, notes, outside, start, request }) {
 		yield* board.stop();
 		board = yield* start({ home: "plan.md", wrap: silentWatch });
-		expect((yield* request("/notes/log.md")).status).toBe(200);
+		expect((yield* request("/notes/log.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 		rmSync(join(notes.root, "notes/log.md"));
 		referenceLink(notes, "notes/log.md", join(outside.root, "private.md"));
 		const response = yield* request("/notes/log.md");
-		expect(response.status).toBe(404);
+		expect(response.status).toBe(HttpStatus.fromLiteral("NotFound"));
 		expect(yield* Effect.promise(() => response.text())).not.toContain("Outside the folder");
 	});
 
@@ -86,13 +87,13 @@ describe("pages", () => {
 		editFile("notes/c# & more?.md", "# Sharp\n");
 		yield* changesUntil(events, "notes/c# & more?.md");
 		expect(yield* rpcPaths(board)).toContain("/notes/c%23%20%26%20more%3F.md");
-		expect((yield* request("/notes/c%23%20%26%20more%3F.md")).status).toBe(200);
+		expect((yield* request("/notes/c%23%20%26%20more%3F.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 	});
 
 	boardStory.it("shows a readable error page for a listed file it cannot read", readingProject, function* ({ board, notes, request }) {
 		chmodSync(join(notes.root, "notes/log.md"), 0o000);
 		const response = yield* request("/notes/log.md");
-		expect(response.status).toBe(500);
+		expect(response.status).toBe(HttpStatus.fromLiteral("InternalServerError"));
 		const html = yield* Effect.promise(() => response.text());
 		expect(html).toContain("data-board-react-root");
 		expect(yield* rpcPaths(board)).toContain("/plan.md");
@@ -128,20 +129,20 @@ describe("pages", () => {
 	);
 
 	boardStory.it("answers 404 for a path that is not valid percent-encoding", readingProject, function* ({ request }) {
-		expect((yield* request("/%E0%A4%A.md")).status).toBe(404);
+		expect((yield* request("/%E0%A4%A.md")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	});
 });
 
 describe("local-only safety", () => {
 	boardStory.it("refuses a request addressed to a host that is not loopback", readingProject, function* ({ board, get }) {
-		expect(yield* get("/", "board.example")).toEqual({ body: "Only loopback hosts are served", status: 403 });
-		expect((yield* get("/_board/client.js", "board.example:4747")).status).toBe(403);
-		expect((yield* get("/", `localhost:${board.port}`)).status).toBe(200);
+		expect(yield* get("/", "board.example")).toEqual({ body: "Only loopback hosts are served", status: HttpStatus.fromLiteral("Forbidden") });
+		expect((yield* get("/_board/client.js", "board.example:4747")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
+		expect((yield* get("/", `localhost:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
 	});
 
 	boardStory.it("judges the Host header even when the request target names a loopback host", readingProject, function* ({ board, get }) {
-		expect((yield* get(`http://127.0.0.1:${board.port}/`, "board.example")).status).toBe(403);
-		expect((yield* get("http://board.example/", `127.0.0.1:${board.port}`)).status).toBe(200);
+		expect((yield* get(`http://127.0.0.1:${board.port}/`, "board.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
+		expect((yield* get("http://board.example/", `127.0.0.1:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
 	});
 
 	boardStory.it("sends a policy that allows only the board's own scripts and forbids caching", readingProject, function* ({ request }) {
@@ -156,17 +157,17 @@ describe("local-only safety", () => {
 describe("assets", () => {
 	boardStory.it("serves the browser client in one React bundle from a source checkout", readingProject, function* ({ request }) {
 		const response = yield* request("/_board/react.js");
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(response.headers.get("content-type")).toBe("text/javascript");
 		expect(yield* Effect.promise(() => response.text())).toBe(readFileSync(new URL("../../../assets/react.js", import.meta.url), "utf8"));
-		expect((yield* request("/_board/native.js")).status).toBe(404);
+		expect((yield* request("/_board/native.js")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	});
 
 	boardStory.it("serves Mermaid's modules from the installed package and nothing else", readingProject, function* ({ request, get }) {
 		const mermaid = yield* request("/_board/mermaid/mermaid.esm.min.mjs");
-		expect(mermaid.status).toBe(200);
+		expect(mermaid.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(mermaid.headers.get("content-type")).toBe("text/javascript");
-		expect((yield* request("/_board/mermaid/mermaid.esm.min.mjs.map")).status).toBe(404);
-		expect((yield* get("/_board/mermaid/..%2f..%2fpackage.json")).status).toBe(404);
+		expect((yield* request("/_board/mermaid/mermaid.esm.min.mjs.map")).status).toBe(HttpStatus.fromLiteral("NotFound"));
+		expect((yield* get("/_board/mermaid/..%2f..%2fpackage.json")).status).toBe(HttpStatus.fromLiteral("NotFound"));
 	});
 });

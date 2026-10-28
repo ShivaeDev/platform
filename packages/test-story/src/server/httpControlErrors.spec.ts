@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { defectMessage } from "#test/defectMessage.ts";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
@@ -34,11 +35,11 @@ httpFaultApp.it("explains missing holds and duplicate body stalls", [], function
 
 httpFaultApp.it("rejects late faults without a matching request instead of poisoning the next call", [], function* ({ fault, request }) {
 	for (const kind of ["status", "drop", "reset"] as const) {
-		const action = fault("data", kind === "status" ? { kind, reply: { status: 503 } } : { kind });
+		const action = fault("data", kind === "status" ? { kind, reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } } : { kind });
 		expect(defectMessage(yield* Effect.exit(action))).toContain(`no request ready for a ${kind} fault`);
 	}
 	const client = yield* request();
-	expect(yield* client.headers).toMatchObject({ status: 200 });
+	expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 	expect(yield* client.finished).toEqual({ bytes: Buffer.from('{"ready":true}'), kind: "complete" });
 });
 
@@ -50,10 +51,10 @@ httpFaultApp.it("requires headers for a reset and refuses status or drop faults 
 	expect(defectMessage(yield* Effect.exit(fault("data", { kind: "reset" })))).toContain("no request ready for a reset fault");
 	yield* held.release;
 	yield* stalled.waiting;
-	expect(yield* client.headers).toMatchObject({ status: 200 });
-	expect(defectMessage(yield* Effect.exit(fault("data", { kind: "status", reply: { status: 503 } })))).toContain(
-		"no request ready for a status fault",
-	);
+	expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+	expect(
+		defectMessage(yield* Effect.exit(fault("data", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } }))),
+	).toContain("no request ready for a status fault");
 	expect(defectMessage(yield* Effect.exit(fault("data", { kind: "drop" })))).toContain("no request ready for a drop fault");
 	yield* stalled.release;
 	expect(yield* client.finished).toMatchObject({ kind: "complete" });

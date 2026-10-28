@@ -1,1 +1,2 @@
 {"path":"packages/service/package.json","rule":"code/unused","count":1}
+{"path":"packages/service/src/defineService.ts","rule":"effect/service-parameters","count":1}

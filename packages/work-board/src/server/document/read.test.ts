@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { Conflict, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { boardHome, boardStory, projectFiles, responsesEnabled } from "#test/boardStory.ts";
@@ -56,7 +57,7 @@ for (const slash of ["", "/"]) {
 				}),
 			);
 			expect((yield* Effect.promise(() => client.run(client.api.document.run({ url: "/" })))).file).toBe("checks.md");
-			expect((yield* Effect.promise(() => fetch(`${board.url}/nested/reading.md`))).status).toBe(200);
+			expect((yield* Effect.promise(() => fetch(`${board.url}/nested/reading.md`))).status).toBe(HttpStatus.fromLiteral("OK"));
 		},
 	);
 }

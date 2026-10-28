@@ -1,5 +1,5 @@
 import { Schema } from "effect";
-import { collection } from "@shivaedev/contract/keys.ts";
+import { collection } from "@shivaedev/changes/keys.ts";
 
 export const jobsKeys = {
 	counts: collection("admin.jobs.counts", Schema.String),

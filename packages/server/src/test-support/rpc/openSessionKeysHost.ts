@@ -4,10 +4,11 @@ import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { Migrator } from "effect/sql";
 import { LiveHint } from "@shivaedev/contract/live.ts";
+import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { sessionCommandChanges } from "@shivaedev/identity/server/commandChanges.ts";
+import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import {
 	authenticatedUserLayer,
@@ -50,7 +51,9 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Sign in" });
 			}
-			return yield* sessionCommandChanges(effect, rpc, payload).pipe(Effect.provideService(Identity, { id: session.value.user.id }));
+			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id: session.value.user.id })).pipe(
+				Effect.provideService(Identity, { id: session.value.user.id }),
+			);
 		}),
 	);
 	const published: (readonly unknown[])[] = [];

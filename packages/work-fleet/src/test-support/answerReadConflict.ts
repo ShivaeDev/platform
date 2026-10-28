@@ -17,17 +17,17 @@ export function answerReadConflict(conflict: "decision" | "version") {
 
 const conflictingReads = Effect.fnUntraced(function* (engine: HostStoryEngine, conflict: "decision" | "version") {
 	const board = yield* BoardGateway;
-	let responses = 0;
+	let changed = false;
 	const readDecision = Effect.fnUntraced(function* (input: BoardDecision) {
 		const reading = yield* board.readDecision(input);
-		if (reading._tag !== "Response") {
+		const span = yield* Effect.currentSpan.pipe(Effect.orDie);
+		if (reading._tag !== "Response" || changed || span.name !== "Fleet.readResolution") {
 			return reading;
 		}
-		responses += 1;
-		if (conflict === "decision" && responses === 1) {
+		changed = true;
+		if (conflict === "decision") {
 			yield* engine.fleet.reassign(input.workId, input.request, "maintainer").pipe(Effect.orDie);
-		}
-		if (conflict === "version" && responses === 2) {
+		} else {
 			const current = yield* engine.fleet.get(input.workId).pipe(Effect.orDie);
 			yield* engine.store(input.workId, current.value).pipe(Effect.orDie);
 		}

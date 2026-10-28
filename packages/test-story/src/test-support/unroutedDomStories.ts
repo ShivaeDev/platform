@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { storyKit } from "#storyKit.ts";
 import { domHost } from "#test/domHost.ts";
 
@@ -20,7 +21,7 @@ app.it("refuses document fetch even when the document catches it", [], function*
 
 app.it("refuses an unrouted redirect destination", [], function* () {
 	const url = yield* domHost((_request, response) => {
-		response.writeHead(302, { location: "https://unrouted-redirect.test/authorize" }).end();
+		response.writeHead(HttpStatus.fromLiteral("Found"), { location: "https://unrouted-redirect.test/authorize" }).end();
 	});
 	yield* Effect.promise(() => window.fetch(url).catch(() => undefined));
 });

@@ -78,6 +78,7 @@ export function holdBehindSweep(state: EngineState, stored: Versioned<FleetRecor
 		&& record.sweepHold.workId === sweepHold.workId
 		&& record.blocker === blocker
 		&& record.decision === undefined
+		&& record.mergeAreasReleased === true
 	) {
 		return Effect.succeed(stored);
 	}
@@ -90,6 +91,7 @@ export function holdBehindSweep(state: EngineState, stored: Versioned<FleetRecor
 			decision: undefined,
 			decisionAcknowledged: undefined,
 			decisionPublished: undefined,
+			mergeAreasReleased: true,
 			mergeReadyAt: undefined,
 			mergeReadyHead: undefined,
 			step: "delivering",

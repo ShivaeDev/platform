@@ -48,7 +48,8 @@ for (const octopus of [false, true]) {
 			expect(accepted.status, accepted.stderr).toBe(0);
 			yield* edit("packages/core/CHANGELOG.md", (text) => text.replace("Released on main.", "Edited history."));
 			const rejected = yield* cli("check");
-			expect(rejected.status).toBe(1);
+			const exitCode = rejected.status;
+			expect(exitCode).toBe(1);
 			expect(rejected.stderr).toContain("CHANGELOG.md changes require a version bump");
 		},
 	);
@@ -57,14 +58,16 @@ for (const octopus of [false, true]) {
 workspace.it("check refuses changelog edits without a version bump", [], function* ({ write, cli }) {
 	yield* write("packages/core/CHANGELOG.md", HISTORY.replace("Released history.", "Edited history."));
 	const result = yield* cli("check");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("CHANGELOG.md changes require a version bump");
 });
 
 workspace.it("check refuses a version bump outside a release", [], function* ({ edit, cli }) {
 	yield* edit("packages/core/package.json", (text) => text.replace("0.2.3", "0.2.4"));
 	const result = yield* cli("check");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("run releases apply");
 });
 
@@ -77,7 +80,8 @@ for (const action of ["delete", "edit"] as const) {
 			yield* change("feature", { [CORE]: "patch" }, "### Fixed\n\n- A fix.\n");
 		}
 		const result = yield* cli("check");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("keep pending changesets unchanged");
 	});
 }

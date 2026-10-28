@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { redact } from "@shivaedev/errors/redact.ts";
 import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/bearerSessions.ts";
@@ -67,7 +68,13 @@ export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
 						Effect.tapError((error) => Effect.logError("Authentication provider failed", redact(error.cause))),
 					),
 				);
-			}).pipe(Effect.catch(() => Effect.succeed(HttpServerResponse.text("Authentication is temporarily unavailable", { status: 503 })))),
+			}).pipe(
+				Effect.catch(() =>
+					Effect.succeed(
+						HttpServerResponse.text("Authentication is temporarily unavailable", { status: HttpStatus.fromLiteral("ServiceUnavailable") }),
+					),
+				),
+			),
 		),
 	);
 }

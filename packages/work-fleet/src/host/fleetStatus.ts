@@ -3,8 +3,10 @@ import { SqlClient } from "effect/sql";
 import { newestCompletion, RECENT_COMPLETED, views } from "#engine/views.ts";
 import { answerRecords, withAnswerRequests } from "#host/answerRecords.ts";
 import type { FleetHost } from "#host/config.ts";
+import { readWaitStates } from "#host/readWaitStates.ts";
 import { Attempt, FleetRecord } from "#model.ts";
 import { Decision } from "#policy.ts";
+import { WAIT_CYCLE } from "#scheduling/adapters/waitCycles.ts";
 import { answerStore } from "#storage/answerStore.ts";
 import { dispatchStore } from "#storage/dispatchStore.ts";
 import { readRecordSnapshot } from "#storage/readRecords.ts";
@@ -14,8 +16,23 @@ import { recordValues } from "#storage/recordValue.ts";
 export const fleetStatus = Effect.fn("FleetHost.fleetStatus")(function* (host: FleetHost, workId?: string) {
 	if (workId !== undefined) {
 		const records = yield* answerRecords(host.namespace, workId);
+		const record = records[0];
+		let projected = records;
+		if (
+			record?.stage === "waiting"
+			&& (record.predictedConflictHold !== undefined || record.sweepHold !== undefined || record.blocker?.startsWith("waiting for area "))
+		) {
+			const [state] = yield* readWaitStates({ namespace: host.namespace }, [workId]);
+			if (state?.blocker?.startsWith(WAIT_CYCLE)) {
+				projected = [{ ...record, attentionOwner: "orchestrator", blocker: state.blocker }];
+			}
+		}
 		const dispatches = (yield* (yield* dispatchStore(host.namespace)).list(workId)).filter((request) => request.status !== "completed");
-		return { ...views(records), ...(dispatches.length === 0 ? {} : { dispatches }), record: records[0] };
+		return {
+			...views(projected),
+			...(dispatches.length === 0 ? {} : { dispatches }),
+			record,
+		};
 	}
 	const records = yield* statusRecords(host.namespace);
 	const requests = yield* (yield* dispatchStore(host.namespace)).list(workId);
@@ -27,7 +44,18 @@ export const fleetStatus = Effect.fn("FleetHost.fleetStatus")(function* (host: F
 });
 
 const StatusRecord = Schema.Struct({
-	...Struct.pick(FleetRecord.fields, ["attentionOwner", "blocker", "completedAt", "outcome", "result", "step", "updatedAt", "workId"]),
+	...Struct.pick(FleetRecord.fields, [
+		"attentionOwner",
+		"blocker",
+		"completedAt",
+		"outcome",
+		"predictedConflictHold",
+		"result",
+		"step",
+		"sweepHold",
+		"updatedAt",
+		"workId",
+	]),
 	attempts: Schema.Array(
 		Schema.Struct(Struct.pick(Attempt.fields, ["briefSteers", "overLimit", "progress", "publishedRecovery", "receipt", "status"])),
 	),

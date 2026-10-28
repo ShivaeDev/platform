@@ -1,7 +1,7 @@
 import { Effect, Schema } from "effect";
 import { Rpc } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
@@ -20,6 +20,7 @@ export class Unavailable extends Schema.TaggedError<Unavailable>()("Unavailable"
 export const settings = collection("entity-settings", Schema.Number);
 export const GetSettings = query("get", {
 	payload: { entityId: Schema.Number },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ entityId }) => [settings.item(entityId)],
 	rejections: { Missing, Unavailable },
 	success: EntitySettings,

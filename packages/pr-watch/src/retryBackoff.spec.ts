@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { hasPull, watchesPulls } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -9,7 +10,7 @@ watch.it(
 		h.openPulls(1, 2);
 		yield* h.poll;
 		h.merged(1);
-		h.reply("/pulls/2", { body: {}, status: 500 });
+		h.reply("/pulls/2", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		yield* h.start("--heartbeat", "0");
 		yield* h.waitForPollWait();
 		expect((yield* h.stored()).prs["1"].merged).toBe(true);
@@ -30,7 +31,7 @@ watch.it(
 	"a successful round resets retry backoff before another failure",
 	[],
 	function* (h) {
-		h.reply("/pulls/1", { body: {}, status: 500 });
+		h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		yield* h.start("--heartbeat", "0");
 		yield* h.waitForPollWait();
 		yield* h.advance(1000);
@@ -39,7 +40,7 @@ watch.it(
 		h.pullIs(1);
 		yield* h.advance(2000);
 		yield* h.waitForPollWait();
-		h.reply("/pulls/1", { body: {}, status: 500 });
+		h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		yield* h.advance(1000);
 		yield* h.waitForPollWait();
 		expect(h.events().at(-1)).toMatchObject({ event: "error" });
@@ -76,7 +77,7 @@ watch.it(
 	"backoff grows to five minutes and a continuous outage stops after one hour",
 	[],
 	function* (h) {
-		h.reply("/pulls/1", { body: {}, status: 502 });
+		h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("BadGateway") });
 		yield* h.start("--heartbeat", "0");
 		yield* h.waitForPollWait();
 		expect(h.eventNames()).toEqual(["error"]);

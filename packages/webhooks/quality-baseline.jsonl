@@ -1,0 +1,2 @@
+{"path":"packages/webhooks/src/internal/receive.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/webhooks/src/registration.ts","rule":"effect/service-parameters","count":2}

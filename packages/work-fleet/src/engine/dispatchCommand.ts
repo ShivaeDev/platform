@@ -1,6 +1,7 @@
 import { Effect, Result } from "effect";
 import { approveDispatchedBrief } from "#engine/approveBrief.ts";
 import { authorizeBriefContext } from "#engine/boardBrief.ts";
+import { refuseDeliveredId } from "#engine/deliveredId.ts";
 import { dispatchFailure } from "#engine/dispatchFailure.ts";
 import { failureCode } from "#engine/failureCode.ts";
 import type { makeLaunch } from "#engine/makeLaunch.ts";
@@ -37,6 +38,7 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 	const dispatchPrepared = Effect.fn("Fleet.dispatchPrepared")(function* (workId: string, prompt?: string, now?: DispatchNow) {
 		let stored = yield* load(workId);
 		const work = yield* board.get(workId);
+		yield* refuseDeliveredId(state, work);
 		stored = yield* refreshBrief(state, stored, work);
 		stored = yield* approveDispatchedBrief(state, stored, work, prompt);
 		if (stored.value.step !== "queued") {

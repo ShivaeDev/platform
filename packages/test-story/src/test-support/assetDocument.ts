@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { Window } from "happy-dom";
 import { vi } from "vitest";
 import { domNavigate } from "#domNavigate.ts";
@@ -18,7 +19,7 @@ export const assetDocument = storyKit({
 		const requests: string[] = [];
 		const url = yield* domHost((request, response) => {
 			requests.push(`${request.method} ${request.url}`);
-			response.writeHead(200, { "content-type": "text/html" }).end(`<!doctype html>
+			response.writeHead(HttpStatus.fromLiteral("OK"), { "content-type": "text/html" }).end(`<!doctype html>
 <html><head>
 <link rel="stylesheet" href="https://assets.test/site.css">
 <script type="module" src="https://assets.test/site.js"></script>

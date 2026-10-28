@@ -1,11 +1,14 @@
 import { Effect, Layer, Option } from "effect";
 import { type HttpServerRequest, HttpServerResponse } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
+import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
+import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { type AuthUnavailable, Forbidden, type Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, type SessionUser } from "#identity.ts";
 import { hasPermission, type permissionMiddleware, requirePermission } from "#permission.ts";
-import { sessionCommandChanges } from "#server/commandChanges.ts";
+import { commandChanges } from "#server/commandChanges.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { resolveSession, type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
 
@@ -14,16 +17,17 @@ export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
 	policy: SessionPolicy<TSession>,
 ) {
 	const permission = middleware.permission;
-	const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, Unauthorized | AuthUnavailable | Forbidden, never> = (
-		effect,
-		{ headers, rpc, payload },
-	) => {
+	const guard: RpcMiddleware.RpcMiddleware<
+		Identity | SessionUser,
+		Unauthorized | AuthUnavailable | Forbidden | MissingReadPolicy | QueryReadDenied,
+		never
+	> = (effect, { headers, rpc, payload }) => {
 		const lookup = Effect.tap(resolveSession(policy, headers, rpc._tag), (session) =>
 			Option.isSome(session) && !hasPermission(session.value.user, permission)
 				? Effect.fail(new Forbidden({ message: `Permission required: ${permission.name} (${permission.strength})` }))
 				: Effect.void,
 		);
-		return sessionCommandChanges(effect, rpc, payload).pipe(
+		return Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
 			(invocation) => Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, lookup))),
 			(invocation) => Effect.andThen(requirePermission(permission), invocation),
 			withSessionUser(policy, headers, rpc._tag),
@@ -34,7 +38,11 @@ export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
 function rejection(error: Unauthorized | Forbidden | AuthUnavailable) {
 	return HttpServerResponse.empty({
 		headers: { "cache-control": "private, no-store" },
-		status: { AuthUnavailable: 503, Forbidden: 403, Unauthorized: 401 }[error._tag],
+		status: {
+			AuthUnavailable: HttpStatus.fromLiteral("ServiceUnavailable"),
+			Forbidden: HttpStatus.fromLiteral("Forbidden"),
+			Unauthorized: HttpStatus.fromLiteral("Unauthorized"),
+		}[error._tag],
 	});
 }
 

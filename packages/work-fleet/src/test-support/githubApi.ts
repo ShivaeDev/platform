@@ -1,5 +1,6 @@
 import { Context, Effect, Layer, Option } from "effect";
 import { FetchHttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
@@ -34,7 +35,7 @@ export function syntheticGithub(options: { readonly limit?: number; readonly rem
 	return { ...fake, layer: GithubApi.layer.pipe(Layer.provide(client)) };
 }
 
-export function githubCliApi(bodies: ReadonlyMap<string, string>, status = 200) {
+export function githubCliApi(bodies: ReadonlyMap<string, string>, status: number = HttpStatus.fromLiteral("OK")) {
 	const github = syntheticGithub();
 	for (const [endpoint, body] of bodies) {
 		github.reply(endpoint, body, { status });

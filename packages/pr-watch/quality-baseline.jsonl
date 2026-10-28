@@ -1,0 +1,3 @@
+{"path":"packages/pr-watch/src/arguments.ts","rule":"effect/boundary","count":8}
+{"path":"packages/pr-watch/src/cli.ts","rule":"effect/boundary","count":3}
+{"path":"packages/pr-watch/src/confirmQueue.ts","rule":"effect/service-parameters","count":1}

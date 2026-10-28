@@ -58,11 +58,11 @@ export const JobFields = {
 
 export const PageFields = { cursor: Schema.optionalKey(Schema.String), limit: Schema.Number };
 
-export function jobSchema<TPayload extends JobsQueue["schema"]>(queue: { readonly name: string; readonly schema: TPayload }) {
+export function jobSchema<TPayload extends Schema.Top>(queue: { readonly name: string; readonly schema: TPayload }) {
 	return Schema.Struct({ ...JobFields, data: queue.schema, queue: Schema.Literal(queue.name) });
 }
 
-export function deadLetteredSchema<TPayload extends JobsQueue["schema"]>(queue: { readonly name: string; readonly schema: TPayload }) {
+export function deadLetteredSchema<TPayload extends Schema.Top>(queue: { readonly name: string; readonly schema: TPayload }) {
 	const name: string = `${queue.name}-dlq`;
 	return Schema.Struct({
 		...JobFields,

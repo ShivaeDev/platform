@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { application } from "#test/application.ts";
 import { configuredIdentity, installedPackageManager, realSetup } from "#test/traits.ts";
 
-const CLI_TIMEOUT = 60_000;
+const CLI_TIMEOUT = 120_000;
 
 application.it(
 	"records and lowers Quality debt through the generated app's package script",

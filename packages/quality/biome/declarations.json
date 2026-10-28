@@ -51,5 +51,10 @@
 		"includes": ["**"],
 		"reason": "An inline style is the right tool for a value computed at run time, such as a position, a transform or a drag offset.",
 		"rule": "lint/nursery/noInlineStyles"
+	},
+	{
+		"includes": ["**"],
+		"reason": "react/jsx-conditionals owns conditional rendering in JSX children and asks for decisions before JSX or extracted components; noLeakedRender suggests a ternary that the Quality rule also rejects.",
+		"rule": "lint/suspicious/noLeakedRender"
 	}
 ]

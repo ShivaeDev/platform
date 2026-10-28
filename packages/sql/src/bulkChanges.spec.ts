@@ -19,16 +19,19 @@ for (const count of [1000, 1001]) {
 				expect(state.payloads).toEqual([]);
 				expect(delivered).toEqual([]);
 			}).pipe(transact({ onSqlError: (error) => error }));
-			const expected =
-				count === 1001 ? [tableName, `${tableName}:*`] : [tableName, ...Array.from({ length: count }, (_, id) => `${tableName}:${id}`)];
+			const expected = [tableName, ...Array.from({ length: count }, (_, id) => `${tableName}:${id}`)];
 			yield* eventually(Effect.try(() => expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual(expected)));
-			yield* eventually(Effect.try(() => expect(delivered).toEqual(count === 1001 ? [tableName, `${tableName}:*`] : [tableName, `${tableName}:0`])));
+			yield* eventually(
+				Effect.try(() =>
+					expect(delivered).toEqual(count === 1001 ? [tableName, `${tableName}:0`, `${tableName}:1000`] : [tableName, `${tableName}:0`]),
+				),
+			);
 		},
 	);
 }
 
 postgres.it(
-	"an upsertMany that only updates 1001 existing rows announces the collection",
+	"an upsertMany that only updates 1001 existing rows announces every record",
 	[listeningForChanges(), hasNotificationRows()],
 	function* ({ makeRepository, notificationTable, notifications }) {
 		const tableName = notificationTable();
@@ -43,12 +46,16 @@ postgres.it(
 			)
 			.pipe(Effect.provideContext(binding));
 		expect(updated.map(({ row: { id, parent } }) => ({ id, parent }))).toEqual(inputs.map(({ id }) => ({ id, parent: 0 })));
-		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:*`]])));
+		yield* eventually(
+			Effect.try(() =>
+				expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)]),
+			),
+		);
 	},
 );
 
 postgres.it(
-	"ignored rows do not count towards the per-call threshold across chunks",
+	"ignored rows are not announced across chunks",
 	[listeningForChanges(), hasNotificationRows()],
 	function* ({ makeRepository, notificationTable, notifications }) {
 		const tableName = notificationTable();
@@ -82,6 +89,10 @@ postgres.it(
 				{ updateColumns: ["parent"], updateWhere: { parent: null } },
 			)
 			.pipe(Effect.provideContext(binding));
-		yield* eventually(Effect.try(() => expect(state.payloads.map((payload) => JSON.parse(payload))).toEqual([[tableName, `${tableName}:*`]])));
+		yield* eventually(
+			Effect.try(() =>
+				expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)]),
+			),
+		);
 	},
 );

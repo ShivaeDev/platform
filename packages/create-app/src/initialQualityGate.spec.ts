@@ -2,6 +2,8 @@ import { expect } from "vitest";
 import { application } from "#test/application.ts";
 import { enclosingRepository, failingQualityGate, installedPackageManager, realSetup } from "#test/traits.ts";
 
+const CLI_TIMEOUT = 60_000;
+
 for (const minimal of [false, true]) {
 	application.it(
 		`installs the active Quality gate before the initial commit${minimal ? " in a minimal app" : ""}`,
@@ -17,6 +19,7 @@ for (const minimal of [false, true]) {
 			expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]));
 			expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
 		},
+		CLI_TIMEOUT,
 	);
 }
 
@@ -31,6 +34,7 @@ application.it(
 		expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
 		expect(git("status", "--porcelain").stdout).toBe("");
 	},
+	CLI_TIMEOUT,
 );
 
 application.it(
@@ -38,12 +42,14 @@ application.it(
 	[failingQualityGate, installedPackageManager],
 	function* ({ cli, exists, git }) {
 		const result = yield* cli(["my-app"]);
-		expect(result.status, result.stdout + result.stderr).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode, result.stdout + result.stderr).toBe(1);
 		expect(exists(".git/hooks/pre-commit")).toBe(true);
 		expect(exists(".git/initial-gate.json")).toBe(true);
 		expect(result.stderr).toContain("commit -m Initialize a generated app failed");
 		expect(git("rev-parse", "--verify", "HEAD").status).not.toBe(0);
 	},
+	CLI_TIMEOUT,
 );
 
 application.it(

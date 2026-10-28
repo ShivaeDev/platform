@@ -20,7 +20,8 @@ for (const { name, text, message } of invalid) {
 	workspace.it(`check rejects ${name} with repair instructions`, [], function* ({ write, cli, exists }) {
 		yield* write(`.changeset/${name}.md`, text);
 		const result = yield* cli("check");
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain(message);
 		expect(yield* exists(`.changeset/${name}.md`)).toBe(true);
 	});
@@ -28,7 +29,8 @@ for (const { name, text, message } of invalid) {
 workspace.it("plan and apply reject a pre-1.0 major without changing files", [pending({ [CORE]: "major" })], function* ({ cli, exists, read }) {
 	for (const command of ["plan", "apply"]) {
 		const result = yield* cli(command);
-		expect(result.status).toBe(1);
+		const exitCode = result.status;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("use minor for breaking changes");
 	}
 	expect(yield* exists(".changeset/feature.md")).toBe(true);
@@ -36,7 +38,8 @@ workspace.it("plan and apply reject a pre-1.0 major without changing files", [pe
 });
 workspace.it("check names a missing base and the fetch command", [], function* ({ cli }) {
 	const result = yield* cli("check", "missing-ref");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("git fetch origin main");
 });
 workspace.it("config selects package directories and refuses shell hooks", [], function* ({ write, change, cli }) {
@@ -46,6 +49,7 @@ workspace.it("config selects package directories and refuses shell hooks", [], f
 	expect((yield* cli("plan")).stdout).toContain("@test/extra: 1.0.0 -> 1.1.0");
 	yield* write(".changeset/changesets.config.ts", 'export default { hooks: ["echo hello"] };\n');
 	const result = yield* cli("apply");
-	expect(result.status).toBe(1);
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
 	expect(result.stderr).toContain("hooks must be Effect functions, not shell strings");
 });

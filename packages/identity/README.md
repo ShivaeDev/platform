@@ -365,8 +365,8 @@ import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 const changesRpc = Api.requests.get("preferences.$changes")!;
 const handlers = Api.toLayer({
   "preferences.$changes": ({ queries }) => Stream.unwrap(
-    Effect.map(resolveChanges(changesRpc, queries), ({ keys, context }) =>
-      changes.stream(keys, context)
+    Effect.map(resolveChanges(changesRpc, queries), ({ subscription, context }) =>
+      changes.subscribe(subscription, context)
     )
   ),
   "preferences.get": getPreference,
@@ -374,26 +374,27 @@ const handlers = Api.toLayer({
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass both returned arguments to `changes.stream`.
+Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
-Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `sessionCommandChanges` before providing `Identity`:
+Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
 
 ```ts
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Option } from "effect";
+import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
-import { sessionCommandChanges } from "@shivaedev/identity/server/commandChanges.ts";
+import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 
 const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, payload }) =>
   Effect.gen(function* () {
     const session = yield* requireTransportSession(headers, rpc);
-    return yield* sessionCommandChanges(effect, rpc, payload).pipe(
+    return yield* authorizeReads(commandChanges(effect, rpc, payload), { rpc, payload }, Option.some({ id: session.user.id })).pipe(
       Effect.provideService(Identity, { id: session.user.id })
     );
   })
 );
 ```
 
-`MyAuthentication` declares `provides: Identity` and its authentication errors. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `sessionCommandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
+`MyAuthentication` declares `provides: Identity`, its authentication errors and `MissingReadPolicy` and `QueryReadDenied` from `@shivaedev/contract/readPolicyErrors.ts`. Query policies receive the session viewer through `authorizeReads`. `requireTransportSession` is the application's session validation; use `transportHeaders` or `resolveSession` to read HTTP or WebSocket transport credentials. The identity comes from that validated session on each invocation. `requestTracingLayer` publishes only unscoped contract invalidations; custom auth middleware must apply `commandChanges` for scoped commands. If a transaction explicitly announces scoped dependencies, use `invalidationKeys(keys, { scope: identity.id })` with `invalidateOnCommit` inside `transact` so automatic command invalidation can deduplicate the same physical keys.
 
 ### Session freshness in streams
 
@@ -427,7 +428,7 @@ Caller-chosen request ids are correlation data. Keep authorization tied to the a
 
 Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance with the host's database, secret and cookie policy. Keep the plugin out of production auth options.
 
-Use `authTestDatabase(pool)` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus the test-only faults `expireSessions` and `omitImageColumn`. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and operate on the supplied pool; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
+Use `authTestDatabase(pool)` from `@shivaedev/identity/server/better-auth/testDatabase.ts` when a story needs observations or faults in the default Better Auth PostgreSQL schema. It returns Effect readouts `users` (IDs and emails) and `sessions` (IDs, user IDs and emails), plus the test-only faults `expireSessions(userId?)` and `omitImageColumn`. Pass a user id to expire only that user's sessions, or call `expireSessions()` to expire every session. It never returns tokens, password hashes or provider credentials. These fixtures assume the default table and column mappings and operate on the supplied pool; use only an isolated test database. Application stories keep their auth SQL in this provider-owned boundary.
 
 ```ts
 import { betterAuth } from "better-auth";
@@ -481,6 +482,12 @@ app.it("the member's provider account stores no credentials", [member], function
 
 With database-backed sessions and cookie caching disabled, revocation rejects that same minted session on the next protected HTTP or RPC request. Cookie caching and secondary storage can change revocation timing.
 
+### Sweep expired sessions in a worker
+
+Better Auth removes an expired session when it is presented. Use `sweepExpiredSessions` from `@shivaedev/identity/server/better-auth/sweepExpiredSessions.ts` to remove expired rows that are never presented again. The Effect reads the application's `SqlClient`, deletes sessions whose `expiresAt` is at or before PostgreSQL's current time, and returns the number removed. It preserves live sessions and needs no Better Auth mount or auth pool. It assumes the default Better Auth PostgreSQL table and column mappings.
+
+Register the Effect with a worker schedule, as the starter does at midnight UTC. SQL and result-decoding failures stay in the Effect's error channel.
+
 ### API
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/identity/`.
@@ -503,12 +510,13 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
 | `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |
 | `server/better-auth/userProfiles.ts` | Public profile lookups for other users. |
+| `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed. |
 | `server/better-auth/testDatabase.ts` | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema. |
 | `server/better-auth/testing.ts` | `signedInUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only minted user sessions and credential storage observations. |
 
 ### Install, setup and limits
 
-Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. `server/better-auth/` needs the optional peers `better-auth` and `pg`. Browser code imports only `identity.ts`, `middleware.ts` and `permission.ts`.
+Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peers `better-auth` and `pg`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports only `identity.ts`, `middleware.ts` and `permission.ts`.
 
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.

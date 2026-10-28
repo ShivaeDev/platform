@@ -10,7 +10,16 @@ export default [
 	fence("admin-declarations-stay-browser-safe")
 		.because("Admin pages and their registry are shared with browser views; handler registration stays on the server.")
 		.from(browser)
-		.mayNotReach(anything.except(browser, packages("access"), packages("contract", "errors", "types"), identityDeclarations, modules("effect")))
+		.mayNotReach(
+			anything.except(
+				files("packages/changes/src/keys.ts"),
+				browser,
+				packages("access"),
+				packages("contract", "errors", "types"),
+				identityDeclarations,
+				modules("effect"),
+			),
+		)
 		.demonstratedBy({
 			illegal: ["packages/admin/src/page.ts", external("node:fs")],
 			legal: ["packages/admin/src/page.ts", external("effect")],
@@ -20,6 +29,7 @@ export default [
 		.from(client)
 		.mayNotReach(
 			anything.except(
+				files("packages/changes/src/keys.ts"),
 				client,
 				browser,
 				packages("access"),

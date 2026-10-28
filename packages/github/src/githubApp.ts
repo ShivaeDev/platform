@@ -1,5 +1,6 @@
 import { Cache, Clock, Context, Effect, Exit, Layer, Option, Redacted, Schema } from "effect";
 import { HttpClient, HttpClientRequest } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { readBoundedJson } from "@shivaedev/http/body.ts";
 import { type AppCredentials, appJwt } from "#appJwt.ts";
 import { GitHubAppError } from "#errors.ts";
@@ -79,7 +80,7 @@ function appRequests(client: HttpClient.HttpClient, apiUrl: string) {
 			input = yield* HttpClientRequest.bodyJson(input, body).pipe(Effect.mapError(() => new GitHubAppError({ stage: "exchange" })));
 		}
 		const response = yield* client.execute(input).pipe(Effect.mapError(() => new GitHubAppError({ stage: "exchange" })));
-		if (response.status < 200 || response.status >= 300) {
+		if (response.status < HttpStatus.fromLiteral("OK") || response.status >= HttpStatus.fromLiteral("MultipleChoices")) {
 			return yield* new GitHubAppError({ stage: "exchange", status: response.status });
 		}
 		return yield* readBoundedJson(response, 64 * 1024, schema).pipe(Effect.mapError(() => new GitHubAppError({ stage: "exchange" })));

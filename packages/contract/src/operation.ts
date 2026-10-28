@@ -1,7 +1,9 @@
-import { Schema } from "effect";
+import type { Option, Schema } from "effect";
+import type { Key } from "@shivaedev/changes/keys.ts";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
-import type { Key } from "./keys.ts";
-import { type MatchingTags, type Reject, type RejectionSpecs, type Rejections, type RejectionUnion, rejectionSet } from "./rejection.ts";
+import { type Loose, operation } from "#internal/operationDeclaration.ts";
+import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
+import type { MatchingTags, Reject, RejectionSpecs, Rejections, RejectionUnion } from "./rejection.ts";
 
 export type PayloadSchema<TPayload extends Schema.Top | Schema.Struct.Fields> = TPayload extends Schema.Struct.Fields
 	? Schema.Struct<TPayload>
@@ -22,7 +24,8 @@ export interface OperationShape {
 
 export interface QueryShape extends OperationShape {
 	readonly kind: "query";
-	reads: Bivariant<(payload: unknown) => readonly Key[]>;
+	readonly readPolicy?: Bivariant<QueryReadPolicy<unknown>>;
+	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
 }
 
 export interface StreamShape extends OperationShape {
@@ -31,7 +34,7 @@ export interface StreamShape extends OperationShape {
 }
 
 export interface CommandShape extends OperationShape {
-	invalidates: Bivariant<(payload: unknown, result: unknown) => readonly Key[]>;
+	invalidates: Bivariant<(payload: unknown, result: unknown, viewer?: Option.Option<Viewer>) => readonly Key[]>;
 	readonly kind: "command";
 }
 
@@ -49,7 +52,8 @@ interface Operation<TName extends string, TPayload extends Schema.Top, TSuccess 
 export interface Query<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
 	extends Operation<TName, TPayload, TSuccess, TSpecs> {
 	readonly kind: "query";
-	reads: (payload: TPayload["Type"]) => readonly Key[];
+	readonly readPolicy?: QueryReadPolicy<TPayload["Type"]>;
+	reads: (payload: TPayload["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 }
 
 export interface Streaming<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
@@ -60,7 +64,7 @@ export interface Streaming<TName extends string, TPayload extends Schema.Top, TS
 
 export interface Command<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
 	extends Operation<TName, TPayload, TSuccess, TSpecs> {
-	invalidates: (payload: TPayload["Type"], result: TSuccess["Type"]) => readonly Key[];
+	invalidates: (payload: TPayload["Type"], result: TSuccess["Type"], viewer?: Option.Option<Viewer>) => readonly Key[];
 	readonly kind: "command";
 }
 
@@ -68,31 +72,6 @@ interface Declaration<TPayload extends Schema.Top | Schema.Struct.Fields, TSucce
 	readonly payload?: TPayload;
 	readonly rejections?: TSpecs & MatchingTags<TSpecs>;
 	readonly success?: TSuccess;
-}
-
-interface Loose {
-	readonly payload?: Schema.Top | Schema.Struct.Fields;
-	readonly rejections?: RejectionSpecs;
-	readonly success?: Schema.Top;
-}
-
-function payloadSchema(payload: Loose["payload"]): Schema.Top {
-	if (payload === undefined) {
-		return Schema.Void;
-	}
-	return Schema.isSchema(payload) ? payload : Schema.Struct(payload);
-}
-
-function operation<TKind extends OperationShape["kind"]>(kind: TKind, name: string, declaration: Loose) {
-	const { payload, success, rejections = {} } = declaration;
-	return {
-		kind,
-		name,
-		payload: payloadSchema(payload),
-		rejections,
-		success: success ?? Schema.Void,
-		...rejectionSet(rejections),
-	};
 }
 
 export function query<
@@ -103,11 +82,22 @@ export function query<
 >(
 	name: TName,
 	declaration: Declaration<TPayload, TSuccess, TSpecs> & {
-		readonly reads: (payload: PayloadSchema<TPayload>["Type"]) => readonly Key[];
+		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
+		readonly readPolicy?: QueryReadPolicy<PayloadSchema<TPayload>["Type"]>;
 	},
 ): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs>>;
-export function query(name: string, declaration: Loose & { readonly reads: (payload: unknown) => readonly Key[] }): QueryShape {
-	return { ...operation("query", name, declaration), reads: declaration.reads };
+export function query(
+	name: string,
+	declaration: Loose & {
+		readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
+		readonly readPolicy?: QueryReadPolicy<unknown>;
+	},
+): QueryShape {
+	return {
+		...operation("query", name, declaration),
+		reads: declaration.reads,
+		...(declaration.readPolicy === undefined ? {} : { readPolicy: declaration.readPolicy }),
+	};
 }
 
 export function command<
@@ -118,12 +108,12 @@ export function command<
 >(
 	name: TName,
 	declaration: Declaration<TPayload, TSuccess, TSpecs> & {
-		readonly invalidates: (payload: PayloadSchema<TPayload>["Type"], result: TSuccess["Type"]) => readonly Key[];
+		readonly invalidates: (payload: PayloadSchema<TPayload>["Type"], result: TSuccess["Type"], viewer?: Option.Option<Viewer>) => readonly Key[];
 	},
 ): NoInfer<Command<TName, PayloadSchema<TPayload>, TSuccess, TSpecs>>;
 export function command(
 	name: string,
-	declaration: Loose & { readonly invalidates: (payload: unknown, result: unknown) => readonly Key[] },
+	declaration: Loose & { readonly invalidates: (payload: unknown, result: unknown, viewer?: Option.Option<Viewer>) => readonly Key[] },
 ): CommandShape {
 	return { ...operation("command", name, declaration), invalidates: declaration.invalidates };
 }

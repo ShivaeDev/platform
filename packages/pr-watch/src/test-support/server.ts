@@ -3,7 +3,9 @@ import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { Clock, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import type { Options } from "#model.ts";
+import { type QueuePull, queueReply } from "./queue.ts";
 export interface Reply {
 	readonly body: unknown;
 	readonly headers?: Record<string, string>;
@@ -37,7 +39,7 @@ export function pull(number = 1): PullFixture {
 export async function startServer() {
 	const directory = await mkdtemp(join(tmpdir(), "pr-watch-"));
 	const routes = new Map<string, Reply>();
-	const queueEntries = new Map<number, { autoMergeRequest: { enabledAt: string } | null; mergeQueueEntry: { id: string } | null; state: string }>();
+	const queueEntries = new Map<number, QueuePull>();
 	const requests: {
 		at: number;
 		path: string;
@@ -47,11 +49,11 @@ export async function startServer() {
 		status: number;
 		authorization: string | undefined;
 	}[] = [];
-	function defaultReply(path: string, body: { variables: { number: number } } | undefined): Reply {
+	function defaultReply(path: string, body: { query: string; variables: { number: number } } | undefined): Reply {
 		if (!path.endsWith("/graphql") || body === undefined) {
-			return { body: {}, status: 404 };
+			return { body: {}, status: HttpStatus.fromLiteral("NotFound") };
 		}
-		return { body: { data: { repository: { pullRequest: queueEntries.get(body.variables.number) ?? null } } } };
+		return queueReply(body, queueEntries);
 	}
 	const server = createServer(async (request, response) => {
 		const chunks: Uint8Array[] = [];
@@ -67,7 +69,7 @@ export async function startServer() {
 			.replaceAll('"', "")
 			.replaceAll(/[^\x20-\x7e]/gu, "")}"`;
 		const unchanged = reply.status === undefined && request.headers["if-none-match"] === etag;
-		const status = reply.status ?? (unchanged ? 304 : 200);
+		const status = reply.status ?? (unchanged ? HttpStatus.fromLiteral("NotModified") : HttpStatus.fromLiteral("OK"));
 		requests.push({
 			at: Effect.runSync(Clock.currentTimeMillis),
 			authorization: request.headers.authorization,
@@ -105,6 +107,7 @@ export async function startServer() {
 			autoMergeRequest: pr.auto_merge === null ? null : { enabledAt: "2026-01-01T00:00:00Z" },
 			mergeQueueEntry: null,
 			state: pr.merged ? "MERGED" : pr.state.toUpperCase(),
+			timelineItems: { nodes: [] },
 		});
 		const checks = `/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`;
 		const status = `/commits/${pr.head.sha}/status`;
@@ -129,11 +132,12 @@ export async function startServer() {
 		set,
 		setGraphql: (reply: Reply) => routes.set("/graphql", reply),
 		setPull,
-		setQueue: (number: number, autoMerge: boolean, queued: boolean) =>
+		setQueue: (number: number, autoMerge: boolean, queued: boolean, reason?: string) =>
 			queueEntries.set(number, {
 				autoMergeRequest: autoMerge ? { enabledAt: "2026-01-01T00:00:00Z" } : null,
 				mergeQueueEntry: queued ? { id: `entry-${number}` } : null,
 				state: "OPEN",
+				timelineItems: { nodes: reason === undefined ? [] : [{ reason }] },
 			}),
 	};
 }

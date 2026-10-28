@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, deferredServing, projectFiles } from "#test/boardStory.ts";
 
@@ -8,17 +9,17 @@ boardStory.it(
 	function* ({ startEmbedded, request, get }) {
 		yield* startEmbedded();
 		const page = yield* get("/plan.md");
-		expect(page.status).toBe(200);
+		expect(page.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(page.body).toContain("data-board-react-root");
 		for (const [path, type] of [
 			["react.js", "javascript"],
 			["react.css", "text/css"],
 		]) {
 			const response = yield* request(`/_board/${path}`);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.headers.get("content-type")).toContain(type);
 			expect(yield* Effect.promise(() => response.text())).not.toBe("");
 		}
-		expect((yield* get("/", "board.example")).status).toBe(403);
+		expect((yield* get("/", "board.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 	},
 );

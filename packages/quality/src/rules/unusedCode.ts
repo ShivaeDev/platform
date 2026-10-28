@@ -1,4 +1,4 @@
-import { runKnip } from "#knip/run.ts";
+import { runKnip } from "#adapters/knip/run.ts";
 import { defineRule } from "#rule.ts";
 
 export const unusedCode = defineRule({

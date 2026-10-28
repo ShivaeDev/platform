@@ -1,11 +1,12 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { body, WEBHOOK_SECRET } from "#test/fixture.ts";
 import { signature } from "#test/requests.ts";
 import { inbox } from "#test/story.ts";
 
 inbox.it("a signed GitHub delivery records its receipt and both typed jobs", [], function* ({ deliver, receipts, storedJobs }) {
-	expect(yield* deliver()).toEqual({ body: "queued", status: 202 });
+	expect(yield* deliver()).toEqual({ body: "queued", status: HttpStatus.fromLiteral("Accepted") });
 	const rows = yield* receipts();
 	const jobs = yield* storedJobs();
 	expect(rows).toMatchObject([{ "delivery_id": "delivery-1", event: "issues", outcome: "queued", source: "github" }]);
@@ -18,10 +19,10 @@ inbox.it("a signed GitHub delivery records its receipt and both typed jobs", [],
 });
 
 for (const [name, options, status] of [
-	["missing signature", { signature: null }, 401],
-	["wrong signature before malformed JSON is decoded", { body: "not-json", signature: signature(body) }, 401],
-	["missing delivery ID", { delivery: null }, 400],
-	["rejected payload", { body: JSON.stringify({ issue: { number: "body-must-stay-private" } }) }, 400],
+	["missing signature", { signature: null }, HttpStatus.fromLiteral("Unauthorized")],
+	["wrong signature before malformed JSON is decoded", { body: "not-json", signature: signature(body) }, HttpStatus.fromLiteral("Unauthorized")],
+	["missing delivery ID", { delivery: null }, HttpStatus.fromLiteral("BadRequest")],
+	["rejected payload", { body: JSON.stringify({ issue: { number: "body-must-stay-private" } }) }, HttpStatus.fromLiteral("BadRequest")],
 	["oversized body", { body: "x".repeat(257) }, 413],
 	["unregistered source", { source: "unknown" }, 404],
 ] as const) {
@@ -38,13 +39,16 @@ for (const [name, options, status] of [
 }
 
 inbox.it("records an unlisted event as ignored without decoding the body", [], function* ({ deliver, receipts, storedJobs }) {
-	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "ignored", status: 200 });
+	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "ignored", status: HttpStatus.fromLiteral("OK") });
 	expect(yield* receipts()).toMatchObject([{ event: "unlisted", "job_ids": [], outcome: "ignored" }]);
 	expect(yield* storedJobs()).toEqual([]);
 });
 
 inbox.it("records a listed event mapping to no jobs as ignored", [], function* ({ deliver, receipts, storedJobs }) {
-	expect(yield* deliver({ body: JSON.stringify({ zen: "Keep it simple" }), event: "ping" })).toEqual({ body: "ignored", status: 200 });
+	expect(yield* deliver({ body: JSON.stringify({ zen: "Keep it simple" }), event: "ping" })).toEqual({
+		body: "ignored",
+		status: HttpStatus.fromLiteral("OK"),
+	});
 	expect(yield* receipts()).toMatchObject([{ event: "ping", "job_ids": [], outcome: "ignored" }]);
 	expect(yield* storedJobs()).toEqual([]);
 });
@@ -52,7 +56,7 @@ inbox.it("records a listed event mapping to no jobs as ignored", [], function* (
 inbox.it("answers already queued for a duplicate and keeps the original job IDs", [], function* ({ deliver, receipts, storedJobs }) {
 	yield* deliver();
 	const original = yield* receipts();
-	expect(yield* deliver()).toEqual({ body: "already queued", status: 200 });
+	expect(yield* deliver()).toEqual({ body: "already queued", status: HttpStatus.fromLiteral("OK") });
 	expect(yield* receipts()).toEqual(original);
 	expect((yield* storedJobs()).map(({ id }) => id).toSorted()).toEqual(original[0]?.job_ids.toSorted());
 });
@@ -60,8 +64,8 @@ inbox.it("answers already queued for a duplicate and keeps the original job IDs"
 inbox.it("two concurrent copies enqueue the jobs once", [], function* ({ deliver, receipts, storedJobs }) {
 	const responses = yield* Effect.all([deliver(), deliver()], { concurrency: "unbounded" });
 	expect(responses.toSorted((a, b) => a.status - b.status)).toEqual([
-		{ body: "already queued", status: 200 },
-		{ body: "queued", status: 202 },
+		{ body: "already queued", status: HttpStatus.fromLiteral("OK") },
+		{ body: "queued", status: HttpStatus.fromLiteral("Accepted") },
 	]);
 	const rows = yield* receipts();
 	expect(rows.map(({ delivery_id: id }) => id)).toEqual(["delivery-1"]);
@@ -73,11 +77,11 @@ inbox.it(
 	[],
 	function* ({ deliver, rejectAudit, allowAudit, receipts, storedJobs }) {
 		yield* rejectAudit();
-		expect(yield* deliver()).toEqual({ body: "", status: 503 });
+		expect(yield* deliver()).toEqual({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
 		expect(yield* receipts()).toEqual([]);
 		expect(yield* storedJobs()).toEqual([]);
 		yield* allowAudit();
-		expect(yield* deliver()).toEqual({ body: "queued", status: 202 });
+		expect(yield* deliver()).toEqual({ body: "queued", status: HttpStatus.fromLiteral("Accepted") });
 		expect(yield* receipts()).toMatchObject([{ "delivery_id": "delivery-1", outcome: "queued" }]);
 		expect(yield* storedJobs()).toMatchObject([
 			{ data: { payload: { number: 42 } }, name: "webhook-audit" },
@@ -88,7 +92,7 @@ inbox.it(
 
 inbox.it("successful deliveries keep signing credentials and raw bodies out of telemetry", [], function* ({ deliver, telemetry }) {
 	const response = yield* deliver();
-	expect(response.status).toBe(202);
+	expect(response.status).toBe(HttpStatus.fromLiteral("Accepted"));
 	const captured = telemetry();
 	expect(captured.spans.length).toBeGreaterThan(0);
 	for (const value of [WEBHOOK_SECRET, signature(body), body, "unlogged-body-marker"]) {

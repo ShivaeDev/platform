@@ -48,7 +48,20 @@ export const startProcess = Effect.fn("FleetSupervisor.startProcess")(function* 
 		),
 	);
 	yield* Effect.addFinalizer(() =>
-		child.kill().pipe(Effect.ignore, Effect.andThen(Effect.ignore(child.exitCode)), Effect.andThen(Fiber.join(output)), Effect.orDie),
+		Effect.gen(function* () {
+			yield* child.kill().pipe(
+				Effect.interruptible,
+				Effect.ignore,
+				Effect.timeoutOrElse({
+					duration: "30 seconds",
+					orElse: () =>
+						logSupervisor(log, `${name} pid ${child.pid} did not stop within 30 seconds; force-killing`).pipe(
+							Effect.andThen(child.kill({ killSignal: "SIGKILL" })),
+						),
+				}),
+			);
+			yield* Fiber.join(output);
+		}).pipe(Effect.orDie),
 	);
 	yield* logSupervisor(log, `started ${name} pid ${child.pid} on ${code.revision}`);
 	return { exit: () => exit, pid: Number(child.pid) };

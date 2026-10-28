@@ -30,11 +30,11 @@ Trim the title, reject a whitespace-only title with the command's field rejectio
 
 ## 5. Declare the contract
 
-Finish `src/bookmarks.ts` by following [`notes.ts`](../../examples/starter/src/notes.ts). Use `collection` from `@shivaedev/contract/keys.ts` for bookmark keys, `query` and `command` from `@shivaedev/contract/operation.ts`, and `contract` from `@shivaedev/contract/contract.ts` for the group.
+Finish `src/bookmarks.ts` by following [`notes.ts`](../../examples/starter/src/notes.ts). Use `collection` from `@shivaedev/changes/keys.ts` for bookmark keys, `query` and `command` from `@shivaedev/contract/operation.ts`, and `contract` from `@shivaedev/contract/contract.ts` for the group.
 
-The list query reads the collection list key, returns `Schema.Array(Bookmark.json)` and declares `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created item's key. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the error from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
+Declare a `userId` bucket on the collection with `collection("bookmarks", Bookmark.fields.id, { userId: Schema.String })`. The list query declares a read policy requiring a session viewer and reads `bookmarks.bucket.userId(viewer.value.id)` from that viewer, returns `Schema.Array(Bookmark.json)` and declares `ServiceUnavailable`. The create command accepts `BookmarkFields`, returns `Bookmark.json`, declares `Invalid: fieldRejection(BookmarkFields)` and `ServiceUnavailable`, and invalidates the created record key and that viewer's `userId` bucket. Import `fieldRejection` from `@shivaedev/contract/rejection.ts` and the error from `@shivaedev/errors/taxonomy.ts`. Give this resource its own collection and contract names.
 
-Apply `Authenticated` from `@shivaedev/identity/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; it does not implement authorization or SQL.
+Apply `Authenticated` from `@shivaedev/identity/middleware.ts` to the group, as `Notes` does. The contract is browser safe and describes typed results and rejections; its query policy decides who may read, while server services implement SQL.
 
 ## 6. Wire the host handlers
 
@@ -66,7 +66,7 @@ Follow [`notesMigration.spec.ts`](../../examples/starter/src/server/notesMigrati
 pnpm test src/server/noteLifecycle.spec.ts src/server/bookmarksMigration.spec.ts
 ```
 
-Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database and `pnpm ready` supplies the test URLs. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.
+Set `TEST_DATABASE_URL` first. In this repository, `./script/update` prepares the shared database. Run focused tests with `pnpm --filter <package> test <paths>` and set the package database URL listed in the [root README](../../README.md#development). The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards. Confirm the PostgreSQL tests ran: a skipped test supplies no persistence or host evidence.
 
 ## 10. Prove the DOM path
 

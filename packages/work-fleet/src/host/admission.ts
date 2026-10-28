@@ -1,8 +1,8 @@
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem } from "effect";
 import { BadRequest, Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { boardDocuments, boardSnapshot } from "#board/documents.ts";
-import { fleetApproved, fleetLaunch } from "#board/fleetField.ts";
-import { inBoardReadPass, workMetadata } from "#board/readPass.ts";
+import { fleetApproved } from "#board/fleetField.ts";
+import { inBoardReadPass } from "#board/readPass.ts";
 import { briefChanged } from "#engine/boardBrief.ts";
 import { STOP_REASON } from "#engine/stopCommand.ts";
 import { Fleet } from "#fleet.ts";
@@ -10,13 +10,13 @@ import type { FleetHost } from "#host/config.ts";
 import { refreshForeignReservations } from "#host/foreignReservations.ts";
 import { type MainSnapshot, MainSource } from "#host/mainSource.ts";
 import { workerCwd } from "#host/providers.ts";
+import { taskLaunch } from "#host/taskLaunch.ts";
 import { launchPrompt } from "#host/workerBrief.ts";
 import type { DispatchNow, FleetRecord } from "#model.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
 import { coversRepository, preparationStop } from "#preparation/compatibility.ts";
 import type { Preparation } from "#preparation/schema.ts";
 import { sweepMerged } from "#scheduling/sweeps.ts";
-import { LaunchSettings } from "#session/schema.ts";
 import { dispatchStore } from "#storage/dispatchStore.ts";
 
 // Workers start from current main, so the whole repository is their scope and preparation pins only the base.
@@ -35,15 +35,6 @@ function preparation(main: MainSnapshot): Preparation {
 		validation: [],
 	};
 }
-
-const taskLaunch = Effect.fn("FleetHost.taskLaunch")(function* (work: BoardWork) {
-	const override = fleetLaunch(yield* workMetadata(work));
-	return yield* override === undefined
-		? Effect.succeed(undefined)
-		: Schema.decodeUnknownEffect(LaunchSettings)(override).pipe(
-				Effect.mapError(() => new BadRequest({ message: `${work.workId} has an invalid fleet-launch; use model, effort and serviceTier strings` })),
-			);
-});
 
 function unlaunched(record: FleetRecord) {
 	return record.step === "queued" && record.attempts.length === 0;
@@ -78,6 +69,9 @@ export const prepareApproved = Effect.fn("FleetHost.prepareApproved")(function* 
 		return;
 	}
 	const fleet = yield* Fleet;
+	yield* fleet
+		.briefProblem(work.workId, work.sourcePath)
+		.pipe(Effect.flatMap((message) => (message === undefined ? Effect.void : Effect.fail(new BadRequest({ message })))));
 	const record = input?.step === "released" && input.result?.kind === "change" ? (yield* fleet.reconcile(work.workId)).value : input;
 	if (record !== undefined && sweepMerged(record) && !(approval === "explicit" && briefChanged(record, work))) {
 		return;

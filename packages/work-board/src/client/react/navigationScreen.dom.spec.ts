@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { chromeFixture } from "#test/chromeFixture.ts";
@@ -85,7 +86,7 @@ screenStory.it(
 	function* ({ failDocument, recoverDocument, follow, navigate, readText, readAttribute }) {
 		failDocument();
 		yield* Effect.promise(() => navigate("/notes/deep/proof.md"));
-		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe("503"));
+		yield* eventually(() => expect(readAttribute("#doc", "data-status")).toBe(String(HttpStatus.fromLiteral("ServiceUnavailable"))));
 		expect(readAttribute("#doc", "data-route")).toBe("/notes/deep/proof.md");
 		expect(readText("#navigation-status")).toBe("");
 		recoverDocument();

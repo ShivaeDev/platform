@@ -7,7 +7,8 @@ for (const release of [false, true]) {
 		const { decision } = yield* host.question();
 		yield* host.failRecording(true);
 		const result = yield* host.cliAnswer("one", "Use PostgreSQL.", release);
-		expect(result.code).toBe(1);
+		const exitCode = result.code;
+		expect(exitCode).toBe(1);
 		expect(result.stdout).not.toContain("recorded");
 		expect(result.stderr).toContain("failed");
 		expect((yield* host.get()).decision).toEqual(decision);

@@ -10,6 +10,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
+import { sweepExpiredSessions } from "#server/better-auth/sweepExpiredSessions.ts";
 import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
@@ -17,6 +18,9 @@ import { databaseUrl, postgres } from "./postgres.ts";
 export const authStorage = storyKit({
 	after: {
 		*hosting(engine) {
+			if (!engine.hosting) {
+				return;
+			}
 			const mounted = yield* betterAuthMount(engine.options).pipe(
 				Effect.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "AUTH_RATE_LIMIT_ENABLED": "false" } }))),
 			);
@@ -50,6 +54,7 @@ export const authStorage = storyKit({
 			auth: betterAuth({ ...options, "baseURL": "http://127.0.0.1:3000", plugins: [testUtils()] }),
 			baseUrl: "",
 			headers: new Map<string, Headers>(),
+			hosting: true,
 			options,
 			storage: authTestDatabase(pool),
 		};
@@ -60,9 +65,9 @@ export const authStorage = storyKit({
 	runIf: databaseUrl !== undefined,
 	stages: ["accounts", "schema", "hosting"],
 	verbs: (engine, story) => ({
-		expireSessions: () => {
+		expireSessions: (userId?: string) => {
 			story.tell("stored auth sessions expire");
-			return engine.storage.expireSessions;
+			return engine.storage.expireSessions(userId);
 		},
 		session: (name: string) =>
 			Effect.tryPromise(async () => {
@@ -77,6 +82,10 @@ export const authStorage = storyKit({
 			}),
 		storedSessions: () => engine.storage.sessions,
 		storedUsers: () => engine.storage.users,
+		sweepExpiredSessions: () => {
+			story.tell("the worker sweeps expired auth sessions through the application SQL client");
+			return sweepExpiredSessions;
+		},
 	}),
 });
 
@@ -92,3 +101,7 @@ export function mintedAccounts() {
 export function missingImageColumn() {
 	return authStorage.trait("schema", "the default auth schema is missing its user image column", (engine) => engine.storage.omitImageColumn);
 }
+
+export const withoutAuthHost = authStorage.trait("hosting", "the worker never mounts Better Auth", (engine) => {
+	engine.hosting = false;
+});

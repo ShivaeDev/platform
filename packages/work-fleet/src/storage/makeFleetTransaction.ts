@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { invalidationKeys, type Key } from "@shivaedev/contract/keys.ts";
+import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 
 export const makeFleetTransaction = Effect.gen(function* () {

@@ -1,7 +1,7 @@
-import { Context, Schema } from "effect";
+import { Context, Effect, Schema } from "effect";
 import { RpcMiddleware } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 
@@ -22,11 +22,13 @@ export class Authentication extends RpcMiddleware.Service<Authentication, { prov
 export const orders = collection("orders", Order.fields.id);
 export const GetOrder = query("get", {
 	payload: { id: Order.fields.id },
+	readPolicy: () => Effect.succeed(true),
 	reads: ({ id }) => [orders.item(id)],
 	rejections: { OrderNotFound, StorageUnavailable },
 	success: Order,
 });
 export const ListOrders = query("list", {
+	readPolicy: () => Effect.succeed(true),
 	reads: () => [orders.list],
 	rejections: { StorageUnavailable },
 	success: Schema.Array(Order),

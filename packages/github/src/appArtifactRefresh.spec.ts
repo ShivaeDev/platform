@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { appGithub } from "#test/appGithub.ts";
 
@@ -14,14 +15,18 @@ appGithub.it(
 			{ method: "POST", path: "/app/installations/7/access_tokens" },
 		]);
 		const redirects = requests().filter(({ path }) => path === "/repos/acme/widgets/actions/artifacts/7/zip");
-		expect(redirects.map(({ status }) => status)).toEqual([302, 401, 302]);
+		expect(redirects.map(({ status }) => status)).toEqual([
+			HttpStatus.fromLiteral("Found"),
+			HttpStatus.fromLiteral("Unauthorized"),
+			HttpStatus.fromLiteral("Found"),
+		]);
 		expect(redirects[1]?.headers.authorization).toBe(redirects[0]?.headers.authorization);
 		expect(redirects[2]?.headers.authorization).not.toBe(redirects[0]?.headers.authorization);
 		expect(
 			requests()
 				.filter(({ path }) => path.startsWith("/storage/"))
 				.map(({ status }) => status),
-		).toEqual([200, 200]);
+		).toEqual([HttpStatus.fromLiteral("OK"), HttpStatus.fromLiteral("OK")]);
 	},
 );
 
@@ -32,7 +37,11 @@ appGithub.it(
 		yield* downloadArchive(8);
 		yield* rejectArchive();
 		yield* rejectArchive();
-		expect(yield* Effect.flip(downloadArchive(8))).toMatchObject({ _tag: "RemoteUnauthorized", method: "GET", status: 401 });
+		expect(yield* Effect.flip(downloadArchive(8))).toMatchObject({
+			_tag: "RemoteUnauthorized",
+			method: "GET",
+			status: HttpStatus.fromLiteral("Unauthorized"),
+		});
 		expect(exchanges()).toMatchObject([
 			{ method: "POST", path: "/app/installations/7/access_tokens" },
 			{ method: "POST", path: "/app/installations/7/access_tokens" },
@@ -41,11 +50,11 @@ appGithub.it(
 			requests()
 				.filter(({ path }) => path === "/repos/acme/widgets/actions/artifacts/7/zip")
 				.map(({ status }) => status),
-		).toEqual([302, 401, 401]);
+		).toEqual([HttpStatus.fromLiteral("Found"), HttpStatus.fromLiteral("Unauthorized"), HttpStatus.fromLiteral("Unauthorized")]);
 		expect(
 			requests()
 				.filter(({ path }) => path.startsWith("/storage/"))
 				.map(({ status }) => status),
-		).toEqual([200]);
+		).toEqual([HttpStatus.fromLiteral("OK")]);
 	},
 );

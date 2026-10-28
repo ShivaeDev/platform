@@ -1,15 +1,16 @@
 import { inspect } from "node:util";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { applicationRateLimit, applicationStorage, environment, memoryStorage, mount } from "#test/better-auth/mount.ts";
 
 mount.it("logs a redacted provider failure in the request trace before answering 503", [], function* ({ logs, request, stopAuth }) {
-	expect((yield* request()).status).toBe(200);
+	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
 	expect(logs().filter((log) => log.level === "Error")).toEqual([]);
 	yield* stopAuth();
 	const traceId = "1234567890abcdef1234567890abcdef";
 	expect(yield* request({ traceparent: `00-${traceId}-1234567890abcdef-01` })).toEqual({
 		body: "Authentication is temporarily unavailable",
-		status: 503,
+		status: HttpStatus.fromLiteral("ServiceUnavailable"),
 	});
 	expect(logs().filter((log) => log.level === "Error")).toEqual([
 		{
@@ -40,7 +41,7 @@ for (const trust of [undefined, "127.0.0.2", "127.0.0.1", "127.0.0.0/8"]) {
 			],
 			function* ({ request }) {
 				const response = yield* request({ "x-forwarded-for": "198.51.100.10", "x-real-ip": "203.0.113.10" });
-				expect(response.status).toBe(200);
+				expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 				const trusted = trust === "127.0.0.1" || trust === "127.0.0.0/8";
 				expect(JSON.parse(response.body)).toEqual({
 					forwardedFor: trusted ? "198.51.100.10" : null,
@@ -52,9 +53,9 @@ for (const trust of [undefined, "127.0.0.2", "127.0.0.1", "127.0.0.0/8"]) {
 }
 
 mount.it("enables rate limits by default even when app options disable them", [], function* ({ request }) {
-	expect((yield* request()).status).toBe(200);
-	expect((yield* request()).status).toBe(200);
-	expect((yield* request()).status).toBe(429);
+	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
+	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
+	expect((yield* request()).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
 });
 
 mount.it(
@@ -62,7 +63,7 @@ mount.it(
 	[applicationRateLimit(true), environment({ "AUTH_RATE_LIMIT_ENABLED": "false" })],
 	function* ({ request }) {
 		for (let attempt = 0; attempt < 4; attempt += 1) {
-			expect((yield* request()).status).toBe(200);
+			expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
 		}
 	},
 );
@@ -79,10 +80,10 @@ for (const header of ["x-forwarded-for", "x-real-ip"]) {
 		],
 		function* ({ request }) {
 			const alice = { [header]: "198.51.100.10" };
-			expect((yield* request(alice)).status).toBe(200);
-			expect((yield* request(alice)).status).toBe(200);
-			expect((yield* request(alice)).status).toBe(429);
-			expect((yield* request({ [header]: "198.51.100.20" })).status).toBe(200);
+			expect((yield* request(alice)).status).toBe(HttpStatus.fromLiteral("OK"));
+			expect((yield* request(alice)).status).toBe(HttpStatus.fromLiteral("OK"));
+			expect((yield* request(alice)).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
+			expect((yield* request({ [header]: "198.51.100.20" })).status).toBe(HttpStatus.fromLiteral("OK"));
 		},
 	);
 }
@@ -92,20 +93,20 @@ for (const [name, storage] of [
 	["explicit memory", [memoryStorage]],
 ] as const) {
 	mount.it(`starts each host with fresh rate-limit buckets (${name})`, storage, function* ({ request, startHost }) {
-		expect((yield* request()).status).toBe(200);
-		expect((yield* request()).status).toBe(200);
-		expect((yield* request()).status).toBe(429);
+		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
+		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
+		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
 		yield* startHost();
-		expect((yield* request({}, 1)).status).toBe(200);
-		expect((yield* request({}, 1)).status).toBe(200);
-		expect((yield* request({}, 1)).status).toBe(429);
-		expect((yield* request()).status).toBe(429);
+		expect((yield* request({}, 1)).status).toBe(HttpStatus.fromLiteral("OK"));
+		expect((yield* request({}, 1)).status).toBe(HttpStatus.fromLiteral("OK"));
+		expect((yield* request({}, 1)).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
+		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("TooManyRequests"));
 	});
 }
 
 mount.it("uses the application's custom storage for every request", [applicationStorage], function* ({ consumed, request }) {
 	for (let attempt = 0; attempt < 4; attempt += 1) {
-		expect((yield* request()).status).toBe(200);
+		expect((yield* request()).status).toBe(HttpStatus.fromLiteral("OK"));
 	}
 	expect(consumed()).toEqual(Array.from({ length: 4 }, () => ({ key: expect.any(String), rule: { max: 2, window: 60 } })));
 	expect(new Set(consumed().map(({ key }) => key)).size).toBe(1);

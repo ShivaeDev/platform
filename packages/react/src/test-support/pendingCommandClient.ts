@@ -2,16 +2,16 @@ import { Deferred, Effect, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
+import { collection } from "@shivaedev/changes/keys.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
-import { collection } from "@shivaedev/contract/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 
 export class ToggleRejected extends Schema.TaggedError<ToggleRejected>()("ToggleRejected", { reason: Schema.String }) {}
 const items = collection("items", Schema.Number);
 const Row = Schema.Struct({ enabled: Schema.Boolean, id: Schema.Number });
-const List = query("list", { reads: () => [items.list], success: Schema.Array(Row) });
-const Count = query("count", { reads: () => [items.list], success: Schema.Number });
+const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [items.list], success: Schema.Array(Row) });
+const Count = query("count", { readPolicy: () => Effect.succeed(true), reads: () => [items.list], success: Schema.Number });
 const Toggle = command("toggle", {
 	invalidates: ({ id }) => [items.item(id)],
 	payload: Row,

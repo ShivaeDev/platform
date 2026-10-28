@@ -6,7 +6,12 @@ import type { Prompt } from "#browser/responses/Prompt.ts";
 import { Identity } from "#path/Identity.ts";
 
 const Id = Identity.check(Schema.isMaxLength(128));
-const PromptFields = Schema.Struct({ id: Id, request: Schema.optional(Identity), select: Schema.optional(Schema.Literals(["one", "many", "text"])) });
+const PromptFields = Schema.Struct({
+	id: Id,
+	request: Schema.optional(Identity),
+	required: Schema.optional(Schema.Literal("selection")),
+	select: Schema.optional(Schema.Literals(["one", "many", "text"])),
+});
 const OptionFields = Schema.Struct({ id: Id });
 
 export function sliceNode(source: string, node: RootContent) {
@@ -29,6 +34,7 @@ export function promptFrom(node: ContainerDirective, source: string) {
 	if (
 		description.some(hasControl)
 		|| description.length === 0
+		|| (attrs.select === "text" && attrs.required !== undefined)
 		|| options.length > 32
 		|| (attrs.select === "text" ? options.length > 0 : options.length === 0)
 	) {
@@ -51,6 +57,7 @@ export function promptFrom(node: ContainerDirective, source: string) {
 			id: attrs.id,
 			mode: attrs.select ?? "one",
 			options: choices,
+			...(attrs.required === "selection" ? { requireSelection: true } : {}),
 			source: description.map((child) => sliceNode(source, child)).join("\n\n"),
 		} satisfies Prompt,
 		request: attrs.request,

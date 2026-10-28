@@ -1,6 +1,7 @@
 import { renameSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import { Effect, PlatformError } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { identityFixture } from "#test/identityFixture.ts";
@@ -11,9 +12,9 @@ const readingProject = [projectFiles(identityFixture()), boardHome("legacy.md")]
 boardStory.it("serves item URLs with either trailing-slash form and reports unknown IDs", readingProject, function* ({ get }) {
 	for (const slash of ["", "/"]) {
 		const item = yield* get(`/_board/item/work.search${slash}`);
-		expect(item.status).toBe(200);
+		expect(item.status).toBe(HttpStatus.fromLiteral("OK"));
 		const missing = yield* get(`/_board/item/missing${slash}`);
-		expect(missing.status).toBe(404);
+		expect(missing.status).toBe(HttpStatus.fromLiteral("NotFound"));
 	}
 });
 
@@ -24,7 +25,7 @@ boardStory.it(
 		const events = yield* watchProject();
 		yield* events.next();
 		try {
-			expect((yield* get("/_board/item/work.search/")).status).toBe(200);
+			expect((yield* get("/_board/item/work.search/")).status).toBe(HttpStatus.fromLiteral("OK"));
 			editFile(
 				"items/search & review.md",
 				identityFixture()["items/search & review.md"]?.replace("# Search the workspace", "# Renamed heading") ?? "",
@@ -33,11 +34,11 @@ boardStory.it(
 			renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "renamed.md"));
 			yield* changesUntil(events, "renamed.md");
 			const renamed = yield* get("/_board/item/work.search/");
-			expect(renamed.status).toBe(200);
+			expect(renamed.status).toBe(HttpStatus.fromLiteral("OK"));
 			rmSync(join(notes.root, "renamed.md"));
 			yield* changesUntil(events, "renamed.md");
 			const missing = yield* get("/_board/item/work.search/");
-			expect(missing.status).toBe(404);
+			expect(missing.status).toBe(HttpStatus.fromLiteral("NotFound"));
 		} finally {
 			yield* events.close();
 		}
@@ -54,9 +55,9 @@ boardStory.it(
 			editFile("duplicate.md", "---\nid: work.search\n---\n# Another source");
 			yield* changesUntil(events, "duplicate.md");
 			const result = yield* get("/_board/item/work.search/");
-			expect(result.status).toBe(409);
-			expect((yield* get("/decision.md")).status).toBe(200);
-			expect((yield* get("/items/search%20%26%20review.md")).status).toBe(200);
+			expect(result.status).toBe(HttpStatus.fromLiteral("Conflict"));
+			expect((yield* get("/decision.md")).status).toBe(HttpStatus.fromLiteral("OK"));
+			expect((yield* get("/items/search%20%26%20review.md")).status).toBe(HttpStatus.fromLiteral("OK"));
 		} finally {
 			yield* events.close();
 		}
@@ -87,21 +88,21 @@ boardStory.it("does not claim unique identity when part of the workspace cannot 
 		}),
 	});
 	const result = yield* get("/_board/item/work.search/");
-	expect(result.status).toBe(503);
+	expect(result.status).toBe(HttpStatus.fromLiteral("ServiceUnavailable"));
 	const normal = yield* get("/items/search%20%26%20review.md");
-	expect(normal.status).toBe(200);
+	expect(normal.status).toBe(HttpStatus.fromLiteral("OK"));
 });
 
 boardStory.it(
 	"rebuilds identities from files after a server restart without stored index data",
 	readingProject,
 	function* ({ board, notes, start, get }) {
-		expect((yield* get("/_board/item/work.search/")).status).toBe(200);
+		expect((yield* get("/_board/item/work.search/")).status).toBe(HttpStatus.fromLiteral("OK"));
 		yield* board.stop();
 		renameSync(join(notes.root, "items/search & review.md"), join(notes.root, "moved.md"));
 		board = yield* start({ home: "legacy.md" });
 		const result = yield* get("/_board/item/work.search/");
-		expect(result.status).toBe(200);
+		expect(result.status).toBe(HttpStatus.fromLiteral("OK"));
 	},
 );
 
@@ -118,7 +119,7 @@ boardStory.it(
 			yield* changesUntil(events, "named.md");
 			for (const url of ["/_board/item/source.md", "/_board/item/source.md/", "/_board/item/source%2Emd"]) {
 				const item = yield* get(url);
-				expect(item.status).toBe(200);
+				expect(item.status).toBe(HttpStatus.fromLiteral("OK"));
 			}
 		} finally {
 			yield* events.close();
@@ -148,6 +149,6 @@ boardStory.it(
 		});
 
 		const result = yield* get("/_board/item/work.search/");
-		expect(result.status).toBe(404);
+		expect(result.status).toBe(HttpStatus.fromLiteral("NotFound"));
 	},
 );

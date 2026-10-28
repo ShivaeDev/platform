@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type Check, github, type PullChanges } from "./fixtures.ts";
 import type { Reply } from "./server.ts";
 import { watch } from "./watch.ts";
@@ -61,13 +62,13 @@ export function incompleteObservation(failure: string) {
 		const fixture = github(engine, () => undefined);
 		fixture.pullIs(1, { "auto_merge": null, ...(failure === "mergeability" ? { mergeable: null, "mergeable_state": "unknown" } : {}) });
 		if (failure === "checks") {
-			fixture.reply("/commits/sha1/status", { body: {}, status: 500 });
+			fixture.reply("/commits/sha1/status", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		}
 		if (failure === "detail") {
-			fixture.reply("/pulls/1", { body: {}, status: 500 });
+			fixture.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		}
 		if (failure === "queue") {
-			fixture.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: 500 });
+			fixture.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
 		}
 	});
 }

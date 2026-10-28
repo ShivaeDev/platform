@@ -52,9 +52,10 @@ export const startBoard = Effect.fn("Test.startBoard")(function* (
 	fleetPort?: number | null,
 	tracer?: Tracer.Tracer,
 	path?: Path.Path,
+	drainRequests = false,
 ) {
 	const board = Layer.provide(
-		serveBoard({ ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, port: 0, responses, root }),
+		serveBoard({ drainRequests, ...(fleetPort === undefined ? {} : { fleetPort }), home, maintainer, port: 0, responses, root }),
 		Layer.mergeAll(
 			NodeServices.layer,
 			wrapped(wrap),

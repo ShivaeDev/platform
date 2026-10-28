@@ -15,25 +15,27 @@ import {
 import { resultProbe, results } from "#test/resultStories.ts";
 import { orderSessions, sessionScreens } from "#test/sessionStories.ts";
 
-results.it(
-	"an Unauthorized action rechecks once per failed result and retains data and typed cause",
-	[resultProbe("action", "unauthorized")],
-	function* ({ result, execute, rejectNext, rerender }) {
-		const view = result();
-		yield* execute();
-		expect(view.current().data).toEqual(Option.some("Saved order"));
-		expect(view.rechecks).toEqual([]);
-		rejectNext();
-		for (let failures = 1; failures <= 2; failures += 1) {
+for (const kind of ["query", "action"] as const) {
+	results.it(
+		`an Unauthorized ${kind} calls an unstable recheck once per failed result and retains data and typed cause`,
+		[resultProbe(kind, "unauthorized")],
+		function* ({ result, execute, rejectNext, rerender }) {
+			const view = result();
 			yield* execute();
-			expect(view.rechecks).toHaveLength(failures);
 			expect(view.current().data).toEqual(Option.some("Saved order"));
-			expect(Option.getOrThrow(Option.flatMap(view.current().cause, Cause.findErrorOption))).toBe(view.denied);
-			yield* rerender();
-			expect(view.rechecks).toHaveLength(failures);
-		}
-	},
-);
+			expect(view.rechecks).toEqual([]);
+			rejectNext();
+			for (let failures = 1; failures <= 2; failures += 1) {
+				yield* execute();
+				expect(view.rechecks).toEqual(Array.from({ length: failures }, (_, generation) => `session-${generation}`));
+				expect(view.current().data).toEqual(Option.some("Saved order"));
+				expect(Option.getOrThrow(Option.flatMap(view.current().cause, Cause.findErrorOption))).toBe(view.denied);
+				yield* rerender();
+				expect(view.rechecks).toEqual(Array.from({ length: failures }, (_, generation) => `session-${generation}`));
+			}
+		},
+	);
+}
 sessionScreens.it(
 	"each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one",
 	[orderSessions()],

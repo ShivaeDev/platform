@@ -11,6 +11,7 @@ export const Api = contract("native", {
 	queries: [
 		query("profile", {
 			payload: { owner: Schema.String },
+			readPolicy: () => Effect.succeed(true),
 			reads: () => [{ _tag: "List", collection: "profile" }],
 			rejections: { Forbidden },
 			success: Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String, role: Schema.NullOr(Schema.String) }),

@@ -1,5 +1,7 @@
+import { NodeCrypto } from "@effect/platform-node";
 import type { TestContext } from "@effect/vitest";
 import { Effect, Layer } from "effect";
+import * as TestCrypto from "effect/testing/TestCrypto";
 import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 import type { EffectTest, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { type Genre, genreOf } from "#internal/genre.ts";
@@ -54,14 +56,13 @@ export function storyIt(definition: LooseDefinition): LooseIt {
 	const genre = genreOf(definition.name);
 	const outbound = definition.outbound ?? (Reflect.get(globalThis, Symbol.for("test-story.dom")) ? {} : undefined);
 	const { effectApp } = makeEffectIt({
-		around:
-			outbound === undefined
-				? definition.around
-				: (effect) =>
-						Effect.gen(function* () {
-							yield* routeOutbound(outbound);
-							return yield* definition.around?.(effect) ?? effect;
-						}),
+		around: (effect) =>
+			Effect.gen(function* () {
+				if (outbound !== undefined) {
+					yield* routeOutbound(outbound);
+				}
+				return yield* definition.around?.(effect) ?? effect;
+			}).pipe(Effect.provide(TestCrypto.layer(0).pipe(Layer.provide(NodeCrypto.layer)))),
 		clock: definition.clock,
 		layer: definition.layer ?? Layer.empty,
 		makeHarness: () => Effect.void,

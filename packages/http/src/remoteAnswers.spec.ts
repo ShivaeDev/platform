@@ -1,17 +1,18 @@
 import { DateTime, Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
 import { httpClient, routeAnswers } from "#test/http-client/story.ts";
 import { RemoteGone, RemoteHttpError, RemoteNotFound, RemoteRateLimited, RemoteUnauthorized } from "./errors.ts";
 
 for (const [status, ErrorClass] of [
-	[401, RemoteUnauthorized],
-	[404, RemoteNotFound],
-	[410, RemoteGone],
-	[429, RemoteRateLimited],
-	[418, RemoteHttpError],
-	[302, RemoteHttpError],
-	[503, RemoteHttpError],
+	[HttpStatus.fromLiteral("Unauthorized"), RemoteUnauthorized],
+	[HttpStatus.fromLiteral("NotFound"), RemoteNotFound],
+	[HttpStatus.fromLiteral("Gone"), RemoteGone],
+	[HttpStatus.fromLiteral("TooManyRequests"), RemoteRateLimited],
+	[HttpStatus.fromLiteral("ImATeapot"), RemoteHttpError],
+	[HttpStatus.fromLiteral("Found"), RemoteHttpError],
+	[HttpStatus.fromLiteral("ServiceUnavailable"), RemoteHttpError],
 ] as const) {
 	httpClient.it(`POST fails with ${ErrorClass.name} when the route answers ${status}`, [routeAnswers(status)], function* ({ answer, url }) {
 		const error = yield* Effect.flip(answer());
@@ -20,25 +21,29 @@ for (const [status, ErrorClass] of [
 	});
 }
 
-httpClient.it("a 2xx response passes through with its body and headers", [routeAnswers(201)], function* ({ answer }) {
+httpClient.it("a 2xx response passes through with its body and headers", [routeAnswers(HttpStatus.fromLiteral("Created"))], function* ({ answer }) {
 	const response = yield* answer();
-	expect({ status: response.status }).toEqual({ status: 201 });
+	expect({ status: response.status }).toEqual({ status: HttpStatus.fromLiteral("Created") });
 	expect(response.headers["x-secret"]).toBe("remote-header");
 	expect(yield* response.json).toEqual({ secret: "remote-body" });
 });
 
-httpClient.it("Retry-After delay-seconds use the TestClock instant", [routeAnswers(429, { "Retry-After": "120" })], function* ({ answer }) {
-	yield* TestClock.adjust("10 seconds");
-	const error = yield* Effect.flip(answer());
-	expect(error).toBeInstanceOf(RemoteRateLimited);
-	if (error instanceof RemoteRateLimited) {
-		expect(error.retryAfter && DateTime.formatIso(error.retryAfter)).toBe("1970-01-01T00:02:10.000Z");
-	}
-});
+httpClient.it(
+	"Retry-After delay-seconds use the TestClock instant",
+	[routeAnswers(HttpStatus.fromLiteral("TooManyRequests"), { "Retry-After": "120" })],
+	function* ({ answer }) {
+		yield* TestClock.adjust("10 seconds");
+		const error = yield* Effect.flip(answer());
+		expect(error).toBeInstanceOf(RemoteRateLimited);
+		if (error instanceof RemoteRateLimited) {
+			expect(error.retryAfter && DateTime.formatIso(error.retryAfter)).toBe("1970-01-01T00:02:10.000Z");
+		}
+	},
+);
 
 httpClient.it(
 	"a 503 with an HTTP-date Retry-After is rate limited until that UTC instant",
-	[routeAnswers(503, { "Retry-After": "Sun, 25 Oct 2026 11:00:00 GMT" })],
+	[routeAnswers(HttpStatus.fromLiteral("ServiceUnavailable"), { "Retry-After": "Sun, 25 Oct 2026 11:00:00 GMT" })],
 	function* ({ answer }) {
 		const error = yield* Effect.flip(answer());
 		expect(error).toBeInstanceOf(RemoteRateLimited);
@@ -50,7 +55,7 @@ httpClient.it(
 
 httpClient.it(
 	"an invalid Retry-After leaves rate limiting typed without a retry instant",
-	[routeAnswers(429, { "Retry-After": "garbage" })],
+	[routeAnswers(HttpStatus.fromLiteral("TooManyRequests"), { "Retry-After": "garbage" })],
 	function* ({ answer }) {
 		const error = yield* Effect.flip(answer());
 		expect(error).toBeInstanceOf(RemoteRateLimited);

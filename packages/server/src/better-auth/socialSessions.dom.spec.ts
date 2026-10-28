@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { mintedSocialSession, socialApp } from "#test/better-auth/socialApp.ts";
 
@@ -21,7 +22,7 @@ socialApp.it(
 		expect(new URL(location()).hostname).toBe("github.com");
 		const response = yield* followRedirect();
 		expect(response.redirected).toBe(true);
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(yield* Effect.promise(() => response.text())).toContain("Signed in as alice@social.test");
 		expect(location()).toMatch(/^http:\/\/localhost:\d+\/signed-in$/u);
 		expect(heading()).toBe("Signed in as alice@social.test");

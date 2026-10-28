@@ -41,6 +41,7 @@ const applyPrediction = Effect.fn("Fleet.applyPrediction")(function* (
 				decision: undefined,
 				decisionAcknowledged: undefined,
 				decisionPublished: undefined,
+				mergeAreasReleased: true,
 				mergePrediction: prediction,
 				mergeReadyAt: undefined,
 				mergeReadyHead: undefined,

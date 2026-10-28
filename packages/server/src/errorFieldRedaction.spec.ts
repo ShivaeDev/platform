@@ -1,5 +1,6 @@
 import { inspect } from "node:util";
 import { Cause } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { sensitiveErrorField } from "#test/app-host/sensitiveErrorField.ts";
 import { host } from "#test/app-host/story.ts";
@@ -15,7 +16,7 @@ for (const protocol of ["http/json", "http/protobuf"]) {
 					const secret = `private-inner-${field}`;
 					const payload = { field, kind, value: secret };
 					const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "errorField" })}\n`, false);
-					expect(response.status).toBe(200);
+					expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 					expect(response.body).not.toContain(secret);
 					expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
 					const [reported] = reportedCauses();

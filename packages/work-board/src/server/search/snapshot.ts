@@ -1,5 +1,6 @@
-import { Effect, Option, Ref, Semaphore, SubscriptionRef } from "effect";
+import { Clock, Effect, type FileSystem, Option, type Path, type PlatformError, Ref, Semaphore, SubscriptionRef } from "effect";
 import type { Indexing } from "#rpc/Indexing.ts";
+import { archiveDocuments, refreshArchived } from "#server/archive/documents.ts";
 import type { Changes } from "#server/files/changes.ts";
 import { invalidationsSince } from "#server/files/invalidations.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
@@ -11,6 +12,10 @@ import { updateEntries } from "./updateEntries.ts";
 
 const READ_CONCURRENCY = 16;
 const PROGRESS_STEPS = 100;
+
+function currentSnapshot(hit: Snapshot | undefined, revision: number, watching: boolean, elapsed: number) {
+	return hit?.revision === revision && hit.unavailable.length === 0 && watching && elapsed < 60 * 60 * 1000 ? hit : undefined;
+}
 
 export interface Snapshot {
 	readonly documents: readonly MetadataDocument[];
@@ -64,6 +69,7 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 ) {
 	const cached = yield* Ref.make<Snapshot | undefined>(undefined);
 	const semaphore = yield* Semaphore.make(1);
+	let housekeptAt = 0;
 	let records = new Map<string, IndexedDocument>();
 	let listed = new Map<string, MarkdownFile>();
 	const enrich = updateEntries();
@@ -76,14 +82,18 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 	function report(progress: Indexing | undefined) {
 		return indexing ? SubscriptionRef.set(indexing, progress) : Effect.void;
 	}
-	const buildSnapshot = Effect.fn("WorkBoard.buildSnapshot")(function* (hit: Snapshot | undefined) {
+	const buildSnapshot = Effect.fn("WorkBoard.buildSnapshot")(function* (
+		hit: Snapshot | undefined,
+	): Effect.fn.Return<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path> {
+		const now = yield* Clock.currentTimeMillis;
 		// Only a build without a previous snapshot reads the whole workspace; later builds reread the files that changed.
 		const progress = hit === undefined ? report : () => Effect.void;
 		yield* progress({ _tag: "Indexing", read: 0 });
 		const { files, revision } = yield* settledListing(changes);
 		const watching = yield* Ref.get(changes.watching);
-		if (hit?.revision === revision && hit.unavailable.length === 0 && watching) {
-			return hit;
+		const current = currentSnapshot(hit, revision, watching, now - housekeptAt);
+		if (current) {
+			return current;
 		}
 		const dirty = hit && watching ? invalidationsSince(changes, hit.revision) : undefined;
 		const next = new Map<string, IndexedDocument>();
@@ -101,9 +111,19 @@ export const searchSnapshot = Effect.fn("WorkBoard.searchSnapshot")(function* (
 				unavailable.push(file.path);
 			}
 		}
+		const modified = new Map(files.map((file) => [file.path, file.modified]));
+		const moved = yield* archiveDocuments(
+			root,
+			documents.map((document) => ({ ...document, modified: modified.get(document.file) ?? now })),
+			now,
+		);
+		housekeptAt = now;
+		if (moved.length > 0) {
+			yield* refreshArchived(changes, moved);
+			return yield* buildSnapshot(hit);
+		}
 		const model = updateModel(hit?.model, documents, unavailable, home ?? files[0]?.path);
 		const enriched = enrich(next, model);
-		const modified = new Map(files.map((file) => [file.path, file.modified]));
 		const snapshot = { documents, entries: enriched, maintainer, model, modified, revision, unavailable };
 		records = next;
 		listed = new Map(files.map((file) => [file.path, file]));

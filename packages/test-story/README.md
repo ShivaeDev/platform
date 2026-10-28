@@ -75,6 +75,8 @@ Acquire real services in `create` or a trait inside the story's per-test Scope, 
 
 The bakery below starts with a cold oven and no dough. Its traits declare heat and dough, its baking action returns no report, and its readouts expose loaves and elapsed minutes separately. `runUntil` waits for that one engine action to complete; it does not replace a spec's sequence of actions.
 
+Every story gets Effect's native `TestCrypto` service with seed `0`, created afresh before its wrapper, engine creation, traits and body. A command that yields `Crypto` from `effect/Crypto` can therefore produce the same invite code in every story, without a kit-specific random source. Digests use the Node implementation. UUIDv7 also reads the story's clock; pin it when asserting the complete value. These deterministic values belong only in tests.
+
 ### 1. Once per engine: the story kit
 
 `storyKit(definition)` from `@shivaedev/test-story/server/storyKit.ts` turns one definition into the kit. Every type, the engine's, the stages', the verbs' and the services', is inferred from it.
@@ -467,6 +469,32 @@ bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, o
 
 A spec starts a story, acts through verbs and checks what a user would see. When it needs a setup or an action the kit lacks, add a trait or verb to the kit instead of building it in the spec.
 
+For several outcomes after one action, use `outcomes` from `@shivaedev/test-story/server/outcomes.ts`. Each row puts its label beside an Effect readout and its expected value:
+
+```ts
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+
+accounts.it("removing Bob leaves Alice signed in", [bobAndAliceAreSignedIn()], function* ({ remove, request, sessions }) {
+  yield* remove("bob");
+
+  yield* outcomes({
+    "bob's next request": [request("bob"), "unauthorized"],
+    "bob's sessions": [sessions("bob"), 0],
+    "alice's next request": [request("alice"), "ok"],
+  });
+});
+```
+
+`outcomes` runs readouts in row order, then compares the actual and expected label-keyed objects with one native Vitest `toEqual`. Expected values follow their readout's success type and accept Vitest asymmetric matchers such as `expect.objectContaining(...)`. A failing readout keeps its typed error; an equality failure shows one labelled diff and the story report points to the `outcomes` call. For one outcome, keep a plain `expect`:
+
+```ts
+accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ remove, request }) {
+  yield* remove("bob");
+
+  expect(yield* request("bob")).toBe("unauthorized");
+});
+```
+
 ### Pinning time
 
 Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it explicitly with native `TestClock.adjust`:
@@ -666,6 +694,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | Module | Exports |
 | --- | --- |
 | `server/storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
+| `server/outcomes.ts` | `outcomes(rows)` |
 | `server/domFetch.ts` | `domFetch(baseUrl)` |
 | `server/seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
 | `server/routeOutbound.ts` | `routeOutbound(routes)` |
@@ -680,10 +709,10 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 ### Install and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/test-story @effect/vitest@4.0.5 effect@4.0.5 vitest@5.0.3
+pnpm add --save-dev @shivaedev/test-story @effect/platform-node@4.0.5 @effect/vitest@4.0.5 effect@4.0.5 vitest@5.0.3
 ```
 
-`@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories.
+`@effect/platform-node`, `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories. The Node adapter supplies the digest implementation retained by `TestCrypto`.
 
 Test-story is an application's one test dependency: it brings [`@shivaedev/test`](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) and [`@shivaedev/test-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/test-sql#readme), which an application on `@shivaedev/platform` imports by their own names without listing them. `@effect/sql-pg` is an optional peer for `test-sql`'s PostgreSQL helpers; install it when the stories use them. A library that tests with test-story still declares `test` or `test-sql` directly when it imports them.
 

@@ -5,6 +5,8 @@ import { noJsdoc } from "#rules/comments/noJsdoc.ts";
 import { noLineReference } from "#rules/comments/noLineReference.ts";
 import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
+import { effectBoundary } from "#rules/effect/boundary.ts";
+import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
 import { folderNames } from "#rules/files/folderNames.ts";
 import { namedAfterExport } from "#rules/files/namedAfterExport.ts";
@@ -16,6 +18,7 @@ import { importsManifest } from "#rules/imports/manifest.ts";
 import { noTestCode } from "#rules/imports/noTestCode.ts";
 import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
+import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { authSql } from "#rules/stories/authSql.ts";
 import { storyEngine } from "#rules/stories/engine.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
@@ -45,6 +48,9 @@ import { unusedCode } from "./unusedCode.ts";
 
 export const builtInRules = [
 	unusedCode,
+	effectBoundary,
+	serviceParameters,
+	jsxConditionals,
 	maxLines,
 	maxDepth,
 	noBarrel,

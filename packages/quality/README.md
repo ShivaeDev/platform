@@ -29,6 +29,16 @@ Exceptions apply first, then the baseline. With the default rule settings, remai
 
 The work has three parts: connect the repository to the shared tools once; describe an import boundary when its architecture needs one; run the gate and repair findings every day. Writing local rules is not an adoption requirement.
 
+### Effect boundaries and services
+
+`effect/boundary` checks every TypeScript or JavaScript source in Quality's inventory, including shipped code, tooling and specs. It reports async functions, methods and arrows, await (including `for await`), `new Promise(...)`, `.then(...)`, try statements and throw statements. Model the work with Effect, fail with a tagged error, and use `Effect.die` for defects. Effect's resource and finalizer primitives model cleanup.
+
+Only folders named `adapters/` or `test-support/`, at any depth, are exempt from this boundary rule. An `adapters/` folder bridges an outside library and hands the rest of the application Effect values. The name is fixed by convention, with no config or copied Biome plugin globs. Code that cannot be Effect belongs in that bridge or calls for a better Effect primitive. Adapter code still follows `effect/service-parameters` and the ambient time, randomness, console and environment bans.
+
+`effect/service-parameters` reports parameters carrying a service in exported functions and public methods, including returned factories. It follows service classes and tags, non-empty Contexts and service implementation shapes through aliases, interfaces, generic constraints, inferred parameters and destructuring. Read services from Effect's environment instead. An Effect or Stream requiring a service is a computation and is accepted. Methods implementing a service and functions constructing Layers may take services as parameters. Only `test-support/` folders are exempt from this rule; `adapters/` folders are checked.
+
+Both rules refuse config exceptions and inline suppressions. Record existing debt with `quality baseline write --rule effect/boundary` and `quality baseline write --rule effect/service-parameters`; the normal report and baseline burn-down apply.
+
 ### 1. Once per repository: connect the shared policy
 
 A new repository needs no `quality.config.ts`. Quality checks sources from the current directory with every built-in rule at its default error level. Baseline entries for `packages/<package>/...` live in `packages/<package>/quality-baseline.jsonl`; entries outside packages live in the root `quality-baseline.jsonl`. A package with no entries has no shard file. Permanent exceptions belong in `quality.config.ts`.
@@ -158,7 +168,7 @@ Every package tests its real engine through its own story kit, so setup and acti
 
 Quality's `tests/story-setup` rule reports top-level test functions named with the words `seed`, `make`, `build` or `setup`, and fixture-writing calls imported from Node's `fs` or `fs/promises`. It leaves source and `test-support/` files alone. This is a check for those syntax patterns; a passing test file still needs review of what it tests.
 
-Specs keep expectations visible. `tests/spec-helpers` moves all module-level helper functions out of specs and into the kit; `tests/no-expect-in-support` moves `expect` calls into the spec, except in test-support files that register tests at module top level and are not imported by any module, so nested Vitest runs can execute them as test files with real assertions. `tests/named-values` rejects numeric literals passed to `toBe` or `toHaveLength` in specs, except zero and a status or exit code asserted on a `status`, `code` or `exitCode` subject: assert the observed items or use a domain name that comes from the story's inputs or the product. A spec-local numeric const that only feeds these matchers is reported, including aliases for zero and codes. `tests/no-limit-imports` rejects importing `MAX_*` constants from a `limits` module into specs, so a story proves behavior instead of copying an implementation cap.
+Specs keep expectations visible. `tests/spec-helpers` moves all module-level helper functions out of specs and into the kit; `tests/no-expect-in-support` moves `expect` calls into the spec, except in test-support files that register tests at module top level and are not imported by any module, so nested Vitest runs can execute them as test files with real assertions. `tests/named-values` rejects numeric literals passed to `toBe` or `toHaveLength` in specs, except zero and process exit codes asserted on an `exitCode` subject: assert the observed items or use a domain name that comes from the story's inputs or the product. For HTTP statuses, import `* as HttpStatus` from `effect/http/HttpStatus` and use `HttpStatus.fromLiteral("NotFound")`; subjects named `status` or `code` do not exempt numeric assertions. A spec-local numeric const that only feeds these matchers is reported, including aliases for zero and codes. `tests/no-limit-imports` rejects importing `MAX_*` constants from a `limits` module into specs, so a story proves behavior instead of copying an implementation cap.
 
 `boundaries/queue-sql` rejects SQL mentioning the private `pgboss.` schema. Apps use their queue definitions and let workers process jobs; there is no queue-purge API by design. `boundaries/auth-sql` rejects SQL accessing Better Auth's `user`, `account`, `session` and `verification` tables. Apps use platform's auth API; `options.owners` names platform's own auth implementation and its migrations. These rules inspect SQL templates, literal query calls and query variables, and inventoried `.sql` files. They do not evaluate arbitrary runtime SQL construction.
 
@@ -231,9 +241,43 @@ For adoption, run `quality baseline write --rule code/unused` and review the rec
 - **Suppressions:** the `suppressions/*` rules reject inline lint and compiler directives, casts through `unknown`, `any` or `never`, Biome settings that weaken a check, recommended Biome rules the preset leaves below `error`, and `ignoreDeprecations`. None of them takes exceptions. A type test (`*.typecheck.test.ts`) may use `@ts-expect-error`; a test that must pass a rejected value at run time calls the API through `Reflect.apply`.
 - **Imports:** cycles, unresolvable imports, workspace imports missing from the manifest or an entry point, relative imports that leave their folder, production imports of test code, runtime folders and fences, as described above.
 - **Names and files:** the Biome preset's naming rules and plugins, and the `files/*` rules, which name a file after its main export with its folders as the prefix. No naming rule renames anything; the author picks the name. A name an outside system owns, such as a query parameter or an environment variable, is written as a quoted key, which the naming rules skip. A `Schema.Struct` field stays camelCase even when quoted and maps to the outside name with `Schema.encodeKeys`. Biome's naming messages print only a pattern: spell acronyms as words (`HttpClient`, `userId`, `parseUrl`) rather than turning off `strictCase` as its hint suggests, give a type no `I` prefix, and name a type parameter `T`, `T` plus a PascalCase name (`TItem`), or Effect's `A`, `E` and `R`. No rule checks these, so review does: a boolean reads as a question (`isOpen`, `canRetry`) unless the DOM or React names it (`open`, `disabled`); a schema shares its name with its type (`type Item = typeof Item.Type`); an unused parameter is removed rather than renamed with the `_` prefix TypeScript accepts. The naming rules take repository facts: `toolOwned` lists `.gitignore` patterns whose names a tool fixes, and a configured list extends the rule's defaults, so list only repository-specific additions; `content` lists snake_case content folders and files; `tests/follow` and `tests/colocated` take `suites` for test folders with their own layout, such as a Playwright suite.
+- **React:** `react/jsx-conditionals` reports `&&` and ternaries in JSX children, including nested decisions. Decide before the JSX or extract a component that receives the data and returns `null` when it has nothing to show. Inside `.map`, extract an item component that makes its own decision. Conditional attributes such as `className` are accepted. This rule owns the check, so the shared Biome preset leaves `noLeakedRender` off.
 - **Tests:** `tests/follow` and `tests/colocated` keep a test beside the code it covers, named `<file>[.<modifier>].test.ts` or `<behaviour>[.<modifier>].spec.ts` with at most one modifier of `dom`, `slow`, `typecheck` and `unit`; a unit test runs without the DOM, so `.unit.dom` is rejected. `tests/colocated` always treats `__tests__/` as a test folder. It treats `test/`, `tests/` and `spec/` as test folders only when their directly contained checked files are all tests or test support; a product folder with source beside its specs is an ordinary source folder. Declared `suites` keep their own layout. Shared test support belongs in `test-support/`, the sanctioned test-only folder. A test covering a whole module may sit at its root or directly beside its folder. The story rules above keep setup in the kit.
 - **Manifests:** `manifests/sorted` keeps every `package.json` in sort-package-json order, and `manifests/source-first` puts the `source` condition first in `exports` and `imports`. `manifests/exports-shape` checks the package root and workspace members with exports. They use one file-preserving TypeScript wildcard: for example, `./*.ts` maps to `./src/*.ts`, `./dist/*.d.ts` and `./dist/*.js` under `source`, `types` and `default`. A subtree pattern such as `./server/*.ts` keeps that same subtree in its targets. An optional root entry, exact-path non-code assets such as JSON presets, `./package.json` and `null` blocks are allowed. A package without modules, such as a dependency shell, exports only exact assets and needs no wildcard. Import each module at its path under `src/`; named aliases, flattened paths, per-file module lists and additional non-null wildcards fail. `manifests/application` keeps an application on its entry points, as described above.
 - **Biome:** the `biome` rule reports Biome's error findings as `biome/<category>`. A Biome run that fails without an error finding, such as one whose config leaves no file to check, fails lint and fix with Biome's message. The preset leaves out the `.worktrees` folder at the root, so a checkout does not lint its linked worktrees, while a worktree inside it lints all of its own files. The preset's plugins ban ambient time, randomness, `console` and `process.env` in favour of Effect's services.
+
+### Decide before JSX
+
+Replace a child decision such as `<section>{ready && <Content />}</section>` with an early return:
+
+```tsx
+function Panel({ ready }) {
+	if (!ready) return null;
+	return <section><Content /></section>;
+}
+```
+
+Replace `<section>{ready ? <Content /> : <Loading />}</section>` with content computed above the return:
+
+```tsx
+function Panel({ ready }) {
+	const content = ready ? <Content /> : <Loading />;
+	return <section>{content}</section>;
+}
+```
+
+Replace `<ul>{items.map(item => item.visible ? <li key={item.id}>{item.name}</li> : null)}</ul>` with an item component that receives the data and returns `null`:
+
+```tsx
+function Item({ item }) {
+	if (!item.visible) return null;
+	return <li>{item.name}</li>;
+}
+
+function List({ items }) {
+	return <ul>{items.map(item => <Item key={item.id} item={item} />)}</ul>;
+}
+```
 
 ### API
 

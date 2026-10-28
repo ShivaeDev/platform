@@ -2,6 +2,7 @@ import { Duration, Effect, Exit, Layer, Option } from "effect";
 import type { Headers } from "effect/http";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
 import { type AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import {
 	Identity,
@@ -12,7 +13,7 @@ import {
 	type SessionUserWithProviderAccountsValue,
 } from "#identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
-import { sessionCommandChanges } from "#server/commandChanges.ts";
+import { commandChanges } from "#server/commandChanges.ts";
 import { type OriginPolicy, originRequest } from "./origin.ts";
 import { resolveRole } from "./resolveRole.ts";
 import { revalidateStream } from "./revalidateStream.ts";
@@ -64,7 +65,7 @@ export function authenticatedLayer<TSession extends SessionShape>(policy: Sessio
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
 			const id = yield* identified(session.value.user.id);
-			return yield* sessionCommandChanges(effect, rpc, payload).pipe(
+			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.annotateLogs({ userId: id }),
@@ -73,14 +74,14 @@ export function authenticatedLayer<TSession extends SessionShape>(policy: Sessio
 	);
 }
 export function maybeAuthenticatedLayer<TSession extends SessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<MaybeAuthenticated> {
-	return Layer.succeed(MaybeAuthenticated, (effect, { headers, rpc }) =>
+	return Layer.succeed(MaybeAuthenticated, (effect, { headers, rpc, payload }) =>
 		Effect.gen(function* () {
 			const session = yield* resolveSession(policy, headers, rpc._tag);
 			if (Option.isNone(session)) {
-				return yield* Effect.provideService(effect, OptionalIdentity, Option.none());
+				return yield* Effect.provideService(authorizeReads(effect, { payload, rpc }, Option.none()), OptionalIdentity, Option.none());
 			}
 			const id = yield* identified(session.value.user.id);
-			return yield* effect.pipe(
+			return yield* authorizeReads(effect, { payload, rpc }, Option.some({ id })).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
 				Effect.provideService(OptionalIdentity, Option.some({ id })),
 				Effect.annotateLogs({ userId: id }),
@@ -109,7 +110,7 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 }
 export function authenticatedUserLayer<TSession extends UserSessionShape>(policy: SessionPolicy<TSession>): Layer.Layer<AuthenticatedUser> {
 	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc, payload }) =>
-		sessionCommandChanges(effect, rpc, payload).pipe(
+		Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
 			(invocation) =>
 				Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)))),
 			withSessionUser(policy, headers, rpc._tag),
@@ -136,7 +137,7 @@ export function authenticatedUserWithProviderAccountsLayer<TSession extends Prov
 			);
 			const user = sessionProfile(session.value.user);
 			yield* identified(id);
-			return yield* sessionCommandChanges(effect, rpc, payload).pipe(
+			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.provideService(SessionUser, user),

@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { rootDefect, rootEncoding } from "#test/app-host/rootEncoding.ts";
 import { host } from "#test/app-host/story.ts";
@@ -15,7 +16,7 @@ for (const source of ["schema", "host"] as const) {
 				`${requests.map((request) => JSON.stringify({ _tag: "Request", headers: [], ...request })).join("\n")}\n`,
 				false,
 			);
-			expect(response.status).toBe(200);
+			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 			expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
 			expect(response.body).not.toContain(contact);
 			expect(response.body).toContain('"detail":"public rejection"');
@@ -31,7 +32,7 @@ for (const interrupt of [false, true]) {
 			`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { interrupt, value }, tag: "hiddenDefect" })}\n`,
 			false,
 		);
-		expect(response.status).toBe(200);
+		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 		expect(response.body).toContain(`"_tag":"${interrupt ? "Die" : "Defect"}","defect":"<redacted>"`);
 		expect(response.body).not.toContain(value);
 	});
@@ -47,7 +48,7 @@ host.it("a repeated request ID cannot replace a sensitive failure's schema polic
 		`${requests.map((request) => JSON.stringify({ _tag: "Request", headers: [], id: "1", ...request })).join("\n")}\n`,
 		false,
 	);
-	expect(response.status).toBe(200);
+	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
 	expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
 	expect(response.body).not.toContain(contact);
 });

@@ -1,17 +1,20 @@
-import type { Duration, Effect, Stream } from "effect";
+import type { Duration, Effect, Layer, Stream } from "effect";
 import type { Headers } from "effect/http";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import type { Rpc } from "effect/rpc";
+import type { Rpc, RpcGroup } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
 import { automaticLive, type LiveBound, LiveConnection } from "#automaticLive.ts";
+import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared, Tag } from "#contract.ts";
 import { bindingOwner } from "#internal/bindingOwner.ts";
 import { boundCommand, boundQuery, boundStream } from "#internal/clientOperations.ts";
+import { type HttpGroup, httpClient } from "#internal/httpClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
+import type { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { ResumeSource } from "#resume.ts";
 
 export type Failure<R extends Rpc.Any> =
@@ -31,7 +34,10 @@ export interface QueryOptions {
 }
 
 export interface BoundQuery<R extends Rpc.Any, TSelf> {
-	readonly query: (payload: Rpc.Payload<R>, options?: QueryOptions) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R>>>;
+	readonly query: (
+		payload: Rpc.Payload<R>,
+		options?: QueryOptions,
+	) => Atom.Atom<AsyncResult.AsyncResult<Rpc.Success<R>, Failure<R> | MissingReadPolicy>>;
 	readonly run: (payload: Rpc.Payload<R>) => Effect.Effect<Rpc.Success<R>, RunFailure<R>, TSelf>;
 }
 
@@ -89,6 +95,14 @@ export function bind(
 	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
 	options?: BindOptions,
 ): unknown {
+	return bindApi(contract, service, options);
+}
+
+function bindApi(
+	contract: { readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined> },
+	service: AtomRpc.AtomRpcClient<unknown, string, Rpc.Any>,
+	options?: BindOptions,
+) {
 	const { name, queries, commands, streams, keyScope } = contract.declaration;
 	const owner = bindingOwner(keyScope, options?.registry);
 	const automatic = automaticLive(service, name, owner, options?.resume);
@@ -100,4 +114,32 @@ export function bind(
 		]),
 		{ [LiveConnection]: automatic.subscription },
 	);
+}
+
+export function makeClient<
+	TName extends string,
+	TQueries extends readonly QueryShape[],
+	TCommands extends readonly CommandShape[],
+	TRpcs extends Rpc.Any,
+	TStreams extends readonly StreamShape[],
+	TScope extends "session" | undefined,
+	TExtra extends Rpc.Any = never,
+>(
+	contract: Contract<TName, TQueries, TCommands, TRpcs, TStreams, TScope>,
+	options: ClientOptions & { readonly group?: RpcGroup.RpcGroup<TRpcs | TExtra> } & ("session" extends TScope
+			? { readonly registry: AtomRegistry.AtomRegistry }
+			: { readonly registry?: AtomRegistry.AtomRegistry }),
+): MadeClient<TName, TQueries, TCommands, TRpcs, TStreams, TExtra>;
+export function makeClient(
+	contract: HttpGroup & {
+		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
+	},
+	options: ClientOptions & {
+		readonly group?: HttpGroup;
+		readonly registry?: AtomRegistry.AtomRegistry;
+	},
+): Layer.Layer<never> {
+	const connection = httpClient(contract.declaration.name, options.group ?? contract, options);
+	const api = bindApi(contract, connection.Client, options);
+	return Object.assign(connection, { api });
 }

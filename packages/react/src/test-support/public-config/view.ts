@@ -1,18 +1,12 @@
-import { Layer, Option } from "effect";
-import { FetchHttpClient } from "effect/http";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/rpc";
+import { Option } from "effect";
 import { createElement } from "react";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { useQuery } from "#client/resultState.ts";
 import { PublicConfigDeclaration } from "./Declaration.ts";
 
 function configQuery(url: string) {
-	class Client extends AtomRpc.Service<Client>()("test/PublicConfigDeclarationClient", {
-		group: PublicConfigDeclaration,
-		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-	}) {}
-	const config = bind(PublicConfigDeclaration, Client);
+	const { api } = makeRpcClient(PublicConfigDeclaration, { url });
+	const config = api;
 	return config.get.query();
 }
 

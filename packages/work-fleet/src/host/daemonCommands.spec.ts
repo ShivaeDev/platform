@@ -31,7 +31,8 @@ for (const action of ["retry", "release"] as const) {
 				boardApi.metadataParse(daemon.readBoard(`responses/response.fleet-${action}.${published.questionId}.md`)).fields.response?.answers,
 			).toEqual([{ prompt: "fleet-action", selected: [action], text: "" }]);
 			expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
-			expect((yield* daemon.cli(args)).code).toBe(1);
+			const exitCode = (yield* daemon.cli(args)).code;
+			expect(exitCode).toBe(1);
 			expect(daemon.receiptFiles().map((file) => daemon.readBoard(file))).toEqual([expect.stringContaining('"disposition":"applied"')]);
 			expect(daemon.providerResources()).toEqual({ providers: 1, releases: 0 });
 			expect(daemon.providerStarts().map(({ operationId }) => operationId)).toEqual([started.attempts[0]?.operationId]);
@@ -48,7 +49,8 @@ host.it(
 	function* (daemon) {
 		yield* daemon.dispatch("one");
 		const result = yield* daemon.cli(["answer", "one", "--release"], { selection: "port" });
-		expect(result.code).toBe(1);
+		const exitCode = result.code;
+		expect(exitCode).toBe(1);
 		expect(result.stderr).toContain("one waits on no answer in step working");
 		expect(yield* daemon.answer("one").pipe(Effect.flip)).toMatchObject({ _tag: "BadRequest", message: expect.stringContaining("working") });
 		expect((yield* daemon.get("one")).step).toBe("working");

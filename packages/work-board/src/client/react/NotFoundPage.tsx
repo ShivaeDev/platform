@@ -1,3 +1,4 @@
+import * as HttpStatus from "effect/http/HttpStatus";
 import { FileQuestion } from "lucide-react";
 import { useLayoutEffect } from "react";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "#client/react/components/ui/empty.tsx";
@@ -16,13 +17,20 @@ export function NotFoundMain({ onPage, url }: { readonly onPage: (location: Main
 			file: "",
 			projection: NOT_FOUND_PROJECTION,
 			route: url,
-			status: 404,
+			status: HttpStatus.fromLiteral("NotFound"),
 			title: NOT_FOUND_TITLE,
 			view: "",
 		});
 	}, [onPage, url]);
 	return (
-		<main className="document-view min-w-0 p-4 md:p-8" data-route={url} data-status="404" data-url={url} id={shellIds.doc} tabIndex={-1}>
+		<main
+			className="document-view min-w-0 p-4 md:p-8"
+			data-route={url}
+			data-status={HttpStatus.fromLiteral("NotFound")}
+			data-url={url}
+			id={shellIds.doc}
+			tabIndex={-1}
+		>
 			<NotFoundPage url={url} />
 		</main>
 	);

@@ -2,7 +2,7 @@ import { Effect, ManagedRuntime, Option, Stream } from "effect";
 import { type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys } from "@shivaedev/contract/keys.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { queryKeys } from "@shivaedev/contract/serverMetadata.ts";
 import { Identity } from "@shivaedev/identity/identity.ts";
@@ -48,7 +48,8 @@ export async function openHost() {
 						Effect.gen(function* () {
 							const { id } = yield* Identity;
 							yield* connected(id);
-							return live.stream(queryKeys(Notes.declaration.queries, queries), { scope: id });
+							const keys = yield* queryKeys(Notes.declaration.queries, queries);
+							return live.stream(keys, { scope: id });
 						}),
 					),
 				"liveSession.get": () =>

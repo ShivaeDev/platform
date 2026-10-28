@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { type FakeHttpReply, type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
 export interface ScriptedGithubResponse {
@@ -25,10 +26,10 @@ function rateHeaders(budget: { limit: number; remaining: number; reset: number }
 }
 
 function spend(budget: { remaining: number }, scripted: number, unchanged: boolean) {
-	if (scripted === 200 && unchanged) {
-		return 304;
+	if (scripted === HttpStatus.fromLiteral("OK") && unchanged) {
+		return HttpStatus.fromLiteral("NotModified");
 	}
-	if (scripted !== 304 && budget.remaining > 0) {
+	if (scripted !== HttpStatus.fromLiteral("NotModified") && budget.remaining > 0) {
 		budget.remaining -= 1;
 	}
 	return scripted;
@@ -44,17 +45,17 @@ export function fakeGitHub(options: { readonly limit?: number; readonly remainin
 	}
 	function respond(request: FakeHttpRequest, origin: string): FakeHttpReply {
 		const entry = responses.get(request.path);
-		const scripted = entry?.response ?? { body: { message: "Not Found" }, status: 404 };
+		const scripted = entry?.response ?? { body: { message: "Not Found" }, status: HttpStatus.fromLiteral("NotFound") };
 		const body = typeof scripted.body === "string" ? scripted.body : JSON.stringify(scripted.body);
 		const current = `"${createHash("sha256").update(body).digest("hex")}"`;
 		const etag = request.headers["if-none-match"]?.toString();
-		const status = spend(budget, scripted.status ?? 200, etag === current);
+		const status = spend(budget, scripted.status ?? HttpStatus.fromLiteral("OK"), etag === current);
 		requests.push({ endpoint: entry?.endpoint ?? request.path.slice(1), etag, method: request.method, status });
 		const overrides = Object.fromEntries(
 			Object.entries(scripted.headers ?? {}).map(([name, value]) => [name.toLowerCase(), value.replaceAll("https://api.github.com", origin)]),
 		);
-		const headers = { ...rateHeaders(budget), ...(status === 200 ? { etag: current } : {}), ...overrides };
-		return { chunks: status === 304 ? [] : [body], headers, status };
+		const headers = { ...rateHeaders(budget), ...(status === HttpStatus.fromLiteral("OK") ? { etag: current } : {}), ...overrides };
+		return { chunks: status === HttpStatus.fromLiteral("NotModified") ? [] : [body], headers, status };
 	}
 	const serve = Effect.gen(function* () {
 		const server = yield* fakeHttpService({ routes: { api: { path: "/:path*", reply: (request): FakeHttpReply => respond(request, server.url) } } });

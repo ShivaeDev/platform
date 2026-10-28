@@ -1,5 +1,6 @@
 import { constants } from "node:fs";
 import { Effect } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { githubReplies, watchesFleet } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
@@ -52,7 +53,7 @@ watch.it("native HTTP transport failures stay typed without inferring any transi
 });
 watch.it(
 	"redirect responses are refused before sending credentials to another endpoint",
-	[githubReplies("/pulls/1", { body: {}, headers: { location: "/redirected" }, status: 302 })],
+	[githubReplies("/pulls/1", { body: {}, headers: { location: "/redirected" }, status: HttpStatus.fromLiteral("Found") })],
 	function* (h) {
 		const result = yield* Effect.result(h.poll);
 		expect(result._tag).toBe("Failure");

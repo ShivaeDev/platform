@@ -92,7 +92,7 @@ export const liveNotesStory = storyKit({
 				story.tell(`watch note ${id} with the ${helper} helper`);
 				return run(client.api.watch.run({ helper, id }).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint)))));
 			},
-			watchKeys: (keys: readonly import("#keys.ts").Key[], hints: unknown[]) =>
+			watchKeys: (keys: readonly import("@shivaedev/changes/keys.ts").Key[], hints: unknown[]) =>
 				run(server.hints.stream(keys).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint))))),
 		};
 	},
@@ -115,7 +115,7 @@ export function withoutResume() {
 	});
 }
 
-export function resyncingKeys(keys: readonly import("#keys.ts").Key[]) {
+export function resyncingKeys(keys: readonly import("@shivaedev/changes/keys.ts").Key[]) {
 	return liveNotesStory.trait("consumer", "the consumer reconciles an explicit read scope", (engine) => {
 		engine.client = liveClient(engine.server.url, {}, true, undefined, keys);
 	});
