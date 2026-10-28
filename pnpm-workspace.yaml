@@ -55,7 +55,7 @@ catalog:
   rehype-raw: 7.0.0
   unist-util-visit: 5.1.0
   unified: 11.0.5
-  happy-dom: 21.0.3
+  happy-dom: 21.0.4
   dom-accessibility-api: 0.7.1
   mermaid: 12.2.0
   ignore: 7.0.13
@@ -67,7 +67,7 @@ catalog:
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.5
   esbuild: 0.28.2
-  better-auth: 1.7.11
+  better-auth: 1.7.12
   pg: 8.23.0
   pg-boss: 12.38.0
   satteri: 0.10.5
