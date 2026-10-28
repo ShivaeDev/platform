@@ -1,72 +1,116 @@
-import { Cause, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { rejectedField } from "@shivaedev/errors/rejectedField.ts";
 import { isSensitiveKey } from "@shivaedev/errors/sensitive.ts";
-import { Conflict } from "@shivaedev/errors/taxonomy.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { tracePolicy, tracing } from "#test/rpc/tracingStory.ts";
 
-tracing.it("a caller's request id reaches handlers, log annotations and the RPC server span", [], function* ({ echo, annotations, spans }) {
-	const value = yield* echo({ "x-request-id": "trace-7f3a" });
-	expect(value).toBe("trace-7f3a");
-	expect(annotations("echo")).toEqual([{ requestId: "trace-7f3a", "rpc.method": "Echo" }]);
-	const span = spans().find((candidate) => candidate.kind === "server" && candidate.name === "Echo");
-	expect(Object.fromEntries(span?.attributes ?? [])).toMatchObject({ "request.id": "trace-7f3a", "rpc.method": "Echo" });
+const REDACTED_REGISTRATION = {
+	devices: [{ name: "phone", refreshToken: "<redacted>" }],
+	email: "alice@example.test",
+	note: "<redacted>",
+	password: "<redacted>",
+	profile: { apiKey: "<redacted>", nickname: "alice" },
+};
+
+tracing.it("a caller's request id reaches the handler", [], function* ({ echo }) {
+	expect(yield* echo("trace-7f3a")).toBe("trace-7f3a");
 });
-tracing.it("missing or malformed request ids are replaced with generated ones", [tracePolicy({ header: "x-correlation-id" })], function* ({ echo }) {
-	const value: string[] = [];
-	for (const headers of [
-		{},
-		{ "x-correlation-id": "has spaces\nand newline" },
-		{ "x-correlation-id": "x".repeat(129) },
-		{ "x-correlation-id": "accepted-id" },
-	]) {
-		value.push(yield* echo(headers));
-	}
-	expect(value.slice(0, 3)).toEqual(Array.from({ length: 3 }, () => expect.stringMatching(/^[0-9a-f]{32}$/u)));
-	expect(new Set(value.slice(0, 3)).size).toBe(3);
-	expect(value[3]).toBe("accepted-id");
+
+tracing.it("a caller's request id annotates the handler's logs", [], function* ({ echo, echoLogs }) {
+	yield* echo("trace-7f3a");
+
+	expect(yield* echoLogs()).toEqual([{ requestId: "trace-7f3a", "rpc.method": "Echo" }]);
 });
+
+tracing.it("a caller's request id annotates the RPC server span", [], function* ({ echo, serverSpanAttributes }) {
+	yield* echo("trace-7f3a");
+
+	expect(yield* serverSpanAttributes()).toEqual([{ "request.id": "trace-7f3a", "rpc.method": "Echo" }]);
+});
+
+for (const [reason, requestId] of [
+	["no request id", undefined],
+	["a request id with whitespace", "has spaces\nand newline"],
+	["a request id longer than 128 characters", "x".repeat(129)],
+] as const) {
+	tracing.it(`a request with ${reason} gets a generated request id`, [], function* ({ echo }) {
+		expect(yield* echo(requestId)).toBe("generated id 1");
+	});
+}
+
+tracing.it("each request without a request id gets its own generated id", [], function* ({ echo }) {
+	expect(yield* echo()).toBe("generated id 1");
+
+	expect(yield* echo()).toBe("generated id 2");
+});
+
 tracing.it(
-	"failure logs carry a redacted payload while the declared field rejection reaches the caller",
-	[],
-	function* ({ register, crash, annotations, logs }) {
-		const rejection = yield* register();
-		yield* crash();
-		expect(rejection).toBeInstanceOf(Conflict);
-		expect(rejectedField(rejection)).toEqual(Option.some({ field: "email", message: "Email already registered" }));
-		const [failure] = annotations("RPC failure");
-		expect(failure).toMatchObject({ "rpc.failure": "Conflict", "rpc.method": "Register" });
-		expect(failure?.["rpc.payload"]).toEqual({
-			devices: [{ name: "phone", refreshToken: "<redacted>" }],
-			email: "alice@example.test",
-			note: "<redacted>",
-			password: "<redacted>",
-			profile: { apiKey: "<redacted>", nickname: "alice" },
-		});
-		const defect = logs().find((log) => log.level === "Error");
-		expect(defect?.annotations).toMatchObject({ "rpc.method": "Crash", "rpc.payload": failure?.["rpc.payload"] });
-		const serialized = JSON.stringify(logs().map((log) => log.annotations));
-		for (const secret of ["hunter2", "key-plaintext", "refresh-plaintext", "note-plaintext"]) {
-			expect(serialized).not.toContain(secret);
-		}
+	"an app-chosen request id header carries the caller's id",
+	[tracePolicy("the app reads request ids from x-correlation-id", { header: "x-correlation-id" })],
+	function* ({ echo }) {
+		expect(yield* echo("accepted-id", "x-correlation-id")).toBe("accepted-id");
 	},
 );
+
+tracing.it("a declared field rejection reaches the caller as a conflict on the email field", [], function* ({ register, rejection }) {
+	yield* register();
+
+	expect(yield* rejection()).toBe("Conflict on email: Email already registered");
+});
+
+tracing.it("a declared rejection is logged once as an RPC failure tagged with its type and method", [], function* ({ failureLogs, register }) {
+	yield* register();
+
+	expect(yield* failureLogs()).toEqual([{ failure: "Conflict", method: "Register" }]);
+});
+
+tracing.it("the RPC failure log carries the payload with its secrets redacted", [], function* ({ failureLogPayloads, register }) {
+	yield* register();
+
+	expect(yield* failureLogPayloads()).toEqual([REDACTED_REGISTRATION]);
+});
+
+tracing.it("the RPC defect log carries the payload with its secrets redacted", [], function* ({ crash, defectLogs }) {
+	yield* crash();
+
+	expect(yield* defectLogs()).toEqual([{ method: "Crash", payload: REDACTED_REGISTRATION }]);
+});
+
+tracing.it("no log annotation carries a plaintext secret from a rejected or crashed call", [], function* ({ crash, register, secretsInLogs }) {
+	yield* register();
+	yield* crash();
+
+	expect(yield* secretsInLogs()).toEqual([]);
+});
+
 tracing.it(
-	"applications extend the sensitive-key policy",
-	[tracePolicy({ sensitive: (key) => isSensitiveKey(key) || key === "email" })],
-	function* ({ register, annotations }) {
+	"an app that also treats email as sensitive gets it redacted in the failure log",
+	[tracePolicy("the app also treats email as sensitive", { sensitive: (key) => isSensitiveKey(key) || key === "email" })],
+	function* ({ failureLogPayloads, register }) {
 		yield* register();
-		expect(annotations("RPC failure")[0]?.["rpc.payload"]).toMatchObject({ email: "<redacted>", password: "<redacted>" });
+
+		expect(yield* failureLogPayloads()).toEqual([{ ...REDACTED_REGISTRATION, email: "<redacted>" }]);
 	},
 );
-tracing.it("untagged external failures reach the caller and are logged once as unknown", [], function* ({ externalRejection, annotations }) {
-	const value = yield* externalRejection();
-	expect(value).toBe("upstream rate limit");
-	expect(annotations("RPC failure")).toEqual([expect.objectContaining({ "rpc.failure": "unknown", "rpc.method": "ExternalRejection" })]);
+
+tracing.it("an untagged external failure reaches the caller as its own value", [], function* ({ externalRejection }) {
+	expect(yield* externalRejection()).toBe("upstream rate limit");
 });
-tracing.it("request cancellation remains interrupted without producing a failure log", [], function* ({ cancel, annotations }) {
-	const exit = yield* cancel();
-	expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-	expect(annotations("RPC failure")).toEqual([]);
-	expect(annotations("RPC defect")).toEqual([]);
+
+tracing.it("an untagged external failure is logged once as an unknown RPC failure", [], function* ({ externalRejection, failureLogs }) {
+	yield* externalRejection();
+
+	expect(yield* failureLogs()).toEqual([{ failure: "unknown", method: "ExternalRejection" }]);
+});
+
+tracing.it("a cancelled request stays interrupted", [], function* ({ cancel }) {
+	expect(yield* cancel()).toBe("interrupted");
+});
+
+tracing.it("a cancelled request logs neither an RPC failure nor a defect", [], function* ({ cancel, defectLogs, failureLogs }) {
+	yield* cancel();
+
+	yield* outcomes({
+		"defect logs": [defectLogs(), []],
+		"failure logs": [failureLogs(), []],
+	});
 });

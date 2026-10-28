@@ -4,15 +4,27 @@ import type { BetterAuthOptions, BetterAuthRateLimitOptions } from "better-auth"
 import { ConfigProvider, Context, Effect, Layer, Logger, type LogLevel, Tracer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
+import { PEER_IP_HEADER } from "#server/better-auth/clientIp.ts";
 import { betterAuthMount } from "#server/better-auth/mount.ts";
+
+export const FORWARDED_HEADERS = ["x-forwarded-for", "x-real-ip"] as const;
+
+export const PROVIDER_SECRETS = ["provider-token", "database-password", "provider-cookie"] as const;
+
+export interface ProviderView {
+	readonly address: string | null;
+	readonly forwardedHeaders: readonly string[];
+}
 
 export interface MountEngine {
 	authDown: boolean;
 	readonly authOptions: Pick<BetterAuthOptions, "baseURL" | "trustedOrigins">;
 	readonly consumed: Array<{ readonly key: string; readonly rule: { readonly max: number; readonly window: number } }>;
 	readonly env: Record<string, string>;
+	lastAnswer?: string;
 	readonly logs: Array<{ readonly level: LogLevel.LogLevel; readonly message: unknown; readonly traceId: string | undefined }>;
 	readonly providerLogs: Array<{ level: string; message: string }>;
+	providerView?: ProviderView;
 	readonly rateLimit: BetterAuthRateLimitOptions;
 	readonly urls: string[];
 }
@@ -25,7 +37,7 @@ export function emptyMount(): MountEngine {
 		env: {},
 		logs: [],
 		providerLogs: [],
-		rateLimit: { enabled: false, max: 2, window: 60 },
+		rateLimit: { max: 2, window: 60 },
 		urls: [],
 	};
 }
@@ -42,12 +54,11 @@ function applicationProvider(engine: MountEngine) {
 					cookie: "session=provider-cookie",
 				});
 			}
-			return Promise.resolve({
-				response: Response.json({
-					forwardedFor: request.headers.get("x-forwarded-for"),
-					realIp: request.headers.get("x-real-ip"),
-				}),
-			});
+			engine.providerView = {
+				address: request.headers.get(PEER_IP_HEADER),
+				forwardedHeaders: FORWARDED_HEADERS.filter((header) => request.headers.has(header)),
+			};
+			return Promise.resolve({ response: new Response(null, { status: 204 }) });
 		},
 	};
 }

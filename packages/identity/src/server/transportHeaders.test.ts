@@ -1,37 +1,47 @@
 import { expect } from "vitest";
-import { ORIGIN } from "#test/rpc/harness.ts";
-import { originPolicy, sessions, signedUp } from "#test/rpc/sessionStory.ts";
+import { browserOrigins, sessions, signedUp } from "#test/rpc/sessionStory.ts";
 import { transport } from "#test/rpc/transportStory.ts";
 
+for (const originHeader of ["origin", "Origin"]) {
+	sessions.it(
+		`alice calling from another site is refused even when her message headers claim the app's origin as ${originHeader}`,
+		[browserOrigins, signedUp("alice")],
+		function* ({ whoami }) {
+			expect(yield* whoami("alice", { from: "another site", message: { origin: "the app", originHeader } })).toBe("forbidden origin");
+		},
+	);
+}
+
 sessions.it(
-	"client-supplied message headers cannot satisfy the origin policy or carry credentials",
-	[originPolicy(), signedUp("alice")],
-	function* ({ account, post, lookups }) {
-		const alice = account("alice");
-		const forbidden = /"_tag":"Forbidden".*"Origin not allowed"/u;
-		expect(yield* post({ cookie: alice.cookie, origin: ORIGIN }, [])).toContain(alice.userId);
-		expect(yield* post({ cookie: alice.cookie, origin: "https://attacker.example" }, [["origin", ORIGIN]])).toMatch(forbidden);
-		expect(yield* post({ cookie: alice.cookie }, [["origin", ORIGIN]])).toMatch(forbidden);
-		expect(yield* post({ cookie: alice.cookie, origin: "https://attacker.example" }, [["Origin", ORIGIN]])).toMatch(forbidden);
-		const before = lookups();
-		const forged = yield* post({ origin: ORIGIN }, [["cookie", alice.cookie]]);
-		expect(forged).toContain('"_tag":"Unauthorized"');
-		expect(forged).not.toContain(alice.userId);
-		expect(lookups()).toBe(before + 1);
-		expect(yield* post({ origin: ORIGIN }, [["authorization", `Bearer ${alice.cookie}`]])).toContain('"_tag":"Unauthorized"');
+	"alice calling without an origin is refused even when her message headers claim the app's origin",
+	[browserOrigins, signedUp("alice")],
+	function* ({ whoami }) {
+		expect(yield* whoami("alice", { from: "nowhere", message: { origin: "the app" } })).toBe("forbidden origin");
 	},
 );
-transport.it("returns RPC headers when there is no HTTP request service", [], function* ({ resolveHeaders }) {
-	const headers = yield* resolveHeaders({ authorization: "Bearer rpc", origin: "https://rpc.example" });
-	expect(headers).toEqual({ authorization: "Bearer rpc", origin: "https://rpc.example" });
+
+sessions.it(
+	"message headers carrying alice's cookie do not sign in an anonymous HTTP call",
+	[browserOrigins, signedUp("alice")],
+	function* ({ whoami }) {
+		expect(yield* whoami("anonymous", { message: { cookieOf: "alice" } })).toBe("unauthorized");
+	},
+);
+
+transport.it("outside any HTTP request, an RPC message's own headers are the transport headers", [], function* ({ transportHeaders }) {
+	expect(yield* transportHeaders({ authorization: "Bearer rpc", origin: "https://rpc.example" })).toEqual({
+		authorization: "Bearer rpc",
+		origin: "https://rpc.example",
+	});
 });
 
-transport.it("uses only the HTTP request headers when a request service is available", [], function* ({ resolveHeaders }) {
-	const headers = yield* resolveHeaders(
-		{ authorization: "Bearer rpc", origin: "https://rpc.example", "x-rpc-only": "ignored" },
-		{ origin: "https://http.example" },
-	);
-	expect(headers.origin).toBe("https://http.example");
-	expect(headers.authorization).toBeUndefined();
-	expect(headers["x-rpc-only"]).toBeUndefined();
+transport.it("inside an HTTP request, only the request's headers are the transport headers", [], function* ({ transportHeaders }) {
+	expect(
+		yield* transportHeaders(
+			{ authorization: "Bearer rpc", origin: "https://rpc.example", "x-rpc-only": "ignored" },
+			{ origin: "https://http.example" },
+		),
+	).toEqual({
+		origin: "https://http.example",
+	});
 });

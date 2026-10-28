@@ -6,34 +6,37 @@ import { Identity, SessionUserWithProviderAccounts } from "#identity.ts";
 import { AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
 import { authenticatedUserWithProviderAccountsLayer, type ProviderAccountsSessionShape } from "#server/session.ts";
 
+const READS_PER_CALL = 3;
+
+const githubAccount = { accessToken: "github-access-token", accountId: "123", id: "account-row", providerId: "github" };
+
+const Seen = Schema.Record(Schema.String, Schema.Unknown);
+
 const Api = RpcGroup.make(
 	Rpc.make("Accounts", {
 		error: Schema.Union([AuthUnavailable, Unauthorized]),
-		success: Schema.Struct({ accounts: Schema.Array(Schema.Unknown), identity: Schema.Struct({ id: Schema.String }) }),
+		success: Schema.Struct({ accounts: Schema.Array(Seen), identity: Seen }),
 	}),
 	Rpc.make("ReadAccounts", {
 		stream: true,
-		success: Schema.Union([
-			Schema.Struct({ _tag: Schema.Literal("Failure"), error: Schema.String }),
-			Schema.Struct({ _tag: Schema.Literal("Success"), accounts: Schema.Array(Schema.Unknown) }),
-		]),
+		success: Schema.Union([Schema.Literals(["auth unavailable", "unauthorized"]), Schema.Array(Seen)]),
 	}),
 ).middleware(AuthenticatedUserWithProviderAccounts);
 const handlers = Api.toLayer({
 	Accounts: () =>
 		Effect.gen(function* () {
 			const user = yield* SessionUserWithProviderAccounts;
-			const identity = yield* Identity;
-			return { accounts: yield* user.providerAccounts, identity };
+			const accounts = yield* user.providerAccounts;
+			return { accounts: accounts.map((account) => ({ ...account })), identity: { ...(yield* Identity) } };
 		}),
 	ReadAccounts: () =>
-		Stream.range(1, 3).pipe(
+		Stream.range(1, READS_PER_CALL).pipe(
 			Stream.mapEffect(() =>
 				Effect.gen(function* () {
 					const user = yield* SessionUserWithProviderAccounts;
 					return yield* user.providerAccounts.pipe(
-						Effect.map((accounts) => ({ _tag: "Success" as const, accounts })),
-						Effect.catch((error) => Effect.succeed({ _tag: "Failure" as const, error: error._tag })),
+						Effect.map((accounts) => accounts.map((account) => ({ ...account }))),
+						Effect.catch((error) => Effect.succeed(error._tag === "AuthUnavailable" ? ("auth unavailable" as const) : ("unauthorized" as const))),
 					);
 				}),
 			),
@@ -48,60 +51,91 @@ const openProviderProfile = Effect.fnUntraced(function* (user: ProviderAccountsS
 	const client = yield* RpcTest.makeClient(Api).pipe(Effect.provide(services));
 	return { client, services };
 });
+
+interface State {
+	readonly connection: { current?: Effect.Success<ReturnType<typeof openProviderProfile>> };
+	readonly lookups: string[];
+	user?: ProviderAccountsSessionShape["user"];
+}
+
+function connected(state: State) {
+	if (state.connection.current === undefined) {
+		throw new Error("The provider profile client has not been started");
+	}
+	return state.connection.current;
+}
+
+function alice(state: State, providerAccounts: ProviderAccountsSessionShape["user"]["providerAccounts"]) {
+	state.user = {
+		email: "alice@example.test",
+		id: "alice",
+		name: "Alice",
+		providerAccounts: Effect.suspend(() => {
+			state.lookups.push("alice's provider accounts");
+			return providerAccounts;
+		}),
+	};
+}
+
 export const providerProfile = storyKit({
 	after: {
 		*session(state) {
+			if (state.user === undefined) {
+				return yield* Effect.die("The story has not said who is signed in");
+			}
 			state.connection.current = yield* openProviderProfile(state.user);
 		},
 	},
-	create: () => {
-		const user: ProviderAccountsSessionShape["user"] = {
-			email: "alice@example.test",
-			id: "alice",
-			name: "Alice",
-			providerAccounts: Effect.succeed([]),
-		};
-		const connection: { current?: Effect.Success<ReturnType<typeof openProviderProfile>> } = {};
-		const accountRequests: string[] = [];
-		return { accountRequests, connection, lookups: 0, user };
-	},
+	create: (): State => ({ connection: {}, lookups: [] }),
 	name: "provider profile",
 	stages: ["session"],
 	verbs: (state, story) => ({
-		accountRequests: () => [...state.accountRequests],
-		accounts: () => {
-			story.tell("the caller requests provider account IDs");
-			const connection = state.connection.current;
-			if (connection === undefined) {
-				throw new Error("The provider profile client has not been started");
-			}
-			return connection.client.Accounts().pipe(Effect.provide(connection.services));
+		identity: () => {
+			story.tell("a handler reads alice's Identity");
+			const { client, services } = connected(state);
+			return client.Accounts().pipe(
+				Effect.map(({ identity }) => identity),
+				Effect.provide(services),
+			);
 		},
-		lookups: () => state.lookups,
-		readAccounts: () => {
-			story.tell("the caller reads provider accounts three times in one stream");
-			const connection = state.connection.current;
-			if (connection === undefined) {
-				throw new Error("The provider profile client has not been started");
-			}
-			return connection.client.ReadAccounts().pipe(Stream.runCollect, Effect.provide(connection.services));
+		providerAccounts: () => {
+			story.tell("a handler reads alice's provider accounts");
+			const { client, services } = connected(state);
+			return client.Accounts().pipe(
+				Effect.map(({ accounts }) => accounts),
+				Effect.provide(services),
+			);
+		},
+		providerLookups: () => Effect.sync(() => [...state.lookups]),
+		readAccountsThreeTimes: () => {
+			story.tell(`a handler reads alice's provider accounts ${READS_PER_CALL} times in one call`);
+			const { client, services } = connected(state);
+			return client.ReadAccounts().pipe(
+				Stream.runCollect,
+				Effect.map((reads) => [...reads]),
+				Effect.provide(services),
+			);
 		},
 	}),
 });
-export function customAccounts(user: ProviderAccountsSessionShape["user"]) {
-	return providerProfile.trait("session", "a custom provider supplies lazy accounts", (state) => {
-		state.user = user;
-	});
-}
-export const transientAccountsFailure = providerProfile.trait("session", "the first provider-account lookup fails transiently", (state) => {
-	state.user = {
-		...state.user,
-		providerAccounts: Effect.suspend(() => {
-			state.lookups += 1;
-			state.accountRequests.push(state.user.id);
-			return state.lookups === 1
-				? Effect.fail(new AuthUnavailable({ message: "Temporary outage" }))
-				: Effect.succeed([{ accountId: "123", providerId: "github" }]);
-		}),
-	};
-});
+
+export const aliceLinkedGitHub = providerProfile.trait(
+	"session",
+	"alice is signed in, and her provider's account row for GitHub carries an access token and a row id",
+	(state) => {
+		alice(state, Effect.succeed([githubAccount]));
+	},
+);
+
+export const firstLookupFails = providerProfile.trait(
+	"session",
+	"alice is signed in with a GitHub account, and the provider's first account lookup fails as unavailable",
+	(state) => {
+		alice(
+			state,
+			Effect.suspend(() =>
+				state.lookups.length === 1 ? Effect.fail(new AuthUnavailable({ message: "Temporary outage" })) : Effect.succeed([githubAccount]),
+			),
+		);
+	},
+);

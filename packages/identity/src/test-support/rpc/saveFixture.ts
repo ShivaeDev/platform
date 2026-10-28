@@ -4,20 +4,22 @@ import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { RequestTracing } from "#middleware.ts";
 
+export const SaveOutcome = Schema.Literals(["name taken", "storage unavailable", "storage fails", "storage crashes"]);
+
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
-export const Api = RpcGroup.make(Rpc.make("Save", { error: Rejection, payload: { mode: Schema.String }, success: Schema.String })).middleware(
-	RequestTracing,
-);
-export const original = new Error("Storage failed with password=private-value");
+export const Api = RpcGroup.make(
+	Rpc.make("Save", { error: Rejection, payload: { outcome: SaveOutcome, storageDetail: Schema.String }, success: Schema.String }),
+).middleware(RequestTracing);
 export const Handlers = Api.toLayer({
-	Save: ({ mode }) =>
+	Save: ({ outcome, storageDetail }) =>
 		Effect.suspend(() => {
-			if (mode === "conflict") {
+			if (outcome === "name taken") {
 				return Effect.fail(new Conflict({ field: "name", message: "Name is taken" }));
 			}
-			if (mode === "unavailable") {
+			if (outcome === "storage unavailable") {
 				return Effect.fail(new ServiceUnavailable({ message: "Storage is unavailable" }));
 			}
-			return mode === "defect" ? Effect.die(original) : Effect.fail(original);
+			const storageError = new Error(`Storage failed with ${storageDetail}`);
+			return outcome === "storage crashes" ? Effect.die(storageError) : Effect.fail(storageError);
 		}).pipe(rpcBoundary(Rejection, { unexpected: (message) => new InternalServerError({ message }) })),
 });

@@ -1,31 +1,38 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { customAccounts, providerProfile, transientAccountsFailure } from "#test/rpc/providerProfile.ts";
+import { aliceLinkedGitHub, firstLookupFails, providerProfile } from "#test/rpc/providerProfile.ts";
+
+const ALICE_GITHUB = { accountId: "123", providerId: "github" };
 
 providerProfile.it(
-	"projects custom provider accounts to public IDs at the session boundary",
-	[
-		customAccounts({
-			email: "alice@example.test",
-			id: "alice",
-			name: "Alice",
-			providerAccounts: Effect.succeed([{ accessToken: "secret", accountId: "123", id: "account-row", providerId: "github" }]),
-		}),
-	],
-	function* ({ accounts }) {
-		expect(yield* accounts()).toEqual({ accounts: [{ accountId: "123", providerId: "github" }], identity: { id: "alice" } });
+	"a handler sees alice's provider accounts as account and provider ids only, without the access token or row id",
+	[aliceLinkedGitHub],
+	function* ({ providerAccounts }) {
+		expect(yield* providerAccounts()).toEqual([ALICE_GITHUB]);
 	},
 );
 
 providerProfile.it(
-	"retries a failed account lookup and reuses only the success for the call",
-	[transientAccountsFailure],
-	function* ({ readAccounts, accountRequests }) {
-		expect(yield* readAccounts()).toEqual([
-			{ _tag: "Failure", error: "AuthUnavailable" },
-			{ _tag: "Success", accounts: [{ accountId: "123", providerId: "github" }] },
-			{ _tag: "Success", accounts: [{ accountId: "123", providerId: "github" }] },
-		]);
-		expect(accountRequests()).toEqual(["alice", "alice"]);
+	"with provider accounts in the session, a handler still sees alice's Identity as her id alone",
+	[aliceLinkedGitHub],
+	function* ({ identity }) {
+		expect(yield* identity()).toEqual({ id: "alice" });
+	},
+);
+
+providerProfile.it(
+	"a failed account lookup is not remembered, so the next read in the same call asks again and gets alice's accounts",
+	[firstLookupFails],
+	function* ({ readAccountsThreeTimes }) {
+		expect(yield* readAccountsThreeTimes()).toEqual(["auth unavailable", [ALICE_GITHUB], [ALICE_GITHUB]]);
+	},
+);
+
+providerProfile.it(
+	"a successful account lookup is asked once per call, however often the handler reads it",
+	[aliceLinkedGitHub],
+	function* ({ providerLookups, readAccountsThreeTimes }) {
+		yield* readAccountsThreeTimes();
+
+		expect(yield* providerLookups()).toEqual(["alice's provider accounts"]);
 	},
 );

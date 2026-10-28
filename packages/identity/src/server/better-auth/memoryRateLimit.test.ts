@@ -1,38 +1,74 @@
 import { expect } from "vitest";
-import { atCapacity, buckets } from "#test/better-auth/memoryRateLimit.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { allowanceUsed, atCapacity, buckets, requestsAtZeroAndNine } from "#test/better-auth/memoryRateLimit.ts";
 
-buckets.it("rolls the window forward only on allowed requests and reports retry seconds", [], function* ({ advance, consume }) {
-	expect(yield* consume("alice")).toEqual({ allowed: true, retryAfter: null });
-	yield* advance("9 seconds");
-	expect(yield* consume("alice")).toEqual({ allowed: true, retryAfter: null });
-	yield* advance("8500 millis");
-	expect(yield* consume("alice")).toEqual({ allowed: false, retryAfter: 2 });
-	yield* advance("500 millis");
-	expect(yield* consume("alice")).toEqual({ allowed: false, retryAfter: 1 });
-	yield* advance("1 second");
-	expect(yield* consume("alice")).toEqual({ allowed: true, retryAfter: null });
+buckets.it(
+	"alice's ten-second window runs from her last allowed request, not her first",
+	[requestsAtZeroAndNine],
+	function* ({ clockReaches, request }) {
+		yield* clockReaches("18 seconds");
+
+		expect(yield* request("alice")).toBe("retry after 1 second");
+	},
+);
+
+buckets.it("a blocked request does not move alice's window", [requestsAtZeroAndNine], function* ({ clockReaches, request }) {
+	yield* clockReaches("18 seconds");
+	expect(yield* request("alice")).toBe("retry after 1 second");
+
+	yield* clockReaches("19 seconds");
+
+	expect(yield* request("alice")).toBe("allowed");
 });
 
-buckets.it("expires buckets before applying a longer rule and keeps client counts separate", [], function* ({ advance, consume }) {
-	expect(yield* consume("alice", { max: 1, window: 1 })).toEqual({ allowed: true, retryAfter: null });
-	expect(yield* consume("alice", { max: 1, window: 1 })).toEqual({ allowed: false, retryAfter: 1 });
-	expect(yield* consume("bob", { max: 1, window: 1 })).toEqual({ allowed: true, retryAfter: null });
-	yield* advance("1 second");
-	expect(yield* consume("alice", { max: 1, window: 60 })).toEqual({ allowed: true, retryAfter: null });
-	expect(yield* consume("alice", { max: 2, window: 60 })).toEqual({ allowed: true, retryAfter: null });
-	expect(yield* consume("alice", { max: 2, window: 60 })).toEqual({ allowed: false, retryAfter: 60 });
+buckets.it(
+	"half a second short of the window, alice is told to retry after a whole second more",
+	[requestsAtZeroAndNine],
+	function* ({ clockReaches, request }) {
+		yield* clockReaches("17500 millis");
+
+		expect(yield* request("alice")).toBe("retry after 2 seconds");
+	},
+);
+
+buckets.it("alice using up her allowance leaves bob's own allowance untouched", [allowanceUsed("alice", "once per second")], function* ({ request }) {
+	yield* outcomes({
+		alice: [request("alice", "once per second"), "retry after 1 second"],
+		bob: [request("bob", "once per second"), "allowed"],
+	});
 });
 
-buckets.it("releases retained buckets when the mount scope closes", [], function* ({ close, consume }) {
-	expect(yield* consume("alice", { max: 1, window: 60 })).toEqual({ allowed: true, retryAfter: null });
-	expect(yield* consume("alice", { max: 1, window: 60 })).toEqual({ allowed: false, retryAfter: 60 });
-	yield* close();
-	expect(yield* consume("alice", { max: 1, window: 60 })).toEqual({ allowed: true, retryAfter: null });
-});
+buckets.it(
+	"alice's expired one-second bucket does not count against a one-minute rule",
+	[allowanceUsed("alice", "once per second")],
+	function* ({ clockReaches, request }) {
+		expect(yield* request("alice", "once per second")).toBe("retry after 1 second");
 
-buckets.it("evicts the oldest bucket above 100,000 entries", [atCapacity], function* ({ consume }) {
-	expect(yield* consume("client-99999", { max: 1, window: 60 })).toEqual({ allowed: false, retryAfter: 60 });
-	expect(yield* consume("another-client", { max: 1, window: 60 })).toEqual({ allowed: true, retryAfter: null });
-	expect(yield* consume("client-0", { max: 1, window: 60 })).toEqual({ allowed: true, retryAfter: null });
-	expect(yield* consume("client-99999", { max: 1, window: 60 })).toEqual({ allowed: false, retryAfter: 60 });
+		yield* clockReaches("1 second");
+
+		expect(yield* request("alice", "once per minute")).toBe("allowed");
+	},
+);
+
+buckets.it(
+	"closing the scope that owns the buckets forgets alice's used allowance",
+	[allowanceUsed("alice", "once per minute")],
+	function* ({ closeScope, request }) {
+		expect(yield* request("alice", "once per minute")).toBe("retry after 60 seconds");
+
+		yield* closeScope();
+
+		expect(yield* request("alice", "once per minute")).toBe("allowed");
+	},
+);
+
+buckets.it("past capacity, a new client's bucket evicts the oldest bucket and keeps the newest", [atCapacity], function* ({ request }) {
+	expect(yield* request("the oldest client", "once per minute")).toBe("retry after 60 seconds");
+
+	yield* request("a new client", "once per minute");
+
+	yield* outcomes({
+		"the newest client": [request("the newest client", "once per minute"), "retry after 60 seconds"],
+		"the oldest client": [request("the oldest client", "once per minute"), "allowed"],
+	});
 });

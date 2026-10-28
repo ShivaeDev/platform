@@ -1,144 +1,278 @@
-import { Cause, Effect, Exit } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { allowedList, organizationRule, signInPolicy } from "#test/sign-in-policy/story.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	allowed,
+	applicationRefusesNewSessions,
+	type MalformedList,
+	membershipChecksDown,
+	moreThanOnePageOfUnlistedUsers,
+	organizationRule,
+	signedIn,
+	signedInOnTwoDevices,
+	signInPolicy,
+} from "#test/sign-in-policy/story.ts";
 
-signInPolicy.it(
-	"an allowed GitHub account signs in and an unlisted one is refused before a user exists",
-	[allowedList("github:1001")],
-	function* ({ signIn, storedSessions, storedUsers, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
-		expect(yield* signIn("bob")).toEqual({ error: "sign_in_refused", signedIn: false });
-		expect(yield* whoami("bob")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(yield* storedUsers()).toEqual(["alice@github.test"]);
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
-	},
-);
+signInPolicy.it("alice, who is on the list, signs in with GitHub and her next request succeeds", [allowed("alice")], function* ({ request, signIn }) {
+	yield* signIn("alice");
 
-signInPolicy.it("an email sign-up is refused while a policy is active", [allowedList("github:1001")], function* ({ signUpWithEmail, storedUsers }) {
-	expect(yield* signUpWithEmail("dana@example.test")).toEqual({ code: "sign_in_refused", status: HttpStatus.fromLiteral("Forbidden") });
-	expect(yield* storedUsers()).toEqual([]);
+	expect(yield* request("alice")).toBe("ok");
 });
 
 signInPolicy.it(
-	"a user removed from the list is refused on the next request and loses every stored session",
-	[allowedList("github:1001", "github:1002")],
-	function* ({ allowOnly, signIn, storedSessions, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		expect(yield* signIn("bob")).toEqual({ signedIn: true });
-		expect(yield* signIn("bob")).toEqual({ signedIn: true });
-		expect(yield* whoami("bob")).toMatchObject({ _tag: "Success" });
-		yield* allowOnly("github:1001");
-		expect(yield* whoami("bob")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1, "bob@github.test": 0 });
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
-		expect(yield* signIn("bob")).toEqual({ error: "sign_in_refused", signedIn: false });
+	"bob, who is not on the list, is refused at sign-in before a user is stored for him",
+	[allowed("alice")],
+	function* ({ signIn, signInAnswer, storedUsers }) {
+		yield* signIn("bob");
+
+		yield* outcomes({
+			"bob's sign-in": [signInAnswer("bob"), "refused"],
+			"stored users": [storedUsers(), []],
+		});
+	},
+);
+
+signInPolicy.it("dana's email sign-up is refused while an allowed list is set", [allowed("alice")], function* ({ signUpAnswer, signUpWithEmail }) {
+	yield* signUpWithEmail("dana");
+
+	expect(yield* signUpAnswer("dana")).toBe("refused");
+});
+
+signInPolicy.it(
+	"removing bob from the list refuses his next request and his next sign-in, ends both his sessions, and leaves alice signed in",
+	[allowed("alice", "bob"), signedIn("alice"), signedInOnTwoDevices("bob")],
+	function* ({ remove, request, signIn, storedSessions }) {
+		expect(yield* storedSessions("bob")).toEqual(["laptop", "phone"]);
+
+		yield* remove("bob");
+
+		yield* outcomes({
+			"alice's next request": [request("alice"), "ok"],
+			"bob signs in again": [signIn("bob"), "refused"],
+			"bob's next request": [request("bob"), "unauthorized"],
+			"bob's stored sessions": [storedSessions("bob"), []],
+		});
 	},
 );
 
 signInPolicy.it(
-	"an organization rule that turns false refuses the user once the recheck interval passes",
-	[organizationRule("300 millis")],
-	function* ({ leaveOrganization, membershipChecks, signIn, storedSessions, waitForRecheck, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
-		const checksWhileSignedIn = membershipChecks();
+	"alice keeps her access until the recheck interval passes after she leaves the organization",
+	[organizationRule, signedIn("alice")],
+	function* ({ leaveOrganization, recheckIntervalPasses, request }) {
 		yield* leaveOrganization("alice");
-		yield* waitForRecheck("300 millis");
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(membershipChecks()).toBe(checksWhileSignedIn + 1);
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 0 });
-		expect(yield* signIn("alice")).toEqual({ error: "sign_in_refused", signedIn: false });
+
+		expect(yield* request("alice")).toBe("ok");
+
+		yield* recheckIntervalPasses();
+
+		expect(yield* request("alice")).toBe("unauthorized");
 	},
 );
 
 signInPolicy.it(
-	"an organization check outage answers AuthUnavailable, keeps the session and creates no user",
-	[organizationRule("300 millis")],
-	function* ({ membershipOutage, revokeUnadmitted, signIn, storedSessions, waitForRecheck, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		yield* membershipOutage();
-		yield* waitForRecheck("300 millis");
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
-		expect(yield* signIn("alice")).toEqual({ error: "sign_in_unavailable", signedIn: false });
-		expect(yield* signIn("carol")).toEqual({ error: "sign_in_unavailable", signedIn: false });
-		expect(yield* Effect.exit(revokeUnadmitted())).toMatchObject({ _tag: "Failure", cause: { reasons: [{ error: { _tag: "UnknownError" } }] } });
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
+	"once the recheck finds alice outside the organization, her stored session ends and her next sign-in is refused",
+	[organizationRule, signedIn("alice")],
+	function* ({ leaveOrganization, recheckIntervalPasses, request, signIn, storedSessions }) {
+		expect(yield* storedSessions("alice")).toEqual(["browser"]);
+
+		yield* leaveOrganization("alice");
+		yield* recheckIntervalPasses();
+
+		yield* outcomes({
+			"alice signs in again": [signIn("alice"), "refused"],
+			"alice's next request": [request("alice"), "unauthorized"],
+			"alice's stored sessions": [storedSessions("alice"), []],
+		});
 	},
 );
 
 signInPolicy.it(
-	"revoking after the list shrinks removes exactly the sessions of users no longer on it",
-	[allowedList("github:1001", "github:1002", "github:1003")],
-	function* ({ allowOnly, revokeUnadmitted, signIn, storedSessions, whoami }) {
-		for (const person of ["alice", "bob", "bob", "carol"] as const) {
-			expect(yield* signIn(person)).toEqual({ signedIn: true });
-		}
-		yield* allowOnly("github:1001");
-		expect(yield* revokeUnadmitted()).toEqual({ sessions: 3, users: 2 });
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1, "bob@github.test": 0, "carol@github.test": 0 });
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
-		expect(yield* revokeUnadmitted()).toEqual({ sessions: 0, users: 0 });
+	"while GitHub cannot answer membership checks, alice's next request after the recheck interval is answered auth unavailable and her session is kept",
+	[organizationRule, signedIn("alice"), membershipChecksDown],
+	function* ({ recheckIntervalPasses, request, storedSessions }) {
+		yield* recheckIntervalPasses();
+
+		yield* outcomes({
+			"alice's next request": [request("alice"), "auth unavailable"],
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+		});
 	},
 );
 
 signInPolicy.it(
-	"revoking reaches every stored user beyond the first page it reads",
-	[allowedList("github:1001")],
-	function* ({ revokeUnadmitted, seedGitHubUsers, sessionHolders, signIn, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		yield* seedGitHubUsers(120);
-		expect(yield* revokeUnadmitted()).toEqual({ sessions: 120, users: 120 });
-		expect(yield* sessionHolders()).toEqual(["alice@github.test"]);
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
+	"while GitHub cannot answer membership checks, alice's sign-in after the recheck interval is unavailable and adds no session",
+	[organizationRule, signedIn("alice"), membershipChecksDown],
+	function* ({ recheckIntervalPasses, signIn, signInAnswer, storedSessions }) {
+		yield* recheckIntervalPasses();
+
+		yield* signIn("alice");
+
+		yield* outcomes({
+			"alice's sign-in": [signInAnswer("alice"), "unavailable"],
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+		});
 	},
 );
 
 signInPolicy.it(
-	"a list that turns malformed while running answers AuthUnavailable and stops the revocation",
-	[allowedList("github:1001")],
-	function* ({ allowOnly, revokeUnadmitted, signIn, storedSessions, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		yield* allowOnly("github");
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Failure", failure: { _tag: "AuthUnavailable" } });
-		expect(yield* Effect.exit(revokeUnadmitted())).toMatchObject({ _tag: "Failure", cause: { reasons: [{ error: { _tag: "ConfigError" } }] } });
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
+	"while GitHub cannot answer membership checks, carol's first sign-in is unavailable before a user is stored for her",
+	[organizationRule, membershipChecksDown],
+	function* ({ signIn, signInAnswer, storedUsers }) {
+		yield* signIn("carol");
+
+		yield* outcomes({
+			"carol's sign-in": [signInAnswer("carol"), "unavailable"],
+			"stored users": [storedUsers(), []],
+		});
 	},
 );
 
 signInPolicy.it(
-	"the application's own session hook still refuses a listed user under a policy",
-	[allowedList("github:1001")],
-	function* ({ closeSessions, signIn, storedSessions, whoami }) {
-		expect(yield* signIn("alice")).toEqual({ signedIn: true });
-		yield* closeSessions();
-		expect(yield* signIn("alice")).toMatchObject({ signedIn: false });
-		expect(yield* storedSessions()).toEqual({ "alice@github.test": 1 });
-		expect(yield* whoami("alice")).toMatchObject({ _tag: "Success" });
+	"revoking while GitHub cannot answer membership checks stops with a failed policy check and keeps alice's session",
+	[organizationRule, signedIn("alice"), membershipChecksDown],
+	function* ({ recheckIntervalPasses, revocation, revoke, storedSessions }) {
+		yield* recheckIntervalPasses();
+
+		yield* revoke();
+
+		yield* outcomes({
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+			"the revocation": [revocation(), "stopped by a failed policy check"],
+		});
 	},
 );
 
 signInPolicy.it(
-	"without a policy any GitHub account or email sign-up signs in and keeps its session",
+	"revoking after bob and carol leave the list ends their three sessions and keeps alice's",
+	[allowed("alice", "bob", "carol"), signedIn("alice"), signedInOnTwoDevices("bob"), signedIn("carol")],
+	function* ({ remove, revocation, revoke, storedSessions }) {
+		yield* outcomes({
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+			"bob's stored sessions": [storedSessions("bob"), ["laptop", "phone"]],
+			"carol's stored sessions": [storedSessions("carol"), ["browser"]],
+		});
+
+		yield* remove("bob", "carol");
+		yield* revoke();
+
+		yield* outcomes({
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+			"bob's stored sessions": [storedSessions("bob"), []],
+			"carol's stored sessions": [storedSessions("carol"), []],
+			"the revocation": [revocation(), { sessions: 3, users: 2 }],
+		});
+	},
+);
+
+signInPolicy.it(
+	"a second revocation after bob leaves the list revokes nothing",
+	[allowed("alice", "bob"), signedIn("bob")],
+	function* ({ remove, revocation, revoke }) {
+		yield* remove("bob");
+		yield* revoke();
+		expect(yield* revocation()).toEqual({ sessions: 1, users: 1 });
+
+		yield* revoke();
+
+		expect(yield* revocation()).toEqual({ sessions: 0, users: 0 });
+	},
+);
+
+signInPolicy.it(
+	"revoking reaches unlisted users beyond the first page it reads and keeps alice's session",
+	[allowed("alice"), signedIn("alice"), moreThanOnePageOfUnlistedUsers],
+	function* ({ revocation, revoke, sessionHolders }) {
+		yield* revoke();
+
+		yield* outcomes({
+			"the revocation": [revocation(), { sessions: 120, users: 120 }],
+			"users still holding a session": [sessionHolders(), ["alice"]],
+		});
+	},
+);
+
+signInPolicy.it(
+	"after the list turns malformed, alice's next request is answered auth unavailable and her session is kept",
+	[allowed("alice"), signedIn("alice")],
+	function* ({ corruptList, request, storedSessions }) {
+		yield* corruptList("a provider without an account id");
+
+		yield* outcomes({
+			"alice's next request": [request("alice"), "auth unavailable"],
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+		});
+	},
+);
+
+signInPolicy.it(
+	"revoking after the list turns malformed stops with a configuration error and keeps alice's session",
+	[allowed("alice"), signedIn("alice")],
+	function* ({ corruptList, revocation, revoke, storedSessions }) {
+		yield* corruptList("a provider without an account id");
+
+		yield* revoke();
+
+		yield* outcomes({
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+			"the revocation": [revocation(), "stopped by a configuration error"],
+		});
+	},
+);
+
+signInPolicy.it(
+	"the application's own session hook still refuses alice's next sign-in under an allowed list, so she gets no new session",
+	[allowed("alice"), signedIn("alice"), applicationRefusesNewSessions],
+	function* ({ signIn, signInAnswer, storedSessions }) {
+		yield* signIn("alice");
+
+		yield* outcomes({
+			"alice's sign-in": [signInAnswer("alice"), "failed: unable_to_create_session"],
+			"alice's stored sessions": [storedSessions("alice"), ["browser"]],
+		});
+	},
+);
+
+signInPolicy.it("without an allowed list or rule, bob signs in with GitHub and his next request succeeds", [], function* ({ request, signIn }) {
+	yield* signIn("bob");
+
+	expect(yield* request("bob")).toBe("ok");
+});
+
+signInPolicy.it(
+	"without an allowed list or rule, dana's email sign-up succeeds and signs her in",
 	[],
-	function* ({ revokeUnadmitted, signIn, signUpWithEmail, storedSessions, whoami }) {
-		expect(yield* signIn("bob")).toEqual({ signedIn: true });
-		expect(yield* signUpWithEmail("dana@example.test")).toEqual({ code: undefined, status: HttpStatus.fromLiteral("OK") });
-		expect(yield* whoami("bob")).toMatchObject({ _tag: "Success" });
-		expect(yield* revokeUnadmitted()).toEqual({ sessions: 0, users: 0 });
-		expect(yield* storedSessions()).toEqual({ "bob@github.test": 1, "dana@example.test": 1 });
+	function* ({ signUpAnswer, signUpWithEmail, storedSessions }) {
+		yield* signUpWithEmail("dana");
+
+		yield* outcomes({
+			"dana's sign-up": [signUpAnswer("dana"), "signed up"],
+			"dana's stored sessions": [storedSessions("dana"), ["browser"]],
+		});
 	},
 );
 
-for (const value of ["github", ""]) {
+signInPolicy.it(
+	"without an allowed list or rule, revoking revokes nothing and bob keeps his session",
+	[signedIn("bob")],
+	function* ({ revocation, revoke, storedSessions }) {
+		yield* revoke();
+
+		yield* outcomes({
+			"bob's stored sessions": [storedSessions("bob"), ["browser"]],
+			"the revocation": [revocation(), { sessions: 0, users: 0 }],
+		});
+	},
+);
+
+for (const malformed of ["an empty list", "a provider without an account id"] satisfies MalformedList[]) {
 	signInPolicy.it(
-		`a list of ${JSON.stringify(value)} stops the application at startup`,
-		[allowedList("github:1001")],
-		function* ({ allowOnly, restart }) {
-			yield* allowOnly(value);
-			const restarted = yield* restart();
-			expect(Exit.isFailure(restarted) ? Cause.pretty(restarted.cause) : "started").toContain("AUTH_ALLOWED_ACCOUNTS");
+		`an allowed list set to ${malformed} stops the application at its next startup`,
+		[allowed("alice")],
+		function* ({ corruptList, restart, startup }) {
+			yield* corruptList(malformed);
+
+			yield* restart();
+
+			expect(yield* startup()).toMatch(/^refused to start: .*AUTH_ALLOWED_ACCOUNTS/u);
 		},
 	);
 }

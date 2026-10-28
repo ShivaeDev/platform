@@ -12,7 +12,7 @@ await Effect.runPromise(
 				await response.text();
 				return response.status;
 			});
-			process.stdout.write(JSON.stringify({ logs: engine.providerLogs, status }));
+			process.stdout.write(JSON.stringify({ address: engine.providerView?.address ?? null, logs: engine.providerLogs, status }));
 		}),
 	),
 );
