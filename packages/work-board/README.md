@@ -300,7 +300,7 @@ Full history beside its reviewed context.
 ::::
 ```
 
-Options begin unselected. `select="one"` is the default, `select="many"` permits multiple choices, and `select="text"` uses human text without options. Every prompt accepts extra text, including a text-only rejection of the framing. An answer needs a choice or nonempty text per prompt. The server validates prompt/option IDs, selection mode and completeness against captured context; one submission returns one response with typed answers and readable Markdown through the existing wait.
+Options begin unselected. `select="one"` is the default, `select="many"` permits multiple choices, and `select="text"` uses human text without options. Every prompt accepts extra text. By default, an answer needs a choice or nonempty text per prompt, including a text-only rejection of the framing. Add `required="selection"` to a choice question when an answer must name an option; text remains an optional note, and Clarify / Not now still accepts explanatory text. Fleet uses this requirement for its guided actions. The server validates prompt/option IDs, selection mode and completeness against captured context; one submission returns one response with typed answers and readable Markdown through the existing wait.
 
 If several requests are open in one file, add `request="keyboard-review"` to each matching question directive. Optional explicit supersession links immutable new direction to an earlier response; it does not rewrite task status or accept work. Source edits preserve human text and clear selections for review. The [packet reference](docs/delivery/decision-write-examples.md) gives a complete item, all modes and validation limits.
 

@@ -1,6 +1,10 @@
-export interface Prompt {
-	readonly id: string;
-	readonly mode: "one" | "many" | "text";
-	readonly options: readonly { readonly id: string; readonly source: string }[];
-	readonly source: string;
-}
+import { Schema } from "effect";
+
+export const Prompt = Schema.Struct({
+	id: Schema.String,
+	mode: Schema.Literals(["one", "many", "text"]),
+	options: Schema.Array(Schema.Struct({ id: Schema.String, source: Schema.String })),
+	requireSelection: Schema.optional(Schema.Boolean),
+	source: Schema.String,
+});
+export type Prompt = typeof Prompt.Type;
