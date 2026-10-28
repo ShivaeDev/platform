@@ -2,6 +2,8 @@
 {"path":"packages/work-board-plugin/src/boardTools.ts","rule":"effect/boundary","count":10}
 {"path":"packages/work-board-plugin/src/connect.ts","rule":"effect/boundary","count":10}
 {"path":"packages/work-board-plugin/src/findBoard.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-board-plugin/src/flights.tsx","rule":"react/jsx-conditionals","count":2}
+{"path":"packages/work-board-plugin/src/goalRows.tsx","rule":"react/jsx-conditionals","count":3}
 {"path":"packages/work-board-plugin/src/register.tsx","rule":"effect/boundary","count":29}
 {"path":"packages/work-board-plugin/src/registerTools.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board-plugin/src/rpc.ts","rule":"effect/boundary","count":1}

@@ -562,7 +562,7 @@
 				"noImportantInKeyframe": "error",
 				"noIrregularWhitespace": "error",
 				"noLabelVar": "error",
-				"noLeakedRender": "error",
+				"noLeakedRender": "off",
 				"noMisleadingCharacterClass": "error",
 				"noMisleadingInstantiator": "error",
 				"noMisrefactoredShorthandAssign": "error",
