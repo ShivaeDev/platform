@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import {
+	compiledImports,
 	dependencyDebt,
 	exceptionRequested,
 	nativeSuppressions,
@@ -81,6 +82,17 @@ unusedRepository.it("keeps manifest Knip suppressions from hiding Quality findin
 
 unusedRepository.it("follows source-conditioned import aliases before the package is built", [sourceImports], function* ({ cli }) {
 	const result = yield* cli("lint");
-	expect(result.stdout).toContain("packages/app/src/values.tsx:2  Unused export. Remove the export or use it from an entry point: unused.");
-	expect(result.stdout).not.toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/src/values.tsx");
+	expect(result.stdout).toContain("packages/app/src/aliased.tsx:2  Unused export. Remove the export or use it from an entry point: unused.");
+	expect(result.stdout).not.toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/src/aliased.tsx");
 });
+
+unusedRepository.it(
+	"follows source imports after a compiler build without counting emitted files as source",
+	[sourceImports, compiledImports],
+	function* ({ cli }) {
+		const result = yield* cli("lint");
+		expect(result.stdout).toContain("packages/app/src/aliased.tsx:2  Unused export. Remove the export or use it from an entry point: unused.");
+		expect(result.stdout).not.toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/src/aliased.tsx");
+		expect(result.stdout).not.toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/dist/");
+	},
+);

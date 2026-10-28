@@ -1,5 +1,5 @@
 import { createRequire } from "node:module";
-import { dirname, join, posix } from "node:path";
+import { basename, dirname, join, posix } from "node:path";
 import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Stream } from "effect";
@@ -8,6 +8,7 @@ import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
 import { entryPointFindings } from "./entryPointFindings.ts";
 import { KNIP_ISSUES, knipFindings } from "./findings.ts";
+import { sourceConfig } from "./sourceConfig.ts";
 
 const BIN = join(dirname(createRequire(import.meta.url).resolve("knip")), "..", "bin", "knip.js");
 export async function runKnip(inputs: RuleInputs) {
@@ -23,11 +24,24 @@ export async function runKnip(inputs: RuleInputs) {
 				const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "quality-knip-" });
 				const config = join(temporary, "knip.json");
 				yield* fs.writeFileString(config, JSON.stringify(configuration));
+				const tsconfig = yield* sourceConfig(inputs, Object.keys(configuration.workspaces), basename(temporary));
 				const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
 				const child = yield* spawner.spawn(
 					ChildProcess.make(
 						process.execPath,
-						["--conditions=source", BIN, "--config", config, "--reporter", "json", "--include", KNIP_ISSUES.join(","), "--no-progress"],
+						[
+							"--conditions=source",
+							BIN,
+							"--config",
+							config,
+							"--tsConfig",
+							tsconfig,
+							"--reporter",
+							"json",
+							"--include",
+							KNIP_ISSUES.join(","),
+							"--no-progress",
+						],
 						{ cwd: inputs.root, env: { "JITI_TRY_NATIVE": "true" }, extendEnv: true, stdin: "ignore" },
 					),
 				);

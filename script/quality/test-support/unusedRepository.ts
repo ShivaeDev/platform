@@ -125,6 +125,13 @@ export const sourceImports = unusedRepository.trait("repository", "a clean packa
 			type: "module",
 		}),
 	);
-	writes(root, "packages/app/src/start.ts", 'import { used } from "#values.tsx";\nNumber.isFinite(used);\n');
-	writes(root, "packages/app/src/values.tsx", "export const used = 1;\nexport const unused = 2;\n");
+	writes(root, "packages/app/src/start.ts", 'import { used } from "#aliased.tsx";\nNumber.isFinite(used);\n');
+	writes(root, "packages/app/src/aliased.tsx", "export const used = 1;\nexport const unused = 2;\n");
+});
+
+export const compiledImports = unusedRepository.trait("repository", "the package has emitted its source imports", (root) => {
+	writes(root, ".gitignore", "node_modules/\n**/dist/\n");
+	writes(root, "packages/app/tsconfig.json", "{}\n");
+	writes(root, "packages/app/tsconfig.build.json", '{"extends":"./tsconfig.json","compilerOptions":{"rootDir":"src","outDir":"dist"}}\n');
+	writes(root, "packages/app/dist/aliased.js", "export const used = 1;\nexport const unused = 2;\n");
 });
