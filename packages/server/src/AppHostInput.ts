@@ -2,6 +2,7 @@ import type { Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppDatabaseOptions, AppHostOptions, AppHttpHostOptions, AppLocalHostOptions } from "#appHost.ts";
+import type { HostRouteRequirements } from "#hostOptions.ts";
 
 export type HostPreflight<TServices = never, TError = never, TRequirements = never> =
 	| { readonly preflight: Layer.Layer<TServices, TError, TRequirements> }
@@ -22,11 +23,27 @@ export type AppHostInput<
 	TPreflight = never,
 	TPreflightError = never,
 	TPreflightRequirements = never,
+	TRouteError = never,
+	TRouteRequirements = HostRouteRequirements,
 > = HostPreflight<TPreflight, TPreflightError, TPreflightRequirements> &
 	(
 		| (AppDatabaseOptions<TMigrations> & {
 				readonly application: Effect.Effect<
-					AppHttpHostOptions<TRpcs, THandlers, THandlerError, THandlerRequirements, TServices, TServiceError, TServiceRequirements, TSession>,
+					AppHttpHostOptions<
+						TRpcs,
+						THandlers,
+						THandlerError,
+						THandlerRequirements,
+						TServices,
+						TServiceError,
+						TServiceRequirements,
+						TSession,
+						never,
+						never,
+						never,
+						TRouteError,
+						TRouteRequirements
+					>,
 					TApplicationError,
 					TApplicationRequirements
 				>;
@@ -43,7 +60,9 @@ export type AppHostInput<
 				TSession,
 				TPreflight,
 				TPreflightError,
-				TPreflightRequirements
+				TPreflightRequirements,
+				TRouteError,
+				TRouteRequirements
 		  >
 		| AppLocalHostOptions<
 				TRpcs,
@@ -56,7 +75,9 @@ export type AppHostInput<
 				TMigrations,
 				TPreflight,
 				TPreflightError,
-				TPreflightRequirements
+				TPreflightRequirements,
+				TRouteError,
+				TRouteRequirements
 		  >
 		| AppHttpHostOptions<
 				TRpcs,
@@ -69,6 +90,8 @@ export type AppHostInput<
 				TSession,
 				TPreflight,
 				TPreflightError,
-				TPreflightRequirements
+				TPreflightRequirements,
+				TRouteError,
+				TRouteRequirements
 		  >
 	);
