@@ -35,28 +35,6 @@ A **collection key** names a dependency. Its item key identifies one item; its l
 
 Optional live hints use those same keys. A hint asks for another read; it does not supply a replacement value, a journal entry or proof that a query is fresh.
 
-### Build an HTTP client
-
-Use `makeClient` once per session to bind a contract to an HTTP endpoint:
-
-```ts
-import { HttpClient, HttpClientRequest } from "effect/http";
-import { makeClient } from "@shivaedev/contract/bind.ts";
-import { Notes } from "./notes.ts";
-
-const { api, runtime } = makeClient(Notes, {
-  url: "/rpc",
-  transformClient: (client) => HttpClient.mapRequest(
-    client,
-    HttpClientRequest.setHeader("authorization", "Bearer session-token"),
-  ),
-});
-const note = api.get.query({ id: 1 });
-const rename = runtime.fn(api.rename.run);
-```
-
-The request transform is optional and its native HTTP client type is inferred. Tests can set cookie and Origin headers through the same option. The default transport uses Fetch and NDJSON; `httpClient` and `serialization` accept native Layers for another HTTP client or codec. `group` can supply a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer that a host can pass to `ManagedRuntime.make`. It also exposes the native `Client` service and a scoped `client` Effect for callers outside React. Session-scoped contracts require `registry` in the options, just as `bind` does.
-
 ### 1. Once per feature: schemas and operations
 
 Keep the shared declaration in a module that both server and client can import:
@@ -223,6 +201,28 @@ export const api = bind(Notes, NotesClient);
 
 Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [reference composition](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) composes handlers, request identity, SQL and a rendered client.
 
+### Build an HTTP client in one call
+
+Instead of declaring the `AtomRpc.Service` yourself, use `makeClient` once per session to build the HTTP client and bind the contract to it:
+
+```ts
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { Notes } from "./notes.ts";
+
+const { api, runtime } = makeClient(Notes, {
+  url: "/rpc",
+  transformClient: (client) => HttpClient.mapRequest(
+    client,
+    HttpClientRequest.setHeader("authorization", "Bearer session-token"),
+  ),
+});
+const note = api.get.query({ id: 1 });
+const rename = runtime.fn(api.rename.run);
+```
+
+The request transform is optional and its native HTTP client type is inferred. Tests can set cookie and Origin headers through the same option. The default transport uses Fetch and NDJSON; `httpClient` and `serialization` accept native Layers for another HTTP client or codec. `group` can supply a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer that a host can pass to `ManagedRuntime.make`. It also exposes the native `Client` service and a scoped `client` Effect for callers outside React. Session-scoped contracts require `registry` in the options, just as `bind` does.
+
 ### 3. Every day: read and change
 
 ```ts
@@ -231,8 +231,6 @@ const list = api.list.query();
 const readOnce = api.get.run({ id: 1 });
 const rename = api.rename.run({ id: 1, title: "Uno" });
 ```
-
-`queryCoalesceWindow(query)` from `@shivaedev/contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
 
 `one` and `list` are native query atoms. `readOnce` and `rename` are Effects for individual calls. A query's Effect requires `NotesClient`; a command's Effect also requires native `Reactivity`. Commands expose `run`, and have no `query` member.
 
@@ -273,29 +271,7 @@ Client invalidation follows RPC success. Database hosts from `@shivaedev/server`
 
 ### Session-owned keys
 
-Without a session key scope, a self-only feature needs an owner field in its payloads only to give client reads and invalidations a key, even though the server already chooses the account from `Identity`:
-
-```ts
-const preferences = collection("preferences", Schema.String);
-const Preferences = contract("preferences", {
-  queries: [query("self", {
-    payload: { ownerId: Schema.String },
-    reads: ({ ownerId }) => [preferences.item(ownerId)],
-    success: Schema.String,
-  })],
-  commands: [command("save", {
-    payload: { ownerId: Schema.String, title: Schema.String },
-    invalidates: ({ ownerId }) => [preferences.item(ownerId)],
-    success: Schema.String,
-  })],
-}).middleware(Authenticated);
-
-const api = bind(Preferences, Client);
-const self = api.self.query({ ownerId: session.userId });
-const save = api.save.run({ ownerId: session.userId, title: "My preferences" });
-```
-
-With `keyScope: "session"`, the payloads and call sites drop `ownerId`, and the queries keep a logical item key for the self-only record:
+A self-only feature, such as a user's preferences, reads and changes only the signed-in account's records. Declare its contract with `keyScope: "session"`. The server chooses the account from request-local identity, so payloads carry no owner field, and reads and invalidations name a logical item key for the record:
 
 ```ts
 const preferences = collection("preferences", Schema.String);
@@ -317,25 +293,9 @@ const self = api.self.query(undefined);
 const save = api.save.run({ title: "My preferences" });
 ```
 
-The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command` and `bind` from contract's defining modules, `collection` from `@shivaedev/changes/keys.ts`, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
+The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command` and `bind` from contract's defining modules, `collection` from `@shivaedev/changes/keys.ts`, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service, and `registry` is the atom registry that owns the session's queries. In React, `SessionBoundary` supplies that registry to `connect`, as [react's session-scoped bindings](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#session-scoped-bindings) show.
 
-```tsx
-import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
-
-<SessionBoundary
-  session={session}
-  identify={(current) => current.generation}
-  connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
-  recheck={recheck}
-  signedOut={<p>Signed out</p>}
->
-  {(api) => <PreferencesScreen api={api} />}
-</SessionBoundary>
-```
-
-`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. A `connect` callback that does not need the registry can omit its second argument. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
-
-Handlers read the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, with or without the session key scope:
+Handlers read the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`:
 
 ```ts
 Preferences.application.toLayer({
@@ -445,6 +405,8 @@ const releaseConnection = registry.mount(updates.connection);
 | First hint on a new or reconnected stream | The full explicit scope, even if the hint is targeted. |
 
 Changed hints share a fixed 20 ms window by default. Their keys merge, and each affected bound query refetches once per window. A bound query already fetching keeps its request and refetches once more after it settles if further hints arrive. Set `coalesceWindow` in `live()` to a native Duration, or set `SessionBoundary`'s `liveCoalesceWindow` for automatic session connections. Zero restores immediate per-hint invalidation, including interruption of in-flight reads. Full reconciliation on first hint, reconnect, resume and unpause stays immediate. Registry teardown cancels a pending window.
+
+`queryCoalesceWindow(query)` from `@shivaedev/contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
 
 `LiveHint` and `Key` are schemas. Decoding rejects unknown hint tags and item keys with an invalid ID type.
 

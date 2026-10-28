@@ -42,8 +42,6 @@ A generated app includes a GitHub Actions workflow that runs `pnpm run ci` again
 
 Generated apps reference Quality’s app TypeScript preset and Vite and test helpers, its hook setup and CI command, and Platform’s local database and development helpers. Their shared behavior comes from installed packages, so fixes reach existing apps with a dependency update. The app keeps its plugins, paths, environment, migration composition, CI workflow and deployment resources.
 
-The default starter mounts `/admin/users` beside Jobs. Roles are declared in code, one file per role, with explicit grants. Users store one role string. Callers with `users.read` see paginated users; callers with `roles.assign` assign a declared role through native RPC, which protects the last role assigner. Client permission routes share one fallback page. New `admin:create` accounts receive the owner role and all admin permissions.
-
 ### Work in the app
 
 Run `pnpm run setup` after cloning the generated repository to install dependencies and the hook for that checkout. Run `pnpm ready` for the full local gate: lint, typecheck, build and tests, using the same script as CI.

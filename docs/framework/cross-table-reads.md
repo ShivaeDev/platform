@@ -103,12 +103,4 @@ This effect still requires the application's `SqlClient`. Import `DateTime` and 
 
 Column names inside SQL text are not checked at compile time. Neither a composed result schema nor a typed request proves that a SQL identifier exists or that a join condition is correct. PostgreSQL reports statement failures as typed `SqlError`; decoding the result at the boundary fails with typed `SchemaError` when a returned value violates the composed schema. For example, a stored score of `invalid` cannot decode through `Report.fields.score`. Do not cast driver rows to the expected result type: that removes this check.
 
-The [PostgreSQL story](../../packages/sql/src/crossTableReads.spec.ts) runs these queries over two repositories' tables through the `postgres` kit. It exercises matched and unmatched rows, numeric and UTC result decoding, a UTC bound encoded into a `Date` parameter, an invalid persisted score in the typed error channel, and optional single-row reads. This proves the application composition against PostgreSQL; it adds no sql API or repository join builder.
-
-After `./script/update`, run the story against the local PostgreSQL database:
-
-```sh
-PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/crossTableReads.spec.ts
-```
-
-Without `PLATFORM_SQL_TEST_DATABASE_URL` the PostgreSQL kit skips locally; under CI, a missing URL fails collection rather than silently skipping these stories.
+These reads are proved against real PostgreSQL: matched and unmatched rows, numeric and UTC decoding, the UTC bound encoded as a `Date` parameter, an invalid stored score failing with `SchemaError`, and optional single-row reads. They are an application composition; `sql` adds no API or repository join builder for them. Test your own composed reads against real PostgreSQL too, including a stored value the result schema rejects, because another database's types and driver values prove nothing about PostgreSQL decoding.

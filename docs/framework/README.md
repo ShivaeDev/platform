@@ -2,7 +2,7 @@
 
 Start a new app with the [quickstart](./quickstart.md) and [copyable starter](../../examples/starter).
 
-An application depends on [`@shivaedev/platform`](../../packages/platform/README.md), which brings every runtime package below. For development it takes `@shivaedev/test-story`, which brings `test` and `test-sql`, and `@shivaedev/quality`. It imports each module from the package that owns it, by that package's name; the table names the owner of each job.
+An application depends on [`@shivaedev/platform`](../../packages/platform/README.md), which brings every runtime package below. For development it takes `@shivaedev/test-story`, which brings `test` and `test-sql`, and `@shivaedev/quality`. It imports each module from the package that owns it, by that package's name; [the application path](#the-application-path) names the owner of each job and where its boundary lies.
 
 Platform gives an Effect application one path from its data schemas to services, persistence, operations and client state. Shared conventions remove repeated wiring while keeping native Effect dependencies, errors, scopes and interruption visible.
 
@@ -27,6 +27,9 @@ Schema describes data once. Services implement behavior, repositories execute SQ
 | Edit and submit data | [form](../../packages/form/README.md) | Keep encoded field input and decode for submission; applications supply UI and save effects. |
 | Run durable jobs | [jobs](../../packages/jobs/README.md) | Integrate pg-boss with Effect services; applications choose queue and retry policy. |
 | Author administrator pages | [admin](../../packages/admin/README.md) | Register native contracts behind each page's declared domain permission; applications own React views on the existing RPC transport. |
+| Read and write GitHub | [github](../../packages/github/README.md) | Decode GitHub REST responses with Schema, reuse unchanged responses and keep rate limits typed; applications supply the HTTP client and token. |
+| Run local PostgreSQL | [local-postgres](../../packages/local-postgres/README.md) | Share one persistent local service for development and tests; each application's setup script owns its database names and schema preparation. |
+| Share TypeScript type helpers | [types](../../packages/types/README.md) | Type-only helpers such as `Bivariant` where packages need the same TypeScript rule; no runtime code. |
 | Test Effect code | [test](../../packages/test/README.md) | Compose test Layers and Vitest; applications supply the real services under test. |
 | Isolate PostgreSQL tests | [test-sql](../../packages/test-sql/README.md) | Prepare migrations and fixtures once; use rollback or cloned databases for real commits. |
 | Tell tests as stories | [test-story](../../packages/test-story/README.md) | Put shared engine setup in a kit and feature setup in traits; a spec tells its own story. |

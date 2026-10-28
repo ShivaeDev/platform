@@ -1,6 +1,7 @@
 import { type Duration, Effect, Ref, Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
+import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { liveClient } from "#test/live/client.ts";
 import { liveEngine, liveSnapshot, streamRunner } from "./liveEngine.ts";
@@ -17,6 +18,10 @@ export const liveNotesStory = storyKit({
 		return {
 			active: () => Effect.runSync(Ref.get(server.active)),
 			activeSubscriptions: () => [...server.activeSubscriptions],
+			advanceTimersBy: (ms: number) => {
+				story.tell(`${ms} ms pass on the held timers`);
+				return Effect.promise(() => vi.advanceTimersByTimeAsync(ms));
+			},
 			body: (atom: ReturnType<typeof client.api.get.query>) => AsyncResult.getOrElse(registry.get(atom), () => undefined)?.body,
 			connect: () => {
 				story.tell("subscribe to live notes");
@@ -42,6 +47,13 @@ export const liveNotesStory = storyKit({
 				story.tell(`read live note ${id}`);
 				return run(client.api.get.run({ id }));
 			},
+			holdTimers: () => {
+				story.tell("hold the consumer's timers");
+				return Effect.acquireRelease(
+					Effect.sync(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })),
+					() => Effect.sync(() => vi.useRealTimers()),
+				).pipe(Effect.asVoid);
+			},
 			invalidate: (keys: Parameters<typeof server.reactivity.invalidate>[0]) => server.reactivity.invalidate(keys),
 			isPaused: () => {
 				story.tell("the consumer reads whether live reads are paused");
@@ -58,7 +70,17 @@ export const liveNotesStory = storyKit({
 			queryList: () => client.api.list.query(undefined),
 			readOutage: (unavailable: boolean) => Ref.set(server.unavailable, unavailable),
 			reads: () => Effect.runSync(Ref.get(server.reads)),
+			receivedChanges: (count: number) =>
+				SubscriptionRef.changes(client.received).pipe(
+					Stream.filter(({ Changed }) => Changed >= count),
+					Stream.take(1),
+					Stream.runDrain,
+				),
 			registry,
+			releaseTimers: () => {
+				story.tell("release the consumer's timers");
+				vi.useRealTimers();
+			},
 			resume: () => {
 				story.tell("the consumer resumes");
 				registry.set(client.resume, registry.get(client.resume) + 1);

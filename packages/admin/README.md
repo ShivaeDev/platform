@@ -148,11 +148,11 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 
 Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAccess, input)` from `@shivaedev/admin/server/users.ts` on the server. These enforce their respective domain permissions using `SessionUser`.
 
-Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
+Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy: the policy covers only `admin.users.changeRole`, so disable Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints, which write roles outside it. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
 
 ### Client permission routes
 
-`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract and exposes its permission as `page.route.permission`. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback. The starter uses this path for Users, Jobs and note statistics.
+`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract and exposes its permission as `page.route.permission`. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback.
 
 ### Install and limits
 

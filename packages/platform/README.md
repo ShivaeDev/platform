@@ -36,24 +36,4 @@ Only applications depend on platform. A library, or an application published for
 
 ### Which package owns which job
 
-| Job | Package |
-| --- | --- |
-| Services and Layers | [`@shivaedev/service`](https://github.com/ShivaeDev/platform/tree/main/packages/service#readme) |
-| Persistence, repositories and migrations | [`@shivaedev/sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql#readme) |
-| After-commit changes | [`@shivaedev/changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes#readme) |
-| Queries, commands and live contracts | [`@shivaedev/contract`](https://github.com/ShivaeDev/platform/tree/main/packages/contract#readme) |
-| Shared expected failures and redaction | [`@shivaedev/errors`](https://github.com/ShivaeDev/platform/tree/main/packages/errors#readme) |
-| Request identity, sessions, permissions and Better Auth | [`@shivaedev/identity`](https://github.com/ShivaeDev/platform/tree/main/packages/identity#readme) |
-| Roles and permission sets | [`@shivaedev/access`](https://github.com/ShivaeDev/platform/tree/main/packages/access#readme) |
-| The application host | [`@shivaedev/server`](https://github.com/ShivaeDev/platform/tree/main/packages/server#readme) |
-| Receiving signed webhooks | [`@shivaedev/webhooks`](https://github.com/ShivaeDev/platform/tree/main/packages/webhooks#readme) |
-| Calls to outside HTTP APIs | [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme) |
-| Client state in React | [`@shivaedev/react`](https://github.com/ShivaeDev/platform/tree/main/packages/react#readme) |
-| Forms | [`@shivaedev/form`](https://github.com/ShivaeDev/platform/tree/main/packages/form#readme) |
-| Background jobs | [`@shivaedev/jobs`](https://github.com/ShivaeDev/platform/tree/main/packages/jobs#readme) |
-| Admin pages | [`@shivaedev/admin`](https://github.com/ShivaeDev/platform/tree/main/packages/admin#readme) |
-| GitHub integration | [`@shivaedev/github`](https://github.com/ShivaeDev/platform/tree/main/packages/github#readme) |
-| Local PostgreSQL for development | [`@shivaedev/local-postgres`](https://github.com/ShivaeDev/platform/tree/main/packages/local-postgres#readme) |
-| Shared TypeScript types | [`@shivaedev/types`](https://github.com/ShivaeDev/platform/tree/main/packages/types#readme) |
-
-Tests use [`@shivaedev/test-story`](https://github.com/ShivaeDev/platform/tree/main/packages/test-story#readme) and checks use [`@shivaedev/quality`](https://github.com/ShivaeDev/platform/tree/main/packages/quality#readme), both as development dependencies.
+The framework guide's [application path](https://github.com/ShivaeDev/platform/blob/main/docs/framework/README.md#the-application-path) names the package that owns each job and where its boundary lies. Platform depends on every runtime package there; the test packages reach an application through its `@shivaedev/test-story` development dependency.

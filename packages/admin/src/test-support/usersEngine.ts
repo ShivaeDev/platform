@@ -1,4 +1,4 @@
-import { Effect, Layer, Option, Schema } from "effect";
+import { Effect, Layer, Logger, Option, References, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { SqlClient } from "effect/sql";
@@ -16,6 +16,11 @@ import { Access } from "./Access.ts";
 
 export const Page = usersPage(Access);
 const Profile = Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String, role: Schema.String });
+export interface LogRecord {
+	readonly annotations: Readonly<Record<string, unknown>>;
+	readonly message: unknown;
+}
+
 export const usersEngine = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const database = yield* PostgresTestDatabase;
@@ -28,20 +33,30 @@ export const usersEngine = Effect.gen(function* () {
 	});
 	const context = yield* Effect.promise(() => auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
+	function register(id: string, role: typeof Access.Role.Type) {
+		return Effect.promise(() =>
+			context.internalAdapter.createUser({ email: `${id}@app.test`, emailVerified: true, id, name: id, role }, { method: "admin" }),
+		);
+	}
 	// The story begins with users already registered; it exercises role assignment over RPC.
 	for (const [id, role] of [
 		["alice", "owner"],
 		["bob", "user"],
 		["carol", "auditor"],
 	] as const) {
-		yield* Effect.promise(() =>
-			context.internalAdapter.createUser({ email: `${id}@app.test`, emailVerified: true, id, name: id, role }, { method: "admin" }),
-		);
+		yield* register(id, role);
 	}
+	const logs: LogRecord[] = [];
+	const logger = Logger.layer([
+		Logger.make((options) => {
+			logs.push({ annotations: options.fiber.getRef(References.CurrentLogAnnotations), message: options.message });
+		}),
+	]);
 	const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
 	const handlers = Layer.merge(usersHandlers(Page, Access), hostChanges(Page.contract, AppChanges)).pipe(
 		Layer.provide(Layer.succeed(AppChanges, live)),
 		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
+		Layer.provide(logger),
 	);
 	function currentUser(id: string) {
 		return Effect.tryPromise(() => context.internalAdapter.findUserById(id)).pipe(
@@ -54,5 +69,5 @@ export const usersEngine = Effect.gen(function* () {
 		const authLayer = permissionLayer(UsersPermission, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access });
 		return RpcTest.makeClient(Page.contract).pipe(Effect.provide(Layer.merge(handlers, authLayer)));
 	}
-	return { clientAs };
+	return { clientAs, logs, register };
 });

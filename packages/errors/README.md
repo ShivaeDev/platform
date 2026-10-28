@@ -64,7 +64,7 @@ export const save = storageSave.pipe(expose);
 
 `redact.ts` applies that policy to structured values. `redact(value, sensitive?)` masks values under sensitive keys and credential text inside strings, summarises large collections and binary data, and stops cyclic payloads at a depth limit; use it for diagnostics. `redactWire(value, sensitive?)` applies the same masking without summaries or truncation; use it for failure data sent to a client.
 
-`redactCause.ts` applies it to Effect causes. `redactCause(cause, sensitive?)` and `redactDiagnosticCause(cause, sensitive?)` rebuild a cause with masked failures and defects, `redactDefect(defect, sensitive?)` masks one defect, and `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter so it only ever receives masked causes.
+`redactCause.ts` applies it to Effect causes. `redactCause(cause, sensitive?)` rebuilds a cause with masked defects and keeps its typed failures, interruptions and annotations as they are, so the failure channel keeps its type. `redactDiagnosticCause(cause, sensitive?)` masks failures, defects and annotations for diagnostics, `redactDefect(defect, sensitive?)` masks one defect, and `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter so it only ever receives diagnostic-masked causes.
 
 The policy matches names, not values: it does not scan prose for personal data, so keep secrets out of free text and span names.
 

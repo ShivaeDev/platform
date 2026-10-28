@@ -13,7 +13,6 @@ The order feature is the reference composition for Platform's native application
 | [Server](../../packages/react/src/test-support/postgres-example/server.ts) | Server's `appHost` supplies migrated PostgreSQL, session middleware, guarded Node HTTP and NDJSON RPC transport. |
 | [Client](../../packages/react/src/test-support/postgres-example/makeClient.ts) | Native AtomRpc, contract binding and live invalidation. |
 | [Editor](../../packages/react/src/test-support/postgres-example/OrderEditor.tsx) | `useEditor` connects the query to form fields and decoded saves. |
-| [Tests](../../packages/react/src/postgresExample.dom.spec.tsx) | Two independent client registries, rendered editors, commit visibility and rollback through actual HTTP. |
 
 ## From commit to another editor
 
@@ -27,6 +26,8 @@ The server configures `appHost` with `config.changes` to bind `postgresChanges` 
 
 ## Delivery between processes
 
-Several processes can share one feature: [the process test](../../packages/react/src/postgresProcesses.spec.ts) runs two native HTTP servers and a pg-boss worker against the same migrated database, each with its own pool and Reactivity. A commit through any of them reaches live subscribers on both servers. When a server loses its LISTEN connection, its live streams receive `Resync` and a fresh connection picks up later commits.
+Several processes can share one feature. Two native HTTP servers and a pg-boss worker can run against the same migrated database, each with its own pool and Reactivity, and a commit through any of them reaches live subscribers on both servers. When a server loses its LISTEN connection, its live streams receive `Resync` and a fresh connection picks up later commits. A rolled-back write publishes no hint.
 
 NOTIFY is not a durable log. The binding detects listener loss through a heartbeat and resyncs again after reconnecting so readers query authoritative data. The default PostgreSQL payload limit is smaller than 8,000 bytes; the binding splits arrays of invalidation keys and rejects an individual key that cannot fit. LISTEN needs a session connection, so this adapter does not establish PgBouncer transaction-pooling support.
+
+This composition is proved against real PostgreSQL and real HTTP, with separate server and worker processes and two independently rendered editors. The editors are DOM renders, so they do not prove SSR or browser lifecycle, and the fixture's session provider and commit gate do not establish a production deployment.

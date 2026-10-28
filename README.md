@@ -60,7 +60,7 @@ corepack enable
 pnpm ready
 ```
 
-`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
+`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. The hook runs the checks of `pnpm lint` and `pnpm typecheck` on every commit, through Quality's lint gate, the conventional `typecheck` script and Platform's `quality:commit` script. Installation runs no build, lint, typecheck, or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup never stops or removes an existing service or volume.
 
@@ -76,7 +76,7 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage.
 
-Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files. For example, after local setup:
+Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files, which the default run skips. For example, after local setup:
 
 ```sh
 PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
@@ -86,6 +86,8 @@ PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/pl
 CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. On pull requests, pushes and in the merge queue alike, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`, where flaky-test tracking picks them up. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact.
 
 Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-commits.txt`, the final JUnit report, `flaky-tests.json` when a test recovered, and `job.txt` with the shard job's check run ID.
+
+`pnpm fleet` runs the [Work Fleet](./packages/work-fleet) CLI from source, such as `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`, with one foreground supervisor per Board directory.
 
 ### Heavy runs
 

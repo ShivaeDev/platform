@@ -15,13 +15,7 @@ This recipe uses Schema, a `sql` repository, a `contract` query and command, and
 | [Host](../../packages/react/src/test-support/settings-example/startHost.ts) | Server's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC. |
 | [Client](../../packages/react/src/test-support/settings-example/makeClient.ts) | Native AtomRpc, contract binding and entity-scoped live invalidation. |
 | [Editor](../../packages/react/src/test-support/settings-example/Editor.tsx) | `useEditor`, encoded input, form fields and rendered field errors. |
-| [Story kit](../../packages/react/src/test-support/settings-example/story.ts) | PostgreSQL configuration, cloned-database isolation and open-editor traits. |
-| [Engine](../../packages/react/src/test-support/settings-example/engine.ts) | Existing signed-in owners as fixture preconditions and independent stored-row observations. |
-| [Screens](../../packages/react/src/test-support/settings-example/openScreen.tsx) | Separate registries and DOM drivers for each rendered editor. |
-| [HTTP requests](../../packages/react/src/test-support/settings-example/request.ts) | Independent authenticated queries and commands for rejection observations. |
-| [React waits](../../packages/react/src/test-support/settings-example/withReact.ts) | Keep asynchronous HTTP and stored-row observations inside React’s `act`. |
-| [Verbs](../../packages/react/src/test-support/settings-example/verbs.ts) | Screen actions, rendered readouts and HTTP calls; expectations stay in the spec. |
-| [Stories](../../packages/react/src/entitySettings.dom.spec.tsx) | Defaults, insert, live refresh, repeated save, typed field rejection and owner isolation. |
+| [Story kit](../../packages/react/src/test-support/settings-example/story.ts) | A pattern for testing such a feature: cloned PostgreSQL databases, the real host over HTTP and independently rendered editors. |
 
 ## Declare defaults once
 
@@ -76,16 +70,10 @@ return useEditor({
 });
 ```
 
-`values` turns the numeric page size into encoded text. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft, so the stories can observe both read delivery and field rendering.
+`values` turns the numeric page size into encoded text. Each control uses form's `useField`; submit calls `editor.save()`. A missing row needs no special form branch because the query already supplies defaults. The editor shows the queried value as well as its editable draft.
 
 The command declares `InvalidSettings: fieldRejection(Settings)`. The service refuses a page size outside the integer range 1–100 with that typed rejection naming `pageSize`. `useEditor` maps its `{ _tag, field, message }` shape to the matching form field, whose error the component renders beside the input. The rejected draft stays visible and no settings row is stored. This range is application policy, enforced by the service for HTTP callers as well as form submissions.
 
-## Run the evidence
+## What the evidence covers
 
-The module-level `storyKit(...)` reads `PLATFORM_SQL_TEST_DATABASE_URL` through Effect Config, as the order example does. Without it the stories skip; a skipped story proves nothing. CI supplies real PostgreSQL and the URL through the repository test runner. For a focused local run after `./script/update`:
-
-```sh
-PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/react test src/entitySettings.dom.spec.tsx --maxWorkers=2
-```
-
-Each story commits through `appHost` and real HTTP into its own cloned PostgreSQL database. Two independent rendered clients prove defaults without a row, first-save creation and live delivery, and replacement values with exactly one stored row. The first save pauses before commit: an independent SQL connection still sees no row and the reader still shows defaults. Releasing the transaction makes the saved values reach the reader. A rejected submission proves the server error reaches the field without inserting. The ownership story refuses cross-owner queries and saves before and after row creation, while each owner's editor retains its own values. These are DOM render stories; they do not establish browser appearance or a production sign-in flow.
+This recipe is proved against real PostgreSQL over real HTTP, with saves committed through `appHost` and observed by independently rendered clients: defaults without a stored row, first-save creation and its live delivery to the other client, replacement values that leave exactly one stored row, no row or new values visible before commit, a field rejection that stores nothing, and refusal of another owner's queries and saves before and after the row exists. The clients are DOM renders, so they do not prove browser appearance, SSR or a production sign-in flow.

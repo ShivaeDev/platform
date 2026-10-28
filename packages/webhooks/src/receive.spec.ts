@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Fiber } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { body, WEBHOOK_SECRET } from "#test/fixture.ts";
@@ -18,17 +18,18 @@ inbox.it("a signed GitHub delivery records its receipt and both typed jobs", [],
 	]);
 });
 
-for (const [name, options, status] of [
-	["missing signature", { signature: null }, HttpStatus.fromLiteral("Unauthorized")],
-	["wrong signature before malformed JSON is decoded", { body: "not-json", signature: signature(body) }, HttpStatus.fromLiteral("Unauthorized")],
-	["missing delivery ID", { delivery: null }, HttpStatus.fromLiteral("BadRequest")],
-	["rejected payload", { body: JSON.stringify({ issue: { number: "body-must-stay-private" } }) }, HttpStatus.fromLiteral("BadRequest")],
-	["oversized body", { body: "x".repeat(257) }, 413],
-	["unregistered source", { source: "unknown" }, 404],
+for (const [name, options, status, text] of [
+	["missing signature", { signature: null }, HttpStatus.fromLiteral("Unauthorized"), ""],
+	["wrong signature before malformed JSON is decoded", { body: "not-json", signature: signature(body) }, HttpStatus.fromLiteral("Unauthorized"), ""],
+	["missing delivery ID", { delivery: null }, HttpStatus.fromLiteral("BadRequest"), "Invalid delivery"],
+	["missing event header", { event: null }, HttpStatus.fromLiteral("BadRequest"), "Invalid delivery"],
+	["rejected payload", { body: JSON.stringify({ issue: { number: "body-must-stay-private" } }) }, HttpStatus.fromLiteral("BadRequest"), ""],
+	["oversized body", { body: "x".repeat(257) }, 413, ""],
+	["unregistered source", { source: "unknown" }, 404, ""],
 ] as const) {
 	inbox.it(`refuses a ${name} without a receipt or a job`, [], function* ({ deliver, receipts, storedJobs, telemetry }) {
 		const response = yield* deliver(options);
-		expect(response.status).toBe(status);
+		expect(response).toEqual({ body: text, status });
 		expect(yield* receipts()).toEqual([]);
 		expect(yield* storedJobs()).toEqual([]);
 		const captured = JSON.stringify({ response, telemetry: telemetry() });
@@ -61,6 +62,13 @@ inbox.it("answers already queued for a duplicate and keeps the original job IDs"
 	expect((yield* storedJobs()).map(({ id }) => id).toSorted()).toEqual(original[0]?.job_ids.toSorted());
 });
 
+inbox.it("answers already queued for a duplicate ignored event and keeps one receipt", [], function* ({ deliver, receipts }) {
+	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "ignored", status: HttpStatus.fromLiteral("OK") });
+	const original = yield* receipts();
+	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "already queued", status: HttpStatus.fromLiteral("OK") });
+	expect(yield* receipts()).toEqual(original);
+});
+
 inbox.it("two concurrent copies enqueue the jobs once", [], function* ({ deliver, receipts, storedJobs }) {
 	const responses = yield* Effect.all([deliver(), deliver()], { concurrency: "unbounded" });
 	expect(responses.toSorted((a, b) => a.status - b.status)).toEqual([
@@ -87,6 +95,40 @@ inbox.it(
 			{ data: { payload: { number: 42 } }, name: "webhook-audit" },
 			{ data: { payload: { number: 42 } }, name: "webhook-issue" },
 		]);
+	},
+);
+
+inbox.it(
+	"a second concurrent copy receives the delivery itself after the first copy rolls back",
+	[],
+	function* ({ deliver, holdReceiptUpdates, untilCopiesWaitOn, cancelCopyWaitingOnHold, releaseReceiptUpdates, receipts, storedJobs }) {
+		yield* holdReceiptUpdates();
+		const copies = yield* Effect.all([deliver(), deliver()], { concurrency: "unbounded" }).pipe(Effect.forkChild);
+		yield* untilCopiesWaitOn("advisory", "transactionid");
+		yield* cancelCopyWaitingOnHold();
+		yield* untilCopiesWaitOn("advisory");
+		yield* releaseReceiptUpdates();
+		const responses = yield* Fiber.join(copies);
+		expect(responses.toSorted((a, b) => a.status - b.status)).toEqual([
+			{ body: "queued", status: HttpStatus.fromLiteral("Accepted") },
+			{ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") },
+		]);
+		const rows = yield* receipts();
+		expect(rows).toMatchObject([{ "delivery_id": "delivery-1", outcome: "queued" }]);
+		expect((yield* storedJobs()).map(({ id }) => id).toSorted()).toEqual(rows[0]?.job_ids.toSorted());
+	},
+);
+
+inbox.it(
+	"a database failure answers 503 without a job, then the retry succeeds",
+	[],
+	function* ({ deliver, takeReceiptsOffline, restoreReceipts, receipts, storedJobs }) {
+		yield* takeReceiptsOffline();
+		expect(yield* deliver()).toEqual({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
+		yield* restoreReceipts();
+		expect(yield* receipts()).toEqual([]);
+		expect(yield* storedJobs()).toEqual([]);
+		expect(yield* deliver()).toEqual({ body: "queued", status: HttpStatus.fromLiteral("Accepted") });
 	},
 );
 

@@ -3,6 +3,7 @@ import { readInstalled } from "#installed.ts";
 import { syncSkills } from "#syncSkills.ts";
 import { removeFile, select, writeFile } from "./fixture.ts";
 import { MANIFEST, skills } from "./skills.ts";
+import { checkOutPullRequest } from "./workflow.ts";
 
 export function selected(...names: readonly string[]) {
 	return skills.trait("selected", `the repository selects ${names.join(", ") || "no shared skills"}`, ({ repo }) => select(repo, names));
@@ -56,3 +57,11 @@ export const shippedSkills = skills.trait("selected", "the repository selects th
 	engine.installed = yield* readInstalled(fileURLToPath(new URL("../..", import.meta.url)));
 	yield* select(engine.repo, ["pr-description", "story-testing", "visual-pages"]);
 });
+
+export const pullRequestBranch = skills.trait(
+	"synced",
+	"the selection is committed on a pull request branch that tracks a remote, with the package's executable installed",
+	function* (engine) {
+		engine.remote = yield* checkOutPullRequest(engine.repo);
+	},
+);

@@ -1,8 +1,8 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, Schedule } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { hostLayer, type InboxState } from "#test/host.ts";
+import { hostLayer, type InboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { webhookReceipts } from "#webhookReceipts.ts";
@@ -17,7 +17,18 @@ export const schemaInbox = storyKit({
 	verbs: (state) => ({
 		apply: () => webhookReceipts.apply,
 		checkHost: () => Layer.build(hostLayer(state)).pipe(Effect.scoped, Effect.exit),
+		hostStarted: () => state.url !== "",
 		installJobs: () => pgBossSchema().apply,
 		pending: () => webhookReceipts.pending,
+		startWaitingHost: () => {
+			state.mode = "wait";
+			return startHost(state).pipe(Effect.forkScoped);
+		},
+		untilHostLogs: (text: string) =>
+			Effect.suspend(() =>
+				state.logs.some((message) => JSON.stringify(message).includes(text))
+					? Effect.void
+					: Effect.fail(new Error(`The host has not logged "${text}"`)),
+			).pipe(Effect.retry({ schedule: Schedule.spaced("10 millis"), times: 500 }), Effect.orDie),
 	}),
 });

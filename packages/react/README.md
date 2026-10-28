@@ -32,7 +32,11 @@ A **session generation** is the string returned by `identify(session)`. `Session
 
 `useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
 
-### 1. Once per application: own the registry
+### 1. Once per application
+
+Set up the registry or session boundary at the application root, bind each session's contract APIs there and mount the notice host inside it.
+
+#### Own the registry and the session
 
 For a screen without a session boundary, wrap it in the native provider:
 
@@ -76,6 +80,31 @@ export function App({ session, recheck }: {
 
 `makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, remounts the screens and disposes the outgoing registry. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
 
+A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
+
+#### Session-scoped bindings
+
+A contract declared with `keyScope: "session"` keys its reads and invalidations by the signed-in account, and its binding requires the registry that owns the session's queries. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md#session-owned-keys) describes the declaration and its handlers. `SessionBoundary` passes that registry to `connect` as its second argument:
+
+```tsx
+import { bind } from "@shivaedev/contract/bind.ts";
+import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
+
+<SessionBoundary
+  session={session}
+  identify={(current) => current.generation}
+  connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
+  recheck={recheck}
+  signedOut={<p>Signed out</p>}
+>
+  {(api) => <PreferencesScreen api={api} />}
+</SessionBoundary>
+```
+
+`Preferences` is the application's session-scoped contract, and `makePreferencesClient(token)` creates its native AtomRpc service with the transport credentials. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
+
+#### Resume from a native shell
+
 For a native shell, pass its resume source when binding the API returned by `connect`:
 
 ```ts
@@ -93,106 +122,7 @@ const connect = () => bind(Notes, Client, { resume });
 
 `Notes` and `Client` are the application's contract and native AtomRpc client. The application implements `onAppResume` and `onNetworkReturn`, each returning its unsubscribe function. `SessionBoundary` mounts the bound connection, and native notifications reopen the subscription and reconcile its tracked queries alongside the browser visibility and online defaults. Disposing the session's registry releases the native listeners. Omitting `resume` keeps the browser defaults.
 
-A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
-
-### Migrate a self-only feature to session keys
-
-Before migration, an owner field exists only to give client reads and invalidations a key. The server already chooses the account from `Identity`:
-
-```ts
-const preferences = collection("preferences", Schema.String);
-const Preferences = contract("preferences", {
-  queries: [query("self", {
-    payload: { ownerId: Schema.String },
-    reads: ({ ownerId }) => [preferences.item(ownerId)],
-    success: Schema.String,
-  })],
-  commands: [command("save", {
-    payload: { ownerId: Schema.String, title: Schema.String },
-    invalidates: ({ ownerId }) => [preferences.item(ownerId)],
-    success: Schema.String,
-  })],
-}).middleware(Authenticated);
-
-const api = bind(Preferences, Client);
-const self = api.self.query({ ownerId: session.userId });
-const save = api.save.run({ ownerId: session.userId, title: "My preferences" });
-```
-
-After migration, remove `ownerId` from both payload schemas and every call site. Add `keyScope: "session"` and keep a logical item key for the self-only record:
-
-```ts
-const preferences = collection("preferences", Schema.String);
-const Preferences = contract("preferences", {
-  keyScope: "session",
-  queries: [query("self", {
-    reads: () => [preferences.item("self")],
-    success: Schema.String,
-  })],
-  commands: [command("save", {
-    payload: { title: Schema.String },
-    invalidates: () => [preferences.item("self")],
-    success: Schema.String,
-  })],
-}).middleware(Authenticated);
-
-const api = bind(Preferences, Client, { registry });
-const self = api.self.query(undefined);
-const save = api.save.run({ title: "My preferences" });
-```
-
-The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command`, `collection` and `bind` from contract's defining modules, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
-
-```tsx
-import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
-
-<SessionBoundary
-  session={session}
-  identify={(current) => current.generation}
-  connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
-  recheck={recheck}
-  signedOut={<p>Signed out</p>}
->
-  {(api) => <PreferencesScreen api={api} />}
-</SessionBoundary>
-```
-
-`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
-
-Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, before and after migration:
-
-```ts
-Preferences.application.toLayer({
-  "preferences.self": () => Effect.flatMap(Identity, ({ id }) => store.read(id)),
-  "preferences.save": ({ title }) => Effect.flatMap(Identity, ({ id }) => store.save(id, title)),
-});
-```
-
-`store` is the application's persistence service. No owner or client key scope is accepted from a request. The database app host of `@shivaedev/server` resolves the server key scope from that same request-local identity. `List` and `Item` remain the key shapes; scope is an additional dimension, and the client registry's opaque scope is never sent as an owner id.
-
-### Trace an action across RPCs
-
-Editor saves and create submissions automatically run their save Effect in a fresh `ui.submit` trace. For custom actions, wrap the Effect that performs the action with `actionTrace` before giving it to a native atom:
-
-```ts
-import { Effect } from "effect";
-import { actionTrace } from "@shivaedev/react/actionTrace.ts";
-
-const save = OrdersClient.runtime.fn((input: OrderInput) =>
-  actionTrace(Effect.gen(function* () {
-    yield* api.validate.run(input);
-    return yield* api.save.run(input);
-  }), "ui.saveOrder"),
-);
-```
-
-`OrdersClient`, `OrderInput` and `api` belong to the application. Dispatch `save` with `useAction(save)`. `actionTrace(effect, name?)` preserves the Effect's result, typed error and service requirements; its default span name is `ui.action`. Each execution starts a fresh trace, and RPCs run inside that Effect share it, including across asynchronous boundaries. Native atoms continue to own execution and cancellation. `useAction` also accepts ordinary native action atoms; wrap composite action Effects to group their RPCs.
-
-Use native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` for the browser RPC protocol. Effect sends the trace in the W3C `traceparent` HTTP header. The `appHost` of `@shivaedev/server` carries it into the RPC span and its SQL, and annotates the RPC span with `request.id`. Enqueued pg-boss jobs retain that span context; worker attempts start separate traces linked back to the sender.
-
-### One supported path for query, command and form feedback
-
-Use `useQuery` with `QueryView` for reads, the Effect overload of `useAction` for commands, and `useCreate` or `useEditor` for form submissions. Give these owners notice descriptors and mount one `NoticeHost` inside the session boundary. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
+#### Mount the notice host
 
 Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host.
 
@@ -219,56 +149,11 @@ function SessionScreens({ client }: { readonly client: AppClient }) {
 
 `AppClient` and `OrderScreens` belong to the application; return `SessionScreens` from the session boundary's child function. The renderer receives `id`, `message`, `dismiss` and an optional action with `label`, `run`, `pending` and `result`. Action results retain the native success value or failure cause as `unknown`; narrow domain errors in your renderer to choose their wording.
 
-The Effect overload of `useAction` accepts `notices.onSuccess(value, input)` and `notices.onFailure(error, input)`. Each callback returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
+### 2. Once per feature
 
-```ts
-const remove = useAction(OrdersClient.runtime, api.remove.run, {
-  concurrent: true,
-  notices: {
-    onSuccess: (removed, input) => ({
-      message: `Removed ${input.title}`,
-      action: {
-        label: "Undo",
-        run: api.restore.run({
-          id: input.id,
-          title: input.title,
-          expectedVersion: removed.version,
-        }),
-      },
-    }),
-    onFailure: () => ({ message: "Could not remove this order" }),
-  },
-});
-```
+Each feature reads queries, dispatches commands, binds its forms and reports their outcomes. Routes, permissions and auth screens use the same query and action state.
 
-`OrdersClient`, `api`, the restore payload and its expected version belong to the application. The host runs the supplied Effect with the operation's native runtime, disables repeated dispatch while it is pending and exposes the outcome on that action. A failed Undo stays on its original notice; it does not become another operation failure notice. Command execution and invalidation remain with contract, and form submission remains with form.
-
-For query failures, pass `useQuery(atom, { notice: ({ cause, refreshing }) => descriptor })`. `useEditor` accepts the same callback as `queryNotice` for its query. `refreshing` distinguishes a failure with retained data from an initial load failure. Each settled failed result publishes once per hook; a rerender does not replay it. Omit the callback or return `undefined` for operations that need no notice.
-
-The query and form in the same feature use their own feedback options:
-
-```tsx
-const notes = useQuery(api.list.query(), {
-  notice: ({ refreshing }) => ({
-    message: refreshing ? "Refresh failed" : "Load failed",
-  }),
-});
-const save = useCreate({
-  fields: TitleFields,
-  initialValues: { title: "" },
-  create: api.save.run,
-  runtime: NotesClient.runtime,
-  notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
-});
-```
-
-Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
-
-Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
-
-A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
-
-### 2. Once per feature: native queries and actions
+#### Queries and actions
 
 The hooks accept native atoms directly. This complete component module shows query and action state without RPC setup:
 
@@ -338,192 +223,7 @@ create.dispatch({
 
 An action's `dispatch(input)` returns `void`. Read the atom's latest result from `data`, `cause` or `result`. With the default `Atom.fn` action, a later dispatch interrupts the earlier work and the shared state reports the later result.
 
-### Completion inside each command invocation
-
-Pass the native runtime and the original bound command Effect to `useAction` when the screen needs feedback for each invocation:
-
-```tsx
-const rename = useAction(ReportsClient.runtime, api.rename.run, {
-  notices: {
-    onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
-    onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
-  },
-});
-```
-
-`ReportsClient` and `api` belong to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for the feedback path above. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
-
-The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for invalidated queries to refetch. Undo payloads, expected versions and presentation text stay in the application.
-
-A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
-
-A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
-
-### Better Auth actions
-
-`authAction` from `@shivaedev/react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
-
-```tsx
-const signIn = authAction((credentials: { email: string; password: string }, signal) =>
-  authClient.signIn.email(credentials, { signal }),
-);
-
-function SignInButton({ email, password }: { email: string; password: string }) {
-  const action = useAction(signIn);
-  const failure = AsyncResult.error(action.result);
-  return (
-    <>
-      <button disabled={action.pending} onClick={() => action.dispatch({ email, password })}>
-        {action.pending ? "Signing in…" : "Sign in"}
-      </button>
-      {Option.isSome(failure) && <p role="alert">Sign-in failed</p>}
-    </>
-  );
-}
-```
-
-The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
-
-`authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
-
-```tsx
-const authSession = authQuery((disableCookieCache: boolean, signal) =>
-  authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
-);
-
-function Account() {
-  const query = useQuery(authSession(true));
-  const failure = AsyncResult.error(query.result);
-  return (
-    <>
-      {query.pending && <p>Loading…</p>}
-      {Option.isSome(query.data) && <p>{query.data.value?.user.name ?? "Signed out"}</p>}
-      {Option.isSome(failure) && <p role="alert">Could not read the session</p>}
-    </>
-  );
-}
-```
-
-The example uses the application's Better Auth client. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
-
-For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
-
-### Commands with a pending display value
-
-Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
-
-```tsx
-import * as Atom from "effect/reactivity/Atom";
-import { usePendingCommand } from "@shivaedev/react/client/pendingCommand.ts";
-
-const toggle = Atom.family((id: number) =>
-  ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })),
-);
-const list = api.list.query();
-
-function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
-  const command = usePendingCommand(toggle(row.id), {
-    queries: [list],
-    value: row.enabled,
-    wanted: (input) => input.enabled,
-  });
-  return <button aria-pressed={command.value} disabled={command.pending}
-    onClick={() => command.dispatch({ enabled: !command.value })} type="button">
-    Enabled
-  </button>;
-}
-```
-
-Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
-
-The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose refetches the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
-
-`command.value` changes on dispatch and stays at the requested value while the command or any watched query is waiting. `pending` covers that whole interval. After the queries settle, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. The other action fields describe the native command result, so `result` can already be successful while `pending` still waits for refetches. This binding holds a display value; it does not write to the query cache.
-
-### Route loaders with TanStack Router
-
-TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React.
-
-This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
-
-```tsx
-import { RegistryContext } from "@effect/atom-react";
-import { createRootRouteWithContext, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
-import type { ErrorComponentProps } from "@tanstack/react-router";
-import { Effect, Option, Predicate, Schema } from "effect";
-import type { ReactNode } from "react";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { queryRoute } from "@shivaedev/react/queryRoute.ts";
-import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
-import { api } from "./notes-client.ts";
-
-const registry = AtomRegistry.make();
-const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
-const Search = Schema.Struct({
-  page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
-    Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
-    Schema.withDecodingDefaultKey(Effect.succeed(1)),
-  ),
-});
-const note = createRoute({
-  getParentRoute: () => root,
-  path: "/notes/$id",
-  validateSearch: Schema.toStandardSchemaV1(Search),
-  ...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) =>
-    api.get.query({ id: params.id, page: search.page }),
-  ),
-  notFoundComponent: () => <h1>Note not found</h1>,
-  component: Note,
-  errorComponent: Failure,
-});
-const router = createRouter({
-  context: { registry },
-  routeTree: root.addChildren([note]),
-  defaultPendingMs: Infinity,
-  InnerWrap: Shell,
-});
-
-declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
-}
-
-function Shell({ children }: { readonly children: ReactNode }) {
-  const pending = useRouterState({ select: (state) => state.isLoading });
-  return <main>{pending && <p>Loading…</p>}{children}</main>;
-}
-function Note() {
-  const query = useLoaderQuery(api.get.query({ ...note.useParams(), ...note.useSearch() }), note.useLoaderData());
-  return <h1>{query.data.title}</h1>;
-}
-function Failure({ error }: ErrorComponentProps) {
-  return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
-}
-export function App() {
-  return <RegistryContext.Provider value={registry}><RouterProvider router={router} /></RegistryContext.Provider>;
-}
-```
-
-`validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component`, `errorComponent` and `notFoundComponent` on the route; options after the spread can override its `loaderDeps` or `loader`.
-
-For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
-
-`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window: the first render has the loaded value and the RPC handler runs once.
-
-`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
-
-`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount, and the atom is gone after the idle window. A new `useLoaderQuery` reader suspends until its active `loadQuery` completes, so revisiting a cached route after invalidation renders the changed data on its first frame. Already mounted readers keep their data during refreshes.
-
-`loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
-
-Install the optional router peer when using this entry point:
-
-```sh
-pnpm add @tanstack/react-router
-```
-
-### 3. Once per feature: an editor and a create form
+#### An editor and a create form
 
 The next module assumes `./invoice-lines-client.ts` exports a contract-bound `api` with `get`, `save` and `create`, and its native `InvoiceLinesClient`. `get` returns `{ id, name, quantity }`; both commands return the saved row. The [contract guide](https://github.com/ShivaeDev/platform/blob/main/packages/contract/README.md) describes that binding.
 
@@ -618,7 +318,7 @@ The editor's form is absent until its first row arrives. A different query atom 
 
 A successful create replaces its form with one at `initialValues`, keeping fields edited after submission began, including while an async schema decoded it. The next entry starts without the previous entry's displayed field errors. `created` holds the successful result as an `Option`.
 
-### One-shot create and edit
+#### One-shot create and edit
 
 Use `useCreate` when the app already has the opening values and needs one submission. Its `create` callback accepts any submission Effect, including an update command; `created` holds that Effect's successful result. Creation above and the query-free edit below use the same form lifecycle. No upsert or new form hook is needed: creation and update remain separate domain commands with explicit payloads.
 
@@ -672,15 +372,7 @@ The app captures the opening record once. Pass a stable `onSaved` callback to cl
 
 Use `useEditor` for a continuing editor that subscribes to a record, merges refreshes and receives saved rows as its new baseline. Its `loaded` option supplies the initial row, usually from a route loader; it still requires `query` because the query owns identity, refresh and invalidation. Supplying `loaded` does not make an editor query-free. In either pattern contract owns the command Effect and invalidation, form owns submission and field errors, and react exposes query state where a query exists.
 
-### Hook configuration between renders
-
-`useCreate` calls the latest committed render's `create`, and `useEditor` calls its latest `save`. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. Inline callbacks may close over changing props or state without replacing the form or losing edits.
-
-Changing the `fields` schema or `runtime` by reference replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
-
-`initialValues` (create), `values` (editor) and `persistedDraft` are setup options, captured when the hook first creates a form and again when `fields`, `runtime` or editor `query` changes. Successful creates reuse the captured initial values and persistence options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
-
-### Field rejections and other failures
+#### Field rejections and other failures
 
 A tagged error with string `_tag` and `message`, and a `field` naming a form field, becomes that field's message by default. Other save failures appear in `failure`. Use `rejectField` when the server uses a different shape or field name:
 
@@ -701,34 +393,210 @@ const editor = useEditor({
 
 Here `save` has a tagged `SubtitleRejected` failure referring to the server's `subtitle`, while the form calls the input `title`. If a tagged error's field type includes names outside the form, `rejectField` is required at compile time. This includes a broad `string` field or an optional field whose type is broader than the form's names. The mapper can return `undefined` to leave an error as a non-field failure.
 
-### Resume and refresh policy
+#### Query, command and form feedback
 
-Keep the signal and query identities stable:
+Use `useQuery` with `QueryView` for reads, the Effect overload of `useAction` for commands, and `useCreate` or `useEditor` for form submissions. Give these owners notice descriptors and mount one `NoticeHost` inside the session boundary. contract still runs commands and invalidates queries; form still owns submission, fields and drafts. The app supplies wording, Undo payloads and expected versions.
 
-```ts
-import { resumeSignal } from "@shivaedev/react/resumeSignal.ts";
-import { Effect } from "effect";
-import * as Atom from "effect/reactivity/Atom";
-
-const resume = resumeSignal({ window });
-const query = Atom.makeRefreshOnSignal(resume)(Atom.make(Effect.succeed("ready")));
-```
-
-`resumeSignal` changes on visible `visibilitychange` and visible `online` events. Hidden browser events do not refresh the query. An optional `native` source subscribes a callback and returns its unsubscribe function; its callback also changes the signal. Registry disposal removes the listeners. This module uses the shared [contract resume implementation](https://github.com/ShivaeDev/platform/blob/main/packages/contract/src/resume.ts).
-
-Use native stale-while-revalidate policy when a resume should refresh only stale data:
+The Effect overload of `useAction` accepts `notices.onSuccess(value, input)` and `notices.onFailure(error, input)`. Each callback returns a descriptor or `undefined`. Independent concurrent completions publish independently, preserving the invocation's input. `useCreate` and `useEditor` accept the same `notices` option around their existing save Effects. Use the descriptors instead of screen-local notice state, expiry timers or result-watching effects:
 
 ```ts
-const query = Atom.swr(atom, {
-  focusSignal: resume,
-  revalidateOnFocus: true,
-  staleTime: "1 hour",
+const remove = useAction(OrdersClient.runtime, api.remove.run, {
+  concurrent: true,
+  notices: {
+    onSuccess: (removed, input) => ({
+      message: `Removed ${input.title}`,
+      action: {
+        label: "Undo",
+        run: api.restore.run({
+          id: input.id,
+          title: input.title,
+          expectedVersion: removed.version,
+        }),
+      },
+    }),
+    onFailure: () => ({ message: "Could not remove this order" }),
+  },
 });
 ```
 
-`atom` is the underlying native query. `Atom.swr` owns the staleness decision; the signal only reports that the application resumed.
+`OrdersClient`, `api`, the restore payload and its expected version belong to the application. The host runs the supplied Effect with the operation's native runtime, disables repeated dispatch while it is pending and exposes the outcome on that action. A failed Undo stays on its original notice; it does not become another operation failure notice. Command execution and invalidation remain with contract, and form submission remains with form.
 
-### Session permissions and guarded routes
+For query failures, pass `useQuery(atom, { notice: ({ cause, refreshing }) => descriptor })`. `useEditor` accepts the same callback as `queryNotice` for its query. `refreshing` distinguishes a failure with retained data from an initial load failure. Each settled failed result publishes once per hook; a rerender does not replay it. Omit the callback or return `undefined` for operations that need no notice.
+
+The query and form in the same feature use their own feedback options:
+
+```tsx
+const notes = useQuery(api.list.query(), {
+  notice: ({ refreshing }) => ({
+    message: refreshing ? "Refresh failed" : "Load failed",
+  }),
+});
+const save = useCreate({
+  fields: TitleFields,
+  initialValues: { title: "" },
+  create: api.save.run,
+  runtime: NotesClient.runtime,
+  notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
+});
+```
+
+Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` through `QueryView`: its loading renderer shows pending work, its failure renderer offers `notes.refresh` as Retry, and its content renderer holds the form and command controls. Bind fields with form's `useField`, submit with `save.save()` and disable Save with `save.saving`. A tagged field rejection stays beside that input. A held save keeps newer edits when it completes and publishes its success notice before the invalidated query finishes. A failed refresh keeps the last content and the draft while publishing the refresh notice.
+
+Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
+
+A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
+
+#### Completion inside each command invocation
+
+Pass the native runtime and the original bound command Effect to `useAction` when the screen needs feedback for each invocation:
+
+```tsx
+const rename = useAction(ReportsClient.runtime, api.rename.run, {
+  notices: {
+    onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
+    onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
+  },
+});
+```
+
+`ReportsClient` and `api` belong to the application. Input, success, typed failure and runtime requirements are inferred from the command. Use `notices` for the feedback path above. The optional synchronous `onSuccess(value, input)` and `onFailure(error, input)` callbacks are also available for application completion work. They run inside each invocation using the latest committed callbacks and that invocation's input and outcome. Rerendering a result does not replay completion, and an abandoned render cannot replace the committed callback. A callback that throws becomes a native defect; it does not call `onFailure` as a domain rejection.
+
+The hook calls the supplied Effect once. A bound contract command still owns invalidation, and completion does not wait for invalidated queries to refetch. Undo payloads, expected versions and presentation text stay in the application.
+
+A newer dispatch interrupts the earlier command by default. Interrupted work produces no completion feedback. Pass `{ concurrent: true, onSuccess, onFailure }` to let invocations overlap and report their own outcomes. `result`, `data`, `cause` and `pending` remain the native action atom's aggregate state, including its native result selection during concurrent execution; they do not identify an invocation. Use notice descriptors for per-invocation messages and completion callbacks for application work. Keep the runtime and concurrency policy stable for the same owner.
+
+A typed `Unauthorized` failure asks the session owner to recheck once per failed invocation, even with concurrent commands. The hook does not sign out. Session replacement discards outgoing callbacks and rechecks, including when outgoing work cannot be interrupted.
+
+#### Commands with a pending display value
+
+Use `usePendingCommand` for a command acting on a query row, such as a list toggle. Give each row a stable action atom with the existing bound command, so the command's declared invalidation keys still drive refetches:
+
+```tsx
+import * as Atom from "effect/reactivity/Atom";
+import { usePendingCommand } from "@shivaedev/react/client/pendingCommand.ts";
+
+const toggle = Atom.family((id: number) =>
+  ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })),
+);
+const list = api.list.query();
+
+function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
+  const command = usePendingCommand(toggle(row.id), {
+    queries: [list],
+    value: row.enabled,
+    wanted: (input) => input.enabled,
+  });
+  return <button aria-pressed={command.value} disabled={command.pending}
+    onClick={() => command.dispatch({ enabled: !command.value })} type="button">
+    Enabled
+  </button>;
+}
+```
+
+Each row needs its own action atom because the native atom owns its current result, including failures. `Atom.family` keeps an independent action atom stable for each row ID. This lets one row fail while another keeps its requested display through the shared list refetch. Do not share one action atom across independently controlled rows.
+
+The example assumes a bound `api.toggle.run` accepting `{ id, enabled }`, a bound list query and their native `ItemsClient`. `queries` lists the query atoms whose refetches the display waits for; it does not add invalidations. Include every relevant query and keep the action and query atom identities stable. `value` is the current server value; `wanted(input)` computes the requested display value.
+
+`command.value` changes on dispatch and stays at the requested value while the command or any watched query is waiting. `pending` covers that whole interval. After the queries settle, `value` follows the server again, even if it differs from the requested value. A command failure immediately returns to the server value and remains typed in `result` and `cause`, just as with `useAction`. The other action fields describe the native command result, so `result` can already be successful while `pending` still waits for refetches. This binding holds a display value; it does not write to the query cache.
+
+#### Trace an action across RPCs
+
+Editor saves and create submissions automatically run their save Effect in a fresh `ui.submit` trace. For custom actions, wrap the Effect that performs the action with `actionTrace` before giving it to a native atom:
+
+```ts
+import { Effect } from "effect";
+import { actionTrace } from "@shivaedev/react/actionTrace.ts";
+
+const save = OrdersClient.runtime.fn((input: OrderInput) =>
+  actionTrace(Effect.gen(function* () {
+    yield* api.validate.run(input);
+    return yield* api.save.run(input);
+  }), "ui.saveOrder"),
+);
+```
+
+`OrdersClient`, `OrderInput` and `api` belong to the application. Dispatch `save` with `useAction(save)`. `actionTrace(effect, name?)` preserves the Effect's result, typed error and service requirements; its default span name is `ui.action`. Each execution starts a fresh trace, and RPCs run inside that Effect share it, including across asynchronous boundaries. Native atoms continue to own execution and cancellation. `useAction` also accepts ordinary native action atoms; wrap composite action Effects to group their RPCs.
+
+With native `RpcClient.layerProtocolHttp` and `FetchHttpClient.layer` as the browser RPC protocol, Effect sends the trace in the W3C `traceparent` HTTP header on each request. On the `appHost` of `@shivaedev/server`, each RPC's server span joins that trace with a `request.id` attribute, and the SQL its handler runs joins it too. Wrap a handler's enqueue in an application-named producer span, such as `Effect.withSpan("Receipt.enqueue", { kind: "producer" })`, to show it in the action's trace. Each worker attempt runs in its own trace, linked back to that span; [jobs' tracing](https://github.com/ShivaeDev/platform/blob/main/packages/jobs/README.md#trace-jobs) describes the job span.
+
+#### Route loaders with TanStack Router
+
+TanStack Router owns routes, navigation, search validation, loader data and screen components. Spread `queryRoute(buildQuery)` from `@shivaedev/react/queryRoute.ts` into `createRoute` to derive loader dependencies from validated search and load a contract query atom in the router context’s registry. A rejection tagged `NotFound` renders the route’s `notFoundComponent`; other typed failures reach `errorComponent` unchanged. The atom runs through its native RPC runtime and shares its execution with React.
+
+This example assumes an application-owned `api.get.query({ id, page })` returning `{ id, title }`, with declared `NotFound` and `NoteMissing` rejections:
+
+```tsx
+import { RegistryContext } from "@effect/atom-react";
+import { createRootRouteWithContext, createRoute, createRouter, RouterProvider, useRouterState } from "@tanstack/react-router";
+import type { ErrorComponentProps } from "@tanstack/react-router";
+import { Effect, Option, Predicate, Schema } from "effect";
+import type { ReactNode } from "react";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import { queryRoute } from "@shivaedev/react/queryRoute.ts";
+import { useLoaderQuery } from "@shivaedev/react/client/useLoaderQuery.ts";
+import { api } from "./notes-client.ts";
+
+const registry = AtomRegistry.make();
+const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
+const Search = Schema.Struct({
+  page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
+    Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
+    Schema.withDecodingDefaultKey(Effect.succeed(1)),
+  ),
+});
+const note = createRoute({
+  getParentRoute: () => root,
+  path: "/notes/$id",
+  validateSearch: Schema.toStandardSchemaV1(Search),
+  ...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) =>
+    api.get.query({ id: params.id, page: search.page }),
+  ),
+  notFoundComponent: () => <h1>Note not found</h1>,
+  component: Note,
+  errorComponent: Failure,
+});
+const router = createRouter({
+  context: { registry },
+  routeTree: root.addChildren([note]),
+  defaultPendingMs: Infinity,
+  InnerWrap: Shell,
+});
+
+declare module "@tanstack/react-router" {
+  interface Register {
+    router: typeof router;
+  }
+}
+
+function Shell({ children }: { readonly children: ReactNode }) {
+  const pending = useRouterState({ select: (state) => state.isLoading });
+  return <main>{pending && <p>Loading…</p>}{children}</main>;
+}
+function Note() {
+  const query = useLoaderQuery(api.get.query({ ...note.useParams(), ...note.useSearch() }), note.useLoaderData());
+  return <h1>{query.data.title}</h1>;
+}
+function Failure({ error }: ErrorComponentProps) {
+  return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
+}
+export function App() {
+  return <RegistryContext.Provider value={registry}><RouterProvider router={router} /></RegistryContext.Provider>;
+}
+```
+
+`validateSearch` stays native: `Schema.toStandardSchemaV1(Search)` supplies TanStack’s search input and output types. The schema defaults a missing or invalid page to `1`. The query callback names its params and schema output type because TypeScript cannot infer them backward through an object spread. Changing search changes the loader dependencies and queries the new payload. Keep `params`, `validateSearch`, `component`, `errorComponent` and `notFoundComponent` on the route; options after the spread can override its `loaderDeps` or `loader`.
+
+For a loader that coordinates more work, use `loadQuery(registry, atom, loaderContext)` from `@shivaedev/react/loadQuery.ts` directly. It reads the atom in the supplied registry and throws typed failures unchanged, including `NotFound`; the loader decides how to handle them.
+
+`defaultPendingMs: Infinity` keeps the current route's data visible during navigation; the shell reads TanStack's `isLoading` to display pending state. The new route commits when its loader settles. This is TanStack's pending policy, separate from `useQuery`'s retained display. The loader and the component share one query execution even when the route delays mounting for 650 ms, beyond the registry’s idle window: the first render has the loaded value and the RPC handler runs once.
+
+`useLoaderQuery(atom, route.useLoaderData())` subscribes to the same atom and exposes `data` as its success type, with no `Option` or Initial result. Refetches keep the last value visible. For a loader-backed editor, pass the loader value as `useEditor({ ...config, loaded: route.useLoaderData() })`; its form is defined on the first render and `editor.query.data` is the row directly.
+
+`SessionBoundary` gives idle atoms the default 400 ms window used by atom-react’s default registry. `loadQuery` also mounts its atom until a component commits its `useQuery` or `useLoaderQuery` subscription, or the loader’s abort signal ends its route ownership. No per-query `timeToLive` is needed. Leaving an unread route releases that mount, and the atom is gone after the idle window. A new `useLoaderQuery` reader suspends until its active `loadQuery` completes, so revisiting a cached route after invalidation renders the changed data on its first frame. Already mounted readers keep their data during refreshes.
+
+`loadQuery` waits through a native query refresh instead of returning its retained success. Typed failures are thrown directly, so the route can inspect `_tag` rather than an Effect fiber wrapper. Defects remain failed Promises. TanStack's loader `abortController` cancels the waiting subscription and rejects with `name: "AbortError"`; other readers of the same query can still complete. The application owns the registry's lifetime and disposes it when its client or session ends. Use the same registry for router context and `RegistryContext.Provider`.
+
+#### Session permissions and guarded routes
 
 Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` reads exact name and strength grants without making a request. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
 
@@ -803,7 +671,95 @@ const showNotes = can(auth.session, ReadNotes);
 
 `PermissionBoundary` renders the app's one fallback at the denied URL for a refused route, a loader's `Forbidden`, or a `useQuery`/`useLoaderQuery` result tagged `Forbidden`. Other errors propagate to an enclosing error boundary. Set TanStack's `disableGlobalCatchBoundary: true` and leave permission failures to this boundary; a route-specific `errorComponent` that consumes an error owns its rendering instead. Without a permission boundary, query failures keep their normal typed state. Like a React error boundary, remount it to clear a caught failure.
 
-### Read the current time
+#### Better Auth actions
+
+`authAction` from `@shivaedev/react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
+
+```tsx
+const signIn = authAction((credentials: { email: string; password: string }, signal) =>
+  authClient.signIn.email(credentials, { signal }),
+);
+
+function SignInButton({ email, password }: { email: string; password: string }) {
+  const action = useAction(signIn);
+  const failure = AsyncResult.error(action.result);
+  return (
+    <>
+      <button disabled={action.pending} onClick={() => action.dispatch({ email, password })}>
+        {action.pending ? "Signing in…" : "Sign in"}
+      </button>
+      {Option.isSome(failure) && <p role="alert">Sign-in failed</p>}
+    </>
+  );
+}
+```
+
+The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+
+`authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
+
+```tsx
+const authSession = authQuery((disableCookieCache: boolean, signal) =>
+  authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
+);
+
+function Account() {
+  const query = useQuery(authSession(true));
+  const failure = AsyncResult.error(query.result);
+  return (
+    <>
+      {query.pending && <p>Loading…</p>}
+      {Option.isSome(query.data) && <p>{query.data.value?.user.name ?? "Signed out"}</p>}
+      {Option.isSome(failure) && <p role="alert">Could not read the session</p>}
+    </>
+  );
+}
+```
+
+The example uses the application's Better Auth client. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+
+### 3. Every day
+
+These rules apply to each component and test you write.
+
+#### Hook configuration between renders
+
+`useCreate` calls the latest committed render's `create`, and `useEditor` calls its latest `save`. Both hooks use the latest `rejectField` when a save fails, including when the mapper is removed to restore automatic field mapping. Inline callbacks may close over changing props or state without replacing the form or losing edits.
+
+Changing the `fields` schema or `runtime` by reference replaces either hook's form and discards its in-memory draft and submission state. A changed editor `query` also starts a new form. Keep schemas, runtimes and query atoms outside components or memoize them; constructing a schema on every render continually replaces the form.
+
+`initialValues` (create), `values` (editor) and `persistedDraft` are setup options, captured when the hook first creates a form and again when `fields`, `runtime` or editor `query` changes. Successful creates reuse the captured initial values and persistence options for the next entry. Changing setup options alone does not replace an existing form; remount the component with a different React `key` to apply them. An editor's `loaded` value remains a fallback for query data, as with `useLoaderQuery`.
+
+#### Resume and refresh policy
+
+Keep the signal and query identities stable:
+
+```ts
+import { resumeSignal } from "@shivaedev/react/resumeSignal.ts";
+import { Effect } from "effect";
+import * as Atom from "effect/reactivity/Atom";
+
+const resume = resumeSignal({ window });
+const query = Atom.makeRefreshOnSignal(resume)(Atom.make(Effect.succeed("ready")));
+```
+
+`resumeSignal` changes on visible `visibilitychange` and visible `online` events. Hidden browser events do not refresh the query. An optional `native` source subscribes a callback and returns its unsubscribe function; its callback also changes the signal. Registry disposal removes the listeners. This module uses the shared [contract resume implementation](https://github.com/ShivaeDev/platform/blob/main/packages/contract/src/resume.ts).
+
+Use native stale-while-revalidate policy when a resume should refresh only stale data:
+
+```ts
+const query = Atom.swr(atom, {
+  focusSignal: resume,
+  revalidateOnFocus: true,
+  staleTime: "1 hour",
+});
+```
+
+`atom` is the underlying native query. `Atom.swr` owns the staleness decision; the signal only reports that the application resumed.
+
+#### Read the current time
 
 `useNow(interval, runtime?)` from `@shivaedev/react/client/useNow.ts` returns epoch milliseconds from Effect's `Clock` and re-renders at the given interval in milliseconds. Pass the component's atom runtime to use its clock:
 
@@ -816,25 +772,7 @@ const minutesAgo = Math.floor((now - savedAt) / 60_000);
 
 Without a runtime it uses a native empty atom runtime. Stories supply a runtime with their TestClock service so advancing that clock updates the rendered time.
 
-### API
-
-`useQuery(atom)` and `useAction(atom)` return these shared fields:
-
-| Field | Meaning |
-| --- | --- |
-| `result` | Native `AsyncResult<A, E>`. |
-| `data` | `Option<A>` from the current or retained success. Queries can retain displayed data even when the native `result` has no value. |
-| `cause` | `Option<Cause<E>>` from a failed result. |
-| `pending` | The native result is waiting. |
-| `refreshing` | The result is waiting and successful data is available. |
-
-`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `notices`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
-
-Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
-
-Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback.
-
-### Render tests in happy-dom
+#### Render tests in happy-dom
 
 Use `@shivaedev/react/client/testing.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
 
@@ -920,6 +858,8 @@ it.live("renders a query and refetches it after a command through a test RPC lay
 
 `render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
+The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
+
 For a boundary fallback test, keep the warnings guard and declare the caught error inside the test. `expectCaughtError(predicate)` returns an `onCaughtError` handler that accepts matching errors without logging them. The guard fails if the handler receives any other error or the expected error never arrives. Other console errors and React warnings still fail the guard.
 
 ```tsx
@@ -936,9 +876,25 @@ screenStories.it("shows the route failure", [], async () => {
 });
 ```
 
-The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
-
 Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
+
+### API
+
+`useQuery(atom)` and `useAction(atom)` return these shared fields:
+
+| Field | Meaning |
+| --- | --- |
+| `result` | Native `AsyncResult<A, E>`. |
+| `data` | `Option<A>` from the current or retained success. Queries can retain displayed data even when the native `result` has no value. |
+| `cause` | `Option<Cause<E>>` from a failed result. |
+| `pending` | The native result is waiting. |
+| `refreshing` | The result is waiting and successful data is available. |
+
+`useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `notices`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
+
+Import the defining `.ts` module, such as `@shivaedev/react/client/editor.ts`. There is no root import. `useSessionRecheck()` from `client/sessionBoundary.ts` reads the boundary's `recheck` callback.
+
+Prefer `useEditor` and `useCreate` when binding a form to a command. The lower-level modules expose the same composition pieces: `submission` from `submission.ts` makes a form and its submission snapshot reader, `rejecting` from `fieldRejection.ts` maps save failures through a submitter, and `useSaveState` from `client/saveState.ts` observes submission and invokes a success callback.
 
 ### Install, setup and limits
 
@@ -950,6 +906,12 @@ pnpm add @shivaedev/react @effect/atom-react effect react
 
 ```sh
 pnpm add @shivaedev/form
+```
+
+Add the optional router peer when using `queryRoute`, `loadQuery`, `permissionGuard`, `PermissionBoundary` or `useSignOut`:
+
+```sh
+pnpm add @tanstack/react-router
 ```
 
 The package needs Node 24 or newer.
