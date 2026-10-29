@@ -87,6 +87,6 @@ export const labelledControl = screenApp.trait("screen", "a control has a visibl
 export const styledText = screenApp.trait("screen", "a readout has styled blocks and hidden text", ({ root }) => {
 	root.insertAdjacentHTML(
 		"beforeend",
-		'<section id="styled" style="text-transform: uppercase"><p>First</p><p>Second</p><span style="display:none">Hidden</span></section>',
+		'<section id="styled" style="text-transform: uppercase"><p>First</p><p>Second</p><span style="display:none">Hidden</span><svg><text>Icon</text></svg></section>',
 	);
 });

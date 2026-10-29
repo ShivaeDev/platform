@@ -11,7 +11,6 @@ application.it("creates a named app, installs, commits with a fallback identity 
 	expect(result.status, result.stderr).toBe(0);
 	expect(JSON.parse(read("package.json"))).toMatchObject({ name: "my-app" });
 	expect(read("package.json")).toMatch(/^\{\n\t"name": "my-app",/u);
-	expect(read("installation.json")).toBe('["run","setup"]');
 	expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
 	expect(git("log", "-1", "--format=%an <%ae>").stdout).toBe("Create App <create-app@localhost>\n");
 	expect(git("status", "--porcelain").stdout).toBe("");

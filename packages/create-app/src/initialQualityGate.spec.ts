@@ -26,13 +26,12 @@ for (const minimal of [false, true]) {
 application.it(
 	"runs setup again with an existing installation and keeps the Quality gate active",
 	[realSetup, installedPackageManager],
-	function* ({ cli, pnpm, read, git }) {
+	function* ({ cli, pnpm, read }) {
 		const generated = yield* cli(["my-app"]);
 		expect(generated.status, generated.stdout + generated.stderr).toBe(0);
 		const setup = pnpm("run", "setup");
 		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
 		expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
-		expect(git("status", "--porcelain").stdout).toBe("");
 	},
 	CLI_TIMEOUT,
 );

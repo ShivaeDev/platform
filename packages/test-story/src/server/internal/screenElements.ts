@@ -39,7 +39,7 @@ export function screenElements(root: () => HTMLElement) {
 		const walker = found.ownerDocument.createTreeWalker(found, NodeFilter.SHOW_TEXT);
 		const parts: string[] = [];
 		for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
-			if (node.parentElement !== null && isRendered(node.parentElement)) {
+			if (node.parentElement instanceof HTMLElement && isRendered(node.parentElement)) {
 				parts.push(node.textContent ?? "");
 			}
 		}
