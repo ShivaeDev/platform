@@ -1,84 +1,106 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { change } from "#test/fakeDatabase.ts";
-import { changes, hasObserver, hasSink } from "#test/kit.ts";
+import { changes } from "#test/kit.ts";
+
+for (const place of ["in a transaction", "outside any transaction", "in a driver's transaction"] as const) {
+	changes.it(
+		`a sink provided for a scope receives ada's change written ${place}, and the configured sink receives nothing`,
+		[],
+		function* ({ withScopedSink, inPlace, write, scopedSinkReceived, published }) {
+			yield* withScopedSink(inPlace(place, write("ada's order", change("ada"))));
+
+			yield* outcomes({
+				"configured sink": [published(), []],
+				"scoped sink": [scopedSinkReceived(), [["ada:orders"]]],
+			});
+		},
+	);
+}
 
 changes.it(
-	"a Layer swaps a channel's sink for its scope; the configured sink is untouched and resumes afterwards",
-	[hasSink()],
-	function* ({ published, inTransaction, write, database, record, open, captured, sink }) {
-		yield* Effect.gen(function* () {
-			yield* write(database, "row", change("ada")).pipe(inTransaction(database));
-			yield* write(database, "bare row", change("bob"));
-			const frame = yield* open();
-			yield* frame.provide(record([change("cyd")]));
-			yield* frame.settle("committed");
-		}).pipe(Effect.provide(sink));
-		expect(captured).toEqual([["ada:orders"], ["bob:orders"], ["cyd:orders"]]);
-		expect(published).toEqual([]);
+	"a committed-changes sink receives ada's change from a transaction in place of the configured sink",
+	[],
+	function* ({ withCommittedSink, inTransaction, write, committedSinkReceived, published }) {
+		yield* withCommittedSink(inTransaction(write("ada's order", change("ada"))));
 
-		yield* write(database, "later row", change("dan"));
-		expect(published).toEqual([["dan:orders"]]);
+		yield* outcomes({
+			"committed-changes sink": [committedSinkReceived(), [["ada:orders"]]],
+			"configured sink": [published(), []],
+		});
+	},
+);
+
+for (const place of ["outside any transaction", "in a batch"] as const) {
+	changes.it(
+		`a committed-changes sink leaves ada's change written ${place} to the configured sink`,
+		[],
+		function* ({ withCommittedSink, inPlace, write, committedSinkReceived, published }) {
+			yield* withCommittedSink(inPlace(place, write("ada's order", change("ada"))));
+
+			yield* outcomes({
+				"committed-changes sink": [committedSinkReceived(), []],
+				"configured sink": [published(), [["ada:orders"]]],
+			});
+		},
+	);
+}
+
+changes.it(
+	"the observer sees ada's change recorded and then published when her transaction commits",
+	[],
+	function* ({ observing, inTransaction, write, observed }) {
+		yield* observing(inTransaction(write("ada's order", change("ada"))));
+
+		expect(yield* observed()).toEqual(["ada:orders recorded", "ada:orders published"]);
 	},
 );
 
 changes.it(
-	"an observer sees every recorded change and whether it was published or discarded",
-	[hasObserver()],
-	function* ({ published, inTransaction, write, database, seen, observer, rollback }) {
-		const rejected = rollback();
-		yield* Effect.gen(function* () {
-			yield* Effect.gen(function* () {
-				yield* write(database, "a", change("ada"));
-				yield* Effect.andThen(write(database, "b", change("bob")), rejected).pipe(inTransaction(database), Effect.ignore);
-				yield* write(database, "c", change("cyd")).pipe(inTransaction(database));
-			}).pipe(inTransaction(database));
-			yield* Effect.gen(function* () {
-				yield* write(database, "d", change("dan"));
-				yield* write(database, "e", change("eve")).pipe(inTransaction(database));
-				return yield* rejected;
-			}).pipe(inTransaction(database), Effect.ignore);
-			yield* write(database, "f", change("fay"), change("fay"));
-		}).pipe(Effect.provide(observer));
-		expect(seen).toEqual([
-			"Recorded ada:orders",
-			"Recorded bob:orders",
-			"Discarded bob:orders",
-			"Recorded cyd:orders",
-			"Published ada:orders cyd:orders",
-			"Recorded dan:orders",
-			"Recorded eve:orders",
-			"Discarded dan:orders eve:orders",
-			"Recorded fay:orders",
-			"Published fay:orders",
-		]);
-		expect(published).toEqual([["ada:orders", "cyd:orders"], ["fay:orders"]]);
+	"the observer sees bob's change recorded and then discarded when his transaction rolls back",
+	[],
+	function* ({ observing, inTransaction, write, rollback, observed }) {
+		yield* observing(
+			inTransaction(function* () {
+				yield* write("bob's order", change("bob"));
+				yield* rollback();
+			}),
+		);
 
-		const before = [...seen];
-		yield* write(database, "g", change("gus"));
-		expect(seen).toEqual(before);
+		expect(yield* observed()).toEqual(["bob:orders recorded", "bob:orders discarded"]);
 	},
 );
 
 changes.it(
-	"CommittedSink replaces only transaction delivery",
-	[hasSink()],
-	function* ({ database, write, inTransaction, batch, committedSink, captured, published }) {
-		yield* Effect.gen(function* () {
-			yield* write(database, "transaction", change("ada")).pipe(inTransaction(database));
-			yield* write(database, "bare", change("bob"));
-			yield* write(database, "batch", change("cyd")).pipe(batch);
-		}).pipe(Effect.provide(committedSink));
-		expect(captured).toEqual([["ada:orders"]]);
-		expect(published).toEqual([["bob:orders"], ["cyd:orders"]]);
+	"the observer sees bob's change discarded when his savepoint rolls back, and ada's published when her transaction commits",
+	[],
+	function* ({ observing, inTransaction, write, rollback, observed }) {
+		yield* observing(
+			inTransaction(function* () {
+				yield* write("ada's order", change("ada"));
+				yield* inTransaction(function* () {
+					yield* write("bob's order", change("bob"));
+					yield* rollback();
+				});
+			}),
+		);
+
+		expect(yield* observed()).toEqual(["ada:orders recorded", "bob:orders recorded", "bob:orders discarded", "ada:orders published"]);
 	},
 );
 
-changes.it(
-	"Published is observed before delivery begins",
-	[hasSink(), hasObserver()],
-	function* ({ database, write, inTransaction, observing, sink, timeline }) {
-		yield* write(database, "row", change("ada")).pipe(inTransaction(database), observing, Effect.provide(sink));
-		expect(timeline).toEqual(["Recorded ada:orders", "Published ada:orders", "Sink ada:orders"]);
-	},
-);
+changes.it("the observer sees a write outside any transaction recorded once and published at once", [], function* ({ observing, write, observed }) {
+	yield* observing(write("ada's order", change("ada"), change("ada")));
+
+	expect(yield* observed()).toEqual(["ada:orders recorded", "ada:orders published"]);
+});
+
+changes.it("the observer sees ada's change published before the sink receives it", [], function* ({ observing, inTransaction, write, timeline }) {
+	yield* observing(inTransaction(write("ada's order", change("ada"))));
+
+	expect(yield* timeline()).toEqual([
+		"the observer sees ada:orders recorded",
+		"the observer sees ada:orders published",
+		"the sink receives ada:orders",
+	]);
+});
