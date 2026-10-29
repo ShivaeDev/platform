@@ -35,7 +35,7 @@ The optional modules solve different boundaries. `runtime/` carries Effect servi
 
 ### Host the application
 
-`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with NDJSON RPC at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
+`appHost` is the server entry point for an Effect app. For a PostgreSQL app, supply the native RPC group, handler and service Layers, migration loader, session policy and static asset directory. The host completes migrations before acquiring application services, starts Node HTTP with native Effect RPC over a WebSocket upgrade at `/rpc`, and provides SQL, Reactivity and `AppChanges` to those Layers.
 
 ```ts
 import { NodeRuntime } from "@effect/platform-node";
@@ -89,7 +89,7 @@ RPC request bodies are limited to 1 MiB by default. Set `MAX_BODY_SIZE` to a byt
 
 For a native Node HTTP route outside RPC, read the request body with `readBoundedBody` from [`@shivaedev/http`](https://github.com/ShivaeDev/platform/tree/main/packages/http#readme), which rejects oversized bodies with a typed 413 failure.
 
-RPC uses `localRpcGuard` from `@shivaedev/identity/server/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. Session lookup uses transport headers. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
+Ordinary POST RPC uses `localRpcGuard` from `@shivaedev/identity/server/local.ts`: it requires a loopback peer and Host, same-origin or absent Origin, and the NDJSON content type. The WebSocket upgrade uses the same loopback, origin and trusted-proxy checks without an HTTP body content type. Session lookup uses the upgrade's transport headers; RPC message headers cannot replace its cookie or Origin. The host revalidates authenticated connections at `streamRevalidationInterval` and closes a revoked connection. Automatic live subscriptions also recheck the session and query policy before each hint. POST RPC has no `$changes` stream. The host applies `RequestTracing` last to every served RPC, including loopback RPC, so it wraps authentication and handlers without a per-contract tracing declaration. Existing tracing declarations run once at that outermost boundary. With a session policy, contracts declare `Authenticated` and `MaybeAuthenticated` as needed; the host supplies their implementations. For `AuthenticatedUser`, merge `authenticatedUserLayer(sessions)` from `@shivaedev/identity/server/session.ts` beside the handlers. Declared errors retain their Schema types. Applications still own resource authorization and use `rpcBoundary` when they need to map unexpected failures.
 
 Every response from the host's native RPC endpoint carries `Cache-Control: private, no-store`, including mixed public and authenticated batches, typed failures, transport rejections, body-read failures and streams. The host sets this at the outer response boundary without inspecting batch contents.
 
@@ -188,22 +188,16 @@ export const Server = appHost({
 
 `publicConfigLayer` reads `Config.schema` from the host's native ConfigProvider when the handler Layer builds. Missing or invalid required fields fail startup with a typed `ConfigError`. An optional second argument supplies a native Config path: `publicConfigLayer(PublicConfig, "PUBLIC")` reads `PUBLIC_INSTALL_URL` with the default environment provider. Only schema-declared fields are loaded and serialized; other server values never enter this response. The generated query has no session middleware, so it can supply public configuration before sign-in. Merge it alongside authenticated contracts rather than applying authentication to the merged group.
 
-On the client, use the same native `AtomRpc.Service`, NDJSON HTTP protocol and contract `bind` as other queries:
+On the client, use the same contract `makeClient` and shared WebSocket as other queries:
 
 ```ts
-import { Layer } from "effect";
-import { FetchHttpClient } from "effect/http";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
-import { RpcClient, RpcSerialization } from "effect/rpc";
-import { bind } from "@shivaedev/contract/bind.ts";
+import { makeClient } from "@shivaedev/contract/bind.ts";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { PublicConfig } from "./public-config.ts";
 
-class ConfigClient extends AtomRpc.Service<ConfigClient>()("app/ConfigClient", {
-	group: PublicConfig,
-	protocol: RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-}) {}
-const config = bind(PublicConfig, ConfigClient);
+const { api: config } = makeClient(PublicConfig, {
+	url: new URL("/rpc", window.location.href).href,
+});
 
 export function usePublicConfig() {
 	return useQuery(config.get.query());

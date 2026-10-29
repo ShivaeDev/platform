@@ -1,16 +1,16 @@
-import { Effect, type Layer, Stream } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
+import { Effect, Stream } from "effect";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { live } from "@shivaedev/contract/live.ts";
 import { LiveOrders, Orders, orders } from "./contract.ts";
 
-export function makeClient(url: string, token?: string, httpClient: Layer.Layer<HttpClient.HttpClient> = FetchHttpClient.layer) {
+export function makeClient(url: string, token?: string) {
 	const { api, Client } = makeRpcClient(Orders, {
 		group: LiveOrders,
-		httpClient,
-		transformClient: (client) =>
-			token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+		headers: token === undefined ? {} : { authorization: `Bearer ${token}` },
+		live: false,
 		url,
+		webSocketConstructor: layerWebSocketConstructorWS,
 	});
 	const subscription = live(Client.runtime, {
 		resyncKeys: [orders.item(1)],

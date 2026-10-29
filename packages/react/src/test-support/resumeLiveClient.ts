@@ -24,14 +24,14 @@ export function resumeLiveClient(resume?: ResumeSource) {
 		[1, "One"],
 		[2, "Two"],
 	]);
-	let connections = 0;
+	let subscriptionCount = 0;
 	let active = 0;
 	let ended = Effect.runSync(Deferred.make<void>());
 	const handlers = Notes.toLayer({
 		"resumeNotes.$changes": () =>
 			Stream.unwrap(
 				Effect.gen(function* () {
-					connections += 1;
+					subscriptionCount += 1;
 					active += 1;
 					yield* Effect.addFinalizer(() =>
 						Effect.sync(() => {
@@ -51,12 +51,12 @@ export function resumeLiveClient(resume?: ResumeSource) {
 	return {
 		active: () => active,
 		api: bind(Notes, Client, resume === undefined ? {} : { resume }),
-		connections: () => connections,
 		disconnect: () => {
 			const previous = ended;
 			ended = Effect.runSync(Deferred.make<void>());
 			return Effect.runPromise(Deferred.succeed(previous, undefined));
 		},
 		rename: (id: number, title: string) => titles.set(id, title),
+		subscriptionCount: () => subscriptionCount,
 	};
 }

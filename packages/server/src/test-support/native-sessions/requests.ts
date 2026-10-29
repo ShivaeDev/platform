@@ -1,3 +1,4 @@
+import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -52,10 +53,12 @@ export const login = Effect.fn("NativeSessions.login")(function* (host: Host, na
 	};
 });
 
-export function client(host: Host, headers: Record<string, string>) {
-	return RpcClient.make(Api, { flatten: true }).pipe(
-		Effect.provide(
-			RpcClient.layerProtocolHttp({
+export function client(host: Host, headers: Record<string, string>, socket = false) {
+	const protocol = socket
+		? RpcClient.layerProtocolSocket().pipe(
+				Layer.provide([layerWebSocket(`${host.baseUrl.replace(/^http/u, "ws")}/rpc`, { headers }), RpcSerialization.layerNdjson]),
+			)
+		: RpcClient.layerProtocolHttp({
 				transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeaders(headers)),
 				url: `${host.baseUrl}/rpc`,
 			}).pipe(
@@ -63,7 +66,6 @@ export function client(host: Host, headers: Record<string, string>) {
 					FetchHttpClient.layer.pipe(Layer.provide(Layer.succeed(FetchHttpClient.RequestInit, { credentials: "omit" }))),
 					RpcSerialization.layerNdjson,
 				]),
-			),
-		),
-	);
+			);
+	return Effect.flatMap(Layer.build(protocol), (services) => RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(services)));
 }

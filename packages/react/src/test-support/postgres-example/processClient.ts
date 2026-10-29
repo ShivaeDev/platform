@@ -1,5 +1,5 @@
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, ManagedRuntime, Stream } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { LiveOrders, Order, Orders } from "./contract.ts";
@@ -7,8 +7,9 @@ import { LiveOrders, Order, Orders } from "./contract.ts";
 export async function processClient(url: string) {
 	const connection = makeClient(Orders, {
 		group: LiveOrders,
-		transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeader("authorization", "Bearer alice-session")),
+		headers: { authorization: "Bearer alice-session" },
 		url,
+		webSocketConstructor: layerWebSocketConstructorWS,
 	});
 	const runtime = ManagedRuntime.make(connection);
 	const client = await runtime.runPromise(connection.Client);

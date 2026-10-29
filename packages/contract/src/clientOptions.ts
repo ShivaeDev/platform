@@ -1,18 +1,19 @@
 import type { Context, Effect, Layer, Scope } from "effect";
-import type { HttpClient } from "effect/http/HttpClient";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
-import type { Rpc, RpcClient, RpcSerialization } from "effect/rpc";
+import type { Rpc, RpcClient } from "effect/rpc";
 import type { RpcClientError } from "effect/rpc/RpcClientError";
+import type * as Socket from "effect/socket/Socket";
 import type { LiveBound } from "#automaticLive.ts";
 import type { Bound } from "#bind.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 
 export interface ClientOptions {
-	readonly httpClient?: Layer.Layer<HttpClient>;
-	readonly serialization?: Layer.Layer<RpcSerialization.RpcSerialization>;
-	readonly transformClient?: NonNullable<Parameters<typeof RpcClient.layerProtocolHttp>[0]["transformClient"]>;
+	readonly headers?: Readonly<Record<string, string>>;
+	readonly live?: boolean;
+	readonly protocol?: Layer.Layer<RpcClient.Protocol>;
 	readonly url: string;
+	readonly webSocketConstructor?: Layer.Layer<Socket.WebSocketConstructor>;
 }
 
 export type ClientService<TName extends string, TRpcs extends Rpc.Any> = Context.ServiceClass.Shape<

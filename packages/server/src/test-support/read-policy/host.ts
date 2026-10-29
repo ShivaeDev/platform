@@ -1,3 +1,4 @@
+import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Context, Effect, Layer, Option } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -22,20 +23,24 @@ export const readPolicyHost = storyKit({
 	name: "host read authorization",
 	stages: [],
 	verbs: (state) => {
-		function client(viewer?: string) {
-			return RpcClient.make(Api, { flatten: true }).pipe(
-				Effect.provide(
-					RpcClient.layerProtocolHttp({
+		function client(viewer?: string, socket = false) {
+			const protocol = socket
+				? RpcClient.layerProtocolSocket().pipe(
+						Layer.provide([
+							layerWebSocket(`${state.url.replace(/^http/u, "ws")}/rpc`, { headers: { authorization: viewer ?? "" } }),
+							RpcSerialization.layerNdjson,
+						]),
+					)
+				: RpcClient.layerProtocolHttp({
 						transformClient: (http) =>
 							HttpClient.mapRequest(http, HttpClientRequest.setHeaders(viewer === undefined ? {} : { authorization: viewer })),
 						url: `${state.url}/rpc`,
-					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-				),
-			);
+					}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
+			return Effect.flatMap(Layer.build(protocol), (services) => RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(services)));
 		}
 		function listen(viewer: string) {
 			const queries = [viewer].map((owner) => ({ payload: { owner }, query: "get" as const }));
-			return Effect.flatMap(client(viewer), (rpc) => watchHints(rpc("account.$changes", { queries })));
+			return Effect.flatMap(client(viewer, true), (rpc) => watchHints(rpc("account.$changes", { queries })));
 		}
 		return {
 			checks: () => state.checks.map(({ key, viewer }) => ({ key, viewer: Option.getOrUndefined(viewer) })),

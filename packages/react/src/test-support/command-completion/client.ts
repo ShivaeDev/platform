@@ -49,7 +49,7 @@ export function completionClient() {
 		makeEffect: RpcTest.makeClient(Commands, { flatten: true }),
 		protocol: handlers,
 	}) {}
-	const api = bind(Commands, Client);
+	const api = bind(Commands, Client, { live: false });
 	const watcher = Client.runtime.atom(
 		Effect.gen(function* () {
 			const reactivity = yield* Reactivity.Reactivity;

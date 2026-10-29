@@ -21,7 +21,7 @@ export function liveClient(
 		group: LiveNotes,
 		protocol: RpcClient.layerProtocolHttp({ url: `${url}/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
 	}) {}
-	const api = bind(LiveNotes, Client);
+	const api = bind(LiveNotes, Client, { live: false });
 	const resume = Atom.make(0);
 	const signal = resumeSignal(options);
 	const received = Effect.runSync(SubscriptionRef.make<Record<LiveHint["_tag"], number>>({ Changed: 0, Resync: 0 }));

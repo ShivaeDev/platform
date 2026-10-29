@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { sessionCookie } from "#test/live-session/cookie.ts";
 import { openHost } from "#test/live-session/openHost.ts";
 import { shell as scopedShell } from "#test/live-session/shell.tsx";
 import { startServer } from "#test/order-example/startServer.ts";
@@ -8,7 +9,7 @@ import { sessions, shell } from "./session.tsx";
 
 interface State {
 	active: ReturnType<typeof sessions>;
-	private?: { readonly view: ReturnType<typeof scopedShell>; readonly host: Awaited<ReturnType<typeof openHost>> };
+	private?: { readonly browser: boolean; readonly view: ReturnType<typeof scopedShell>; readonly host: Awaited<ReturnType<typeof openHost>> };
 	view?: ReturnType<typeof shell>;
 }
 function current(state: State) {
@@ -44,7 +45,13 @@ export const sessionScreens = storyKit(
 			show: (session: Parameters<ReturnType<typeof shell>["show"]>[0], id: number) =>
 				screen.act(`show session ${session?.id ?? "signed out"}, order ${id}`, () => current(state).show(session, id)),
 			showScoped: (session: Parameters<ReturnType<typeof scopedShell>["show"]>[0]) =>
-				screen.act(`show private session ${session?.id ?? "signed out"}`, () => privateSession(state).view.show(session)),
+				Effect.gen(function* () {
+					const privateScreen = privateSession(state);
+					if (privateScreen.browser) {
+						yield* sessionCookie(session?.token);
+					}
+					yield* screen.act(`show private session ${session?.id ?? "signed out"}`, () => privateScreen.view.show(session));
+				}),
 			type: (value: string) => screen.act(`type name: ${value}`, () => current(state).edit(value)),
 		}),
 	),
@@ -60,10 +67,17 @@ export function orderSessions() {
 	});
 }
 
-export function scopedSessions() {
-	return sessionScreens.trait("screen", "session-owned private notes over loopback HTTP", function* ({ screen, state }) {
-		const host = yield* Effect.acquireRelease(Effect.promise(openHost), (value) => Effect.promise(value.close));
-		window.location.href = host.url;
-		state.private = { host, view: scopedShell(host.url, yield* screen.open()) };
-	});
+export function scopedSessions(browser = false) {
+	return sessionScreens.trait(
+		"screen",
+		`session-owned private notes over a ${browser ? "cookie" : "bearer"} WebSocket`,
+		function* ({ screen, state }) {
+			const host = yield* Effect.acquireRelease(Effect.promise(openHost), (value) => Effect.promise(value.close));
+			window.location.href = host.url;
+			state.private = { browser, host, view: scopedShell(host.url, yield* screen.open(), browser) };
+			if (browser) {
+				yield* Effect.addFinalizer(() => sessionCookie());
+			}
+		},
+	);
 }

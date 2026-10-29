@@ -56,7 +56,7 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 		makeEffect: RpcTest.makeClient(Items, { flatten: true }),
 		protocol: handlers,
 	}) {}
-	const api = bind(Items, Client);
+	const api = bind(Items, Client, { live: false });
 	const toggles = Atom.family((id: number) => Client.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
 	return { command: toggles, commandGate, count: api.count.query(), countGate, list: api.list.query(), listGate };
 }

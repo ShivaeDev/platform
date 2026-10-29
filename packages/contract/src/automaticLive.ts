@@ -1,11 +1,14 @@
-import { type Duration, Effect, Stream, SubscriptionRef } from "effect";
+import { type Duration, Effect, Option, Stream } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
-import { type Key, readKeys } from "@shivaedev/changes/keys.ts";
+import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
+import { queryResult } from "#internal/queryResult.ts";
+import { socketIdentity } from "#internal/rpcClient.ts";
 import { type LiveStatus, live } from "#live.ts";
+import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import type { changesRpc, QueryReference } from "#serverMetadata.ts";
 
@@ -16,83 +19,123 @@ export interface LiveBound {
 	readonly [LiveConnection]: {
 		readonly coalesceWindow: Atom.Writable<Duration.Input>;
 		readonly connection: Atom.Atom<unknown>;
+		readonly identity?: Atom.Writable<string | undefined>;
 		readonly status: Atom.Atom<LiveStatus<unknown>>;
 	};
 }
 
 export type ChangesClient = AtomRpc.AtomRpcClient<unknown, string, ReturnType<typeof changesRpc>>;
 
-interface Tracked {
-	readonly keys: readonly Key[];
-	readonly reference: QueryReference;
-}
-
-export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner, resume?: ResumeSource) {
-	const eager = owner === undefined ? Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map())) : undefined;
-	const known = new Set<string>();
-	const tracked = Atom.keepAlive(Atom.make(() => eager ?? Effect.runSync(SubscriptionRef.make<ReadonlyMap<object, Tracked>>(new Map()))));
-	function track(registry: AtomRegistry.AtomRegistry | undefined, reference: QueryReference, keys: readonly Key[]) {
-		const fresh =
-			eager === undefined
-				? keys
-				: keys.filter((key) => {
-						const id = readKeys([key])[0] ?? "";
-						if (known.has(id)) {
-							return false;
-						}
-						known.add(id);
-						return true;
-					});
-		if (fresh.length === 0) {
-			return () => undefined;
-		}
-		const token = {};
-		const state = eager ?? registry?.get(tracked);
-		if (state === undefined) {
-			throw new Error("Session query tracking requires its owning registry");
-		}
-		Effect.runSync(SubscriptionRef.update(state, (current) => new Map([...current, [token, { keys: fresh, reference }]])));
-		if (eager !== undefined) {
-			return () => undefined;
-		}
-		return () =>
-			Effect.runSync(
-				SubscriptionRef.update(state, (current) => {
-					const next = new Map(current);
-					next.delete(token);
-					return next;
-				}),
-			);
-	}
-	function subscribe(current: ReadonlyMap<object, Tracked>) {
-		if (current.size === 0) {
-			return Stream.never;
-		}
-		const queries = [...current.values()].map(({ reference }) => reference);
-		return Stream.unwrap(
-			service.use((client) =>
-				Effect.succeed(client(`${name}.$changes`, { queries }).pipe(Stream.map((hint) => queryHint(hint, [...current.values()])))),
-			),
-		);
-	}
-	const signal = resumeSignal({ ...(typeof window === "undefined" ? {} : { window }), ...(resume === undefined ? {} : { native: resume }) });
-	const subscription = live(service.runtime, {
-		keyContext: owner?.context,
-		resume: signal,
-		resyncKeys: (registry) => [...Effect.runSync(SubscriptionRef.get(registry.get(tracked))).values()].flatMap(({ keys }) => localQueryKeys(keys)),
-		stream: Stream.unwrap(
-			Effect.map(AtomRegistry.AtomRegistry, (registry) =>
-				Stream.zipLatest(SubscriptionRef.changes(registry.get(tracked)), AtomRegistry.toStream(registry, signal)).pipe(
-					Stream.switchMap(([current]) => subscribe(current)),
-				),
-			),
-		),
-	});
-	const connection = Atom.make((get) => {
+export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner, resume?: ResumeSource, enabled = true) {
+	function assertOwner(get: Atom.AtomContext) {
 		if (owner !== undefined && owner.registry !== get.registry) {
-			throw new Error("A session-scoped live connection belongs to its binding registry");
+			throw new Error("A session-scoped query belongs to its binding registry");
 		}
-		return get(subscription.connection);
+	}
+	const coalesceWindow = Atom.keepAlive(Atom.make<Duration.Input>("20 millis"));
+	const statuses = Atom.make<ReadonlyMap<object, LiveStatus<unknown>>>(new Map());
+	const status = Atom.map(statuses, (current): LiveStatus<unknown> => {
+		const values = [...current.values()];
+		let connection: LiveStatus<unknown>["connection"] = "live";
+		if (values.some((value) => value.connection === "connecting")) {
+			connection = "connecting";
+		}
+		if (values.some((value) => value.connection === "reconnecting")) {
+			connection = "reconnecting";
+		}
+		return {
+			connection,
+			failure: values.find((value) => Option.isSome(value.failure))?.failure ?? Option.none(),
+			needsResync: values.some((value) => value.needsResync),
+			pending: values.reduce((sum, value) => sum + value.pending, 0),
+		};
+	});
+	const signal = resumeSignal({ ...(typeof window === "undefined" ? {} : { window }), ...(resume === undefined ? {} : { native: resume }) });
+	const connection = Atom.make((get) => {
+		assertOwner(get);
+		get.mount(service.runtime);
+		return get(status);
 	}).pipe(Atom.setIdleTTL(0));
-	return { subscription: { ...subscription, connection }, track };
+	function query<A, E>(
+		atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,
+		reference: QueryReference,
+		keys: readonly Key[],
+		equivalent: (left: A, right: A) => boolean,
+	) {
+		if (!enabled) {
+			return atom;
+		}
+		const ready = Atom.make(false);
+		const subscription = live(service.runtime, {
+			initialResync: false,
+			keyContext: owner?.context,
+			resume: signal,
+			resyncKeys: localQueryKeys(keys),
+			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] })))).pipe(
+				Stream.map((hint) => queryHint(hint, [{ keys }])),
+			),
+		});
+		const gated = Atom.readable(
+			(get) => {
+				assertOwner(get);
+				const registry = get.registry;
+				get.set(ready, false);
+				get.once(queryCoalesceWindow(gated));
+				get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
+				const token = {};
+				function observe(value: LiveStatus<unknown>) {
+					registry.update(statuses, (current) => new Map([...current, [token, value]]));
+					if (value.connection === "live") {
+						registry.set(ready, true);
+					}
+				}
+				get.addFinalizer(() => {
+					if (registry.getNodes().has(statuses)) {
+						registry.update(statuses, (current) => {
+							const next = new Map(current);
+							next.delete(token);
+							return next;
+						});
+					}
+				});
+				get.addFinalizer(registry.subscribe(subscription.status, observe, { immediate: true }));
+				get.addFinalizer(registry.subscribe(coalesceWindow, (value) => registry.set(subscription.coalesceWindow, value), { immediate: true }));
+				let started = false;
+				function start() {
+					if (started) {
+						return;
+					}
+					started = true;
+					get.refresh(atom);
+					const publish = queryResult<A, E>(equivalent, (value) => get.setSelf(value));
+					get.subscribe(atom, publish);
+					publish(get.once(atom));
+				}
+				get.once(ready);
+				get.subscribe(ready, (value) => {
+					if (value) {
+						start();
+					}
+				});
+				get.subscribe(subscription.status, (value) => {
+					if (!started && Option.isSome(value.failure)) {
+						get.setSelf(AsyncResult.failure(value.failure.value));
+					}
+				});
+				get.mount(subscription.connection);
+				if (get.once(ready)) {
+					start();
+					return get.once(atom);
+				}
+				return AsyncResult.initial();
+			},
+			(refresh) => refresh(atom),
+		).pipe(Atom.setIdleTTL(0));
+		Object.assign(gated, { initialValueTarget: atom });
+		if (Atom.isSerializable(atom)) {
+			Object.assign(gated, { [Atom.SerializableTypeId]: atom[Atom.SerializableTypeId] });
+		}
+		return gated;
+	}
+	return { query, subscription: { coalesceWindow, connection, identity: socketIdentity, status } };
 }

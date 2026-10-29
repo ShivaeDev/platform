@@ -59,7 +59,7 @@ export const usersScreen = storyKit({
 			makeEffect: RpcTest.makeClient(UsersPage.contract, { flatten: true }),
 			protocol: handlers.pipe(Layer.provideMerge(authenticated)),
 		}) {}
-		const api = bind(UsersPage.contract, Client);
+		const api = bind(UsersPage.contract, Client, { live: false });
 		const changeRole = Client.runtime.fn(api.changeRole.run);
 		let container: HTMLElement | undefined;
 		return {

@@ -20,6 +20,7 @@ export const Rename = command("rename", {
 	payload: Note.fields,
 	success: Note.json,
 });
+export const Preview = contract("preview", { queries: [Get] });
 export const Api = contract("notes", { commands: [Rename], queries: [Get] });
 export const repository = makeRepository(Note, { idColumn: "id", spanPrefix: "Notes", tableName: "notes" });
 export const migrations = {

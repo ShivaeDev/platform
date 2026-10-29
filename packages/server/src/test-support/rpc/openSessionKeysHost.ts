@@ -1,7 +1,9 @@
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer, Option, Schema } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest, HttpServer } from "effect/http";
+import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
+import * as Socket from "effect/socket/Socket";
 import { Migrator } from "effect/sql";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
@@ -35,7 +37,7 @@ function sessionWithAccounts<TSession extends SessionShape>(session: TSession) {
 	return { ...session, user: { ...session.user, providerAccounts: Effect.succeed([]), role: "admin,owner" } };
 }
 
-export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provider) {
+export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provider, trustedProxy?: string) {
 	const database = yield* PostgresTestDatabase;
 	const lookup = betterAuthSessions(provider.getSession);
 	const sessions = {
@@ -44,6 +46,7 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 			get: (headers: Parameters<typeof lookup.get>[0]) => lookup.get(headers).pipe(Effect.map(Option.map((session) => sessionWithAccounts(session)))),
 		},
 		roles: TestRoles,
+		streamRevalidationInterval: "50 millis" as const,
 	};
 	const customAuth = Layer.succeed(CustomAuthenticated, (effect, { headers, rpc, payload }) =>
 		Effect.gen(function* () {
@@ -60,7 +63,7 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 	const context = yield* Layer.build(
 		Layer.fresh(
 			appHost({
-				config: { databaseUrl: database.url, port: 0 },
+				config: { databaseUrl: database.url, port: 0, ...(trustedProxy === undefined ? {} : { trustedProxy }) },
 				group: Api,
 				handlers: handlers.pipe(
 					Layer.provideMerge(
@@ -90,17 +93,27 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 		return yield* Effect.die("Expected a TCP server");
 	}
 	const url = `http://127.0.0.1:${server.address.port}/rpc`;
+	const connections: string[] = [];
+	const socketConstructor = Layer.effect(
+		Socket.WebSocketConstructor,
+		Effect.map(Socket.WebSocketConstructor, (make) => (address, options) => {
+			connections.push(address);
+			return make(address, options);
+		}),
+	).pipe(Layer.provide(layerWebSocketConstructorWS));
 	function protocol(cookie = "") {
-		return RpcClient.layerProtocolHttp({
-			transformClient: (http) => HttpClient.mapRequest(http, HttpClientRequest.setHeaders({ cookie })),
-			url,
-		}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
+		return RpcClient.layerProtocolSocket().pipe(
+			Layer.provide([
+				Socket.layerWebSocket(url.replace(/^http/u, "ws"), { headers: { cookie } }).pipe(Layer.provide(socketConstructor)),
+				RpcSerialization.layerNdjson,
+			]),
+		);
 	}
 	function client(cookie = "") {
-		return RpcClient.make(Api, { flatten: true }).pipe(Effect.provide(protocol(cookie)));
+		return Effect.flatMap(Layer.build(protocol(cookie)), (services) => RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(services)));
 	}
 	function wireClient(cookie: string) {
-		return RpcClient.make(Wire, { flatten: true }).pipe(Effect.provide(protocol(cookie)));
+		return Effect.flatMap(Layer.build(protocol(cookie)), (services) => RpcClient.make(Wire, { flatten: true }).pipe(Effect.provideContext(services)));
 	}
-	return { client, published, url, wireClient };
+	return { client, connections, published, url, wireClient };
 });

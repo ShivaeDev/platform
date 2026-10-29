@@ -27,7 +27,7 @@ class Client extends AtomRpc.Service<Client>()("test/Notes", {
 	makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
 	protocol: handlers,
 }) {}
-const api = bind(Notes, Client);
+const api = bind(Notes, Client, { live: false });
 const add = Client.runtime.fn(api.add.run);
 export function NotesView() {
 	const list = useQuery(api.list.query());

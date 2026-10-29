@@ -43,7 +43,7 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 		group: workRpcs,
 		protocol: RpcClient.layerProtocolHttp({ url: `${url}/_board/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
 	}) {}
-	const api = bind(workContract, Client);
+	const api = bind(workContract, Client, { live: false });
 	const registry = AtomRegistry.make({ "defaultIdleTTL": 0, timeoutResolution: 1 });
 	const indexing = Atom.make<Indexing | undefined>(undefined);
 	const updates = live(Client.runtime, {
@@ -92,6 +92,17 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 		}
 		return result.success;
 	}
-	const responses = bind(responseContract, Client);
-	return { api, handoffs: bind(handoffContract, Client), indexing, mutate, read, registry, responses, run, runtime: Client.runtime, updates };
+	const responses = bind(responseContract, Client, { live: false });
+	return {
+		api,
+		handoffs: bind(handoffContract, Client, { live: false }),
+		indexing,
+		mutate,
+		read,
+		registry,
+		responses,
+		run,
+		runtime: Client.runtime,
+		updates,
+	};
 }

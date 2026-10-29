@@ -14,6 +14,7 @@ import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
 import type { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
+import { socketRpc } from "#socketRpc.ts";
 
 export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TSession extends SessionShape>(
 	options: {
@@ -32,14 +33,21 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
 			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
-			const handler = yield* hostRpc(options.group).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
+			const httpGroup = options.group.omit(...[...options.group.requests.keys()].filter((tag) => tag.endsWith(".$changes")));
+			const handler = yield* hostRpc(httpGroup).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);
+			const websocket = yield* hostRpc(options.group, true).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			yield* router.add(
 				"OPTIONS",
 				options.rpcPath ?? "/rpc",
 				HttpServerResponse.text("Local same-origin requests only", {
 					status: HttpStatus.fromLiteral("Forbidden"),
 				}),
+			);
+			yield* router.add(
+				"GET",
+				options.rpcPath ?? "/rpc",
+				socketRpc(websocket, options, trustedProxy, nativeOrigins).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire)),
 			);
 			yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
 				HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
@@ -51,7 +59,14 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 			});
 		}),
 	).pipe(
-		Layer.provide(Layer.merge(middleware, hostChanges(options.group, changesService).pipe(Layer.provideMerge(options.handlers)))),
+		Layer.provide(
+			Layer.merge(
+				middleware,
+				hostChanges(options.group, changesService, options.policy === "loopback" ? undefined : options.sessions).pipe(
+					Layer.provideMerge(options.handlers),
+				),
+			),
+		),
 		Layer.provide(RpcSerialization.layerNdjson),
 	);
 }

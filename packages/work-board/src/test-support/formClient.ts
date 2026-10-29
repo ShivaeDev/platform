@@ -15,5 +15,9 @@ export function formClient() {
 			Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
 		),
 	}) {}
-	return { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime };
+	return {
+		handoffs: bind(handoffContract, Client, { live: false }),
+		responses: bind(responseContract, Client, { live: false }),
+		runtime: Client.runtime,
+	};
 }

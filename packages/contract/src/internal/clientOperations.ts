@@ -1,4 +1,4 @@
-import { Effect, MutableHashMap, Option, type Schema, Stream } from "effect";
+import { Effect, Option, Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -13,10 +13,6 @@ import { queryReactivity } from "./queryReactivity.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
-// AtomRpc holds query atoms weakly, so an id per atom object would change after a collection and make live tracking resubscribe.
-const queryIds = MutableHashMap.empty<{ readonly payload: unknown; readonly tag: string }, number>();
-let nextQueryId = 0;
-
 type ErasedStreamingClient = AtomRpc.AtomRpcClient<
 	unknown,
 	string,
@@ -27,14 +23,9 @@ function run<A, E>(service: ErasedClient, effect: Effect.Effect<A, E, unknown>, 
 	return owner === undefined ? effect : Effect.suspend(() => AtomRegistry.getResult(owner.registry, service.runtime.atom(effect)));
 }
 
-export function boundQuery(
-	service: ErasedClient,
-	tag: string,
-	query: QueryShape,
-	track: ReturnType<typeof automaticLive>["track"],
-	owner?: BindingOwner,
-) {
+export function boundQuery(service: ErasedClient, tag: string, query: QueryShape, automatic: ReturnType<typeof automaticLive>, owner?: BindingOwner) {
 	const reactive = queryReactivity(service.runtime);
+	const cached = new WeakMap<ReturnType<typeof service.query>, ReturnType<typeof service.query>>();
 	return {
 		query: (payload: unknown, options: QueryOptions = {}) => {
 			if (query.readPolicy === undefined) {
@@ -43,27 +34,23 @@ export function boundQuery(
 				);
 			}
 			const atom = service.query(tag, payload, options);
-			const identity = { payload, tag };
-			let id = Option.getOrUndefined(MutableHashMap.get(queryIds, identity));
-			if (id === undefined) {
-				id = nextQueryId;
-				nextQueryId += 1;
-				MutableHashMap.set(queryIds, identity, id);
+			const existing = cached.get(atom);
+			if (existing !== undefined) {
+				return existing;
 			}
 			const local = query.reads(payload, Option.none());
-			const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${id}` }];
+			const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${crypto.randomUUID()}` }];
 			const dependencies =
 				local.length === 0 ? [...keys, { _tag: "List" as const, collection: `@query/${tag.slice(0, tag.lastIndexOf("."))}` }] : keys;
 			const reference = { payload, query: query.name };
-			if (owner === undefined) {
-				track(undefined, reference, keys);
-			}
-			return reactive(
-				atom,
-				readKeys(dependencies, owner?.context),
-				(registry) => (owner === undefined ? () => undefined : track(registry, reference, keys)),
-				owner?.registry,
+			const result = automatic.query(
+				reactive(atom, readKeys(dependencies, owner?.context), owner?.registry),
+				reference,
+				keys,
+				Schema.toEquivalence(query.success),
 			);
+			cached.set(atom, result);
+			return result;
 		},
 		run: (payload: unknown) =>
 			run(

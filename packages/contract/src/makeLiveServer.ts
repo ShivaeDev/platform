@@ -56,12 +56,12 @@ export const makeLiveServer = Effect.gen(function* () {
 				);
 				yield* Queue.offer(queue, { _tag: "Resync" });
 				function authorizeHint(hint: LiveHint) {
-					if (hint._tag === "Resync") {
-						return Effect.succeed(hint);
-					}
-					return Effect.map(subscription?.authorized ?? Effect.succeed(true), (allowed) =>
-						changedHint(allowed ? hint.keys : [], subscription?.scopes),
-					);
+					return Effect.map(subscription?.authorized ?? Effect.succeed(true), (allowed) => {
+						if (!allowed) {
+							return changedHint([], subscription?.scopes);
+						}
+						return hint._tag === "Resync" ? hint : changedHint(hint.keys, subscription?.scopes);
+					});
 				}
 				return Stream.fromQueue(queue).pipe(
 					Stream.mapEffect(authorizeHint),

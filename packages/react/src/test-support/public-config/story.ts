@@ -30,6 +30,7 @@ export const publicConfigStory = storyKit({
 				if (state.url === undefined) {
 					throw new Error("The platform host is not listening");
 				}
+				window.location.href = state.url;
 				state.view = yield* state.screen.open(configView(state.url));
 			},
 			*serve(env: Record<string, string>) {

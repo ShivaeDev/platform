@@ -1,5 +1,5 @@
 import { Effect, ManagedRuntime, Option, Stream } from "effect";
-import { type Headers, HttpServer } from "effect/http";
+import { Cookies, type Headers, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
@@ -24,7 +24,9 @@ export async function openHost() {
 	function resolveSession(headers: Headers.Headers) {
 		return Effect.sync(() => {
 			state.lookups += 1;
-			const account = headers.authorization === undefined ? state.session : tokens.get(headers.authorization);
+			const cookie = Cookies.parseHeader(headers.cookie ?? "")["live-session"];
+			const credential = headers.authorization ?? (cookie === undefined ? undefined : `Bearer ${cookie}`);
+			const account = credential === undefined ? state.session : tokens.get(credential);
 			return Option.map(Option.fromUndefinedOr(account), (id) => ({ user: { id } }));
 		});
 	}

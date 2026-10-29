@@ -1,5 +1,5 @@
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect, Layer } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -35,9 +35,9 @@ export const adminHost = storyKit({
 			story.tell(`${name} opens the admin RPC`);
 			return yield* makeClient(UsersPage.contract, {
 				group: Admin.group,
-				transformClient: (client) =>
-					HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie: engine.cookies.get(name) ?? "", origin: engine.url })),
+				headers: { cookie: engine.cookies.get(name) ?? "", origin: engine.url },
 				url: `${engine.url}/rpc`,
+				webSocketConstructor: layerWebSocketConstructorWS,
 			}).client;
 		}),
 		postAuthAdmin: (name: string, operation: string, body: object) =>

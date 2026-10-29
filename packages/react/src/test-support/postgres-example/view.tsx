@@ -1,5 +1,4 @@
 import { RegistryContext } from "@effect/atom-react";
-import { NodeHttpClient } from "@effect/platform-node";
 import { Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -17,7 +16,7 @@ async function interact(action: () => void) {
 
 export async function mountView(url: string, token = "alice-session") {
 	window.location.href = url;
-	const client = makeClient(url, token, NodeHttpClient.layerUndici);
+	const client = makeClient(url, token);
 	const registry = AtomRegistry.make();
 	const releaseQuery = registry.mount(client.query);
 	try {

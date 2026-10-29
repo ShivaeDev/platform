@@ -1,10 +1,11 @@
-import { HttpClient, HttpClientRequest } from "effect/http";
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { Notes } from "#modules/notes/notes.ts";
 
 export function notesHttp(baseUrl: string, cookie = "", origin = baseUrl) {
 	return makeClient(Notes, {
-		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeaders({ cookie, origin })),
+		headers: { cookie, origin },
 		url: `${baseUrl}/rpc`,
+		webSocketConstructor: layerWebSocketConstructorWS,
 	}).client;
 }

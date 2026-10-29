@@ -22,8 +22,13 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 	}) {}
 	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };
 	const status: BrowserClient["updates"]["status"] = Atom.make(live).pipe(Atom.keepAlive);
-	return Object.assign(bind(workContract, Client), {
-		forms: { handoffs: bind(handoffContract, Client), responses: bind(responseContract, Client), runtime: Client.runtime, updates: { status } },
+	return Object.assign(bind(workContract, Client, { live: false }), {
+		forms: {
+			handoffs: bind(handoffContract, Client, { live: false }),
+			responses: bind(responseContract, Client, { live: false }),
+			runtime: Client.runtime,
+			updates: { status },
+		},
 	});
 }
 

@@ -65,13 +65,13 @@ sessionKeys.it("an anonymous subscription is refused", [], function* ({ anonymou
 	expect(yield* anonymous()).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
 });
 
-sessionKeys.it("a subscription refuses physical keys and undeclared queries", [], function* ({ postSubscription }) {
+sessionKeys.it("a subscription refuses physical keys and undeclared queries", [], function* ({ sendSubscription }) {
 	for (const payload of [
 		{ keys: ["preferences"] },
 		{ queries: [{ payload: {}, query: "other-owner" }] },
 		{ queries: [{ payload: { keys: ["preferences"] }, query: "get" }] },
 	]) {
-		expect(yield* postSubscription(payload)).toContain('"Die"');
+		expect(yield* sendSubscription(payload)).toContain('"Die"');
 	}
 });
 

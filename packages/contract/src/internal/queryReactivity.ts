@@ -10,12 +10,7 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 	const service = runtime.atom(Effect.service(Reactivity.Reactivity));
 	type Query = Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>;
 	const cached = new WeakMap<Query, Query>();
-	return (
-		atom: Query,
-		keys: readonly string[],
-		track: (registry: AtomRegistry.AtomRegistry) => () => void,
-		owner?: AtomRegistry.AtomRegistry,
-	): Query => {
+	return (atom: Query, keys: readonly string[], owner?: AtomRegistry.AtomRegistry): Query => {
 		const existing = cached.get(atom);
 		if (existing !== undefined) {
 			return existing;
@@ -35,7 +30,6 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 					return get(source);
 				}
 				const reactivity = context.value;
-				get.addFinalizer(track(get.registry));
 				let pending: (() => boolean) | undefined;
 				let timer: ReturnType<typeof setTimeout> | undefined;
 				function clear() {

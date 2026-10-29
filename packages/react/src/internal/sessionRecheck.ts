@@ -10,8 +10,8 @@ export function registerSessionRecheck(registry: AtomRegistry.AtomRegistry, rech
 	};
 }
 
-export async function recheckUnauthorized(registry: AtomRegistry.AtomRegistry, error: unknown): Promise<void> {
-	if (Predicate.isTagged(error, "Unauthorized")) {
+export async function recheckUnauthorized(registry: AtomRegistry.AtomRegistry, error: unknown, connection = false): Promise<void> {
+	if (Predicate.isTagged(error, "Unauthorized") || (connection && Predicate.isTagged(error, "RpcClientError"))) {
 		await rechecks.get(registry)?.();
 	}
 }
