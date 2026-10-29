@@ -259,8 +259,8 @@ catalogs:
       specifier: 6.42.1
       version: 6.42.1
     lucide-react:
-      specifier: 1.60.0
-      version: 1.60.0
+      specifier: 1.61.0
+      version: 1.61.0
     mdast-util-directive:
       specifier: 3.1.1
       version: 3.1.1
@@ -418,7 +418,7 @@ importers:
         version: 4.0.5
       lucide-react:
         specifier: "catalog:"
-        version: 1.60.0(@types/react@19.3.0)(react@19.3.1)
+        version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
       pg:
         specifier: "catalog:"
         version: 8.23.0
@@ -1752,7 +1752,7 @@ importers:
         version: 21.0.4
       lucide-react:
         specifier: "catalog:"
-        version: 1.60.0(@types/react@19.3.0)(react@19.3.1)
+        version: 1.61.0(@types/react@19.3.0)(react@19.3.1)
       recharts:
         specifier: "catalog:"
         version: 3.10.1(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react-is@19.3.0)(react@19.3.1)(redux@5.0.1)
@@ -4846,8 +4846,8 @@ packages:
     resolution: { integrity: sha512-5J9ysMYUpYIg9RF2vJpy9SinEmSviFSe0GyPpCQ4L5QSkLAgeLXlTAOu2ZwWUU5m+0SBl6gUU1R1ZQB3aKypfA== }
     engines: { bun: ">=1.0.0", deno: ">=1.30.0", node: ">=8.0.0" }
 
-  lucide-react@1.60.0:
-    resolution: { integrity: sha512-UqxOW0FgAfDyb9VmjKb6/BkOzW6yfhf/QNboKtS2NDsscnNRW2CDzlyhbMKBQ1ontmcxuIDqHJ2AVgFR3NI+GA== }
+  lucide-react@1.61.0:
+    resolution: { integrity: sha512-v2SQPPPNjnr+BlhL9Spuzmo5yR+hLkftfuE4E3jaxdNPgSH0hJKPcLJBP7yAta87jQNPsSERS59PJjCJ/CorBA== }
     peerDependencies:
       "@types/react": "*"
       react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
@@ -8675,7 +8675,7 @@ snapshots:
   lru.min@1.1.5:
     optional: true
 
-  lucide-react@1.60.0(@types/react@19.3.0)(react@19.3.1):
+  lucide-react@1.61.0(@types/react@19.3.0)(react@19.3.1):
     dependencies:
       react: 19.3.1
     optionalDependencies:
