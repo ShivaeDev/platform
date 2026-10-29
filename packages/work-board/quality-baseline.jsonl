@@ -1,6 +1,6 @@
 {"path":"packages/work-board/package.json","rule":"code/unused","count":4}
 {"path":"packages/work-board/src/browserClient.ts","rule":"effect/boundary","count":13}
-{"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/document/Mermaid.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/client/document/highlight.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/document/nextSection.ts","rule":"effect/boundary","count":1}

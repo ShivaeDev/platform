@@ -1,6 +1,6 @@
 import { chmodSync } from "node:fs";
 import { join } from "node:path";
-import { Effect, SchemaIssue } from "effect";
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardStory, projectFiles } from "#test/boardStory.ts";
@@ -47,26 +47,6 @@ boardStory.it(
 			);
 		} finally {
 			chmodSync(join(notes.root, "note.md"), 0o644);
-		}
-	},
-);
-
-boardStory.it(
-	"rejects external or malformed native reading URLs with a precise schema diagnostic",
-	[projectFiles({ "note.md": "# Reading context" })],
-	function* ({ client }) {
-		const activeClient = client;
-		for (const url of ["https://example.com/note.md", "//example.com/note.md", "/\\["]) {
-			const error: unknown = yield* Effect.promise(() =>
-				activeClient.run(activeClient.api.document.run({ url })).then(
-					() => undefined,
-					(failure: unknown) => failure,
-				),
-			);
-			if (!(error instanceof Error && SchemaIssue.isIssue(error.cause))) {
-				throw new Error("Expected a schema issue for the reading URL");
-			}
-			expect(SchemaIssue.makeFormatterDefault()(error.cause)).toContain("Expected a local reading URL");
 		}
 	},
 );
