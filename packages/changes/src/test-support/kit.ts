@@ -1,110 +1,118 @@
 import { Deferred, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { createEngine, label, type Options } from "./engine.ts";
+import type { Publish } from "#publish.ts";
+import { Note } from "./driverVerbs.ts";
+import { type BatchEnding, COMMIT_REFUSED, createEngine, database, labels, type TransactionEnding } from "./engine.ts";
 import { type Change, Current, makeDatabase } from "./fakeDatabase.ts";
 import { verbs } from "./verbs.ts";
 
 export const changes = storyKit({
 	create: createEngine,
 	inspect: (engine) => ({
-		captured: engine.captured,
 		committed: Object.fromEntries([...engine.owners].map(([name, owner]) => [name, owner.committed])),
-		guarded: engine.guarded,
-		hooks: engine.hooks,
+		committedSink: engine.committedSink,
+		guardAsked: engine.guardAsked,
+		hookCalls: engine.hookCalls,
+		loggedErrors: engine.logs.errors.length,
 		observed: engine.observed,
 		published: engine.published,
-		timeline: engine.timeline,
+		scopedSink: engine.scopedSink,
 	}),
 	name: "change channel",
-	stages: ["owners", "channel", "frames"],
+	stages: ["owners", "channel"],
 	verbs: (engine, story) => verbs(engine, story.tell),
 });
 
-export function hasOwner(name: string, commit: Effect.Effect<void> = Effect.void) {
-	return changes.trait("owners", `${name} owns a deterministic transaction`, (engine) => {
-		engine.owners.set(name, makeDatabase(name, commit));
+export function hasOwner(name: string) {
+	return changes.trait("owners", `${name} is a second database with its own transactions`, (engine) => {
+		engine.owners.set(name, makeDatabase(name));
 	});
 }
 
-export function configured(options: Options) {
-	return changes.trait("channel", "the channel uses the declared delivery policy", (engine) => {
-		Object.assign(engine.options, options);
+export function transactionEnds(ending: TransactionEnding) {
+	return changes.trait("owners", `the order transaction ends as ${ending}`, (engine) => {
+		engine.transactionEnding = ending;
+		if (ending === "commit failed") {
+			database(engine, "main").commit = Effect.die(new Error(COMMIT_REFUSED));
+		}
 	});
 }
 
-export function guardsUnowned(refuse = false) {
-	return changes.trait("channel", `the unowned guard ${refuse ? "refuses" : "observes"} unframed work`, (engine) => {
-		Object.assign(engine.options, {
-			unowned: Effect.flatMap(Current, (owner) => {
-				engine.guarded.push(owner.name);
-				return refuse ? Effect.die(new Error("a native transaction the channel does not own is open")) : Effect.void;
-			}),
-		});
-	});
-}
-
-export function beforeCommitWrites() {
-	return changes.trait("channel", "the root hook writes within its transaction", (engine) => {
-		Object.assign(engine.options, {
-			beforeCommit: (entries: readonly Change[]) =>
-				Effect.gen(function* () {
-					const owner = yield* Current;
-					if (owner.committed.length > 0) {
-						return yield* Effect.die("the hook ran after commit");
-					}
-					engine.hooks.push(entries.map((entry) => entry.subject));
-					yield* owner.write("hook");
-				}),
-		});
-	});
-}
-
-export function countsHooks() {
-	return changes.trait("channel", "the hook captures each invocation", (engine) => {
-		Object.assign(engine.options, {
-			beforeCommit: (entries: readonly Change[]) =>
-				Effect.sync(() => {
-					engine.hooks.push(entries.map((entry) => entry.subject));
-				}),
-		});
-	});
-}
-
-export function hasObserver() {
-	return changes.trait("channel", "an observer captures the change lifecycle", (engine) => {
-		engine.observer = (observation) =>
-			Effect.sync(() => {
-				const line = `${observation._tag} ${observation.changes.map(label).join(" ")}`;
-				engine.observed.push(line);
-				engine.timeline.push(line);
-			});
-	});
-}
-
-export function hasSink() {
-	return changes.trait("channel", "a scoped sink captures delivery", (engine) => {
-		engine.sink = (entries) =>
-			Effect.sync(() => {
-				engine.captured.push(entries.map(label));
-				engine.timeline.push(`Sink ${entries.map(label).join(" ")}`);
-			});
-	});
-}
-
-export function commitPauses() {
-	return changes.trait("owners", "the main owner waits for permission to finish commit", function* (engine) {
-		const committing = yield* Deferred.make<void>();
+export function commitWaits() {
+	return changes.trait("owners", "main's database holds each commit until the story lets it finish", function* (engine) {
+		const begun = yield* Deferred.make<void>();
 		const release = yield* Deferred.make<void>();
-		engine.gate = { committing, release };
-		engine.owners.set("main", makeDatabase("main", Effect.andThen(Deferred.succeed(committing, undefined), Deferred.await(release))));
+		engine.commitGate = { begun, release };
+		database(engine, "main").commit = Effect.andThen(Deferred.succeed(begun, undefined), Deferred.await(release));
 	});
 }
 
-export function hasNestedFrames() {
-	return changes.trait("frames", "a child frame belongs to an open parent", function* (engine) {
-		const { open } = verbs(engine, () => undefined);
-		const parent = yield* open();
-		engine.frames.set("parent", parent);
-		engine.frames.set("child", yield* open(undefined, parent));
+export function batchEnds(ending: BatchEnding) {
+	return changes.trait("owners", `the batch ${ending}`, (engine) => {
+		engine.batchEnding = ending;
+	});
+}
+
+export function guardWatches() {
+	return changes.trait("channel", "the unowned guard notes each database it is asked about", (engine) => {
+		engine.options.unowned = Effect.flatMap(Current, (owner) =>
+			Effect.sync(() => {
+				engine.guardAsked.push(owner.name);
+			}),
+		);
+	});
+}
+
+export function guardRefuses() {
+	return changes.trait("channel", "the unowned guard refuses work outside a transaction the channel owns", (engine) => {
+		engine.options.unowned = Effect.die(new Error("a native transaction the channel does not own is open"));
+	});
+}
+
+export function hookRecords() {
+	return changes.trait("channel", "the configured before-commit hook notes the changes it sees", (engine) => {
+		engine.options.beforeCommit = (entries: readonly Change[]) =>
+			Effect.sync(() => {
+				engine.hookCalls.push(`the configured hook sees ${labels(entries).join(", ")}`);
+			});
+	});
+}
+
+export function hookFails(reason: string) {
+	return changes.trait("channel", `the before-commit hook fails: ${reason}`, (engine) => {
+		engine.options.beforeCommit = () => Effect.fail(reason);
+	});
+}
+
+export function hookWritesNote() {
+	return changes.trait("channel", "the before-commit hook writes the note it is given as a row", (engine) => {
+		engine.options.beforeCommit = () => Effect.flatMap(Note, (note) => Effect.flatMap(Current, (owner) => owner.write(note)));
+	});
+}
+
+export type SinkFailure = "a failed Effect" | "a defect" | "a synchronous throw";
+
+function failingSink(failure: SinkFailure, reason: string): Publish<Change, Current> {
+	switch (failure) {
+		case "a failed Effect":
+			return () => Effect.fail(new Error(reason));
+		case "a defect":
+			return () => Effect.die(new Error(reason));
+		case "a synchronous throw":
+			return () => {
+				throw new Error(reason);
+			};
+	}
+}
+
+export function sinkFails(failure: SinkFailure, reason: string) {
+	return changes.trait("channel", `the configured sink fails with ${failure}: ${reason}`, (engine) => {
+		engine.options.publish = failingSink(failure, reason);
+	});
+}
+
+export function failedPublishDies() {
+	return changes.trait("channel", "the channel turns a failed publish into a defect", (engine) => {
+		engine.options.onPublishFailure = "die";
 	});
 }

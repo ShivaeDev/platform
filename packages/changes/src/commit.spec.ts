@@ -1,115 +1,120 @@
-import { Cause, Deferred, Effect, Exit, Fiber, Order } from "effect";
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { change } from "#test/fakeDatabase.ts";
-import { changes, commitPauses, hasOwner } from "#test/kit.ts";
+import { changes, commitWaits, transactionEnds } from "#test/kit.ts";
 
 changes.it(
-	"a committed root frame publishes its distinct changes once, after the body, in first-seen order",
+	"ada's order transaction publishes nothing while its body runs and publishes ada's change once it commits",
 	[],
-	function* ({ published, inTransaction, write, database, record }) {
-		const trail: string[] = [];
-		yield* Effect.gen(function* () {
-			yield* write(database, "order 1", change("ada"), change("bob"));
-			yield* record([change("ada"), change("ada", "invoices")]);
-			trail.push(`body finished after ${published.length} publishes`);
-		}).pipe(inTransaction(database));
-		expect(trail).toEqual(["body finished after 0 publishes"]);
-		expect(published).toEqual([["ada:orders", "bob:orders", "ada:invoices"]]);
-		expect(database.committed).toEqual(["order 1"]);
+	function* ({ inTransaction, write, published, committedRows }) {
+		yield* inTransaction(function* () {
+			yield* write("ada's order", change("ada"));
+			expect(yield* published()).toEqual([]);
+		});
+
+		yield* outcomes({
+			"committed rows": [committedRows(), ["ada's order"]],
+			"published changes": [published(), [["ada:orders"]]],
+		});
 	},
 );
 
 changes.it(
-	"a typed failure, a defect, an interruption or a failed commit discards the frame",
-	[hasOwner("failing commit", Effect.die(new Error("deferred constraint violated")))],
-	function* ({ published, inTransaction, write, database, interrupt, rollback, owner }) {
-		const failing = owner("failing commit");
+	"a committed transaction publishes each subject and domain once, together, in the order first recorded",
+	[],
+	function* ({ inTransaction, write, record, published }) {
+		yield* inTransaction(function* () {
+			yield* write("ada's order", change("ada"), change("bob"));
+			yield* record(change("ada"), change("ada", "invoices"), change("bob"));
+		});
 
-		const failed = yield* Effect.andThen(write(database, "row", change("ada")), rollback()).pipe(inTransaction(database), Effect.flip);
-		expect(failed).toBe("rejected");
-		const died = yield* Effect.andThen(write(database, "row", change("ada")), Effect.die("boom")).pipe(inTransaction(database), Effect.exit);
-		expect(Exit.isFailure(died) && Cause.hasDies(died.cause)).toBe(true);
+		expect(yield* published()).toEqual([["ada:orders", "bob:orders", "ada:invoices"]]);
+	},
+);
 
-		const entered = yield* Deferred.make<void>();
-		const fiber = yield* Effect.andThen(
-			write(database, "row", change("ada")),
-			Effect.andThen(Deferred.succeed(entered, undefined), Effect.never),
-		).pipe(inTransaction(database), Effect.forkChild);
-		yield* Deferred.await(entered);
-		yield* interrupt(fiber);
-		const interrupted = yield* Fiber.await(fiber);
-		expect(Exit.isFailure(interrupted) && Cause.hasInterrupts(interrupted.cause)).toBe(true);
+for (const ending of ["rejected", "died", "interrupted", "commit failed"] as const) {
+	changes.it(
+		`when ada's order transaction ends as ${ending}, nothing is committed and nothing is published`,
+		[transactionEnds(ending)],
+		function* ({ saveOrder, orderEnding, committedRows, published }) {
+			yield* saveOrder("ada");
 
-		const commitFailed = yield* write(failing, "row", change("ada")).pipe(inTransaction(failing), Effect.exit);
-		expect(Exit.isFailure(commitFailed) && Cause.hasDies(commitFailed.cause)).toBe(true);
+			yield* outcomes({
+				"committed rows": [committedRows(), []],
+				"how the transaction ended": [orderEnding(), ending],
+				"published changes": [published(), []],
+			});
+		},
+	);
+}
 
-		expect(published).toEqual([]);
-		expect(database.committed).toEqual([]);
-		expect(failing.committed).toEqual([]);
+changes.it(
+	"bob's savepoint inside ada's transaction publishes nothing when it commits and publishes with ada's change at the transaction's commit",
+	[],
+	function* ({ inTransaction, write, published }) {
+		yield* inTransaction(function* () {
+			yield* write("ada's order", change("ada"));
+			yield* inTransaction(write("bob's order", change("bob")));
+			expect(yield* published()).toEqual([]);
+		});
+
+		expect(yield* published()).toEqual([["ada:orders", "bob:orders"]]);
 	},
 );
 
 changes.it(
-	"a nested frame merges into its parent on commit and is discarded on rollback while the parent keeps its own",
+	"cyd's savepoint that rolls back inside ada's transaction is discarded while ada's order commits and publishes",
 	[],
-	function* ({ published, inTransaction, write, database, record, rollback }) {
-		const nested = inTransaction(database);
-		yield* Effect.gen(function* () {
-			yield* write(database, "outer", change("ada"));
-			yield* write(database, "committed savepoint", change("bob")).pipe(nested);
-			expect(published).toEqual([]);
-			yield* Effect.andThen(write(database, "rolled-back savepoint", change("cyd")), rollback()).pipe(nested, Effect.ignore);
-			yield* record([change("bob"), change("dan")]);
-		}).pipe(nested);
-		expect(published).toEqual([["ada:orders", "bob:orders", "dan:orders"]]);
-		expect(database.committed).toEqual(["outer", "committed savepoint"]);
+	function* ({ inTransaction, write, rollback, committedRows, published }) {
+		yield* inTransaction(function* () {
+			yield* write("ada's order", change("ada"));
+			yield* inTransaction(function* () {
+				yield* write("cyd's order", change("cyd"));
+				yield* rollback();
+			});
+		});
+
+		yield* outcomes({
+			"committed rows": [committedRows(), ["ada's order"]],
+			"published changes": [published(), [["ada:orders"]]],
+		});
 	},
 );
 
 changes.it(
-	"concurrent records from Effect.all land in the same frame and publish once",
+	"forty concurrent records of ten subjects inside one transaction publish each subject once, together",
 	[],
-	function* ({ published, inTransaction, database, record }) {
+	function* ({ inTransaction, record, publishedInAnyOrder }) {
 		const subjects = Array.from({ length: 40 }, (_, index) => `subject ${index % 10}`);
-		yield* Effect.forEach(subjects, (subject) => Effect.andThen(Effect.yieldNow, record([change(subject)])), {
-			concurrency: "unbounded",
-			discard: true,
-		}).pipe(inTransaction(database));
-		expect(published.map((batch) => [...batch].sort(Order.String))).toEqual([
-			Array.from(new Set(subjects), (subject) => `${subject}:orders`).sort((left, right) => left.localeCompare(right)),
-		]);
+
+		yield* inTransaction(
+			Effect.forEach(subjects, (subject) => Effect.andThen(Effect.yieldNow, record(change(subject))), { concurrency: "unbounded" }),
+		);
+
+		expect(yield* publishedInAnyOrder()).toEqual([Array.from({ length: 10 }, (_, index) => `subject ${index}:orders`)]);
 	},
 );
 
-changes.it(
-	"one write can record events for several subjects, and each subject and domain publishes once per commit",
-	[],
-	function* ({ published, inTransaction, write, database, record }) {
-		yield* Effect.gen(function* () {
-			yield* write(database, "membership grant", change("owner", "memberships"), change("member", "memberships"));
-			yield* write(database, "member order", change("member"), change("member", "memberships")).pipe(inTransaction(database));
-			yield* record([change("owner", "memberships")]);
-		}).pipe(inTransaction(database));
-		expect(published).toEqual([["owner:memberships", "member:memberships", "member:orders"]]);
+changes.it("a write outside any transaction publishes its changes at once, each only once", [], function* ({ write, published }) {
+	yield* write("ada's order", change("ada"), change("bob"), change("ada"));
 
-		yield* write(database, "bare membership grant", change("owner", "memberships"), change("member", "memberships"), change("owner", "memberships"));
-		expect(published[1]).toEqual(["owner:memberships", "member:memberships"]);
-	},
-);
+	expect(yield* published()).toEqual([["ada:orders", "bob:orders"]]);
+});
 
 changes.it(
-	"an interruption that arrives while the commit is in flight publishes exactly when the database committed",
-	[commitPauses()],
-	function* ({ published, inTransaction, write, database, interrupt, awaitCommit, releaseCommit }) {
-		const fiber = yield* write(database, "row", change("ada")).pipe(inTransaction(database), Effect.forkChild);
-		yield* awaitCommit();
-		const interruption = yield* Effect.forkChild(interrupt(fiber), { startImmediately: true });
-		expect(published).toEqual([]);
-		yield* releaseCommit();
-		yield* Fiber.join(interruption);
-		const exit = yield* Fiber.await(fiber);
-		expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);
-		expect(database.committed).toEqual(["row"]);
-		expect(published).toEqual([["ada:orders"]]);
+	"an interruption that arrives while ada's commit is in flight ends her save as interrupted and still publishes the committed order",
+	[commitWaits()],
+	function* ({ startSavingOrder, interruptOrder, orderEnding, committedRows, published }) {
+		yield* startSavingOrder("ada");
+		expect(yield* published()).toEqual([]);
+
+		yield* interruptOrder();
+
+		yield* outcomes({
+			"committed rows": [committedRows(), ["ada's order"]],
+			"how the transaction ended": [orderEnding(), "interrupted"],
+			"published changes": [published(), [["ada:orders"]]],
+		});
 	},
 );

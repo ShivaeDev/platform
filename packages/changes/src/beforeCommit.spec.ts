@@ -1,73 +1,95 @@
-import { Context, Effect } from "effect";
 import { expect } from "vitest";
-import { Current, change } from "#test/fakeDatabase.ts";
-import { beforeCommitWrites, changes, configured, countsHooks } from "#test/kit.ts";
-
-const HookValue = Context.Reference<string>("BeforeCommitTest/HookValue", { defaultValue: () => "default" });
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { change } from "#test/fakeDatabase.ts";
+import { changes, hookFails, hookRecords, hookWritesNote } from "#test/kit.ts";
 
 changes.it(
-	"the hook preserves transaction-scoped services while supplying captured dependencies",
-	[configured({ beforeCommit: () => Effect.flatMap(HookValue, (value) => Effect.flatMap(Current, (owner) => owner.write(value))) })],
-	function* ({ database, open, record, published }) {
-		const frame = yield* open().pipe(Effect.provideService(HookValue, "outer"));
-		yield* frame.provide(record([change("body")]));
-		yield* frame.beforeCommit.pipe(Effect.provideService(HookValue, "transaction"));
-		yield* frame.settle("committed");
-		expect(database.committed).toEqual(["transaction"]);
-		expect(published).toEqual([["body:orders"]]);
+	"the hook runs once, at the outer transaction's commit, with ada's change and bob's committed savepoint and without cyd's rolled-back one",
+	[hookRecords()],
+	function* ({ inTransaction, write, rollback, hookCalls }) {
+		yield* inTransaction(function* () {
+			yield* write("ada's order", change("ada"));
+			yield* inTransaction(write("bob's order", change("bob"), change("ada")));
+			yield* inTransaction(function* () {
+				yield* write("cyd's order", change("cyd"));
+				yield* rollback();
+			});
+			expect(yield* hookCalls()).toEqual([]);
+		});
+
+		expect(yield* hookCalls()).toEqual(["the configured hook sees ada:orders, bob:orders"]);
 	},
 );
 
 changes.it(
-	"the root hook sees deduplicated committed children inside the native transaction",
-	[beforeCommitWrites()],
-	function* ({ hooks, inTransaction, write, database, batch, published, rollback }) {
-		yield* Effect.gen(function* () {
-			yield* write(database, "a", change("a"));
-			yield* write(database, "b", change("b"), change("a")).pipe(inTransaction(database), batch);
-			yield* Effect.andThen(write(database, "c", change("c")), rollback()).pipe(inTransaction(database), Effect.ignore);
-		}).pipe(inTransaction(database));
-		expect(hooks).toEqual([["a", "b"]]);
-		expect(database.committed).toEqual(["a", "b", "hook"]);
-		expect(published).toEqual([["a:orders", "b:orders"]]);
+	"a hook that fails rolls ada's order back, ends the transaction with the hook's failure and publishes nothing",
+	[hookFails("notify failed")],
+	function* ({ saveOrder, orderEnding, committedRows, published }) {
+		yield* saveOrder("ada");
+
+		yield* outcomes({
+			"committed rows": [committedRows(), []],
+			"how the transaction ended": [orderEnding(), "notify failed"],
+			"published changes": [published(), []],
+		});
+	},
+);
+
+changes.it("a transaction that records nothing does not run the hook", [hookRecords()], function* ({ inTransaction, write, hookCalls }) {
+	yield* inTransaction(write("ada's order"));
+
+	expect(yield* hookCalls()).toEqual([]);
+});
+
+changes.it("a transaction that rolls back does not run the hook", [hookRecords()], function* ({ inTransaction, write, rollback, hookCalls }) {
+	yield* inTransaction(function* () {
+		yield* write("ada's order", change("ada"));
+		yield* rollback();
+	});
+
+	expect(yield* hookCalls()).toEqual([]);
+});
+
+for (const place of ["outside any transaction", "in a batch"] as const) {
+	changes.it(`a write ${place} does not run the hook`, [hookRecords()], function* ({ inPlace, write, hookCalls }) {
+		yield* inPlace(place, write("ada's order", change("ada")));
+
+		expect(yield* hookCalls()).toEqual([]);
+	});
+}
+
+changes.it(
+	"a hook provided for a scope runs in place of the configured hook",
+	[hookRecords()],
+	function* ({ withScopedHook, inTransaction, write, hookCalls }) {
+		yield* withScopedHook(inTransaction(write("ada's order", change("ada"))));
+
+		expect(yield* hookCalls()).toEqual(["the scoped hook sees ada:orders"]);
 	},
 );
 
 changes.it(
-	"a typed hook failure rolls back the write and publishes nothing",
-	[configured({ beforeCommit: () => Effect.fail("notify failed") })],
-	function* ({ database, write, inTransaction, published }) {
-		const failure = yield* write(database, "row", change("row")).pipe(inTransaction(database), Effect.flip);
-		expect(failure).toBe("notify failed");
-		expect(database.committed).toEqual([]);
-		expect(published).toEqual([]);
+	"a driver whose transaction opened inside a hook's scope runs that scoped hook with ada's change",
+	[],
+	function* ({ withScopedHook, driverOpens, hookCalls }) {
+		const transaction = yield* withScopedHook(driverOpens());
+		yield* transaction.record(change("ada"));
+
+		yield* transaction.runHook();
+
+		expect(yield* hookCalls()).toEqual(["the scoped hook sees ada:orders"]);
 	},
 );
 
 changes.it(
-	"empty transactions, failed bodies and unframed records never run the hook",
-	[countsHooks()],
-	function* ({ database, inTransaction, write, batch, hooks, rollback }) {
-		yield* Effect.void.pipe(inTransaction(database));
-		yield* Effect.andThen(write(database, "row", change("a")), rollback()).pipe(inTransaction(database), Effect.ignore);
-		yield* write(database, "autocommit", change("b"));
-		yield* batch(write(database, "batch", change("c")));
-		expect(hooks).toEqual([]);
-	},
-);
+	"the hook writes the note its caller provides over the one present at open, through the database the transaction opened on",
+	[hookWritesNote()],
+	function* ({ driverOpens, committedRows }) {
+		const transaction = yield* driverOpens({ note: "the note at open" });
+		yield* transaction.record(change("ada"));
 
-changes.it(
-	"a scoped BeforeCommit replaces the configured hook and the direct frame exposes it",
-	[beforeCommitWrites()],
-	function* ({ database, write, inTransaction, hooks, scopedHook, record, open, published }) {
-		yield* write(database, "row", change("a")).pipe(inTransaction(database), Effect.provide(scopedHook));
-		expect(database.committed).toEqual(["row"]);
-		expect(hooks).toEqual([["a:orders"]]);
-		const frame = yield* open().pipe(Effect.provide(scopedHook));
-		yield* frame.provide(record([change("b")]));
-		yield* frame.beforeCommit;
-		yield* frame.settle("committed");
-		expect(hooks).toEqual([["a:orders"], ["b:orders"]]);
-		expect(published).toEqual([["a:orders"], ["b:orders"]]);
+		yield* transaction.runHook({ note: "the caller's note" });
+
+		expect(yield* committedRows()).toEqual(["the caller's note"]);
 	},
 );

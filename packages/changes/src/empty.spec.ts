@@ -1,13 +1,17 @@
-import { expect } from "vitest";
-import { changes, hasObserver } from "#test/kit.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changes } from "#test/kit.ts";
 
-changes.it(
-	"an empty change list does not call observers or subscribers inside or outside a batch",
-	[hasObserver()],
-	function* ({ record, batch, observing, seen, readPublished }) {
-		yield* observing(record([]));
-		yield* observing(batch(record([])));
-		expect(seen).toEqual([]);
-		expect(readPublished()).toEqual([]);
-	},
-);
+for (const place of ["outside any transaction", "in a batch", "in a transaction"] as const) {
+	changes.it(
+		`recording no changes ${place} tells neither the observer nor the sink`,
+		[],
+		function* ({ observing, inPlace, record, observed, published }) {
+			yield* observing(inPlace(place, record()));
+
+			yield* outcomes({
+				"observed changes": [observed(), []],
+				"published changes": [published(), []],
+			});
+		},
+	);
+}
