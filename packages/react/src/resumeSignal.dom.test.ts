@@ -47,7 +47,7 @@ for (const source of ["native", "browser"] as const) {
 			yield* test.visibilityEvent();
 		}
 		yield* test.observe("resume reconciles every mounted query", () => expect(test.text()).toBe("Changed while away / Also changed while away"));
-		yield* test.observe("resume reopens the subscription", () => expect(test.connections()).toBe(2));
+		yield* test.observe("resume retains the mounted subscriptions", () => expect(test.subscriptionCount()).toBe(2));
 		expect(test.resume().native.listeners.size).toBe(source === "native" ? 1 : 0);
 		yield* test.disconnect();
 		yield* test.observe("the interrupted stream closes", () => expect(test.active()).toBe(0));
@@ -58,7 +58,7 @@ for (const source of ["native", "browser"] as const) {
 			yield* test.windowEvent();
 		}
 		yield* test.observe("the reconnected stream reconciles missed changes", () => {
-			expect(test.connections()).toBe(3);
+			expect(test.subscriptionCount()).toBe(4);
 			expect(test.text()).toBe("Changed while disconnected / Also changed while away");
 		});
 		yield* test.close();

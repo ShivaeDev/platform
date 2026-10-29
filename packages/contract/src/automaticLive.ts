@@ -5,6 +5,7 @@ import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
+import { queryResult } from "#internal/queryResult.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
@@ -24,6 +25,11 @@ export interface LiveBound {
 export type ChangesClient = AtomRpc.AtomRpcClient<unknown, string, ReturnType<typeof changesRpc>>;
 
 export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner, resume?: ResumeSource, enabled = true) {
+	function assertOwner(get: Atom.AtomContext) {
+		if (owner !== undefined && owner.registry !== get.registry) {
+			throw new Error("A session-scoped query belongs to its binding registry");
+		}
+	}
 	const coalesceWindow = Atom.keepAlive(Atom.make<Duration.Input>("20 millis"));
 	const statuses = Atom.make<ReadonlyMap<object, LiveStatus<unknown>>>(new Map());
 	const status = Atom.map(statuses, (current): LiveStatus<unknown> => {
@@ -44,6 +50,7 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 	});
 	const signal = resumeSignal({ ...(typeof window === "undefined" ? {} : { window }), ...(resume === undefined ? {} : { native: resume }) });
 	const connection = Atom.make((get) => {
+		assertOwner(get);
 		get.mount(service.runtime);
 		return get(status);
 	}).pipe(Atom.setIdleTTL(0));
@@ -68,12 +75,9 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 		});
 		const gated = Atom.readable(
 			(get) => {
-				if (owner !== undefined && owner.registry !== get.registry) {
-					throw new Error("A session-scoped query belongs to its binding registry");
-				}
+				assertOwner(get);
 				const registry = get.registry;
 				get.set(ready, false);
-				get.set(subscription.status, { connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
 				get.once(queryCoalesceWindow(gated));
 				get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
 				const token = {};
@@ -101,19 +105,9 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 					}
 					started = true;
 					get.refresh(atom);
-					get.subscribe(atom, (value) => {
-						const previous = get.self<AsyncResult.AsyncResult<A, E>>();
-						if (
-							AsyncResult.isSuccess(value)
-							&& Option.isSome(previous)
-							&& AsyncResult.isSuccess(previous.value)
-							&& equivalent(previous.value.value, value.value)
-						) {
-							return;
-						}
-						get.setSelf(value);
-					});
-					get.setSelf(get.once(atom));
+					const publish = queryResult<A, E>(equivalent, (value) => get.setSelf(value));
+					get.subscribe(atom, publish);
+					publish(get.once(atom));
 				}
 				get.once(ready);
 				get.subscribe(ready, (value) => {

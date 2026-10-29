@@ -19,7 +19,7 @@ export function adminBackend() {
 		statistics: { notes: 0, pending: 0, words: 0 },
 	};
 	function changes() {
-		return Stream.never.pipe(
+		return Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never).pipe(
 			Stream.onStart(
 				Effect.sync(() => {
 					state.activeStreams += 1;

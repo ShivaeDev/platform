@@ -27,7 +27,7 @@ export const sessionStory = storyKit({
 			Effect.sync(() => {
 				engine.stored.set(session, title);
 			}),
-		subscriptions: () => Object.fromEntries(engine.subscriptions),
+		subscriptions: () => Object.fromEntries([...engine.subscriptions].map(([session, queries]) => [session, [...queries.values()].flat()])),
 		watch: engine.watch,
 	}),
 });

@@ -37,7 +37,7 @@ export const queryWindowScreen = storyKit({
 						Effect.sync(() => {
 							connections += 1;
 							subscriptions.push(request);
-							return Stream.fromPubSub(hints);
+							return Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.fromPubSub(hints));
 						}),
 					),
 				"notes.get": ({ id }: typeof Get.payload.Type) =>

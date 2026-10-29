@@ -18,7 +18,7 @@ export const sessionEngine = Effect.gen(function* () {
 		["bob", "Bob"],
 	]);
 	const reads: string[] = [];
-	const subscriptions = new Map<string, readonly QueryReference[]>();
+	const subscriptions = new Map<string, Set<readonly QueryReference[]>>();
 	const reactivity = yield* Reactivity.make;
 	const server = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
@@ -28,18 +28,25 @@ export const sessionEngine = Effect.gen(function* () {
 			return stored.get(session) ?? "";
 		});
 	}
+	function trackSubscription(session: string, queries: readonly QueryReference[]) {
+		const current = subscriptions.get(session) ?? new Set();
+		current.add(queries);
+		subscriptions.set(session, current);
+		return () => {
+			current.delete(queries);
+			if (current.size === 0) {
+				subscriptions.delete(session);
+			}
+		};
+	}
 	const handlers = Preferences.toLayer({
 		"preferences.$changes": ({ queries }) =>
 			Stream.unwrap(
 				Effect.gen(function* () {
 					const session = yield* Session;
 					const keys = yield* queryKeys(Preferences.declaration.queries, queries);
-					return server
-						.stream(keys, { scope: session })
-						.pipe(
-							Stream.ensuring(Effect.sync(() => subscriptions.delete(session))),
-							Stream.onStart(Effect.sync(() => subscriptions.set(session, queries))),
-						);
+					const stop = trackSubscription(session, queries);
+					return server.stream(keys, { scope: session }).pipe(Stream.ensuring(Effect.sync(stop)));
 				}),
 			),
 		"preferences.get": ({ id }) => read(`get:${id}`),

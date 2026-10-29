@@ -2,6 +2,7 @@
 "@shivaedev/contract": minor
 "@shivaedev/server": minor
 "@shivaedev/react": minor
+"@shivaedev/test-story": minor
 ---
 
 ### Breaking
@@ -10,3 +11,7 @@
 - Mounting a bound query subscribes before its first authorized read; unmounting releases its subscription. Use `live: false` when binding an ordinary client without subscriptions. Query preparation alone no longer opens a change stream.
 - Hosts serve live subscriptions on the WebSocket upgrade at the RPC path. Move HTTP `$changes` consumers to Effect RPC's socket protocol; the POST route serves ordinary RPC only. Configure development proxies to forward WebSocket upgrades.
 - React session boundaries also ask the auth owner to recheck when the live socket closes. Keep `recheck` safe to call after a network interruption; the auth owner still decides whether the session ends.
+
+### Added
+
+- Forwarding proxy fixtures relay WebSocket upgrades, including the same origin and trusted proxy headers as HTTP requests. Existing proxy URLs also work for socket clients.

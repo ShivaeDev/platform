@@ -51,6 +51,9 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 				get.addFinalizer(() => {
 					active = false;
 					clear();
+					if (get.registry.getNodes().has(status)) {
+						update({ connection: "connecting", failure: Option.none(), needsResync: true, pending: 0 });
+					}
 				});
 				function changed(changedKeys: readonly Key[]) {
 					const window = get.once(coalesceWindow);

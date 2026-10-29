@@ -32,7 +32,6 @@ export const resumes = storyKit(
 					}
 					return state.root.unmount();
 				}),
-			connections: () => state.live?.connections(),
 			disconnect: () =>
 				screen.act("interrupt the live stream", () => {
 					if (!state.live) {
@@ -49,6 +48,7 @@ export const resumes = storyKit(
 				}),
 			nativeEvent: () => screen.act("native resume", () => state.native.resume()),
 			resume: () => state,
+			subscriptionCount: () => state.live?.subscriptionCount(),
 			text: () => state.root?.container.textContent,
 			visibilityEvent: () => screen.act("the page becomes visible", () => window.dispatchEvent(new Event("visibilitychange"))),
 			windowEvent: () => screen.act("the browser reconnects", () => window.dispatchEvent(new Event("online"))),

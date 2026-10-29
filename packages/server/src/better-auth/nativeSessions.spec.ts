@@ -86,12 +86,12 @@ nativeSessions.it("expired bearer sessions fail typed", [alice], function* ({ ex
 	expect(yield* getSession(bearer("alice"))).toMatchObject({ body: null, status: HttpStatus.fromLiteral("OK") });
 });
 
-nativeSessions.it("sign-out revokes the bearer and ends its open NDJSON change subscription", [alice], function* ({ subscribe, signout, profile }) {
+nativeSessions.it("sign-out revokes the bearer and ends its open socket change subscription", [alice], function* ({ subscribe, signout, profile }) {
 	const subscription = yield* subscribe("alice");
 	yield* subscription.next;
 	const status = yield* signout("alice");
 	expect(status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(yield* subscription.ended).toMatchObject(unauthorized);
+	expect(yield* subscription.ended).toMatchObject({ failure: { _tag: "RpcClientError" } });
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 });
 
@@ -99,7 +99,7 @@ nativeSessions.it("replacing a bearer session revokes the old credential and sub
 	const subscription = yield* subscribe("alice");
 	yield* subscription.next;
 	const replacement = yield* replace("alice");
-	expect(yield* subscription.ended).toMatchObject(unauthorized);
+	expect(yield* subscription.ended).toMatchObject({ failure: { _tag: "RpcClientError" } });
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 	expect(yield* profile("alice", { authorization: `Bearer ${replacement.credential}` })).toMatchObject({ _tag: "Success" });
 });

@@ -76,8 +76,8 @@ export const nativeSessions = storyKit({
 			stopHost: () => host.stop,
 			subscribe: (name: string) =>
 				Effect.gen(function* () {
-					story.tell("open the session-scoped NDJSON changes subscription");
-					const rpc = yield* client(host, bearer(name));
+					story.tell("open the session-scoped socket changes subscription");
+					const rpc = yield* client(host, bearer(name), true);
 					const events = yield* Queue.unbounded<unknown>();
 					const fiber = yield* rpc("native.$changes", { queries: [] }).pipe(
 						Stream.runForEach((event) => Queue.offer(events, event)),

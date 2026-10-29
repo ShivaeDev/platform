@@ -110,8 +110,9 @@ export function notesHostScreen(initial = "/sign-in") {
 			return connectModules([
 				notesRegistration(
 					makeNotesClient(`${engine.baseUrl}/rpc`, {
-						headers: Object.fromEntries(engine.headers),
-						webSocketConstructor: layerWebSocketConstructorWS,
+						...(engine.headers.has("cookie")
+							? { headers: Object.fromEntries(engine.headers), webSocketConstructor: layerWebSocketConstructorWS }
+							: {}),
 					}),
 				),
 			]);
