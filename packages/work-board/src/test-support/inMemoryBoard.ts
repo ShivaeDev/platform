@@ -1,17 +1,20 @@
 import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
 import { stringify } from "yaml";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import type { FleetItemsProjection } from "#browser/views/FleetItemsProjection.ts";
 import type { FleetHealth } from "#diagnostics/health.ts";
 import { DiagnosticsConfig, SourceFailure } from "#diagnostics/source.ts";
+import { workRpcs } from "#rpc/contract.ts";
 import { boardServices } from "#server/boardServices.ts";
 import type { Change, Changes } from "#server/files/changes.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
-import { health } from "./diagnostics.ts";
-import { diagnosticsDaemon } from "./diagnosticsDaemon.ts";
-import { fixtureSnapshot } from "./fixtureSnapshot.ts";
-import { memoryFiles } from "./memoryFiles.ts";
+import { health } from "#test/diagnostics.ts";
+import { diagnosticsDaemon } from "#test/diagnosticsDaemon.ts";
+import { fixtureSnapshot } from "#test/fixtureSnapshot.ts";
+import { memoryFiles } from "#test/memoryFiles.ts";
 
 export interface BoardFixtureOptions {
 	readonly afterRead?: (url: string) => Effect.Effect<void>;
@@ -76,7 +79,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 						),
 				})),
 			).pipe(Layer.provide(Workspace.layer));
-			return boardServices({ fleetPort }).pipe(
+			const services = boardServices({ fleetPort }).pipe(
 				Layer.provide(workspace),
 				Layer.provide([
 					Layer.succeed(WorkspaceConfig, {
@@ -96,6 +99,7 @@ export function inMemoryBoard(files: Readonly<Record<string, string>>, configura
 				]),
 				Layer.provide([fixtureFileSystem(memory), Path.layer, Highlighter.layer]),
 			);
+			return hostChanges(workRpcs, AppChanges).pipe(Layer.provideMerge(services));
 		}),
 	);
 }

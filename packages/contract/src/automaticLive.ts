@@ -3,6 +3,7 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
+import { aggregateLiveStatus } from "#internal/aggregateLiveStatus.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
 import { queryResult } from "#internal/queryResult.ts";
@@ -20,37 +21,34 @@ export interface LiveBound {
 		readonly coalesceWindow: Atom.Writable<Duration.Input>;
 		readonly connection: Atom.Atom<unknown>;
 		readonly identity?: Atom.Writable<string | undefined>;
+		readonly paused: Atom.Writable<boolean>;
 		readonly status: Atom.Atom<LiveStatus<unknown>>;
 	};
 }
 
+const pausedByRuntime = Atom.family((_runtime: object) => Atom.keepAlive(Atom.make(false)));
+
 export type ChangesClient = AtomRpc.AtomRpcClient<unknown, string, ReturnType<typeof changesRpc>>;
 
-export function automaticLive(service: ChangesClient, name: string, owner?: BindingOwner, resume?: ResumeSource, enabled = true) {
+export function automaticLive(
+	service: ChangesClient,
+	name: string,
+	owner?: BindingOwner,
+	resume?: ResumeSource,
+	enabled = true,
+	resumeWindow?: ResumeWindow,
+) {
 	function assertOwner(get: Atom.AtomContext) {
 		if (owner !== undefined && owner.registry !== get.registry) {
 			throw new Error("A session-scoped query belongs to its binding registry");
 		}
 	}
 	const coalesceWindow = Atom.keepAlive(Atom.make<Duration.Input>("20 millis"));
+	const paused = pausedByRuntime(service.runtime);
 	const statuses = Atom.make<ReadonlyMap<object, LiveStatus<unknown>>>(new Map());
-	const status = Atom.map(statuses, (current): LiveStatus<unknown> => {
-		const values = [...current.values()];
-		let connection: LiveStatus<unknown>["connection"] = "live";
-		if (values.some((value) => value.connection === "connecting")) {
-			connection = "connecting";
-		}
-		if (values.some((value) => value.connection === "reconnecting")) {
-			connection = "reconnecting";
-		}
-		return {
-			connection,
-			failure: values.find((value) => Option.isSome(value.failure))?.failure ?? Option.none(),
-			needsResync: values.some((value) => value.needsResync),
-			pending: values.reduce((sum, value) => sum + value.pending, 0),
-		};
-	});
-	const signal = resumeSignal({ ...(typeof window === "undefined" ? {} : { window }), ...(resume === undefined ? {} : { native: resume }) });
+	const status = Atom.map(statuses, (current) => aggregateLiveStatus([...current.values()]));
+	const target = resumeWindow ?? (typeof window === "undefined" ? undefined : window);
+	const signal = resumeSignal({ ...(target === undefined ? {} : { window: target }), ...(resume === undefined ? {} : { native: resume }) });
 	const connection = Atom.make((get) => {
 		assertOwner(get);
 		get.mount(service.runtime);
@@ -122,6 +120,7 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 						get.setSelf(AsyncResult.failure(value.failure.value));
 					}
 				});
+				get.addFinalizer(registry.subscribe(paused, (value) => registry.set(subscription.paused, value), { immediate: true }));
 				get.mount(subscription.connection);
 				if (get.once(ready)) {
 					start();
@@ -137,5 +136,5 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 		}
 		return gated;
 	}
-	return { query, subscription: { coalesceWindow, connection, identity: socketIdentity, status } };
+	return { query, subscription: { coalesceWindow, connection, identity: socketIdentity, paused, status } };
 }

@@ -9,7 +9,8 @@
 		"#test/*": "./src/test-support/*",
 		"#*.ts": "./src/*.ts",
 		"#types/*": "./types/*",
-		"#*.tsx": "./src/*.tsx"
+		"#*.tsx": "./src/*.tsx",
+		"#bundled-client": "./src/adapters/generated/platformClient.js"
 	},
 	"exports": {
 		"./*.ts": {
@@ -20,18 +21,22 @@
 	},
 	"scripts": {
 		"build": "tsc --project tsconfig.build.json",
+		"build:client": "node --conditions=source script/build-client.ts",
 		"test": "vitest run",
 		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/work-board": "workspace:*"
 	},
 	"devDependencies": {
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
-		"@shivaedev/work-board": "workspace:*",
 		"@shivaedev/work-fleet": "workspace:*",
 		"@types/node": "catalog:",
 		"@types/react": "catalog:",
 		"@types/react-dom": "catalog:",
 		"effect": "catalog:",
+		"esbuild": "catalog:",
 		"happy-dom": "catalog:",
 		"react": "catalog:",
 		"react-dom": "catalog:",

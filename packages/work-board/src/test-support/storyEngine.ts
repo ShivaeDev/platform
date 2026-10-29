@@ -5,9 +5,9 @@ import type { browserClient } from "#browserClient.ts";
 import type { Sources } from "#diagnostics/source.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { responseFrom } from "#server/responses/records.ts";
-import { type FileSystemWrapper, type Folder, folder, type RunningBoard } from "./board.ts";
-import { type held, type OpenPage, openPage } from "./browser.ts";
-import { startProject } from "./servingEngine.ts";
+import { type FileSystemWrapper, type Folder, folder, type RunningBoard } from "#test/board.ts";
+import { type held, type OpenPage, openPage } from "#test/browser.ts";
+import { startProject } from "#test/servingEngine.ts";
 
 export interface BoardEngine {
 	activeDiagnosticsPolls?: () => number;
@@ -32,6 +32,7 @@ export interface BoardEngine {
 	repositoryLookup?: Deferred.Deferred<void>;
 	responses: boolean;
 	server?: { board: RunningBoard; client: ReturnType<typeof browserClient> };
+	sockets?: import("./socketVerbs.ts").SocketObservations;
 	sources?: Sources;
 	wrap?: FileSystemWrapper | undefined;
 }

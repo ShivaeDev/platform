@@ -1,7 +1,7 @@
+import { flightsOf, goalsOf, goalTitlesOf } from "#answers.ts";
+import { refusedLine, silentLine } from "#lines.ts";
+import { isRecord, type RpcExit, type RpcInit, type RpcReply, readExits, records, rpcInit, text } from "#rpc.ts";
 import type { WorkboardAsk, WorkboardBlock, WorkboardBoard } from "#types/index.d.ts";
-import { flightsOf, goalsOf, goalTitlesOf } from "./answers.ts";
-import { refusedLine, silentLine } from "./lines.ts";
-import { isRecord, type RpcExit, type RpcInit, type RpcReply, readExits, records, rpcInit, text } from "./rpc.ts";
 
 const QUERIES = ["inbox", "overview", "server"] as const;
 type Query = (typeof QUERIES)[number];
@@ -22,6 +22,14 @@ export function readBoard(response: RpcReply, directory: string, now: number): W
 	if (exits.size === 0) {
 		return { kind: "error", message: silentLine(directory) };
 	}
+	return snapshot(exits, now);
+}
+
+export function readSnapshot(values: { inbox: unknown; overview: unknown; server: unknown }, now: number): WorkboardBoard {
+	return snapshot(new Map(QUERIES.map((query) => [query, { value: values[query] }])), now);
+}
+
+function snapshot(exits: Exits, now: number): WorkboardBoard {
 	const server = answerTo(exits, "server");
 	const url = isRecord(server) && text(server.directory) !== undefined ? (text(server.url) ?? null) : null;
 	const overview = answerTo(exits, "overview");

@@ -4,13 +4,12 @@ import * as Atom from "effect/reactivity/Atom";
 import { useMemo } from "react";
 import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import type { BrowserClient } from "#browserClient.ts";
+import { activeRead } from "#client/react/activeRead.ts";
 import { CompactLiveStatus } from "#client/react/CompactLiveStatus.tsx";
-import { activeRead } from "./activeRead.ts";
-import { useLiveRead } from "./liveReady.ts";
-import { liveStatus } from "./liveStatus.ts";
-import { useMainLocation } from "./MainLocationContext.ts";
-import { shellIds } from "./shellIds.ts";
-import { useMedia } from "./useMedia.ts";
+import { liveStatus } from "#client/react/liveStatus.ts";
+import { useMainLocation } from "#client/react/MainLocationContext.ts";
+import { shellIds } from "#client/react/shellIds.ts";
+import { useMedia } from "#client/react/useMedia.ts";
 
 const opening = Atom.make({ failed: false, pending: true });
 export function LiveControls({
@@ -25,7 +24,7 @@ export function LiveControls({
 	const narrow = useMedia("(max-width: 767px)");
 	const status = useAtomValue(client.updates.status);
 	const paused = useAtomValue(client.updates.paused);
-	const watcher = useQuery(useLiveRead(client.updates, client.api.watcher.query()));
+	const watcher = useQuery(client.api.watcher.query());
 	const observed = Option.getOrUndefined(watcher.data);
 	const watching = observed === undefined && Option.isNone(watcher.cause) ? undefined : observed?.watching === true;
 	const page = useMainLocation();

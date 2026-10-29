@@ -1,8 +1,9 @@
 import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
-import { HttpRouter } from "effect/http";
-import { RpcSerialization, RpcServer } from "effect/rpc";
+import type { HttpRouter } from "effect/http";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
+import { hostRpcRoutes } from "@shivaedev/server/hostRpcRoutes.ts";
+import { schemaSensitiveKeys } from "@shivaedev/server/schemaSensitiveKeys.ts";
 import type { RenderFailed } from "#render/Failed.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";
@@ -31,14 +32,12 @@ export function boardLayer(options: BoardOptions): Layer.Layer<never, BoardError
 	return Layer.unwrap(
 		Effect.gen(function* () {
 			const runtime = yield* boardRuntime(options);
-			const rpc = RpcServer.layerHttp({ group: workRpcs, path: RPC_PATH, protocol: "http" }).pipe(
-				Layer.provide([
-					runtime.rpcHandlers,
-					RpcSerialization.layerNdjson,
-					HttpRouter.middleware((http) => localRpcGuard(http).pipe(Effect.provideService(RpcSerialization.RpcSerialization, RpcSerialization.ndjson)))
-						.layer,
-				]),
-			);
+			const rpc = hostRpcRoutes(
+				{ group: workRpcs, handlers: runtime.rpcHandlers, policy: "loopback", rpcPath: RPC_PATH },
+				AppChanges,
+				{ bodySize: 4 * 1024 * 1024, host: "127.0.0.1", nativeOrigins: [], trustedProxy: undefined },
+				schemaSensitiveKeys(workRpcs),
+			).pipe(Layer.provide(runtime.live));
 			return Layer.mergeAll(boardRoutes(options, runtime), rpc, rpcPolicy);
 		}),
 	).pipe(Layer.provide(Highlighter.layer));

@@ -1,11 +1,11 @@
 import { Effect } from "effect";
-import { openPage } from "./browser.ts";
-import { followLink } from "./followLink.ts";
-import { formEvent } from "./formEvent.ts";
-import { waitFor } from "./live.ts";
-import { pageActions } from "./pageActions.ts";
-import { setNativeValue } from "./setNativeValue.ts";
-import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "./storyEngine.ts";
+import { openPage } from "#test/browser.ts";
+import { followLink } from "#test/followLink.ts";
+import { formEvent } from "#test/formEvent.ts";
+import { waitFor } from "#test/live.ts";
+import { pageActions } from "#test/pageActions.ts";
+import { setNativeValue } from "#test/setNativeValue.ts";
+import { type BoardEngine, connected, readerView, rememberReader, savedResponseItems } from "#test/storyEngine.ts";
 
 export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 	function page() {
@@ -65,15 +65,7 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 			return opened;
 		}),
 		preview: () => formEvent(page(), () => click("response-preview")),
-		releaseRequest: (method: string) => {
-			tell(`the page sends its held ${method} requests`);
-			const hold = engine.heldRequests?.get(method);
-			if (!hold) {
-				throw new Error(`The page does not hold ${method} requests`);
-			}
-			hold.release();
-		},
-		requestsByMethod: Effect.fn("Story.requestsByMethod")(function* () {
+		readsByMethod: Effect.fn("Story.readsByMethod")(function* () {
 			tell("the reader waits for the page to settle and counts its RPC requests by method");
 			const opened = page();
 			yield* Effect.promise(() =>
@@ -83,17 +75,23 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 					}
 				}),
 			);
-			let seen = -1;
-			while (seen !== opened.pageRequests.methods.length) {
-				seen = opened.pageRequests.methods.length;
-				yield* Effect.sleep("150 millis");
-			}
 			return Object.fromEntries(
-				Map.groupBy(opened.pageRequests.methods, (method) => method)
+				Map.groupBy(
+					opened.pageRequests.methods.filter((method) => !method.endsWith(".$changes")),
+					(method) => method,
+				)
 					.entries()
 					.map(([method, calls]) => [method, calls.length]),
 			);
 		}),
+		releaseRequest: (method: string) => {
+			tell(`the page sends its held ${method} requests`);
+			const hold = engine.heldRequests?.get(method);
+			if (!hold) {
+				throw new Error(`The page does not hold ${method} requests`);
+			}
+			hold.release();
+		},
 		responseStatus: () => page().document.getElementById("response-status")?.textContent,
 		savedResponses: () => savedResponseItems(engine),
 		submit: (form = "response-form") =>
