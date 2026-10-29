@@ -5,6 +5,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
+import { commandTiming } from "./commandTiming.ts";
 import { createEngine } from "./createEngine.ts";
 import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./environment.ts";
 import { runAdminStories } from "./runAdminStories.ts";
@@ -31,10 +32,13 @@ export const application = storyKit({
 			return join(engine.root, app);
 		}
 		function run(command: string, args: readonly string[]) {
-			return spawnSync("env", ["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, command, ...args], {
+			const started = performance.now();
+			const result = spawnSync("env", ["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, command, ...args], {
 				cwd: target(),
 				encoding: "utf8",
 			});
+			commandTiming([command, ...args].join(" "), started, result.stderr);
+			return result;
 		}
 		return {
 			baseline: () => {
@@ -47,6 +51,7 @@ export const application = storyKit({
 				packed = false;
 			},
 			*cli(args: readonly string[], environment: readonly string[] = []) {
+				const started = performance.now();
 				story.tell(`create-app ${args.join(" ")}`);
 				if (!(packed || args.includes("--help") || args.includes("--version"))) {
 					yield* engine.source.pack();
@@ -55,7 +60,9 @@ export const application = storyKit({
 				if (args[0] !== undefined && !args[0].startsWith("--")) {
 					app = args[0];
 				}
-				return yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
+				const result = yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
+				commandTiming(`create-app ${args.join(" ")}`, started, result.stderr);
+				return result;
 			},
 			destinationContents: () =>
 				statSync(target()).isFile()

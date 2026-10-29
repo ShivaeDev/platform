@@ -14,6 +14,8 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const { join } = require("node:path");
 const args = process.argv.slice(2);
+const started = performance.now();
+process.on("exit", () => console.error("[generated app timing] pnpm " + args.join(" ") + ": " + (performance.now() - started).toFixed(0) + " ms"));
 if (args[0] === "install") {
   const qualityRoot = ${JSON.stringify(dirname(dirname(quality)))};
   const qualityPackage = join(__dirname, "quality-package");
