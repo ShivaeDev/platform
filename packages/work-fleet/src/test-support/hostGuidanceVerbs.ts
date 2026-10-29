@@ -2,6 +2,7 @@ import { Effect, type FileSystem, type Path } from "effect";
 import { resolveHost } from "#host/config.ts";
 import { hostGuidance } from "#host/guidance.ts";
 import { configuredPrompt } from "#test/configuredPrompt.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export function hostGuidanceVerbs(state: { fs: FileSystem.FileSystem; path: Path.Path; root: string }, tell: (line: string) => void) {
 	const file = state.path.join(state.root, "guidance.txt");
@@ -10,6 +11,7 @@ export function hostGuidanceVerbs(state: { fs: FileSystem.FileSystem; path: Path
 			tell(`load the host's cached ${role} guidance reader`);
 			return hostGuidance(
 				resolveHost(state.root, {
+					database: syntheticDatabase,
 					provider: "local",
 					worker: { branchPrefix: "test/", sharedEnvironment: "/synthetic/env.sh", [`${role}Guidance`]: { file: "guidance.txt" } },
 				}),

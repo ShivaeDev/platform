@@ -1,7 +1,7 @@
 import { type Clock, Context, Effect, type Scope } from "effect";
 import type { DiagnosticsSources } from "@shivaedev/work-board/diagnostics/source.ts";
 import { Fleet } from "#fleet.ts";
-import type { HostConfig } from "#host/config.ts";
+import type { HostSettings } from "#host/config.ts";
 import type { MainSnapshot } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
 import { captureLogs } from "#test/captureLogs.ts";
@@ -22,7 +22,7 @@ import { storeState } from "#test/storeState.ts";
 
 export class HostStoryEngine extends HostStoryScenario {
 	files: Record<string, string> = {};
-	config: Partial<HostConfig> = {};
+	config: Partial<HostSettings> = {};
 	stored: Record<string, Readonly<Record<string, unknown>> & { readonly stage: FleetRecord["stage"] }> = {};
 	main: MainSnapshot | undefined;
 	integrations: HostFixture["parts"]["integrations"];

@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { HostConfig } from "#host/config.ts";
+import type { HostSettings } from "#host/config.ts";
 import { AnswerHostEngine } from "#test/AnswerHostEngine.ts";
 import { answerHostVerbs } from "#test/answerHostVerbs.ts";
 import { answerPublicationVerbs } from "#test/answerPublicationVerbs.ts";
@@ -35,7 +35,7 @@ export const answers = storyKit({
 	}),
 });
 
-export function answerWork(workIds: readonly string[], config: Partial<HostConfig> = {}) {
+export function answerWork(workIds: readonly string[], config: Partial<HostSettings> = {}) {
 	return answers.trait("configuration", `approved work ${workIds.join(", ")}`, (engine) => {
 		engine.files = Object.fromEntries(workIds.map((workId) => [`${workId}.md`, task(workId, "approved")]));
 		engine.config = config;

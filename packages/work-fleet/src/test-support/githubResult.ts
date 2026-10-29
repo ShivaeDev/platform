@@ -6,6 +6,7 @@ import { githubResult } from "#host/githubResult.ts";
 import { MainSource, unchanged } from "#host/mainSource.ts";
 import type { BoardWork } from "#policy.ts";
 import type { SessionObservation } from "#session/schema.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export const HEAD = "a".repeat(40);
 export const BASE = "b".repeat(40);
@@ -48,7 +49,7 @@ export function resultFixture(options: ResultOptions = {}) {
 		repositoryRoot: "/synthetic",
 	});
 	const read = scriptedGithubRead(options, requests);
-	const host = resolveHost("/synthetic/board", { provider: "local", result: "github" });
+	const host = resolveHost("/synthetic/board", { database: syntheticDatabase, provider: "local", result: "github" });
 	return { adopt: githubResult(host, read, Effect.succeed("example/repository")), host, main, refreshes: () => refreshes, requests };
 }
 

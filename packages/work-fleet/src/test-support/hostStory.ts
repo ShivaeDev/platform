@@ -2,7 +2,7 @@ import { NodeServices } from "@effect/platform-node";
 import { Layer } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { HostConfig } from "#host/config.ts";
+import type { HostSettings } from "#host/config.ts";
 import { task } from "#test/fleetHost.ts";
 import { HostStoryEngine } from "#test/HostStoryEngine.ts";
 import { hostVerbs } from "#test/hostVerbs.ts";
@@ -24,7 +24,7 @@ export const host = storyKit({
 	verbs: (engine, story) => hostVerbs(engine, story.tell),
 });
 
-export function boardWork(files: Readonly<Record<string, string>>, config: Partial<HostConfig> = {}) {
+export function boardWork(files: Readonly<Record<string, string>>, config: Partial<HostSettings> = {}) {
 	return host.trait("configuration", `Board work in ${Object.keys(files).join(", ")}`, (engine) => {
 		Object.assign(engine.files, files);
 		Object.assign(engine.config, config);

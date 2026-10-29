@@ -2,7 +2,7 @@ import { Context, Effect } from "effect";
 import type { SqlClient } from "effect/sql";
 import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { Fleet } from "#fleet.ts";
-import type { HostConfig } from "#host/config.ts";
+import type { HostSettings } from "#host/config.ts";
 import { daemonLayer } from "#host/daemon.ts";
 import { type ApprovedPrFixture, approvedPrFixture, schedulerReady } from "#test/approvedPrDaemon.ts";
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
@@ -14,7 +14,7 @@ import { type HostDaemon, startHostDaemon } from "#test/startHostDaemon.ts";
 
 export class AnswerHostEngine {
 	files: Record<string, string> = { "one.md": task("one", "approved") };
-	config: Partial<HostConfig> = {};
+	config: Partial<HostSettings> = {};
 	approvedPr = false;
 	boardOverride: HostFixture["parts"]["board"];
 	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient> = Effect.void;

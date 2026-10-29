@@ -9,6 +9,7 @@ import { decisionResponses } from "#host/releaseWork.ts";
 import { BoardGateway } from "#policy.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { STORAGE_NAMESPACE } from "#test/StorageRecord.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 import { openFleetBoard } from "#test/withFleetBoard.ts";
 
 export function engineHostAnswers(state: EngineStory, tell: (line: string) => void) {
@@ -19,7 +20,7 @@ export function engineHostAnswers(state: EngineStory, tell: (line: string) => vo
 				if (state.root === "") {
 					return yield* Effect.die("Host answers require a Markdown Board");
 				}
-				const host = resolveHost(state.root, { namespace: STORAGE_NAMESPACE, provider: "local" });
+				const host = resolveHost(state.root, { database: syntheticDatabase, namespace: STORAGE_NAMESPACE, provider: "local" });
 				const board = yield* openFleetBoard(state.root);
 				const accept = yield* answerRequests(host, (id, options) =>
 					answerWork(host, id, { ...options, background: true }).pipe(
