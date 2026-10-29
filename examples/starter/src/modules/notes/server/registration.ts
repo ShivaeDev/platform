@@ -1,9 +1,10 @@
+import { resolve } from "node:path";
 import { Effect, Layer, Redacted } from "effect";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { NoteReadAccess, Notes } from "#modules/notes/notes.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { adminRegistration } from "./adminRegistration.ts";
 
 const handlers = Notes.application.toLayer(
@@ -23,9 +24,13 @@ const handlers = Notes.application.toLayer(
 export const notesRegistration = {
 	group: Notes.merge(adminRegistration.group),
 	handlers: Layer.mergeAll(handlers, adminRegistration.handlers),
-	services: (url: Redacted.Redacted<string>, clientFactory?: PgBossClientFactory, max?: number) =>
+	migrations: resolve(import.meta.dirname, "migrations"),
+	services: (url: Redacted.Redacted<string>, max?: number) =>
 		Layer.effect(
 			NoteReadAccess,
 			Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(Effect.catch(() => Effect.succeed(false)))),
-		).pipe(Layer.provideMerge(NotesService.layer), Layer.provideMerge(noteProducer(Redacted.value(url), clientFactory, max))),
+		).pipe(
+			Layer.provideMerge(NotesService.layer),
+			Layer.provideMerge(Layer.unwrap(Effect.map(JobsClientFactory, (factory) => noteProducer(Redacted.value(url), factory, max)))),
+		),
 };

@@ -4,18 +4,18 @@ import { JobsPermission, UsersPermission } from "@shivaedev/admin/permissions.ts
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
-import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { StatisticsPermission } from "#appPermissions.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
+import { JobsClientFactory } from "./JobsClientFactory.ts";
 import { serverModules } from "./modules.ts";
 import type { PoolSizes } from "./PoolSizes.ts";
 
-export function applicationHost(config?: {
+export function applicationHost<R = never, E = never, TRequirements = never>(config?: {
 	readonly poolSizes?: PoolSizes;
-	readonly jobsClientFactory?: PgBossClientFactory;
+	readonly replacements?: Layer.Layer<R, E, TRequirements>;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly port?: number;
 	readonly secret?: Redacted.Redacted<string>;
@@ -25,6 +25,10 @@ export function applicationHost(config?: {
 			const databaseUrl = config?.databaseUrl ?? (yield* Config.Redacted("DATABASE_URL"));
 			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
 			const database = databaseOptions(pool, databaseUrl, "check", config?.poolSizes?.sql);
+			const replacements = config?.replacements ?? Layer.empty;
+			const services = serverModules
+				.services(databaseUrl, config?.poolSizes?.jobs)
+				.pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)), Layer.merge(replacements));
 			return appHost({
 				...database,
 				application: Effect.gen(function* () {
@@ -55,7 +59,7 @@ export function applicationHost(config?: {
 							permissionLayer(StatisticsPermission, sessions),
 						),
 						routes: Layer.merge(routes, HttpStaticServer.layer({ root: "dist", spa: true })),
-						services: modules.services(databaseUrl, config?.jobsClientFactory, config?.poolSizes?.jobs),
+						services,
 						sessions,
 					};
 				}),

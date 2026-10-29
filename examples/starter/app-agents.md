@@ -4,6 +4,10 @@ This application runs on the ShivaeDev framework: Effect services and SQL on the
 
 Shared declarations in the app and its modules stay browser safe. PostgreSQL, migrations and services belong in their server folders; screens, routing and forms belong in their client folders. The foundation composes the app host and router. Keep this app's dependency catalog and TypeScript configuration self-contained. The framework comes through `@shivaedev/platform`, and tests through `@shivaedev/test-story`: import each piece by its own name, list no piece beside the entry point that brings it, and keep `publicHoistPattern` in `pnpm-workspace.yaml`, which makes the pieces resolvable.
 
+A server module exports a registration with `migrations` (its directory path), `group`, `handlers` and `services`. Register it in `src/server/modules.ts`; the foundation derives migrations from those registrations. Keep numbered migrations in the module’s server folder and use the next number across all modules.
+
+Tests pass a single `replacements` Layer to `applicationHost` or `applicationWorker`. Compose fake ports with `Layer.mergeAll` and `Layer.succeed`; the host merges them over the real services. Replace `JobsClientFactory` through that Layer for controlled queue clients. Add ports as Effect services instead of adding one host option per port.
+
 ## React rendering
 
 Decide what to render before the JSX. Quality reports `&&` and ternaries in JSX children, including nested decisions; conditional attributes such as `className` are accepted. Use an early return, a value computed above the return, or a small component that receives the data and returns `null`. Inside `.map`, extract an item component that makes its own decision.

@@ -75,7 +75,7 @@ export const notesApp = storyKit({
 				title: string;
 				version: number;
 				ownerId: string;
-			}>`select title, version, owner_id as "ownerId" from notes order by id`.withoutTransform;
+			}>`select title, version, owner_id from notes order by id`;
 			return notes.map(({ title, version, ownerId }) => ({ email: users.find(({ id }) => id === ownerId)?.email ?? null, title, version }));
 		}),
 		storedSessions: Effect.gen(function* () {

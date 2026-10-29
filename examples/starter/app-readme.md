@@ -8,7 +8,9 @@ const query = useQuery(client.api.list.query());
 
 The shared contract lives in `src/modules/notes/notes.ts`, server code in `src/server`, and the browser entry point in `src/client/entry.tsx`. The application owns its UI and session policy; Effect services, transactions and native RPC connect the layers.
 
-To remove the example, delete `src/modules/notes` and its import and entry in `src/server/modules.ts`, `src/server/workerModules.ts`, `src/client/modules.ts` and `src/server/migrations.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server, worker, client and migration pieces in those same registries.
+To remove the example, delete `src/modules/notes` and its import and entry in `src/server/modules.ts`, `src/server/workerModules.ts` and `src/client/modules.ts`, then run `pnpm ready`. Add your app's first module under `src/modules` and register its server, worker and client pieces in those same registries.
+
+Server registrations carry `{ migrations, group, handlers, services }`. Set `migrations` to the module’s migration directory; the foundation derives its migration list from registered modules.
 
 ## Develop and test
 
@@ -28,7 +30,7 @@ pnpm test
 pnpm ready
 ```
 
-Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose role can create disposable databases. The foundation’s story kits live in `src/test-support`; the notes module’s kits live in `src/modules/notes/test-support` and cover its PostgreSQL, HTTP, schema and happy-dom behavior. Extend those kits for new features. `pnpm ready` runs the same peer, lint, typecheck, build and test commands as `.github/workflows/ci.yml`. Use `pnpm lint` to check the code and `pnpm format` to apply formatting and fixes.
+Tests load `TEST_DATABASE_URL` from `.env.local`. Use a dedicated database whose role can create disposable databases. The foundation’s story kits live in `src/test-support`; the notes module’s kits live in `src/modules/notes/test-support` and cover its PostgreSQL, HTTP, schema and happy-dom behavior. Extend those kits for new features. Pass a `replacements` Layer to `applicationHost` or `applicationWorker` to supply fake services over the real ones, for example `Layer.succeed(JobsClientFactory, testing.clientFactory)` for the queue client factory. `pnpm ready` runs the same peer, lint, typecheck, build and test commands as `.github/workflows/ci.yml`. Use `pnpm lint` to check the code and `pnpm format` to apply formatting and fixes.
 
 The app depends on [`@shivaedev/platform`](https://github.com/ShivaeDev/platform/tree/main/packages/platform#readme), which brings every runtime piece of the framework, and on `@shivaedev/test-story` and `@shivaedev/quality` for development. Import each piece by its own name, such as `@shivaedev/sql/repository.ts`, without listing it in `package.json`; `publicHoistPattern` in `pnpm-workspace.yaml` makes the pieces resolvable, and `pnpm lint` rejects a piece listed beside the entry point that brings it.
 
