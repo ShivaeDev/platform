@@ -40,6 +40,9 @@ export function dispatchCommand(state: EngineState, launch: ReturnType<typeof ma
 		const work = yield* board.get(workId);
 		yield* refuseDeliveredId(state, work);
 		stored = yield* refreshBrief(state, stored, work);
+		if (stored.value.step === "queued" && stored.value.queuePriority !== work.priority) {
+			stored = yield* save(stored, { ...stored.value, queuePriority: work.priority });
+		}
 		stored = yield* approveDispatchedBrief(state, stored, work, prompt);
 		if (stored.value.step !== "queued") {
 			return stored;

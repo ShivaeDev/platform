@@ -37,6 +37,7 @@ export function prepareCommand(state: EngineState) {
 			...(input.launch === undefined ? {} : { launch: input.launch }),
 			preparation: input.preparation,
 			prompt: input.prompt,
+			queuePriority: work.priority,
 			stage: "queued",
 			step: "queued",
 			sweep: work.sweep,
