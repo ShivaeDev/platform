@@ -1,4 +1,4 @@
-import { Effect, Option, type Schema, Stream } from "effect";
+import { Effect, MutableHashMap, Option, type Schema, Stream } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -13,7 +13,8 @@ import { queryReactivity } from "./queryReactivity.ts";
 
 type ErasedClient = AtomRpc.AtomRpcClient<unknown, string, Rpc.Rpc<string, Schema.Top, Schema.Top, Schema.Top>>;
 
-const queryIds = new WeakMap<object, number>();
+// AtomRpc holds query atoms weakly, so an id per atom object would change after a collection and make live tracking resubscribe.
+const queryIds = MutableHashMap.empty<{ readonly payload: unknown; readonly tag: string }, number>();
 let nextQueryId = 0;
 
 type ErasedStreamingClient = AtomRpc.AtomRpcClient<
@@ -42,11 +43,12 @@ export function boundQuery(
 				);
 			}
 			const atom = service.query(tag, payload, options);
-			let id = queryIds.get(atom);
+			const identity = { payload, tag };
+			let id = Option.getOrUndefined(MutableHashMap.get(queryIds, identity));
 			if (id === undefined) {
 				id = nextQueryId;
 				nextQueryId += 1;
-				queryIds.set(atom, id);
+				MutableHashMap.set(queryIds, identity, id);
 			}
 			const local = query.reads(payload, Option.none());
 			const keys = [...local, { _tag: "List" as const, collection: `@query/${tag}/${id}` }];
