@@ -67,6 +67,10 @@ export const automatic = storyKit({
 	runIf: configured._tag === "Some",
 	stages: ["screen"],
 	verbs: (engine, story) => ({
+		closePrimary: () => {
+			story.tell("unmount the first screen's registry");
+			return Effect.promise(engine.screen.closePrimary);
+		},
 		coalesce: (id: number, millis: number) => {
 			story.tell(`coalesce note ${id}'s changes over ${millis} milliseconds`);
 			engine.screen.coalesce(id, millis);
@@ -79,6 +83,10 @@ export const automatic = storyKit({
 		},
 		note: (id: number) => engine.screen.container.querySelector(`[data-note="${id}"]`)?.textContent,
 		notifications: () => engine.notifications.map((payload) => JSON.parse(payload)),
+		openSeparate: () => {
+			story.tell("mount another screen in an independent registry");
+			return Effect.promise(engine.screen.openSeparate);
+		},
 		publications: () => [...engine.host.publications],
 		query: (id: number) => engine.screen.query(id),
 		reads: () => [...engine.host.reads],
@@ -114,6 +122,7 @@ export const automatic = storyKit({
 			story.tell(`rename the note to ${title} from the screen`);
 			return Effect.promise(() => engine.screen.rename(title));
 		},
+		separateNote: engine.screen.separateNote,
 		settle: () =>
 			Effect.promise(async () => {
 				await act(async () => {

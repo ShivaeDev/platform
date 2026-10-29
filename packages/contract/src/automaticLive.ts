@@ -6,6 +6,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
 import { queryResult } from "#internal/queryResult.ts";
+import { socketIdentity } from "#internal/rpcClient.ts";
 import { type LiveStatus, live } from "#live.ts";
 import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
@@ -18,6 +19,7 @@ export interface LiveBound {
 	readonly [LiveConnection]: {
 		readonly coalesceWindow: Atom.Writable<Duration.Input>;
 		readonly connection: Atom.Atom<unknown>;
+		readonly identity?: Atom.Writable<string | undefined>;
 		readonly status: Atom.Atom<LiveStatus<unknown>>;
 	};
 }
@@ -135,5 +137,5 @@ export function automaticLive(service: ChangesClient, name: string, owner?: Bind
 		}
 		return gated;
 	}
-	return { query, subscription: { coalesceWindow, connection, status } };
+	return { query, subscription: { coalesceWindow, connection, identity: socketIdentity, status } };
 }

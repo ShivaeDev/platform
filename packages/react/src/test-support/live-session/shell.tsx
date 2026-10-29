@@ -1,10 +1,11 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as Socket from "effect/socket/Socket";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import type { Rendered } from "#client/testing.ts";
 import { Note } from "./App.tsx";
 import { connect } from "./connect.ts";
 
-export function shell(url: string, view: Rendered) {
+export function shell(url: string, view: Rendered, browser = false) {
 	const connections: Array<{ readonly api: ReturnType<typeof connect>; readonly id: string; readonly registry: AtomRegistry.AtomRegistry }> = [];
 	return {
 		connections,
@@ -12,7 +13,7 @@ export function shell(url: string, view: Rendered) {
 			view.render(
 				<SessionBoundary
 					connect={(current, registry) => {
-						const api = connect(url, registry, current.token);
+						const api = browser ? connect(url, registry, undefined, Socket.layerWebSocketConstructorGlobal) : connect(url, registry, current.token);
 						connections.push({ api, id: current.id, registry });
 						return api;
 					}}

@@ -203,7 +203,7 @@ Save the client module as `client.ts`. The [native RPC guide](https://github.com
 
 ### Build a shared WebSocket client
 
-Use `makeClient` once per session to build a native AtomRpc client and bind the contract. Clients for the same URL in one registry share Effect RPC's socket protocol, including when they bind different contracts.
+Use `makeClient` once per session to build a native AtomRpc client and bind the contract. Clients for the same identified session, URL and upgrade options share Effect RPC's socket protocol, including when they bind different contracts or use independent registries.
 
 ```ts
 import { makeClient } from "@shivaedev/contract/bind.ts";
@@ -311,7 +311,7 @@ Server adapters read the RPC's `KeyScope` annotation. For `"session"`, they must
 
 ### 4. Live invalidation and resume
 
-Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With NDJSON transport, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
+Database hosts from `@shivaedev/server` serve the contract's reserved `<contract>.$changes` stream automatically. With the native WebSocket protocol, `bind` and a React `SessionBoundary` connect query atoms without an application subscribe operation or `live()` call. The boundary finds bound APIs returned directly by `connect` or as properties such as `client.api`. See [automatic changes](https://github.com/ShivaeDev/platform/blob/main/docs/framework/changes.md) for defaults.
 
 A native shell supplies its lifecycle events through `bind`'s optional `resume` source:
 

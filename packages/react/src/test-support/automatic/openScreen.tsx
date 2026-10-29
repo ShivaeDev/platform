@@ -7,7 +7,7 @@ import { queryCoalesceWindow } from "@shivaedev/contract/queryCoalesceWindow.ts"
 import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { render } from "#client/testing.ts";
 import { connect } from "./connect.ts";
-import { Notes } from "./screen.tsx";
+import { Notes, Read } from "./screen.tsx";
 
 export async function openScreen(url: string) {
 	window.location.href = url;
@@ -23,6 +23,7 @@ export async function openScreen(url: string) {
 		}),
 	).pipe(Layer.provide(layerWebSocketConstructorWS));
 	const client = connect(url, socketConstructor);
+	const separate: Awaited<ReturnType<typeof render>>[] = [];
 	let owner: AtomRegistry.AtomRegistry | undefined;
 	const view = await render(
 		<SessionBoundary
@@ -51,6 +52,7 @@ export async function openScreen(url: string) {
 			await act(() => button(label).click());
 		},
 		client,
+		closePrimary: view.unmount,
 		coalesce: (id: number, millis: number) => {
 			if (owner === undefined) {
 				throw new Error("The session registry is not mounted");
@@ -63,6 +65,15 @@ export async function openScreen(url: string) {
 					socket.close(4000);
 				}
 			});
+		},
+		openSeparate: async () => {
+			separate.push(
+				await render(
+					<SessionBoundary connect={() => client} identify={(session) => session} recheck={() => undefined} session="alice">
+						{() => <Read client={client} id={2} />}
+					</SessionBoundary>,
+				),
+			);
 		},
 		query: (id: number) => {
 			if (owner === undefined) {
@@ -81,6 +92,13 @@ export async function openScreen(url: string) {
 				input.dispatchEvent(new Event("input", { bubbles: true }));
 			});
 			await act(() => button("Rename").click());
+		},
+		separateNote: () => separate[0]?.container.textContent,
+		unmount: async () => {
+			for (const root of separate) {
+				await root.unmount();
+			}
+			await view.unmount();
 		},
 	};
 }

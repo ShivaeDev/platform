@@ -78,7 +78,7 @@ export function App({ session, recheck }: {
 }
 ```
 
-`makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, remounts the screens and disposes the outgoing registry. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
+`makeOrderClient` and `OrderScreens` belong to the application. A changed generation creates a new client and registry, acquires a socket with the current session cookie, remounts the screens and disposes the outgoing registry. Independent registries for the same generation share the socket. `undefined` renders `signedOut`. Updating the session object with the same generation keeps the existing client: `connect` does not receive a rotated token until the identity changes. Include the credential generation when the client captures its token, as above.
 
 A query that fails with a tagged `Unauthorized` asks `recheck` to run and keeps its retained data. An action does the same once per failed result, retaining its last successful `data` and the typed failure in `cause`; rerendering that result does not repeat the recheck. A live socket failure also asks the auth owner to recheck, since the host closes revoked sessions. The auth owner can retry the same session or remove it; the hook does not sign the user out. The boundary also handles React StrictMode's effect replay and preserves component state across hiding and revealing an `<Activity>` subtree, supplying a live registry when revealed.
 

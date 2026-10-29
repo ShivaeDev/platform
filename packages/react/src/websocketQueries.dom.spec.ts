@@ -74,3 +74,16 @@ automatic.it("rapid commits coalesce into one authorized read of the latest valu
 	expect(test.reads()).toEqual([...before, 1]);
 	expect(test.note(2)).toBe("Second");
 });
+
+automatic.it("one tab socket spans independent registries and survives one registry closing", [], function* (test) {
+	yield* eventually(() => expect(test.ready()).toBe(true));
+	const firstReads = test.reads().filter((id) => id === 1);
+	yield* test.openSeparate();
+	yield* eventually(() => expect(test.separateNote()).toBe("Second"));
+	expect(test.connections()).toEqual([test.socketUrl()]);
+	expect(test.reads().filter((id) => id === 1)).toEqual(firstReads);
+	yield* test.closePrimary();
+	yield* test.remoteRename(2, "The remaining screen");
+	yield* eventually(() => expect(test.separateNote()).toBe("The remaining screen"));
+	expect(test.connections()).toEqual([test.socketUrl()]);
+});
