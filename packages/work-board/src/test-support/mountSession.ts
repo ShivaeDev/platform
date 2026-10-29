@@ -3,10 +3,11 @@ import { act } from "react";
 import { vi } from "vitest";
 import { mountBoard } from "#client/react/mountBoard.tsx";
 import { session } from "#client/session.ts";
-import { folder, startBoard } from "./board.ts";
-import { EDGE_ATTENTION_SOURCE } from "./coverageEdges.ts";
-import { type ScreenEngine, screenView } from "./screenEngine.ts";
-import { registerSessionFetch, sessionFetch, transportWindow } from "./sessionFetch.ts";
+import { folder, startBoard } from "#test/board.ts";
+import { EDGE_ATTENTION_SOURCE } from "#test/coverageEdges.ts";
+import { type ScreenEngine, screenView } from "#test/screenEngine.ts";
+import { registerSessionFetch, sessionFetch, transportWindow } from "#test/sessionFetch.ts";
+import { sessionSocket } from "#test/sessionSocket.ts";
 
 export const mountSession = Effect.fn("Story.mountSession")(function* (engine: ScreenEngine, kind: "response" | "handoff") {
 	const files = Object.keys(engine.files).length > 0 ? engine.files : { "item.md": EDGE_ATTENTION_SOURCE };
@@ -27,6 +28,9 @@ export const mountSession = Effect.fn("Story.mountSession")(function* (engine: S
 	const unregister = registerSessionFetch(board.url, transport, engine);
 	yield* Effect.addFinalizer(() => Effect.promise(unregister));
 	vi.stubGlobal("fetch", sessionFetch);
+	const socket = sessionSocket(transport, engine);
+	engine.sessionDisconnect = socket.disconnect;
+	vi.stubGlobal("WebSocket", socket.WebSocket);
 	const environment: Parameters<typeof session>[0] = {
 		addEventListener: (type, listener) => window.addEventListener(type, listener),
 		document,

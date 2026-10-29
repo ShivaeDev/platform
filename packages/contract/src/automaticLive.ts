@@ -77,17 +77,24 @@ export function automaticLive(
 			(get) => {
 				assertOwner(get);
 				const registry = get.registry;
+				const dispatcher = registry.schedulerAsync.makeDispatcher();
 				get.set(ready, false);
 				get.once(queryCoalesceWindow(gated));
 				get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
 				const token = {};
+				let active = true;
 				function observe(value: LiveStatus<unknown>) {
-					registry.update(statuses, (current) => new Map([...current, [token, value]]));
+					dispatcher.scheduleTask(() => {
+						if (active) {
+							registry.update(statuses, (current) => new Map([...current, [token, value]]));
+						}
+					}, 0);
 					if (value.connection === "live") {
 						registry.set(ready, true);
 					}
 				}
 				get.addFinalizer(() => {
+					active = false;
 					if (registry.getNodes().has(statuses)) {
 						registry.update(statuses, (current) => {
 							const next = new Map(current);

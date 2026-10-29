@@ -18,17 +18,17 @@ for (const { crumb, heading, link } of [
 	{ crumb: "Workspace/ notes/ plan.md", heading: "Plan", link: "/notes/plan.md" },
 ]) {
 	screenStory.it(
-		`says the Board server isn't answering at ${link}, keeps the breadcrumb and retries on request`,
+		`says the Board server isn't answering at ${link}, keeps the breadcrumb and recovers over the socket`,
 		[screenFiles(files, { home: "home.md" }), screenRoute("/_board/goals"), sessionScreen("response")],
-		function* ({ click, findElements, follow, readText, setSessionServer }) {
+		function* ({ findElements, follow, readText, setSessionServer }) {
 			yield* eventually(() => expect(readText("#doc h1")).toBe("Goals"));
-			setSessionServer(false);
+			yield* Effect.promise(() => setSessionServer(false));
 			yield* Effect.promise(() => follow(link));
 			yield* eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("The Board server isn't answering"));
 			expect(readText("#doc [data-slot=empty-description]")).toContain("This page tries again on its own. RpcClientError:");
 			yield* eventually(() => expect(readText("#breadcrumbs")).toBe(crumb));
-			setSessionServer(true);
-			click(findElements("#doc button").find((button) => button.textContent === "Retry"));
+			expect(findElements("#doc button").some((button) => button.textContent === "Retry")).toBe(true);
+			yield* Effect.promise(() => setSessionServer(true));
 			yield* eventually(() => expect(readText("#doc h1")).toBe(heading));
 		},
 	);
@@ -53,7 +53,7 @@ for (const { link, name } of [
 		[screenFiles(files, { home: "home.md" }), screenRoute("/notes/plan.md"), sessionScreen("response")],
 		function* ({ follow, readText, readTitle, setSessionServer }) {
 			yield* eventually(() => expect(readText("#doc h1")).toBe("Plan"));
-			setSessionServer(false);
+			yield* Effect.promise(() => setSessionServer(false));
 			yield* Effect.promise(() => follow(link));
 			yield* eventually(() => expect(readText("#doc [data-slot=empty-title]")).toBe("The Board server isn't answering"));
 			yield* eventually(() => expect(readText("#breadcrumbs")).toBe(`Workspace/ ${name}`));

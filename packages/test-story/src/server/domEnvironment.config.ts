@@ -7,7 +7,6 @@ const domEnvironment: Environment = {
 	async setup(global: typeof globalThis, { happyDOM = {} }) {
 		// Vitest loads environments outside the project's source resolution conditions.
 		const load = createRequire(import.meta.url);
-		const { NodeWS }: typeof import("@effect/platform-node/NodeSocket") = load("@effect/platform-node/NodeSocket");
 		const { documentTransport }: typeof import("#internal/documentTransport.ts") = load("#internal/documentTransport.ts");
 		const { installOutbound }: typeof import("#internal/installOutbound.ts") = load("#internal/installOutbound.ts");
 		const { installDomTimers }: typeof import("#internal/installDomTimers.ts") = load("#internal/installDomTimers.ts");
@@ -27,8 +26,6 @@ const domEnvironment: Environment = {
 		for (const [name, value] of Object.entries(native)) {
 			Object.defineProperty(global, name, { configurable: true, value, writable: true });
 		}
-		// Node’s built-in WebSocket creates global Events, which belong to the DOM in this environment.
-		Object.defineProperty(global, "WebSocket", { configurable: true, value: NodeWS.WebSocket, writable: true });
 		Object.defineProperty(global, "window", { configurable: true, value: win, writable: true });
 		Object.defineProperty(win.document, "defaultView", { configurable: true, get: () => win });
 		Object.defineProperty(global, Symbol.for("test-story.dom"), { configurable: true, value: true });
