@@ -8,12 +8,17 @@ export type Template = typeof Template.Type;
 export const decodeTemplate = Schema.decodeUnknownSync(Schema.fromJsonString(Template));
 
 export function appTemplate(template: Template, minimal = false): Template {
+	const minimalBaseline = template.find((entry) => entry.path === "quality-baseline.minimal.jsonl");
+	const files = template.filter((entry) => entry.path !== "quality-baseline.minimal.jsonl");
 	if (!minimal) {
-		return template;
+		return files;
 	}
-	return template
+	return files
 		.filter((entry) => !entry.path.startsWith("src/modules/notes/"))
 		.map((entry) => {
+			if (entry.path === "quality-baseline.jsonl" && minimalBaseline !== undefined) {
+				return { ...entry, content: minimalBaseline.content };
+			}
 			if (!["src/server/modules.ts", "src/server/workerModules.ts", "src/server/migrations.ts", "src/client/modules.ts"].includes(entry.path)) {
 				return entry;
 			}

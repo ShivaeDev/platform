@@ -1,3 +1,4 @@
+{"path":"examples/starter/package.json","rule":"code/unused","count":6}
 {"path":"examples/starter/src/client/Home.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"examples/starter/src/client/LabelledSwitch.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"examples/starter/src/client/LoginScreen.tsx","rule":"react/jsx-conditionals","count":6}
@@ -8,6 +9,7 @@
 {"path":"examples/starter/src/client/admin/QueryPanel.tsx","rule":"react/jsx-conditionals","count":6}
 {"path":"examples/starter/src/client/appRouter.tsx","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/client/appRouter.tsx","rule":"react/jsx-conditionals","count":1}
+{"path":"examples/starter/src/client/auth.ts","rule":"code/unused","count":1}
 {"path":"examples/starter/src/client/entry.tsx","rule":"effect/boundary","count":1}
 {"path":"examples/starter/src/modules/notes/client/Create.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"examples/starter/src/modules/notes/client/DataTable.tsx","rule":"react/jsx-conditionals","count":2}
@@ -18,13 +20,18 @@
 {"path":"examples/starter/src/modules/notes/client/Table.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"examples/starter/src/modules/notes/client/adminRoutes.tsx","rule":"effect/boundary","count":1}
 {"path":"examples/starter/src/modules/notes/client/adminRoutes.tsx","rule":"effect/service-parameters","count":1}
+{"path":"examples/starter/src/modules/notes/notes.ts","rule":"code/unused","count":3}
 {"path":"examples/starter/src/modules/notes/server/adminUserPolicy.spec.ts","rule":"effect/boundary","count":2}
 {"path":"examples/starter/src/modules/notes/server/adminUsers.spec.ts","rule":"effect/boundary","count":2}
+{"path":"examples/starter/src/modules/notes/server/migrations/0002_notes.ts","rule":"code/unused","count":1}
 {"path":"examples/starter/src/modules/notes/server/sessionUser.spec.ts","rule":"effect/boundary","count":1}
+{"path":"examples/starter/src/modules/notes/test-support/applicationState.ts","rule":"code/unused","count":1}
 {"path":"examples/starter/src/server/authOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/server/databaseOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/server/migrations.ts","rule":"effect/service-parameters","count":1}
+{"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"code/unused","count":1}
 {"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}
+{"path":"package.json","rule":"code/unused","count":1}
 {"path":"script/ci/TestSequencer.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/mainShardPlan.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/mainTimingRun.ts","rule":"effect/boundary","count":1}
@@ -68,4 +75,8 @@
 {"path":"script/release/compare.ts","rule":"effect/boundary","count":1}
 {"path":"script/release/prSummary.ts","rule":"effect/boundary","count":1}
 {"path":"script/setup-database.ts","rule":"effect/boundary","count":1}
+{"path":"script/starter-published.ts","rule":"code/unused","count":1}
+{"path":"script/starter-published/documentation.ts","rule":"code/unused","count":1}
+{"path":"script/starter-published/installDocumentation.ts","rule":"code/unused","count":1}
+{"path":"script/test/vitest.config.ts","rule":"code/unused","count":1}
 {"path":"script/test/vitest.config.ts","rule":"effect/boundary","count":3}

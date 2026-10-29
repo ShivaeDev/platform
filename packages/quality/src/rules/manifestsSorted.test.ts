@@ -7,9 +7,9 @@ import { config, linkPackage, removeSeededTrees, type SeedFile, seedTree } from 
 
 afterEach(removeSeededTrees);
 
-const UNSORTED = '{\n\t"version": "1.0.0",\n\t"name": "sample"\n}\n';
+const UNSORTED = '{\n\t"version": "1.0.0",\n\t"name": "sample",\n\t"scripts": {\n\t\t"sample": "node src/limits.ts"\n\t}\n}\n';
 
-const SORTED = '{\n\t"name": "sample",\n\t"version": "1.0.0"\n}\n';
+const SORTED = '{\n\t"name": "sample",\n\t"version": "1.0.0",\n\t"scripts": {\n\t\t"sample": "node src/limits.ts"\n\t}\n}\n';
 
 function repository(...files: readonly SeedFile[]): string {
 	const root = seedTree([
