@@ -36,7 +36,7 @@ application.it("creates the same foundation without the notes module or its regi
 });
 
 application.it(
-	"the minimal app migrates and passes its complete ready gate",
+	"the minimal app migrates and passes ready against workspace packages",
 	[realSetup],
 	function* ({ cli, prepareDatabases, migrate, ready }) {
 		const name = `minimal_${crypto.randomUUID().replaceAll("-", "")}`;
