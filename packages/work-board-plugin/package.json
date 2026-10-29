@@ -22,7 +22,8 @@
 	"scripts": {
 		"build": "tsc --project tsconfig.build.json",
 		"build:client": "node --conditions=source script/build-client.ts",
-		"test": "vitest run",
+		"test": "pnpm test:prepare && vitest run",
+		"test:prepare": "pnpm build:client --check",
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
