@@ -95,7 +95,7 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 						Record answer
 					</Button>
 					{offline ? (
-						<p className="m-0 text-muted-foreground text-sm" role="status">
+						<p className="text-muted-foreground m-0 text-sm" role="status">
 							{offline}
 						</p>
 					) : null}
@@ -103,14 +103,14 @@ function AnswerSession({ document: data, onDraft, request, preview }: AnswerProp
 				<p
 					className={cn(
 						"flex items-start gap-2 text-sm empty:hidden",
-						state.outcome === "saved" && "rounded-md border border-done/40 bg-done/10 px-3 py-2",
-						(state.outcome === "rejected" || state.outcome === "uncertain") && "rounded-md border border-destructive/40 px-3 py-2 text-destructive",
+						state.outcome === "saved" && "border-done/40 bg-done/10 rounded-md border px-3 py-2",
+						(state.outcome === "rejected" || state.outcome === "uncertain") && "border-destructive/40 text-destructive rounded-md border px-3 py-2",
 					)}
 					data-outcome={state.outcome}
 					id={id(shellIds.responseStatus)}
 					role="status"
 				>
-					{state.outcome === "saved" && <CheckCircle2 aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-done" />}
+					{state.outcome === "saved" && <CheckCircle2 aria-hidden="true" className="text-done mt-0.5 size-4 shrink-0" />}
 					{state.status}
 				</p>
 				<AnswerMore body={prompts.length > 0 ? body : undefined} id={id} request={request} state={state} />

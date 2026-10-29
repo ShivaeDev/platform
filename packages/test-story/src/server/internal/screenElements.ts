@@ -35,6 +35,16 @@ export function screenElements(root: () => HTMLElement) {
 			throw new Error(`The screen's ${targetName(selector)} is disabled.\nhelp: Wait for the app to enable the control before acting on it.`);
 		}
 	}
+	function text(found: HTMLElement): string {
+		const walker = found.ownerDocument.createTreeWalker(found, NodeFilter.SHOW_TEXT);
+		const parts: string[] = [];
+		for (let node = walker.nextNode(); node !== null; node = walker.nextNode()) {
+			if (node.parentElement instanceof HTMLElement && isRendered(node.parentElement)) {
+				parts.push(node.textContent ?? "");
+			}
+		}
+		return parts.join("");
+	}
 	return {
 		element,
 		enabled,
@@ -60,5 +70,6 @@ export function screenElements(root: () => HTMLElement) {
 		},
 		input,
 		rendered,
+		text,
 	};
 }

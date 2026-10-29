@@ -56,7 +56,7 @@ export function SavedViews({ url }: { readonly url: string }) {
 					Clear all
 				</Button>
 			</div>
-			<p className="m-0 text-muted-foreground text-xs" id={shellIds.savedViewStatus} role="status">
+			<p className="text-muted-foreground m-0 text-xs" id={shellIds.savedViewStatus} role="status">
 				{views.notice
 					|| "Save board, filters, sort, and layout locally. Up to 10 named views; saving the same name updates it. Item selection stays in the URL."}
 			</p>

@@ -25,7 +25,7 @@ function Highlighted({ text, terms }: { readonly text: string; readonly terms: r
 		const at = offset;
 		offset += part.length;
 		return index % 2 === 1 ? (
-			<mark className="bg-transparent font-semibold text-foreground" key={at}>
+			<mark className="text-foreground bg-transparent font-semibold" key={at}>
 				{part}
 			</mark>
 		) : (
@@ -54,7 +54,7 @@ export function SearchResults({
 		return `${identity}:${occurrence}`;
 	}
 	return (
-		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] px-1 pb-1 [scrollbar-width:thin]!" label="Search results" ref={listRef}>
+		<CommandList className="max-h-[min(420px,calc(100dvh-280px))] [scrollbar-width:thin]! px-1 pb-1" label="Search results" ref={listRef}>
 			{searchGroups(items, query).map((group) => (
 				<SearchGroup activate={activate} heading={group.heading} items={group.items} key={group.heading} resultKey={resultKey} terms={terms} />
 			))}
@@ -103,7 +103,7 @@ function SearchResult({
 	return (
 		<CommandItem className="p-0" data-command={item.command} onSelect={() => activate(item)} value={value}>
 			<a
-				className="grid min-w-0 flex-1 gap-1 px-2.5 py-2 text-popover-foreground no-underline"
+				className="text-popover-foreground grid min-w-0 flex-1 gap-1 px-2.5 py-2 no-underline"
 				href={item.href ?? "#"}
 				onClick={(event) => {
 					if (item.command) {
@@ -114,7 +114,7 @@ function SearchResult({
 			>
 				<strong className="font-medium">{item.title}</strong>
 				{(!command || Boolean(item.id)) && (
-					<small className="flex flex-wrap items-center gap-1.5 text-muted-foreground">
+					<small className="text-muted-foreground flex flex-wrap items-center gap-1.5">
 						{!command && kindLabel(item.itemKind ?? item.kind)}
 						{Boolean(item.id) && <code className="font-mono">{item.id}</code>}
 						{Boolean(item.status) && <StatusChip status={item.status} />}

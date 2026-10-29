@@ -49,12 +49,12 @@ export function WorkLane({
 		unavailable === undefined ? (
 			<LaneCards bounded={bounded} fleet={fleet} lane={lane} rows={rows} state={state} virtual={virtual} />
 		) : (
-			<p className="m-0 text-muted-foreground text-xs">{unavailable}</p>
+			<p className="text-muted-foreground m-0 text-xs">{unavailable}</p>
 		);
 	if (collapsed && unavailable === undefined) {
 		return (
 			<Collapsible render={<section aria-label={lane} className={cn("work-column group/lane min-w-0", className)} />}>
-				<h2 className="m-0 mb-2 flex min-h-8 items-center gap-2 font-medium text-sm">
+				<h2 className="m-0 mb-2 flex min-h-8 items-center gap-2 text-sm font-medium">
 					<CollapsibleTrigger className={cn(buttonVariants({ size: "sm", variant: "ghost" }), "-ml-2")}>
 						<ChevronRight aria-hidden="true" className="transition-transform group-data-open/lane:rotate-90" />
 						{lane}
@@ -67,7 +67,7 @@ export function WorkLane({
 	}
 	return (
 		<section aria-label={lane} className={cn("work-column min-w-0", className)}>
-			<h2 className="m-0 mb-2 flex min-h-8 items-center justify-between gap-2 font-medium text-sm">
+			<h2 className="m-0 mb-2 flex min-h-8 items-center justify-between gap-2 text-sm font-medium">
 				{lane}
 				{count}
 			</h2>

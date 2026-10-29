@@ -14,7 +14,7 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 			{data === undefined && !failed && <LoadingRows label="Loading work in progress" />}
 			{data?.state === "unavailable" && data.startCommand !== undefined ? (
 				<FleetStopped command={data.startCommand} reason={data.reason}>
-					{progress?.source === "files" && <p className="m-0 text-muted-foreground">{FROM_FILES}</p>}
+					{progress?.source === "files" && <p className="text-muted-foreground m-0">{FROM_FILES}</p>}
 				</FleetStopped>
 			) : (
 				progress?.source !== "fleet"
@@ -33,7 +33,7 @@ export function TodayProgress({ data, failed }: { readonly data: FleetItemsProje
 			{progress !== undefined && progress.rows.length > 0 && (
 				<ul
 					aria-label={progress.source === "files" ? "Ready tasks" : "In progress"}
-					className="m-0 list-none divide-y rounded-lg border border-border p-0"
+					className="border-border m-0 list-none divide-y rounded-lg border p-0"
 					data-progress-source={progress.source}
 				>
 					{progress.rows.slice(0, 8).map((item) => (
@@ -59,7 +59,7 @@ function ProgressRow({ fleet, item }: { readonly fleet: boolean; readonly item: 
 			<a className="min-w-0 flex-1 truncate text-sm" href={`/_board/item/${encodeURIComponent(item.workId)}/`} title={item.title}>
 				{item.title}
 			</a>
-			<Badge className="shrink-0 border-agent-working/25 bg-agent-working/10 text-agent-working text-xs" variant="outline">
+			<Badge className="border-agent-working/25 bg-agent-working/10 text-agent-working shrink-0 text-xs" variant="outline">
 				{fleet ? "Fleet" : item.state}
 			</Badge>
 			{item.prUrl ? (

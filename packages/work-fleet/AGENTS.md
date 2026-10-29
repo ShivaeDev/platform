@@ -7,7 +7,6 @@ The ideal is a fleet a person can trust without watching it. Board owns identity
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Authority stays with people and runtime policy.** Fleet never submits a merge; reviewed, green work waits for a human merge, which reconciliation adopts against the reviewed head. Runtime policy owns authority and the provider, source observation, review, validation and delivery integrations. Worker output and answer text cannot grant authority, and Fleet never bypasses protections.
 2. **No execution is lost or duplicated.** Submission intent precedes remote mutation, and acknowledged session and turn identities are saved before further mutation. Ambiguous acceptance keeps its reservation: preserve uncertain ownership and reconcile the existing operation instead of starting another. Closing observation does not interrupt execution; explicit interruption needs acknowledgement. Terminal execution releases capacity, but ownership ends only at accepted delivery, reviewed and validated no-change, or explicit safe release.
 3. **Native Effect, one path per job.** Scope, interruption, typed failures and transactions carry these guarantees; do not rebuild them beside Effect. Keep the session service, which handles one provider conversation and its turns, independent of scheduling, dependencies and merge authority. Board stays the one owner of the work's identity and human decisions.

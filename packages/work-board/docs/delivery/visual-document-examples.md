@@ -43,10 +43,9 @@ Source: [Reading checks](checks.md)
 ```markdown
 :::timeline
 Reading delivery
-
 1. **First:** inspect [source conventions](source-examples.md).
 2. **Then:** review [response context](response-write-examples.md).
-:::
+   :::
 ```
 
 Use one ordered list containing 1–100 entries. Each entry needs text and a source link. Keep author order and literal labels, including planned/recorded qualifiers; do not parse dates, infer deadlines, schedule work or derive agent state. Timeline attributes are not supported. Ordinary Markdown emphasis and links remain intact. Mermaid handles diagrams, including its own timeline diagram syntax.
@@ -59,10 +58,10 @@ Use GitHub's five alert markers: NOTE, TIP, IMPORTANT, WARNING and CAUTION. Unkn
 > [!IMPORTANT]
 > A recorded browser result does not establish representative-reader acceptance.
 
-| Option | Benefit | Cost | Source |
-| --- | --- | --- | --- |
-| Ordinary Markdown | Familiar everywhere | Fewer visual affordances | [Source conventions](source-examples.md) |
-| Fixed directives | Explicit visual intent | An extension to document | [Delivery plan](plan.md) |
+| Option            | Benefit                | Cost                     | Source                                   |
+| ----------------- | ---------------------- | ------------------------ | ---------------------------------------- |
+| Ordinary Markdown | Familiar everywhere    | Fewer visual affordances | [Source conventions](source-examples.md) |
+| Fixed directives  | Explicit visual intent | An extension to document | [Delivery plan](plan.md)                 |
 ```
 
 ## Fallback and ownership

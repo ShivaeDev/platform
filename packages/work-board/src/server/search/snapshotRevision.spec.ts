@@ -1,3 +1,4 @@
+import { Order } from "effect";
 import { expect } from "vitest";
 import { aFileAddedDuringListing, indexedFiles, indexStory } from "#test/indexStory.ts";
 
@@ -7,7 +8,7 @@ indexStory.it(
 	function* ({ readIndex, readRevision }) {
 		const snapshot = yield* readIndex();
 		expect(snapshot.revision).toBe(yield* readRevision());
-		expect([...snapshot.model.ids.keys()].sort()).toEqual(["added", "first"]);
+		expect([...snapshot.model.ids.keys()].sort(Order.String)).toEqual(["added", "first"]);
 		expect(yield* readIndex()).toBe(snapshot);
 	},
 );

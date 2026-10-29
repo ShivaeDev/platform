@@ -20,7 +20,7 @@ function EntryDetails({ entry }: { readonly entry: Entry }) {
 		return null;
 	}
 	return (
-		<span className="flex flex-wrap items-center gap-x-1 gap-y-0.5 text-muted-foreground text-xs">
+		<span className="text-muted-foreground flex flex-wrap items-center gap-x-1 gap-y-0.5 text-xs">
 			{entry.item.at === undefined ? null : (
 				<span>
 					read <RowTime at={entry.item.at} />
@@ -49,10 +49,10 @@ export function HistoryEntry({
 }) {
 	return (
 		<li className="flex min-w-0 items-center gap-1">
-			<div className="relative min-w-0 flex-1 rounded-md px-2 py-1.5 hover:bg-muted has-[a[aria-current=page]]:bg-accent has-[a[aria-current=page]]:text-accent-foreground has-[a:focus-visible]:ring-3 has-[a:focus-visible]:ring-ring/50">
+			<div className="hover:bg-muted has-[a[aria-current=page]]:bg-accent has-[a[aria-current=page]]:text-accent-foreground has-[a:focus-visible]:ring-ring/50 relative min-w-0 flex-1 rounded-md px-2 py-1.5 has-[a:focus-visible]:ring-3">
 				<a
 					aria-current={entry.current ? "page" : undefined}
-					className="block truncate text-foreground no-underline outline-none after:absolute after:inset-0 aria-[current=page]:text-accent-foreground"
+					className="text-foreground aria-[current=page]:text-accent-foreground block truncate no-underline outline-none after:absolute after:inset-0"
 					href={fileUrl(entry.item.file)}
 					onClick={onClose}
 					title={entry.item.title}

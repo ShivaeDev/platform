@@ -39,7 +39,7 @@ export function HandoffPrompt({
 					Copy prompt
 				</Button>
 				{!prepared && (
-					<p className="m-0 text-muted-foreground text-xs" data-copy-status role="status">
+					<p className="text-muted-foreground m-0 text-xs" data-copy-status role="status">
 						{status}
 					</p>
 				)}

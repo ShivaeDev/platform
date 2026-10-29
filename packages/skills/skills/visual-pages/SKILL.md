@@ -30,19 +30,19 @@ The reader takes one look and gets it. Within about five seconds they see how th
 
 ## Choosing the figure
 
-| The point is about | Draw |
-|---|---|
-| What exists and how it connects | a system map |
-| Capacity, ownership or containment | the resources in fixed positions, changing state in place |
-| How something unfolded | a replay of the real data, with play, speed, scrubber and clock |
-| Order of steps, or a decision path | a sequence, timeline or flow |
-| Which option to take | the same figure once per option, side by side, the difference highlighted |
-| What happens if a value changes | a simulator: a labelled slider that redraws the figure and its result |
-| Change over time | a line, with the windows that matter bracketed and the step annotated |
-| Comparing categories | bars, sorted, the one that matters in the accent colour |
-| Part of a whole, sized by importance | a treemap or proportional tiles |
-| Many connected items | a graph whose hover spotlights one item's connections |
-| Exact values someone will look up | a table, and only then |
+| The point is about                   | Draw                                                                      |
+| ------------------------------------ | ------------------------------------------------------------------------- |
+| What exists and how it connects      | a system map                                                              |
+| Capacity, ownership or containment   | the resources in fixed positions, changing state in place                 |
+| How something unfolded               | a replay of the real data, with play, speed, scrubber and clock           |
+| Order of steps, or a decision path   | a sequence, timeline or flow                                              |
+| Which option to take                 | the same figure once per option, side by side, the difference highlighted |
+| What happens if a value changes      | a simulator: a labelled slider that redraws the figure and its result     |
+| Change over time                     | a line, with the windows that matter bracketed and the step annotated     |
+| Comparing categories                 | bars, sorted, the one that matters in the accent colour                   |
+| Part of a whole, sized by importance | a treemap or proportional tiles                                           |
+| Many connected items                 | a graph whose hover spotlights one item's connections                     |
+| Exact values someone will look up    | a table, and only then                                                    |
 
 **Order or state?** When the behaviour is explained by something filling up, being held or running out (a pool, a queue, a host's slots, a budget), draw the resources in fixed positions and change their state. A chain of boxes saying "pool full, wait, reuse" hides the very thing that matters.
 
@@ -79,7 +79,6 @@ The reader takes one look and gets it. Within about five seconds they see how th
 ## Page shapes
 
 **Decision page.** Used whenever the reader must choose. In order:
-
 1. How the system works, drawn, just enough to follow the options.
 2. The concrete situation that forces the choice, drawn.
 3. Each option drawn the same way, the difference highlighted, the trade-off in one line.
@@ -104,14 +103,12 @@ Read the answers back (in claude.ai, with `ArtifactData`) and carry on with the 
 The rules are not equal. Shape comes first: the right form, the mechanism drawn, the answer visible, little prose. Colour, labels and legend wording are polish. Fix them when it is cheap, and never trade a better shape for better colours.
 
 **Purpose**
-
 - **Five-second answer.** Everything on the page serves the one-look answer or goes.
 - **Show, don't tell.** Relationships, changes, flows and comparisons are figures. Prose is captions and short labels, about a third of the page at most. Concise prose is still a wall.
 - **No caveat theatre.** No hedges, not-confirmed lists, method notes or self-justification. Keep a caveat only if it would change the reader's decision, and put it next to the claim it qualifies.
 - **High level only.** Leave out detail nobody asked for: file and line lists, edge cases, every row, the history of how you found it. If something still feels important, put it in one section at the bottom, collapsed by default, labelled as more detail.
 
 **Build**
-
 - **Small figures.** Two to five things lit at once, about eight at most. Without a spotlight, split into an overview and a focused view.
 - **Never restate.** No table, cards or paragraphs under a figure that repeat what it shows. Spend the space on the figure.
 - **Headline answers.** A page that makes a claim states it in the headline, with its number. A title that only names the topic wastes the most-read line on the page.
@@ -131,7 +128,6 @@ The rules are not equal. Shape comes first: the right form, the mechanism drawn,
 ## Failure catalogue
 
 These are the ways pages fail most often. Check for each before publishing.
-
 - **Text in costume.** Cards, callouts and coloured boxes that each hold a paragraph. It looks visual and reads as prose.
 - **Figures that do not carry the argument.** A diagram sits on the page while the actual reasoning lives in the paragraphs around it.
 - **Boxes that only name things.** A row of component names joined by arrows, with nothing about what flows, what waits or where it breaks.
@@ -146,7 +142,6 @@ These are the ways pages fail most often. Check for each before publishing.
 ## Review checklist
 
 Look at the rendered page once and answer each question honestly:
-
 1. Cover the text and look only at the figures for five seconds. Is the answer clear?
 2. Is prose more than about a third of the page? Turn the longest paragraph into a figure or cut it.
 3. Does any figure only name components? Draw what moves, waits or breaks.

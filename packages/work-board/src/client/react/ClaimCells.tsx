@@ -44,8 +44,8 @@ function EvidenceProblem({ problem }: { readonly problem: string }) {
 		return null;
 	}
 	return (
-		<span className="mt-1 flex items-center gap-1 text-muted-foreground" data-evidence-problem>
-			<TriangleAlert aria-hidden="true" className="size-3 shrink-0 text-needs-you" />
+		<span className="text-muted-foreground mt-1 flex items-center gap-1" data-evidence-problem>
+			<TriangleAlert aria-hidden="true" className="text-needs-you size-3 shrink-0" />
 			{evidenceProblems[problem] ?? problem.trim()}
 		</span>
 	);

@@ -47,7 +47,7 @@ function FleetRow({ item }: { readonly item: Item }) {
 	const title = item.document?.title ?? item.workId;
 	return (
 		<li className="flex min-w-0 flex-wrap items-center gap-2 py-3" data-fleet-id={item.workId}>
-			<a className="min-w-0 flex-1 basis-40 font-medium text-sm [overflow-wrap:anywhere]" href={`/_board/item/${encodeURIComponent(item.workId)}/`}>
+			<a className="min-w-0 flex-1 basis-40 text-sm font-medium [overflow-wrap:anywhere]" href={`/_board/item/${encodeURIComponent(item.workId)}/`}>
 				{title}
 			</a>
 			<Badge variant="outline">{stageTime(item.stage).label}</Badge>

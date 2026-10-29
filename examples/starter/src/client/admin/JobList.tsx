@@ -50,7 +50,7 @@ export function JobList({
 				) : (
 					Option.isSome(selected) && (
 						<section aria-label="Dead-letter detail">
-							<h2 className="mb-4 font-semibold text-xl">Dead-letter detail</h2>
+							<h2 className="mb-4 text-xl font-semibold">Dead-letter detail</h2>
 							<JobRecord job={selected.value} />
 						</section>
 					)

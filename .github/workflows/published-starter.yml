@@ -2,7 +2,7 @@ name: Published starter
 
 on:
   schedule:
-    - cron: '17 6 * * *'
+    - cron: "17 6 * * *"
   workflow_dispatch:
     inputs:
       create-app-version:
@@ -17,8 +17,8 @@ on:
       - examples/starter/.github/workflows/**
   # A release pins the starter to versions that reach npm only when it publishes, so its check runs right after.
   workflow_run:
-    workflows: [Publish packages]
-    types: [completed]
+    workflows: [ Publish packages ]
+    types: [ completed ]
 
 permissions:
   contents: read

@@ -81,7 +81,7 @@ updates.it("keeps a minimal app free of notes when a later starter adds example 
 	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ minimal: true, name: "my-app", version: "0.2.0" });
 });
 
-updates.it("moves an app that listed pieces directly onto platform and the hoist setting", [], function* (app) {
+updates.it("moves an app that listed pieces directly onto platform", [], function* (app) {
 	const manifest = app.starterFile("package.json");
 	const workspace = app.starterFile("pnpm-workspace.copy.yaml");
 	const listed = JSON.parse(manifest);
@@ -99,5 +99,4 @@ updates.it("moves an app that listed pieces directly onto platform and the hoist
 	const result = yield* app.update();
 	expect(result.status, result.stderr).toBe(0);
 	expect(JSON.parse(app.read("package.json")).dependencies["@shivaedev/sql"]).toBeUndefined();
-	expect(app.read("pnpm-workspace.yaml")).toContain('\npublicHoistPattern: ["@shivaedev/*"]\n');
 });

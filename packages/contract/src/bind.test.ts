@@ -1,4 +1,4 @@
-import { Effect, Result } from "effect";
+import { Effect, Order, Result } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { expect } from "vitest";
 import { eventually } from "#test/eventually.ts";
@@ -14,7 +14,7 @@ notesStory.it(
 		mount(one);
 		mount(two);
 		mount(list);
-		yield* eventually(() => expect([...reads()].sort()).toEqual(["get:1", "get:2", "list"]));
+		yield* eventually(() => expect([...reads()].sort(Order.String)).toEqual(["get:1", "get:2", "list"]));
 		const renamed = yield* Effect.result(rename(1, "Uno"));
 		expect(Result.isSuccess(renamed)).toBe(true);
 		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.title).toBe("Uno"));

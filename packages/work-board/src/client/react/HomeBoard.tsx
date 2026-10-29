@@ -16,7 +16,7 @@ function BoardCounts({ counts }: { readonly counts: BoardProjection["counts"] })
 			{counts.map((column, index) => (
 				<Fragment key={column.title}>
 					{index > 0 && SEPARATOR}
-					<b className="font-medium text-foreground">{column.count}</b> {column.title.toLowerCase()}
+					<b className="text-foreground font-medium">{column.count}</b> {column.title.toLowerCase()}
 				</Fragment>
 			))}
 		</span>

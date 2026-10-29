@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Order } from "effect";
 import { expect } from "vitest";
 import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { decisionId, readyDecisionFixture } from "#test/answerCardFixture.ts";
@@ -196,6 +196,6 @@ screenStory.it(
 		);
 		const theirs = yield* change("reviewer", "retry", "Answered by reviewer: Request changes. Fleet picks this up on its next pass.", mine);
 		const saved = yield* Effect.promise(() => readResponses(decisionId, "direction"));
-		expect(saved.responses.map((entry) => entry.id).sort()).toEqual(["response.direction-retry", mine, theirs].sort());
+		expect(saved.responses.map((entry) => entry.id).sort(Order.String)).toEqual(["response.direction-retry", mine, theirs].sort(Order.String));
 	},
 );

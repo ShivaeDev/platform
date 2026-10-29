@@ -28,13 +28,13 @@ export function GoalAsks({ asks }: { readonly asks: readonly [Ask, ...Ask[]] }) 
 }
 function AskList({ asks }: { readonly asks: readonly Ask[] }) {
 	return (
-		<ul className="!m-0 !p-0 !list-none space-y-2" data-goal-ask-list="">
+		<ul className="!m-0 !list-none space-y-2 !p-0" data-goal-ask-list="">
 			{asks.map((ask) => (
 				<li key={ask.href}>
 					<a className="font-medium" href={ask.href}>
 						{ask.title}
 					</a>
-					<span className="block text-muted-foreground text-xs">{ask.reason}</span>
+					<span className="text-muted-foreground block text-xs">{ask.reason}</span>
 				</li>
 			))}
 		</ul>

@@ -8,15 +8,18 @@ Save this task as `items/task.md`:
 
 ```markdown
 ---
+
 id: work.keyboard
 kind: task
 status: ready
 criteria:
-  - id: focus
-    text: Escape restores focus to its opening control
-  - id: narrow
-    text: Narrow layout stays readable
+- id: focus
+  text: Escape restores focus to its opening control
+- id: narrow
+  text: Narrow layout stays readable
+
 ---
+
 # Keyboard work
 
 Review the keyboard behavior and its recorded evidence before changing status.
@@ -28,20 +31,23 @@ Save the returned report as `items/result.md`:
 
 ```markdown
 ---
+
 id: result.keyboard
 kind: report
 status: finished
 relationships:
-  - kind: implements
-    target: work.keyboard
-attention:
-  - id: review
-    kind: review
-    state: open
-    response_from: [maintainer]
-    reason: Review this exact report and its limitations.
-    unblocks: [work.keyboard]
+- kind: implements
+  target: work.keyboard
+  attention:
+- id: review
+  kind: review
+  state: open
+  response_from: [maintainer]
+  reason: Review this exact report and its limitations.
+  unblocks: [work.keyboard]
+
 ---
+
 # Keyboard result
 
 The change is ready for review.

@@ -29,7 +29,7 @@ function MoreDestinations({ current }: { readonly current: Destination | undefin
 			{workspaceDestinations.slice(3).map(({ href, label, view }) => (
 				<a
 					aria-current={current === view ? "page" : undefined}
-					className="flex min-h-12 items-center rounded-md px-3 text-foreground no-underline outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground"
+					className="text-foreground hover:bg-muted focus-visible:ring-ring/50 aria-[current=page]:bg-accent aria-[current=page]:text-accent-foreground flex min-h-12 items-center rounded-md px-3 no-underline outline-none focus-visible:ring-3"
 					href={href}
 					key={view}
 				>

@@ -24,19 +24,13 @@ import { FetchHttpClient } from "effect/http";
 import { GitHub, list, read, write } from "@shivaedev/github/GitHub.ts";
 import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
 
-const github = GitHub.layer.pipe(
-  Layer.provide(FetchHttpClient.layer),
-  Layer.provide(GitHubToken.fromEnv),
-);
+const github = GitHub.layer.pipe(Layer.provide(FetchHttpClient.layer), Layer.provide(GitHubToken.fromEnv));
 const Issue = Schema.Struct({ number: Schema.Number, title: Schema.String });
 const program = Effect.gen(function* () {
-  const issue = yield* read("/repos/acme/widgets/issues/1", Issue);
-  const first = yield* list("/repos/acme/widgets/issues", Issue).pipe(
-    Stream.take(1),
-    Stream.runCollect,
-  );
-  const created = yield* write("POST", "/repos/acme/widgets/issues", { title: "A new issue" }, Issue);
-  return { issue, first, created };
+	const issue = yield* read("/repos/acme/widgets/issues/1", Issue);
+	const first = yield* list("/repos/acme/widgets/issues", Issue).pipe(Stream.take(1), Stream.runCollect);
+	const created = yield* write("POST", "/repos/acme/widgets/issues", { title: "A new issue" }, Issue);
+	return { issue, first, created };
 });
 
 await Effect.runPromise(program.pipe(Effect.provide(github)));
@@ -54,12 +48,14 @@ For large comparisons and listings, allow up to 16 MiB through the same bounded,
 import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
 
 const largeGithub = GitHub.layer.pipe(
-  Layer.provide(FetchHttpClient.layer),
-  Layer.provide(GitHubToken.fromEnv),
-  Layer.provide(Layer.succeed(GitHubConfig)({
-    apiUrl: "https://api.github.com",
-    responseByteLimit: 16 * 1024 * 1024,
-  })),
+	Layer.provide(FetchHttpClient.layer),
+	Layer.provide(GitHubToken.fromEnv),
+	Layer.provide(
+		Layer.succeed(GitHubConfig)({
+			apiUrl: "https://api.github.com",
+			responseByteLimit: 16 * 1024 * 1024,
+		}),
+	),
 );
 const Comparison = Schema.Struct({ total_commits: Schema.Number });
 const comparison = read("/repos/acme/widgets/compare/main...feature", Comparison, 16 * 1024 * 1024);
@@ -71,8 +67,8 @@ For diff text and other raw bodies, obtain the service and call `text(path, acce
 
 ```ts
 const diff = Effect.gen(function* () {
-  const github = yield* GitHub;
-  return yield* github.text("/repos/acme/widgets/pulls/1", "application/vnd.github.diff", 256 * 1024);
+	const github = yield* GitHub;
+	return yield* github.text("/repos/acme/widgets/pulls/1", "application/vnd.github.diff", 256 * 1024);
 });
 ```
 
@@ -97,19 +93,19 @@ import { GitHub, list, read } from "@shivaedev/github/GitHub.ts";
 import { githubApp } from "@shivaedev/github/githubApp.ts";
 
 const clients = (privateKey: Redacted.Redacted<string>) => {
-  const credentials = { appId: "123456", privateKey };
-  const client = (auth: ReturnType<typeof githubApp>) => GitHub.layer.pipe(
-    Layer.provide(auth),
-    Layer.provide(FetchHttpClient.layer),
-  );
-  return {
-    app: client(githubApp(credentials)),
-    background: client(githubApp({ ...credentials, installationId: 7 })),
-    accessCheck: client(githubApp({
-      ...credentials, installationId: 7,
-      scope: { repositoryIds: [42], permissions: { metadata: "read" } },
-    })),
-  };
+	const credentials = { appId: "123456", privateKey };
+	const client = (auth: ReturnType<typeof githubApp>) => GitHub.layer.pipe(Layer.provide(auth), Layer.provide(FetchHttpClient.layer));
+	return {
+		app: client(githubApp(credentials)),
+		background: client(githubApp({ ...credentials, installationId: 7 })),
+		accessCheck: client(
+			githubApp({
+				...credentials,
+				installationId: 7,
+				scope: { repositoryIds: [42], permissions: { metadata: "read" } },
+			}),
+		),
+	};
 };
 const appInfo = read("/app", Schema.Struct({ id: Schema.Number, slug: Schema.String }));
 const installations = list("/app/installations", Schema.Struct({ id: Schema.Number })).pipe(Stream.runCollect);
@@ -137,11 +133,13 @@ import { Effect } from "effect";
 import { GitHub } from "@shivaedev/github/GitHub.ts";
 
 const archive = Effect.gen(function* () {
-  const github = yield* GitHub;
-  return yield* github.downloadArtifactArchive({
-    owner: "acme", repo: "widgets", artifactId: 7,
-    byteLimit: 10 * 1024 * 1024,
-  });
+	const github = yield* GitHub;
+	return yield* github.downloadArtifactArchive({
+		owner: "acme",
+		repo: "widgets",
+		artifactId: 7,
+		byteLimit: 10 * 1024 * 1024,
+	});
 });
 ```
 
@@ -160,14 +158,11 @@ import { Redacted, Schema } from "effect";
 import { verifyWebhook } from "@shivaedev/github/verifyWebhook.ts";
 
 const WorkflowRun = Schema.Struct({
-  action: Schema.String,
-  workflowRun: Schema.Struct({ id: Schema.Number, conclusion: Schema.String }),
+	action: Schema.String,
+	workflowRun: Schema.Struct({ id: Schema.Number, conclusion: Schema.String }),
 }).pipe(Schema.encodeKeys({ workflowRun: "workflow_run" }));
-const receiveWorkflowRun = (
-  rawBody: Uint8Array,
-  signature: string | undefined,
-  secret: Redacted.Redacted<string>,
-) => verifyWebhook(rawBody, signature, secret, WorkflowRun);
+const receiveWorkflowRun = (rawBody: Uint8Array, signature: string | undefined, secret: Redacted.Redacted<string>) =>
+	verifyWebhook(rawBody, signature, secret, WorkflowRun);
 ```
 
 Omit the Schema argument to verify the signature only, without decoding the body. With a Schema, this decodes a signed `workflow_run` delivery with the fields the application needs. Keep the body bytes as received: parsing and reserializing JSON changes what was signed.
@@ -180,32 +175,40 @@ For a GitHub App, pass its numeric `appId`. Matching then requires the body to s
 
 ```ts
 const report = Effect.gen(function* () {
-  const github = yield* GitHub;
-  return yield* github.upsertStickyComment({
-    owner: "acme", repo: "widgets", number: 1,
-    marker: "coverage", appId: 123456,
-    body: "Coverage: 90%",
-  });
+	const github = yield* GitHub;
+	return yield* github.upsertStickyComment({
+		owner: "acme",
+		repo: "widgets",
+		number: 1,
+		marker: "coverage",
+		appId: 123456,
+		body: "Coverage: 90%",
+	});
 });
 ```
 
 `createCheckRun(owner, repo, input)` creates a check for `headSha` with a name and status. `updateCheckRun(owner, repo, id, input)` moves it to `in_progress` or `completed`; completion requires a conclusion. Output contains `title`, `summary` and optional `text`. An optional `detailsUrl` on creation and either update shape links to an external report; the returned `CheckRun.detailsUrl` is the GitHub URL or `null` when none exists. It is sent and decoded as `details_url`. Request and response Schemas are exported from `checkRuns.ts`.
 
 ```ts
-const check = (headSha: string) => Effect.gen(function* () {
-  const github = yield* GitHub;
-  const created = yield* github.createCheckRun("acme", "widgets", {
-    headSha, name: "Coverage", status: "queued",
-    detailsUrl: "https://reports.example/coverage",
-  });
-  yield* github.updateCheckRun("acme", "widgets", created.id, {
-    status: "in_progress", output: { title: "Coverage", summary: "Measuring" },
-  });
-  return yield* github.updateCheckRun("acme", "widgets", created.id, {
-    status: "completed", conclusion: "success",
-    output: { title: "Coverage", summary: "90% covered", text: "All targets measured" },
-  });
-});
+const check = (headSha: string) =>
+	Effect.gen(function* () {
+		const github = yield* GitHub;
+		const created = yield* github.createCheckRun("acme", "widgets", {
+			headSha,
+			name: "Coverage",
+			status: "queued",
+			detailsUrl: "https://reports.example/coverage",
+		});
+		yield* github.updateCheckRun("acme", "widgets", created.id, {
+			status: "in_progress",
+			output: { title: "Coverage", summary: "Measuring" },
+		});
+		return yield* github.updateCheckRun("acme", "widgets", created.id, {
+			status: "completed",
+			conclusion: "success",
+			output: { title: "Coverage", summary: "90% covered", text: "All targets measured" },
+		});
+	});
 ```
 
 ### Rendering untrusted text
@@ -216,12 +219,10 @@ Use the pure helpers from `markdown.ts` for test names and error messages. `plai
 import { tableCell } from "@shivaedev/github/markdown.ts";
 import { renderRows } from "@shivaedev/github/markdownRows.ts";
 
-const rows = failures.map(({ name, error }) =>
-  `| ${tableCell(name)} | ${tableCell(error, "code")} |`,
-);
+const rows = failures.map(({ name, error }) => `| ${tableCell(name)} | ${tableCell(error, "code")} |`);
 const summary = renderRows(rows, {
-  header: "| Test | Error |\n| --- | --- |",
-  byteLimit: 8_000,
+	header: "| Test | Error |\n| --- | --- |",
+	byteLimit: 8_000,
 });
 ```
 
@@ -237,12 +238,8 @@ A 403 with `"Resource not accessible by integration"` fails with `GitHubPermissi
 
 ```ts
 const publishReport = report.pipe(
-  Effect.catchTag("GitHubPermissionDenied", ({ path }) =>
-    Effect.succeed({ published: false, reason: "permissions", path }),
-  ),
-  Effect.catchTag("GitHubConversationLocked", ({ path }) =>
-    Effect.succeed({ published: false, reason: "locked", path }),
-  ),
+	Effect.catchTag("GitHubPermissionDenied", ({ path }) => Effect.succeed({ published: false, reason: "permissions", path })),
+	Effect.catchTag("GitHubConversationLocked", ({ path }) => Effect.succeed({ published: false, reason: "locked", path })),
 );
 ```
 

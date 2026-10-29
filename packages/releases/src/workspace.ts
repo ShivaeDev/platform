@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
-import { Effect, FileSystem, Schema } from "effect";
+import { Effect, FileSystem, Order, Schema } from "effect";
 import type { ChangesetConfig } from "#config.ts";
 import { attempt, ChangesetError, requireThat } from "#error.ts";
 import { PackageManifest, type Source, type WorkspacePackage } from "#model.ts";
@@ -71,7 +71,7 @@ export const readChangesets = Effect.fn("Changesets.readChangesets")(function* (
 	const fs = yield* FileSystem.FileSystem;
 	const directory = join(root, ".changeset");
 	const names = (yield* fs.exists(directory)) ? yield* fs.readDirectory(directory) : [];
-	return yield* Effect.forEach(names.filter(isChangeset).sort(), (name) =>
+	return yield* Effect.forEach(names.filter(isChangeset).sort(Order.String), (name) =>
 		Effect.map(fs.readFileString(join(directory, name)), (text): Source => ({ name, text })),
 	);
 });
@@ -80,7 +80,7 @@ export function isChangeset(name: string): boolean {
 }
 export const readWorkspace = Effect.fn("Changesets.readWorkspace")(function* (root: string, config: ChangesetConfig) {
 	const fs = yield* FileSystem.FileSystem;
-	const paths = [...new Set((yield* Effect.forEach(packagePatterns(config), (pattern) => directories(root, pattern))).flat())].sort();
+	const paths = [...new Set((yield* Effect.forEach(packagePatterns(config), (pattern) => directories(root, pattern))).flat())].sort(Order.String);
 	const packages: WorkspacePackage[] = [];
 	for (const directory of paths) {
 		if (yield* fs.exists(join(root, directory, "package.json"))) {

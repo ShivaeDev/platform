@@ -22,7 +22,7 @@ export function SystemHealth({
 	return (
 		<>
 			<p className="text-muted-foreground text-xs">{freshness}</p>
-			<dl className="grid gap-4 text-sm [&_dt]:text-muted-foreground">
+			<dl className="[&_dt]:text-muted-foreground grid gap-4 text-sm">
 				<div>
 					<dt>Running / concurrency cap</dt>
 					<dd>

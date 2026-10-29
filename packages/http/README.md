@@ -14,12 +14,12 @@ import { filterStatus } from "@shivaedev/http/filterStatus.ts";
 import { paginate } from "@shivaedev/http/paginate.ts";
 
 const items = Effect.gen(function* () {
-  const client = filterStatus(yield* HttpClient.HttpClient);
-  return yield* paginate(client, HttpClientRequest.get("https://api.example/items")).pipe(
-    Stream.mapEffect((response) => readBoundedJson(response, 64 * 1024, Schema.Array(Schema.String))),
-    Stream.runCollect,
-    Effect.map((pages) => pages.flat()),
-  );
+	const client = filterStatus(yield* HttpClient.HttpClient);
+	return yield* paginate(client, HttpClientRequest.get("https://api.example/items")).pipe(
+		Stream.mapEffect((response) => readBoundedJson(response, 64 * 1024, Schema.Array(Schema.String))),
+		Stream.runCollect,
+		Effect.map((pages) => pages.flat()),
+	);
 });
 ```
 
@@ -49,10 +49,10 @@ import { HttpIncomingMessage, HttpRouter, HttpServerResponse } from "effect/http
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 
 const routes = HttpRouter.add("POST", "/webhook", (request) =>
-  readBoundedBody(request).pipe(
-    Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
-    Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(64 * 1024)),
-  ),
+	readBoundedBody(request).pipe(
+		Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
+		Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(64 * 1024)),
+	),
 );
 ```
 

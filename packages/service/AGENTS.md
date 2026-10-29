@@ -5,7 +5,6 @@ You are changing the package that defines an application's Effect services. A se
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Effect owns the semantics.** Initialization resources belong to the Layer's scope; method resources belong to the caller's scope. Keep success, failure and remaining requirements visible in public types. Do not introduce another runtime or service container.
 2. **The declaration tells the truth.** Initialization and ordinary methods use the listed services, and a caller cannot replace those bound dependencies. Private state stays behind the method interface. Reject an unsupported signature instead of widening it until it appears to fit.
 3. **One definition removes repeated work.** Dependencies, initialization and methods belong together. Extend `defineService` rather than creating a second declaration path or asking applications to bind dependencies by hand.

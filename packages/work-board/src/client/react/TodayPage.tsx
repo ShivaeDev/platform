@@ -51,13 +51,13 @@ export function TodayPage({ api, data }: { readonly api: ShellApi; readonly data
 					<TodayNeedsYou answering={answering} api={api} complete={data.complete} identified={data.identified} />
 					{data.complete && answered.length > 0 && <Answered fleet={Option.isSome(fleetQuery.cause) ? undefined : fleet} rows={answered} />}
 					<section className="min-w-0" id={todayIds.progress}>
-						<h2 className="mt-0 mb-3 font-semibold text-lg">{progress?.source === "files" ? "Ready tasks" : "In progress"}</h2>
+						<h2 className="mt-0 mb-3 text-lg font-semibold">{progress?.source === "files" ? "Ready tasks" : "In progress"}</h2>
 						<TodayProgress data={fleet} failed={Option.isSome(fleetQuery.cause)} />
 					</section>
 					{data.complete && data.later.length > 0 && <Later items={data.later} />}
 				</div>
 				<section className="min-w-0" id={todayIds.goals}>
-					<h2 className="mt-0 mb-3 font-semibold text-lg">Goals</h2>
+					<h2 className="mt-0 mb-3 text-lg font-semibold">Goals</h2>
 					{goals ? <TodayGoals data={goals} /> : null}
 					{goals === undefined && Option.isSome(query.cause) ? <p role="status">Goals unavailable.</p> : null}
 					{goals === undefined && Option.isNone(query.cause) ? <LoadingCards cards={2} columns={1} label="Loading goals" /> : null}
@@ -79,7 +79,7 @@ function recentRows(rows: readonly RecentAnswer[]) {
 function Answered({ fleet, rows }: { readonly fleet: FleetItemsProjection | undefined; readonly rows: readonly RecentAnswer[] }) {
 	return (
 		<section className="min-w-0" id={todayIds.answered}>
-			<h2 className="mt-0 mb-3 font-semibold text-lg">Answered</h2>
+			<h2 className="mt-0 mb-3 text-lg font-semibold">Answered</h2>
 			<TodayAnswered fleet={fleet} rows={rows} />
 		</section>
 	);
@@ -104,8 +104,8 @@ function Later({ items }: { readonly items: InboxProjection["later"] }) {
 		<section className="min-w-0" id={todayIds.later}>
 			<details>
 				<summary className="mb-3 cursor-pointer">
-					<h2 className="m-0 inline font-semibold text-lg">Later</h2>
-					<span className="ml-2 text-muted-foreground text-sm tabular-nums">{items.length}</span>
+					<h2 className="m-0 inline text-lg font-semibold">Later</h2>
+					<span className="text-muted-foreground ml-2 text-sm tabular-nums">{items.length}</span>
 				</summary>
 				<TodayLater items={items} />
 			</details>

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Order } from "effect";
 import { expect } from "vitest";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
@@ -17,7 +17,7 @@ fileWatcherStory.it(
 		expect(yield* nextChange()).toMatchObject({ _tag: "Changed", paths: expect.arrayContaining(paths) });
 		expect(yield* revision()).toBe(before + 1);
 		const snapshots = yield* Effect.all([readIndex(), readIndex(), readIndex()], { concurrency: "unbounded" });
-		expect(readPaths().sort()).toEqual([...paths].sort());
+		expect(readPaths().sort(Order.String)).toEqual([...paths].sort(Order.String));
 		expect(snapshots[0]).toBe(snapshots[1]);
 		expect(snapshots[1]).toBe(snapshots[2]);
 		expect(snapshots[0]?.documents.map((source) => source.parsed.body)).toEqual(paths.map(() => "# After"));

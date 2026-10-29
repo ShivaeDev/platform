@@ -31,9 +31,9 @@ import { Rpc } from "effect/rpc";
 import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 
 export const Rename = Rpc.make("Rename", {
-  error: Schema.Union([BadRequest, Conflict]),
-  payload: { name: Schema.String },
-  success: Schema.String,
+	error: Schema.Union([BadRequest, Conflict]),
+	payload: { name: Schema.String },
+	success: Schema.String,
 });
 ```
 
@@ -50,7 +50,7 @@ import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 
 const Rejection = Schema.Union([Conflict, InternalServerError]);
 const expose = rpcBoundary(Rejection, {
-  unexpected: (message) => new InternalServerError({ message }),
+	unexpected: (message) => new InternalServerError({ message }),
 });
 
 export const save = storageSave.pipe(expose);

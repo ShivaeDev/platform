@@ -63,11 +63,11 @@ function FeedbackEntry({ entry, received }: { readonly entry: ResultProjection["
 	return (
 		<article className="min-w-0 space-y-3 rounded-lg border p-4" data-matching={matching} id={response.id}>
 			<header className="flex flex-wrap items-center gap-2">
-				<h3 className="m-0 font-semibold text-sm">{response.response.author}</h3>
+				<h3 className="m-0 text-sm font-semibold">{response.response.author}</h3>
 				<Badge variant="secondary">{statusLabel(response.response.type)}</Badge>
 				<Badge variant="outline">{matching ? "This version" : "Earlier version"}</Badge>
 			</header>
-			<p className="m-0 text-muted-foreground" data-reviewed-version>
+			<p className="text-muted-foreground m-0" data-reviewed-version>
 				{matching ? (
 					<>
 						Written for the version of {source} shown here, received <Time at={received} />.
@@ -94,12 +94,12 @@ function FeedbackEntry({ entry, received }: { readonly entry: ResultProjection["
 			</div>
 			<details className="rounded-md border px-3 py-2">
 				<summary className="cursor-pointer font-medium">Report as reviewed</summary>
-				<p className="mt-2 mb-0 text-muted-foreground text-xs">
-					SHA-256 <code className="select-all break-all font-mono">{question.question.reviewedRevision}</code>
+				<p className="text-muted-foreground mt-2 mb-0 text-xs">
+					SHA-256 <code className="font-mono break-all select-all">{question.question.reviewedRevision}</code>
 				</p>
-				<pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs">{question.context}</pre>
+				<pre className="bg-muted mt-2 max-h-96 overflow-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">{question.context}</pre>
 			</details>
-			<p className="m-0 text-muted-foreground text-xs">
+			<p className="text-muted-foreground m-0 text-xs">
 				<a href={fileUrl(responseFile)}>Response file</a> · <a href={fileUrl(questionFile)}>Question file</a>
 			</p>
 		</article>

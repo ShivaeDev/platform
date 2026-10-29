@@ -13,7 +13,11 @@ Before: `<section>{ready && <Content />}</section>`. After:
 ```tsx
 function Panel({ ready }) {
 	if (!ready) return null;
-	return <section><Content /></section>;
+	return (
+		<section>
+			<Content />
+		</section>
+	);
 }
 ```
 
@@ -35,7 +39,13 @@ function Item({ item }) {
 }
 
 function List({ items }) {
-	return <ul>{items.map(item => <Item key={item.id} item={item} />)}</ul>;
+	return (
+		<ul>
+			{items.map((item) => (
+				<Item key={item.id} item={item} />
+			))}
+		</ul>
+	);
 }
 ```
 

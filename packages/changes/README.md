@@ -29,7 +29,6 @@ Owners matter when a program uses more than one database or client. Owner B comm
 The channel owns notifications, not writes. Record descriptions of what needs refreshing beside the write that affects it. Choose a key that identifies notifications that can share one refresh; this boundary is for coalescing refresh work, rather than storing every business event.
 
 The work has three parts:
-
 1. Once per binding, define the change type, owner, key and publish function, and bind the native transaction.
 2. Once per feature, record the subjects affected by each write.
 3. In each operation, run the feature through the transaction boundary or group autocommitted work with a batch.
@@ -42,19 +41,20 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 
 interface MembershipChange {
-  readonly subject: string;
-  readonly domain: string;
+	readonly subject: string;
+	readonly domain: string;
 }
 
 const published: Array<MembershipChange> = [];
 
 const membershipChanges = makeChannel<MembershipChange, SqlClient.SqlClient>({
-  name: "MembershipChanges",
-  owner: Effect.map(SqlClient.SqlClient, (sql) => sql.transactionService),
-  key: (change) => `${change.subject}:${change.domain}`,
-  publish: (changes) => Effect.sync(() => {
-    published.push(...changes);
-  }),
+	name: "MembershipChanges",
+	owner: Effect.map(SqlClient.SqlClient, (sql) => sql.transactionService),
+	key: (change) => `${change.subject}:${change.domain}`,
+	publish: (changes) =>
+		Effect.sync(() => {
+			published.push(...changes);
+		}),
 });
 ```
 
@@ -66,14 +66,14 @@ The owner is the native SQL client's transaction-service identity. The key group
 
 ```ts
 const grantMembership = (owner: string, member: string) =>
-  Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    yield* sql`insert into membership (owner, member) values (${owner}, ${member})`;
-    yield* membershipChanges.record([
-      { subject: owner, domain: "memberships" },
-      { subject: member, domain: "memberships" },
-    ]);
-  });
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`insert into membership (owner, member) values (${owner}, ${member})`;
+		yield* membershipChanges.record([
+			{ subject: owner, domain: "memberships" },
+			{ subject: member, domain: "memberships" },
+		]);
+	});
 ```
 
 One write can name several subjects. `record` deduplicates the supplied changes by the channel's key, and the transaction frame deduplicates across later records and committed nested frames. Keys retain their first-seen order.
@@ -84,12 +84,10 @@ Record while the transaction body is still running. A record or a nested frame o
 
 ```ts
 const grant = (owner: string, member: string) =>
-  Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    return yield* grantMembership(owner, member).pipe(
-      membershipChanges.within(sql.withTransaction),
-    );
-  });
+	Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		return yield* grantMembership(owner, member).pipe(membershipChanges.within(sql.withTransaction));
+	});
 ```
 
 Provide the application's native SQL layer when running `grant`. Publication happens after the native transaction succeeds and before the wrapper returns. A typed failure, defect, body interruption or failed commit discards the root frame. A nested commit merges into its parent; a nested rollback leaves the parent's own changes intact.
@@ -129,8 +127,8 @@ Query read policies belong to the contract. The query checks its session viewer 
 
 ```ts
 const grantSeveral = Effect.gen(function* () {
-  yield* grantMembership("ada", "bob");
-  yield* grantMembership("ada", "cyd");
+	yield* grantMembership("ada", "bob");
+	yield* grantMembership("ada", "cyd");
 }).pipe(membershipChanges.batch);
 ```
 
@@ -165,23 +163,19 @@ import { Layer } from "effect";
 const captured: Array<MembershipChange> = [];
 const observations: Array<Observation<MembershipChange>> = [];
 
-const captureSink = Layer.succeed(
-  membershipChanges.Sink,
-  (changes: readonly MembershipChange[]) => Effect.sync(() => {
-    captured.push(...changes);
-  }),
+const captureSink = Layer.succeed(membershipChanges.Sink, (changes: readonly MembershipChange[]) =>
+	Effect.sync(() => {
+		captured.push(...changes);
+	}),
 );
 
-const observe = Layer.succeed(
-  membershipChanges.Observer,
-  (observation: Observation<MembershipChange>) => Effect.sync(() => {
-    observations.push(observation);
-  }),
+const observe = Layer.succeed(membershipChanges.Observer, (observation: Observation<MembershipChange>) =>
+	Effect.sync(() => {
+		observations.push(observation);
+	}),
 );
 
-const capturedGrant = grant("ada", "bob").pipe(
-  Effect.provide(Layer.merge(captureSink, observe)),
-);
+const capturedGrant = grant("ada", "bob").pipe(Effect.provide(Layer.merge(captureSink, observe)));
 ```
 
 `Sink` and `Observer` are channel-specific `Context.Reference`s. Within the provided scope, the sink receives the changes instead of the configured publish function; the configured sink resumes outside it. The observer receives `Recorded` for the distinct changes in a record call, `Published` for the buffer passed to publication and `Discarded` for a rolled-back frame's changes. `Published` is emitted before the sink runs; it does not prove successful delivery. Discarded parent changes include changes merged from children that committed earlier. A rollback therefore remains visible to a coverage check through its earlier `Recorded` observation.
@@ -196,14 +190,14 @@ A direct driver binding using `open` must run `frame.beforeCommit` inside its tr
 
 Import from the module that defines the name; the package has no root entry.
 
-| Module | Names |
-| --- | --- |
-| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit` |
-| `@shivaedev/changes/frame.ts` | `Frame`, `CommitFrame`, `Outcome` |
-| `@shivaedev/changes/observe.ts` | `Observation`, `Observer` |
-| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure` |
-| `@shivaedev/changes/keys.ts` | `collection`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity`, `KeyContext` |
-| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets` |
+| Module                          | Names                                                                                                                          |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `@shivaedev/changes/channel.ts` | `makeChannel`, `ChannelOptions`, `Channel`, `BeforeCommit`                                                                     |
+| `@shivaedev/changes/frame.ts`   | `Frame`, `CommitFrame`, `Outcome`                                                                                              |
+| `@shivaedev/changes/observe.ts` | `Observation`, `Observer`                                                                                                      |
+| `@shivaedev/changes/publish.ts` | `Publish`, `PublishFailure`                                                                                                    |
+| `@shivaedev/changes/keys.ts`    | `collection`, `readKeys`, `invalidationKeys`, `Key`, `ListKey`, `ItemKey`, `BucketKey`, `Collection`, `Identity`, `KeyContext` |
+| `@shivaedev/changes/buckets.ts` | `bucket`, `declaredBuckets`                                                                                                    |
 
 A `Channel` exposes `record`, `within`, `batch` and `open`, and the scoped references `Sink`, `CommittedSink`, `Observer` and `BeforeCommit`.
 
@@ -216,7 +210,6 @@ pnpm add @shivaedev/changes effect
 ```
 
 `effect` is a peer dependency, so the application's Effect version runs the channel. The package declares Node 24 or newer. The SQL example also needs the application's native SQL driver and layer; neither the channel nor its installation creates a database connection or table.
-
 - The channel is an in-process notification boundary. It has no persistent outbox, replay or cross-process transport; deployment delivery requires a separate design.
 - Only explicitly recorded changes reach the channel. Trigger, cascade and raw SQL write discovery belongs to a binding or the application.
 - A native adapter must observe the real commit outcome. Wrapping only the body of a transaction does not establish that outcome.

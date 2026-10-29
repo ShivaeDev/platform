@@ -1,4 +1,4 @@
-import { Schema } from "effect";
+import { Order, Schema } from "effect";
 import type { Checks } from "#policy.ts";
 
 const CheckRun = Schema.Struct({
@@ -82,7 +82,7 @@ export function githubCheckState(
 	const pending = failures.length === 0 && (gates.length === 0 || missing.length > 0 || gates.some((check) => check.state === "pending"));
 	return {
 		evidence,
-		failedChecks: [...new Set(failures.map((check) => check.name))].sort(),
+		failedChecks: [...new Set(failures.map((check) => check.name))].sort(Order.String),
 		head,
 		passed: failures.length === 0 && !pending,
 		pending,

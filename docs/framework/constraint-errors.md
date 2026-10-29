@@ -7,12 +7,12 @@ import { mapSqlError } from "@shivaedev/sql/mapSqlError.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 
 const onSqlError = mapSqlError({
-  constraints: {
-    "orders_name_key": () => new NameTaken(),
-    "orders_customer_fkey": () => new CustomerMissing(),
-    "orders_total_check": () => new InvalidTotal(),
-  },
-  fallback: (error) => new ServiceUnavailable({ cause: error }),
+	constraints: {
+		"orders_name_key": () => new NameTaken(),
+		"orders_customer_fkey": () => new CustomerMissing(),
+		"orders_total_check": () => new InvalidTotal(),
+	},
+	fallback: (error) => new ServiceUnavailable({ cause: error }),
 });
 
 const saved = save.pipe(transact({ onSqlError }));
@@ -34,7 +34,7 @@ Two transactions that race to insert the same unique key can use the mapped doma
 
 ```ts
 const getOrCreate = insertOrder.pipe(
-  transact({ onSqlError }),
-  Effect.catchTag("NameTaken", () => findOrderByName(name)),
+	transact({ onSqlError }),
+	Effect.catchTag("NameTaken", () => findOrderByName(name)),
 );
 ```

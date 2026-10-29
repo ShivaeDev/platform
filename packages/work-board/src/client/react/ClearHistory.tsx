@@ -7,7 +7,7 @@ function ClearConfirm({ count, onCancel, onClear }: { readonly count: number; re
 	useEffect(() => cancelRef.current?.focus(), []);
 	return (
 		<fieldset className="m-0 grid w-full gap-2 border-0 p-0">
-			<legend className="mb-2 p-0 text-muted-foreground text-xs">
+			<legend className="text-muted-foreground mb-2 p-0 text-xs">
 				Remove {count === 1 ? "1 entry" : `${count} entries`} from history? Pinned documents stay.
 			</legend>
 			<div className="flex gap-2">

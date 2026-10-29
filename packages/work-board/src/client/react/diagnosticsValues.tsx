@@ -57,7 +57,7 @@ const GITHUB_PAUSES = { "rate-limit": "GitHub is blocking requests", reserve: "F
 export function DiagnosticsGithub({ value, now }: { readonly value: GithubLimits; readonly now: number }) {
 	return (
 		<>
-			<dl className="grid gap-4 text-sm [&_dt]:text-muted-foreground">
+			<dl className="[&_dt]:text-muted-foreground grid gap-4 text-sm">
 				{value.map((window) => (
 					<GithubResource key={window.resource} now={now} window={window} />
 				))}

@@ -5,7 +5,6 @@ You are changing the setup utility that makes one persistent local PostgreSQL se
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Protect existing data.** Never turn a failed readiness check or a version mismatch into permission to replace a container, remove a volume or reset a database. An explicit failure beats a convenient destructive repair.
 2. **Keep setup local.** Validate the database destination and the Docker endpoint before acting. When a setup script owns fixed database names, make its allowlist explicit. When names come from configured URLs, rely on preparation's local-target check.
 3. **Leave application policy with the application.** Share service preparation and client commands, not a catalogue of application databases, schema fixtures, migration rules or test-cleanup policy.

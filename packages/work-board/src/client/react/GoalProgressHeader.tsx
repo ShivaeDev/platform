@@ -19,7 +19,7 @@ export function GoalProgressHeader({ api, document }: { readonly api: ShellApi; 
 	const goal = [...(data?.goals ?? []), ...(data?.deferredGoals ?? []), ...(data?.closedGoals ?? [])].find((entry) => entry.id === document.identity);
 	return (
 		<section aria-labelledby={shellIds.goalProgress} className="document-lead col-span-full max-w-[68ch] space-y-4" data-goal-section="progress">
-			<h2 className="font-semibold text-xl" id={shellIds.goalProgress} tabIndex={-1}>
+			<h2 className="text-xl font-semibold" id={shellIds.goalProgress} tabIndex={-1}>
 				Progress
 			</h2>
 			{document.metadata.standing ? <p>This goal is a standing home for new work.</p> : null}
@@ -70,7 +70,7 @@ function GoalSummary({ goal }: { readonly goal: GoalsProjection["goals"][number]
 
 function GoalCountList({ counts }: { readonly counts: GoalCounts }) {
 	return (
-		<ul aria-label="Linked work by state" className="!p-0 !list-none flex flex-wrap gap-x-5 gap-y-2" data-goal-counts="">
+		<ul aria-label="Linked work by state" className="flex !list-none flex-wrap gap-x-5 gap-y-2 !p-0" data-goal-counts="">
 			{goalCountOrder.map((status) => (
 				<li className="flex items-center gap-2" data-count={counts[status]} data-status={status} key={status}>
 					<span aria-hidden="true" className="size-2 rounded-full" style={{ backgroundColor: goalColors[status] }} />

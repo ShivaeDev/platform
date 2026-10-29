@@ -21,7 +21,6 @@ Adopt Quality's policy as a whole. Quality owns the shared rules, their defaults
 A **rule** checks a repository and returns **findings**, each naming a file and what to change. Built-in and local rules always run at `error`. A finding normally counts once; a limit rule counts how far the file exceeds its limit. Use the defaults and keep checks strict. The config rejects warning levels, disabled rules, raised thresholds and inventory exclusions.
 
 Two records explain findings the repository deliberately keeps:
-
 - The **baseline** records existing debt by rule and file, as a maximum count. It makes strict checks usable before every file is cleaned up. `tighten` and `prune` lower the counts as debt disappears; explicitly writing a named rule again can raise them, and that diff needs review.
 - The config's **exceptions** list records permanent exceptions once, each with files, rules, a reason and optionally a Quality finding's `subject`. One declaration covers both Quality and Biome rules. A rule may refuse exceptions. An entry that no longer applies fails the gate instead of silently excusing future code.
 
@@ -235,7 +234,6 @@ For adoption, run `quality baseline write --rule code/unused` and review the rec
 ### What the rules check
 
 `quality lint` prints each failing rule's guidance with its findings, so the finding is the reference for what to change. The built-in rules fall into these groups:
-
 - **Structure:** `structure/max-lines` allows 150 lines in a source file and 300 in test code, `nesting/max-depth` rejects lines indented eight tabs deep, and `structure/no-barrel` rejects `index` modules. The preset rejects every re-export, types included; when `noExportedImports` suggests `export … from`, import the name where it is used instead. A module does one job.
 - **Comments:** the `comments/*` rules reject JSDoc, TODOs, banners, line and pull request references, environment pragmas and more than two comments per file. A comment says why, never what the code already says or what it used to be. A tool pragma such as `@jsxImportSource` counts as a comment until both `comments/no-jsdoc` and `comments/max-per-file` list its tag in their `allow` option.
 - **Documentation:** `docs/references` checks every Markdown file in the sources except `CHANGELOG.md`, whose released history keeps the links of its release. Relative links, reference definitions and `href`/`src` attributes reach an existing file or folder inside the repository, and a heading anchor matches one GitHub forms from the target's headings. A link to the repository's own GitHub tree, named by the root `package.json` `repository` field, is checked like a relative one unless it is pinned to a commit or a release tag. A published workspace package's README is shown on npm without the repository around it, so its links that leave the package use absolute URLs. Imports in TypeScript and JavaScript code blocks, workspace module paths such as `@scope/lib/repository.ts` written as inline code, `` `name` from `module` `` phrases and a package README's API rows resolve through the owning package's `exports` to a module that is not blocked, and every named import exists in that module unless it re-exports another. A linked document such as `CLAUDE.md` beside `AGENTS.md` is checked once, through its target. `docs/unversioned-installs` rejects a version after a package name in install commands, in shell code blocks and inline code; the package's own version ranges decide what installs, and a written version goes stale with the next release. A dist-tag such as `latest` passes.
@@ -254,7 +252,11 @@ Replace a child decision such as `<section>{ready && <Content />}</section>` wit
 ```tsx
 function Panel({ ready }) {
 	if (!ready) return null;
-	return <section><Content /></section>;
+	return (
+		<section>
+			<Content />
+		</section>
+	);
 }
 ```
 
@@ -276,7 +278,13 @@ function Item({ item }) {
 }
 
 function List({ items }) {
-	return <ul>{items.map(item => <Item key={item.id} item={item} />)}</ul>;
+	return (
+		<ul>
+			{items.map((item) => (
+				<Item key={item.id} item={item} />
+			))}
+		</ul>
+	);
 }
 ```
 
@@ -284,30 +292,30 @@ function List({ items }) {
 
 Import names from their defining module; there is no root entry. The package's `./*.ts` export pattern also exposes the gate's implementation modules; the following table lists the config, tool and extension entry points:
 
-| Module | Exports |
-| --- | --- |
-| `config.ts` | `defineConfig`, `QualityConfig`, `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules` |
-| `rule.ts` | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
-| `standardSchema.ts` | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue` |
-| `imports/fence.ts` | `fence` |
-| `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external` |
-| `imports/fences/model.ts` | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External` |
-| `testProjects.ts` | `testProjects`, `TestProjectsOptions` |
-| `appViteConfig.ts` | `appViteConfig` |
-| `appTestConfig.ts` | `appTestConfig` |
-| `naming/testName.ts` | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName` |
+| Module                        | Exports                                                                                              |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `config.ts`                   | `defineConfig`, `QualityConfig`, `Level` (`"error"`), `RuleSetting`, `RuleSettings`, `BuiltInRules`  |
+| `rule.ts`                     | `defineRule`, `Rule`, `Configured`, `Finding`, `Findings`, `SourceFile`, `RuleInputs`, `RuleContext` |
+| `standardSchema.ts`           | `StandardSchemaV1`, `StandardResult`, `StandardIssue`, `describeIssue`                               |
+| `imports/fence.ts`            | `fence`                                                                                              |
+| `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external`    |
+| `imports/fences/model.ts`     | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External`         |
+| `testProjects.ts`             | `testProjects`, `TestProjectsOptions`                                                                |
+| `appViteConfig.ts`            | `appViteConfig`                                                                                      |
+| `appTestConfig.ts`            | `appTestConfig`                                                                                      |
+| `naming/testName.ts`          | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName`                 |
 
 #### Config
 
-| Key | Default | Meaning |
-| --- | --- | --- |
-| `sources` | `["."]` | Directories or files the source rules check, relative to the repository root. |
-| `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions. |
-| `baseline` | `quality-baseline.jsonl` | Root shard for paths outside packages; package shards use `packages/<package>/quality-baseline.jsonl`. |
-| `exceptions` | `[]` | Permanent exceptions as `{ files, rules, reason, subject? }`. |
-| `registry` | `quality/registry.json` | Legacy input for upgrades; run `quality exceptions migrate`. |
-| `local` | `[]` | Exposed extension API for rules made with `defineRule`; not required for adoption. |
-| `rules` | Every rule at `error` | Options by rule id, such as import boundaries. An explicit `error` or `{ level: "error", options }` is also accepted. |
+| Key          | Default                                                      | Meaning                                                                                                               |
+| ------------ | ------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------- |
+| `sources`    | `["."]`                                                      | Directories or files the source rules check, relative to the repository root.                                         |
+| `extensions` | `.ts`, `.tsx`, `.mts`, `.cts`, `.js`, `.jsx`, `.mjs`, `.cjs` | Source extensions.                                                                                                    |
+| `baseline`   | `quality-baseline.jsonl`                                     | Root shard for paths outside packages; package shards use `packages/<package>/quality-baseline.jsonl`.                |
+| `exceptions` | `[]`                                                         | Permanent exceptions as `{ files, rules, reason, subject? }`.                                                         |
+| `registry`   | `quality/registry.json`                                      | Legacy input for upgrades; run `quality exceptions migrate`.                                                          |
+| `local`      | `[]`                                                         | Exposed extension API for rules made with `defineRule`; not required for adoption.                                    |
+| `rules`      | Every rule at `error`                                        | Options by rule id, such as import boundaries. An explicit `error` or `{ level: "error", options }` is also accepted. |
 
 #### Local rules
 
@@ -318,9 +326,7 @@ import { defineRule } from "@shivaedev/quality/rule.ts";
 
 export const noLog = defineRule({
 	check: ({ sources }) =>
-		sources
-			.filter((file) => file.text.includes("console.log"))
-			.map((file) => ({ file: file.path, message: "logs to the console." })),
+		sources.filter((file) => file.text.includes("console.log")).map((file) => ({ file: file.path, message: "logs to the console." })),
 	description: "Log through the logger.",
 	id: "local/no-console-log",
 });
@@ -348,11 +354,11 @@ quality hooks pre-commit [--config <file>]
 
 `quality` alone runs lint. The commands above use the default error-level policy. `prune --against` follows renames since the target's merge base; without a target it tries `origin/HEAD`, `origin/main`, then `origin/master`, and prunes without following moves when no merge base is available. An explicit target with unavailable history fails; fetch the needed history before rerunning. `migrate` splits a single JSON Lines baseline into shards, or converts an earlier JSON baseline into sharded JSON Lines. Use `--from quality/baseline.jsonl` for an existing single-file baseline. It removes the source after writing the shards.
 
-| Exit code | Meaning |
-| --- | --- |
-| `0` | Passed. Retained debt or loose baseline entries may remain. |
-| `1` | Failed: uncovered errors, stale exceptions or baseline entries for unknown or disabled rules. |
-| `2` | Could not run: invalid input or config, missing files or git history, a failed rule, fixes that do not settle, or invalid usage. |
+| Exit code | Meaning                                                                                                                          |
+| --------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| `0`       | Passed. Retained debt or loose baseline entries may remain.                                                                      |
+| `1`       | Failed: uncovered errors, stale exceptions or baseline entries for unknown or disabled rules.                                    |
+| `2`       | Could not run: invalid input or config, missing files or git history, a failed rule, fixes that do not settle, or invalid usage. |
 
 ### Install, shared tooling and limits
 
@@ -465,7 +471,6 @@ export default defineConfig({
 ```
 
 Quality merges the Biome settings at lint and fix time; do not add or mirror an override in `biome.json`. Files are explicit repository paths. Biome exceptions cover individual lint rules or assist actions; whole checks, rule groups and globs are rejected. `biome/files/includes` is the directory exclusion form: keep `**` and list negative patterns naming directories, such as `!**/test-support/generated`. Quality's shipped exceptions are part of its internal policy. [Exceptions and upgrades](https://github.com/ShivaeDev/platform/blob/main/packages/quality/docs/debt-and-hooks.md#exceptions) describes subjects, stale entries and the upgrade command.
-
 - The source inventory and Biome have their own scopes. `quality fix` runs Biome from the config's folder; it is not restricted to the source-rule inventory.
 - The installed hook checks files on disk, not only what is staged, and uses each committing worktree's config and dependencies. Installation sets repository-local `core.hooksPath`; the hook chains an executable global pre-commit hook without changing global configuration. Either hook's failure blocks the commit. `quality hooks status` reports when git's effective hooks path does not run Quality.
 - Workspace imports require a declaration in the importing package’s `dependencies`, `peerDependencies` or `optionalDependencies`. Tests, `test-support`, package-root tooling folders (`script`, `scripts`, `tooling`) and package-root config files may also use `devDependencies`. Explicitly export-blocked bundle inputs may use them when no runtime module reaches those inputs in the scanned import graph; an executable or another public export keeps its imports in the runtime boundary.

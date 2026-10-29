@@ -9,23 +9,23 @@ import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 
 const createOrders = Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient;
-  yield* sql`create table orders (
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`create table orders (
     id integer primary key,
     name text not null unique
   )`;
 });
 
 const seedOrders = Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient;
-  yield* sql`insert into orders (name) values ('Printer paper')`;
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`insert into orders (name) values ('Printer paper')`;
 });
 
 export const migrate = Migrator.make({})({
-  loader: Migrator.fromRecord({
-    "1_create_orders": createOrders,
-    "2_seed_orders": seedOrders,
-  }),
+	loader: Migrator.fromRecord({
+		"1_create_orders": createOrders,
+		"2_seed_orders": seedOrders,
+	}),
 });
 ```
 

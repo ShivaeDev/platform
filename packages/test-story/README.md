@@ -8,9 +8,9 @@ When agents write most of the code, test files grow into hundreds of lines nobod
 
 ```ts
 bakery.it("steps until the condition holds", [ovenIsLit(), hasDough(3)], function* ({ oven }) {
-  yield* oven.bakesEverything();
-  expect(oven.loaves()).toBe(3);
-  expect(oven.minutes()).toBe(3);
+	yield* oven.bakesEverything();
+	expect(oven.loaves()).toBe(3);
+	expect(oven.minutes()).toBe(3);
 });
 ```
 
@@ -54,7 +54,6 @@ Every story belongs to a **genre**, the kind of engine it runs. The kit names ea
 The package runs on Effect and Vitest, but an engine needs neither: every hook, trait and test body may be a plain function. Use a generator function to yield Effects when a hook needs a service or fails with a typed error; the kit runs it, so no definition needs `Effect.gen`. Creation, stage `after` hooks and traits may also be plain functions that return an Effect directly. The kit runs that Effect in the story's Scope, with the services from its layer.
 
 The work splits into three layers, and each is written by a different hand at a different time:
-
 1. **Once per engine**, a story kit in `test-support/` says how to create the engine, which services it needs, and how to seed, step and show it.
 2. **Once per feature**, traits and verbs in the kit name that feature in domain words.
 3. **In every test**, a spec tells a story with the kit's `it` and checks what a user would see.
@@ -65,12 +64,12 @@ A verb performs one action on the real engine or reads one observation. An actio
 
 Acquire real services in `create` or a trait inside the story's per-test Scope, with dependencies provided by `layer`. Keep those services on the engine so verbs use the same running instance; scoped cleanup releases them after the story. Do not build and tear down services inside each verb. When closing a service is the action under test, expose that action separately from acquisition and observation.
 
-| Shape to avoid | What to do instead |
-| --- | --- |
-| A verb runs a whole scenario and returns the measurements the spec asserts. | Give each action and observation its own verb; let the spec compose them and compare the observations. |
-| A verb hard-codes the expected outcome or hides assertions. | Return the real response or observation, and put expected values and all assertions in the spec. |
-| A verb does two jobs and returns both results. | Split the jobs into two verbs and show both calls in the spec. |
-| A verb silently does nothing when its target is missing, such as `button?.click()`. | Fail with a message naming the missing target, then perform the action only once the target exists. |
+| Shape to avoid                                                                                               | What to do instead                                                                                           |
+| ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| A verb runs a whole scenario and returns the measurements the spec asserts.                                  | Give each action and observation its own verb; let the spec compose them and compare the observations.       |
+| A verb hard-codes the expected outcome or hides assertions.                                                  | Return the real response or observation, and put expected values and all assertions in the spec.             |
+| A verb does two jobs and returns both results.                                                               | Split the jobs into two verbs and show both calls in the spec.                                               |
+| A verb silently does nothing when its target is missing, such as `button?.click()`.                          | Fail with a message naming the missing target, then perform the action only once the target exists.          |
 | An engine default hides what the story declares, such as a lit oven, signed-in user or authorization header. | Start with a neutral engine and name the precondition in a trait or pass the input explicitly in the action. |
 
 The bakery below starts with a cold oven and no dough. Its traits declare heat and dough, its baking action returns no report, and its readouts expose loaves and elapsed minutes separately. `runUntil` waits for that one engine action to complete; it does not replace a spec's sequence of actions.
@@ -83,64 +82,63 @@ Every story gets Effect's native `TestCrypto` service with seed `0`, created afr
 
 ```ts
 export const bakery = storyKit({
-  after: {
-    *kitchen(state) {
-      if (state.bowls === 0) {
-        return yield* new NoBowls();
-      }
-      state.capacity = state.bowls * DOUGH_PER_BOWL;
-    },
-  },
-  create: emptyBakery,
-  layer: Supplier.layer,
-  name: "bakery",
-  run: {
-    diagnose: stillWaiting,
-    failed: ovenTrouble,
-    maxSteps: 60,
-    *step(state, tell) {
-      state.minute += 1;
-      if (state.overfired) {
-        return yield* new BurntLoaf({ minute: state.minute });
-      }
-      state.dough += state.starter ? 0 : -1;
-      state.loaves += 1;
-      tell(`${state.minute}m a loaf comes out of the oven`);
-    },
-  },
-  stages: ["kitchen", "pantry"],
-  verbs: (state, story) => ({
-    baker: {
-      kneads: (count: number) => {
-        story.tell(`the baker kneads ${count} balls of dough`);
-        state.dough += count;
-      },
-    },
-    oven: {
-      bakesEverything: (maxSteps?: number): Effect.Effect<void, BurntLoaf> =>
-        story.runUntil((current) => current.dough === 0, { maxSteps }),
-      loaves: () => state.loaves,
-      minutes: () => state.minute,
-    },
-  }),
+	after: {
+		*kitchen(state) {
+			if (state.bowls === 0) {
+				return yield* new NoBowls();
+			}
+			state.capacity = state.bowls * DOUGH_PER_BOWL;
+		},
+	},
+	create: emptyBakery,
+	layer: Supplier.layer,
+	name: "bakery",
+	run: {
+		diagnose: stillWaiting,
+		failed: ovenTrouble,
+		maxSteps: 60,
+		*step(state, tell) {
+			state.minute += 1;
+			if (state.overfired) {
+				return yield* new BurntLoaf({ minute: state.minute });
+			}
+			state.dough += state.starter ? 0 : -1;
+			state.loaves += 1;
+			tell(`${state.minute}m a loaf comes out of the oven`);
+		},
+	},
+	stages: ["kitchen", "pantry"],
+	verbs: (state, story) => ({
+		baker: {
+			kneads: (count: number) => {
+				story.tell(`the baker kneads ${count} balls of dough`);
+				state.dough += count;
+			},
+		},
+		oven: {
+			bakesEverything: (maxSteps?: number): Effect.Effect<void, BurntLoaf> => story.runUntil((current) => current.dough === 0, { maxSteps }),
+			loaves: () => state.loaves,
+			minutes: () => state.minute,
+		},
+	}),
 });
 ```
 
 This is the bakery kit this package tests itself with. `emptyBakery`, `stillWaiting` and `ovenTrouble` are plain functions beside it. `kitchen` and `step` are generators because they fail with typed errors, `NoBowls` and `BurntLoaf`.
 
-| Hook | Says |
-| --- | --- |
-| `name` | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story". |
-| `outbound` | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests. |
-| `around(effect)` | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope. |
-| `clock` | Optional. `"test"` by default, `"live"` for real time, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence. |
-| `create()` | A fresh engine. Every story starts from a new one. |
-| `layer` | Optional. The worker Effect layer that provides the services hooks, traits and test bodies use. Per-test Scope is already available to creation, staged and run hooks, traits and bodies. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
-| `stages` | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile. |
-| `after` | Optional. A hook per stage that runs once that stage's traits are applied, even when no trait names the stage, so a value it derives is ready before a later stage reads it. Its typed failure fails the test. |
-| `run` | Optional. What `story.runUntil` needs: `step(engine, tell)` advances the engine once and tells what happened, `maxSteps` caps one run, `failed(engine)` returns a sentence when the engine is in a state it cannot recover from, and `diagnose(engine)` says why it has not finished. |
-| `inspect` | Optional. The part of the engine a failure prints. Without it, the failure prints the whole engine. |
-| `verbs(engine, story)` | One action or one observation per verb. A verb that waits for a stepped engine returns the Effect from `story.runUntil`; the spec reads observations and asserts separately. |
+| Hook                   | Says                                                                                                                                                                                                                                                                                                                      |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `name`                 | What the engine is called in failures, "the bakery", and the kit's genre, "Bakery Story".                                                                                                                                                                                                                                 |
+| `outbound`             | Optional. A map of exact hostnames to fake server origins for Node fetch and the DOM environment's document requests.                                                                                                                                                                                                     |
+| `around(effect)`       | Optional. Wraps creation, staged seeding and the body; worker Layer acquisition remains outside it. It may require the worker services and per-test Scope.                                                                                                                                                                |
+| `clock`                | Optional. `"test"` by default, `"live"` for real time, or a UTC `DateTime` to start TestClock at that instant. A story’s `options.clock` takes precedence.                                                                                                                                                                |
+| `create()`             | A fresh engine. Every story starts from a new one.                                                                                                                                                                                                                                                                        |
+| `layer`                | Optional. The worker Effect layer that provides the services hooks, traits and test bodies use. Per-test Scope is already available to creation, staged and run hooks, traits and bodies. A hook that needs a service the layer does not provide does not compile, and neither does a test whose traits or body need one. |
+| `stages`               | The order traits are applied in. A trait names its stage, and one that names a stage the kit does not declare does not compile.                                                                                                                                                                                           |
+| `after`                | Optional. A hook per stage that runs once that stage's traits are applied, even when no trait names the stage, so a value it derives is ready before a later stage reads it. Its typed failure fails the test.                                                                                                            |
+| `run`                  | Optional. What `story.runUntil` needs: `step(engine, tell)` advances the engine once and tells what happened, `maxSteps` caps one run, `failed(engine)` returns a sentence when the engine is in a state it cannot recover from, and `diagnose(engine)` says why it has not finished.                                     |
+| `inspect`              | Optional. The part of the engine a failure prints. Without it, the failure prints the whole engine.                                                                                                                                                                                                                       |
+| `verbs(engine, story)` | One action or one observation per verb. A verb that waits for a stepped engine returns the Effect from `story.runUntil`; the spec reads observations and asserts separately.                                                                                                                                              |
 
 Every test of the kit is named `Bakery Story: <its name>`, so `vitest run -t "Bakery Story: "` runs only the bakery's stories with no setup. A project that splits runs by Vitest tags can also tag them:
 
@@ -149,7 +147,7 @@ import { genreTags } from "@shivaedev/test-story/server/genreTags.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: { tags: genreTags("bakery", "mill") },
+	test: { tags: genreTags("bakery", "mill") },
 });
 ```
 
@@ -166,16 +164,16 @@ import { bakery, hasDough, ovenIsLit } from "./bakery.ts";
 import { mill, sailsAreTurning } from "./mill.ts";
 
 export const village = storyKit({
-  extends: [mill, bakery],
-  name: "village",
+	extends: [mill, bakery],
+	name: "village",
 });
 
 village.it("mills flour and bakes loaves", [sailsAreTurning(), ovenIsLit(), hasDough(2)], function* ({ miller, oven, story }) {
-  miller.grinds(3);
-  yield* oven.bakesEverything();
-  expect(story.engine.sacks).toBe(3);
-  expect(story.engine.sails).toBe("turning");
-  expect(oven.loaves()).toBe(2);
+	miller.grinds(3);
+	yield* oven.bakesEverything();
+	expect(story.engine.sacks).toBe(3);
+	expect(story.engine.sails).toBe("turning");
+	expect(oven.loaves()).toBe(2);
 });
 ```
 
@@ -191,8 +189,8 @@ When application code calls a hard-coded third-party URL, set `outbound` on its 
 
 ```ts
 const app = storyKit({
-  ...appDefinition,
-  outbound: { "github.com": fakeUrl, "api.github.com": fakeUrl },
+	...appDefinition,
+	outbound: { "github.com": fakeUrl, "api.github.com": fakeUrl },
 });
 ```
 
@@ -217,49 +215,50 @@ import { expect } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 const app = storyKit({
-  around: (effect) => effect.pipe(Effect.withSpan("story")),
-  *create() {
-    const spans: Tracer.NativeSpan[] = [];
-    const tracer = Tracer.make({
-      span: (options) => {
-        const span = new Tracer.NativeSpan(options);
-        spans.push(span);
-        return span;
-      },
-    });
-    const context = yield* Effect.context<never>().pipe(Effect.withTracer(tracer));
-    const handler = HttpEffect.toWebHandlerWith(context)(Effect.succeed(HttpServerResponse.text("ok")));
-    return { handler, spans };
-  },
-  name: "traced application",
-  stages: ["ready"],
-  verbs: ({ handler, spans }) => ({
-    request: (headers: HeadersInit = {}) => Effect.promise(async () => {
-      const response = await handler(new Request("http://app.test/", { headers }));
-      return response.text();
-    }),
-    requestSpan: () => {
-      const span = spans.filter((span) => span.kind === "server").at(-1);
-      if (span === undefined) throw new Error("The request exported no server span");
-      return span;
-    },
-  }),
+	around: (effect) => effect.pipe(Effect.withSpan("story")),
+	*create() {
+		const spans: Tracer.NativeSpan[] = [];
+		const tracer = Tracer.make({
+			span: (options) => {
+				const span = new Tracer.NativeSpan(options);
+				spans.push(span);
+				return span;
+			},
+		});
+		const context = yield* Effect.context<never>().pipe(Effect.withTracer(tracer));
+		const handler = HttpEffect.toWebHandlerWith(context)(Effect.succeed(HttpServerResponse.text("ok")));
+		return { handler, spans };
+	},
+	name: "traced application",
+	stages: ["ready"],
+	verbs: ({ handler, spans }) => ({
+		request: (headers: HeadersInit = {}) =>
+			Effect.promise(async () => {
+				const response = await handler(new Request("http://app.test/", { headers }));
+				return response.text();
+			}),
+		requestSpan: () => {
+			const span = spans.filter((span) => span.kind === "server").at(-1);
+			if (span === undefined) throw new Error("The request exported no server span");
+			return span;
+		},
+	}),
 });
 
 app.it("a request is its own root trace", [], function* ({ request, requestSpan }) {
-  const storySpan = yield* Effect.currentSpan;
-  expect(yield* request()).toBe("ok");
-  const span = requestSpan();
-  expect(span.parent._tag).toBe("None");
-  expect(span.traceId).not.toBe(storySpan.traceId);
-  expect(span.status._tag).toBe("Ended");
+	const storySpan = yield* Effect.currentSpan;
+	expect(yield* request()).toBe("ok");
+	const span = requestSpan();
+	expect(span.parent._tag).toBe("None");
+	expect(span.traceId).not.toBe(storySpan.traceId);
+	expect(span.status._tag).toBe("Ended");
 });
 
 app.it("a request continues its supplied trace", [], function* ({ request, requestSpan }) {
-  yield* request({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
-  const span = requestSpan();
-  expect(span.traceId).toBe("1234567890abcdef1234567890abcdef");
-  expect(span.parent).toMatchObject({ value: { spanId: "1234567890abcdef" } });
+	yield* request({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
+	const span = requestSpan();
+	expect(span.traceId).toBe("1234567890abcdef1234567890abcdef");
+	expect(span.parent).toMatchObject({ value: { spanId: "1234567890abcdef" } });
 });
 ```
 
@@ -293,10 +292,10 @@ Use `otlpReceiver` from `@shivaedev/test-story/server/otlpReceiver.ts` in a kit'
 
 ```ts
 app.it("exports the work span", [], function* ({ runWork, disposeRuntime, spans, requests }) {
-  yield* runWork();
-  yield* disposeRuntime();
-  expect(spans()).toContainEqual(expect.objectContaining({ name: "CountWords" }));
-  expect(requests().some(({ body }) => body.includes(Buffer.from("planted-secret")))).toBe(true);
+	yield* runWork();
+	yield* disposeRuntime();
+	expect(spans()).toContainEqual(expect.objectContaining({ name: "CountWords" }));
+	expect(requests().some(({ body }) => body.includes(Buffer.from("planted-secret")))).toBe(true);
 });
 ```
 
@@ -398,24 +397,24 @@ A trait is a line and a change, tagged with a stage:
 
 ```ts
 export function hasDough(count: number) {
-  return bakery.trait("pantry", `the baker has ${count} balls of dough`, (state) => {
-    if (count > state.capacity) {
-      throw new Error(`the bowls hold only ${state.capacity}`);
-    }
-    state.dough = count;
-  });
+	return bakery.trait("pantry", `the baker has ${count} balls of dough`, (state) => {
+		if (count > state.capacity) {
+			throw new Error(`the bowls hold only ${state.capacity}`);
+		}
+		state.dough = count;
+	});
 }
 
 export function hasFlourDelivered(sacks: number) {
-  return bakery.trait("pantry", `the supplier has delivered ${sacks} sacks of flour`, function* (state) {
-    const supplier = yield* Supplier;
-    yield* supplier.deliver(sacks);
-    state.flour = sacks;
-  });
+	return bakery.trait("pantry", `the supplier has delivered ${sacks} sacks of flour`, function* (state) {
+		const supplier = yield* Supplier;
+		yield* supplier.deliver(sacks);
+		state.flour = sacks;
+	});
 }
 
 export function morningShift() {
-  return bakery.traits(ovenIsLit(), hasBowls(1));
+	return bakery.traits(ovenIsLit(), hasBowls(1));
 }
 ```
 
@@ -453,15 +452,15 @@ A verb that a feature adds goes into the kit's `verbs`. It acts through the engi
 
 ```ts
 bakery.it("tells each step into the story", [ovenIsLit()], function* ({ baker, oven, story }) {
-  baker.kneads(2);
-  yield* oven.bakesEverything();
+	baker.kneads(2);
+	yield* oven.bakesEverything();
 
-  expect(story.lines).toEqual([
-    "the oven is lit",
-    "the baker kneads 2 balls of dough",
-    "1m a loaf comes out of the oven",
-    "2m a loaf comes out of the oven",
-  ]);
+	expect(story.lines).toEqual([
+		"the oven is lit",
+		"the baker kneads 2 balls of dough",
+		"1m a loaf comes out of the oven",
+		"2m a loaf comes out of the oven",
+	]);
 });
 ```
 
@@ -475,13 +474,13 @@ For several outcomes after one action, use `outcomes` from `@shivaedev/test-stor
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 
 accounts.it("removing Bob leaves Alice signed in", [bobAndAliceAreSignedIn()], function* ({ remove, request, sessions }) {
-  yield* remove("bob");
+	yield* remove("bob");
 
-  yield* outcomes({
-    "bob's next request": [request("bob"), "unauthorized"],
-    "bob's sessions": [sessions("bob"), 0],
-    "alice's next request": [request("alice"), "ok"],
-  });
+	yield* outcomes({
+		"bob's next request": [request("bob"), "unauthorized"],
+		"bob's sessions": [sessions("bob"), 0],
+		"alice's next request": [request("alice"), "ok"],
+	});
 });
 ```
 
@@ -489,9 +488,9 @@ accounts.it("removing Bob leaves Alice signed in", [bobAndAliceAreSignedIn()], f
 
 ```ts
 accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ remove, request }) {
-  yield* remove("bob");
+	yield* remove("bob");
 
-  expect(yield* request("bob")).toBe("unauthorized");
+	expect(yield* request("bob")).toBe("unauthorized");
 });
 ```
 
@@ -503,15 +502,20 @@ Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapp
 import { DateTime } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 
-app.it("shows the worker's date", [], function* ({ click, settle, text }) {
-  yield* click("button");
-  yield* settle();
-  expect(text("#worker")).toBe("Worker: since Oct 17");
-  yield* TestClock.adjust("1 day");
-  yield* click("button");
-  yield* settle();
-  expect(text("#worker")).toBe("Worker: since Oct 18");
-}, { clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") });
+app.it(
+	"shows the worker's date",
+	[],
+	function* ({ click, settle, text }) {
+		yield* click("button");
+		yield* settle();
+		expect(text("#worker")).toBe("Worker: since Oct 17");
+		yield* TestClock.adjust("1 day");
+		yield* click("button");
+		yield* settle();
+		expect(text("#worker")).toBe("Worker: since Oct 18");
+	},
+	{ clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") },
+);
 ```
 
 Acquire hosts, workers and screens in per-story Scope so they inherit the story's Clock. An independent runtime or native HTTP handler must capture the Effect Context at acquisition, as with `HttpEffect.toWebHandlerWith(context)` or `Effect.runPromiseWith(context)`. Worker-scoped kit `layer` acquisition stays outside the per-story clock; shared services acquired there do not acquire a new clock for each story. Direct JavaScript wall-time reads are not replaced. Formatting stays with the application, including its locale and time zone.
@@ -523,7 +527,6 @@ A live-clock kit still runs on real time when a story omits the override.
 Hooks and steps that wait for real workers can use `withLive(Effect.sleep(...))` or `withLive(eventually(...))` from `@shivaedev/test/withLive.ts` and `@shivaedev/test/eventually.ts`. Both work under the kit's live clock and a story's TestClock override. The wrapped work uses live time without advancing the story's virtual time; outside it, the selected clock still applies. Unwrapped `eventually` uses the active clock and advances TestClock between attempts.
 
 `story.runUntil(condition, { maxSteps })` returns an Effect that asks three questions before every step:
-
 1. `run.failed` returns a sentence: it dies with it, even when the condition also holds.
 2. The condition holds: it succeeds.
 3. `maxSteps` steps have run, or the kit's `run.maxSteps` when the call names none: it dies with `run.diagnose`.
@@ -540,7 +543,6 @@ That is what `oven.bakesEverything(12)` dies with when the baker keeps a sourdou
 ### When a story fails
 
 After the engine has been created, a failing story test adds the story to its first error, as in the examples above:
-
 - a short guide to reading the story, in a box;
 - every line in order, traits marked `given`;
 - `✗` after the last line, on the trait that refused, or alone when the test failed before the story told a line, and under it the spec line where the test stopped or that named the refusing trait;
@@ -582,9 +584,9 @@ import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({
-  test: {
-    environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/domEnvironment.config.ts")),
-  },
+	test: {
+		environment: fileURLToPath(import.meta.resolve("@shivaedev/test-story/server/domEnvironment.config.ts")),
+	},
 });
 ```
 
@@ -599,18 +601,18 @@ import { createAuthClient } from "better-auth/react";
 import { domFetch } from "@shivaedev/test-story/server/domFetch.ts";
 
 const cookieApp = storyKit({
-  around: withIsolatedDatabase,
-  clock: "live",
-  *create() {
-    const { baseUrl } = yield* startHost();
-    const fetch = domFetch(baseUrl);
-    const client = createAuthClient({ baseURL: baseUrl, fetchOptions: { customFetchImpl: fetch } });
-    return { client, fetch };
-  },
-  layer: postgres,
-  name: "cookie auth",
-  stages: ["account"],
-  verbs: ({ client, fetch }, story) => authVerbs(client, fetch, story.tell),
+	around: withIsolatedDatabase,
+	clock: "live",
+	*create() {
+		const { baseUrl } = yield* startHost();
+		const fetch = domFetch(baseUrl);
+		const client = createAuthClient({ baseURL: baseUrl, fetchOptions: { customFetchImpl: fetch } });
+		return { client, fetch };
+	},
+	layer: postgres,
+	name: "cookie auth",
+	stages: ["account"],
+	verbs: ({ client, fetch }, story) => authVerbs(client, fetch, story.tell),
 });
 ```
 
@@ -642,15 +644,19 @@ The starter's [social application kit](https://github.com/ShivaeDev/platform/blo
 The kit renders a Better Auth client whose `customFetchImpl` is `domFetch(baseUrl)`. The story calls `clickGitHubSignIn`, `settle` and `followRedirect` separately, then reads the heading, cookie and session. The screen driver settles on the screen's request state and reads the heading from the current document after navigation. The provider uses `fakeHttpService`. The authorize, token and user requests at the fake and a later session response provide evidence across the provider and application boundaries. The kit does not copy cookies into request headers.
 
 ```ts
-socialApp.it("a social sign-in returns with a cookie session", [], function* ({ clickGitHubSignIn, settle, followRedirect, heading, cookie, session }) {
-  yield* clickGitHubSignIn();
-  yield* settle();
-  const response = yield* followRedirect();
-  expect(response.status).toBe(200);
-  expect(heading()).toBe("Signed in as alice@social.test");
-  expect(cookie()).not.toContain("session_token");
-  expect(yield* session()).toMatchObject({ user: { email: "alice@social.test" } });
-});
+socialApp.it(
+	"a social sign-in returns with a cookie session",
+	[],
+	function* ({ clickGitHubSignIn, settle, followRedirect, heading, cookie, session }) {
+		yield* clickGitHubSignIn();
+		yield* settle();
+		const response = yield* followRedirect();
+		expect(response.status).toBe(200);
+		expect(heading()).toBe("Signed in as alice@social.test");
+		expect(cookie()).not.toContain("session_token");
+		expect(yield* session()).toMatchObject({ user: { email: "alice@social.test" } });
+	},
+);
 ```
 
 `domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
@@ -664,16 +670,17 @@ To use `settle()`, supply a `pending()` function that reads the application's ow
 ```ts
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 
-verbs: ({ view, requests }, story) => screenDriver({
-  root: view.container,
-  pending: () => requests.pending,
-  tell: story.tell,
-})
+verbs: ({ view, requests }, story) =>
+	screenDriver({
+		root: view.container,
+		pending: () => requests.pending,
+		tell: story.tell,
+	});
 ```
 
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
 
-`text(selector?)` returns rendered text from the selected element or the whole root. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
+`text(selector?)` concatenates visible HTML text nodes from the selected element or the whole root, without CSS text transforms or layout line breaks. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
 
 `click`, `enter`, `submit`, `text` and `value` also accept a `ScreenTarget` object such as `{ role: "button", name: "Save" }` or `{ role: "textbox", name: /email/i }`. The role and computed accessible name must match exactly when strings are used; regular expressions match the name. Like Testing Library's role queries, these targets exclude hidden elements, including `aria-hidden` ancestors. Missing or ambiguous targets fail with the requested role, name and the visible candidates on screen. Narration names the role and name instead of a selector.
 
@@ -691,20 +698,20 @@ Settlement has a live-time limit of 3 seconds, configurable with the driver's `t
 
 Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
 
-| Module | Exports |
-| --- | --- |
-| `server/storyKit.ts` | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit` |
-| `server/outcomes.ts` | `outcomes(rows)` |
-| `server/domFetch.ts` | `domFetch(baseUrl)` |
-| `server/seedCookies.ts` | `seedCookies(cookies)`, `DomCookie` |
-| `server/routeOutbound.ts` | `routeOutbound(routes)` |
-| `server/screenDriver.ts` | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget`, `MissingScreenPending` |
-| `server/domNavigate.ts` | `domNavigate(url?)` |
-| `server/genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
-| `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
-| `server/forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
-| `server/otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
+| Module                            | Exports                                                                                                                                                                                                                                                                                                                                                                             |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `server/storyKit.ts`              | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
+| `server/outcomes.ts`              | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/domFetch.ts`              | `domFetch(baseUrl)`                                                                                                                                                                                                                                                                                                                                                                 |
+| `server/seedCookies.ts`           | `seedCookies(cookies)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                                 |
+| `server/routeOutbound.ts`         | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |
+| `server/screenDriver.ts`          | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget`, `MissingScreenPending`                                                                                                                                                                                                                                                                              |
+| `server/domNavigate.ts`           | `domNavigate(url?)`                                                                                                                                                                                                                                                                                                                                                                 |
+| `server/genreTags.ts`             | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
+| `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |
+| `server/fakeHttpService.ts`       | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
+| `server/forwardingProxy.ts`       | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions`                                                                                                                                                                                                                                                                                                                     |
+| `server/otlpReceiver.ts`          | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions`                                                                                                                                                                                                                                                                                                           |
 
 ### Install and limits
 
@@ -715,7 +722,6 @@ pnpm add --save-dev @shivaedev/test-story @effect/platform-node @effect/vitest e
 `@effect/platform-node`, `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories. The Node adapter supplies the digest implementation retained by `TestCrypto`.
 
 Test-story is an application's one test dependency: it brings [`@shivaedev/test`](https://github.com/ShivaeDev/platform/tree/main/packages/test#readme) and [`@shivaedev/test-sql`](https://github.com/ShivaeDev/platform/tree/main/packages/test-sql#readme), which an application on `@shivaedev/platform` imports by their own names without listing them. `@effect/sql-pg` is an optional peer for `test-sql`'s PostgreSQL helpers; install it when the stories use them. A library that tests with test-story still declares `test` or `test-sql` directly when it imports them.
-
 - The package runs inside Vitest. The story reaches the failure by rewriting the first error's message in Vitest's `onTestFailed` hook.
 - Layer acquisition and engine creation failures precede that hook and carry no story appendix. A printed rerun command still needs a Vitest configuration that collects its file.
 - A kit's `it` is created when the kit is defined, so a kit lives in a module that only Vitest test files import.

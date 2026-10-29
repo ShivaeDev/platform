@@ -21,7 +21,7 @@ function UserRole<TRole extends string>({
 	return canChangeRoles ? (
 		<select
 			aria-label={`Role for ${user.email}`}
-			className="rounded-md border bg-background p-2"
+			className="bg-background rounded-md border p-2"
 			disabled={pending}
 			onChange={(event) => {
 				const role = roles.find((candidate) => candidate === event.target.value);
@@ -54,7 +54,7 @@ function UserRow<TRole extends string>({
 			<td className="p-3">
 				<UserRole {...controls} canChangeRoles={canChangeRoles} user={user} />
 			</td>
-			<td className="whitespace-nowrap p-3">
+			<td className="p-3 whitespace-nowrap">
 				<time dateTime={DateTime.formatIso(user.createdAt)}>{DateTime.formatIso(user.createdAt)}</time>
 			</td>
 		</tr>
@@ -90,7 +90,7 @@ function UserHeaders() {
 	return (
 		<tr>
 			{["Name", "Email", "Role", "Signed up"].map((label) => (
-				<th className="whitespace-nowrap p-3" key={label} scope="col">
+				<th className="p-3 whitespace-nowrap" key={label} scope="col">
 					{label}
 				</th>
 			))}

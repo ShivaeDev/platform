@@ -20,7 +20,7 @@ export function PageHeader({ title, titleProps, summary, actions, compact, class
 				{title}
 			</h1>
 			{present(summary) && (
-				<div className="min-w-0 text-muted-foreground text-sm sm:col-span-full sm:row-start-2" data-page-summary>
+				<div className="text-muted-foreground min-w-0 text-sm sm:col-span-full sm:row-start-2" data-page-summary>
 					{summary}
 				</div>
 			)}

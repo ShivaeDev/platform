@@ -21,7 +21,7 @@ export function JobsView({
 	return (
 		<div className="space-y-8">
 			<section aria-label="Jobs health" className="space-y-4">
-				<h2 className="font-semibold text-xl">Health</h2>
+				<h2 className="text-xl font-semibold">Health</h2>
 				<QueryPanel state={health}>{(value) => <Metrics values={healthValues(value)} />}</QueryPanel>
 			</section>
 			{queues.length === 0 ? (
@@ -41,7 +41,7 @@ function QueueView({ api, queue, retry }: { readonly api: JobsViewClient; readon
 	return (
 		<>
 			<section aria-label="Queue counts" className="space-y-4">
-				<h2 className="font-semibold text-xl">Queue counts</h2>
+				<h2 className="text-xl font-semibold">Queue counts</h2>
 				<QueryPanel state={counts}>
 					{(value) => (
 						<Metrics values={{ Active: value.activeCount, Failed: value.failedCount, Queued: value.queuedCount, Total: value.totalCount }} />
@@ -85,7 +85,7 @@ function QueuePicker({
 	return (
 		<label className="flex flex-col gap-2 text-sm sm:max-w-sm">
 			Queue
-			<select className="h-10 rounded-md border bg-background px-3" onChange={(event) => select(event.target.value)} value={value}>
+			<select className="bg-background h-10 rounded-md border px-3" onChange={(event) => select(event.target.value)} value={value}>
 				{queues.map(({ name }) => (
 					<option key={name} value={name}>
 						{name}

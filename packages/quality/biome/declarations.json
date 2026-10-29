@@ -50,7 +50,7 @@
 	{
 		"includes": ["**"],
 		"reason": "An inline style is the right tool for a value computed at run time, such as a position, a transform or a drag offset.",
-		"rule": "lint/nursery/noInlineStyles"
+		"rule": "lint/style/noInlineStyles"
 	},
 	{
 		"includes": ["**"],

@@ -8,14 +8,12 @@ A service should explain what it needs and what callers can do with it. When eve
 
 ```ts
 const Greetings = defineService({
-  id: "app/Greetings",
-  requires: [Prefix],
-  initialize: Effect.succeed({ punctuation: "!" }),
-  methods: (state) => ({
-    greet: Effect.fn("Greetings.greet")((name: string) =>
-      Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`),
-    ),
-  }),
+	id: "app/Greetings",
+	requires: [Prefix],
+	initialize: Effect.succeed({ punctuation: "!" }),
+	methods: (state) => ({
+		greet: Effect.fn("Greetings.greet")((name: string) => Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`)),
+	}),
 });
 ```
 
@@ -34,7 +32,6 @@ A **declared dependency** is a service tag in `requires`. The Layer supplies tho
 **Caller scope** is different from initialization scope. The Layer owns initialization resources: their finalizers run once when its scope closes or its owner is interrupted, including when initialization is still running. A method that acquires a scoped resource keeps `Scope.Scope` in its public requirement type; its caller supplies the scope and releases the resource when that scope closes, even while the service stays live. Interrupting a method call in `Effect.scoped` interrupts the call and releases its resources without ending the service's lifetime.
 
 The work has three parts:
-
 1. Once at the application boundary, compose service Layers with their dependencies.
 2. Once per service, define its dependency list, private state and methods.
 3. In application code, yield the service and call its methods.
@@ -48,23 +45,19 @@ import { defineService } from "@shivaedev/service/defineService.ts";
 class Prefix extends Context.Service<Prefix, string>()("app/Prefix") {}
 
 const Greetings = defineService({
-  id: "app/Greetings",
-  requires: [Prefix],
-  initialize: Effect.succeed({ punctuation: "!" }),
-  methods: (state) => ({
-    greet: Effect.fn("Greetings.greet")((name: string) =>
-      Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`),
-    ),
-  }),
+	id: "app/Greetings",
+	requires: [Prefix],
+	initialize: Effect.succeed({ punctuation: "!" }),
+	methods: (state) => ({
+		greet: Effect.fn("Greetings.greet")((name: string) => Effect.map(Prefix, (prefix) => `${prefix}${name}${state.punctuation}`)),
+	}),
 });
 
-const live = Greetings.layer.pipe(
-  Layer.provide(Layer.succeed(Prefix, "Hello ")),
-);
+const live = Greetings.layer.pipe(Layer.provide(Layer.succeed(Prefix, "Hello ")));
 
 const greeting = Effect.gen(function* () {
-  const greetings = yield* Greetings;
-  return yield* greetings.greet("Ada");
+	const greetings = yield* Greetings;
+	return yield* greetings.greet("Ada");
 }).pipe(Effect.provide(live));
 ```
 
@@ -83,28 +76,30 @@ import { Context, Effect, type Scope } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { ServiceRequirements } from "@shivaedev/service/ServiceRequirements.ts";
 
-class Declared extends Context.Service<Declared, { readonly identity: object }>()(
-  "app/Declared",
-) {}
+class Declared extends Context.Service<Declared, { readonly identity: object }>()("app/Declared") {}
 
 const requirements = [Declared] as const;
 
-type Requirements<Success, Failure = never, CallerScope extends Scope.Scope = never> =
-  ServiceRequirements<typeof requirements, Success, Failure, CallerScope>;
+type Requirements<Success, Failure = never, CallerScope extends Scope.Scope = never> = ServiceRequirements<
+	typeof requirements,
+	Success,
+	Failure,
+	CallerScope
+>;
 
 const Identity = defineService({
-  id: "app/Identity",
-  requires: requirements,
-  initialize: Effect.fn("Identity.initialize")(function* (): Requirements<{
-    readonly identity: object;
-  }> {
-    return { identity: (yield* Declared).identity };
-  })(),
-  methods: (state) => ({
-    sameIdentity: Effect.fn("Identity.sameIdentity")(function* (): Requirements<boolean> {
-      return (yield* Declared).identity === state.identity;
-    }),
-  }),
+	id: "app/Identity",
+	requires: requirements,
+	initialize: Effect.fn("Identity.initialize")(function* (): Requirements<{
+		readonly identity: object;
+	}> {
+		return { identity: (yield* Declared).identity };
+	})(),
+	methods: (state) => ({
+		sameIdentity: Effect.fn("Identity.sameIdentity")(function* (): Requirements<boolean> {
+			return (yield* Declared).identity === state.identity;
+		}),
+	}),
 });
 ```
 
@@ -117,24 +112,19 @@ import { Effect, Ref } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 
 const Resources = defineService({
-  id: "app/Resources",
-  requires: [],
-  initialize: Ref.make(0),
-  methods: (released) => ({
-    open: Effect.fn("Resources.open")(() =>
-      Effect.acquireRelease(
-        Effect.succeed("resource"),
-        () => Ref.update(released, (count) => count + 1),
-      ),
-    ),
-    released: Effect.fn("Resources.released")(() => Ref.get(released)),
-  }),
+	id: "app/Resources",
+	requires: [],
+	initialize: Ref.make(0),
+	methods: (released) => ({
+		open: Effect.fn("Resources.open")(() => Effect.acquireRelease(Effect.succeed("resource"), () => Ref.update(released, (count) => count + 1))),
+		released: Effect.fn("Resources.released")(() => Ref.get(released)),
+	}),
 });
 
 const useResource = Effect.gen(function* () {
-  const resources = yield* Resources;
-  yield* Effect.scoped(resources.open());
-  return yield* resources.released();
+	const resources = yield* Resources;
+	yield* Effect.scoped(resources.open());
+	return yield* resources.released();
 }).pipe(Effect.provide(Resources.layer));
 ```
 
@@ -146,7 +136,7 @@ A native Layer can provide the method interface directly:
 
 ```ts
 const testGreetings = Layer.succeed(Greetings, {
-  greet: Effect.fn("TestGreetings.greet")((name: string) => Effect.succeed(name)),
+	greet: Effect.fn("TestGreetings.greet")((name: string) => Effect.succeed(name)),
 });
 ```
 
@@ -161,31 +151,25 @@ import { Context, Effect } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 
-class Caller extends Context.Service<Caller, { readonly value: number }>()(
-  "app/Caller",
-) {}
+class Caller extends Context.Service<Caller, { readonly value: number }>()("app/Caller") {}
 
 const preserve = Effect.fn("Generic.preserve")(
-  <Success, Failure, Requirements>(
-    effect: Effect.Effect<Success, Failure, Requirements>,
-  ): Effect.Effect<{ readonly value: Success }, Failure, Requirements> =>
-    Effect.map(effect, (value) => ({ value })),
+	<Success, Failure, Requirements>(
+		effect: Effect.Effect<Success, Failure, Requirements>,
+	): Effect.Effect<{ readonly value: Success }, Failure, Requirements> => Effect.map(effect, (value) => ({ value })),
 );
 
 const Generic = defineService({
-  id: "app/Generic",
-  requires: [],
-  initialize: Effect.void,
-  methods: () => ({ preserve: genericMethod(preserve) }),
+	id: "app/Generic",
+	requires: [],
+	initialize: Effect.void,
+	methods: () => ({ preserve: genericMethod(preserve) }),
 });
 
 const preserved = Effect.gen(function* () {
-  const service = yield* Generic;
-  return yield* service.preserve(Effect.map(Caller, ({ value }) => value));
-}).pipe(
-  Effect.provide(Generic.layer),
-  Effect.provideService(Caller, { value: 42 }),
-);
+	const service = yield* Generic;
+	return yield* service.preserve(Effect.map(Caller, ({ value }) => value));
+}).pipe(Effect.provide(Generic.layer), Effect.provideService(Caller, { value: 42 }));
 ```
 
 The wrapped Effect still requires `Caller`, which the caller supplies separately. The generic service's Layer has no declared dependencies. The emitted declarations preserve the generic success and failure types as well as caller requirements.
@@ -198,19 +182,19 @@ Dependency binding wraps the method's outer returned Effect. A Stream returned a
 
 Import the module that defines the name:
 
-| Module | Name | Use |
-| --- | --- | --- |
-| `@shivaedev/service/defineService.ts` | `defineService(definition)` | Create a native service with its `.layer`. |
-| `@shivaedev/service/genericMethod.ts` | `genericMethod(method)` | Mark a generic Effect-returning function in a service with no declared dependencies. |
+| Module                                      | Name                                                                               | Use                                                                                     |
+| ------------------------------------------- | ---------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `@shivaedev/service/defineService.ts`       | `defineService(definition)`                                                        | Create a native service with its `.layer`.                                              |
+| `@shivaedev/service/genericMethod.ts`       | `genericMethod(method)`                                                            | Mark a generic Effect-returning function in a service with no declared dependencies.    |
 | `@shivaedev/service/ServiceRequirements.ts` | `ServiceRequirements<Requirements, Success, Failure = never, CallerScope = never>` | Annotate an `Effect.fn` generator with declared dependencies and optional caller scope. |
 
 The definition's fields are:
 
-| Field | Meaning |
-| --- | --- |
-| `id` | The Context service identity, also retained in the Layer's output type. |
-| `requires` | A readonly list of service tags available to initialization and ordinary methods. |
-| `initialize` | The Effect producing private state; its failure type becomes the Layer's failure type. |
+| Field            | Meaning                                                                                                                     |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| `id`             | The Context service identity, also retained in the Layer's output type.                                                     |
+| `requires`       | A readonly list of service tags available to initialization and ordinary methods.                                           |
+| `initialize`     | The Effect producing private state; its failure type becomes the Layer's failure type.                                      |
 | `methods(state)` | A function returning the public method record, with declared dependencies removed from ordinary methods' requirement types. |
 
 ### Install and limits
@@ -220,6 +204,5 @@ pnpm add @shivaedev/service effect
 ```
 
 `effect` is a peer dependency, and the package needs Node.js 24 or later.
-
 - Keep request identity at the request boundary when it changes per call. Pass it as a method argument rather than binding it into a service intended to live across requests.
 - Choose service Layer lifetimes at the application's composition boundary; keep initialization resource ownership separate from a method caller's scope.

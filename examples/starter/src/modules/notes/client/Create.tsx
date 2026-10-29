@@ -20,7 +20,7 @@ export function NoteCreate({ client }: { readonly client: NotesClient }) {
 				create.save();
 			}}
 		>
-			<label className="block font-medium text-sm" htmlFor={titleId}>
+			<label className="block text-sm font-medium" htmlFor={titleId}>
 				New note
 			</label>
 			<div className="flex flex-col gap-3 sm:flex-row">

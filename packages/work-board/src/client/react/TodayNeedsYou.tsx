@@ -21,13 +21,13 @@ export function TodayNeedsYou({
 	return (
 		<section className="min-w-0" id={todayIds.needs}>
 			<div className="mb-3 flex items-baseline justify-between gap-3">
-				<h2 className="m-0 font-semibold text-lg outline-none" id={todayIds.needsHeading} ref={headingRef} tabIndex={-1}>
+				<h2 className="m-0 text-lg font-semibold outline-none" id={todayIds.needsHeading} ref={headingRef} tabIndex={-1}>
 					Needs you
 				</h2>
-				<p className="m-0 flex items-center gap-1 text-muted-foreground text-sm" role="status">
+				<p className="text-muted-foreground m-0 flex items-center gap-1 text-sm" role="status">
 					{announced ? (
 						<>
-							<CheckCircle2 aria-hidden="true" className="size-4 text-done" />
+							<CheckCircle2 aria-hidden="true" className="text-done size-4" />
 							Answer saved
 						</>
 					) : null}

@@ -12,7 +12,7 @@ export function Home({ auth }: { readonly auth: AuthActions }): ReactElement {
 	const location = useLocation();
 	return (
 		<main className="mx-auto max-w-2xl space-y-4 px-4 py-12">
-			<h1 className="font-semibold text-3xl">Your app</h1>
+			<h1 className="text-3xl font-semibold">Your app</h1>
 			<Link search={signInSearch(location)} to="/sign-in">
 				Sign in
 			</Link>

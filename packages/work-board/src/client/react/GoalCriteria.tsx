@@ -54,7 +54,7 @@ function Criterion({ document, items, index, progress }: Props & { readonly inde
 		>
 			<CardHeader>
 				<CardTitle>
-					<h3 className="m-0 font-normal text-sm leading-normal">
+					<h3 className="m-0 text-sm leading-normal font-normal">
 						<LazyInlineMarkdown document={document} source={criterion.text} />
 					</h3>
 				</CardTitle>

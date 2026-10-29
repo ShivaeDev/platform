@@ -1,3 +1,4 @@
+import { Order } from "effect";
 import { expect } from "vitest";
 import { githubBacklog, singlePrBacklog } from "#test/engineSchedulingTraits.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
@@ -22,7 +23,9 @@ isolatedEngine.it("a closed PR releases its foreign backlog once and waiting wor
 	expect(closed.value.outcome).toBeUndefined();
 	expect(yield* fleet.foreignReservations()).toEqual([]);
 	const reservations = `${STORAGE_NAMESPACE}_foreign_reservations`;
-	expect(fleet.commitBatches()[beforeClose]?.toSorted()).toEqual(["fleet", reservations, `${reservations}:${PR}`].toSorted());
+	expect(fleet.commitBatches()[beforeClose]?.toSorted(Order.mapInput(Order.String, String))).toEqual(
+		["fleet", reservations, `${reservations}:${PR}`].toSorted(Order.String),
+	);
 	const commits = fleet.commitBatches().length;
 	expect((yield* fleet.reconcile("one")).version).toBe(closed.version);
 	expect(fleet.commitBatches()).toHaveLength(commits);

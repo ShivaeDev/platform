@@ -5,7 +5,6 @@ Heavy builds, type checks and test suites from different repositories compete fo
 The holder is a process with a recorded start time, not just a PID. Its hold ends with its Effect scope; a child or nested Effect can join that hold without waiting for itself. Keep the shared file protocol small enough for another repository to implement without this package. Read [the README](./README.md) for usage and [the protocol](./docs/protocol.md) for the file exchange other implementations rely on.
 
 When goals conflict, lean in this order:
-
 1. **Preserve the current holder.** A live holder must not be preempted, a reused PID must not protect a dead hold, and a waiter must never release someone else's lock.
 2. **Keep resource lifetimes native.** Acquisition and release belong to Effect scopes. Failure and interruption must preserve the caller's result and clean up its own resources.
 3. **Keep one protocol across repositories.** Prefer the existing file format, process identity and inherited owner ID over a second coordination path. Nested commands join the outer hold.

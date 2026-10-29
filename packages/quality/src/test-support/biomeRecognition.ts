@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { linkPackage, seedTree } from "./tree.ts";
 
 export const RECOGNITION_RULES: readonly string[] = [
-	"lint/nursery/noComponentHookFactories",
+	"lint/correctness/noComponentHookFactories",
 	"lint/nursery/useValidTestTitle",
 	"lint/style/noDoneCallback",
 ];

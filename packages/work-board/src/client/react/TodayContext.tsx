@@ -33,8 +33,8 @@ export function TodayContext({ inline }: { readonly inline: Inline }) {
 					</ul>
 				) : null}
 				{context.recommendation ? (
-					<div className="rounded-md bg-muted/60 px-3 py-2">
-						<p className="m-0 mb-1 font-medium text-muted-foreground">Recommendation</p>
+					<div className="bg-muted/60 rounded-md px-3 py-2">
+						<p className="text-muted-foreground m-0 mb-1 font-medium">Recommendation</p>
 						<AnswerMarkdown file={inline.preview.source} source={context.recommendation} />
 					</div>
 				) : null}

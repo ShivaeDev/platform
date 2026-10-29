@@ -8,6 +8,7 @@ Authors record the packages and bumps they intend. The release tool carries that
 
 ```markdown
 ---
+
 "@acme/core": minor
 "@acme/client": minor
 ---
@@ -36,8 +37,8 @@ For a rename, change the manifest's name and declare the new name with its bump 
 
 ```markdown
 ---
-"@acme/new-name": minor
----
+
+## "@acme/new-name": minor
 
 ### Breaking
 
@@ -57,12 +58,15 @@ import { Effect, FileSystem } from "effect";
 import { defineConfig } from "@shivaedev/releases/config.ts";
 
 export default defineConfig({
-  packages: ["packages/*"],
-  hooks: [({ root, plan }) => Effect.gen(function* () {
-    const fs = yield* FileSystem.FileSystem;
-    const versions = Object.fromEntries(plan.releases.map(release => [release.name, release.to]));
-    yield* fs.writeFileString(`${root}/published-versions.json`, JSON.stringify(versions));
-  })],
+	packages: ["packages/*"],
+	hooks: [
+		({ root, plan }) =>
+			Effect.gen(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				const versions = Object.fromEntries(plan.releases.map((release) => [release.name, release.to]));
+				yield* fs.writeFileString(`${root}/published-versions.json`, JSON.stringify(versions));
+			}),
+	],
 });
 ```
 

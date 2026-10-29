@@ -1,3 +1,4 @@
+import { Order } from "effect";
 import { promptHeading } from "#browser/responses/cardContext.ts";
 import { responseUrl } from "#responses/url.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
@@ -17,7 +18,7 @@ function fleetAsks(entry: AttentionEntry): string {
 
 function activeKey(entry: AttentionEntry, ids: readonly string[], maintainer = "maintainer"): string {
 	const audience = isMaintainerRequest(entry.request, maintainer) ? "you" : "agents";
-	return JSON.stringify([audience, audience === "agents" ? [...entry.request.responseFrom].sort() : [], ids]);
+	return JSON.stringify([audience, audience === "agents" ? [...entry.request.responseFrom].sort(Order.String) : [], ids]);
 }
 
 type InboxRow = Readonly<ReturnType<typeof collectInbox>["items"][number]>;
@@ -49,7 +50,7 @@ function collectInbox(snapshot: Snapshot) {
 	);
 	const titles = new Map(snapshot.entries.filter((entry) => entry.kind === "document").map((entry) => [entry.file, entry.title]));
 	function targets(entry: AttentionEntry) {
-		return [...new Set(entry.request.unblocks.map((target) => target.split("#")[0] ?? ""))].sort();
+		return [...new Set(entry.request.unblocks.map((target) => target.split("#")[0] ?? ""))].sort(Order.String);
 	}
 	function row(entry: AttentionEntry) {
 		const ids = targets(entry);

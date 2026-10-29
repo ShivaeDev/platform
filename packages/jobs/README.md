@@ -12,13 +12,11 @@ import { Effect, Schema } from "effect";
 import { Mail } from "./services.ts";
 
 const SendEmail = defineQueue({
-  name: "send-email",
-  schema: Schema.Struct({ userId: Schema.NumberFromString }),
+	name: "send-email",
+	schema: Schema.Struct({ userId: Schema.NumberFromString }),
 });
 
-const emailWorker = SendEmail.handle(({ userId }) =>
-  Effect.flatMap(Mail, (mail) => mail.send(userId)),
-);
+const emailWorker = SendEmail.handle(({ userId }) => Effect.flatMap(Mail, (mail) => mail.send(userId)));
 ```
 
 `Mail` is the application's Effect service, defined in the guide below. The worker receives a number even though the durable payload stores a string. The same Schema encodes the producer's payload and decodes the worker's input; malformed stored data fails before the handler runs. Provide the worker's services when the jobs Layer starts, and the handler uses that captured context when pg-boss calls it later.
@@ -46,11 +44,11 @@ import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { appDatabase } from "@shivaedev/server/appHost.ts";
 
 const database = appDatabase({
-  migrations: {
-    loader,
-    components: [pgBossSchema({ schema: "app_jobs" })],
-    mode: "migrate",
-  },
+	migrations: {
+		loader,
+		components: [pgBossSchema({ schema: "app_jobs" })],
+		mode: "migrate",
+	},
 });
 ```
 
@@ -82,14 +80,17 @@ import { Context, Effect, Layer } from "effect";
 
 export const Jobs = makePgBoss("@app/Jobs");
 
-export class Mail extends Context.Service<Mail, {
-  readonly send: (userId: number) => Effect.Effect<void>;
-  readonly removeExpired: Effect.Effect<void>;
-}>()("@app/Mail") {}
+export class Mail extends Context.Service<
+	Mail,
+	{
+		readonly send: (userId: number) => Effect.Effect<void>;
+		readonly removeExpired: Effect.Effect<void>;
+	}
+>()("@app/Mail") {}
 
 export const MailLive = Layer.succeed(Mail, {
-  send: (userId) => Effect.log({ event: "send_email", userId }),
-  removeExpired: Effect.log({ event: "remove_expired_mail" }),
+	send: (userId) => Effect.log({ event: "send_email", userId }),
+	removeExpired: Effect.log({ event: "remove_expired_mail" }),
 });
 ```
 
@@ -105,27 +106,25 @@ import { Effect, Schema } from "effect";
 import { Mail } from "./services.ts";
 
 export const SendEmail = defineQueue({
-  name: "send-email",
-  schema: Schema.Struct({ userId: Schema.NumberFromString }),
-  queue: { retryLimit: 5 },
+	name: "send-email",
+	schema: Schema.Struct({ userId: Schema.NumberFromString }),
+	queue: { retryLimit: 5 },
 });
 
 export const emailWorker = SendEmail.handle(({ userId }, job) =>
-  Effect.gen(function* () {
-    const mail = yield* Mail;
-    yield* mail.send(userId);
-    yield* Effect.log({ jobId: job.id });
-  }),
+	Effect.gen(function* () {
+		const mail = yield* Mail;
+		yield* mail.send(userId);
+		yield* Effect.log({ jobId: job.id });
+	}),
 );
 
 export const Cleanup = defineSchedule({
-  name: "cleanup-mail",
-  cron: "17 3 * * *",
+	name: "cleanup-mail",
+	cron: "17 3 * * *",
 });
 
-export const cleanupWorker = Cleanup.run(
-  Effect.flatMap(Mail, (mail) => mail.removeExpired),
-);
+export const cleanupWorker = Cleanup.run(Effect.flatMap(Mail, (mail) => mail.removeExpired));
 ```
 
 The queue takes `{ userId: number }` in application code and stores `{ userId: string }`. Its handler receives the decoded number and a job context, including the job's `id`. Keep the queue definition available to producers; the runtime registers the worker created by `handle`.
@@ -142,10 +141,10 @@ Queue and schedule workers default to `batchSize: 10` and `burstWhenBatchFull: t
 
 ```ts
 const Compare = defineQueue({
-  name: "compare",
-  schema: Schema.Struct({ id: Schema.Number }),
-  queue: { notify: true },
-  worker: { batchSize: 2, localConcurrency: 5 },
+	name: "compare",
+	schema: Schema.Struct({ id: Schema.Number }),
+	queue: { notify: true },
+	worker: { batchSize: 2, localConcurrency: 5 },
 });
 ```
 
@@ -161,10 +160,12 @@ Fail a queue handler or scheduled Effect with `RetryAt` when a provider gives a 
 import { DateTime, Effect } from "effect";
 import { RetryAt } from "@shivaedev/jobs/server/definition.ts";
 
-const waitForQuota = Effect.fail(new RetryAt({
-  at: DateTime.makeUnsafe("2030-01-01T00:01:00Z"),
-  reason: "Provider quota resets",
-}));
+const waitForQuota = Effect.fail(
+	new RetryAt({
+		at: DateTime.makeUnsafe("2030-01-01T00:01:00Z"),
+		reason: "Provider quota resets",
+	}),
+);
 ```
 
 The same job returns to waiting with `startAfter` set to `at`; its ID, singleton key, payload and retry count stay unchanged. A past or current `at` is eligible on the next fetch. Deferral does not dead-letter the job or call `onError`. Its job span ends OK with a `job.deferred` event whose `at` is an ISO UTC string and whose `reason` is the supplied string. Deferred jobs rely on polling, including queues using `notify: true`. Stately jobs sharing a singleton key can defer together and still run one at a time. While waiting, their native job metadata reports the adapter's `effect-stately-deferred` policy; a database trigger restores `stately` when pg-boss claims them, preserving its active-job exclusion.
@@ -177,19 +178,17 @@ Put related job kinds in one tagged-union queue and choose the entity key in the
 
 ```ts
 const PullRequestJobs = defineQueue({
-  name: "pull-request",
-  schema: Schema.Union([
-    Schema.TaggedStruct("Refresh", { pullRequestId: Schema.NumberFromString }),
-    Schema.TaggedStruct("Reconcile", { pullRequestId: Schema.NumberFromString }),
-  ]),
-  queue: { policy: "singleton" },
-  key: ({ pullRequestId }) => `pr:${pullRequestId.toFixed(0)}`,
-  worker: { batchSize: 1, localConcurrency: 3 },
+	name: "pull-request",
+	schema: Schema.Union([
+		Schema.TaggedStruct("Refresh", { pullRequestId: Schema.NumberFromString }),
+		Schema.TaggedStruct("Reconcile", { pullRequestId: Schema.NumberFromString }),
+	]),
+	queue: { policy: "singleton" },
+	key: ({ pullRequestId }) => `pr:${pullRequestId.toFixed(0)}`,
+	worker: { batchSize: 1, localConcurrency: 3 },
 });
 
-const refresh = Effect.flatMap(Jobs, (jobs) =>
-  jobs.enqueue(PullRequestJobs, { _tag: "Refresh", pullRequestId: 42 }),
-);
+const refresh = Effect.flatMap(Jobs, (jobs) => jobs.enqueue(PullRequestJobs, { _tag: "Refresh", pullRequestId: 42 }));
 ```
 
 `queue.policy` accepts pg-boss's policy literals and rejects typos. The `singleton` policy requires `key: (payload) => string`. The callback sees the decoded payload, so `pullRequestId` is a number. `enqueue` supplies pg-boss's `singletonKey` automatically; callers cannot supply a conflicting key in send options.
@@ -204,15 +203,15 @@ pg-boss marks every job in a fetched batch active together. Each job's expiry wi
 
 ```ts
 const Ingest = defineQueue({
-  name: "ingest",
-  schema: Schema.Struct({ sourceId: Schema.String }),
-  queue: { expireInSeconds: 300 },
-  worker: { batchSize: 1 },
+	name: "ingest",
+	schema: Schema.Struct({ sourceId: Schema.String }),
+	queue: { expireInSeconds: 300 },
+	worker: { batchSize: 1 },
 });
 
 const IndexTitle = defineQueue({
-  name: "index-title",
-  schema: Schema.Struct({ titleId: Schema.String }),
+	name: "index-title",
+	schema: Schema.Struct({ titleId: Schema.String }),
 });
 ```
 
@@ -228,10 +227,10 @@ Queue handlers can yield `job.remainingBudget`, an `Effect.Effect<Duration.Durat
 import { Duration, Effect } from "effect";
 
 const ingestWorker = Ingest.handle(({ sourceId }, job) =>
-  Effect.gen(function* () {
-    const budget = yield* job.remainingBudget;
-    yield* Effect.log({ sourceId, remainingMilliseconds: Duration.toMillis(budget) });
-  }),
+	Effect.gen(function* () {
+		const budget = yield* job.remainingBudget;
+		yield* Effect.log({ sourceId, remainingMilliseconds: Duration.toMillis(budget) });
+	}),
 );
 ```
 
@@ -247,11 +246,11 @@ import { cleanupWorker, emailWorker } from "./jobs.ts";
 import { Jobs, MailLive } from "./services.ts";
 
 export const jobsLayer = (databaseUrl: string) =>
-  Jobs.layer({
-    connectionString: databaseUrl,
-    schema: "app_jobs",
-    jobs: [emailWorker, cleanupWorker],
-  }).pipe(Layer.provide(MailLive));
+	Jobs.layer({
+		connectionString: databaseUrl,
+		schema: "app_jobs",
+		jobs: [emailWorker, cleanupWorker],
+	}).pipe(Layer.provide(MailLive));
 ```
 
 The constructor options belong to pg-boss. `jobs` is the complete list of registrations for this Layer. The Layer captures `MailLive` for both the queue handler and the scheduled Effect. A startup or registration failure fails Layer acquisition with `PgBossError` or `PgBossQueueOptionsError` and releases its acquired client reference. Registration creates a queue again, up to six times with a short backoff, when PostgreSQL rolls the creation back as a deadlock victim (SQLSTATE `40P01`), which a partitioned queue can meet when other queues in the schema have traffic. A shared client stays running while another scope still owns a reference.
@@ -266,12 +265,12 @@ import { jobsLayer } from "./runtime.ts";
 import { Jobs } from "./services.ts";
 
 const inspectJobs = (databaseUrl: string) =>
-  Effect.scoped(
-    Effect.gen(function* () {
-      const jobs = yield* Jobs;
-      return yield* jobs.health;
-    }).pipe(Effect.provide(jobsLayer(databaseUrl))),
-  );
+	Effect.scoped(
+		Effect.gen(function* () {
+			const jobs = yield* Jobs;
+			return yield* jobs.health;
+		}).pipe(Effect.provide(jobsLayer(databaseUrl))),
+	);
 ```
 
 This Effect starts the jobs Layer, reads health and closes the scope. The client stops when that scope closes.
@@ -284,10 +283,10 @@ import { SendEmail } from "./jobs.ts";
 import { Jobs } from "./services.ts";
 
 export const enqueueEmail = (userId: number) =>
-  Effect.gen(function* () {
-    const jobs = yield* Jobs;
-    return yield* jobs.enqueue(SendEmail, { userId });
-  });
+	Effect.gen(function* () {
+		const jobs = yield* Jobs;
+		return yield* jobs.enqueue(SendEmail, { userId });
+	});
 ```
 
 Provide `Jobs` through the application's existing runtime. `enqueue` takes the decoded payload, so passing a string `userId` is a type error. It encodes the number to a string before calling pg-boss. The result type is `Option.Option<string>`: a job identifier becomes `Some`, and a `null` send result becomes `None`.
@@ -309,15 +308,15 @@ import { Effect } from "effect";
 import { Jobs } from "./services.ts";
 
 export const readJobCounts = Effect.gen(function* () {
-  const jobs = yield* Jobs;
-  const health = yield* jobs.health;
-  return {
-    active: health.activeTotal,
-    deadLettered: health.deadLetteredTotal,
-    failed: health.failedTotal,
-    queued: health.queuedTotal,
-    ready: health.readyTotal,
-  };
+	const jobs = yield* Jobs;
+	const health = yield* jobs.health;
+	return {
+		active: health.activeTotal,
+		deadLettered: health.deadLetteredTotal,
+		failed: health.failedTotal,
+		queued: health.queuedTotal,
+		ready: health.readyTotal,
+	};
 });
 ```
 
@@ -330,15 +329,16 @@ import { Effect, Option } from "effect";
 import { SendEmail } from "./jobs.ts";
 import { Jobs } from "./services.ts";
 
-export const inspectEmail = (id: string) => Effect.gen(function* () {
-  const jobs = yield* Jobs;
-  const job = yield* jobs.getJob(SendEmail, id);
-  if (Option.isSome(job) && job.value.state === "failed") {
-    yield* jobs.retry(SendEmail, id);
-  }
-  const counts = yield* jobs.counts(SendEmail);
-  return counts.queuedCount === 0 && counts.activeCount === 0;
-});
+export const inspectEmail = (id: string) =>
+	Effect.gen(function* () {
+		const jobs = yield* Jobs;
+		const job = yield* jobs.getJob(SendEmail, id);
+		if (Option.isSome(job) && job.value.state === "failed") {
+			yield* jobs.retry(SendEmail, id);
+		}
+		const counts = yield* jobs.counts(SendEmail);
+		return counts.queuedCount === 0 && counts.activeCount === 0;
+	});
 ```
 
 `counts(queue)` reads the job table directly on each call. `queuedCount` includes created and retry-waiting jobs, including future jobs; `activeCount` counts running jobs, `failedCount` counts retained failures, and `totalCount` includes retained terminal jobs. A queue has drained when queued and active counts are both zero. These counts are a snapshot, so a producer can enqueue more work after the query returns.
@@ -352,16 +352,17 @@ import { Effect, Option } from "effect";
 import { SendEmail } from "./jobs.ts";
 import { Jobs } from "./services.ts";
 
-export const failedEmails = (cursor?: string) => Effect.gen(function* () {
-  const jobs = yield* Jobs;
-  const failed = yield* jobs.failedJobs(SendEmail, { cursor, limit: 20 });
-  const deadLettered = yield* jobs.deadLetteredJobs(SendEmail, { limit: 20 });
-  return {
-    deadLettered: deadLettered.jobs.map((job) => ({ id: job.id, original: Option.getOrNull(job.sourceId), error: job.sourceOutput })),
-    failed: failed.jobs.map((job) => ({ id: job.id, attempt: job.attempt, error: job.output, userId: job.data.userId })),
-    next: Option.getOrUndefined(failed.next),
-  };
-});
+export const failedEmails = (cursor?: string) =>
+	Effect.gen(function* () {
+		const jobs = yield* Jobs;
+		const failed = yield* jobs.failedJobs(SendEmail, { cursor, limit: 20 });
+		const deadLettered = yield* jobs.deadLetteredJobs(SendEmail, { limit: 20 });
+		return {
+			deadLettered: deadLettered.jobs.map((job) => ({ id: job.id, original: Option.getOrNull(job.sourceId), error: job.sourceOutput })),
+			failed: failed.jobs.map((job) => ({ id: job.id, attempt: job.attempt, error: job.output, userId: job.data.userId })),
+			next: Option.getOrUndefined(failed.next),
+		};
+	});
 ```
 
 `health` and `counts` say how many jobs failed; these two listings say which ones and why. `failedJobs(queue, options)` lists the queue's jobs in the `failed` state, the ones that used up their retries. `deadLetteredJobs(queue, options)` lists every job in the queue's dead-letter queue. Dead-letter entries live in the `-dlq` queue: each is a new job with its own ID that pg-boss copied there when the original failed for good. Both listings read pg-boss's `job` table on each call, through the jobs Layer's own pg-boss connection and in its configured schema, so applications never query pg-boss tables themselves. A custom client needs the native `getDb` capability for them.
@@ -386,12 +387,12 @@ import { cleanupWorker, emailWorker } from "./jobs.ts";
 import { Jobs, MailLive } from "./services.ts";
 
 const sharedJobsLayer = (databaseUrl: string) =>
-  Jobs.layer({
-    connectionString: databaseUrl,
-    schema: "app_jobs",
-    clientCacheKey: "app-jobs",
-    jobs: [emailWorker, cleanupWorker],
-  }).pipe(Layer.provide(MailLive));
+	Jobs.layer({
+		connectionString: databaseUrl,
+		schema: "app_jobs",
+		clientCacheKey: "app-jobs",
+		jobs: [emailWorker, cleanupWorker],
+	}).pipe(Layer.provide(MailLive));
 ```
 
 Overlapping Layer builds with the same `clientCacheKey` share one started client. The later build replaces the registered worker, and the final scope release stops the shared client. A later build after that release starts a new client. Without a key, each build creates its own client. The application chooses whether to pass a key; give each distinct constructor configuration its own key.
@@ -404,8 +405,7 @@ Pass a queue definition directly in the jobs Layer to create its queue and dead-
 import { SendEmail } from "./jobs.ts";
 import { Jobs } from "./services.ts";
 
-export const producerLayer = (databaseUrl: string) =>
-  Jobs.layer({ connectionString: databaseUrl, jobs: [SendEmail] });
+export const producerLayer = (databaseUrl: string) => Jobs.layer({ connectionString: databaseUrl, jobs: [SendEmail] });
 ```
 
 Provide this Layer to the request runtime and call `jobs.enqueue(SendEmail, { userId })` as above. A separate worker process registers `SendEmail.handle(...)` against the same database. Producer queues use the same retry options and appear in `health`; only worker registrations capture handler services.
@@ -416,22 +416,22 @@ A handler can yield the same `Jobs` service that owns it. The Layer supplies tha
 
 ```ts
 const Receipt = defineQueue({
-  name: "receipt",
-  schema: Schema.Struct({ userId: Schema.Number }),
+	name: "receipt",
+	schema: Schema.Struct({ userId: Schema.Number }),
 });
 
 const sendAndQueueReceipt = SendEmail.handle(({ userId }) =>
-  Effect.gen(function* () {
-    const mail = yield* Mail;
-    yield* mail.send(userId);
-    const jobs = yield* Jobs;
-    yield* jobs.enqueue(Receipt, { userId });
-  }),
+	Effect.gen(function* () {
+		const mail = yield* Mail;
+		yield* mail.send(userId);
+		const jobs = yield* Jobs;
+		yield* jobs.enqueue(Receipt, { userId });
+	}),
 );
 
 const live = Jobs.layer({
-  connectionString: databaseUrl,
-  jobs: [sendAndQueueReceipt, Receipt],
+	connectionString: databaseUrl,
+	jobs: [sendAndQueueReceipt, Receipt],
 }).pipe(Layer.provide(MailLive));
 ```
 
@@ -450,29 +450,29 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts";
 
 const emailStories = storyKit({
-  clock: "live",
-  *create() {
-    const testing = makePgBossTesting({ retryPolicy: testRetryPolicy });
-    const context = yield* Layer.build(Jobs.layer({
-      connectionString: databaseUrl,
-      clientFactory: testing.clientFactory,
-      jobs: [SendEmail],
-    }));
-    return { jobs: Context.get(context, Jobs), testing };
-  },
-  name: "queued email",
-  stages: ["ready"],
-  verbs: ({ jobs, testing }) => ({
-    enqueue: (userId: number) => jobs.enqueue(SendEmail, { userId }),
-    testing,
-  }),
+	clock: "live",
+	*create() {
+		const testing = makePgBossTesting({ retryPolicy: testRetryPolicy });
+		const context = yield* Layer.build(
+			Jobs.layer({
+				connectionString: databaseUrl,
+				clientFactory: testing.clientFactory,
+				jobs: [SendEmail],
+			}),
+		);
+		return { jobs: Context.get(context, Jobs), testing };
+	},
+	name: "queued email",
+	stages: ["ready"],
+	verbs: ({ jobs, testing }) => ({
+		enqueue: (userId: number) => jobs.enqueue(SendEmail, { userId }),
+		testing,
+	}),
 });
 
 emailStories.it("decodes the queued email", [], function* ({ enqueue, testing }) {
-  const id = Option.getOrThrow(yield* enqueue(42));
-  expect(yield* testing.jobs(SendEmail)).toMatchObject([
-    { id, data: { userId: 42 }, state: "created" },
-  ]);
+	const id = Option.getOrThrow(yield* enqueue(42));
+	expect(yield* testing.jobs(SendEmail)).toMatchObject([{ id, data: { userId: 42 }, state: "created" }]);
 });
 ```
 
@@ -500,15 +500,15 @@ A kit can also capture `revision` before reading jobs and yield `waitForChange(r
 
 Import the module that defines the name; the package has no root entry.
 
-| Module | Public names |
-| --- | --- |
+| Module                                 | Public names                                                                                                                                                                                                                                                                                       |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `@shivaedev/jobs/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
-| `@shivaedev/jobs/server/service.ts` | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService` |
-| `@shivaedev/jobs/server/schema.ts` | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions` |
-| `@shivaedev/jobs/server/health.ts` | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth` |
-| `@shivaedev/jobs/server/error.ts` | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation` |
-| `@shivaedev/jobs/server/client.ts` | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory` |
-| `@shivaedev/jobs/server/testing.ts` | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob` |
+| `@shivaedev/jobs/server/service.ts`    | `makePgBoss`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossService`                                                                                                                                                                                                                            |
+| `@shivaedev/jobs/server/schema.ts`     | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                                                       |
+| `@shivaedev/jobs/server/health.ts`     | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                                                     |
+| `@shivaedev/jobs/server/error.ts`      | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation`                                                                                                                                               |
+| `@shivaedev/jobs/server/client.ts`     | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                                      |
+| `@shivaedev/jobs/server/testing.ts`    | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                                                                                  |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 

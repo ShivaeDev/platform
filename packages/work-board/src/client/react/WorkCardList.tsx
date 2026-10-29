@@ -28,7 +28,7 @@ export function WorkCardList({
 		<section
 			aria-label="Lane items"
 			className={cn(
-				"work-card-list min-h-0 rounded-lg bg-muted/40 p-2",
+				"work-card-list bg-muted/40 min-h-0 rounded-lg p-2",
 				bounded && "max-h-[calc(100dvh-16rem)] overflow-y-auto overscroll-contain",
 				// Scroll anchoring would chase the estimated padding as the window moves and leave the view blank.
 				virtual && !bounded && "[overflow-anchor:none]",

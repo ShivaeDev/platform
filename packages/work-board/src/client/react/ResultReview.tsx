@@ -19,7 +19,7 @@ export function ItemResultReview({ api, item }: { readonly api: ShellApi; readon
 	}
 	const failure = Option.getOrUndefined(Option.flatMap(query.cause, Cause.findErrorOption));
 	return failure ? (
-		<p className="col-span-full text-muted-foreground text-sm" data-result-unavailable role="status">
+		<p className="text-muted-foreground col-span-full text-sm" data-result-unavailable role="status">
 			Checks and feedback can't be shown. Reload the page to try again.
 		</p>
 	) : null;
@@ -42,7 +42,7 @@ export function ResultReview({ data }: { readonly data: ResultProjection }) {
 			{checks.length > 0 && <ResultCriteria data={data} targets={checks} />}
 			{feedback ? <ResultFeedback data={data} /> : null}
 			{empty !== undefined && (
-				<p className="m-0 text-muted-foreground text-sm" data-result-empty>
+				<p className="text-muted-foreground m-0 text-sm" data-result-empty>
 					{empty}
 				</p>
 			)}
@@ -53,7 +53,7 @@ export function ResultReview({ data }: { readonly data: ResultProjection }) {
 function LinkedItem({ document, target }: { readonly document: Document; readonly target: string }) {
 	const details = document.referenceDetails?.[target];
 	return (
-		<li className="flex flex-wrap items-center gap-x-3 gap-y-2 text-foreground">
+		<li className="text-foreground flex flex-wrap items-center gap-x-3 gap-y-2">
 			<span className="text-muted-foreground">For</span>
 			<Reference document={document} target={target} />
 			{details !== undefined && (

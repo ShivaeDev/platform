@@ -29,7 +29,7 @@ export function WorkPage({ data, api }: { readonly data: WorkProjection; readonl
 			<WorkTools state={state} />
 			{state.view === "now" ? (
 				<details className="work-options mb-4">
-					<summary className="cursor-pointer text-muted-foreground text-sm">Filter</summary>
+					<summary className="text-muted-foreground cursor-pointer text-sm">Filter</summary>
 					<div className="mt-3 grid gap-3">{options}</div>
 				</details>
 			) : (
@@ -57,14 +57,14 @@ function WorkContent({ data, api }: { readonly data: WorkProjection; readonly ap
 				</details>
 			)}
 			{data.state.view !== "now" && (
-				<p className="work-total mb-2 text-muted-foreground text-xs" role="status">
+				<p className="work-total text-muted-foreground mb-2 text-xs" role="status">
 					{data.rows.length} shown · {data.items.length} items in this view
 				</p>
 			)}
 			<div className={data.state.item ? "work-layout has-detail" : "work-layout"}>
 				<section
 					aria-label="Work items"
-					className="min-w-0 rounded-lg outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+					className="focus-visible:ring-ring/50 min-w-0 rounded-lg outline-none focus-visible:ring-3"
 					data-scroll="if-needed"
 					id={shellIds.workResults}
 					tabIndex={-1}

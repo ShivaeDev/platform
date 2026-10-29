@@ -33,7 +33,7 @@ export function HandoffPage({ data }: { readonly data: HandoffProjection }) {
 				actions={<LinkButton href={item}>Back to item</LinkButton>}
 				summary={
 					<div className="space-y-2">
-						<p className="m-0 font-mono text-foreground text-xs">{data.item}</p>
+						<p className="text-foreground m-0 font-mono text-xs">{data.item}</p>
 						<p className="m-0">
 							Write down what the agent should do next. The Board saves it as a file and gives you a short prompt to paste into your agent session.
 							Nothing starts until you paste it.
@@ -73,20 +73,20 @@ function HandoffEntry({ record, current }: { readonly record: HandoffRecord; rea
 	return (
 		<article className="min-w-0 space-y-3 rounded-lg border p-4" data-receipt={h.state} id={record.id}>
 			<header className="flex flex-wrap items-center gap-2">
-				<h3 className="m-0 font-semibold text-sm">{h.recipient}</h3>
+				<h3 className="m-0 text-sm font-semibold">{h.recipient}</h3>
 				<Badge variant="outline">{statusLabel(h.state)}</Badge>
 				<span className="text-muted-foreground text-xs">
 					prepared <RowTime at={h.preparedAt} />
 				</span>
-				<a className="ml-auto text-muted-foreground text-xs" href={fileUrl(record.file)}>
+				<a className="text-muted-foreground ml-auto text-xs" href={fileUrl(record.file)}>
 					Open file
 				</a>
 			</header>
-			<p className="m-0 text-muted-foreground">
+			<p className="text-muted-foreground m-0">
 				{receipts[h.state]}
 				{Boolean(h.by || h.note) && ` ${[h.by, h.note].filter(Boolean).join(": ")}`}
 			</p>
-			<p className="m-0 text-muted-foreground" data-current-source={same}>
+			<p className="text-muted-foreground m-0" data-current-source={same}>
 				{same ? "Written for the current version of " : "Written for an earlier version of "}
 				<a href={fileUrl(h.source)}>{h.source}</a> (<Version revision={h.reviewedRevision} />)
 				{same ? "." : ", or one that can't be read now. Check it still applies before acting on it."}
@@ -108,7 +108,7 @@ function HandoffEntry({ record, current }: { readonly record: HandoffRecord; rea
 			<HandoffPrompt id={record.id} prompt={record.prompt} />
 			<details className="rounded-md border px-3 py-2">
 				<summary className="cursor-pointer font-medium">Item as handed off</summary>
-				<pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs">{record.context}</pre>
+				<pre className="bg-muted mt-2 max-h-96 overflow-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">{record.context}</pre>
 			</details>
 		</article>
 	);

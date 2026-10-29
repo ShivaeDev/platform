@@ -1,5 +1,5 @@
 import { posix } from "node:path";
-import { Effect, Schema } from "effect";
+import { Effect, Order, Schema } from "effect";
 import ignore, { type Ignore } from "ignore";
 import { nativeNames } from "#naming/nativeNames.ts";
 import { packageLayout } from "#naming/packageLayout.ts";
@@ -22,7 +22,7 @@ function foldersIn(files: readonly string[]): readonly string[] {
 			folders.add(folder);
 		}
 	}
-	return [...folders].sort();
+	return [...folders].sort(Order.String);
 }
 
 function stemsIn(files: readonly string[]): ReadonlySet<string> {

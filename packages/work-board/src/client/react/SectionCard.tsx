@@ -23,7 +23,7 @@ export function SectionCard({
 			<Card>
 				<CardHeader>
 					<CardTitle>
-						<h2 className="m-0 font-semibold text-lg" id={headingId}>
+						<h2 className="m-0 text-lg font-semibold" id={headingId}>
 							{title}
 						</h2>
 					</CardTitle>

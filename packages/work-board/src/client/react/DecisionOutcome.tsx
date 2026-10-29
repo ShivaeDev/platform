@@ -23,8 +23,8 @@ export function DecisionOutcome({ document }: { readonly document: Document }) {
 		return null;
 	}
 	return (
-		<section aria-labelledby={id} className="mb-6 space-y-3 rounded-lg border bg-muted/40 px-4 py-3" data-decision-outcome="">
-			<h2 className="m-0 font-medium text-muted-foreground text-sm" id={id}>
+		<section aria-labelledby={id} className="bg-muted/40 mb-6 space-y-3 rounded-lg border px-4 py-3" data-decision-outcome="">
+			<h2 className="text-muted-foreground m-0 text-sm font-medium" id={id}>
 				Outcome
 			</h2>
 			{unavailable !== undefined && <p className="m-0 text-sm">{unavailable}</p>}
@@ -49,16 +49,16 @@ function RecordedAnswer({ record, request }: { readonly record: RecordedResponse
 			{answers === undefined ? (
 				<AnswerMarkdown className="text-base" file={`responses/${record.id}.md`} source={record.body} />
 			) : (
-				<p className="m-0 font-medium text-base">{chosen || "No listed option chosen"}</p>
+				<p className="m-0 text-base font-medium">{chosen || "No listed option chosen"}</p>
 			)}
 			{notes.map((note) => (
-				<p className="m-0 whitespace-pre-wrap text-sm" key={note}>
+				<p className="m-0 text-sm whitespace-pre-wrap" key={note}>
 					{note}
 				</p>
 			))}
-			<p className="m-0 text-muted-foreground text-sm">
+			<p className="text-muted-foreground m-0 text-sm">
 				Answered by{" "}
-				<a className="underline underline-offset-4 hover:text-foreground" href={`/responses/${record.id}.md`}>
+				<a className="hover:text-foreground underline underline-offset-4" href={`/responses/${record.id}.md`}>
 					{author}
 				</a>{" "}
 				<Time at={recordedAt} />

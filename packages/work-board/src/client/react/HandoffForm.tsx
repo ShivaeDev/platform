@@ -46,7 +46,7 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 			)}
 			<details className="rounded-md border px-3 py-2">
 				<summary className="cursor-pointer font-medium">Show the item's full source</summary>
-				<pre className="mt-2 max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs">{source.context}</pre>
+				<pre className="bg-muted mt-2 max-h-96 overflow-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap">{source.context}</pre>
 			</details>
 			<form
 				className="space-y-4"
@@ -94,7 +94,7 @@ function HandoffSession({ data, source }: { readonly data: HandoffProjection; re
 					</Button>
 				</div>
 				<pre
-					className="max-h-96 overflow-auto whitespace-pre-wrap rounded-md bg-muted p-3 font-mono text-xs"
+					className="bg-muted max-h-96 overflow-auto rounded-md p-3 font-mono text-xs whitespace-pre-wrap"
 					hidden={!state.preview}
 					id={shellIds.handoffPreviewContent}
 				>

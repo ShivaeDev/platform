@@ -61,18 +61,18 @@ function AnswerCard({
 	return (
 		<section
 			aria-labelledby={`answer-title-${request.id}`}
-			className="response-panel max-w-[72ch] space-y-5 rounded-xl border bg-card p-5 text-card-foreground shadow-sm"
+			className="response-panel bg-card text-card-foreground max-w-[72ch] space-y-5 rounded-xl border p-5 shadow-sm"
 			id={`answer-card-${request.id}`}
 			tabIndex={-1}
 		>
-			<h2 className="flex items-center gap-2 font-medium text-muted-foreground text-sm" id={`answer-title-${request.id}`}>
-				{answered !== undefined && <Hourglass aria-hidden="true" className="size-4 text-waiting-on-agents" />}
-				{request.open && answered === undefined && <MessageCircleQuestion aria-hidden="true" className="size-4 text-needs-you" />}
+			<h2 className="text-muted-foreground flex items-center gap-2 text-sm font-medium" id={`answer-title-${request.id}`}>
+				{answered !== undefined && <Hourglass aria-hidden="true" className="text-waiting-on-agents size-4" />}
+				{request.open && answered === undefined && <MessageCircleQuestion aria-hidden="true" className="text-needs-you size-4" />}
 				{cardTitle(request, closed)}
 			</h2>
 			{answered !== undefined && (
 				<p
-					className="rounded-md border border-waiting-on-agents/40 bg-waiting-on-agents/10 px-3 py-2 text-sm"
+					className="border-waiting-on-agents/40 bg-waiting-on-agents/10 rounded-md border px-3 py-2 text-sm"
 					data-answered=""
 					ref={statusRef}
 					role="status"
@@ -87,13 +87,13 @@ function AnswerCard({
 				</p>
 			)}
 			{Boolean(unavailable) && (
-				<p className="rounded-md border border-destructive/40 px-3 py-2 text-sm" role="status">
+				<p className="border-destructive/40 rounded-md border px-3 py-2 text-sm" role="status">
 					{unavailable}
 				</p>
 			)}
 			{request.open && preview !== undefined && (
 				<>
-					<AnswerMarkdown className="answer-reason font-medium text-base" file={source.file} source={reasonMarkdown(preview.reason)} />
+					<AnswerMarkdown className="answer-reason text-base font-medium" file={source.file} source={reasonMarkdown(preview.reason)} />
 					<AnswerContext preview={preview} />
 				</>
 			)}

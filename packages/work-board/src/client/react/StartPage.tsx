@@ -22,7 +22,7 @@ export function StartPage({ data }: { readonly data: StartProjection }) {
 					<li>Change the example IDs to your own, and update the links that use them.</li>
 					<li>Fill in the real details. Start with the goal, then the investigation and the report.</li>
 				</ol>
-				<p className="m-0 text-muted-foreground">
+				<p className="text-muted-foreground m-0">
 					Only record evidence for checks you actually ran. A finished agent run isn't proof on its own. Plain Markdown without frontmatter works too.
 				</p>
 			</SectionCard>
@@ -57,7 +57,7 @@ function StartTemplate({ template }: { readonly template: Template }) {
 			}
 			title={template.label}
 		>
-			<p className={status ? "m-0 text-muted-foreground text-xs" : "sr-only"} data-copy-status role="status">
+			<p className={status ? "text-muted-foreground m-0 text-xs" : "sr-only"} data-copy-status role="status">
 				{status}
 			</p>
 			<details className="rounded-md border px-3 py-2" data-key={`template:${template.file}`} ref={detailsRef}>
@@ -66,7 +66,7 @@ function StartTemplate({ template }: { readonly template: Template }) {
 					{template.label} template
 				</label>
 				<textarea
-					className="mt-2 w-full rounded-md border bg-muted p-3 font-mono text-xs"
+					className="bg-muted mt-2 w-full rounded-md border p-3 font-mono text-xs"
 					defaultValue={template.source}
 					id={`template-${template.file}`}
 					readOnly

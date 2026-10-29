@@ -5,7 +5,6 @@ The Work Board inside Claude Code: what needs you, what Fleet has in flight and 
 ## Why you want this
 
 A Work Board runs beside your sessions, but its browser tab is not where you are looking. With the plugin, each Claude Code session finds its own Board and shows it where you work:
-
 - a one-line band above the prompt that sums Needs you, In flight and Goals, with a button that opens the pane;
 - a `/workboard` pane listing each Needs you item as a pressable line, started Fleet work grouped by goal with each agent’s activity, current or finished turn duration and PR number, and goal progress bars or a plain “all tasks done” check;
 - a toast when a new decision lands for you;

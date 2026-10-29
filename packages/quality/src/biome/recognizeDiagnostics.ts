@@ -4,7 +4,7 @@ import { nativeEffectCall } from "./nativeEffectCall.ts";
 import type { Diagnostic } from "./report.ts";
 import { nodeAt, offsetOf, type Syntax, syntaxOf } from "./syntax.ts";
 
-const RECOGNIZED: ReadonlySet<string> = new Set(["lint/nursery/noComponentHookFactories", "lint/style/noDoneCallback"]);
+const RECOGNIZED: ReadonlySet<string> = new Set(["lint/correctness/noComponentHookFactories", "lint/style/noDoneCallback"]);
 
 function generatorParameter(node: ts.Node): boolean {
 	const parameter = node.parent;
@@ -45,7 +45,7 @@ function misclassified(diagnostic: Diagnostic, syntax: Syntax): boolean {
 	switch (diagnostic.category) {
 		case "lint/style/noDoneCallback":
 			return generatorParameter(node);
-		case "lint/nursery/noComponentHookFactories":
+		case "lint/correctness/noComponentHookFactories":
 			return tagHandler(node, syntax);
 		default:
 			return false;

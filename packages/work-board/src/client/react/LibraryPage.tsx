@@ -36,7 +36,7 @@ function LibraryCount({ data, shown, state }: { readonly data: Library; readonly
 	}
 	const documents = `${total} ${total === 1 ? "document" : "documents"}`;
 	return (
-		<p className="mb-2 text-muted-foreground text-xs" role="status">
+		<p className="text-muted-foreground mb-2 text-xs" role="status">
 			{state.view === "folders" || total <= shown ? documents : `${shown} shown · ${documents}`}
 		</p>
 	);
