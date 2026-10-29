@@ -1,72 +1,71 @@
 import { expect } from "@effect/vitest";
-import { FieldFailure, Invalid } from "#shape.ts";
-import { first, indexedAnswers, rejectedAnswers, schemaAnswers, second, third } from "#test/arrayForms.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { emptyAnswers, sameText, unkeyedAnswers } from "#test/arrayForms.ts";
 
-schemaAnswers.it("Schema errors follow their element through insertion, removal and reorder", [], function* ({ form, submit, reject, errorAt }) {
-	function message(index: number) {
-		return errorAt(["answers", index, "text"]);
-	}
-	expect(message(2)).toBeUndefined();
-	submit();
-	expect(yield* reject()).toBeInstanceOf(Invalid);
-	expect(message(0)).toBeUndefined();
-	expect(message(1)).toBeUndefined();
-	expect(message(2)).toBe("Required");
-	form.change("answers", [{ id: "inserted", text: "New" }, first, second, third]);
-	expect(message(2)).toBeUndefined();
-	expect(message(3)).toBe("Required");
-	form.change("answers", [second, { ...third }]);
-	expect(message(0)).toBeUndefined();
-	expect(message(1)).toBe("Required");
-	form.change("answers", [{ ...third }, second]);
-	expect(message(0)).toBe("Required");
-	expect(message(1)).toBeUndefined();
-	form.change("answers", [second]);
-	expect(message(0)).toBeUndefined();
-	expect(message(1)).toBeUndefined();
+emptyAnswers.it("submitting shows Required on the empty answer's text and on no other answer", [], function* ({ answerError, submit }) {
+	expect(yield* answerError("empty", "text")).toBeUndefined();
+
+	yield* submit();
+
+	yield* outcomes({
+		"empty answer's text": [answerError("empty", "text"), "Required"],
+		"first answer's text": [answerError("first", "text"), undefined],
+		"second answer's text": [answerError("second", "text"), undefined],
+	});
 });
 
-rejectedAnswers.it(
-	"a typed server rejection follows the keyed answer and clears only when its input changes or disappears",
-	[],
-	function* ({ form, submit, reject, errors, errorAt }) {
-		function message(index: number) {
-			return errorAt(["answers", index, "text"]);
-		}
-		submit();
-		const rejection = yield* reject();
-		expect(rejection).toBeInstanceOf(FieldFailure);
-		expect(rejection).toMatchObject({ path: "answers", segments: ["answers", 2, "text"] });
-		expect(message(2)).toBe("Answer is closed");
-		expect(errorAt(["answers", 2])).toBe("Answer is closed");
-		expect(errorAt(["answers", 2, "id"])).toBeUndefined();
-		expect(errors("answers")).toBe("Answer is closed");
-		const rejected = { id: "third", text: "Rejected" };
-		form.change("answers", [{ id: "inserted", text: "Rejected" }, first, second, rejected]);
-		expect(message(0)).toBeUndefined();
-		expect(message(2)).toBeUndefined();
-		expect(message(3)).toBe("Answer is closed");
-		form.change("answers", [{ ...second, text: "Edited sibling" }, { ...rejected }]);
-		expect(message(1)).toBe("Answer is closed");
-		form.blur("answers");
-		expect(message(1)).toBe("Answer is closed");
-		form.change("answers", [{ ...rejected }, second]);
-		expect(message(0)).toBe("Answer is closed");
-		expect(message(1)).toBeUndefined();
-		form.change("answers", [{ ...rejected, text: "Corrected" }, second]);
-		expect(message(0)).toBeUndefined();
-		form.change("answers", [rejected, second]);
-		expect(message(0)).toBeUndefined();
-		submit();
-		yield* reject();
-		expect(message(2)).toBeUndefined();
+emptyAnswers.it(
+	"the empty answer's Required moves with it when an answer is inserted before the others",
+	[emptyAnswers.submitted()],
+	function* ({ answerError, insertAnswerBefore }) {
+		expect(yield* answerError("empty", "text")).toBe("Required");
+
+		yield* insertAnswerBefore("first", { id: "inserted", text: "New" });
+
+		yield* outcomes({
+			"empty answer's text": [answerError("empty", "text"), "Required"],
+			"second answer's text, now where the empty answer was": [answerError("second", "text"), undefined],
+		});
 	},
 );
 
-indexedAnswers.it("unconfigured arrays retain index paths rather than guessing element identity", [], function* ({ form, submit, reject, errorAt }) {
-	submit();
-	yield* reject();
-	form.change("answers", [{ id: "second", text: "One" }, first]);
-	expect(errorAt(["answers", 0, "text"])).toBe("Rejected");
-	expect(errorAt(["answers", 1, "text"])).toBeUndefined();
+emptyAnswers.it(
+	"the empty answer's Required moves with it when the first answer is removed",
+	[emptyAnswers.submitted()],
+	function* ({ answerError, removeAnswer }) {
+		expect(yield* answerError("empty", "text")).toBe("Required");
+
+		yield* removeAnswer("first");
+
+		yield* outcomes({
+			"empty answer's text": [answerError("empty", "text"), "Required"],
+			"second answer's text, now first": [answerError("second", "text"), undefined],
+		});
+	},
+);
+
+emptyAnswers.it("the empty answer's Required moves with it to the front", [emptyAnswers.submitted()], function* ({ answerError, moveAnswerToFront }) {
+	expect(yield* answerError("empty", "text")).toBe("Required");
+
+	yield* moveAnswerToFront("empty");
+
+	yield* outcomes({
+		"empty answer's text": [answerError("empty", "text"), "Required"],
+		"second answer's text, now where the empty answer was": [answerError("second", "text"), undefined],
+	});
 });
+
+unkeyedAnswers.it(
+	"without array keys, a rejection stays at its position when an answer with the same text moves there",
+	[unkeyedAnswers.submitted()],
+	function* ({ answerErrorAt, moveAnswerToFront }) {
+		expect(yield* answerErrorAt(0, "text")).toBe("Rejected");
+
+		yield* moveAnswerToFront(sameText.id);
+
+		yield* outcomes({
+			"first position, now the same-text answer": [answerErrorAt(0, "text"), "Rejected"],
+			"second position, now the first answer": [answerErrorAt(1, "text"), undefined],
+		});
+	},
+);

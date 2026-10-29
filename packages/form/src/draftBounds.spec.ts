@@ -1,46 +1,85 @@
 import { expect } from "@effect/vitest";
-import { draftNames } from "#test/drafts.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { draftNames, storedDraftPaddedTo, storedDraftWrittenAgo } from "#test/draftBounds.ts";
 
 const defaultMaxBytes = 256 * 1024;
 const minute = 60 * 1000;
 const sevenDays = 7 * 24 * 60 * minute;
+const localDraft = [draftNames.draftsStored(), draftNames.edited("name", "Local")];
 
 draftNames.it(
-	"stores a draft of up to 256 KiB by default and drops one that grows past it",
-	[draftNames.persisted()],
-	({ form, saved, storedDraftBytes }) => {
-		form.change("name", "a");
-		const overhead = storedDraftBytes() - 1;
-		form.change("name", "a".repeat(defaultMaxBytes - overhead));
-		expect(storedDraftBytes()).toBe(defaultMaxBytes);
-		form.change("name", "a".repeat(defaultMaxBytes - overhead + 1));
-		expect(saved.size).toBe(0);
-		expect(form.values.value.name).toHaveLength(defaultMaxBytes - overhead + 1);
+	"a draft that fills the 256 KiB default exactly is stored",
+	[draftNames.draftsStored()],
+	function* ({ enterNameStoredAs, storedDraftBytes }) {
+		yield* enterNameStoredAs(defaultMaxBytes);
+
+		expect(yield* storedDraftBytes()).toBe(defaultMaxBytes);
 	},
 );
 
 draftNames.it(
-	"restores a stored record of 256 KiB and drops a larger one on read",
-	[draftNames.persisted()],
-	({ form, reload, saved, storedDraftPaddedTo }) => {
-		form.change("name", "Local");
-		storedDraftPaddedTo(defaultMaxBytes);
-		expect(reload({ name: "First" }).values.value).toEqual({ name: "Local" });
-		storedDraftPaddedTo(defaultMaxBytes + 1);
-		expect(reload({ name: "First" }).values.value).toEqual({ name: "First" });
-		expect(saved.size).toBe(0);
+	"a draft one byte past the 256 KiB default is not stored, and the name stays in the form",
+	[draftNames.draftsStored()],
+	function* ({ enterNameStoredAs, shown, storedDraft }) {
+		const name = yield* enterNameStoredAs(defaultMaxBytes + 1);
+
+		yield* outcomes({
+			"shown name": [shown("name"), name],
+			"stored draft": [storedDraft(), undefined],
+		});
 	},
 );
 
-draftNames.it("restores a draft written within seven days", [draftNames.persisted()], ({ form, reload, storedDraftAgesBy }) => {
-	form.change("name", "Local");
-	storedDraftAgesBy(sevenDays - minute);
-	expect(reload({ name: "First" }).values.value).toEqual({ name: "Local" });
-});
+draftNames.it(
+	"reopening restores a stored draft of exactly 256 KiB",
+	[...localDraft, storedDraftPaddedTo(defaultMaxBytes)],
+	function* ({ reopen, shown, storedDraft }) {
+		expect(yield* storedDraft()).toEqual({ name: "Local" });
 
-draftNames.it("drops a draft last written more than seven days ago", [draftNames.persisted()], ({ form, reload, saved, storedDraftAgesBy }) => {
-	form.change("name", "Local");
-	storedDraftAgesBy(sevenDays + minute);
-	expect(reload({ name: "First" }).values.value).toEqual({ name: "First" });
-	expect(saved.size).toBe(0);
-});
+		yield* reopen({ name: "First" });
+
+		expect(yield* shown("name")).toBe("Local");
+	},
+);
+
+draftNames.it(
+	"reopening drops a stored draft one byte past 256 KiB",
+	[...localDraft, storedDraftPaddedTo(defaultMaxBytes + 1)],
+	function* ({ reopen, shown, storedDraft }) {
+		expect(yield* storedDraft()).toEqual({ name: "Local" });
+
+		yield* reopen({ name: "First" });
+
+		yield* outcomes({
+			"shown name": [shown("name"), "First"],
+			"stored draft": [storedDraft(), undefined],
+		});
+	},
+);
+
+draftNames.it(
+	"reopening restores a draft written a minute short of seven days ago",
+	[...localDraft, storedDraftWrittenAgo("a minute short of seven days", sevenDays - minute)],
+	function* ({ reopen, shown, storedDraft }) {
+		expect(yield* storedDraft()).toEqual({ name: "Local" });
+
+		yield* reopen({ name: "First" });
+
+		expect(yield* shown("name")).toBe("Local");
+	},
+);
+
+draftNames.it(
+	"reopening drops a draft written a minute more than seven days ago",
+	[...localDraft, storedDraftWrittenAgo("a minute more than seven days", sevenDays + minute)],
+	function* ({ reopen, shown, storedDraft }) {
+		expect(yield* storedDraft()).toEqual({ name: "Local" });
+
+		yield* reopen({ name: "First" });
+
+		yield* outcomes({
+			"shown name": [shown("name"), "First"],
+			"stored draft": [storedDraft(), undefined],
+		});
+	},
+);
