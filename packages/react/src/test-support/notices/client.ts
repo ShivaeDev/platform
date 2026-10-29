@@ -101,6 +101,6 @@ export function noticeClient(options: { readonly holdReads?: boolean } = {}) {
 		}
 		return pending;
 	}
-	return { api: bind(Api, Client), calls, gate, reads, released, removals, runtime: Client.runtime, saves };
+	return { api: bind(Api, Client, { live: false }), calls, gate, reads, released, removals, runtime: Client.runtime, saves };
 }
 export type NoticeClient = ReturnType<typeof noticeClient>;

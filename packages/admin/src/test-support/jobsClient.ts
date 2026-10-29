@@ -13,7 +13,7 @@ export const jobsClient = Effect.fnUntraced(function* (
 	protocol: Layer.Layer<RpcClient.Protocol>,
 ) {
 	class Client extends AtomRpc.Service<Client>()("test/AdminJobsClient", { group, protocol }) {}
-	const api = bind(page.contract, Client);
+	const api = bind(page.contract, Client, { live: false });
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),

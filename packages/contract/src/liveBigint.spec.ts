@@ -17,16 +17,8 @@ bigintStory.it("bigint inputs share equal query atoms and receive live changes",
 	yield* eventually(
 		outcomes({
 			"first record": [test.value(first), "First"],
+			"per-query subscriptions": [test.subscriptions(), [[{ payload: { id: 1n }, query: "get" }], [{ payload: { id: 2n }, query: "get" }]]],
 			"second record": [test.value(second), "Second"],
-			"shared subscription": [
-				test.subscriptions(),
-				[
-					[
-						{ payload: { id: 1n }, query: "get" },
-						{ payload: { id: 2n }, query: "get" },
-					],
-				],
-			],
 		}).pipe(Effect.sandbox),
 		{ timeout: "5 seconds" },
 	);

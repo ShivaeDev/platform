@@ -43,7 +43,6 @@ export const resumeStory = storyKit({
 				return collectGarbage();
 			},
 			connect: () => registry.mount(api[LiveConnection].connection),
-			connections: () => client?.connections(),
 			disconnect: () => {
 				if (client === undefined) {
 					throw new Error("Missing automatic subscription");
@@ -68,6 +67,7 @@ export const resumeStory = storyKit({
 				native.resume();
 			},
 			status: () => registry.get(api[LiveConnection].status),
+			subscriptionCount: () => client?.connections(),
 			title: (id: number) => AsyncResult.getOrElse(registry.get(api.get.query({ id })), () => undefined)?.title,
 			watch: (id: number, freshness?: "fresh" | "stale") => {
 				story.tell(`watch note ${id}${freshness === undefined ? "" : ` with ${freshness} data`}`);

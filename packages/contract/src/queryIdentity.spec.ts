@@ -9,14 +9,14 @@ resumeStory.it(
 	function* (test) {
 		test.connect();
 		test.prepare(1);
-		expect(test.connections()).toBe(0);
+		expect(test.subscriptionCount()).toBe(0);
 		yield* test.collectGarbage();
 		const release = test.watch(1);
 		yield* test.loaded(1);
-		yield* eventually(Effect.try(() => expect(test.connections()).toBeGreaterThan(0)));
-		const opened = test.connections();
+		yield* eventually(Effect.try(() => expect(test.subscriptionCount()).toBeGreaterThan(0)));
+		const opened = test.subscriptionCount();
 		yield* test.collectGarbage();
-		expect(test.connections()).toBe(opened);
+		expect(test.subscriptionCount()).toBe(opened);
 		release();
 	},
 );

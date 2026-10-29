@@ -126,7 +126,7 @@ export function makeInvoiceLineServer(initial: readonly InvoiceLine[]) {
 		makeEffect: RpcTest.makeClient(InvoiceLines, { flatten: true }),
 		protocol: Layer.merge(handlers, guard),
 	}) {}
-	const api = bind(InvoiceLines, Client);
+	const api = bind(InvoiceLines, Client, { live: false });
 	function edit(line: InvoiceLine) {
 		return store.set(line.id, line);
 	}

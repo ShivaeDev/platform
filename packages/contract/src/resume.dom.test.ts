@@ -25,12 +25,15 @@ resumeStory.it("visible browser resume, visible reconnect and native resume each
 
 for (const source of ["native", "browser"] as const) {
 	resumeStory.it(`automatic live reads reconcile on ${source} resume and reconnect after interruption`, [automaticResume(source)], function* (test) {
-		test.watch(1);
-		test.watch(2);
+		const watched = [1, 2];
+		for (const id of watched) {
+			test.watch(id);
+		}
 		test.connect();
 		yield* eventually(() => expect(test.status().connection).toBe("live"));
 		expect(yield* test.loaded(1)).toMatchObject({ title: "One" });
 		expect(yield* test.loaded(2)).toMatchObject({ title: "Two" });
+		const initialSubscriptions = test.subscriptionCount() ?? 0;
 		yield* test.externalRename(1, "Changed while away");
 		yield* test.externalRename(2, "Also changed while away");
 		if (source === "native") {
@@ -42,7 +45,7 @@ for (const source of ["native", "browser"] as const) {
 			expect(test.title(1)).toBe("Changed while away");
 			expect(test.title(2)).toBe("Also changed while away");
 		});
-		yield* eventually(() => expect(test.connections()).toBe(2));
+		yield* eventually(() => expect(test.subscriptionCount()).toBe(initialSubscriptions));
 		expect(test.listeners()[1]).toBe(source === "native" ? 1 : 0);
 		yield* test.disconnect();
 		yield* eventually(() => expect(test.active()).toBe(0));
@@ -52,7 +55,7 @@ for (const source of ["native", "browser"] as const) {
 		} else {
 			test.windowEvent("online");
 		}
-		yield* eventually(() => expect(test.connections()).toBe(3));
+		yield* eventually(() => expect(test.subscriptionCount()).toBe(initialSubscriptions + watched.length));
 		yield* eventually(() => expect(test.status().connection).toBe("live"));
 		yield* eventually(() => expect(test.title(1)).toBe("Changed while disconnected"));
 		test.dispose();
