@@ -68,6 +68,7 @@ catalog:
   "@typescript/native": npm:typescript@7.0.2
   effect: 4.0.5
   esbuild: 0.28.2
+  "@better-auth/oauth-provider": 1.7.12
   better-auth: 1.7.12
   pg: 8.23.0
   pg-boss: 12.38.0
