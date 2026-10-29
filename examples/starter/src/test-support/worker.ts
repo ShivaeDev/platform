@@ -7,6 +7,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { SweepExpiredSessions } from "#server/foundationWorker.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { testPoolSizes } from "./poolSizes.ts";
 import { postgres } from "./postgres.ts";
@@ -30,7 +31,11 @@ export const worker = storyKit({
 		startWorker: Effect.fn("WorkerStory.startWorker")(function* () {
 			story.tell("start the application's worker without an auth host");
 			yield* Layer.build(
-				applicationWorker({ clientFactory: engine.testing.clientFactory, databaseUrl: engine.database.url, poolSizes: testPoolSizes }),
+				applicationWorker({
+					databaseUrl: engine.database.url,
+					poolSizes: testPoolSizes,
+					replacements: Layer.succeed(JobsClientFactory, engine.testing.clientFactory),
+				}),
 			);
 		}),
 		storedSessions: () => engine.storage.sessions,

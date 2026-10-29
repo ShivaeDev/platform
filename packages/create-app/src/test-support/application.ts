@@ -72,6 +72,10 @@ export const application = storyKit({
 					}),
 			git: (...args: readonly string[]) => run("git", args),
 			guidanceLink: () => readlinkSync(join(target(), "CLAUDE.md")),
+			migrate: () => {
+				story.tell("the generated app applies its registered migrations");
+				return appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=source"]);
+			},
 			navigate: (command: string) => spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
 			pack: () => {
 				story.tell("the template source is packed");
@@ -93,6 +97,10 @@ export const application = storyKit({
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
 			readPacked: (path: string) => engine.source.readPacked(path),
+			ready: () => {
+				story.tell("the generated app runs pnpm ready");
+				return appScript(target(), "ready", [], ["NODE_OPTIONS=--conditions=source"]);
+			},
 			runAdminStories: () => {
 				story.tell("the generated app runs its admin stories against workspace sources");
 				return runAdminStories(target());

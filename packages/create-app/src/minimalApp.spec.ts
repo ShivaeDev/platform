@@ -1,5 +1,6 @@
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
+import { realSetup } from "#test/traits.ts";
 
 application.it("creates the same foundation without the notes module or its registrations", [], function* ({ cli, generatedFiles, read, exists }) {
 	const result = yield* cli(["my-app", "--minimal", "--no-git"]);
@@ -33,3 +34,20 @@ application.it("creates the same foundation without the notes module or its regi
 		}
 	}
 });
+
+application.it(
+	"the minimal app migrates and passes its complete ready gate",
+	[realSetup],
+	function* ({ cli, prepareDatabases, migrate, ready }) {
+		const name = `minimal_${crypto.randomUUID().replaceAll("-", "")}`;
+		const created = yield* cli([name, "--minimal", "--no-git"]);
+		expect(created.status, created.stderr).toBe(0);
+		const prepared = prepareDatabases();
+		expect(prepared.status, prepared.stderr).toBe(0);
+		const migrated = migrate();
+		expect(migrated.status, migrated.stderr).toBe(0);
+		const checked = ready();
+		expect(checked.status, checked.stdout + checked.stderr).toBe(0);
+	},
+	120_000,
+);
