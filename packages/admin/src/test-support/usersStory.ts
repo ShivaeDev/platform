@@ -12,17 +12,22 @@ export const usersStory = storyKit({
 	layer: postgresLayer,
 	name: "admin user permissions",
 	runIf: postgresConfigured,
-	stages: [],
-	verbs: ({ clientAs }, story) => ({
+	stages: ["users"],
+	verbs: ({ clientAs, logs }, story) => ({
 		assign: Effect.fn("AdminUsers.assign")(function* (actor: string, userId: string, role: typeof Access.Role.Type) {
 			story.tell(`${actor} assigns ${role} to ${userId}`);
 			const client = yield* clientAs(actor);
 			yield* client["admin.users.changeRole"]({ role, userId });
 		}),
-		list: Effect.fn("AdminUsers.list")(function* (id: string) {
-			story.tell(`${id} reads users`);
+		list: Effect.fn("AdminUsers.list")(function* (id: string, page: { readonly limit: number; readonly cursor?: string } = { limit: 20 }) {
+			story.tell(`${id} reads ${page.limit} users${page.cursor === undefined ? "" : ` after ${page.cursor}`}`);
 			const client = yield* clientAs(id);
-			return yield* client["admin.users.list"]({ limit: 20 });
+			return yield* client["admin.users.list"](page);
 		}),
+		logs: () => logs,
 	}),
 });
+
+export function isRegistered(id: string, role: typeof Access.Role.Type) {
+	return usersStory.trait("users", `${id} is registered with the ${role} role`, ({ register }) => register(id, role));
+}

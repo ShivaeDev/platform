@@ -74,6 +74,15 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError>(
 		story.tell("submit the current input");
 		state.registry.set(current().submit, undefined);
 	}
+	function rewriteStoredDraft(line: string, change: (record: Record<string, unknown>) => Record<string, unknown>) {
+		story.tell(line);
+		const { key } = state.storage.config;
+		const raw = state.storage.saved.get(key);
+		if (raw === undefined) {
+			throw new Error(`No draft is stored under ${key}`);
+		}
+		state.storage.saved.set(key, JSON.stringify(change(JSON.parse(raw))));
+	}
 	function result() {
 		return AtomRegistry.getResult(state.registry, current().submit, { suspendOnWaiting: true });
 	}
@@ -104,6 +113,14 @@ export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError>(
 		},
 		result,
 		saved: state.storage.saved,
+		storedDraftAgesBy: (ms: number) =>
+			rewriteStoredDraft(`the stored draft ages by ${ms} ms`, (record) => ({ ...record, updatedAt: Number(record.updatedAt) - ms })),
+		storedDraftBytes: () => new TextEncoder().encode(state.storage.saved.get(state.storage.config.key) ?? "").byteLength,
+		storedDraftPaddedTo: (bytes: number) =>
+			rewriteStoredDraft(`the stored draft is padded to ${bytes} bytes`, (record) => {
+				const unpadded = JSON.stringify({ ...record, padding: "" }).length;
+				return { ...record, padding: "x".repeat(bytes - unpadded) };
+			}),
 		submissions: state.submissions,
 		submit,
 		waitForSave: () => Deferred.await(state.started),

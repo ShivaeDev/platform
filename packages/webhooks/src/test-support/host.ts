@@ -13,7 +13,7 @@ import { webhookReceipts } from "#webhookReceipts.ts";
 export interface InboxState {
 	client: PgBoss | undefined;
 	readonly logs: unknown[];
-	mode: "check" | undefined;
+	mode: "check" | "wait" | undefined;
 	readonly telemetry: { readonly spans: Tracer.NativeSpan[]; readonly tracer: Tracer.Tracer };
 	url: string;
 }
@@ -53,6 +53,7 @@ export function hostLayer(state: InboxState) {
 					components: [pgBossSchema(), webhookReceipts],
 					loader: Migrator.fromRecord({}),
 					...(state.mode === undefined ? {} : { mode: state.mode }),
+					...(state.mode === "wait" ? { pollInterval: "10 millis" } : {}),
 				},
 			}).pipe(
 				Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env: { "WEBHOOK_SECRET": WEBHOOK_SECRET } }))),

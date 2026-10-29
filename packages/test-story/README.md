@@ -183,7 +183,7 @@ village.it("mills flour and bakes loaves", [sailsAreTurning(), ovenIsLit(), hasD
 
 Creation runs in dependency order, left to right, before any traits. Stages and their `after` hooks then run in that same order, regardless of the order traits appear in the spec. All creation, traits, hooks and the body share one per-test Scope, whose finalizers release resources in reverse acquisition order, including after a failed story. Feature verbs retain their own `runUntil` hooks, so the bakery's waiting verb still steps the bakery. Use each feature's waiting verbs when driving a composed story.
 
-Top-level engine fields, verb names and trait stage names must be unique across the kits. A collision fails typechecking with a message such as `Cannot compose story kits: duplicate verb names` and the conflicting name. Give stages feature-specific names when composing; a trait's stage selects its feature's setup hooks. Traits remain the existing `kit.trait` values and `kit.traits` combinations.
+Top-level engine fields, verb names and trait stage names must be unique across the kits. A collision fails typechecking with a message such as `Cannot compose story kits: duplicate verb names` and the conflicting name. Give stages feature-specific names when composing; a trait's stage selects its feature's setup hooks. Traits are each feature kit's own `kit.trait` values and `kit.traits` combinations.
 
 #### Routing outbound HTTP
 
@@ -198,7 +198,7 @@ const app = storyKit({
 
 `appDefinition` holds the application's kit hooks, and `fakeUrl` is the listening fake server's HTTP or HTTPS origin, such as `http://127.0.0.1:4321`. The map matches exact URL hostnames, across ports. It replaces the destination origin while keeping the request's path, query, method, headers and body. For example, a POST to `https://github.com/login/oauth/access_token` reaches the fake's `/login/oauth/access_token`. In Node stories, other hostnames pass through the previous dispatcher unchanged. In the DOM environment, only loopback hosts (`localhost`, IPv4 loopback addresses and `[::1]`) may pass through without a route; every other hostname must have an `outbound` fake. A refused request fails the story and names its hostname, even when application code catches the fetch error.
 
-`routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story. The starter's social sign-in story exercises this path through both document navigation and host-side requests.
+`routeOutbound(routes)` from `@shivaedev/test-story/server/routeOutbound.ts` installs the same routing in the current Effect Scope. Acquire a `fakeHttpService` in `create`, then yield `routeOutbound({ "api.example.com": api.url })` so the fake listener and its routing belong to that story.
 
 Routing uses the global dispatcher that Node's built-in `fetch` already uses. The kit's `outbound` option installs routing before `around`, creation, traits and the body, stays active during scoped cleanup, and restores the previous dispatcher after each story, including a failing story. Stories within one worker must run one at a time because that dispatcher is shared; parallelism belongs between workers or inside one story. The DOM environment uses the same routing for host-side Node fetch and document requests, including redirect destinations. It refuses external hosts even when the kit omits `outbound`.
 
@@ -352,7 +352,7 @@ const bytes = yield* Fiber.join(pending);
 
 `stall(route)` sends the reply's status and headers, then pauses its body. Its `waiting` effect completes at that pause. Its `release` lets the body continue; a client that gives up also stops waiting on the server. Like a hold, a stall remains installed for matching requests until released. Holds pause before headers. `releaseOnArrival(heldRoute, arrivingRoute, scope?)` releases the current hold when an authorized request reaches the named route; script it before that arrival. Rejected requests do not trigger release.
 
-`fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. `failOnce` continues to queue a status reply for the next request.
+`fault(route, fault)` acts on an arrived request in the required phase. `{ kind: "status", reply: { status: 503, body: { error: "unavailable" } } }` replaces a held reply before headers. `{ kind: "drop" }` drops a connection before headers. `{ kind: "reset" }` terminates a reply after headers, including after body chunks have arrived. Wait for the hold, stall or client observation before injecting the fault. A fault fails with guidance when no request is in the required phase; it does not queue a failure for a future call. `failOnce` queues a status reply for the next request.
 
 `hold(route, scope)`, `stall(route, scope)`, `fault(route, fault, scope)`, `failOnce(route, reply, scope)` and `replyOnce(route, reply, scope)` accept an optional `{ params: { number: "7" } }`. Every supplied parameter must equal the decoded request parameter. Other resources on the same named route answer normally and do not consume the scoped reply. Scoped holds and stalls return `waiting` and `release`. `hold(route, { once: true, params: { number: "7" } })` holds only the first matching request; later matching requests answer while it remains held. Omit `params` to hold only the first request across the route. Omit `once` to keep holding every matching request until release. Pass the same parameter scope as the third argument to `releaseOnArrival` to release that hold.
 
@@ -516,7 +516,7 @@ app.it("shows the worker's date", [], function* ({ click, settle, text }) {
 
 Acquire hosts, workers and screens in per-story Scope so they inherit the story's Clock. An independent runtime or native HTTP handler must capture the Effect Context at acquisition, as with `HttpEffect.toWebHandlerWith(context)` or `Effect.runPromiseWith(context)`. Worker-scoped kit `layer` acquisition stays outside the per-story clock; shared services acquired there do not acquire a new clock for each story. Direct JavaScript wall-time reads are not replaced. Formatting stays with the application, including its locale and time zone.
 
-The [clock application stories](src/server/fixedClock.dom.spec.ts) run loopback HTTP, a queued worker that writes a timestamp to a file, and a DOM screen with its own Effect runner. They check exact timestamps and rendered dates, advancing time, and a live story without the option. A live-clock kit still runs on real time when a story omits the override.
+A live-clock kit still runs on real time when a story omits the override.
 
 ### Running the engine
 
@@ -569,13 +569,13 @@ For full-app stories, use `around: withIsolatedDatabase` from `@shivaedev/test-s
 
 For repository-level tests on a migrated template, `withTestTransaction` from `@shivaedev/test-sql/server/withTestTransaction.ts` provides rollback isolation when all work uses its transaction connection. See the [database test helpers](https://github.com/ShivaeDev/platform/blob/main/packages/test-sql/README.md) for template preparation and both wrappers.
 
-React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms can use the same pattern with the existing `useCreate` path.
+React screen traits acquire roots in Scope and use a fresh native atom registry for each screen. Cleanup unmounts roots before disposing registries and servers. Screen verbs dispatch DOM events and use bounded observations of rendered output. Select a live clock once on an HTTP/DOM kit; keep TestClock for deterministic local stories. `runUntil` is for engines with a meaningful step hook, not HTTP or DOM polling. Creation forms use the same pattern with `useCreate` from `@shivaedev/react/client/create.ts`.
 
 For cookie sessions, use the DOM host setup below. Native `RpcTest` can exercise handlers in faster local stories, but omits serialization and transport. Failure inspection is synchronous: keep redacted observed values in the engine instead of trying to query PostgreSQL inside `inspect`.
 
 ### DOM stories with cookie sessions
 
-Install `happy-dom@20.14.6` as a dev dependency. Select the `@shivaedev/test-story/server/domEnvironment.config.ts` Vitest environment for DOM tests that start their host in the same process:
+Install `happy-dom` as a dev dependency. Select the `@shivaedev/test-story/server/domEnvironment.config.ts` Vitest environment for DOM tests that start their host in the same process:
 
 ```ts
 import { fileURLToPath } from "node:url";
@@ -590,7 +590,7 @@ export default defineConfig({
 
 The environment keeps Node's global `fetch`, `Request`, `Response`, `Headers`, `AbortController` and `AbortSignal` for the in-process host. The separate `window` keeps happy-dom's constructors and cookie jar. Its asynchronous HTTP requests use Node fetch through the same `outbound` dispatcher, including XMLHttpRequest. Synchronous document HTTP requests are refused. The starter's [Vitest config](https://github.com/ShivaeDev/platform/blob/main/examples/starter/vitest.config.ts) selects this environment only for its DOM project while retaining the shared test projects. Use Vitest's standard forks or threads pool.
 
-`domFetch(baseUrl)` from `@shivaedev/test-story/server/domFetch.ts` sets the document's location to the real HTTP host and returns a document fetch that resolves relative request strings against that URL. It translates Node `Request` and `Headers` inputs for happy-dom. Responses have happy-dom's status, headers and body methods; they are not instances of Node's global `Response`. The document keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for same-origin requests, and pass this fetch explicitly to browser clients, such as Better Auth's `fetchOptions.customFetchImpl`. The host continues to use global Node fetch without browser cookies.
+`domFetch(baseUrl)` from `@shivaedev/test-story/server/domFetch.ts` sets the document's location to the real HTTP host and returns a document fetch that resolves relative request strings against that URL. It translates Node `Request` and `Headers` inputs for happy-dom. Responses have happy-dom's status, headers and body methods; they are not instances of Node's global `Response`. The document keeps and sends cookies, including HttpOnly session cookies. Keep the default `same-origin` credentials policy for same-origin requests, and pass this fetch explicitly to browser clients, such as Better Auth's `fetchOptions.customFetchImpl`. The host uses global Node fetch without browser cookies.
 
 Call it in the kit's `create` hook after starting the host:
 
@@ -683,9 +683,9 @@ verbs: ({ view, requests }, story) => screenDriver({
 
 `accessible(element)` uses the same computation on an `Element` the kit already holds and tells no story line.
 
-For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The [React driver stories](https://github.com/ShivaeDev/platform/blob/main/packages/react/src/screenDriver.dom.spec.tsx) cover a native pending atom, a rendered response and a controlled field without React warnings. The driver itself has no renderer dependency.
+For React, pass `act: async (action) => { await act(action); }` using React's `act`. The adapter wraps each action and flushes renderer work before checking the pending signal, including while waiting for an asynchronous response. The driver itself has no renderer dependency.
 
-Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the existing DOM environment and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The [screen stories](src/server/screenSignals.dom.spec.ts) hold a real HTTP response across repeated renders and sign in by filling and submitting a form against a fake identity provider. These fixtures prove DOM interactions and loopback HTTP, not a browser or a production authentication system.
+Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the DOM environment above and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The driver acts on happy-dom over loopback HTTP; it does not drive a real browser.
 
 ### API by module
 
@@ -702,14 +702,14 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | `server/domNavigate.ts` | `domNavigate(url?)` |
 | `server/genreTags.ts` | `genreTags(...kitNames)`, `GenreTag` |
 | `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport |
-| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions`; reply functions receive `(request, now)`, request records expose answered statuses, holds accept a scope and `once`, `releaseOnArrival` accepts a held scope, and routes accept final `:name*` rest params |
+| `server/fakeHttpService.ts` | `fakeHttpService(options)`, `FakeHttpRoute`, `FakeHttpRequest`, `FakeHttpRequestRecord` (`status`: number, `"pending"` or `"unanswered"`), `FakeHttpReply`, `FakeHttpReplySource` (fixed or request/time function), `FakeHttpFault`, `FakeHttpHold`, `FakeHttpHoldOptions` (`params`, `once`), `FakeHttpScope`, `FakeHttpScriptOptions`, `FakeHttpScript`, `FakeHttpServiceOptions` |
 | `server/forwardingProxy.ts` | `forwardingProxy(upstream, options?)`, `ForwardingProxyOptions` |
 | `server/otlpReceiver.ts` | `otlpReceiver(options?)`, `OtlpSpan`, `OtlpExport`, `OtlpReceiverOptions` |
 
 ### Install and limits
 
 ```sh
-pnpm add --save-dev @shivaedev/test-story @effect/platform-node@4.0.5 @effect/vitest@4.0.5 effect@4.0.5 vitest@5.0.3
+pnpm add --save-dev @shivaedev/test-story @effect/platform-node @effect/vitest effect vitest
 ```
 
 `@effect/platform-node`, `@effect/vitest`, `effect` and `vitest` are peers, so the application's own versions run the stories. The Node adapter supplies the digest implementation retained by `TestCrypto`.

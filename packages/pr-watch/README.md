@@ -20,17 +20,11 @@ Each PR event occupies one JSON line with its PR number, head branch and title. 
 
 Each successful observation compares a PR with its saved snapshot. The first observation establishes a baseline. If the PR is already queued or has auto-merge enabled with conflicts or failing checks, it immediately emits `stuck` and the corresponding `conflict` or `checks-failed` events. Failed requests and invalid responses retain the previous snapshot. Pending mergeability skips that PR silently, keeps its previous snapshot or discovery-only tracking, and reads it again next round while other PRs continue normally. Checks and queue refs are polled even when the PR detail response is unchanged.
 
-Install with Node 24 or later and the repository's Effect peer version:
-
 ```sh
-npm install @shivaedev/pr-watch effect@4.0.5 @effect/platform-node@4.0.5 @effect/platform-node-shared@4.0.5
-export GH_TOKEN=YOUR_READ_ONLY_TOKEN
 pr-watch --repo acme/project 42 57 --state ./watch-state.json
 pr-watch --repo acme/project --fleet --interval 60 --state ./fleet-state.json --events dequeued,stuck,conflict,auto-merge-off,closed
 pr-watch --repo acme/project 42 --once
 ```
-
-`GH_TOKEN` takes precedence over `GITHUB_TOKEN`. The token needs read access to pull requests, repository refs, check runs and commit statuses. Queue-drop confirmation also uses authenticated GraphQL access to the PR’s merge queue entry and auto-merge request. Without a token, only public repositories are accessible and GitHub's authenticated conditional-request quota exemption does not apply.
 
 Choose explicit PR numbers or `--fleet`. Fleet mode polls all open PRs and discovers PRs opened after startup. Discovery saves open PR numbers before requesting queue refs and full snapshots, so a failed initial observation does not lose the PR. PRs already recorded in the state file stay tracked when they disappear from the open list, so their merge or closure can be observed. After that terminal observation, they stay in the state file but leave the polled set, including after a restart. Keep one watcher per state file. The default state path is `.pr-watch/OWNER-REPO.json`; a file from another repository or an invalid file causes startup to fail instead of resetting history.
 
@@ -74,7 +68,7 @@ At a 60-second interval, for N open PRs, one page of checks per PR and one page 
 
 These are request counts, not necessarily charged quota. With authentication, a successful ETag conditional request returning 304 costs zero primary rate-limit quota. Every REST endpoint sends `If-None-Match` after receiving an ETag and reuses its successful cached body on 304. Initial requests, changed responses and endpoints without ETags consume quota normally. Caches are in memory, so a restart makes fresh requests. Secondary limits still apply.
 
-Polling slows only when the observed round's request count would exhaust a budget before its reset. The delay spreads that demand across the remaining reset window, with no wait beyond reset unless GitHub supplies a later retry instant. Expired observations no longer affect pacing. Each quota pacing cooldown names the limiting resource, remaining count, limit and reset time. Rate-limited requests honor github’s `retryAt`, derived from `Retry-After` or the primary reset instant. Successful rounds with exhausted primary quota schedule the next poll at reset. Permission failures remain failed observations without a quota cooldown. No further request starts during a known cooldown.
+Polling slows only when the observed round's request count would exhaust a budget before its reset. The delay spreads that demand across the remaining reset window, with no wait beyond reset unless GitHub supplies a later retry instant. Expired observations no longer affect pacing. Each quota pacing cooldown names the limiting resource, remaining count, limit and reset time. Rate-limited requests honor the GitHub client's `retryAt`, derived from `Retry-After` or the primary reset instant. Successful rounds with exhausted primary quota schedule the next poll at reset. Permission failures remain failed observations without a quota cooldown. No further request starts during a known cooldown.
 
 ### Restart and delivery limits
 
@@ -82,8 +76,19 @@ The state file records discovered open PR numbers and the last successfully comp
 
 Transitions that reverse between observations, including while the watcher is down, are not recovered. For example, leaving and rejoining the merge queue before the next observation produces no `dequeued` event. Stdout delivery is at-least-once across a crash: a crash after output but before the state replacement can repeat a line. There is no event history or acknowledged output protocol.
 
-The exported `StateFile.layer` requires Effect `FileSystem`. `GitHubHttp.layer` requires github’s `GitHub` service, which owns authentication, conditional representations, Link pagination and rate-limit observations. Provide `GitHub.layer` with Effect `HttpClient` and `githubToken` from `@shivaedev/pr-watch/githubToken.ts`; this token Layer requires `ChildProcessSpawner` and reads `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`. If authentication is unavailable, startup fails with `GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh`. Watcher `Options` contain polling and repository settings; authentication belongs to the Layer. The CLI supplies these Layers, `NodeServices.layer` and a `FetchHttpClient` layer that refuses redirects. HTTP and file failures remain typed `WatchError` values.
-
 ### Compose the engine
 
 `watch(options, { heartbeat, once }, emit, diagnostic)` from `@shivaedev/pr-watch/program.ts` runs the same polling, health reporting and retry loop as the CLI without parsing arguments. `heartbeat` is milliseconds; `0` disables routine heartbeats. Both callbacks return an Effect with typed `WatchError` failures. The runner requires `Watcher`; `watcherLayer` from `@shivaedev/pr-watch/watcherLayer.ts` supplies the production services, native file system, fetch client and GitHub authentication. Scope and interruption stay with the caller. `Options.numbers` is read each poll, so a caller can supply a getter to include newly published PRs without restarting the engine.
+
+The exported `StateFile.layer` requires Effect `FileSystem`. `GitHubHttp.layer` requires the `GitHub` client service from `@shivaedev/github/GitHub.ts`, which owns authentication, conditional representations, Link pagination and rate-limit observations. Provide that client's `GitHub.layer` with Effect `HttpClient` and `githubToken` from `@shivaedev/pr-watch/githubToken.ts`; this `GitHubToken` Layer requires `ChildProcessSpawner` and reads `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token`. If authentication is unavailable, startup fails with `GitHub authentication unavailable; set GH_TOKEN or GITHUB_TOKEN, or sign in with gh`. Watcher `Options` contain polling and repository settings; authentication belongs to the Layer. The CLI supplies these Layers, `NodeServices.layer` and a `FetchHttpClient` layer that refuses redirects. HTTP and file failures remain typed `WatchError` values.
+
+### Install
+
+Install with Node 24 or later and the repository's Effect peer version:
+
+```sh
+npm install @shivaedev/pr-watch effect @effect/platform-node @effect/platform-node-shared
+export GH_TOKEN=YOUR_READ_ONLY_TOKEN
+```
+
+`GH_TOKEN` takes precedence over `GITHUB_TOKEN`. The token needs read access to pull requests, repository refs, check runs and commit statuses. Queue-drop confirmation also uses authenticated GraphQL access to the PR’s merge queue entry and auto-merge request. Without a token, only public repositories are accessible and GitHub's authenticated conditional-request quota exemption does not apply.

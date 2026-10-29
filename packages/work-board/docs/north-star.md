@@ -30,15 +30,11 @@ Returned work needs the same discipline. An authored result and its evidence are
 - **Coherent reading.** Documents, cards, tables, diagrams and decisions share navigation, source links and a readable visual language. Live changes preserve the reader's place, with deliberate pause and reconciliation.
 - **Local independence.** Core reading needs no hosted service, account or cloud sync. Optional integrations cannot become prerequisites for the local workflow.
 
-## The direction
+## What it is for
 
-The product grows in three useful stages:
+Work Board serves three activities around the same files. A person stays informed: they read plans, progress, results, questions and uncertainty while agents work through their existing tools. A person directs: they answer in context, record direction, request revisions and make a handoff understandable to the agent that receives it. A person and their agents refine work together: successive contributions keep clear ownership, preserved context and inspectable evidence.
 
-1. **Stay informed.** Read plans, progress, results, questions and uncertainty while agents work through their existing tools.
-2. **Inform back and coordinate.** Respond in context, record direction, request revisions and make the next handoff understandable.
-3. **Collaborate.** Refine successive contributions with clear ownership, preserved context and inspectable evidence.
-
-A good reading experience is a product in its own right. Coordination earns its place by reducing repeated context assembly; it must not force a new agent runtime.
+A good reading experience is a product in its own right, and reading never depends on the other two. Coordination earns its place by reducing repeated context assembly; it must not force a new agent runtime.
 
 ## Trade-offs
 

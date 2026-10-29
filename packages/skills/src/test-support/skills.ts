@@ -6,6 +6,7 @@ import { hashSkill } from "#hashSkill.ts";
 import { syncSkills } from "#syncSkills.ts";
 import { runCli } from "./cli.ts";
 import { makeFixture, readFile } from "./fixture.ts";
+import { pushedCommit, runStep, workflowStep, workflowTemplate, workingTreeChanges } from "./workflow.ts";
 
 export const RUN_SYNC = "Run `shivaedev-skills sync` and commit the result.";
 export const MANIFEST = ".agents/skills/.shivaedev-skills.json";
@@ -38,8 +39,21 @@ export const skills = storyKit({
 		const link = Effect.fn("SkillsStory.link")(function* (name: string) {
 			return yield* (yield* FileSystem.FileSystem).readLink(yield* resolve(`.claude/skills/${name}`));
 		});
+		function remote() {
+			if (engine.remote === undefined) {
+				throw new Error("The repository has no pull request branch to push to");
+			}
+			return engine.remote;
+		}
+		const step = Effect.fn("SkillsStory.step")(function* (name: string) {
+			return workflowStep(yield* workflowTemplate(), name);
+		});
 		return {
 			cli: { check: () => cli("check"), sync: () => cli("sync") },
+			pullRequest: {
+				pushedCommit: () => pushedCommit(remote()),
+				uncommittedChanges: () => workingTreeChanges(engine.repo),
+			},
 			repository: {
 				check,
 				checkFailure: () => Effect.flip(check()),
@@ -58,6 +72,15 @@ export const skills = storyKit({
 				sync,
 				syncFailure: () => Effect.flip(sync()),
 				version: () => engine.installed.version,
+			},
+			workflow: {
+				runs: (name: string) =>
+					Effect.map(step(name), (found) => {
+						story.tell(`the sync workflow runs its step: ${name}`);
+						return runStep(engine.repo, found);
+					}),
+				step,
+				template: workflowTemplate,
 			},
 		};
 	},

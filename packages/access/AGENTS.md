@@ -1,7 +1,9 @@
 # @shivaedev/access
 
-This package lets applications declare permissions and roles once and use the same policy on servers and in browsers. A stored role is one application-defined string; decode it with the role set's Schema before using it. An unknown role must fail visibly instead of becoming an empty role.
+This package lets an application declare its permissions and roles once and use the same policy on servers and in browsers. Without it, authorization drifts into role-name comparisons scattered across handlers and screens, and a server check and a hidden button stop agreeing on who may do what.
 
-Keep authorization explicit: exact named grants, an explicit override for other owners' records, and typed expected failures from `contract`. Prefer native Effect and Schema, then browser safety, then a small API. Applications own role definitions, identity, persistence and policy; this package evaluates their declarations without importing platform or server infrastructure.
+The ideal is a small, browser-safe policy evaluator: the application declares exact named grants, a separate `.any` override for other owners' records, and one stored role string per user, and this package answers with booleans for interfaces and typed `Unauthorized` and `Forbidden` failures from `@shivaedev/errors` for enforcement. A stored role is decoded with the role set's Schema before use, and an unknown role fails visibly instead of becoming an empty role. Predicates and their enforcing Effects always give the same answer.
 
-Keep predicates and enforcement consistent and prove the public policy through the story kit. See the [README](README.md) for usage and the [root guidance](../../AGENTS.md) for repository conventions.
+When goals conflict, explicit grants win over convenience: no wildcards, prefixes or implied permissions. Then native Effect and Schema, then browser safety, then a small API. Applications own role definitions, identity, persistence and role editing; this package evaluates their declarations and imports no server, database or platform infrastructure, so a feature that needs one of those belongs in `identity` or the application instead.
+
+Read the [README](README.md) for the usage guide and the repository [AGENTS.md](../../AGENTS.md) for how the packages fit together.

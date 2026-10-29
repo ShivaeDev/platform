@@ -145,7 +145,7 @@ A native client signs in through `/api/auth/sign-in/email` with `credentials: "o
 
 Native sign-out revokes the stored session. Signing in again while sending the current bearer replaces it and revokes the old session after successful sign-in. Streams keep their original request headers, so the old session ends with `Unauthorized` on the next revalidation; it never adopts the replacement. Keep cookie caching disabled for database-backed revocation and choose `streamRevalidationInterval` for the required delivery window.
 
-`appHost`'s `nativeOrigins` option admits those exact origins through the RPC transport guard and the auth routes. Wildcards, patterns and URLs with paths are rejected at startup. Keep the list aligned with `bearerSessions.origins`, Better Auth's `trustedOrigins` and the RPC session origin policy: the later origin policies alone cannot open the transport guard. Omit the option to keep the existing same-origin transport policy.
+`appHost`'s `nativeOrigins` option admits those exact origins through the RPC transport guard and the auth routes. Wildcards, patterns and URLs with paths are rejected at startup. Keep the list aligned with `bearerSessions.origins`, Better Auth's `trustedOrigins` and the RPC session origin policy: the later origin policies alone cannot open the transport guard. Without the option, the transport guard keeps its same-origin policy.
 
 The host answers native preflights with POST for RPC, GET and POST for auth, and only `Authorization` and `Content-Type` headers. Native responses echo the allowed origin exactly with `Vary: Origin`; auth responses expose `set-auth-token`. The host never enables CORS credentials. It strips cookies from admitted native requests before auth or RPC session resolution, so only the signed bearer session can authenticate them. This prevents native access from opening a cookie CSRF path, even if a caller sends a cookie. Resource authorization remains app-owned.
 
@@ -230,7 +230,7 @@ Declare expected refusals with the shared tagged error schemas from [`@shivaedev
 
 ### Reading the signed-in user
 
-When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; the new middleware supplies both services for that invocation. Its provider must return `user: { id, name, email }`, described by `UserSessionShape`.
+When a handler needs the current user's name and email, declare `AuthenticatedUser` and read `SessionUser`. `Identity` keeps its `{ id }` shape; `AuthenticatedUser` supplies both services for that invocation. Its provider must return `user: { id, name, email }`, described by `UserSessionShape`.
 
 ```ts
 import { Effect, Layer, Schema } from "effect";
@@ -279,7 +279,7 @@ const githubAccount = Effect.gen(function* () {
 });
 ```
 
-Declare `Schema.Union([AuthUnavailable, Unauthorized])` in the account-reading RPC's `error` schema: lookup failures now come from the handler's Effect. An outage fails with `AuthUnavailable`; a session that expires before the lookup fails with `Unauthorized`. Neither failure exposes provider exception details.
+Declare `Schema.Union([AuthUnavailable, Unauthorized])` in the account-reading RPC's `error` schema: lookup failures come from the handler's Effect. An outage fails with `AuthUnavailable`; a session that expires before the lookup fails with `Unauthorized`. Neither failure exposes provider exception details.
 
 The lookup uses the same transport headers and runs only when the handler evaluates `user.providerAccounts`. The boundary memoizes a successful result in that invocation's Effect context, including concurrent reads, without sharing it across requests or users. A failed lookup is not retained: the next read tries again. Identity-only handlers never run the accounts lookup. `SessionUserWithProviderAccountsValue.providerAccounts` is a required `Effect<readonly ProviderAccountValue[], AuthUnavailable | Unauthorized>`. Each result contains only `{ providerId: string, accountId: string }`; for example, GitHub's numeric user ID is the string `"123"`, not Better Auth's account-row id. `SessionUser` and `SessionUserValue` contain the base profile without accounts.
 
@@ -346,7 +346,7 @@ const routes = HttpRouter.use((router) =>
 );
 ```
 
-An operation on one record reads that record's owner and uses the application's access policy. With a request-local user, `const { role } = yield* Access.resolve(user.role)` recovers the application's closed role type; `yield* Access.requireAccess({ id: user.id, role }, UseTools, record.ownerId)` then permits an explicit `any` grant or an `own` grant for that owner. Keep these resource decisions in the handler or domain service. Browser interfaces can use `hasPermission(user, permission)` from `rpc/permission.ts` over the client session's grants; the server always resolves its own grants.
+An operation on one record reads that record's owner and uses the application's access policy. With a request-local user, `const { role } = yield* Access.resolve(user.role)` recovers the application's closed role type; `yield* Access.requireAccess({ id: user.id, role }, UseTools, record.ownerId)` then permits an explicit `any` grant or an `own` grant for that owner. Keep these resource decisions in the handler or domain service. Browser interfaces can use `hasPermission(user, permission)` from `@shivaedev/identity/permission.ts` over the client session's grants; the server always resolves its own grants.
 
 ### Session-scoped contract keys
 
@@ -356,7 +356,7 @@ The host's generated `$changes` handler accepts `{ queries: [{ query: "get", pay
 
 `authenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer` and `permissionLayer` run scoped command invalidation inside the authenticated invocation. Successful commands publish their scoped keys after commit and omit keys the handler's transactions already published. A rejected transaction publishes no keys.
 
-Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$changes`. When migrating a custom change handler, accept query references and resolve them inside `Stream.unwrap`, after authentication has provided `Identity`:
+Hosted applications use `Api.application.toLayer(...)` and let `appHost` own `$changes`. A custom change handler accepts query references and resolves them inside `Stream.unwrap`, after authentication has provided `Identity`:
 
 ```ts
 import { Effect, Stream } from "effect";
@@ -416,13 +416,11 @@ An `AuthUnavailable` failure during revalidation leaves the stream running and t
 
 Session resolution reads `HttpServerRequest`: the HTTP POST or WebSocket upgrade request. Credentials and Origin supplied inside an RPC message cannot replace those transport headers. An application-owned middleware can use `transportHeaders(rpcHeaders)` for the same source of headers.
 
-react’s `actionTrace` groups an action’s RPC Effects under one browser trace; editor saves and create submissions group their save Effects automatically. Native `RpcClient.layerProtocolHttp` with `FetchHttpClient.layer` sends W3C `traceparent` on each request. appHost continues that HTTP trace for RPC handling, including without an installed tracer or exporter. Each RPC span records `request.id` and `rpc.method`; native SQL spans executed by the handler inherit that trace.
-
-When a handler enqueues through jobs, the job stores the current span context. Wrap enqueueing in an application-named producer span with `Effect.withSpan("Receipt.enqueue", { kind: "producer" })` to show the enqueue operation in the action trace. Worker attempts run in their own trace, linked back to the captured sender span. A trace viewer can follow that link between the action and its job.
-
 Tracing uses the RPC headers for correlation. `requestTracingLayer()` accepts `x-request-id`; `{ header: "x-correlation-id" }` changes the name. Missing, malformed or oversized values receive generated 32-character lowercase hexadecimal ids. A request id reaches the `RequestId` service, log annotations as `requestId`, and the server span as `request.id`; the RPC method reaches both as `rpc.method`.
 
 Caller-chosen request ids are correlation data. Keep authorization tied to the authenticated identity.
+
+The app host of `@shivaedev/server` adds this tracing to its RPC group and continues the caller's W3C trace; react's [action tracing](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#trace-an-action-across-rpcs) follows one browser action through RPC, SQL and a queued job.
 
 ### Signed-in story preconditions
 
@@ -496,8 +494,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | --- | --- |
 | `identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services. |
 | `middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations. |
-| `permission.ts` | Native permission middleware declarations and predicates over resolved grants. |
-| `server/permissions.ts` | Permission middleware Layers and HTTP route guards. |
+| `permission.ts` | `permissionMiddleware`, `hasPermission`, `requirePermission`: native permission middleware declarations and predicates over resolved grants. |
+| `server/permissions.ts` | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards. |
 | `server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
 | `server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups. |
 | `server/origin.ts` | `trustedOrigins({ allow, missing })`: an exact Origin allowlist. |
@@ -505,7 +503,8 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/transportHeaders.ts` | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision. |
 | `server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation. |
 | `server/sessionKeys.ts` | `resolveChanges`: session-scoped change subscriptions for custom change handlers. |
-| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn?, bearerSessions? })`, returning `{ auth, routes, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
+| `server/commandChanges.ts` | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware. |
+| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn?, bearerSessions?, roles? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
 | `server/better-auth/allowedAccounts.ts` | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config. |
 | `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
 | `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |

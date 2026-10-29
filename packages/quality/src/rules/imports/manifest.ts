@@ -1,7 +1,7 @@
 import { posix } from "node:path";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
-import { builtinName } from "#imports/resolve.ts";
+import { builtinName } from "#imports/packageName.ts";
 import { packageOf, type WorkspacePackage } from "#imports/workspace.ts";
 import { type EntryPoint, entryPointsOf, isApplication, provider, SHIPPED_FIELDS } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";

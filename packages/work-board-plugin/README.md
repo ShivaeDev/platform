@@ -1,4 +1,4 @@
-# Work Board plugin
+# @shivaedev/work-board-plugin
 
 The Work Board inside Claude Code: what needs you, what Fleet has in flight and how your goals are doing, one glance from the prompt.
 
@@ -13,6 +13,24 @@ A Work Board runs beside your sessions, but its browser tab is not where you are
 
 ## Using it
 
+### How it finds the Board
+
+The plugin needs a running Work Board. It finds one by walking up from the session's folder to the nearest folder that holds `.work`, and asks the Board over `.work/board.sock`. Start the Board in that folder:
+
+```sh
+npx @shivaedev/work-board .work
+```
+
+Without a `.work` folder, the pane and every tool say the session's folder has no Work Board and how to start one; with a Board that is not running, they say so and name the start command. The band stays hidden until the Board answers. Pressing a Needs you item opens it with `open -g` at the URL the Board says it is served on, so opening items works on macOS.
+
+The plugin only reads the Board. Answer decisions in the Board itself or through [`@shivaedev/work-board`](../work-board/README.md).
+
+### The pane
+
+The pane folds goals with status `done` under an “Achieved (N)” row, closed by default. Click it to show those goals. Open goals stay visible, including goals whose tasks are all done. In flight and goal running counts use the same Board overview snapshot. If Fleet cannot be reached, In flight shows why it is unavailable.
+
+### Install
+
 Install it from this repository's marketplace. At the prompt of a terminal session, on Claude Code 2.1.299 or later:
 
 ```
@@ -26,18 +44,6 @@ claude plugin install workboard --marketplace ShivaeDev/platform
 ```
 
 With the marketplace already added (`/plugin marketplace add ShivaeDev/platform`), `/plugin install workboard@shivaedev` installs it too. In the desktop app, where `/plugin` does not run, click + next to the prompt box, then Plugins, Add marketplace with `ShivaeDev/platform`, then Add plugin.
-
-The plugin needs a running Work Board. It finds one by walking up from the session's folder to the nearest folder that holds `.work`, and asks the Board over `.work/board.sock`. Start the Board in that folder:
-
-```sh
-npx @shivaedev/work-board .work
-```
-
-Without a `.work` folder, the pane and every tool say the session's folder has no Work Board and how to start one; with a Board that is not running, they say so and name the start command. The band stays hidden until the Board answers. Pressing a Needs you item opens it with `open -g` at the URL the Board says it is served on, so opening items works on macOS.
-
-The pane folds goals with status `done` under an “Achieved (N)” row, closed by default. Click it to show those goals. Open goals stay visible, including goals whose tasks are all done. In flight and goal running counts use the same Board overview snapshot. If Fleet cannot be reached, In flight shows why it is unavailable.
-
-The plugin only reads the Board. Answer decisions in the Board itself or through [`@shivaedev/work-board`](../work-board/README.md).
 
 ### Developing it
 

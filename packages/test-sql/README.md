@@ -108,7 +108,7 @@ Declare the mapping once in `appClientOptions`, for example with `clientOptions(
 
 ### Budget PostgreSQL connections
 
-Each database pool opens connections on demand, with a default maximum of **two**: the shared database can use two, and each active per-test or per-story clone can use another two. Preparation uses the same limit and closes before tests start. An administrative connection exists only during a create or drop operation and closes as soon as that operation finishes; idle workers keep no administrative connection. Set `maxConnections` on `makePostgresTestLayer` to override the limit for the suite's preparation, shared and isolated pools:
+Each database pool opens connections on demand, with a default maximum of two: the shared database can use two, and each active per-test or per-story clone can use another two. Preparation uses the same limit and closes before tests start. An administrative connection exists only during a create or drop operation and closes as soon as that operation finishes; idle workers keep no administrative connection. Set `maxConnections` on `makePostgresTestLayer` to override the limit for the suite's preparation, shared and isolated pools:
 
 ```ts
 const layer = makePostgresTestLayer({
@@ -255,4 +255,4 @@ Import each name from the module that defines it. The package has no root entry.
 pnpm add --save-dev @shivaedev/test-sql @shivaedev/test @effect/sql-pg @effect/vitest effect vitest
 ```
 
-Use versions compatible with the package's peer dependencies. The package requires Node.js 24 or later. The PostgreSQL role must be able to create and drop databases; use a dedicated test server. PostgreSQL 13 or later supports the forced database drops used for cleanup. The migrations and fixtures must complete their work during preparation; their scoped resources are closed before cloning.
+`@effect/sql-pg` and `effect` are peer dependencies; `@shivaedev/test` supplies the `makeEffectIt` runner the examples use. The package requires Node.js 24 or later. The PostgreSQL role must be able to create and drop databases; use a dedicated test server. PostgreSQL 13 or later supports the forced database drops used for cleanup. The migrations and fixtures must complete their work during preparation; their scoped resources are closed before cloning.

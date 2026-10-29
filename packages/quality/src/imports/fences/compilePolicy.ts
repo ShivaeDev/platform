@@ -1,5 +1,6 @@
 import type { ImportEdge } from "#imports/graph.ts";
-import { type Endpoint, packageNameOf } from "#imports/resolve.ts";
+import { packageNameOf } from "#imports/packageName.ts";
+import type { Endpoint } from "#imports/resolve.ts";
 import { type CompiledFence, compileFence, type FenceGraph } from "./evaluate.ts";
 import type { PolicyScope } from "./match.ts";
 import type { Chain, ExampleStep, Fence } from "./model.ts";

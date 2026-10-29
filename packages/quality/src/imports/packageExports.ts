@@ -1,11 +1,11 @@
-export function blockedExport(exports: unknown, subpath: string): boolean {
+export function exportEntry(exports: unknown, subpath: string): readonly [string, unknown] | undefined {
 	if (typeof exports !== "object" || exports === null || Array.isArray(exports)) {
-		return false;
+		return undefined;
 	}
 	const entries = Object.entries(exports);
 	const exact = entries.find(([key]) => key === subpath);
 	if (exact !== undefined) {
-		return exact[1] === null;
+		return exact;
 	}
 	const matching = entries.filter(([key]) => {
 		const [prefix = "", suffix, ...rest] = key.split("*");
@@ -17,8 +17,11 @@ export function blockedExport(exports: unknown, subpath: string): boolean {
 			&& subpath.endsWith(suffix)
 		);
 	});
-	const best = matching.toSorted(([left], [right]) => right.indexOf("*") - left.indexOf("*") || right.length - left.length)[0];
-	return best?.[1] === null;
+	return matching.toSorted(([left], [right]) => right.indexOf("*") - left.indexOf("*") || right.length - left.length)[0];
+}
+
+export function blockedExport(exports: unknown, subpath: string): boolean {
+	return exportEntry(exports, subpath)?.[1] === null;
 }
 
 export function exportTargets(value: unknown): string[] {

@@ -14,9 +14,7 @@ When goals conflict, they win in this order:
 
 ## Writing the kit's own stories
 
-A verb performs one action on the real engine or reads one observation; the spec shows each action and states each expectation. Acquire real services in `create` or a trait in the story's per-test Scope and reuse them across verbs, with cleanup owned by the Scope. Follow the README's [verb shape](README.md#the-verb-shape-every-kit-follows) for package fixtures as well as application kits.
-
-Split scenario runners and verbs with two jobs into individual actions and readouts. Return real observations instead of hard-coded expected outcomes, and keep assertions in the spec. Fail when an action's target is missing. Keep engine defaults neutral and declare meaningful preconditions in traits or explicit action inputs.
+The package's own kits in `src/test-support/` follow the README's [verb shape](README.md#the-verb-shape-every-kit-follows) exactly as an application kit must, because the README teaches from them. A fixture that runs a whole scenario in one verb, hides an assertion or relies on an engine default teaches every reader that shape.
 
 ## Failure messages are for agents
 

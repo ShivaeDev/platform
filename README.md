@@ -1,9 +1,6 @@
 # ShivaeDev Platform
 
-Reusable TypeScript packages for Effect-based applications.
-
-The packages share native Effect data, service and lifecycle conventions.
-Published packages may change quickly before 1.0.
+Reusable TypeScript packages for Effect-based applications. The packages share native Effect data, service and lifecycle conventions. Published packages may change quickly before 1.0.
 
 ## Native Effect framework
 
@@ -13,55 +10,36 @@ Every package has a README for people and agents using it and a short `AGENTS.md
 
 ## Packages
 
-- [`@shivaedev/service`](./packages/service): Declared service
-  dependencies with native Effect Layers and caller-owned scopes.
-- [`@shivaedev/changes`](./packages/changes): Commit-bound change
-  channels that publish recorded changes only after their transaction commits.
-- [`@shivaedev/sql`](./packages/sql): Simple schema-derived
-  repositories over native Effect SQL, and after-commit invalidation.
-- [`@shivaedev/contract`](./packages/contract): Query and command
-  declarations over native Effect RPC with typed rejections and reactivity keys.
-- [`@shivaedev/form`](./packages/form): Schema-based forms and
-  editable drafts, with optional React bindings.
-- [`@shivaedev/react`](./packages/react): Query state and action
-  dispatch hooks for native Effect atoms.
-- [`@shivaedev/jobs`](./packages/jobs): Schema-defined jobs
-  and scoped pg-boss workers in Effect applications.
-- [`@shivaedev/test`](./packages/test): Generic Effect Vitest
-  runner with worker-scoped Layers and TestClock.
+- [`@shivaedev/service`](./packages/service): Declared service dependencies and private initialization, kept as native Effect services with native Layers and caller-owned scopes.
+- [`@shivaedev/changes`](./packages/changes): Commit-bound change channels that publish recorded changes only after their transaction commits.
+- [`@shivaedev/sql`](./packages/sql): Rows described once with an Effect model for writes, filters and decoded reads, through small repositories over native Effect SQL, transactions and migrations.
+- [`@shivaedev/contract`](./packages/contract): Query, command and stream declarations with typed rejections and refresh dependencies, compiled to native Effect RPC and bound to native AtomRpc queries.
+- [`@shivaedev/form`](./packages/form): Schema-based forms that keep input values, decoded submissions and fresh server data together, with optional React bindings.
+- [`@shivaedev/react`](./packages/react): Readable state for native Effect atom queries and actions, editors that join a record to its form, and session-owned client state.
+- [`@shivaedev/jobs`](./packages/jobs): Schema-defined PostgreSQL jobs and scoped pg-boss workers on the application's Effect services.
+- [`@shivaedev/test`](./packages/test): One Effect Vitest runner for tests and reusable fixtures, with the application's services and a controlled clock.
 - [`@shivaedev/test-sql`](./packages/test-sql): PostgreSQL test fixtures prepared once, per-test rollback and isolated databases for real commits.
-- [`@shivaedev/test-story`](./packages/test-story): Tests that read like
-  stories over the real engine: one Effect story kit per engine with its own
-  `it` that names every test after the engine's genre, traits per feature, and a
-  failure that prints the story, where it stopped and the engine's state.
+- [`@shivaedev/test-story`](./packages/test-story): Tests that read like short stories and run the real engine: a spec names its setup in domain words and acts through the application's verbs.
 - [`@shivaedev/platform`](./packages/platform): The framework in one dependency: a code-free shell that depends on every runtime piece, for applications that import each piece by its own name.
 - [`@shivaedev/errors`](./packages/errors): The shared failure taxonomy, typed field rejections and redaction of sensitive values, safe in the browser.
-- [`@shivaedev/http`](./packages/http): Calls to outside HTTP APIs with typed failures, pagination and retry hints, and bounded request bodies.
+- [`@shivaedev/http`](./packages/http): Bounded bodies, typed status failures with retry hints, and paginated requests for Effect's HTTP client and server.
+- [`@shivaedev/webhooks`](./packages/webhooks): Signed webhook deliveries verified, deduplicated and recorded with their queued work in one transaction.
 - [`@shivaedev/identity`](./packages/identity): Request identity, session resolution, transport trust and permission checks, with an optional Better Auth adapter.
-- [`@shivaedev/server`](./packages/server): The application host: HTTP and RPC serving, health, tracing export, the database layer and migrations, development mode and the Promise runtime.
+- [`@shivaedev/server`](./packages/server): The application host: migrations, native RPC and static assets over Node HTTP, session checks, redacted diagnostics, trace export, development mode and a runtime for Promise callers.
 - [`@shivaedev/access`](./packages/access): Browser-safe role declarations and permission checks.
 - [`@shivaedev/admin`](./packages/admin): Explicit admin page contracts and a protected native Effect RPC registry.
 - [`@shivaedev/github`](./packages/github): Typed GitHub REST requests, conditional reads and resource budgets.
 - [`@shivaedev/pr-watch`](./packages/pr-watch): One REST watcher for pull request transitions across a repository.
 - [`@shivaedev/create-app`](./packages/create-app): Creates and installs an application from the maintained starter and merges later starter releases into it.
 - [`@shivaedev/releases`](./packages/releases): Explicit changesets and reproducible workspace releases.
-- [`@shivaedev/quality`](./packages/quality): Opinionated repository quality
-  policy with shared tooling and minimal setup; counted existing debt keeps
-  adoption practical without weakening the checks.
-- [`@shivaedev/types`](./packages/types): Type-only helpers shared by the
-  packages, such as `Bivariant`.
-- [`@shivaedev/heavy-lock`](./packages/heavy-lock): Shared advisory lock that runs
-  cooperating heavy commands one at a time across repositories.
-- [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL
-  service preparation that preserves existing databases and data.
+- [`@shivaedev/quality`](./packages/quality): Opinionated repository quality policy with shared tooling and minimal setup; counted existing debt keeps adoption practical without weakening the checks.
+- [`@shivaedev/types`](./packages/types): Type-only helpers shared by the packages, such as `Bivariant`.
+- [`@shivaedev/heavy-lock`](./packages/heavy-lock): Shared advisory lock that runs cooperating heavy commands one at a time across repositories.
+- [`@shivaedev/local-postgres`](./packages/local-postgres): Shared local PostgreSQL service preparation that preserves existing databases and data.
 - [`@shivaedev/vitest-rerun`](./packages/vitest-rerun): Reruns failed Vitest tests in a fresh process and lists the tests that only passed on a rerun in `flaky-tests.json` beside the JUnit report.
 - [`@shivaedev/skills`](./packages/skills): ShivaeDev's shared agent skills, distributed as committed repository files with simple updates and drift checks.
-- [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading
-  Markdown work, following its evidence, recording human responses and preparing
-  file handoffs for an existing agent session.
-- [`@shivaedev/work-fleet`](./packages/work-fleet): A private workspace package for
-  optional Board-backed execution, independent review and authorized delivery with
-  durable ownership and receipts.
+- [`@shivaedev/work-board`](./packages/work-board): A local workspace for reading agents' Markdown plans, results and questions and giving reviewed direction to an existing agent session.
+- [`@shivaedev/work-fleet`](./packages/work-fleet): Launches approved Work Board items, schedules workers and keeps execution receipts in PostgreSQL.
 - [Work Board plugin](./packages/work-board-plugin): The Work Board inside Claude Code, installed with `/plugin install workboard --marketplace ShivaeDev/platform` from this repository's plugin marketplace.
 
 No package has a root entry or a module that re-exports another. Published packages export their source modules through one `"./*.ts"` pattern, so a module's import path is its path inside the package's source folder, and a `null` entry such as `"./internal/*": null` keeps an internal folder or browser bundle sources private. You import the module that defines what you need, such as `import { transact } from "@shivaedev/sql/transact.ts"`, and a bundler sees only what you use.
@@ -82,7 +60,7 @@ corepack enable
 pnpm ready
 ```
 
-`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. Installation runs no build, lint, typecheck, or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
+`./script/update` runs from any working directory and calls `pnpm run setup`, which installs frozen dependencies, installs the pre-commit hook with `quality hooks install`, and prepares the database. The hook runs the checks of `pnpm lint` and `pnpm typecheck` on every commit, through Quality's lint gate, the conventional `typecheck` script and Platform's `quality:commit` script. Installation runs no build, lint, typecheck, or test gates. The root `pnpm ready` is the fast static gate: Biome lint and format checks, repository rules, the changelog check and typechecking. CI runs the full test suite, builds and package archive checks across its shards; `pnpm test`, `pnpm test:orchestration`, `pnpm build` and `pnpm test:package` remain available separately. Shared service management comes from `@shivaedev/local-postgres`; the setup script owns the workspace database names and schemas. Setup starts no application server; the starter uses ports 3000 and 5173. Docker client fallback and service startup refuse remote Docker contexts; use a local daemon or a local service with `psql`.
 
 Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup never stops or removes an existing service or volume.
 
@@ -98,7 +76,7 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 `pnpm test` and CI select the package variables through the shared PostgreSQL test-environment module in `script/lib`, using these defaults. Each variable can override its own connection settings while retaining its package-specific database name. Individual package test commands accept those variables directly; use the corresponding local URL above to run PostgreSQL coverage.
 
-Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files. For example, after local setup:
+Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The shared pnpm configuration resolves workspace sources, so these commands work before any build. Add `--project slow` for `*.slow.test.ts` files, which the default run skips. For example, after local setup:
 
 ```sh
 PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
@@ -108,6 +86,8 @@ PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/pl
 CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. On pull requests, pushes and in the merge queue alike, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`, where flaky-test tracking picks them up. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact.
 
 Each shard's `coverage-tests-<shard>` artifact holds the LCOV report, `measured-commits.txt`, the final JUnit report, `flaky-tests.json` when a test recovered, and `job.txt` with the shard job's check run ID.
+
+`pnpm fleet` runs the [Work Fleet](./packages/work-fleet) CLI from source, such as `pnpm fleet up`, `pnpm fleet status` and `pnpm fleet watch`, with one foreground supervisor per Board directory.
 
 ### Heavy runs
 

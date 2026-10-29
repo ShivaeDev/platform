@@ -4,6 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type InboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { queueVerbs } from "#test/queueVerbs.ts";
+import { receiptHold } from "#test/receiptHold.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { type DeliveryOptions, deliver } from "#test/requests.ts";
 
@@ -26,11 +27,14 @@ export const inbox = storyKit({
 	stages: ["configured"],
 	verbs: (state, story) => ({
 		deliver: (options?: DeliveryOptions) => {
-			story.tell(`receive ${options?.event ?? "issues"} from ${options?.source ?? "github"}`);
+			story.tell(`receive ${options?.event === null ? "an unnamed event" : (options?.event ?? "issues")} from ${options?.source ?? "github"}`);
 			return deliver(state, options);
 		},
 		receipts: () => SqlClient.SqlClient.use((sql) => sql<Receipt>`select * from webhook_receipts order by delivery_id`.withoutTransform),
 		...queueVerbs(state),
+		...receiptHold(),
+		restoreReceipts: () => SqlClient.SqlClient.use((sql) => sql`alter table webhook_receipts_offline rename to webhook_receipts`),
+		takeReceiptsOffline: () => SqlClient.SqlClient.use((sql) => sql`alter table webhook_receipts rename to webhook_receipts_offline`),
 		telemetry: () => ({
 			logs: state.logs,
 			spans: state.telemetry.spans.map(({ name, attributes, events, status }) => ({

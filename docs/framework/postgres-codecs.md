@@ -1,8 +1,6 @@
 # PostgreSQL model codecs
 
-The repository can preserve exact decimal and 64-bit integer values without
-another model adapter. The important boundary is the value the driver actually
-returns: Schema decodes that value, not PostgreSQL's abstract column type.
+The repository can preserve exact decimal and 64-bit integer values without another model adapter. The important boundary is the value the driver actually returns: Schema decodes that value, not PostgreSQL's abstract column type.
 
 Values below use the native client of `@effect/sql-pg` with its default type handling; no custom type handling is installed.
 
@@ -20,10 +18,7 @@ Values below use the native client of `@effect/sql-pg` with its default type han
 
 ## JSON columns are not supported
 
-`sql` models rows as columns. A repository write of a plain object to a
-`json` or `jsonb` column fails with a typed `SqlError` and writes no row. Give structured data its own columns, or its own table when it
-repeats. JSON stored in a column hides its shape from PostgreSQL constraints,
-indexes and migrations, and from the model that should describe it once.
+`sql` models rows as columns. A repository write of a plain object to a `json` or `jsonb` column fails with a typed `SqlError` and writes no row. Give structured data its own columns, or its own table when it repeats. JSON stored in a column hides its shape from PostgreSQL constraints, indexes and migrations, and from the model that should describe it once.
 
 ## The model remains the source of application types
 
@@ -57,18 +52,11 @@ const rows = yield* payments.findMany({
   where: { amount: BigDecimal.fromStringUnsafe("9007199254740993.123456789012") },
   select: ["amount", "sequence"],
 })
-// Inferred: Array<{ readonly amount: BigDecimal; readonly sequence: bigint }>
 ```
 
-`fromStringUnsafe` above constructs a known constant. Decode untrusted decimal
-input with Schema through the normal Effect error channel.
+`rows` is inferred as `Array<{ readonly amount: BigDecimal; readonly sequence: bigint }>`: the selected fields keep their model codecs. `fromStringUnsafe` above constructs a known constant. Decode untrusted decimal input with Schema through the normal Effect error channel.
 
-SQL storage codecs and transport codecs are separate variants of the same model.
-A Date returned by PostgreSQL is not an ISO string returned by JSON transport.
-The generated time field above makes that distinction explicit. A complete RPC
-contract must similarly choose suitable JSON codecs for each transported field;
-these tests cover the database boundary, not decimal, bigint or date RPC
-serialization.
+SQL storage codecs and transport codecs are separate variants of the same model. A Date returned by PostgreSQL is not an ISO string returned by JSON transport. The generated time field above makes that distinction explicit. A complete RPC contract must similarly choose suitable JSON codecs for each transported field; the PostgreSQL stories cover the database boundary, not decimal, bigint or date RPC serialization.
 
 ## Invalid persisted values fail before they reach application code
 
@@ -76,10 +64,8 @@ A valid SQL value that violates the model, such as numeric `NaN` for a `BigDecim
 
 ## Deliberate limits
 
-Use `timestamptz` for instants and accept millisecond precision only where the
-application can tolerate it. PostgreSQL still stores `.345678` when JS has decoded only `.345`.
+Use `timestamptz` for instants and accept millisecond precision only where the application can tolerate it. PostgreSQL still stores `.345678` when JS has decoded only `.345`.
 
-Applications needing exact microseconds or PostgreSQL infinity require an
-explicit encoding policy before adoption. Changing a schema cannot recover precision already discarded by a driver.
+Applications needing exact microseconds or PostgreSQL infinity require an explicit encoding policy before adoption. Changing a schema cannot recover precision already discarded by a driver.
 
 Arrays other than one-dimensional `int4[]`, enums, ranges, binary data and custom type policies are untested.

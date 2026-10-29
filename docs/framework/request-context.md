@@ -1,6 +1,6 @@
 # Errors and request context for native RPC
 
-Applications tend to carry their own copies of the same error classes, request id reference, optional identity service and request logging. Effect Contract provides the shared errors; Platform provides request context for native Effect RPC. The [Platform README](../../packages/platform/README.md) teaches the API; this guide explains the decisions behind it.
+Applications tend to carry their own copies of the same error classes, request id reference, optional identity service and request logging. `@shivaedev/errors` provides the shared errors and redaction; `@shivaedev/identity` provides request context for native Effect RPC. The [errors README](../../packages/errors/README.md) and [identity README](../../packages/identity/README.md) teach the API; this guide explains the decisions behind it.
 
 ## Where the modules run
 
@@ -8,7 +8,7 @@ Applications tend to carry their own copies of the same error classes, request i
 
 ## Errors
 
-`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests` and `AuthUnavailable` are `Schema.TaggedError` classes. Use them directly as native RPC error schemas or as contract rejections. `AuthUnavailable` tells a provider outage apart from a signed-out user. The message is for diagnostics and a fallback display; applications choose their own wording per tag.
+`NotFound`, `Unauthorized`, `Forbidden`, `BadRequest`, `Conflict`, `PreconditionFailed`, `TooManyRequests`, `AuthUnavailable`, `InternalServerError` and `ServiceUnavailable` in `@shivaedev/errors/taxonomy.ts` are `Schema.TaggedError` classes. Use them directly as native RPC error schemas or as contract rejections. `AuthUnavailable` tells a provider outage apart from a signed-out user. The message is for diagnostics and a fallback display; applications choose their own wording per tag.
 
 `rejectedField` is the canonical definition of a field rejection: a value with a string `_tag`, a string `field` and a string `message`, as an instance or as encoded JSON. An untagged `{ field, message }` is not one, so a defect or an arbitrary thrown object with those keys is never shown as a field message. Code that maps rejections to form fields starts from this check and keeps only fields the form has.
 

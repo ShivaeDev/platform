@@ -6,7 +6,7 @@ import type { InboxState } from "#test/host.ts";
 export interface DeliveryOptions {
 	readonly body?: string;
 	readonly delivery?: string | null;
-	readonly event?: string;
+	readonly event?: string | null;
 	readonly signature?: string | null;
 	readonly source?: string;
 }
@@ -19,11 +19,12 @@ export function deliver(state: InboxState, options: DeliveryOptions = {}) {
 	return Effect.tryPromise(async () => {
 		const payload = options.body ?? body;
 		const delivery = options.delivery === undefined ? "delivery-1" : options.delivery;
+		const event = options.event === undefined ? "issues" : options.event;
 		const signed = options.signature === undefined ? signature(payload) : options.signature;
 		const response = await fetch(`${state.url}/hooks/${options.source ?? "github"}`, {
 			body: payload,
 			headers: {
-				"x-github-event": options.event ?? "issues",
+				...(event === null ? {} : { "x-github-event": event }),
 				...(delivery === null ? {} : { "x-github-delivery": delivery }),
 				...(signed === null ? {} : { "x-hub-signature-256": signed }),
 			},

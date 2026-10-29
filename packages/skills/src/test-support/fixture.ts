@@ -8,6 +8,7 @@ export const BETA = "---\nname: beta\ndescription: Use beta.\n---\n\n# Beta\n";
 
 export interface Fixture {
 	installed: Installed;
+	remote: string | undefined;
 	readonly repo: string;
 }
 
@@ -47,6 +48,6 @@ export const makeFixture = Effect.fn("SkillsFixture.makeFixture")(function* () {
 	yield* writeFile("skills/beta/SKILL.md", BETA)(root);
 	const repo = yield* fs.makeTempDirectoryScoped({ prefix: "skills-consumer-" });
 	yield* writeFile("package.json", '{ "name": "consumer" }\n')(repo);
-	const fixture: Fixture = { installed: yield* readInstalled(root), repo };
+	const fixture: Fixture = { installed: yield* readInstalled(root), remote: undefined, repo };
 	return fixture;
 });

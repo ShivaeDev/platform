@@ -1,6 +1,6 @@
 # @shivaedev/changes
 
-You are changing the boundary between a committed write and the notification that tells readers to refresh. Announcing a write before it commits can refresh readers for data that rolls back; announcing every write separately repeats work for the same subject. This package gives explicitly recorded changes one ordered buffer per transaction owner and lets the owner's real commit decide when they can leave it. It owns the after-commit boundary, not the database, the application's change vocabulary or the delivery transport.
+You are changing the boundary between a committed write and the notification that tells readers to refresh. Announcing a write before it commits can refresh readers for data that rolls back; announcing every write separately repeats work for the same subject. This package gives explicitly recorded changes one ordered buffer per transaction owner and lets the owner's real commit decide when they can leave it. It owns the after-commit boundary and the shared record-key format that contract queries, SQL writes and subscriptions use to name the same records and buckets; it does not own the database, the application's change vocabulary or the delivery transport.
 
 ## Which way to lean
 

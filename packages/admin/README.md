@@ -4,6 +4,8 @@ Admin tooling starts with an explicit list of pages and the operations each page
 
 ## Declare the tools operators can use
 
+Operators need one place to find the tools an application exposes, and an admin operation that forgot its permission check is a public operation. Here each admin page names its permission once, and every operation on the page, including its generated change subscription, requires it.
+
 ```ts
 const Jobs = adminPage({
   id: "jobs",
@@ -16,9 +18,15 @@ const Admin = adminRegistry(Jobs);
 
 The page exposes `admin.jobs.failed` and the generated `admin.jobs.$changes` subscription. Both require `JobsPermission`, which checks `ReadJobs` (`jobs.read`). A query-only contract has no command. The application grants this permission to its chosen roles.
 
-## Use native contracts and Layers
+## Using it
 
-Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react`. Declare each page's queries, commands and streams with `@shivaedev/contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
+### How to think about it
+
+An admin page is a native `@shivaedev/contract` contract plus a stable id, route metadata and one permission middleware. The page applies that middleware to every operation in its contract, so no admin operation exists without a permission check. The registry merges the pages into one native RPC group, and server registration pairs each page id with the handler Layer the application writes. Everything else, from the admin shell and its views to session policy and the RPC host, stays with the application.
+
+### Declare pages and the registry
+
+Declare each page's queries, commands and streams with `@shivaedev/contract`, then pass its native contract to `adminPage`. The stable id identifies the page at server registration; route metadata belongs to the application's view. Author RPC namespaces in the contract name, such as `admin.jobs`.
 
 ```ts
 import { Schema } from "effect";
@@ -65,9 +73,7 @@ Declare application roles with `@shivaedev/access`, grant the relevant domain pe
 
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
-Page declarations and the registry are browser-safe. Server registration lives under `/server`; applications own route composition and styling. The built-in Users view uses React; server declarations add no transport. The package's stories prove permission enforcement through native in-process RPC, with an already resolved session as a precondition.
-
-## Built-in Jobs page
+### Built-in Jobs page
 
 Share each queue's name and payload Schema with the browser declaration. The page exposes only the queues passed to `jobsPage`; a queue registered with the jobs runtime is not automatically available to operators.
 
@@ -98,9 +104,9 @@ Schedule definitions from `defineSchedule` can be passed beside queues. A browse
 
 Health filters the runtime's monitor snapshot to the page's queues and recomputes totals from those queues. It has the same refresh timing as jobs health. Unregistered names, including dead-letter queue names passed directly, fail with `JobsQueueUnregistered`. Stored payload decoding failures become `JobsPayloadInvalid`; jobs operation failures become `JobsUnavailable`, carrying the operation name. These declared failures do not expose the original database error.
 
-The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. PostgreSQL stories exercise these queries through serialized `/rpc` requests, including pagination, transformed payloads, missing jobs, queue restrictions and permission enforcement. The application supplies the Jobs view and mounts the registration on its existing RPC host.
+The default `jobsPage` declares no commands, and its bound client has no retry operation. Handler registration performs no jobs read, and a failed jobs request leaves other pages available. The application supplies the Jobs view and mounts the registration on its existing RPC host.
 
-### Declare retry explicitly
+#### Declare retry explicitly
 
 Use `jobsPageWithRetry` and `jobsHandlersWithRetry` when administrators should be able to retry failed original jobs:
 
@@ -117,9 +123,9 @@ const registration = registerAdmin(Admin, {
 
 This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs`, through the same page middleware. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
-A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. PostgreSQL stories mount these query atoms, retry through authenticated serialized RPC, and observe refetching and a second worker execution. Health retains the runtime monitor's refresh timing.
+A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. Health retains the runtime monitor's refresh timing.
 
-## Built-in Users page
+### Built-in Users page
 
 Call `usersPage(AppAccess)` from `@shivaedev/admin/users/page.ts` with the application's code-defined role set. Add the returned page to the same registry as Jobs and register `users: usersHandlers(UsersPage, AppAccess)` from `@shivaedev/admin/server/usersHandlers.ts`. The handlers use the application's existing Effect SQL client against Better Auth's default PostgreSQL `user` table and its `role` column. Custom table or column names are not supported.
 
@@ -142,8 +148,16 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 
 Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAccess, input)` from `@shivaedev/admin/server/users.ts` on the server. These enforce their respective domain permissions using `SessionUser`.
 
-Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy. The starter disables Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints; its server-side bootstrap API remains available.
+Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy: the policy covers only `admin.users.changeRole`, so disable Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints, which write roles outside it. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
 
-## Client permission routes
+### Client permission routes
 
-`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract and exposes its permission as `page.route.permission`. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback. The starter uses this path for Users, Jobs and note statistics.
+`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract and exposes its permission as `page.route.permission`. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback.
+
+### Install and limits
+
+Install `@shivaedev/admin` with `effect`, `react` and `@effect/atom-react` as peers. The package has no root entry; import the module that defines the name.
+
+Page declarations and the registry are browser-safe and add no transport. Server registration lives under `/server`, and the built-in Users view under `/client` uses React. Applications own route composition and styling.
+
+This package declares the permission middleware and does not resolve sessions. `permissionLayer` from `@shivaedev/identity/server/permissions.ts` resolves each request's session through the session policy the application supplies, then checks the page's permission.

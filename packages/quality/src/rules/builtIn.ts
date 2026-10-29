@@ -5,6 +5,8 @@ import { noJsdoc } from "#rules/comments/noJsdoc.ts";
 import { noLineReference } from "#rules/comments/noLineReference.ts";
 import { noPrReference } from "#rules/comments/noPrReference.ts";
 import { noTodo } from "#rules/comments/noTodo.ts";
+import { docsReferences } from "#rules/docs/references.ts";
+import { docsUnversionedInstalls } from "#rules/docs/unversionedInstalls.ts";
 import { effectBoundary } from "#rules/effect/boundary.ts";
 import { serviceParameters } from "#rules/effect/serviceParameters.ts";
 import { distinctCase } from "#rules/files/distinctCase.ts";
@@ -59,6 +61,8 @@ export const builtInRules = [
 	noTodo,
 	noEnvironmentPragma,
 	maxPerFile,
+	docsReferences,
+	docsUnversionedInstalls,
 	noInline,
 	noDoubleCast,
 	noIgnoreDeprecations,

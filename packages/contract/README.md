@@ -35,28 +35,6 @@ A **collection key** names a dependency. Its item key identifies one item; its l
 
 Optional live hints use those same keys. A hint asks for another read; it does not supply a replacement value, a journal entry or proof that a query is fresh.
 
-### Build an HTTP client
-
-Use `makeClient` once per session to bind a contract to an HTTP endpoint:
-
-```ts
-import { HttpClient, HttpClientRequest } from "effect/http";
-import { makeClient } from "@shivaedev/contract/bind.ts";
-import { Notes } from "./notes.ts";
-
-const { api, runtime } = makeClient(Notes, {
-  url: "/rpc",
-  transformClient: (client) => HttpClient.mapRequest(
-    client,
-    HttpClientRequest.setHeader("authorization", "Bearer session-token"),
-  ),
-});
-const note = api.get.query({ id: 1 });
-const rename = runtime.fn(api.rename.run);
-```
-
-The request transform is optional and its native HTTP client type is inferred. Tests can set cookie and Origin headers through the same option. The default transport uses Fetch and NDJSON; `httpClient` and `serialization` accept native Layers for another HTTP client or codec. `group` can supply a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer that a host can pass to `ManagedRuntime.make`. It also exposes the native `Client` service and a scoped `client` Effect for callers outside React. Session-scoped contracts require `registry` in the options, just as `bind` does.
-
 ### 1. Once per feature: schemas and operations
 
 Keep the shared declaration in a module that both server and client can import:
@@ -223,6 +201,28 @@ export const api = bind(Notes, NotesClient);
 
 Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [reference composition](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) composes handlers, request identity, SQL and a rendered client.
 
+### Build an HTTP client in one call
+
+Instead of declaring the `AtomRpc.Service` yourself, use `makeClient` once per session to build the HTTP client and bind the contract to it:
+
+```ts
+import { HttpClient, HttpClientRequest } from "effect/http";
+import { makeClient } from "@shivaedev/contract/bind.ts";
+import { Notes } from "./notes.ts";
+
+const { api, runtime } = makeClient(Notes, {
+  url: "/rpc",
+  transformClient: (client) => HttpClient.mapRequest(
+    client,
+    HttpClientRequest.setHeader("authorization", "Bearer session-token"),
+  ),
+});
+const note = api.get.query({ id: 1 });
+const rename = runtime.fn(api.rename.run);
+```
+
+The request transform is optional and its native HTTP client type is inferred. Tests can set cookie and Origin headers through the same option. The default transport uses Fetch and NDJSON; `httpClient` and `serialization` accept native Layers for another HTTP client or codec. `group` can supply a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer that a host can pass to `ManagedRuntime.make`. It also exposes the native `Client` service and a scoped `client` Effect for callers outside React. Session-scoped contracts require `registry` in the options, just as `bind` does.
+
 ### 3. Every day: read and change
 
 ```ts
@@ -231,8 +231,6 @@ const list = api.list.query();
 const readOnce = api.get.run({ id: 1 });
 const rename = api.rename.run({ id: 1, title: "Uno" });
 ```
-
-`queryCoalesceWindow(query)` from `@shivaedev/contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
 
 `one` and `list` are native query atoms. `readOnce` and `rename` are Effects for individual calls. A query's Effect requires `NotesClient`; a command's Effect also requires native `Reactivity`. Commands expose `run`, and have no `query` member.
 
@@ -267,35 +265,13 @@ The dependency rule is deliberately asymmetric:
 | `notes.item(1)` | `"notes:1"` | `"notes:1"` and `"notes"` |
 | `notes.list` | `"notes"` | `"notes"` |
 
-`readKeys` and `invalidationKeys` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
+`readKeys` and `invalidationKeys` from `@shivaedev/changes/keys.ts` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
 
 Client invalidation follows RPC success. Database hosts from `@shivaedev/server` also publish declared command invalidations automatically after the handler succeeds, excluding keys already announced by repository commits, using `transact` from [`sql`](https://github.com/ShivaeDev/platform/tree/main/packages/sql); commit-bound changes belong to [`changes`](https://github.com/ShivaeDev/platform/tree/main/packages/changes).
 
 ### Session-owned keys
 
-Before migration, an owner field exists only to give client reads and invalidations a key. The server already chooses the account from `Identity`:
-
-```ts
-const preferences = collection("preferences", Schema.String);
-const Preferences = contract("preferences", {
-  queries: [query("self", {
-    payload: { ownerId: Schema.String },
-    reads: ({ ownerId }) => [preferences.item(ownerId)],
-    success: Schema.String,
-  })],
-  commands: [command("save", {
-    payload: { ownerId: Schema.String, title: Schema.String },
-    invalidates: ({ ownerId }) => [preferences.item(ownerId)],
-    success: Schema.String,
-  })],
-}).middleware(Authenticated);
-
-const api = bind(Preferences, Client);
-const self = api.self.query({ ownerId: session.userId });
-const save = api.save.run({ ownerId: session.userId, title: "My preferences" });
-```
-
-After migration, remove `ownerId` from both payload schemas and every call site. Add `keyScope: "session"` and keep a logical item key for the self-only record:
+A self-only feature, such as a user's preferences, reads and changes only the signed-in account's records. Declare its contract with `keyScope: "session"`. The server chooses the account from request-local identity, so payloads carry no owner field, and reads and invalidations name a logical item key for the record:
 
 ```ts
 const preferences = collection("preferences", Schema.String);
@@ -317,25 +293,9 @@ const self = api.self.query(undefined);
 const save = api.save.run({ title: "My preferences" });
 ```
 
-The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command` and `bind` from contract's defining modules, `collection` from `@shivaedev/changes/keys.ts`, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service. In React, obtain `registry` from the second argument to `SessionBoundary.connect`:
+The examples use `Schema` and `Effect` from `effect`, `contract`, `query`, `command` and `bind` from contract's defining modules, `collection` from `@shivaedev/changes/keys.ts`, and `Authenticated` from `@shivaedev/identity/middleware.ts`. `Client` is the application's native AtomRpc service, and `registry` is the atom registry that owns the session's queries. In React, `SessionBoundary` supplies that registry to `connect`, as [react's session-scoped bindings](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#session-scoped-bindings) show.
 
-```tsx
-import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
-
-<SessionBoundary
-  session={session}
-  identify={(current) => current.generation}
-  connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
-  recheck={recheck}
-  signedOut={<p>Signed out</p>}
->
-  {(api) => <PreferencesScreen api={api} />}
-</SessionBoundary>
-```
-
-`makePreferencesClient(token)` creates the application's native AtomRpc service and configures its transport credentials. Existing one-argument `connect` callbacks continue to work. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
-
-Handlers continue reading the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`, before and after migration:
+Handlers read the account from request-local `Identity`, imported from `@shivaedev/identity/identity.ts`:
 
 ```ts
 Preferences.application.toLayer({
@@ -386,7 +346,7 @@ const changes = Stream.unwrap(NotesClient.use((client) =>
 
 The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers yield the Effect from the `ChangesQueries` annotation's `resolve(references)` method, call `querySubscription(requests, viewer)` and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
 
-For a custom transport or explicit pause/status controls, the native live APIs remain available:
+For a custom transport or explicit pause and status controls, use the native live APIs.
 
 Declare subscriptions with `stream` in the same contract. Its `success` schema describes each element, and its `rejections` become the native stream error schema. `bind` exposes `run(payload)` as a native `Stream`, preserving declared rejections, middleware errors and RPC client errors. Completion and client interruption release the server subscription. The compiler rejects a unary client for a streaming operation.
 
@@ -446,6 +406,8 @@ const releaseConnection = registry.mount(updates.connection);
 
 Changed hints share a fixed 20 ms window by default. Their keys merge, and each affected bound query refetches once per window. A bound query already fetching keeps its request and refetches once more after it settles if further hints arrive. Set `coalesceWindow` in `live()` to a native Duration, or set `SessionBoundary`'s `liveCoalesceWindow` for automatic session connections. Zero restores immediate per-hint invalidation, including interruption of in-flight reads. Full reconciliation on first hint, reconnect, resume and unpause stays immediate. Registry teardown cancels a pending window.
 
+`queryCoalesceWindow(query)` from `@shivaedev/contract/queryCoalesceWindow.ts` returns a writable native atom for that bound query's live changed-hint window. Set it through the query's registry to a Duration, or `undefined` to use the live connection's default. Changing it does not refetch or reconnect; the next window uses the new value. React consumers can set it with `useQuery(query, { coalesceWindow: "2 seconds" })`.
+
 `LiveHint` and `Key` are schemas. Decoding rejects unknown hint tags and item keys with an invalid ID type.
 
 ```ts
@@ -500,7 +462,7 @@ The session middleware supplies the viewer and runs `authorizeReads(effect, requ
 
 ### Live hints in stories
 
-Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle. The contract's viewer story kit exposes these as `listen(viewer, queries)` and `heard(viewer, keys)`.
+Use `watchHints` and `heard` from `@shivaedev/contract/testing.ts` in an application's story kit. Pass each viewer's authenticated live stream to `watchHints`; it starts a scoped subscription and waits for its first hint before returning the viewer handle.
 
 ```ts
 const alice = yield* watchHints(aliceChanges);
@@ -521,7 +483,8 @@ Import the module that defines the name; the package has no root entry.
 | `operation.ts` | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
 | `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
-| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams. |
+| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, transformClient?, httpClient?, serialization?, group?, registry? })`, which builds the HTTP client and binds it. |
+| `queryCoalesceWindow.ts` | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `querySubscription.ts` | `querySubscription(requests, viewer)` checks each referenced query and captures its scopes and ongoing authorization. |
 | `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
@@ -536,7 +499,7 @@ A query atom takes native query options as its optional second argument, for exa
 ### Install, setup and limits
 
 ```sh
-pnpm add @shivaedev/contract effect@4.0.5
+pnpm add @shivaedev/contract effect
 ```
 
 `effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.

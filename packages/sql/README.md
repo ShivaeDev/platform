@@ -43,7 +43,7 @@ const database = PgClient.layer(clientOptions({
 
 `clientOptions` enables Effect SQL's `transformQueryNames` with Effect's `String.camelToSnake` and `transformResultNames` with `String.snakeToCamel` by default. A model field `createdAt` writes the migration-created `created_at` column, and returned rows contain `createdAt`. Inserts, selects, filters, ordering, updates and raw SQL share the client's transforms; column aliases are unnecessary. Write literal migration SQL with snake_case columns. In tagged SQL, interpolated identifiers such as `sql("createdAt")` are transformed; literal SQL text stays as written.
 
-To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `platform`'s `appHost` or `appDatabase`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
+To opt out for an existing database with quoted camelCase columns or models with snake_case fields, use `PgClient.layer(clientOptions(options, { snakeCase: false }))`. Existing native clients are unchanged until configured with this helper. Native `transformQueryNames` and `transformResultNames` supplied in `options` take precedence. For `appHost` or `appDatabase` from `@shivaedev/server/appHost.ts`, use `clientOptions` on their `config` object; the host forwards those native transforms to its client.
 
 ### 1. Once per model: fields and writable variants
 
@@ -266,7 +266,6 @@ const copied = yield* archive.insertFromSelect(
 Here `archive` is another unversioned `InvoiceLine` repository with its own table. `select` takes the same query options as `findMany` and prepares an Effect SQL fragment without reading rows into the application. `insertFromSelect(source, columns)` executes one `INSERT ... SELECT ... RETURNING` statement and returns Schema-decoded target model instances, including generated fields. The mapping requires all required target insert fields, allows optional insert fields, and checks source projection names plus decoded and encoded field types. Values move within SQL, so source decoding and target input encoding do not run; compatible schemas must describe compatible database storage.
 
 A repository configured with `conflictColumns` also exposes `insertFromSelectOrIgnore(source, columns)`. It uses the same conflict columns and optional `conflictWhere` predicate as `insertOrIgnore`, skips existing keys, and returns only inserted rows. An empty source returns `[]`. Both writes join `transact` and roll back with it. Source filter encoding services and target result decoding services remain in the write's Effect environment.
-
 
 ### Composite keys and idempotent writes
 
@@ -527,8 +526,7 @@ For a structured readiness readout, use `pendingPostgresMigrations({ loader, tab
 
 Pass an optional `release` string to `migratePostgres` to record the owning release after all ledger migrations and schema components succeed. The final `postgresRelease(release, table?)` schema component owns a one-row `<ledger>_release` table with typed `release` and UTC `recorded_at timestamptz` columns, plus a `<ledger>_workers` table with typed process identity, release and UTC heartbeat columns. `readPostgresRelease(table?)` from `postgresRelease.ts` returns the recorded release and `recordedAt` Date, or `undefined` for a missing marker. `pendingPostgresMigrations({ loader, release, table? })` reports a missing or different release as a pending component. Without `release`, migration and readiness calls neither write nor read these tables.
 
-Server's `appDatabase` supplies the optional `WorkerRelease` Context service in migration mode `"wait"` with a release. Startup waits for that marker within `waitTimeout`; subsequent checks run every `pollInterval`. Each worker database Layer claims a process row only when its release owns the marker and no live row of another release remains. Heartbeats continue every poll while jobs drain; completed drain and clean shutdown remove the row. Rows older than five polling intervals count as gone, bounding takeover after a crash (five seconds at the default one-second poll). Reserve SQL pool capacity for heartbeats alongside active jobs and the change listener. Release equality decides ownership, so rolling back the marker resumes the earlier worker. jobs reads the service automatically; applications do not connect a signal themselves. Web's `"check"` mode ignores the marker.
-
+`appDatabase` from `@shivaedev/server/appHost.ts` supplies the optional `WorkerRelease` Context service in migration mode `"wait"` with a release. Startup waits for that marker within `waitTimeout`; subsequent checks run every `pollInterval`. Each worker database Layer claims a process row only when its release owns the marker and no live row of another release remains. Heartbeats continue every poll while jobs drain; completed drain and clean shutdown remove the row. Rows older than five polling intervals count as gone, bounding takeover after a crash (five seconds at the default one-second poll). Reserve SQL pool capacity for heartbeats alongside active jobs and the change listener. Release equality decides ownership, so rolling back the marker resumes the earlier worker. `@shivaedev/jobs` reads the service automatically; applications do not connect a signal themselves. Web's `"check"` mode ignores the marker.
 
 ### PostgreSQL delivery between processes
 
@@ -556,21 +554,27 @@ Import the module that defines the name; there is no root entry.
 | --- | --- | --- |
 | `@shivaedev/sql/clientOptions.ts` | `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` | Add default native name transforms to driver or app host options; opt out with `snakeCase: false`. |
 | `@shivaedev/sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`. |
-| `@shivaedev/sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`. |
+| `@shivaedev/sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" \| "stale"`. |
+| `@shivaedev/sql/tupleIn.ts` | `tupleIn(model, fields, tuples)` | Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes. |
+| `@shivaedev/sql/upsertResult.ts` | `UpsertRow` | The `{ row, inserted }` result of an unconditional upsert. |
+| `@shivaedev/sql/conditionalUpsert.ts` | `UpsertFilter`, `UpsertResult` | The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert. |
+| `@shivaedev/sql/mapSqlError.ts` | `mapSqlError({ constraints, fallback })` | Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`. |
 | `@shivaedev/sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
 | `@shivaedev/sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
 | `@shivaedev/sql/advisoryXactLock.ts` | `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` | PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`. |
 | `@shivaedev/sql/migrationConvention.ts` | `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` | Application folder and four-digit sequential snake_case TypeScript filename pattern. |
 | `@shivaedev/sql/migrationsFromDirectory.ts` | `migrationsFromDirectory(root)` | Discover migrations under the application root with native `FileSystem` and `Path`. |
-| `@shivaedev/sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional `components` and ledger `table`, default `effect_sql_migrations`. |
+| `@shivaedev/sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`. |
 | `@shivaedev/sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table?, components? })` | Read-only readiness check of required migration IDs and names in the native ledger and registered schema components. |
 | `@shivaedev/sql/pendingPostgresMigrations.ts` | `pendingPostgresMigrations({ loader, table?, components? })` | Pending ledger migrations as ID and name, and pending schema components as name and detail. |
+| `@shivaedev/sql/postgresRelease.ts` | `postgresRelease(release, table?)`, `readPostgresRelease(table?)` | Release marker schema component and its reader. |
 | `@shivaedev/sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |
+| `@shivaedev/sql/testing.ts` | `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` | Test assertions that every write announced its keys and that the expected keys were published. |
 
 ### Install and database setup
 
 ```sh
-pnpm add @shivaedev/sql effect@4.0.5 @effect/sql-pg@4.0.5
+pnpm add @shivaedev/sql effect @effect/sql-pg
 ```
 
 `effect` is a peer. Install the native driver your application uses; this command chooses PostgreSQL. Provide its layer, and provide native Reactivity when using `transact` or `invalidateOnCommit`:
@@ -622,7 +626,7 @@ const insertNamedLine = lines.insert({ amount: 52, name: "Consulting", note: nul
 
 The mapper handles named unique violations and PostgreSQL foreign-key and check violations. Every other `SqlError`, including unknown constraints, goes to `fallback`. Each callback receives the original error. The inferred error type contains exactly the mapped errors and the fallback; `transact` also preserves other typed failures from the operation. Constraint names belong to the application's migration; error types and presentation belong to the application.
 
-Recover outside `transact` so earlier writes roll back before handling a mapped domain error. A losing unique-key insert can then catch `NameTaken` and read the winner's row without a private transaction error. See the [constraint-failures guide](../../docs/framework/constraint-errors.md).
+Recover outside `transact` so earlier writes roll back before handling a mapped domain error. A losing unique-key insert can then catch `NameTaken` and read the winner's row without a private transaction error. See the [constraint-failures guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/constraint-errors.md).
 
 For the native PostgreSQL driver's default representations, use precise numeric strings with `Schema.BigDecimalFromString`, `int8` values with `Schema.BigInt`, `date` values as `YYYY-MM-DD` strings with `Schema.String`, instants with `Schema.Date`, nullable text and generated values. A persisted value that violates its schema fails decoding; a write and read inside the enclosing transaction roll back together when that failure escapes.
 

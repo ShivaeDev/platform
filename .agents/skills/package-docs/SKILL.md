@@ -47,6 +47,7 @@ Name the two H2 sections in words that fit the package; the split is what matter
 - Name each concept by what it is. A reader without a glossary should understand the word.
 - Do not hard-wrap Markdown prose. Keep each prose paragraph on one source line, including inside lists; preserve Markdown structure and line breaks in literal code and output.
 - A code block shows the code or output exactly as it really is or prints, with no explanation inside it; the prose under the block says what the reader is looking at.
+- Name packages without versions, in install commands and in prose: `pnpm add @shivaedev/sql effect @effect/sql-pg`, never `effect@4.0.5`. The package manifest's peer ranges decide what resolves, and a version written in a README drifts with every release.
 - Every behavior the README states has a test that fails without it.
 - npm renders the README too. Use absolute URLs for images; GitHub renders Mermaid, npm shows it as a code block, so keep the text around a diagram readable without it.
 
@@ -60,10 +61,13 @@ For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, nami
 
 ## Checklist
 
+Quality's `docs/references` rule checks links, heading anchors, documented module paths and named imports on every commit, and `docs/unversioned-installs` checks install commands for versions. The rest of this list is judgement only you can apply.
+
 - [ ] `AGENTS.md` is a short north star, with `CLAUDE.md` symlinked to it.
 - [ ] The README title is the package name, followed by the one-to-three-sentence why.
 - [ ] The README's first screen holds the human pitch and one small example, nothing else.
 - [ ] The agent part goes from mental model to examples to API to install and limits.
 - [ ] A `docs/north-star.md`, if present, adds to `AGENTS.md` rather than repeating it.
 - [ ] No doc keeps a roadmap, a status list or an inventory of files or tests.
+- [ ] No install command or sentence names a package version.
 - [ ] Each claim in the README has a test behind it.
