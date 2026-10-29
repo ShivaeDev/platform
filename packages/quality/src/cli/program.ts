@@ -32,7 +32,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "Help":
 			return yield* Console.log(USAGE);
 		case "Ci":
-			return yield* ci(cwd);
+			return yield* ci(cwd, command.coverage);
 		case "Setup":
 			return yield* setupHook({ config: command.config, cwd, launch });
 		case "Lint":

@@ -1085,6 +1085,9 @@ importers:
       "@shivaedev/types":
         specifier: workspace:*
         version: link:../types
+      "@vitest/coverage-v8":
+        specifier: "catalog:"
+        version: 5.0.5(vitest@5.0.5)
       ignore:
         specifier: "catalog:"
         version: 7.0.13
