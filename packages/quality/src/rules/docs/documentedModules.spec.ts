@@ -65,3 +65,37 @@ ruleKit.it(
 		expect((yield* checks(docsReferences)).map((finding) => finding.line)).toEqual([5]);
 	},
 );
+
+ruleKit.it(
+	"a default import needs a default export, a package without an exports map resolves paths as files, and a path no export key maps is missing",
+	[
+		repositoryHas(
+			...docsWorkspace,
+			{ content: JSON.stringify({ exports: { "./run.ts": "./src/run.ts" }, name: "@acme/tool" }), path: "packages/tool/package.json" },
+			{ content: "export default function run(): number {\n\treturn 1;\n}\n", path: "packages/tool/src/run.ts" },
+			{ content: "export const main = 1;\n", path: "packages/app/main.ts" },
+			markdown(
+				"docs/guide.md",
+				"# Guide",
+				"",
+				"```ts",
+				'import makeRepository from "@acme/lib/repository.ts";',
+				'import run from "@acme/tool/run.ts";',
+				'import { stop } from "@acme/tool/stop.ts";',
+				'import { main } from "@acme/app/main.ts";',
+				'import { start } from "@acme/app/start.ts";',
+				"```",
+			),
+		),
+	],
+	function* ({ checks }) {
+		expect((yield* checks(docsReferences)).map((finding) => [finding.line, finding.message])).toEqual([
+			[
+				4,
+				'"@acme/lib/repository.ts" has no default export. Import a named export of packages/lib/src/repository.ts, or the module whose default export you mean.',
+			],
+			[6, '"@acme/tool/stop.ts" names no module of @acme/tool. Use the path of a module its package.json "exports" maps.'],
+			[8, '"@acme/app/start.ts" names no module of @acme/app. Use the path of a module its package.json "exports" maps.'],
+		]);
+	},
+);

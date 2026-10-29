@@ -14,6 +14,12 @@ export interface ImportContext {
 	readonly root: string;
 }
 
+function missingExport(specifier: string, path: string, name: string): string {
+	return name === "default"
+		? `"${specifier}" has no default export. Import a named export of ${path}, or the module whose default export you mean.`
+		: `"${specifier}" does not export ${name}. Name an export of ${path}, or the module that exports ${name}.`;
+}
+
 function problem(
 	context: ImportContext,
 	entry: DocumentedImport,
@@ -33,9 +39,7 @@ function problem(
 		return Effect.succeed(undefined);
 	}
 	return Effect.map(context.readText(module.path), (text) =>
-		text !== undefined && exportsName(module.path, text, name) === false
-			? `"${entry.specifier}" does not export ${name}. Name an export of ${module.path}, or the module that exports ${name}.`
-			: undefined,
+		text !== undefined && exportsName(module.path, text, name) === false ? missingExport(entry.specifier, module.path, name) : undefined,
 	);
 }
 
