@@ -3,7 +3,7 @@ import { Result } from "effect";
 import { USAGE as COMMAND_USAGE, SUBCOMMANDS } from "./messages.ts";
 
 export type Command =
-	| { readonly _tag: "Ci" }
+	| { readonly _tag: "Ci"; readonly coverage: boolean }
 	| { readonly _tag: "Setup"; readonly config: string | undefined }
 	| { readonly _tag: "Lint"; readonly config: string | undefined }
 	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
@@ -27,6 +27,7 @@ export const USAGE = COMMAND_USAGE;
 const OPTIONS = {
 	against: { type: "string" },
 	config: { type: "string" },
+	coverage: { type: "boolean" },
 	force: { type: "boolean" },
 	from: { type: "string" },
 	help: { short: "h", type: "boolean" },
@@ -46,7 +47,7 @@ type Values = ReturnType<typeof parseArgs<{ options: typeof OPTIONS; allowPositi
 
 type Option = Exclude<keyof Values, "config" | "help">;
 
-const COMMAND_OPTIONS: readonly Option[] = ["against", "force", "from", "rule", "staged"];
+const COMMAND_OPTIONS: readonly Option[] = ["against", "coverage", "force", "from", "rule", "staged"];
 
 const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline install-driver": [],
@@ -54,7 +55,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline prune": ["against"],
 	"baseline tighten": ["staged"],
 	"baseline write": ["rule"],
-	ci: [],
+	ci: ["coverage"],
 	"exceptions migrate": ["from"],
 	fix: [],
 	"hooks install": ["force"],
@@ -79,7 +80,7 @@ function commandFor(name: string, values: Values): Parsed {
 	const config = values.config;
 	switch (name) {
 		case "ci":
-			return parsed({ _tag: "Ci" });
+			return parsed({ _tag: "Ci", coverage: values.coverage === true });
 		case "setup":
 			return parsed({ _tag: "Setup", config });
 		case "lint":

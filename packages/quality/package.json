@@ -65,6 +65,7 @@
 	"dependencies": {
 		"@biomejs/biome": "catalog:",
 		"@shivaedev/types": "workspace:*",
+		"@vitest/coverage-v8": "catalog:",
 		"ignore": "catalog:",
 		"knip": "catalog:",
 		"sort-package-json": "catalog:",
