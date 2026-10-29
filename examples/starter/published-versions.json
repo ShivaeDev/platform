@@ -10,6 +10,7 @@
 	"@shivaedev/identity": "0.3.1",
 	"@shivaedev/jobs": "0.22.0",
 	"@shivaedev/local-postgres": "0.7.0",
+	"@shivaedev/mcp": "0.0.0",
 	"@shivaedev/platform": "0.36.2",
 	"@shivaedev/quality": "0.44.0",
 	"@shivaedev/react": "0.21.1",
