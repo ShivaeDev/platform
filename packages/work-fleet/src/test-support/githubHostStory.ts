@@ -13,6 +13,7 @@ import { makeReportPublication, reportPublication } from "#host/reportPublicatio
 import { FleetIntegrations } from "#policy.ts";
 import { githubCliApi, syntheticGithub } from "#test/githubApi.ts";
 import { resultFixture } from "#test/githubResult.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 const definition = {
 	create: (): { requests: string[] } => ({ requests: [] }),
@@ -50,7 +51,7 @@ const definition = {
 		integrations: (configured = true) => {
 			story.tell("load the host's result and check integrations");
 			const fixture = resultFixture();
-			const host = configured ? fixture.host : resolveHost("/synthetic/board", { provider: "local" });
+			const host = configured ? fixture.host : resolveHost("/synthetic/board", { database: syntheticDatabase, provider: "local" });
 			return FleetIntegrations.pipe(
 				Effect.provide(hostIntegrations(host).pipe(Layer.provide([Layer.succeed(MainSource)(fixture.main), syntheticGithub().layer]))),
 			);

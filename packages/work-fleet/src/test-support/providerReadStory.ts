@@ -14,6 +14,7 @@ import { type EngineStory, newEngineState, running } from "#test/engineState.ts"
 import { engineDefinition } from "#test/engineStory.ts";
 import { engineVerbs } from "#test/engineVerbs.ts";
 import { scheduledCodex } from "#test/scheduledCodex.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 interface ProviderReadStory extends EngineStory {
 	scheduledProvider?: Effect.Success<ReturnType<typeof scheduledCodex>>;
@@ -60,7 +61,7 @@ export const providerRead = storyKit({
 					Effect.provideService(Clock.Clock, timerClock(clock, state.schedulerTimers)),
 					Effect.provideService(Fleet, running(state).fleet),
 					Effect.provideService(GithubApi, github),
-					Effect.provide(staticConfig(resolveHost("/synthetic", { intervalSeconds: 1, provider: "cloud" }))),
+					Effect.provide(staticConfig(resolveHost("/synthetic", { database: syntheticDatabase, intervalSeconds: 1, provider: "cloud" }))),
 					Effect.forkChild,
 				);
 			}),

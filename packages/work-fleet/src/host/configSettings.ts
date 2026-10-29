@@ -1,5 +1,5 @@
 import { Equal, Schema } from "effect";
-import { type FleetHost, HostConfig } from "#host/config.ts";
+import { type FleetHost, type HostConfig, HostSettings } from "#host/config.ts";
 import type { AppliedConfig } from "#host/liveConfig.ts";
 import { FleetRecord, FleetViews } from "#model.ts";
 
@@ -24,7 +24,7 @@ export const ConfigStatus = Schema.Struct({
 	loadedAt: Schema.Number,
 	rejected: Schema.optional(Schema.Struct({ field: Schema.optional(Schema.String), message: Schema.String })),
 	restartRequired: Schema.Array(Schema.String),
-	settings: HostConfig,
+	settings: HostSettings,
 });
 export type ConfigStatus = typeof ConfigStatus.Type;
 
@@ -34,11 +34,11 @@ function isRecord(value: unknown): value is Readonly<Record<string, unknown>> {
 	return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
-export function setting(config: HostConfig, name: string): unknown {
+export function setting(config: HostConfig | HostSettings, name: string): unknown {
 	return name.split(".").reduce<unknown>((value, key) => (isRecord(value) ? value[key] : undefined), config);
 }
 
-function appliedSettings(host: FleetHost): HostConfig {
+function appliedSettings(host: FleetHost): HostSettings {
 	return {
 		areaMergeWaitMs: host.areaMergeWaitMs,
 		backlog: host.backlog,

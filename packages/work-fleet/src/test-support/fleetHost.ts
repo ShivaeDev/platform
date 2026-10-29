@@ -8,7 +8,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { markdownBoard } from "#board/markdown.ts";
 import { ReportInspection } from "#engine/ReportInspection.ts";
 import type { HostParts } from "#host/commands.ts";
-import { type FleetHost, type HostConfig, resolveHost } from "#host/config.ts";
+import { type FleetHost, type HostConfig, type HostSettings, resolveHost } from "#host/config.ts";
 import { CONFIG_FILE } from "#host/defaults.ts";
 import { BoardGateway } from "#policy.ts";
 import { type EngineProvider, engineProvider } from "#test/engineProvider.ts";
@@ -58,7 +58,7 @@ function replaceFile(target: string, source: string) {
 
 const makeHost = Effect.fn("FleetFixture.makeHost")(function* (
 	files: Readonly<Record<string, string>>,
-	config: Partial<HostConfig>,
+	config: Partial<HostSettings>,
 	directoryPrefix = "fleet-host-",
 ) {
 	const database = yield* PostgresTestDatabase;
@@ -106,13 +106,13 @@ function closeHost(fixture: HostFixture) {
 	return Effect.sync(() => rmSync(fixture.host.boardDir, { force: true, recursive: true }));
 }
 
-export function hostFixture(files: Readonly<Record<string, string>> = {}, config: Partial<HostConfig> = {}, directoryPrefix = "fleet-host-") {
+export function hostFixture(files: Readonly<Record<string, string>> = {}, config: Partial<HostSettings> = {}, directoryPrefix = "fleet-host-") {
 	return Effect.acquireRelease(makeHost(files, config, directoryPrefix), closeHost);
 }
 
 export function withHost<A, E, R>(
 	files: Readonly<Record<string, string>>,
-	config: Partial<HostConfig>,
+	config: Partial<HostSettings>,
 	use: (fixture: HostFixture) => Effect.Effect<A, E, R>,
 ) {
 	return withIsolatedDatabase(Effect.acquireUseRelease(makeHost(files, config), use, closeHost));

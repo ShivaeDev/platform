@@ -11,6 +11,7 @@ import { LiveConfig } from "#host/liveConfig.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { syntheticGithub, unslurped } from "#test/githubApi.ts";
 import { ADOPTED_HEAD, checkRun, githubFixture, githubResult } from "#test/githubChecks.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 const PR_ENDPOINT = "repos/example/project/pulls/7";
 export function budgetPullRequest(merged: boolean) {
@@ -44,7 +45,7 @@ export const githubBudgetOptions = Effect.fn("FleetStory.githubBudgetOptions")(f
 	};
 });
 function liveInterval(seconds: number) {
-	const host = { ...resolveHost("/synthetic/board", { provider: "local" }), interval: seconds };
+	const host = { ...resolveHost("/synthetic/board", { database: syntheticDatabase, provider: "local" }), interval: seconds };
 	const guidance = { reviewer: Effect.succeed(undefined), worker: Effect.succeed(undefined) };
 	return Layer.succeed(
 		LiveConfig,

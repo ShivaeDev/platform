@@ -4,6 +4,7 @@ import { gitMainSource, MainSource } from "#host/mainSource.ts";
 import { mergePrediction } from "#host/mergePrediction.ts";
 import { isolatedEngine } from "#test/engineStory.ts";
 import { predictionRepository } from "#test/predictionRepository.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export const watchedBranches = isolatedEngine.trait(
 	"configuration",
@@ -11,7 +12,7 @@ export const watchedBranches = isolatedEngine.trait(
 	function* (state) {
 		const repository = yield* predictionRepository;
 		state.predictionRepository = repository;
-		const host = resolveHost(repository.cwd, { provider: "local" });
+		const host = resolveHost(repository.cwd, { database: syntheticDatabase, provider: "local" });
 		const main = Context.get(yield* Layer.build(gitMainSource(host)), MainSource);
 		state.predictionMain = main;
 		state.options = {

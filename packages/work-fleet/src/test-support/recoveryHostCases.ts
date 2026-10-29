@@ -10,12 +10,13 @@ import { HEAD, REPORT } from "#test/githubResult.ts";
 import { mainObservation } from "#test/preparation.ts";
 import type { RecoveryCase, RecoveryContext } from "#test/recoveryCase.ts";
 import { finishRecoveryReview, finishRecoveryWorker, launchRecoveryWorker, setLastObservation } from "#test/recoverySteps.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export function recoveryHostCases(): readonly RecoveryCase[] {
 	const snapshot = Effect.succeed({ observedAt: 100, revision: "prepared-main" });
 	const stockHost = FleetIntegrations.pipe(
 		Effect.provide(
-			hostIntegrations(resolveHost("/synthetic", { provider: "local", quota: "unlimited" })).pipe(
+			hostIntegrations(resolveHost("/synthetic", { database: syntheticDatabase, provider: "local", quota: "unlimited" })).pipe(
 				Layer.provide([
 					Layer.succeed(MainSource)({
 						current: snapshot,

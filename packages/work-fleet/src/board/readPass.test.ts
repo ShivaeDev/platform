@@ -8,6 +8,7 @@ import { withBoardReadPass, workMetadata } from "#board/readPass.ts";
 import { approvedWorkIds } from "#host/admission.ts";
 import { resolveHost } from "#host/config.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 boardReadStory.it(
 	"100 items share one read and parse per file across listing and concurrent repeated lookups",
@@ -19,7 +20,7 @@ boardReadStory.it(
 		yield* withBoardReadPass(
 			Effect.gen(function* () {
 				yield* Effect.all([board.get("item.0"), board.get("item.1")], { concurrency: "unbounded" });
-				const ids = yield* approvedWorkIds(resolveHost(fixture.root, { provider: "local" }));
+				const ids = yield* approvedWorkIds(resolveHost(fixture.root, { database: syntheticDatabase, provider: "local" }));
 				expect(ids).toHaveLength(100);
 				const readings = yield* Effect.forEach(ids, (id) => Effect.all(Array.from({ length: 8 }, () => board.get(id))), { concurrency: "unbounded" });
 				expect(readings).toHaveLength(100);
@@ -121,7 +122,11 @@ boardReadStory.it(
 			yield* withBoardReadPass(
 				Effect.gen(function* () {
 					expect((yield* board.get("item.0")).approved).toBe(true);
-					expect(yield* approvedWorkIds(resolveHost(fixture.root, { provider: "local" })).pipe(Effect.provide(fixture.services))).toEqual(["item.0"]);
+					expect(
+						yield* approvedWorkIds(resolveHost(fixture.root, { database: syntheticDatabase, provider: "local" })).pipe(
+							Effect.provide(fixture.services),
+						),
+					).toEqual(["item.0"]);
 					const missing = yield* Effect.result(board.get("missing"));
 					expect(missing._tag).toBe("Failure");
 					if (missing._tag === "Failure") {

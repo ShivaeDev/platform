@@ -153,7 +153,7 @@ Only new implementer launches, from queued work, are throttled. Reviews, repairs
 
 #### Prepare the database
 
-`database.url` names the PostgreSQL database. Without it, the host connects to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`. `namespace` prefixes Fleet's table names and migration ledger; restart the host with the same namespace so recovery finds its records.
+`database.url` names the PostgreSQL database and is required: a host file without it is rejected at startup, so a host never connects to a database its file did not name. `namespace` prefixes Fleet's table names and migration ledger; restart the host with the same namespace so recovery finds its records.
 
 The daemon's HTTP clients share one PostgreSQL admission pool, bounded by `database.maxConnections` (20 by default, at least 2), and one provider connection set. One admission-pool connection is reserved for the PostgreSQL change listener; the remaining connections serve queries and transactions. The daemon opens one additional receipt connection for answer recording, status and follower snapshots, so admission waiters cannot consume their database capacity.
 

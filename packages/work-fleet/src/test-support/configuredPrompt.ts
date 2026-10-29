@@ -8,6 +8,7 @@ import { policyGuidance } from "#policyGuidance.ts";
 import { reviewerPrompt } from "#prompt/reviewer.ts";
 import { withWorkerGuidance } from "#prompt/worker.ts";
 import { MAIN } from "#test/mainSource.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 export const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function* (
 	role: "worker" | "reviewer",
@@ -19,7 +20,11 @@ export const configuredPrompt = Effect.fn("Guidance.configuredPrompt")(function*
 	const board = yield* fs.makeTempDirectoryScoped();
 	yield* fs.writeFileString(
 		path.join(board, "fleet.config.json"),
-		JSON.stringify({ provider: "local", worker: { branchPrefix: "test/", [`${role}Guidance`]: guidance, sharedEnvironment: "/synthetic/env.sh" } }),
+		JSON.stringify({
+			database: syntheticDatabase,
+			provider: "local",
+			worker: { branchPrefix: "test/", [`${role}Guidance`]: guidance, sharedEnvironment: "/synthetic/env.sh" },
+		}),
 	);
 	for (const [file, text] of Object.entries(files)) {
 		yield* fs.writeFileString(path.join(board, file), text);

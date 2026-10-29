@@ -5,6 +5,7 @@ import { resolveHost } from "#host/config.ts";
 import { withDecisionResponses } from "#host/releaseWork.ts";
 import { BoardGateway } from "#policy.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 import { openFleetBoard } from "#test/withFleetBoard.ts";
 
 export function answerReadbackVerbs(state: EngineStory, tell: (line: string) => void) {
@@ -36,7 +37,7 @@ export function answerReadbackVerbs(state: EngineStory, tell: (line: string) => 
 						return new Tracer.NativeSpan(options);
 					},
 				});
-				const host = resolveHost(state.root, { provider: "local" });
+				const host = resolveHost(state.root, { database: syntheticDatabase, provider: "local" });
 				const board = yield* openFleetBoard(state.root);
 				const result = yield* withDecisionResponses(
 					host,

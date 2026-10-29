@@ -9,6 +9,7 @@ import { captureLogs } from "#test/captureLogs.ts";
 import { codexConfiguration, codexServer, WireRejection, type WireRequest } from "#test/codex.ts";
 import { authFolder, cloudThread, FUTURE_EXPIRY, SYNTHETIC_ENVIRONMENT, SYNTHETIC_WORKSPACE, syntheticToken } from "#test/codexCloud.ts";
 import { receipt } from "#test/session.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 interface State {
 	cloud: boolean;
@@ -60,6 +61,7 @@ export const providerSessionOptions = {
 				? hostProvider(
 						resolveHost("/synthetic-board", {
 							cloud: { authFile, cwd: SYNTHETIC_WORKSPACE, endpoint: fixture.endpoint, environmentId: SYNTHETIC_ENVIRONMENT, ...state.options },
+							database: syntheticDatabase,
 							provider: "cloud",
 						}),
 					)

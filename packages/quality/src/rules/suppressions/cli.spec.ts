@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, quality } from "#test/cli.ts";
+import { CLI_EXIT, CLI_TIMEOUT, quality } from "#test/cli.ts";
 import { formatTree } from "#test/qualityTree.ts";
 import {
 	addInlineSuppression,
@@ -10,8 +10,6 @@ import {
 	undeclaredSuppressionRepository,
 } from "#test/suppressionRepository.ts";
 import { removeSeededTrees } from "#test/tree.ts";
-
-const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 

@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 import { DEFAULT_READ_RETRY_MS } from "#engine/readRetry.ts";
-import { DEFAULT_NAMESPACE, NAMESPACE, SHARED_LOCAL_POSTGRES } from "#host/defaults.ts";
+import { DEFAULT_NAMESPACE, NAMESPACE } from "#host/defaults.ts";
 import { DEFAULT_AREA_MERGE_WAIT_MS } from "#scheduling/areas.ts";
 import { LaunchSettings } from "#session/schema.ts";
 import type { OpenPullRequestCurve } from "#storage/model.ts";
@@ -10,7 +10,7 @@ const Count = Schema.Int.check(Schema.isGreaterThanOrEqualTo(0));
 const Text = Schema.String.check(Schema.isMinLength(1));
 const Guidance = Schema.Union([Text, Schema.Struct({ file: Text })]);
 
-export const HostConfig = Schema.Struct({
+const settingFields = {
 	areaMergeWaitMs: Schema.optional(Positive),
 	backlog: Schema.optional(Positive),
 	cloud: Schema.optional(
@@ -29,7 +29,6 @@ export const HostConfig = Schema.Struct({
 		}),
 	),
 	concurrency: Schema.optional(Positive),
-	database: Schema.optional(Schema.Struct({ maxConnections: Schema.optional(Positive), url: Schema.optional(Text) })),
 	intervalSeconds: Schema.optional(Positive),
 	launch: Schema.optional(LaunchSettings),
 	local: Schema.optional(Schema.Struct({ endpoint: Text, requestTimeoutMs: Schema.optional(Positive) })),
@@ -54,8 +53,14 @@ export const HostConfig = Schema.Struct({
 			workerGuidance: Schema.optional(Guidance),
 		}),
 	),
-});
+};
+
+export const HostConfig = Schema.Struct({ ...settingFields, database: Schema.Struct({ maxConnections: Schema.optional(Positive), url: Text }) });
 export type HostConfig = typeof HostConfig.Type;
+
+// Status reports the applied settings without the connection URL, which can carry a password.
+export const HostSettings = Schema.Struct({ ...settingFields, database: Schema.Struct({ maxConnections: Schema.optional(Positive) }) });
+export type HostSettings = typeof HostSettings.Type;
 
 export class HostFailure extends Schema.TaggedError<HostFailure>()("HostFailure", { message: Schema.String }) {}
 
@@ -99,11 +104,11 @@ export function resolveHost(boardDir: string, config: HostConfig, configFile?: s
 		concurrency: config.concurrency ?? 100,
 		config,
 		...(configFile === undefined ? {} : { configFile }),
-		databaseUrl: config.database?.url ?? SHARED_LOCAL_POSTGRES,
+		databaseUrl: config.database.url,
 		interval: config.intervalSeconds ?? 15,
 		launch: config.launch ?? {},
 		local: config.local,
-		maxConnections: config.database?.maxConnections ?? 20,
+		maxConnections: config.database.maxConnections ?? 20,
 		namespace: config.namespace ?? DEFAULT_NAMESPACE,
 		...pullRequestSettings(config.openPullRequests),
 		provider: config.provider,

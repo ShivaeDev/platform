@@ -5,6 +5,7 @@ import { withBoardReadPass } from "#board/readPass.ts";
 import { approvedWorkIds } from "#host/admission.ts";
 import { resolveHost } from "#host/config.ts";
 import { boardReadStory, hasBoardItems } from "#test/boardReadStory.ts";
+import { syntheticDatabase } from "#test/syntheticDatabase.ts";
 
 boardReadStory.it(
 	"a file read failure names the source, excludes it from admission and preserves other lookups",
@@ -14,7 +15,7 @@ boardReadStory.it(
 		yield* withBoardReadPass(
 			Effect.gen(function* () {
 				expect((yield* board.get("item.0")).approved).toBe(true);
-				expect(yield* approvedWorkIds(resolveHost(fixture.root, { provider: "local" }))).toEqual(["item.0"]);
+				expect(yield* approvedWorkIds(resolveHost(fixture.root, { database: syntheticDatabase, provider: "local" }))).toEqual(["item.0"]);
 				const failed = yield* Effect.result(board.get("item.1"));
 				expect(failed._tag).toBe("Failure");
 				if (failed._tag === "Failure") {
