@@ -26,26 +26,33 @@ function importPaths(imports: Readonly<Record<string, unknown>>) {
 
 export async function knipConfiguration(inputs: RuleInputs) {
 	const packages = await workspacePackages(inputs);
-	const workspaces = await Promise.all(
+	const manifests = await Promise.all(
 		[".", ...packages.map(({ directory }) => directory)].map(async (directory) => {
 			const text = await inputs.readText(posix.join(directory, "package.json"));
 			const manifest = Schema.decodeUnknownSync(Schema.fromJsonString(Manifest))(text ?? "{}");
-			const sources = inputs.sources
-				.filter(({ path }) => (packageOf(packages, path)?.directory ?? ".") === directory)
-				.map(({ path }) => posix.relative(directory, path));
-			const scriptWords = new Set(Object.values(manifest.scripts ?? {}).flatMap((script) => script.split(/[\s'"`;|&()]+/u)));
-			const scripted = sources.filter((path) => scriptWords.has(path) || scriptWords.has(`./${path}`));
-			const bins = exportTargets(manifest.bin).map((target) => target.replace(/^\.\//u, ""));
-			const binaries = sources.filter(
-				(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
-			);
-			const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
-			return [
-				directory,
-				{ entry: [...ENTRIES, ...publicFiles, ...bins, ...binaries, ...scripted], paths: importPaths(manifest.imports ?? {}), project: sources },
-			] as const;
+			return { directory, manifest };
 		}),
 	);
+	const scripted = new Set(
+		manifests.flatMap(({ directory, manifest }) =>
+			Object.values(manifest.scripts ?? {}).flatMap((script) => script.split(/[\s'"`;|&()]+/u).map((word) => posix.join(directory, word))),
+		),
+	);
+	const workspaces = manifests.map(({ directory, manifest }) => {
+		const sources = inputs.sources
+			.filter(({ path }) => (packageOf(packages, path)?.directory ?? ".") === directory)
+			.map(({ path }) => posix.relative(directory, path));
+		const scriptEntries = sources.filter((path) => scripted.has(posix.join(directory, path)));
+		const bins = exportTargets(manifest.bin).map((target) => target.replace(/^\.\//u, ""));
+		const binaries = sources.filter(
+			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
+		);
+		const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
+		return [
+			directory,
+			{ entry: [...ENTRIES, ...publicFiles, ...bins, ...binaries, ...scriptEntries], paths: importPaths(manifest.imports ?? {}), project: sources },
+		] as const;
+	});
 	return {
 		exclude: [],
 		ignore: [],

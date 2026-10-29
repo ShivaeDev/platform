@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { crossWorkspaceEntries } from "#quality/test-support/crossWorkspaceEntries.ts";
 import {
 	compiledImports,
 	dependencyDebt,
@@ -30,6 +31,23 @@ unusedRepository.it(
 		expect(result.stdout).not.toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/src/test-support/helper.ts");
 	},
 );
+
+unusedRepository.it("resolves script file arguments from their declaring manifests across workspaces", [crossWorkspaceEntries], function* ({ cli }) {
+	const result = yield* cli("lint");
+	const exitCode = result.status;
+	expect(exitCode).toBe(1);
+	expect(result.stdout).toContain("Unused file. Remove it or reach it from a declared entry point: packages/app/src/orphan.ts");
+	for (const path of [
+		"script/starter-published.ts",
+		"script/documentation.ts",
+		"packages/app/src/from-root.ts",
+		"packages/tool/src/from-sibling.ts",
+	]) {
+		expect(result.stdout).not.toContain(`Unused file. Remove it or reach it from a declared entry point: ${path}`);
+	}
+	expect(result.stdout).not.toContain("Unused export. Remove the export or use it from an entry point: documentation.");
+	expect(result.stdout).toContain("Unused export. Remove the export or use it from an entry point: unusedDocumentation.");
+});
 
 unusedRepository.it("reports unused and missing package dependencies in workspace members", [dependencyDebt], function* ({ cli }) {
 	const result = yield* cli("lint");

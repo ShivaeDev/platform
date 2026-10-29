@@ -75,8 +75,6 @@
 {"path":"script/release/compare.ts","rule":"effect/boundary","count":1}
 {"path":"script/release/prSummary.ts","rule":"effect/boundary","count":1}
 {"path":"script/setup-database.ts","rule":"effect/boundary","count":1}
-{"path":"script/starter-published.ts","rule":"code/unused","count":1}
 {"path":"script/starter-published/documentation.ts","rule":"code/unused","count":1}
-{"path":"script/starter-published/installDocumentation.ts","rule":"code/unused","count":1}
 {"path":"script/test/vitest.config.ts","rule":"code/unused","count":1}
 {"path":"script/test/vitest.config.ts","rule":"effect/boundary","count":3}
