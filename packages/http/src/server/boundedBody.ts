@@ -1,4 +1,5 @@
-import { NodeHttpServerRequest, NodeStream } from "@effect/platform-node";
+import * as NodeHttpServerRequest from "@effect/platform-node/NodeHttpServerRequest";
+import * as NodeStream from "@effect/platform-node/NodeStream";
 import { Data, Effect, Stream } from "effect";
 import { HttpIncomingMessage, HttpServerError, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";

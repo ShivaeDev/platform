@@ -1,4 +1,4 @@
-import { NodeRuntime } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Context, Data, Effect, Layer, Option, Schema } from "effect";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { Migrator } from "effect/sql";

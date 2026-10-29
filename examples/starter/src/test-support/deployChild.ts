@@ -28,8 +28,9 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 	const entry = kind === "migrate" ? "../server/migrate.ts" : "./deployApplication.ts";
 	const listenPort = kind === "web" && port === 0 ? yield* Effect.promise(deployPort) : port;
 	const address = `http://127.0.0.1:${listenPort}`;
+	const preload = fileURLToPath(new URL("./moduleLoads.ts", import.meta.url));
 	const child = yield* spawner.spawn(
-		ChildProcess.make(process.execPath, ["--conditions=source", fileURLToPath(new URL(entry, import.meta.url)), kind], {
+		ChildProcess.make(process.execPath, ["--conditions=source", "--import", preload, fileURLToPath(new URL(entry, import.meta.url)), kind], {
 			env: {
 				"DATABASE_URL": target.toString(),
 				...env,
@@ -82,7 +83,7 @@ export const deployChild = Effect.fn("Test.deployChild")(function* (
 				throw new Error(`Health check returned HTTP ${response.status}`);
 			}
 			return address;
-		}).pipe(Effect.timeout("2 seconds")),
+		}),
 		{ interval: "100 millis" },
 	);
 	return {

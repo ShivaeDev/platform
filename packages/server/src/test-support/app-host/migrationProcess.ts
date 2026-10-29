@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeRuntime } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Config, Effect, Layer } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { appDatabase } from "#appHost.ts";

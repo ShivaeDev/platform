@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeRuntime } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Layer } from "effect";
 import { applicationHost } from "#server/applicationHost.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
