@@ -515,3 +515,5 @@ pnpm add @shivaedev/contract effect
 - Choose a common read key for every query in a full reconciliation scope. A list key does not implicitly cover item queries.
 - Supply browser or native resume sources explicitly.
 - Live hints carry refresh requests, not authoritative data or durable history. Applications own dependency discovery, authenticated subscriptions, delivery across processes, SSR and deployment behavior.
+
+The automatic live connection exposed at `api[LiveConnection]` includes a writable `paused` atom. Set it in the binding’s registry to pause refreshes; clearing it reconciles the mounted queries.

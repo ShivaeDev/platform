@@ -14,7 +14,7 @@ A Work Board runs beside your sessions, but its browser tab is not where you are
 
 ### How it finds the Board
 
-The plugin needs a running Work Board. It finds one by walking up from the session's folder to the nearest folder that holds `.work`, and asks the Board over `.work/board.sock`. Start the Board in that folder:
+The plugin needs a running Work Board. It finds one by walking up from the session's folder to the nearest folder that holds `.work`, and discovers its browser address over `.work/board.sock`. Its overview and tools then use Platform’s shared WebSocket client; file edits refresh the affected authorized queries. Start the Board in that folder:
 
 ```sh
 npx @shivaedev/work-board .work
@@ -52,3 +52,5 @@ pnpm --filter @shivaedev/work-board-plugin typecheck
 ```
 
 Pane stories render the element port with React in happy-dom. Check the runtime hooks, band and toasts by hand: start Claude Code with `--plugin-dir packages/work-board-plugin`, or list the folder in `CLAUDE_CODE_PLUGIN_DIRS`, in a folder with a running Work Board, then open `/workboard`.
+
+The plugin ships a generated Effect client and hook bundle so marketplace installs need no npm setup. Run `pnpm build:client` after changing its source. `pnpm test` checks that the committed bundle matches the source before running the stories. The bundle contains no source maps.
