@@ -128,13 +128,17 @@ origins.it("rejects message-supplied credentials and still enforces NDJSON", [],
 	expect(wrongType.status).toBe(HttpStatus.fromLiteral("Forbidden"));
 });
 
-origins.it("delivers incremental native NDJSON updates and releases server work when fetch aborts", [], function* ({ mintSession, stream }) {
-	const session = yield* mintSession();
-	const subscription = yield* stream(NATIVE_ORIGIN, session.credential);
-	for (let update = 0; update < 3; update += 1) {
-		expect(yield* subscription.next).toMatchObject({ _tag: "Resync" });
-		expect(yield* subscription.resync).toBe([subscription].length);
-	}
-	yield* subscription.abort;
-	expect(yield* subscription.awaitReleased).toBe(0);
-});
+origins.it(
+	"delivers native WebSocket updates and releases server work when the subscription is interrupted",
+	[],
+	function* ({ mintSession, stream }) {
+		const session = yield* mintSession();
+		const subscription = yield* stream(NATIVE_ORIGIN, session.credential);
+		for (let update = 0; update < 3; update += 1) {
+			expect(yield* subscription.next).toMatchObject({ _tag: "Resync" });
+			expect(yield* subscription.resync).toBe([subscription].length);
+		}
+		yield* subscription.abort;
+		expect(yield* subscription.awaitReleased).toBe(0);
+	},
+);

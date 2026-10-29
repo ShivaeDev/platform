@@ -1,9 +1,9 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { Effect, Layer, Schema, Stream } from "effect";
-import { HttpRouter, HttpServer } from "effect/http";
+import { FetchHttpClient, HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { RpcSerialization, RpcServer } from "effect/rpc";
+import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
@@ -38,7 +38,11 @@ export const loaderHost = Effect.fnUntraced(function* () {
 		return yield* Effect.die("Expected a TCP host");
 	}
 	const url = `http://${NetAddress.formatIp(server.address.address)}:${server.address.port}/rpc`;
-	const { api, Client } = makeRpcClient(Notes, { serialization: RpcSerialization.layerJson, url });
+	const { api, Client } = makeRpcClient(Notes, {
+		live: false,
+		protocol: RpcClient.layerProtocolHttp({ url }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson])),
+		url,
+	});
 	const atom = api.get.query();
 	if (!atom.initialValueTarget) {
 		return yield* Effect.die("Expected a native reactive query source");

@@ -1,6 +1,6 @@
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
-import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { SqlClient } from "effect/sql";
 import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
@@ -109,12 +109,10 @@ export function notesHostScreen(initial = "/sign-in") {
 		function connect() {
 			return connectModules([
 				notesRegistration(
-					makeNotesClient(`${engine.baseUrl}/rpc`, (client) =>
-						HttpClient.transformResponse(
-							HttpClient.mapRequest(client, HttpClientRequest.setHeaders(engine.headers)),
-							Effect.provideService(FetchHttpClient.Fetch, engine.fetch),
-						),
-					),
+					makeNotesClient(`${engine.baseUrl}/rpc`, {
+						headers: Object.fromEntries(engine.headers),
+						webSocketConstructor: layerWebSocketConstructorWS,
+					}),
 				),
 			]);
 		}

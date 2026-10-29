@@ -1,5 +1,6 @@
+import { layerWebSocket } from "@effect/platform-node/NodeSocket";
 import { Context, Deferred, Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
-import { FetchHttpClient, HttpServer } from "effect/http";
+import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcMiddleware, RpcSerialization } from "effect/rpc";
@@ -40,13 +41,10 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean) {
 	if (!NetAddress.isInetAddress(server.address)) {
 		return yield* Effect.die("Expected a TCP host");
 	}
-	const client = yield* RpcClient.make(Api, { flatten: true }).pipe(
-		Effect.provide(
-			RpcClient.layerProtocolHttp({ url: `http://127.0.0.1:${server.address.port}/rpc` }).pipe(
-				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-			),
-		),
+	const context = yield* Layer.build(
+		RpcClient.layerProtocolSocket().pipe(Layer.provide([layerWebSocket(`ws://127.0.0.1:${server.address.port}/rpc`), RpcSerialization.layerNdjson])),
 	);
+	const client = yield* RpcClient.make(Api, { flatten: true }).pipe(Effect.provideContext(context));
 	return { client, started };
 });
 

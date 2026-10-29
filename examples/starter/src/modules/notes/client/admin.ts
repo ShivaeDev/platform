@@ -3,7 +3,7 @@ import type { ClientOptions } from "@shivaedev/contract/clientOptions.ts";
 import type { RetryJob } from "#client/admin/jobsTypes.ts";
 import { Admin, JobsPage, StatisticsPage, UsersPage } from "#modules/notes/admin.ts";
 
-export function makeAdminClient(url: string, transformClient?: ClientOptions["transformClient"]) {
+export function makeAdminClient(url: string, options: Omit<ClientOptions, "url"> = {}) {
 	const {
 		api: users,
 		Client,
@@ -11,7 +11,7 @@ export function makeAdminClient(url: string, transformClient?: ClientOptions["tr
 	} = makeClient(UsersPage.contract, {
 		group: Admin.group,
 		url,
-		...(transformClient === undefined ? {} : { transformClient }),
+		...options,
 	});
 	return {
 		changeRole: runtime.fn(users.changeRole.run),

@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { setTimeout } from "node:timers/promises";
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Queue, Redacted } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -46,6 +47,10 @@ export const automatic = storyKit({
 			Effect.promise(() => openHost(database.url)),
 			(value) => Effect.promise(value.close),
 		);
+		const secondHost = yield* Effect.acquireRelease(
+			Effect.promise(() => openHost(database.url)),
+			(value) => Effect.promise(value.close),
+		);
 		const worker = yield* Effect.acquireRelease(
 			Effect.promise(() => openWorker(Redacted.value(database.url))),
 			(value) => Effect.promise(value.close),
@@ -54,7 +59,7 @@ export const automatic = storyKit({
 			Effect.promise(() => openScreen(host.url)),
 			(value) => Effect.promise(value.unmount),
 		);
-		return { host, notifications, screen, worker };
+		return { host, notifications, screen, secondHost, worker };
 	},
 	inspect: ({ host, screen }) => ({ publications: host.publications, reads: host.reads, text: screen.container.textContent }),
 	layer,
@@ -62,12 +67,36 @@ export const automatic = storyKit({
 	runIf: configured._tag === "Some",
 	stages: ["screen"],
 	verbs: (engine, story) => ({
+		coalesce: (id: number, millis: number) => {
+			story.tell(`coalesce note ${id}'s changes over ${millis} milliseconds`);
+			engine.screen.coalesce(id, millis);
+		},
+		connection: () => engine.screen.container.querySelector('[role="status"]')?.textContent,
+		connections: () => [...engine.screen.addresses],
+		drop: () => {
+			story.tell("drop the tab socket");
+			return Effect.promise(engine.screen.drop);
+		},
 		note: (id: number) => engine.screen.container.querySelector(`[data-note="${id}"]`)?.textContent,
 		notifications: () => engine.notifications.map((payload) => JSON.parse(payload)),
 		publications: () => [...engine.host.publications],
+		query: (id: number) => engine.screen.query(id),
 		reads: () => [...engine.host.reads],
 		ready: () =>
 			engine.screen.container.querySelector('[data-live="live"]') !== null && engine.screen.container.querySelector('[data-pending="true"]') === null,
+		remoteRename: (id: number, title: string) =>
+			Effect.acquireUseRelease(
+				Effect.sync(() => AtomRegistry.make()),
+				(registry) => {
+					story.tell(`rename note ${id} on another host`);
+					const client = connect(engine.secondHost.url, layerWebSocketConstructorWS);
+					return Effect.promise(
+						async () =>
+							await act(async () => Effect.runPromise(AtomRegistry.getResult(registry, client.runtime.atom(client.api.rename.run({ id, title }))))),
+					);
+				},
+				(registry) => Effect.sync(() => registry.dispose()),
+			),
 		rename: (id: number, title: string) =>
 			Effect.acquireUseRelease(
 				Effect.sync(() => AtomRegistry.make()),
@@ -81,12 +110,21 @@ export const automatic = storyKit({
 				},
 				(registry) => Effect.sync(() => registry.dispose()),
 			),
+		screenRename: (title: string) => {
+			story.tell(`rename the note to ${title} from the screen`);
+			return Effect.promise(() => engine.screen.rename(title));
+		},
 		settle: () =>
 			Effect.promise(async () => {
 				await act(async () => {
 					await setTimeout(100);
 				});
 			}),
+		socketUrl: () => engine.host.url.replace(/^http/u, "ws"),
+		toggleSecond: (show: boolean) => {
+			story.tell(`${show ? "mount" : "unmount"} the second query`);
+			return Effect.promise(() => engine.screen.click(show ? "Show second" : "Hide second"));
+		},
 		workerWrite: (id: number, title: string, rollback = false) => {
 			story.tell(`a pg-boss worker ${rollback ? "rolls back" : "commits"} note ${id}`);
 			return Effect.promise(async () => await act(async () => engine.worker.write(id, title, rollback)));

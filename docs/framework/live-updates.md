@@ -1,6 +1,6 @@
 # Live invalidation
 
-Database-backed Platform hosts and React session boundaries provide live queries by default. Declare query read policies and record or bucket scopes, bind the contract with an NDJSON client, and return the binding from the session's `connect`, directly or as a property such as `api`. See [commit-bound changes](./changes.md). Explicit coordination remains useful for custom streams or application pause/status controls.
+Database-backed Platform hosts and React session boundaries provide live queries by default. Declare query read policies and record or bucket scopes, bind the contract with its default shared WebSocket client, and return the binding from the session's `connect`, directly or as a property such as `api`. See [commit-bound changes](./changes.md). Mounting each query registers its subscription before its first read; unmounting cancels it without restarting the connection. Explicit coordination remains useful for custom streams or application pause/status controls.
 
 `@shivaedev/contract/live.ts` composes an opt-in hint stream with the same native Reactivity instance that owns a consumer's AtomRpc queries. It owns neither a cache nor authoritative data. Ordinary typed queries establish current values; the application discovers dependencies and decides which keys changed.
 

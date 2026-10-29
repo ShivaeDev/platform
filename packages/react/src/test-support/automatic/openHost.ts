@@ -3,12 +3,13 @@ import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { Api, migrations, repository } from "./feature.ts";
+import { Api, migrations, Preview, repository } from "./feature.ts";
 
 export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 	const reads: number[] = [];
 	const publications: string[] = [];
-	const handlers = Api.application.toLayer(
+	const application = Api.application.merge(Preview.application);
+	const handlers = application.toLayer(
 		Effect.gen(function* () {
 			const rows = yield* repository;
 			const reactivity = yield* Reactivity.Reactivity;
@@ -18,16 +19,17 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 					(cancel) => Effect.sync(cancel),
 				);
 			}
-			return Api.application.of({
+			return application.of({
 				"notes.get": ({ id }) => Effect.sync(() => reads.push(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
 				"notes.rename": (input) => rows.update(input).pipe(Effect.orDie),
+				"preview.get": ({ id }) => Effect.sync(() => reads.push(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
 			});
 		}),
 	);
 	const runtime = ManagedRuntime.make(
 		appHost({
 			config: { applicationName: "automatic-web", databaseUrl, port: 0 },
-			group: Api,
+			group: Api.merge(Preview),
 			handlers,
 			migrations: { ...migrations, mode: "check" },
 			policy: "loopback",

@@ -1,6 +1,4 @@
 import type { Effect } from "effect";
-import { mapRequest } from "effect/http/HttpClient";
-import { setHeader, setHeaders } from "effect/http/HttpClientRequest";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -56,7 +54,7 @@ bind(Preferences, scopedClient);
 bind(Preferences, scopedClient, { resume });
 
 const httpClient = makeClient(Notes, {
-	transformClient: (http) => mapRequest(http, setHeaders({ cookie: "session=test", origin: "https://app.test" })),
+	headers: { cookie: "session=test", origin: "https://app.test" },
 	url: "https://app.test/rpc",
 });
 expectTypeOf(httpClient.api.get.run).parameter(0).toEqualTypeOf<{ readonly id: number }>();
@@ -65,7 +63,7 @@ expectTypeOf(httpClient.api.get.query).returns.toEqualTypeOf<WithPolicyFailure<R
 httpClient.runtime.atom(httpClient.api.get.run({ id: 1 }));
 httpClient.runtime.fn(httpClient.api.rename.run);
 makeClient(Notes, {
-	transformClient: (http) => mapRequest(http, setHeader("authorization", "Bearer token")),
+	headers: { authorization: "Bearer token" },
 	url: "https://app.test/rpc",
 });
 makeClient(Preferences, { registry: AtomRegistry.make(), url: "https://app.test/rpc" });

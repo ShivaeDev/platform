@@ -196,32 +196,29 @@ export class NotesClient extends AtomRpc.Service<NotesClient>()("app/NotesClient
     Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
   ),
 }) {}
-export const api = bind(Notes, NotesClient);
+export const api = bind(Notes, NotesClient, { live: false });
 ```
 
 Save the client module as `client.ts`. The [native RPC guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/native-rpc.md) covers hosting; the [reference composition](https://github.com/ShivaeDev/platform/blob/main/docs/framework/composed-example.md) composes handlers, request identity, SQL and a rendered client.
 
-### Build an HTTP client in one call
+### Build a shared WebSocket client
 
-Instead of declaring the `AtomRpc.Service` yourself, use `makeClient` once per session to build the HTTP client and bind the contract to it:
+Use `makeClient` once per session to build a native AtomRpc client and bind the contract. Clients for the same URL in one registry share Effect RPC's socket protocol, including when they bind different contracts.
 
 ```ts
-import { HttpClient, HttpClientRequest } from "effect/http";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import { Notes } from "./notes.ts";
 
 const { api, runtime } = makeClient(Notes, {
-  url: "/rpc",
-  transformClient: (client) => HttpClient.mapRequest(
-    client,
-    HttpClientRequest.setHeader("authorization", "Bearer session-token"),
-  ),
+  url: new URL("/rpc", window.location.href).href,
 });
 const note = api.get.query({ id: 1 });
 const rename = runtime.fn(api.rename.run);
 ```
 
-The request transform is optional and its native HTTP client type is inferred. Tests can set cookie and Origin headers through the same option. The default transport uses Fetch and NDJSON; `httpClient` and `serialization` accept native Layers for another HTTP client or codec. `group` can supply a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer that a host can pass to `ManagedRuntime.make`. It also exposes the native `Client` service and a scoped `client` Effect for callers outside React. Session-scoped contracts require `registry` in the options, just as `bind` does.
+Browsers send the session cookie at upgrade. Mounting a query opens its subscription before running its first authorized read; unmounting cancels that subscription without restarting the socket or another query. Changed keys rerun only their readers, and equal results retain the bound atom's value. Connection failures use Effect RPC's reconnect backoff; subscriptions resume and mounted queries read again because there is no retained key history. `LiveConnection.status` reports `connecting`, `live` or `reconnecting`.
+
+`group` supplies a larger native RPC group containing the contract, such as an admin registry. The result is a native client Layer for `ManagedRuntime.make`, plus the native `Client` service, atom `runtime` and scoped `client` Effect. Session-scoped contracts require `registry`. For Node clients, supply upgrade `headers` and `webSocketConstructor: NodeSocket.layerWebSocketConstructorWS` from `@effect/platform-node`. A native `protocol` Layer selects another transport explicitly. Use `live: false` for ordinary clients without subscriptions.
 
 ### 3. Every day: read and change
 
@@ -483,7 +480,7 @@ Import the module that defines the name; the package has no root entry.
 | `operation.ts` | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
 | `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
 | `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
-| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, transformClient?, httpClient?, serialization?, group?, registry? })`, which builds the HTTP client and binds it. |
+| `bind.ts` | `bind(contract, atomRpcService, { registry }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live? })`, which builds the shared WebSocket client and binds it. |
 | `queryCoalesceWindow.ts` | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window. |
 | `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
 | `querySubscription.ts` | `querySubscription(requests, viewer)` checks each referenced query and captures its scopes and ongoing authorization. |

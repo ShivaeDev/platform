@@ -1,15 +1,34 @@
 import { Context, Effect, Layer, Option, Stream } from "effect";
+import { Headers } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
+import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
+import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import type { AppChanges } from "./appHost.ts";
 
-export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, changesService: typeof AppChanges) {
+export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
+	group: RpcGroup.RpcGroup<R>,
+	changesService: typeof AppChanges,
+	sessions?: SessionPolicy<TSession>,
+) {
 	return Layer.effectContext(
 		Effect.gen(function* () {
 			const changes = yield* Effect.serviceOption(changesService);
 			const services = yield* Effect.context<never>();
 			const handlers = new Map<string, unknown>();
+			function subscribe(rpc: Rpc.Any, queries: readonly QueryReference[]) {
+				return Stream.unwrap(
+					Effect.gen(function* () {
+						const { subscription, context } = yield* resolveChanges(rpc, queries);
+						const viewer = yield* CurrentViewer;
+						const authorized = authorizeSession(sessions, rpc._tag, viewer, subscription.authorized);
+						return Option.isSome(changes)
+							? changes.value.subscribe({ ...subscription, authorized }, context)
+							: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
+					}),
+				);
+			}
 			for (const rpc of group.requests.values()) {
 				if (!rpc._tag.endsWith(".$changes")) {
 					continue;
@@ -19,16 +38,29 @@ export function hostChanges<R extends Rpc.Any>(group: RpcGroup.RpcGroup<R>, chan
 					handlers.set(rpc.key, provided);
 					continue;
 				}
-				function handler({ queries }: { readonly queries: readonly QueryReference[] }) {
-					return Stream.unwrap(
-						Effect.map(resolveChanges(rpc, queries), ({ subscription, context }) =>
-							Option.isSome(changes) ? changes.value.subscribe(subscription, context) : Stream.never,
-						),
-					);
-				}
-				handlers.set(rpc.key, { context: services, handler, tag: rpc._tag });
+				handlers.set(rpc.key, {
+					context: services,
+					handler: ({ queries }: { readonly queries: readonly QueryReference[] }) => subscribe(rpc, queries),
+					tag: rpc._tag,
+				});
 			}
 			return Context.makeUnsafe<Rpc.ToHandler<Extract<R, { readonly _tag: `${string}.$changes` }>>>(handlers);
 		}),
+	);
+}
+
+function authorizeSession<TSession extends SessionShape>(
+	sessions: SessionPolicy<TSession> | undefined,
+	tag: string,
+	viewer: Option.Option<Viewer>,
+	policy: Effect.Effect<boolean>,
+) {
+	if (sessions === undefined) {
+		return policy;
+	}
+	return resolveSession(sessions, Headers.empty, tag).pipe(
+		Effect.map((current) => Option.isNone(viewer) || (Option.isSome(current) && current.value.user.id === viewer.value.id)),
+		Effect.catch(() => Effect.succeed(false)),
+		Effect.flatMap((allowed) => (allowed ? policy : Effect.succeed(false))),
 	);
 }

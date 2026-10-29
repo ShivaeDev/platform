@@ -12,7 +12,7 @@ import type { ClientOptions, MadeClient } from "#clientOptions.ts";
 import type { Contract, Declared, Tag } from "#contract.ts";
 import { bindingOwner } from "#internal/bindingOwner.ts";
 import { boundCommand, boundQuery, boundStream } from "#internal/clientOperations.ts";
-import { type HttpGroup, httpClient } from "#internal/httpClient.ts";
+import { type RpcSource, rpcClient } from "#internal/rpcClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { MissingReadPolicy } from "#readPolicyErrors.ts";
 import type { ResumeSource } from "#resume.ts";
@@ -71,6 +71,7 @@ type MatchingClient<TRpcs extends Rpc.Any, TClientRpcs extends Rpc.Any> = [TRpcs
 	: "Client must implement the contract RPCs";
 
 interface BindOptions {
+	readonly live?: boolean;
 	readonly registry?: AtomRegistry.AtomRegistry;
 	readonly resume?: ResumeSource;
 }
@@ -105,10 +106,10 @@ function bindApi(
 ) {
 	const { name, queries, commands, streams, keyScope } = contract.declaration;
 	const owner = bindingOwner(keyScope, options?.registry);
-	const automatic = automaticLive(service, name, owner, options?.resume);
+	const automatic = automaticLive(service, name, owner, options?.resume, options?.live);
 	return Object.assign(
 		Object.fromEntries([
-			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic.track, owner)] as const),
+			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic, owner)] as const),
 			...commands.map((command) => [command.name, boundCommand(service, `${name}.${command.name}`, command, owner)] as const),
 			...streams.map((stream) => [stream.name, boundStream(service, `${name}.${stream.name}`)] as const),
 		]),
@@ -131,15 +132,15 @@ export function makeClient<
 			: { readonly registry?: AtomRegistry.AtomRegistry }),
 ): MadeClient<TName, TQueries, TCommands, TRpcs, TStreams, TExtra>;
 export function makeClient(
-	contract: HttpGroup & {
+	contract: RpcSource & {
 		readonly declaration: Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
 	},
 	options: ClientOptions & {
-		readonly group?: HttpGroup;
+		readonly group?: RpcSource;
 		readonly registry?: AtomRegistry.AtomRegistry;
 	},
 ): Layer.Layer<never> {
-	const connection = httpClient(contract.declaration.name, options.group ?? contract, options);
+	const connection = rpcClient(contract.declaration.name, options.group ?? contract, options);
 	const api = bindApi(contract, connection.Client, options);
 	return Object.assign(connection, { api });
 }

@@ -10,6 +10,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { followHints } from "./followHints.ts";
 import { openSessionKeysHost } from "./openSessionKeysHost.ts";
 import { type Boundary, Preferences } from "./sessionKeysApi.ts";
+import { upgrade } from "./upgrade.ts";
 
 const create = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
@@ -37,11 +38,11 @@ const create = Effect.fnUntraced(function* () {
 	const writer = yield* openSessionKeysHost(provider);
 	const reader = yield* openSessionKeysHost(provider);
 	const clients = {
-		alice: yield* writer.client(alice.cookie),
-		bob: yield* reader.client(bob.cookie),
-		second: yield* reader.client(cookie),
+		alice: yield* Effect.cached(writer.client(alice.cookie)),
+		bob: yield* Effect.cached(reader.client(bob.cookie)),
+		second: yield* Effect.cached(reader.client(cookie)),
 	};
-	return { alice, bob, clients, reader, writer };
+	return { alice, bob, clients, provider, reader, writer };
 });
 
 export const sessionKeys = storyKit({
@@ -60,6 +61,7 @@ export const sessionKeys = storyKit({
 				const client = yield* state.reader.client();
 				return yield* client("account.$changes", { queries: [{ payload: {}, query: "list" }] }).pipe(Stream.runCollect, Effect.result);
 			}),
+		connections: () => ({ reader: [...state.reader.connections], writer: [...state.writer.connections] }),
 		forgeScope: () =>
 			Effect.gen(function* () {
 				story.tell("Alice subscribes with Bob's owner, scope and physical keys in the payload");
@@ -72,45 +74,68 @@ export const sessionKeys = storyKit({
 					}),
 				);
 			}),
-		postSubscription: (payload: unknown) =>
-			Effect.promise(async () => {
-				const response = await fetch(state.reader.url, {
-					body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "account.$changes" })}\n`,
-					headers: { "content-type": "application/ndjson", cookie: state.alice.cookie },
-					method: "POST",
-				});
-				return response.text();
-			}),
 		published: () => state.writer.published,
-		read: (caller: keyof typeof state.clients, boundary: Boundary = "account") => state.clients[caller](`${boundary}.get`, { id: "theme" }),
+		read: (caller: keyof typeof state.clients, boundary: Boundary = "account") =>
+			Effect.flatMap(state.clients[caller], (client) => client(`${boundary}.get`, { id: "theme" })),
+		readWithCookie: () =>
+			Effect.flatMap(state.clients.alice, (client) => client("account.get", { id: "theme" }, { headers: { cookie: state.bob.cookie } })),
+		revoke: () =>
+			Effect.promise(() =>
+				state.provider.auth.handler(
+					new Request(`${ORIGIN}/api/auth/sign-out`, {
+						headers: { cookie: state.alice.cookie, origin: ORIGIN },
+						method: "POST",
+					}),
+				),
+			),
+		rpcUrl: () => state.writer.url.replace(/^http/u, "ws"),
 		save: (
 			caller: keyof typeof state.clients,
 			value: string,
 			options: { announce?: boolean; reject?: boolean; id?: string; boundary?: Boundary } = {},
 		) => {
 			story.tell(`${caller} saves ${value} through ${options.boundary ?? "account"}`);
-			return state.clients[caller](`${options.boundary ?? "account"}.save`, {
-				announce: options.announce ?? false,
-				id: options.id ?? "theme",
-				reject: options.reject ?? false,
-				value,
-			});
+			return Effect.flatMap(state.clients[caller], (client) =>
+				client(`${options.boundary ?? "account"}.save`, {
+					announce: options.announce ?? false,
+					id: options.id ?? "theme",
+					reject: options.reject ?? false,
+					value,
+				}),
+			);
 		},
+		sendSubscription: (payload: unknown) =>
+			Effect.gen(function* () {
+				const client = yield* state.reader.wireClient(state.alice.cookie);
+				return yield* client("account.$changes", payload).pipe(
+					Stream.runCollect,
+					Effect.exit,
+					Effect.map((exit) => JSON.stringify(exit)),
+				);
+			}),
 		subscribe: (caller: keyof typeof state.clients, boundary: Boundary = "account") => {
 			story.tell(`${caller} subscribes through ${boundary}`);
-			return followHints(
-				state.clients[caller](`${boundary}.$changes`, {
-					queries: [
-						{ payload: { id: "theme" }, query: "get" },
-						{ payload: {}, query: "list" },
-					],
-				}),
+			return Effect.flatMap(state.clients[caller], (client) =>
+				followHints(
+					client(`${boundary}.$changes`, {
+						queries: [
+							{ payload: { id: "theme" }, query: "get" },
+							{ payload: {}, query: "list" },
+						],
+					}),
+				),
 			);
 		},
 		unprotected: () =>
 			Effect.gen(function* () {
 				const client = yield* state.reader.client();
 				return yield* client("unprotected.$changes", { queries: [{ payload: {}, query: "list" }] }).pipe(Stream.runCollect, Effect.exit);
+			}),
+		upgrade: (headers: Readonly<Record<string, string>>, trustedProxy?: string) =>
+			Effect.gen(function* () {
+				story.tell("attempt a WebSocket upgrade with the supplied transport headers");
+				const host = yield* openSessionKeysHost(state.provider, trustedProxy);
+				return yield* upgrade(host.url, { cookie: state.alice.cookie, ...headers });
 			}),
 	}),
 });

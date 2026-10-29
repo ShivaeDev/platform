@@ -1,6 +1,6 @@
-import type { Layer } from "effect";
+import { Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
-import { RpcSerialization } from "effect/rpc";
+import { RpcClient, RpcSerialization } from "effect/rpc";
 import { makeClient as makeRpcClient } from "@shivaedev/contract/bind.ts";
 import { Orders } from "./contract.ts";
 
@@ -14,10 +14,12 @@ export function makeClient({
 	readonly httpClient?: Layer.Layer<HttpClient.HttpClient>;
 }) {
 	const { api, Client } = makeRpcClient(Orders, {
-		httpClient,
-		serialization: RpcSerialization.layerJson,
-		transformClient: (client) =>
-			token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+		live: false,
+		protocol: RpcClient.layerProtocolHttp({
+			transformClient: (client) =>
+				token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+			url,
+		}).pipe(Layer.provide([httpClient, RpcSerialization.layerJson])),
 		url,
 	});
 	const renameOrder = Client.runtime.fn(api.save.run);

@@ -18,6 +18,7 @@ export interface LiveStatus<E> {
 }
 export interface LiveOptions<E, R> {
 	readonly coalesceWindow?: Duration.Input;
+	readonly initialResync?: boolean;
 	readonly keyContext?: KeyContext | undefined;
 	readonly resume?: Atom.Atom<unknown>;
 	readonly resyncKeys: readonly Key[] | ((registry: AtomRegistry.AtomRegistry) => readonly Key[]);
@@ -93,6 +94,14 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					get.once(options.resume);
 					get.subscribe(options.resume, resync);
 				}
+				let connected = false;
+				function reconcile() {
+					if (connected || options.initialResync !== false) {
+						resync();
+					} else {
+						update({ needsResync: false });
+					}
+				}
 				const attempt = Effect.suspend(() => {
 					let isFirst = true;
 					function observe(hint: LiveHint) {
@@ -100,10 +109,11 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						if (get.once(paused)) {
 							update({ needsResync: true, pending: Math.min(MAX_PENDING, get.once(status).pending + 1) });
 						} else if (isFirst || hint._tag === "Resync") {
-							resync();
+							reconcile();
 						} else {
 							changed(hint.keys);
 						}
+						connected = true;
 						isFirst = false;
 					}
 					return options.stream.pipe(

@@ -1,4 +1,3 @@
-import { NodeHttpClient } from "@effect/platform-node";
 import { Effect } from "effect";
 import { act } from "react";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
@@ -7,7 +6,7 @@ import { Editor } from "./Editor.tsx";
 import { makeClient } from "./makeClient.ts";
 
 export function openScreen(screen: Screen, url: string, token: string, entityId: number, tell: (line: string) => void) {
-	const client = makeClient(url, token, entityId, NodeHttpClient.layerUndici);
+	const client = makeClient(url, token, entityId);
 	return screen.open(<Editor client={client} />).pipe(
 		// Each rendered root owns its registry, so writer invalidation cannot refresh another root.
 		Effect.map((root) => ({

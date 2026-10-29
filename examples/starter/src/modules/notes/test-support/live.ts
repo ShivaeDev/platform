@@ -1,5 +1,5 @@
+import { layerWebSocketConstructorWS } from "@effect/platform-node/NodeSocket";
 import { Effect } from "effect";
-import { HttpClient, HttpClientRequest } from "effect/http";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { vi } from "vitest";
@@ -8,9 +8,10 @@ import { makeNotesClient } from "#modules/notes/client/make.ts";
 import type { RunningHost } from "#test-support/host.ts";
 
 export const liveNotes = Effect.fn("AppStory.liveNotes")(function* (host: RunningHost, cookie: string) {
-	const client = makeNotesClient(`${host.baseUrl}/rpc`, (transport) =>
-		HttpClient.mapRequest(transport, HttpClientRequest.setHeaders({ cookie, origin: host.origin })),
-	);
+	const client = makeNotesClient(`${host.baseUrl}/rpc`, {
+		headers: { cookie, origin: host.origin },
+		webSocketConstructor: layerWebSocketConstructorWS,
+	});
 	const registry = yield* Effect.acquireRelease(
 		Effect.sync(() => AtomRegistry.make()),
 		(value) => Effect.sync(() => value.dispose()),
