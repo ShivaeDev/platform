@@ -93,11 +93,11 @@ function BoardWorkspace(
 	const content = (
 		<FleetProvider api={api}>
 			<ReadingLibrary api={api}>
-				<a className="sr-only rounded-md bg-background p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
+				<a className="bg-background sr-only rounded-md p-3 focus:not-sr-only focus:absolute focus:z-50" href="#doc">
 					Skip to content
 				</a>
 				<div
-					className="grid min-h-dvh grid-cols-1 bg-background text-foreground md:data-[sidebar=open]:grid-cols-[248px_minmax(0,1fr)] print:block"
+					className="bg-background text-foreground grid min-h-dvh grid-cols-1 md:data-[sidebar=open]:grid-cols-[248px_minmax(0,1fr)] print:block"
 					data-board-workspace
 					data-sidebar={sidebar.open ? "open" : "closed"}
 				>

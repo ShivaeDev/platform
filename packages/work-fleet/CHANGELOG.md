@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.23.0 - 2026-10-29
+
+### Fixed
+
+- Compare area waiters by stored priority and durable queue order inside transactional admission, so overlapping tasks cannot keep circular queue positions when a brief is revised during dispatch.
+
+### Breaking
+
+- `database.url` is required in `fleet.config.json`. A host file without it is rejected at startup instead of connecting to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`. Add `"database": { "url": "<postgresql-url>" }` to an existing host file; a host that relied on the old default names that URL.
+
 ## 0.22.0 - 2026-10-28
 
 ### Added

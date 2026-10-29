@@ -12,10 +12,10 @@ Use `stream` from `@shivaedev/contract/operation.ts` with `LiveHint` as its `suc
 
 ```ts
 const subscription = live(Client.runtime, {
-  stream: api.subscribe.run(undefined),
-  resyncKeys: [documents.item("one"), documents.item("two"), documents.list],
-  coalesceWindow: "20 millis",
-  resume: resumeSignal({ window }),
+	stream: api.subscribe.run(undefined),
+	resyncKeys: [documents.item("one"), documents.item("two"), documents.list],
+	coalesceWindow: "20 millis",
+	resume: resumeSignal({ window }),
 });
 const release = registry.mount(subscription.connection);
 ```
@@ -24,28 +24,28 @@ const release = registry.mount(subscription.connection);
 
 ## Keys and reconciliation
 
-| Hint | Meaning |
-| --- | --- |
-| `Changed` with `keys` | Invalidate these existing contract keys. An item also invalidates its collection list; unrelated item queries retain their identity and result. |
-| `Resync` | Invalidate the caller's explicit `resyncKeys`. |
-| First hint on a fresh/reconnected stream | Invalidate the full explicit scope, even if that hint is targeted. |
+| Hint                                     | Meaning                                                                                                                                         |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Changed` with `keys`                    | Invalidate these existing contract keys. An item also invalidates its collection list; unrelated item queries retain their identity and result. |
+| `Resync`                                 | Invalidate the caller's explicit `resyncKeys`.                                                                                                  |
+| First hint on a fresh/reconnected stream | Invalidate the full explicit scope, even if that hint is targeted.                                                                              |
 
 Declare reads per entity, and invalidate only what a command changes:
 
 ```ts
 const Get = query("get", {
-  payload: { id: Schema.String },
-  success: Document,
-  reads: ({ id }) => [documents.item(id)],
+	payload: { id: Schema.String },
+	success: Document,
+	reads: ({ id }) => [documents.item(id)],
 });
 const List = query("list", {
-  success: Schema.Array(Document),
-  reads: () => [documents.list],
+	success: Schema.Array(Document),
+	reads: () => [documents.list],
 });
 const Edit = command("edit", {
-  payload: { id: Schema.String, body: Schema.String },
-  success: Document,
-  invalidates: ({ id }) => [documents.item(id)],
+	payload: { id: Schema.String, body: Schema.String },
+	success: Document,
+	invalidates: ({ id }) => [documents.item(id)],
 });
 ```
 
@@ -62,12 +62,10 @@ import { query } from "@shivaedev/contract/operation.ts";
 
 const notes = collection("notes", Schema.Number, { userId: Schema.String });
 const Mine = query("mine", {
-  payload: { title: Schema.String },
-  success: Schema.Array(Schema.String),
-  readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
-  reads: (_input, viewer) => Option.isSome(viewer)
-    ? [notes.bucket.userId(viewer.value.id)]
-    : [],
+	payload: { title: Schema.String },
+	success: Schema.Array(Schema.String),
+	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 });
 ```
 

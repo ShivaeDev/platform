@@ -112,13 +112,13 @@ export function SearchPalette({
 				ref={inputRef}
 				value={input}
 			/>
-			<div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pt-2 text-muted-foreground text-xs">
+			<div className="text-muted-foreground flex flex-wrap items-center justify-between gap-x-3 gap-y-1 px-3 pt-2 text-xs">
 				<KeyboardHints>
 					<p>↑/↓ to choose · Enter to open · Escape to close</p>
 				</KeyboardHints>
 				<div className="flex items-center gap-2">
 					<Checkbox checked={records} id={recordsId} onCheckedChange={setRecords} onKeyDown={handleControlKeyDown} />
-					<Label className="font-normal text-muted-foreground" htmlFor={recordsId}>
+					<Label className="text-muted-foreground font-normal" htmlFor={recordsId}>
 						Include files Fleet writes
 					</Label>
 				</div>

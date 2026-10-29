@@ -51,7 +51,7 @@ export const driverScreen = storyKit({
 			view,
 		};
 	},
-	inspect: ({ pending, view }) => ({ pending: view.registry.get(pending), screen: view.container.innerText }),
+	inspect: ({ pending, view }) => ({ pending: view.registry.get(pending), screen: view.container.textContent ?? "" }),
 	name: "React screen driver",
 	stages: ["screen"],
 	verbs: ({ pending, deliver, view }, story) => ({

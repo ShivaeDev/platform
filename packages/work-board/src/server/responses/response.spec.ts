@@ -1,6 +1,6 @@
 import { readdirSync, readFileSync, renameSync, unlinkSync } from "node:fs";
 import { join } from "node:path";
-import { Cause, Clock, Effect, Fiber } from "effect";
+import { Cause, Clock, Effect, Fiber, Order } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { folder } from "#test/board.ts";
@@ -36,7 +36,7 @@ boardStory.it(
 		).toMatchObject({
 			message: expect.stringContaining("explicitly enable"),
 		});
-		expect(readdirSync(notes.root).sort()).toEqual(["board.sock", "investigation.md"]);
+		expect(readdirSync(notes.root).sort(Order.String)).toEqual(["board.sock", "investigation.md"]);
 		({ board } = yield* restart(true));
 		const forged = yield* Effect.promise(() =>
 			fetch(`${board.url}/_board/rpc`, { body: "{}", headers: { "content-type": "text/plain", origin: board.url }, method: "POST" }),
@@ -58,7 +58,7 @@ boardStory.it(
 		const saved = yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(responseDraft(question.id))));
 		expect(yield* Effect.promise(() => client.mutate(client.responses.recordResponse.run(responseDraft(question.id))))).toEqual(saved);
 		expect(readFileSync(join(notes.root, "investigation.md"), "utf8")).toBe(source);
-		expect(readdirSync(join(notes.root, "responses")).sort()).toEqual([`${question.id}.md`, "response.first.md"].sort());
+		expect(readdirSync(join(notes.root, "responses")).sort(Order.String)).toEqual([`${question.id}.md`, "response.first.md"].sort(Order.String));
 		yield* Effect.promise(() =>
 			expect(client.mutate(client.responses.recordResponse.run(responseDraft(question.id, "response.first", "Different intent")))).rejects.toThrow(
 				"different content",

@@ -22,7 +22,7 @@ export function AdminShell({
 		<div className="mx-auto grid min-h-screen w-full max-w-7xl content-start gap-6 p-4 sm:p-6 lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-10 lg:py-10">
 			<aside className="space-y-5">
 				<div className="flex items-center justify-between gap-4">
-					<Link className="font-semibold text-xl" to="/">
+					<Link className="text-xl font-semibold" to="/">
 						Your app
 					</Link>
 				</div>
@@ -37,7 +37,7 @@ export function AdminShell({
 			<main className="min-w-0 space-y-6">
 				<header className="space-y-1">
 					<p className="text-muted-foreground text-sm">Administration</p>
-					<h1 className="font-semibold text-3xl tracking-tight">{title}</h1>
+					<h1 className="text-3xl font-semibold tracking-tight">{title}</h1>
 				</header>
 				{children}
 			</main>
@@ -47,7 +47,7 @@ export function AdminShell({
 
 function AdminLink({ page }: { readonly page: AdminNavigation }) {
 	return (
-		<Link activeProps={{ className: "bg-muted font-semibold" }} className="rounded-md px-3 py-2 text-sm hover:bg-muted" to={page.route.path}>
+		<Link activeProps={{ className: "bg-muted font-semibold" }} className="hover:bg-muted rounded-md px-3 py-2 text-sm" to={page.route.path}>
 			{page.route.title}
 		</Link>
 	);

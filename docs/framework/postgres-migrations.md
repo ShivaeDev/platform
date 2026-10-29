@@ -4,38 +4,38 @@ Use `migratePostgres` from `@shivaedev/sql/migrations.ts` with Effect's numbered
 
 ```ts
 const migrations = Migrator.fromRecord({
-  "1_create_orders": Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient
-    yield* sql`create table orders (id integer primary key, name text not null)`
-  }),
-  "2_add_notes": Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient
-    yield* sql`alter table orders add column notes text`
-  })
-})
+	"1_create_orders": Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`create table orders (id integer primary key, name text not null)`;
+	}),
+	"2_add_notes": Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table orders add column notes text`;
+	}),
+});
 
 const runMigrations = migratePostgres({
-  table: "app_migrations",
-  loader: migrations,
-  lockTimeout: "30 seconds"
-})
+	table: "app_migrations",
+	loader: migrations,
+	lockTimeout: "30 seconds",
+});
 ```
 
 Provide the application's `PgClient` layer and complete migrations before serving requests. Every runner of a ledger must use the same helper and ledger spelling.
 
 ## Behavior
 
-| Scenario | Result |
-| --- | --- |
-| Fresh database | Creates the ledger and applies the initial migration. |
-| Upgrade | Applies only new numbered migrations. |
-| Rerun | Returns no work and leaves persisted rows unchanged. |
-| Failed pending batch | Rolls back its DDL, rows and ledger entries while retaining previously committed migrations. |
-| Failed first batch | Rolls back the new ledger together with the batch. |
-| Concurrent runners on a new or existing ledger | The second waits on an advisory lock, then sees the committed ledger. Each migration runs once. |
-| Expired lock timeout | Fails with a typed `SqlError` whose reason is `LockTimeoutError`. |
-| Infinite lock timeout | Sets PostgreSQL's transaction-local lock timeout to zero. |
-| Unapplied migration at or below the latest applied ID | Fails with `MigrationError` (`kind: "BadState"`) naming the missing IDs and applies nothing. |
+| Scenario                                              | Result                                                                                          |
+| ----------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Fresh database                                        | Creates the ledger and applies the initial migration.                                           |
+| Upgrade                                               | Applies only new numbered migrations.                                                           |
+| Rerun                                                 | Returns no work and leaves persisted rows unchanged.                                            |
+| Failed pending batch                                  | Rolls back its DDL, rows and ledger entries while retaining previously committed migrations.    |
+| Failed first batch                                    | Rolls back the new ledger together with the batch.                                              |
+| Concurrent runners on a new or existing ledger        | The second waits on an advisory lock, then sees the committed ledger. Each migration runs once. |
+| Expired lock timeout                                  | Fails with a typed `SqlError` whose reason is `LockTimeoutError`.                               |
+| Infinite lock timeout                                 | Sets PostgreSQL's transaction-local lock timeout to zero.                                       |
+| Unapplied migration at or below the latest applied ID | Fails with `MigrationError` (`kind: "BadState"`) naming the missing IDs and applies nothing.    |
 
 Migration-body SQL failures propagate as native `MigrationError` defects; a typed-error-only catch does not handle them.
 

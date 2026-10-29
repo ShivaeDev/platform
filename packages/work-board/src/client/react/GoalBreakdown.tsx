@@ -34,10 +34,10 @@ export function GoalBreakdown({ goal }: { readonly goal: Goal }) {
 	const height = rows.length * ROW_HEIGHT + LEGEND_HEIGHT;
 	return (
 		<div className="space-y-3 pt-4" data-goal-breakdown="">
-			<h3 className="!m-0 font-semibold text-base" id={shellIds.goalBreakdown} tabIndex={-1}>
+			<h3 className="!m-0 text-base font-semibold" id={shellIds.goalBreakdown} tabIndex={-1}>
 				By criterion
 			</h3>
-			<p className="!m-0 text-muted-foreground text-sm">Linked work in each state, for each criterion.</p>
+			<p className="text-muted-foreground !m-0 text-sm">Linked work in each state, for each criterion.</p>
 			<Suspense fallback={<Skeleton style={{ height }} />}>
 				<LoadedGoalChart height={height} rows={rows} />
 			</Suspense>

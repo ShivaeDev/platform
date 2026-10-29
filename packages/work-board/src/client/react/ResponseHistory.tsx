@@ -18,7 +18,7 @@ export function ResponseHistory({
 	const preview = request?.preview;
 	return (
 		<section className="space-y-3 border-t pt-4" id={id}>
-			<h2 className="font-medium text-sm">Answers so far</h2>
+			<h2 className="text-sm font-medium">Answers so far</h2>
 			{records.length === 0 ? (
 				<EmptyState title="No answers yet">Answers recorded for this question appear here.</EmptyState>
 			) : (
@@ -42,7 +42,7 @@ function ResponseEntry({
 	const chosen = chosenLabels(request?.prompts ?? [], answers, request?.options);
 	const notes = (answers ?? []).map((answer) => answer.text.trim()).filter(Boolean);
 	return (
-		<article className="space-y-2 rounded-lg bg-muted/50 px-4 py-3 text-sm" id={record.id}>
+		<article className="bg-muted/50 space-y-2 rounded-lg px-4 py-3 text-sm" id={record.id}>
 			<h3 className="flex flex-wrap items-baseline gap-x-1.5 font-normal">
 				<a className="font-medium underline-offset-4 hover:underline" href={`/responses/${record.id}.md`}>
 					{record.response.author}
@@ -65,7 +65,7 @@ function ResponseEntry({
 					))}
 					<details className="text-muted-foreground text-xs">
 						<summary className="cursor-pointer select-none">Full response</summary>
-						<AnswerMarkdown className="mt-2 text-foreground text-sm" file={`responses/${record.id}.md`} source={record.body} />
+						<AnswerMarkdown className="text-foreground mt-2 text-sm" file={`responses/${record.id}.md`} source={record.body} />
 					</details>
 				</>
 			)}

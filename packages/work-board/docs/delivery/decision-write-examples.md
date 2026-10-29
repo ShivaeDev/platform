@@ -8,16 +8,19 @@ The agent writes a normal item file with an explicit attention request, then pre
 
 ````markdown
 ---
+
 id: review.direction
 kind: task
 attention:
-  - id: experience
-    kind: decision
-    state: open
-    response_from: [maintainer]
-    reason: Choose the response reading experience and next action.
-    unblocks: [review.direction]
+- id: experience
+  kind: decision
+  state: open
+  response_from: [maintainer]
+  reason: Choose the response reading experience and next action.
+  unblocks: [review.direction]
+
 ---
+
 # Response reading experience
 
 Keep the proposal, reasoning and the affected work together.

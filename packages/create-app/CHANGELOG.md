@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.22.0 - 2026-10-29
+
+### Added
+
+- Report unused files, exports and package dependencies, and missing dependencies with the knip-backed `code/unused` rule. Package exports, binaries, scripts, tests, stories and test support supply entry points without a knip config. Run `quality baseline write --rule code/unused` to record existing findings, then remove debt and run `quality baseline tighten` as you repair it.
+
+### Fixed
+
+- The application host constructs services, handlers and routes before listening, so startup connections are refused until requests can be answered.
+- Server and HTTP modules import Node platform modules directly to avoid loading Redis during startup.
+- Generated apps import Node platform modules directly, and deployment stories allow enough time for their sequential cold processes without a fixed timeout on each startup health probe.
+- Keep the minimal generated app on the unused-code gate with its own baseline of existing template debt.
+
 ## 0.21.0 - 2026-10-28
 
 ### Added

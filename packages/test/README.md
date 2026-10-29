@@ -13,9 +13,9 @@ import * as TestClock from "effect/testing/TestClock";
 import { it } from "@shivaedev/test/it.ts";
 
 it.effect("advances the test's time", function* () {
-  expect(yield* Clock.currentTimeMillis).toBe(0);
-  yield* TestClock.adjust("1 second");
-  expect(yield* Clock.currentTimeMillis).toBe(1000);
+	expect(yield* Clock.currentTimeMillis).toBe(0);
+	yield* TestClock.adjust("1 second");
+	expect(yield* Clock.currentTimeMillis).toBe(1000);
 });
 ```
 
@@ -32,7 +32,6 @@ A **Layer** describes how to acquire the fixture's services. `makeEffectIt` buil
 Keep the two lifetimes separate. The file owns the acquired Layer and its scope; its finalizers finish before Vitest reports the file complete. Each test makes its harness and runs its body in a separate scope. Harnesses, wrappers, generator bodies and `each` bodies may acquire resources through that Scope; their finalizers run on success, failure and interruption. Scope is available per test and is not added to the file Context. A shared service can retain mutable state across tests; a fresh harness alone does not reset it. Put application-state isolation in the fixture that owns that state, such as a database transaction wrapper.
 
 The work usually splits into two parts:
-
 1. Once per fixture, define its Layer, `makeHarness` and, when needed, an `around` wrapper in test support.
 2. In every test, write the generator and the assertions. For a test with no reusable fixture, use `it.effect` directly.
 
@@ -46,19 +45,20 @@ import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 class Token extends Context.Service<Token, string>()("test/Token") {}
 
 const { effectApp } = makeEffectIt({
-  layer: Layer.succeed(Token, "from-layer"),
-  makeHarness: (context) => Effect.gen(function* () {
-    return {
-      name: context.task.name,
-      token: yield* Token,
-    };
-  }),
+	layer: Layer.succeed(Token, "from-layer"),
+	makeHarness: (context) =>
+		Effect.gen(function* () {
+			return {
+				name: context.task.name,
+				token: yield* Token,
+			};
+		}),
 });
 
 effectApp("reads the fixture's services", function* (harness, context) {
-  expect(harness.token).toBe("from-layer");
-  expect(harness.name).toBe(context.task.name);
-  expect(yield* Token).toBe("from-layer");
+	expect(harness.token).toBe("from-layer");
+	expect(harness.name).toBe(context.task.name);
+	expect(yield* Token).toBe("from-layer");
 });
 ```
 
@@ -72,12 +72,12 @@ import { Effect, Layer } from "effect";
 import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 
 const { effectApp } = makeEffectIt({
-  layer: Layer.empty,
-  makeHarness: () => Effect.succeed({ shelf: 0 }),
+	layer: Layer.empty,
+	makeHarness: () => Effect.succeed({ shelf: 0 }),
 });
 
 effectApp("uses a harness without services", function* (harness) {
-  expect(harness.shelf).toBe(0);
+	expect(harness.shelf).toBe(0);
 });
 ```
 
@@ -95,13 +95,13 @@ import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 class Token extends Context.Service<Token, string>()("test/Token") {}
 
 const { effectApp } = makeEffectIt({
-  around: (effect) => Effect.withSpan(effect, "test.token"),
-  layer: Layer.succeed(Token, "from-layer"),
-  makeHarness: () => Effect.service(Token),
+	around: (effect) => Effect.withSpan(effect, "test.token"),
+	layer: Layer.succeed(Token, "from-layer"),
+	makeHarness: () => Effect.service(Token),
 });
 
 effectApp("reads the harness", function* (token) {
-  expect(token).toBe("from-layer");
+	expect(token).toBe("from-layer");
 });
 ```
 
@@ -117,16 +117,14 @@ import { Effect } from "effect";
 import { it } from "@shivaedev/test/it.ts";
 
 it.effect("reads an Effect result", function* ({ task }) {
-  expect(task.name).toBe("reads an Effect result");
-  expect(yield* Effect.succeed(3)).toBe(3);
+	expect(task.name).toBe("reads an Effect result");
+	expect(yield* Effect.succeed(3)).toBe(3);
 });
 
-it.effect("accepts an Effect-returning body", () =>
-  Effect.sync(() => expect(3).toBe(3)),
-);
+it.effect("accepts an Effect-returning body", () => Effect.sync(() => expect(3).toBe(3)));
 
 it.effect.each([1, 2])("passes the case %s", function* (count) {
-  expect(yield* Effect.succeed(count)).toBe(count);
+	expect(yield* Effect.succeed(count)).toBe(count);
 });
 ```
 
@@ -136,8 +134,8 @@ For a fixture's `effectApp.each`, the arguments are the case, harness and contex
 
 ```ts
 effectApp.each(["alpha", "beta"])("checks %s", function* (item, harness, context) {
-  expect(context.task.name).toContain(item);
-  expect(harness.token).toBe("from-layer");
+	expect(context.task.name).toContain(item);
+	expect(harness.token).toBe("from-layer");
 });
 ```
 
@@ -148,9 +146,13 @@ This uses the token fixture from the first example. Case and harness types are i
 `it.effect` uses TestClock; `it.live` uses live time. A fixture defaults to `clock: "test"`. Its factory may choose `clock: "live"`, and a single test may override the factory in either direction:
 
 ```ts
-effectApp("reads live time", function* () {
-  expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
-}, { clock: "live" });
+effectApp(
+	"reads live time",
+	function* () {
+		expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
+	},
+	{ clock: "live" },
+);
 ```
 
 The override changes the per-test environment used by the wrapper, harness and body. A UTC `DateTime` also works as `clock`: it selects native TestClock and sets its initial instant before the wrapper or harness runs. `TestClock.adjust` advances that clock explicitly. For example, `{ clock: DateTime.makeUnsafe("2026-10-17T12:34:56.000Z") }` pins time to that UTC instant; import `DateTime` from `effect`. The same option is available on a fixture's factory.
@@ -169,15 +171,15 @@ Both test and live clock fixtures install a fresh native TestConsole for each te
 import { eventually } from "@shivaedev/test/eventually.ts";
 
 effectApp("reaches the selected time", function* () {
-  const readyAt = yield* eventually(
-    Effect.gen(function* () {
-      const now = yield* Clock.currentTimeMillis;
-      return now >= 50 ? now : yield* Effect.fail("too-early");
-    }),
-    { interval: "7 millis", times: 8 },
-  );
+	const readyAt = yield* eventually(
+		Effect.gen(function* () {
+			const now = yield* Clock.currentTimeMillis;
+			return now >= 50 ? now : yield* Effect.fail("too-early");
+		}),
+		{ interval: "7 millis", times: 8 },
+	);
 
-  expect(readyAt).toBe(56);
+	expect(readyAt).toBe(56);
 });
 ```
 
@@ -187,17 +189,17 @@ A thrown assertion is a defect, so it escapes on the first attempt. Interruption
 
 ```ts
 effectApp("retries a readiness assertion", function* () {
-  let attempts = 0;
+	let attempts = 0;
 
-  yield* eventually(
-    Effect.try(() => {
-      attempts += 1;
-      expect(attempts).toBe(3);
-    }),
-    { interval: "1 millis", times: 3 },
-  );
+	yield* eventually(
+		Effect.try(() => {
+			attempts += 1;
+			expect(attempts).toBe(3);
+		}),
+		{ interval: "1 millis", times: 3 },
+	);
 
-  expect(attempts).toBe(3);
+	expect(attempts).toBe(3);
 });
 ```
 
@@ -219,15 +221,12 @@ The entire wrapped Effect, including readiness checks and retry delays, uses liv
 ### API
 
 Import the module that defines the name; the package has no root entry.
-
-| Module | Exports |
-| --- | --- |
-| `@shivaedev/test/it.ts` | `it`, with generator-aware `effect` and `live` testers. |
-| `@shivaedev/test/makeEffectIt.ts` | `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`. |
-| `@shivaedev/test/eventually.ts` | `eventually(effect, options?)` and `EventuallyOptions`. |
-| `@shivaedev/test/withLive.ts` | `withLive(effect)`, a live-time region under either clock. |
-| `@shivaedev/test/anyTestLayer.ts` | `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope. |
-| `@shivaedev/test/types.ts` | `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`. |
+- `@shivaedev/test/it.ts`: `it`, with generator-aware `effect` and `live` testers.
+- `@shivaedev/test/makeEffectIt.ts`: `makeEffectIt({ layer, makeHarness, around?, clock? })`, returning `{ effectApp }`.
+- `@shivaedev/test/eventually.ts`: `eventually(effect, options?)` and `EventuallyOptions`.
+- `@shivaedev/test/withLive.ts`: `withLive(effect)`, a live-time region under either clock.
+- `@shivaedev/test/anyTestLayer.ts`: `AnyTestLayer` and `buildTestLayer(layer, scope)`, an Effect that builds the Layer's service Context in the supplied scope.
+- `@shivaedev/test/types.ts`: `EffectClock`, `EffectTestOptions`, `EffectTestBody`, `EffectTest`, `EffectTester`, `MakeEffectItOptions`, `MakeEffectItResult`, `EffectItTest`, `EffectItTester` and `EffectIt`.
 
 `eventually` waits `"10 millis"` between attempts by default; omitting `times` leaves retries unbounded.
 
@@ -238,6 +237,5 @@ pnpm add --save-dev @shivaedev/test @effect/vitest effect vitest
 ```
 
 The package declares `effect` as a peer and `@effect/vitest` as an optional peer. The Vitest runner modules require `@effect/vitest`; install it when using them. The package requires Node.js 24 or later. Use peer versions compatible with the package's `package.json`.
-
 - Define a fixture tester in test support and import it from Vitest tests. Calling `makeEffectIt` declares a Vitest fixture; it is not an application runtime factory.
 - An unbounded readiness poll can run until Vitest ends the test. Set a retry budget when the condition may never become true.

@@ -1,4 +1,4 @@
-import { Effect, FileSystem, Path, Schema } from "effect";
+import { Effect, FileSystem, Order, Path, Schema } from "effect";
 import { type Changes, refreshWritten } from "#server/files/changes.ts";
 import type { MetadataDocument } from "#server/metadata/model.ts";
 
@@ -68,7 +68,7 @@ export const archiveDocuments = Effect.fn("WorkBoard.archiveDocuments")(function
 		}
 		moved.push(document.file, chosen);
 	}
-	const next = JSON.stringify([...archived].sort());
+	const next = JSON.stringify([...archived].sort(Order.String));
 	if (next !== saved) {
 		yield* fs.writeFileString(stateFile, next);
 	}

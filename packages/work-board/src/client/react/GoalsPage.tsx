@@ -17,7 +17,7 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 			)}
 			{data.deferredGoals.length > 0 && (
 				<details>
-					<summary className="cursor-pointer text-muted-foreground text-sm">Deferred goals</summary>
+					<summary className="text-muted-foreground cursor-pointer text-sm">Deferred goals</summary>
 					<div className="mt-3">
 						<GoalCards goals={data.deferredGoals} />
 					</div>
@@ -25,7 +25,7 @@ export function GoalsPage({ data }: { readonly data: GoalsProjection }) {
 			)}
 			{data.closedGoals.length > 0 && (
 				<details>
-					<summary className="cursor-pointer text-muted-foreground text-sm">Closed goals</summary>
+					<summary className="text-muted-foreground cursor-pointer text-sm">Closed goals</summary>
 					<div className="mt-3">
 						<GoalCards goals={data.closedGoals} />
 					</div>

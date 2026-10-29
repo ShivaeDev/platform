@@ -37,7 +37,7 @@ export function GoalChart({
 }) {
 	return (
 		<ChartContainer
-			className="aspect-auto w-full rounded-md has-[.recharts-surface:focus-visible]:ring-[3px] has-[.recharts-surface:focus-visible]:ring-ring/50"
+			className="has-[.recharts-surface:focus-visible]:ring-ring/50 aspect-auto w-full rounded-md has-[.recharts-surface:focus-visible]:ring-[3px]"
 			config={config}
 			style={{ height }}
 		>

@@ -11,7 +11,7 @@ pr-watch --repo acme/project --fleet
 ```
 
 ```json
-{"branch":"feature","event":"merged","number":42,"title":"Ship the feature"}
+{ "branch": "feature", "event": "merged", "number": 42, "title": "Ship the feature" }
 ```
 
 Each PR event occupies one JSON line with its PR number, head branch and title. Health lines share stdout so an orchestrator can distinguish a quiet watch from a stopped one.
@@ -36,16 +36,16 @@ Choose explicit PR numbers or `--fleet`. Fleet mode polls all open PRs and disco
 
 The watcher emits these transitions, once per successful comparison:
 
-| Event | Transition |
-| --- | --- |
-| `merged` | The PR becomes merged. |
-| `closed` | An open PR closes without merging. |
-| `conflict` | An open PR's mergeable state becomes `dirty`. |
-| `queued` | An open PR enters the merge queue. |
-| `dequeued` | A previously queued open PR has no queue ref, and its own queue entry and auto-merge request are both absent. |
-| `auto-merge-off` | An open PR's auto-merge is disabled outside the queue after being enabled or queued. |
-| `checks-failed` | An open PR changes from no observed failing checks to failing checks. |
-| `stuck` | An open PR enters the queue or enables auto-merge with conflicts or failing checks. |
+| Event            | Transition                                                                                                    |
+| ---------------- | ------------------------------------------------------------------------------------------------------------- |
+| `merged`         | The PR becomes merged.                                                                                        |
+| `closed`         | An open PR closes without merging.                                                                            |
+| `conflict`       | An open PR's mergeable state becomes `dirty`.                                                                 |
+| `queued`         | An open PR enters the merge queue.                                                                            |
+| `dequeued`       | A previously queued open PR has no queue ref, and its own queue entry and auto-merge request are both absent. |
+| `auto-merge-off` | An open PR's auto-merge is disabled outside the queue after being enabled or queued.                          |
+| `checks-failed`  | An open PR changes from no observed failing checks to failing checks.                                         |
+| `stuck`          | An open PR enters the queue or enables auto-merge with conflicts or failing checks.                           |
 
 Failure evidence includes completed check runs with `failure`, `timed_out`, `cancelled`, `action_required`, `startup_failure` or `stale`, and combined commit statuses with `failure` or `error`. Pending, successful, neutral and skipped check runs do not count as failures. Checks use the current head SHA and include all response pages. Queue discovery uses the REST matching refs endpoint, recognizing `gh-readonly-queue/.../pr-N-...` names; it does not discover queue membership from auto-merge settings. Entering the queue emits `queued` even when GitHub clears the auto-merge request. A queued PR never emits `auto-merge-off`. When a previously queued open PR loses its refs, a GraphQL request confirms the PR’s own queue entry and auto-merge request. Either one still present retains its previous queue membership during a rebuild. A confirmed drop with auto-merge still off emits both `dequeued` and `auto-merge-off`. The `dequeued` line includes `reason` from GitHub's most recent dequeue timeline event, or `Queue entry removed; GitHub supplied no reason` when unavailable. A failed, incomplete or errored confirmation retains the last successful snapshot.
 
@@ -53,12 +53,12 @@ Failure evidence includes completed check runs with `failure`, `timed_out`, `can
 
 Health lines always reach stdout, including with `--events`. They have `event` and an ISO UTC `at` timestamp rather than PR fields:
 
-| Event | Meaning |
-| --- | --- |
-| `heartbeat` | No line has printed for `--heartbeat` seconds while the process waits for its next poll. `nextPollAt` gives its scheduled time. The heartbeat period spans polling rounds and continues during quota pacing. |
-| `cooldown` | Quota pacing or retry backoff extends the interval. `message` explains the wait, `nextPollAt` gives its end and `delayMs` gives its duration. A failed `--once` round with a known retry instant reports `nextPollAt`. This line prints immediately, even with heartbeats disabled. |
-| `error` | An observation or startup operation failed. `message` describes it; no failed observation replaces a saved snapshot. |
-| `stopped` | The program finished, failed or was interrupted. `reason` distinguishes these outcomes. |
+| Event       | Meaning                                                                                                                                                                                                                                                                             |
+| ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `heartbeat` | No line has printed for `--heartbeat` seconds while the process waits for its next poll. `nextPollAt` gives its scheduled time. The heartbeat period spans polling rounds and continues during quota pacing.                                                                        |
+| `cooldown`  | Quota pacing or retry backoff extends the interval. `message` explains the wait, `nextPollAt` gives its end and `delayMs` gives its duration. A failed `--once` round with a known retry instant reports `nextPollAt`. This line prints immediately, even with heartbeats disabled. |
+| `error`     | An observation or startup operation failed. `message` describes it; no failed observation replaces a saved snapshot.                                                                                                                                                                |
+| `stopped`   | The program finished, failed or was interrupted. `reason` distinguishes these outcomes.                                                                                                                                                                                             |
 
 Continuous watches report network errors, 30-second request timeouts, HTTP 5xx responses and rate limits, then retry another poll. Error messages name the network error, timeout, HTTP status and request path, or rate-limit resource. Retry backoff starts at the configured minimum interval and doubles after each consecutive failed round up to five minutes; a longer configured interval, quota pacing and GitHub’s retry instant can extend that wait. A successful round resets the backoff. Successful observations from a partially failed round stay saved and acknowledged. After one hour without a successful round, the watch reports the last cause and exits non-zero; this deadline also bounds a longer cooldown. Permanent errors such as HTTP 401, permission-denied 403, missing-repository 404, invalid arguments or invalid state stop immediately. Periodic heartbeats continue during waits unless disabled. `--once` also prints a stop after its result. Health lines do not add GitHub requests. A pipe receives lines as they are written, without waiting for process exit.
 

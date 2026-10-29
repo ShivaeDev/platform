@@ -49,7 +49,6 @@ No package has a root entry or a module that re-exports another. Published packa
 For a new application, follow the [framework quickstart](./docs/framework/quickstart.md). An application depends on `@shivaedev/platform` and takes `@shivaedev/test-story` and `@shivaedev/quality` for development, and its `pnpm-workspace.yaml` hoists `@shivaedev/*` so the pieces platform brings resolve; the [platform README](./packages/platform/README.md) explains the setup. This workspace hoists the scope too, because `examples/starter` resolves its pieces from the root.
 
 Requirements:
-
 - Node.js at the version in `.node-version` for development and CI; published packages need Node 24 or newer, so deployment hosts such as Vercel can use Node 24
 - pnpm through Corepack, at the version in `package.json`'s `packageManager`
 - Docker, or PostgreSQL client tools (`psql`) when reusing a native local service
@@ -66,10 +65,10 @@ Local setup starts or reuses one PostgreSQL service on `127.0.0.1:55432`. Setup 
 
 `DATABASE_URL` defaults to `postgresql://postgres:postgres@127.0.0.1:55432/platform_dev`. `TEST_DATABASE_URL` supplies the connection settings for tests, with a base name of `platform_test`; each package receives its own suffixed database. Shell settings take precedence over `.env.local`.
 
-| Test variable | Database |
-| --- | --- |
-| `PLATFORM_SQL_TEST_DATABASE_URL` | `platform_test_sql` |
-| `PLATFORM_JOBS_TEST_DATABASE_URL` | `platform_test_jobs` |
+| Test variable                         | Database                 |
+| ------------------------------------- | ------------------------ |
+| `PLATFORM_SQL_TEST_DATABASE_URL`      | `platform_test_sql`      |
+| `PLATFORM_JOBS_TEST_DATABASE_URL`     | `platform_test_jobs`     |
 | `PLATFORM_TEST_SQL_TEST_DATABASE_URL` | `platform_test_test_sql` |
 
 `pnpm db:setup` creates missing development and package-specific test databases without dropping anything. Each package's tests prepare their own objects in their separate database. Local preparation and `pnpm test` validate each database name and refuse remote hosts, development databases, shared test targets or connection overrides. Existing databases and data are preserved.

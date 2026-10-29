@@ -30,7 +30,7 @@ Pass `--minimal` to start with the foundation alone: the same starter without th
 
 The command writes a git-ignored `.env.local` with a fresh authentication secret and local development and test database URLs. Existing files are never overwritten. Database names replace dots and hyphens in the app name with underscores, prefix a name starting with a digit with `app_`, and limit the stem to 58 characters before adding `_dev` and `_test`.
 
-When Git is available and the destination is outside an existing repository, the command initializes a repository before setup and commits the generated files and installed lockfile afterward. The first commit runs Quality's lint and typecheck gates; a failed gate leaves it uncommitted. It uses your Git identity, with a local commit identity when none is configured. Pass `--no-git` to skip repository creation.
+When Git is available and the destination is outside an existing repository, the command initializes a repository before setup and formats the generated files and installed lockfile with `pnpm run format` before committing them. The first commit runs Quality's lint and typecheck gates; a failed gate leaves it uncommitted. It uses your Git identity, with a local commit identity when none is configured. Pass `--no-git` to skip repository creation.
 
 The command also supports `--help` and `--version`.
 

@@ -27,7 +27,7 @@ export function LoginScreen({ auth, onAuthenticated }: { readonly auth: AuthActi
 	const buttonLabel = action.pending ? "Please wait…" : submitLabel;
 	return (
 		<main className="mx-auto w-full max-w-md space-y-6 px-4 py-12">
-			<h1 className="font-semibold text-3xl">{mode === "sign-in" ? "Sign in" : "Create an account"}</h1>
+			<h1 className="text-3xl font-semibold">{mode === "sign-in" ? "Sign in" : "Create an account"}</h1>
 			<p className="text-muted-foreground">Sign in to your app.</p>
 			<form
 				className="space-y-4"

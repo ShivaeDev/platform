@@ -10,11 +10,11 @@ A registry or implementation boundary may need one callback shape even though ea
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 
 function handleName(name: string): number {
-  return name.length;
+	return name.length;
 }
 
 export const handler: { readonly handle: Bivariant<(value: unknown) => number> } = {
-  handle: handleName,
+	handle: handleName,
 };
 ```
 
@@ -29,7 +29,6 @@ A callback has an input type and a result type. With TypeScript's strict functio
 TypeScript uses a looser parameter assignment check for methods, called **bivariance**. It allows the narrower string parameter in this assignment. `Bivariant<Fn>` gives a function property that method-style check. It does not remove the return-type check: a callback returning `number` is still rejected when the property requires `string`.
 
 Separate two jobs when choosing the type:
-
 1. **Define a callback precisely.** Keep its real input type, such as `string`, so its implementation and ordinary callers share the same contract.
 2. **Collect or erase callbacks at a boundary.** Use `Bivariant` only on the property whose common shape must accept those narrower callback types. The code that calls it owns the relationship between each callback and its valid input.
 
@@ -46,7 +45,6 @@ pnpm add @shivaedev/types
 ```
 
 Enable `strictFunctionTypes`, usually through `strict`, to retain the ordinary function-property checking shown here.
-
 - A callback assigned under an `unknown` input shape has not become able to handle every value. Keep its valid input paired with it, or validate input in the owning integration before calling it.
 - This package supplies no runtime validation.
 - Overloads, generic signatures and explicit `this` parameters have no tested contract.

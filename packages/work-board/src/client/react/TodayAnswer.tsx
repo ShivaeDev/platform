@@ -34,7 +34,7 @@ export function TodayAnswer({
 	const { heading, reason } = inlineReason(inline);
 	return (
 		<fieldset aria-label={`${inline.mode === "options" ? "Options" : "Answer"} for ${title}`} className="m-0 min-w-0 space-y-3 border-0 px-2 pb-1">
-			{!heading && <p className="m-0 line-clamp-2 font-medium text-sm">{reason}</p>}
+			{!heading && <p className="m-0 line-clamp-2 text-sm font-medium">{reason}</p>}
 			{inline.mode === "options" ? (
 				<TodayChoices choose={answer.choose} document={data} focusRef={focusRef} heading={heading} locked={answer.locked} prompt={inline.prompt} />
 			) : (
@@ -45,7 +45,7 @@ export function TodayAnswer({
 			<details className="text-muted-foreground text-xs">
 				<summary className="cursor-pointer">More options</summary>
 				<div className="mt-2 flex items-center gap-2">
-					<Label className="shrink-0 font-normal text-xs" htmlFor={authorId}>
+					<Label className="shrink-0 text-xs font-normal" htmlFor={authorId}>
 						Answer as
 					</Label>
 					<Input
@@ -83,7 +83,7 @@ function TodayChoices({
 }) {
 	return (
 		<>
-			<p className="m-0 text-muted-foreground text-xs">{heading ?? "Choose one option."}</p>
+			<p className="text-muted-foreground m-0 text-xs">{heading ?? "Choose one option."}</p>
 			<div className="grid gap-2">
 				{prompt.options.map((option, index) => (
 					<TodayOptionButton
@@ -119,7 +119,7 @@ function TodayText({
 				answer.choose({ selected: [], text: answer.text });
 			}}
 		>
-			<Label className="font-normal text-muted-foreground text-xs" htmlFor={textId}>
+			<Label className="text-muted-foreground text-xs font-normal" htmlFor={textId}>
 				{heading ?? "Your answer"}
 			</Label>
 			<Textarea
@@ -130,7 +130,7 @@ function TodayText({
 				ref={focusTarget(focusRef)}
 				value={answer.text}
 			/>
-			<div className="sticky bottom-0 flex justify-end bg-popover py-1">
+			<div className="bg-popover sticky bottom-0 flex justify-end py-1">
 				<Button className="pointer-coarse:h-11" disabled={answer.locked || !answer.text.trim()} size="sm" type="submit">
 					Record answer
 				</Button>

@@ -28,7 +28,7 @@ export function GoalProgress({
 			data-slot="progress"
 			role="progressbar"
 		>
-			<div className={cn("flex w-full overflow-hidden rounded-md bg-muted", size === "large" ? "h-2.5" : "h-1.5")} data-slot="progress-track">
+			<div className={cn("bg-muted flex w-full overflow-hidden rounded-md", size === "large" ? "h-2.5" : "h-1.5")} data-slot="progress-track">
 				{goalCountOrder.map((state) => (
 					<span
 						className="h-full"

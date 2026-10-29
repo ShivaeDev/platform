@@ -83,3 +83,10 @@ export const labelledControl = screenApp.trait("screen", "a control has a visibl
 		'<span id="delivery-label">Email notifications</span><button id="delivery" role="switch" aria-labelledby="delivery-label" aria-label="Off" aria-checked="false">Off</button>',
 	);
 });
+
+export const styledText = screenApp.trait("screen", "a readout has styled blocks and hidden text", ({ root }) => {
+	root.insertAdjacentHTML(
+		"beforeend",
+		'<section id="styled" style="text-transform: uppercase"><p>First</p><p>Second</p><span style="display:none">Hidden</span><svg><text>Icon</text></svg></section>',
+	);
+});

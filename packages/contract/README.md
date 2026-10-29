@@ -15,8 +15,8 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 const notes = collection("notes", Schema.Number);
 const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: Schema.Array(Schema.String) });
 const Rename = command("rename", {
-  payload: { id: Schema.Number, title: Schema.String },
-  invalidates: ({ id }) => [notes.item(id)],
+	payload: { id: Schema.Number, title: Schema.String },
+	invalidates: ({ id }) => [notes.item(id)],
 });
 const Notes = contract("notes", { queries: [List], commands: [Rename] });
 ```
@@ -47,37 +47,37 @@ import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
 
 export class Note extends Schema.Class<Note>("Note")({
-  body: Schema.String,
-  id: Schema.Number,
-  title: Schema.String,
+	body: Schema.String,
+	id: Schema.Number,
+	title: Schema.String,
 }) {}
 export const Draft = Schema.Struct({ body: Schema.String, title: Schema.String });
 export class NoteMissing extends Schema.TaggedError<NoteMissing>()("NoteMissing", { id: Schema.Number }) {}
 export const notes = collection("notes", Note.fields.id);
 
 export const Get = query("get", {
-  readPolicy: () => Effect.succeed(true),
-  payload: { id: Schema.Number },
-  success: Note,
-  rejections: { NoteMissing },
-  reads: ({ id }) => [notes.item(id)],
+	readPolicy: () => Effect.succeed(true),
+	payload: { id: Schema.Number },
+	success: Note,
+	rejections: { NoteMissing },
+	reads: ({ id }) => [notes.item(id)],
 });
 export const List = query("list", {
-  readPolicy: () => Effect.succeed(true),
-  success: Schema.Array(Note),
-  reads: () => [notes.list],
+	readPolicy: () => Effect.succeed(true),
+	success: Schema.Array(Note),
+	reads: () => [notes.list],
 });
 export const Rename = command("rename", {
-  payload: { id: Schema.Number, title: Schema.String },
-  success: Note,
-  rejections: { NoteMissing, Invalid: fieldRejection(Draft, ["title"]) },
-  invalidates: ({ id }) => [notes.item(id)],
+	payload: { id: Schema.Number, title: Schema.String },
+	success: Note,
+	rejections: { NoteMissing, Invalid: fieldRejection(Draft, ["title"]) },
+	invalidates: ({ id }) => [notes.item(id)],
 });
 export const Create = command("create", {
-  payload: Draft,
-  success: Note,
-  rejections: { Invalid: fieldRejection(Draft) },
-  invalidates: (_draft, note) => [notes.item(note.id)],
+	payload: Draft,
+	success: Note,
+	rejections: { Invalid: fieldRejection(Draft) },
+	invalidates: (_draft, note) => [notes.item(note.id)],
 });
 export const Notes = contract("notes", { queries: [Get, List], commands: [Rename, Create] });
 ```
@@ -98,9 +98,9 @@ import { Rpc } from "effect/rpc";
 import { BadRequest, Conflict } from "@shivaedev/errors/taxonomy.ts";
 
 export const Rename = Rpc.make("Rename", {
-  error: Schema.Union([BadRequest, Conflict]),
-  payload: { name: Schema.String },
-  success: Schema.String,
+	error: Schema.Union([BadRequest, Conflict]),
+	payload: { name: Schema.String },
+	success: Schema.String,
 });
 ```
 
@@ -126,28 +126,35 @@ Implement the contract with native `of` and `toLayer`:
 import { Effect, Ref, Stream } from "effect";
 import { Create, Get, Note, Notes, Rename } from "./notes.ts";
 
-export const NotesHandlers = Notes.toLayer(Effect.gen(function* () {
-  const stored = yield* Ref.make(new Map([
-    [1, new Note({ body: "", id: 1, title: "One" })],
-    [2, new Note({ body: "", id: 2, title: "Two" })],
-  ]));
-  const find = (id: number) => Effect.flatMap(Ref.get(stored), (all) => {
-    const note = all.get(id);
-    return note === undefined ? Get.reject.NoteMissing({ id }) : Effect.succeed(note);
-  });
-  const save = (note: Note) => Ref.update(stored, (all) => new Map([...all, [note.id, note]])).pipe(Effect.as(note));
-  return Notes.of({
-    "notes.$changes": () => Stream.never,
-    "notes.get": ({ id }) => find(id),
-    "notes.list": () => Effect.map(Ref.get(stored), (all) => [...all.values()]),
-    "notes.rename": ({ id, title }) => title.trim() === ""
-      ? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
-      : Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
-    "notes.create": (draft) => draft.title === ""
-      ? Create.reject.Invalid({ field: "title", message: "Enter a title" })
-      : Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
-  });
-}));
+export const NotesHandlers = Notes.toLayer(
+	Effect.gen(function* () {
+		const stored = yield* Ref.make(
+			new Map([
+				[1, new Note({ body: "", id: 1, title: "One" })],
+				[2, new Note({ body: "", id: 2, title: "Two" })],
+			]),
+		);
+		const find = (id: number) =>
+			Effect.flatMap(Ref.get(stored), (all) => {
+				const note = all.get(id);
+				return note === undefined ? Get.reject.NoteMissing({ id }) : Effect.succeed(note);
+			});
+		const save = (note: Note) => Ref.update(stored, (all) => new Map([...all, [note.id, note]])).pipe(Effect.as(note));
+		return Notes.of({
+			"notes.$changes": () => Stream.never,
+			"notes.get": ({ id }) => find(id),
+			"notes.list": () => Effect.map(Ref.get(stored), (all) => [...all.values()]),
+			"notes.rename": ({ id, title }) =>
+				title.trim() === ""
+					? Rename.reject.Invalid({ field: "title", message: "Enter a title" })
+					: Effect.flatMap(find(id), (note) => save(new Note({ ...note, title }))),
+			"notes.create": (draft) =>
+				draft.title === ""
+					? Create.reject.Invalid({ field: "title", message: "Enter a title" })
+					: Effect.flatMap(Ref.get(stored), (all) => save(new Note({ id: all.size + 1, ...draft }))),
+		});
+	}),
+);
 ```
 
 Save this module as `handlers.ts`. An application can put repository and service calls in these handlers. The contract checks handler result and rejection types; it does not implement persistence, authorization or transactions. This in-memory server keeps the reserved change stream open without publishing hints. When a Platform host supplies that handler, build application handlers from `Notes.application` and keep `Notes` as the host and client group.
@@ -176,7 +183,7 @@ import { Notes } from "./notes.ts";
 import { NotesHandlers } from "./handlers.ts";
 
 export const NotesRoutes = RpcServer.layerHttp({ group: Notes, path: "/rpc", protocol: "http" }).pipe(
-  Layer.provide([NotesHandlers, RpcSerialization.layerJson]),
+	Layer.provide([NotesHandlers, RpcSerialization.layerJson]),
 );
 ```
 
@@ -191,10 +198,10 @@ import { bind } from "@shivaedev/contract/bind.ts";
 import { Notes } from "./notes.ts";
 
 export class NotesClient extends AtomRpc.Service<NotesClient>()("app/NotesClient", {
-  group: Notes,
-  protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1:3000/rpc" }).pipe(
-    Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
-  ),
+	group: Notes,
+	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1:3000/rpc" }).pipe(
+		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
+	),
 }) {}
 export const api = bind(Notes, NotesClient, { live: false });
 ```
@@ -210,7 +217,7 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { Notes } from "./notes.ts";
 
 const { api, runtime } = makeClient(Notes, {
-  url: new URL("/rpc", window.location.href).href,
+	url: new URL("/rpc", window.location.href).href,
 });
 const note = api.get.query({ id: 1 });
 const rename = runtime.fn(api.rename.run);
@@ -244,9 +251,7 @@ const list = api.list.query();
 const releaseOne = registry.mount(one);
 const releaseList = registry.mount(list);
 
-const renamed = await Effect.runPromise(
-  AtomRegistry.getResult(registry, NotesClient.runtime.atom(api.rename.run({ id: 1, title: "Uno" }))),
-);
+const renamed = await Effect.runPromise(AtomRegistry.getResult(registry, NotesClient.runtime.atom(api.rename.run({ id: 1, title: "Uno" }))));
 
 releaseOne();
 releaseList();
@@ -257,10 +262,10 @@ The successful rename invalidates note 1 and the list. A rejected rename invalid
 
 The dependency rule is deliberately asymmetric:
 
-| Declared key | Query reads | Successful command invalidates |
-| --- | --- | --- |
-| `notes.item(1)` | `"notes:1"` | `"notes:1"` and `"notes"` |
-| `notes.list` | `"notes"` | `"notes"` |
+| Declared key    | Query reads | Successful command invalidates |
+| --------------- | ----------- | ------------------------------ |
+| `notes.item(1)` | `"notes:1"` | `"notes:1"` and `"notes"`      |
+| `notes.list`    | `"notes"`   | `"notes"`                      |
 
 `readKeys` and `invalidationKeys` from `@shivaedev/changes/keys.ts` produce these native keys and remove duplicates. An item change refreshes that item and its list, preserving other item queries. A list-only invalidation refreshes list queries and leaves item queries alone. These keys match native Reactivity's record-key hashing of `{ notes: [1] }`.
 
@@ -273,16 +278,20 @@ A self-only feature, such as a user's preferences, reads and changes only the si
 ```ts
 const preferences = collection("preferences", Schema.String);
 const Preferences = contract("preferences", {
-  keyScope: "session",
-  queries: [query("self", {
-    reads: () => [preferences.item("self")],
-    success: Schema.String,
-  })],
-  commands: [command("save", {
-    payload: { title: Schema.String },
-    invalidates: () => [preferences.item("self")],
-    success: Schema.String,
-  })],
+	keyScope: "session",
+	queries: [
+		query("self", {
+			reads: () => [preferences.item("self")],
+			success: Schema.String,
+		}),
+	],
+	commands: [
+		command("save", {
+			payload: { title: Schema.String },
+			invalidates: () => [preferences.item("self")],
+			success: Schema.String,
+		}),
+	],
 }).middleware(Authenticated);
 
 const api = bind(Preferences, Client, { registry });
@@ -296,8 +305,8 @@ Handlers read the account from request-local `Identity`, imported from `@shivaed
 
 ```ts
 Preferences.application.toLayer({
-  "preferences.self": () => Effect.flatMap(Identity, ({ id }) => store.read(id)),
-  "preferences.save": ({ title }) => Effect.flatMap(Identity, ({ id }) => store.save(id, title)),
+	"preferences.self": () => Effect.flatMap(Identity, ({ id }) => store.read(id)),
+	"preferences.save": ({ title }) => Effect.flatMap(Identity, ({ id }) => store.save(id, title)),
 });
 ```
 
@@ -321,9 +330,12 @@ import type { ResumeSource } from "@shivaedev/contract/resume.ts";
 import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
 
 const resume: ResumeSource = (notify) => {
-  const stopApp = onAppResume(notify);
-  const stopNetwork = onNetworkReturn(notify);
-  return () => { stopApp(); stopNetwork(); };
+	const stopApp = onAppResume(notify);
+	const stopNetwork = onNetworkReturn(notify);
+	return () => {
+		stopApp();
+		stopNetwork();
+	};
 };
 const api = bind(Notes, NotesClient, { resume });
 ```
@@ -336,9 +348,9 @@ For a direct subscription, configure the server and `NotesClient` with `RpcSeria
 import { Effect, Stream } from "effect";
 import { NotesClient } from "./client.ts";
 
-const changes = Stream.unwrap(NotesClient.use((client) =>
-  Effect.succeed(client("notes.$changes", { queries: [{ query: "get", payload: { id: 1 } }] })),
-));
+const changes = Stream.unwrap(
+	NotesClient.use((client) => Effect.succeed(client("notes.$changes", { queries: [{ query: "get", payload: { id: 1 } }] }))),
+);
 ```
 
 The contract includes the reserved stream's payload, `LiveHint` elements and middleware failures in its native RPC type. The subscription uses the contract's middleware and needs no separate RPC group or cast. The caller owns stream consumption and interruption. References name declared queries and reuse their payload schemas; payloadless queries use `{ query: "list", payload: undefined }`. Custom subscription handlers yield the Effect from the `ChangesQueries` annotation's `resolve(references)` method, call `querySubscription(requests, viewer)` and pass its authorized result to `makeLiveServer.subscribe(subscription, context)`. Hosted applications use `resolveChanges` from identity to supply that subscription. Session-scoped bindings track mounted queries per registry and drop their references on unmount or disposal. Ordinary bindings track query references when atoms are created.
@@ -376,18 +388,18 @@ import { LiveNotes } from "./live-notes.ts";
 import { notes } from "./notes.ts";
 
 class Client extends AtomRpc.Service<Client>()("app/LiveNotes", {
-  group: LiveNotes,
-  protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1:3000/rpc" }).pipe(
-    Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-  ),
+	group: LiveNotes,
+	protocol: RpcClient.layerProtocolHttp({ url: "http://127.0.0.1:3000/rpc" }).pipe(
+		Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
+	),
 }) {}
 const api = bind(LiveNotes, Client);
 const registry = AtomRegistry.make();
 const updates = live(Client.runtime, {
-  stream: api.subscribe.run(undefined),
-  resyncKeys: [notes.item(1), notes.item(2), notes.list],
-  resume: resumeSignal({ window }),
-  retryDelay: "100 millis",
+	stream: api.subscribe.run(undefined),
+	resyncKeys: [notes.item(1), notes.item(2), notes.list],
+	resume: resumeSignal({ window }),
+	retryDelay: "100 millis",
 });
 const releaseQuery = registry.mount(api.get.query({ id: 1 }));
 const releaseConnection = registry.mount(updates.connection);
@@ -395,10 +407,10 @@ const releaseConnection = registry.mount(updates.connection);
 
 `LiveNotes` supplies both the declaration for binding and the native RPC group for transport. Stream read keys describe its dependencies; `run` does not mount query atoms or trigger automatic invalidation. Here the caller explicitly reconciles two items and their list. `bind` also accepts a larger native client group that preserves the contract RPC types. The [live updates guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/live-updates.md) shows server and client composition, and the [HTTP fixture](https://github.com/ShivaeDev/platform/tree/main/packages/contract/src/test-support/live) supplies a complete working server.
 
-| Observation | Invalidation |
-| --- | --- |
-| `Changed` with keys after the first hint | Affected items and their lists. |
-| `Resync` | The exact `resyncKeys` read scope. |
+| Observation                               | Invalidation                                           |
+| ----------------------------------------- | ------------------------------------------------------ |
+| `Changed` with keys after the first hint  | Affected items and their lists.                        |
+| `Resync`                                  | The exact `resyncKeys` read scope.                     |
 | First hint on a new or reconnected stream | The full explicit scope, even if the hint is targeted. |
 
 Changed hints share a fixed 20 ms window by default. Their keys merge, and each affected bound query refetches once per window. A bound query already fetching keeps its request and refetches once more after it settles if further hints arrive. Set `coalesceWindow` in `live()` to a native Duration, or set `SessionBoundary`'s `liveCoalesceWindow` for automatic session connections. Zero restores immediate per-hint invalidation, including interruption of in-flight reads. Full reconciliation on first hint, reconnect, resume and unpause stays immediate. Registry teardown cancels a pending window.
@@ -442,12 +454,10 @@ import { query } from "@shivaedev/contract/operation.ts";
 
 const notes = collection("notes", Schema.Number, { userId: Schema.String });
 const Mine = query("mine", {
-  payload: { title: Schema.String },
-  success: Schema.Array(Schema.String),
-  readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
-  reads: (_input, viewer) => Option.isSome(viewer)
-    ? [notes.bucket.userId(viewer.value.id)]
-    : [],
+	payload: { title: Schema.String },
+	success: Schema.Array(Schema.String),
+	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
 });
 ```
 
@@ -475,21 +485,21 @@ expect(yield* heard(bob, [notes.item(1)], { within: "50 millis" })).toBe(false);
 
 Import the module that defines the name; the package has no root entry.
 
-| Module | Functions and schemas |
-| --- | --- |
-| `operation.ts` | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`. |
-| `contract.ts` | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`. |
-| `rejection.ts` | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations. |
-| `bind.ts` | `bind(contract, atomRpcService, { registry?, live?, resume? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live? })`, which builds the shared WebSocket client and binds it. |
-| `queryCoalesceWindow.ts` | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window. |
-| `live.ts` | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, initialResync?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`. |
-| `querySubscription.ts` | `querySubscription(requests, viewer)` checks each referenced query and captures its scopes and ongoing authorization. |
-| `makeLiveServer.ts` | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect. |
-| `readPolicy.ts` | `QueryReadPolicy`, `Viewer`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`. |
-| `readPolicyErrors.ts` | `MissingReadPolicy` and `QueryReadDenied`. |
-| `serverMetadata.ts` | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters. |
-| `resume.ts` | `resumeSignal({ window?, native? })`, returning a native numeric signal atom. |
-| `testing.ts` | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys. |
+| Module                   | Functions and schemas                                                                                                                                                                                                                                                                                                                                                                                   |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `operation.ts`           | `query(name, { payload?, success?, rejections?, readPolicy?, reads })`; `command(name, { payload?, success?, rejections?, invalidates })`; `stream(name, { payload?, success, rejections?, reads })`.                                                                                                                                                                                                   |
+| `contract.ts`            | `contract(name, { queries?, commands?, streams?, keyScope? })`, returning a native RPC group with `declaration: { name, queries, commands, streams, keyScope }`.                                                                                                                                                                                                                                        |
+| `rejection.ts`           | `fieldRejection(struct, fields?)`; lower-level `rejectionSet(specs)`, which constructs the rejection classes, union schema and failure helpers used by operations.                                                                                                                                                                                                                                      |
+| `bind.ts`                | `bind(contract, atomRpcService, { registry?, live?, resume? }?)`, requiring the registry for session-scoped contracts and exposing `{ query, run }` for queries, `{ run }` Effects for commands and `{ run }` native Streams for streams; `makeClient(contract, { url, protocol?, headers?, webSocketConstructor?, group?, registry?, live? })`, which builds the shared WebSocket client and binds it. |
+| `queryCoalesceWindow.ts` | `queryCoalesceWindow(query)`, a writable atom for a bound query's live changed-hint window.                                                                                                                                                                                                                                                                                                             |
+| `live.ts`                | `LiveHint` schema; `live(runtime, { stream, resyncKeys, coalesceWindow?, initialResync?, keyContext?, resume?, retryDelay? })`, exposing `connection`, `coalesceWindow`, `paused` and `status`.                                                                                                                                                                                                         |
+| `querySubscription.ts`   | `querySubscription(requests, viewer)` checks each referenced query and captures its scopes and ongoing authorization.                                                                                                                                                                                                                                                                                   |
+| `makeLiveServer.ts`      | `makeLiveServer`, an Effect requiring `Reactivity` that creates scoped server hint streams and a `resync` Effect.                                                                                                                                                                                                                                                                                       |
+| `readPolicy.ts`          | `QueryReadPolicy`, `Viewer`, `authorizeReads(effect, request, viewer)`, `CurrentViewer`.                                                                                                                                                                                                                                                                                                                |
+| `readPolicyErrors.ts`    | `MissingReadPolicy` and `QueryReadDenied`.                                                                                                                                                                                                                                                                                                                                                              |
+| `serverMetadata.ts`      | `KeyScope`, `QueryDefinition.definition`, `CommandInvalidation.invalidates`, `ChangesQueries.resolve(references)`, the Effect `queryKeys(queries, references)` and `changesRpc(name, queries)` for server adapters.                                                                                                                                                                                     |
+| `resume.ts`              | `resumeSignal({ window?, native? })`, returning a native numeric signal atom.                                                                                                                                                                                                                                                                                                                           |
+| `testing.ts`             | `watchHints(stream)` starts a scoped viewer subscription; `heard(viewer, keys, { within? }?)` waits for matching changed keys.                                                                                                                                                                                                                                                                          |
 
 A query atom takes native query options as its optional second argument, for example `api.get.query({ id: 1 }, { timeToLive: "1 minute" })`. A native resume source receives a callback and returns a cleanup function.
 
@@ -500,7 +510,6 @@ pnpm add @shivaedev/contract effect
 ```
 
 `effect` is a peer, and the package needs Node.js 24 or newer. Choose the native server host separately; this package supplies no server process or HTTP transport implementation.
-
 - Put schema declarations where server and browser can share them. Put service, authorization and transaction implementations on the server. React rendering and editable forms belong to `react` and `form`.
 - Run command Effects with the Reactivity instance that owns the queries to refresh, as in the registry example.
 - Choose a common read key for every query in a full reconciliation scope. A list key does not implicitly cover item queries.

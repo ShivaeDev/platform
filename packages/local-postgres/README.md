@@ -20,7 +20,6 @@ The application supplies its configured database URL. Preparation checks that th
 ### How to think about it
 
 There are three separate responsibilities:
-
 1. The **service** is PostgreSQL running on the local machine. This package prepares access to it.
 2. A **database** is an application-chosen name on that service. This package creates missing databases; the application chooses their names through configuration or a fixed allowlist.
 3. The **schema and data** belong to the application. Its setup script runs migrations, loads fixtures or seeds data after preparation.
@@ -87,14 +86,14 @@ On each start, setup reads `SHOW max_connections`. When the shared container all
 
 Import the setup API from `@shivaedev/local-postgres/server/localPostgres.ts`:
 
-| Export | Purpose |
-| --- | --- |
-| `LOCAL_SERVER` | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name. |
-| `assertLocalDatabase(value: string, names: readonly string[]): URL` | Validate a local database URL against application-owned allowed names. |
+| Export                                                                        | Purpose                                                                                                                                                                                                              |
+| ----------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `LOCAL_SERVER`                                                                | The base URL `postgresql://postgres:postgres@127.0.0.1:55432`. Append the application database name.                                                                                                                 |
+| `assertLocalDatabase(value: string, names: readonly string[]): URL`           | Validate a local database URL against application-owned allowed names.                                                                                                                                               |
 | `localPostgres(environment: DockerEnvironment, readiness?: ReadinessOptions)` | Create the setup functions using the Docker settings to validate. After starting the container, `startPostgres` checks readiness `attempts` times (default 30), waiting `delayMillis` between checks (default 1000). |
-| `prepareDatabases(values: readonly string[]): void` | Prepare the service and create absent databases. |
-| `startPostgres(connection?: string): void` | Prepare the service; the default connection is `LOCAL_SERVER`. |
-| `sql(value: string \| URL, query: string): string` | Execute SQL through PostgreSQL's command-line client. |
+| `prepareDatabases(values: readonly string[]): void`                           | Prepare the service and create absent databases.                                                                                                                                                                     |
+| `startPostgres(connection?: string): void`                                    | Prepare the service; the default connection is `LOCAL_SERVER`.                                                                                                                                                       |
+| `sql(value: string \| URL, query: string): string`                            | Execute SQL through PostgreSQL's command-line client.                                                                                                                                                                |
 
 The last three functions are members of the object returned by `localPostgres`, not module-level exports. They throw on failure; they are synchronous Node functions rather than Effects.
 

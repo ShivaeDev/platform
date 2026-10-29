@@ -1,4 +1,4 @@
-import { Deferred, Effect, Fiber, Schema } from "effect";
+import { Deferred, Effect, Fiber, Order, Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
@@ -52,10 +52,10 @@ postgresIt(
 		expect(completed).toEqual([1]);
 		yield* release.open;
 		yield* until(
-			Effect.sync(() => [...completed].sort()),
+			Effect.sync(() => [...completed].sort(Order.Number)),
 			(ids) => ids.length === 4,
 		);
-		expect([...completed].sort()).toEqual([1, 2, 3, 4]);
+		expect([...completed].sort(Order.Number)).toEqual([1, 2, 3, 4]);
 		expect(logs.filter(({ message }) => String(message).startsWith("Workers ")).map(({ message }) => String(message))).toEqual([
 			"Workers paused for another database release",
 			"Workers paused for another database release",

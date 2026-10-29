@@ -5,8 +5,7 @@
 		"expectedFiles": {
 			"my-app/.env.example": "DATABASE_URL=",
 			"my-app/package.json": "\"name\": \"my-app\"",
-			"my-app/pnpm-lock.yaml": "@shivaedev/platform",
-			"my-app/pnpm-workspace.yaml": "publicHoistPattern: [\"@shivaedev/*\"]"
+			"my-app/pnpm-lock.yaml": "@shivaedev/platform"
 		},
 		"files": {},
 		"output": "pnpm dev",

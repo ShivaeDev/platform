@@ -9,15 +9,15 @@ attention:
   - id: keyboard-review
     kind: review
     state: open
-    response_from: [maintainer]
+    response_from: [ maintainer ]
     reason: Review the recorded keyboard evidence before continuing.
-    unblocks: [work.search#keyboard]
+    unblocks: [ work.search#keyboard ]
   - id: matching-decision
     kind: decision
     state: open
-    response_from: [maintainer]
+    response_from: [ maintainer ]
     reason: Choose literal matching or fuzzy matching for the next checkpoint.
-    unblocks: [decision.search-matching]
+    unblocks: [ decision.search-matching ]
 ```
 
 The ordinary Markdown body holds the options, rationale and evidence links. Today shows two independent requests from the same item, and each row opens that request's answer card.
@@ -31,9 +31,9 @@ attention:
   - id: missing-fixture
     kind: blocker
     state: open
-    response_from: [agent-navigation]
+    response_from: [ agent-navigation ]
     reason: Supply a representative keyboard fixture to continue validation.
-    unblocks: [work.search#keyboard]
+    unblocks: [ work.search#keyboard ]
 ```
 
 This says the author requests a response; it does not prove the target cannot proceed or start an agent. Recipients are literal local labels, not verified identities, an account directory, a permission boundary or a notification route.
@@ -46,16 +46,16 @@ Today also lists unanswered authored questions without a captured `question` rec
 
 ## Reading rules
 
-| Field | Source shape and meaning |
-| --- | --- |
-| `attention` | Optional list; absent/empty means no recorded request |
-| `id` | Required request ID, unique within the item |
-| `kind` | Required `decision`, `review`, or `blocker` |
-| `state` | Required `open` or `closed`; explicitly authored source state |
-| `response_from` | Required nonempty list of nonblank literal labels |
-| `reason` | Required nonblank text explaining why a response is needed |
-| `unblocks` | Required nonempty list of item ID or `item.id#criterion-id` references |
-| `managed` | Optional boolean; an execution integration may opt a generated decision into exact-context request acknowledgement |
+| Field           | Source shape and meaning                                                                                           |
+| --------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `attention`     | Optional list; absent/empty means no recorded request                                                              |
+| `id`            | Required request ID, unique within the item                                                                        |
+| `kind`          | Required `decision`, `review`, or `blocker`                                                                        |
+| `state`         | Required `open` or `closed`; explicitly authored source state                                                      |
+| `response_from` | Required nonempty list of nonblank literal labels                                                                  |
+| `reason`        | Required nonblank text explaining why a response is needed                                                         |
+| `unblocks`      | Required nonempty list of item ID or `item.id#criterion-id` references                                             |
+| `managed`       | Optional boolean; an execution integration may opt a generated decision into exact-context request acknowledgement |
 
 Only unique, valid open requests on unique identified items with resolvable targets enter the queues. Missing recipients/reason/state, unsupported fields or invalid reference syntax make the attention list uninterpreted, like the other frontmatter fields; retain the whole original list and report its source issue. Independent valid fields and ordinary Markdown remain readable. Duplicate request IDs, missing item IDs and unresolved/ambiguous targets stay unclassified with source diagnostics. No request silently chooses a duplicate winner.
 

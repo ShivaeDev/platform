@@ -37,7 +37,7 @@ export function PromptOption({
 		value: option.id,
 	};
 	return (
-		<div className="question-choice relative flex items-start gap-3 rounded-lg border bg-background px-4 py-3 transition-colors hover:bg-accent has-data-checked:border-primary has-data-checked:bg-accent">
+		<div className="question-choice bg-background hover:bg-accent has-data-checked:border-primary has-data-checked:bg-accent relative flex items-start gap-3 rounded-lg border px-4 py-3 transition-colors">
 			{prompt.mode === "many" ? (
 				<Checkbox {...control} checked={checked} name={`choice-${prompt.id}`} onCheckedChange={(next) => choose(option.id, next)} />
 			) : (
@@ -45,7 +45,7 @@ export function PromptOption({
 			)}
 			<div className="grid flex-1 items-start gap-1">
 				<Label className="cursor-pointer font-normal after:absolute after:inset-0" htmlFor={id}>
-					<strong className="flex flex-wrap items-center gap-2 font-medium text-sm" id={`${id}-label`}>
+					<strong className="flex flex-wrap items-center gap-2 text-sm font-medium" id={`${id}-label`}>
 						{label}
 						{label === document.metadata.recommended && <Badge variant="outline">Recommended</Badge>}
 					</strong>

@@ -5,7 +5,6 @@ You are changing the React boundary between an application's native Effect atoms
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Native owners stay visible.** Atoms own execution, identity, caching and scheduling; form owns fields, validation and drafts; the application's auth owner decides whether a session ends. Extend those pieces instead of adding another cache, form model or auth policy.
 2. **A draft belongs to one record and one session.** A changed query atom starts a new editor, and a changed session generation discards its client, registry and subtree. Queries reset displayed data on identity changes by default; an application can explicitly opt into `keepPreviousData` to keep the last success while a new payload loads or fails. Same-identity refreshes always keep useful data. Retention must not cross registry owners or carry drafts between records.
 3. **A response does not erase newer work.** Refresh and save results merge through the form's per-field rules. Preserve typed failures and useful retained data so the application can decide what to tell the user.

@@ -1,6 +1,6 @@
 import { Cause, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { screenApp } from "#test/screenApp.ts";
+import { screenApp, styledText } from "#test/screenApp.ts";
 
 screenApp.it("waits for held data before reporting a settled screen", [], function* ({ holdNews, click, settle, text }) {
 	const held = yield* holdNews();
@@ -63,6 +63,10 @@ screenApp.it("refuses missing, ambiguous, disabled and unsuitable controls", [],
 screenApp.it("reads rendered text without hidden content", [], ({ text }) => {
 	expect(text()).toContain("Ready");
 	expect(text()).not.toContain("Hidden detail");
+});
+
+screenApp.it("reads visible text nodes without layout or CSS transforms", [styledText], ({ text }) => {
+	expect(text("#styled")).toBe("FirstSecond");
 });
 
 screenApp.it("explains a signal that never clears instead of reporting a settled screen", [], function* ({ holdNews, click, settle }) {

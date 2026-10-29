@@ -5,7 +5,6 @@ You are changing the jobs boundary between native Effect applications and pg-bos
 ## Which way to lean
 
 When goals conflict, use this order:
-
 1. **Native Effect stays visible.** Preserve service requirements, typed failures, scope ownership and interruption across pg-boss callbacks. A shorter API is not worth losing those contracts.
 2. **One contract per durable payload.** The same Schema describes what a producer encodes and a worker decodes. Validate before domain code runs; do not introduce a separate worker payload model.
 3. **One jobs path, with pg-boss as its engine.** Keep ordinary queue, worker and schedule options recognizable. Add an adapter only to remove repeated Effect boundary code, not another scheduler, retry engine or application service framework.

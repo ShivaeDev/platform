@@ -6,16 +6,16 @@ This recipe uses Schema, a `sql` repository, a `contract` query and command, and
 
 ## Code to read
 
-| Module | Responsibility |
-| --- | --- |
-| [Schema and contract](../../packages/react/src/test-support/settings-example/contract.ts) | Field defaults, successful query values, entity read keys and typed command rejections. |
-| [Repositories and migration](../../packages/react/src/test-support/settings-example/repository.ts) | Existing entity ownership, one settings row per entity, and the upsert conflict target. |
-| [Service](../../packages/react/src/test-support/settings-example/Service.ts) | Ownership checks, defaulting reads, validation and transactional upserts with committed invalidation. |
-| [Handlers](../../packages/react/src/test-support/settings-example/handlers.ts) | Request identity and authorized live subscriptions. |
-| [Host](../../packages/react/src/test-support/settings-example/startHost.ts) | Server's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC. |
-| [Client](../../packages/react/src/test-support/settings-example/makeClient.ts) | Native AtomRpc, contract binding and entity-scoped live invalidation. |
-| [Editor](../../packages/react/src/test-support/settings-example/Editor.tsx) | `useEditor`, encoded input, form fields and rendered field errors. |
-| [Story kit](../../packages/react/src/test-support/settings-example/story.ts) | A pattern for testing such a feature: cloned PostgreSQL databases, the real host over HTTP and independently rendered editors. |
+| Module                                                                                             | Responsibility                                                                                                                 |
+| -------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| [Schema and contract](../../packages/react/src/test-support/settings-example/contract.ts)          | Field defaults, successful query values, entity read keys and typed command rejections.                                        |
+| [Repositories and migration](../../packages/react/src/test-support/settings-example/repository.ts) | Existing entity ownership, one settings row per entity, and the upsert conflict target.                                        |
+| [Service](../../packages/react/src/test-support/settings-example/Service.ts)                       | Ownership checks, defaulting reads, validation and transactional upserts with committed invalidation.                          |
+| [Handlers](../../packages/react/src/test-support/settings-example/handlers.ts)                     | Request identity and authorized live subscriptions.                                                                            |
+| [Host](../../packages/react/src/test-support/settings-example/startHost.ts)                        | Server's real `appHost`, migrated PostgreSQL, session middleware and HTTP RPC.                                                 |
+| [Client](../../packages/react/src/test-support/settings-example/makeClient.ts)                     | Native AtomRpc, contract binding and entity-scoped live invalidation.                                                          |
+| [Editor](../../packages/react/src/test-support/settings-example/Editor.tsx)                        | `useEditor`, encoded input, form fields and rendered field errors.                                                             |
+| [Story kit](../../packages/react/src/test-support/settings-example/story.ts)                       | A pattern for testing such a feature: cloned PostgreSQL databases, the real host over HTTP and independently rendered editors. |
 
 ## Declare defaults once
 

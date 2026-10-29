@@ -15,9 +15,9 @@ export function ItemId({ id, href }: { readonly id: string; readonly href: strin
 		);
 	}
 	return (
-		<span className="inline-flex items-center gap-0.5 text-muted-foreground">
+		<span className="text-muted-foreground inline-flex items-center gap-0.5">
 			<a
-				className="pointer-coarse:inline-flex pointer-coarse:min-h-11 select-all pointer-coarse:items-center font-mono text-xs hover:text-foreground"
+				className="hover:text-foreground font-mono text-xs select-all pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
 				href={href}
 			>
 				{id}

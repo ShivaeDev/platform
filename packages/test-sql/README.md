@@ -8,11 +8,9 @@ Table cleanup couples tests to the order they run. A rollback test keeps its wri
 
 ```ts
 effectApp("renames an item", function* () {
-  const sql = yield* SqlClient.SqlClient;
-  yield* sql`update items set name = 'Renamed' where id = 1`;
-  expect(yield* sql`select name from items where id = 1`).toEqual([
-    { name: "Renamed" },
-  ]);
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`update items set name = 'Renamed' where id = 1`;
+	expect(yield* sql`select name from items where id = 1`).toEqual([{ name: "Renamed" }]);
 });
 ```
 
@@ -37,27 +35,27 @@ import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withTestTransaction } from "@shivaedev/test-sql/server/withTestTransaction.ts";
 
 const layer = makePostgresTestLayer({
-  url: Redacted.make(Effect.runSync(Config.String("TEST_DATABASE_URL"))),
-  migrations: {
-    lockTimeout: "5 seconds",
-    loader: Migrator.fromRecord({
-      "1_create_items": Effect.gen(function* () {
-        const sql = yield* SqlClient.SqlClient;
-        yield* sql`create table items (id integer primary key, name text not null)`;
-      }),
-    }),
-  },
-  fixtures: Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    yield* sql`insert into items values (1, 'Original')`;
-  }),
+	url: Redacted.make(Effect.runSync(Config.String("TEST_DATABASE_URL"))),
+	migrations: {
+		lockTimeout: "5 seconds",
+		loader: Migrator.fromRecord({
+			"1_create_items": Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				yield* sql`create table items (id integer primary key, name text not null)`;
+			}),
+		}),
+	},
+	fixtures: Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`insert into items values (1, 'Original')`;
+	}),
 });
 
 export const { effectApp } = makeEffectIt({
-  layer,
-  clock: "live",
-  around: withTestTransaction,
-  makeHarness: () => Effect.void,
+	layer,
+	clock: "live",
+	around: withTestTransaction,
+	makeHarness: () => Effect.void,
 });
 ```
 
@@ -69,13 +67,14 @@ Fixtures can also be a `PostgresTestLoader`: a callback from the migrated templa
 import * as PgClient from "@effect/sql-pg/PgClient";
 
 const layer = makePostgresTestLayer({
-  url,
-  migrations: appMigrations,
-  fixtures: (templateUrl) => Effect.gen(function* () {
-    const client = yield* PgClient.makeClient({ url: templateUrl });
-    yield* client`create table app_fixture (name text not null)`;
-    yield* client`insert into app_fixture values ('Original')`;
-  }),
+	url,
+	migrations: appMigrations,
+	fixtures: (templateUrl) =>
+		Effect.gen(function* () {
+			const client = yield* PgClient.makeClient({ url: templateUrl });
+			yield* client`create table app_fixture (name text not null)`;
+			yield* client`insert into app_fixture values ('Original')`;
+		}),
 });
 ```
 
@@ -85,8 +84,8 @@ Supply `initialize` instead of `migrations` when the application already owns it
 
 ```ts
 const layer = makePostgresTestLayer({
-  url: testDatabaseUrl,
-  initialize: (templateUrl) => migrateDatabase(templateUrl),
+	url: testDatabaseUrl,
+	initialize: (templateUrl) => migrateDatabase(templateUrl),
 });
 ```
 
@@ -98,9 +97,9 @@ Choose exactly one of `migrations` and `initialize`. The initializer is an Effec
 
 ```ts
 const layer = makePostgresTestLayer({
-  ...appClientOptions,
-  url: testDatabaseUrl,
-  migrations: appMigrations,
+	...appClientOptions,
+	url: testDatabaseUrl,
+	migrations: appMigrations,
 });
 ```
 
@@ -112,9 +111,9 @@ Each database pool opens connections on demand, with a default maximum of two: t
 
 ```ts
 const layer = makePostgresTestLayer({
-  url,
-  migrations,
-  maxConnections: 3,
+	url,
+	migrations,
+	maxConnections: 3,
 });
 ```
 
@@ -142,10 +141,12 @@ An isolated block can live inside the rollback tester above:
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 
 effectApp("commits in its own database", function* () {
-  yield* withIsolatedDatabase(Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    yield* sql`update items set name = 'Committed' where id = 1`;
-  }));
+	yield* withIsolatedDatabase(
+		Effect.gen(function* () {
+			const sql = yield* SqlClient.SqlClient;
+			yield* sql`update items set name = 'Committed' where id = 1`;
+		}),
+	);
 });
 ```
 
@@ -180,26 +181,24 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { appMigrations } from "./migrations.ts";
 
 const migrationLayer = makePostgresTestLayer({
-  url,
-  migrations: appMigrations,
-  prepare: false,
+	url,
+	migrations: appMigrations,
+	prepare: false,
 });
 
 const { effectApp: migrationTest } = makeEffectIt({
-  layer: migrationLayer,
-  clock: "live",
-  around: withIsolatedDatabase,
-  makeHarness: () => migrationSteps(appMigrations),
+	layer: migrationLayer,
+	clock: "live",
+	around: withIsolatedDatabase,
+	makeHarness: () => migrationSteps(appMigrations),
 });
 
 migrationTest("preserves contact emails in the new table", function* (steps) {
-  yield* steps.migrateTo("001_create_contacts");
-  const sql = yield* SqlClient.SqlClient;
-  yield* sql`insert into contacts (id, email) values (1, 'alice@example.test')`;
-  yield* steps.migrateToLatest;
-  expect(yield* sql`select contact_id, address from emails`).toEqual([
-    { contact_id: 1, address: "alice@example.test" },
-  ]);
+	yield* steps.migrateTo("001_create_contacts");
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`insert into contacts (id, email) values (1, 'alice@example.test')`;
+	yield* steps.migrateToLatest;
+	expect(yield* sql`select contact_id, address from emails`).toEqual([{ contact_id: 1, address: "alice@example.test" }]);
 });
 ```
 
@@ -237,15 +236,15 @@ The assertion uses the SQL `Model`'s selected database fields, including generat
 
 Import each name from the module that defines it. The package has no root entry.
 
-| Module | Exports |
-| --- | --- |
-| `@shivaedev/test-sql/server/postgres.ts` | `makePostgresTestLayer({ url, migrations?, initialize?, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
-| `@shivaedev/test-sql/server/withTestTransaction.ts` | `withTestTransaction(effect)` |
-| `@shivaedev/test-sql/server/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)` |
-| `@shivaedev/test-sql/server/database.ts` | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate` |
-| `@shivaedev/test-sql/server/migrationSteps.ts` | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }` |
-| `@shivaedev/test-sql/server/migrationUpgrade.ts` | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn` |
-| `@shivaedev/test-sql/server/assertModelColumns.ts` | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch` |
+| Module                                               | Exports                                                                                                                                                                                    |
+| ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `@shivaedev/test-sql/server/postgres.ts`             | `makePostgresTestLayer({ url, migrations?, initialize?, fixtures?, maxConnections?, prepare?, transformQueryNames?, transformResultNames? })`, `PostgresTestOptions`, `PostgresTestLoader` |
+| `@shivaedev/test-sql/server/withTestTransaction.ts`  | `withTestTransaction(effect)`                                                                                                                                                              |
+| `@shivaedev/test-sql/server/withIsolatedDatabase.ts` | `withIsolatedDatabase(effect, { template? }?)`                                                                                                                                             |
+| `@shivaedev/test-sql/server/database.ts`             | `PostgresTestDatabase`, `PostgresTestDatabaseService`, `PostgresTestServices`, `PostgresTestTemplate`                                                                                      |
+| `@shivaedev/test-sql/server/migrationSteps.ts`       | `migrationSteps(appMigrations)` returning `{ migrateTo(name), migrateToLatest }`                                                                                                           |
+| `@shivaedev/test-sql/server/migrationUpgrade.ts`     | `migrationUpgrade({ migrations, upTo, table })`, `MigrationUpgradeOptions`, `PostgresColumn`                                                                                               |
+| `@shivaedev/test-sql/server/assertModelColumns.ts`   | `assertModelColumns(columns, model, types)`, `ModelColumnMismatch`                                                                                                                         |
 
 `url` is a redacted PostgreSQL URL for an existing administrative database. `PostgresTestDatabase` supplies the current database's redacted `url`, an `awaitCleanup: Effect<void>` drain, a scoped `isolated` Effect that acquires a migrated clone's service Context, and `clone(template)` for an explicit `"empty"` or `"migrated"` choice. With `prepare: false`, both choices are empty. Prefer `withIsolatedDatabase` to acquire and release that Context around a test. Wrappers retain the body's result, failures and unmet service requirements, with native `SqlError` added for acquisition or transaction failures. Cleanup failures surface as SQL defects when the Layer closes. Drops that fail with connection exhaustion (SQLSTATE `53300`) retry every 100 ms of live time for up to 300 retries, even while a test clock is paused; if capacity does not return, the SQL defect remains visible. Startup sweeps databases left by dead processes on the same host and databases from the older unowned naming format. Databases owned by live processes or another host are retained, so local parallel workers keep their databases. Use the same host to reclaim its abandoned databases.
 

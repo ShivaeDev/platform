@@ -7,7 +7,7 @@ export function Metrics({ values }: { readonly values: Readonly<Record<string, n
 				<Card key={label}>
 					<CardContent>
 						<dt className="text-muted-foreground text-sm">{label}</dt>
-						<dd className="mt-1 font-semibold text-2xl tabular-nums">{value}</dd>
+						<dd className="mt-1 text-2xl font-semibold tabular-nums">{value}</dd>
 					</CardContent>
 				</Card>
 			))}

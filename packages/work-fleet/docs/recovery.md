@@ -59,7 +59,6 @@ Without a publication integration, a missing acknowledged turn stays under obser
 When the provider cannot find an accepted worker or repair turn, Fleet checks that its thread is idle before replacing it. An active thread retains execution ownership for a five-minute visibility grace period, then needs a decision if it is still active.
 
 Fleet then checks the item’s remote branch and all PR states:
-
 - With neither published, it records the missing-turn evidence, retires that execution and relaunches automatically.
 - With a branch or open PR, it starts a repair turn on a fresh thread and instructs it to reuse that branch and PR.
 - A merged or closed PR prevents relaunch and needs delivery inspection.

@@ -50,7 +50,7 @@ function GroupSection({ children, count, group }: { readonly children: ReactNode
 	return (
 		<Collapsible className="group/work" data-goal-group={group}>
 			<h3>
-				<CollapsibleTrigger className={cn(buttonVariants({ variant: "ghost" }), "-ml-2 font-semibold text-base")}>
+				<CollapsibleTrigger className={cn(buttonVariants({ variant: "ghost" }), "-ml-2 text-base font-semibold")}>
 					<ChevronRight aria-hidden="true" className="transition-transform group-data-open/work:rotate-90" />
 					{group} ({count})
 				</CollapsibleTrigger>

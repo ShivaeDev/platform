@@ -36,7 +36,7 @@ export function DocumentContext({ document: data }: { readonly document: Documen
 			ref={contextRef}
 		>
 			{(details || data.reading?.raw !== undefined) && (
-				<div className="rounded-lg border border-border p-4">
+				<div className="border-border rounded-lg border p-4">
 					<Tabs onValueChange={setTab} value={tab}>
 						<TabsList aria-label="Item context" className="w-full">
 							<TabsTrigger value="details">Details</TabsTrigger>

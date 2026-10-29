@@ -10,25 +10,30 @@ The file's frontmatter records direction and the reviewed source SHA-256. Its bo
 
 ```markdown
 ---
+
 id: handoff.search.keyboard.1
 handoff:
-  item: work.search
-  recipient: agent-navigation
-  state: requested
-  source: items/search.md
-  reviewed_revision: 691e2b8c3ca54cd66afa1533e9917cbef69e8a13a5bb79275abf65a101ee6dde
-  prepared_at: 1791319869349
-  goal: Fix keyboard focus
-  constraints: Preserve keyboard navigation and local-only operation.
-  next_action: Inspect the current source and report browser evidence.
+item: work.search
+recipient: agent-navigation
+state: requested
+source: items/search.md
+reviewed_revision: 691e2b8c3ca54cd66afa1533e9917cbef69e8a13a5bb79275abf65a101ee6dde
+prepared_at: 1791319869349
+goal: Fix keyboard focus
+constraints: Preserve keyboard navigation and local-only operation.
+next_action: Inspect the current source and report browser evidence.
 ---
+
 ---
+
 id: work.search
 kind: task
 criteria:
-  - id: focus
-    text: Escape returns focus to the opening control
+- id: focus
+  text: Escape returns focus to the opening control
+
 ---
+
 # Keyboard focus
 
 Keep the source readable.

@@ -19,7 +19,7 @@ export function JobDetail({
 	const state = useQuery(api.job.query({ id, queue }));
 	return (
 		<section aria-label="Job detail">
-			<h2 className="mb-4 font-semibold text-xl">Job detail</h2>
+			<h2 className="mb-4 text-xl font-semibold">Job detail</h2>
 			<QueryPanel state={state}>{(job) => (Option.isSome(job) ? <JobRecord job={job.value} retry={retry} /> : <p>Job not found.</p>)}</QueryPanel>
 		</section>
 	);
@@ -29,7 +29,7 @@ export function JobRecord({ job, retry }: { readonly job: AdminJob; readonly ret
 	return (
 		<Card>
 			<CardContent className="min-w-0 space-y-4">
-				<dl className="grid gap-3 break-words text-sm sm:grid-cols-2">
+				<dl className="grid gap-3 text-sm break-words sm:grid-cols-2">
 					{Object.entries({
 						Attempt: job.attempt,
 						Completed: Option.match(job.completedOn, { onNone: () => "—", onSome: DateTime.formatIso }),
@@ -47,14 +47,14 @@ export function JobRecord({ job, retry }: { readonly job: AdminJob; readonly ret
 					))}
 				</dl>
 				<h3 className="font-medium">Payload</h3>
-				<pre className="overflow-auto rounded-md bg-muted p-3 text-xs">{JSON.stringify(job.data, null, 2)}</pre>
+				<pre className="bg-muted overflow-auto rounded-md p-3 text-xs">{JSON.stringify(job.data, null, 2)}</pre>
 				<h3 className="font-medium">Output</h3>
-				<pre className="overflow-auto rounded-md bg-muted p-3 text-xs">{JSON.stringify(job.output, null, 2)}</pre>
+				<pre className="bg-muted overflow-auto rounded-md p-3 text-xs">{JSON.stringify(job.output, null, 2)}</pre>
 				{job.sourceId !== undefined && (
 					<>
 						<h3 className="font-medium">Dead-letter source</h3>
-						<p className="break-all text-sm">{Option.getOrElse(job.sourceId, () => "Unknown original")}</p>
-						<pre className="overflow-auto rounded-md bg-muted p-3 text-xs">{JSON.stringify(job.sourceOutput, null, 2)}</pre>
+						<p className="text-sm break-all">{Option.getOrElse(job.sourceId, () => "Unknown original")}</p>
+						<pre className="bg-muted overflow-auto rounded-md p-3 text-xs">{JSON.stringify(job.sourceOutput, null, 2)}</pre>
 					</>
 				)}
 				{retry !== undefined && job.state === "failed" && job.sourceId === undefined && <RetryControl job={job} retry={retry} />}

@@ -48,13 +48,13 @@ function ReadingLinks({
 }) {
 	return (
 		<section aria-label={title}>
-			<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">{title}</h2>
+			<h2 className="text-muted-foreground mb-2 px-2 text-xs font-semibold">{title}</h2>
 			<ul className="m-0 grid list-none gap-1 p-0">
 				{items.map((item) => (
 					<li className="min-w-0" key={item.file}>
 						<a
 							aria-current={item.file === current ? "page" : undefined}
-							className="block truncate rounded-md px-2 py-1 text-foreground text-sm no-underline outline-none hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50 aria-[current=page]:font-medium"
+							className="text-foreground hover:bg-muted focus-visible:ring-ring/50 block truncate rounded-md px-2 py-1 text-sm no-underline outline-none focus-visible:ring-3 aria-[current=page]:font-medium"
 							href={fileUrl(item.file)}
 							title={item.title}
 						>

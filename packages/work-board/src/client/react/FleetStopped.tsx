@@ -38,7 +38,7 @@ function StartCommand({ command }: { readonly command: string }) {
 				{/* A wrapping field shows the whole command on a phone; a one-line input opens scrolled to its end. */}
 				<Textarea
 					aria-label="Command to start Fleet"
-					className="wrap-anywhere min-h-0 font-mono text-xs"
+					className="min-h-0 font-mono text-xs wrap-anywhere"
 					readOnly
 					ref={fieldRef}
 					rows={1}
@@ -46,7 +46,7 @@ function StartCommand({ command }: { readonly command: string }) {
 				/>
 				<CopyButton aria-label="Copy the command to start Fleet" onClick={handleCopy} />
 			</div>
-			<p className={status ? "m-0 text-muted-foreground text-xs" : "sr-only"} data-copy-status role="status">
+			<p className={status ? "text-muted-foreground m-0 text-xs" : "sr-only"} data-copy-status role="status">
 				{status}
 			</p>
 		</div>

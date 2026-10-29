@@ -5,10 +5,10 @@ trustPolicyExclude:
   - semver@6.3.1
 
 # Framework releases must be usable together as soon as they publish.
-minimumReleaseAgeExclude: ["@shivaedev/*"]
+minimumReleaseAgeExclude: [ "@shivaedev/*" ]
 
 # Applications depend on @shivaedev/platform alone; hoisting links the pieces it brings so they resolve by their own names.
-publicHoistPattern: ["@shivaedev/*"]
+publicHoistPattern: [ "@shivaedev/*" ]
 
 overrides:
   # Recharts pins an unattested reselect release; use its attested compatible successor.
@@ -21,7 +21,7 @@ allowBuilds:
 
 catalog:
   shadcn: 4.22.1
-  lucide-react: 1.60.0
+  lucide-react: 1.61.0
   "cn": 0.5.0
   "@base-ui/react": 1.9.0
   "recharts": 3.10.1

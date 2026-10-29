@@ -12,12 +12,14 @@ A task is an ordinary Board file:
 
 ```markdown
 ---
+
 id: task.retry-budget
 kind: task
 status: ready
 fleet: approved
 areas: [work-fleet]
 ---
+
 # Cap provider retries at five attempts
 ```
 
@@ -37,11 +39,11 @@ One daemon serves each Board folder. It is the only writer of Fleet's records; e
 
 Each item moves through a small set of stages, shared with Board:
 
-| Concept | Words |
-| --- | --- |
-| Board document kind | `goal`, `task`, `question`, `report` |
-| Authored Board status | `draft`, `ready`, `done`, `deferred`, `dropped` |
-| Fleet stage | `queued`, `working`, `reviewing`, `waiting`, `done`, `released` |
+| Concept               | Words                                                           |
+| --------------------- | --------------------------------------------------------------- |
+| Board document kind   | `goal`, `task`, `question`, `report`                            |
+| Authored Board status | `draft`, `ready`, `done`, `deferred`, `dropped`                 |
+| Fleet stage           | `queued`, `working`, `reviewing`, `waiting`, `done`, `released` |
 
 The [Board vocabulary](https://github.com/ShivaeDev/platform/blob/main/packages/work-board/README.md#work-vocabulary) defines each authored state's meaning, approval, ownership, deliverables and question fields. Fleet keeps resumable execution steps in `record.step` beneath the shared `record.stage`. Stored records, status files, CLI and MCP projections use the same stages. Review, required-check validation and delivery observation all show as `reviewing`.
 
@@ -65,23 +67,23 @@ Put `fleet.config.json` in the Board folder. For `up` or `serve`, `--config <fil
 
 ```json
 {
-  "provider": "cloud",
-  "cloud": {
-    "environmentId": "<environment-config-id>",
-    "cwd": "<workspace-path>"
-  },
-  "worker": {
-    "branchPrefix": "<branch-prefix>",
-    "sharedEnvironment": "<environment-script-path>"
-  },
-  "database": {
-    "url": "<postgresql-url>"
-  },
-  "launch": {
-    "model": "<model>",
-    "effort": "<reasoning-effort>",
-    "serviceTier": "<service-tier>"
-  }
+	"provider": "cloud",
+	"cloud": {
+		"environmentId": "<environment-config-id>",
+		"cwd": "<workspace-path>"
+	},
+	"worker": {
+		"branchPrefix": "<branch-prefix>",
+		"sharedEnvironment": "<environment-script-path>"
+	},
+	"database": {
+		"url": "<postgresql-url>"
+	},
+	"launch": {
+		"model": "<model>",
+		"effort": "<reasoning-effort>",
+		"serviceTier": "<service-tier>"
+	}
 }
 ```
 
@@ -102,7 +104,6 @@ Each task can override `launch` per field, as described under [Approve a task](#
 #### Choose how results are reviewed
 
 Set top-level `review` to `false` (off), `"advisory"` (review without sending findings back to the worker), or `true` (blocking, the default when omitted).
-
 - Off sends delivered PRs straight to required check validation.
 - Advisory runs the independent reviewer, records its verdict and continues to required check validation and the ready-to-merge decision even when it requests changes or returns a malformed reply.
 - Blocking sends requested changes to repair.
@@ -117,12 +118,12 @@ Set optional `worker.reviewerGuidance` to repository-specific review instruction
 
 ```json
 {
-  "worker": {
-    "branchPrefix": "<branch-prefix>",
-    "sharedEnvironment": "<environment-script-path>",
-    "workerGuidance": { "file": "<worker-guidance-file>" },
-    "reviewerGuidance": "<review instructions for your repository>"
-  }
+	"worker": {
+		"branchPrefix": "<branch-prefix>",
+		"sharedEnvironment": "<environment-script-path>",
+		"workerGuidance": { "file": "<worker-guidance-file>" },
+		"reviewerGuidance": "<review instructions for your repository>"
+	}
 }
 ```
 
@@ -140,8 +141,8 @@ Every implementer that launches while earlier PRs wait to merge adds a PR that w
 
 ```json
 {
-  "concurrency": 20,
-  "openPullRequests": { "ease": 6, "max": 15 }
+	"concurrency": 20,
+	"openPullRequests": { "ease": 6, "max": 15 }
 }
 ```
 
@@ -278,7 +279,7 @@ Two areas overlap when they are equal or one is a `/`-prefix of the other: `work
 id: task.follow-up
 kind: task
 fleet: approved
-areas: [work-fleet, work-board]
+areas: [ work-fleet, work-board ]
 relationships:
   - kind: depends_on
     target: task.foundation
@@ -313,7 +314,7 @@ A validated no-change outcome qualifies on its accepted brief revision; bookkeep
 A task that migrates a shared catalog, release-note format or repository-wide name can declare `sweep` as a nonempty list of repository-relative path globs:
 
 ```yaml
-sweep: ["packages/*/changes/**", "pnpm-workspace.yaml", "**/package.json"]
+sweep: [ "packages/*/changes/**", "pnpm-workspace.yaml", "**/package.json" ]
 ```
 
 Use `sweep: ['*']` to cover every path. Board validates the list; absolute paths, parent-directory segments, empty lists and non-string entries are invalid.
@@ -326,6 +327,7 @@ After the sweep merges, each held PR receives one repair turn on its existing br
 
 ```markdown
 ---
+
 id: fleet.small-fix
 kind: task
 fleet: approved
@@ -345,11 +347,13 @@ Declare `delivers: report` on an approved task to request research. Omit the fie
 
 ```markdown
 ---
+
 id: research.example
 kind: task
 fleet: approved
 delivers: report
 ---
+
 # Compare the available approaches
 ```
 
@@ -378,7 +382,6 @@ Explicit dispatch can also prepare a fresh cycle for approved, open work after r
 #### Know who must act
 
 Waiting records and views carry `attentionOwner`:
-
 - `maintainer` for scope decisions or merging a reviewed PR;
 - `orchestrator` for routine worker questions, result inspection and retry;
 - `automation` for unfinished dependencies, missing host integrations, occupied capacity or pending checks.
@@ -516,23 +519,29 @@ work-fleet watch --events released
 
 Use `--json` for one JSON object per line, `--pr-events false` to disable PR monitoring, or `--heartbeat <seconds>` to emit quiet heartbeats. Stop with Ctrl-C or `--timeout <seconds>` (exit 4). `--events` accepts a comma-separated list of the following kinds; omitted, every kind except `released` is enabled. Unknown kinds fail at startup. With `--events` or `--json`, positional work IDs restrict the continuous stream to those items.
 
-| Kind | Transition |
-| --- | --- |
-| `waiting-on-orchestrator` | Work needs orchestrator action, including a reviewed PR ready to merge. |
-| `waiting-on-you` | Work needs a maintainer decision. |
-| `done` | Fleet accepts completion. |
-| `released` | Fleet releases ownership. |
-| `stuck` | Working or reviewing work has no progress for `--stuck-after` seconds (default 1800). Further progress permits a later stuck event. |
-| `dispatch-failed` | Background dispatch fails; ordinary dependency and area waits are excluded. |
-| `answer-failed` | A recorded answer fails to apply. |
-| `board-answer` | Another person answers a Board question. |
-| `pr-merged`, `pr-closed` | A watched PR merges or closes. |
-| `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention. |
+| Kind                                                          | Transition                                                                                                                          |
+| ------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| `waiting-on-orchestrator`                                     | Work needs orchestrator action, including a reviewed PR ready to merge.                                                             |
+| `waiting-on-you`                                              | Work needs a maintainer decision.                                                                                                   |
+| `done`                                                        | Fleet accepts completion.                                                                                                           |
+| `released`                                                    | Fleet releases ownership.                                                                                                           |
+| `stuck`                                                       | Working or reviewing work has no progress for `--stuck-after` seconds (default 1800). Further progress permits a later stuck event. |
+| `dispatch-failed`                                             | Background dispatch fails; ordinary dependency and area waits are excluded.                                                         |
+| `answer-failed`                                               | A recorded answer fails to apply.                                                                                                   |
+| `board-answer`                                                | Another person answers a Board question.                                                                                            |
+| `pr-merged`, `pr-closed`                                      | A watched PR merges or closes.                                                                                                      |
+| `pr-dequeued`, `pr-stuck`, `pr-conflict`, `pr-auto-merge-off` | A watched PR needs queue or merge attention.                                                                                        |
 
 Text events start with the event kind followed by named JSON values, so multiline details stay on one line. With `--json`, item events carry `kind` and `workId`, plus `reason` for waits and failures, and `pr` and `head` when Fleet has a result. A ready PR therefore includes its reason, PR URL and reviewed head SHA:
 
 ```json
-{"kind":"waiting-on-orchestrator","workId":"one","pr":"https://github.com/example/repository/pull/7","head":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","reason":"Reviewed PR is ready to merge"}
+{
+	"kind": "waiting-on-orchestrator",
+	"workId": "one",
+	"pr": "https://github.com/example/repository/pull/7",
+	"head": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+	"reason": "Reviewed PR is ready to merge"
+}
 ```
 
 `watch <ids...>` without event flags prints text outcomes once and exits when every selected item has reported; `watch --follow` keeps printing outcomes for all or selected items. The [watch guide](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/docs/watching.md) covers heartbeats, reconnection, deduplication, Board answer and PR events, and how followers handle a newer daemon.
@@ -543,29 +552,29 @@ Text events start with the event kind followed by named JSON values, so multilin
 
 ```json
 {
-  "provider": "cloud",
-  "cloud": {
-    "environmentId": "<environment-config-id>",
-    "cwd": "<workspace-path>",
-    "threadNamePrefix": "Fleet: "
-  },
-  "worker": {
-    "branchPrefix": "fleet/",
-    "sharedEnvironment": "<environment-script-path>",
-    "workerGuidance": { "file": "worker.md" },
-    "reviewerGuidance": { "file": "reviewer.md" }
-  },
-  "database": {
-    "url": "<postgresql-url>",
-    "maxConnections": 20
-  },
-  "repository": { "remote": "origin", "branch": "main" },
-  "result": "github",
-  "review": true,
-  "concurrency": 20,
-  "backlog": 40,
-  "openPullRequests": { "ease": 6, "max": 15 },
-  "stallMinutes": 30
+	"provider": "cloud",
+	"cloud": {
+		"environmentId": "<environment-config-id>",
+		"cwd": "<workspace-path>",
+		"threadNamePrefix": "Fleet: "
+	},
+	"worker": {
+		"branchPrefix": "fleet/",
+		"sharedEnvironment": "<environment-script-path>",
+		"workerGuidance": { "file": "worker.md" },
+		"reviewerGuidance": { "file": "reviewer.md" }
+	},
+	"database": {
+		"url": "<postgresql-url>",
+		"maxConnections": 20
+	},
+	"repository": { "remote": "origin", "branch": "main" },
+	"result": "github",
+	"review": true,
+	"concurrency": 20,
+	"backlog": 40,
+	"openPullRequests": { "ease": 6, "max": 15 },
+	"stallMinutes": 30
 }
 ```
 
@@ -609,36 +618,34 @@ export const waiting = Effect.scoped(
 
 #### CLI reference
 
-| Command | Behavior |
-|---|---|
-| `work-fleet up <board-dir> [--port <port>] [--board-port <port>]` | Supervises Fleet and Board for one directory. |
-| `work-fleet up <board-dir> --status [--json]` | Shows supervised processes and the shared log path. |
-| `work-fleet down <board-dir>` | Stops both processes and releases the directory. |
-| `work-fleet serve <board-dir> [--port <port>]` | Starts the local HTTP RPC daemon, admits approved work, dispatches queued items and reconciles running work. |
-| `work-fleet reserve-pr <url> [--areas <area> ...] [--port <port>]` | Reserves a foreign PR using matching Board areas or the supplied areas. |
-| `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]` | Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims. |
-| `work-fleet status [--port <port>]` | Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies. |
-| `work-fleet status <work-id> --json [--port <port>]` | Filters to one item and prints the views as JSON. |
-| `work-fleet close-finished-decisions [--dry-run] [--port <port>]` | Closes Fleet asks with applied answers, unanswered asks for finished Board work, and stale failed answers for done, released, deferred or dropped work; previews each closure with `--dry-run`. |
-| `work-fleet release <work-id>... [--port <port>]` | Releases terminal waiting items and records closing responses on their Board decisions. |
-| `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]` | Reassigns the exact current question to maintainer, orchestrator or automation. |
-| `work-fleet wait <work-id> --timeout <seconds> [--port <port>]` | Subscribes to daemon snapshots until an outcome or timeout. |
-| `work-fleet watch --board <dir> [--pr-events] [--events <kinds>] [--stuck-after <seconds>]` | Streams Fleet transitions, Board answers, optional PR events and daemon health as JSON. |
-| `work-fleet watch <work-ids...> [--follow]` | Reports text outcomes once, or continuously with `--follow`. |
-| `work-fleet continue <work-id> [message] [--port <port>]` | Continues terminal work on its existing worker thread; reads stdin when the message is omitted. |
-| `work-fleet stop <work-id> [--port <port>]` | Interrupts running work and records its closing Board response while preserving the branch and PR. |
-| `work-fleet answer <work-id> [text] [--release] [--port <port>]` | Answers the waiting worker question or Fleet decision; reads text from stdin when omitted, except with `--release`. |
-| `work-fleet name-threads [--port <port>]` | Names existing Cloud threads from Fleet records and reports each rename or failure. |
+- `work-fleet up <board-dir> [--port <port>] [--board-port <port>]`: Supervises Fleet and Board for one directory.
+- `work-fleet up <board-dir> --status [--json]`: Shows supervised processes and the shared log path.
+- `work-fleet down <board-dir>`: Stops both processes and releases the directory.
+- `work-fleet serve <board-dir> [--port <port>]`: Starts the local HTTP RPC daemon, admits approved work, dispatches queued items and reconciles running work.
+- `work-fleet reserve-pr <url> [--areas <area> ...] [--port <port>]`: Reserves a foreign PR using matching Board areas or the supplied areas.
+- `work-fleet dispatch <work-id> [--now [--ignore-areas]] [--port <port>]`: Prepares and dispatches one approved item; explicit dispatch can re-approve an edited revision. `--now` launches over capacity limits; `--ignore-areas` also skips area claims.
+- `work-fleet status [--port <port>]`: Prints Active, owner-grouped waiting and Completed views from stored records, then the config the daemon applies.
+- `work-fleet status <work-id> --json [--port <port>]`: Filters to one item and prints the views as JSON.
+- `work-fleet close-finished-decisions [--dry-run] [--port <port>]`: Closes Fleet asks with applied answers, unanswered asks for finished Board work, and stale failed answers for done, released, deferred or dropped work; previews each closure with `--dry-run`.
+- `work-fleet release <work-id>... [--port <port>]`: Releases terminal waiting items and records closing responses on their Board decisions.
+- `work-fleet reassign <work-id> <decision-id> <owner> [--port <port>]`: Reassigns the exact current question to maintainer, orchestrator or automation.
+- `work-fleet wait <work-id> --timeout <seconds> [--port <port>]`: Subscribes to daemon snapshots until an outcome or timeout.
+- `work-fleet watch --board <dir> [--pr-events] [--events <kinds>] [--stuck-after <seconds>]`: Streams Fleet transitions, Board answers, optional PR events and daemon health as JSON.
+- `work-fleet watch <work-ids...> [--follow]`: Reports text outcomes once, or continuously with `--follow`.
+- `work-fleet continue <work-id> [message] [--port <port>]`: Continues terminal work on its existing worker thread; reads stdin when the message is omitted.
+- `work-fleet stop <work-id> [--port <port>]`: Interrupts running work and records its closing Board response while preserving the branch and PR.
+- `work-fleet answer <work-id> [text] [--release] [--port <port>]`: Answers the waiting worker question or Fleet decision; reads text from stdin when omitted, except with `--release`.
+- `work-fleet name-threads [--port <port>]`: Names existing Cloud threads from Fleet records and reports each rename or failure.
 
 `wait` exits with these codes:
 
-| Code | Meaning |
-|---|---|
-| `0` | Completed. |
-| `1` | Error, including an unavailable daemon. |
-| `2` | Waiting on the named owner. |
-| `3` | Released. |
-| `4` | The requested timeout expired. |
+| Code | Meaning                                 |
+| ---- | --------------------------------------- |
+| `0`  | Completed.                              |
+| `1`  | Error, including an unavailable daemon. |
+| `2`  | Waiting on the named owner.             |
+| `3`  | Released.                               |
+| `4`  | The requested timeout expired.          |
 
 `work-fleet name-threads` reads all stored Fleet records, including archived cycles and acknowledged sessions without turns, and renames threads whose current names differ from their Fleet names. It reports each rename to stdout and each read or rename failure to stderr, then continues other sessions. Shared threads are visited once and retain their original role and context. Repeating the command skips successful names and retries failures.
 
@@ -688,7 +695,6 @@ export function launch(work: PrepareWork) {
 ```
 
 `launch` prepares one item and runs one scheduler pass. Run it with your composed Fleet Layer: provide `BoardGateway`, `FleetRepository`, `FleetPolicy`, `FleetIntegrations` and `SessionService` to `Fleet.layer`. Composed hosts call the same paths as the CLI through `Fleet`, for example `fleet.reassign(workId, decisionId, attentionOwner)` and `fleet.continue(workId, message)`.
-
 - `BoardGateway` reads Board context and publishes decisions, reports and responses. `markdownBoard(root)` from `@shivaedev/work-fleet/board/markdown.ts` is the Markdown gateway. Custom gateways implement `report` with the same immutable, idempotent boundary as Board's durable publisher, and `respond` to record closing responses for `stop`.
 - `FleetRepository` stores records. `postgresFleetRepository(namespace?)` from `@shivaedev/work-fleet/engine/repository.ts` supplies durable SQL attachments on a native `SqlClient`.
 - `FleetPolicy` carries capacity, launch settings, quota and review settings. Set `FleetPolicy.review` to `false` to skip reviewer sessions; `FleetPolicy.launch` supplies reviewer launch settings and `FleetPolicy.reviewerGuidance` repository-specific validation instructions, which the command host resolves from `worker.reviewerGuidance`.
@@ -720,7 +726,6 @@ pnpm add --save-dev @shivaedev/work-fleet effect @effect/platform-node @effect/p
 The package provides the `work-fleet` command and brings Work Board with it. Node 24 or newer is required. The peer ranges in the [manifest](https://github.com/ShivaeDev/platform/blob/main/packages/work-fleet/package.json) decide which Effect versions resolve. Modules are imported by path, such as `@shivaedev/work-fleet/fleet.ts`.
 
 A running host needs:
-
 - PostgreSQL, reachable at `database.url`.
 - `git` on the path, with `merge-tree --write-tree`. The Board folder sits inside a Git checkout of the repository the workers change, and Fleet fetches `repository.remote` and `repository.branch` there.
 - For `"provider": "cloud"`, a Codex Cloud environment and a Codex login file; the Codex CLI refreshes an expired login. For `"provider": "local"`, a Codex app-server on a loopback WebSocket.

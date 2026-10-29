@@ -14,7 +14,7 @@ const markers = { added: "+", context: " ", removed: "-" };
 export function CodePreview({ label, lines }: { readonly label: string; readonly lines: readonly CodePreviewLine[] }) {
 	return (
 		<section aria-label={label}>
-			<pre className="overflow-x-auto rounded-md border bg-muted/30 p-4 font-mono text-sm">
+			<pre className="bg-muted/30 overflow-x-auto rounded-md border p-4 font-mono text-sm">
 				<code>
 					{lines.map((line) => (
 						<span className={`block ${styles[line.kind]}`} data-line-kind={line.kind} key={line.number}>

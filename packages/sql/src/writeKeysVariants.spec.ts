@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Order } from "effect";
 import { expect } from "vitest";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { hasBucketCopySource, hasBucketRows, writeKeys } from "#test/writeKeysStory.ts";
@@ -26,10 +26,10 @@ for (const operation of [
 			versionedUpdateVoid: () => versioned.updateVoid(input),
 		}[operation];
 		yield* action().pipe(Effect.asVoid, test.observePublication);
-		expect(test.publishedKeys().sort()).toEqual(
-			[
-				...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.listId(2), keys.bucket.owner("alice"), keys.bucket.owner("bob")]),
-			].sort(),
+		expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+			[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.listId(2), keys.bucket.owner("alice"), keys.bucket.owner("bob")])].sort(
+				Order.String,
+			),
 		);
 	});
 }
@@ -46,20 +46,26 @@ for (const operation of ["insertVoid", "insertMany", "insertOrIgnore", "versione
 			versionedInsertVoid: () => versioned.insertVoid(input),
 		}[operation];
 		yield* action().pipe(Effect.asVoid, test.observePublication);
-		expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(2), keys.bucket.listId(2), keys.bucket.owner("bob")])].sort());
+		expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+			[...invalidationKeys([keys.item(2), keys.bucket.listId(2), keys.bucket.owner("bob")])].sort(Order.String),
+		);
 	});
 }
 
 writeKeys.it("versioned deletes announce the old buckets without decoding a result row", [hasBucketRows(true)], function* (test) {
 	const { versioned, keys } = test.bucketRows();
 	yield* versioned.delete(1, 0).pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort());
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(Order.String),
+	);
 });
 
 writeKeys.it("removing a nullable bucket value still announces the old bucket", [hasBucketRows(true)], function* (test) {
 	const { rows, keys } = test.bucketRows();
 	yield* rows.updateVoid({ id: 1, listId: null, owner: "alice", slug: "note", version: 0 }).pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort());
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(Order.String),
+	);
 });
 
 writeKeys.it("recording only a table cannot cover a raw write beside a repository write", [hasBucketRows()], function* (test) {
@@ -80,7 +86,9 @@ writeKeys.it("recording only a table cannot cover a raw write beside a repositor
 writeKeys.it("coverage accepts repository record and bucket declarations", [hasBucketRows()], function* (test) {
 	const { rows, keys } = test.bucketRows();
 	yield* test.withChangeCoverage(rows.insert({ listId: 1, owner: "alice", slug: "covered" })).pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort());
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(Order.String),
+	);
 });
 
 writeKeys.it("a bulk insert keeps every record key and only its declared buckets beyond 1000 rows", [hasBucketRows()], function* (test) {
@@ -90,8 +98,8 @@ writeKeys.it("a bulk insert keeps every record key and only its declared buckets
 	const inserted = yield* rows
 		.insertMany(Array.from({ length: 1001 }, (_, index) => ({ listId: 1, owner: "alice", slug: `note-${index}` })))
 		.pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual(
-		[...invalidationKeys([...inserted.map(({ id }) => keys.item(id)), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(),
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([...inserted.map(({ id }) => keys.item(id)), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(Order.String),
 	);
 	expect(test.refreshed()).toEqual(["list 1"]);
 });
@@ -100,6 +108,8 @@ for (const operation of ["insertFromSelect", "insertFromSelectOrIgnore"] as cons
 	writeKeys.it(`${operation} announces the selected row's generated key and buckets`, [hasBucketRows(), hasBucketCopySource()], function* (test) {
 		const { rows, source, keys } = test.bucketRows();
 		yield* rows[operation](source.select(), { listId: "listId", owner: "owner", slug: "slug" }).pipe(test.observePublication);
-		expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(1), keys.bucket.listId(2), keys.bucket.owner("bob")])].sort());
+		expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+			[...invalidationKeys([keys.item(1), keys.bucket.listId(2), keys.bucket.owner("bob")])].sort(Order.String),
+		);
 	});
 }

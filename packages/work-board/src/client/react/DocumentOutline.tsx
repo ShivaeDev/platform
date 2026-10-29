@@ -11,13 +11,13 @@ const indents: Readonly<Record<number, string>> = { 3: "pl-6", 4: "pl-9", 5: "pl
 function OutlineLinks({ headings, onNavigate }: { readonly headings: readonly OutlineEntry[]; readonly onNavigate?: () => void }) {
 	const current = useCurrentHeading(headings);
 	return (
-		<ol className="m-0 list-none space-y-0.5 border-border border-l p-0">
+		<ol className="border-border m-0 list-none space-y-0.5 border-l p-0">
 			{headings.map((heading) => (
 				<li data-depth={heading.depth} key={heading.id}>
 					<a
 						aria-current={heading.id === current ? "location" : undefined}
 						className={cn(
-							"-ml-px block border-transparent border-l-2 py-0.5 pl-3 text-muted-foreground hover:text-foreground hover:underline aria-[current=location]:border-foreground aria-[current=location]:font-medium aria-[current=location]:text-foreground",
+							"text-muted-foreground hover:text-foreground aria-[current=location]:border-foreground aria-[current=location]:text-foreground -ml-px block border-l-2 border-transparent py-0.5 pl-3 hover:underline aria-[current=location]:font-medium",
 							indents[heading.depth],
 						)}
 						href={`#${heading.id}`}
@@ -37,7 +37,7 @@ export function DocumentOutline({ headings }: { readonly headings: readonly Outl
 	}
 	return (
 		<nav aria-label="Document outline" className="document-outline hidden text-sm lg:block">
-			<h2 className="mt-0 mb-3 font-semibold text-sm">On this page</h2>
+			<h2 className="mt-0 mb-3 text-sm font-semibold">On this page</h2>
 			<OutlineLinks headings={headings} />
 		</nav>
 	);

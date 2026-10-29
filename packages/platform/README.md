@@ -25,7 +25,7 @@ pnpm installs a dependency's dependencies out of an application's reach unless t
 Add `@shivaedev/platform` to `dependencies`, add `@shivaedev/test-story` and `@shivaedev/quality` to `devDependencies`, and hoist the scope in `pnpm-workspace.yaml`:
 
 ```yaml
-publicHoistPattern: ["@shivaedev/*"]
+publicHoistPattern: [ "@shivaedev/*" ]
 ```
 
 The application lists no piece beside platform, and no test piece beside `@shivaedev/test-story`, which brings `@shivaedev/test` and `@shivaedev/test-sql`. Quality checks this: `manifests/application` asks for the hoist setting and names any duplicate entry to remove, and `imports/manifest` and Biome's undeclared-dependency check accept an application's imports of the pieces its entry points bring. `create-app` writes this setup for a new application and `create-app update` brings an existing one to it.

@@ -5,7 +5,6 @@ You are changing the package that lets a test read like a short English story wh
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **The spec reads as a story.** A spec names traits and verbs in domain words and holds nothing else. Specs never write state by hand; setup belongs to kit traits and changes go through verbs. Readouts return values and specs state expectations. Any API that makes a spec longer or adds plumbing to it loses, even if it saves the kit author work.
 2. **The real engine runs.** The package never encourages a fake engine or a mocked step. Application stories follow the [story-testing skill](../skills/skills/story-testing/SKILL.md), including its distinction between faked preconditions and behaviour driven from outside. Keep that skill as the source of the story-writing rules; the README explains the package's API.
 3. **One definition per engine.** The kit owns the plumbing every engine shares, down to the test's `it` and the genre in its name; the engine's author fills in hooks and every type is inferred from them. There is one implementation, built on Effect, and an engine that needs no Effect plugs in with plain functions. Add a hook only when two real engines need it.
@@ -19,7 +18,6 @@ The package's own kits in `src/test-support/` follow the README's [verb shape](R
 ## Failure messages are for agents
 
 Every error and every failure appendix is written for an agent that may never have heard of this package and wants to fix the test, in the spirit of the Rust compiler:
-
 - The first line says what went wrong, in the engine's own words, with the data that pins it down.
 - A `help:` line says what this kind of failure means and what to change, in one or two sentences, so an agent new to the package can act and one used to it can skip it.
 - Point at places: the spec line where the story stopped, the kit that defines the traits, the command that reruns the test. One location, where it matters, beats one on every line. Prefer what is cheap and reliable, such as matching the spec's path in a stack, over machinery that parses or guesses.

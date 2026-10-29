@@ -8,11 +8,11 @@ A refresh should not blank a useful screen. A save response should not erase wha
 
 ```ts
 const editor = useEditor({
-  query: api.get.query({ id }),
-  fields: InvoiceLineFields,
-  values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
-  save: (values) => api.save.run({ id, ...values }),
-  runtime: InvoiceLinesClient.runtime,
+	query: api.get.query({ id }),
+	fields: InvoiceLineFields,
+	values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
+	save: (values) => api.save.run({ id, ...values }),
+	runtime: InvoiceLinesClient.runtime,
 });
 ```
 
@@ -44,7 +44,11 @@ For a screen without a session boundary, wrap it in the native provider:
 import { RegistryProvider } from "@effect/atom-react";
 
 export function App() {
-  return <RegistryProvider><Orders /></RegistryProvider>;
+	return (
+		<RegistryProvider>
+			<Orders />
+		</RegistryProvider>
+	);
 }
 ```
 
@@ -55,26 +59,23 @@ import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 import { makeOrderClient, OrderScreens } from "./orders.tsx";
 
 interface Session {
-  readonly id: string;
-  readonly credentialGeneration: number;
-  readonly token: string;
+	readonly id: string;
+	readonly credentialGeneration: number;
+	readonly token: string;
 }
 
-export function App({ session, recheck }: {
-  readonly session: Session | undefined;
-  readonly recheck: () => void;
-}) {
-  return (
-    <SessionBoundary
-      session={session}
-      identify={(current) => `${current.id}:${current.credentialGeneration}`}
-      connect={(current) => makeOrderClient(current.token)}
-      recheck={recheck}
-      signedOut={<p>Signed out</p>}
-    >
-      {(client) => <OrderScreens client={client} />}
-    </SessionBoundary>
-  );
+export function App({ session, recheck }: { readonly session: Session | undefined; readonly recheck: () => void }) {
+	return (
+		<SessionBoundary
+			session={session}
+			identify={(current) => `${current.id}:${current.credentialGeneration}`}
+			connect={(current) => makeOrderClient(current.token)}
+			recheck={recheck}
+			signedOut={<p>Signed out</p>}
+		>
+			{(client) => <OrderScreens client={client} />}
+		</SessionBoundary>
+	);
 }
 ```
 
@@ -91,14 +92,14 @@ import { bind } from "@shivaedev/contract/bind.ts";
 import { SessionBoundary } from "@shivaedev/react/client/sessionBoundary.ts";
 
 <SessionBoundary
-  session={session}
-  identify={(current) => current.generation}
-  connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
-  recheck={recheck}
-  signedOut={<p>Signed out</p>}
+	session={session}
+	identify={(current) => current.generation}
+	connect={(current, registry) => bind(Preferences, makePreferencesClient(current.token), { registry })}
+	recheck={recheck}
+	signedOut={<p>Signed out</p>}
 >
-  {(api) => <PreferencesScreen api={api} />}
-</SessionBoundary>
+	{(api) => <PreferencesScreen api={api} />}
+</SessionBoundary>;
 ```
 
 `Preferences` is the application's session-scoped contract, and `makePreferencesClient(token)` creates its native AtomRpc service with the transport credentials. A one-argument `connect` callback also works. The boundary allocates the registry before calling `connect`; an unchanged generation keeps its binding and state. Account replacement, sign-out and same-account re-entry dispose the old registry, private query tracking, live registrations and pending refreshes. Choose a generation that changes whenever the auth owner starts a new session.
@@ -113,9 +114,12 @@ import type { ResumeSource } from "@shivaedev/react/resumeSignal.ts";
 import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
 
 const resume: ResumeSource = (notify) => {
-  const stopApp = onAppResume(notify);
-  const stopNetwork = onNetworkReturn(notify);
-  return () => { stopApp(); stopNetwork(); };
+	const stopApp = onAppResume(notify);
+	const stopNetwork = onNetworkReturn(notify);
+	return () => {
+		stopApp();
+		stopNetwork();
+	};
 };
 const connect = () => bind(Notes, Client, { resume });
 ```
@@ -132,18 +136,28 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { NoticeHost, type Notice } from "@shivaedev/react/notices.ts";
 
 function renderNotice(notice: Notice) {
-  const action = notice.action;
-  return <article role="status">
-    <p>{notice.message}</p>
-    {action && <button disabled={action.pending} onClick={action.run}>{action.label}</button>}
-    {action && AsyncResult.isSuccess(action.result) && <p>Undo completed</p>}
-    {action && AsyncResult.isFailure(action.result) && <p>{Cause.pretty(action.result.cause)}</p>}
-    <button onClick={notice.dismiss}>Dismiss</button>
-  </article>;
+	const action = notice.action;
+	return (
+		<article role="status">
+			<p>{notice.message}</p>
+			{action && (
+				<button disabled={action.pending} onClick={action.run}>
+					{action.label}
+				</button>
+			)}
+			{action && AsyncResult.isSuccess(action.result) && <p>Undo completed</p>}
+			{action && AsyncResult.isFailure(action.result) && <p>{Cause.pretty(action.result.cause)}</p>}
+			<button onClick={notice.dismiss}>Dismiss</button>
+		</article>
+	);
 }
 
 function SessionScreens({ client }: { readonly client: AppClient }) {
-  return <NoticeHost render={renderNotice}><OrderScreens client={client} /></NoticeHost>;
+	return (
+		<NoticeHost render={renderNotice}>
+			<OrderScreens client={client} />
+		</NoticeHost>
+	);
 }
 ```
 
@@ -166,36 +180,43 @@ import * as Atom from "effect/reactivity/Atom";
 
 const report = Atom.make(Effect.succeed({ id: 1, title: "Quarterly report" }));
 const rename = Atom.fn<string>()((title) =>
-  title.trim() === ""
-    ? Effect.fail("Title required" as const)
-    : Effect.succeed({ id: 1, title: title.trim() }),
+	title.trim() === "" ? Effect.fail("Title required" as const) : Effect.succeed({ id: 1, title: title.trim() }),
 );
 
 function Report() {
-  const query = useQuery(report);
-  const action = useAction(rename);
-  return (
-    <section>
-      <QueryView
-        query={query}
-        content={(row) => <h1>{row.title}</h1>}
-        loading={(state) => <p>{state.refreshing ? "Refreshing…" : "Loading…"}</p>}
-        failure={(error, state) => (
-          <p role="alert">{String(error)} <button disabled={state.pending} onClick={state.refresh}>Retry</button></p>
-        )}
-      />
-      <button onClick={query.refresh}>Refresh</button>
-      <button disabled={action.pending} onClick={() => action.dispatch("Annual report")}>
-        Rename
-      </button>
-      {Option.isSome(action.data) && <output>{action.data.value.title}</output>}
-      {Option.isSome(action.cause) && <p role="alert">Could not rename</p>}
-    </section>
-  );
+	const query = useQuery(report);
+	const action = useAction(rename);
+	return (
+		<section>
+			<QueryView
+				query={query}
+				content={(row) => <h1>{row.title}</h1>}
+				loading={(state) => <p>{state.refreshing ? "Refreshing…" : "Loading…"}</p>}
+				failure={(error, state) => (
+					<p role="alert">
+						{String(error)}{" "}
+						<button disabled={state.pending} onClick={state.refresh}>
+							Retry
+						</button>
+					</p>
+				)}
+			/>
+			<button onClick={query.refresh}>Refresh</button>
+			<button disabled={action.pending} onClick={() => action.dispatch("Annual report")}>
+				Rename
+			</button>
+			{Option.isSome(action.data) && <output>{action.data.value.title}</output>}
+			{Option.isSome(action.cause) && <p role="alert">Could not rename</p>}
+		</section>
+	);
 }
 
 export function App() {
-  return <RegistryProvider><Report /></RegistryProvider>;
+	return (
+		<RegistryProvider>
+			<Report />
+		</RegistryProvider>
+	);
 }
 ```
 
@@ -208,14 +229,16 @@ For both queries and actions, a successful `undefined` is `Option.some(undefined
 The example's action returns a value; it does not persist the report or invalidate its query. In an application, use the native RPC query and mutation atoms instead:
 
 ```ts
-const notes = useQuery(NotesClient.query("ListNotes", undefined, {
-  reactivityKeys: ["notes"],
-}));
+const notes = useQuery(
+	NotesClient.query("ListNotes", undefined, {
+		reactivityKeys: ["notes"],
+	}),
+);
 const create = useAction(NotesClient.mutation("CreateNote"));
 
 create.dispatch({
-  payload: { title: "Morning walk" },
-  reactivityKeys: ["notes"],
+	payload: { title: "Morning walk" },
+	reactivityKeys: ["notes"],
 });
 ```
 
@@ -237,76 +260,99 @@ import { Option, Schema } from "effect";
 import { api, InvoiceLinesClient } from "./invoice-lines-client.ts";
 
 const InvoiceLineFields = Schema.Struct({
-  name: Schema.String,
-  quantity: Schema.NumberFromString,
+	name: Schema.String,
+	quantity: Schema.NumberFromString,
 });
 type Fields = typeof InvoiceLineFields.fields;
 
 function Inputs<A, E, ER>({ form }: { readonly form: Form<Fields, A, E, ER> }) {
-  const name = useField(form, "name");
-  const quantity = useField(form, "quantity");
-  return (
-    <>
-      <label>
-        Name
-        <input name="name" value={name.value} onBlur={name.onBlur}
-          onChange={(event) => name.onChange(event.target.value)} />
-      </label>
-      {name.error && <p role="alert">{name.error}</p>}
-      <label>
-        Quantity
-        <input name="quantity" value={quantity.value} onBlur={quantity.onBlur}
-          onChange={(event) => quantity.onChange(event.target.value)} />
-      </label>
-      {quantity.error && <p role="alert">{quantity.error}</p>}
-    </>
-  );
+	const name = useField(form, "name");
+	const quantity = useField(form, "quantity");
+	return (
+		<>
+			<label>
+				Name
+				<input name="name" value={name.value} onBlur={name.onBlur} onChange={(event) => name.onChange(event.target.value)} />
+			</label>
+			{name.error && <p role="alert">{name.error}</p>}
+			<label>
+				Quantity
+				<input name="quantity" value={quantity.value} onBlur={quantity.onBlur} onChange={(event) => quantity.onChange(event.target.value)} />
+			</label>
+			{quantity.error && <p role="alert">{quantity.error}</p>}
+		</>
+	);
 }
 
 export function InvoiceLineEditor({ id }: { readonly id: number }) {
-  const editor = useEditor({
-    query: api.get.query({ id }),
-    fields: InvoiceLineFields,
-    values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
-    save: (values) => api.save.run({ id, ...values }),
-    runtime: InvoiceLinesClient.runtime,
-  });
-  return (
-    <QueryView
-      query={editor.query}
-      loading={(query) => <p>{query.refreshing ? "Refreshing…" : "Loading…"}</p>}
-      failure={(_error, query) => (
-        <p role="alert">Could not load <button disabled={query.pending} onClick={query.refresh}>Retry</button></p>
-      )}
-      content={() => editor.form && (
-        <form onSubmit={(event) => { event.preventDefault(); editor.save(); }}>
-          <Inputs form={editor.form} />
-          {Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
-          <button type="submit" disabled={editor.saving}>Save</button>
-          <button type="button" onClick={editor.query.refresh}>Refresh</button>
-          <button type="button" onClick={editor.revert}>Revert</button>
-          <p>{editor.saving ? "Saving" : editor.dirty ? "Unsaved" : "Saved"}</p>
-        </form>
-      )}
-    />
-  );
+	const editor = useEditor({
+		query: api.get.query({ id }),
+		fields: InvoiceLineFields,
+		values: (line) => ({ name: line.name, quantity: String(line.quantity) }),
+		save: (values) => api.save.run({ id, ...values }),
+		runtime: InvoiceLinesClient.runtime,
+	});
+	return (
+		<QueryView
+			query={editor.query}
+			loading={(query) => <p>{query.refreshing ? "Refreshing…" : "Loading…"}</p>}
+			failure={(_error, query) => (
+				<p role="alert">
+					Could not load{" "}
+					<button disabled={query.pending} onClick={query.refresh}>
+						Retry
+					</button>
+				</p>
+			)}
+			content={() =>
+				editor.form && (
+					<form
+						onSubmit={(event) => {
+							event.preventDefault();
+							editor.save();
+						}}
+					>
+						<Inputs form={editor.form} />
+						{Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
+						<button type="submit" disabled={editor.saving}>
+							Save
+						</button>
+						<button type="button" onClick={editor.query.refresh}>
+							Refresh
+						</button>
+						<button type="button" onClick={editor.revert}>
+							Revert
+						</button>
+						<p>{editor.saving ? "Saving" : editor.dirty ? "Unsaved" : "Saved"}</p>
+					</form>
+				)
+			}
+		/>
+	);
 }
 
 export function InvoiceLineCreate() {
-  const create = useCreate({
-    fields: InvoiceLineFields,
-    initialValues: { name: "", quantity: "" },
-    create: api.create.run,
-    runtime: InvoiceLinesClient.runtime,
-  });
-  return (
-    <form onSubmit={(event) => { event.preventDefault(); create.save(); }}>
-      <Inputs form={create.form} />
-      {Option.isSome(create.failure) && <p role="alert">Could not create</p>}
-      <button type="submit" disabled={create.saving}>Create</button>
-      {Option.isSome(create.created) && <output>Created {create.created.value.name}</output>}
-    </form>
-  );
+	const create = useCreate({
+		fields: InvoiceLineFields,
+		initialValues: { name: "", quantity: "" },
+		create: api.create.run,
+		runtime: InvoiceLinesClient.runtime,
+	});
+	return (
+		<form
+			onSubmit={(event) => {
+				event.preventDefault();
+				create.save();
+			}}
+		>
+			<Inputs form={create.form} />
+			{Option.isSome(create.failure) && <p role="alert">Could not create</p>}
+			<button type="submit" disabled={create.saving}>
+				Create
+			</button>
+			{Option.isSome(create.created) && <output>Created {create.created.value.name}</output>}
+		</form>
+	);
 }
 ```
 
@@ -330,41 +376,44 @@ import { useEffect, useState } from "react";
 import { useCreate } from "@shivaedev/react/client/create.ts";
 
 type VersionedLine = {
-  readonly id: number;
-  readonly version: number;
-  readonly name: string;
-  readonly quantity: number;
+	readonly id: number;
+	readonly version: number;
+	readonly name: string;
+	readonly quantity: number;
 };
 
-export function OneShotEdit({ opening, onSaved }: {
-  readonly opening: VersionedLine;
-  readonly onSaved: (line: VersionedLine) => void;
-}) {
-  const [original] = useState(opening);
-  const edit = useCreate({
-    fields: InvoiceLineFields,
-    initialValues: { name: original.name, quantity: String(original.quantity) },
-    create: (values) => api.save.run({
-      id: original.id,
-      expectedVersion: original.version,
-      ...values,
-    }),
-    runtime: InvoiceLinesClient.runtime,
-  });
-  useEffect(() => {
-    if (Option.isSome(edit.created)) onSaved(edit.created.value);
-  }, [edit.created, onSaved]);
-  return (
-    <form onSubmit={(event) => { event.preventDefault(); edit.save(); }}>
-      <Inputs form={edit.form} />
-      {Option.isSome(edit.failure) && <p role="alert">
-        {edit.failure.value._tag === "Conflict"
-          ? "This line changed. Reopen it to use the latest version."
-          : "Could not save"}
-      </p>}
-      <button type="submit" disabled={edit.saving}>Save</button>
-    </form>
-  );
+export function OneShotEdit({ opening, onSaved }: { readonly opening: VersionedLine; readonly onSaved: (line: VersionedLine) => void }) {
+	const [original] = useState(opening);
+	const edit = useCreate({
+		fields: InvoiceLineFields,
+		initialValues: { name: original.name, quantity: String(original.quantity) },
+		create: (values) =>
+			api.save.run({
+				id: original.id,
+				expectedVersion: original.version,
+				...values,
+			}),
+		runtime: InvoiceLinesClient.runtime,
+	});
+	useEffect(() => {
+		if (Option.isSome(edit.created)) onSaved(edit.created.value);
+	}, [edit.created, onSaved]);
+	return (
+		<form
+			onSubmit={(event) => {
+				event.preventDefault();
+				edit.save();
+			}}
+		>
+			<Inputs form={edit.form} />
+			{Option.isSome(edit.failure) && (
+				<p role="alert">{edit.failure.value._tag === "Conflict" ? "This line changed. Reopen it to use the latest version." : "Could not save"}</p>
+			)}
+			<button type="submit" disabled={edit.saving}>
+				Save
+			</button>
+		</form>
+	);
 }
 ```
 
@@ -380,14 +429,12 @@ A tagged error with string `_tag` and `message`, and a `field` naming a form fie
 const TitleFields = Schema.Struct({ title: Schema.String });
 
 const editor = useEditor({
-  query,
-  fields: TitleFields,
-  values: (row) => ({ title: row.title }),
-  save,
-  runtime,
-  rejectField: (error) => error._tag === "SubtitleRejected"
-    ? { field: "title", message: error.message }
-    : undefined,
+	query,
+	fields: TitleFields,
+	values: (row) => ({ title: row.title }),
+	save,
+	runtime,
+	rejectField: (error) => (error._tag === "SubtitleRejected" ? { field: "title", message: error.message } : undefined),
 });
 ```
 
@@ -401,21 +448,21 @@ The Effect overload of `useAction` accepts `notices.onSuccess(value, input)` and
 
 ```ts
 const remove = useAction(OrdersClient.runtime, api.remove.run, {
-  concurrent: true,
-  notices: {
-    onSuccess: (removed, input) => ({
-      message: `Removed ${input.title}`,
-      action: {
-        label: "Undo",
-        run: api.restore.run({
-          id: input.id,
-          title: input.title,
-          expectedVersion: removed.version,
-        }),
-      },
-    }),
-    onFailure: () => ({ message: "Could not remove this order" }),
-  },
+	concurrent: true,
+	notices: {
+		onSuccess: (removed, input) => ({
+			message: `Removed ${input.title}`,
+			action: {
+				label: "Undo",
+				run: api.restore.run({
+					id: input.id,
+					title: input.title,
+					expectedVersion: removed.version,
+				}),
+			},
+		}),
+		onFailure: () => ({ message: "Could not remove this order" }),
+	},
 });
 ```
 
@@ -427,16 +474,16 @@ The query and form in the same feature use their own feedback options:
 
 ```tsx
 const notes = useQuery(api.list.query(), {
-  notice: ({ refreshing }) => ({
-    message: refreshing ? "Refresh failed" : "Load failed",
-  }),
+	notice: ({ refreshing }) => ({
+		message: refreshing ? "Refresh failed" : "Load failed",
+	}),
 });
 const save = useCreate({
-  fields: TitleFields,
-  initialValues: { title: "" },
-  create: api.save.run,
-  runtime: NotesClient.runtime,
-  notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
+	fields: TitleFields,
+	initialValues: { title: "" },
+	create: api.save.run,
+	runtime: NotesClient.runtime,
+	notices: { onSuccess: (title) => ({ message: `Saved ${title}` }) },
 });
 ```
 
@@ -452,10 +499,10 @@ Pass the native runtime and the original bound command Effect to `useAction` whe
 
 ```tsx
 const rename = useAction(ReportsClient.runtime, api.rename.run, {
-  notices: {
-    onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
-    onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
-  },
+	notices: {
+		onSuccess: (saved, input) => ({ message: `Renamed ${input.id} to ${saved.title}` }),
+		onFailure: (_error, input) => ({ message: `Could not rename ${input.id}` }),
+	},
 });
 ```
 
@@ -475,21 +522,20 @@ Use `usePendingCommand` for a command acting on a query row, such as a list togg
 import * as Atom from "effect/reactivity/Atom";
 import { usePendingCommand } from "@shivaedev/react/client/pendingCommand.ts";
 
-const toggle = Atom.family((id: number) =>
-  ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })),
-);
+const toggle = Atom.family((id: number) => ItemsClient.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
 const list = api.list.query();
 
 function EnabledToggle({ row }: { readonly row: { readonly id: number; readonly enabled: boolean } }) {
-  const command = usePendingCommand(toggle(row.id), {
-    queries: [list],
-    value: row.enabled,
-    wanted: (input) => input.enabled,
-  });
-  return <button aria-pressed={command.value} disabled={command.pending}
-    onClick={() => command.dispatch({ enabled: !command.value })} type="button">
-    Enabled
-  </button>;
+	const command = usePendingCommand(toggle(row.id), {
+		queries: [list],
+		value: row.enabled,
+		wanted: (input) => input.enabled,
+	});
+	return (
+		<button aria-pressed={command.value} disabled={command.pending} onClick={() => command.dispatch({ enabled: !command.value })} type="button">
+			Enabled
+		</button>
+	);
 }
 ```
 
@@ -508,10 +554,13 @@ import { Effect } from "effect";
 import { actionTrace } from "@shivaedev/react/actionTrace.ts";
 
 const save = OrdersClient.runtime.fn((input: OrderInput) =>
-  actionTrace(Effect.gen(function* () {
-    yield* api.validate.run(input);
-    return yield* api.save.run(input);
-  }), "ui.saveOrder"),
+	actionTrace(
+		Effect.gen(function* () {
+			yield* api.validate.run(input);
+			return yield* api.save.run(input);
+		}),
+		"ui.saveOrder",
+	),
 );
 ```
 
@@ -539,48 +588,55 @@ import { api } from "./notes-client.ts";
 const registry = AtomRegistry.make();
 const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()();
 const Search = Schema.Struct({
-  page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
-    Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
-    Schema.withDecodingDefaultKey(Effect.succeed(1)),
-  ),
+	page: Schema.Number.check(Schema.isInt(), Schema.isGreaterThan(0)).pipe(
+		Schema.catchDecoding(() => Effect.succeed(Option.some(1))),
+		Schema.withDecodingDefaultKey(Effect.succeed(1)),
+	),
 });
 const note = createRoute({
-  getParentRoute: () => root,
-  path: "/notes/$id",
-  validateSearch: Schema.toStandardSchemaV1(Search),
-  ...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) =>
-    api.get.query({ id: params.id, page: search.page }),
-  ),
-  notFoundComponent: () => <h1>Note not found</h1>,
-  component: Note,
-  errorComponent: Failure,
+	getParentRoute: () => root,
+	path: "/notes/$id",
+	validateSearch: Schema.toStandardSchemaV1(Search),
+	...queryRoute(({ params, search }: { params: { id: string }; search: typeof Search.Type }) => api.get.query({ id: params.id, page: search.page })),
+	notFoundComponent: () => <h1>Note not found</h1>,
+	component: Note,
+	errorComponent: Failure,
 });
 const router = createRouter({
-  context: { registry },
-  routeTree: root.addChildren([note]),
-  defaultPendingMs: Infinity,
-  InnerWrap: Shell,
+	context: { registry },
+	routeTree: root.addChildren([note]),
+	defaultPendingMs: Infinity,
+	InnerWrap: Shell,
 });
 
 declare module "@tanstack/react-router" {
-  interface Register {
-    router: typeof router;
-  }
+	interface Register {
+		router: typeof router;
+	}
 }
 
 function Shell({ children }: { readonly children: ReactNode }) {
-  const pending = useRouterState({ select: (state) => state.isLoading });
-  return <main>{pending && <p>Loading…</p>}{children}</main>;
+	const pending = useRouterState({ select: (state) => state.isLoading });
+	return (
+		<main>
+			{pending && <p>Loading…</p>}
+			{children}
+		</main>
+	);
 }
 function Note() {
-  const query = useLoaderQuery(api.get.query({ ...note.useParams(), ...note.useSearch() }), note.useLoaderData());
-  return <h1>{query.data.title}</h1>;
+	const query = useLoaderQuery(api.get.query({ ...note.useParams(), ...note.useSearch() }), note.useLoaderData());
+	return <h1>{query.data.title}</h1>;
 }
 function Failure({ error }: ErrorComponentProps) {
-  return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
+	return <p role="alert">{Predicate.isTagged(error, "NoteMissing") ? "Note missing" : "Could not load"}</p>;
 }
 export function App() {
-  return <RegistryContext.Provider value={registry}><RouterProvider router={router} /></RegistryContext.Provider>;
+	return (
+		<RegistryContext.Provider value={registry}>
+			<RouterProvider router={router} />
+		</RegistryContext.Provider>
+	);
 }
 ```
 
@@ -617,51 +673,49 @@ import { auth, SignIn } from "./auth.tsx";
 
 const ReadNotes = permission("notes.read");
 const root = createRootRouteWithContext<{ registry: AtomRegistry.AtomRegistry }>()({
-  beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
+	beforeLoad: permissionGuard({ session: () => auth.session, signIn: "/login" }),
 });
 const note = createRoute({
-  getParentRoute: () => root,
-  path: "/notes/$id",
-  staticData: { permission: ReadNotes },
-  ...queryRoute(({ params }: { params: { id: string }; search: Record<string, never> }) =>
-    api.get.query({ id: params.id, page: 1 }),
-  ),
-  component: () => {
-    const query = useLoaderQuery(api.get.query({ ...note.useParams(), page: 1 }), note.useLoaderData());
-    return <h1>{query.data.title}</h1>;
-  },
+	getParentRoute: () => root,
+	path: "/notes/$id",
+	staticData: { permission: ReadNotes },
+	...queryRoute(({ params }: { params: { id: string }; search: Record<string, never> }) => api.get.query({ id: params.id, page: 1 })),
+	component: () => {
+		const query = useLoaderQuery(api.get.query({ ...note.useParams(), page: 1 }), note.useLoaderData());
+		return <h1>{query.data.title}</h1>;
+	},
 });
 const login = createRoute({
-  getParentRoute: () => root,
-  path: "/login",
-  validateSearch: (search: Record<string, unknown>) => ({
-    returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
-  }),
-  component: () => {
-    const { returnTo } = login.useSearch();
-    return <SignIn onSignedIn={() => router.navigate({ href: returnTo })} />;
-  },
+	getParentRoute: () => root,
+	path: "/login",
+	validateSearch: (search: Record<string, unknown>) => ({
+		returnTo: typeof search.returnTo === "string" ? search.returnTo : "/",
+	}),
+	component: () => {
+		const { returnTo } = login.useSearch();
+		return <SignIn onSignedIn={() => router.navigate({ href: returnTo })} />;
+	},
 });
 const router = createRouter({
-  context: { registry },
-  routeTree: root.addChildren([note, login]),
-  disableGlobalCatchBoundary: true,
+	context: { registry },
+	routeTree: root.addChildren([note, login]),
+	disableGlobalCatchBoundary: true,
 });
 
 function Controls() {
-  const can = useCan();
-  return can(ReadNotes) ? <button type="button">Read notes</button> : null;
+	const can = useCan();
+	return can(ReadNotes) ? <button type="button">Read notes</button> : null;
 }
 
 export function App({ session }: { readonly session: PermissionSession | undefined }) {
-  return (
-    <PermissionBoundary session={session} fallback={<h1>Permission denied</h1>}>
-      <RegistryContext.Provider value={registry}>
-        <Controls />
-        <RouterProvider router={router} />
-      </RegistryContext.Provider>
-    </PermissionBoundary>
-  );
+	return (
+		<PermissionBoundary session={session} fallback={<h1>Permission denied</h1>}>
+			<RegistryContext.Provider value={registry}>
+				<Controls />
+				<RouterProvider router={router} />
+			</RegistryContext.Provider>
+		</PermissionBoundary>
+	);
 }
 
 const showNotes = can(auth.session, ReadNotes);
@@ -676,21 +730,19 @@ const showNotes = can(auth.session, ReadNotes);
 `authAction` from `@shivaedev/react/client/authAction.ts` turns a Better Auth client call into a native action atom. Create it with the client, then pass it to `useAction` for the same `pending`, `data`, `cause`, `result` and `dispatch` shape as commands:
 
 ```tsx
-const signIn = authAction((credentials: { email: string; password: string }, signal) =>
-  authClient.signIn.email(credentials, { signal }),
-);
+const signIn = authAction((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
 
 function SignInButton({ email, password }: { email: string; password: string }) {
-  const action = useAction(signIn);
-  const failure = AsyncResult.error(action.result);
-  return (
-    <>
-      <button disabled={action.pending} onClick={() => action.dispatch({ email, password })}>
-        {action.pending ? "Signing in…" : "Sign in"}
-      </button>
-      {Option.isSome(failure) && <p role="alert">Sign-in failed</p>}
-    </>
-  );
+	const action = useAction(signIn);
+	const failure = AsyncResult.error(action.result);
+	return (
+		<>
+			<button disabled={action.pending} onClick={() => action.dispatch({ email, password })}>
+				{action.pending ? "Signing in…" : "Sign in"}
+			</button>
+			{Option.isSome(failure) && <p role="alert">Sign-in failed</p>}
+		</>
+	);
 }
 ```
 
@@ -700,19 +752,19 @@ The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and 
 
 ```tsx
 const authSession = authQuery((disableCookieCache: boolean, signal) =>
-  authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
+	authClient.getSession({ query: { disableCookieCache }, fetchOptions: { signal } }),
 );
 
 function Account() {
-  const query = useQuery(authSession(true));
-  const failure = AsyncResult.error(query.result);
-  return (
-    <>
-      {query.pending && <p>Loading…</p>}
-      {Option.isSome(query.data) && <p>{query.data.value?.user.name ?? "Signed out"}</p>}
-      {Option.isSome(failure) && <p role="alert">Could not read the session</p>}
-    </>
-  );
+	const query = useQuery(authSession(true));
+	const failure = AsyncResult.error(query.result);
+	return (
+		<>
+			{query.pending && <p>Loading…</p>}
+			{Option.isSome(query.data) && <p>{query.data.value?.user.name ?? "Signed out"}</p>}
+			{Option.isSome(failure) && <p role="alert">Could not read the session</p>}
+		</>
+	);
 }
 ```
 
@@ -751,9 +803,9 @@ Use native stale-while-revalidate policy when a resume should refresh only stale
 
 ```ts
 const query = Atom.swr(atom, {
-  focusSignal: resume,
-  revalidateOnFocus: true,
-  staleTime: "1 hour",
+	focusSignal: resume,
+	revalidateOnFocus: true,
+	staleTime: "1 hour",
 });
 ```
 
@@ -866,13 +918,13 @@ For a boundary fallback test, keep the warnings guard and declare the caught err
 const warnings = expectNoReactWarnings();
 
 screenStories.it("shows the route failure", [], async () => {
-  const onCaughtError = warnings.expectCaughtError((error) => error instanceof RouteFailure);
-  const view = await render(<RouteFailureScreen />, { onCaughtError });
-  try {
-    expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Route unavailable");
-  } finally {
-    await view.unmount();
-  }
+	const onCaughtError = warnings.expectCaughtError((error) => error instanceof RouteFailure);
+	const view = await render(<RouteFailureScreen />, { onCaughtError });
+	try {
+		expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Route unavailable");
+	} finally {
+		await view.unmount();
+	}
 });
 ```
 
@@ -882,13 +934,13 @@ Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their 
 
 `useQuery(atom)` and `useAction(atom)` return these shared fields:
 
-| Field | Meaning |
-| --- | --- |
-| `result` | Native `AsyncResult<A, E>`. |
-| `data` | `Option<A>` from the current or retained success. Queries can retain displayed data even when the native `result` has no value. |
-| `cause` | `Option<Cause<E>>` from a failed result. |
-| `pending` | The native result is waiting. |
-| `refreshing` | The result is waiting and successful data is available. |
+| Field        | Meaning                                                                                                                         |
+| ------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `result`     | Native `AsyncResult<A, E>`.                                                                                                     |
+| `data`       | `Option<A>` from the current or retained success. Queries can retain displayed data even when the native `result` has no value. |
+| `cause`      | `Option<Cause<E>>` from a failed result.                                                                                        |
+| `pending`    | The native result is waiting.                                                                                                   |
+| `refreshing` | The result is waiting and successful data is available.                                                                         |
 
 `useQuery(atom, options?)` adds `refresh(): void`; `useAction` adds `dispatch(input): void`. `QueryOptions.coalesceWindow` accepts a native Duration for live changed hints on contract-bound queries; it belongs to the query atom in its registry, so readers sharing that atom share the window. Omitting it uses the session default. `QueryOptions.notice` publishes a notice descriptor for a failed result. `QueryOptions.keepPreviousData` defaults to `false` and controls retention across query atom changes. Same-identity refresh retention is always enabled. `result` and `cause` describe the current native query even when `data` displays a previous atom's success. Success, input and typed failure types are inferred from the supplied atom. The Effect overload is `useAction(runtime, run, options?)`, where `ActionOptions` supplies `concurrent`, `notices`, `onSuccess(value, input)` and `onFailure(error, input)`; its shared state also includes the native runtime's typed failure.
 
@@ -915,6 +967,5 @@ pnpm add @tanstack/react-router
 ```
 
 The package needs Node 24 or newer.
-
 - Query identity, TTL, invalidation and action concurrency remain native atom policies. Put the registry at the lifetime boundary those policies need.
 - The package has no SSR registry/hydration adapter, offline write queue or optimistic reconciliation policy.

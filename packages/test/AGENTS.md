@@ -5,7 +5,6 @@ You are changing the shared path from a Vitest test to a real Effect program. A 
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Native Effect semantics.** Keep Context, Scope, typed failures, defects, interruption and clock selection intact. A readiness failure may be retried; a defect or interruption must escape.
 2. **One runner for every fixture.** Downstream testing helpers compose `makeEffectIt` rather than copying its lifetime or clock machinery. Database transactions, transport callers and story narration stay in the package that owns them.
 3. **Deliberate lifetimes.** The service Layer belongs to a test file and closes before that file completes; the harness and test run belong to one test. Shared services are not fresh application state. Preserve that distinction over convenience.

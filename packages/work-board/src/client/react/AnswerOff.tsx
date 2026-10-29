@@ -36,7 +36,7 @@ function PromptOff({ document, index, prompt }: { readonly document: Document; r
 	const authored = document.metadata.options !== undefined;
 	return (
 		<div className="space-y-2" data-prompt={prompt.id}>
-			<h3 className="font-semibold text-base">{authored ? "Options" : (heading.title ?? `Question ${index + 1}`)}</h3>
+			<h3 className="text-base font-semibold">{authored ? "Options" : (heading.title ?? `Question ${index + 1}`)}</h3>
 			{!authored && heading.rest ? <AnswerMarkdown className="text-sm" file={document.file} source={heading.rest} /> : null}
 			{prompt.options.length > 0 && (
 				<ul className="list-disc space-y-1 pl-5 text-sm">
@@ -55,7 +55,7 @@ export function AnswerOff({ document, request }: { readonly document: Document; 
 			{(request.prompts ?? []).map((prompt, index) => (
 				<PromptOff document={document} index={index} key={prompt.id} prompt={prompt} />
 			))}
-			<p className="rounded-md bg-muted px-3 py-2 text-muted-foreground text-sm" role="status">
+			<p className="bg-muted text-muted-foreground rounded-md px-3 py-2 text-sm" role="status">
 				Answering is turned off on this Board.
 			</p>
 		</>

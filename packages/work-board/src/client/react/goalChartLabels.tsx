@@ -42,7 +42,7 @@ function CriterionLabel({
 }) {
 	return (
 		<foreignObject className="overflow-visible" height={height} width={width} x={0} y={y - height / 2}>
-			<div className="flex h-full items-center text-foreground text-sm" data-goal-criterion-label="">
+			<div className="text-foreground flex h-full items-center text-sm" data-goal-criterion-label="">
 				{row.href ? (
 					<a className="truncate underline-offset-4 hover:underline" href={row.href} title={row.text}>
 						{row.text}
@@ -65,7 +65,7 @@ export function CountLabel({ fill, height, value, width, x, y }: LabelProps) {
 	}
 	return (
 		<text
-			className="font-medium text-xs tabular-nums"
+			className="text-xs font-medium tabular-nums"
 			dominantBaseline="central"
 			fill={fill}
 			textAnchor="middle"

@@ -130,7 +130,7 @@ function Card<A>({
 					</CardAction>
 				</CardHeader>
 				<CardContent className="space-y-4">{source.state === "ready" ? render(source.value) : <p role="status">{source.cause}</p>}</CardContent>
-				<CardFooter className="mt-auto text-muted-foreground text-xs">
+				<CardFooter className="text-muted-foreground mt-auto text-xs">
 					<p>
 						Last checked <ObservedTime at={source.observedAt} />
 					</p>

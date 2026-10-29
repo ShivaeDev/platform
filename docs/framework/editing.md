@@ -30,16 +30,16 @@ Inside `InvoiceLineForm`, `useField(form, "name")` from `@shivaedev/form/client/
 
 ## Compared with tRPC, TanStack Query and React Hook Form
 
-| Concern | tRPC + TanStack Query + RHF | This stack |
-| --- | --- | --- |
-| Load | `trpc.invoiceLine.get.useQuery({ id })` | `api.get.query({ id })` passed to `useEditor` |
-| Form defaults | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | `values(row)`; created on first data |
-| Refetch while dirty | `reset` overwrites edits unless `keepDirtyValues` is set; whole-form policy | per-field merge by default |
-| Save | `useMutation` + `onSuccess: invalidate` + `reset(saved)` | `save: api.save.run(...)`; contract invalidates, editor receives the result |
-| Server field errors | map `error.data` to `setError(field, ...)` by hand | typed field rejection attaches automatically |
-| Double submit | `disabled={isPending}` | `save()` ignores it |
-| Create then reset | `reset()` after success loses edits made during the save | kept per field |
-| Logout | `queryClient.clear()` plus manual form resets | `SessionBoundary` remounts and disposes the registry |
+| Concern             | tRPC + TanStack Query + RHF                                                    | This stack                                                                  |
+| ------------------- | ------------------------------------------------------------------------------ | --------------------------------------------------------------------------- |
+| Load                | `trpc.invoiceLine.get.useQuery({ id })`                                        | `api.get.query({ id })` passed to `useEditor`                               |
+| Form defaults       | `useForm({ defaultValues })` plus `reset(data)` in an effect once data arrives | `values(row)`; created on first data                                        |
+| Refetch while dirty | `reset` overwrites edits unless `keepDirtyValues` is set; whole-form policy    | per-field merge by default                                                  |
+| Save                | `useMutation` + `onSuccess: invalidate` + `reset(saved)`                       | `save: api.save.run(...)`; contract invalidates, editor receives the result |
+| Server field errors | map `error.data` to `setError(field, ...)` by hand                             | typed field rejection attaches automatically                                |
+| Double submit       | `disabled={isPending}`                                                         | `save()` ignores it                                                         |
+| Create then reset   | `reset()` after success loses edits made during the save                       | kept per field                                                              |
+| Logout              | `queryClient.clear()` plus manual form resets                                  | `SessionBoundary` remounts and disposes the registry                        |
 
 The call site is similar in length. The difference is in the defaults: refresh, save and reset races are handled per field, and a contract field rejection is checked against the form's field names at compile time.
 

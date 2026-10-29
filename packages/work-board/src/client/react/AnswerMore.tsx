@@ -34,12 +34,12 @@ export function AnswerMore({
 	];
 	return (
 		<details className="group rounded-lg border px-4 py-2 text-sm [&[open]]:pb-4" data-key="response-details">
-			<summary className="cursor-pointer select-none py-1 text-muted-foreground hover:text-foreground">More options</summary>
+			<summary className="text-muted-foreground hover:text-foreground cursor-pointer py-1 select-none">More options</summary>
 			<div className="mt-3 grid gap-4">
 				<FormField form={state.form} label="Kind of reply" name="type" options={KINDS} />
 				{body}
 				{earlier.length > 0 && <FormField form={state.form} label="Replace an earlier answer?" name="supersedes" options={replaces} />}
-				<pre className="whitespace-pre-wrap rounded-md bg-muted p-3 text-xs" hidden={!state.recovery} id={id(shellIds.responseDraftRecovery)}>
+				<pre className="bg-muted rounded-md p-3 text-xs whitespace-pre-wrap" hidden={!state.recovery} id={id(shellIds.responseDraftRecovery)}>
 					{state.recovery}
 				</pre>
 				<p className="text-muted-foreground text-xs">This browser keeps your draft for seven days after your last edit.</p>
@@ -65,7 +65,7 @@ export function AnswerMore({
 						Clear draft
 					</Button>
 				</div>
-				<pre className="whitespace-pre-wrap rounded-md bg-muted p-3 text-xs" hidden={!state.preview} id={id(shellIds.responsePreviewContent)}>
+				<pre className="bg-muted rounded-md p-3 text-xs whitespace-pre-wrap" hidden={!state.preview} id={id(shellIds.responsePreviewContent)}>
 					{state.preview}
 				</pre>
 			</div>

@@ -17,7 +17,7 @@ function Title<A, E, TRuntimeError>({ form }: { readonly form: Form<typeof NoteE
 	const errorId = useId();
 	return (
 		<div className="space-y-2">
-			<label className="block font-medium text-sm" htmlFor={titleId}>
+			<label className="block text-sm font-medium" htmlFor={titleId}>
 				Title
 			</label>
 			<Input
@@ -71,14 +71,14 @@ export function NoteEdit({
 			<Link className="underline" to="/">
 				Back to notes
 			</Link>
-			<h1 className="font-semibold text-3xl tracking-tight">Edit note</h1>
+			<h1 className="text-3xl font-semibold tracking-tight">Edit note</h1>
 			<Button disabled={editor.query.pending} onClick={editor.query.refresh} variant="outline">
 				Refresh
 			</Button>
 			{Option.isSome(editor.query.cause) && <p role="alert">Could not load this note. Try refreshing.</p>}
 
 			<form
-				className="space-y-4 rounded-lg border bg-card p-5 shadow-sm"
+				className="bg-card space-y-4 rounded-lg border p-5 shadow-sm"
 				onSubmit={(event) => {
 					event.preventDefault();
 					editor.save();
