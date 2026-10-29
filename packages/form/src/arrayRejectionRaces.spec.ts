@@ -1,61 +1,108 @@
 import { expect } from "@effect/vitest";
-import { racingAnswers as answers, first, second } from "#test/arrayRaces.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { answerMoves } from "#test/answers.ts";
+import { racingAnswers as answers, answersChanged, first, REJECTED_MESSAGE, second, secondMovedToFront } from "#test/arrayRaces.ts";
 
 answers.it(
-	"a late rejection addresses its submitted key after reorder during a save",
-	[answers.rejects(["answers", 1, "text"], "Rejected"), answers.delayed()],
-	function* ({ form, submit, reject, waitForSave, finishSave, errorAt }) {
-		errorAt(["answers", 0, "text"]);
-		submit();
-		yield* waitForSave();
-		form.change("answers", [{ ...second }, { ...first }]);
+	"a rejection that arrives after the answers were reordered shows on the submitted answer in its new place",
+	[answers.saveInFlight(), secondMovedToFront()],
+	function* ({ answerError, finishSave }) {
 		yield* finishSave();
-		yield* reject();
-		expect(errorAt(["answers", 0, "text"])).toBe("Rejected");
-		expect(errorAt(["answers", 1, "text"])).toBeUndefined();
-		form.field("answers").set([first]);
-		expect(errorAt(["answers", 0, "text"])).toBeUndefined();
-		form.field("answers").set([second, first]);
-		expect(errorAt(["answers", 0, "text"])).toBeUndefined();
+
+		yield* outcomes({
+			"first answer's text, now where the second answer was": [answerError("first", "text"), undefined],
+			"second answer's text": [answerError("second", "text"), REJECTED_MESSAGE],
+		});
 	},
 );
 
-for (const kind of ["edit", "remove", "replace"] as const) {
-	answers.it(
-		`a late rejection does not attach after ${kind} of the submitted element`,
-		[answers.rejects(["answers", 1, "text"], "Rejected"), answers.delayed()],
-		function* ({ form, submit, reject, waitForSave, finishSave, errorAt, errors }) {
-			errorAt(["answers", 1, "text"]);
-			submit();
-			yield* waitForSave();
-			form.change(
-				"answers",
-				kind === "remove" ? [first] : [first, kind === "edit" ? { ...second, text: "New" } : { id: "replacement", text: "Same" }],
-			);
-			yield* finishSave();
-			yield* reject();
-			expect(errorAt(["answers", 0, "text"])).toBeUndefined();
-			expect(errorAt(["answers", 1, "text"])).toBeUndefined();
-			expect(errors("answers")).toBeUndefined();
-		},
-	);
-}
+answers.it(
+	"a rejection that arrives after its answer was edited shows nowhere",
+	[answers.saveInFlight(), answersChanged("the second answer's text is edited", (current) => answerMoves.edit(current, second.id, { text: "New" }))],
+	function* ({ answerError, answersSummary, finishSave }) {
+		yield* finishSave();
+
+		yield* outcomes({
+			"answers summary": [answersSummary(), undefined],
+			"first answer's text": [answerError("first", "text"), undefined],
+			"second answer's text": [answerError("second", "text"), undefined],
+		});
+	},
+);
 
 answers.it(
-	"received values and revert rebase current rejections and duplicate keys do not guess a target",
-	[answers.rejects(["answers", 1, "text"], "Rejected")],
-	function* ({ form, submit, reject, errorAt }) {
-		errorAt(["answers", 1, "text"]);
-		submit();
-		yield* reject();
-		form.receive({ answers: [{ ...second }, { ...first }] });
-		expect(errorAt(["answers", 0, "text"])).toBe("Rejected");
-		form.change("answers", [first, second]);
-		expect(errorAt(["answers", 1, "text"])).toBe("Rejected");
-		form.revert();
-		expect(errorAt(["answers", 0, "text"])).toBe("Rejected");
-		form.change("answers", [second, { ...second }]);
-		expect(errorAt(["answers", 0, "text"])).toBeUndefined();
-		expect(errorAt(["answers", 1, "text"])).toBeUndefined();
+	"a rejection that arrives after its answer was removed shows nowhere",
+	[answers.saveInFlight(), answersChanged("the second answer is removed", (current) => answerMoves.remove(current, second.id))],
+	function* ({ answerError, answersSummary, finishSave }) {
+		yield* finishSave();
+
+		yield* outcomes({
+			"answers summary": [answersSummary(), undefined],
+			"first answer's text": [answerError("first", "text"), undefined],
+		});
+	},
+);
+
+answers.it(
+	"a rejection that arrives after its answer was replaced by another with the same text shows nowhere",
+	[
+		answers.saveInFlight(),
+		answersChanged("the second answer is replaced by one with the same text", (current) =>
+			answerMoves.replace(current, second.id, { id: "replacement", text: second.text }),
+		),
+	],
+	function* ({ answerError, answersSummary, finishSave }) {
+		yield* finishSave();
+
+		yield* outcomes({
+			"answers summary": [answersSummary(), undefined],
+			"first answer's text": [answerError("first", "text"), undefined],
+			"replacement answer's text": [answerError("replacement", "text"), undefined],
+		});
+	},
+);
+
+answers.it("a refresh that reorders the answers moves the rejection with its answer", [answers.submitted()], function* ({ answerError, refresh }) {
+	expect(yield* answerError("second", "text")).toBe(REJECTED_MESSAGE);
+
+	yield* refresh({ answers: [second, first] });
+
+	yield* outcomes({
+		"first answer's text, now where the second answer was": [answerError("first", "text"), undefined],
+		"second answer's text": [answerError("second", "text"), REJECTED_MESSAGE],
+	});
+});
+
+answers.it(
+	"reverting to a refresh's order moves the rejection with its answer",
+	[
+		answers.submitted(),
+		answers.refreshReceived({ answers: [second, first] }),
+		answersChanged("the first answer moves back to the front", (current) => answerMoves.moveToFront(current, first.id)),
+	],
+	function* ({ answerError, revert }) {
+		expect(yield* answerError("second", "text")).toBe(REJECTED_MESSAGE);
+
+		yield* revert();
+
+		yield* outcomes({
+			"first answer's text, now where the second answer was": [answerError("first", "text"), undefined],
+			"second answer's text, back at the front": [answerError("second", "text"), REJECTED_MESSAGE],
+		});
+	},
+);
+
+answers.it(
+	"copying the rejected answer over the other discards the rejection rather than guess which copy it belongs to",
+	[answers.submitted()],
+	function* ({ answerError, answerErrorAt, replaceAnswer }) {
+		expect(yield* answerError("second", "text")).toBe(REJECTED_MESSAGE);
+
+		yield* replaceAnswer("first", second);
+
+		yield* outcomes({
+			"first position": [answerErrorAt(0, "text"), undefined],
+			"second position": [answerErrorAt(1, "text"), undefined],
+		});
 	},
 );

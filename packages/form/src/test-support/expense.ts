@@ -1,5 +1,6 @@
 import { Effect, Layer, Schema, SchemaGetter } from "effect";
 import * as Atom from "effect/reactivity/Atom";
+import { fromRef } from "#refs.ts";
 import { formStories } from "./formStories.ts";
 
 const NonNegativeFinite = Schema.Finite.check(Schema.isGreaterThanOrEqualTo(0));
@@ -31,7 +32,20 @@ export const initial: typeof ExpenseEntry.Encoded = {
 	subtotal: "120.5",
 };
 
-export const expenses = formStories(
-	() => ExpenseEntry,
-	() => ({ initialValues: initial, onSubmit: Effect.succeed, runtime: Atom.runtime(Layer.empty) }),
-);
+interface DateField {
+	shown?: () => string | undefined;
+}
+
+export const expenses = formStories(() => ExpenseEntry, {
+	config: () => ({ initialValues: initial, onSubmit: Effect.succeed, runtime: Atom.runtime(Layer.empty) }),
+	opened: (form, read, date: DateField) => {
+		const field = fromRef(form.field("date"));
+		read(field);
+		date.shown = () => read(field);
+	},
+	support: (): DateField => ({}),
+	verbs: (driver, _tell, date) => ({
+		entryHasDate: () => Effect.sync(() => Object.hasOwn(driver.current().values.value, "date")),
+		shownDate: () => Effect.sync(() => date.shown?.()),
+	}),
+});
