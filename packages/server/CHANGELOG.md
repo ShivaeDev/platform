@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.1 - 2026-10-29
+
+### Fixed
+
+- The application host constructs services, handlers and routes before listening, so startup connections are refused until requests can be answered.
+- Server and HTTP modules import Node platform modules directly to avoid loading Redis during startup.
+- Generated apps import Node platform modules directly, and deployment stories allow enough time for their sequential cold processes without a fixed timeout on each startup health probe.
+
 ## 0.3.0 - 2026-10-28
 
 ### Added
