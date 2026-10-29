@@ -166,7 +166,7 @@ jobs:
           fetch-depth: 2
       - uses: ./.github/actions/setup
         with:
-          postgres: 'true'
+          postgres: "true"
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: needs.shard-plan.outputs.tests-run-id != ''
         with:
@@ -216,7 +216,7 @@ jobs:
           retention-days: 14
 
   consumers:
-    needs: [build, shard-plan]
+    needs: [ build, shard-plan ]
     name: packed consumers (${{ matrix.shard }})
     permissions:
       contents: read
@@ -281,7 +281,7 @@ jobs:
           persist-credentials: false
       - uses: ./.github/actions/setup
         with:
-          postgres: 'true'
+          postgres: "true"
       - name: Download package archives
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         with:
@@ -294,7 +294,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke]
+    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke ]
     permissions:
       contents: read
       actions: read
@@ -324,7 +324,7 @@ jobs:
       - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         with:
-          pattern: '*-timings-*'
+          pattern: "*-timings-*"
           path: .ci/main-timings
       - name: Read main job wall times
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'

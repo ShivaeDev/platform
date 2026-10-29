@@ -3,7 +3,7 @@ description: Install the locked dependencies from npm under the supply-chain pol
 inputs:
   postgres:
     description: Pull the pinned PostgreSQL image in the background while the workspace is set up.
-    default: 'false'
+    default: "false"
 runs:
   using: composite
   steps:
