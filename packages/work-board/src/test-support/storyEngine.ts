@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { NodeWS } from "@effect/platform-node/NodeSocket";
 import { type Deferred, Effect, type Semaphore } from "effect";
 import type { browserClient } from "#browserClient.ts";
 import type { Sources } from "#diagnostics/source.ts";
@@ -66,6 +67,12 @@ export function served(engine: BoardEngine) {
 }
 
 export function* createBoard() {
+	// Node RPC reads must not inherit the test document's origin.
+	const previousSocket = globalThis.WebSocket;
+	yield* Effect.acquireRelease(
+		Effect.sync(() => Object.defineProperty(globalThis, "WebSocket", { configurable: true, value: NodeWS.WebSocket, writable: true })),
+		() => Effect.sync(() => Object.defineProperty(globalThis, "WebSocket", { configurable: true, value: previousSocket, writable: true })),
+	);
 	const notes = yield* Effect.acquireRelease(
 		Effect.sync(() => folder({})),
 		(acquired) => Effect.sync(acquired.remove),

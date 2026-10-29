@@ -73,6 +73,10 @@ export function readerVerbs(engine: BoardEngine, tell: (line: string) => void) {
 					if (opened.document.getElementById("live")?.getAttribute("data-state") !== "live") {
 						throw new Error("The page is not live yet");
 					}
+					const goals = opened.document.querySelector('section[aria-label="Active goals"]');
+					if (goals && (goals.childElementCount < 2 || goals.querySelector("[data-loading]"))) {
+						throw new Error("Active goals are still loading");
+					}
 				}),
 			);
 			return Object.fromEntries(
