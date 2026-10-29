@@ -1,111 +1,140 @@
 import { Deferred, Effect, type Schema } from "effect";
+import type * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
-import { form } from "#form.ts";
-import type { Config, Decoded, Encoded, FieldFailure, Fields, Name, Path } from "#shape.ts";
-import { checkGate } from "./checkGate.ts";
+import type { Config, Decoded, Encoded, FieldFailure, Fields, Form, Name, Path } from "#shape.ts";
 import { draftStorage } from "./draftStorage.ts";
-import type { FormEngine, FormSupport } from "./formEngine.ts";
-import { formVerbs } from "./formVerbs.ts";
+import type { FormEngine } from "./formEngine.ts";
+import { type FormDriver, formDriver, formVerbs } from "./formVerbs.ts";
 import { registry as freshRegistry } from "./registry.ts";
 
-export function formStories<TFields extends Fields, A = Decoded<TFields>, E = never, R = never, TRuntimeError = never>(
-	schema: (support: FormSupport) => Schema.Struct<TFields>,
-	configure: (support: FormSupport) => Config<TFields, A, E, R, TRuntimeError>,
-) {
+interface Definition<TFields extends Fields, A, E, R, TRuntimeError, TSupport, TVerbs> {
+	readonly config: (support: TSupport) => Config<TFields, A, E, R, TRuntimeError>;
+	readonly opened?: (form: Form<TFields, A, E | FieldFailure, TRuntimeError>, read: <T>(atom: Atom.Atom<T>) => T, support: TSupport) => void;
+	readonly support: () => TSupport;
+	readonly verbs: (driver: FormDriver<TFields, A, E, R, TRuntimeError, TSupport>, tell: (line: string) => void, support: TSupport) => TVerbs;
+}
+
+function silent() {
+	return undefined;
+}
+
+function answeredByEngine<TFields extends Fields, A, E, R, TRuntimeError, TSupport>(
+	engine: FormEngine<TFields, A, E, R, TRuntimeError, TSupport>,
+): Config<TFields, A, E | FieldFailure, R, TRuntimeError>["onSubmit"] {
+	const handler = engine.config.onSubmit;
+	return (values, submitter, submitted) => {
+		engine.received.push(values);
+		const answer = Effect.suspend(() =>
+			engine.rejection === undefined ? handler(values, submitter, submitted) : submitter.fail(engine.rejection.path, engine.rejection.message),
+		);
+		const held = engine.held;
+		if (held?.armed !== true) {
+			return answer;
+		}
+		held.armed = false;
+		return Deferred.succeed(held.arrived, undefined).pipe(Effect.andThen(Deferred.await(held.release)), Effect.andThen(answer));
+	};
+}
+
+export function formStories<
+	TFields extends Fields,
+	A = Decoded<TFields>,
+	E = never,
+	R = never,
+	TRuntimeError = never,
+	TSupport = undefined,
+	TVerbs extends object = object,
+>(schema: (support: TSupport) => Schema.Struct<TFields>, definition: Definition<TFields, A, E, R, TRuntimeError, TSupport, TVerbs>) {
+	type Engine = FormEngine<TFields, A, E, R, TRuntimeError, TSupport>;
+	type Driver = FormDriver<TFields, A, E, R, TRuntimeError, TSupport>;
 	const kit = storyKit({
 		after: {
-			setup(state) {
-				const handler = state.config.onSubmit;
-				state.config = {
-					...state.config,
-					onSubmit: (values, submitter, submitted) => {
-						state.submissions.push(values);
-						return handler(values, submitter, submitted);
-					},
-				};
-				state.current = form(state.schema, state.config);
-				state.registry.mount(state.current.dirty);
-				state.mounted.add(state.current.dirty);
+			form(engine: Engine) {
+				engine.config = { ...engine.config, onSubmit: answeredByEngine(engine) };
+				const driver = formDriver(engine, silent);
+				driver.open(engine.config.initialValues);
 			},
 		},
 		clock: "live",
 		*create() {
 			const registry = yield* freshRegistry;
-			const started = yield* Deferred.make<void>();
-			const release = yield* Deferred.make<void>();
-			const storage = draftStorage();
-			const support: FormSupport = { checked: [], checkGate: checkGate(), release, session: draftSession("form-session"), started, storage };
-			const config: Config<TFields, A, E | FieldFailure, R, TRuntimeError> = configure(support);
-			const engine: FormEngine<TFields, A, E | FieldFailure, R, TRuntimeError> = {
-				...support,
-				config,
+			const support = definition.support();
+			const engine: Engine = {
+				config: definition.config(support),
 				current: undefined,
+				held: undefined,
 				mounted: new Set(),
-				observed: new Map(),
+				opened: (form, read) => definition.opened?.(form, read, support),
+				received: [],
 				registry,
+				rejection: undefined,
 				schema: schema(support),
-				submissions: [],
+				session: draftSession("form-session"),
+				storage: draftStorage(),
+				support,
 			};
 			return engine;
 		},
-		inspect: (state) => ({
-			dirty: state.current && state.registry.get(state.current.dirty),
-			drafts: Object.fromEntries(state.storage.saved),
-			errors: Object.fromEntries(Array.from(state.observed, ([path, atom]) => [path, state.registry.get(atom)])),
-			submissions: state.submissions,
-			submitting: state.current && state.registry.get(state.current.submitting),
-			values: state.current?.values.value,
+		inspect: (engine: Engine) => ({
+			drafts: Object.fromEntries(engine.storage.saved),
+			received: engine.received,
+			unsaved: engine.current && engine.registry.get(engine.current.dirty),
+			values: engine.current?.values.value,
 		}),
 		name: "form",
-		stages: ["setup"],
-		verbs: formVerbs<TFields, A, E | FieldFailure, R, TRuntimeError>,
+		stages: ["form", "editing"],
+		verbs: (engine: Engine, story) => {
+			const driver = formDriver(engine, story.tell);
+			return { ...formVerbs(engine, driver, story.tell), ...definition.verbs(driver, story.tell, engine.support) };
+		},
 	});
+	function configured(line: string, apply: (engine: Engine) => void) {
+		return kit.trait("form", line, apply);
+	}
+	function step(line: string, act: (driver: Driver, engine: Engine) => Effect.Effect<void> | void) {
+		return kit.trait("editing", line, (engine) => act(formDriver(engine, silent), engine) ?? Effect.void);
+	}
 	return {
 		...kit,
-		delayed: () =>
-			kit.trait("setup", "the first save waits for the server", (state) => {
-				const handler = state.config.onSubmit;
-				let waiting = true;
-				state.config = {
-					...state.config,
-					onSubmit: (values, submitter, submitted) => {
-						if (!waiting) {
-							return handler(values, submitter, submitted);
-						}
-						waiting = false;
-						return Deferred.succeed(state.started, undefined).pipe(
-							Effect.andThen(Deferred.await(state.release)),
-							Effect.andThen(Effect.suspend(() => handler(values, submitter, submitted))),
-						);
-					},
-				};
+		draftsStored: () =>
+			configured("the form stores its draft", (engine) => {
+				engine.config = { ...engine.config, persistedDraft: engine.storage.config };
 			}),
-		persisted: () =>
-			kit.trait("setup", "the draft is persisted", (state) => {
-				state.config = { ...state.config, persistedDraft: state.storage.config };
+		edited: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) =>
+			step(`the ${name} is changed to ${JSON.stringify(value)}`, (driver) => driver.change(name, value)),
+		refreshReceived: (values: Encoded<TFields>) => step(`the server sends ${JSON.stringify(values)}`, (driver) => driver.current().receive(values)),
+		reopened: (values: Encoded<TFields>) =>
+			step(`the form is reopened while the server holds ${JSON.stringify(values)}`, (driver) => {
+				driver.open(values);
 			}),
-		rejects: (path: Name<TFields> | Path<Name<TFields>>, message: string) =>
-			kit.trait("setup", `the server rejects ${String(path)}: ${message}`, (state) => {
-				state.config = { ...state.config, onSubmit: (_, submitter) => submitter.fail(path, message) };
+		saveAnswered: () => step("the server answers the held save", (driver) => driver.finishSave()),
+		saveInFlight: () =>
+			step("the form is submitted and the server holds the save", (driver) => {
+				driver.holdNextSave();
+				return driver.submit();
 			}),
-		sessionOwned: () =>
-			kit.trait("setup", "the session owns the stored draft", (state) => {
-				state.config = { ...state.config, persistedDraft: { ...state.storage.config, session: state.session } };
+		schemaIs: (line: string, replacement: Schema.Struct<TFields>) =>
+			configured(line, (engine) => {
+				engine.schema = replacement;
 			}),
-		withSchema: (fields: Schema.Struct<TFields>) =>
-			kit.trait("setup", "the form uses the field schema", (state) => {
-				state.schema = fields;
+		serverRejects: (path: Name<TFields> | Path<Name<TFields>>, message: string) =>
+			configured(`the server rejects every save on ${JSON.stringify(path)}: ${message}`, (engine) => {
+				engine.rejection = { message, path };
 			}),
-		withStoredDraft: (baseline: Encoded<TFields>, values: Encoded<TFields>) =>
-			kit.trait("setup", "an earlier editing session stored a draft", (state) => {
-				state.config = { ...state.config, persistedDraft: state.storage.config };
-				const previous = form(state.schema, { ...state.config, initialValues: baseline });
-				previous.values.set(values);
+		sessionEnded: () =>
+			step("the editing session ends", (_driver, engine) => {
+				engine.session.drop();
 			}),
-		withValues: (initialValues: Encoded<TFields>) =>
-			kit.trait("setup", `the form starts with ${JSON.stringify(initialValues)}`, (state) => {
-				state.config = { ...state.config, initialValues };
+		sessionOwnsDraft: () =>
+			configured("the editing session owns the stored draft", (engine) => {
+				engine.config = { ...engine.config, persistedDraft: { ...engine.storage.config, session: engine.session } };
 			}),
+		startsWith: (initialValues: Encoded<TFields>) =>
+			configured(`the form starts with ${JSON.stringify(initialValues)}`, (engine) => {
+				engine.config = { ...engine.config, initialValues };
+			}),
+		step,
+		submitted: () => step("the form is submitted and the server answers", (driver) => driver.submit()),
 	};
 }

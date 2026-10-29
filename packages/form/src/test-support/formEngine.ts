@@ -2,25 +2,31 @@ import type { Deferred, Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { DraftSession } from "#draftSession.ts";
-import type { Config, Decoded, Fields, Form } from "#shape.ts";
-import type { checkGate } from "./checkGate.ts";
+import type { Config, FieldFailure, Fields, Form, Name, Path } from "#shape.ts";
 import type { draftStorage } from "./draftStorage.ts";
 
-export interface FormSupport {
-	readonly checked: string[];
-	readonly checkGate: ReturnType<typeof checkGate>;
+export interface HeldSave {
+	armed: boolean;
+	readonly arrived: Deferred.Deferred<void>;
 	readonly release: Deferred.Deferred<void>;
-	readonly session: DraftSession;
-	readonly started: Deferred.Deferred<void>;
-	readonly storage: ReturnType<typeof draftStorage>;
 }
 
-export interface FormEngine<TFields extends Fields, A, E, R, TRuntimeError> extends FormSupport {
-	config: Config<TFields, A, E, R, TRuntimeError>;
-	current: Form<TFields, A, E, TRuntimeError> | undefined;
+export interface Rejection<TFields extends Fields> {
+	readonly message: string;
+	readonly path: Name<TFields> | Path<Name<TFields>>;
+}
+
+export interface FormEngine<TFields extends Fields, A, E, R, TRuntimeError, TSupport> {
+	config: Config<TFields, A, E | FieldFailure, R, TRuntimeError>;
+	current: Form<TFields, A, E | FieldFailure, TRuntimeError> | undefined;
+	held: HeldSave | undefined;
 	readonly mounted: Set<Atom.Atom<unknown>>;
-	readonly observed: Map<string, Atom.Atom<string | undefined>>;
+	readonly opened: (form: Form<TFields, A, E | FieldFailure, TRuntimeError>, read: <T>(atom: Atom.Atom<T>) => T) => void;
+	readonly received: unknown[];
 	readonly registry: AtomRegistry.AtomRegistry;
+	rejection: Rejection<TFields> | undefined;
 	schema: Schema.Struct<TFields>;
-	readonly submissions: Decoded<TFields>[];
+	readonly session: DraftSession;
+	readonly storage: ReturnType<typeof draftStorage>;
+	readonly support: TSupport;
 }
