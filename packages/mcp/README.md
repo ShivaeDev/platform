@@ -133,5 +133,3 @@ pnpm add better-auth @better-auth/oauth-provider
 The OAuth dependencies are optional peers, imported only by `adapters/betterAuth.ts`. Core `routes.ts` also accepts another identity `SessionPolicy` with the same identity and permission semantics.
 
 The endpoint uses Effect's request-scoped Streamable HTTP transport and MCP `2026-07-28`. Clients must support that protocol; earlier session-based versions and subscription streams are outside this adapter. Endpoint requests do not share registries, identities or MCP sessions.
-
-The package's stories run through `appHost` over loopback HTTP with Better Auth on PostgreSQL. They cover user and admin discovery and calls, refused hidden tools, OAuth discovery, token audience and scope, typed tool failures, and an authorization-code connection with consent and PKCE. They do not establish compatibility with a particular desktop client.
