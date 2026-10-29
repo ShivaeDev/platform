@@ -21,8 +21,11 @@
 {"path":"src/client/appRouter.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"src/client/auth.ts","rule":"code/unused","count":2}
 {"path":"src/client/entry.tsx","rule":"effect/boundary","count":1}
+{"path":"src/client/home.dom.spec.ts","rule":"tests/wait-on-events","count":2}
+{"path":"src/server/adminSetup.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/server/authOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/databaseOptions.ts","rule":"effect/service-parameters","count":1}
+{"path":"src/server/deployReadiness.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"src/server/migrations.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/migrations/0001_auth.ts","rule":"code/unused","count":1}
 {"path":"src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}

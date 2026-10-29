@@ -43,7 +43,7 @@ The first line is the assertion's own message. The box under it tells a reader w
 
 ## Using it
 
-Before writing or reviewing application stories, follow the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It owns the rules for observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and focused runs. The examples below explain this package's API; framework fixtures exercise this package's responsibilities, rather than prescribe application scenarios.
+Before writing or reviewing stories, follow the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It owns the rules for how a story reads, observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and focused runs. The examples below explain this package's API; framework fixtures exercise this package's responsibilities, rather than prescribe application scenarios.
 
 ### How to think about it
 
@@ -496,20 +496,32 @@ accounts.it("removing Bob ends his session", [bobIsSignedIn()], function* ({ rem
 
 ### Pinning time
 
-Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it explicitly with native `TestClock.adjust`:
+Pass a UTC `DateTime` as the story's `clock` option to pin time before its wrapper, creation, traits and hooks run. Code that uses `Clock` or `DateTime.now` reads that instant. Advance it with native `TestClock.adjust` in a kit verb, so the spec names the time that passes:
+
+```ts
+import * as TestClock from "effect/testing/TestClock";
+
+verbs: (engine, story) => ({
+	aDayPasses: () => {
+		story.tell("a day passes");
+		return TestClock.adjust("1 day");
+	},
+}),
+```
 
 ```ts
 import { DateTime } from "effect";
-import * as TestClock from "effect/testing/TestClock";
 
 app.it(
-	"shows the worker's date",
+	"a day later, the worker shows the next date",
 	[],
-	function* ({ click, settle, text }) {
+	function* ({ aDayPasses, click, settle, text }) {
 		yield* click("button");
 		yield* settle();
 		expect(text("#worker")).toBe("Worker: since Oct 17");
-		yield* TestClock.adjust("1 day");
+
+		yield* aDayPasses();
+
 		yield* click("button");
 		yield* settle();
 		expect(text("#worker")).toBe("Worker: since Oct 18");

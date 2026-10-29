@@ -1,2 +1,3 @@
+{"path":"packages/create-app/src/migrationTemplate.spec.ts","rule":"tests/domain-outcomes","count":6}
 {"path":"packages/create-app/src/template.ts","rule":"code/unused","count":2}
 {"path":"packages/create-app/src/template.ts","rule":"effect/boundary","count":1}
