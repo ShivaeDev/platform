@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.44.1 - 2026-10-29
+
+### Changed
+
+- The Biome preset targets Biome 2.6.
+- Generated apps format installed files before their initial commit.
+
+### Fixed
+
+- Resolve package script file arguments relative to their declaring manifest across workspaces, keeping shared scripts and their imports out of unused-code debt.
+
 ## 0.44.0 - 2026-10-29
 
 ### Added
