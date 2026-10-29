@@ -22,6 +22,14 @@ export interface HookSetup {
 
 const CHECKS_LOG = "checks.log";
 
+const SOURCE_EXPORTS = {
+	"./*.ts": Object.fromEntries([
+		["source", "./src/*.ts"],
+		["types", "./dist/*.d.ts"],
+		["default", "./dist/*.js"],
+	]),
+};
+
 // Pre-commit scripts write to the hook's own output streams, so a run in this process reads what they did from a log.
 export function logs(line: string): string {
 	return `echo ${line} >> ${CHECKS_LOG}`;
@@ -72,7 +80,7 @@ export function hookRepository({
 						{ content: '{ "extends": ["@shivaedev/quality/biome/preset.json"] }\n', path: "biome.json" },
 					]),
 			{ content: "loglevel=silent\n", path: ".npmrc" },
-			{ content: `${JSON.stringify(sortPackageJson({ scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },
+			{ content: `${JSON.stringify(sortPackageJson({ exports: SOURCE_EXPORTS, scripts, type: "module" }), null, "\t")}\n`, path: "package.json" },
 			...files,
 		].map((file) => ({
 			...file,
@@ -89,7 +97,11 @@ export function hookRepository({
 }
 
 export function withScripts(root: string, scripts: Readonly<Record<string, string>>, packageManager?: string): string {
-	writes(root, "package.json", `${JSON.stringify(sortPackageJson({ packageManager, scripts, type: "module" }), null, "\t")}\n`);
+	writes(
+		root,
+		"package.json",
+		`${JSON.stringify(sortPackageJson({ exports: SOURCE_EXPORTS, packageManager, scripts, type: "module" }), null, "\t")}\n`,
+	);
 	return root;
 }
 
@@ -107,7 +119,20 @@ export function withOwnHook(repository: HookRepository, script: string): HookRep
 export function withQualityAt(repository: HookRepository, path: string): string {
 	mkdirSync(dirname(join(repository.root, path)), { recursive: true });
 	writes(repository.root, path, 'import "@shivaedev/quality/cli.ts";\n');
-	writes(repository.root, "package.json", '{ "type": "module", "devDependencies": { "@shivaedev/quality": "*" } }\n');
+	writes(
+		repository.root,
+		"package.json",
+		`${JSON.stringify(
+			sortPackageJson({
+				bin: { quality: `./${path}` },
+				devDependencies: { "@shivaedev/quality": "*" },
+				exports: SOURCE_EXPORTS,
+				type: "module",
+			}),
+			null,
+			"\t",
+		)}\n`,
+	);
 	formatTree(repository.root);
 	return join(repository.root, path);
 }

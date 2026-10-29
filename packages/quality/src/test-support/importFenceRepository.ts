@@ -17,7 +17,11 @@ export function seedFences(): string {
 	const root = qualityTree([
 		{ content: '{ "type": "module", "devDependencies": { "@shivaedev/quality": "*" } }', path: "package.json" },
 		{ content: "packages:\n  - packages/*\n", path: "pnpm-workspace.yaml" },
-		{ content: '{ "name": "@demo/game", "dependencies": { "@demo/cms": "workspace:*" } }', path: "packages/game/package.json" },
+		{
+			content:
+				'{ "name": "@demo/game", "exports": { "./*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } }, "dependencies": { "@demo/cms": "workspace:*" } }',
+			path: "packages/game/package.json",
+		},
 		{
 			content:
 				'{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts", "./*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } } }',

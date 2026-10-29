@@ -1,5 +1,5 @@
 import { createServer } from "node:http";
-import { NodeHttpServer } from "@effect/platform-node";
+import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Config, type Duration, Effect, Layer } from "effect";
 
 export function nodeHttpServer(

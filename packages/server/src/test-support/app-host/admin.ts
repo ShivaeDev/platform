@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { NodeHttpPlatform, NodeServices } from "@effect/platform-node";
+import * as NodeHttpPlatform from "@effect/platform-node/NodeHttpPlatform";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Effect, Layer, Option, Schema, Stream } from "effect";
 import { HttpRouter, HttpServerRespondable, HttpStaticServer } from "effect/http";
 import { Rpc, RpcGroup } from "effect/rpc";

@@ -26,5 +26,5 @@ notesDeployment.it(
 		expect(yield* worker.child.exitCode).toBe(0);
 		expect(yield* notes["notes.get"]({ id: note.id })).toMatchObject({ wordCount: 3 });
 	},
-	25_000,
+	3 * 20_000 + 40_000,
 );

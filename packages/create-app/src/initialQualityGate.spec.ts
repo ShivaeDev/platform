@@ -4,22 +4,24 @@ import { enclosingRepository, failingQualityGate, installedPackageManager, realS
 
 const CLI_TIMEOUT = 60_000;
 
-application.it(
-	"installs the active Quality gate after Git initialization and before the initial commit",
-	[realSetup, installedPackageManager],
-	function* ({ cli, read, git }) {
-		const result = yield* cli(["my-app"]);
-		expect(result.status, result.stdout + result.stderr).toBe(0);
-		expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
-		const setup = JSON.parse(read(".git/setup-order.json"));
-		expect(setup.head).not.toBe(0);
-		expect(setup.staged).toBe("");
-		const gate = JSON.parse(read(".git/initial-gate.json"));
-		expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]));
-		expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
-	},
-	CLI_TIMEOUT,
-);
+for (const minimal of [false, true]) {
+	application.it(
+		`installs the active Quality gate before the initial commit${minimal ? " in a minimal app" : ""}`,
+		[realSetup, installedPackageManager],
+		function* ({ cli, read, git }) {
+			const result = yield* cli(["my-app", ...(minimal ? ["--minimal"] : [])]);
+			expect(result.status, result.stdout + result.stderr).toBe(0);
+			expect(read(".git/hooks/pre-commit")).toContain("Installed by @shivaedev/quality");
+			const setup = JSON.parse(read(".git/setup-order.json"));
+			expect(setup.head).not.toBe(0);
+			expect(setup.staged).toBe("");
+			const gate = JSON.parse(read(".git/initial-gate.json"));
+			expect(gate.staged.split("\n")).toEqual(expect.arrayContaining(["package.json", "pnpm-lock.yaml", "src/server/server.ts"]));
+			expect(git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
+		},
+		CLI_TIMEOUT,
+	);
+}
 
 application.it(
 	"runs setup again with an existing installation and keeps the Quality gate active",

@@ -1,4 +1,4 @@
-import { NodeRuntime } from "@effect/platform-node";
+import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import { Cause, Exit, Runtime } from "effect";
 
 export const runWorker = NodeRuntime.runMain({

@@ -1,3 +1,4 @@
+{"path":"packages/work-board/package.json","rule":"code/unused","count":4}
 {"path":"packages/work-board/src/browserClient.ts","rule":"effect/boundary","count":13}
 {"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/document/Mermaid.ts","rule":"effect/boundary","count":4}
@@ -117,8 +118,11 @@
 {"path":"packages/work-board/src/client/react/fleetSearch.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/goalChartLabels.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/work-board/src/client/react/handoffSession.dom.spec.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-board/src/client/react/lazyChunks.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/lazyChunks.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-board/src/client/react/libraryPaging.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/linkedAnswerCard.dom.spec.tsx","rule":"effect/boundary","count":1}
+{"path":"packages/work-board/src/client/react/liveReady.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/liveReady.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/liveReady.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/liveScreen.dom.spec.ts","rule":"effect/boundary","count":1}
@@ -127,6 +131,7 @@
 {"path":"packages/work-board/src/client/react/loadProjection.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/loadRemaining.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/navigation.dom.spec.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-board/src/client/react/navigationTarget.ts","rule":"code/unused","count":2}
 {"path":"packages/work-board/src/client/react/nowEligibility.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/projections.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/questionnaireDrafts.dom.spec.tsx","rule":"effect/boundary","count":1}
@@ -136,6 +141,7 @@
 {"path":"packages/work-board/src/client/react/retryPage.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/routeHome.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/react/routeHome.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/client/react/searchCommands.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/searchRanking.dom.spec.tsx","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/storedReadings.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/react/useAppearance.ts","rule":"effect/boundary","count":2}
@@ -145,8 +151,10 @@
 {"path":"packages/work-board/src/client/react/useDiagnosticsPolling.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/useFormFocus.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/react/useOpened.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-board/src/client/react/useSavedViews.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/useSavedViews.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/react/visualDimensions.ts","rule":"effect/boundary","count":1}
+{"path":"packages/work-board/src/client/react/visualSources.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/reconcile/at.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/reconcile/normalized.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/responses/authorLabel.ts","rule":"effect/boundary","count":2}

@@ -1,3 +1,4 @@
+{"path":"packages/releases/package.json","rule":"code/unused","count":1}
 {"path":"packages/releases/src/applyRelease.ts","rule":"effect/boundary","count":1}
 {"path":"packages/releases/src/error.ts","rule":"effect/boundary","count":1}
 {"path":"packages/releases/src/planner.ts","rule":"effect/boundary","count":1}

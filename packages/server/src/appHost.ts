@@ -1,4 +1,4 @@
-import { NodeCrypto } from "@effect/platform-node";
+import * as NodeCrypto from "@effect/platform-node/NodeCrypto";
 import { Context, type Effect, Layer } from "effect";
 import type { Rpc } from "effect/rpc";
 import type { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";

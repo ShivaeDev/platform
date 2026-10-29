@@ -1,3 +1,4 @@
+{"path":"package.json","rule":"code/unused","count":6}
 {"path":"src/client/Home.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"src/client/LabelledSwitch.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"src/client/LoginScreen.tsx","rule":"react/jsx-conditionals","count":6}
@@ -8,6 +9,7 @@
 {"path":"src/client/admin/QueryPanel.tsx","rule":"react/jsx-conditionals","count":6}
 {"path":"src/client/appRouter.tsx","rule":"effect/service-parameters","count":1}
 {"path":"src/client/appRouter.tsx","rule":"react/jsx-conditionals","count":1}
+{"path":"src/client/auth.ts","rule":"code/unused","count":1}
 {"path":"src/client/entry.tsx","rule":"effect/boundary","count":1}
 {"path":"src/modules/notes/client/Create.tsx","rule":"react/jsx-conditionals","count":5}
 {"path":"src/modules/notes/client/DataTable.tsx","rule":"react/jsx-conditionals","count":2}
@@ -18,10 +20,14 @@
 {"path":"src/modules/notes/client/Table.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"src/modules/notes/client/adminRoutes.tsx","rule":"effect/boundary","count":1}
 {"path":"src/modules/notes/client/adminRoutes.tsx","rule":"effect/service-parameters","count":1}
+{"path":"src/modules/notes/notes.ts","rule":"code/unused","count":3}
 {"path":"src/modules/notes/server/adminUserPolicy.spec.ts","rule":"effect/boundary","count":2}
 {"path":"src/modules/notes/server/adminUsers.spec.ts","rule":"effect/boundary","count":2}
+{"path":"src/modules/notes/server/migrations/0002_notes.ts","rule":"code/unused","count":1}
 {"path":"src/modules/notes/server/sessionUser.spec.ts","rule":"effect/boundary","count":1}
+{"path":"src/modules/notes/test-support/applicationState.ts","rule":"code/unused","count":1}
 {"path":"src/server/authOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/databaseOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/migrations.ts","rule":"effect/service-parameters","count":1}
+{"path":"src/server/migrations/0001_auth.ts","rule":"code/unused","count":1}
 {"path":"src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}

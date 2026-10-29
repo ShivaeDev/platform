@@ -1,3 +1,4 @@
+{"path":"packages/github/package.json","rule":"code/unused","count":1}
 {"path":"packages/github/src/artifacts.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/github/src/markdownRows.ts","rule":"effect/boundary","count":1}
 {"path":"packages/github/src/requests.ts","rule":"effect/service-parameters","count":1}

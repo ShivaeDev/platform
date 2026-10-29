@@ -1,6 +1,6 @@
-import { NodeServices } from "@effect/platform-node";
+import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Effect, Layer } from "effect";
-import { HttpRouter, HttpStaticServer } from "effect/http";
+import { HttpRouter, HttpServer, HttpStaticServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppChanges, AppHttpHostOptions } from "#appHost.ts";
@@ -61,11 +61,11 @@ export function appHostHttp<
 				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, false, options.rpcPath)),
 				Layer.provide(nativeClientOrigins(nativeOrigins, trustedProxy, options.nativeOrigins === undefined ? "preflight" : true)),
 			);
-			return HttpRouter.serve(httpRoutes, { disableLogger: true }).pipe(
-				Layer.provideMerge(application),
-				Layer.provideMerge(server),
-				Layer.provide(NodeServices.layer),
-			);
+			return Layer.unwrap(
+				HttpRouter.toHttpEffect(httpRoutes).pipe(
+					Effect.map((handler) => HttpServer.serve(handler).pipe(HttpServer.withLogAddress, Layer.provideMerge(server))),
+				),
+			).pipe(Layer.provideMerge(application), Layer.provideMerge(NodeHttpServer.layerHttpServices));
 		}),
 	).pipe(Layer.provide(redactingDiagnostics(sensitive)), Layer.provide(otlpTracing), Layer.provide(Layer.succeed(RedactionPolicy, sensitive)));
 }

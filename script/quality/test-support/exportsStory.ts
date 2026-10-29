@@ -35,7 +35,10 @@ export const exportsStory = storyKit({
 
 export function workspaceWithExports(exports: unknown) {
 	return exportsStory.trait("repository", "a workspace package declares exports", (root) => {
-		writeFileSync(join(root, "package.json"), '{\n\t"name": "workspace",\n\t"private": true,\n\t"workspaces": [\n\t\t"modules/*"\n\t]\n}\n');
+		writeFileSync(
+			join(root, "package.json"),
+			'{\n\t"name": "workspace",\n\t"private": true,\n\t"workspaces": [\n\t\t"modules/*"\n\t],\n\t"scripts": {\n\t\t"sample": "node src/value.ts"\n\t}\n}\n',
+		);
 		writePackageExports(root, exports, "modules/library/package.json");
 	});
 }

@@ -22,6 +22,7 @@ application.it("creates the same foundation without the notes module or its regi
 			![
 				".env.local",
 				".create-app.json",
+				"quality-baseline.jsonl",
 				"src/server/modules.ts",
 				"src/server/workerModules.ts",
 				"src/server/migrations.ts",

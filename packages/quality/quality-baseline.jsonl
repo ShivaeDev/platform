@@ -1,3 +1,4 @@
+{"path":"packages/quality/package.json","rule":"code/unused","count":2}
 {"path":"packages/quality/src/baseline/compare.test.ts","rule":"effect/boundary","count":7}
 {"path":"packages/quality/src/baseline/format.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/baseline/growth.spec.ts","rule":"effect/boundary","count":32}
