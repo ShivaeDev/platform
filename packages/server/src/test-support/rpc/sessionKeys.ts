@@ -9,6 +9,7 @@ import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDat
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { followHints } from "./followHints.ts";
 import { openSessionKeysHost } from "./openSessionKeysHost.ts";
+import { postChanges } from "./postChanges.ts";
 import { type Boundary, Preferences } from "./sessionKeysApi.ts";
 import { upgrade } from "./upgrade.ts";
 
@@ -74,6 +75,10 @@ export const sessionKeys = storyKit({
 					}),
 				);
 			}),
+		postSubscription: () => {
+			story.tell("request the reserved changes stream over POST");
+			return postChanges(state.writer.url, state.alice.cookie).pipe(Effect.map((exit) => JSON.stringify(exit)));
+		},
 		published: () => state.writer.published,
 		read: (caller: keyof typeof state.clients, boundary: Boundary = "account") =>
 			Effect.flatMap(state.clients[caller], (client) => client(`${boundary}.get`, { id: "theme" })),

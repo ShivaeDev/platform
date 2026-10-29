@@ -37,3 +37,8 @@ sessionKeys.it("the upgrade rejects foreign origins and accepts forwarded origin
 	expect(yield* test.upgrade(forwarded, "127.0.0.2")).toBe(HttpStatus.fromLiteral("Forbidden"));
 	expect(yield* test.upgrade(forwarded, "127.0.0.1")).toBe(HttpStatus.fromLiteral("SwitchingProtocols"));
 });
+
+sessionKeys.it("the reserved changes stream is unavailable over POST", [], function* (test) {
+	yield* test.save("alice", "First");
+	expect(yield* test.postSubscription()).toContain("Unknown request tag: account.$changes");
+});
