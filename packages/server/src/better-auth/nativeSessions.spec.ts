@@ -91,7 +91,7 @@ nativeSessions.it("sign-out revokes the bearer and ends its open socket change s
 	yield* subscription.next;
 	const status = yield* signout("alice");
 	expect(status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(yield* subscription.ended).toMatchObject({ failure: { _tag: "RpcClientError" } });
+	expect(yield* subscription.ended).toMatchObject(unauthorized);
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 });
 
@@ -99,7 +99,7 @@ nativeSessions.it("replacing a bearer session revokes the old credential and sub
 	const subscription = yield* subscribe("alice");
 	yield* subscription.next;
 	const replacement = yield* replace("alice");
-	expect(yield* subscription.ended).toMatchObject({ failure: { _tag: "RpcClientError" } });
+	expect(yield* subscription.ended).toMatchObject(unauthorized);
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 	expect(yield* profile("alice", { authorization: `Bearer ${replacement.credential}` })).toMatchObject({ _tag: "Success" });
 });
