@@ -96,18 +96,19 @@ export function decodeVitestTimingReport(report: string): Timing[] {
 		return Object.entries(value.files).map(([file, result]) => {
 			if (
 				!record(result)
-				|| result.failed !== false
+				|| typeof result.failed !== "boolean"
 				|| typeof result.duration !== "number"
 				|| !Number.isFinite(result.duration)
 				|| result.duration < 0
 			) {
-				throw new Error("Invalid successful test timing");
+				throw new Error("Invalid test timing");
 			}
-			return { durationMs: Math.max(1, result.duration), name: `${project}:${file}` };
+			return { durationMs: Math.max(1, result.duration), failed: result.failed, name: `${project}:${file}` };
 		});
 	});
 	if (results.length === 0) {
 		throw new Error("Invalid Vitest timing report");
 	}
-	return results;
+	// Timings merge only after every shard passed, so a failed file was recovered by the rerun and its failed first attempt is no timing.
+	return results.flatMap(({ durationMs, failed, name }) => (failed ? [] : [{ durationMs, name }]));
 }

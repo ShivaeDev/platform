@@ -38,9 +38,26 @@ it("rejects reports that are not Vitest results caches", () => {
 	}
 });
 
-it("rejects failed tests and missing or invalid durations", () => {
-	for (const result of [{ duration: 10, failed: true }, { failed: false }, { duration: -1, failed: false }]) {
+it("leaves out files that failed their first attempt, which the rerun recovered", () => {
+	const report = {
+		projects: {
+			unit: {
+				files: {
+					"flaky.test.ts": { duration: 10, failed: true },
+					"steady.test.ts": { duration: 20, failed: false },
+				},
+			},
+		},
+		version: 1,
+	};
+	assert.deepEqual(decodeVitestTimingReport(JSON.stringify(report)), [{ durationMs: 20, name: "unit:steady.test.ts" }]);
+	const recovered = { projects: { unit: { files: { "flaky.test.ts": { duration: 10, failed: true } } } }, version: 1 };
+	assert.deepEqual(decodeVitestTimingReport(JSON.stringify(recovered)), []);
+});
+
+it("rejects missing or invalid outcomes and durations", () => {
+	for (const result of [{ duration: 10 }, { duration: 10, failed: "true" }, { failed: false }, { duration: -1, failed: false }]) {
 		const report = { projects: { unit: { files: { "sample.test.ts": result } } }, version: 1 };
-		assert.throws(() => decodeVitestTimingReport(JSON.stringify(report)), /Invalid successful test timing/u);
+		assert.throws(() => decodeVitestTimingReport(JSON.stringify(report)), /Invalid test timing/u);
 	}
 });
