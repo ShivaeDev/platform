@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.44.0 - 2026-10-29
+
+### Added
+
+- `docs/documentedImports.ts` exports `documentedImports`, which reads the workspace modules and named imports a Markdown document references from its code blocks, inline module paths, `name` from `module` phrases and a package README's API rows, with the line of each.
+- Report unused files, exports and package dependencies, and missing dependencies with the knip-backed `code/unused` rule. Package exports, binaries, scripts, tests, stories and test support supply entry points without a knip config. Run `quality baseline write --rule code/unused` to record existing findings, then remove debt and run `quality baseline tighten` as you repair it.
+
+### Fixed
+
+- Keep the minimal generated app on the unused-code gate with its own baseline of existing template debt.
+
+### Breaking
+
+- Repositories get new findings from `docs/references` for Markdown links, heading anchors, links into the repository's own GitHub tree, relative links that leave a published package's README, and documented workspace modules or named imports that do not resolve. Fix the reference, or record existing findings with `quality baseline write --rule docs/references`.
+- Repositories get new findings from `docs/unversioned-installs` for a version after a package name in a Markdown install command. Name the package alone, or record existing findings with `quality baseline write --rule docs/unversioned-installs`.
+- `linesOf` moves from `inventory/collect.ts` to `inventory/linesOf.ts`: change the import path.
+- `builtinName` and `packageNameOf` move from `imports/resolve.ts` to `imports/packageName.ts`: change the import path.
+
 ## 0.43.0 - 2026-10-28
 
 ### Added

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.19.1 - 2026-10-29
+
+### Fixed
+
+- Automatic live tracking no longer resubscribes, and refetches every tracked query, when a query is read again after the garbage collector reclaimed its atom. A query's tracking id now follows its tag and payload instead of the atom object AtomRpc holds weakly.
+
 ## 0.19.0 - 2026-10-28
 
 ### Added
