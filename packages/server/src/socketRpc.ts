@@ -1,4 +1,4 @@
-import { Effect, Option, type Scope } from "effect";
+import { Effect, type Scope } from "effect";
 import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { localTransport } from "@shivaedev/identity/server/local.ts";
@@ -16,17 +16,10 @@ export function socketRpc<TSession extends SessionShape>(
 		if (!localTransport(trustedProxy, nativeOrigins)(request)) {
 			return HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 		}
-		const initial = policy.policy === "loopback" ? Option.none() : yield* resolveSession(policy.sessions, Headers.empty, "$connect");
-		if (policy.policy === "loopback" || Option.isNone(initial)) {
-			return yield* handler;
+		if (policy.policy !== "loopback") {
+			yield* resolveSession(policy.sessions, Headers.empty, "$connect");
 		}
-		const sessions = policy.sessions;
-		const monitor = Effect.gen(function* () {
-			yield* Effect.sleep(sessions.streamRevalidationInterval ?? "30 seconds");
-			const current = yield* resolveSession(sessions, Headers.empty, "$connect");
-			return Option.isSome(current) && current.value.user.id === initial.value.user.id;
-		}).pipe(Effect.repeat({ while: (valid) => valid }), Effect.as(HttpServerResponse.empty()));
-		return yield* Effect.raceFirst(handler, monitor);
+		return yield* handler;
 	}).pipe(
 		Effect.catchTags({
 			AuthUnavailable: authUnavailable,

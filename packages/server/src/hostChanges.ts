@@ -3,6 +3,7 @@ import { Headers } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
+import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import type { AppChanges } from "./appHost.ts";
@@ -23,9 +24,13 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 						const { subscription, context } = yield* resolveChanges(rpc, queries);
 						const viewer = yield* CurrentViewer;
 						const authorized = authorizeSession(sessions, rpc._tag, viewer, subscription.authorized);
-						return Option.isSome(changes)
+						const stream = Option.isSome(changes)
 							? changes.value.subscribe({ ...subscription, authorized }, context)
 							: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
+						if (sessions === undefined || Option.isNone(viewer)) {
+							return stream;
+						}
+						return Stream.interruptWhen(stream, sessionRevoked(sessions, rpc._tag, viewer.value.id));
 					}),
 				);
 			}
@@ -63,4 +68,14 @@ function authorizeSession<TSession extends SessionShape>(
 		Effect.catch(() => Effect.succeed(false)),
 		Effect.flatMap((allowed) => (allowed ? policy : Effect.succeed(false))),
 	);
+}
+
+function sessionRevoked<TSession extends SessionShape>(sessions: SessionPolicy<TSession>, tag: string, id: string) {
+	return Effect.gen(function* () {
+		yield* Effect.sleep(sessions.streamRevalidationInterval ?? "30 seconds");
+		const current = yield* resolveSession(sessions, Headers.empty, tag).pipe(Effect.catchTag("AuthUnavailable", () => Effect.succeed(undefined)));
+		if (current !== undefined && (Option.isNone(current) || current.value.user.id !== id)) {
+			return yield* new Unauthorized({ message: "Authentication required" });
+		}
+	}).pipe(Effect.forever);
 }
