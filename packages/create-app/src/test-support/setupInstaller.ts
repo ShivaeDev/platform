@@ -1,6 +1,12 @@
 import { dirname } from "node:path";
 
-export function setupInstaller(pnpm: string, modules: string, hoisted: string, quality: string, typecheckExit?: number) {
+export function setupInstaller(
+	pnpm: string,
+	modules: string,
+	hoisted: string,
+	quality: string,
+	{ scriptsOnly = false, typecheckExit }: { readonly scriptsOnly?: boolean; readonly typecheckExit?: number | undefined } = {},
+) {
 	// pnpm rebuilds the seeded install before a package script, so it must keep the workspace Quality engine.
 	const qualityBin = `#!/usr/bin/env node
 import("node:child_process").then(({ spawnSync }) => {
@@ -14,8 +20,13 @@ const { spawnSync } = require("node:child_process");
 const fs = require("node:fs");
 const { join } = require("node:path");
 const args = process.argv.slice(2);
+const command = args.join(" ");
 const started = performance.now();
-process.on("exit", () => console.error("[generated app timing] pnpm " + args.join(" ") + ": " + (performance.now() - started).toFixed(0) + " ms"));
+process.on("exit", () => console.error("[generated app timing] pnpm " + command + ": " + (performance.now() - started).toFixed(0) + " ms"));
+if (${scriptsOnly} && args[0] === "run") {
+  if (args[1] === "format") process.exit(0);
+  if (args[1] === "setup") args.splice(0, args.length, "install");
+}
 if (args[0] === "install") {
   const qualityRoot = ${JSON.stringify(dirname(dirname(quality)))};
   const qualityPackage = join(__dirname, "quality-package");
