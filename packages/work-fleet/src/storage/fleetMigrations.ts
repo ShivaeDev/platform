@@ -100,5 +100,6 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				yield* sql`alter table ${sql(childTable(namespace, path))} add column "startedAt" double precision, add column "finishedAt" double precision`;
 			}
 		}),
+		"29_queue_priority": sql`alter table ${sql(`${namespace}_records`)} add column "queuePriority" text`,
 	});
 });

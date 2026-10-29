@@ -5,7 +5,7 @@ import { AttentionOwner } from "#attention.ts";
 import { BoardReport } from "#board/schema.ts";
 import { DispatchRequest } from "#DispatchRequest.ts";
 import { MergePrediction } from "#MergePrediction.ts";
-import { Checks, Decision, DecisionResponse, Delivery, Review, SupersededDecision, WorkResult } from "#policy.ts";
+import { Checks, Decision, DecisionResponse, Delivery, Priority, Review, SupersededDecision, WorkResult } from "#policy.ts";
 import { Preparation } from "#preparation/schema.ts";
 import { LaunchSettings, SessionObservation, SessionReceipt } from "#session/schema.ts";
 export const Attempt = Schema.Struct({
@@ -101,6 +101,7 @@ export const FleetRecord = Schema.Struct({
 	...cycleFields,
 	history: Schema.optional(Schema.Array(FleetCycleSnapshot)),
 	pendingContinuation: Schema.optional(Schema.String),
+	queuePriority: Schema.optional(Priority),
 	workId: Schema.String,
 });
 export type FleetRecord = typeof FleetRecord.Type;
