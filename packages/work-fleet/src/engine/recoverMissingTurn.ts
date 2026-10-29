@@ -13,6 +13,17 @@ interface RecoveryAnswer {
 	readonly responses: readonly DecisionResponse[];
 }
 
+const guardAbandonedAnswer = Effect.fn("Fleet.guardAbandonedAnswer")(function* (
+	state: EngineState,
+	stored: Versioned<FleetRecord>,
+	answered: boolean,
+) {
+	const latest = stored.value.attempts.at(-1);
+	return answered && latest?.answerTurn && latest.abandoned !== undefined && latest.missingSince !== undefined
+		? yield* guardLostTurn(state, stored, true)
+		: undefined;
+});
+
 export function missingAcceptedTurn(error: unknown): error is SessionFailure {
 	return error instanceof SessionFailure && error.code === "session-turn-missing" && error.reason === "ambiguous";
 }
@@ -24,6 +35,10 @@ export const recoverMissingTurn = Effect.fn("Fleet.recoverMissingTurn")(function
 	threadIdle?: boolean,
 ) {
 	const record = stored.value;
+	const guarded = yield* guardAbandonedAnswer(state, stored, answer !== undefined);
+	if (guarded !== undefined) {
+		return guarded;
+	}
 	const attempt = recoverableAttempt(record);
 	if (attempt === undefined || state.integrations.publication === undefined) {
 		return undefined;
@@ -52,7 +67,12 @@ export const recoverMissingTurn = Effect.fn("Fleet.recoverMissingTurn")(function
 		: `Accepted Codex turn is not observable; no remote branch ${publication.branch} or PR exists; release and relaunch.`;
 	const note = recoveryNote(publication, reason, answer?.body);
 	const queued = { ...stored, value: queueRecovery(record, attempt, { answer, published, reason }, state.policy.now()) };
-	return yield* makeLaunch(state)(queued, published ? "repair" : "worker", [record.prompt, note].join("\n\n"));
+	return yield* makeLaunch(state)(
+		queued,
+		published ? "repair" : "worker",
+		[record.prompt, note].join("\n\n"),
+		answer === undefined ? undefined : { answerTurn: true, responses: answer.responses },
+	);
 });
 
 function recoveryNote(publication: WorkPublication, reason: string, answer?: string) {

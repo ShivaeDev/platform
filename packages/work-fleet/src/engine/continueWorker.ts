@@ -24,6 +24,6 @@ export function continueWorker(state: EngineState) {
 		}
 		const work = yield* state.board.get(stored.value.workId, { fresh: true });
 		const current = briefChanged(stored.value, work) ? yield* approveBrief(state)(stored, work, undefined, undefined, true) : stored;
-		return yield* makeLaunch(state)(current, latest.role, prompt, { responses, sessionId: worker.sessionId });
+		return yield* makeLaunch(state)(current, latest.role, prompt, { answerTurn: true, responses, sessionId: worker.sessionId });
 	});
 }

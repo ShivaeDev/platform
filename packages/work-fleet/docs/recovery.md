@@ -56,7 +56,7 @@ After one idle interval Fleet asks the orchestrator to keep waiting, retry in a 
 
 Without a publication integration, a missing acknowledged turn stays under observation for five minutes after its first absence or the latest thread progress. Changed items or statuses on an older or newer running turn extend this grace period. If the turn remains invisible without progress, Fleet resumes its existing thread once. Observing that resumed turn clears the consecutive-loss count; a second consecutive loss asks the orchestrator. The grace timer and retry count persist across restart.
 
-When the provider cannot find an accepted worker or repair turn, Fleet checks that its thread is idle before replacing it. An active thread retains execution ownership for a five-minute visibility grace period, then needs a decision if it is still active.
+For an initial worker or repair turn, Fleet checks that its thread is idle before replacing it. An active thread retains execution ownership for a five-minute visibility grace period after its latest progress, then needs a decision if it is still active.
 
 Fleet then checks the item’s remote branch and all PR states:
 - With neither published, it records the missing-turn evidence, retires that execution and relaunches automatically.
@@ -93,6 +93,8 @@ CLI status records the request time, acknowledged delivery time or failure; inte
 Each waiting request tracks its exact published decision and response before resolution. `work-fleet answer` refreshes the managed decision and registers its current question before answering, including after a changed template was republished. If reconciliation replaces a decision with another of the same kind during the command, the answer applies to the current decision. A different kind or a move out of waiting records `Decision changed` with the current reason in status.
 
 When reconciliation continues a worker thread with an answer, the response receipt and continuation intent commit together before submission. Concurrent resolution, repeated resolution and restart do not submit the answer again; a lost acknowledgement reconciles the stored operation. If a crash occurs before submission and no authoritative receipt is available, Fleet retains the uncertain operation for human inspection.
+
+An accepted answer whose turn stays absent for five minutes without thread progress gets one automatic restart in a fresh session, carrying the original brief, answer and instructions to reuse the branch and PR. Fleet records abandonment and attempts to interrupt the missing turn. If the replacement also stays invisible without progress for five minutes, Fleet abandons it, releases execution capacity and areas, and asks the orchestrator to inspect the thread and published work. The timer and recovery count survive restart, including answer attempts retained by an older daemon. A second answer against a missing-turn decision on an active or unreadable thread fails explicitly without submitting another turn.
 
 `work-fleet continue` persists the message and thread identity before submission. A lost acknowledgement retains the attempt for reconciliation without replay.
 

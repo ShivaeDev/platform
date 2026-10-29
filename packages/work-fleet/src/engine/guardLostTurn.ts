@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { inspectThread, VISIBILITY_GRACE_MS } from "#engine/visibility.ts";
 import type { FleetRecord } from "#model.ts";
@@ -18,7 +19,13 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 	const current = answered ? yield* state.load(stored.value.workId) : stored;
 	const record = current.value;
 	const missingSince = attempt.missingSince ?? state.policy.now();
-	if (idle === false && state.policy.now() - missingSince < VISIBILITY_GRACE_MS) {
+	if (answered && idle !== true) {
+		return yield* new ServiceUnavailable({
+			message:
+				"Cannot apply answer: the accepted turn is still unobservable and the worker thread is active or unreadable; no answer turn was submitted",
+		});
+	}
+	if (idle === false && state.policy.now() - Math.max(missingSince, attempt.progress?.at ?? 0) < VISIBILITY_GRACE_MS) {
 		return yield* state.save(current, {
 			...record,
 			attempts: record.attempts.map((entry) => (entry.operationId === attempt.operationId ? { ...entry, missingSince } : entry)),

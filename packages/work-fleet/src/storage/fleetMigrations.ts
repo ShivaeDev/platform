@@ -101,5 +101,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 			}
 		}),
 		"29_queue_priority": sql`alter table ${sql(`${namespace}_records`)} add column "queuePriority" text`,
+		"30_answer_turns": Effect.gen(function* () {
+			for (const path of [["attempts"], ["history", "attempts"]]) {
+				yield* sql`alter table ${sql(childTable(namespace, path))} add column "answerTurn" boolean`;
+			}
+		}),
 	});
 });
