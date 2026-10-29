@@ -48,6 +48,7 @@ export function approveBrief(state: EngineState) {
 			mergeReadyHead: undefined,
 			pendingAnswers: revisedAnswers(record, work, approvedPrompt),
 			prompt: approvedPrompt,
+			queuePriority: work.priority,
 			responses: responses ?? record.responses,
 			review: undefined,
 			sweep: record.attempts.length === 0 ? work.sweep : (record.sweep ?? work.sweep),

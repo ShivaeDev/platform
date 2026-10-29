@@ -12,25 +12,33 @@ export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: Engi
 	if (!record.areas?.length || holdsAreas(record, policy.now(), policy.areaMergeWaitMs ?? DEFAULT_AREA_MERGE_WAIT_MS)) {
 		return [];
 	}
-	const records = (yield* state.store.list()).map(({ value }) => value);
+	const stored = yield* state.store.list();
+	const records = stored.map(({ value }) => value);
 	const index = records.findIndex((entry) => entry.workId === record.workId);
-	const waiting = records.filter(
-		(entry) => entry.workId !== record.workId && entry.step === "queued" && overlappingArea(record.areas ?? [], entry.areas) !== undefined,
+	const rank = priorityRanks[priority];
+	const waiting = stored.filter(
+		({ value: entry }) => entry.workId !== record.workId && entry.step === "queued" && overlappingArea(record.areas ?? [], entry.areas) !== undefined,
 	);
-	return yield* Effect.filter(waiting, (entry) =>
+	return yield* Effect.filter(waiting, ({ value: entry, version }) =>
 		state.board.get(entry.workId).pipe(
+			Effect.tap((work) =>
+				entry.queuePriority === work.priority
+					? Effect.void
+					: state.store.compareAndSet(entry.workId, version, { ...entry, queuePriority: work.priority }),
+			),
 			Effect.flatMap((work) =>
-				priorityRanks[work.priority ?? "normal"] > priorityRanks[priority]
-				|| (priorityRanks[work.priority ?? "normal"] === priorityRanks[priority] && records.indexOf(entry) >= index)
-					? Effect.succeed(false)
-					: qualifyDependencies(work.dependsOn, records, state.board.get).pipe(
-							Effect.as(work.approved),
-							Effect.catchTag("Forbidden", () => Effect.succeed(false)),
-						),
+				qualifyDependencies(work.dependsOn, records, state.board.get).pipe(
+					Effect.as(work.approved),
+					Effect.catchTag("Forbidden", () => Effect.succeed(false)),
+				),
 			),
 			Effect.catchTag("BoardFailure", (error) =>
-				missingBoardItem(error) || records.indexOf(entry) >= index ? Effect.succeed(false) : Effect.fail(error),
+				missingBoardItem(error)
+				|| priorityRanks[entry.queuePriority ?? "normal"] > rank
+				|| (priorityRanks[entry.queuePriority ?? "normal"] === rank && records.indexOf(entry) >= index)
+					? Effect.succeed(false)
+					: Effect.fail(error),
 			),
 		),
-	).pipe(Effect.map((entries) => entries.map((entry) => entry.workId)));
+	).pipe(Effect.map((entries) => entries.map(({ value }) => value.workId)));
 });

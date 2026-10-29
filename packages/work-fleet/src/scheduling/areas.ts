@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { reviewSatisfied } from "#completion.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
+import { priorityRanks } from "#scheduling/priorityRanks.ts";
 import { openSweep } from "#scheduling/sweeps.ts";
 import { StorageAdmission } from "#storage/errors.ts";
 import type { AdmissionLimits, ForeignReservation } from "#storage/model.ts";
@@ -88,10 +89,14 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 	if (previous !== undefined && holdsAreas(previous, scheduling.now, scheduling.areaMergeWaitMs)) {
 		return;
 	}
+	const index = records.findIndex((entry) => entry.workId === record.workId);
+	const rank = priorityRanks[(previous?.step === "queued" ? previous.queuePriority : undefined) ?? "normal"];
+	// Queue precedence must use the same locked snapshot as area ownership; a brief revision can move a waiter during Board reads.
 	const ahead = records.find(
-		(entry) =>
+		(entry, position) =>
 			entry.step === "queued"
 			&& scheduling.waiters.includes(entry.workId)
+			&& (priorityRanks[entry.queuePriority ?? "normal"] < rank || (priorityRanks[entry.queuePriority ?? "normal"] === rank && position < index))
 			&& overlappingArea(areas, entry.areas) !== undefined
 			&& !external.some((reservation) => overlappingArea(entry.areas ?? [], reservation.areas) !== undefined)
 			&& !records.some(
