@@ -63,17 +63,17 @@ export function Sidebar({
 	return (
 		<aside
 			aria-label="Workspace navigation"
-			className="sticky top-0 flex h-dvh flex-col gap-5 overflow-y-auto border-r bg-card p-4 text-card-foreground max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[min(320px,calc(100vw-48px))] print:hidden"
+			className="bg-card text-card-foreground sticky top-0 flex h-dvh flex-col gap-5 overflow-y-auto border-r p-4 max-md:fixed max-md:inset-y-0 max-md:left-0 max-md:z-40 max-md:w-[min(320px,calc(100vw-48px))] print:hidden"
 			hidden={!controls.open}
 			id={shellIds.sidebar}
 			role={controls.narrow && controls.open ? "dialog" : undefined}
 		>
 			<a
 				aria-current={home ? "page" : undefined}
-				className="flex items-center gap-2 px-2 py-3 font-semibold text-foreground text-lg no-underline"
+				className="text-foreground flex items-center gap-2 px-2 py-3 text-lg font-semibold no-underline"
 				href="/"
 			>
-				<PanelsTopLeft aria-hidden="true" className="size-5 text-primary" />
+				<PanelsTopLeft aria-hidden="true" className="text-primary size-5" />
 				work board
 			</a>
 			<nav aria-label="Workspace" className="grid shrink-0 gap-1" data-inbox-count={String(counts.today ?? "?")} id={shellIds.primaryNavigation}>
@@ -89,14 +89,14 @@ export function Sidebar({
 			<PinnedLinks current={main.file} />
 			{current === "today" ? null : (
 				<section aria-label="Active goals">
-					<h2 className="mb-2 px-2 font-semibold text-muted-foreground text-xs">Active goals</h2>
+					<h2 className="text-muted-foreground mb-2 px-2 text-xs font-semibold">Active goals</h2>
 					{navigated ? <ActiveGoals api={api} /> : null}
 				</section>
 			)}
 			<RecentLinks current={main.file} />
 			<Button
 				aria-haspopup="dialog"
-				className="mt-auto justify-start text-muted-foreground"
+				className="text-muted-foreground mt-auto justify-start"
 				id={shellIds.libraryOpen}
 				onClick={(event) => reading.openHistory(event.currentTarget)}
 				size="sm"

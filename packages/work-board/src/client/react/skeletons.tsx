@@ -19,7 +19,7 @@ export function SkeletonSection({ children }: { readonly children: ReactNode }) 
 
 export function SkeletonRows({ framed = true, rows }: { readonly framed?: boolean; readonly rows: number }) {
 	return (
-		<div className={cn("divide-y", framed && "rounded-lg border border-border")} data-loading-shape="rows">
+		<div className={cn("divide-y", framed && "border-border rounded-lg border")} data-loading-shape="rows">
 			{times(rows).map((slot) => (
 				<div className="flex h-12 items-center gap-3 px-3" key={slot}>
 					<div className="min-w-0 flex-1 space-y-1.5">
@@ -37,7 +37,7 @@ export function SkeletonCards({ cards, columns = 2 }: { readonly cards: number; 
 	return (
 		<div className={cn("grid min-w-0 gap-3", columns === 2 && "md:grid-cols-2")} data-loading-shape="cards">
 			{times(cards).map((slot) => (
-				<div className="space-y-3 rounded-lg border border-border bg-card p-4" key={slot}>
+				<div className="border-border bg-card space-y-3 rounded-lg border p-4" key={slot}>
 					<Skeleton className="h-4 w-1/2" />
 					<Skeleton className="h-3 w-full" />
 					<Skeleton className="h-3 w-4/5" />
@@ -64,7 +64,7 @@ export function SkeletonLanes() {
 
 export function SkeletonTable() {
 	return (
-		<div className="divide-y rounded-lg border border-border" data-loading-shape="table">
+		<div className="border-border divide-y rounded-lg border" data-loading-shape="table">
 			<div className="flex h-9 items-center gap-6 px-3">
 				<Skeleton className="h-3 w-24" />
 				<Skeleton className="h-3 w-12" />

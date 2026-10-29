@@ -13,7 +13,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 NodeRuntime.runMain(
-  Layer.launch(appHost({ group: Api, handlers: Handlers, services: Services, migrations: { loader: migrations }, sessions, assets: "./public" })),
+	Layer.launch(appHost({ group: Api, handlers: Handlers, services: Services, migrations: { loader: migrations }, sessions, assets: "./public" })),
 );
 ```
 
@@ -44,12 +44,12 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { Api, Handlers, Services, migrations, sessions } from "./app.ts";
 
 const Server = appHost({
-  group: Api,
-  handlers: Handlers,
-  services: Services,
-  migrations: { loader: migrations },
-  sessions,
-  assets: "./public",
+	group: Api,
+	handlers: Handlers,
+	services: Services,
+	migrations: { loader: migrations },
+	sessions,
+	assets: "./public",
 });
 
 NodeRuntime.runMain(Layer.launch(Server));
@@ -65,15 +65,15 @@ Pass application HTTP endpoints through `routes`, including routes that read app
 import { Effect, Layer } from "effect";
 import { HttpMiddleware, HttpRouter, HttpServerResponse } from "effect/http";
 
-const Routes = HttpRouter.add(
-  "*",
-  "/.well-known/app",
-  AppMetadata.pipe(Effect.map(HttpServerResponse.text)),
-).pipe(
-  Layer.provide(HttpRouter.middleware(HttpMiddleware.cors({
-    allowedOrigins: ["*"],
-    allowedMethods: ["GET"],
-  })).layer),
+const Routes = HttpRouter.add("*", "/.well-known/app", AppMetadata.pipe(Effect.map(HttpServerResponse.text))).pipe(
+	Layer.provide(
+		HttpRouter.middleware(
+			HttpMiddleware.cors({
+				allowedOrigins: ["*"],
+				allowedMethods: ["GET"],
+			}),
+		).layer,
+	),
 );
 
 const Server = appHost({ group: Api, handlers: Handlers, services: Services, routes: Routes, sessions });
@@ -111,13 +111,13 @@ When construction itself touches the schema, use `appHost({ migrations, config, 
 
 ```ts
 const host = appHost({
-  config: { databaseUrl },
-  migrations: { loader: migrations, mode: "check" },
-  preflight: AppConfigLive,
-  application: Effect.gen(function* () {
-    const { routes, sessions } = yield* makeAuth();
-    return { group: Api, handlers: Handlers, services: Services, routes, sessions };
-  }),
+	config: { databaseUrl },
+	migrations: { loader: migrations, mode: "check" },
+	preflight: AppConfigLive,
+	application: Effect.gen(function* () {
+		const { routes, sessions } = yield* makeAuth();
+		return { group: Api, handlers: Handlers, services: Services, routes, sessions };
+	}),
 });
 ```
 
@@ -127,21 +127,21 @@ Set `OTEL_EXPORTER_OTLP_ENDPOINT` or `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` to exp
 
 The supported tracing variables and defaults are:
 
-| Variable | Default | Meaning |
-| --- | --- | --- |
-| `OTEL_EXPORTER_OTLP_ENDPOINT` | Unset | Collector base URL. |
-| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Base URL plus `/v1/traces` | Complete traces URL; takes precedence. |
-| `OTEL_EXPORTER_OTLP_PROTOCOL` | `http/protobuf` | `http/protobuf` or `http/json`. |
-| `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` | General protocol | Overrides the protocol for traces. |
-| `OTEL_EXPORTER_OTLP_HEADERS` | Empty | Comma-separated exporter headers. |
-| `OTEL_SERVICE_NAME` | Resource `service.name`, then `unknown_service` | Service name. |
-| `OTEL_SERVICE_VERSION` | Resource `service.version`, otherwise unset | Service version. |
-| `OTEL_RESOURCE_ATTRIBUTES` | Empty | Comma-separated resource attributes. |
-| `OTEL_EXPORTER_OTLP_TIMEOUT` | `10000` ms | Timeout for each HTTP export attempt, including its response body. |
-| `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT` | General timeout | Overrides the request timeout for traces. |
-| `OTEL_BSP_SCHEDULE_DELAY` | `5000` ms | Effect tracer's batch export interval. |
-| `OTEL_BSP_MAX_EXPORT_BATCH_SIZE` | `1000` spans | Effect tracer's batch-size trigger. |
-| `OTEL_BSP_EXPORT_TIMEOUT` | `3000` ms | Effect tracer's shutdown flush bound, capped at the request timeout. |
+| Variable                             | Default                                         | Meaning                                                              |
+| ------------------------------------ | ----------------------------------------------- | -------------------------------------------------------------------- |
+| `OTEL_EXPORTER_OTLP_ENDPOINT`        | Unset                                           | Collector base URL.                                                  |
+| `OTEL_EXPORTER_OTLP_TRACES_ENDPOINT` | Base URL plus `/v1/traces`                      | Complete traces URL; takes precedence.                               |
+| `OTEL_EXPORTER_OTLP_PROTOCOL`        | `http/protobuf`                                 | `http/protobuf` or `http/json`.                                      |
+| `OTEL_EXPORTER_OTLP_TRACES_PROTOCOL` | General protocol                                | Overrides the protocol for traces.                                   |
+| `OTEL_EXPORTER_OTLP_HEADERS`         | Empty                                           | Comma-separated exporter headers.                                    |
+| `OTEL_SERVICE_NAME`                  | Resource `service.name`, then `unknown_service` | Service name.                                                        |
+| `OTEL_SERVICE_VERSION`               | Resource `service.version`, otherwise unset     | Service version.                                                     |
+| `OTEL_RESOURCE_ATTRIBUTES`           | Empty                                           | Comma-separated resource attributes.                                 |
+| `OTEL_EXPORTER_OTLP_TIMEOUT`         | `10000` ms                                      | Timeout for each HTTP export attempt, including its response body.   |
+| `OTEL_EXPORTER_OTLP_TRACES_TIMEOUT`  | General timeout                                 | Overrides the request timeout for traces.                            |
+| `OTEL_BSP_SCHEDULE_DELAY`            | `5000` ms                                       | Effect tracer's batch export interval.                               |
+| `OTEL_BSP_MAX_EXPORT_BATCH_SIZE`     | `1000` spans                                    | Effect tracer's batch-size trigger.                                  |
+| `OTEL_BSP_EXPORT_TIMEOUT`            | `3000` ms                                       | Effect tracer's shutdown flush bound, capped at the request timeout. |
 
 Timeouts fail through the HTTP client's typed transport-error channel and use the same warning path as other transport failures. Effect retains its native retry policy; the request timeout applies to each attempt. The batch defaults follow Effect's `OtlpTracer.layer`. Its options cannot express a separate batch-operation deadline or a queue capacity, so `OTEL_BSP_EXPORT_TIMEOUT` controls shutdown only and `OTEL_BSP_MAX_QUEUE_SIZE` is unsupported. Other `OTEL_BSP_*` variables are unsupported.
 
@@ -167,11 +167,7 @@ Use one `publicConfig` declaration per application as the one path for server co
 import { Schema } from "effect";
 import { publicConfig } from "@shivaedev/contract/publicConfig.ts";
 
-export const PublicConfig = publicConfig(
-  Schema.Struct({ installUrl: Schema.URL }).pipe(
-    Schema.encodeKeys({ installUrl: "INSTALL_URL" }),
-  ),
-);
+export const PublicConfig = publicConfig(Schema.Struct({ installUrl: Schema.URL }).pipe(Schema.encodeKeys({ installUrl: "INSTALL_URL" })));
 ```
 
 On the server, merge the declaration into the application's group and its generated handler Layer into the handlers:
@@ -184,9 +180,9 @@ import { Api, Handlers, sessions } from "./app.ts";
 import { PublicConfig } from "./public-config.ts";
 
 export const Server = appHost({
-  group: Api.merge(PublicConfig),
-  handlers: Layer.merge(Handlers, publicConfigLayer(PublicConfig)),
-  sessions,
+	group: Api.merge(PublicConfig),
+	handlers: Layer.merge(Handlers, publicConfigLayer(PublicConfig)),
+	sessions,
 });
 ```
 
@@ -204,15 +200,13 @@ import { useQuery } from "@shivaedev/react/client/resultState.ts";
 import { PublicConfig } from "./public-config.ts";
 
 class ConfigClient extends AtomRpc.Service<ConfigClient>()("app/ConfigClient", {
-  group: PublicConfig,
-  protocol: RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(
-    Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
-  ),
+	group: PublicConfig,
+	protocol: RpcClient.layerProtocolHttp({ url: "/rpc" }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
 }) {}
 const config = bind(PublicConfig, ConfigClient);
 
 export function usePublicConfig() {
-  return useQuery(config.get.query());
+	return useQuery(config.get.query());
 }
 ```
 
@@ -228,15 +222,15 @@ Tracing logs declared failures with `RPC failure` and their tag, and defects wit
 import { Schema } from "effect";
 
 const Contact = Schema.Struct({
-  deliveryAddress: Schema.String.annotate({ sensitive: true }),
-  recoveryCode: Schema.RedactedFromValue(Schema.String),
+	deliveryAddress: Schema.String.annotate({ sensitive: true }),
+	recoveryCode: Schema.RedactedFromValue(Schema.String),
 });
 
 const Server = appHost({
-  group: Api,
-  handlers: Handlers,
-  sessions,
-  config: { sensitiveKeys: ["customerReference"] },
+	group: Api,
+	handlers: Handlers,
+	sessions,
+	config: { sensitiveKeys: ["customerReference"] },
 });
 ```
 
@@ -270,13 +264,10 @@ class Greeting extends Context.Service<Greeting, string>()("app/Greeting") {}
 
 const runtime = makePlatformRuntime(Layer.succeed(Greeting, "application"));
 const base = await runtime.runPromise(Greeting);
-const request = await runtime.runWithServices(
-  Context.make(Greeting, "request"),
-  async () => {
-    await Promise.resolve();
-    return runtime.runPromise(Greeting);
-  },
-);
+const request = await runtime.runWithServices(Context.make(Greeting, "request"), async () => {
+	await Promise.resolve();
+	return runtime.runPromise(Greeting);
+});
 await runtime.dispose();
 ```
 
@@ -293,21 +284,21 @@ import type { IncomingMessage } from "node:http";
 import { nodeSubscriptionSignal } from "@shivaedev/server/node-http/subscriptionSignal.ts";
 
 export async function consumeSubscription(
-  request: Request,
-  nodeRequest: IncomingMessage,
-  procedureSignal: AbortSignal,
-  consume: (signal: AbortSignal) => Promise<void>,
+	request: Request,
+	nodeRequest: IncomingMessage,
+	procedureSignal: AbortSignal,
+	consume: (signal: AbortSignal) => Promise<void>,
 ) {
-  const subscription = nodeSubscriptionSignal({
-    nodeRequest,
-    request,
-    signals: [procedureSignal],
-  });
-  try {
-    await consume(subscription.signal);
-  } finally {
-    subscription.dispose();
-  }
+	const subscription = nodeSubscriptionSignal({
+		nodeRequest,
+		request,
+		signals: [procedureSignal],
+	});
+	try {
+		await consume(subscription.signal);
+	} finally {
+		subscription.dispose();
+	}
 }
 ```
 
@@ -317,17 +308,17 @@ The signal aborts on an additional signal, socket close, incomplete request clos
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/server/`.
 
-| Module | Names and purpose |
-| --- | --- |
-| `appHost.ts` | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust. |
-| `setupDatabases.ts` | `setupDatabases()`: prepare the local development and test databases. |
-| `development.ts` | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode. |
-| `rpc-server/publicConfigLayer.ts` | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config. |
-| `otlpTracing.ts` | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers. |
-| `schemaSensitiveKeys.ts`, `RedactionPolicy.ts` | `schemaSensitiveKeys(group, extraKeys?)`, `RedactionPolicy`: derive and provide an app's diagnostic key predicate. |
+| Module                                                                          | Names and purpose                                                                                                                                                                                                |
+| ------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `appHost.ts`                                                                    | `appHost`, `appDatabase`, `AppChanges`: scoped HTTP and PostgreSQL composition with loopback defaults and optional proxy trust.                                                                                  |
+| `setupDatabases.ts`                                                             | `setupDatabases()`: prepare the local development and test databases.                                                                                                                                            |
+| `development.ts`                                                                | `development({ server, worker, conditions? })`, `runDevelopment(options)`: run the server, worker and Vite in watch mode.                                                                                        |
+| `rpc-server/publicConfigLayer.ts`                                               | `publicConfigLayer(declaration, path?)`: serve a `publicConfig` declaration from native Config.                                                                                                                  |
+| `otlpTracing.ts`                                                                | `otlpTracing`: opt-in Effect OTLP trace export for worker Layers.                                                                                                                                                |
+| `schemaSensitiveKeys.ts`, `RedactionPolicy.ts`                                  | `schemaSensitiveKeys(group, extraKeys?)`, `RedactionPolicy`: derive and provide an app's diagnostic key predicate.                                                                                               |
 | `redactingDiagnostics.ts`, `redactingTracer.ts`, `redactingRpcSerialization.ts` | `redactingDiagnostics(sensitive)`, `redactRecord(values, sensitive)`, `redactingTracer(sensitive)`, `redactingRpcSerialization(wire, sensitive, maskFailure?)`: compose native diagnostic and NDJSON boundaries. |
-| `runtime/makePlatform.ts` | `makePlatformRuntime(layer, { developmentCacheKey? })`. |
-| `node-http/subscriptionSignal.ts` | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`. |
+| `runtime/makePlatform.ts`                                                       | `makePlatformRuntime(layer, { developmentCacheKey? })`.                                                                                                                                                          |
+| `node-http/subscriptionSignal.ts`                                               | `nodeSubscriptionSignal({ nodeRequest?, request?, signals? })`, returning `{ signal, dispose }`.                                                                                                                 |
 
 ### Install, setup and limits
 
@@ -339,11 +330,10 @@ Effect is the only required peer. The `node-http/`, `rpc-server/` and `runtime/`
 
 Install the optional peers for the selected integration:
 
-| Integration | Additional peers |
-| --- | --- |
-| `appHost.ts` | `@effect/platform-node`, `@effect/sql-pg` |
-| `development.ts` | `@effect/platform-node` |
-
+| Integration      | Additional peers                          |
+| ---------------- | ----------------------------------------- |
+| `appHost.ts`     | `@effect/platform-node`, `@effect/sql-pg` |
+| `development.ts` | `@effect/platform-node`                   |
 - The package needs Node 24 or newer.
 - `appHost` adds tracing last on its server-side copy of the group. When composing a native RPC server directly, add `RequestTracing` last on the group so it wraps authentication too; see the [native-server example](https://github.com/ShivaeDev/platform/blob/main/docs/framework/request-context.md#request-id-identity-and-logging). Middleware outside that tracing boundary is responsible for its own diagnostics.
 - Redaction recognizes declared field names and common credential shapes. Mark sensitive fields in RPC schemas and configure extra names once with `config.sensitiveKeys`. Keep sensitive values out of ordinary prose.

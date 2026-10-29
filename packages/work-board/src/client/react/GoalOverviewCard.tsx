@@ -6,12 +6,12 @@ import { goalTotal } from "./goalCounts.ts";
 export function GoalOverviewCard({ goal }: { readonly goal: GoalsProjection["goals"][number] }) {
 	const criteria = goal.criteria.filter((criterion) => criterion.linked > 0);
 	return (
-		<article className="min-w-0 rounded-lg border border-border bg-card p-3" data-goal-id={goal.id}>
-			<h2 className="m-0 font-semibold text-sm [overflow-wrap:anywhere]">
+		<article className="border-border bg-card min-w-0 rounded-lg border p-3" data-goal-id={goal.id}>
+			<h2 className="m-0 text-sm font-semibold [overflow-wrap:anywhere]">
 				<a href={`/_board/item/${encodeURIComponent(goal.id)}/`}>{goal.title}</a>
 			</h2>
 			{goal.nextAction ? (
-				<p className="m-0 mt-1 line-clamp-2 text-muted-foreground text-xs [overflow-wrap:anywhere]" title={goal.nextAction}>
+				<p className="text-muted-foreground m-0 mt-1 line-clamp-2 text-xs [overflow-wrap:anywhere]" title={goal.nextAction}>
 					{goal.nextAction}
 				</p>
 			) : null}
@@ -25,7 +25,7 @@ export function GoalOverviewCard({ goal }: { readonly goal: GoalsProjection["goa
 				</section>
 			))}
 			{goal.openAsks > 0 && (
-				<p className="m-0 mt-2 text-muted-foreground text-xs">
+				<p className="text-muted-foreground m-0 mt-2 text-xs">
 					{goal.openAsks} open {goal.openAsks === 1 ? "ask" : "asks"}
 				</p>
 			)}
@@ -44,13 +44,13 @@ function CriterionProgress({ criterion, goal }: { readonly criterion: GoalsProje
 	return (
 		<li className="flex min-w-0 items-center gap-2">
 			<a
-				className="min-w-0 flex-1 truncate text-muted-foreground"
+				className="text-muted-foreground min-w-0 flex-1 truncate"
 				href={`/_board/item/${encodeURIComponent(goal)}/#criterion-${encodeURIComponent(criterion.id)}`}
 				title={criterion.text}
 			>
 				{criterion.text}
 			</a>
-			<span className="shrink-0 text-muted-foreground tabular-nums" title={`${criterion.counts.done} of ${goalTotal(criterion.counts)} done`}>
+			<span className="text-muted-foreground shrink-0 tabular-nums" title={`${criterion.counts.done} of ${goalTotal(criterion.counts)} done`}>
 				{criterion.counts.done}/{goalTotal(criterion.counts)}
 			</span>
 		</li>

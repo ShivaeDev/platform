@@ -5,7 +5,7 @@ import { StatusChip } from "#client/react/StatusChip.tsx";
 export function SourceSection({ group, label, links }: { readonly group?: string; readonly label: string; readonly links: readonly SourceLink[] }) {
 	return (
 		<div data-source-group={group ?? label}>
-			<h4 className="mt-4 mb-1 font-medium text-muted-foreground text-xs">{label}</h4>
+			<h4 className="text-muted-foreground mt-4 mb-1 text-xs font-medium">{label}</h4>
 			<SourceList links={links} />
 		</div>
 	);
@@ -45,7 +45,7 @@ function Source({ link }: { readonly link: SourceLink }) {
 	return (
 		<span className="inline-flex flex-wrap items-center gap-2">
 			<a
-				className="pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center underline underline-offset-4"
+				className="underline underline-offset-4 pointer-coarse:inline-flex pointer-coarse:min-h-11 pointer-coarse:items-center"
 				href={link.href}
 				title={link.label}
 			>

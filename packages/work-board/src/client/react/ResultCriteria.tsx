@@ -29,9 +29,9 @@ function TargetChecks({ document, target }: { readonly document: Document; reado
 	const title = document.referenceDetails?.[target.link.label]?.title ?? target.link.label;
 	let body: ReactNode;
 	if (!target.available) {
-		body = <p className="m-0 text-muted-foreground">This item can't be read, so its checks aren't shown.</p>;
+		body = <p className="text-muted-foreground m-0">This item can't be read, so its checks aren't shown.</p>;
 	} else if (target.criteria.length === 0) {
-		body = <p className="m-0 text-muted-foreground">This item lists no checks.</p>;
+		body = <p className="text-muted-foreground m-0">This item lists no checks.</p>;
 	} else {
 		body = (
 			<Table aria-label={`Checks for ${title}`}>
@@ -72,7 +72,7 @@ function CriterionRows({ criterion }: { readonly criterion: Criterion }) {
 		return (
 			<TableRow>
 				{check}
-				<TableCell className="whitespace-normal text-muted-foreground" colSpan={5}>
+				<TableCell className="text-muted-foreground whitespace-normal" colSpan={5}>
 					Another check has the same ID, so evidence can't be matched to this one.
 				</TableCell>
 			</TableRow>
@@ -82,7 +82,7 @@ function CriterionRows({ criterion }: { readonly criterion: Criterion }) {
 		return (
 			<TableRow>
 				{check}
-				<TableCell className="whitespace-normal text-muted-foreground" colSpan={5}>
+				<TableCell className="text-muted-foreground whitespace-normal" colSpan={5}>
 					No evidence recorded
 				</TableCell>
 			</TableRow>

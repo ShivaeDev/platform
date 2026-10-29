@@ -85,15 +85,15 @@ function DocumentRow({ file }: { readonly file: LibraryFile }) {
 	return (
 		<li className="flex flex-wrap items-center justify-between gap-2 py-3">
 			<div className="min-w-0">
-				<a className="break-words font-medium" href={file.href}>
+				<a className="font-medium break-words" href={file.href}>
 					{file.title}
 				</a>
-				<p className="m-0 text-muted-foreground text-xs">
+				<p className="text-muted-foreground m-0 text-xs">
 					{kindLabel(file.kind)}
 					{file.status ? ` · ${statusLabel(file.status)}` : ""}
 				</p>
 			</div>
-			<span className="shrink-0 text-muted-foreground text-xs" data-updated>
+			<span className="text-muted-foreground shrink-0 text-xs" data-updated>
 				Updated <RowTime at={file.modified} />
 			</span>
 		</li>

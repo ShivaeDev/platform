@@ -28,7 +28,7 @@ function RoutedApp({ client, auth, history, session }: Routing) {
 		<PermissionBoundary
 			fallback={
 				<main className="space-y-4 p-8">
-					<h1 className="font-semibold text-3xl">Permission denied</h1>
+					<h1 className="text-3xl font-semibold">Permission denied</h1>
 					<p>You do not have access to this page.</p>
 				</main>
 			}

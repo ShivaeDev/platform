@@ -30,7 +30,7 @@ export const roleScreen = storyKit({
 		});
 		return { root, save };
 	},
-	inspect: ({ root }) => ({ screen: root.innerText }),
+	inspect: ({ root }) => ({ screen: root.textContent ?? "" }),
 	name: "role screen",
 	stages: ["screen"],
 	verbs: ({ root, save }, story) => ({

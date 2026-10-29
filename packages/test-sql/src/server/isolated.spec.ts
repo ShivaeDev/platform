@@ -1,4 +1,4 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Order } from "effect";
 import { expect } from "vitest";
 import { database } from "#test/database.ts";
 
@@ -85,7 +85,7 @@ database.it(
 	function* ({ readWorkerDatabaseNames, readDatabases, closeWorker }) {
 		const names = yield* readWorkerDatabaseNames();
 		expect(names.every(Boolean)).toBe(true);
-		expect((yield* readDatabases(names)).map(({ datname }) => datname).sort()).toEqual([...names].sort());
+		expect((yield* readDatabases(names)).map(({ datname }) => datname).sort(Order.String)).toEqual([...names].sort(Order.String));
 		yield* closeWorker();
 		expect(yield* readDatabases(names)).toEqual([]);
 	},

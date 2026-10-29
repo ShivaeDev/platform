@@ -1,4 +1,4 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Order } from "effect";
 import { expect } from "vitest";
 import { change } from "#test/fakeDatabase.ts";
 import { changes, commitPauses, hasOwner } from "#test/kit.ts";
@@ -75,7 +75,7 @@ changes.it(
 			concurrency: "unbounded",
 			discard: true,
 		}).pipe(inTransaction(database));
-		expect(published.map((batch) => [...batch].sort())).toEqual([
+		expect(published.map((batch) => [...batch].sort(Order.String))).toEqual([
 			Array.from(new Set(subjects), (subject) => `${subject}:orders`).sort((left, right) => left.localeCompare(right)),
 		]);
 	},

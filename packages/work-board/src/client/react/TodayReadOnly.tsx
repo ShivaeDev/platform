@@ -8,8 +8,8 @@ export function TodayReadOnly({ document: data, inline }: { readonly document: D
 	const { heading, reason } = inlineReason(inline);
 	return (
 		<div className="space-y-3 px-2 pb-1">
-			{Boolean(reason) && <p className="m-0 font-medium text-sm">{reason}</p>}
-			{heading ? <p className="m-0 text-muted-foreground text-xs">{heading}</p> : null}
+			{Boolean(reason) && <p className="m-0 text-sm font-medium">{reason}</p>}
+			{heading ? <p className="text-muted-foreground m-0 text-xs">{heading}</p> : null}
 			{inline.mode === "options" ? (
 				<ul className="m-0 list-none space-y-2 p-0">
 					{inline.prompt.options.map((option, index) => (
@@ -17,7 +17,7 @@ export function TodayReadOnly({ document: data, inline }: { readonly document: D
 					))}
 				</ul>
 			) : null}
-			<p className="m-0 text-muted-foreground text-xs">{READ_ONLY}</p>
+			<p className="text-muted-foreground m-0 text-xs">{READ_ONLY}</p>
 		</div>
 	);
 }
@@ -36,11 +36,11 @@ function ReadOnlyOption({
 	const description = data.metadata.options?.[index]?.description ?? authored.description;
 	return (
 		<li className="rounded-md border px-3 py-2">
-			<span className="block font-medium text-xs">
+			<span className="block text-xs font-medium">
 				{label}
 				{data.metadata.recommended === label ? " · Recommended" : null}
 			</span>
-			{description ? <span className="block text-muted-foreground text-xs">{description}</span> : null}
+			{description ? <span className="text-muted-foreground block text-xs">{description}</span> : null}
 		</li>
 	);
 }

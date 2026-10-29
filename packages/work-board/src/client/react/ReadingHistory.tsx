@@ -26,7 +26,7 @@ function EntryList({
 	}
 	return (
 		<section className="grid gap-1">
-			<h3 className="px-2 pt-3 font-semibold text-muted-foreground text-xs" id={id}>
+			<h3 className="text-muted-foreground px-2 pt-3 text-xs font-semibold" id={id}>
 				{title}
 			</h3>
 			<ul aria-labelledby={id} className="m-0 grid list-none gap-0.5 p-0">

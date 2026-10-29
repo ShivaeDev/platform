@@ -1,3 +1,4 @@
+import { Order } from "effect";
 import type { Library, LibraryInput } from "#browser/navigation/library.ts";
 import { sameStatus, statusOptions } from "#browser/views/statusLabel.ts";
 import { fileUrl } from "#files/url.ts";
@@ -43,7 +44,7 @@ export function libraryData(files: readonly MarkdownFile[], snapshot: Snapshot, 
 			.toSorted((a, b) => a.title.localeCompare(b.title) || a.path.localeCompare(b.path)),
 		fleetCount: all.filter((file) => records.has(file.path)).length,
 		folders: [...folders].sort(([a], [b]) => a.localeCompare(b)).map(([name, count]) => ({ count, name, path: `${prefix}${name}` })),
-		kinds: [...new Set(all.map((file) => file.kind))].sort(),
+		kinds: [...new Set(all.map((file) => file.kind))].sort(Order.String),
 		statuses: statusOptions(all.map((file) => file.status)),
 	};
 }

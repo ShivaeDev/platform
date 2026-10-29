@@ -14,13 +14,13 @@ When a test fails once and then passes, the run succeeds and `test-results/flaky
 
 ```json
 [
-  {
-    "classname": "src/checkout.test.ts",
-    "name": "checkout > charges the card once",
-    "file": "src/checkout.test.ts",
-    "attempts": 2,
-    "messages": ["expected 2 to be 1"]
-  }
+	{
+		"classname": "src/checkout.test.ts",
+		"name": "checkout > charges the card once",
+		"file": "src/checkout.test.ts",
+		"attempts": 2,
+		"messages": ["expected 2 to be 1"]
+	}
 ]
 ```
 
@@ -46,12 +46,12 @@ vitest-rerun [--reruns <count>] [--output-dir <directory>] [--] [vitest run argu
 
 A run first deletes the reports of an earlier run in its output directory, then writes:
 
-| File | Contents |
-| --- | --- |
-| `tests.json` | Vitest's JSON report for the whole run, with each test's final result and a `durationMs` per file that adds up every attempt. |
-| `tests.junit.xml` | The JUnit report for the whole run, written with `addFileAttribute`. |
-| `flaky-tests.json` | Written only when a test failed and then passed on a rerun. |
-| `tests.attempt-<n>.json`, `tests.attempt-<n>.junit.xml` | The raw reports of each attempt, kept once a rerun happens. |
+| File                                                    | Contents                                                                                                                      |
+| ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `tests.json`                                            | Vitest's JSON report for the whole run, with each test's final result and a `durationMs` per file that adds up every attempt. |
+| `tests.junit.xml`                                       | The JUnit report for the whole run, written with `addFileAttribute`.                                                          |
+| `flaky-tests.json`                                      | Written only when a test failed and then passed on a rerun.                                                                   |
+| `tests.attempt-<n>.json`, `tests.attempt-<n>.junit.xml` | The raw reports of each attempt, kept once a rerun happens.                                                                   |
 
 Coverage, when enabled, merges every attempt into the configured reports directory, so tests that passed the first time keep their coverage and rerun coverage adds to it. Reruns use their own Vite cache in `<output-dir>/vite-rerun`, so the first attempt's results cache, which Vitest uses to order test files, stays intact. Each recovered test also prints a `- Flaky:` line, which is appended to the GitHub Actions job summary when `GITHUB_STEP_SUMMARY` is set; a file that failed to load and then passed is reported there as a collection failure.
 
@@ -59,13 +59,13 @@ Coverage, when enabled, merges every attempt into the configured reports directo
 
 The file holds one entry per test that passed only on a rerun:
 
-| Field | Value |
-| --- | --- |
-| `classname` | The JUnit `classname` of the test's `testcase`, exactly as in `tests.junit.xml`. |
-| `name` | The JUnit `name` of the test's `testcase`: its describe blocks and title joined by ` > `. |
-| `file` | The test file's path relative to the Vitest root, the same as the JUnit `file` attribute. |
-| `attempts` | How many attempts the test took, counting the one that passed. |
-| `messages` | The error message of each failed attempt, in order. |
+| Field       | Value                                                                                     |
+| ----------- | ----------------------------------------------------------------------------------------- |
+| `classname` | The JUnit `classname` of the test's `testcase`, exactly as in `tests.junit.xml`.          |
+| `name`      | The JUnit `name` of the test's `testcase`: its describe blocks and title joined by `>`.   |
+| `file`      | The test file's path relative to the Vitest root, the same as the JUnit `file` attribute. |
+| `attempts`  | How many attempts the test took, counting the one that passed.                            |
+| `messages`  | The error message of each failed attempt, in order.                                       |
 
 The JUnit `classname` is the file's path relative to the Vitest root. When the test runs in a named Vitest project, the project comes first, as in `|unit| src/checkout.test.ts`, so a file that runs in two projects has a distinct `classname` in each. A file that failed to load has no test to name, so it appears only in the job summary.
 
@@ -89,6 +89,5 @@ npm install --save-dev @shivaedev/vitest-rerun vitest effect @effect/platform-no
 ```
 
 `vitest`, `effect` and the Effect Node platform packages are peers, so your own versions run the tests. The package needs Node 24 or later.
-
 - Vitest's `retry` is always `0`; the fresh-process rerun replaces it.
 - The package is built for ShivaeDev repositories and may change without a deprecation period.

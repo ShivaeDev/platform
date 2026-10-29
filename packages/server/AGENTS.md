@@ -5,7 +5,6 @@ You are changing the application host: the one Layer that turns an Effect applic
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Keep Effect's boundaries intact.** Scope, interruption, typed failures and transactions survive every hop through HTTP, RPC and Promise callers. Shared Layers never capture a caller's identity.
 2. **Fail closed at the edge.** Bounded bodies, trusted proxies, origin checks and redaction default to the safe choice; widening one takes explicit configuration.
 3. **Host, do not own.** Identity, sessions and permissions belong to `@shivaedev/identity`, failure vocabulary and redaction rules to `@shivaedev/errors`, persistence to `@shivaedev/sql`. The host composes them and adds only what a process needs: listeners, migrations, health, telemetry and lifecycle.

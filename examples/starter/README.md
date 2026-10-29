@@ -65,9 +65,9 @@ import { expect } from "vitest";
 import { app, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it("saves a title for the signed-in account", [signedIn()], function* ({ actor }) {
- const notes = actor().notes;
- const saved = yield* notes.create({ title: "First note" });
- expect(yield* notes.list()).toEqual([saved]);
+	const notes = actor().notes;
+	const saved = yield* notes.create({ title: "First note" });
+	expect(yield* notes.list()).toEqual([saved]);
 });
 ```
 

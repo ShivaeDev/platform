@@ -15,7 +15,7 @@ export function PullRequestsPage({ data }: { readonly data: FleetItemsProjection
 	return (
 		<div className="mx-auto max-w-4xl space-y-8">
 			<header className="space-y-2">
-				<h1 className="font-semibold text-2xl">Pull requests</h1>
+				<h1 className="text-2xl font-semibold">Pull requests</h1>
 				<p className="text-muted-foreground">Fleet’s current pull requests, with those waiting for a merge first.</p>
 			</header>
 			{data.state === "unavailable" ? <p role="status">{data.reason}</p> : null}
@@ -34,7 +34,7 @@ function PullRequestSection({ group, items }: { readonly group: PullRequestGroup
 	}
 	return (
 		<section aria-label={group} className="space-y-3">
-			<h2 className="font-semibold text-lg">
+			<h2 className="text-lg font-semibold">
 				{group} <span className="text-muted-foreground">({rows.length})</span>
 			</h2>
 			<ul className="divide-y rounded-lg border px-4">
@@ -50,7 +50,7 @@ function PullRequestRow({ item }: { readonly item: PullRequestItem }) {
 	const number = item.prUrl?.match(/\/pull\/(?<number>\d+)/u)?.groups?.number;
 	return (
 		<li className="flex flex-wrap items-baseline gap-x-4 gap-y-1 py-3" data-pr-work={item.workId}>
-			<a className="font-medium text-primary" href={item.prUrl}>
+			<a className="text-primary font-medium" href={item.prUrl}>
 				#{number}
 			</a>
 			<div className="min-w-0 flex-1 basis-48 [overflow-wrap:anywhere]">

@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Order } from "effect";
 import { expect } from "vitest";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { hasBucketRows, writeKeys } from "#test/writeKeysStory.ts";
@@ -17,8 +17,10 @@ writeKeys.it("an insert announces its generated record and only its own buckets 
 		return inserted;
 	}).pipe(test.transact({ onSqlError: (error) => error }), test.observePublication);
 	expect(row).toMatchObject({ listId: 1, owner: "alice", slug: "note" });
-	expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(row.id), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort());
-	expect(test.refreshed().toSorted()).toEqual(["alice", "list 1", "record"]);
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(row.id), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(Order.String),
+	);
+	expect(test.refreshed().toSorted(Order.String)).toEqual(["alice", "list 1", "record"]);
 });
 
 writeKeys.it("moving a record wakes its old and new buckets", [hasBucketRows(true)], function* (test) {
@@ -27,16 +29,20 @@ writeKeys.it("moving a record wakes its old and new buckets", [hasBucketRows(tru
 	yield* test.watch("new list", [keys.bucket.listId(2)]);
 	yield* test.watch("other list", [keys.bucket.listId(3)]);
 	yield* rows.update({ id: 1, listId: 2, owner: "bob", slug: "note", version: 0 }).pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual(
-		[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.listId(2), keys.bucket.owner("alice"), keys.bucket.owner("bob")])].sort(),
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.listId(2), keys.bucket.owner("alice"), keys.bucket.owner("bob")])].sort(
+			Order.String,
+		),
 	);
-	expect(test.refreshed().toSorted()).toEqual(["new list", "old list"]);
+	expect(test.refreshed().toSorted(Order.String)).toEqual(["new list", "old list"]);
 });
 
 writeKeys.it("deleting a record announces the old row's record and buckets", [hasBucketRows(true)], function* (test) {
 	const { rows, keys } = test.bucketRows();
 	yield* rows.delete(1).pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual([...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort());
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(1), keys.bucket.listId(1), keys.bucket.owner("alice")])].sort(Order.String),
+	);
 	expect(yield* rows.findMany()).toEqual([]);
 });
 
@@ -52,8 +58,8 @@ writeKeys.it("a rolled-back bucket move publishes nothing", [hasBucketRows(true)
 	expect(test.refreshed()).toEqual([]);
 	expect(yield* rows.findById(1)).toMatchObject({ listId: 1, owner: "alice" });
 	const committed = yield* rows.insert({ listId: 2, owner: "bob", slug: "committed" }).pipe(test.observePublication);
-	expect(test.publishedKeys().sort()).toEqual(
-		[...invalidationKeys([keys.item(committed.id), keys.bucket.listId(2), keys.bucket.owner("bob")])].sort(),
+	expect(test.publishedKeys().sort(Order.mapInput(Order.String, String))).toEqual(
+		[...invalidationKeys([keys.item(committed.id), keys.bucket.listId(2), keys.bucket.owner("bob")])].sort(Order.String),
 	);
 	expect(test.refreshed()).toEqual(["new list"]);
 });

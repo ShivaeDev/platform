@@ -8,10 +8,10 @@ Operators need one place to find the tools an application exposes, and an admin 
 
 ```ts
 const Jobs = adminPage({
-  id: "jobs",
-  permission: JobsPermission,
-  route: { path: "/admin/jobs", title: "Jobs" },
-  contract: contract("admin.jobs", { queries: [Failed] }),
+	id: "jobs",
+	permission: JobsPermission,
+	route: { path: "/admin/jobs", title: "Jobs" },
+	contract: contract("admin.jobs", { queries: [Failed] }),
 });
 const Admin = adminRegistry(Jobs);
 ```
@@ -37,14 +37,14 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 
 const Failed = query("failed", {
-  reads: () => [],
-  success: Schema.Array(Schema.String),
+	reads: () => [],
+	success: Schema.Array(Schema.String),
 });
 const Jobs = adminPage({
-  id: "jobs",
-  permission: JobsPermission,
-  route: { path: "/admin/jobs", title: "Jobs" },
-  contract: contract("admin.jobs", { queries: [Failed] }),
+	id: "jobs",
+	permission: JobsPermission,
+	route: { path: "/admin/jobs", title: "Jobs" },
+	contract: contract("admin.jobs", { queries: [Failed] }),
 });
 const Admin = adminRegistry(Jobs);
 ```
@@ -60,13 +60,11 @@ import { JobsPermission, ReadJobs } from "@shivaedev/admin/permissions.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 
 const registration = registerAdmin(Admin, {
-  jobs: Jobs.contract.application.toLayer({
-    "admin.jobs.failed": () => Effect.succeed(["mail-42"]),
-  }),
+	jobs: Jobs.contract.application.toLayer({
+		"admin.jobs.failed": () => Effect.succeed(["mail-42"]),
+	}),
 });
-const handlers = registration.handlers.pipe(
-  Layer.provideMerge(permissionLayer(JobsPermission, sessions)),
-);
+const handlers = registration.handlers.pipe(Layer.provideMerge(permissionLayer(JobsPermission, sessions)));
 ```
 
 Declare application roles with `@shivaedev/access`, grant the relevant domain permissions explicitly, and supply that role set through the session or auth configuration of `@shivaedev/identity`.
@@ -94,7 +92,7 @@ import { jobsHandlers } from "@shivaedev/admin/server/jobsHandlers.ts";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
 
 const registration = registerAdmin(Admin, {
-  jobs: jobsHandlers(JobsPage, JobsService),
+	jobs: jobsHandlers(JobsPage, JobsService),
 });
 ```
 
@@ -117,7 +115,7 @@ import { jobsHandlersWithRetry } from "@shivaedev/admin/server/jobsHandlersWithR
 const JobsPage = jobsPageWithRetry({ name: "mail", schema: MailPayload });
 const Admin = adminRegistry(JobsPage);
 const registration = registerAdmin(Admin, {
-  jobs: jobsHandlersWithRetry(JobsPage, JobsService),
+	jobs: jobsHandlersWithRetry(JobsPage, JobsService),
 });
 ```
 

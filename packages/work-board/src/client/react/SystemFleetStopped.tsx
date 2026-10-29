@@ -29,7 +29,7 @@ export function SystemFleetStopped({
 				</CardHeader>
 				<CardContent>
 					<FleetStopped command={command} reason={reason}>
-						<p className="m-0 text-muted-foreground">Codex and GitHub limits and the Fleet work list come through Fleet, so they are unknown too.</p>
+						<p className="text-muted-foreground m-0">Codex and GitHub limits and the Fleet work list come through Fleet, so they are unknown too.</p>
 					</FleetStopped>
 				</CardContent>
 				<CardFooter className="text-muted-foreground text-xs">

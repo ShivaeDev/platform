@@ -3,7 +3,6 @@
 You are changing both ShivaeDev's shared agent skills and the practical way repositories receive them. Agent environments do not reliably load every plugin or follow every installation link, especially in cloud checkouts. The instructions should be ordinary repository files that humans and agents can read directly. A versioned dependency supplies updates; sync makes them reviewable copies; check makes drift visible. Maintaining useful shared instructions and making them easy to distribute are both this package's job.
 
 When goals conflict, lean in this order:
-
 1. **Keep Effect native.** Filesystem work and failures stay in Effect, with the existing filesystem services and typed errors visible.
 2. **Keep the instructions directly available.** Ordinary committed files are the core delivery path. Preserve supporting files. A plugin, machine-local setup or compatibility link must not become the only way to reach the content. Prefer simple repository copies and updates to a new distribution framework; this is not a plugin manager or agent runtime.
 3. **Protect repository ownership.** The manifest marks the names this package owns. Refuse a collision before changing files; convenience never justifies replacing an unowned instruction. Keep local skills beside the shared ones.

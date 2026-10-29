@@ -15,7 +15,6 @@ Write for a busy maintainer who was not in the session. They see the title, the 
 ## Title
 
 One line that names the change by its effect on the product or on the people who use it, in the present tense, like a release note:
-
 - Saved drafts survive a browser restart
 - A failed payment retries once before the customer sees an error
 

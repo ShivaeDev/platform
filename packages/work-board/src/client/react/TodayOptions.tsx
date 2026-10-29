@@ -63,7 +63,7 @@ export function TodayOptions({
 			) : (
 				<TodayReadOnly document={data} inline={inline} />
 			)}
-			<a className="mt-3 block border-t px-2 pt-2 text-muted-foreground text-xs hover:text-foreground" href={item.href}>
+			<a className="text-muted-foreground hover:text-foreground mt-3 block border-t px-2 pt-2 text-xs" href={item.href}>
 				Read the full question
 			</a>
 		</>
@@ -77,7 +77,7 @@ export function TodayOptions({
 				initialFocus={initialFocus}
 				side="bottom"
 			>
-				<p className="m-0 truncate px-2 pr-12 font-medium text-muted-foreground text-xs">{item.title}</p>
+				<p className="text-muted-foreground m-0 truncate px-2 pr-12 text-xs font-medium">{item.title}</p>
 				{content}
 			</SheetContent>
 		</Sheet>

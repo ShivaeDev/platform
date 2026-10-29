@@ -5,7 +5,6 @@ You are changing the package that keeps a form's input values, decoded submissio
 ## Which way to lean
 
 When goals conflict, they win in this order:
-
 1. **Native Schema and atoms stay visible.** Schema owns decoding and validation. The caller supplies the atom runtime; failures keep their typed channel. Do not add a parallel schema, runtime or submission engine.
 2. **A person's edits survive.** Receive server values per field, keep an edited field, and retain edits made during a save. A save must not replace a newer received baseline. Revert has one meaning: restore that baseline.
 3. **Input and domain values stay distinct.** Fields hold encoded values, handlers receive decoded values, and a submission carries the encoded snapshot captured before decoding. Normalizing a server result is a separate receive, not a silent rewrite of input.

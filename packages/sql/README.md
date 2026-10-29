@@ -36,9 +36,11 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Redacted } from "effect";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 
-const database = PgClient.layer(clientOptions({
-  url: Redacted.make("postgresql://localhost/example"),
-}));
+const database = PgClient.layer(
+	clientOptions({
+		url: Redacted.make("postgresql://localhost/example"),
+	}),
+);
 ```
 
 `clientOptions` enables Effect SQL's `transformQueryNames` with Effect's `String.camelToSnake` and `transformResultNames` with `String.snakeToCamel` by default. A model field `createdAt` writes the migration-created `created_at` column, and returned rows contain `createdAt`. Inserts, selects, filters, ordering, updates and raw SQL share the client's transforms; column aliases are unnecessary. Write literal migration SQL with snake_case columns. In tagged SQL, interpolated identifiers such as `sql("createdAt")` are transformed; literal SQL text stays as written.
@@ -53,20 +55,20 @@ import { Model } from "effect/schema";
 import { makeRepository } from "@shivaedev/sql/repository.ts";
 
 class InvoiceLine extends Model.Class<InvoiceLine>("InvoiceLine")({
-  amount: Schema.NumberFromString,
-  id: Model.Field({
-    select: Schema.Number,
-    update: Schema.Number,
-    json: Schema.Number,
-  }),
-  name: Schema.String,
-  note: Schema.NullOr(Schema.String),
+	amount: Schema.NumberFromString,
+	id: Model.Field({
+		select: Schema.Number,
+		update: Schema.Number,
+		json: Schema.Number,
+	}),
+	name: Schema.String,
+	note: Schema.NullOr(Schema.String),
 }) {}
 
 const makeInvoiceLines = makeRepository(InvoiceLine, {
-  tableName: "invoice_line",
-  idColumn: "id",
-  spanPrefix: "InvoiceLine",
+	tableName: "invoice_line",
+	idColumn: "id",
+	spanPrefix: "InvoiceLine",
 });
 ```
 
@@ -78,8 +80,8 @@ A generated creation time can have a different database and JSON representation:
 
 ```ts
 const createdAt = Model.Field({
-  select: Schema.Date,
-  json: Schema.DateFromString,
+	select: Schema.Date,
+	json: Schema.DateFromString,
 });
 ```
 
@@ -93,17 +95,15 @@ import { Result, SchemaGetter, SchemaParser } from "effect";
 
 const Integers = Schema.Array(Schema.Int);
 const StoredIntegers = Schema.Unknown.pipe(
-  Schema.decodeTo(Integers, {
-    decode: SchemaGetter.transformEffect((value) =>
-      SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value),
-    ),
-    encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
-  }),
+	Schema.decodeTo(Integers, {
+		decode: SchemaGetter.transformEffect((value) => SchemaParser.decodeUnknownEffect(Integers)(PgTypes.isParameter(value) ? value.value : value)),
+		encode: SchemaGetter.transform((values) => Result.getOrThrow(PgTypes.array(values, PgTypes.OID.int4))),
+	}),
 );
 
 class Sample extends Model.Class<Sample>("Sample")({
-  id: Schema.Int,
-  values: Model.Field({ insert: StoredIntegers, select: StoredIntegers, update: StoredIntegers, json: Integers }),
+	id: Schema.Int,
+	values: Model.Field({ insert: StoredIntegers, select: StoredIntegers, update: StoredIntegers, json: Integers }),
 }) {}
 ```
 
@@ -113,20 +113,20 @@ The decoded value is an integer array in every variant. The database variants en
 
 ```ts
 const reviseInvoiceLine = Effect.gen(function* () {
-  const lines = yield* makeInvoiceLines;
-  const inserted = yield* lines.insert({
-    amount: 52,
-    name: "Consulting",
-    note: null,
-  });
-  const updated = yield* lines.update({
-    ...inserted,
-    amount: 55,
-    name: "Onsite consulting",
-  });
-  const found = yield* lines.findById(updated.id);
-  yield* lines.delete(found.id);
-  return yield* lines.findMany({ where: { id: found.id } });
+	const lines = yield* makeInvoiceLines;
+	const inserted = yield* lines.insert({
+		amount: 52,
+		name: "Consulting",
+		note: null,
+	});
+	const updated = yield* lines.update({
+		...inserted,
+		amount: 55,
+		name: "Onsite consulting",
+	});
+	const found = yield* lines.findById(updated.id);
+	yield* lines.delete(found.id);
+	return yield* lines.findMany({ where: { id: found.id } });
 });
 ```
 
@@ -144,15 +144,15 @@ For lists, choose the fields the caller needs:
 
 ```ts
 const listInvoiceLines = (name: string | undefined) =>
-  Effect.gen(function* () {
-    const lines = yield* makeInvoiceLines;
-    return yield* lines.findMany({
-      where: { amount: 52, name, note: null },
-      select: ["name", "amount"],
-      orderBy: { field: "name", direction: "desc" },
-      limit: 20,
-    });
-  });
+	Effect.gen(function* () {
+		const lines = yield* makeInvoiceLines;
+		return yield* lines.findMany({
+			where: { amount: 52, name, note: null },
+			select: ["name", "amount"],
+			orderBy: { field: "name", direction: "desc" },
+			limit: 20,
+		});
+	});
 ```
 
 Filter entries are joined with `AND`. A field value uses equality; a null filter matches SQL `NULL`, and an omitted or `undefined` value leaves the field unconstrained. Filters use decoded field values, so `amount` takes a number. Selected results are decoded records with the selected fields' types; this function returns `Array<{ readonly name: string; readonly amount: number }>`.
@@ -273,27 +273,24 @@ A generated app can ingest the same reading more than once. Declare the table's 
 
 ```ts
 class Reading extends Model.Class<Reading>("Reading")({
-  source: Schema.String,
-  sequence: Schema.NumberFromString,
-  amount: Schema.NumberFromString,
-  label: Schema.String,
+	source: Schema.String,
+	sequence: Schema.NumberFromString,
+	amount: Schema.NumberFromString,
+	label: Schema.String,
 }) {}
 
 const ingest = Effect.gen(function* () {
-  const readings = yield* makeRepository(Reading, {
-    tableName: "readings",
-    idColumn: ["source", "sequence"],
-    conflictColumns: ["source", "sequence"],
-    spanPrefix: "Reading",
-  });
-  const input = { source: "meter", sequence: 1, amount: 52, label: "Imported" };
-  const inserted = yield* readings.insertOrIgnore(input);
-  const saved = yield* readings.upsert(
-    { ...input, amount: 60 },
-    { updateColumns: ["amount"] },
-  );
-  const found = yield* readings.findById({ source: "meter", sequence: 1 });
-  return { inserted, saved, found };
+	const readings = yield* makeRepository(Reading, {
+		tableName: "readings",
+		idColumn: ["source", "sequence"],
+		conflictColumns: ["source", "sequence"],
+		spanPrefix: "Reading",
+	});
+	const input = { source: "meter", sequence: 1, amount: 52, label: "Imported" };
+	const inserted = yield* readings.insertOrIgnore(input);
+	const saved = yield* readings.upsert({ ...input, amount: 60 }, { updateColumns: ["amount"] });
+	const found = yield* readings.findById({ source: "meter", sequence: 1 });
+	return { inserted, saved, found };
 });
 ```
 
@@ -301,12 +298,12 @@ The application creates `readings` with `PRIMARY KEY (source, sequence)`; `seque
 
 `conflictColumns` is a nonempty tuple of inserted model fields backed by a database unique constraint or primary key. It can differ from the primary key, including a unique external key beside a generated ID. Declaring it adds these methods:
 
-| Method | Input | Result |
-| --- | --- | --- |
-| `insertOrIgnore` | Model insert input | `Option.some` of the decoded inserted model, or `Option.none` when the declared key conflicts. |
-| `upsert` | Model insert input and `{ updateColumns: [...] }` | `{ row, inserted }`, with the decoded model and a boolean identifying an insert. |
-| `insertManyOrIgnore` | Readonly array of model insert inputs | Decoded inserted models; conflicting rows are omitted. |
-| `upsertMany` | Readonly array of model insert inputs and `{ updateColumns: [...] }` | An array of `{ row, inserted }` results. |
+| Method               | Input                                                                | Result                                                                                         |
+| -------------------- | -------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
+| `insertOrIgnore`     | Model insert input                                                   | `Option.some` of the decoded inserted model, or `Option.none` when the declared key conflicts. |
+| `upsert`             | Model insert input and `{ updateColumns: [...] }`                    | `{ row, inserted }`, with the decoded model and a boolean identifying an insert.               |
+| `insertManyOrIgnore` | Readonly array of model insert inputs                                | Decoded inserted models; conflicting rows are omitted.                                         |
+| `upsertMany`         | Readonly array of model insert inputs and `{ updateColumns: [...] }` | An array of `{ row, inserted }` results.                                                       |
 
 All four methods encode with the model's insert schema and retain its codec services. `upsert` and `upsertMany` require a nonempty list of inserted, updateable fields; primary-key, conflict-key and generated fields are excluded. Only those columns take their incoming encoded values on conflict. Other stored values stay intact. A selected optional field must be present in every encoded input. Unknown, empty, protected or absent update columns fail with `SchemaError`. A violation of another unique constraint remains a native `SqlError`.
 
@@ -368,27 +365,27 @@ Declare a numeric version field in the model's select and update variants, leave
 
 ```ts
 class Document extends Model.Class<Document>("Document")({
-  id: Schema.String,
-  ownerId: Schema.String,
-  name: Schema.String,
-  lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
+	id: Schema.String,
+	ownerId: Schema.String,
+	name: Schema.String,
+	lockVersion: Model.Field({ select: Schema.Number, update: Schema.Number, json: Schema.Number }),
 }) {}
 
 const makeDocuments = makeRepository(Document, {
-  tableName: "documents",
-  idColumn: ["id", "ownerId"],
-  conflictColumns: ["id"],
-  spanPrefix: "Document",
-  versionColumn: "lockVersion",
+	tableName: "documents",
+	idColumn: ["id", "ownerId"],
+	conflictColumns: ["id"],
+	spanPrefix: "Document",
+	versionColumn: "lockVersion",
 });
 
 const reviseDocument = Effect.gen(function* () {
-  const documents = yield* makeDocuments;
-  const key = { id: crypto.randomUUID(), ownerId: "current-owner" };
-  yield* documents.insertOrIgnore({ ...key, name: "Draft" });
-  const original = yield* documents.findById(key);
-  const saved = yield* documents.update({ ...original, name: "Published" });
-  yield* documents.delete(key, saved.lockVersion);
+	const documents = yield* makeDocuments;
+	const key = { id: crypto.randomUUID(), ownerId: "current-owner" };
+	yield* documents.insertOrIgnore({ ...key, name: "Draft" });
+	const original = yield* documents.findById(key);
+	const saved = yield* documents.update({ ...original, name: "Published" });
+	yield* documents.delete(key, saved.lockVersion);
 });
 ```
 
@@ -407,19 +404,19 @@ import { Data } from "effect";
 import { transact } from "@shivaedev/sql/transact.ts";
 
 class StorageUnavailable extends Data.TaggedError("StorageUnavailable")<{
-  readonly reason: string;
+	readonly reason: string;
 }> {}
 
 const saveInvoiceLine = (input: typeof InvoiceLine.update.Type) =>
-  Effect.gen(function* () {
-    const lines = yield* makeInvoiceLines;
-    const saved = yield* lines.update(input);
-    return saved;
-  }).pipe(
-    transact({
-      onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
-    }),
-  );
+	Effect.gen(function* () {
+		const lines = yield* makeInvoiceLines;
+		const saved = yield* lines.update(input);
+		return saved;
+	}).pipe(
+		transact({
+			onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
+		}),
+	);
 ```
 
 `transact` wraps native `sql.withTransaction`. It maps typed `SqlError` failures through `onSqlError` and keeps other typed failures and service requirements. `invalidateOnCommit` records derived reader keys that a repository or command declaration does not already name; after the owning outermost commit, they are deduplicated and passed to native `Reactivity.invalidate` once. The record `{ invoiceLines: [1] }` marks `"invoiceLines"` and `"invoiceLines:1"`. An array such as `["invoiceLines:1"]` marks only those keys.
@@ -431,10 +428,10 @@ import { bucket } from "@shivaedev/changes/buckets.ts";
 import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
 
 class Note extends Model.Class<Note>("Note")({
-  id: Schema.Number,
-  listId: bucket(Schema.Number),
-  owner: bucket(Schema.String),
-  title: Schema.String,
+	id: Schema.Number,
+	listId: bucket(Schema.Number),
+	owner: bucket(Schema.String),
+	title: Schema.String,
 }) {}
 
 const notes = collection("notes", Note.fields.id, { listId: Note.fields.listId, owner: Note.fields.owner });
@@ -445,7 +442,6 @@ Use the repository's table name as the collection name in query read keys. Every
 Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without bucket fields keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
 
 The transaction rules follow the database owner:
-
 - A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails through `onSqlError` and also announces nothing.
 - A nested `transact` on the same client uses a native savepoint. Its successful keys join the outer set; a rolled-back savepoint's keys are discarded.
 - A transaction on a second client commits independently. Its keys publish when that client commits, even if the enclosing client's transaction later rolls back.
@@ -465,14 +461,15 @@ Serialize cooperating jobs inside `transact`:
 ```ts
 import { advisoryXactLock } from "@shivaedev/sql/advisoryXactLock.ts";
 
-const serializeInvoiceJob = (input: typeof InvoiceLine.update.Type) => Effect.gen(function* () {
-  yield* advisoryXactLock("jobs:invoice-import");
-  yield* saveInvoiceLine(input);
-}).pipe(
-  transact({
-    onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
-  }),
-);
+const serializeInvoiceJob = (input: typeof InvoiceLine.update.Type) =>
+	Effect.gen(function* () {
+		yield* advisoryXactLock("jobs:invoice-import");
+		yield* saveInvoiceLine(input);
+	}).pipe(
+		transact({
+			onSqlError: (error) => new StorageUnavailable({ reason: error.message }),
+		}),
+	);
 ```
 
 `advisoryXactLock(key: bigint | string)` waits for PostgreSQL's `pg_advisory_xact_lock` on the current client's transaction. A bigint is passed as a signed 64-bit PostgreSQL key without converting it to a JavaScript number. A string uses PostgreSQL's `hashtextextended(key, 0)` as its bigint key; use the same string in cooperating callers. Hash collisions share a lock. Different keys proceed independently. The lock lasts until commit or rollback, including rollback when the holding fiber is interrupted. Outside a transaction, the function fails with typed `AdvisoryLockOutsideTransaction` from the same module. SQL failures remain typed `SqlError` and follow the surrounding `transact` mapper.
@@ -486,8 +483,8 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 
 export default Effect.gen(function* () {
-  const sql = yield* SqlClient.SqlClient;
-  yield* sql`create table orders (name text primary key)`;
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`create table orders (name text primary key)`;
 });
 ```
 
@@ -500,9 +497,9 @@ import { migrationsFromDirectory } from "@shivaedev/sql/migrationsFromDirectory.
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 
 const migrateOrders = migratePostgres({
-  table: "app_migrations",
-  lockTimeout: "5 seconds",
-  loader: migrationsFromDirectory(process.cwd()).pipe(Effect.provide(NodeServices.layer)),
+	table: "app_migrations",
+	lockTimeout: "5 seconds",
+	loader: migrationsFromDirectory(process.cwd()).pipe(Effect.provide(NodeServices.layer)),
 });
 ```
 
@@ -534,9 +531,9 @@ Pass an optional `release` string to `migratePostgres` to record the owning rele
 
 ```ts
 const delivery = postgresChanges({
-  channel: "application_changes",
-  client: pg,
-  resync: hints.resync,
+	channel: "application_changes",
+	client: pg,
+	resync: hints.resync,
 });
 ```
 
@@ -549,27 +546,24 @@ NOTIFY is a wake-up signal, not a durable log. Transaction payloads contain only
 ### API
 
 Import the module that defines the name; there is no root entry.
-
-| Module | Export | Input or role |
-| --- | --- | --- |
-| `@shivaedev/sql/clientOptions.ts` | `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` | Add default native name transforms to driver or app host options; opt out with `snakeCase: false`. |
-| `@shivaedev/sql/repository.ts` | `makeRepository(model, options)` | `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`. |
-| `@shivaedev/sql/repository.ts` | `OptimisticConcurrencyError` | Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" \| "stale"`. |
-| `@shivaedev/sql/tupleIn.ts` | `tupleIn(model, fields, tuples)` | Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes. |
-| `@shivaedev/sql/upsertResult.ts` | `UpsertRow` | The `{ row, inserted }` result of an unconditional upsert. |
-| `@shivaedev/sql/conditionalUpsert.ts` | `UpsertFilter`, `UpsertResult` | The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert. |
-| `@shivaedev/sql/mapSqlError.ts` | `mapSqlError({ constraints, fallback })` | Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`. |
-| `@shivaedev/sql/transact.ts` | `transact(effect, options)` or `effect.pipe(transact(options))` | Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`. |
-| `@shivaedev/sql/transact.ts` | `invalidateOnCommit(keys)` | Records keys for its client, or invalidates immediately outside a transaction. |
-| `@shivaedev/sql/advisoryXactLock.ts` | `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` | PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`. |
-| `@shivaedev/sql/migrationConvention.ts` | `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` | Application folder and four-digit sequential snake_case TypeScript filename pattern. |
-| `@shivaedev/sql/migrationsFromDirectory.ts` | `migrationsFromDirectory(root)` | Discover migrations under the application root with native `FileSystem` and `Path`. |
-| `@shivaedev/sql/migrations.ts` | `migratePostgres(options)` | Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`. |
-| `@shivaedev/sql/assertPostgresMigrations.ts` | `assertPostgresMigrations({ loader, table?, components? })` | Read-only readiness check of required migration IDs and names in the native ledger and registered schema components. |
-| `@shivaedev/sql/pendingPostgresMigrations.ts` | `pendingPostgresMigrations({ loader, table?, components? })` | Pending ledger migrations as ID and name, and pending schema components as name and detail. |
-| `@shivaedev/sql/postgresRelease.ts` | `postgresRelease(release, table?)`, `readPostgresRelease(table?)` | Release marker schema component and its reader. |
-| `@shivaedev/sql/postgresChanges.ts` | `postgresChanges(options)` | Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation. |
-| `@shivaedev/sql/testing.ts` | `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` | Test assertions that every write announced its keys and that the expected keys were published. |
+- `@shivaedev/sql/clientOptions.ts`: `clientOptions(options, { snakeCase? })`, `SqlNameTransforms` — Add default native name transforms to driver or app host options; opt out with `snakeCase: false`.
+- `@shivaedev/sql/repository.ts`: `makeRepository(model, options)` — `tableName`, scalar or composite `idColumn`, `spanPrefix`, optional `versionColumn`, `conflictColumns` and `conflictWhere`; requires native `SqlClient`.
+- `@shivaedev/sql/repository.ts`: `OptimisticConcurrencyError` — Typed stale or missing-row failure for versioned writes, with `tableName`, `id`, `expectedVersion`, `reason: "missing" | "stale"`.
+- `@shivaedev/sql/tupleIn.ts`: `tupleIn(model, fields, tuples)` — Filter entry matching two or more fields together against a list of tuples, for `where` in reads and unversioned deletes.
+- `@shivaedev/sql/upsertResult.ts`: `UpsertRow` — The `{ row, inserted }` result of an unconditional upsert.
+- `@shivaedev/sql/conditionalUpsert.ts`: `UpsertFilter`, `UpsertResult` — The `updateWhere` filter shape and the tagged `Inserted`, `Updated` or `Unchanged` result of a conditional upsert.
+- `@shivaedev/sql/mapSqlError.ts`: `mapSqlError({ constraints, fallback })` — Mapper from named constraint violations to application errors, with a fallback for every other `SqlError`.
+- `@shivaedev/sql/transact.ts`: `transact(effect, options)` or `effect.pipe(transact(options))` — Required `onSqlError` mapper; requires `SqlClient` and `Reactivity`.
+- `@shivaedev/sql/transact.ts`: `invalidateOnCommit(keys)` — Records keys for its client, or invalidates immediately outside a transaction.
+- `@shivaedev/sql/advisoryXactLock.ts`: `advisoryXactLock(key)`, `AdvisoryLockOutsideTransaction` — PostgreSQL transaction lock on a bigint or string hashed with `hashtextextended(key, 0)`; requires an active transaction on the current `SqlClient`.
+- `@shivaedev/sql/migrationConvention.ts`: `MIGRATIONS_DIRECTORY`, `MIGRATION_FILE_PATTERN` — Application folder and four-digit sequential snake_case TypeScript filename pattern.
+- `@shivaedev/sql/migrationsFromDirectory.ts`: `migrationsFromDirectory(root)` — Discover migrations under the application root with native `FileSystem` and `Path`.
+- `@shivaedev/sql/migrations.ts`: `migratePostgres(options)` — Native loader, required `lockTimeout`, optional `components`, `release` and ledger `table`, default `effect_sql_migrations`.
+- `@shivaedev/sql/assertPostgresMigrations.ts`: `assertPostgresMigrations({ loader, table?, components? })` — Read-only readiness check of required migration IDs and names in the native ledger and registered schema components.
+- `@shivaedev/sql/pendingPostgresMigrations.ts`: `pendingPostgresMigrations({ loader, table?, components? })` — Pending ledger migrations as ID and name, and pending schema components as name and detail.
+- `@shivaedev/sql/postgresRelease.ts`: `postgresRelease(release, table?)`, `readPostgresRelease(table?)` — Release marker schema component and its reader.
+- `@shivaedev/sql/postgresChanges.ts`: `postgresChanges(options)` — Scoped PostgreSQL LISTEN/NOTIFY Layer for commit-bound invalidation.
+- `@shivaedev/sql/testing.ts`: `withChangeCoverage(body, { covers })`, `expectPublished(keys)`, `UnannouncedWrites`, `PublishedKeysMismatch` — Test assertions that every write announced its keys and that the expected keys were published.
 
 ### Install and database setup
 
@@ -585,16 +579,13 @@ import { Layer, Redacted } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { clientOptions } from "@shivaedev/sql/clientOptions.ts";
 
-const database = Layer.merge(
-  PgClient.layer(clientOptions({ url: Redacted.make("postgresql://localhost/example") })),
-  Reactivity.layer,
-);
+const database = Layer.merge(PgClient.layer(clientOptions({ url: Redacted.make("postgresql://localhost/example") })), Reactivity.layer);
 
 const save = saveInvoiceLine({
-  id: 1,
-  name: "Consulting",
-  amount: 52,
-  note: null,
+	id: 1,
+	name: "Consulting",
+	amount: 52,
+	note: null,
 }).pipe(Effect.provide(database));
 ```
 
@@ -611,17 +602,15 @@ import { mapSqlError } from "@shivaedev/sql/mapSqlError.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 
 const onSqlError = mapSqlError({
-  constraints: {
-    "invoice_line_name_key": () => new NameTaken(),
-    "invoice_line_invoice_fkey": () => new InvoiceMissing(),
-    "invoice_line_amount_check": () => new InvalidAmount(),
-  },
-  fallback: (error) => new StorageUnavailable({ reason: error.message }),
+	constraints: {
+		"invoice_line_name_key": () => new NameTaken(),
+		"invoice_line_invoice_fkey": () => new InvoiceMissing(),
+		"invoice_line_amount_check": () => new InvalidAmount(),
+	},
+	fallback: (error) => new StorageUnavailable({ reason: error.message }),
 });
 
-const insertNamedLine = lines.insert({ amount: 52, name: "Consulting", note: null }).pipe(
-  transact({ onSqlError }),
-);
+const insertNamedLine = lines.insert({ amount: 52, name: "Consulting", note: null }).pipe(transact({ onSqlError }));
 ```
 
 The mapper handles named unique violations and PostgreSQL foreign-key and check violations. Every other `SqlError`, including unknown constraints, goes to `fallback`. Each callback receives the original error. The inferred error type contains exactly the mapped errors and the fallback; `transact` also preserves other typed failures from the operation. Constraint names belong to the application's migration; error types and presentation belong to the application.

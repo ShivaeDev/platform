@@ -10,21 +10,21 @@ import { Rpc, RpcGroup } from "effect/rpc";
 
 const Note = Schema.Struct({ id: Schema.String, title: Schema.String });
 const MissingNote = Schema.Struct({
-  _tag: Schema.Literal("MissingNote"),
-  id: Schema.String,
+	_tag: Schema.Literal("MissingNote"),
+	id: Schema.String,
 });
 
 export const NotesRpc = RpcGroup.make(
-  Rpc.make("get", {
-    payload: { id: Schema.String },
-    success: Note,
-    error: MissingNote,
-  }),
-  Rpc.make("rename", {
-    payload: { id: Schema.String, title: Schema.String },
-    success: Note,
-    error: MissingNote,
-  }),
+	Rpc.make("get", {
+		payload: { id: Schema.String },
+		success: Note,
+		error: MissingNote,
+	}),
+	Rpc.make("rename", {
+		payload: { id: Schema.String, title: Schema.String },
+		success: Note,
+		error: MissingNote,
+	}),
 );
 ```
 
@@ -37,13 +37,11 @@ Keep domain authorization in services and server middleware. A client-selected q
 Once a host provides an `AtomRpc.Service` named `NotesApi`, consumers can pass its atoms to the React hooks of `react`:
 
 ```ts
-const note = useQuery(
-  NotesApi.query("get", { id }, { reactivityKeys: [`notes:${id}`] }),
-);
+const note = useQuery(NotesApi.query("get", { id }, { reactivityKeys: [`notes:${id}`] }));
 const rename = useAction(NotesApi.mutation("rename"));
 ```
 
-Native mutation input can include `reactivityKeys: { notes: [id] }`, alongside its payload. AtomRpc invalidates those keys on successful mutation completion. Native Reactivity expands a record key into both `"notes"` and `"notes:<id>"`, on registration as well as invalidation. Register item queries with the precise array key `` [`notes:${id}`] `` and list queries with `["notes"]`; an item query registered with `{ notes: [id] }` also refreshes whenever any other note is invalidated. Invalidation does not automatically broadcast changes to other clients.
+Native mutation input can include `reactivityKeys: { notes: [id] }`, alongside its payload. AtomRpc invalidates those keys on successful mutation completion. Native Reactivity expands a record key into both `"notes"` and `"notes:<id>"`, on registration as well as invalidation. Register item queries with the precise array key ``[`notes:${id}`]`` and list queries with `["notes"]`; an item query registered with `{ notes: [id] }` also refreshes whenever any other note is invalidated. Invalidation does not automatically broadcast changes to other clients.
 
 ## Public client configuration
 

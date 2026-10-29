@@ -9,11 +9,11 @@ Every package in this repo explains itself to three readers, and each reader get
 
 ## The files
 
-| File | Reader | Holds |
-|---|---|---|
-| `packages/<name>/AGENTS.md` | An agent changing the package | The north star in a few short paragraphs: the problem, the ideal, and the order of priorities when they conflict. Links to the README, and to `docs/` when the package has one. `CLAUDE.md` beside it is a symlink to it. |
-| `packages/<name>/README.md` | A human first, then an agent using the package | The first screen sells; the rest teaches. Published to npm. |
-| `packages/<name>/docs/north-star.md` | Anyone deciding where the package goes | Optional. The long form of the vision, only when it says something durable that `AGENTS.md` cannot hold in a screen. |
+| File                                 | Reader                                         | Holds                                                                                                                                                                                                                     |
+| ------------------------------------ | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `packages/<name>/AGENTS.md`          | An agent changing the package                  | The north star in a few short paragraphs: the problem, the ideal, and the order of priorities when they conflict. Links to the README, and to `docs/` when the package has one. `CLAUDE.md` beside it is a symlink to it. |
+| `packages/<name>/README.md`          | A human first, then an agent using the package | The first screen sells; the rest teaches. Published to npm.                                                                                                                                                               |
+| `packages/<name>/docs/north-star.md` | Anyone deciding where the package goes         | Optional. The long form of the vision, only when it says something durable that `AGENTS.md` cannot hold in a screen.                                                                                                      |
 
 Add more files under `docs/` only when a topic outgrows the README; let the pattern grow from real need. No package keeps a roadmap: planned work, status and open questions live on the Work Board, and what shipped lives in git and the changelog.
 
@@ -40,7 +40,6 @@ The agent part. How to think about the package, the concepts in the order a user
 ```
 
 Name the two H2 sections in words that fit the package; the split is what matters, not the labels.
-
 - The first screen is the sell. It holds no install command, no warning, no configuration and no API list. A human who stops reading there should know what problem the package solves and what using it looks like.
 - The agent part is text and code only. It explains the mental model before the API, so an agent can use the package correctly in a case no example covers.
 - Organize the agent part by the order of the reader's work: what they set up once, what they write once per feature, what they write every day.
@@ -62,7 +61,6 @@ For a consumer-visible change, add one `.changeset/<short-name>.md` per PR, nami
 ## Checklist
 
 Quality's `docs/references` rule checks links, heading anchors, documented module paths and named imports on every commit, and `docs/unversioned-installs` checks install commands for versions. The rest of this list is judgement only you can apply.
-
 - [ ] `AGENTS.md` is a short north star, with `CLAUDE.md` symlinked to it.
 - [ ] The README title is the package name, followed by the one-to-three-sentence why.
 - [ ] The README's first screen holds the human pitch and one small example, nothing else.

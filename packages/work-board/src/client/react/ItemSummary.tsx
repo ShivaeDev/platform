@@ -43,7 +43,7 @@ export function ItemSummary({ document }: { readonly document: Document }) {
 				{visibleIdentity(fields.id) && (
 					<ItemId href={document.identity ? `/_board/item/${encodeURIComponent(document.identity)}/` : undefined} id={fields.id} />
 				)}
-				<span className="whitespace-nowrap text-muted-foreground text-xs" data-item-updated>
+				<span className="text-muted-foreground text-xs whitespace-nowrap" data-item-updated>
 					updated <Time at={document.modified} />
 				</span>
 				<ItemGoals document={document} />
@@ -82,7 +82,7 @@ function ItemGoals({ document }: { readonly document: Document }) {
 	);
 	return [...goals].map(([href, title]) => (
 		<a
-			className="inline-block pointer-coarse:min-h-11 max-w-full truncate text-muted-foreground text-sm pointer-coarse:leading-11 underline underline-offset-4 hover:text-foreground"
+			className="text-muted-foreground hover:text-foreground inline-block max-w-full truncate text-sm underline underline-offset-4 pointer-coarse:min-h-11 pointer-coarse:leading-11"
 			href={href}
 			key={href}
 		>

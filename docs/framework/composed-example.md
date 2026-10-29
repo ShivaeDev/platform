@@ -4,15 +4,15 @@ The order feature is the reference composition for Platform's native application
 
 ## Code to read
 
-| Module | Responsibility |
-| --- | --- |
-| [Contract](../../packages/react/src/test-support/postgres-example/contract.ts) | One Schema domain, query and command declarations, read keys, typed failures and an authenticated native streaming RPC. |
-| [Repository](../../packages/react/src/test-support/postgres-example/repository.ts) | Native Model fields, `makeRepository` and an application-owned numbered migration loader. |
-| [Service](../../packages/react/src/test-support/postgres-example/OrderService.ts) | `defineService`, explicit owner authorization, normalized writes and commit-bound invalidation through `transact`. |
+| Module                                                                              | Responsibility                                                                                                              |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| [Contract](../../packages/react/src/test-support/postgres-example/contract.ts)      | One Schema domain, query and command declarations, read keys, typed failures and an authenticated native streaming RPC.     |
+| [Repository](../../packages/react/src/test-support/postgres-example/repository.ts)  | Native Model fields, `makeRepository` and an application-owned numbered migration loader.                                   |
+| [Service](../../packages/react/src/test-support/postgres-example/OrderService.ts)   | `defineService`, explicit owner authorization, normalized writes and commit-bound invalidation through `transact`.          |
 | [Handlers](../../packages/react/src/test-support/postgres-example/orderHandlers.ts) | Platform request identity passed into service calls; the host's `AppChanges` turns committed invalidations into live hints. |
-| [Server](../../packages/react/src/test-support/postgres-example/server.ts) | Server's `appHost` supplies migrated PostgreSQL, session middleware, guarded Node HTTP and NDJSON RPC transport. |
-| [Client](../../packages/react/src/test-support/postgres-example/makeClient.ts) | Native AtomRpc, contract binding and live invalidation. |
-| [Editor](../../packages/react/src/test-support/postgres-example/OrderEditor.tsx) | `useEditor` connects the query to form fields and decoded saves. |
+| [Server](../../packages/react/src/test-support/postgres-example/server.ts)          | Server's `appHost` supplies migrated PostgreSQL, session middleware, guarded Node HTTP and NDJSON RPC transport.            |
+| [Client](../../packages/react/src/test-support/postgres-example/makeClient.ts)      | Native AtomRpc, contract binding and live invalidation.                                                                     |
+| [Editor](../../packages/react/src/test-support/postgres-example/OrderEditor.tsx)    | `useEditor` connects the query to form fields and decoded saves.                                                            |
 
 ## From commit to another editor
 

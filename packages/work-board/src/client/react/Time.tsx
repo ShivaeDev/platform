@@ -34,7 +34,7 @@ function TimeElement({
 }
 
 export function RowTime({ at, className }: { readonly at: number; readonly className?: string | undefined }) {
-	return <TimeElement at={at} className={cn("whitespace-nowrap font-sans tabular-nums", className)} title={exactTime(at)} />;
+	return <TimeElement at={at} className={cn("font-sans whitespace-nowrap tabular-nums", className)} title={exactTime(at)} />;
 }
 
 export function Time({ at, className }: { readonly at: number; readonly className?: string | undefined }) {
@@ -42,7 +42,7 @@ export function Time({ at, className }: { readonly at: number; readonly classNam
 		<Popover>
 			<PopoverTrigger
 				className={cn(
-					"cursor-default whitespace-nowrap rounded-sm font-sans tabular-nums underline decoration-current/40 decoration-dotted underline-offset-4 outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+					"focus-visible:ring-ring/50 cursor-default rounded-sm font-sans whitespace-nowrap tabular-nums underline decoration-current/40 decoration-dotted underline-offset-4 outline-none focus-visible:ring-2",
 					className,
 				)}
 				openOnHover

@@ -1,5 +1,5 @@
 import { join } from "node:path";
-import { Effect, FileSystem } from "effect";
+import { Effect, FileSystem, Order } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
 import { reportAttachmentFiles } from "#host/reportAttachmentFiles.ts";
 import { reportFileReplay } from "#host/reportFileReplay.ts";
@@ -27,6 +27,6 @@ export const reportFileChanges = Effect.fn("Fleet.reportFileChanges")(function* 
 			.writeFileString(target, text, { flag: "wx" })
 			.pipe(Effect.mapError((cause) => new ReportFileFailure({ cause, path: name, reason: cause.message })));
 	}
-	const files = yield* reportAttachmentFiles(folder, [...state.contents.keys()].sort());
+	const files = yield* reportAttachmentFiles(folder, [...state.contents.keys()].sort(Order.String));
 	return { files, unavailable: [...state.unavailable].map(([path, reason]) => ({ path, reason })) } satisfies ReportAttachments;
 });

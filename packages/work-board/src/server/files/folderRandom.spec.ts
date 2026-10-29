@@ -1,3 +1,4 @@
+import { Order } from "effect";
 import { expect } from "vitest";
 import { fileWatcherStory, watchedFiles } from "#test/fileWatcherStory.ts";
 
@@ -49,9 +50,9 @@ fileWatcherStory.it(
 			}
 			yield* notify(reported);
 			expect(yield* nextChange(), `step ${step}`).toMatchObject({ _tag: "Changed" });
-			const expected = [...files].sort();
-			expect((yield* listedFiles()).map((file) => file.path).sort(), `step ${step}`).toEqual(expected);
-			expect((yield* readIndex()).documents.map((indexed) => indexed.file).sort(), `step ${step}`).toEqual(expected);
+			const expected = [...files].sort(Order.String);
+			expect((yield* listedFiles()).map((file) => file.path).sort(Order.String), `step ${step}`).toEqual(expected);
+			expect((yield* readIndex()).documents.map((indexed) => indexed.file).sort(Order.String), `step ${step}`).toEqual(expected);
 		}
 	},
 );

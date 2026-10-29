@@ -46,7 +46,7 @@ export function Header({
 	const pending = useNavigationPending();
 	return (
 		<header
-			className="sticky top-0 z-20 flex h-12 min-w-0 items-center gap-2 border-b bg-background px-3 text-sm md:h-14 md:px-6 print:hidden"
+			className="bg-background sticky top-0 z-20 flex h-12 min-w-0 items-center gap-2 border-b px-3 text-sm md:h-14 md:px-6 print:hidden"
 			data-workspace-header
 		>
 			<Button
@@ -89,12 +89,12 @@ export function Header({
 				<Search aria-hidden="true" />
 				<span className="hidden sm:inline">Search</span>
 				<KeyboardHints>
-					<kbd className="hidden text-muted-foreground text-xs lg:inline">⌘/Ctrl K</kbd>
+					<kbd className="text-muted-foreground hidden text-xs lg:inline">⌘/Ctrl K</kbd>
 				</KeyboardHints>
 			</Button>
 			<div className="shrink-0">{live}</div>
 			<span
-				className="shrink-0 text-muted-foreground text-xs data-[state=failed]:text-destructive"
+				className="text-muted-foreground data-[state=failed]:text-destructive shrink-0 text-xs"
 				data-state={status === REFRESH_FAILURE ? "failed" : undefined}
 				id={shellIds.navigationStatus}
 				role="status"
@@ -120,10 +120,10 @@ function Breadcrumbs({ file }: { readonly file: string }) {
 	return (
 		<nav
 			aria-label="File location"
-			className="hidden min-w-0 flex-1 items-center gap-2 overflow-hidden whitespace-nowrap text-muted-foreground text-xs md:flex"
+			className="text-muted-foreground hidden min-w-0 flex-1 items-center gap-2 overflow-hidden text-xs whitespace-nowrap md:flex"
 			id={shellIds.breadcrumbs}
 		>
-			<a className="shrink-0 text-foreground" href="/">
+			<a className="text-foreground shrink-0" href="/">
 				Workspace
 			</a>
 			{parts.map((part, index) => (

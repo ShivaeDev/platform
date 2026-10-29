@@ -92,9 +92,9 @@ Provide the service's layer from the application database layer, then call it fr
 
 ```ts
 const Dashboard = dashboardService({ pullRequests: "pull_requests", reports: "reports" });
-const recentReports = Dashboard.use((dashboard) =>
-  dashboard.listReports({ since: DateTime.makeUnsafe("2026-10-25T11:00:00Z") }),
-).pipe(Effect.provide(Dashboard.layer));
+const recentReports = Dashboard.use((dashboard) => dashboard.listReports({ since: DateTime.makeUnsafe("2026-10-25T11:00:00Z") })).pipe(
+	Effect.provide(Dashboard.layer),
+);
 ```
 
 This effect still requires the application's `SqlClient`. Import `DateTime` and `Effect` from `effect`. Authorization and any caller-specific filters belong in this application service.

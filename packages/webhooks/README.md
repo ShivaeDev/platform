@@ -8,14 +8,12 @@ A sender can retry or send concurrent copies. Your application declares which ev
 
 ```ts
 const sources = {
-  github: githubSource({
-    key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
-    events: {
-      issues: webhookEvent(IssueEvent, ({ issue }) => [
-        webhookJob(IndexIssue, { number: issue.number }),
-      ]),
-    },
-  }),
+	github: githubSource({
+		key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
+		events: {
+			issues: webhookEvent(IssueEvent, ({ issue }) => [webhookJob(IndexIssue, { number: issue.number })]),
+		},
+	}),
 };
 ```
 
@@ -41,48 +39,46 @@ import { webhookReceipts } from "@shivaedev/webhooks/webhookReceipts.ts";
 
 const Jobs = makePgBoss("app/Jobs");
 const IndexIssue = defineQueue({
-  name: "index-issue",
-  schema: Schema.Struct({ number: Schema.Number }),
+	name: "index-issue",
+	schema: Schema.Struct({ number: Schema.Number }),
 });
 const IssueEvent = Schema.Struct({
-  issue: Schema.Struct({ number: Schema.Number }),
+	issue: Schema.Struct({ number: Schema.Number }),
 });
 const sources = {
-  github: githubSource({
-    key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
-    events: {
-      issues: webhookEvent(IssueEvent, ({ issue }) => [
-        webhookJob(IndexIssue, { number: issue.number }),
-      ]),
-    },
-  }),
+	github: githubSource({
+		key: Config.Redacted("GITHUB_WEBHOOK_SECRET"),
+		events: {
+			issues: webhookEvent(IssueEvent, ({ issue }) => [webhookJob(IndexIssue, { number: issue.number })]),
+		},
+	}),
 };
 
 const Host = appHost({
-  config: { databaseUrl },
-  migrations: {
-    loader,
-    components: [pgBossSchema(), webhookReceipts],
-  },
-  application: Effect.gen(function* () {
-    const sql = yield* SqlClient.SqlClient;
-    const jobs = Jobs.layer({
-      connectionString: Redacted.value(databaseUrl),
-      jobs: [IndexIssue],
-      migrate: false,
-    });
-    return {
-      group: Api,
-      handlers,
-      sessions,
-      services: jobs,
-      routes: webhookRoute({ basePath: "/webhooks", jobs: Jobs, sources }).pipe(
-        Layer.provide(jobs),
-        Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
-        Layer.orDie,
-      ),
-    };
-  }),
+	config: { databaseUrl },
+	migrations: {
+		loader,
+		components: [pgBossSchema(), webhookReceipts],
+	},
+	application: Effect.gen(function* () {
+		const sql = yield* SqlClient.SqlClient;
+		const jobs = Jobs.layer({
+			connectionString: Redacted.value(databaseUrl),
+			jobs: [IndexIssue],
+			migrate: false,
+		});
+		return {
+			group: Api,
+			handlers,
+			sessions,
+			services: jobs,
+			routes: webhookRoute({ basePath: "/webhooks", jobs: Jobs, sources }).pipe(
+				Layer.provide(jobs),
+				Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
+				Layer.orDie,
+			),
+		};
+	}),
 });
 ```
 
@@ -90,17 +86,17 @@ const Host = appHost({
 
 ### Answers and retries
 
-| Request | Status | Body |
-| --- | --- | --- |
-| Registered event maps to jobs | 202 | `queued` |
-| Unlisted event, or mapping returns no jobs | 200 | `ignored` |
-| Source and delivery ID already recorded | 200 | `already queued` |
-| Unregistered source | 404 | Empty |
-| Missing or wrong signature | 401 | Empty |
-| Missing delivery ID or event header | 400 | `Invalid delivery` |
-| Payload rejected by its Schema | 400 | Empty |
-| Body exceeds the host limit | 413 | Empty |
-| Database or enqueue failure | 503 | Empty |
+| Request                                    | Status | Body               |
+| ------------------------------------------ | ------ | ------------------ |
+| Registered event maps to jobs              | 202    | `queued`           |
+| Unlisted event, or mapping returns no jobs | 200    | `ignored`          |
+| Source and delivery ID already recorded    | 200    | `already queued`   |
+| Unregistered source                        | 404    | Empty              |
+| Missing or wrong signature                 | 401    | Empty              |
+| Missing delivery ID or event header        | 400    | `Invalid delivery` |
+| Payload rejected by its Schema             | 400    | Empty              |
+| Body exceeds the host limit                | 413    | Empty              |
+| Database or enqueue failure                | 503    | Empty              |
 
 Refused requests create no receipt and no jobs. Signatures are checked before decoding; unlisted events are verified and recorded without decoding. The signing key, signature and raw body stay out of responses, logs and spans.
 

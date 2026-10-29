@@ -101,7 +101,7 @@ function makeScreenDriver({ root, pending, tell, act = (action) => action(), tim
 		settle,
 		submit: (selector: ScreenTarget = "form") => perform(`submit ${targetName(selector)}`, () => elements.form(selector).requestSubmit()),
 		text: (selector?: ScreenTarget) => {
-			const text = (selector === undefined ? elements.rendered(currentRoot(), "root") : elements.element(selector)).innerText;
+			const text = elements.text(selector === undefined ? elements.rendered(currentRoot(), "root") : elements.element(selector));
 			tell(`read ${selector === undefined ? "the screen" : targetName(selector)}: ${JSON.stringify(text)}`);
 			return text;
 		},

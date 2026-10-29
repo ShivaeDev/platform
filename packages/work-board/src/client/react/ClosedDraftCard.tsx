@@ -17,16 +17,16 @@ export function ClosedDraftCard({ draft }: { readonly draft: ClosedDraft }) {
 	return (
 		<section
 			aria-labelledby={`answer-title-${draft.id}`}
-			className="response-panel max-w-[72ch] space-y-4 rounded-xl border bg-card p-5 text-card-foreground shadow-sm"
+			className="response-panel bg-card text-card-foreground max-w-[72ch] space-y-4 rounded-xl border p-5 shadow-sm"
 			data-closed-draft=""
 			id={`answer-card-${draft.id}`}
 			tabIndex={-1}
 		>
-			<h2 className="flex items-center gap-2 font-medium text-muted-foreground text-sm" id={`answer-title-${draft.id}`}>
+			<h2 className="text-muted-foreground flex items-center gap-2 text-sm font-medium" id={`answer-title-${draft.id}`}>
 				<MessageCircleX aria-hidden="true" className="size-4" />
 				Closed while you were writing: {draft.title ?? "this question"}
 			</h2>
-			<p className="rounded-md bg-muted px-3 py-2 text-sm" role="status">
+			<p className="bg-muted rounded-md px-3 py-2 text-sm" role="status">
 				{draft.reason} Your draft was not sent.
 			</p>
 			<div className="grid gap-2">
@@ -37,7 +37,7 @@ export function ClosedDraftCard({ draft }: { readonly draft: ClosedDraft }) {
 			</div>
 			<div className="flex flex-wrap items-center gap-2">
 				<CopyButton onClick={handleCopy}>Copy draft</CopyButton>
-				<p className="m-0 text-muted-foreground text-xs" data-copy-status role="status">
+				<p className="text-muted-foreground m-0 text-xs" data-copy-status role="status">
 					{status}
 				</p>
 			</div>

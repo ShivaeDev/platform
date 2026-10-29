@@ -15,11 +15,11 @@ import { Authenticated } from "@shivaedev/identity/middleware.ts";
 export const Account = RpcGroup.make(Rpc.make("WhoAmI", { success: Schema.String })).middleware(Authenticated);
 
 export const Handlers = Account.toLayer({
-  WhoAmI: () =>
-    Effect.gen(function* () {
-      const identity = yield* Identity;
-      return identity.id;
-    }),
+	WhoAmI: () =>
+		Effect.gen(function* () {
+			const identity = yield* Identity;
+			return identity.id;
+		}),
 });
 ```
 
@@ -30,7 +30,6 @@ The browser imports `Account` as it is; the server supplies the session middlewa
 ### How to think about it
 
 There are three parts to an authenticated RPC boundary:
-
 1. **The shared contract** names the middleware tags (`Authenticated`, `MaybeAuthenticated`, `AuthenticatedUser`, permission middleware) and the request-local services they provide. These modules are browser-safe, because the client imports the contract.
 2. **The server composition** implements the tags with Layers from `server/`. A session provider resolves a session; an Origin policy decides whether its request may reach that provider; request tracing supplies a request id and diagnostic context.
 3. **The feature handler** reads `Identity`, `OptionalIdentity`, `SessionUser` or `RequestId` and runs application code. Authentication supplies a user id. Authorization still decides whether that user may perform this operation.
@@ -49,22 +48,22 @@ import { Identity } from "@shivaedev/identity/identity.ts";
 import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
 export const Account = RpcGroup.make(
-  Rpc.make("ReadOwn", {
-    error: Forbidden,
-    payload: { userId: Schema.String },
-    success: Schema.String,
-  }),
+	Rpc.make("ReadOwn", {
+		error: Forbidden,
+		payload: { userId: Schema.String },
+		success: Schema.String,
+	}),
 ).middleware(Authenticated);
 
 export const Handlers = Account.toLayer({
-  ReadOwn: ({ userId }) =>
-    Effect.gen(function* () {
-      const identity = yield* Identity;
-      if (identity.id !== userId) {
-        return yield* new Forbidden({ message: "Not your account" });
-      }
-      return identity.id;
-    }),
+	ReadOwn: ({ userId }) =>
+		Effect.gen(function* () {
+			const identity = yield* Identity;
+			if (identity.id !== userId) {
+				return yield* new Forbidden({ message: "Not your account" });
+			}
+			return identity.id;
+		}),
 });
 ```
 
@@ -78,8 +77,8 @@ import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 import { auth } from "./auth.ts";
 
 export const sessions = {
-  origin: trustedOrigins({ allow: ["http://localhost:3000"], missing: "allow" }),
-  provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+	origin: trustedOrigins({ allow: ["http://localhost:3000"], missing: "allow" }),
+	provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
 };
 ```
 
@@ -96,12 +95,12 @@ import { Config, Effect } from "effect";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 
 const authentication = Effect.gen(function* () {
-  const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
-  return yield* betterAuthMount({
-    database,
-    emailAndPassword: { enabled: true },
-    session: { cookieCache: { enabled: false } },
-  });
+	const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
+	return yield* betterAuthMount({
+		database,
+		emailAndPassword: { enabled: true },
+		session: { cookieCache: { enabled: false } },
+	});
 });
 ```
 
@@ -163,17 +162,17 @@ import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAu
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
 
 const authentication = Effect.gen(function* () {
-  const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
-  const mounted = yield* betterAuthMount(
-    { database, session: { cookieCache: { enabled: false } }, socialProviders: { github } },
-    { signIn: { accounts: allowedAccounts, recheckInterval: "5 minutes", rule: inOrganization } },
-  );
-  yield* mounted.revokeUnadmitted;
-  const sessions = {
-    origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-    provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
-  };
-  return { ...mounted, sessions };
+	const database = yield* authDatabase(yield* Config.Redacted("DATABASE_URL"));
+	const mounted = yield* betterAuthMount(
+		{ database, session: { cookieCache: { enabled: false } }, socialProviders: { github } },
+		{ signIn: { accounts: allowedAccounts, recheckInterval: "5 minutes", rule: inOrganization } },
+	);
+	yield* mounted.revokeUnadmitted;
+	const sessions = {
+		origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+		provider: betterAuthSessions(mounted.admittedSessions((headers) => mounted.auth.api.getSession({ headers }))),
+	};
+	return { ...mounted, sessions };
 });
 ```
 
@@ -199,18 +198,16 @@ import { Rpc, RpcGroup } from "effect/rpc";
 import { OptionalIdentity } from "@shivaedev/identity/identity.ts";
 import { MaybeAuthenticated } from "@shivaedev/identity/middleware.ts";
 
-export const Greetings = RpcGroup.make(
-  Rpc.make("Greeting", { success: Schema.String }),
-).middleware(MaybeAuthenticated);
+export const Greetings = RpcGroup.make(Rpc.make("Greeting", { success: Schema.String })).middleware(MaybeAuthenticated);
 
 export const GreetingHandlers = Greetings.toLayer({
-  Greeting: () =>
-    Effect.map(OptionalIdentity, (identity) =>
-      Option.match(identity, {
-        onNone: () => "hello anonymous",
-        onSome: ({ id }) => `hello ${id}`,
-      }),
-    ),
+	Greeting: () =>
+		Effect.map(OptionalIdentity, (identity) =>
+			Option.match(identity, {
+				onNone: () => "hello anonymous",
+				onSome: ({ id }) => `hello ${id}`,
+			}),
+		),
 });
 ```
 
@@ -240,13 +237,13 @@ import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { authenticatedUserLayer } from "@shivaedev/identity/server/session.ts";
 
 export const Account = RpcGroup.make(
-  Rpc.make("Whoami", {
-    success: Schema.Struct({ id: Schema.String, name: Schema.String, email: Schema.String }),
-  }),
+	Rpc.make("Whoami", {
+		success: Schema.Struct({ id: Schema.String, name: Schema.String, email: Schema.String }),
+	}),
 ).middleware(AuthenticatedUser);
 
 export const AccountHandlers = Account.toLayer({
-  Whoami: () => Effect.map(SessionUser, (user) => user),
+	Whoami: () => Effect.map(SessionUser, (user) => user),
 });
 
 export const AccountServer = Layer.merge(AccountHandlers, authenticatedUserLayer(sessions));
@@ -265,17 +262,17 @@ import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
 
 const sessions = {
-  origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-  provider: betterAuthSessions(
-    (headers) => auth.api.getSession({ headers }),
-    (headers) => auth.api.listUserAccounts({ headers }),
-  ),
+	origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
+	provider: betterAuthSessions(
+		(headers) => auth.api.getSession({ headers }),
+		(headers) => auth.api.listUserAccounts({ headers }),
+	),
 };
 
 const githubAccount = Effect.gen(function* () {
-  const user = yield* SessionUserWithProviderAccounts;
-  const accounts = yield* user.providerAccounts;
-  return accounts.find((account) => account.providerId === "github");
+	const user = yield* SessionUserWithProviderAccounts;
+	const accounts = yield* user.providerAccounts;
+	return accounts.find((account) => account.providerId === "github");
 });
 ```
 
@@ -327,7 +324,7 @@ import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 class ToolsPermission extends permissionMiddleware<ToolsPermission>()("app/ToolsPermission", UseTools) {}
 const Tools = RpcGroup.make(Rpc.make("tools", { success: Schema.String }).middleware(ToolsPermission));
 const handlers = Tools.toLayer({ tools: () => Effect.map(SessionUser, (user) => user.email) }).pipe(
-  Layer.provideMerge(permissionLayer(ToolsPermission, sessions)),
+	Layer.provideMerge(permissionLayer(ToolsPermission, sessions)),
 );
 ```
 
@@ -340,9 +337,11 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 import { permissionRoute } from "@shivaedev/identity/server/permissions.ts";
 
 const routes = HttpRouter.use((router) =>
-  router.add("GET", "/tools", permissionRoute(sessions, UseTools)(() =>
-    Effect.map(SessionUser, (user) => HttpServerResponse.text(user.email)),
-  )),
+	router.add(
+		"GET",
+		"/tools",
+		permissionRoute(sessions, UseTools)(() => Effect.map(SessionUser, (user) => HttpServerResponse.text(user.email))),
+	),
 );
 ```
 
@@ -364,13 +363,10 @@ import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 
 const changesRpc = Api.requests.get("preferences.$changes")!;
 const handlers = Api.toLayer({
-  "preferences.$changes": ({ queries }) => Stream.unwrap(
-    Effect.map(resolveChanges(changesRpc, queries), ({ subscription, context }) =>
-      changes.subscribe(subscription, context)
-    )
-  ),
-  "preferences.get": getPreference,
-  "preferences.save": savePreference,
+	"preferences.$changes": ({ queries }) =>
+		Stream.unwrap(Effect.map(resolveChanges(changesRpc, queries), ({ subscription, context }) => changes.subscribe(subscription, context))),
+	"preferences.get": getPreference,
+	"preferences.save": savePreference,
 });
 ```
 
@@ -385,12 +381,12 @@ import { Identity } from "@shivaedev/identity/identity.ts";
 import { commandChanges } from "@shivaedev/identity/server/commandChanges.ts";
 
 const authentication = Layer.succeed(MyAuthentication, (effect, { headers, rpc, payload }) =>
-  Effect.gen(function* () {
-    const session = yield* requireTransportSession(headers, rpc);
-    return yield* authorizeReads(commandChanges(effect, rpc, payload), { rpc, payload }, Option.some({ id: session.user.id })).pipe(
-      Effect.provideService(Identity, { id: session.user.id })
-    );
-  })
+	Effect.gen(function* () {
+		const session = yield* requireTransportSession(headers, rpc);
+		return yield* authorizeReads(commandChanges(effect, rpc, payload), { rpc, payload }, Option.some({ id: session.user.id })).pipe(
+			Effect.provideService(Identity, { id: session.user.id }),
+		);
+	}),
 );
 ```
 
@@ -404,9 +400,9 @@ Set `SessionPolicy.streamRevalidationInterval` to an Effect `Duration.Input` to 
 
 ```ts
 const sessions = {
-  origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }),
-  provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
-  streamRevalidationInterval: "5 seconds",
+	origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }),
+	provider: betterAuthSessions((headers) => auth.api.getSession({ headers })),
+	streamRevalidationInterval: "5 seconds",
 };
 ```
 
@@ -434,14 +430,14 @@ import { testUtils } from "better-auth/plugins";
 import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const testAuth = betterAuth({
-  ...options,
-  plugins: [...(options.plugins ?? []), testUtils()],
+	...options,
+	plugins: [...(options.plugins ?? []), testUtils()],
 });
 const { user, headers, cookies } = await signedInUser(testAuth, {
-  email: "member@example.test",
-  name: "Member",
-  providerAccounts: [{ providerId: "github", accountId: "123" }],
-  role: "user,admin",
+	email: "member@example.test",
+	name: "Member",
+	providerAccounts: [{ providerId: "github", accountId: "123" }],
+	role: "user,admin",
 });
 ```
 
@@ -456,25 +452,29 @@ import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
 
 const member = app.trait("account", "a member starts signed in with GitHub", function* ({ auth }) {
-  const { cookies } = yield* Effect.promise(() => signedInUser(auth, {
-    email: "member@example.test",
-    name: "Member",
-    providerAccounts: [{ providerId: "github", accountId: "123" }],
-  }));
-  yield* seedCookies(cookies);
+	const { cookies } = yield* Effect.promise(() =>
+		signedInUser(auth, {
+			email: "member@example.test",
+			name: "Member",
+			providerAccounts: [{ providerId: "github", accountId: "123" }],
+		}),
+	);
+	yield* seedCookies(cookies);
 });
 
 app.it("the member's provider account stores no credentials", [member], function* ({ session, story }) {
-  const { user } = yield* session();
-  const accounts = yield* Effect.promise(() => storedProviderAccounts(story.engine.auth, user.id));
-  expect(accounts).toEqual([{
-    providerId: "github",
-    accountId: "123",
-    hasAccessToken: false,
-    hasRefreshToken: false,
-    hasIdToken: false,
-    hasPassword: false,
-  }]);
+	const { user } = yield* session();
+	const accounts = yield* Effect.promise(() => storedProviderAccounts(story.engine.auth, user.id));
+	expect(accounts).toEqual([
+		{
+			providerId: "github",
+			accountId: "123",
+			hasAccessToken: false,
+			hasRefreshToken: false,
+			hasIdToken: false,
+			hasPassword: false,
+		},
+	]);
 });
 ```
 
@@ -490,33 +490,32 @@ Register the Effect with a worker schedule, as the starter does at midnight UTC.
 
 Import the module that defines the name; there is no package-root entry. Paths below follow `@shivaedev/identity/`.
 
-| Module | Names and purpose |
-| --- | --- |
-| `identity.ts` | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services. |
-| `middleware.ts` | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations. |
-| `permission.ts` | `permissionMiddleware`, `hasPermission`, `requirePermission`: native permission middleware declarations and predicates over resolved grants. |
-| `server/permissions.ts` | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards. |
-| `server/session.ts` | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary. |
-| `server/adapters/betterAuthSessions.ts` | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups. |
-| `server/origin.ts` | `trustedOrigins({ allow, missing })`: an exact Origin allowlist. |
-| `server/local.ts` | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards. |
-| `server/transportHeaders.ts` | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision. |
-| `server/tracing.ts` | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation. |
-| `server/sessionKeys.ts` | `resolveChanges`: session-scoped change subscriptions for custom change handlers. |
-| `server/commandChanges.ts` | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware. |
-| `server/better-auth/mount.ts` | `betterAuthMount(options, { signIn?, bearerSessions?, roles? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
-| `server/better-auth/allowedAccounts.ts` | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config. |
-| `server/better-auth/signInGate.ts` | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy. |
-| `server/better-auth/revokeUnadmitted.ts` | `RevokedSessions`: the `{ users, sessions }` counts of a revocation. |
-| `server/better-auth/userProfiles.ts` | Public profile lookups for other users. |
-| `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed. |
-| `server/better-auth/testDatabase.ts` | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema. |
-| `server/better-auth/testing.ts` | `signedInUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only minted user sessions and credential storage observations. |
+| Module                                       | Names and purpose                                                                                                                                                                                                                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `identity.ts`                                | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`: request-local services.                                                                                                                                                    |
+| `middleware.ts`                              | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`: native RPC middleware declarations.                                                                                                                |
+| `permission.ts`                              | `permissionMiddleware`, `hasPermission`, `requirePermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                              |
+| `server/permissions.ts`                      | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards.                                                                                                                                                                                 |
+| `server/session.ts`                          | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                                               |
+| `server/adapters/betterAuthSessions.ts`      | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                                      |
+| `server/origin.ts`                           | `trustedOrigins({ allow, missing })`: an exact Origin allowlist.                                                                                                                                                                                                          |
+| `server/local.ts`                            | `localRpcGuard`, `loopbackOnly`, `sameOrigin`, `trustedProxyPeer`, `trustedProxyRanges`: loopback and proxy guards.                                                                                                                                                       |
+| `server/transportHeaders.ts`                 | `transportHeaders(rpcHeaders)`: the headers used for a transport-level decision.                                                                                                                                                                                          |
+| `server/tracing.ts`                          | `requestTracingLayer({ header?, sensitive? })`: the `RequestTracing` implementation.                                                                                                                                                                                      |
+| `server/sessionKeys.ts`                      | `resolveChanges`: session-scoped change subscriptions for custom change handlers.                                                                                                                                                                                         |
+| `server/commandChanges.ts`                   | `commandChanges(effect, rpc, payload)`: scoped command invalidation for custom authentication middleware.                                                                                                                                                                 |
+| `server/better-auth/mount.ts`                | `betterAuthMount(options, { signIn?, bearerSessions?, roles? })`, returning `{ auth, routes, sessions, admittedSessions, revokeUnadmitted }`, and `authDatabase(url, { max?, application_name? }?)`: native auth routes, the sign-in policy and a scoped PostgreSQL pool. |
+| `server/better-auth/allowedAccounts.ts`      | `AllowedAccounts`, `allowedAccounts`: the provider-account list Schema and its `AUTH_ALLOWED_ACCOUNTS` Config.                                                                                                                                                            |
+| `server/better-auth/signInGate.ts`           | `SignInPolicy`: the `accounts`, `rule` and `recheckInterval` of a sign-in policy.                                                                                                                                                                                         |
+| `server/better-auth/revokeUnadmitted.ts`     | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                                                      |
+| `server/better-auth/userProfiles.ts`         | Public profile lookups for other users.                                                                                                                                                                                                                                   |
+| `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                                       |
+| `server/better-auth/testDatabase.ts`         | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                                          |
+| `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only minted user sessions and credential storage observations.                                                                                                                                 |
 
 ### Install, setup and limits
 
 Install `@shivaedev/identity` with `effect` as its peer. Everything outside `server/better-auth/` works with only `effect` installed, including the Promise-based `betterAuthSessions` adapter. Better Auth mounts and test fixtures need the optional peers `better-auth` and `pg`; `sweepExpiredSessions` needs only the application's Effect SQL client. Browser code imports only `identity.ts`, `middleware.ts` and `permission.ts`.
-
 - The package needs Node 24 or newer.
 - Keep the auth provider's configuration, cookie settings and resource authorization in the application. The session adapter takes a session lookup and an optional provider-account lookup and returns a session result; it does not write provider refresh cookies into RPC responses.
 - Without an `HttpServerRequest`, `transportHeaders` falls back to the supplied RPC headers. An application using another transport must decide what headers it can trust.

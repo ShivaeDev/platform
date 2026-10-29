@@ -29,7 +29,6 @@ Any Markdown file is a document, and plain Markdown needs no metadata. Frontmatt
 Agents and people write different files. Agents create and edit project Markdown with their usual tools; the Board needs no special agent writer. The browser never edits those files: when the server starts with `--responses`, it records what a person says as new files of its own under `responses/` and `handoffs/`, and the source stays unchanged. Work Board owns the human response content it records, and agents own the surrounding project Markdown. Beyond those records, Board changes project Markdown only by moving finished task briefs between `tasks/` and `archive/`, and by rewriting vocabulary fields when you run `work-board migrate`. An optional execution integration such as Work Fleet reports a stage beside the authored status and never writes that stage into task frontmatter.
 
 Work passes between an agent session and a person through explicit records:
-
 1. The agent asks. An **attention request** on an item explicitly asks for a decision, a review or help with a blocker, separate from the item's status; a standalone **question** asks the same as its own item. Today gathers the asks addressed to the maintainer.
 2. The person answers in context. A **response** is an independent Markdown record of an answer, a clarification or a deferral, pinned to the exact source bytes and path the person reviewed. An edit to the question afterwards needs a fresh answer. A response does not close the request, change task status or start an agent.
 3. The agent reads the reply. `work-board wait` returns once a reply to the reviewed question is recorded, and `work-board responses --follow` lists replies across the workspace as they arrive.
@@ -42,11 +41,11 @@ The rest of this guide follows the work: choose a workspace once, author useful 
 
 ### Work vocabulary
 
-| Concept | Words |
-| --- | --- |
-| Document kind | `goal`, `task`, `question`, `report` |
-| Authored status, on every kind | `draft`, `ready`, `done`, `deferred`, `dropped` |
-| Computed Fleet stage | `queued`, `working`, `reviewing`, `waiting`, `done`, `released` |
+| Concept                        | Words                                                           |
+| ------------------------------ | --------------------------------------------------------------- |
+| Document kind                  | `goal`, `task`, `question`, `report`                            |
+| Authored status, on every kind | `draft`, `ready`, `done`, `deferred`, `dropped`                 |
+| Computed Fleet stage           | `queued`, `working`, `reviewing`, `waiting`, `done`, `released` |
 
 A goal is **draft** while being shaped, **ready** while being pursued and **done** when reached. A task is **draft** while its brief is incomplete, **ready** when the brief is complete and **done** when its PR merges or its report is delivered. A question is **ready** while waiting for an answer and **done** when answered. A report is **draft** while being written and **done** when delivered. On every kind, **deferred** means parked with a `next_action` explaining what reopens it; **dropped** means given up or replaced. An omitted status is unshaped work and counts as draft. Goal progress splits tasks into done, running, blocked, scheduled and parked states, including work in child goals. Dropped tasks leave both the done and total counts. Set `standing: true` on a goal to keep it active as a home for new work even when its current tasks are done.
 
@@ -93,22 +92,25 @@ Plain Markdown needs no metadata. Add frontmatter when an item needs stable iden
 
 ```markdown
 ---
+
 id: work.search
 kind: task
 status: ready
 owner: claude
 next_action: Review the keyboard evidence
 criteria:
-  - id: keyboard
-    text: Escape returns focus to the search button
-attention:
-  - id: keyboard-review
-    kind: review
-    state: open
-    response_from: [maintainer]
-    reason: Review the keyboard result before continuing.
-    unblocks: [work.search#keyboard]
+- id: keyboard
+  text: Escape returns focus to the search button
+  attention:
+- id: keyboard-review
+  kind: review
+  state: open
+  response_from: [maintainer]
+  reason: Review the keyboard result before continuing.
+  unblocks: [work.search#keyboard]
+
 ---
+
 # Workspace search
 
 Read the proposed keyboard behavior and its recorded evidence before responding.
@@ -122,9 +124,11 @@ A board file selects shared items explicitly. Save this as `review.md`:
 
 ```markdown
 ---
+
 id: board.review
 items: [work.search]
 ---
+
 # Review work
 
 Inspect the selected work and its source before giving direction.
@@ -136,17 +140,20 @@ Use `relationships` for `implements`, `informs`, `depends_on` or `relates_to` li
 
 ```markdown
 ---
+
 id: result.search
 kind: report
 relationships:
-  - kind: implements
-    target: work.search
-evidence:
-  - source: evidence.md
-    criterion: work.search#keyboard
-    method: DOM regression
-    outcome: passed
+- kind: implements
+  target: work.search
+  evidence:
+- source: evidence.md
+  criterion: work.search#keyboard
+  method: DOM regression
+  outcome: passed
+
 ---
+
 # Search result
 
 The recorded check is a source claim. Review its evidence before accepting it.
@@ -198,7 +205,7 @@ The view refreshes through `client.api.diagnostics.query()` every 15 seconds whi
 
 **Today** and its navigation badges count human asks from the shared attention projection. They include human-owned next actions, unaddressed standalone questions and validated open attention requests addressed to the maintainer label. Set `--maintainer <name>` to select another literal, case-sensitive label. The default is `maintainer`. Each row shows its title, reason, age and one action; item IDs stay on the item page. **Answer** opens a popover with the request's options or a text answer and a **Read the full question** link to its answer card. When the question's body lists options or a recommendation, a collapsed section in the popover shows them. The popover closes as soon as the server has saved the answer: the row leaves Needs you at once, **Answer saved** appears beside the heading, and the Board refreshes in the background. The server finishes a save it has started even when the browser leaves mid-save, so a question never lands without its answer. While the Board's live connection is reconnecting, the answer controls in the popover and on the item page's answer card are disabled with the reason beside them; a draft on the item page stays in place. A row that can't be answered inline, such as a multi-question packet, a question that takes several choices, a question that can't be read, human-owned work or a row with a problem, shows **Open**, which links to its item or source. Below 640px the reason takes its own full-width line. A Fleet decision's reason reads **Fleet asks:** followed by its question, or by Fleet's reason when it has no single question. A person's next action is the reason as written when the owner is the maintainer label, and reads **<owner> notes:** otherwise; a leading word that repeats the item's status, such as `Dropped:`, is left out. On a Board started without `--responses`, the popover shows the question and its options as text, says answering is turned off and offers no form controls. When a save is rejected, the popover says why. Missing or duplicated identities stay visible with a problem and source link. When a workspace file can't be read, Today says that what needs you is unknown and withholds membership and counts. When workspace sources have metadata problems, the Today summary ends with how many files have problems, linking to **Files with problems** on System, which lists each problem's file, line and reason; the summary drops it once every source reads cleanly. Today rows carry no status chip, because each section heading already names their state. Status chips and the All work and Library filters use the authored states from the vocabulary table.
 
-**Answered** on Today lists recent answers to questions that ask you: a standalone question, or an attention request addressed to the maintainer label. Each row's first line is the item the question is about: the one item its request unblocks, else the question's own document. Its second line joins the question's short label, the answer and what happened since with ` · `. The label is the heading of the request's single question, else the request's reason as plain text cut at a word near 80 characters, and is left out when it would repeat the first line. When two rows on one item would still read the same, the label adds the request ID. A row also shows when the latest current answer was recorded. What happened since is read from the source: **Waiting on the agent.** while the item and request stay open and the question's source is unchanged; **It's closed now.** once either closes; **The question changed after the answer, so it asks again.** when its source changed, and the row returns to Needs you; and for a managed decision, Fleet's pickup line until its receipt says it applied or replaced the answer. The source can't show whether an agent read an answer without editing anything, or who made a later edit. Answers still waiting stay at any age; once acted on, your own answers stay for a week and other people's leave. A Board with unreadable sources lists none.
+**Answered** on Today lists recent answers to questions that ask you: a standalone question, or an attention request addressed to the maintainer label. Each row's first line is the item the question is about: the one item its request unblocks, else the question's own document. Its second line joins the question's short label, the answer and what happened since with `·`. The label is the heading of the request's single question, else the request's reason as plain text cut at a word near 80 characters, and is left out when it would repeat the first line. When two rows on one item would still read the same, the label adds the request ID. A row also shows when the latest current answer was recorded. What happened since is read from the source: **Waiting on the agent.** while the item and request stay open and the question's source is unchanged; **It's closed now.** once either closes; **The question changed after the answer, so it asks again.** when its source changed, and the row returns to Needs you; and for a managed decision, Fleet's pickup line until its receipt says it applied or replaced the answer. The source can't show whether an agent read an answer without editing anything, or who made a later edit. Answers still waiting stay at any age; once acted on, your own answers stay for a week and other people's leave. A Board with unreadable sources lists none.
 
 A recorded answer to a uniquely registered ordinary request retires that ask only for the reviewed source bytes and path. Managed decisions retire after an exact-context acknowledgement or when all their targets are closed or deferred. Active asks for the same target set share one row, using the newest reason and response link. Agent-only asks remain available through the typed attention projection. Source diagnostics never create human asks. Work cards show Fleet stage separately from authored status and attention. These projections do not edit source status.
 
@@ -210,16 +217,19 @@ An agent can ask a standalone question with frontmatter:
 
 ```markdown
 ---
+
 id: question.storage
 kind: question
 status: ready
 options:
-  - label: Keep local files
-    description: Keep readable Markdown in the project folder.
-  - label: Use a database
-    description: Store project documents in a shared database.
-recommended: Keep local files
+- label: Keep local files
+  description: Keep readable Markdown in the project folder.
+- label: Use a database
+  description: Store project documents in a shared database.
+  recommended: Keep local files
+
 ---
+
 # Where should the project documents live?
 
 Choose where the project keeps its readable source.
@@ -332,17 +342,13 @@ import { boardLayer } from "@shivaedev/work-board/server/board.ts";
 import { Layer } from "effect";
 import { HttpRouter } from "effect/http";
 
-const board = HttpRouter.toWebHandler(
-  Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer),
-);
+const board = HttpRouter.toWebHandler(Layer.provide(boardLayer({ root: "./project-notes", home: "plan.md" }), NodeServices.layer));
 
 try {
-  const response = await board.handler(
-    new Request("http://localhost/", { headers: { host: "localhost" } }),
-  );
-  console.log(await response.text());
+	const response = await board.handler(new Request("http://localhost/", { headers: { host: "localhost" } }));
+	console.log(await response.text());
 } finally {
-  await board.dispose();
+	await board.dispose();
 }
 ```
 
@@ -355,10 +361,10 @@ import { Effect } from "effect";
 import { agentRequest } from "@shivaedev/work-board/server/responses/agent.ts";
 
 const question = await Effect.runPromise(
-  agentRequest("question", {
-    request: "work.search/keyboard-review",
-    url: "http://127.0.0.1:4747",
-  }),
+	agentRequest("question", {
+		request: "work.search/keyboard-review",
+		url: "http://127.0.0.1:4747",
+	}),
 );
 
 console.log(JSON.stringify(question, null, 2));
@@ -374,11 +380,15 @@ const [revision] = process.argv.slice(2);
 if (!revision) throw new Error("Pass the reviewed revision as the first argument.");
 
 const answer = await Effect.runPromise(
-  agentRequest("wait", {
-    request: "work.search/keyboard-review",
-    revision,
-    url: "http://127.0.0.1:4747",
-  }, console.error),
+	agentRequest(
+		"wait",
+		{
+			request: "work.search/keyboard-review",
+			revision,
+			url: "http://127.0.0.1:4747",
+		},
+		console.error,
+	),
 );
 
 console.log(JSON.stringify(answer, null, 2));
@@ -392,25 +402,21 @@ console.log(JSON.stringify(answer, null, 2));
 import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 
 export async function registerReviewedQuestion(url: string, revision: string) {
-  const client = browserClient(url);
-  try {
-    const page = await client.read(
-      client.api.document.query({ url: "/_board/item/work.search/" }),
-    );
-    const question = await client.mutate(
-      client.responses.registerQuestion.run({
-        item: "work.search",
-        request: "keyboard-review",
-        revision,
-      }),
-    );
-    const history = await client.run(
-      client.responses.responses.run({ question: question.id }),
-    );
-    return { page, question, history };
-  } finally {
-    client.registry.dispose();
-  }
+	const client = browserClient(url);
+	try {
+		const page = await client.read(client.api.document.query({ url: "/_board/item/work.search/" }));
+		const question = await client.mutate(
+			client.responses.registerQuestion.run({
+				item: "work.search",
+				request: "keyboard-review",
+				revision,
+			}),
+		);
+		const history = await client.run(client.responses.responses.run({ question: question.id }));
+		return { page, question, history };
+	} finally {
+		client.registry.dispose();
+	}
 }
 ```
 
@@ -427,32 +433,26 @@ For a handoff, first read the preview with `client.run(client.handoffs.handoffSo
 ```ts
 import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 
-export async function prepareReviewedHandoff(
-  url: string,
-  source: string,
-  revision: string,
-) {
-  const client = browserClient(url);
-  try {
-    const saved = await client.mutate(
-      client.handoffs.prepareHandoff.run({
-        id: "handoff.search.keyboard.1",
-        item: "work.search",
-        source,
-        revision,
-        recipient: "agent-navigation",
-        goal: "Fix keyboard focus",
-        constraints: "Preserve keyboard navigation.",
-        nextAction: "Inspect the current source and report browser evidence.",
-      }),
-    );
-    const history = await client.run(
-      client.handoffs.handoffs.run({ item: "work.search" }),
-    );
-    return { saved, history };
-  } finally {
-    client.registry.dispose();
-  }
+export async function prepareReviewedHandoff(url: string, source: string, revision: string) {
+	const client = browserClient(url);
+	try {
+		const saved = await client.mutate(
+			client.handoffs.prepareHandoff.run({
+				id: "handoff.search.keyboard.1",
+				item: "work.search",
+				source,
+				revision,
+				recipient: "agent-navigation",
+				goal: "Fix keyboard focus",
+				constraints: "Preserve keyboard navigation.",
+				nextAction: "Inspect the current source and report browser evidence.",
+			}),
+		);
+		const history = await client.run(client.handoffs.handoffs.run({ item: "work.search" }));
+		return { saved, history };
+	} finally {
+		client.registry.dispose();
+	}
 }
 ```
 
@@ -464,16 +464,16 @@ Result reading returns the report, linked criteria and revision-pinned feedback 
 import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 
 export async function readReturnedResult(url: string, item: string) {
-  const client = browserClient(url);
-  try {
-    return await client.read(
-      client.api.result.query({
-        url: `/_board/item/${encodeURIComponent(item)}/`,
-      }),
-    );
-  } finally {
-    client.registry.dispose();
-  }
+	const client = browserClient(url);
+	try {
+		return await client.read(
+			client.api.result.query({
+				url: `/_board/item/${encodeURIComponent(item)}/`,
+			}),
+		);
+	} finally {
+		client.registry.dispose();
+	}
 }
 ```
 
@@ -491,14 +491,14 @@ The Board shell renders this data in its internal `DocumentView`, using the Boar
 
 Work Fleet uses the server entry points below and the portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
 
-| Entry point | API object |
-| --- | --- |
-| `server/integration/processes.ts` | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision |
-| `server/integration/board.ts` | `board`: metadata parsing and model, Markdown listing, watching and the search snapshot |
-| `integration/metadata.ts` | Portable metadata types, also available through `server/integration/board.ts` |
-| `server/integration/responses.ts` | `responses`: the workspace and response services, reading, recording and publishing questions and responses |
-| `server/integration/attention.ts` | `attention`: managed request receipts and the attention projection |
-| `server/integration/diagnostics.ts` | `diagnostics`: Fleet health, the daemon diagnostics contract and provider limits |
+| Entry point                         | API object                                                                                                                   |
+| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `server/integration/processes.ts`   | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision                                  |
+| `server/integration/board.ts`       | `board`: metadata parsing and model, Markdown listing, watching and the search snapshot                                      |
+| `integration/metadata.ts`           | Portable metadata types, also available through `server/integration/board.ts`                                                |
+| `server/integration/responses.ts`   | `responses`: the workspace and response services, reading, recording and publishing questions and responses                  |
+| `server/integration/attention.ts`   | `attention`: managed request receipts and the attention projection                                                           |
+| `server/integration/diagnostics.ts` | `diagnostics`: Fleet health, the daemon diagnostics contract and provider limits                                             |
 | `server/integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
 
 ```ts
@@ -506,11 +506,13 @@ import { NodeServices } from "@effect/platform-node";
 import { Effect } from "effect";
 import { board } from "@shivaedev/work-board/server/integration/board.ts";
 
-const read = Effect.scoped(Effect.gen(function* () {
-  const changes = yield* board.watchChanges("./notes");
-  const snapshot = yield* board.searchSnapshot("./notes", undefined, changes);
-  return yield* snapshot;
-})).pipe(Effect.provide(NodeServices.layer));
+const read = Effect.scoped(
+	Effect.gen(function* () {
+		const changes = yield* board.watchChanges("./notes");
+		const snapshot = yield* board.searchSnapshot("./notes", undefined, changes);
+		return yield* snapshot;
+	}),
+).pipe(Effect.provide(NodeServices.layer));
 ```
 
 The snapshot retains parsed documents, identity diagnostics and unavailable paths. Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attention.projection(snapshot)` returns the typed attention projection: `you`, `answered`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `attention.managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
@@ -528,11 +530,11 @@ codex mcp add work-board -- work-board mcp /absolute/path/to/notes
 
 Both commands require `work-board` on the client's PATH. `work-board mcp <dir>` reads the running board through `<dir>/board.sock`; it uses the same computed queries as the browser. If no board answers, every tool returns one error naming the directory and the `work-board <dir>` command to start it.
 
-| Tool | Returns |
-| --- | --- |
-| `board_overview` | Needs-you count and items, in-flight Fleet items with stage and PR, and active and closed goal progress counts |
-| `needs_you` | The `you` lane with reason, frontmatter options, computed question prompts and their choices, recommendation, and `ageMs` since the source's last modification (`null` when unknown) |
-| `item` with `{ "id": "task.example" }` | Computed status, owner, criteria, relationships, Fleet stage and open decisions |
+| Tool                                   | Returns                                                                                                                                                                              |
+| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `board_overview`                       | Needs-you count and items, in-flight Fleet items with stage and PR, and active and closed goal progress counts                                                                       |
+| `needs_you`                            | The `you` lane with reason, frontmatter options, computed question prompts and their choices, recommendation, and `ageMs` since the source's last modification (`null` when unknown) |
+| `item` with `{ "id": "task.example" }` | Computed status, owner, criteria, relationships, Fleet stage and open decisions                                                                                                      |
 
 Fleet unavailability stays explicit in results. These tools read state without changing files or starting a board.
 
@@ -540,22 +542,22 @@ In Claude Code, the [Work Board plugin](https://github.com/ShivaeDev/platform/tr
 
 #### CLI reference
 
-| Server argument | Default | Meaning |
-| --- | --- | --- |
-| `<dir>` | Required | Existing folder to read |
-| `--home <file>` | None | Listed Markdown heading board linked from Today by its title; a missing file prevents startup |
+| Server argument       | Default      | Meaning                                                                                             |
+| --------------------- | ------------ | --------------------------------------------------------------------------------------------------- |
+| `<dir>`               | Required     | Existing folder to read                                                                             |
+| `--home <file>`       | None         | Listed Markdown heading board linked from Today by its title; a missing file prevents startup       |
 | `--maintainer <name>` | `maintainer` | Literal `response_from` label for human questions; unaddressed standalone questions remain included |
-| `--port <number>` | `4747` | Loopback server port; `0` asks for a free port |
-| `--responses` | Off | Enable local question/response/handoff publication |
+| `--port <number>`     | `4747`       | Loopback server port; `0` asks for a free port                                                      |
+| `--responses`         | Off          | Enable local question/response/handoff publication                                                  |
 
-| Agent argument | Meaning |
-| --- | --- |
-| `question <item>/<request>` | Read current context without registration |
-| `wait <item>/<request> --revision <hash>` | Register reviewed context and wait |
-| `wait <question-id> [--after <response-id>]` | Reattach or wait for the next response |
-| `response <question-id>` | Read the saved conversation |
-| `--port <number>` | Select the shared server's port; default `4747` |
-| `--url <origin>` | Select an HTTP loopback origin instead of `--port` |
+| Agent argument                               | Meaning                                            |
+| -------------------------------------------- | -------------------------------------------------- |
+| `question <item>/<request>`                  | Read current context without registration          |
+| `wait <item>/<request> --revision <hash>`    | Register reviewed context and wait                 |
+| `wait <question-id> [--after <response-id>]` | Reattach or wait for the next response             |
+| `response <question-id>`                     | Read the saved conversation                        |
+| `--port <number>`                            | Select the shared server's port; default `4747`    |
+| `--url <origin>`                             | Select an HTTP loopback origin instead of `--port` |
 
 The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/goals`, `/_board/work`, `/_board/library`, `/_board/system`, `/_board/handoff`, and identity links load the React shell. `GET /_board/respond` redirects an open request to its item’s answer card and `GET /_board/result` redirects to the result's item page, both with HTTP 302; an unavailable request returns an HTTP 409 page. Search and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
 

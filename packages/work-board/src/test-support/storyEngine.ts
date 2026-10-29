@@ -125,7 +125,7 @@ export function readerView(engine: BoardEngine) {
 		location: page?.window.location.href,
 		responseStatus: page?.document.getElementById("response-status")?.textContent,
 		savedResponses: savedResponseItems(engine),
-		text: page && document instanceof page.window.HTMLElement ? document.innerText : undefined,
+		text: page && document instanceof page.window.HTMLElement ? (document.textContent ?? "") : undefined,
 	};
 }
 

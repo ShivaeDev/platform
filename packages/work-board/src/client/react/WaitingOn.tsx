@@ -27,13 +27,13 @@ function WaitingRow({ ask }: { readonly ask: WaitingAsk }) {
 		<li
 			className={
 				you
-					? "flex items-center gap-3 rounded-lg border border-needs-you/40 bg-needs-you/10 px-3 py-2 text-sm"
-					: "flex items-center gap-3 rounded-lg border bg-muted/40 px-3 py-2 text-muted-foreground text-sm"
+					? "border-needs-you/40 bg-needs-you/10 flex items-center gap-3 rounded-lg border px-3 py-2 text-sm"
+					: "bg-muted/40 text-muted-foreground flex items-center gap-3 rounded-lg border px-3 py-2 text-sm"
 			}
 			data-waiting-on={ask.audience}
 		>
 			{you ? (
-				<MessageCircleQuestion aria-hidden="true" className="size-4 shrink-0 text-needs-you" />
+				<MessageCircleQuestion aria-hidden="true" className="text-needs-you size-4 shrink-0" />
 			) : (
 				<Users aria-hidden="true" className="size-4 shrink-0" />
 			)}

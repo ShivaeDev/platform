@@ -1,4 +1,4 @@
-import { Result } from "effect";
+import { Order, Result } from "effect";
 import { expect } from "vitest";
 import { auth } from "#test/auth/story.ts";
 
@@ -27,8 +27,8 @@ auth.it("a profile batch reads storage once and reads duplicate ids once", [], f
 	expect(
 		Result.getOrThrow(result)
 			.map(({ id }) => id)
-			.sort(),
-	).toEqual([ada.user.id, grace.user.id].sort());
+			.sort(Order.String),
+	).toEqual([ada.user.id, grace.user.id].sort(Order.String));
 	expect(queries.map(({ values }) => values)).toEqual([[ada.user.id, grace.user.id, 2]]);
 });
 

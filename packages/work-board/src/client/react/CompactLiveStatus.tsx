@@ -14,7 +14,7 @@ export function CompactLiveStatus({ state, text }: { readonly state: LiveState; 
 	const problem = problems[state];
 	return (
 		<span
-			className="flex shrink-0 items-center gap-1 text-muted-foreground text-xs data-[state=down]:text-destructive data-[state=stale]:text-destructive"
+			className="text-muted-foreground data-[state=down]:text-destructive data-[state=stale]:text-destructive flex shrink-0 items-center gap-1 text-xs"
 			data-state={state}
 			id={shellIds.live}
 			role="status"

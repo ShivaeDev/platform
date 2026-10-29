@@ -1,5 +1,5 @@
 import { NodeFileSystem } from "@effect/platform-node";
-import { Schema } from "effect";
+import { Order, Schema } from "effect";
 import { afterEach, expect } from "vitest";
 import rawTree from "#test/fixtures/gitignore-tree.json" with { type: "json" };
 import { git } from "#test/git.ts";
@@ -31,7 +31,7 @@ effectIt.layer(NodeFileSystem.layer)("gitignore-aware discovery", (it) => {
 
 	it.effect("walks the identical tree in full when nothing is ignored", function* () {
 		const paths = yield* pathsOf(seedTree(ignored, kept));
-		expect(paths).toEqual([...tree.ignoredPaths, ...tree.keptPaths].sort());
+		expect(paths).toEqual([...tree.ignoredPaths, ...tree.keptPaths].sort(Order.String));
 	});
 
 	it.effect("applies the ignore files above a nested source directory", function* () {

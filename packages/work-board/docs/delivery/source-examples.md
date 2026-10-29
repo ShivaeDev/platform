@@ -26,20 +26,23 @@ Heading boards need no metadata. Section names are presentation, never inferred 
 
 ```markdown
 ---
+
 id: work.search
 kind: task
 status: ready
 owner: claude
 next_action: Review keyboard and mobile evidence
 criteria:
-  - id: keyboard
-    text: Escape returns focus to the opening control
-  - id: passage
-    text: A search result reaches the second duplicate heading
-relationships:
-  - kind: implements
-    target: decision.search-matching
+- id: keyboard
+  text: Escape returns focus to the opening control
+- id: passage
+  text: A search result reaches the second duplicate heading
+  relationships:
+- kind: implements
+  target: decision.search-matching
+
 ---
+
 # Search the workspace
 
 Use deterministic local matching first. Keep Markdown authoritative.
@@ -47,22 +50,22 @@ Use deterministic local matching first. Keep Markdown authoritative.
 
 Work fields use the [shared vocabulary](../../README.md#work-vocabulary). No section heading changes an authored status.
 
-| Field | Source shape |
-| --- | --- |
-| `id` | Workspace-local, case-sensitive ID: ASCII letter/digit first, then letters/digits, `.`, `_`, or `-` |
-| `kind`, `status`, `owner`, `scope`, `urgency`, `fleet`, `delivers` | See the [work vocabulary](../../README.md#work-vocabulary) |
-| `next_action` | Nonblank text |
-| `criteria` | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file |
-| `relationships` | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, `relates_to` or `replaces`; target is an item ID or `item.id#criterion-id` |
-| `items` | Explicit list of item IDs declaring board membership, independent of status or section headings |
-| `areas` | List of existing repository folders for Fleet scheduling, or `*` for the whole repository |
-| `evidence` | List of records described below |
-| `attention` | List of explicit request records; [shapes and reading rules](./attention-examples.md) |
-| `options` | List of at most 32 `{ label, description }` records with unique nonblank labels of at most 128 characters and nonblank descriptions of at most 8192 characters; on a `question` item they form one single-choice prompt and cannot be combined with question directives |
-| `recommended` | The label of one `options` entry, marked **Recommended** on the answer card and on Today |
-| `question`, `response` | Optional dedicated record provenance; [anchored response contract](./response-write-examples.md) |
-| `handoff` | Optional direction/source snapshot and explicit receipt; [ordinary-file handoff contract](./handoff-examples.md) |
-| `request_receipt` | Optional immutable acknowledgement of an exact managed decision request; [response and acknowledgement rules](../../README.md#record-a-human-response) |
+| Field                                                              | Source shape                                                                                                                                                                                                                                                            |
+| ------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`                                                               | Workspace-local, case-sensitive ID: ASCII letter/digit first, then letters/digits, `.`, `_`, or `-`                                                                                                                                                                     |
+| `kind`, `status`, `owner`, `scope`, `urgency`, `fleet`, `delivers` | See the [work vocabulary](../../README.md#work-vocabulary)                                                                                                                                                                                                              |
+| `next_action`                                                      | Nonblank text                                                                                                                                                                                                                                                           |
+| `criteria`                                                         | List of `{ id, text }`; criterion IDs use the item ID syntax and are unique within the file                                                                                                                                                                             |
+| `relationships`                                                    | List of `{ kind, target }`; kind is `implements`, `informs`, `depends_on`, `relates_to` or `replaces`; target is an item ID or `item.id#criterion-id`                                                                                                                   |
+| `items`                                                            | Explicit list of item IDs declaring board membership, independent of status or section headings                                                                                                                                                                         |
+| `areas`                                                            | List of existing repository folders for Fleet scheduling, or `*` for the whole repository                                                                                                                                                                               |
+| `evidence`                                                         | List of records described below                                                                                                                                                                                                                                         |
+| `attention`                                                        | List of explicit request records; [shapes and reading rules](./attention-examples.md)                                                                                                                                                                                   |
+| `options`                                                          | List of at most 32 `{ label, description }` records with unique nonblank labels of at most 128 characters and nonblank descriptions of at most 8192 characters; on a `question` item they form one single-choice prompt and cannot be combined with question directives |
+| `recommended`                                                      | The label of one `options` entry, marked **Recommended** on the answer card and on Today                                                                                                                                                                                |
+| `question`, `response`                                             | Optional dedicated record provenance; [anchored response contract](./response-write-examples.md)                                                                                                                                                                        |
+| `handoff`                                                          | Optional direction/source snapshot and explicit receipt; [ordinary-file handoff contract](./handoff-examples.md)                                                                                                                                                        |
+| `request_receipt`                                                  | Optional immutable acknowledgement of an exact managed decision request; [response and acknowledgement rules](../../README.md#record-a-human-response)                                                                                                                  |
 
 Fleet's add-on fields `fleet-launch` and `fleet-priority` are accepted without a diagnostic; Fleet interprets them. Board validates the shared approval and deliverable fields.
 
@@ -80,15 +83,18 @@ Search includes declared ID, kind, status, owner, next action, and criteria. Res
 
 ```markdown
 ---
+
 id: decision.search-matching
 kind: question
 scope: task
 urgency: whenever
 status: draft
 relationships:
-  - kind: informs
-    target: work.search
+- kind: informs
+  target: work.search
+
 ---
+
 # Deterministic matching
 
 Option A: token matching with deterministic ranking.
@@ -99,7 +105,7 @@ Recommendation: A. A person's acceptance remains a separate decision.
 
 ```yaml
 id: board.navigation
-items: [work.search, work.reading-state]
+items: [ work.search, work.reading-state ]
 ```
 
 Relationships and membership resolve only against explicit IDs. They are shown as readable links; unresolved or ambiguous targets stay visible with diagnostics. These declarations do not turn a section name into a workflow rule.

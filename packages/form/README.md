@@ -8,9 +8,9 @@ An input gives you a string; your service needs a number. Meanwhile, fresh serve
 
 ```ts
 const order = form(Schema.Struct({ name: Schema.String, quantity: Schema.NumberFromString }), {
-  initialValues: { name: "Paper", quantity: "300" },
-  onSubmit: Effect.succeed,
-  runtime,
+	initialValues: { name: "Paper", quantity: "300" },
+	onSubmit: Effect.succeed,
+	runtime,
 });
 
 order.change("name", "Copy paper");
@@ -45,32 +45,27 @@ import { form } from "@shivaedev/form/form.ts";
 
 const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({
-  name: Schema.NonEmptyString,
-  quantity: Schema.NumberFromString,
+	name: Schema.NonEmptyString,
+	quantity: Schema.NumberFromString,
 });
 
 const order = form(fields, {
-  initialValues: { name: "Paper", quantity: "300" },
-  onSubmit: (values, submitter) =>
-    values.name === "reserved"
-      ? submitter.fail("name", "Choose another name")
-      : Effect.succeed(values),
-  runtime,
+	initialValues: { name: "Paper", quantity: "300" },
+	onSubmit: (values, submitter) => (values.name === "reserved" ? submitter.fail("name", "Choose another name") : Effect.succeed(values)),
+	runtime,
 });
 
 const registry = AtomRegistry.make();
 const release = registry.mount(order.dirty);
 
 try {
-  order.change("quantity", "350");
-  registry.set(order.submit, undefined);
-  const saved = await Effect.runPromise(
-    AtomRegistry.getResult(registry, order.submit, { suspendOnWaiting: true }),
-  );
-  console.log(saved);
+	order.change("quantity", "350");
+	registry.set(order.submit, undefined);
+	const saved = await Effect.runPromise(AtomRegistry.getResult(registry, order.submit, { suspendOnWaiting: true }));
+	console.log(saved);
 } finally {
-  release();
-  registry.dispose();
+	release();
+	registry.dispose();
 }
 ```
 
@@ -94,40 +89,54 @@ const runtime = Atom.runtime(Layer.empty);
 const fields = Schema.Struct({ name: Schema.NonEmptyString, quantity: Schema.NumberFromString });
 
 function OrderEditor() {
-  const [order] = useState(() => form(fields, {
-    initialValues: { name: "Paper", quantity: "300" },
-    onSubmit: Effect.succeed,
-    runtime,
-  }));
-  const name = useField(order, "name");
-  const quantity = useField(order, "quantity");
-  const submit = useSubmit(order);
-  const dirty = useDirty(order);
+	const [order] = useState(() =>
+		form(fields, {
+			initialValues: { name: "Paper", quantity: "300" },
+			onSubmit: Effect.succeed,
+			runtime,
+		}),
+	);
+	const name = useField(order, "name");
+	const quantity = useField(order, "quantity");
+	const submit = useSubmit(order);
+	const dirty = useDirty(order);
 
-  return <form onSubmit={(event) => {
-    event.preventDefault();
-    if (!submit.submitting) submit.run();
-  }}>
-    <label>Name <input value={name.value} onBlur={name.onBlur}
-      onChange={(event) => name.onChange(event.target.value)} /></label>
-    {name.error && <p role="alert">{name.error}</p>}
-    <label>Quantity <input value={quantity.value} onBlur={quantity.onBlur}
-      onChange={(event) => quantity.onChange(event.target.value)} /></label>
-    {quantity.error && <p role="alert">{quantity.error}</p>}
-    <button disabled={submit.submitting}>Save</button>
-    <button type="button" onClick={order.revert}>Revert</button>
-    <p role="status">{submit.submitting ? "Saving…" : dirty ? "Unsaved changes" : "Saved"}</p>
-  </form>;
+	return (
+		<form
+			onSubmit={(event) => {
+				event.preventDefault();
+				if (!submit.submitting) submit.run();
+			}}
+		>
+			<label>
+				Name <input value={name.value} onBlur={name.onBlur} onChange={(event) => name.onChange(event.target.value)} />
+			</label>
+			{name.error && <p role="alert">{name.error}</p>}
+			<label>
+				Quantity <input value={quantity.value} onBlur={quantity.onBlur} onChange={(event) => quantity.onChange(event.target.value)} />
+			</label>
+			{quantity.error && <p role="alert">{quantity.error}</p>}
+			<button disabled={submit.submitting}>Save</button>
+			<button type="button" onClick={order.revert}>
+				Revert
+			</button>
+			<p role="status">{submit.submitting ? "Saving…" : dirty ? "Unsaved changes" : "Saved"}</p>
+		</form>
+	);
 }
 
 export function mountOrderEditor(container: HTMLElement) {
-  const registry = AtomRegistry.make();
-  const root = createRoot(container);
-  root.render(<RegistryContext.Provider value={registry}><OrderEditor /></RegistryContext.Provider>);
-  return () => {
-    root.unmount();
-    registry.dispose();
-  };
+	const registry = AtomRegistry.make();
+	const root = createRoot(container);
+	root.render(
+		<RegistryContext.Provider value={registry}>
+			<OrderEditor />
+		</RegistryContext.Provider>,
+	);
+	return () => {
+		root.unmount();
+		registry.dispose();
+	};
 }
 ```
 
@@ -139,16 +148,16 @@ Render general submission failures from `submit.result` in the application's own
 
 Call `receive` with encoded values from a refreshed or saved row. Encode domain values before receiving them; for a numeric string field, receive `String(row.quantity)`.
 
-| Situation | What the form does |
-| --- | --- |
-| A field still equals its baseline | Receives the new value. |
-| A field was edited locally | Keeps that input; received values become the new baseline. |
-| A refresh omits an untouched optional key | Removes the key. |
-| An optional key was added locally | Keeps it when a refresh omits it; revert restores the received values. |
-| The handler succeeds | Accepts the submitted encoded values without replacing later edits. |
+| Situation                                  | What the form does                                                                                                           |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------- |
+| A field still equals its baseline          | Receives the new value.                                                                                                      |
+| A field was edited locally                 | Keeps that input; received values become the new baseline.                                                                   |
+| A refresh omits an untouched optional key  | Removes the key.                                                                                                             |
+| An optional key was added locally          | Keeps it when a refresh omits it; revert restores the received values.                                                       |
+| The handler succeeds                       | Accepts the submitted encoded values without replacing later edits.                                                          |
 | A refresh arrived during a successful save | Keeps that refresh as the baseline; values still equal to the accepted submission count as saved and adopt the next refresh. |
-| The handler fails | Keeps input; an intervening refresh remains the baseline. |
-| `revert()` is called | Restores the latest baseline, including omitted optional keys. |
+| The handler fails                          | Keeps input; an intervening refresh remains the baseline.                                                                    |
+| `revert()` is called                       | Restores the latest baseline, including omitted optional keys.                                                               |
 
 The form does not replace submitted encoded input with its decoded representation. A trimmed name can be accepted as saved while the input still contains its spaces. Receive the normalized saved row when the application wants that representation on screen. `useEditor` from `react` performs that composition.
 
@@ -160,10 +169,10 @@ For a core form, supply the storage provider explicitly:
 
 ```ts
 const order = form(fields, {
-  initialValues: { name: "Paper", quantity: "300" },
-  onSubmit: Effect.succeed,
-  persistedDraft: { key: "order:123", storage: () => window.localStorage },
-  runtime,
+	initialValues: { name: "Paper", quantity: "300" },
+	onSubmit: Effect.succeed,
+	persistedDraft: { key: "order:123", storage: () => window.localStorage },
+	runtime,
 });
 ```
 
@@ -174,14 +183,16 @@ import { useState } from "react";
 import { usePersistedDraft } from "@shivaedev/form/client/react.ts";
 
 function OrderEditor() {
-  const persistedDraft = usePersistedDraft({ key: "order:123" });
-  const [order] = useState(() => form(fields, {
-    initialValues: { name: "Paper", quantity: "300" },
-    onSubmit: Effect.succeed,
-    persistedDraft,
-    runtime,
-  }));
-  return <OrderFields form={order} />;
+	const persistedDraft = usePersistedDraft({ key: "order:123" });
+	const [order] = useState(() =>
+		form(fields, {
+			initialValues: { name: "Paper", quantity: "300" },
+			onSubmit: Effect.succeed,
+			persistedDraft,
+			runtime,
+		}),
+	);
+	return <OrderFields form={order} />;
 }
 ```
 
@@ -201,13 +212,13 @@ For `Schema.NonEmptyString`, an empty input's message is `Required`. Longer mini
 
 ```ts
 const profile = form(Schema.Struct({ name: Schema.String }), {
-  checks: {
-    name: (value) => Effect.succeed(value === "taken" ? "Name is taken" : undefined),
-  },
-  debounce: "300 millis",
-  initialValues: { name: "" },
-  onSubmit: Effect.succeed,
-  runtime,
+	checks: {
+		name: (value) => Effect.succeed(value === "taken" ? "Name is taken" : undefined),
+	},
+	debounce: "300 millis",
+	initialValues: { name: "" },
+	onSubmit: Effect.succeed,
+	runtime,
 });
 ```
 
@@ -220,15 +231,17 @@ For a nested value held in one top-level field, `errorAt(["answers", index, "tex
 Pass a path tuple to `submitter.fail` to reject one element or a property inside it. Paths use indices in the submitted encoded snapshot. Optional `arrayKeys` selectors receive encoded elements of top-level array fields and return their stable, unique keys:
 
 ```ts
-const answers = form(Schema.Struct({
-  answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.NonEmptyString })),
-}), {
-  arrayKeys: { answers: answer => answer.id },
-  initialValues: { answers: [{ id: "question", text: "Yes" }] },
-  onSubmit: (_values, submitter) =>
-    submitter.fail(["answers", 0, "text"], "This answer is closed"),
-  runtime,
-});
+const answers = form(
+	Schema.Struct({
+		answers: Schema.Array(Schema.Struct({ id: Schema.String, text: Schema.NonEmptyString })),
+	}),
+	{
+		arrayKeys: { answers: (answer) => answer.id },
+		initialValues: { answers: [{ id: "question", text: "Yes" }] },
+		onSubmit: (_values, submitter) => submitter.fail(["answers", 0, "text"], "This answer is closed"),
+		runtime,
+	},
+);
 ```
 
 `FieldFailure.path` keeps the top-level field name as a string. For a tuple rejection, optional `FieldFailure.segments` contains its submitted path.
@@ -244,8 +257,8 @@ import { Schema } from "effect";
 import { emptyAsNull } from "@shivaedev/form/emptyAsNull.ts";
 
 const fields = Schema.Struct({
-  visibility: Schema.Literals(["private", "public"]),
-  quantity: emptyAsNull(Schema.NumberFromString),
+	visibility: Schema.Literals(["private", "public"]),
+	quantity: emptyAsNull(Schema.NumberFromString),
 });
 ```
 
@@ -255,42 +268,42 @@ For a form made with these fields, `order.choices("visibility")` returns the enc
 
 Import the module that defines a name; there is no root entry.
 
-| Module | Application-facing exports |
-| --- | --- |
-| `@shivaedev/form/form.ts` | `form(schema, config)` |
-| `@shivaedev/form/shape.ts` | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use |
+| Module                            | Application-facing exports                                                      |
+| --------------------------------- | ------------------------------------------------------------------------------- |
+| `@shivaedev/form/form.ts`         | `form(schema, config)`                                                          |
+| `@shivaedev/form/shape.ts`        | `Form`, `Submitter`, `FieldFailure`, `Invalid` and the field types they use     |
 | `@shivaedev/form/client/react.ts` | `useField`, `useSubmit`, `useDirty`, `usePersistedDraft`, `DraftSessionContext` |
-| `@shivaedev/form/draftSession.ts` | `draftSession(id)` |
-| `@shivaedev/form/emptyAsNull.ts` | `emptyAsNull` |
+| `@shivaedev/form/draftSession.ts` | `draftSession(id)`                                                              |
+| `@shivaedev/form/emptyAsNull.ts`  | `emptyAsNull`                                                                   |
 
 `form` takes a `Schema.Struct` and this configuration:
 
-| Option | Type or role |
-| --- | --- |
-| `initialValues` | `Encoded<F>` |
-| `runtime` | Atom runtime for the handler/check services and schema decoding services |
-| `onSubmit` | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot |
-| `checks` | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined` |
-| `arrayKeys` | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering |
-| `debounce` | Optional Effect `Duration.Input` for checks |
-| `persistedDraft` | Optional `{ key, storage, maxBytes?, maxAgeMs?, session? }`; React's `usePersistedDraft` supplies storage and session ownership |
+| Option           | Type or role                                                                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `initialValues`  | `Encoded<F>`                                                                                                                                              |
+| `runtime`        | Atom runtime for the handler/check services and schema decoding services                                                                                  |
+| `onSubmit`       | `(values, submitter, submitted) => Effect<A, E, R>`; the three arguments are decoded values, field failure helper and encoded snapshot                    |
+| `checks`         | Optional functions keyed by field, from encoded input to an Effect of `string \| undefined`                                                               |
+| `arrayKeys`      | Optional `ArrayKeys<F>` selectors keyed by top-level array field, from encoded element to stable `PropertyKey`; retains nested feedback across reordering |
+| `debounce`       | Optional Effect `Duration.Input` for checks                                                                                                               |
+| `persistedDraft` | Optional `{ key, storage, maxBytes?, maxAgeMs?, session? }`; React's `usePersistedDraft` supplies storage and session ownership                           |
 
 The returned form exposes:
 
-| Member | Type or use |
-| --- | --- |
-| `values` | `AtomRef<Encoded<F>>` for the whole input |
-| `field(name)` | `AtomRef<Encoded<F>[K]>` for a field |
-| `change(name, value)` | Write encoded input through the form's editing operation |
-| `blur(name)` | Field blur operation, supplied as `useField(...).onBlur` |
-| `error(name)` | Atom of `string \| undefined` |
+| Member                     | Type or use                                                                                   |
+| -------------------------- | --------------------------------------------------------------------------------------------- |
+| `values`                   | `AtomRef<Encoded<F>>` for the whole input                                                     |
+| `field(name)`              | `AtomRef<Encoded<F>[K]>` for a field                                                          |
+| `change(name, value)`      | Write encoded input through the form's editing operation                                      |
+| `blur(name)`               | Field blur operation, supplied as `useField(...).onBlur`                                      |
+| `error(name)`              | Atom of `string \| undefined`                                                                 |
 | `errorAt([name, ...path])` | Atom of nested Schema feedback and handler rejections; visibility follows the top-level field |
-| `choices(name)` | Encoded choices or `undefined` |
-| `dirty` | Atom of `boolean` |
-| `receive(values)` | Merge received encoded values |
-| `revert()` | Restore the baseline |
-| `submit` | `AtomResultFn<void, A, E \| ER \| FieldFailure \| Invalid>` |
-| `submitting` | Atom of `boolean` for submission waiting state |
+| `choices(name)`            | Encoded choices or `undefined`                                                                |
+| `dirty`                    | Atom of `boolean`                                                                             |
+| `receive(values)`          | Merge received encoded values                                                                 |
+| `revert()`                 | Restore the baseline                                                                          |
+| `submit`                   | `AtomResultFn<void, A, E \| ER \| FieldFailure \| Invalid>`                                   |
+| `submitting`               | Atom of `boolean` for submission waiting state                                                |
 
 `F` is the schema's fields, `A` and `E` are the handler's success and failure types, and `ER` is the atom runtime's failure type. `FieldFailure` contains the top-level string `path`, `message` and optional submitted path `segments`; `Invalid` contains `messages`, a `FieldMessages` record.
 
@@ -309,7 +322,6 @@ pnpm add @effect/atom-react react
 ```
 
 The React mounting example also uses the application's `react-dom`. React and `@effect/atom-react` are optional peers; the core modules do not import them. The package needs Node 24 or newer.
-
 - Field names are top-level schema keys. There is no path-addressed field-array API.
 - Replace encoded values rather than mutating objects in place; use `change` for ordinary UI edits.
 - Keep the form and registry for their intended session, and clean up the registry when that session ends.

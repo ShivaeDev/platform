@@ -65,7 +65,7 @@ function PromptField({
 	}
 	return (
 		<fieldset className="m-0 min-w-0 space-y-3 border-0 p-0" data-mode={prompt.mode} data-prompt={prompt.id} data-source={prompt.source}>
-			<legend className="mb-1 p-0 font-semibold text-base" id={`${fieldId}-legend`}>
+			<legend className="mb-1 p-0 text-base font-semibold" id={`${fieldId}-legend`}>
 				{choices === undefined ? <LazyInlineMarkdown document={document} source={title} /> : "Your answer"}
 			</legend>
 			{choices === undefined && heading.rest ? <AnswerMarkdown className="text-sm" file={document.file} source={heading.rest} /> : null}
@@ -84,7 +84,7 @@ function PromptField({
 					Clear selections
 				</Button>
 			)}
-			<Label className="font-normal leading-normal" htmlFor={fieldId}>
+			<Label className="leading-normal font-normal" htmlFor={fieldId}>
 				{promptLabel(prompt)}
 			</Label>
 			<Textarea
@@ -99,7 +99,7 @@ function PromptField({
 				rows={choices || prompt.mode === "text" ? 4 : 2}
 				value={answer.text}
 			/>
-			<span className="response-field-error block text-destructive text-xs" hidden={!error} id={`${fieldId}-error`}>
+			<span className="response-field-error text-destructive block text-xs" hidden={!error} id={`${fieldId}-error`}>
 				{message}
 			</span>
 		</fieldset>

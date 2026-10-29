@@ -38,12 +38,12 @@ export function WorkTable({ data }: { readonly data: WorkProjection }) {
 	const virtual = rows.length > 200;
 	return (
 		// The fixed layout never needs a horizontal scroller, so the header can stick below the workspace header while the page scrolls.
-		<div className="overflow-clip rounded-lg border bg-card [&>[data-slot=table-container]]:overflow-visible" ref={window.ref}>
+		<div className="bg-card overflow-clip rounded-lg border [&>[data-slot=table-container]]:overflow-visible" ref={window.ref}>
 			<Table className="table-fixed text-sm">
 				<TableCaption className="sr-only">
 					Identified work, sorted by {state.sort} {state.order === "desc" ? "descending" : "ascending"}
 				</TableCaption>
-				<TableHeader className="sticky top-(--board-header-height) z-10 bg-card shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-0">
+				<TableHeader className="bg-card sticky top-(--board-header-height) z-10 shadow-[inset_0_-1px_0_var(--border)] [&_tr]:border-0">
 					{table.getHeaderGroups().map((group) => (
 						<HeaderRow headers={group.headers} key={group.id} state={state} />
 					))}

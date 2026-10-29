@@ -29,7 +29,7 @@ export function TodayNeeds({
 		return <p role="status">Some files couldn't be read, so what needs you is unknown.</p>;
 	}
 	return items.length > 0 ? (
-		<ul aria-label="Needs you" className="m-0 list-none divide-y rounded-lg border border-border p-0">
+		<ul aria-label="Needs you" className="border-border m-0 list-none divide-y rounded-lg border p-0">
 			{items.map((item) => (
 				<li className="min-h-12 sm:h-12 sm:max-h-12" data-attention-id={item.id} key={todayKey(item)}>
 					<TodayRow attention item={item}>
@@ -47,7 +47,7 @@ export function TodayNeeds({
 
 export function TodayLater({ items }: { readonly items: readonly Item[] }) {
 	return (
-		<ul aria-label="Later" className="m-0 list-none divide-y rounded-lg border border-border p-0">
+		<ul aria-label="Later" className="border-border m-0 list-none divide-y rounded-lg border p-0">
 			{items.map((item) => (
 				<li className="min-h-12 sm:h-12 sm:max-h-12" key={item.file}>
 					<TodayRow item={item} />
@@ -59,7 +59,7 @@ export function TodayLater({ items }: { readonly items: readonly Item[] }) {
 
 export function TodayAnswered({ fleet, rows }: { readonly fleet: FleetItemsProjection | undefined; readonly rows: readonly RecentAnswer[] }) {
 	return (
-		<ul aria-label="Answered" className="m-0 list-none divide-y rounded-lg border border-border p-0">
+		<ul aria-label="Answered" className="border-border m-0 list-none divide-y rounded-lg border p-0">
 			{rows.map((row) => (
 				<li className="min-h-12" data-answer-state={row.state} data-answered-id={row.id} key={row.answer.response}>
 					<TodayRow detail={recentAnswerCopy(row, fleet)} item={{ ...row, modified: row.answeredAt }} wrapDetail />
@@ -91,16 +91,16 @@ function TodayRow({
 			)}
 			data-attention-row={attention ? "" : undefined}
 		>
-			<a className="font-medium text-sm max-sm:line-clamp-2 sm:truncate" href={item.href} title={item.title}>
+			<a className="text-sm font-medium max-sm:line-clamp-2 sm:truncate" href={item.href} title={item.title}>
 				{item.title}
 			</a>
-			<span className="shrink-0 text-[10px] text-muted-foreground tabular-nums max-sm:self-start max-sm:leading-6 sm:row-span-2">
+			<span className="text-muted-foreground shrink-0 text-[10px] tabular-nums max-sm:self-start max-sm:leading-6 sm:row-span-2">
 				{item.modified === undefined ? "Age unknown" : <RowTime at={item.modified} />}
 			</span>
 			{children ? <div className="max-sm:self-start sm:row-span-2">{children}</div> : null}
 			<p
 				className={cn(
-					"col-span-full m-0 text-muted-foreground text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2",
+					"text-muted-foreground col-span-full m-0 text-xs sm:col-span-1 sm:col-start-1 sm:row-start-2",
 					wrapDetail ? "line-clamp-2" : "truncate",
 				)}
 				title={text}

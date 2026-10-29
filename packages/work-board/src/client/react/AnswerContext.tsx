@@ -9,8 +9,8 @@ export function AnswerContext({ preview }: { readonly preview: QuestionPreview }
 	return (
 		<>
 			{Boolean(context.recommendation) && (
-				<div className="rounded-lg bg-muted/60 px-4 py-3 text-sm">
-					<p className="mb-1 font-medium text-muted-foreground text-xs uppercase tracking-wide">Recommendation</p>
+				<div className="bg-muted/60 rounded-lg px-4 py-3 text-sm">
+					<p className="text-muted-foreground mb-1 text-xs font-medium tracking-wide uppercase">Recommendation</p>
 					<AnswerMarkdown className="answer-recommendation" file={preview.source} source={context.recommendation} />
 				</div>
 			)}

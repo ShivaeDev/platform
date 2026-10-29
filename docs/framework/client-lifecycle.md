@@ -26,7 +26,7 @@ createElement(SessionBoundary, {
 	recheck: () => auth.refetch(),
 	signedOut: createElement(SignIn),
 	children: (api) => createElement(App, { api }),
-})
+});
 ```
 
 Each key gets one client and one registry: `connect` runs once per key, so anything it captures stays fixed for that key. A client that captures `session.token` keeps the old token after a refresh under the same session id. Either let the client read the current credential per request, as above, or make `identify` include a credential generation (`${session.id}:${generation}`), which remounts the subtree and drops its state on every rotation. A new key remounts the subtree; `undefined` renders `signedOut`.
@@ -40,11 +40,13 @@ The registry is disposed one microtask after the generation's effects unmount, s
 `resumeSignal({ window, native })` is an atom that increments on a `visibilitychange` to visible, on `online` while visible, and on every call from an injectable native source `(resume) => unsubscribe`. A Capacitor app passes its `App` `resume` listener there; the package does not depend on Capacitor. Create the signal once and feed native combinators:
 
 ```ts
-const resume = resumeSignal({ window, native: capacitorResume })
-const orders = Atom.makeRefreshOnSignal(resume)(api.query("ListOrders", undefined))
+const resume = resumeSignal({ window, native: capacitorResume });
+const orders = Atom.makeRefreshOnSignal(resume)(api.query("ListOrders", undefined));
 const profile = Atom.swr(api.query("Profile", undefined), {
-	staleTime: "5 minutes", revalidateOnFocus: true, focusSignal: resume,
-})
+	staleTime: "5 minutes",
+	revalidateOnFocus: true,
+	focusSignal: resume,
+});
 ```
 
 `makeRefreshOnSignal` refetches on every signal; a visibility change and a reconnect arriving together refetch twice. `swr` skips fresh or in-flight results.
@@ -58,7 +60,6 @@ Within an unchanged session, the query hook exposes native `AsyncResult` state: 
 ## Native cache policy
 
 These follow from `effect/reactivity/AtomRpc` and `AtomRegistry`:
-
 - Each registry stores its own atom values. Atom identity alone does not imply shared cached values across registries.
 - `Client.query` uses a native atom family. Its query key includes the RPC tag, payload, optional headers, reactivity keys, TTL and serialization key. Define clients once per session rather than rebuilding them inside each render.
 - Credentials installed by a client transform are not automatically an account partition in a query payload. A credential-bound client plus session registry makes that lifetime explicit; do not mutate a singleton's credentials and assume its cached responses become invalid.

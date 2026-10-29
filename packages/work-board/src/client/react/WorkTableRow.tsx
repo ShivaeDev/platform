@@ -18,32 +18,32 @@ export function WorkTableRow({
 	const status = item.metadata.status;
 	return (
 		<TableRow
-			className="relative align-top has-[a:focus-visible]:bg-muted/50"
+			className="has-[a:focus-visible]:bg-muted/50 relative align-top"
 			data-item={item.id}
 			data-selected={selected ? "true" : undefined}
 			data-state={selected ? "selected" : undefined}
 			style={height === undefined ? undefined : { height }}
 		>
-			<TableHead className="h-auto whitespace-normal py-2.5 font-normal" scope="row">
+			<TableHead className="h-auto py-2.5 font-normal whitespace-normal" scope="row">
 				<WorkItemTitle
-					className="font-medium text-foreground no-underline after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:underline"
+					className="text-foreground font-medium no-underline after:absolute after:inset-0 after:content-[''] hover:underline focus-visible:underline"
 					item={item}
 					state={state}
 				/>
-				<span className="block break-all font-mono text-muted-foreground text-xs">{item.id}</span>
-				{Boolean(item.metadata.nextAction) && <span className="mt-1 block text-muted-foreground text-xs md:hidden">{item.metadata.nextAction}</span>}
+				<span className="text-muted-foreground block font-mono text-xs break-all">{item.id}</span>
+				{Boolean(item.metadata.nextAction) && <span className="text-muted-foreground mt-1 block text-xs md:hidden">{item.metadata.nextAction}</span>}
 			</TableHead>
-			<TableCell className="work-kind whitespace-normal py-2.5 text-muted-foreground max-md:hidden">
+			<TableCell className="work-kind text-muted-foreground py-2.5 whitespace-normal max-md:hidden">
 				{item.metadata.kind === undefined ? "" : kindLabel(item.metadata.kind)}
 			</TableCell>
-			<TableCell className="whitespace-normal py-2.5">
+			<TableCell className="py-2.5 whitespace-normal">
 				<div className="flex flex-wrap gap-1">
 					{Boolean(item.waiting) && !(status && sameStatus(status, "needs-you")) && <StatusChip status="needs-you" />}
 					<StatusChip status={status} />
 				</div>
 			</TableCell>
-			<TableCell className="whitespace-normal break-words py-2.5 max-md:hidden">{item.metadata.owner ?? ""}</TableCell>
-			<TableCell className="whitespace-normal py-2.5 text-muted-foreground max-md:hidden">{item.metadata.nextAction ?? ""}</TableCell>
+			<TableCell className="py-2.5 break-words whitespace-normal max-md:hidden">{item.metadata.owner ?? ""}</TableCell>
+			<TableCell className="text-muted-foreground py-2.5 whitespace-normal max-md:hidden">{item.metadata.nextAction ?? ""}</TableCell>
 		</TableRow>
 	);
 }

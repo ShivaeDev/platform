@@ -27,7 +27,7 @@ export function WorkCards({ data }: { readonly data: WorkProjection }) {
 
 function GroupHeading({ status, count }: { readonly status: string | undefined; readonly count: number }) {
 	return (
-		<h2 className="m-0 mb-2 flex items-center gap-2 font-medium text-sm">
+		<h2 className="m-0 mb-2 flex items-center gap-2 text-sm font-medium">
 			<StatusChip status={status} />
 			<Badge className="work-count tabular-nums" variant="secondary">
 				{count}

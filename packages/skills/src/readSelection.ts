@@ -1,4 +1,4 @@
-import { Effect, FileSystem, Path, Schema } from "effect";
+import { Effect, FileSystem, Order, Path, Schema } from "effect";
 import { SELECTION_FIELD } from "./layout.ts";
 import { SkillsError } from "./SkillsError.ts";
 
@@ -18,5 +18,5 @@ export const readSelection = Effect.fn("Skills.readSelection")(function* (repo: 
 			message: `${file} selects no skills. Add the skills this repository uses, such as "${SELECTION_FIELD}": ["pr-description"].`,
 		});
 	}
-	return [...new Set(selected)].sort();
+	return [...new Set(selected)].sort(Order.String);
 });

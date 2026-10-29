@@ -4,8 +4,8 @@ A consumer-visible change adds one `.changeset/<short-name>.md` per PR, naming e
 
 ```markdown
 ---
-"@shivaedev/react": minor
----
+
+## "@shivaedev/react": minor
 
 ### Added
 
@@ -20,8 +20,8 @@ To rename a package, change its manifest name and add a changeset naming the new
 
 ```markdown
 ---
-"@shivaedev/new-name": minor
----
+
+## "@shivaedev/new-name": minor
 
 ### Breaking
 
@@ -45,7 +45,6 @@ Merging the release PR changes package versions on main, which starts the existi
 When released packages change starter pins, the automation derives a patch changeset for `@shivaedev/create-app` before applying the plan so generated apps receive those versions. The check reconstructs only that canonical starter-pin input; all other consumed inputs must be changesets deleted since the base. Altering its generated notes fails validation.
 
 The repository uses the workspace `@shivaedev/releases` package. To inspect or prepare a release locally:
-
 1. Run `pnpm releases plan` (or `pnpm releases plan --json`) and review the requested bumps and automatic dependent releases.
 2. Use the automated release PR when starter pins change; it derives the `@shivaedev/create-app` patch automatically.
 3. Run `pnpm releases apply` from the repository root. It bumps versions, collects changelogs and deletes consumed changesets. The repository config hook aligns existing starter pins in `examples/starter/published-versions.json` and the released binaries' `packageInfo.ts` version constants.

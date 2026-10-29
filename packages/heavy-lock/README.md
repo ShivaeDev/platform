@@ -30,11 +30,11 @@ Put the wrapper on the scripts that start heavy work:
 
 ```json
 {
-  "scripts": {
-    "build": "heavy-lock -- tsc --build",
-    "ready": "heavy-lock -- pnpm run build",
-    "test": "heavy-lock -- vitest run"
-  }
+	"scripts": {
+		"build": "heavy-lock -- tsc --build",
+		"ready": "heavy-lock -- pnpm run build",
+		"test": "heavy-lock -- vitest run"
+	}
 }
 ```
 
@@ -57,13 +57,13 @@ heavy-process lock: acquired after 2m 0s
 
 The waiting line identifies the holder's PID, command and directory. The time is local; the duration in that line is the age of the hold. The acquired line measures this caller's wait.
 
-| Exit code | Meaning |
-| --- | --- |
-| The command's code | The command exited on its own, including an exit chosen by its signal handler. |
+| Exit code             | Meaning                                                                                   |
+| --------------------- | ----------------------------------------------------------------------------------------- |
+| The command's code    | The command exited on its own, including an exit chosen by its signal handler.            |
 | `128 + signal number` | The command died from a signal, or the wrapper received a supported signal while waiting. |
-| `127` | The executable could not start. |
-| `2` | Arguments did not start with `--` followed by an executable. |
-| `1` | Lock acquisition failed, including an unreadable process start time. |
+| `127`                 | The executable could not start.                                                           |
+| `2`                   | Arguments did not start with `--` followed by an executable.                              |
+| `1`                   | Lock acquisition failed, including an unreadable process start time.                      |
 
 The child is the leader of its own process group. While it runs, the wrapper forwards `SIGINT`, `SIGTERM` and `SIGHUP` to it, and the child's exit decides the wrapper's exit. A signal while waiting stops the wait and leaves the current holder's file alone.
 
@@ -79,20 +79,18 @@ import { Effect } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 
 const build = Effect.gen(function* () {
-  const held = yield* HeldLock;
-  const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-  const command = ChildProcess.make("pnpm", ["build"], {
-    env: { ...held.env },
-    extendEnv: true,
-    stderr: "inherit",
-    stdout: "inherit",
-  });
-  return yield* spawner.exitCode(command);
+	const held = yield* HeldLock;
+	const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+	const command = ChildProcess.make("pnpm", ["build"], {
+		env: { ...held.env },
+		extendEnv: true,
+		stderr: "inherit",
+		stdout: "inherit",
+	});
+	return yield* spawner.exitCode(command);
 });
 
-const program = withHeavyLock(build, { command: "pnpm build" }).pipe(
-  Effect.provide(NodeServices.layer),
-);
+const program = withHeavyLock(build, { command: "pnpm build" }).pipe(Effect.provide(NodeServices.layer));
 ```
 
 `withHeavyLock` provides `HeldLock` to `build`. `NodeServices.layer` supplies the filesystem, path and process-spawning services. The lock is released when the Effect succeeds, fails or is interrupted; a failure from `build` stays its own failure. Interrupting a waiter leaves the existing holder and no temporary draft behind.
@@ -105,13 +103,11 @@ import { HeldLock } from "@shivaedev/heavy-lock/HeldLock.ts";
 import { heavyLockLayer } from "@shivaedev/heavy-lock/withHeavyLock.ts";
 import { Effect, Layer } from "effect";
 
-const lockLayer = heavyLockLayer({ command: "asset pipeline" }).pipe(
-  Layer.provide(NodeServices.layer),
-);
+const lockLayer = heavyLockLayer({ command: "asset pipeline" }).pipe(Layer.provide(NodeServices.layer));
 
 const program = Effect.gen(function* () {
-  const held = yield* HeldLock;
-  return held.env;
+	const held = yield* HeldLock;
+	return held.env;
 }).pipe(Effect.provide(lockLayer));
 ```
 
@@ -123,10 +119,10 @@ import { acquireHeavyLock } from "@shivaedev/heavy-lock/acquire.ts";
 import { Effect } from "effect";
 
 const program = Effect.scoped(
-  Effect.gen(function* () {
-    const held = yield* acquireHeavyLock({ command: "asset pipeline" });
-    return held.env;
-  }),
+	Effect.gen(function* () {
+		const held = yield* acquireHeavyLock({ command: "asset pipeline" });
+		return held.env;
+	}),
 ).pipe(Effect.provide(NodeServices.layer));
 ```
 
@@ -136,20 +132,20 @@ const program = Effect.scoped(
 
 Import the module that defines each name; there is no root entry.
 
-| Module | Exports |
-| --- | --- |
-| `@shivaedev/heavy-lock/acquire.ts` | `acquireHeavyLock`, `HeavyLockOptions`, `HeavyLockServices` |
-| `@shivaedev/heavy-lock/withHeavyLock.ts` | `withHeavyLock`, `heavyLockLayer` |
-| `@shivaedev/heavy-lock/HeldLock.ts` | `HeldLock`, `HeldLockShape` |
-| `@shivaedev/heavy-lock/error.ts` | `HeavyLockError`, `failWith` |
+| Module                                   | Exports                                                     |
+| ---------------------------------------- | ----------------------------------------------------------- |
+| `@shivaedev/heavy-lock/acquire.ts`       | `acquireHeavyLock`, `HeavyLockOptions`, `HeavyLockServices` |
+| `@shivaedev/heavy-lock/withHeavyLock.ts` | `withHeavyLock`, `heavyLockLayer`                           |
+| `@shivaedev/heavy-lock/HeldLock.ts`      | `HeldLock`, `HeldLockShape`                                 |
+| `@shivaedev/heavy-lock/error.ts`         | `HeavyLockError`, `failWith`                                |
 
 `HeldLock` is an Effect service whose value is `HeldLockShape`. Its `env` contains the hold ID for children, and is empty when CI skips acquisition. `HeavyLockError` has the tag `HeavyLockError`, a `message` and an optional `cause`; caller failures remain separate from acquisition failures. `failWith(message)` constructs an error mapper that keeps the cause.
 
-| Option | Meaning | Default |
-| --- | --- | --- |
-| `command` | Command description recorded for waiters. | This process's arguments after the executable, joined with spaces. |
-| `lockPath` | File every participating caller shares. | `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`. |
-| `pollInterval` | Delay between waiting attempts. | One second. |
+| Option         | Meaning                                   | Default                                                            |
+| -------------- | ----------------------------------------- | ------------------------------------------------------------------ |
+| `command`      | Command description recorded for waiters. | This process's arguments after the executable, joined with spaces. |
+| `lockPath`     | File every participating caller shares.   | `HEAVY_PROCESS_LOCK`, then `HOME/.cache/heavy-process.lock`.       |
+| `pollInterval` | Delay between waiting attempts.           | One second.                                                        |
 
 The package also exposes the modules that implement the shared protocol, such as `@shivaedev/heavy-lock/lockFile.ts`; the [protocol reference](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/docs/protocol.md) describes the holder and acquisition rules. Use the scoped acquisition API for ordinary command wrapping: the lower-level `tryAcquire` registers no release finalizer, so its caller must release an acquired hold.
 
@@ -161,12 +157,12 @@ pnpm add --save-dev @shivaedev/heavy-lock @effect/platform-node @effect/platform
 
 The Effect packages are peers. The package requires Node 24 or later.
 
-| Variable | Meaning |
-| --- | --- |
-| `HEAVY_PROCESS_LOCK` | Shared lock path when `lockPath` is not supplied. |
-| `HOME` | Supplies `HOME/.cache/heavy-process.lock` when no explicit path is supplied. |
-| `HEAVY_PROCESS_LOCK_ID` | An inherited hold ID; joins when it matches the lock file. |
-| `CI` | A nonempty value skips acquisition. An empty value does not. |
+| Variable                | Meaning                                                                      |
+| ----------------------- | ---------------------------------------------------------------------------- |
+| `HEAVY_PROCESS_LOCK`    | Shared lock path when `lockPath` is not supplied.                            |
+| `HOME`                  | Supplies `HOME/.cache/heavy-process.lock` when no explicit path is supplied. |
+| `HEAVY_PROCESS_LOCK_ID` | An inherited hold ID; joins when it matches the lock file.                   |
+| `CI`                    | A nonempty value skips acquisition. An empty value does not.                 |
 
 The Effect API reads these through Effect's `Config`, so a `ConfigProvider` can supply them. CI gives `HeldLock.env` no new owner ID and leaves another holder's lock alone.
 

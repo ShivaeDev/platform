@@ -44,7 +44,7 @@ function Problems({ issues, failed }: { readonly issues: Issues | undefined; rea
 			{keyed(issues, (issue) => `${issue.file}:${issue.line}:${issue.message}`).map(({ key, value: issue }) => (
 				<li className="min-w-0 space-y-1 py-3 text-sm [overflow-wrap:anywhere]" data-source-problem={issue.file} key={key}>
 					<p className="m-0">
-						<a className="font-medium font-mono" href={fileUrl(issue.file)}>
+						<a className="font-mono font-medium" href={fileUrl(issue.file)}>
 							{issue.file}
 						</a>{" "}
 						<span className="text-muted-foreground text-xs">Line {issue.line}</span>

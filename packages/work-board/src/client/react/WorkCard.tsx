@@ -32,13 +32,13 @@ export function WorkCard({
 	const kind = item.metadata.kind === "task" ? undefined : item.metadata.kind;
 	return (
 		<Card
-			className="work-card relative gap-2 p-3 transition-colors hover:bg-muted/40 has-[a:focus-visible]:ring-2 has-[a:focus-visible]:ring-ring data-selected:ring-2 data-selected:ring-primary"
+			className="work-card hover:bg-muted/40 has-[a:focus-visible]:ring-ring data-selected:ring-primary relative gap-2 p-3 transition-colors has-[a:focus-visible]:ring-2 data-selected:ring-2"
 			data-item={item.id}
 			data-selected={item.id === state.item ? "true" : undefined}
 			size="sm"
 		>
-			{kind !== undefined && <p className="work-kind m-0 text-muted-foreground text-xs">{kindLabel(kind)}</p>}
-			<h3 className="m-0 font-medium text-sm leading-snug [overflow-wrap:anywhere]">
+			{kind !== undefined && <p className="work-kind text-muted-foreground m-0 text-xs">{kindLabel(kind)}</p>}
+			<h3 className="m-0 text-sm leading-snug font-medium [overflow-wrap:anywhere]">
 				<WorkItemTitle
 					className="text-foreground no-underline outline-none after:absolute after:inset-0 after:content-['']"
 					item={item}
@@ -52,8 +52,8 @@ export function WorkCard({
 				</span>
 			</div>
 			{fleet?.stage === "waiting" && <p className="m-0 text-sm">{fleet.waitingReason}</p>}
-			{answered !== undefined && <p className="work-answer m-0 text-muted-foreground text-xs">{answered}</p>}
-			{holder && <p className="work-owner m-0 text-muted-foreground text-xs">{holder}</p>}
+			{answered !== undefined && <p className="work-answer text-muted-foreground m-0 text-xs">{answered}</p>}
+			{holder && <p className="work-owner text-muted-foreground m-0 text-xs">{holder}</p>}
 			{fleet?.stageEnteredAt !== undefined && fleet.stageEnteredAt !== null && <StageTime entered={fleet.stageEnteredAt} stage={fleet.stage} />}
 		</Card>
 	);
@@ -62,7 +62,7 @@ export function WorkCard({
 function StageTime({ stage, entered }: { readonly stage: FleetWork["stage"]; readonly entered: number }) {
 	const { label, started } = stageTime(stage);
 	return (
-		<p className="work-stage m-0 text-muted-foreground text-xs">
+		<p className="work-stage text-muted-foreground m-0 text-xs">
 			{started ? `${label}, started ` : `${label} `}
 			<RowTime at={entered} />
 		</p>

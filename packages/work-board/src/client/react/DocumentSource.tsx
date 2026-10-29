@@ -23,7 +23,7 @@ export function DocumentSource({ document }: { readonly document: Document }) {
 			{reading?.raw !== undefined && (
 				<>
 					<h3>Original frontmatter</h3>
-					<pre className="overflow-auto whitespace-pre-wrap font-mono text-xs">{reading.raw}</pre>
+					<pre className="overflow-auto font-mono text-xs whitespace-pre-wrap">{reading.raw}</pre>
 				</>
 			)}
 			<DocumentAttention document={document} />

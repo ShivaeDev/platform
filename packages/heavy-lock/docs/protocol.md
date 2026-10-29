@@ -7,19 +7,26 @@ The command line and Effect API use the same protocol. Another implementation mu
 The file is one JSON object, in this key order, with no formatting whitespace or trailing newline:
 
 ```json
-{"id":"3f1c9a52-0d4e-4b8f-9a71-5c2e8d6b4f10","pid":4242,"processStartedAt":"Sat Sep 26 12:00:00 2026","command":"pnpm --filter \"@shivaedev/*\" test","cwd":"/repo/checkout","startedAtMs":1790409600123}
+{
+	"id": "3f1c9a52-0d4e-4b8f-9a71-5c2e8d6b4f10",
+	"pid": 4242,
+	"processStartedAt": "Sat Sep 26 12:00:00 2026",
+	"command": "pnpm --filter \"@shivaedev/*\" test",
+	"cwd": "/repo/checkout",
+	"startedAtMs": 1790409600123
+}
 ```
 
 The same bytes are in [the reference fixture](https://github.com/ShivaeDev/platform/blob/main/packages/heavy-lock/src/test-support/fixtures/reference-holder.lock).
 
-| Field | Meaning |
-| --- | --- |
-| `id` | A fresh random UUID identifying one hold. |
-| `pid` | The process holding the lock and waiting for its command. |
+| Field              | Meaning                                                                                                       |
+| ------------------ | ------------------------------------------------------------------------------------------------------------- |
+| `id`               | A fresh random UUID identifying one hold.                                                                     |
+| `pid`              | The process holding the lock and waiting for its command.                                                     |
 | `processStartedAt` | The holding process's start time from `LC_ALL=C ps -o lstart= -p <pid>`, with surrounding whitespace trimmed. |
-| `command` | The command description; the CLI joins the executable and arguments with single spaces. |
-| `cwd` | The holder's working directory. |
-| `startedAtMs` | Acquisition time in milliseconds since the epoch. |
+| `command`          | The command description; the CLI joins the executable and arguments with single spaces.                       |
+| `cwd`              | The holder's working directory.                                                                               |
+| `startedAtMs`      | Acquisition time in milliseconds since the epoch.                                                             |
 
 The PID alone is insufficient. The holder is live only when `ps` succeeds, prints a nonempty start time and that time equals `processStartedAt`. A dead process or a reused PID with a different start time does not protect the lock. An undecodable holder file does not identify a live holder.
 

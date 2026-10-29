@@ -61,11 +61,11 @@ interface Row {
 function WorkRow({ columns, row }: { readonly columns: Columns; readonly row: Row }) {
 	return (
 		<TableRow className="relative" data-goal-item={row.item.id}>
-			<TableHead className="h-auto min-w-48 whitespace-normal py-2 font-normal" scope="row">
+			<TableHead className="h-auto min-w-48 py-2 font-normal whitespace-normal" scope="row">
 				<a className="font-medium after:absolute after:inset-0 after:content-['']" href={`/_board/item/${encodeURIComponent(row.item.id)}/`}>
 					{row.item.title}
 				</a>
-				<span className="block text-muted-foreground text-xs">{row.item.id}</span>
+				<span className="text-muted-foreground block text-xs">{row.item.id}</span>
 			</TableHead>
 			{columns.criteria ? <TableCell className="text-muted-foreground">{row.criteria.join(", ")}</TableCell> : null}
 			<TableCell>

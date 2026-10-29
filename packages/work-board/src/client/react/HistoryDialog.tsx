@@ -74,7 +74,7 @@ export function HistoryDialog({
 						recents={saved.recents}
 					/>
 					{saved.notice === "" ? null : (
-						<p className="px-2 text-muted-foreground text-xs" role="status">
+						<p className="text-muted-foreground px-2 text-xs" role="status">
 							{saved.notice}
 						</p>
 					)}
