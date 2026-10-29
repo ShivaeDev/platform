@@ -1,6 +1,6 @@
 import { realpathSync } from "node:fs";
 import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, runQuality } from "#test/cli.ts";
+import { CLI_EXIT, CLI_TIMEOUT, runQuality } from "#test/cli.ts";
 import { installedIn, preCommit } from "#test/commitActions.ts";
 import {
 	checksLog,
@@ -18,7 +18,6 @@ import {
 } from "#test/hookRepository.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
-const CLI_TIMEOUT = 60_000;
 const COMMIT_AGAIN =
 	"help: fix what the output above reports, then commit again; `quality hooks pre-commit` repeats these checks without committing.";
 const TOO_LONG = "export const a = 1;\nexport const b = 2;\nexport const c = 3;\nexport const d = 4;\n";

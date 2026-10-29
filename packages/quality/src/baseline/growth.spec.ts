@@ -1,11 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { addUnbaselinedFile, growLongerFile, legacyBaselineRepository } from "#test/baselineChanges.ts";
 import { baseline, baselined, moved, shallowClone } from "#test/baselineRepository.ts";
-import { CLI_EXIT, runQuality } from "#test/cli.ts";
+import { CLI_EXIT, CLI_TIMEOUT, runQuality } from "#test/cli.ts";
 import { commitAll, git } from "#test/git.ts";
 import { removeSeededTrees } from "#test/tree.ts";
-
-const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 

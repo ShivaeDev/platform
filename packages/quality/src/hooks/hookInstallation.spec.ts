@@ -1,12 +1,11 @@
 import { realpathSync } from "node:fs";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { CLI_EXIT, runQuality } from "#test/cli.ts";
+import { CLI_EXIT, CLI_TIMEOUT, runQuality } from "#test/cli.ts";
 import { hookPath } from "#test/hookPath.ts";
 import { commits, hookRepository, hookText, qualityFrom, withOwnHook, withQualityAt, withWorktree } from "#test/hookRepository.ts";
 import { config, removeSeededTrees, seedTree } from "#test/tree.ts";
 
-const CLI_TIMEOUT = 60_000;
 const OWNER = "# Installed by @shivaedev/quality: `quality hooks install` writes it, `quality hooks uninstall` removes it.";
 
 afterEach(removeSeededTrees);

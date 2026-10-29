@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { exceedLongerBaseline, reduceLongerFile, reduceLongFile } from "#test/baselineChanges.ts";
-import { quality, runQuality, trees } from "#test/cli.ts";
+import { CLI_TIMEOUT, quality, runQuality, trees } from "#test/cli.ts";
 import {
 	commentedRepository,
 	downgradedRuleRepository,
@@ -11,8 +11,6 @@ import {
 } from "#test/cliRepositories.ts";
 import { formatTree, qualityTree } from "#test/qualityTree.ts";
 import { removeSeededTrees } from "#test/tree.ts";
-
-const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 

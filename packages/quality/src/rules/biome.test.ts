@@ -12,10 +12,8 @@ import {
 	untypedParserRepository,
 	warningOverrideRepository,
 } from "#test/biomeRepository.ts";
-import { runQuality } from "#test/cli.ts";
+import { CLI_TIMEOUT, runQuality } from "#test/cli.ts";
 import { removeSeededTrees } from "#test/tree.ts";
-
-const CLI_TIMEOUT = 60_000;
 
 afterEach(removeSeededTrees);
 

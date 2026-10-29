@@ -22,6 +22,8 @@ export interface Run {
 
 const CLI = join(packageRoot, "src", "cli.ts");
 
+export const CLI_TIMEOUT = 60_000;
+
 // The source condition resolves a seeded config's import of the package to its source, so tests need no build.
 export function qualityArgs(args: readonly string[]): string[] {
 	return ["--conditions=source", CLI, ...args];
