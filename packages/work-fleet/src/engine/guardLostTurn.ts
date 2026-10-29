@@ -18,6 +18,9 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 	const idle = answered ? yield* inspectThread(state, attempt) : threadIdle;
 	const current = answered ? yield* state.load(stored.value.workId) : stored;
 	const record = current.value;
+	if (yield* observableAnswerTurn(state, record, answered, idle)) {
+		return current;
+	}
 	const missingSince = attempt.missingSince ?? state.policy.now();
 	if (answered && idle !== true) {
 		return yield* new ServiceUnavailable({
@@ -46,4 +49,19 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 			: yield* state.save(current, { ...record, blocker: reason });
 	}
 	return undefined;
+});
+
+const observableAnswerTurn = Effect.fn("Fleet.observableAnswerTurn")(function* (
+	state: EngineState,
+	record: FleetRecord,
+	answered: boolean,
+	idle: boolean | undefined,
+) {
+	const receipt = record.attempts.at(-1)?.receipt;
+	return receipt === undefined || !answered || idle !== undefined
+		? false
+		: yield* state.sessions.observe(receipt).pipe(
+				Effect.map((observation) => observation.turnMissing !== true),
+				Effect.catch(() => Effect.succeed(false)),
+			);
 });

@@ -85,6 +85,23 @@ for (const progress of ["item", "event"] as const) {
 }
 
 isolatedEngine.it(
+	"a retained answer follows its recovered turn and closes the stale missing-turn decision",
+	[unobservableAnswer("parked")],
+	function* ({ fleet, showNativeTurn, nativeRequests }) {
+		showNativeTurn("turn-2");
+		const current = (yield* fleet.reconcile("one")).value;
+		expect(current.step).toBe("working");
+		expect(current.decision).toBeUndefined();
+		expect(current.attempts.at(-1)).toMatchObject({ receipt: { turnId: "turn-2" }, status: "running" });
+		expect(
+			nativeRequests()
+				.filter((request) => request.method === "turn/start")
+				.map((request) => request.params),
+		).toMatchObject([{ clientUserMessageId: "operation-1" }, { clientUserMessageId: "operation-2", input: [{ text: ANSWER_INSTRUCTIONS }] }]);
+	},
+);
+
+isolatedEngine.it(
 	"a second answer to a missing active turn reports failure instead of silently accepting the instructions",
 	[unobservableAnswer("parked")],
 	function* ({ fleet, respond, nativeRequests }) {
