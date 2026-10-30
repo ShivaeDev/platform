@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { Cause, Config, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
+import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
 import { databaseSetup } from "#test/databaseSetup.ts";
 
-databaseSetup.it.runIf(Option.isSome(Effect.runSync(Config.option(Config.String("TEST_DATABASE_URL")))))(
+databaseSetup.it.runIf(environmentVariable("TEST_DATABASE_URL") !== undefined)(
 	"prepares databases with the names configured in their URLs instead of the package name",
 	[],
 	function* ({ prepare, connectedDatabase }) {

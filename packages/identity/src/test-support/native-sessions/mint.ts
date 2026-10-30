@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { signedInUser } from "#server/better-auth/testing.ts";
 import type { Host } from "./host.ts";
 
 export const mintSession = Effect.fn("NativeOrigins.mintSession")(function* (host: Host) {

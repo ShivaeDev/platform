@@ -10,7 +10,6 @@
 {"path":"packages/server/src/appHostMigrationWait.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/server/src/appHostMigrationWait.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"packages/server/src/appHostPool.spec.ts","rule":"effect/boundary","count":2}
-{"path":"packages/server/src/appHostPool.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/appHostPool.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/appHostPreflight.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/appHostPreflight.spec.ts","rule":"tests/grouped-outcomes","count":1}
@@ -21,11 +20,6 @@
 {"path":"packages/server/src/appHostRequestTracing.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/appHostRpcCache.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/server/src/appHostShutdown.spec.ts","rule":"tests/domain-outcomes","count":1}
-{"path":"packages/server/src/better-auth/nativeSessions.spec.ts","rule":"tests/domain-outcomes","count":10}
-{"path":"packages/server/src/better-auth/nativeSessions.spec.ts","rule":"tests/grouped-outcomes","count":9}
-{"path":"packages/server/src/better-auth/publicProfiles.spec.ts","rule":"tests/domain-outcomes","count":7}
-{"path":"packages/server/src/better-auth/socialSessions.dom.spec.ts","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/server/src/better-auth/socialSessions.dom.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/boundedRpcRequest.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/databaseConfiguration.spec.ts","rule":"tests/domain-outcomes","count":4}
 {"path":"packages/server/src/databaseConfiguration.spec.ts","rule":"tests/grouped-outcomes","count":1}
@@ -37,7 +31,6 @@
 {"path":"packages/server/src/moduleReadAuthorization.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/moduleReadAuthorization.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"packages/server/src/nativeClientOrigins.ts","rule":"effect/boundary","count":1}
-{"path":"packages/server/src/nativeOriginAccess.spec.ts","rule":"tests/grouped-outcomes","count":4}
 {"path":"packages/server/src/nativeOriginConfiguration.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/server/src/nativeStackRedaction.spec.ts","rule":"tests/domain-outcomes","count":6}
 {"path":"packages/server/src/nestedErrorRedaction.spec.ts","rule":"effect/boundary","count":1}
@@ -53,9 +46,6 @@
 {"path":"packages/server/src/redactOtlpUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingDiagnostics.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingRpcSerialization.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/domain-outcomes","count":21}
-{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/grouped-outcomes","count":12}
-{"path":"packages/server/src/rpc-server/adminRoute.spec.ts","rule":"tests/grouped-outcomes","count":6}
 {"path":"packages/server/src/rpc-server/clientAbort.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/rpc-server/scopedSessions.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/server/src/rpc-server/scopedSessions.spec.ts","rule":"tests/grouped-outcomes","count":3}

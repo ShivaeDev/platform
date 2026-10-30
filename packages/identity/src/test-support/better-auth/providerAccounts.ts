@@ -2,8 +2,8 @@ import { Effect, Layer, Schema } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { Identity, SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
-import { AuthenticatedUserWithProviderAccounts } from "@shivaedev/identity/middleware.ts";
+import { Identity, SessionUserWithProviderAccounts } from "#identity.ts";
+import { AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
 
 export const ProviderAccounts = RpcGroup.make(
 	Rpc.make("identityOnly", { success: Schema.String }),

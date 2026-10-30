@@ -1,6 +1,6 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { cookieOnly, nativeSessions, nativeTransport, signedIn } from "#test/native-sessions/story.ts";
+import { cookieOnly, nativeSessions, nativeTransport, passwordAccount, signedIn } from "#test/native-sessions/story.ts";
 
 const alice = signedIn("alice");
 const both = signedIn("alice", "bob");
@@ -8,8 +8,10 @@ const unauthorized = { _tag: "Failure", failure: { _tag: "Unauthorized", message
 
 nativeSessions.it(
 	"native sign-in issues a signed credential accepted by auth and request-local profile RPC",
-	[nativeTransport, alice],
-	function* ({ account, bearer, getSession, profile }) {
+	[nativeTransport, passwordAccount("alice")],
+	function* ({ account, bearer, getSession, profile, signIn }) {
+		yield* signIn("alice");
+
 		const session = account("alice");
 		expect(session.credential).toEqual(expect.stringContaining("."));
 		expect(session.exposed).toContain("set-auth-token");
@@ -46,7 +48,7 @@ nativeSessions.it(
 
 nativeSessions.it(
 	"browser sign-in keeps HttpOnly cookies without exposing either token response",
-	[alice],
+	[passwordAccount("alice")],
 	function* ({ browserLogin, getSession, profile }) {
 		const browser = yield* browserLogin("alice");
 		expect(browser.credential).toBeNull();
@@ -95,14 +97,18 @@ nativeSessions.it("sign-out revokes the bearer and ends its open socket change s
 	expect(yield* profile("alice")).toMatchObject(unauthorized);
 });
 
-nativeSessions.it("replacing a bearer session revokes the old credential and subscription", [alice], function* ({ subscribe, replace, profile }) {
-	const subscription = yield* subscribe("alice");
-	yield* subscription.next;
-	const replacement = yield* replace("alice");
-	expect(yield* subscription.ended).toMatchObject(unauthorized);
-	expect(yield* profile("alice")).toMatchObject(unauthorized);
-	expect(yield* profile("alice", { authorization: `Bearer ${replacement.credential}` })).toMatchObject({ _tag: "Success" });
-});
+nativeSessions.it(
+	"replacing a bearer session revokes the old credential and subscription",
+	[passwordAccount("alice")],
+	function* ({ subscribe, replace, profile }) {
+		const subscription = yield* subscribe("alice");
+		yield* subscription.next;
+		const replacement = yield* replace("alice");
+		expect(yield* subscription.ended).toMatchObject(unauthorized);
+		expect(yield* profile("alice")).toMatchObject(unauthorized);
+		expect(yield* profile("alice", { authorization: `Bearer ${replacement.credential}` })).toMatchObject({ _tag: "Success" });
+	},
+);
 
 nativeSessions.it("bearer credentials stay out of host logs and spans", [alice], function* ({ account, diagnostics, recordDiagnostics, stopHost }) {
 	yield* recordDiagnostics("alice");

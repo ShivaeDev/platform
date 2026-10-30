@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
-import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { signedInUser } from "#server/better-auth/testing.ts";
 import { socialEngine } from "./socialEngine.ts";
 import { socialVerbs } from "./socialVerbs.ts";
 
@@ -18,20 +18,7 @@ const definition = {
 	verbs: socialVerbs,
 } as const;
 
-export const socialApp = storyKit({ ...definition, create: () => socialEngine({}) });
-export const tokenlessSocialApp = storyKit({
-	...definition,
-	create: () =>
-		socialEngine({
-			databaseHooks: {
-				account: {
-					create: { before: async (account) => ({ data: { ...account, accessToken: null, idToken: null, refreshToken: null } }) },
-					update: { before: async (account) => ({ data: { ...account, accessToken: null, idToken: null, refreshToken: null } }) },
-				},
-			},
-		}),
-});
-
+export const socialApp = storyKit({ ...definition, create: () => socialEngine() });
 export function mintedSocialSession(providerAccounts: NonNullable<Parameters<typeof signedInUser>[1]["providerAccounts"]> = []) {
 	return socialApp.trait("account", "Bob starts signed in with a minted session", function* ({ auth }) {
 		const { cookies } = yield* Effect.promise(() => signedInUser(auth, { email: "bob@social.test", name: "Bob", providerAccounts }));

@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";

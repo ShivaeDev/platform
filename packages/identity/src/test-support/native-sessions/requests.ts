@@ -8,8 +8,8 @@ import { type Host, NATIVE_ORIGIN } from "./host.ts";
 export interface Account {
 	readonly cookie: string;
 	readonly credential: string | null;
-	readonly exposed: string | null;
-	readonly httpOnly: boolean;
+	readonly exposed?: string | null;
+	readonly httpOnly?: boolean;
 	readonly token?: string;
 	readonly user: { readonly id: string; readonly name: string; readonly email: string };
 }
@@ -23,9 +23,6 @@ export function authRequest(host: Host, path: string, headers: Record<string, st
 			method: body === undefined ? "GET" : "POST",
 		}),
 	);
-}
-export function register(host: Host, name: string) {
-	return authRequest(host, "sign-up/email", { origin: NATIVE_ORIGIN }, { email: `${name}@example.test`, name, password: "story-password-123" });
 }
 export const login = Effect.fn("NativeSessions.login")(function* (host: Host, name: string, browser = false, headers: Record<string, string> = {}) {
 	const response = yield* authRequest(

@@ -4,20 +4,16 @@ import { testUtils } from "better-auth/plugins";
 import { Effect, Layer, type Redacted } from "effect";
 import { HttpRouter, HttpServer, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
-import { authDatabase } from "@shivaedev/identity/server/better-auth/mount.ts";
-import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
-import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/server/session.ts";
-import { appHost } from "#appHost.ts";
+import { appHost } from "@shivaedev/server/appHost.ts";
+import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
+import { authDatabase } from "#server/better-auth/mount.ts";
+import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { ProviderAccounts, providerAccountHandlers } from "./providerAccounts.ts";
 
-export const socialHost = Effect.fn("SocialStory.socialHost")(function* (
-	databaseUrl: Redacted.Redacted<string>,
-	accountOptions: Pick<BetterAuthOptions, "databaseHooks">,
-) {
+export const socialHost = Effect.fn("SocialStory.socialHost")(function* (databaseUrl: Redacted.Redacted<string>) {
 	const pool = yield* authDatabase(databaseUrl);
 	const options = {
-		...accountOptions,
 		advanced: { useSecureCookies: false },
 		"baseURL": { allowedHosts: ["localhost:*"], protocol: "http" },
 		database: pool,

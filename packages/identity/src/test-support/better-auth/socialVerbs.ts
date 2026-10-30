@@ -1,9 +1,9 @@
 import { Effect } from "effect";
-import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
-import { signedInUser, storedProviderAccounts } from "@shivaedev/identity/server/better-auth/testing.ts";
 import { domNavigate } from "@shivaedev/test-story/server/domNavigate.ts";
 import { seedCookies } from "@shivaedev/test-story/server/seedCookies.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
+import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { signedInUser, storedProviderAccounts } from "#server/better-auth/testing.ts";
 import { readProviderAccounts } from "./providerAccounts.ts";
 import type { socialEngine } from "./socialEngine.ts";
 

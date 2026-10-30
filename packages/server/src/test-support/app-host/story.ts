@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { environmentVariable } from "@shivaedev/identity/test-support/environmentVariable.ts";
+import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, start } from "./lifecycle.ts";
 import { emptyHost, type HostState } from "./state.ts";
@@ -7,13 +7,18 @@ import { hostVerbs } from "./verbs.ts";
 
 export function hostOptions({ database = false } = {}) {
 	return {
-		after: { configured: start },
+		after: {
+			configured: (state: HostState) =>
+				Effect.gen(function* () {
+					yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
+					yield* start(state);
+				}),
+		},
 		clock: "live" as const,
 		*create() {
 			const state = emptyHost();
 			yield* Effect.addFinalizer(() =>
 				Effect.gen(function* () {
-					yield* close(state).pipe(Effect.orDie);
 					for (const cleanup of state.cleanup.toReversed()) {
 						yield* Effect.promise(async () => {
 							await cleanup();

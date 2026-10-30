@@ -1,11 +1,11 @@
 import type { Agent } from "node:http";
 import { type Cause, Effect, Layer, type LogLevel, type Tracer } from "effect";
 import type { HttpRouter, HttpServer } from "effect/http";
+import type { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import type { PlatformRuntime } from "#runtime/types.ts";
 import { otlpHost } from "#test/otlpHost.ts";
 import type { otlpReceiver } from "#test/otlpReceiver.ts";
 import type { ClientAbortState } from "./clientAbortFixture.ts";
-import type { databaseProxy } from "./databaseProxy.ts";
 import type { SubscriptionState } from "./subscription.ts";
 
 export interface HostState {
@@ -28,7 +28,7 @@ export interface HostState {
 	loopback: boolean;
 	minimumLogLevel: LogLevel.LogLevel;
 	nativeSpans: Tracer.NativeSpan[];
-	proxy?: Awaited<ReturnType<typeof databaseProxy>>;
+	proxy?: Effect.Success<ReturnType<typeof disconnectProxy>>;
 	receiver?: Awaited<ReturnType<typeof otlpReceiver>>;
 	reported: Cause.Cause<unknown>[];
 	routes: Layer.Layer<never, never, HttpRouter.HttpRouter | HttpRouter.Request<"Error", unknown>>;

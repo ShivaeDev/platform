@@ -4,11 +4,11 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
-import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
-import { permissionRoute } from "@shivaedev/identity/server/permissions.ts";
-import { type SessionPolicy, type UserSessionShape, withSessionUser } from "@shivaedev/identity/server/session.ts";
-import { ManagementPermission, TestRoles, ToolsPermission, UseTools } from "@shivaedev/identity/test-support/auth/permissions.ts";
+import { Identity, SessionUser } from "#identity.ts";
+import { AuthenticatedUser } from "#middleware.ts";
+import { permissionRoute } from "#server/permissions.ts";
+import { type SessionPolicy, type UserSessionShape, withSessionUser } from "#server/session.ts";
+import { ManagementPermission, TestRoles, ToolsPermission, UseTools } from "#test/auth/permissions.ts";
 
 export const AdminApi = RpcGroup.make(
 	Rpc.make("readRecord", {

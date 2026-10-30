@@ -1,10 +1,11 @@
 import { Effect, Fiber, Queue, Stream } from "effect";
-import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
-import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { authTestDatabase } from "#server/better-auth/testDatabase.ts";
+import { passwordUser, signedInUser } from "#server/better-auth/testing.ts";
 import { type Host, NATIVE_ORIGIN, startHost } from "./host.ts";
-import { type Account, authRequest, client, login, register } from "./requests.ts";
+import { type Account, authRequest, client, login } from "./requests.ts";
 
 interface State {
 	readonly accounts: Map<string, Account>;
@@ -66,6 +67,10 @@ export const nativeSessions = storyKit({
 					yield* Effect.promise(() => response.text());
 				}),
 			replace: (name: string) => login(host, name, false, bearer(name)),
+			signIn: (name: string) =>
+				Effect.map(login(host, name), (session) => {
+					state.accounts.set(name, session);
+				}),
 			signout: (name: string, headers = bearer(name)) =>
 				Effect.gen(function* () {
 					story.tell("sign out through the mounted auth route");
@@ -93,18 +98,33 @@ export const cookieOnly = nativeSessions.trait("configured", "the default host k
 	state.enabled = false;
 });
 export function signedIn(...names: string[]) {
-	return nativeSessions.trait("accounts", "native clients sign in through the auth HTTP routes", function* (state) {
+	return accounts(names, false);
+}
+
+export function passwordAccount(name: string) {
+	return accounts([name], true);
+}
+
+function accounts(names: readonly string[], password: boolean) {
+	return nativeSessions.trait("accounts", "clients start with minted sessions", function* (state) {
 		if (state.host === undefined) {
 			return yield* Effect.die("The auth host has not started");
 		}
 		for (const name of names) {
-			const response = yield* register(state.host, name);
-			yield* Effect.promise(() => response.text());
-			const session = yield* login(state.host, name);
-			if (state.enabled && session.credential === null) {
-				return yield* Effect.die("Native sign-in did not issue a bearer credential");
-			}
-			state.accounts.set(name, session);
+			const auth = state.host.auth;
+			const fields = { email: `${name}@example.test`, name, role: "user" };
+			const session = password
+				? yield* passwordUser(auth, { ...fields, password: "story-password-123" }).pipe(
+						Effect.flatMap((user) => Effect.promise(async () => (await auth.$context).test.login({ userId: user.id }))),
+					)
+				: yield* Effect.promise(() => signedInUser(auth, fields));
+			const credential = decodeURIComponent(session.cookies.find((cookie) => cookie.name.endsWith("session_token"))?.value ?? "");
+			state.accounts.set(name, {
+				cookie: session.headers.get("cookie") ?? "",
+				credential: state.enabled ? credential : null,
+				token: credential.split(".")[0] ?? "",
+				user: { email: session.user.email, id: session.user.id, name: session.user.name },
+			});
 		}
 	});
 }

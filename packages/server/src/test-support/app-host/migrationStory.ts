@@ -5,9 +5,9 @@ import * as PgClient from "@effect/sql-pg/PgClient";
 import { Config, Effect, Layer, Redacted } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
-import { disconnectGate } from "@shivaedev/identity/test-support/disconnectGate.ts";
-import { environmentVariable } from "@shivaedev/identity/test-support/environmentVariable.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
+import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { bootMigrations } from "#test/app-host/bootMigrations.ts";
 import { migrationLoader } from "#test/app-host/migrationLoader.ts";
@@ -41,10 +41,7 @@ export const migrationHost = storyKit({
 		holdDisconnects: () =>
 			Effect.gen(function* () {
 				story.tell("hold the host's PostgreSQL disconnect acknowledgement");
-				const gate = yield* Effect.acquireRelease(
-					Effect.promise(() => disconnectGate(Redacted.value(state.url))),
-					(resource) => Effect.promise(resource.close),
-				);
+				const gate = yield* disconnectProxy(Redacted.value(state.url), { holdDisconnects: true });
 				state.hostUrl = Redacted.make(gate.url);
 				return { disconnecting: Effect.promise(() => gate.disconnecting), release: Effect.sync(gate.release) };
 			}),
