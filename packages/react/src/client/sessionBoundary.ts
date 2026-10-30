@@ -5,6 +5,7 @@ import { createContext, createElement, Fragment, type ReactNode, useContext, use
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { DraftSessionContext } from "@shivaedev/form/client/react.ts";
 import { liveBindings } from "#internal/liveBindings.ts";
+import { SignOutRegistryContext } from "#internal/SignOutRegistryContext.ts";
 import { registerSessionRecheck } from "#internal/sessionRecheck.ts";
 import { useLatestCallback } from "#internal/useLatestCallback.ts";
 import { mountLive } from "./mountLive.ts";
@@ -113,13 +114,18 @@ export function SessionBoundary<TSession, TClient>({
 	signedOut,
 	children,
 }: SessionBoundaryProps<TSession, TClient>): ReactNode {
+	const registry = useContext(RegistryContext);
 	const id = session === undefined ? undefined : identify(session);
 	const current = useDraftOwner(id);
 	return session === undefined
 		? createElement(Fragment, null, signedOut)
 		: createElement(
-				DraftSessionContext.Provider,
-				{ value: current },
-				createElement(Generation<TSession, TClient>, { children, connect, identity: id, key: id, liveCoalesceWindow, recheck, session }),
+				SignOutRegistryContext.Provider,
+				{ value: registry },
+				createElement(
+					DraftSessionContext.Provider,
+					{ value: current },
+					createElement(Generation<TSession, TClient>, { children, connect, identity: id, key: id, liveCoalesceWindow, recheck, session }),
+				),
 			);
 }
