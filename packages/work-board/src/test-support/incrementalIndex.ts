@@ -8,11 +8,19 @@ import { fullIndex } from "./fullIndex.ts";
 
 export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (root: string, home?: string) {
 	const reads: string[] = [];
+	let checks = 0;
+	function checked<A, E>(read: Effect.Effect<A, E>) {
+		return Effect.suspend(() => {
+			checks += 1;
+			return read;
+		});
+	}
 	const blocked = new Set<string>();
 	const services = Layer.effect(
 		FileSystem.FileSystem,
 		Effect.map(Effect.service(FileSystem.FileSystem), (fs) => ({
 			...fs,
+			lstat: (path) => checked(fs.lstat(path)),
 			readFileString: (path, encoding) =>
 				Effect.suspend(() => {
 					reads.push(path);
@@ -20,6 +28,8 @@ export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (ro
 						? Effect.fail(PlatformError.systemError({ _tag: "PermissionDenied", method: "readFileString", module: "FileSystem" }))
 						: fs.readFileString(path, encoding);
 				}),
+			realPath: (path) => checked(fs.realPath(path)),
+			stat: (path) => checked(fs.stat(path)),
 		})),
 	).pipe(Layer.provideMerge(NodeServices.layer));
 	const context = yield* Layer.build(services);
@@ -50,6 +60,7 @@ export const incrementalIndex = Effect.fn("Test.incrementalIndex")(function* (ro
 	return {
 		blocked,
 		changes,
+		checks: () => checks,
 		fresh: () => fullIndex(root, home).pipe(Effect.provide(context)),
 		read: () => index.pipe(Effect.provide(context)),
 		reads,
