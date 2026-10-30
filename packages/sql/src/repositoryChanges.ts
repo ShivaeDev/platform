@@ -1,20 +1,10 @@
-import { Effect, Hash, Option, type Schema } from "effect";
+import { Effect, Option, type Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { declaredBuckets } from "@shivaedev/changes/buckets.ts";
-import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
+import { compositeId, invalidationKeys, type Key, recordKey } from "@shivaedev/changes/keys.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
 import { invalidateOnCommit, transact } from "#transact.ts";
-
-function encodeKeyValue(_key: string, value: unknown) {
-	return typeof value === "bigint" ? String(value) : value;
-}
-
-function recordId(value: unknown) {
-	return typeof value === "string" || typeof value === "number" || typeof value === "bigint" || typeof value === "boolean"
-		? String(value)
-		: Hash.hash(value);
-}
 
 export type RepositoryChanges = Effect.Success<ReturnType<typeof repositoryChanges>>;
 
@@ -63,14 +53,8 @@ export const repositoryChanges = Effect.fnUntraced(function* (
 		}
 		const keys = new Set<string>([table]);
 		for (const row of rows) {
-			const id =
-				columns.length === 1
-					? row[columns[0] ?? ""]
-					: JSON.stringify(
-							columns.map((column) => row[column]),
-							encodeKeyValue,
-						);
-			keys.add(`${table}:${recordId(id)}`);
+			const id = columns.length === 1 ? row[columns[0] ?? ""] : compositeId(columns.map((column) => row[column]));
+			keys.add(recordKey(table, id));
 			for (const key of yield* bucketKeys(row)) {
 				keys.add(key);
 			}
