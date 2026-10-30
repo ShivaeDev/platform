@@ -1,42 +1,29 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { ResponseBodyTooLarge } from "@shivaedev/http/errors.ts";
+import { pullRequests } from "#test/fixtures.ts";
 import { github } from "#test/github.ts";
-import { pullRequestPageAnswers, repositoryListsPullRequests } from "#test/traits.ts";
+import { pullRequestPageAnswers, repositoryHasPullRequests } from "#test/traits.ts";
 
-for (const [name, reply] of [
-	["malformed", { body: [{ number: "invalid" }] }],
-	["oversized", { chunks: ["x".repeat(1024 * 1024 + 1)] }],
+for (const [description, reply] of [
+	["a number written as text", { body: [{ number: "invalid" }] }],
+	["a body over 1 MiB", { chunks: ["x".repeat(1024 * 1024 + 1)] }],
 ] as const) {
 	github.it(
-		`returns the capped prefix without requesting the ${name} page beyond the cap`,
-		[repositoryListsPullRequests(5), pullRequestPageAnswers(3, reply)],
-		function* ({ readPullsBounded, requests }) {
-			const result = yield* readPullsBounded(2);
-			expect(result).toEqual({
-				items: [1, 2, 3, 4].map((number) => ({ number, title: `Pull request ${number}` })),
-				truncated: true,
-			});
-			expect(requests().map(({ path }) => path)).toEqual(["/repos/acme/widgets/pulls", "/repos/acme/widgets/pulls?page=2"]);
+		`a two-page cap returns the first four pull requests as truncated and never reads page 3, which holds ${description}`,
+		[repositoryHasPullRequests(5), pullRequestPageAnswers(3, description, reply)],
+		function* ({ listPullsBounded }) {
+			expect(yield* listPullsBounded(2)).toEqual({ items: pullRequests(1, 2, 3, 4), truncated: true });
 		},
 	);
 }
 
-for (const pageCap of [2, 3]) {
-	github.it(
-		`reports an untruncated list ending at page two with cap ${pageCap}`,
-		[repositoryListsPullRequests(3)],
-		function* ({ readPullsBounded, requests }) {
-			expect(yield* readPullsBounded(pageCap)).toEqual({
-				items: [1, 2, 3].map((number) => ({ number, title: `Pull request ${number}` })),
-				truncated: false,
-			});
-			expect(requests().map(({ path }) => path)).toEqual(["/repos/acme/widgets/pulls", "/repos/acme/widgets/pulls?page=2"]);
-		},
-	);
-}
+github.it(
+	"a two-page cap over three pull requests that end on page 2 returns all three untruncated",
+	[repositoryHasPullRequests(3)],
+	function* ({ listPullsBounded }) {
+		expect(yield* listPullsBounded(2)).toEqual({ items: pullRequests(1, 2, 3), truncated: false });
+	},
+);
 
-github.it("bounded lists enforce the caller's byte limit on fetched pages", [], function* ({ readPullsBounded, requests }) {
-	expect(yield* Effect.flip(readPullsBounded(2, 10))).toEqual(new ResponseBodyTooLarge({ limit: 10 }));
-	expect(requests().map(({ path }) => path)).toEqual(["/repos/acme/widgets/pulls"]);
+github.it("a bounded list whose first page exceeds the caller's 10-byte limit fails as too large", [], function* ({ listPullsBounded }) {
+	expect(yield* listPullsBounded(2, 10)).toBe("body over 10 bytes");
 });

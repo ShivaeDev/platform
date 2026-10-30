@@ -1,7 +1,11 @@
 import { Schema } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import type { FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import type { FakeHttpReply, FakeHttpRequest } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { PullRequestComment } from "#stickyComments.ts";
+
+export const COMMENT_LIMIT = 65_536;
+export const SUMMARY_LIMIT = 65_535;
+export const BOT = "coverage[bot]";
 
 const CommentBody = Schema.Struct({ body: Schema.String });
 const Output = Schema.Struct({ summary: Schema.String, text: Schema.optional(Schema.String), title: Schema.String });
@@ -19,23 +23,41 @@ const Update = Schema.Struct({
 	status: Schema.String,
 }).pipe(Schema.encodeKeys({ detailsUrl: "details_url" }));
 
+export interface CheckOnGitHub {
+	readonly conclusion: string | null;
+	readonly detailsUrl: string | null;
+	readonly headSha: string;
+	readonly id: number;
+	readonly name: string;
+	readonly output: { readonly summary: string | null; readonly text: string | null; readonly title: string | null };
+	readonly status: string;
+}
+
+const commentTooLong: FakeHttpReply = {
+	body: {
+		errors: [{ code: "custom", field: "body", message: `body is too long (maximum is ${COMMENT_LIMIT} characters)`, resource: "IssueComment" }],
+		message: "Validation Failed",
+	},
+	status: HttpStatus.fromLiteral("UnprocessableEntity"),
+};
+
+function summaryTooLong(length: number): FakeHttpReply {
+	return {
+		body: { message: `Invalid request.\n\nOnly ${SUMMARY_LIMIT} characters are allowed; ${length} were supplied.` },
+		status: HttpStatus.fromLiteral("UnprocessableEntity"),
+	};
+}
+
+function characters(text: string | undefined) {
+	return [...(text ?? "")].length;
+}
+
 export function pullRequestWrites() {
-	const state: {
-		comments: (typeof PullRequestComment.Encoded)[];
-		checks: Array<{
-			id: number;
-			detailsUrl: string | null;
-			headSha: string;
-			name: string;
-			status: string;
-			conclusion: string | null;
-			output: { title: string | null; summary: string | null; text: string | null };
-		}>;
-	} = { checks: [], comments: [] };
+	const state: { checks: CheckOnGitHub[]; comments: (typeof PullRequestComment.Encoded)[] } = { checks: [], comments: [] };
 	function commentBody(request: FakeHttpRequest) {
 		return Schema.decodeUnknownSync(Schema.fromJsonString(CommentBody))(request.body.toString());
 	}
-	function checkBody({ detailsUrl, headSha, ...check }: (typeof state.checks)[number]) {
+	function checkBody({ detailsUrl, headSha, ...check }: CheckOnGitHub) {
 		return { ...check, "details_url": detailsUrl, "head_sha": headSha };
 	}
 	return {
@@ -62,6 +84,9 @@ export function pullRequestWrites() {
 				path: "/repos/acme/widgets/check-runs",
 				reply: (request: FakeHttpRequest) => {
 					const input = Schema.decodeUnknownSync(Schema.fromJsonString(Create))(request.body.toString());
+					if (characters(input.output?.summary) > SUMMARY_LIMIT) {
+						return summaryTooLong(characters(input.output?.summary));
+					}
 					const check = {
 						...input,
 						conclusion: null,
@@ -77,7 +102,11 @@ export function pullRequestWrites() {
 				method: "POST",
 				path: "/repos/acme/widgets/issues/1/comments",
 				reply: (request: FakeHttpRequest) => {
-					const comment = { ...commentBody(request), id: state.comments.length + 1, user: { login: "coverage[bot]" } };
+					const { body } = commentBody(request);
+					if (characters(body) > COMMENT_LIMIT) {
+						return commentTooLong;
+					}
+					const comment = { body, id: state.comments.length + 1, user: { login: BOT } };
 					state.comments.push(comment);
 					return { body: comment, status: HttpStatus.fromLiteral("Created") };
 				},
@@ -116,7 +145,11 @@ export function pullRequestWrites() {
 					if (comment === undefined) {
 						return { status: HttpStatus.fromLiteral("NotFound") };
 					}
-					state.comments[index] = { ...comment, ...commentBody(request) };
+					const { body } = commentBody(request);
+					if (characters(body) > COMMENT_LIMIT) {
+						return commentTooLong;
+					}
+					state.comments[index] = { ...comment, body };
 					return { body: state.comments[index] };
 				},
 			},

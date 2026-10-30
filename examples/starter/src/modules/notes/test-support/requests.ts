@@ -26,6 +26,7 @@ export function requests(host: RunningHost, tell: (line: string) => void) {
 			delete: (input: Parameters<(typeof client)["notes.delete"]>[0]) =>
 				call(`delete note ${input.id} at version ${input.version}`, client["notes.delete"](input)),
 			get: (input: Parameters<(typeof client)["notes.get"]>[0]) => call(`open note ${input.id}`, client["notes.get"](input)),
+			import: (input: Parameters<(typeof client)["notes.import"]>[0]) => call(`import source note ${input.id}`, client["notes.import"](input)),
 			list: () => call("list notes", client["notes.list"]()),
 			update: (input: Parameters<(typeof client)["notes.update"]>[0]) =>
 				call(`edit note ${input.id} at version ${input.version}`, client["notes.update"](input)),

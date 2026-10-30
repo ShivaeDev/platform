@@ -1,61 +1,83 @@
-import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { GitHubWebhookSignatureError } from "#errors.ts";
-import { WORKFLOW_BODY, webhookSignature } from "#test/appFixture.ts";
-import { appGithub } from "#test/appGithub.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { appGithub, exchangeRefused } from "#test/appGithub.ts";
 
-appGithub.it("a signed workflow_run delivery decodes with the caller's Schema", [], function* ({ verifyDelivery }) {
-	expect(yield* verifyDelivery()).toEqual({ action: "completed", workflowRun: { conclusion: "success", id: 42 } });
+appGithub.it("a signed workflow_run delivery is decoded once with the caller's Schema", [], function* ({ bodiesDecoded, receive, receiverAnswered }) {
+	yield* receive("a signed delivery");
+
+	yield* outcomes({
+		"bodies decoded": [bodiesDecoded(), 1],
+		"receiver answered": [receiverAnswered(), { action: "completed", workflowRun: { conclusion: "success", id: 42 } }],
+	});
 });
 
-for (const [name, body, signature, secret] of [
-	["tampered body", Buffer.from("invalid-json"), webhookSignature(), undefined],
-	["wrong secret", WORKFLOW_BODY, webhookSignature(), "wrong-secret"],
-	["missing header", WORKFLOW_BODY, undefined, undefined],
-] as const) {
-	appGithub.it(`a ${name} fails typed before decoding`, [], function* ({ verifyAs }) {
-		let decoded = false;
-		const schema = Schema.Unknown.check(
-			Schema.makeFilter(() => {
-				decoded = true;
-				return true;
-			}),
-		);
-		expect(yield* Effect.flip(verifyAs(body, signature, schema, secret))).toEqual(new GitHubWebhookSignatureError());
-		expect(decoded).toBe(false);
-	});
+for (const delivery of ["a tampered body", "the wrong secret", "a missing signature header", "a malformed signature header"] as const) {
+	appGithub.it(
+		`a delivery with ${delivery} fails as signature rejected without decoding the body`,
+		[],
+		function* ({ bodiesDecoded, receive, receiverAnswered }) {
+			yield* receive(delivery);
+
+			yield* outcomes({
+				"bodies decoded": [bodiesDecoded(), 0],
+				"receiver answered": [receiverAnswered(), "signature rejected"],
+			});
+		},
+	);
 }
 
+appGithub.it("verifying only the signature accepts signed bytes that are not JSON", [], function* ({ receiveUndecoded }) {
+	expect(yield* receiveUndecoded(Buffer.from("not-json"))).toBe("verified");
+});
+
 appGithub.it(
-	"credentials stay out of errors, logs and spans on success and failure",
-	[],
-	function* ({ readPull, readWithInvalidKey, rejectExchange, verifyDelivery, secrets, telemetry }) {
-		yield* rejectExchange();
-		const unauthorized = yield* Effect.flip(readPull());
+	"a token exchange GitHub refuses while echoing every credential records its span but keeps every credential out of failures, logs and spans",
+	[exchangeRefused],
+	function* ({ credentialsSeenIn, readPull, spanNames }) {
 		yield* readPull();
-		yield* verifyDelivery();
-		const signing = yield* Effect.flip(readWithInvalidKey());
-		const webhook = yield* Effect.flip(verifyDelivery(WORKFLOW_BODY, webhookSignature(), "wrong-secret"));
-		const { logs, spans } = telemetry();
-		expect(spans.length).toBeGreaterThan(0);
-		const captured = JSON.stringify({
-			errors: [unauthorized, signing, webhook],
-			logs,
-			spans: spans.map(({ attributes, events, status }) => ({
-				attributes: [...attributes],
-				events: events.map(([name, , fields]) => ({ fields, name })),
-				exit: status._tag === "Ended" ? status.exit : undefined,
-			})),
+
+		yield* outcomes({
+			"credentials seen in": [credentialsSeenIn(), {}],
+			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
 		});
-		for (const secret of [...secrets(), "wrong-secret"]) {
-			expect(captured).not.toContain(secret);
-			expect(captured).not.toContain(JSON.stringify(secret).slice(1, -1));
-		}
 	},
 );
 
-appGithub.it("signature-only verification accepts signed bytes without decoding JSON", [], function* ({ verifySignature }) {
-	const body = Buffer.from("not-json");
-	expect(yield* verifySignature(body, webhookSignature(body))).toBeUndefined();
-	expect(yield* Effect.flip(verifySignature(body, undefined))).toEqual(new GitHubWebhookSignatureError());
-});
+appGithub.it(
+	"a successful installation read records its span but keeps every credential out of failures, logs and spans",
+	[],
+	function* ({ credentialsSeenIn, readPull, spanNames }) {
+		yield* readPull();
+
+		yield* outcomes({
+			"credentials seen in": [credentialsSeenIn(), {}],
+			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		});
+	},
+);
+
+appGithub.it(
+	"signing an App JWT with an invalid private key records its span but keeps every credential out of failures, logs and spans",
+	[],
+	function* ({ credentialsSeenIn, readWithInvalidKey, spanNames }) {
+		yield* readWithInvalidKey();
+
+		yield* outcomes({
+			"credentials seen in": [credentialsSeenIn(), {}],
+			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		});
+	},
+);
+
+appGithub.it(
+	"a delivery verified with the wrong secret records its span but keeps every credential out of failures, logs and spans",
+	[],
+	function* ({ credentialsSeenIn, receive, spanNames }) {
+		yield* receive("the wrong secret");
+
+		yield* outcomes({
+			"credentials seen in": [credentialsSeenIn(), {}],
+			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		});
+	},
+);

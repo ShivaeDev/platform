@@ -1,0 +1,4 @@
+{
+	"AUTH_CLIENT_IP_HEADER": "x-real-ip",
+	"TRUSTED_PROXY": "100.64.0.0/10"
+}
