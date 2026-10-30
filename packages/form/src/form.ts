@@ -1,4 +1,4 @@
-import { Effect, Equal, Result, type Schema, type SchemaIssue, SchemaParser } from "effect";
+import { Effect, Equal, Result, Schema, type SchemaIssue, SchemaParser } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRef from "effect/reactivity/AtomRef";
@@ -7,21 +7,7 @@ import { literalChoices, messageAt, messagesByField, schemaFeedback } from "./me
 import { pathMessageAt } from "./paths.ts";
 import { persistence } from "./persistence.ts";
 import { fromRef, propertyRef } from "./refs.ts";
-import {
-	type Config,
-	checkOf,
-	choicesOf,
-	type Decoded,
-	type Encoded,
-	FieldFailure,
-	type Fields,
-	type Form,
-	fieldOf,
-	holder,
-	Invalid,
-	type Name,
-	type Submitter,
-} from "./shape.ts";
+import { type Config, type Decoded, type Encoded, FieldFailure, type Fields, type Form, Invalid, type Name, type Submitter } from "./shape.ts";
 import { statusOf } from "./statusOf.ts";
 import { trackRejections } from "./trackRejections.ts";
 
@@ -31,30 +17,24 @@ export function form<TFields extends Fields, TValue, TError, TServices, TRuntime
 ): Form<TFields, TValue, TError, TRuntimeError> {
 	const { initialValues, onSubmit, runtime } = config;
 	const debounce = config.debounce ?? "300 millis";
-	const checks: ReadonlyMap<string, unknown> = new Map(Object.entries(config.checks ?? {}));
+	const checks: ReadonlyMap<string, (value: Encoded<TFields>[Name<TFields>]) => Effect.Effect<string | undefined, never, TServices>> = new Map(
+		Object.entries(config.checks ?? {}),
+	);
 	const decode = SchemaParser.decodeUnknownEffect(schema, { errors: "all" });
 
 	const editing = draft(initialValues, config.persistedDraft ? persistence(schema, config.persistedDraft) : undefined);
 	const { values } = editing;
 	const status = statusOf();
-	const noted = trackRejections(holder(values), config.arrayKeys, status);
-	const held = new Map<string, AtomRef.AtomRef<unknown>>();
-	function refFor(name: string): AtomRef.AtomRef<unknown> {
-		const known = held.get(name);
+	const noted = trackRejections(values, config.arrayKeys, status);
+	const held: { [TKey in Name<TFields>]?: AtomRef.AtomRef<Encoded<TFields>[TKey]> } = {};
+	function refFor<TKey extends Name<TFields>>(name: TKey): AtomRef.AtomRef<Encoded<TFields>[TKey]> {
+		const known = Object.hasOwn(held, name) ? held[name] : undefined;
 		if (known !== undefined) {
 			return known;
 		}
-		const made = propertyRef(holder(values), name);
-		held.set(name, made);
+		const made = propertyRef(values, name);
+		held[name] = made;
 		return made;
-	}
-
-	const offered = new Map<string, readonly unknown[]>();
-	for (const [name, member] of Object.entries(schema.fields)) {
-		const choices = literalChoices(member.ast);
-		if (choices !== undefined) {
-			offered.set(name, choices);
-		}
 	}
 
 	const valuesAtom = fromRef(values);
@@ -70,7 +50,7 @@ export function form<TFields extends Fields, TValue, TError, TServices, TRuntime
 
 	const schemaErrors = schemaFeedback(decoded);
 
-	const checkError = Atom.family((name: string): Atom.Atom<string | undefined> => {
+	const checkError = Atom.family((name: Name<TFields>): Atom.Atom<string | undefined> => {
 		const check = checks.get(name);
 		if (check === undefined) {
 			return Atom.make((): string | undefined => undefined);
@@ -79,7 +59,7 @@ export function form<TFields extends Fields, TValue, TError, TServices, TRuntime
 		const settled = Atom.debounce(current, debounce);
 		const answered = runtime.atom((get) => {
 			const input = get(settled);
-			return Effect.map(checkOf<TServices>(check)(input), (message) => ({
+			return Effect.map(check(input), (message) => ({
 				input,
 				message,
 			}));
@@ -91,7 +71,7 @@ export function form<TFields extends Fields, TValue, TError, TServices, TRuntime
 		});
 	});
 
-	const error = Atom.family((name: string) =>
+	const error = Atom.family((name: Name<TFields>) =>
 		Atom.readable((get): string | undefined => {
 			if (get(status.touched)[name] !== true && !get(status.submitted)) {
 				return undefined;
@@ -123,7 +103,11 @@ export function form<TFields extends Fields, TValue, TError, TServices, TRuntime
 			refFor(name).set(value);
 			status.touch(name);
 		},
-		choices: <TName extends Name<TFields>>(name: TName) => choicesOf<Encoded<TFields>[TName]>(offered.get(name)),
+		choices: <TName extends Name<TFields>>(name: TName) => {
+			const member = schema.fields[name];
+			const decodeChoice = SchemaParser.decodeUnknownSync(Schema.toEncoded(schema), { disableChecks: true });
+			return (member ? literalChoices(member.ast) : undefined)?.map((value) => decodeChoice({ ...initialValues, [name]: value })[name]);
+		},
 		dirty: editing.dirty,
 		error,
 		errorAt: Atom.family((path: readonly [Name<TFields>, ...PropertyKey[]]) => {
@@ -132,7 +116,7 @@ export function form<TFields extends Fields, TValue, TError, TServices, TRuntime
 				get(status.touched)[path[0]] === true || get(status.submitted) ? (pathMessageAt(get(status.paths), path) ?? get(message)) : undefined,
 			);
 		}),
-		field: <TName extends Name<TFields>>(name: TName) => fieldOf<Encoded<TFields>[TName]>(refFor(name)),
+		field: refFor,
 		receive: editing.receive,
 		revert: editing.revert,
 		submit,

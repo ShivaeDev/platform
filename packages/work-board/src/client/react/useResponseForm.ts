@@ -33,7 +33,7 @@ export function useResponseForm(source: QuestionPreview, prompts: readonly Promp
 	const [attempted, setAttempted] = useState(false);
 	const readAuthor = useResponseAuthor();
 	const [initial] = useState(() => initialResponse(prompts, readAuthor(), supersedes));
-	const draft = formDraft("response", source.item, source.request);
+	const draft = formDraft(client.now, "response", source.item, source.request);
 	const created = useCreate({
 		create: (submission) => createResponse(client, source, submission),
 		fields: schema,
