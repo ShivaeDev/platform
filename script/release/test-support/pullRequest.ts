@@ -62,7 +62,7 @@ export const releasePullRequest = storyKit({
 					api.state.queued = true;
 				}),
 			readGitHub: () => Effect.sync(() => structuredClone(api.state)),
-			replyToSnapshot: (body: unknown, status: number) => server.replyOnce("graphql", { body, status }),
+			replyToSnapshot: (body: unknown, status: number) => server.scriptFault("graphql", { kind: "status", reply: { body, status } }),
 			run,
 			setCiRun: (status: string, conclusion: string | null = null) =>
 				Effect.sync(() => {

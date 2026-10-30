@@ -165,13 +165,15 @@ The form does not replace submitted encoded input with its decoded representatio
 
 Opt in with `persistedDraft`. The application chooses a key for one logical editing session. Keep that key stable across server revisions so a refresh can find the same draft; choose a new key when the encoded field shape changes. Stored input includes its baseline and edited field names, so edited fields survive reload while untouched fields adopt the latest received values.
 
-For a core form, supply the storage provider explicitly:
+Supply `now`, a function that reads epoch milliseconds from the caller’s clock. Capture `Clock.Clock` in the application’s Effect setup and pass its `currentTimeMillisUnsafe` method through a closure. The same callback reads time on each write and expiry check, so a supplied TestClock controls draft age. For a core form, supply the storage provider explicitly:
 
 ```ts
+const clock = yield* Clock.Clock;
+const now = () => clock.currentTimeMillisUnsafe();
 const order = form(fields, {
 	initialValues: { name: "Paper", quantity: "300" },
 	onSubmit: Effect.succeed,
-	persistedDraft: { key: "order:123", storage: () => window.localStorage },
+	persistedDraft: { key: "order:123", now, storage: () => window.localStorage },
 	runtime,
 });
 ```
@@ -182,8 +184,8 @@ For a React form, call `usePersistedDraft` before creating the form. It defaults
 import { useState } from "react";
 import { usePersistedDraft } from "@shivaedev/form/client/react.ts";
 
-function OrderEditor() {
-	const persistedDraft = usePersistedDraft({ key: "order:123" });
+function OrderEditor({ now }: { readonly now: () => number }) {
+	const persistedDraft = usePersistedDraft({ key: "order:123", now });
 	const [order] = useState(() =>
 		form(fields, {
 			initialValues: { name: "Paper", quantity: "300" },
@@ -196,7 +198,7 @@ function OrderEditor() {
 }
 ```
 
-`OrderFields` is the application's field UI. Keep this component mounted for one record; remount it when its identity changes. `useEditor` and `useCreate` from `react` accept `persistedDraft: { key }` directly and attach the same owner. A committed `SessionBoundary` session replacement or sign-out drops its tracked drafts, including screens already unmounted, and disables writes from its old forms. A suspended replacement that is canceled preserves the visible session's stored draft and future persistence. Ordinary unmounts and React effect replay preserve stored drafts. A stored draft with a different session generation is discarded when read.
+`OrderFields` is the application's field UI. Keep this component mounted for one record; remount it when its identity changes. `useEditor` and `useCreate` from `react` accept `persistedDraft: { key, now }` directly and attach the same owner. A committed `SessionBoundary` session replacement or sign-out drops its tracked drafts, including screens already unmounted, and disables writes from its old forms. A suspended replacement that is canceled preserves the visible session's stored draft and future persistence. Ordinary unmounts and React effect replay preserve stored drafts. A stored draft with a different session generation is discarded when read.
 
 Each stored record defaults to at most 256 KiB of UTF-8 JSON and seven days since its last write. Set `maxBytes` and `maxAgeMs` to finite positive limits to change those bounds. Oversized, expired, malformed or incompatible records are dropped when encountered. Persistence requires JSON-compatible encoded input; invalid input such as an empty required string or an unfinished numeric string still persists. Storage access, serialization and quota failures leave the form usable.
 

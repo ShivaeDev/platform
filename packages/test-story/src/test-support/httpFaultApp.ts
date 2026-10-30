@@ -41,11 +41,9 @@ function httpFaultKit(clock: "live" | "test") {
 			return {
 				advanceTime: (millis: number) => TestClock.adjust(millis),
 				close: () => Scope.close(scope, Exit.void),
-				failOnce: service.failOnce,
 				fault: service.fault,
 				hold: service.hold,
 				releaseOnArrival: service.releaseOnArrival,
-				replyOnce: service.replyOnce,
 				request: (path = "/data") =>
 					Effect.acquireRelease(
 						Effect.sync(() => httpProbe(`${service.url}${path}`)),
@@ -66,9 +64,12 @@ function httpFaultKit(clock: "live" | "test") {
 				streamChunks: (pieces: readonly (string | Uint8Array)[]) => {
 					const gates = pieces.map(() => Promise.withResolvers<void>());
 					chunkReleases.push(...gates.map((gate) => () => gate.resolve()));
-					return service.replyOnce("data", {
-						chunks: replyChunks(pieces, gates),
-						headers: { "content-type": "application/octet-stream" },
+					return service.scriptFault("data", {
+						kind: "status",
+						reply: {
+							chunks: replyChunks(pieces, gates),
+							headers: { "content-type": "application/octet-stream" },
+						},
 					});
 				},
 				waitForDisconnect: () =>

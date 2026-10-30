@@ -84,6 +84,8 @@ export const sessions = {
 
 `trustedOrigins({ allow, missing })` accepts an exact allowlist and supports `missing: "reject"` or `"allow"`; a custom `OriginPolicy` can decide from the RPC name or transport headers. A denied policy fails with `Forbidden` before provider lookup. The host's HTTP guard also checks Origin against the local request's Host.
 
+To also accept the transport guard's same-origin requests, pass `sameOrigin: { trustedProxy }`, with the same proxy IP addresses or CIDR ranges as the host. This admits direct loopback HTTP and the forwarded HTTP or HTTPS authority only from a matching transport peer. Session resolution supplies that peer from the HTTP request, including the WebSocket upgrade; RPC message headers cannot supply it. Missing Origins still follow `missing`. Leave `sameOrigin` absent when an explicit public-origin allowlist should be the only authority.
+
 The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
 ### Mount Better Auth

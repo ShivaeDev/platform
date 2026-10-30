@@ -1,4 +1,3 @@
-import { Clock, Effect } from "effect";
 import { expect } from "vitest";
 import { drafts, persistedDraft, storedDraft } from "#test/draftStories.ts";
 
@@ -9,7 +8,7 @@ for (const maxAgeMs of [undefined, 1000]) {
 		function* ({ type, reload, draft, advanceAgeBy }) {
 			yield* type("name", "Old answer");
 			expect(window.localStorage.getItem("aged")).not.toBeNull();
-			advanceAgeBy((maxAgeMs ?? 7 * 24 * 60 * 60 * 1000) + 1);
+			yield* advanceAgeBy((maxAgeMs ?? 7 * 24 * 60 * 60 * 1000) + 1);
 			yield* reload();
 			expect(draft().editor().form.values.value.name).toBe("Paper");
 			expect(window.localStorage.getItem("aged")).toBeNull();
@@ -42,7 +41,7 @@ for (const raw of [
 		baseline: { name: "Paper", quantity: "300" },
 		edited: ["name"],
 		session: "first",
-		updatedAt: Effect.runSync(Clock.currentTimeMillis),
+		updatedAt: 0,
 		values: { name: 42, quantity: "300" },
 		version: 1,
 	}),
