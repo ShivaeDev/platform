@@ -418,6 +418,27 @@ Caller-chosen request ids are correlation data. Keep authorization tied to the a
 
 The app host of `@shivaedev/server` adds this tracing to its RPC group and continues the caller's W3C trace; react's [action tracing](https://github.com/ShivaeDev/platform/blob/main/packages/react/README.md#trace-an-action-across-rpcs) follows one browser action through RPC, SQL and a queued job.
 
+### Reference users from app tables
+
+App tables reference users by foreign key. Import `userReference` for the default Better Auth user table and id column, and use native Effect SQL identifiers in the app's migration:
+
+```ts
+import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
+import { userReference } from "@shivaedev/identity/server/better-auth/userReference.ts";
+
+export default Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`create table notes (
+		id serial primary key,
+		user_id text not null references ${sql(userReference.table)} (${sql(userReference.column)}) on delete cascade,
+		title text not null
+	)`;
+});
+```
+
+Run the auth schema migration before the app migration. Use `ON DELETE CASCADE` to delete owned rows with their user, or a nullable `user_id` and `ON DELETE SET NULL` to retain rows without an owner. `userReference` describes the default PostgreSQL mapping, so an application that customizes Better Auth's user table or id column must use its own mapping. Account reads and writes still go through identity; the foreign key grants no access to auth data. Quality's `boundaries/auth-sql` accepts these references while rejecting other auth SQL outside the configured owners.
+
 ### Signed-in story preconditions
 
 Use `testUtils()` from `better-auth/plugins` in a test-only Better Auth instance with the host's database, secret and cookie policy. Keep the plugin out of production auth options.
@@ -510,6 +531,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/revokeUnadmitted.ts`     | `RevokedSessions`: the `{ users, sessions }` counts of a revocation.                                                                                                                                                                                                      |
 | `server/better-auth/userProfiles.ts`         | Public profile lookups for other users.                                                                                                                                                                                                                                   |
 | `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                                       |
+| `server/better-auth/userReference.ts`        | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                                                  |
 | `server/better-auth/testDatabase.ts`         | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                                          |
 | `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only minted user sessions and credential storage observations.                                                                                                                                 |
 

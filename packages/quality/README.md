@@ -171,7 +171,7 @@ Quality's `tests/story-setup` rule reports top-level test functions named with t
 
 Specs keep expectations visible. `tests/spec-helpers` moves all module-level helper functions out of specs and into the kit; `tests/no-expect-in-support` moves `expect` calls into the spec, except in test-support files that register tests at module top level and are not imported by any module, so nested Vitest runs can execute them as test files with real assertions. `tests/named-values` rejects numeric literals passed to `toBe` or `toHaveLength` in specs, except zero and process exit codes asserted on an `exitCode` subject: assert the observed items or use a domain name that comes from the story's inputs or the product. For HTTP statuses, import `* as HttpStatus` from `effect/http/HttpStatus` and use `HttpStatus.fromLiteral("NotFound")`; subjects named `status` or `code` do not exempt numeric assertions. A spec-local numeric const that only feeds these matchers is reported, including aliases for zero and codes. `tests/no-limit-imports` rejects importing `MAX_*` constants from a `limits` module into specs, so a story proves behavior instead of copying an implementation cap.
 
-`boundaries/queue-sql` rejects SQL mentioning the private `pgboss.` schema. Apps use their queue definitions and let workers process jobs; there is no queue-purge API by design. `boundaries/auth-sql` rejects SQL accessing Better Auth's `user`, `account`, `session` and `verification` tables. Apps use platform's auth API; `options.owners` names platform's own auth implementation and its migrations. These rules inspect SQL templates, literal query calls and query variables, and inventoried `.sql` files. They do not evaluate arbitrary runtime SQL construction.
+`boundaries/queue-sql` rejects SQL mentioning the private `pgboss.` schema. Apps use their queue definitions and let workers process jobs; there is no queue-purge API by design. `boundaries/auth-sql` rejects SQL accessing Better Auth's `user`, `account`, `session` and `verification` tables. App tables reference users by foreign key: migrations may reference only `user(id)` with `ON DELETE CASCADE` or `ON DELETE SET NULL`. Import `userReference` from `@shivaedev/identity/server/better-auth/userReference.ts` and interpolate `sql(userReference.table)` and `sql(userReference.column)` in the reference. Apps use identity for account data; `options.owners` names platform's own auth implementation and its migrations. These rules inspect SQL templates, literal query calls and query variables, and inventoried `.sql` files. They do not evaluate arbitrary runtime SQL construction.
 
 `boundaries/http-status` rejects comparisons with HTTP error status numbers, switch cases and literal status-list membership outside `options.edge`. Domain code handles typed errors; the named HTTP edge translates them into transport responses. Process exit codes remain ordinary domain values.
 
@@ -180,7 +180,7 @@ Declare these architectural facts in the repository's quality config; paths and 
 ```ts
 export default defineConfig({
 	rules: {
-		"boundaries/auth-sql": { options: { owners: ["platform/auth/**", "platform/auth-migrations/**"] } },
+		"boundaries/auth-sql": { options: { owners: ["packages/identity/src/server/better-auth/**", "examples/starter/src/server/migrations/**"] } },
 		"boundaries/http-status": { options: { edge: ["src/http/**"] } },
 	},
 });

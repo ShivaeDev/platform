@@ -27,7 +27,7 @@ app.it(
 			expect(profile).toEqual(index % 2 === 0 ? aliceProfile : bobProfile);
 		});
 		const note = yield* alice.create({ title: "Owned by the current user" });
-		expect(yield* storedNoteOwners(note.title)).toEqual([{ ownerId: aliceProfile.id }]);
+		expect(yield* storedNoteOwners(note.title)).toEqual([{ userId: aliceProfile.id }]);
 		const signedOut = yield* anonymous();
 		const anonymousProfile = yield* signedOut.whoami().pipe(Effect.flip);
 		expect(anonymousProfile).toMatchObject({ _tag: "Unauthorized" });

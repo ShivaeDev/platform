@@ -3,7 +3,7 @@ import { SqlClient } from "effect/sql";
 import type { Note } from "#modules/notes/notes.ts";
 
 interface StoredNote extends Note {
-	readonly ownerId: string | null;
+	readonly userId: string | null;
 }
 
 export function storedNotes(tell: (line: string) => void) {
@@ -11,12 +11,12 @@ export function storedNotes(tell: (line: string) => void) {
 		storedNoteOwners: Effect.fn("AppStory.storedNoteOwners")(function* (title: string) {
 			tell(`read the stored owner of ${JSON.stringify(title)}`);
 			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ ownerId: string | null }>`select owner_id from notes where title = ${title}`;
+			return yield* sql<{ userId: string | null }>`select user_id from notes where title = ${title}`;
 		}),
 		storedNotes: Effect.fn("AppStory.storedNotes")(function* () {
 			tell("read the independently stored notes");
 			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<StoredNote>`select id, title, version, word_count, owner_id from notes order by id`;
+			return yield* sql<StoredNote>`select id, title, version, word_count, user_id from notes order by id`;
 		}),
 	};
 }

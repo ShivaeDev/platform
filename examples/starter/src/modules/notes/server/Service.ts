@@ -21,9 +21,9 @@ export const NotesService = defineService({
 	id: "app/NotesService",
 	initialize: makeNotesRepository,
 	methods: (repository) => {
-		function get(id: number, ownerId: string) {
+		function get(id: number, userId: string) {
 			return Effect.gen(function* () {
-				const rows = yield* repository.findMany({ limit: 1, where: { id, ownerId } }).pipe(Effect.mapError(unavailable));
+				const rows = yield* repository.findMany({ limit: 1, where: { id, userId } }).pipe(Effect.mapError(unavailable));
 				return rows[0] ?? (yield* Effect.fail(new NotFound({ message: "Note not found" })));
 			});
 		}
@@ -34,36 +34,36 @@ export const NotesService = defineService({
 			});
 		}
 		return {
-			canRead: (id: number, ownerId: string) =>
+			canRead: (id: number, userId: string) =>
 				repository.findMany({ limit: 1, where: { id } }).pipe(
-					Effect.map((rows) => rows[0] === undefined || rows[0].ownerId === ownerId),
+					Effect.map((rows) => rows[0] === undefined || rows[0].userId === userId),
 					Effect.mapError(unavailable),
 				),
-			create: ({ title }: typeof Create.payload.Type, ownerId: string) =>
+			create: ({ title }: typeof Create.payload.Type, userId: string) =>
 				Effect.gen(function* () {
 					const trimmed = title.trim();
 					if (trimmed === "") {
 						return yield* Create.reject.Invalid({ field: "title", message: "Enter a title" });
 					}
-					const row = yield* repository.insert({ ownerId, title: trimmed, wordCount: null }).pipe(Effect.mapError(unavailable));
+					const row = yield* repository.insert({ title: trimmed, userId, wordCount: null }).pipe(Effect.mapError(unavailable));
 					return row;
 				}).pipe(
 					transact({ onSqlError: unavailable }),
 					Effect.tap((row) => enqueue(row.id)),
 				),
-			delete: (input: typeof Delete.payload.Type, ownerId: string) =>
+			delete: (input: typeof Delete.payload.Type, userId: string) =>
 				Effect.gen(function* () {
-					yield* get(input.id, ownerId);
+					yield* get(input.id, userId);
 					yield* repository.delete(input.id, input.version).pipe(Effect.mapError(writeFailure));
 				}).pipe(transact({ onSqlError: unavailable })),
 			get,
-			list: (ownerId: string) =>
+			list: (userId: string) =>
 				repository
-					.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id", "title", "wordCount", "version"], where: { ownerId } })
+					.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id", "title", "wordCount", "version"], where: { userId } })
 					.pipe(Effect.mapError(unavailable)),
-			update: (input: typeof Update.payload.Type, ownerId: string) =>
+			update: (input: typeof Update.payload.Type, userId: string) =>
 				Effect.gen(function* () {
-					const row = yield* get(input.id, ownerId);
+					const row = yield* get(input.id, userId);
 					const title = input.title.trim();
 					if (title === "") {
 						return yield* Update.reject.Invalid({ field: "title", message: "Enter a title" });
