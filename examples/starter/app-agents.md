@@ -57,6 +57,14 @@ function List({ items }) {
 
 Run `pnpm run setup` after cloning to install dependencies and the pre-commit hook. Use `pnpm dev` to prepare the local databases and start development, `pnpm test` for the app's tests, `pnpm format` for formatting, and `pnpm ready` for lint, typecheck, build and tests. Set `TEST_DATABASE_URL` to a dedicated PostgreSQL database whose role can create disposable test databases. A server change needs a real PostgreSQL and HTTP story; a form change needs a happy-dom story.
 
+Quality accepts colocated `<file>.test.ts` for a source file and `<behaviour>.spec.ts` for a behaviour. Use at most one modifier before `.test` or `.spec`:
+- `dom`: React rendering and browser interactions in happy-dom, with `.tsx` when needed.
+- `slow`: expensive integration stories, run explicitly with `--project slow`.
+- `unit`: pure functions that reach no I/O, engine or mocks.
+- `typecheck`: compiler-only type assertions, excluded from Vitest; `@ts-expect-error` belongs in `*.typecheck.test.ts`.
+
+See [Quality's test rules](https://github.com/ShivaeDev/platform/blob/main/packages/quality/README.md#story-tests) for naming, stories and isolation.
+
 Write and review stories using the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It is the source of the rules for observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and running one spec. Extend the kits in `src/test-support` with domain traits, actions and readouts.
 
 The Quality baseline only goes down. Use `pnpm baseline write --rule <id>` only to record findings for a new rule added by a Quality upgrade. After fixing findings in changed files, run `pnpm baseline tighten`; use `pnpm baseline prune` to lower every entry across the app.
