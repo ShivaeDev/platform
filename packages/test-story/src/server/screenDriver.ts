@@ -18,17 +18,30 @@ export class MissingScreenPending extends Data.TaggedError("MissingScreenPending
 		"Cannot settle the screen without the pending option.\nhelp: Supply pending: () => boolean that reads the application's pending work and stays true until its resulting screen work is ready to render.";
 }
 
-export type ScreenDriver<E = never> = Omit<ReturnType<typeof makeScreenDriver>, "settle"> & {
+export type ScreenDriver<E = never> = Omit<ReturnType<typeof makeScreenActions>, "settle"> & {
 	settle: (options?: { readonly timeoutMs?: number }) => Effect.Effect<void, E>;
+	within: (container: ScreenTarget | HTMLElement) => ScreenDriver<E>;
 };
 
 export function screenDriver(options: ScreenDriverOptions & { readonly pending: () => boolean }): ScreenDriver;
 export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending>;
-export function screenDriver(options: ScreenDriverOptions) {
-	return makeScreenDriver(options);
+export function screenDriver(options: ScreenDriverOptions): ScreenDriver<MissingScreenPending> {
+	const suppliedRoot = options.root;
+	const root = typeof suppliedRoot === "function" ? suppliedRoot : () => suppliedRoot;
+	const elements = screenElements(root);
+	return {
+		...makeScreenActions(options),
+		within: (container) => {
+			function scopedRoot() {
+				return container instanceof HTMLElement ? elements.rendered(container, container.tagName.toLowerCase()) : elements.element(container);
+			}
+			scopedRoot();
+			return screenDriver({ ...options, root: scopedRoot });
+		},
+	};
 }
 
-function makeScreenDriver({ root, pending, tell, act = (action) => action(), timeoutMs = 3000 }: ScreenDriverOptions) {
+function makeScreenActions({ root, pending, tell, act = (action) => action(), timeoutMs = 3000 }: ScreenDriverOptions) {
 	const currentRoot = typeof root === "function" ? root : () => root;
 	const elements = screenElements(currentRoot);
 	function perform(line: string, action: () => void) {

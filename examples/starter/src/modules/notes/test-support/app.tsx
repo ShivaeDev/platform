@@ -15,6 +15,7 @@ import { connectModules } from "#client/Module.ts";
 import { makeNotesClient } from "#modules/notes/client/make.ts";
 import { notesRegistration } from "#modules/notes/client/registration.tsx";
 import { heldSignIn } from "#modules/notes/test-support/heldSignIn.ts";
+import { notesMemberScreens } from "#modules/notes/test-support/memberScreens.tsx";
 import { screenActions } from "#modules/notes/test-support/screenActions.ts";
 import { screenObservations } from "#modules/notes/test-support/screenObservations.ts";
 import { credentials } from "#test-support/authHttp.ts";
@@ -36,7 +37,16 @@ export const notesApp = storyKit({
 		const signIn = heldSignIn(host.fetch);
 		const auth = makeAuth({ baseUrl: host.baseUrl, fetchOptions: { customFetchImpl: signIn.fetch } });
 		const screen: ScreenSurface = { view: undefined };
-		return { ...host, ...screen, auth, authStorage, headers: new Headers(), history: createMemoryHistory({ initialEntries: ["/sign-in"] }), signIn };
+		return {
+			...host,
+			...screen,
+			auth,
+			authStorage,
+			headers: new Headers(),
+			history: createMemoryHistory({ initialEntries: ["/sign-in"] }),
+			members: notesMemberScreens(host.baseUrl),
+			signIn,
+		};
 	},
 	inspect: ({ history, view }) => ({ route: history.location.pathname, text: view?.container.textContent }),
 	layer: postgres,
@@ -44,6 +54,7 @@ export const notesApp = storyKit({
 	stages: ["account", "transport", "screen"],
 	verbs: (engine, story) => ({
 		...screenActions(engine, story.tell),
+		...engine.members.verbs(story.tell),
 		...screenObservations(engine),
 		button: (label: string) => {
 			if (engine.view === undefined) {
@@ -138,5 +149,14 @@ export function signedInAccount() {
 		engine.headers = headers;
 		engine.fetch = globalThis.fetch;
 		engine.auth = makeAuth({ baseUrl: engine.baseUrl, fetchOptions: { customFetchImpl: engine.fetch, headers } });
+	});
+}
+
+export function signedInMembers(...names: readonly string[]) {
+	return notesApp.trait("screen", `${names.join(" and ")} open their own signed-in notes screens`, function* (engine) {
+		for (const name of names) {
+			const { cookies } = yield* mintUser({ origin: engine.baseUrl }, name);
+			yield* engine.members.open(name, cookies);
+		}
 	});
 }
