@@ -3,7 +3,7 @@ import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migrationConvention.ts";
 import { CreateAppError } from "#CreateAppError.ts";
-import { prepareFile, type Template, Versions } from "#template.ts";
+import { prepareFile, prepareManifest, type Template, Versions } from "#template.ts";
 
 const appPaths = new Map([
 	["app-agents.md", "AGENTS.md"],
@@ -45,5 +45,13 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 		}
 	});
 	yield* visit("");
+	const manifest = entries.find((entry) => entry.path === "package.json");
+	if (manifest !== undefined) {
+		const minimal = yield* Effect.try({
+			catch: (cause) => new CreateAppError({ message: String(cause) }),
+			try: () => prepareManifest(Buffer.from(manifest.content, "base64").toString(), versions, true),
+		});
+		entries.push({ content: Buffer.from(minimal).toString("base64"), path: "package.minimal.json" });
+	}
 	yield* fs.writeFileString(output, `${JSON.stringify(entries)}\n`);
 });

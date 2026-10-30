@@ -40,8 +40,7 @@
 		"pg": "catalog:",
 		"pg-boss": "catalog:",
 		"react": "catalog:",
-		"react-dom": "catalog:",
-		"recharts": "catalog:"
+		"react-dom": "catalog:"
 	},
 	"devDependencies": {
 		"@effect/vitest": "catalog:",
