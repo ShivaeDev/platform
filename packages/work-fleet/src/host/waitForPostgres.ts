@@ -1,7 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { databaseAddress } from "@shivaedev/server/databaseAddress.ts";
+import { databaseAddress } from "@shivaedev/sql/databaseAddress.ts";
 import { type FleetHost, HostFailure } from "#host/config.ts";
 
 export const waitForPostgres = Effect.fn("FleetDaemon.waitForPostgres")(function* (host: FleetHost) {

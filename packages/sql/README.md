@@ -21,13 +21,32 @@ const rows = yield* lines.findMany({
 
 ### How to think about it
 
-The application owns the database schema and its native Effect `SqlClient` layer. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
+The application owns the database schema. For PostgreSQL, `postgresLayer` provides one native pool and the Effect SQL clients that use it. Configure new clients with `clientOptions` to map camelCase model fields to snake_case PostgreSQL columns. A **model** describes decoded row fields and the variants used for insertion, updating and JSON. A **repository** combines native `SqlModel` CRUD with a small `findMany` query whose filters and selected results use those fields.
 
 Repository writes announce their table and returned row keys automatically. Every written row keeps its record key, including in bulk writes. Fields marked with `bucket` also announce their old and new bucket keys. Each write uses `transact`; start a surrounding multi-write boundary with `transact` too, so keys leave only after its owning database commits. Bare native transactions are refused because their commit cannot be observed. The change ownership comes from `changes`; this package supplies the SQL boundary and the Reactivity publisher.
 
 Migrations are ordinary Effects loaded by native Migrator. `migratePostgres` adds coordination for PostgreSQL runners sharing a ledger. It does not derive a table from a model: migration SQL and row codecs must agree.
 
 The work has three parts: describe the model and provide its database once, choose repository operations per feature, and put each changed write inside the transaction that owns its commit.
+
+### One PostgreSQL pool per application
+
+`postgresLayer(url, options)` from `@shivaedev/sql/postgresLayer.ts` provides the native `PgPool` service from `@effect/sql-pg/PgPool`, `PgClient` and `SqlClient` together. `options` accepts `applicationName`, `maxConnections`, `transformQueryNames` and `transformResultNames`. Queries, transactions and raw connections reserved with `yield* pool.reserve` share the same `maxConnections` budget. A reservation holds its connection until its scope closes; release it before waiting for work that needs that slot.
+
+```ts
+import * as PgPool from "@effect/sql-pg/PgPool";
+import { Effect, Redacted } from "effect";
+import { postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
+
+const database = postgresLayer(Redacted.make("postgresql://localhost/example"), { maxConnections: 4 });
+const backend = Effect.gen(function* () {
+	const pool = yield* PgPool.PgPool;
+	const connection = yield* pool.reserve;
+	return yield* connection.query("select pg_backend_pid() as pid");
+}).pipe(Effect.scoped, Effect.provide(database));
+```
+
+The Layer owns the pool and waits for every socket to close during shutdown. A reserved connection sees committed writes from client transactions in the same database; it does not implicitly join a client's open transaction. `appDatabase` and database-backed `appHost` from `@shivaedev/server/appHost.ts` compose this Layer and expose the pool to application services.
 
 ### SQL names: configure the client once
 

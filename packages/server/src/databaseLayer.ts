@@ -1,31 +1,28 @@
 import { createHash } from "node:crypto";
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
+import { Config, Context, Duration, Effect, Fiber, Layer, Option, Redacted, Schedule } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator } from "effect/sql";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { assertPostgresMigrations, postgresMigrationError } from "@shivaedev/sql/assertPostgresMigrations.ts";
-import type { SqlNameTransforms } from "@shivaedev/sql/clientOptions.ts";
 import { coordinateWorkerRelease } from "@shivaedev/sql/coordinateWorkerRelease.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 import { type PendingPostgresMigrations, pendingPostgresMigrations } from "@shivaedev/sql/pendingPostgresMigrations.ts";
 import { type PostgresChangesOptions, postgresChanges } from "@shivaedev/sql/postgresChanges.ts";
+import { type PostgresOptions, postgresLayer } from "@shivaedev/sql/postgresLayer.ts";
 import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
-import { postgresClient } from "#adapters/postgresClient.ts";
 import type { AppChanges, AppDatabaseOptions } from "#appHost.ts";
 
-export interface DatabaseConfig extends SqlNameTransforms {
-	readonly applicationName?: string;
+export interface DatabaseConfig extends PostgresOptions {
 	readonly changes?: Partial<Omit<PostgresChangesOptions, "client" | "listenerClient" | "connectionSetting" | "resync">>;
 	readonly databaseUrl?: Redacted.Redacted<string>;
 	readonly listenDatabaseUrl?: Redacted.Redacted<string>;
-	readonly maxConnections?: number;
 }
 
 export function databaseLayer<R, E>(options: AppDatabaseOptions<R, E>, changesService: typeof AppChanges) {
 	const pool = Layer.unwrap(
 		Effect.map(options.config?.databaseUrl === undefined ? Config.Redacted("DATABASE_URL") : Effect.succeed(options.config.databaseUrl), (url) =>
-			PgClient.layerFrom(postgresClient(url, options.config)),
+			postgresLayer(url, options.config),
 		),
 	);
 	const prepared = Layer.effectDiscard(prepareMigrations(options.migrations)).pipe(Layer.provideMerge(pool));
@@ -46,7 +43,12 @@ export function databaseLayer<R, E>(options: AppDatabaseOptions<R, E>, changesSe
 			const channel = changes?.channel ?? `changes_${createHash("sha256").update(name).digest("hex").slice(0, 32)}`;
 			const listenUrl = options.config?.listenDatabaseUrl ?? Option.getOrUndefined(yield* Config.Redacted("LISTEN_DATABASE_URL").pipe(Config.option));
 			const listenerClient =
-				listenUrl === undefined ? client : yield* postgresClient(listenUrl, { applicationName: options.config?.applicationName, maxConnections: 1 });
+				listenUrl === undefined
+					? client
+					: yield* Effect.map(
+							Layer.build(postgresLayer(listenUrl, { applicationName: options.config?.applicationName, maxConnections: 1 })),
+							(context) => Context.get(context, PgClient.PgClient),
+						);
 			let connectionSetting = options.config?.databaseUrl === undefined ? "DATABASE_URL" : "config.databaseUrl";
 			if (listenUrl !== undefined) {
 				connectionSetting = options.config?.listenDatabaseUrl === undefined ? "LISTEN_DATABASE_URL" : "config.listenDatabaseUrl";
