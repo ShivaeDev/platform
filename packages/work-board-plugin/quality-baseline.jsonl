@@ -13,6 +13,5 @@
 {"path":"packages/work-board-plugin/src/registerTools.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board-plugin/src/registerTools.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board-plugin/src/rpc.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board-plugin/src/runningWork.dom.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board-plugin/src/serveTools.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board-plugin/src/serveTools.ts","rule":"effect/boundary","count":4}
