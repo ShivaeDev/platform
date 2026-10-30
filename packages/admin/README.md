@@ -133,7 +133,7 @@ const registration = registerAdmin(Admin, {
 });
 ```
 
-This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs`, through the same page middleware. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
+This variant adds only `admin.jobs.retry`, taking `{ queue, id }` and returning void. It requires `ReadJobs` (`jobs.read`) through the page middleware and `RetryJobs` (`jobs.retry`) from `@shivaedev/admin/permissions.ts` in the handler. A caller with only `jobs.read` receives `Forbidden` and the job stays failed. The handler uses the jobs package's existing retry for a failed job in a declared queue. Missing jobs and jobs in other states fail with `JobsNotFailed`; unregistered queue names, including dead-letter queues, fail with `JobsQueueUnregistered`. A dead-letter copy's id cannot retry its original.
 
 A successful bound retry invalidates health, the affected queue's counts and both listings, and the original job's detail. Health retains the runtime monitor's refresh timing.
 

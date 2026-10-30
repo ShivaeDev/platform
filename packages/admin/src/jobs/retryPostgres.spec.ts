@@ -5,7 +5,24 @@ import { type JobsView, jobsStory, mailFails, mounted, signedInAs, syncWaits } f
 const admin = signedInAs("admin");
 
 jobsStory.it(
-	"an admin's retry of failed mail 42 delivers it a second time and it completes",
+	"an operator with only jobs.read is forbidden to retry failed mail 42, which stays failed",
+	[signedInAs("operator"), mailFails(42)],
+	function* ({ deliveries, lastAnswerOnTheWire, retry, stateOf, workersFinish }) {
+		yield* retry("mail 42");
+
+		expect(yield* lastAnswerOnTheWire()).toContain('"_tag":"Forbidden"');
+
+		yield* workersFinish();
+
+		yield* outcomes({
+			deliveries: [deliveries(), ["mail 42"]],
+			"mail 42's state": [stateOf("mail 42"), "failed"],
+		});
+	},
+);
+
+jobsStory.it(
+	"an admin with jobs.retry retries failed mail 42, delivering it a second time and completing it",
 	[admin, mailFails(42)],
 	function* ({ deliveries, retry, stateOf, workersFinish }) {
 		expect(yield* deliveries()).toEqual(["mail 42"]);
