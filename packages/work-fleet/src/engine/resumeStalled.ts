@@ -1,5 +1,6 @@
 import { Effect } from "effect";
 import { closeDecisions } from "#engine/closeDecisions.ts";
+import { isAnswerTurn } from "#engine/isAnswerTurn.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import type { Attempt, FleetRecord } from "#model.ts";
 import type { DecisionResponse } from "#policy.ts";
@@ -52,5 +53,7 @@ export const resumeObservedStall = Effect.fn("Fleet.resumeObservedStall")(functi
 		observation.execution === "completed"
 		|| (observation.activityAt !== undefined && observation.activityAt >= (attempt.stallRecovery?.lastActionAt ?? Number.POSITIVE_INFINITY))
 		|| (observation.progress !== undefined && JSON.stringify(observation.progress) !== attempt.progress?.signature);
-	return stored.value.decision?.code === "session-stalled" && moving ? yield* resumeStalled(state, stored) : stored;
+	const missingTurnFound =
+		stored.value.decision?.code === "session-turn-missing" && observation.turnMissing !== true && isAnswerTurn(stored.value, attempt);
+	return missingTurnFound || (stored.value.decision?.code === "session-stalled" && moving) ? yield* resumeStalled(state, stored) : stored;
 });

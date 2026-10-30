@@ -7,6 +7,10 @@ function sorted(progress: readonly Progress[]) {
 	return [...progress].sort((left, right) => left.id.localeCompare(right.id));
 }
 
+function followActivity(activity: CodexActivity | undefined, sessionId: string) {
+	return (activity?.follow(sessionId) ?? Effect.void).pipe(Effect.ignore);
+}
+
 export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provisioning: SessionObservation["provisioning"], activity?: CodexActivity) {
 	const terminal = new Map<string, SessionObservation>();
 	return Effect.fn("Codex.observe")(function* (receipt: SessionReceipt) {
@@ -17,7 +21,9 @@ export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provision
 		}
 		const { turn, progress } = yield* turns.readTurn(receipt.sessionId, receipt.turnId);
 		if (turn === undefined) {
+			yield* followActivity(activity, receipt.sessionId);
 			return {
+				activityAt: activity?.at(receipt.sessionId),
 				execution: "accepted" as const,
 				output: "",
 				progress: sorted(progress),
@@ -28,7 +34,7 @@ export function observeCodexTurn(turns: ReturnType<typeof codexTurns>, provision
 		}
 		if (turn.status === "inProgress") {
 			// The latest item still observes the turn when the provider refuses a subscription.
-			yield* (activity?.follow(receipt.sessionId) ?? Effect.void).pipe(Effect.ignore);
+			yield* followActivity(activity, receipt.sessionId);
 			const latest = yield* turns.latestItem(receipt.sessionId, receipt.turnId);
 			return {
 				activityAt: activity?.at(receipt.sessionId),

@@ -18,6 +18,7 @@ export const Attempt = Schema.Struct({
 			observationError: Schema.optional(Schema.String),
 		}),
 	),
+	answerTurn: Schema.optional(Schema.Boolean),
 	checkFailures: Schema.optional(Schema.Array(Schema.String)),
 	finishedAt: Schema.optional(Schema.Number),
 	missingSince: Schema.optional(Schema.Number),

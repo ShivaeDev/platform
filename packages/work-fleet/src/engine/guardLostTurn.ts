@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { EngineState } from "#engine/makeState.ts";
 import { inspectThread, VISIBILITY_GRACE_MS } from "#engine/visibility.ts";
 import type { FleetRecord } from "#model.ts";
@@ -17,8 +18,17 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 	const idle = answered ? yield* inspectThread(state, attempt) : threadIdle;
 	const current = answered ? yield* state.load(stored.value.workId) : stored;
 	const record = current.value;
+	if (yield* observableAnswerTurn(state, record, answered, idle)) {
+		return current;
+	}
 	const missingSince = attempt.missingSince ?? state.policy.now();
-	if (idle === false && state.policy.now() - missingSince < VISIBILITY_GRACE_MS) {
+	if (answered && idle !== true) {
+		return yield* new ServiceUnavailable({
+			message:
+				"Cannot apply answer: the accepted turn is still unobservable and the worker thread is active or unreadable; no answer turn was submitted",
+		});
+	}
+	if (idle === false && state.policy.now() - Math.max(missingSince, attempt.progress?.at ?? 0) < VISIBILITY_GRACE_MS) {
 		return yield* state.save(current, {
 			...record,
 			attempts: record.attempts.map((entry) => (entry.operationId === attempt.operationId ? { ...entry, missingSince } : entry)),
@@ -39,4 +49,19 @@ export const guardLostTurn = Effect.fn("Fleet.guardLostTurn")(function* (
 			: yield* state.save(current, { ...record, blocker: reason });
 	}
 	return undefined;
+});
+
+const observableAnswerTurn = Effect.fn("Fleet.observableAnswerTurn")(function* (
+	state: EngineState,
+	record: FleetRecord,
+	answered: boolean,
+	idle: boolean | undefined,
+) {
+	const receipt = record.attempts.at(-1)?.receipt;
+	return receipt === undefined || !answered || idle !== undefined
+		? false
+		: yield* state.sessions.observe(receipt).pipe(
+				Effect.map((observation) => observation.turnMissing !== true),
+				Effect.catch(() => Effect.succeed(false)),
+			);
 });
