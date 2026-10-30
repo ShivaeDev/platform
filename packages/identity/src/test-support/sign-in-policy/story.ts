@@ -1,14 +1,15 @@
-import { Cause, Clock, Config, Effect, Exit, Option, Result } from "effect";
+import { Cause, Clock, Effect, Exit, Result } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { TestClock } from "effect/testing";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
-import type { RevokedSessions } from "#server/better-auth/revokeUnadmitted.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
 import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
+import { type RequestAnswer, type Revocation, requestFailures, revocationOf, type SignInAnswer, signInRefusals } from "./answers.ts";
 import { emailSignUp, gitHubSignIn } from "./flows.ts";
 import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
 import { type PolicyHost, policyHost } from "./host.ts";
@@ -20,19 +21,6 @@ const RECHECK_INTERVAL = "1 second";
 const UNLISTED_USERS = 120;
 const malformedLists = { "a provider without an account id": "github", "an empty list": "" } as const;
 export type MalformedList = keyof typeof malformedLists;
-
-export type SignInAnswer = "signed in" | "refused" | "unavailable" | `failed: ${string}`;
-export type RequestAnswer = "ok" | "unauthorized" | "auth unavailable" | `failed: ${string}`;
-const signInRefusals = new Map<string | null, SignInAnswer>([
-	["sign_in_refused", "refused"],
-	["sign_in_unavailable", "unavailable"],
-]);
-const requestFailures = new Map<string, RequestAnswer>([
-	["AuthUnavailable", "auth unavailable"],
-	["Unauthorized", "unauthorized"],
-]);
-
-export type Revocation = RevokedSessions | "stopped by a configuration error" | "stopped by a failed policy check" | `stopped: ${string}`;
 
 interface Engine {
 	readonly accounts: Map<string, GitHubAccount>;
@@ -92,17 +80,6 @@ const signedInOn = Effect.fnUntraced(function* (engine: Engine, person: Person, 
 	}
 });
 
-function revocationOf(exit: Exit.Exit<RevokedSessions, unknown>): Revocation {
-	if (Exit.isSuccess(exit)) {
-		return exit.value;
-	}
-	const error = Option.getOrUndefined(Cause.findErrorOption(exit.cause));
-	if (Cause.isUnknownError(error)) {
-		return "stopped by a failed policy check";
-	}
-	return error instanceof Config.ConfigError ? "stopped by a configuration error" : `stopped: ${Cause.pretty(exit.cause)}`;
-}
-
 export const signInPolicy = storyKit({
 	after: {
 		*policy(engine) {
@@ -111,7 +88,6 @@ export const signInPolicy = storyKit({
 		},
 	},
 	around: withIsolatedDatabase,
-	clock: "live",
 	*create() {
 		const accounts = new Map<string, GitHubAccount>(Object.entries(people).map(([login, id]) => [id, { id, login, member: true }]));
 		const github = yield* fakeGitHub(accounts);
@@ -153,7 +129,7 @@ export const signInPolicy = storyKit({
 				}),
 			recheckIntervalPasses: () => {
 				story.tell(`the ${RECHECK_INTERVAL} recheck interval passes`);
-				return Effect.sleep(RECHECK_INTERVAL).pipe(Effect.andThen(Effect.sleep("50 millis")));
+				return TestClock.adjust(RECHECK_INTERVAL);
 			},
 			remove: (...removed: Person[]) =>
 				Effect.sync(() => {
@@ -282,7 +258,10 @@ export function signedInOnTwoDevices(person: Person) {
 export const moreThanOnePageOfUnlistedUsers = signInPolicy.trait(
 	"sessions",
 	`${UNLISTED_USERS} unlisted GitHub users already hold a session each, more than the 100 users a revocation reads per page`,
-	(engine) => Effect.flatMap(Clock.currentTimeMillis, (now) => Effect.promise(() => host(engine).seedGitHubUsers(UNLISTED_USERS, new Date(now)))),
+	(engine) =>
+		Effect.flatMap(TestClock.withLive(Clock.currentTimeMillis), (now) =>
+			Effect.promise(() => host(engine).seedGitHubUsers(UNLISTED_USERS, new Date(now))),
+		),
 );
 
 export const membershipChecksDown = signInPolicy.trait("conditions", "GitHub stops answering organization membership checks", (engine) =>
