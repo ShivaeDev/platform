@@ -8,6 +8,22 @@ const WEB_VIEW = "capacitor://localhost";
 const UNAUTHORIZED = "failed with unauthorized";
 const mixed = { bearer: "alice", cookie: "bob" };
 
+nativeSessions.it("Alice's bearer reads her linked GitHub account", [alice], function* ({ providerAccounts }) {
+	expect(yield* providerAccounts({ bearer: "alice" })).toEqual([{ accountId: "alice-github", providerId: "github" }]);
+});
+
+nativeSessions.it("with Alice's bearer and Bob's cookie, the provider-account read belongs to Bob", [both], function* ({ providerAccounts }) {
+	expect(yield* providerAccounts(mixed)).toEqual([{ accountId: "bob-github", providerId: "github" }]);
+});
+
+nativeSessions.it("a revoked Bob cookie cannot use Alice's bearer to read provider accounts", [both], function* ({ providerAccounts, signsOut }) {
+	expect(yield* providerAccounts(mixed)).toEqual([{ accountId: "bob-github", providerId: "github" }]);
+
+	yield* signsOut(mixed);
+
+	expect(yield* providerAccounts(mixed)).toBe(UNAUTHORIZED);
+});
+
 nativeSessions.it(
 	"Alice's native sign-in issues a signed bearer credential exposed to the WebView",
 	[nativeTransport, passwordAccount("alice")],

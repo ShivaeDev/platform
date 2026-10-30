@@ -9,6 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { ProviderAccountValue } from "#identity.ts";
 import { allowedAccounts } from "#server/better-auth/allowedAccounts.ts";
 import type { SignInPolicy } from "#server/better-auth/signInGate.ts";
+import { accountVerbs } from "./accountVerbs.ts";
 import { type RequestAnswer, type Revocation, requestFailures, revocationOf, type SignInAnswer, signInRefusals } from "./answers.ts";
 import { emailSignUp, gitHubSignIn } from "./flows.ts";
 import { fakeGitHub, type GitHubAccount, ORGANIZATION } from "./github.ts";
@@ -25,7 +26,7 @@ export type MalformedList = keyof typeof malformedLists;
 
 interface Engine {
 	readonly accounts: Map<string, GitHubAccount>;
-	readonly app: { sessionsOpen: boolean; readonly policy: Effect.Success<typeof policyProbe> };
+	readonly app: { sessionsOpen: boolean; providerAccounts?: boolean; readonly policy: Effect.Success<typeof policyProbe> };
 	readonly cookies: Map<Person, string>;
 	readonly env: Record<string, string>;
 	readonly github: Effect.Success<ReturnType<typeof fakeGitHub>>;
@@ -115,6 +116,7 @@ export const signInPolicy = storyKit({
 		engine.github.narrate(story.tell);
 		return {
 			...requestWork(engine.app.policy, engine.cookies, () => host(engine), story.tell),
+			...accountVerbs(() => host(engine), engine.cookies, story.tell),
 			corruptList: (kind: MalformedList) =>
 				Effect.sync(() => {
 					story.tell(`the operator sets AUTH_ALLOWED_ACCOUNTS to ${JSON.stringify(malformedLists[kind])}, ${kind}`);
@@ -230,6 +232,17 @@ export const signInPolicy = storyKit({
 		};
 	},
 });
+
+export const withProviderAccounts = signInPolicy.trait("policy", "the app supplies Better Auth's provider-account lookup", (engine) => {
+	engine.app.providerAccounts = true;
+});
+
+export function mintedSession(person: Person) {
+	return signInPolicy.trait("sessions", `${person} starts with a minted session and linked GitHub account`, function* (engine) {
+		const session = yield* host(engine).mintSession(person, people[person]);
+		engine.cookies.set(person, session.headers.get("cookie") ?? "");
+	});
+}
 
 export function allowed(...listed: Person[]) {
 	return signInPolicy.trait("policy", `AUTH_ALLOWED_ACCOUNTS lists ${listed.join(" and ")}'s GitHub accounts`, (engine) => {
