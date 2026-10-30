@@ -26,6 +26,7 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 	const merged = state.status === "MERGED";
 	const conclusion = state.failed ? "failure" : "success";
 	return {
+		"/repos/example/repository/branches/main": [{ protected: false }],
 		"/repos/example/repository/git/matching-refs/heads/synthetic%2Fone": [{ ref: "refs/heads/synthetic/one" }],
 		"/repos/example/repository/pulls?state=all&head=example%3Asynthetic%2Fone&per_page=100": [
 			[
@@ -38,7 +39,9 @@ function githubResponses(state: GithubState): Readonly<Record<string, unknown>> 
 			],
 		],
 		"/repos/example/repository/pulls/7/files?per_page=100": [state.paths.map((filename) => ({ filename }))],
-		"/repos/example/repository/rules/branches/main": [[]],
+		"/repos/example/repository/rules/branches/main": [
+			[{ parameters: { "required_status_checks": [{ context: "test" }] }, type: "required_status_checks" }],
+		],
 		[`/repos/example/repository/commits/${state.head}/check-runs?per_page=100&filter=latest`]: [
 			{
 				"check_runs": [

@@ -15,8 +15,9 @@ it.effect("keeps missing required contexts pending and ignores non-required pend
 	expect(yield* fixture.checks(githubResult())).toMatchObject({ passed: true, pending: false });
 });
 
-it.effect("repairs required legacy statuses only and combines required contexts across rule pages", function* () {
+it.effect("repairs required legacy statuses only and combines branch protection with required contexts across rule pages", function* () {
 	const fixture = githubFixture();
+	fixture.branchProtection(["protected"]);
 	fixture.responses.set(
 		"repos/example/project/rules/branches/main",
 		JSON.stringify([
@@ -29,11 +30,11 @@ it.effect("repairs required legacy statuses only and combines required contexts 
 	);
 	fixture.reply(
 		ADOPTED_HEAD,
-		[[checkRun({ name: "verify" }), checkRun({ conclusion: "failure", name: "optional" })]],
+		[[checkRun({ name: "verify" }), checkRun({ conclusion: "failure", name: "optional" }), checkRun({ conclusion: "failure", name: "protected" })]],
 		[[commitStatus({ state: "failure" })]],
 	);
 	const checks = yield* fixture.checks(githubResult());
-	expect(checks).toMatchObject({ failedChecks: ["legacy"], passed: false, pending: false });
+	expect(checks).toMatchObject({ failedChecks: ["legacy", "protected"], passed: false, pending: false });
 	expect(checks.repairPrompt).toContain("legacy: https://example.invalid/logs/legacy");
 	expect(checks.repairPrompt).not.toContain("optional");
 });
