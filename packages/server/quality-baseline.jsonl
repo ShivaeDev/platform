@@ -45,6 +45,7 @@
 {"path":"packages/server/src/otlpExportFailure.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/otlpProtocol.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/otlpRoutes.spec.ts","rule":"tests/grouped-outcomes","count":1}
+{"path":"packages/server/src/otlpTimeout.spec.ts","rule":"tests/wait-on-events","count":2}
 {"path":"packages/server/src/publicConfig.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/publicConfig.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/server/src/publicFailureData.spec.ts","rule":"tests/domain-outcomes","count":3}
