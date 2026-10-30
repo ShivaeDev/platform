@@ -37,8 +37,7 @@ export function visitor(role: Role | undefined, initial = "/notes/first", server
 		state.host = host;
 		const session = role === undefined ? undefined : yield* host.payload(role);
 		const denied =
-			(initial.startsWith("/notes/") && role !== undefined && role !== "reader")
-			|| ((initial === "/query" || initial.startsWith("/notes/")) && serverRole !== undefined && serverRole !== "reader");
+			(initial.startsWith("/notes/") && role === "guest") || ((initial === "/query" || initial.startsWith("/notes/")) && serverRole === "guest");
 		const unavailable = initial === "/notes/offline";
 		const view = yield* screen.open(
 			null,

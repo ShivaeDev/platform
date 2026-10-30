@@ -2,6 +2,7 @@ import { Effect, Schema } from "effect";
 import { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Permission } from "#permission.ts";
+import { requirePermission } from "#requirePermission.ts";
 import type { User } from "#roleSet.ts";
 import { Access, AccessWithReaderTwice, AssignRoles, ReadAllUsers, ReadJobDetails, ReadJobs, ReadUsers } from "./policy.ts";
 
@@ -46,6 +47,10 @@ function signedInUser(engine: AccessEngine) {
 		: Effect.succeed(engine.user);
 }
 
+function permissionUser(engine: AccessEngine) {
+	return Effect.flatMap(signedInUser(engine), (user) => engine.access.resolve(user.role));
+}
+
 export const accessStory = storyKit({
 	create: (): AccessEngine => ({ access: Access, user: undefined }),
 	name: "application access",
@@ -53,13 +58,13 @@ export const accessStory = storyKit({
 	verbs: (engine) => ({
 		allowedGrants: () =>
 			Effect.gen(function* () {
-				const user = yield* signedInUser(engine);
-				const outcomes = yield* Effect.forEach(DECLARED_PERMISSIONS, (permission) => allowed(engine.access.requirePermission(user, permission)));
+				const user = yield* permissionUser(engine);
+				const outcomes = yield* Effect.forEach(DECLARED_PERMISSIONS, (permission) => allowed(requirePermission(user, permission)));
 				return grantNames(DECLARED_PERMISSIONS.filter((_, index) => outcomes[index] === "allowed"));
 			}),
 		checkRead: (owner: Owner) => Effect.sync(() => engine.access.canAccess(engine.user, ReadUsers, owner)),
 		decodeRole: (stored: string) => outcomeOf(Schema.decodeUnknownEffect(engine.access.Role)(stored)),
-		enforceGrant: (permission: Permission) => allowed(engine.access.requirePermission(engine.user, permission)),
+		enforceGrant: (permission: Permission) => Effect.flatMap(permissionUser(engine), (user) => allowed(requirePermission(user, permission))),
 		enforceRead: (owner: Owner) => allowed(engine.access.requireAccess(engine.user, ReadUsers, owner)),
 		resolve: (stored: string) => outcomeOf(engine.access.resolve(stored)),
 		resolvedGrants: () =>

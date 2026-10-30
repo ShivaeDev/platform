@@ -654,7 +654,7 @@ For a loader that coordinates more work, use `loadQuery(registry, atom, loaderCo
 
 #### Session permissions and guarded routes
 
-Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` reads exact name and strength grants without making a request. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
+Permissions come from the session payload's `user.permissions`, populated by `@shivaedev/access` through the server's role policy. `can(session, permission)` uses access's grant evaluator without making a request: names match exactly, and an `any` grant covers an `own` check for that name. An `own` grant does not cover an `any` check. `useCan()` supplies the same check from the nearest `PermissionBoundary` for component controls. A signed-out session has no grants. These checks control visibility; the server still authorizes every request.
 
 Declare a route's requirement in TanStack's native `staticData.permission`. Install `permissionGuard` once as the root route's `beforeLoad`; it checks the matched routes before their loaders run. Signed-out visitors go to the app's `signIn` path with the full requested location in the `returnTo` search field. A signed-in session without a required grant throws the shared `Forbidden` failure.
 

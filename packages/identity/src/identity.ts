@@ -1,4 +1,5 @@
 import { Context, type Effect, type Option, Schema } from "effect";
+import { Permission } from "@shivaedev/access/permission.ts";
 import type { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 export class RequestId extends Context.Service<RequestId, string>()("@shivaedev/identity/RequestId") {}
 export interface IdentityValue {
@@ -14,7 +15,7 @@ export const SessionUserSchema = Schema.Struct({
 	email: Schema.String,
 	id: Schema.String,
 	name: Schema.String,
-	permissions: Schema.optionalKey(Schema.Array(Schema.Struct({ name: Schema.String, strength: Schema.Literals(["own", "any"]) }))),
+	permissions: Schema.optionalKey(Schema.Array(Permission)),
 	role: Schema.optional(Schema.NullOr(Schema.String)),
 });
 export type SessionUserValue = typeof SessionUserSchema.Type;
