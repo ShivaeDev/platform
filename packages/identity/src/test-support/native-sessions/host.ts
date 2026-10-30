@@ -10,7 +10,7 @@ import { AppChanges, appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { otlpReceiver } from "@shivaedev/test-story/server/otlpReceiver.ts";
 import { authDatabase, betterAuthMount } from "#server/better-auth/mount.ts";
-import { authenticatedUserLayer } from "#server/session.ts";
+import { authenticatedUserWithProviderAccountsLayer } from "#server/session.ts";
 import { Api, diagnostic, handlers } from "./api.ts";
 
 export const NATIVE_ORIGIN = "capacitor://localhost";
@@ -37,10 +37,13 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 	const activity = { lookups: 0 };
 	const sessions = {
 		origin: () => true,
-		provider: mounted.admittedSessions((headers) => {
-			activity.lookups += 1;
-			return mounted.auth.api.getSession({ headers });
-		}),
+		provider: mounted.admittedSessions(
+			(headers) => {
+				activity.lookups += 1;
+				return mounted.auth.api.getSession({ headers });
+			},
+			(headers) => mounted.auth.api.listUserAccounts({ headers }),
+		),
 		streamRevalidationInterval: "50 millis" as const,
 	};
 	const logs: unknown[] = [];
@@ -60,7 +63,7 @@ export const startHost = Effect.fn("NativeSessions.startHost")(function* (
 		appHost({
 			config: { port: 0, ...(trustedProxy === undefined ? {} : { trustedProxy }) },
 			group: Api,
-			handlers: handlers.pipe(Layer.provideMerge(authenticatedUserLayer(sessions))),
+			handlers: handlers.pipe(Layer.provideMerge(authenticatedUserWithProviderAccountsLayer(sessions))),
 			...(nativeOrigins === undefined ? {} : { nativeOrigins }),
 			routes: Layer.mergeAll(
 				mounted.routes,

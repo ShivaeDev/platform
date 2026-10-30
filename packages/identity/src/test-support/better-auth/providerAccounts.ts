@@ -26,10 +26,11 @@ export function readProviderAccounts(
 	baseUrl: string,
 	fetch: typeof globalThis.fetch,
 	operation: "identityOnly" | "providerAccounts" = "providerAccounts",
+	path = "/rpc",
 ) {
 	const protocol = RpcClient.layerProtocolHttp({
 		transformClient: (client) => HttpClient.mapRequest(client, HttpClientRequest.setHeader("origin", baseUrl)),
-		url: `${baseUrl}/rpc`,
+		url: `${baseUrl}${path}`,
 	}).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]), Layer.provide(Layer.succeed(FetchHttpClient.Fetch, fetch)));
 	return Effect.gen(function* () {
 		const client = yield* RpcClient.make(ProviderAccounts);
