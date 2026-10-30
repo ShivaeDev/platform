@@ -128,7 +128,7 @@ const connect = () => bind(Notes, Client, { resume });
 
 #### Mount the notice host
 
-Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host.
+Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.
 
 ```tsx
 import { Cause } from "effect";
@@ -491,7 +491,7 @@ Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` th
 
 Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
 
-A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
+A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, interrupt their expiry sleeps and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
 
 #### Completion inside each command invocation
 
