@@ -52,7 +52,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
-      contents: read
+      contents: write
       id-token: write
     steps:
       - name: Check out repository
@@ -86,3 +86,9 @@ jobs:
 
       - name: Publish new package versions
         run: pnpm --recursive publish --no-git-checks
+
+      - name: Write GitHub release notes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHANGELOG_BASE_REF: ${{ github.event.before }}
+        run: node --conditions=source script/release/publishNotes.ts
