@@ -95,14 +95,6 @@ export const documentApp = storyKit({
 					redirected.setCookie = response.headers.get("set-cookie");
 					redirected.echo = await response.json();
 				}),
-			redirectCookiesOnPage: () =>
-				Effect.sync(() => {
-					const names = document.cookie
-						.split("; ")
-						.map((cookie) => cookie.split("=")[0])
-						.filter((name) => name === "first" || name === "second");
-					return names.length === 0 ? "none" : names.join(", ");
-				}),
 			requestsSynchronously: () =>
 				Effect.sync(() => {
 					const request = new window.XMLHttpRequest();

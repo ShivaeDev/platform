@@ -29,14 +29,14 @@ for (const [status, method, body] of [
 	documentApp.it(
 		`follows a ${status} redirect with ${method} and the redirect's cookies while hiding them from the page`,
 		[],
-		function* ({ postsThroughRedirect, finalUrl, echo, exposedSetCookie, redirectCookiesOnPage }) {
+		function* ({ postsThroughRedirect, finalUrl, echo, exposedSetCookie, documentCookies }) {
 			yield* postsThroughRedirect(status, "story-body");
 
 			yield* outcomes({
 				"the echoed request": [echo(), { body, cookie: "first=one; second=two", header: "retained", method, path: "/echo" }],
 				"the exposed set-cookie header": [exposedSetCookie(), "none"],
 				"the final address": [finalUrl(), "https://provider.test/echo"],
-				"the redirect cookies on the page": [redirectCookiesOnPage(), "none"],
+				"the page's cookies": [documentCookies(), ""],
 			});
 		},
 	);

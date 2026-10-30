@@ -9,6 +9,7 @@ import { runStories, type StoriesOutcome, type StoriesRun, type StoryResult } fr
 
 export type Fixture =
 	| "brokenHttpStories"
+	| "carriedDocumentStories"
 	| "composedDisabledStories"
 	| "compositionStories"
 	| "disabledStories"
