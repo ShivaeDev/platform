@@ -6,14 +6,12 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { board } from "#server/integration/board.ts";
 import { IndexProgress } from "#server/search/IndexProgress.ts";
 import { type Folder, folder } from "./board.ts";
+import { type IndexAccesses, watchedIndexFilesystem } from "./watchedIndexFilesystem.ts";
 
-interface Engine {
+interface Engine extends IndexAccesses {
 	index?: Effect.Success<ReturnType<typeof board.watchIndex>>;
-	input: PubSub.PubSub<FileSystem.WatchEvent>;
 	notes: Folder;
 	output?: PubSub.Subscription<import("#server/files/changes.ts").Change>;
-	reads: string[];
-	scans: string[];
 }
 
 function started(engine: Engine) {
@@ -35,23 +33,9 @@ export const watchedIndexStory = storyKit({
 				),
 				{ capacity: "unbounded" },
 			);
-			engine.index = yield* board.watchIndex(engine.notes.root).pipe(
-				Effect.provideService(IndexProgress, indexing),
-				Effect.provideService(FileSystem.FileSystem, {
-					...fs,
-					readDirectory: (path) =>
-						Effect.suspend(() => {
-							engine.scans.push(path);
-							return fs.readDirectory(path);
-						}),
-					readFileString: (path, encoding) =>
-						Effect.suspend(() => {
-							engine.reads.push(path);
-							return fs.readFileString(path, encoding);
-						}),
-					watch: (_path, options) => (options?.recursive ? Stream.fromPubSub(engine.input) : Stream.never),
-				}),
-			);
+			engine.index = yield* board
+				.watchIndex(engine.notes.root)
+				.pipe(Effect.provideService(IndexProgress, indexing), Effect.provideService(FileSystem.FileSystem, watchedIndexFilesystem(fs, engine)));
 			yield* Queue.take(ready);
 			engine.output = yield* PubSub.subscribe(engine.index.changes.events);
 		},
@@ -63,10 +47,10 @@ export const watchedIndexStory = storyKit({
 			(acquired) => Effect.sync(acquired.remove),
 		);
 		const input = yield* PubSub.unbounded<FileSystem.WatchEvent>();
-		const engine: Engine = { input, notes, reads: [], scans: [] };
+		const engine: Engine = { checks: [], input, notes, reads: [], scans: [] };
 		return engine;
 	},
-	inspect: (engine) => ({ reads: engine.reads, scans: engine.scans }),
+	inspect: (engine) => ({ checks: engine.checks, reads: engine.reads, scans: engine.scans }),
 	layer: NodeServices.layer,
 	name: "watched Board index",
 	stages: ["project"],
@@ -76,11 +60,13 @@ export const watchedIndexStory = storyKit({
 			engine.notes.write(file, source);
 		},
 		changeEvents: () => PubSub.takeAll(started(engine).output),
+		checkedFiles: () => [...engine.checks],
 		checkPasses: () => {
 			story.tell("the Board runs its full reconciliation check");
 			return started(engine).reconcile;
 		},
 		clearAccesses: () => {
+			engine.checks.length = 0;
 			engine.reads.length = 0;
 			engine.scans.length = 0;
 		},

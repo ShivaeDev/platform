@@ -92,4 +92,5 @@ watchedIndexStory.it("reads after startup touch no unchanged files or directorie
 	expect(next).toBe(first);
 	expect(board.readFiles()).toEqual([]);
 	expect(board.scannedFolders()).toEqual([]);
+	expect(board.checkedFiles()).toEqual([]);
 });
