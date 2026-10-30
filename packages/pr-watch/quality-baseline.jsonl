@@ -1,14 +1,3 @@
 {"path":"packages/pr-watch/src/arguments.ts","rule":"effect/boundary","count":8}
-{"path":"packages/pr-watch/src/checks.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/pr-watch/src/cli.ts","rule":"effect/boundary","count":3}
 {"path":"packages/pr-watch/src/confirmQueue.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/pr-watch/src/io.spec.ts","rule":"tests/domain-outcomes","count":7}
-{"path":"packages/pr-watch/src/io.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/pr-watch/src/merges.spec.ts","rule":"tests/domain-outcomes","count":1}
-{"path":"packages/pr-watch/src/poll.spec.ts","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/pr-watch/src/poll.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/pr-watch/src/queue.spec.ts","rule":"tests/domain-outcomes","count":2}
-{"path":"packages/pr-watch/src/rateLimitedPolling.spec.ts","rule":"tests/domain-outcomes","count":4}
-{"path":"packages/pr-watch/src/rateLimitedPolling.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/pr-watch/src/retryBackoff.spec.ts","rule":"tests/domain-outcomes","count":2}
-{"path":"packages/pr-watch/src/transientPolling.spec.ts","rule":"tests/domain-outcomes","count":2}

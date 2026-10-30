@@ -1,8 +1,8 @@
 import { join } from "node:path";
 import process from "node:process";
 import { Effect } from "effect";
-import type { Engine } from "#test/engine.ts";
-import { watch } from "#test/watch.ts";
+import type { Engine } from "./engine.ts";
+import { watch } from "./watch.ts";
 
 const ghAccount = Effect.fnUntraced(function* (engine: Engine, token: string | undefined) {
 	const fs = engine.io.fs;
@@ -17,12 +17,19 @@ const ghAccount = Effect.fnUntraced(function* (engine: Engine, token: string | u
 });
 
 export function signedInGh(token: string) {
-	return watch.trait("github", "gh is signed in without environment tokens", (engine) => ghAccount(engine, token));
+	return watch.trait("settings", `no token variable is set and gh is signed in with ${token}`, (engine) => ghAccount(engine, token));
 }
-export const signedOutGh = watch.trait("github", "no environment tokens or gh account are available", (engine) => ghAccount(engine, undefined));
 
-export function environmentTokens(variables: Record<string, string>) {
-	return watch.trait("github", "GitHub environment tokens are configured", (engine) => {
-		engine.cliEnvironment = { ...engine.cliEnvironment, ...variables };
-	});
+export const signedOut = watch.trait("settings", "no token variable is set and gh is signed out", (engine) => ghAccount(engine, undefined));
+
+export function tokenVariables(variables: Record<string, string>) {
+	return watch.trait(
+		"settings",
+		Object.entries(variables)
+			.map(([name, value]) => `${name} is ${value}`)
+			.join(" and "),
+		(engine) => {
+			engine.cliEnvironment = { ...engine.cliEnvironment, ...variables };
+		},
+	);
 }
