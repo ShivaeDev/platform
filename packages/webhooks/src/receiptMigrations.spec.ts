@@ -1,35 +1,32 @@
-import { Cause, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { schemaInbox } from "#test/schemaInbox.ts";
+import { hostWaitsForMigrations, jobsSchemaInstalled, schemaInbox } from "#test/schemaInbox.ts";
+
+schemaInbox.it("the receipts component reports webhook_receipts missing until it is applied", [], function* ({ applyReceipts, pending }) {
+	expect(yield* pending()).toBe("webhook_receipts is missing");
+
+	yield* applyReceipts();
+
+	expect(yield* pending()).toBe("nothing pending");
+});
 
 schemaInbox.it(
-	"check mode reports missing receipts and starts after the component is applied",
-	[],
-	function* ({ installJobs, checkHost, pending, apply }) {
-		yield* installJobs();
-		expect(yield* pending()).toBe("webhook_receipts is missing");
-		const before = yield* checkHost();
-		expect(Exit.isFailure(before)).toBe(true);
-		if (Exit.isFailure(before)) {
-			expect(Cause.pretty(before.cause)).toContain("webhook-receipts");
-		}
-		yield* apply();
-		expect(yield* pending()).toBeUndefined();
-		expect(Exit.isSuccess(yield* checkHost())).toBe(true);
+	"a host in check mode refuses to start while the receipts component is missing and names it",
+	[jobsSchemaInstalled],
+	function* ({ startInCheckMode }) {
+		expect(yield* startInCheckMode()).toBe(
+			"refused to start: Database migrations are not current: component webhook-receipts: webhook_receipts is missing. Run the deployment migration command.",
+		);
 	},
 );
 
 schemaInbox.it(
-	"wait mode starts the host only after the receipts component is applied",
-	[],
-	function* ({ installJobs, startWaitingHost, untilHostLogs, hostStarted, pending, apply }) {
-		yield* installJobs();
-		const host = yield* startWaitingHost();
-		yield* untilHostLogs("Waiting for database migrations");
-		expect(hostStarted()).toBe(false);
-		expect(yield* pending()).toBe("webhook_receipts is missing");
-		yield* apply();
-		yield* Fiber.join(host);
-		expect(hostStarted()).toBe(true);
+	"a host in wait mode waits for the receipts component and starts once it is applied",
+	[jobsSchemaInstalled, hostWaitsForMigrations],
+	function* ({ applyReceipts, host, hostStart }) {
+		expect(yield* host()).toBe("waiting for webhook-receipts");
+
+		yield* applyReceipts();
+
+		expect(yield* hostStart()).toBe("started");
 	},
 );

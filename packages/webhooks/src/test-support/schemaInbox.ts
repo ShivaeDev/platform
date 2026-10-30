@@ -1,34 +1,61 @@
-import { Effect, Layer, Schedule } from "effect";
+import { Cause, Deferred, Effect, Exit, Fiber, Layer } from "effect";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { hostLayer, type InboxState, startHost } from "#test/host.ts";
+import { hostLayer, inboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
-import { recordingTracer } from "#test/recordingTracer.ts";
 import { webhookReceipts } from "#webhookReceipts.ts";
+
+function startup(exit: Exit.Exit<unknown, unknown>) {
+	if (Exit.isSuccess(exit)) {
+		return "started";
+	}
+	const [error] = Cause.prettyErrors(exit.cause);
+	return `refused to start: ${error?.message ?? Cause.pretty(exit.cause)}`;
+}
 
 export const schemaInbox = storyKit({
 	around: withIsolatedDatabase,
 	clock: "live",
-	create: (): InboxState => ({ client: undefined, logs: [], mode: "check", telemetry: recordingTracer(), url: "" }),
+	create: () => inboxState("check"),
 	layer: postgresLayer,
 	name: "webhook receipt migrations",
-	stages: [],
-	verbs: (state) => ({
-		apply: () => webhookReceipts.apply,
-		checkHost: () => Layer.build(hostLayer(state)).pipe(Effect.scoped, Effect.exit),
-		hostStarted: () => state.url !== "",
-		installJobs: () => pgBossSchema().apply,
-		pending: () => webhookReceipts.pending,
-		startWaitingHost: () => {
-			state.mode = "wait";
-			return startHost(state).pipe(Effect.forkScoped);
+	stages: ["database", "host"],
+	verbs: (state, story) => ({
+		applyReceipts: () => {
+			story.tell("the deployment applies the webhook receipts component");
+			return webhookReceipts.apply;
 		},
-		untilHostLogs: (text: string) =>
-			Effect.suspend(() =>
-				state.logs.some((message) => JSON.stringify(message).includes(text))
-					? Effect.void
-					: Effect.fail(new Error(`The host has not logged "${text}"`)),
-			).pipe(Effect.retry({ schedule: Schedule.spaced("10 millis"), times: 500 }), Effect.orDie),
+		host: () =>
+			Effect.gen(function* () {
+				if (state.url !== "") {
+					return "started";
+				}
+				return (yield* Deferred.isDone(state.waiting)) ? `waiting for ${(yield* Deferred.await(state.waiting)).join(", ")}` : "not started";
+			}),
+		hostStart: () =>
+			Effect.gen(function* () {
+				if (state.host === undefined) {
+					return yield* Effect.die(new Error("Declare hostWaitsForMigrations before reading its start"));
+				}
+				return startup(yield* Fiber.await(state.host));
+			}),
+		pending: () => Effect.map(webhookReceipts.pending, (pending) => pending ?? "nothing pending"),
+		startInCheckMode: () => {
+			story.tell("the host starts in check mode");
+			return Layer.build(hostLayer(state)).pipe(Effect.scoped, Effect.exit, Effect.map(startup));
+		},
 	}),
+});
+
+export const jobsSchemaInstalled = schemaInbox.trait(
+	"database",
+	"the pg-boss schema is installed, so only the receipts component can be pending",
+	() => pgBossSchema().apply,
+);
+
+export const hostWaitsForMigrations = schemaInbox.trait("host", "a host in wait mode is waiting for database migrations", function* (state) {
+	state.mode = "wait";
+	state.host = yield* startHost(state).pipe(Effect.forkScoped);
+	yield* Deferred.await(state.waiting);
 });

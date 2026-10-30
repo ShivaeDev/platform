@@ -1,143 +1,182 @@
-import { Effect, Fiber } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { body, WEBHOOK_SECRET } from "#test/fixture.ts";
-import { signature } from "#test/requests.ts";
-import { inbox } from "#test/story.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import type { Delivery } from "#test/requests.ts";
+import { auditEnqueueFails, delivered, firstReceiptUpdateFails, inbox, receiptsTableGone } from "#test/story.ts";
 
-inbox.it("a signed GitHub delivery records its receipt and both typed jobs", [], function* ({ deliver, receipts, storedJobs }) {
-	expect(yield* deliver()).toEqual({ body: "queued", status: HttpStatus.fromLiteral("Accepted") });
-	const rows = yield* receipts();
-	const jobs = yield* storedJobs();
-	expect(rows).toMatchObject([{ "delivery_id": "delivery-1", event: "issues", outcome: "queued", source: "github" }]);
-	expect(rows[0]?.received_at).toBeInstanceOf(Date);
-	expect(rows[0]?.job_ids.toSorted()).toEqual(jobs.map(({ id }) => id).toSorted());
-	expect(jobs).toMatchObject([
-		{ data: { payload: { number: 42 } }, name: "webhook-audit" },
-		{ data: { payload: { number: 42 } }, name: "webhook-issue" },
-	]);
-});
+const issue42Jobs = ["webhook-audit for issue 42", "webhook-issue for issue 42"];
+const queuedReceipt = { delivery: "delivery-1", event: "issues", jobs: issue42Jobs, outcome: "queued", source: "github" };
 
-for (const [name, options, status, text] of [
-	["missing signature", { signature: null }, HttpStatus.fromLiteral("Unauthorized"), ""],
-	["wrong signature before malformed JSON is decoded", { body: "not-json", signature: signature(body) }, HttpStatus.fromLiteral("Unauthorized"), ""],
-	["missing delivery ID", { delivery: null }, HttpStatus.fromLiteral("BadRequest"), "Invalid delivery"],
-	["missing event header", { event: null }, HttpStatus.fromLiteral("BadRequest"), "Invalid delivery"],
-	["rejected payload", { body: JSON.stringify({ issue: { number: "body-must-stay-private" } }) }, HttpStatus.fromLiteral("BadRequest"), ""],
-	["oversized body", { body: "x".repeat(257) }, 413, ""],
-	["unregistered source", { source: "unknown" }, 404, ""],
-] as const) {
-	inbox.it(`refuses a ${name} without a receipt or a job`, [], function* ({ deliver, receipts, storedJobs, telemetry }) {
-		const response = yield* deliver(options);
-		expect(response).toEqual({ body: text, status });
-		expect(yield* receipts()).toEqual([]);
-		expect(yield* storedJobs()).toEqual([]);
-		const captured = JSON.stringify({ response, telemetry: telemetry() });
-		for (const value of [WEBHOOK_SECRET, signature(body), body, "body-must-stay-private"]) {
-			expect(captured).not.toContain(value);
-		}
-	});
+inbox.it(
+	"the signed issue 42 delivery is answered queued, stores a queued receipt naming its jobs and hands issue 42 to both workers",
+	[],
+	function* ({ answer, deliver, handledJobs, storedReceipts }) {
+		yield* deliver("the signed issue 42 delivery");
+
+		yield* outcomes({
+			"answer": [answer(), "202 Accepted: queued"],
+			"handled jobs": [handledJobs(), issue42Jobs],
+			"stored receipts": [storedReceipts(), [queuedReceipt]],
+		});
+	},
+);
+
+const refusals: ReadonlyArray<readonly [Delivery, string]> = [
+	["a delivery without a signature", "401 Unauthorized"],
+	["a non-JSON delivery signed for another body", "401 Unauthorized"],
+	["a delivery without a delivery ID", "400 Bad Request: Invalid delivery"],
+	["a delivery without an event header", "400 Bad Request: Invalid delivery"],
+	["an issue delivery whose number is a string", "400 Bad Request"],
+	["a delivery over the host's 256-byte limit", "413 Payload Too Large"],
+	["a delivery to an unregistered source", "404 Not Found"],
+];
+
+for (const [delivery, refusal] of refusals) {
+	inbox.it(
+		`${delivery} is answered ${refusal}, stores no receipt and queues no job`,
+		[],
+		function* ({ answer, deliver, handledJobs, storedReceipts }) {
+			yield* deliver(delivery);
+
+			yield* outcomes({
+				"answer": [answer(), refusal],
+				"handled jobs": [handledJobs(), []],
+				"stored receipts": [storedReceipts(), []],
+			});
+		},
+	);
 }
 
-inbox.it("records an unlisted event as ignored without decoding the body", [], function* ({ deliver, receipts, storedJobs }) {
-	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "ignored", status: HttpStatus.fromLiteral("OK") });
-	expect(yield* receipts()).toMatchObject([{ event: "unlisted", "job_ids": [], outcome: "ignored" }]);
-	expect(yield* storedJobs()).toEqual([]);
-});
+for (const delivery of ["the signed issue 42 delivery", ...refusals.map(([refused]) => refused)] as const) {
+	inbox.it(
+		`${delivery} records the request's span but keeps the signing key, signature and body out of the answer, logs and spans`,
+		[],
+		function* ({ deliver, secretsSeenIn, spanNames }) {
+			yield* deliver(delivery);
 
-inbox.it("records a listed event mapping to no jobs as ignored", [], function* ({ deliver, receipts, storedJobs }) {
-	expect(yield* deliver({ body: JSON.stringify({ zen: "Keep it simple" }), event: "ping" })).toEqual({
-		body: "ignored",
-		status: HttpStatus.fromLiteral("OK"),
-	});
-	expect(yield* receipts()).toMatchObject([{ event: "ping", "job_ids": [], outcome: "ignored" }]);
-	expect(yield* storedJobs()).toEqual([]);
-});
-
-inbox.it("answers already queued for a duplicate and keeps the original job IDs", [], function* ({ deliver, receipts, storedJobs }) {
-	yield* deliver();
-	const original = yield* receipts();
-	expect(yield* deliver()).toEqual({ body: "already queued", status: HttpStatus.fromLiteral("OK") });
-	expect(yield* receipts()).toEqual(original);
-	expect((yield* storedJobs()).map(({ id }) => id).toSorted()).toEqual(original[0]?.job_ids.toSorted());
-});
-
-inbox.it("answers already queued for a duplicate ignored event and keeps one receipt", [], function* ({ deliver, receipts }) {
-	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "ignored", status: HttpStatus.fromLiteral("OK") });
-	const original = yield* receipts();
-	expect(yield* deliver({ body: "not-json", event: "unlisted" })).toEqual({ body: "already queued", status: HttpStatus.fromLiteral("OK") });
-	expect(yield* receipts()).toEqual(original);
-});
-
-inbox.it("two concurrent copies enqueue the jobs once", [], function* ({ deliver, receipts, storedJobs }) {
-	const responses = yield* Effect.all([deliver(), deliver()], { concurrency: "unbounded" });
-	expect(responses.toSorted((a, b) => a.status - b.status)).toEqual([
-		{ body: "already queued", status: HttpStatus.fromLiteral("OK") },
-		{ body: "queued", status: HttpStatus.fromLiteral("Accepted") },
-	]);
-	const rows = yield* receipts();
-	expect(rows.map(({ delivery_id: id }) => id)).toEqual(["delivery-1"]);
-	expect((yield* storedJobs()).map(({ id }) => id).toSorted()).toEqual(rows[0]?.job_ids.toSorted());
-});
+			yield* outcomes({
+				"secrets seen in": [secretsSeenIn(), {}],
+				"spans recorded": [spanNames(), expect.arrayContaining(["POST"])],
+			});
+		},
+	);
+}
 
 inbox.it(
-	"a failed second enqueue rolls back the first job and receipt, then the retry succeeds",
+	"an unlisted event whose body is not JSON is answered ignored without decoding and stores an ignored receipt with no jobs",
 	[],
-	function* ({ deliver, rejectAudit, allowAudit, receipts, storedJobs }) {
-		yield* rejectAudit();
-		expect(yield* deliver()).toEqual({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
-		expect(yield* receipts()).toEqual([]);
-		expect(yield* storedJobs()).toEqual([]);
-		yield* allowAudit();
-		expect(yield* deliver()).toEqual({ body: "queued", status: HttpStatus.fromLiteral("Accepted") });
-		expect(yield* receipts()).toMatchObject([{ "delivery_id": "delivery-1", outcome: "queued" }]);
-		expect(yield* storedJobs()).toMatchObject([
-			{ data: { payload: { number: 42 } }, name: "webhook-audit" },
-			{ data: { payload: { number: 42 } }, name: "webhook-issue" },
-		]);
+	function* ({ answer, deliver, storedReceipts }) {
+		yield* deliver("an unlisted event whose body is not JSON");
+
+		yield* outcomes({
+			"answer": [answer(), "200 OK: ignored"],
+			"stored receipts": [storedReceipts(), [{ delivery: "delivery-1", event: "unlisted", jobs: [], outcome: "ignored", source: "github" }]],
+		});
 	},
 );
 
 inbox.it(
-	"a second concurrent copy receives the delivery itself after the first copy rolls back",
+	"a ping, whose event maps to no jobs, is answered ignored and stores an ignored receipt",
 	[],
-	function* ({ deliver, holdReceiptUpdates, untilCopiesWaitOn, cancelCopyWaitingOnHold, releaseReceiptUpdates, receipts, storedJobs }) {
-		yield* holdReceiptUpdates();
-		const copies = yield* Effect.all([deliver(), deliver()], { concurrency: "unbounded" }).pipe(Effect.forkChild);
-		yield* untilCopiesWaitOn("advisory", "transactionid");
-		yield* cancelCopyWaitingOnHold();
-		yield* untilCopiesWaitOn("advisory");
-		yield* releaseReceiptUpdates();
-		const responses = yield* Fiber.join(copies);
-		expect(responses.toSorted((a, b) => a.status - b.status)).toEqual([
-			{ body: "queued", status: HttpStatus.fromLiteral("Accepted") },
-			{ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") },
-		]);
-		const rows = yield* receipts();
-		expect(rows).toMatchObject([{ "delivery_id": "delivery-1", outcome: "queued" }]);
-		expect((yield* storedJobs()).map(({ id }) => id).toSorted()).toEqual(rows[0]?.job_ids.toSorted());
+	function* ({ answer, deliver, storedReceipts }) {
+		yield* deliver("a ping");
+
+		yield* outcomes({
+			"answer": [answer(), "200 OK: ignored"],
+			"stored receipts": [storedReceipts(), [{ delivery: "delivery-1", event: "ping", jobs: [], outcome: "ignored", source: "github" }]],
+		});
 	},
 );
 
 inbox.it(
-	"a database failure answers 503 without a job, then the retry succeeds",
-	[],
-	function* ({ deliver, takeReceiptsOffline, restoreReceipts, receipts, storedJobs }) {
-		yield* takeReceiptsOffline();
-		expect(yield* deliver()).toEqual({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
-		yield* restoreReceipts();
-		expect(yield* receipts()).toEqual([]);
-		expect(yield* storedJobs()).toEqual([]);
-		expect(yield* deliver()).toEqual({ body: "queued", status: HttpStatus.fromLiteral("Accepted") });
+	"a repeated issue 42 delivery is answered already queued, keeps its one receipt and queues no second job",
+	[delivered("the signed issue 42 delivery")],
+	function* ({ answer, deliver, handledJobs, storedReceipts }) {
+		yield* deliver("the signed issue 42 delivery");
+
+		yield* outcomes({
+			"answer": [answer(), "200 OK: already queued"],
+			"handled jobs": [handledJobs(), issue42Jobs],
+			"stored receipts": [storedReceipts(), [queuedReceipt]],
+		});
 	},
 );
 
-inbox.it("successful deliveries keep signing credentials and raw bodies out of telemetry", [], function* ({ deliver, telemetry }) {
-	const response = yield* deliver();
-	expect(response.status).toBe(HttpStatus.fromLiteral("Accepted"));
-	const captured = telemetry();
-	expect(captured.spans.length).toBeGreaterThan(0);
-	for (const value of [WEBHOOK_SECRET, signature(body), body, "unlogged-body-marker"]) {
-		expect(JSON.stringify({ captured, response })).not.toContain(value);
-	}
-});
+inbox.it(
+	"a repeated unlisted event is answered already queued and keeps its one ignored receipt",
+	[delivered("an unlisted event whose body is not JSON")],
+	function* ({ answer, deliver, storedReceipts }) {
+		yield* deliver("an unlisted event whose body is not JSON");
+
+		yield* outcomes({
+			"answer": [answer(), "200 OK: already queued"],
+			"stored receipts": [storedReceipts(), [{ delivery: "delivery-1", event: "unlisted", jobs: [], outcome: "ignored", source: "github" }]],
+		});
+	},
+);
+
+inbox.it(
+	"of two copies sent at once, the one waiting on the other's receipt is answered already queued, and one queued receipt hands issue 42 to each worker once",
+	[],
+	function* ({ answers, deliverTwoCopiesTogether, handledJobs, storedReceipts }) {
+		yield* deliverTwoCopiesTogether();
+
+		yield* outcomes({
+			"answers": [answers(), ["200 OK: already queued", "202 Accepted: queued"]],
+			"handled jobs": [handledJobs(), issue42Jobs],
+			"stored receipts": [storedReceipts(), [queuedReceipt]],
+		});
+	},
+);
+
+inbox.it(
+	"when the first of two copies sent at once fails after the second waits on its receipt, the first is answered unavailable and the second stores the queued receipt and hands issue 42 to each worker once",
+	[firstReceiptUpdateFails],
+	function* ({ answers, deliverTwoCopiesTogether, handledJobs, storedReceipts }) {
+		yield* deliverTwoCopiesTogether();
+
+		yield* outcomes({
+			"answers": [answers(), ["202 Accepted: queued", "503 Service Unavailable"]],
+			"handled jobs": [handledJobs(), issue42Jobs],
+			"stored receipts": [storedReceipts(), [queuedReceipt]],
+		});
+	},
+);
+
+inbox.it(
+	"an audit enqueue failing after the issue job is answered unavailable and rolls back the issue job and the receipt",
+	[auditEnqueueFails],
+	function* ({ answer, deliver, handledJobs, storedReceipts }) {
+		yield* deliver("the signed issue 42 delivery");
+
+		yield* outcomes({
+			"answer": [answer(), "503 Service Unavailable"],
+			"handled jobs": [handledJobs(), []],
+			"stored receipts": [storedReceipts(), []],
+		});
+	},
+);
+
+inbox.it(
+	"after a failed audit enqueue answered unavailable, the sender's retry is answered queued",
+	[auditEnqueueFails, delivered("the signed issue 42 delivery")],
+	function* ({ answer, deliver }) {
+		expect(yield* answer()).toBe("503 Service Unavailable");
+
+		yield* deliver("the signed issue 42 delivery");
+
+		expect(yield* answer()).toBe("202 Accepted: queued");
+	},
+);
+
+inbox.it(
+	"a delivery the receipts table cannot record is answered unavailable and queues no job",
+	[receiptsTableGone],
+	function* ({ answer, deliver, handledJobs }) {
+		yield* deliver("the signed issue 42 delivery");
+
+		yield* outcomes({
+			"answer": [answer(), "503 Service Unavailable"],
+			"handled jobs": [handledJobs(), []],
+		});
+	},
+);

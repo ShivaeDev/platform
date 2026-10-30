@@ -1,5 +1,2 @@
 {"path":"packages/webhooks/src/internal/receive.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/webhooks/src/receiptMigrations.spec.ts","rule":"tests/domain-outcomes","count":4}
-{"path":"packages/webhooks/src/receiptMigrations.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/webhooks/src/receive.spec.ts","rule":"tests/grouped-outcomes","count":8}
 {"path":"packages/webhooks/src/registration.ts","rule":"effect/service-parameters","count":2}

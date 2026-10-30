@@ -5,10 +5,11 @@ import { githubSource } from "#github.ts";
 import { webhookEvent, webhookJob } from "#registration.ts";
 
 export const WEBHOOK_SECRET = "webhook-story-signing-secret";
-export const body = JSON.stringify({ action: "opened", issue: { number: 42 }, private: "unlogged-body-marker" });
+export const PRIVATE_FIELD = "private-body-field";
+export const MAX_BODY_BYTES = 256;
 export const Jobs = makePgBoss("@test/WebhooksJobs");
-export const issueQueue = defineQueue({ name: "webhook-issue", schema: Schema.Struct({ number: Schema.Number }) });
-export const auditQueue = defineQueue({ name: "webhook-audit", schema: Schema.Struct({ number: Schema.Number }) });
+export const issueQueue = defineQueue({ name: "webhook-issue", queue: { notify: true }, schema: Schema.Struct({ number: Schema.Number }) });
+export const auditQueue = defineQueue({ name: "webhook-audit", queue: { notify: true }, schema: Schema.Struct({ number: Schema.Number }) });
 export const sources = {
 	github: githubSource({
 		events: {

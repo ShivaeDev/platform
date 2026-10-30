@@ -1,48 +1,88 @@
+import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { type InboxState, startHost } from "#test/host.ts";
+import { auditQueue } from "#test/fixture.ts";
+import { type HandledJob, type InboxState, inboxState, startHost } from "#test/host.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
-import { queueVerbs } from "#test/queueVerbs.ts";
-import { receiptHold } from "#test/receiptHold.ts";
-import { recordingTracer } from "#test/recordingTracer.ts";
-import { type DeliveryOptions, deliver } from "#test/requests.ts";
+import { raceVerbs } from "#test/raceVerbs.ts";
+import { type Delivery, deliver } from "#test/requests.ts";
+import { secretsSeenIn, spanNames } from "#test/telemetry.ts";
 
-export interface Receipt {
+interface ReceiptRow {
 	readonly "delivery_id": string;
 	readonly event: string;
 	readonly "job_ids": readonly string[];
 	readonly outcome: string;
-	readonly "received_at": Date;
 	readonly source: string;
 }
 
+function testingOf(state: InboxState) {
+	return state.testing === undefined ? Effect.die(new Error("The host has not started its jobs client")) : Effect.succeed(state.testing);
+}
+
+function workersIdle(state: InboxState) {
+	return Effect.flatMap(testingOf(state), (testing) => testing.waitForIdle).pipe(Effect.orDie);
+}
+
+function jobName({ issue, queue }: HandledJob) {
+	return `${queue} for issue ${issue}`;
+}
+
+function receiptJobName(state: InboxState, id: string) {
+	const job = state.handled.find((handled) => handled.id === id);
+	return job === undefined ? "a job no worker handled" : jobName(job);
+}
+
 export const inbox = storyKit({
-	after: { configured: startHost },
+	after: { host: startHost },
 	around: withIsolatedDatabase,
 	clock: "live",
-	create: (): InboxState => ({ client: undefined, logs: [], mode: undefined, telemetry: recordingTracer(), url: "" }),
+	create: () => inboxState(undefined),
+	inspect: ({ answers, handled }) => ({ answers, handled }),
 	layer: postgresLayer,
 	name: "webhook inbox",
-	stages: ["configured"],
+	stages: ["host", "inbox"],
 	verbs: (state, story) => ({
-		deliver: (options?: DeliveryOptions) => {
-			story.tell(`receive ${options?.event === null ? "an unnamed event" : (options?.event ?? "issues")} from ${options?.source ?? "github"}`);
-			return deliver(state, options);
+		...raceVerbs(state, story.tell),
+		answer: () => Effect.sync(() => state.answers.at(-1) ?? "no answer yet"),
+		answers: () => Effect.sync(() => state.answers.toSorted()),
+		deliver: (delivery: Delivery) => {
+			story.tell(`github sends ${delivery}`);
+			return deliver(state, delivery);
 		},
-		receipts: () => SqlClient.SqlClient.use((sql) => sql<Receipt>`select * from webhook_receipts order by delivery_id`.withoutTransform),
-		...queueVerbs(state),
-		...receiptHold(),
-		restoreReceipts: () => SqlClient.SqlClient.use((sql) => sql`alter table webhook_receipts_offline rename to webhook_receipts`),
-		takeReceiptsOffline: () => SqlClient.SqlClient.use((sql) => sql`alter table webhook_receipts rename to webhook_receipts_offline`),
-		telemetry: () => ({
-			logs: state.logs,
-			spans: state.telemetry.spans.map(({ name, attributes, events, status }) => ({
-				attributes: [...attributes],
-				events: events.map(([eventName, , fields]) => ({ fields, name: eventName })),
-				exit: status._tag === "Ended" ? status.exit : undefined,
-				name,
-			})),
-		}),
+		handledJobs: () => Effect.map(workersIdle(state), () => state.handled.map(jobName).toSorted()),
+		secretsSeenIn: () => Effect.sync(() => secretsSeenIn(state)),
+		spanNames: () => Effect.sync(() => spanNames(state)),
+		storedReceipts: () =>
+			Effect.gen(function* () {
+				yield* workersIdle(state);
+				const rows = yield* SqlClient.SqlClient.use(
+					(sql) => sql<ReceiptRow>`select * from webhook_receipts order by source, delivery_id`.withoutTransform,
+				);
+				return rows.map((row) => ({
+					delivery: row.delivery_id,
+					event: row.event,
+					jobs: row.job_ids.map((id) => receiptJobName(state, id)).toSorted(),
+					outcome: row.outcome,
+					source: row.source,
+				}));
+			}),
 	}),
+});
+
+export function delivered(delivery: Delivery) {
+	return inbox.trait("inbox", `github has already sent ${delivery}`, (state) => deliver(state, delivery));
+}
+
+export const auditEnqueueFails = inbox.trait("inbox", "the next webhook-audit enqueue fails", (state) =>
+	Effect.flatMap(testingOf(state), (testing) => testing.failNextSend(auditQueue)),
+);
+
+export const receiptsTableGone = inbox.trait("inbox", "the database can no longer find the webhook_receipts table", () =>
+	SqlClient.SqlClient.use((sql) => sql`alter table webhook_receipts rename to webhook_receipts_gone`),
+);
+
+export const firstReceiptUpdateFails = inbox.trait("inbox", "the first copy to update its receipt fails", (state) => {
+	state.firstReceiptUpdateFails = true;
 });
