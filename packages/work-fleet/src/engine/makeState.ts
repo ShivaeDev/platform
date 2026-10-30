@@ -30,6 +30,7 @@ export const makeState = Effect.gen(function* () {
 	const reportInspection = yield* Effect.serviceOption(ReportInspection);
 	const launchScope = yield* Effect.scope;
 	const launching = new Set<string>();
+	const completionWarnings = new Map<string, string>();
 	function load(workId: string) {
 		return store
 			.load(workId)
@@ -90,7 +91,21 @@ export const makeState = Effect.gen(function* () {
 			Effect.flatMap(closeDecisions(state)),
 		);
 	});
-	const state = { board, current, decision, integrations, launching, launchScope, load, policy, reportInspection, save, sessions, store };
+	const state = {
+		board,
+		completionWarnings,
+		current,
+		decision,
+		integrations,
+		launching,
+		launchScope,
+		load,
+		policy,
+		reportInspection,
+		save,
+		sessions,
+		store,
+	};
 	return state;
 });
 export type EngineState = Effect.Success<typeof makeState>;

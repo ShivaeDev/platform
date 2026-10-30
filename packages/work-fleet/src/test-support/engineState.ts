@@ -6,6 +6,7 @@ import type { MainSource } from "#host/mainSource.ts";
 import type { FleetRecord } from "#model.ts";
 import type { BoardGateway, WorkResult } from "#policy.ts";
 import type { boardReads } from "#test/boardReads.ts";
+import type { bufferedBoard } from "#test/bufferedBoard.ts";
 import { captureLogs } from "#test/captureLogs.ts";
 import type { createEngine } from "#test/createEngine.ts";
 import type { EngineOptions } from "#test/EngineOptions.ts";
@@ -29,6 +30,7 @@ export interface EngineStory extends EngineWorld {
 	acknowledgementsPaused?: boolean;
 	board?: Layer.Layer<BoardGateway, unknown>;
 	budget?: EngineBudget;
+	bufferedBoard?: Effect.Success<ReturnType<typeof bufferedBoard>>;
 	checkCompletionEdit?: () => void;
 	commits: (readonly unknown[])[];
 	github?: Effect.Success<ReturnType<typeof mergedReviewGithub>>;
@@ -45,6 +47,8 @@ export interface EngineStory extends EngineWorld {
 	readinessPublications?: BoardDecision[];
 	recovery: RecoveryWorld;
 	recoveryCase?: RecoveryCase;
+	rescan?: { readonly release: Effect.Effect<boolean> | undefined; readonly finished: Effect.Effect<void, unknown> };
+	rescanPort?: number;
 	restoreHealth?: () => void;
 	restoreStatus?: () => void;
 	resultObservation?: { value: WorkResult; unavailable: boolean };

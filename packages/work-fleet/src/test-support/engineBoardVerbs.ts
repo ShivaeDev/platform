@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync, statSync } from "node:fs";
+import { mkdirSync, readdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
 import { boardHttpFiles } from "#test/boardHttp.ts";
@@ -21,6 +21,11 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 			tell(`persist the accepted turn for ${args[0]}`);
 			return running(state).fixture.acknowledgeTurn(...args);
 		},
+		archiveBoardWork: (file: string) => {
+			tell(`archive Board work ${file}`);
+			mkdirSync(join(state.root, "archive"), { recursive: true });
+			renameSync(join(state.root, file), join(state.root, "archive", file));
+		},
 		boardBrief: () => state.source,
 		boardDecisionFiles: () => {
 			files();
@@ -35,6 +40,7 @@ export function engineBoardVerbs(state: EngineStory, tell: (line: string) => voi
 				.receipts()
 				.map((file) => metadataParse(files().read(file)).fields.requestReceipt),
 		boardReceipts: () => files().receipts(),
+		briefProblem: (workId: string, path: string) => running(state).fleet.briefProblem(workId, join(state.root, path)),
 		editBoardAtCompletion: (text: string) => {
 			state.completionEdit = () => write("one.md", text);
 			tell("a Board edit will race completion");

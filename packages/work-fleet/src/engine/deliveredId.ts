@@ -17,6 +17,9 @@ function refusal(workId: string, delivery: string) {
 }
 
 export const deliveredIdProblem = Effect.fn("Fleet.deliveredIdProblem")(function* (state: EngineState, work: BoardWork) {
+	if (work.status === "done") {
+		return undefined;
+	}
 	const stored = yield* state.store.load(work.workId);
 	if (
 		stored !== undefined
