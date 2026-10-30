@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.3 - 2026-10-30
+
+### Changed
+
+- Generated starter apps assign the first owner through identity’s role verb and let identity close Better Auth’s role endpoints.
+
 ## 0.26.2 - 2026-10-30
 
 ### Changed
