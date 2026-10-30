@@ -1,4 +1,4 @@
-import { Effect, Schema } from "effect";
+import { Effect } from "effect";
 import { contract } from "#contract.ts";
 import { LiveHint } from "#live.ts";
 import { query, stream } from "#operation.ts";
@@ -14,9 +14,4 @@ export const Get = query("get", {
 });
 export const List = query("list", { readPolicy: () => Effect.succeed(true), reads: () => [notes.list], success: LocalList.success });
 export const Subscribe = stream("subscribe", { reads: () => [notes.list], rejections: { Unavailable }, success: LiveHint });
-export const Watch = stream("watch", {
-	payload: { helper: Schema.Literals(["first", "second"]), id: Schema.Number },
-	reads: ({ id }) => [notes.item(id)],
-	success: LiveHint,
-});
-export const LiveNotes = contract("notes", { commands: [Rename, Create], queries: [Get, List], streams: [Subscribe, Watch] }).middleware(Guard);
+export const LiveNotes = contract("notes", { commands: [Rename, Create], queries: [Get, List], streams: [Subscribe] }).middleware(Guard);

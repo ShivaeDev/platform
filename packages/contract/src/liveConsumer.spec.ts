@@ -1,142 +1,86 @@
-import { Deferred, Effect, Option, Stream } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
-import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { coalescing, liveNotesStory, liveSession, watchingNotes } from "#test/liveNotesStory.ts";
-import { notes } from "#test/notes.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { coalescingWindow, connected, liveNotesStory, paused, streamDroppedAndRefused, watching } from "#test/liveNotesStory.ts";
 
 liveNotesStory.it(
-	"refreshes affected item/list over native streaming HTTP while preserving the unrelated query",
-	[liveSession(), watchingNotes()],
-	function* (test) {
-		yield* eventually(() => {
-			expect(test.status().connection).toBe("live");
-			expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
-			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
-			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
-				false,
-				false,
-				false,
-			]);
+	"an announced edit to note 1 refreshes note 1 and the list and leaves note 2 unread",
+	[coalescingWindow(0), watching("note 1", "note 2", "the list"), connected()],
+	function* ({ edit, shown, timesRead }) {
+		expect(yield* shown("note 1")).toBe("First");
+
+		yield* edit(1, "Changed");
+
+		yield* outcomes({
+			"note 1": [shown("note 1"), "Changed"],
+			"note 2's reads": [timesRead("note 2"), "read twice"],
+			"the list": [shown("the list"), ["Changed", "Second"]],
 		});
-		const { one, two, list } = test;
-		yield* eventually(() => expect(test.body(two)).toBe("Second"));
-		const before = test.reads().filter((id) => id === "get:2").length;
-		yield* test.edit(1, "Changed");
-		yield* eventually(() => expect(test.body(one)).toBe("Changed"));
-		yield* eventually(() => expect(AsyncResult.getOrElse(test.registry.get(list), () => []).find(({ id }) => id === 1)?.body).toBe("Changed"));
-		expect(test.reads().filter((id) => id === "get:2")).toHaveLength(before);
 	},
 );
-liveNotesStory.it("bounds paused hints and resyncs current source once resumed", [liveSession(), watchingNotes()], function* (test) {
-	yield* eventually(() => {
-		expect(test.status().connection).toBe("live");
-		expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
-		expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
-		expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
-			false,
-			false,
-			false,
-		]);
-	});
-	const { one } = test;
-	test.pause(true);
-	const edits = [{ body: "While paused", id: 1 }];
-	for (const edit of edits) {
-		yield* test.edit(edit.id, edit.body);
-	}
-	yield* eventually(() => expect(test.status().pending).toBe(edits.length));
-	const resyncs = 256;
-	yield* test.resyncRepeatedly(resyncs);
-	yield* eventually(() => expect(test.status().pending).toBe(resyncs));
-	expect(test.body(one)).toBe("First");
-	test.pause(false);
-	yield* AtomRegistry.toStream(test.registry, one).pipe(
-		Stream.filter((result) => AsyncResult.getOrElse(result, () => undefined)?.body === "While paused"),
-		Stream.take(1),
-		Stream.runDrain,
-	);
-	expect(test.body(one)).toBe("While paused");
-	expect(test.status().pending).toBe(0);
-});
-liveNotesStory.it("retains successful data on typed read failure and reconciles on resume", [liveSession(), watchingNotes()], function* (test) {
-	yield* eventually(() => {
-		expect(test.status().connection).toBe("live");
-		expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
-		expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
-		expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
-			false,
-			false,
-			false,
-		]);
-	});
-	const { one } = test;
-	yield* test.readOutage(true);
-	yield* test.edit(1, "After outage");
-	yield* eventually(() => expect(AsyncResult.isFailure(test.registry.get(one))).toBe(true));
-	expect(test.body(one)).toBe("First");
-	yield* test.readOutage(false);
-	test.resume();
-	yield* eventually(() => expect(test.body(one)).toBe("After outage"));
-});
+
 liveNotesStory.it(
-	"resyncs missed source changes after a typed stream outage without duplicating subscriptions",
-	[liveSession(), watchingNotes()],
-	function* (test) {
-		yield* eventually(() => {
-			expect(test.status().connection).toBe("live");
-			expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
-			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
-			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
-				false,
-				false,
-				false,
-			]);
+	"while paused, 257 hints leave note 1 unread and count as at most 256 pending",
+	[watching("note 1"), connected(), paused()],
+	function* ({ serverSendsResyncs, status, timesRead }) {
+		yield* serverSendsResyncs(257);
+
+		yield* outcomes({
+			"note 1's reads": [timesRead("note 1"), "read twice"],
+			status: [status(), { connection: "live", failure: "none", needsResync: true, pending: 256 }],
 		});
-		const { one } = test;
-		yield* test.streamOutage(true);
-		yield* test.disconnect();
-		yield* eventually(() => expect(Option.isSome(test.status().failure)).toBe(true));
-		expect(test.status().needsResync).toBe(true);
-		expect(test.body(one)).toBe("First");
-		yield* test.edit(1, "Missed while disconnected");
-		yield* test.streamOutage(false);
-		yield* eventually(() => expect(test.body(one)).toBe("Missed while disconnected"));
-		expect(test.status().connection).toBe("live");
-		expect(Option.isNone(test.status().failure)).toBe(true);
-		expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
 	},
 );
+
 liveNotesStory.it(
-	"interrupts stale HTTP reads on invalidation and disposes the single stream subscription",
-	[liveSession(), coalescing(0), watchingNotes()],
-	function* (test) {
-		yield* eventually(() => {
-			expect(test.status().connection).toBe("live");
-			expect(test.activeSubscriptions()).toEqual([[notes.item(1), notes.item(2)]]);
-			expect([test.body(test.one), test.body(test.two)]).toEqual(["First", "Second"]);
-			expect([test.registry.get(test.one).waiting, test.registry.get(test.two).waiting, test.registry.get(test.list).waiting]).toEqual([
-				false,
-				false,
-				false,
-			]);
+	"resuming re-reads note 1's unannounced change",
+	[watching("note 1"), connected()],
+	function* ({ changeUnannounced, resume, shown }) {
+		yield* changeUnannounced(1, "Quietly changed");
+		expect(yield* shown("note 1")).toBe("First");
+
+		resume();
+
+		expect(yield* shown("note 1")).toBe("Quietly changed");
+	},
+);
+
+liveNotesStory.it(
+	"when the stream drops and the server refuses the reconnection as unavailable, the status reports the failure and needs a resync",
+	[watching("note 1"), connected()],
+	function* ({ status, streamDropsWhileRefused }) {
+		expect(yield* status()).toEqual({ connection: "live", failure: "none", needsResync: false, pending: 0 });
+
+		yield* streamDropsWhileRefused();
+
+		expect(yield* status()).toEqual({ connection: "reconnecting", failure: "failed with unavailable", needsResync: true, pending: 0 });
+	},
+);
+
+liveNotesStory.it(
+	"when the server accepts streams again, the client re-reads note 1's change missed while refused, clears the failure and holds one server stream",
+	[watching("note 1"), connected(), streamDroppedAndRefused()],
+	function* ({ changeUnannounced, openServerStreams, serverAcceptsStreamsAgain, shown, status }) {
+		yield* changeUnannounced(1, "Missed while refused");
+		expect(yield* shown("note 1")).toBe("First");
+
+		yield* serverAcceptsStreamsAgain();
+
+		yield* outcomes({
+			"note 1": [shown("note 1"), "Missed while refused"],
+			"open server streams": [openServerStreams(), "one stream open"],
+			status: [status(), { connection: "live", failure: "none", needsResync: false, pending: 0 }],
 		});
-		const { one } = test;
-		const gate = yield* Deferred.make<void>();
-		yield* test.gateReads(Deferred.await(gate));
-		const before = test.reads().length;
-		yield* test.edit(1, "Older request");
-		yield* eventually(() => expect(test.reads().length).toBeGreaterThan(before));
-		yield* test.gateReads(Effect.void);
-		yield* test.edit(1, "Newest request");
-		yield* eventually(() => expect(test.body(one)).toBe("Newest request"));
-		yield* Deferred.succeed(gate, undefined);
-		yield* test.emit({ _tag: "Resync" });
-		yield* eventually(() => expect(test.registry.get(one).waiting).toBe(false));
-		expect(test.body(one)).toBe("Newest request");
-		expect(test.connectionSessions()).toEqual(["ada"]);
-		test.dispose();
-		yield* eventually(() => expect(test.active()).toBe(0));
+	},
+);
+
+liveNotesStory.it(
+	"disposing the client's registry closes its server stream",
+	[watching("note 1"), connected()],
+	function* ({ dispose, openServerStreams }) {
+		expect(yield* openServerStreams()).toBe("one stream open");
+
+		yield* dispose();
+
+		expect(yield* openServerStreams()).toBe("no streams open");
 	},
 );

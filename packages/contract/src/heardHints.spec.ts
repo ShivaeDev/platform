@@ -1,31 +1,26 @@
-import { Effect, Fiber } from "effect";
-import { TestClock } from "effect/testing";
 import { expect } from "vitest";
 import { notes } from "#test/viewerEngine.ts";
-import { viewerStory } from "#test/viewerStory.ts";
-
-viewerStory.it("viewers hear allowed hints and report denied keys as unheard", [], function* ({ listen, rename, heard }) {
-	const queries = [
-		{ payload: { id: 1 }, query: "get" },
-		{ payload: { title: "" }, query: "list" },
-	] as const;
-	const alice = yield* listen("alice", queries);
-	const bob = yield* listen("bob", [{ payload: { title: "" }, query: "list" }]);
-	const waiting = yield* heard(alice, [notes.item(1), notes.bucket.userId("alice")]).pipe(Effect.forkScoped);
-	yield* rename("alice", 1, "Changed");
-	expect(yield* Fiber.join(waiting)).toBe(true);
-	expect(yield* heard(bob, [notes.bucket.userId("bob")], { within: "20 millis" })).toBe(false);
-	expect(yield* heard(bob, [notes.item(1)], { within: "20 millis" })).toBe(false);
-});
+import { listening, viewerStory } from "#test/viewerStory.ts";
 
 viewerStory.it(
-	"hint waiting expires on the story clock",
-	[],
-	function* ({ listen, heard }) {
-		const bob = yield* listen("bob", [{ payload: { id: 2 }, query: "get" }]);
-		const waiting = yield* heard(bob, [notes.item(1)], { within: "1 hour" }).pipe(Effect.forkScoped);
-		yield* TestClock.adjust("1 hour");
-		expect(yield* Fiber.join(waiting)).toBe(false);
+	"heard reports alice's rename of note 1 as heard by its record and her bucket after the hint has arrived",
+	[listening("alice", "note 1", "every note of theirs")],
+	function* ({ heard, rename, untilHintArrives }) {
+		yield* rename("alice", 1, "Changed");
+		yield* untilHintArrives("alice");
+
+		expect(yield* heard("alice", [notes.item(1), notes.bucket.userId("alice")])).toBe("heard");
+	},
+);
+
+viewerStory.it(
+	"heard reports note 1 together with note 3 as not heard when only alice's rename of note 1 arrived, once its hour of the story clock passes",
+	[listening("alice", "note 1", "note 3")],
+	function* ({ heardWithinAnHour, rename, untilHintArrives }) {
+		yield* rename("alice", 1, "Changed");
+		yield* untilHintArrives("alice");
+
+		expect(yield* heardWithinAnHour("alice", [notes.item(1), notes.item(3)])).toBe("not heard within the hour");
 	},
 	{ clock: "test" },
 );

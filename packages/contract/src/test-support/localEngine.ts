@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
-import * as Reactivity from "effect/reactivity/Reactivity";
+import type * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
 import { bind } from "#bind.ts";
 import { Notes } from "./notes.ts";
@@ -19,21 +19,10 @@ export const localEngine = Effect.gen(function* () {
 		Effect.sync(() => AtomRegistry.make()),
 		(current) => Effect.sync(() => current.dispose()),
 	);
-	const invalidations: Parameters<typeof Reactivity.invalidate>[0][] = [];
 	function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
-		const observed = Effect.updateService(effect, Reactivity.Reactivity, (reactivity) => ({
-			...reactivity,
-			invalidate: (keys) =>
-				Effect.andThen(
-					Effect.sync(() => {
-						invalidations.push(keys);
-					}),
-					reactivity.invalidate(keys),
-				),
-		}));
-		return AtomRegistry.getResult(registry, Client.runtime.atom(observed));
+		return AtomRegistry.getResult(registry, Client.runtime.atom(effect));
 	}
-	return { api, invalidations, registry, run, server };
+	return { api, registry, run, server };
 });
 
 export type LocalEngine = Effect.Success<typeof localEngine>;

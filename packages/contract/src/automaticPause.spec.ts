@@ -1,19 +1,34 @@
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { preferences } from "#test/sessionContract.ts";
-import { sessionStory } from "#test/sessionStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { pausedWithChangeHeld, sessionStory, watching } from "#test/sessionStory.ts";
 
-sessionStory.it("pauses automatic queries across bindings of one client and reconciles current values on resume", [], function* (test) {
-	const alice = test.watch("alice", "self");
-	test.connect("alice");
-	yield* eventually(() => expect(alice.value()).toBe("Alice"));
-	test.pause("alice", true);
-	yield* test.store("alice", "Written while paused");
-	yield* test.announce("alice", [preferences.item(0)]);
-	yield* eventually(() => expect(test.status("alice").pending).toBeGreaterThan(0));
-	expect(alice.value()).toBe("Alice");
-	expect(test.reads("alice", "self")).toEqual(["alice:self"]);
-	test.pause("alice", false);
-	yield* eventually(() => expect(alice.value()).toBe("Written while paused"));
-	expect(test.reads("alice", "self")).toEqual(["alice:self", "alice:self"]);
-});
+sessionStory.it(
+	"pausing live reads through another binding of alice's client holds her announced change pending and unread",
+	[watching("alice", "preferences")],
+	function* ({ announce, changeQuietly, pauseThroughOtherBinding, shown, status, timesRead, untilPending }) {
+		changeQuietly("alice", "Written while paused");
+		pauseThroughOtherBinding("alice");
+
+		yield* announce("alice");
+		yield* untilPending("alice");
+
+		yield* outcomes({
+			"alice's preferences": [shown("alice", "preferences"), "Alice"],
+			"alice's reads": [timesRead("alice", "preferences"), "read once"],
+			"alice's status": [status("alice"), { needsResync: true, pending: 1 }],
+		});
+	},
+);
+
+sessionStory.it(
+	"unpausing through the other binding re-reads alice's change held while paused",
+	[watching("alice", "preferences"), pausedWithChangeHeld()],
+	function* ({ shown, unpauseThroughOtherBinding, untilReRead }) {
+		expect(yield* shown("alice", "preferences")).toBe("Alice");
+
+		unpauseThroughOtherBinding("alice");
+		yield* untilReRead("alice", "preferences");
+
+		expect(yield* shown("alice", "preferences")).toBe("Written while paused");
+	},
+);

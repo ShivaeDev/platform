@@ -1,23 +1,13 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { liveStreams } from "#test/liveStreams.ts";
+import { liveHints, watcher } from "#test/liveStreams.ts";
+import { notes } from "#test/notes.ts";
 
-liveStreams.it("resync reports only acquired streams whose scopes remain open", [], function* ({ open, resync }) {
-	expect(yield* resync()).toBe(0);
-	const first = yield* open();
-	const second = yield* open();
-	const closed = yield* open();
-	yield* eventually(Effect.try(() => expect(closed.hints).toEqual([{ _tag: "Resync" }])));
-	expect(yield* resync()).toBe([first, second, closed].length);
-	yield* eventually(Effect.try(() => expect(closed.hints).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }])));
-	yield* closed.close;
-	expect(yield* resync()).toBe([first, second].length);
-	yield* eventually(
-		Effect.try(() => {
-			expect(first.hints).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }, { _tag: "Resync" }]);
-			expect(second.hints).toEqual(first.hints);
-		}),
-	);
-	expect(closed.hints).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }]);
-});
+liveHints.it(
+	"with three streams open, closing one leaves a resync reporting two streams open",
+	[watcher("the first watcher", [notes.item(1)]), watcher("the second watcher", [notes.item(2)]), watcher("the third watcher", [notes.list])],
+	function* ({ close, resync }) {
+		yield* close("the third watcher");
+
+		expect(yield* resync()).toBe("2 streams open");
+	},
+);

@@ -1,14 +1,12 @@
-import { Config, Duration, Effect, Redacted, Ref, Stream, SubscriptionRef } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
+import { Config, type Duration, Effect, Redacted } from "effect";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as Hydration from "effect/reactivity/Hydration";
 import { Migrator, SqlClient } from "effect/sql";
-import { vi } from "vitest";
 import { makePostgresTestLayer } from "@shivaedev/test-sql/server/postgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { liveClient } from "#test/live/client.ts";
 import { liveServer, type NotesSource } from "#test/live/server.ts";
+import { connect, holdReReadOfNoteOne, type LiveView, liveSnapshot, makeLiveEngine, watch } from "./liveEngine.ts";
+import { liveNotesVerbs } from "./liveNotesVerbs.ts";
 import { Note } from "./notes.ts";
 
 const databaseUrl = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL"));
@@ -50,68 +48,47 @@ export const postgresLive = storyKit({
 	clock: "live",
 	*create() {
 		const sql = yield* SqlClient.SqlClient;
-		const source = notesSource(sql);
 		const server = yield* Effect.acquireRelease(
-			Effect.promise(() => liveServer("", { _tag: "Resync" }, source)),
+			Effect.promise(() => liveServer("", notesSource(sql))),
 			(host) => Effect.promise(host.close),
 		);
 		const registry = yield* Effect.acquireRelease(
 			Effect.sync(() => AtomRegistry.make()),
 			(value) => Effect.sync(() => value.dispose()),
 		);
-		return { client: liveClient(server.url), registry, server };
+		return makeLiveEngine(server, registry);
 	},
-	inspect: ({ client, registry, server }) => ({ reads: Effect.runSync(Ref.get(server.reads)), status: registry.get(client.status) }),
+	inspect: liveSnapshot,
 	layer,
 	name: "committed live notes over HTTP",
-	stages: ["consumer"],
-	verbs: ({ client, registry, server }, story) => ({
-		advanceWindow: (window: Duration.Input) =>
-			Effect.promise(() => vi.advanceTimersByTimeAsync(Duration.toMillis(Duration.fromInputUnsafe(window)))).pipe(
-				Effect.tap(() => Effect.sync(() => vi.useRealTimers())),
-			),
-		body: (id: number) => AsyncResult.getOrElse(registry.get(client.api.get.query({ id })), () => undefined)?.body,
-		disconnect: () => Effect.promise(server.disconnect),
-		edit: (id: number, body: string) => {
-			story.tell(`commit note ${id}: ${body}`);
-			return Effect.promise(() => server.edit(id, body));
-		},
-		gateReads: (gate: Effect.Effect<void>) => Ref.set(server.gate, gate),
-		holdWindow: Effect.acquireRelease(
-			Effect.sync(() => vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] })),
-			() => Effect.sync(() => vi.useRealTimers()),
-		).pipe(Effect.asVoid),
-		list: () => AsyncResult.getOrElse(registry.get(client.api.list.query(undefined)), () => []),
-		mount: <A>(atom: import("effect/reactivity/Atom").Atom<A>) => registry.mount(atom),
-		open: (window?: Duration.Input) => {
-			story.tell(`watch both notes and the list with the ${window ?? "default"} coalescing window`);
-			if (window !== undefined) {
-				registry.set(client.coalesceWindow, window);
-			}
-			registry.mount(client.connection);
-			registry.mount(client.api.get.query({ id: 1 }));
-			registry.mount(client.api.get.query({ id: 2 }));
-			registry.mount(client.api.list.query(undefined));
-		},
-		pause: (value: boolean) => registry.set(client.paused, value),
-		reads: () => Effect.runSync(Ref.get(server.reads)),
-		received: () => Effect.runSync(SubscriptionRef.get(client.received)).Changed,
-		registry,
-		restore: () => {
-			const saved = Hydration.dehydrate(registry);
-			registry.reset();
-			Hydration.hydrate(registry, saved);
-		},
-		resume: () => registry.set(client.resume, registry.get(client.resume) + 1),
-		serialized: () => client.api.get.query({ id: 1 }, { serializationKey: "note-one" }),
-		shortLived: () => client.api.get.query({ id: 1 }, { timeToLive: "1 second" }),
-		status: () => registry.get(client.status),
-		waitForHints: (count: number) =>
-			SubscriptionRef.changes(client.received).pipe(
-				Stream.filter((counts) => counts.Changed >= count),
-				Stream.take(1),
-				Stream.runDrain,
-			),
-		waiting: (id: number) => registry.get(client.api.get.query({ id })).waiting,
-	}),
+	stages: ["consumer", "views", "connection", "after"],
+	verbs: liveNotesVerbs,
 });
+
+export function coalescingWindow(window: Duration.Input) {
+	return postgresLive.trait("consumer", `the client's changed hints share a ${String(window)} window`, (engine) => {
+		engine.registry.set(engine.client.coalesceWindow, window);
+	});
+}
+
+export function watching(...views: readonly LiveView[]) {
+	return postgresLive.trait("views", `the client watches ${views.join(", ")}, each read once from PostgreSQL`, (engine) => watch(engine, views));
+}
+
+export function connected() {
+	return postgresLive.trait("connection", "the client's live connection has handled its first hint and re-read its views", connect);
+}
+
+export function heldReReadOfNoteOne() {
+	return postgresLive.trait("after", "the server holds every note read, and note 1's committed edit to In flight is being re-read", (engine) =>
+		holdReReadOfNoteOne(engine, "every note read"),
+	);
+}
+
+export function heldNextReReadOfNoteOne() {
+	return postgresLive.trait(
+		"after",
+		"the server holds only the next note read, and note 1's committed edit to In flight is being re-read",
+		(engine) => holdReReadOfNoteOne(engine, "next note read"),
+	);
+}

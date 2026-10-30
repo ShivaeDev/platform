@@ -1,6 +1,6 @@
-import { Deferred, Effect, PubSub, Ref, Stream } from "effect";
+import { Deferred, Effect, PubSub, Ref, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import type { LiveHint } from "#live.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { queryKeys } from "#serverMetadata.ts";
@@ -17,7 +17,14 @@ export interface NotesSource {
 	readonly list: () => Promise<readonly Note[]>;
 }
 
-export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync" }, source?: NotesSource) {
+export interface ServedRead {
+	readonly at: number;
+	readonly label: string;
+}
+
+export type ReadHold = "every note read" | "next note read" | "no read";
+
+export async function liveServer(asset = "", source?: NotesSource) {
 	const server = await Effect.runPromise(notesServer);
 	await Effect.runPromise(
 		Ref.set(
@@ -28,41 +35,58 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 			]),
 		),
 	);
-	const initialHint = Effect.runSync(Ref.make(initial));
+	const initialHint = Effect.runSync(Ref.make<LiveHint>({ _tag: "Resync" }));
 	const reactivity = Effect.runSync(Reactivity.make);
 	const hints = await Effect.runPromise(makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity)));
-	const secondHints = await Effect.runPromise(makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity)));
 	const unavailable = Effect.runSync(Ref.make(false));
 	const streamUnavailable = Effect.runSync(Ref.make(false));
 	const disconnect = Effect.runSync(Ref.make(Effect.runSync(Deferred.make<void>())));
-	const gate = Effect.runSync(Ref.make<Effect.Effect<void>>(Effect.void));
+	const served = Effect.runSync(SubscriptionRef.make<readonly ServedRead[]>([]));
+	const holding = Effect.runSync(Ref.make<ReadHold>("no read"));
+	const held = Effect.runSync(SubscriptionRef.make(0));
+	const release = Effect.runSync(Deferred.make<void>());
+	function serve(label: string) {
+		return SubscriptionRef.update(served, (all) => [...all, { at: performance.now(), label }]);
+	}
+	const hold = Effect.gen(function* () {
+		const mode = yield* Ref.getAndUpdate(holding, (current) => (current === "next note read" ? "no read" : current));
+		if (mode === "no read") {
+			return;
+		}
+		yield* Effect.acquireUseRelease(
+			SubscriptionRef.update(held, (count) => count + 1),
+			() => Deferred.await(release),
+			() => SubscriptionRef.update(held, (count) => count - 1),
+		);
+	});
 	const events = Effect.runSync(PubSub.bounded<LiveHint>(256));
-	const connections = Effect.runSync(Ref.make(0));
-	const active = Effect.runSync(Ref.make(0));
-	const activeSubscriptions = new Set<readonly Key[]>();
-	const connectionSessions: string[] = [];
+	const connections = Effect.runSync(SubscriptionRef.make(0));
+	const active = Effect.runSync(SubscriptionRef.make(0));
 	const handlers = LiveNotes.toLayer({
 		...server.implementation,
 		"notes.$changes": ({ queries }) => Stream.unwrap(Effect.map(queryKeys(LiveNotes.declaration.queries, queries), (keys) => hints.stream(keys))),
 		"notes.get": ({ id }) =>
 			Effect.gen(function* () {
+				yield* serve(`get:${id}`);
 				const local = yield* server.implementation["notes.get"]({ id });
 				const note = source === undefined ? local : yield* Effect.promise(() => source.get(id));
-				yield* yield* Ref.get(gate);
+				yield* hold;
 				if (yield* Ref.get(unavailable)) {
 					return yield* Get.reject.Unavailable({});
 				}
 				return note;
 			}),
 		"notes.list": () =>
-			source === undefined
-				? server.implementation["notes.list"]()
-				: Effect.andThen(server.implementation["notes.list"](), Effect.promise(source.list)),
+			Effect.andThen(
+				serve("list"),
+				source === undefined
+					? server.implementation["notes.list"]()
+					: Effect.andThen(server.implementation["notes.list"](), Effect.promise(source.list)),
+			),
 		"notes.subscribe": () =>
 			Stream.unwrap(
 				Effect.gen(function* () {
-					yield* Ref.update(connections, (count) => count + 1);
-					connectionSessions.push((yield* Ref.get(server.session)).user);
+					yield* SubscriptionRef.update(connections, (count) => count + 1);
 					if (yield* Ref.get(streamUnavailable)) {
 						return Stream.fail(new Unavailable());
 					}
@@ -70,24 +94,32 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 					const firstHint = yield* Ref.get(initialHint);
 					const keys = [...(yield* Ref.get(server.stored)).keys()].map((id) => notes.item(id));
 					const injected = yield* PubSub.subscribe(events);
-					return Stream.merge(hintStream(hints, keys, active, firstHint, activeSubscriptions), Stream.fromEffectRepeat(PubSub.take(injected))).pipe(
+					return Stream.merge(hintStream(hints, keys, active, firstHint), Stream.fromEffectRepeat(PubSub.take(injected))).pipe(
 						Stream.interruptWhen(Deferred.await(ended)),
 					);
 				}),
 			),
-		"notes.watch": ({ id, helper }) => (helper === "first" ? hints : secondHints).stream([notes.item(id)]),
 	});
 	const host = await httpHost(handlers, server.guard, asset);
+	async function store(id: number, body: string) {
+		if (source !== undefined) {
+			await source.edit(id, body);
+		}
+		await Effect.runPromise(
+			Ref.update(server.stored, (all) => {
+				const note = all.get(id);
+				return note === undefined ? all : new Map([...all, [id, new Note({ ...note, body })]]);
+			}),
+		);
+	}
 	return {
 		...host,
 		...server,
 		active,
-		activeSubscriptions,
 		close: async () => {
-			await Effect.runPromise(PubSub.shutdown(events));
+			await Effect.runPromise(Effect.andThen(Deferred.succeed(release, undefined), PubSub.shutdown(events)));
 			await host.close();
 		},
-		connectionSessions,
 		connections,
 		disconnect: () =>
 			Effect.runPromise(
@@ -98,23 +130,17 @@ export async function liveServer(asset = "", initial: LiveHint = { _tag: "Resync
 				}),
 			),
 		edit: async (id: number, body: string) => {
-			if (source !== undefined) {
-				await source.edit(id, body);
-			}
-			await Effect.runPromise(
-				Ref.update(server.stored, (all) => {
-					const note = all.get(id);
-					return note === undefined ? all : new Map([...all, [id, new Note({ ...note, body })]]);
-				}),
-			);
+			await store(id, body);
 			await Effect.runPromise(reactivity.invalidate(invalidationKeys([notes.item(id)])));
 		},
 		emit: (hint: LiveHint) => Effect.runPromise(PubSub.publish(events, hint)),
-		gate,
-		hints,
+		held,
+		holding,
 		initialHint,
 		reactivity,
-		secondHints,
+		releaseHeld: () => Deferred.succeed(release, undefined),
+		served,
+		store,
 		streamUnavailable,
 		unavailable,
 	};

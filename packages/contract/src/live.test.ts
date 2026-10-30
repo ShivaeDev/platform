@@ -1,91 +1,104 @@
-import { Cause, Exit } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { liveDenied, liveNotesStory, liveSession, liveStoredNotes, startsWith, withoutResume } from "#test/liveNotesStory.ts";
-import { Denied, Note, notes } from "#test/notes.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	coalescingWindow,
+	connected,
+	denied,
+	firstHintNamesOnlyNoteOne,
+	liveNotesStory,
+	noteOneEditedWhilePaused,
+	paused,
+	watching,
+	withoutResumeSignal,
+} from "#test/liveNotesStory.ts";
 
 liveNotesStory.it(
-	"reconciles the full explicit scope on each new stream even when its first hint is targeted",
-	[liveSession(), startsWith({ _tag: "Changed", keys: [notes.item(1)] })],
-	function* (test) {
-		const registry = test.registry;
-		const two = test.query(2);
-		registry.mount(two);
-		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(two), () => undefined)?.body).toBe("Second"));
-		test.connect();
-		yield* eventually(() => expect(test.reads().filter((id) => id === "get:2")).toHaveLength(2));
-		yield* test.disconnect();
-		yield* eventually(() => expect(test.reads().filter((id) => id === "get:2")).toHaveLength(3));
+	"when each new live stream starts with a hint naming only note 1, connecting still re-reads note 2 from the client's read scope",
+	[firstHintNamesOnlyNoteOne(), watching("note 2")],
+	function* ({ connect, timesRead }) {
+		expect(yield* timesRead("note 2")).toBe("read once");
+
+		yield* connect();
+
+		expect(yield* timesRead("note 2")).toBe("read twice");
 	},
 );
-liveNotesStory.it("defers resume reconciliation while paused until the consumer unpauses", [liveSession()], function* (test) {
-	const registry = test.registry;
-	const one = test.query(1);
-	registry.mount(one);
-	yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("First"));
-	test.connect();
-	yield* eventually(() => {
-		expect(test.status().connection).toBe("live");
-		expect(test.reads().filter((id) => id === "get:1")).toHaveLength(2);
-		expect(registry.get(one).waiting).toBe(false);
-	});
-	test.pause(true);
-	yield* test.edit(1, "Changed while paused");
-	yield* eventually(() => expect(test.status().pending).toBe(1));
-	const reads = test.reads();
-	test.resume();
-	expect(test.status()).toMatchObject({ needsResync: true, pending: 1 });
-	expect(test.reads()).toEqual(reads);
-	expect(registry.get(one).waiting).toBe(false);
-	expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("First");
-	test.pause(false);
-	yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("Changed while paused"));
-	expect(test.status()).toMatchObject({ needsResync: false, pending: 0 });
+
+liveNotesStory.it(
+	"when each new live stream starts with a hint naming only note 1, reconnecting after the stream drops re-reads note 2 again",
+	[firstHintNamesOnlyNoteOne(), watching("note 2"), connected()],
+	function* ({ streamDropsAndReconnects, timesRead }) {
+		expect(yield* timesRead("note 2")).toBe("read twice");
+
+		yield* streamDropsAndReconnects();
+
+		expect(yield* timesRead("note 2")).toBe("read 3 times");
+	},
+);
+
+liveNotesStory.it("connecting re-reads the loaded note 1 exactly once", [watching("note 1")], function* ({ connect, timesRead }) {
+	expect(yield* timesRead("note 1")).toBe("read once");
+
+	yield* connect();
+
+	expect(yield* timesRead("note 1")).toBe("read twice");
 });
-liveNotesStory.it("reads the pause flag while connecting without reconciling loaded reads", [liveSession()], function* (test) {
-	const registry = test.registry;
-	const one = test.query(1);
-	registry.mount(one);
-	yield* eventually(() => expect(test.body(one)).toBe("First"));
-	test.connect();
-	expect(test.isPaused()).toBe(false);
-	expect(registry.get(one).waiting).toBe(false);
-	yield* eventually(() => expect(test.status()).toMatchObject({ connection: "live", needsResync: false }));
-	yield* eventually(() => expect(registry.get(one).waiting).toBe(false));
-	expect(test.reads().filter((id) => id === "get:1")).toHaveLength(2);
-});
+
 liveNotesStory.it(
-	"continues native HTTP live updates when the optional resume signal is omitted",
-	[liveSession(), withoutResume()],
-	function* (test) {
-		const registry = test.registry;
-		const one = test.query(1);
-		test.connect();
-		registry.mount(one);
-		yield* eventually(() => expect(test.status().connection).toBe("live"));
-		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("First"));
-		yield* test.edit(1, "Changed without resume signal");
-		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.body).toBe("Changed without resume signal"));
-		expect(test.active()).toBe(1);
+	"resuming while paused re-reads nothing and keeps note 1's edit pending",
+	[watching("note 1"), connected(), paused(), noteOneEditedWhilePaused()],
+	function* ({ resume, shown, status, timesRead }) {
+		expect(yield* status()).toEqual({ connection: "live", failure: "none", needsResync: true, pending: 1 });
+
+		resume();
+
+		yield* outcomes({
+			"note 1": [shown("note 1"), "First"],
+			"note 1's reads": [timesRead("note 1"), "read twice"],
+			status: [status(), { connection: "live", failure: "none", needsResync: true, pending: 1 }],
+		});
 	},
 );
 
 liveNotesStory.it(
-	"reads seeded notes through the authenticated live API",
-	[liveSession("grace"), liveStoredNotes(new Note({ body: "Seeded", id: 4, title: "Four" }))],
-	function* (test) {
-		expect(yield* test.get(4)).toEqual(Exit.succeed(new Note({ body: "Seeded", id: 4, title: "Four" })));
+	"unpausing re-reads note 1's edit made while paused and clears the pending count",
+	[watching("note 1"), connected(), paused(), noteOneEditedWhilePaused()],
+	function* ({ shown, status, unpause }) {
+		yield* outcomes({
+			"note 1": [shown("note 1"), "First"],
+			status: [status(), { connection: "live", failure: "none", needsResync: true, pending: 1 }],
+		});
+
+		unpause();
+
+		yield* outcomes({
+			"note 1": [shown("note 1"), "Changed while paused"],
+			status: [status(), { connection: "live", failure: "none", needsResync: false, pending: 0 }],
+		});
 	},
 );
 
 liveNotesStory.it(
-	"denied sessions cannot subscribe to stored notes",
-	[liveDenied(), liveStoredNotes(new Note({ body: "Private", id: 4, title: "Four" }))],
-	function* (test) {
-		const exit = yield* test.subscribe(1);
-		expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toBeInstanceOf(Denied);
-		expect(test.connections()).toBe(0);
-		expect(test.active()).toBe(0);
+	"without a resume signal, the live connection still refreshes note 1 when its edit is announced",
+	[withoutResumeSignal(), coalescingWindow(0), watching("note 1"), connected()],
+	function* ({ edit, shown }) {
+		expect(yield* shown("note 1")).toBe("First");
+
+		yield* edit(1, "Changed");
+
+		expect(yield* shown("note 1")).toBe("Changed");
+	},
+);
+
+liveNotesStory.it(
+	"a denied session's live subscription fails with denied before the server opens a stream",
+	[denied()],
+	function* ({ serverStreamsOpened, subscribe, subscriptionEnding }) {
+		yield* subscribe();
+
+		yield* outcomes({
+			"server streams opened": [serverStreamsOpened(), "no streams opened"],
+			subscription: [subscriptionEnding(), "failed with denied"],
+		});
 	},
 );

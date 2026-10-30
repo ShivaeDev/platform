@@ -1,35 +1,28 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { bigintStory } from "#test/bigintStory.ts";
+import { bigintStory, watching } from "#test/bigintStory.ts";
 
-bigintStory.it("bigint inputs share equal query atoms and receive live changes", [], function* (test) {
-	const first = test.query(1n);
-	const equal = test.query(1n);
-	const second = test.query(2n);
-	expect(equal).toBe(first);
-	expect(second).not.toBe(first);
-	test.watch(first);
-	test.watch(equal);
-	test.watch(second);
-	test.connect();
-	yield* eventually(
-		outcomes({
-			"first record": [test.value(first), "First"],
-			"per-query subscriptions": [test.subscriptions(), [[{ payload: { id: 1n }, query: "get" }], [{ payload: { id: 2n }, query: "get" }]]],
-			"second record": [test.value(second), "Second"],
-		}).pipe(Effect.sandbox),
-		{ timeout: "5 seconds" },
-	);
-	yield* test.store(1n, "Changed");
-	yield* test.announce(1n);
-	yield* eventually(
-		outcomes({
-			"changed record": [test.value(first), "Changed"],
-			"equal query": [test.value(equal), "Changed"],
-			"other record": [test.value(second), "Second"],
-		}).pipe(Effect.sandbox),
-		{ timeout: "5 seconds" },
-	);
-});
+bigintStory.it(
+	"queries for bigint ids 1, 1 and 2 share one live subscription per record, each naming its bigint id",
+	[watching(1n, 1n, 2n)],
+	function* ({ subscriptions }) {
+		expect(yield* subscriptions()).toEqual(["get by bigint id 1", "get by bigint id 2"]);
+	},
+);
+
+bigintStory.it(
+	"an announced change to record 1 re-reads it and leaves record 2 unread",
+	[watching(1n, 2n)],
+	function* ({ announce, changeQuietly, shown, timesRead, untilReRead }) {
+		changeQuietly(1n, "Changed");
+		expect(yield* shown(1n)).toBe("First");
+
+		yield* announce(1n);
+		yield* untilReRead(1n);
+
+		yield* outcomes({
+			"record 1": [shown(1n), "Changed"],
+			"record 2's reads": [timesRead(2n), "read once"],
+		});
+	},
+);

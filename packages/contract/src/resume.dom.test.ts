@@ -1,78 +1,114 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { automaticResume, nativeOnly, resumeStory } from "#test/resumeStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { automaticLive, resumeStory, watching } from "#test/resumeStory.ts";
 
-resumeStory.it("visible browser resume, visible reconnect and native resume each refresh a query; hidden events do not", [], function* (test) {
-	const release = test.watch(1);
-	yield* eventually(() => expect(test.reads(1)).toBe(1));
-	expect(yield* test.loaded(1)).toMatchObject({ id: 1, title: "One" });
-	test.fire("visibilitychange");
-	yield* eventually(() => expect(test.reads(1)).toBe(2));
-	test.fire("visibilitychange", "hidden");
-	test.fire("online", "hidden");
-	yield* Effect.sleep("20 millis");
-	expect(test.reads(1)).toBe(2);
-	test.fire("online");
-	yield* eventually(() => expect(test.reads(1)).toBe(3));
-	test.resume();
-	yield* eventually(() => expect(test.reads(1)).toBe(4));
-	expect(test.listeners()).toEqual([2, 1]);
-	release();
-	test.dispose();
-	expect(test.listeners()).toEqual([0, 0]);
-});
+for (const trigger of [
+	"the browser fires visibilitychange while visible",
+	"the browser fires online while visible",
+	"the native application resumes",
+] as const) {
+	resumeStory.it(
+		`when ${trigger}, the resume signal re-reads note 1 changed while away`,
+		[watching(1)],
+		function* ({ changeQuietly, resume, shown, untilReRead }) {
+			yield* changeQuietly(1, "Changed while away");
+			expect(yield* shown(1)).toBe("One");
 
-for (const source of ["native", "browser"] as const) {
-	resumeStory.it(`automatic live reads reconcile on ${source} resume and reconnect after interruption`, [automaticResume(source)], function* (test) {
-		const watched = [1, 2];
-		for (const id of watched) {
-			test.watch(id);
-		}
-		test.connect();
-		yield* eventually(() => expect(test.status().connection).toBe("live"));
-		expect(yield* test.loaded(1)).toMatchObject({ title: "One" });
-		expect(yield* test.loaded(2)).toMatchObject({ title: "Two" });
-		const initialSubscriptions = test.subscriptionCount() ?? 0;
-		yield* test.externalRename(1, "Changed while away");
-		yield* test.externalRename(2, "Also changed while away");
-		if (source === "native") {
-			test.resume();
-		} else {
-			test.windowEvent("visibilitychange");
-		}
-		yield* eventually(() => {
-			expect(test.title(1)).toBe("Changed while away");
-			expect(test.title(2)).toBe("Also changed while away");
-		});
-		yield* eventually(() => expect(test.subscriptionCount()).toBe(initialSubscriptions));
-		expect(test.listeners()[1]).toBe(source === "native" ? 1 : 0);
-		yield* test.disconnect();
-		yield* eventually(() => expect(test.active()).toBe(0));
-		yield* test.externalRename(1, "Changed while disconnected");
-		if (source === "native") {
-			test.resume();
-		} else {
-			test.windowEvent("online");
-		}
-		yield* eventually(() => expect(test.subscriptionCount()).toBe(initialSubscriptions + watched.length));
-		yield* eventually(() => expect(test.status().connection).toBe("live"));
-		yield* eventually(() => expect(test.title(1)).toBe("Changed while disconnected"));
-		test.dispose();
-		expect(test.listeners()).toEqual([0, 0]);
-		yield* eventually(() => expect(test.active()).toBe(0));
+			resume(trigger);
+			yield* untilReRead(1);
+
+			expect(yield* shown(1)).toBe("Changed while away");
+		},
+	);
+}
+
+for (const event of ["the browser fires visibilitychange while hidden", "the browser fires online while hidden"] as const) {
+	resumeStory.it(`when ${event}, the resume signal re-reads nothing`, [watching(1)], function* ({ fireHidden, timesRead }) {
+		fireHidden(event);
+
+		expect(yield* timesRead(1)).toBe("read once");
 	});
 }
 
-resumeStory.it("swr treats resume as a focus signal and only revalidates stale data", [nativeOnly()], function* (test) {
-	test.watch(1, "fresh");
-	test.watch(2, "stale");
-	yield* eventually(() => expect([test.reads(1), test.reads(2)]).toEqual([1, 1]));
-	expect(yield* test.loaded(1)).toMatchObject({ id: 1, title: "One" });
-	expect(yield* test.loaded(2)).toMatchObject({ id: 2, title: "Two" });
-	expect(test.listeners()).toEqual([0, 1]);
-	test.resume();
-	yield* eventually(() => expect([test.reads(1), test.reads(2)]).toEqual([1, 2]));
-	test.dispose();
-	expect(test.listeners()).toEqual([0, 0]);
-});
+resumeStory.it(
+	"disposing the registry removes the resume signal's two browser listeners and its native listener",
+	[watching(1)],
+	function* ({ dispose, listeners }) {
+		expect(yield* listeners()).toEqual({ browser: 2, native: 1 });
+
+		dispose();
+
+		expect(yield* listeners()).toEqual({ browser: 0, native: 0 });
+	},
+);
+
+resumeStory.it(
+	"with automatic live reads, a native resume re-reads notes 1 and 2 changed while away and opens no new streams",
+	[automaticLive("native"), watching(1, 2)],
+	function* ({ changeQuietly, resume, shown, streamsOpened, untilReRead }) {
+		yield* changeQuietly(1, "Changed while away");
+		yield* changeQuietly(2, "Also changed while away");
+		expect(yield* streamsOpened()).toBe("2 streams opened");
+
+		resume("the native application resumes");
+		yield* untilReRead(1);
+		yield* untilReRead(2);
+
+		yield* outcomes({
+			"note 1": [shown(1), "Changed while away"],
+			"note 2": [shown(2), "Also changed while away"],
+			"streams opened": [streamsOpened(), "2 streams opened"],
+		});
+	},
+);
+
+for (const event of ["visibilitychange", "online"] as const) {
+	resumeStory.it(
+		`with automatic live reads and no resume source, the global window's ${event} re-reads note 1 changed while away`,
+		[automaticLive("browser"), watching(1)],
+		function* ({ changeQuietly, globalWindowFires, shown, untilReRead }) {
+			yield* changeQuietly(1, "Changed while away");
+			expect(yield* shown(1)).toBe("One");
+
+			globalWindowFires(event);
+			yield* untilReRead(1);
+
+			expect(yield* shown(1)).toBe("Changed while away");
+		},
+	);
+}
+
+resumeStory.it(
+	"after its streams drop, automatic live reconnects them and re-reads note 1 changed while disconnected",
+	[automaticLive("native"), watching(1)],
+	function* ({ changeQuietly, openStreams, shown, streamsDrop, untilReRead }) {
+		yield* streamsDrop();
+		yield* changeQuietly(1, "Changed while disconnected");
+		expect(yield* openStreams()).toBe("no streams open");
+
+		yield* untilReRead(1);
+
+		yield* outcomes({
+			"note 1": [shown(1), "Changed while disconnected"],
+			"open streams": [openStreams(), "one stream open"],
+		});
+	},
+);
+
+resumeStory.it(
+	"disposing the registry removes automatic live's native resume listener and closes its stream",
+	[automaticLive("native"), watching(1)],
+	function* ({ dispose, listeners, openStreams }) {
+		yield* outcomes({
+			listeners: [listeners(), { browser: 0, native: 1 }],
+			"open streams": [openStreams(), "one stream open"],
+		});
+
+		dispose();
+
+		yield* outcomes({
+			listeners: [listeners(), { browser: 0, native: 0 }],
+			"open streams": [openStreams(), "no streams open"],
+		});
+	},
+);
