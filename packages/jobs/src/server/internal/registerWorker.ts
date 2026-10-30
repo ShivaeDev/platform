@@ -1,8 +1,9 @@
-import { Clock, type Context, Effect, type Scope } from "effect";
+import { type Context, Effect, type Scope } from "effect";
 import type { Job, WorkOptions } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { batchHandler } from "#internal/batchHandler.ts";
 import { deferrableAttempt } from "#internal/deferrableAttempt.ts";
+import { retryWake } from "#internal/retryWake.ts";
 import { traceJob } from "#internal/tracing.ts";
 
 export function registerWorker(
@@ -25,34 +26,7 @@ export function registerWorker(
 				const attempt = traceJob(deferrableAttempt(run(job), client, schema, job, maxDeferrals), job, name);
 				return Effect.provide(attempt, context);
 			},
-			async (attempt) => {
-				if (client.findJobs === undefined || client.notifyWorker === undefined) {
-					return;
-				}
-				const job = (await client.findJobs(name, { id: attempt.id }))[0];
-				if (job?.state !== "retry") {
-					return;
-				}
-				const workId = await registration;
-				await Effect.runPromise(
-					Effect.gen(function* () {
-						// Host timers can fire early; PostgreSQL also retains precision that Date drops.
-						const deadline = job.startAfter.getTime() + 1;
-						let remaining = deadline - (yield* Clock.currentTimeMillis);
-						while (remaining > 0) {
-							yield* Effect.sleep(remaining);
-							remaining = deadline - (yield* Clock.currentTimeMillis);
-						}
-						const workerIds = client
-							.getWipData?.()
-							.filter((worker) => worker.workId === workId)
-							.map((worker) => worker.id) ?? [workId];
-						for (const workerId of workerIds) {
-							client.notifyWorker?.(workerId);
-						}
-					}).pipe(Effect.forkIn(scope)),
-				);
-			},
+			(attempt) => Effect.runPromiseWith(context)(retryWake(client, name, attempt.id, registration).pipe(Effect.forkIn(scope), Effect.asVoid)),
 			Effect.runPromiseWith(context),
 		),
 	);

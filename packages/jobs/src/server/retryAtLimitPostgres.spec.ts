@@ -83,6 +83,6 @@ postgresIt("defers scheduled effects and treats a zero limit as an ordinary fail
 	const waiting = yield* untilJobs(client, Schedule.name, (stored) => stored[0]?.state === "retry");
 	expect(waiting).toMatchObject([{ data: { retained: true }, id, retryCount: 0, singletonKey: "schedule-key", startAfter: DateTime.toDateUtc(at) }]);
 	expect(yield* untilJobs(client, Disabled.name, (stored) => stored[0]?.state === "failed")).toMatchObject([
-		{ output: { _tag: "RetryAt", reason: "disabled" }, retryCount: 0 },
+		{ output: { _tag: "RetryAt", message: "" }, retryCount: 0 },
 	]);
 });

@@ -15,7 +15,7 @@ export interface PgBossService {
 	readonly deadLetteredJobs: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },
 		options: JobPageOptions,
-	) => Effect.Effect<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
+	) => Effect.Effect<JobPage<DeadLetteredJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError | Schema.SchemaError, TPayload["DecodingServices"]>;
 	readonly enqueue: <const TName extends string, const TPayload extends JobPayloadSchema, const TQueue extends QueueDefinition<TName, TPayload>>(
 		queue: QueueDefinition<TName, TPayload> & TQueue,
 		payload: NoInfer<Schema.Schema.Type<TPayload>>,
@@ -24,7 +24,7 @@ export interface PgBossService {
 	readonly failedJobs: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },
 		options: JobPageOptions,
-	) => Effect.Effect<JobPage<ListedJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
+	) => Effect.Effect<JobPage<ListedJob<TPayload["Type"]>>, PgBossError | PgBossPayloadError | Schema.SchemaError, TPayload["DecodingServices"]>;
 	readonly getJob: <const TName extends string, const TPayload extends JobPayloadSchema | typeof Schema.Null>(
 		queue: { readonly name: TName; readonly schema: TPayload },
 		id: string,

@@ -8,11 +8,11 @@ export function clientEngine(): {
 	connectionString: string;
 	events: EventEmitter;
 	factory: PgBossClientFactory | undefined;
-	logs: Array<{ logLevel: string; message: unknown }>;
+	logs: Array<{ logLevel: string; message: unknown; cause?: string }>;
 	sql: SqlClient.SqlClient | undefined;
 } {
 	const client = new FakeClient();
-	const logs: Array<{ logLevel: string; message: unknown }> = [];
+	const logs: Array<{ logLevel: string; message: unknown; cause?: string }> = [];
 	return {
 		client,
 		connectionString: "postgresql://compile-only",

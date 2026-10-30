@@ -22,14 +22,13 @@
 {"path":"packages/jobs/src/server/internal/healthFor.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/jobControl.ts","rule":"effect/boundary","count":8}
 {"path":"packages/jobs/src/server/internal/lifecycle.ts","rule":"effect/boundary","count":13}
-{"path":"packages/jobs/src/server/internal/listJobs.ts","rule":"effect/boundary","count":5}
+{"path":"packages/jobs/src/server/internal/listJobs.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/nativeClient.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/internal/observeTestingSettlements.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"code/unused","count":1}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/boundary","count":16}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/registerReleasedJobs.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/jobs/src/server/internal/registerWorker.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/internal/registerWorker.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/jobs/src/server/internal/runSchemaPlan.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/internal/runSchemaPlan.ts","rule":"effect/service-parameters","count":1}
