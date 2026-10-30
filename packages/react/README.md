@@ -746,7 +746,16 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 }
 ```
 
-The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Actions fail with `AuthFailure` from the same module. Its `code` uses the closed `AuthFailureCode` union: supported Better Auth core codes, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. The original error is available in `cause`. Applications own the sentences, and can make their mapping exhaustive with `Record<AuthFailureCode, string>`.
+
+For a form's Effect-based `onSubmit`, use `authCall` from the same module:
+
+```ts
+const signIn = authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
+const onSubmit = (credentials: { email: string; password: string }) => signIn(credentials);
+```
+
+`authCall` returns a function from input to `Effect<A, AuthFailure>`. It uses the same failure codes and successful data as `authAction`.
 
 `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
 
@@ -768,7 +777,7 @@ function Account() {
 }
 ```
 
-The example uses the application's Better Auth client. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+The example uses the application's Better Auth client. Reads preserve returned auth errors and use `AuthActionUnavailable` for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
 For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
