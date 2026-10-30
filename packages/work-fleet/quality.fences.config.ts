@@ -9,12 +9,15 @@ export default [
 			packages("work-board").except(
 				files(
 					"packages/work-board/src/integration/metadata.ts",
+					"packages/work-board/src/server/search/snapshot.ts",
+					"packages/work-board/src/diagnostics/source.ts",
 					"packages/work-board/src/server/integration/board.ts",
-					"packages/work-board/src/server/integration/processes.ts",
+					"packages/work-board/src/server/processOwnership.ts",
 					"packages/work-board/src/server/integration/responses.ts",
-					"packages/work-board/src/server/integration/attention.ts",
+					"packages/work-board/src/server/attention/managedRequestReceipt.ts",
+					"packages/work-board/src/attention/RequestReceipt.ts",
 					"packages/work-board/src/server/integration/diagnostics.ts",
-					"packages/work-board/src/server/integration/publication.ts",
+					"packages/work-board/src/server/responses/publicationDirectory.ts",
 				),
 			),
 		)
