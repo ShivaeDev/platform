@@ -1,18 +1,19 @@
-import { type Duration, Effect, Stream } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
+import { type Duration, Effect, type Schema, Stream } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
+import type { Rpc, RpcSchema } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { aggregateLiveStatus } from "#internal/aggregateLiveStatus.ts";
+import { automaticQuery } from "#internal/automaticQuery.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
-import { queryFailure } from "#internal/queryFailure.ts";
+import { queryDelivery } from "#internal/queryDelivery.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
-import { queryResult } from "#internal/queryResult.ts";
+import type { QueryUpdate } from "#internal/queryUpdate.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
 import { type LiveStatus, live } from "#live.ts";
-import { queryCoalesceWindow } from "#queryCoalesceWindow.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
-import type { changesRpc, QueryReference } from "#serverMetadata.ts";
+import type { QueryReference } from "#serverMetadata.ts";
 
 declare const window: ResumeWindow | undefined;
 
@@ -29,7 +30,16 @@ export interface LiveBound {
 
 const pausedByRuntime = Atom.family((_runtime: object) => Atom.keepAlive(Atom.make(false)));
 
-export type ChangesClient = AtomRpc.AtomRpcClient<unknown, string, ReturnType<typeof changesRpc>>;
+export type ChangesClient = AtomRpc.AtomRpcClient<
+	unknown,
+	string,
+	Rpc.Rpc<
+		`${string}.$changes`,
+		Schema.Struct<{ queries: Schema.$Array<Schema.Struct<{ query: Schema.String; payload: Schema.Unknown }>> }>,
+		RpcSchema.Stream<Schema.Schema<QueryUpdate>, Schema.Unknown>,
+		Schema.Never
+	>
+>;
 
 export function automaticLive(
 	service: ChangesClient,
@@ -60,85 +70,37 @@ export function automaticLive(
 		reference: QueryReference,
 		keys: readonly Key[],
 		equivalent: (left: A, right: A) => boolean,
+		decode?: (value: unknown) => A,
 	) {
 		if (!enabled) {
 			return atom;
 		}
 		const ready = Atom.make(false);
+		const delivery = queryDelivery(atom, decode, paused);
+		const source = delivery.atom;
 		const subscription = live(service.runtime, {
 			initialResync: false,
 			keyContext: owner?.context,
 			resume: signal,
-			resyncKeys: localQueryKeys(keys),
+			resyncKeys: decode === undefined ? localQueryKeys(keys) : [],
 			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] })))).pipe(
+				delivery.stream,
 				Stream.map((hint) => queryHint(hint, [{ keys }])),
 			),
 		});
-		const gated = Atom.readable(
-			(get) => {
-				assertOwner(get);
-				const registry = get.registry;
-				const dispatcher = registry.schedulerAsync.makeDispatcher();
-				get.set(ready, false);
-				get.once(queryCoalesceWindow(gated));
-				get.subscribe(queryCoalesceWindow(gated), (value) => get.set(queryCoalesceWindow(atom), value), { immediate: true });
-				const token = {};
-				let active = true;
-				function observe(value: LiveStatus<unknown>) {
-					dispatcher.scheduleTask(() => {
-						if (active) {
-							registry.update(statuses, (current) => new Map([...current, [token, value]]));
-						}
-					}, 0);
-					if (value.connection === "live") {
-						registry.set(ready, true);
-					}
-				}
-				get.addFinalizer(() => {
-					active = false;
-					if (registry.getNodes().has(statuses)) {
-						registry.update(statuses, (current) => {
-							const next = new Map(current);
-							next.delete(token);
-							return next;
-						});
-					}
-				});
-				get.addFinalizer(registry.subscribe(subscription.status, observe, { immediate: true }));
-				get.addFinalizer(registry.subscribe(coalesceWindow, (value) => registry.set(subscription.coalesceWindow, value), { immediate: true }));
-				let started = false;
-				function start() {
-					if (started) {
-						return;
-					}
-					started = true;
-					get.refresh(atom);
-					const publish = queryResult<A, E>(equivalent, (value) => get.setSelf(value));
-					get.subscribe(atom, publish);
-					publish(get.once(atom));
-				}
-				get.once(ready);
-				get.subscribe(ready, (value) => {
-					if (value) {
-						start();
-					}
-				});
-				const failed = queryFailure(
-					() => started,
-					(cause) => get.setSelf(AsyncResult.failure(cause)),
-					() => get.refresh(atom),
-				);
-				get.subscribe(subscription.status, failed);
-				get.addFinalizer(registry.subscribe(paused, (value) => registry.set(subscription.paused, value), { immediate: true }));
-				get.mount(subscription.connection);
-				if (get.once(ready)) {
-					start();
-					return get.once(atom);
-				}
-				return AsyncResult.initial();
-			},
-			(refresh) => refresh(atom),
-		).pipe(Atom.setIdleTTL(0));
+		const gated = automaticQuery({
+			assertOwner,
+			atom,
+			coalesceWindow,
+			equivalent,
+			paused,
+			pushed: decode !== undefined,
+			ready,
+			signal,
+			source,
+			statuses,
+			subscription,
+		});
 		Object.assign(gated, { initialValueTarget: atom });
 		if (Atom.isSerializable(atom)) {
 			Object.assign(gated, { [Atom.SerializableTypeId]: atom[Atom.SerializableTypeId] });

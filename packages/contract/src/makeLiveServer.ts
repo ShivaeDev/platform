@@ -1,8 +1,9 @@
-import { Effect, Queue, Stream } from "effect";
+import { Context, Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
+import { compareQueries, type QueryRerun } from "#internal/compareQueries.ts";
 import { liveHintQueue } from "#internal/liveHintQueue.ts";
-import { changedHint } from "#internal/queryHints.ts";
+import type { QueryUpdate } from "#internal/queryUpdate.ts";
 import type { LiveHint } from "#live.ts";
 import type { QuerySubscription } from "#querySubscription.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
@@ -65,19 +66,22 @@ export const makeLiveServer = Effect.gen(function* () {
 		reactivity.invalidateUnsafe([resyncKey]);
 		return openStreams;
 	});
-	return {
-		resync,
-		stream: (keys: readonly Key[], context?: KeyContext) => open(keys, context),
-		subscribe: (subscription: QuerySubscription, context?: KeyContext) =>
-			open(subscription.keys, context).pipe(
-				Stream.mapEffect((hint) =>
-					Effect.flatMap(subscription.authorized, (allowed) =>
-						allowed
-							? Effect.succeed(hint._tag === "Resync" ? hint : changedHint(hint.keys, subscription.scopes))
-							: Effect.fail(new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })),
-					),
-				),
-				Stream.filter((hint) => hint._tag === "Resync" || hint.keys.length > 0),
-			),
-	};
+	function subscribe(subscription: QuerySubscription, context?: KeyContext): Stream.Stream<LiveHint, QueryReadDenied>;
+	function subscribe(subscription: QuerySubscription, context: KeyContext | undefined, read: QueryRerun): Stream.Stream<QueryUpdate, unknown>;
+	function subscribe(subscription: QuerySubscription, context?: KeyContext, read?: QueryRerun) {
+		return Stream.unwrap(
+			Effect.gen(function* () {
+				const services = Context.makeUnsafe<unknown>((yield* Effect.context<never>()).mapUnsafe);
+				const compare = compareQueries(subscription, read);
+				const next = Effect.fnUntraced(function* (hint: LiveHint) {
+					if (!(yield* subscription.authorized)) {
+						return yield* new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" });
+					}
+					return yield* Effect.provideContext(compare(hint), services);
+				});
+				return open(subscription.keys, context).pipe(Stream.mapEffect(next), Stream.flatMap(Stream.fromIterable));
+			}),
+		);
+	}
+	return { resync, stream: open, subscribe };
 });

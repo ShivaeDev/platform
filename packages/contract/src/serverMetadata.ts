@@ -1,7 +1,7 @@
 import { Context, Effect, Option, Schema } from "effect";
 import { Rpc } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { LiveHint } from "#live.ts";
+import { changesSuccess, rerunErrors } from "#internal/queryUpdate.ts";
 import type { CommandShape, QueryShape } from "#operation.ts";
 import type { Viewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
@@ -58,9 +58,9 @@ function referenceSchemas(queries: readonly QueryShape[]) {
 
 export function changesRpc<const TName extends string, const TQueries extends readonly QueryShape[]>(name: TName, queries: TQueries) {
 	return Rpc.make(`${name}.$changes`, {
-		error: Schema.Union([MissingReadPolicy, QueryReadDenied]),
+		error: Schema.Union([MissingReadPolicy, QueryReadDenied, ...rerunErrors(queries)]),
 		payload: { queries: referenceSchemas(queries) },
 		stream: true,
-		success: LiveHint,
+		success: changesSuccess(queries),
 	}).annotate(ChangesQueries, { resolve: (references) => resolveQueries(queries, references) });
 }

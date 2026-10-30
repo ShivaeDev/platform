@@ -24,6 +24,7 @@ export interface OperationShape {
 
 export interface QueryShape extends OperationShape {
 	readonly kind: "query";
+	readonly live?: "rerun-and-compare" | undefined;
 	readonly readPolicy?: Bivariant<QueryReadPolicy<unknown>>;
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
 }
@@ -49,9 +50,15 @@ interface Operation<TName extends string, TPayload extends Schema.Top, TSuccess 
 	readonly success: TSuccess;
 }
 
-export interface Query<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
-	extends Operation<TName, TPayload, TSuccess, TSpecs> {
+export interface Query<
+	TName extends string,
+	TPayload extends Schema.Top,
+	TSuccess extends Schema.Top,
+	TSpecs extends RejectionSpecs,
+	TLive extends "rerun-and-compare" | undefined = undefined,
+> extends Operation<TName, TPayload, TSuccess, TSpecs> {
 	readonly kind: "query";
+	readonly live?: TLive;
 	readonly readPolicy?: QueryReadPolicy<TPayload["Type"]>;
 	reads: (payload: TPayload["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 }
@@ -79,22 +86,26 @@ export function query<
 	TPayload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
 	TSuccess extends Schema.Top = Schema.Void,
 	const TSpecs extends RejectionSpecs = NoRejections,
+	const TLive extends "rerun-and-compare" | undefined = undefined,
 >(
 	name: TName,
 	declaration: Declaration<TPayload, TSuccess, TSpecs> & {
+		readonly live?: TLive;
 		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readPolicy?: QueryReadPolicy<PayloadSchema<TPayload>["Type"]>;
 	},
-): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs>>;
+): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs, TLive>>;
 export function query(
 	name: string,
 	declaration: Loose & {
+		readonly live?: "rerun-and-compare" | undefined;
 		readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
 		readonly readPolicy?: QueryReadPolicy<unknown>;
 	},
 ): QueryShape {
 	return {
 		...operation("query", name, declaration),
+		live: declaration.live,
 		reads: declaration.reads,
 		...(declaration.readPolicy === undefined ? {} : { readPolicy: declaration.readPolicy }),
 	};

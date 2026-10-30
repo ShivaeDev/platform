@@ -6,6 +6,7 @@ import type { QueryRequest } from "#serverMetadata.ts";
 export interface QuerySubscription {
 	readonly authorized: Effect.Effect<boolean>;
 	readonly keys: readonly Key[];
+	readonly queries?: readonly QueryRequest[];
 	readonly scopes: readonly (readonly Key[])[];
 }
 
@@ -17,5 +18,5 @@ export const querySubscription = Effect.fnUntraced(function* (queries: readonly 
 		Effect.forEach(queries, ({ query, payload }) => Effect.provideContext(query.readPolicy?.(payload, viewer) ?? Effect.succeed(false), context)),
 		(permissions) => permissions.every(Boolean),
 	);
-	return { authorized, keys: scopes.flat(), scopes } satisfies QuerySubscription;
+	return { authorized, keys: scopes.flat(), queries, scopes } satisfies QuerySubscription;
 });

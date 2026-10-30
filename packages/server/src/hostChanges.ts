@@ -6,6 +6,7 @@ import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
+import { rerunQuery } from "#rerunQuery.ts";
 import type { AppChanges } from "./appHost.ts";
 
 export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
@@ -18,14 +19,14 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 			const changes = yield* Effect.serviceOption(changesService);
 			const services = yield* Effect.context<never>();
 			const handlers = new Map<string, unknown>();
-			function subscribe(rpc: Rpc.Any, queries: readonly QueryReference[]) {
+			function subscribe(rpc: Rpc.Any, queries: readonly QueryReference[], options: Parameters<Rpc.Handler<string>["handler"]>[1]) {
 				return Stream.unwrap(
 					Effect.gen(function* () {
 						const { subscription, context } = yield* resolveChanges(rpc, queries);
 						const viewer = yield* CurrentViewer;
 						const authorized = authorizeSession(sessions, rpc._tag, viewer, subscription.authorized);
 						const stream = Option.isSome(changes)
-							? changes.value.subscribe({ ...subscription, authorized }, context)
+							? changes.value.subscribe({ ...subscription, authorized }, context, rerunQuery(group, options))
 							: Stream.concat(Stream.succeed({ _tag: "Resync" } as const), Stream.never);
 						if (sessions === undefined || Option.isNone(viewer)) {
 							return stream;
@@ -45,7 +46,8 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 				}
 				handlers.set(rpc.key, {
 					context: services,
-					handler: ({ queries }: { readonly queries: readonly QueryReference[] }) => subscribe(rpc, queries),
+					handler: ({ queries }: { readonly queries: readonly QueryReference[] }, options: Parameters<Rpc.Handler<string>["handler"]>[1]) =>
+						subscribe(rpc, queries, options),
 					tag: rpc._tag,
 				});
 			}
