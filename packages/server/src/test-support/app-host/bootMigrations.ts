@@ -1,14 +1,23 @@
-import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Logger, Queue, Redacted, References } from "effect";
+import { Clock, type Context, Deferred, Duration, Effect, Exit, Fiber, Layer, Logger, Queue, Redacted, References } from "effect";
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
-import { TestClock } from "effect/testing";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { appHost } from "#appHost.ts";
-import type { MigrationState } from "#test/app-host/migrationStory.ts";
+import { causeWords } from "#test/answers.ts";
+import type { migrationLoader } from "#test/app-host/migrationLoader.ts";
 import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 
+interface MigrationHost {
+	readonly hostUrl: Redacted.Redacted;
+	readonly lifecycle: string[];
+	readonly migrations: { readonly components: SchemaComponent[]; readonly loader: ReturnType<typeof migrationLoader>; readonly table: string };
+	readonly table: string;
+	readonly url: Redacted.Redacted;
+}
+
 export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(function* (
-	state: MigrationState,
+	state: MigrationHost,
 	options: {
 		mode?: "check" | "wait";
 		waitTimeout?: Duration.Input;
@@ -17,10 +26,8 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		release?: string;
 	} = {},
 ) {
-	const events: unknown[] = [];
 	const logs: { level: string; message: readonly unknown[]; annotations: Record<string, unknown> }[] = [];
 	const logger = Logger.make((entry) => {
-		events.push(entry.message);
 		logs.push({
 			annotations: entry.fiber.getRef(References.CurrentLogAnnotations),
 			level: entry.logLevel,
@@ -66,7 +73,6 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		return yield* Effect.never;
 	}).pipe(
 		Effect.scoped,
-		Effect.onExit((exit) => Effect.sync(() => events.push(exit))),
 		Effect.provide(Logger.layer([logger])),
 		Effect.provideService(Clock.Clock, {
 			...clock,
@@ -81,24 +87,25 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 		}),
 		Effect.forkScoped,
 	);
+	const next = Effect.raceFirst(
+		Queue.take(sleeps).pipe(Effect.map((millis) => `sleeps ${millis} ms`)),
+		Effect.raceFirst(
+			Deferred.await(ready).pipe(Effect.as("ready")),
+			Fiber.await(fiber).pipe(Effect.map((exit) => (Exit.isSuccess(exit) ? "ended" : causeWords(exit.cause)))),
+		),
+	);
 	return {
-		advance: (duration: Duration.Input) => TestClock.adjust(duration),
 		exit: Fiber.await(fiber),
-		interrupt: Fiber.interrupt(fiber),
+		fiber,
 		migrationLogs: () =>
 			logs.filter((entry) => entry.message.some((message) => typeof message === "string" && message.toLowerCase().includes("database migrations"))),
-		next: Effect.raceFirst(
-			Queue.take(sleeps).pipe(Effect.map((millis) => ({ _tag: "Sleeping" as const, millis }))),
-			Effect.raceFirst(
-				Deferred.await(ready).pipe(Effect.as({ _tag: "Ready" as const })),
-				Fiber.await(fiber).pipe(Effect.map((exit) => ({ _tag: "Exited" as const, exit }))),
-			),
-		),
+		next,
 		ping: Effect.gen(function* () {
 			const context = yield* Effect.raceFirst(Deferred.await(ready), Fiber.join(fiber));
 			const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 			return yield* Effect.tryPromise(() => ping(`${HttpServer.formatAddress(server.address)}/rpc`));
 		}),
-		recordedEvents: () => events,
 	};
 });
+
+export type BootedHost = Effect.Success<ReturnType<typeof bootMigrations>>;

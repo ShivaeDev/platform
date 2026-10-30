@@ -4,7 +4,7 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { AppChanges, appHost } from "#appHost.ts";
-import { AbortApi, abortHandlers, CHANGED_KEY, type ClientAbortState } from "./clientAbortFixture.ts";
+import { AbortApi, abortHandlers, CHANGED_KEY, type ClientAbortState, changed } from "./clientAbortFixture.ts";
 import { host } from "./story.ts";
 
 export function abortableRpc(mode: "transaction" | "subscription") {
@@ -21,6 +21,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 			interrupted: false,
 			registrations: [],
 			table,
+			waiters: [],
 			written: false,
 		};
 		state.clientAbort = probe;
@@ -38,6 +39,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 			const register = reactivity.registerUnsafe;
 			const stopObserving = register([CHANGED_KEY], () => {
 				probe.commits += 1;
+				changed(probe);
 			});
 			yield* Effect.addFinalizer(() => Effect.sync(stopObserving));
 			Object.assign(reactivity, {
@@ -50,6 +52,7 @@ export function abortableRpc(mode: "transaction" | "subscription") {
 					return () => {
 						stop();
 						probe.registrations.splice(probe.registrations.indexOf(keys), 1);
+						changed(probe);
 					};
 				},
 			});

@@ -20,7 +20,7 @@ export async function sharedDevelopmentRuntime(state: HostState) {
 	try {
 		await listening(first);
 		await listening(second);
-		return first === second;
+		return first === second ? "shared" : "distinct";
 	} finally {
 		await first.dispose();
 		if (first !== second) {
@@ -46,7 +46,13 @@ export async function recreatedDevelopmentRuntime(state: HostState) {
 		const value = await second.runPromise(RuntimeValue);
 		const before = [...lifecycle];
 		await second.dispose();
-		return { after: lifecycle, before, cached, fresh, retained, value };
+		return {
+			"after disposing the cached runtime": fresh ? "a fresh runtime" : "the disposed runtime",
+			"application layer": { "after disposal": lifecycle, "while cached": before },
+			"next lookup": cached ? "the fresh runtime" : "another runtime",
+			"value": value,
+			"when the old runtime is disposed again": retained ? "the fresh runtime stays cached" : "the fresh runtime is evicted",
+		};
 	} finally {
 		await second.dispose();
 	}

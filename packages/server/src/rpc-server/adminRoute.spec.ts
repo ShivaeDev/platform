@@ -1,49 +1,77 @@
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { auth, signedInWithRole } from "#test/auth/story.ts";
 
-auth.it("an admin receives the handler response on GET and POST", [signedInWithRole("admin")], function* ({ openAdminTools, adminHandlerRequests }) {
-	expect(yield* openAdminTools()).toEqual({ body: "Admin tools for member@example.test", status: HttpStatus.fromLiteral("OK") });
-	expect(yield* openAdminTools("POST")).toEqual({ body: "Admin tools for member@example.test", status: HttpStatus.fromLiteral("Created") });
-	expect(yield* adminHandlerRequests()).toEqual(["GET", "POST"]);
-});
+const ADMIN_TOOLS = "Admin tools for member@example.test";
 
-auth.it("a signed-in user without admin cannot run the handler", [signedInWithRole("user")], function* ({ openAdminTools, adminHandlerRequests }) {
-	expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-	expect(yield* adminHandlerRequests()).toEqual([]);
-});
+for (const [method, status] of [
+	["GET", HttpStatus.fromLiteral("OK")],
+	["POST", HttpStatus.fromLiteral("Created")],
+] as const) {
+	auth.it(
+		`an admin's ${method} to the admin route runs its handler and receives its response`,
+		[signedInWithRole("admin")],
+		function* ({ adminHandlerRequests, openAdminTools }) {
+			const response = yield* openAdminTools(method);
 
-auth.it("a signed-out caller cannot run the handler", [], function* ({ openAdminTools, adminHandlerRequests }) {
-	expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-	expect(yield* adminHandlerRequests()).toEqual([]);
-});
+			yield* outcomes({
+				"admin handler requests": [adminHandlerRequests(), [method]],
+				response: [Effect.succeed(response), { body: ADMIN_TOOLS, status }],
+			});
+		},
+	);
+}
 
-auth.it("a refused Origin cannot run the handler", [signedInWithRole("admin")], function* ({ openAdminTools, adminHandlerRequests }) {
-	expect((yield* openAdminTools("POST", "https://refused.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-	expect(yield* adminHandlerRequests()).toEqual([]);
-});
+for (const [caller, traits, request, status] of [
+	["a signed-in user without admin", [signedInWithRole("user")], { method: "GET", origin: undefined }, HttpStatus.fromLiteral("Forbidden")],
+	["a signed-out caller", [], { method: "GET", origin: undefined }, HttpStatus.fromLiteral("Unauthorized")],
+	[
+		"an admin posting from a refused Origin",
+		[signedInWithRole("admin")],
+		{ method: "POST", origin: "https://refused.example" },
+		HttpStatus.fromLiteral("Forbidden"),
+	],
+] as const) {
+	auth.it(`${caller} is refused with ${status} before the admin route handler runs`, traits, function* ({ adminHandlerRequests, openAdminTools }) {
+		yield* openAdminTools(request.method, request.origin);
 
-auth.it(
-	"an unavailable session provider returns 503 without running the handler",
-	[signedInWithRole("admin")],
-	function* ({ failSessionProvider, openAdminTools, adminHandlerRequests }) {
-		yield* failSessionProvider();
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("ServiceUnavailable"));
 		expect(yield* adminHandlerRequests()).toEqual([]);
+	});
+	auth.it(`${caller} receives ${status} from the admin route`, traits, function* ({ openAdminTools }) {
+		expect(yield* openAdminTools(request.method, request.origin)).toMatchObject({ status });
+	});
+}
+
+auth.it(
+	"an unavailable session provider answers the admin route with 503 without running its handler",
+	[signedInWithRole("admin")],
+	function* ({ adminHandlerRequests, failSessionProvider, openAdminTools }) {
+		yield* failSessionProvider();
+
+		yield* outcomes({
+			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("ServiceUnavailable") })],
+			"handler requests": [adminHandlerRequests(), []],
+		});
 	},
 );
 
 auth.it(
-	"removing admin prevents the next request with the same session from running the handler",
+	"after the admin role is removed, the same session's next admin route request is forbidden without running the handler",
 	[signedInWithRole("admin")],
-	function* ({ openAdminTools, setRole, adminHandlerRequests }) {
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("OK"));
+	function* ({ adminHandlerRequests, openAdminTools, setRole }) {
+		expect(yield* openAdminTools()).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+
 		yield* setRole("user");
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect(yield* adminHandlerRequests()).toEqual(["GET"]);
+
+		yield* outcomes({
+			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Forbidden") })],
+			"handler requests": [adminHandlerRequests(), ["GET"]],
+		});
 	},
 );
 
-auth.it("a handler's own Forbidden failure stays in the typed error channel", [signedInWithRole("admin")], function* ({ openFailingAdminTools }) {
+auth.it("an admin handler's own forbidden failure answers 422 with its message", [signedInWithRole("admin")], function* ({ openFailingAdminTools }) {
 	expect(yield* openFailingAdminTools()).toEqual({ body: "Handler failure", status: HttpStatus.fromLiteral("UnprocessableEntity") });
 });
