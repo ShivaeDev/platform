@@ -10,10 +10,12 @@ import { worker } from "#test/workers.ts";
 const Failed = defineQueue({ name: "failure-summary", queue: { retryLimit: 0 }, schema: Schema.Struct({}) });
 
 database.it(
-	"a RemoteHttpError is stored and listed with its tag and the failed call's summary",
+	"a RemoteHttpError is stored and listed with its tag and call summary, without URL credentials, query or fragment",
 	[
 		running("app", [
-			worker(Failed, { failsWith: new RemoteHttpError({ method: "POST", status: 503, url: "https://api.example.com/orders?token=private" }) }),
+			worker(Failed, {
+				failsWith: new RemoteHttpError({ method: "POST", status: 503, url: "https://user:password@api.example.com/orders?token=private#fragment" }),
+			}),
 		]),
 		enqueued(Failed, {}, { as: "remote call" }),
 	],
