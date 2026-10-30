@@ -20,6 +20,7 @@ export const manifestStory = storyKit({
 	name: "Quality manifest inventory",
 	stages: ["repository"],
 	verbs: ({ root }) => ({
+		fixes: () => Effect.promise(() => runQuality(root, "fix")),
 		lints: () => Effect.promise(() => runQuality(root, "lint")),
 		readsConcurrently: (path: string) =>
 			Effect.gen(function* () {

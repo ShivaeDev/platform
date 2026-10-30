@@ -1,7 +1,6 @@
 import { createRequire } from "node:module";
 import { basename, dirname, join, posix } from "node:path";
 import process from "node:process";
-import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
@@ -12,50 +11,48 @@ import { KNIP_ISSUES, knipFindings } from "./findings.ts";
 import { sourceConfig } from "./sourceConfig.ts";
 
 const BIN = join(dirname(createRequire(import.meta.url).resolve("knip")), "..", "bin", "knip.js");
-export async function runKnip(inputs: RuleInputs) {
-	if ((await readPackageManifest(inputs.readText, "package.json")) === undefined) {
+export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) {
+	if ((yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined) {
 		return [];
 	}
-	const configuration = await knipConfiguration(inputs);
+	const configuration = yield* Effect.promise(() => knipConfiguration(inputs));
 	const checked = new Set([...inputs.files, ...Object.keys(configuration.workspaces).map((directory) => posix.join(directory, "package.json"))]);
-	const findings = await Effect.runPromise(
-		Effect.scoped(
-			Effect.gen(function* () {
-				const fs = yield* FileSystem.FileSystem;
-				const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "quality-knip-" });
-				const config = join(temporary, "knip.json");
-				yield* fs.writeFileString(config, JSON.stringify(configuration));
-				const tsconfig = yield* sourceConfig(inputs, Object.keys(configuration.workspaces), basename(temporary));
-				const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
-				const child = yield* spawner.spawn(
-					ChildProcess.make(
-						process.execPath,
-						[
-							"--conditions=source",
-							BIN,
-							"--config",
-							config,
-							"--tsConfig",
-							tsconfig,
-							"--reporter",
-							"json",
-							"--include",
-							KNIP_ISSUES.join(","),
-							"--no-progress",
-						],
-						{ cwd: inputs.root, env: { "JITI_TRY_NATIVE": "true" }, extendEnv: true, stdin: "ignore" },
-					),
-				);
-				const [stdout, stderr, code] = yield* Effect.all(
-					[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
-					{ concurrency: "unbounded" },
-				);
-				if (Number(code) > 1) {
-					return yield* Effect.fail(new Error(`knip failed: ${stderr || `exit code ${code}`}`));
-				}
-				return knipFindings(stdout).filter((finding) => checked.has(finding.file));
-			}),
-		).pipe(Effect.provide(NodeServices.layer)),
+	const findings = yield* Effect.scoped(
+		Effect.gen(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			const temporary = yield* fs.makeTempDirectoryScoped({ prefix: "quality-knip-" });
+			const config = join(temporary, "knip.json");
+			yield* fs.writeFileString(config, JSON.stringify(configuration));
+			const tsconfig = yield* sourceConfig(inputs, Object.keys(configuration.workspaces), basename(temporary));
+			const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+			const child = yield* spawner.spawn(
+				ChildProcess.make(
+					process.execPath,
+					[
+						"--conditions=source",
+						BIN,
+						"--config",
+						config,
+						"--tsConfig",
+						tsconfig,
+						"--reporter",
+						"json",
+						"--include",
+						KNIP_ISSUES.join(","),
+						"--no-progress",
+					],
+					{ cwd: inputs.root, env: { "JITI_TRY_NATIVE": "true" }, extendEnv: true, stdin: "ignore" },
+				),
+			);
+			const [stdout, stderr, code] = yield* Effect.all(
+				[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
+				{ concurrency: "unbounded" },
+			);
+			if (Number(code) > 1) {
+				return yield* Effect.fail(new Error(`knip failed: ${stderr || `exit code ${code}`}`));
+			}
+			return knipFindings(stdout).filter((finding) => checked.has(finding.file));
+		}),
 	);
-	return entryPointFindings(inputs, findings);
-}
+	return yield* Effect.promise(() => entryPointFindings(inputs, findings));
+});

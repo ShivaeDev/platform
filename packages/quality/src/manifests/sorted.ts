@@ -1,7 +1,7 @@
 import { basename, join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { sortPackageJson } from "sort-package-json";
-import { manifestEntry } from "#adapters/manifestInventory.ts";
+import { ManifestFailure, manifestEntry } from "#adapters/manifestInventory.ts";
 import { manifestReader } from "#adapters/manifestReader.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
@@ -25,7 +25,7 @@ export function sortingOf(text: string): Sorting {
 
 export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 	root: string,
-): Effect.fn.Return<number, FilesystemFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<number, FilesystemFailure | ManifestFailure, FileSystem.FileSystem> {
 	const fs = yield* FileSystem.FileSystem;
 	const manifests = yield* manifestsIn(root);
 	const readText = yield* manifestReader(root);
@@ -33,7 +33,8 @@ export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 		Effect.gen(function* () {
 			const absolute = join(root, path);
 			const entry = yield* Effect.tryPromise({
-				catch: (cause) => new FilesystemFailure({ message: cause instanceof Error ? cause.message : String(cause), path }),
+				catch: (cause) =>
+					cause instanceof ManifestFailure ? cause : new FilesystemFailure({ message: cause instanceof Error ? cause.message : String(cause), path }),
 				try: () => manifestEntry(readText, path),
 			});
 			if (entry === undefined) {
@@ -45,7 +46,13 @@ export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 			}
 			yield* fs.writeFileString(absolute, sorting.sorted);
 			return true;
-		}).pipe(Effect.mapError((error) => new FilesystemFailure({ message: `cannot sort ${path}: ${error.message}`, path }))),
+		}).pipe(
+			Effect.mapError((error) =>
+				error instanceof ManifestFailure
+					? new ManifestFailure({ message: `cannot sort ${path}: ${error.message}`, path })
+					: new FilesystemFailure({ message: `cannot sort ${path}: ${error.message}`, path }),
+			),
+		),
 	);
 	return written.filter(Boolean).length;
 });

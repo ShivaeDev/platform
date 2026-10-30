@@ -21,7 +21,7 @@ export function git(cwd: string, args: readonly string[]): Effect.Effect<GitResu
 			);
 			return { code: Number(code), stderr, stdout };
 		}),
-	).pipe(Effect.mapError((error) => new SetupFailure({ message: `cannot run git: ${error.message}` })));
+	).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run git: ${error.message}` })));
 }
 
 export function gitOrFail(cwd: string, args: readonly string[]): Effect.Effect<string, SetupFailure, Git> {

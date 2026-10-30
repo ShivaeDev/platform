@@ -1,5 +1,4 @@
 import { Effect } from "effect";
-import { runRuleEffect } from "#adapters/runRuleEffect.ts";
 import { type ImportGraph, importGraph } from "#imports/graph.ts";
 import { builtinName } from "#imports/packageName.ts";
 import { type Runtime, runtimeDeclarationProblems, runtimeOf } from "#imports/runtime.ts";
@@ -37,25 +36,23 @@ function runtimeFindings(graph: ImportGraph, runtime: (path: string) => Runtime 
 
 export const importsRuntime = defineRule({
 	check: (inputs) =>
-		runRuleEffect(
-			Effect.gen(function* () {
-				const graph = yield* Effect.promise(() => importGraph(inputs));
-				const runtime = yield* runtimeOf(inputs, graph.packages);
-				const imports = runtimeFindings(graph, runtime);
-				const declarations = (yield* runtimeDeclarationProblems(inputs, graph.packages)).map(({ directory, message }) => ({
-					file: directory === "." ? "package.json" : `${directory}/package.json`,
-					line: 1,
-					message,
-					subject: "quality.runtime",
-				}));
-				const shared = inputs.sources.filter((file) => !isTestCode(file.path) && runtime(file.path) === "shared");
-				if (shared.length === 0) {
-					return [...imports, ...declarations];
-				}
-				const { browserGlobals } = yield* Effect.promise(() => import("#imports/browserGlobals.ts"));
-				return [...imports, ...declarations, ...shared.flatMap(browserGlobals)];
-			}),
-		),
+		Effect.gen(function* () {
+			const graph = yield* Effect.promise(() => importGraph(inputs));
+			const runtime = yield* runtimeOf(inputs, graph.packages);
+			const imports = runtimeFindings(graph, runtime);
+			const declarations = (yield* runtimeDeclarationProblems(inputs, graph.packages)).map(({ directory, message }) => ({
+				file: directory === "." ? "package.json" : `${directory}/package.json`,
+				line: 1,
+				message,
+				subject: "quality.runtime",
+			}));
+			const shared = inputs.sources.filter((file) => !isTestCode(file.path) && runtime(file.path) === "shared");
+			if (shared.length === 0) {
+				return [...imports, ...declarations];
+			}
+			const { browserGlobals } = yield* Effect.promise(() => import("#imports/browserGlobals.ts"));
+			return [...imports, ...declarations, ...shared.flatMap(browserGlobals)];
+		}),
 	description:
 		"Runtime folders define client, server and shared code. A manifest's quality.runtime declares a single-runtime package whole; executable packages without runtime folders and package-root tooling are server code.",
 	id: "imports/runtime",

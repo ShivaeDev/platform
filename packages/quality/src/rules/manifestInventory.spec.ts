@@ -34,3 +34,14 @@ manifestStory.it(
 		expect(manifests[0]).toBe(manifests[1]);
 	},
 );
+
+manifestStory.it(
+	"names the malformed manifest when a fix cannot decode it",
+	[manifestContains("packages/broken/package.json", '{"name":')],
+	function* ({ fixes }) {
+		const result = yield* fixes();
+		expect(result.status).toBe(CLI_EXIT.invalid);
+		expect(result.stderr).toContain("packages/broken/package.json");
+		expect(result.stderr).toContain("Invalid package manifest");
+	},
+);

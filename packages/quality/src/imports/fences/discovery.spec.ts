@@ -9,6 +9,7 @@ import { render } from "#report/render.ts";
 import { importFences } from "#rules/imports/fences.ts";
 import { browserFence, fenceDiscovery, replaceBoundary } from "#test/fenceDiscovery.ts";
 import { findingsIn, scanned } from "#test/imports.ts";
+import { run } from "#test/run.ts";
 import { removeSeededTrees } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -25,7 +26,7 @@ it("discovers a package boundary outside the source inventory and reports its tr
 		throw new Error(resolved.issues.join("\n"));
 	}
 	const rules = resolved.value;
-	const violations = await Effect.runPromise(
+	const violations = await run(
 		runRules(
 			rules.active.filter((rule) => rule.id === "imports/fences"),
 			{ ...inputs, ...inventory },

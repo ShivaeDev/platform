@@ -14,7 +14,7 @@ const commitScripts = Effect.fnUntraced(function* (root: string) {
 	const file = join(root, "package.json");
 	const readText = yield* manifestReader(root);
 	const manifest = yield* Effect.tryPromise({
-		catch: (cause) => new SetupFailure({ message: `${file} is invalid: ${cause instanceof Error ? cause.message : String(cause)}` }),
+		catch: (cause) => new SetupFailure({ cause, message: `${file} is invalid: ${cause instanceof Error ? cause.message : String(cause)}` }),
 		try: () => readPackageManifest(readText, file),
 	});
 	if (manifest === undefined) {
@@ -36,7 +36,7 @@ const runScript = Effect.fnUntraced(
 		return Number(yield* child.exitCode);
 	},
 	Effect.scoped,
-	Effect.mapError((error) => new SetupFailure({ message: `cannot run a pre-commit script: ${error.message}` })),
+	Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run a pre-commit script: ${error.message}` })),
 );
 
 export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: string, path: string | undefined) {

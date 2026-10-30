@@ -1132,6 +1132,9 @@ importers:
       '@shivaedev/github':
         specifier: workspace:*
         version: link:../github
+      '@shivaedev/http':
+        specifier: workspace:*
+        version: link:../http
       '@shivaedev/service':
         specifier: workspace:*
         version: link:../service

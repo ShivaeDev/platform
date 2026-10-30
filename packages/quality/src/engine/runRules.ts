@@ -1,13 +1,12 @@
 import { isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
 import { ManifestFailure } from "#adapters/manifestInventory.ts";
-import { SetupFailure } from "#failure.ts";
 import { posix } from "#inventory/ignoreScope.ts";
-import type { Finding, Findings, RuleInputs } from "#rule.ts";
+import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
 
 export interface ActiveRule {
-	readonly check: (inputs: RuleInputs) => Promise<Findings>;
+	readonly check: RuleCheck;
 	readonly description: string;
 	readonly family: boolean;
 	readonly id: string;
@@ -49,16 +48,14 @@ function violationOf(rule: ActiveRule, root: string, finding: Finding, exception
 	};
 }
 
-function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure> {
-	return Effect.map(
-		Effect.tryPromise({
-			catch: (cause) => (cause instanceof ManifestFailure ? cause : new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` })),
-			try: () => rule.check(inputs),
-		}),
-		(findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
-	).pipe(
-		Effect.catchTag("ManifestFailure", (failure) =>
-			Effect.succeed([{ file: failure.path, level: "error" as const, message: failure.message, rule: "manifests/valid" }]),
+function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], never, RuleServices> {
+	return Effect.suspend(() => rule.check(inputs)).pipe(
+		Effect.orDie,
+		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
+		Effect.catchDefect((cause) =>
+			cause instanceof ManifestFailure
+				? Effect.succeed([{ file: cause.path, level: "error" as const, message: cause.message, rule: "manifests/valid" }])
+				: Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause })),
 		),
 	);
 }

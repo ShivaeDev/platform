@@ -19,7 +19,7 @@ export interface HookInstall {
 }
 
 function failed(error: { readonly message: string }): SetupFailure {
-	return new SetupFailure({ message: error.message });
+	return new SetupFailure({ cause: error, message: error.message });
 }
 
 const realPath = Effect.fnUntraced(function* (path: string) {
@@ -32,7 +32,7 @@ const write = Effect.fnUntraced(function* (file: string, text: string) {
 	yield* fs.makeDirectory(dirname(file), { recursive: true }).pipe(
 		Effect.andThen(fs.writeFileString(file, text)),
 		Effect.andThen(fs.chmod(file, 0o755)),
-		Effect.mapError((error) => new SetupFailure({ message: `cannot write ${file}: ${error.message}` })),
+		Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot write ${file}: ${error.message}` })),
 	);
 });
 

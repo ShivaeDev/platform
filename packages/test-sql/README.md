@@ -251,7 +251,7 @@ The assertion uses the SQL `Model`'s selected database fields, including generat
 
 ### API
 
-Import each name from the module that defines it. The package has no root entry.
+Import each name from the module that defines it. The package has no root entry. Every source module is available through its `.ts` subpath, including modules under `server/internal/`.
 
 | Module                                               | Exports                                                                                                                                                                                    |
 | ---------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |

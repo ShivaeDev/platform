@@ -23,7 +23,9 @@ A source has a name, a verification strategy, a signing key loaded through Effec
 
 ### Register receipts and queues
 
-Register `webhookReceipts` in the host's `migrations.components` alongside `pgBossSchema()`. The normal migration mode applies it; `check` reports a missing component, and `wait` waits for it. The receipt table is `webhook_receipts`, keyed by `(source, delivery_id)`, with the event, a UTC `timestamptz` received time, `queued` or `ignored` outcome, and a JSON array of queued job IDs.
+Register `webhookReceipts` in the host's `migrations.components` alongside `pgBossSchema()`. The normal migration mode applies it; `check` reports missing or pending receipt migrations, and `wait` waits for them. The receipt table is `webhook_receipts`, keyed by `(source, delivery_id)`, with the event, a UTC `timestamptz` received time, `queued` or `ignored` outcome, and a `text[]` column of queued job IDs. The component applies numbered migrations recorded in `webhook_receipts_migrations`, preserving existing receipts when their schema changes.
+
+When upgrading a database whose `job_ids` column is JSON, stop the older receivers, apply `webhookReceipts`, then start the new receivers. Direct SQL readers use PostgreSQL array operations for `job_ids`.
 
 ```ts
 import { Config, Effect, Layer, Redacted, Schema } from "effect";
@@ -32,10 +34,10 @@ import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
-import { githubSource } from "@shivaedev/webhooks/github.ts";
-import { webhookEvent, webhookJob } from "@shivaedev/webhooks/registration.ts";
-import { webhookRoute } from "@shivaedev/webhooks/route.ts";
-import { webhookReceipts } from "@shivaedev/webhooks/webhookReceipts.ts";
+import { githubSource } from "@shivaedev/webhooks/server/github.ts";
+import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registration.ts";
+import { webhookRoute } from "@shivaedev/webhooks/server/route.ts";
+import { webhookReceipts } from "@shivaedev/webhooks/server/webhookReceipts.ts";
 
 const Jobs = makePgBoss("app/Jobs");
 const IndexIssue = defineQueue({
@@ -99,7 +101,7 @@ const Host = appHost({
 
 Refused requests create no receipt and no jobs. Signatures are checked before decoding; unlisted events are verified and recorded without decoding. The signing key, signature and raw body stay out of responses, logs and spans.
 
-Database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag.
+Database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag. Receiving a delivery runs under the `Webhooks.receive` span.
 
 The receipt insert and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
 
