@@ -90,3 +90,17 @@ postgresIt(
 		expect(traces.handled).toEqual([{ id: 42 }, { id: 42 }]);
 	},
 );
+
+postgresIt("carries the worker span and startup annotations on a handler log", [realPostgres], function* ({ traces, recordedWorkerLogs, untilJob }) {
+	const worker = yield* traces.worker();
+	const id = Option.getOrThrow(yield* traces.send(worker.jobs, { id: 42 }));
+
+	yield* untilJob(worker.jobs, traces.queue, id, "completed");
+
+	const jobSpan = traces.spans.find((span) => span.name === traces.queue.name);
+	expect(jobSpan).toBeDefined();
+	expect(recordedWorkerLogs.find((line) => Array.isArray(line.message) && line.message.includes("Handled traced job"))).toMatchObject({
+		annotations: { worker: "traced-worker" },
+		span: { name: traces.queue.name, spanId: jobSpan?.spanId, traceId: jobSpan?.traceId },
+	});
+});

@@ -1,5 +1,5 @@
 import { RegistryContext, useAtomValue } from "@effect/atom-react";
-import { Option } from "effect";
+import { type Cause, Option } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { useCallback, useContext, useEffect } from "react";
@@ -10,6 +10,7 @@ import { useSessionRecheck } from "./sessionBoundary.ts";
 const idle = Atom.make(AsyncResult.initial());
 const clean = Atom.make(false);
 export interface SaveState<E> {
+	readonly cause: Option.Option<Cause.Cause<E | FieldFailure | Invalid>>;
 	readonly dirty: boolean;
 	readonly failure: Option.Option<E>;
 	readonly revert: () => void;
@@ -50,5 +51,5 @@ export function useSaveState<TFields extends Fields, A, E, TRuntimeError>(
 		AsyncResult.error(result),
 		(error): error is E | TRuntimeError => !(error instanceof FieldFailure || error instanceof Invalid),
 	);
-	return { dirty, failure, revert, save, saving: result.waiting };
+	return { cause: AsyncResult.cause(result), dirty, failure, revert, save, saving: result.waiting };
 }

@@ -41,10 +41,11 @@ A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`
 
 ### Mapping unexpected failures at the handler edge
 
-At the handler edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
+Use `rpcBoundary` only at the RPC handler edge, never inside services. Services keep their typed failures and defects so callers can handle them. At that edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
 
 ```ts
 import { Schema } from "effect";
+import { Rpc, RpcGroup } from "effect/rpc";
 import { Conflict, InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 
@@ -53,10 +54,19 @@ const expose = rpcBoundary(Rejection, {
 	unexpected: (message) => new InternalServerError({ message }),
 });
 
-export const save = storageSave.pipe(expose);
+const Api = RpcGroup.make(
+	Rpc.make("Save", {
+		error: Rejection,
+		success: Schema.String,
+	}),
+);
+
+export const Handlers = Api.toLayer({
+	Save: () => storageSave.pipe(expose),
+});
 ```
 
-`storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so a server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
+`storageSave` is the application's Effect. `unexpected` constructs a member of the declared schema from the public message. The default message is `Internal server error`; `message` supplies application text, with credential-shaped strings redacted. Before masking an unexpected failure, the boundary reports its diagnostic-redacted cause through Effect's registered `ErrorReporter`s at `Error` severity. Request tracing logs that masked failure at ERROR with its redacted stack, while declared rejections stay at INFO. The original Effect cause is kept on the server rejection's non-enumerable `cause`, so a server span can trace it. Keep `cause` out of the wire schema, as the taxonomy classes do. `ServiceUnavailable` describes a declared availability failure without implying a session-provider outage.
 
 ### Masking secrets in failures
 

@@ -1,9 +1,9 @@
-import { RegistryContext } from "@effect/atom-react";
+import { RegistryContext, useAtomMount } from "@effect/atom-react";
 import { useRouter } from "@tanstack/react-router";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { useContext, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import { SignOutRegistryContext } from "#internal/SignOutRegistryContext.ts";
 import { useAction } from "./resultState.ts";
 
@@ -28,27 +28,35 @@ export function useSignOut<A, E>(action: Atom.AtomResultFn<void, A, E>, options:
 			),
 		[registry, action],
 	);
+	const followUp = useMemo(() => {
+		function failed() {
+			if (router) {
+				router.history.replace(router.history.location.href, { ...router.history.location.state, __platformSignOut: false });
+			}
+		}
+		function completed() {
+			if (router) {
+				void router.navigate({ replace: true, state: { __platformSignOut: true }, to: options.signIn });
+			}
+		}
+		return Atom.fn<void>()(() =>
+			AtomRegistry.getResult(registry, action, { suspendOnWaiting: true }).pipe(Effect.match({ onFailure: failed, onSuccess: completed })),
+		);
+	}, [registry, action, router, options.signIn]);
+	useAtomMount(followUp);
+	useEffect(() => () => local.set(followUp, Atom.Interrupt), [local, followUp]);
 	const state = useAction(source);
-	function failed() {
-		if (router) {
-			router.history.replace(router.history.location.href, { ...router.history.location.state, __platformSignOut: false });
-		}
-	}
-	function completed() {
-		if (router) {
-			void router.navigate({ replace: true, state: { __platformSignOut: true }, to: options.signIn });
-		}
-	}
 	return {
 		...state,
 		dispatch: () => {
+			if (registry.get(action).waiting || local.get(followUp).waiting) {
+				return;
+			}
 			if (router) {
 				router.history.replace(router.history.location.href, { ...router.history.location.state, __platformSignOut: true });
 			}
 			state.dispatch(undefined);
-			Effect.runFork(
-				AtomRegistry.getResult(registry, action, { suspendOnWaiting: true }).pipe(Effect.match({ onFailure: failed, onSuccess: completed })),
-			);
+			local.set(followUp, undefined);
 		},
 	};
 }

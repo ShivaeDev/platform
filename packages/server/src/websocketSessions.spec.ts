@@ -28,8 +28,7 @@ for (const boundary of ["account", "profile", "providers", "admin", "owner", "cu
 		expect(yield* listener.next).toEqual({ _tag: "Resync" });
 		yield* test.revoke();
 		yield* test.save("second", "Private after revocation");
-		expect(yield* listener.next.pipe(Effect.timeoutOption("100 millis"))).toMatchObject({ _tag: "None" });
-		expect(yield* listener.ended).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		expect(yield* listener.ended).toMatchObject({ _tag: "Failure", failure: { _tag: "QueryReadDenied" } });
 		expect(listener.hints).toEqual([{ _tag: "Resync" }]);
 		expect(yield* test.read("alice", boundary).pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
 	});
