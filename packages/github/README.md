@@ -122,7 +122,7 @@ Alternatively, pass `{ appId, privateKey, owner: "acme", repository: "widgets", 
 
 An installation token is fetched on the first request and reused until five minutes before `expires_at`, using Effect's Clock. Concurrent requests through the same Layer share the in-flight exchange, including at refresh. A resource 401 invalidates only the rejected cached token and retries once with a newly exchanged token; simultaneous 401s share that exchange. A second 401 fails with typed `RemoteUnauthorized`. App-level JWTs and custom tokens are not automatically retried.
 
-A rejected exchange fails with `GitHubAppError` from `errors.ts`; a 401 has `{ stage: "exchange", status: 401 }`. Signing failures have `stage: "sign"`. These errors and their logs and spans contain no private key, App JWT or installation token.
+App authentication failures use `GitHubAppError` from `errors.ts`. Its string `reason` distinguishes `"sign"` (JWT signing), `"encode"` (request body encoding), `"transport"` (sending or reading the response), `"status"` (an HTTP refusal) and `"response"` (invalid or oversized response data). A refused exchange or installation lookup with HTTP 401 has `{ reason: "status", status: 401 }`. Caught failures remain available as a non-enumerable `cause`, excluded from JSON serialization; causes can contain credentials from the underlying HTTP request, so keep them in trusted diagnostics. The serialized errors, logs and spans exclude the private key, App JWT and installation token.
 
 ### Downloading workflow-artifact archives
 
