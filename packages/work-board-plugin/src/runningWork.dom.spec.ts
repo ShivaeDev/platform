@@ -1,68 +1,133 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { host } from "@shivaedev/work-fleet/test-support/hostStory.ts";
-import { fleetPane } from "#test/fleetPane.ts";
+import { fleetOmitsExecution, openPane } from "#test/fleetPane.ts";
 import { fiveTasks, paneProject } from "#test/fleetPaneProject.ts";
-import { legacyFleetBoard } from "#test/legacyFleetBoard.ts";
 
-host.it(
-	"keeps real Fleet work in flight and in its goal when a worker asks for an answer",
-	[paneProject],
-	function* ({ approve, askWorker, boardHttp, story }) {
-		yield* approve("task.build");
-		const board = yield* boardHttp();
-		const pane = yield* fleetPane(board.url, story.engine.fixture.host.boardDir);
-		const overview = yield* pane.overview();
-		expect(overview.fleet).toMatchObject({ items: [{ title: "Build the pane", workId: "task.build" }], state: "ready" });
-		const parsed = yield* pane.refresh();
-		expect(parsed).toMatchObject({ flights: { items: [{ workId: "task.build" }] }, goals: { items: [{ running: 1 }] } });
-		expect(pane.screen().textContent).toContain("In flight(1)");
-		expect(pane.screen().textContent).toContain("worker · coding");
-		expect(pane.screen().querySelector("[role=img]")?.getAttribute("aria-label")).toContain("1 running");
-		yield* askWorker("task.build");
-		const waiting = yield* pane.refresh();
-		expect(waiting).toMatchObject({ flights: { items: [{ workId: "task.build" }] }, goals: { items: [{ running: 1 }] } });
-		expect(pane.screen().textContent).toContain("worker · waiting on an answer");
-	},
-);
+const FIVE = ["one", "two", "three", "four", "five"];
 
-host.it("lists all five running tasks when Fleet's wire reply omits execution details", [paneProject, fiveTasks], function* ({ approve, story }) {
-	for (const id of ["one", "two", "three", "four", "five"]) {
-		yield* approve(`task.${id}`);
-	}
-	const board = yield* legacyFleetBoard(story.engine);
-	const pane = yield* fleetPane(board.url, story.engine.fixture.host.boardDir);
-	const overview = yield* pane.overview();
-	expect(overview.fleet.state).toBe("ready");
-	if (!("items" in overview.fleet)) {
-		throw new Error("Fleet is unavailable");
-	}
-	expect(overview.fleet.items.map((item) => item.workId).sort()).toEqual(["task.five", "task.four", "task.one", "task.three", "task.two"]);
-	expect(yield* pane.refresh()).toMatchObject({ flights: { items: expect.any(Array) }, goals: { items: [{ running: 5 }] } });
-	expect(pane.screen().textContent).toContain("In flight(5)");
-	for (const id of ["one", "two", "three", "four", "five"]) {
-		expect(pane.screen().textContent).toContain(`Build ${id}`);
-	}
-	expect(pane.screen().querySelector("[role=img]")?.getAttribute("aria-label")).toContain("5 running");
+host.it("board_overview lists approved task.build as Fleet work in flight", [paneProject], function* ({ approve, story }) {
+	const { overviewFleet } = yield* openPane(story);
+	yield* approve("task.build");
+
+	expect(yield* overviewFleet()).toEqual({ state: "ready", work: [{ title: "Build the pane", workId: "task.build" }] });
+});
+
+host.it("the pane shows approved task.build in flight under its goal Ship the pane", [paneProject], function* ({ approve, story }) {
+	const { inFlight } = yield* openPane(story);
+	yield* approve("task.build");
+
+	expect(yield* inFlight()).toEqual([{ goal: "Ship the pane", work: ["Build the pane"] }]);
+});
+
+host.it("the pane shows approved task.build's worker coding and its reviewer not started yet", [paneProject], function* ({ approve, story }) {
+	const { agentsOf } = yield* openPane(story);
+	yield* approve("task.build");
+
+	expect(yield* agentsOf("Build the pane")).toEqual(["worker · coding", "reviewer · not started yet"]);
+});
+
+host.it("Ship the pane's drawing counts approved task.build as running", [paneProject], function* ({ approve, story }) {
+	const { goals } = yield* openPane(story);
+	yield* approve("task.build");
+
+	expect(yield* goals()).toEqual(["Ship the pane · drawn 0 of 1 done, 0 done, 1 running, 0 blocked, 0 scheduled, 0 parked · 0/1"]);
 });
 
 host.it(
-	"reports an unreachable Fleet in the overview and pane",
+	"after task.build's worker asks for an answer, the pane shows the worker waiting on an answer",
 	[paneProject],
-	function* ({ approve, askWorker, boardHttp, stop, start, port, story }) {
+	function* ({ approve, askWorker, story }) {
+		const { agentsOf } = yield* openPane(story);
 		yield* approve("task.build");
+		expect(yield* agentsOf("Build the pane")).toEqual(["worker · coding", "reviewer · not started yet"]);
+
 		yield* askWorker("task.build");
-		const board = yield* boardHttp();
-		const pane = yield* fleetPane(board.url, story.engine.fixture.host.boardDir);
-		const fleetPort = port();
-		yield* stop();
-		expect((yield* pane.overview()).fleet).toMatchObject({ state: "unavailable" });
-		yield* pane.refresh();
-		expect(pane.screen().textContent).toContain("Fleet is unavailable:");
-		expect(pane.screen().textContent).not.toContain("Nothing in flight.");
-		yield* start(fleetPort);
-		expect(yield* pane.refresh()).toMatchObject({
-			flights: { items: [{ workId: "task.build" }], problem: null },
-			goals: { items: [{ running: 1 }] },
+
+		expect(yield* agentsOf("Build the pane")).toEqual(["worker · waiting on an answer", "reviewer · not started yet"]);
+	},
+);
+
+host.it(
+	"after task.build's worker asks for an answer, the pane keeps task.build in flight under Ship the pane and running in its drawing",
+	[paneProject],
+	function* ({ approve, askWorker, story }) {
+		const { goals, inFlight } = yield* openPane(story);
+		yield* approve("task.build");
+
+		yield* askWorker("task.build");
+
+		yield* outcomes({
+			"Goals": [goals(), ["Ship the pane · drawn 0 of 1 done, 0 done, 1 running, 0 blocked, 0 scheduled, 0 parked · 0/1"]],
+			"In flight": [inFlight(), [{ goal: "Ship the pane", work: ["Build the pane"] }]],
 		});
 	},
 );
+
+host.it(
+	"board_overview lists all five approved tasks when Fleet's reply omits execution details",
+	[paneProject, fiveTasks, fleetOmitsExecution],
+	function* ({ approve, story }) {
+		const { overviewFleet } = yield* openPane(story);
+		for (const id of FIVE) {
+			yield* approve(`task.${id}`);
+		}
+
+		expect(yield* overviewFleet()).toEqual({
+			state: "ready",
+			work: FIVE.map((id) => ({ title: `Build ${id}`, workId: `task.${id}` })),
+		});
+	},
+);
+
+host.it(
+	"the pane lists all five approved tasks in flight under Ship the pane when Fleet's reply omits execution details",
+	[paneProject, fiveTasks, fleetOmitsExecution],
+	function* ({ approve, story }) {
+		const { inFlight } = yield* openPane(story);
+		for (const id of FIVE) {
+			yield* approve(`task.${id}`);
+		}
+
+		expect(yield* inFlight()).toEqual([{ goal: "Ship the pane", work: FIVE.map((id) => `Build ${id}`) }]);
+	},
+);
+
+host.it(
+	"once the Fleet daemon stops, board_overview reports Fleet unavailable with the Board's reason",
+	[paneProject],
+	function* ({ approve, story }) {
+		const { overviewFleet, stopFleet } = yield* openPane(story);
+		yield* approve("task.build");
+		expect(yield* overviewFleet()).toEqual({ state: "ready", work: [{ title: "Build the pane", workId: "task.build" }] });
+
+		yield* stopFleet();
+
+		expect(yield* overviewFleet()).toEqual({ reason: "Fleet isn't running, so agent work and its health are unknown.", state: "unavailable" });
+	},
+);
+
+host.it(
+	"once the Fleet daemon stops, the pane's In flight says Fleet is unavailable in place of task.build",
+	[paneProject],
+	function* ({ approve, story }) {
+		const { inFlight, stopFleet } = yield* openPane(story);
+		yield* approve("task.build");
+		expect(yield* inFlight()).toEqual([{ goal: "Ship the pane", work: ["Build the pane"] }]);
+
+		yield* stopFleet();
+
+		expect(yield* inFlight()).toBe("Fleet is unavailable: Fleet isn't running, so agent work and its health are unknown.");
+	},
+);
+
+host.it("after the Fleet daemon restarts on its port, the pane shows task.build in flight again", [paneProject], function* ({ approve, story }) {
+	const { inFlight, restartFleet, stopFleet } = yield* openPane(story);
+	yield* approve("task.build");
+	yield* stopFleet();
+	expect(yield* inFlight()).toBe("Fleet is unavailable: Fleet isn't running, so agent work and its health are unknown.");
+
+	yield* restartFleet();
+
+	expect(yield* inFlight()).toEqual([{ goal: "Ship the pane", work: ["Build the pane"] }]);
+});
