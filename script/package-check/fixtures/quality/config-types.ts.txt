@@ -1,6 +1,10 @@
 import { Effect, Schema } from "effect"
 import { defineConfig } from "@shivaedev/quality/config.ts"
 import { defineRule } from "@shivaedev/quality/rule.ts"
+import domEnvironment from "@shivaedev/quality/domEnvironment.config.ts"
+import type storyDomEnvironment from "@shivaedev/test-story/server/domEnvironment.config.ts"
+
+export const dom: typeof storyDomEnvironment = domEnvironment
 
 const Marker = Schema.Struct({ marker: Schema.String.pipe(Schema.withDecodingDefaultKey(Effect.succeed("TODO"))) })
 

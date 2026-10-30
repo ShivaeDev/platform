@@ -3,10 +3,10 @@ import { join } from "node:path";
 import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
 import { vi } from "vitest";
+import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { git } from "#quality-fixtures/git.ts";
 import { seedTree } from "#quality-fixtures/tree.ts";
-import { collectInventory } from "#quality-internal/inventory/collect.ts";
 
 export const inventoryKit = storyKit({
 	create: () =>

@@ -2,13 +2,13 @@ import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { biomeReport } from "@shivaedev/quality/biome/report.ts";
+import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
 import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { linkPackage, type SeedFile, seedTree } from "#quality-fixtures/tree.ts";
-import { services } from "#quality-internal/cli/runMain.ts";
 
 interface Repository {
 	defaultExports: readonly string[];

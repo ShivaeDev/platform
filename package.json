@@ -6,7 +6,6 @@
 	"imports": {
 		"#*": "./script/*",
 		"#quality-fixtures/*": "./packages/quality/src/test-support/*",
-		"#quality-internal/*": "./packages/quality/src/*",
 		"#release-config": "./.changeset/changesets.config.ts"
 	},
 	"scripts": {
