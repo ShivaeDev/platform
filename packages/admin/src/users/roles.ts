@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 
 export const AppUser = Schema.Struct({
-	createdAt: Schema.DateTimeUtcFromString,
+	createdAt: Schema.DateTimeUtcFromDate,
 	email: Schema.String,
 	id: Schema.String,
 	name: Schema.String,
