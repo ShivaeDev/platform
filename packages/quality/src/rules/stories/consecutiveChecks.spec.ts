@@ -28,7 +28,7 @@ ruleKit.it(
 	function* ({ checks }) {
 		const findings = yield* checks(groupedOutcomes);
 
-		expect(findings).toEqual([3, 7].map((line) => ({ file: SPEC, line, message: expect.stringContaining("yield* outcomes({") })));
+		expect(findings).toEqual([3, 7].map((line) => ({ file: SPEC, line, message: expect.stringContaining("yield* outcomes([") })));
 	},
 );
 
@@ -44,7 +44,7 @@ ruleKit.it(
 		expect(yield* checks(groupedOutcomes)).toEqual([expect.objectContaining({ file: SPEC, line: 3 })]);
 
 		yield* writes({
-			content: inStory("yield* cancel();", 'yield* outcomes({ order: [order(), "cancelled"], refunds: [refunds(), ["order 1"]] });'),
+			content: inStory("yield* cancel();", 'yield* outcomes([["order", () => order(), "cancelled"], ["refunds", () => refunds(), ["order 1"]]]);'),
 			path: SPEC,
 		});
 
