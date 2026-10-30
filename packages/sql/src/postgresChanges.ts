@@ -2,8 +2,9 @@ import { Context, type Duration, Effect, Layer, type Queue, type Scope } from "e
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
+import { CommandRecovery } from "#internal/CommandRecovery.ts";
 import { listenForChanges } from "./listenForChanges.ts";
-import { encodeKeys } from "./notifyPayload.ts";
+import { encodeKeys, resyncPayload } from "./notifyPayload.ts";
 import { BeforeCommit, CommittedSink } from "./transact.ts";
 
 export interface PostgresNotification {
@@ -42,7 +43,12 @@ export function postgresChanges(options: PostgresChangesOptions) {
 					sql.transactionService === options.client.transactionService ? Effect.void : Reactivity.invalidate(keys),
 				);
 			}
-			return Context.make(BeforeCommit, notify).pipe(Context.add(CommittedSink, committed));
+			const recover = options.resync.pipe(
+				Effect.andThen(options.client`select pg_notify(${options.channel}, ${resyncPayload})`),
+				Effect.catchCause((cause) => Effect.logError("Committed command Resync broadcast failed; other hosts may remain stale", cause)),
+				Effect.asVoid,
+			);
+			return Context.make(BeforeCommit, notify).pipe(Context.add(CommittedSink, committed), Context.add(CommandRecovery, recover));
 		}),
 	);
 }

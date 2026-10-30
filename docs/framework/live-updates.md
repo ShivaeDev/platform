@@ -69,11 +69,17 @@ const Mine = query("mine", {
 });
 ```
 
-A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Declare bucket fields on the collection model with their schemas. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. Writers explicitly announce the record and affected buckets with the same constructors from `@shivaedev/changes/keys.ts`.
+A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Mark bucket fields on the stored model with `bucket` from `@shivaedev/changes/buckets.ts`, for example `userId: bucket(Schema.String)`. Repository writes derive the record and affected old and new bucket keys inside the write's transaction. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. See [commit-bound changes](./changes.md) for the automatic write path and raw SQL limits.
 
 The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Without `readPolicy`, a query has no authorized live subscription: `MissingReadPolicy` tells its author to declare one. Ordinary non-live reads remain available. Reads outside a declared query acquire no automatic subscription.
 
 The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering changed keys, the stream rechecks the owning query's policy without memoization. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
+
+## Command declarations
+
+Command `invalidates(payload, result, viewer)` keys publish after the handler returns. The handler keeps its own transaction and SQL error mapping. Keys that must commit atomically with a write come from the stored model's `bucket()` fields and the repository, rather than `invalidates`; repository writes already announce their record and bucket keys, so commands need not repeat them.
+
+Declared-key publication retries twice with 50 ms and 100 ms backoffs. It retries only publication, preserving the committed handler result. If all three attempts fail, a database-backed host sends Resync to its local live streams and attempts a broadcast Resync on the PostgreSQL change channel. All listening hosts reconcile their streams on that broadcast. If PostgreSQL cannot be reached or rejects the broadcast, local streams still receive Resync and the failure is logged, but a healthy remote listener can remain stale until a later reconnect, listener recovery or other reconciliation. There is no durable replay of a notification that never reached PostgreSQL.
 
 ## Coalescing commits
 

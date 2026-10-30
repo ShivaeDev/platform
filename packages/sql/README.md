@@ -441,6 +441,8 @@ Use the repository's table name as the collection name in query read keys. Every
 
 Bucket writes require PostgreSQL 18 or later: native `RETURNING old` supplies old values atomically, including for conflict updates. Repositories without bucket fields keep their existing SQL dialect support. Bulk writes keep every record and bucket key; the PostgreSQL publisher splits large batches into NOTIFY payloads.
 
+Record and bucket keys that must commit atomically with a write come from this model and repository path. A command's `invalidates(payload, result, viewer)` runs after its handler returns and uses a separate publication transaction. Failed publication retries twice with 50 ms and 100 ms backoffs. If those attempts fail, `postgresChanges` resynchronizes local live streams and broadcasts Resync on its change channel. If PostgreSQL also rejects the broadcast or cannot be reached, local streams still resynchronize, but healthy listeners on other hosts can miss the write until they reconnect or otherwise reconcile. The failure is logged; NOTIFY provides no durable replay.
+
 The transaction rules follow the database owner:
 - A typed failure or interruption before commit rolls back and announces nothing. A failed deferred `COMMIT` fails through `onSqlError` and also announces nothing.
 - A nested `transact` on the same client uses a native savepoint. Its successful keys join the outer set; a rolled-back savepoint's keys are discarded.
