@@ -23,9 +23,9 @@ postgres.it(
 
 		yield* prepareAppDatabase();
 
-		yield* outcomes({
-			"rows": [appRows(), ["existing data"]],
-			"setup": [outcome(), "prepared"],
-		});
+		yield* outcomes([
+			["rows", () => appRows(), ["existing data"]],
+			["setup", () => outcome(), "prepared"],
+		]);
 	},
 );

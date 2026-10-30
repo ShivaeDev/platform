@@ -54,11 +54,11 @@ resumeStory.it(
 		yield* untilReRead(1);
 		yield* untilReRead(2);
 
-		yield* outcomes({
-			"note 1": [shown(1), "Changed while away"],
-			"note 2": [shown(2), "Also changed while away"],
-			"streams opened": [streamsOpened(), "2 streams opened"],
-		});
+		yield* outcomes([
+			["note 1", () => shown(1), "Changed while away"],
+			["note 2", () => shown(2), "Also changed while away"],
+			["streams opened", () => streamsOpened(), "2 streams opened"],
+		]);
 	},
 );
 
@@ -88,10 +88,10 @@ resumeStory.it(
 
 		yield* untilReRead(1);
 
-		yield* outcomes({
-			"note 1": [shown(1), "Changed while disconnected"],
-			"open streams": [openStreams(), "one stream open"],
-		});
+		yield* outcomes([
+			["note 1", () => shown(1), "Changed while disconnected"],
+			["open streams", () => openStreams(), "one stream open"],
+		]);
 	},
 );
 
@@ -99,16 +99,16 @@ resumeStory.it(
 	"disposing the registry removes automatic live's native resume listener and closes its stream",
 	[automaticLive("native"), watching(1)],
 	function* ({ dispose, listeners, openStreams }) {
-		yield* outcomes({
-			listeners: [listeners(), { browser: 0, native: 1 }],
-			"open streams": [openStreams(), "one stream open"],
-		});
+		yield* outcomes([
+			["listeners", () => listeners(), { browser: 0, native: 1 }],
+			["open streams", () => openStreams(), "one stream open"],
+		]);
 
 		dispose();
 
-		yield* outcomes({
-			listeners: [listeners(), { browser: 0, native: 0 }],
-			"open streams": [openStreams(), "no streams open"],
-		});
+		yield* outcomes([
+			["listeners", () => listeners(), { browser: 0, native: 0 }],
+			["open streams", () => openStreams(), "no streams open"],
+		]);
 	},
 );

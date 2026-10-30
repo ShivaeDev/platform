@@ -5,10 +5,10 @@ import { appGithub, exchangeRefused } from "#test/appGithub.ts";
 appGithub.it("a signed workflow_run delivery is decoded once with the caller's Schema", [], function* ({ bodiesDecoded, receive, receiverAnswered }) {
 	yield* receive("a signed delivery");
 
-	yield* outcomes({
-		"bodies decoded": [bodiesDecoded(), 1],
-		"receiver answered": [receiverAnswered(), { action: "completed", workflowRun: { conclusion: "success", id: 42 } }],
-	});
+	yield* outcomes([
+		["bodies decoded", () => bodiesDecoded(), 1],
+		["receiver answered", () => receiverAnswered(), { action: "completed", workflowRun: { conclusion: "success", id: 42 } }],
+	]);
 });
 
 for (const delivery of ["a tampered body", "the wrong secret", "a missing signature header", "a malformed signature header"] as const) {
@@ -18,10 +18,10 @@ for (const delivery of ["a tampered body", "the wrong secret", "a missing signat
 		function* ({ bodiesDecoded, receive, receiverAnswered }) {
 			yield* receive(delivery);
 
-			yield* outcomes({
-				"bodies decoded": [bodiesDecoded(), 0],
-				"receiver answered": [receiverAnswered(), "signature rejected"],
-			});
+			yield* outcomes([
+				["bodies decoded", () => bodiesDecoded(), 0],
+				["receiver answered", () => receiverAnswered(), "signature rejected"],
+			]);
 		},
 	);
 }
@@ -36,10 +36,10 @@ appGithub.it(
 	function* ({ credentialsSeenIn, readPull, spanNames }) {
 		yield* readPull();
 
-		yield* outcomes({
-			"credentials seen in": [credentialsSeenIn(), {}],
-			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
-		});
+		yield* outcomes([
+			["credentials seen in", () => credentialsSeenIn(), {}],
+			["spans recorded", () => spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		]);
 	},
 );
 
@@ -49,10 +49,10 @@ appGithub.it(
 	function* ({ credentialsSeenIn, readPull, spanNames }) {
 		yield* readPull();
 
-		yield* outcomes({
-			"credentials seen in": [credentialsSeenIn(), {}],
-			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
-		});
+		yield* outcomes([
+			["credentials seen in", () => credentialsSeenIn(), {}],
+			["spans recorded", () => spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		]);
 	},
 );
 
@@ -62,10 +62,10 @@ appGithub.it(
 	function* ({ credentialsSeenIn, readWithInvalidKey, spanNames }) {
 		yield* readWithInvalidKey();
 
-		yield* outcomes({
-			"credentials seen in": [credentialsSeenIn(), {}],
-			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
-		});
+		yield* outcomes([
+			["credentials seen in", () => credentialsSeenIn(), {}],
+			["spans recorded", () => spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		]);
 	},
 );
 
@@ -75,9 +75,9 @@ appGithub.it(
 	function* ({ credentialsSeenIn, receive, spanNames }) {
 		yield* receive("the wrong secret");
 
-		yield* outcomes({
-			"credentials seen in": [credentialsSeenIn(), {}],
-			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub App operation"])],
-		});
+		yield* outcomes([
+			["credentials seen in", () => credentialsSeenIn(), {}],
+			["spans recorded", () => spanNames(), expect.arrayContaining(["GitHub App operation"])],
+		]);
 	},
 );

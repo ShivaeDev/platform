@@ -12,11 +12,11 @@ runtime.it(
 	function* ({ clientCalls, clientsConstructed, start, startup }) {
 		yield* start("second", []);
 
-		yield* outcomes({
-			"client calls": [clientCalls(), ["start"]],
-			"clients constructed": [clientsConstructed(), 1],
-			"second runtime": [startup("second"), "started"],
-		});
+		yield* outcomes([
+			["client calls", () => clientCalls(), ["start"]],
+			["clients constructed", () => clientsConstructed(), 1],
+			["second runtime", () => startup("second"), "started"],
+		]);
 	},
 );
 
@@ -55,11 +55,11 @@ for (const conflict of conflicts) {
 		function* ({ clientCalls, clientsConstructed, start, startup }) {
 			yield* start("second", [], conflict.second);
 
-			yield* outcomes({
-				"client calls": [clientCalls(), ["start"]],
-				"clients constructed": [clientsConstructed(), 1],
-				"second runtime": [startup("second"), `Shared pg-boss client Symbol(shared) has different constructor settings: ${conflict.options}`],
-			});
+			yield* outcomes([
+				["client calls", () => clientCalls(), ["start"]],
+				["clients constructed", () => clientsConstructed(), 1],
+				["second runtime", () => startup("second"), `Shared pg-boss client Symbol(shared) has different constructor settings: ${conflict.options}`],
+			]);
 		},
 	);
 }
@@ -83,11 +83,11 @@ runtime.it(
 
 		yield* failClientStart("external client initialization failed");
 
-		yield* outcomes({
-			"client calls": [clientCalls(), ["start", "stop"]],
-			"first runtime": [startup("first"), "start failed with external client initialization failed"],
-			"second runtime": [startup("second"), "start failed with external client initialization failed"],
-		});
+		yield* outcomes([
+			["client calls", () => clientCalls(), ["start", "stop"]],
+			["first runtime", () => startup("first"), "start failed with external client initialization failed"],
+			["second runtime", () => startup("second"), "start failed with external client initialization failed"],
+		]);
 	},
 );
 
@@ -100,10 +100,10 @@ runtime.it(
 
 		yield* start("retry", []);
 
-		yield* outcomes({
-			"clients constructed": [clientsConstructed(), 2],
-			"retry runtime": [startup("retry"), "started"],
-		});
+		yield* outcomes([
+			["clients constructed", () => clientsConstructed(), 2],
+			["retry runtime", () => startup("retry"), "started"],
+		]);
 	},
 );
 
@@ -113,10 +113,10 @@ runtime.it(
 	function* ({ clientsConstructed, start, startup }) {
 		yield* start("second", []);
 
-		yield* outcomes({
-			"clients constructed": [clientsConstructed(), 2],
-			"second runtime": [startup("second"), "started"],
-		});
+		yield* outcomes([
+			["clients constructed", () => clientsConstructed(), 2],
+			["second runtime", () => startup("second"), "started"],
+		]);
 	},
 );
 

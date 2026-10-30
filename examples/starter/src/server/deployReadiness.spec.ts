@@ -28,10 +28,10 @@ deployment.it(
 			expect(yield* worker.child.isRunning).toBe(true);
 			return pending;
 		}).pipe(Effect.ensuring(schemaCreation.release));
-		yield* outcomes({
-			"migration exit code": [migration.exitCode, 0],
-			"worker readiness": [worker.ready, "worker"],
-		});
+		yield* outcomes([
+			["migration exit code", () => migration.exitCode, 0],
+			["worker readiness", () => worker.ready, "worker"],
+		]);
 		const web = yield* startProcess("web");
 		const address = yield* web.ready;
 		expect(web.logs).toContainEqual(expect.stringMatching(/Loaded module: .*\/NodeHttpServer\.[jt]s$/v));
@@ -46,10 +46,10 @@ deployment.it(
 			expect.stringContaining("Database migrations current"),
 			expect.stringContaining("Worker ready to take jobs"),
 		]);
-		yield* outcomes({
-			"web keeps running": [web.child.isRunning, true],
-			"worker keeps running": [worker.child.isRunning, true],
-		});
+		yield* outcomes([
+			["web keeps running", () => web.child.isRunning, true],
+			["worker keeps running", () => worker.child.isRunning, true],
+		]);
 	},
 	4 * 20_000 + 40_000,
 );

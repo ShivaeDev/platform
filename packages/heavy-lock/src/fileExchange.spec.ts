@@ -7,10 +7,10 @@ lockStory.it("typecheck takes a free lock and the lock names typecheck", [], fun
 
 	yield* lock.tries("typecheck");
 
-	yield* outcomes({
-		"lock holder": [lock.holder(), "typecheck"],
-		"typecheck's answer": [lock.answerOf("typecheck"), "took the lock"],
-	});
+	yield* outcomes([
+		["lock holder", () => lock.holder(), "typecheck"],
+		["typecheck's answer", () => lock.answerOf("typecheck"), "took the lock"],
+	]);
 });
 
 lockStory.it("taking a free lock leaves no draft beside it", [], function* ({ lock }) {
@@ -36,10 +36,10 @@ lockStory.it("a release by lint leaves typecheck holding the lock", [heldBy("typ
 lockStory.it("test's attempt on build's live lock is blocked by build and leaves build holding it", [heldBy("build")], function* ({ lock }) {
 	yield* lock.tries("test");
 
-	yield* outcomes({
-		"lock holder": [lock.holder(), "build"],
-		"test's answer": [lock.answerOf("test"), "blocked by build"],
-	});
+	yield* outcomes([
+		["lock holder", () => lock.holder(), "build"],
+		["test's answer", () => lock.answerOf("test"), "blocked by build"],
+	]);
 });
 
 lockStory.it("a blocked attempt leaves no draft beside the lock", [heldBy("build")], function* ({ lock }) {
@@ -57,10 +57,10 @@ for (const kind of ["exited", "reused"] as const) {
 
 			yield* lock.tries("test");
 
-			yield* outcomes({
-				"lock holder": [lock.holder(), "test"],
-				"test's answer": [lock.answerOf("test"), "took the lock"],
-			});
+			yield* outcomes([
+				["lock holder", () => lock.holder(), "test"],
+				["test's answer", () => lock.answerOf("test"), "took the lock"],
+			]);
 		},
 	);
 }
@@ -71,10 +71,10 @@ for (const kind of ["without a process start time", "that is not JSON"] as const
 
 		yield* lock.tries("test");
 
-		yield* outcomes({
-			"lock holder": [lock.holder(), "test"],
-			"test's answer": [lock.answerOf("test"), "took the lock"],
-		});
+		yield* outcomes([
+			["lock holder", () => lock.holder(), "test"],
+			["test's answer", () => lock.answerOf("test"), "took the lock"],
+		]);
 	});
 }
 
@@ -89,10 +89,10 @@ lockStory.it("a waiter reclaiming crashed's lock removes it and leaves no file b
 
 	yield* lock.reclaims("crashed");
 
-	yield* outcomes({
-		"files beside the lock": [lock.filesBesideLock(), []],
-		"lock holder": [lock.holder(), "nobody"],
-	});
+	yield* outcomes([
+		["files beside the lock", () => lock.filesBesideLock(), []],
+		["lock holder", () => lock.holder(), "nobody"],
+	]);
 });
 
 lockStory.it(
@@ -104,10 +104,10 @@ lockStory.it(
 
 		yield* lock.reclaims("crashed");
 
-		yield* outcomes({
-			"files beside the lock": [lock.filesBesideLock(), ["heavy-process.lock"]],
-			"lock holder": [lock.holder(), "raced"],
-		});
+		yield* outcomes([
+			["files beside the lock", () => lock.filesBesideLock(), ["heavy-process.lock"]],
+			["lock holder", () => lock.holder(), "raced"],
+		]);
 	},
 );
 

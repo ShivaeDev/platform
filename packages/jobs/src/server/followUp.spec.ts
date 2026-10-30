@@ -29,10 +29,10 @@ runtime.it(
 	function* ({ sent, settlements, start }) {
 		yield* start("app", [worker(Source, enqueuesTarget), Target]);
 
-		yield* outcomes({
-			"sent": [sent(), [{ data: expect.objectContaining({ payload: { note: "follow-up" } }), name: "target", options: undefined }]],
-			"settlements": [settlements(), ["source-delivered-on-work completed"]],
-		});
+		yield* outcomes([
+			["sent", () => sent(), [{ data: expect.objectContaining({ payload: { note: "follow-up" } }), name: "target", options: undefined }]],
+			["settlements", () => settlements(), ["source-delivered-on-work completed"]],
+		]);
 	},
 );
 

@@ -33,17 +33,17 @@ workspace.it(
 	"apply reports a failing hook's ChangesetError message after collection has written the release",
 	[pending(), hookFails("Repair the repository pins.")],
 	function* ({ apply, changesetFiles, lastAnswer, version }) {
-		yield* outcomes({
-			"changeset files": [changesetFiles(), ["changesets.config.ts", "feature.md"]],
-			[`${CORE}'s version`]: [version(CORE), "0.2.3"],
-		});
+		yield* outcomes([
+			["changeset files", () => changesetFiles(), ["changesets.config.ts", "feature.md"]],
+			[`${CORE}'s version`, () => version(CORE), "0.2.3"],
+		]);
 
 		yield* apply();
 
-		yield* outcomes({
-			answer: [lastAnswer(), "refused: Repair the repository pins."],
-			"changeset files": [changesetFiles(), ["changesets.config.ts"]],
-			[`${CORE}'s version`]: [version(CORE), "0.3.0"],
-		});
+		yield* outcomes([
+			["answer", () => lastAnswer(), "refused: Repair the repository pins."],
+			["changeset files", () => changesetFiles(), ["changesets.config.ts"]],
+			[`${CORE}'s version`, () => version(CORE), "0.3.0"],
+		]);
 	},
 );

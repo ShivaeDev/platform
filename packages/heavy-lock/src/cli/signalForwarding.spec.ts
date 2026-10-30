@@ -16,10 +16,10 @@ for (const [signal, code] of [
 
 			yield* cli.receives("check", signal);
 
-			yield* outcomes({
-				"check's exit code": [cli.exitCodeOf("check"), code],
-				"lock holder": [lock.holder(), "nobody"],
-			});
+			yield* outcomes([
+				["check's exit code", () => cli.exitCodeOf("check"), code],
+				["lock holder", () => lock.holder(), "nobody"],
+			]);
 		},
 		liveCli,
 	);
@@ -60,11 +60,11 @@ lockStory.it(
 
 		yield* cli.receives("second", "SIGTERM");
 
-		yield* outcomes({
-			"files beside the lock": [lock.filesBesideLock(), ["heavy-process.lock"]],
-			"lock holder": [lock.holder(), "build"],
-			"second's exit code": [cli.exitCodeOf("second"), 143],
-		});
+		yield* outcomes([
+			["files beside the lock", () => lock.filesBesideLock(), ["heavy-process.lock"]],
+			["lock holder", () => lock.holder(), "build"],
+			["second's exit code", () => cli.exitCodeOf("second"), 143],
+		]);
 	},
 	liveCli,
 );
@@ -79,11 +79,11 @@ for (const [how, message] of [
 		function* ({ cli }) {
 			yield* cli.runs("check", cli.commands.exitsWith(0));
 
-			yield* outcomes({
-				"check ran its command": [cli.ranItsCommand("check"), false],
-				"check's exit code": [cli.exitCodeOf("check"), 1],
-				"printed by check": [cli.printedBy("check"), [`heavy-lock: ${message}`]],
-			});
+			yield* outcomes([
+				["check ran its command", () => cli.ranItsCommand("check"), false],
+				["check's exit code", () => cli.exitCodeOf("check"), 1],
+				["printed by check", () => cli.printedBy("check"), [`heavy-lock: ${message}`]],
+			]);
 		},
 		liveCli,
 	);

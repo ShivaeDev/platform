@@ -14,10 +14,10 @@ nativeSessions.it(
 	function* ({ exposedHeaders, issuedCredential, signIn }) {
 		yield* signIn("alice");
 
-		yield* outcomes({
-			credential: [issuedCredential("alice"), "signed"],
-			"exposed headers": [exposedHeaders("alice"), expect.stringContaining("set-auth-token")],
-		});
+		yield* outcomes([
+			["credential", () => issuedCredential("alice"), "signed"],
+			["exposed headers", () => exposedHeaders("alice"), expect.stringContaining("set-auth-token")],
+		]);
 	},
 );
 
@@ -25,18 +25,18 @@ nativeSessions.it(
 	"the WebView's bearer reaches Alice's session through the auth route and her profile through RPC",
 	[nativeTransport, alice],
 	function* ({ profile, sessionUser }) {
-		yield* outcomes({
-			profile: [profile({ bearer: "alice", origin: WEB_VIEW }, "alice"), "alice's profile"],
-			session: [sessionUser({ bearer: "alice", origin: WEB_VIEW }), "alice"],
-		});
+		yield* outcomes([
+			["profile", () => profile({ bearer: "alice", origin: WEB_VIEW }, "alice"), "alice's profile"],
+			["session", () => sessionUser({ bearer: "alice", origin: WEB_VIEW }), "alice"],
+		]);
 	},
 );
 
 nativeSessions.it("Alice's and Bob's bearers each read their own profile", [both], function* ({ profile }) {
-	yield* outcomes({
-		alice: [profile({ bearer: "alice" }, "alice"), "alice's profile"],
-		bob: [profile({ bearer: "bob" }, "bob"), "bob's profile"],
-	});
+	yield* outcomes([
+		["alice", () => profile({ bearer: "alice" }, "alice"), "alice's profile"],
+		["bob", () => profile({ bearer: "bob" }, "bob"), "bob's profile"],
+	]);
 });
 
 nativeSessions.it("Alice's bearer is forbidden from Bob's profile", [both], function* ({ profile }) {
@@ -44,10 +44,10 @@ nativeSessions.it("Alice's bearer is forbidden from Bob's profile", [both], func
 });
 
 nativeSessions.it("with Alice's bearer and Bob's cookie, the auth route and RPC both act as Bob", [both], function* ({ profile, sessionUser }) {
-	yield* outcomes({
-		profile: [profile(mixed, "bob"), "bob's profile"],
-		session: [sessionUser(mixed), "bob"],
-	});
+	yield* outcomes([
+		["profile", () => profile(mixed, "bob"), "bob's profile"],
+		["session", () => sessionUser(mixed), "bob"],
+	]);
 });
 
 nativeSessions.it("signing out with Alice's bearer and Bob's cookie ends Bob's session and keeps Alice's", [both], function* ({ profile, signsOut }) {
@@ -55,10 +55,10 @@ nativeSessions.it("signing out with Alice's bearer and Bob's cookie ends Bob's s
 
 	yield* signsOut(mixed);
 
-	yield* outcomes({
-		"Alice's bearer": [profile({ bearer: "alice" }, "alice"), "alice's profile"],
-		"Bob's cookie": [profile(mixed, "bob"), UNAUTHORIZED],
-	});
+	yield* outcomes([
+		["Alice's bearer", () => profile({ bearer: "alice" }, "alice"), "alice's profile"],
+		["Bob's cookie", () => profile(mixed, "bob"), UNAUTHORIZED],
+	]);
 });
 
 nativeSessions.it(
@@ -80,19 +80,19 @@ nativeSessions.it(
 	function* ({ browserSignsIn, profile, sessionTokens }) {
 		yield* browserSignsIn("alice");
 
-		yield* outcomes({
-			profile: [profile({ cookie: "alice in the browser" }, "alice"), "alice's profile"],
-			session: [sessionTokens({ cookie: "alice in the browser" }), { bearerCredential: "none", sessionToken: "none" }],
-		});
+		yield* outcomes([
+			["profile", () => profile({ cookie: "alice in the browser" }, "alice"), "alice's profile"],
+			["session", () => sessionTokens({ cookie: "alice in the browser" }), { bearerCredential: "none", sessionToken: "none" }],
+		]);
 	},
 );
 
 for (const kind of ["missing", "unsigned", "prefixed", "tampered", "malformed", "invented"] satisfies ForgedBearer[]) {
 	nativeSessions.it(`a ${kind} bearer fails the profile RPC as unauthorized and finds no session`, [alice], function* ({ profile, sessionUser }) {
-		yield* outcomes({
-			profile: [profile({ forged: [kind, "alice"] }, "alice"), UNAUTHORIZED],
-			session: [sessionUser({ forged: [kind, "alice"] }), "no session"],
-		});
+		yield* outcomes([
+			["profile", () => profile({ forged: [kind, "alice"] }, "alice"), UNAUTHORIZED],
+			["session", () => sessionUser({ forged: [kind, "alice"] }), "no session"],
+		]);
 	});
 }
 
@@ -104,10 +104,10 @@ nativeSessions.it(
 
 		yield* sessionExpires();
 
-		yield* outcomes({
-			profile: [profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
-			session: [sessionUser({ bearer: "alice" }), "no session"],
-		});
+		yield* outcomes([
+			["profile", () => profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
+			["session", () => sessionUser({ bearer: "alice" }), "no session"],
+		]);
 	},
 );
 
@@ -119,10 +119,10 @@ nativeSessions.it(
 
 		yield* signsOut({ bearer: "alice" });
 
-		yield* outcomes({
-			profile: [profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
-			subscription: [subscriptionEnding(), UNAUTHORIZED],
-		});
+		yield* outcomes([
+			["profile", () => profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
+			["subscription", () => subscriptionEnding(), UNAUTHORIZED],
+		]);
 	},
 );
 
@@ -134,11 +134,11 @@ nativeSessions.it(
 
 		yield* signsInAgain("alice");
 
-		yield* outcomes({
-			"old bearer": [profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
-			"replacement bearer": [profile({ bearer: "alice's replacement" }, "alice"), "alice's profile"],
-			subscription: [subscriptionEnding(), UNAUTHORIZED],
-		});
+		yield* outcomes([
+			["old bearer", () => profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
+			["replacement bearer", () => profile({ bearer: "alice's replacement" }, "alice"), "alice's profile"],
+			["subscription", () => subscriptionEnding(), UNAUTHORIZED],
+		]);
 	},
 );
 
@@ -149,11 +149,11 @@ nativeSessions.it(
 		yield* recordDiagnostics("alice");
 		yield* hostStops();
 
-		yield* outcomes({
-			"encoded redaction": [diagnosticMentions('"encoded":"Bearer <redacted>"'), ["logs"]],
-			leaks: [credentialLeaks("alice"), []],
-			"redacted bearer": [diagnosticMentions("Bearer <redacted>"), ["logs", "spans"]],
-		});
+		yield* outcomes([
+			["encoded redaction", () => diagnosticMentions('"encoded":"Bearer <redacted>"'), ["logs"]],
+			["leaks", () => credentialLeaks("alice"), []],
+			["redacted bearer", () => diagnosticMentions("Bearer <redacted>"), ["logs", "spans"]],
+		]);
 	},
 );
 

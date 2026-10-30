@@ -16,10 +16,10 @@ for (const [key, value] of [
 		function* ({ answerMentions, callRpc, wireAnswers }) {
 			yield* callRpc("unionFailure", { value });
 
-			yield* outcomes({
-				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ [key]: "<redacted>" }) } }],
-				"leaked into the answer": [answerMentions(value), []],
-			});
+			yield* outcomes([
+				["client answer", () => wireAnswers(), { "1": { failed: expect.objectContaining({ [key]: "<redacted>" }) } }],
+				["leaked into the answer", () => answerMentions(value), []],
+			]);
 		},
 	);
 }
@@ -33,18 +33,24 @@ for (const declaration of ["schema", "host"] as const) {
 
 			yield* close();
 
-			yield* outcomes({
-				"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ wireContact: "<redacted>", wireVisible: "<redacted>" }) } }],
-				"diagnostic log": [
-					diagnosticLog("flattened diagnostic"),
+			yield* outcomes([
+				[
+					"client answer",
+					() => wireAnswers(),
+					{ "1": { failed: expect.objectContaining({ wireContact: "<redacted>", wireVisible: "<redacted>" }) } },
+				],
+				[
+					"diagnostic log",
+					() => diagnosticLog("flattened diagnostic"),
 					expect.objectContaining({ visible: "public detail", wireContact: "<redacted>", wireVisible: "<redacted>" }),
 				],
-				"leaked into the answer": [answerMentions("private nested contact"), []],
-				"span attributes": [
-					spanAttributes("flattened"),
+				["leaked into the answer", () => answerMentions("private nested contact"), []],
+				[
+					"span attributes",
+					() => spanAttributes("flattened"),
 					[expect.objectContaining({ visible: "public detail", wireContact: "<redacted>", wireVisible: "<redacted>" })],
 				],
-			});
+			]);
 		},
 	);
 }
@@ -61,16 +67,18 @@ for (const order of ["first", "last"] as const) {
 
 			yield* close();
 
-			yield* outcomes({
-				"client answers": [
-					wireAnswers(),
+			yield* outcomes([
+				[
+					"client answers",
+					() => wireAnswers(),
 					{
 						lastLink: { failed: expect.objectContaining({ visible: "<redacted>", wireChainedContact: "<redacted>" }) },
 						mapped: { failed: expect.objectContaining({ visible: "<redacted>", wireContact: "<redacted>" }) },
 					},
 				],
-				"diagnostic log": [
-					diagnosticLog("mapping diagnostic"),
+				[
+					"diagnostic log",
+					() => diagnosticLog("mapping diagnostic"),
 					expect.objectContaining({
 						contact: "<redacted>",
 						control: "public control",
@@ -80,9 +88,10 @@ for (const order of ["first", "last"] as const) {
 						wireContact: "<redacted>",
 					}),
 				],
-				"leaked into the answers": [answerMentions("private ordered contact"), []],
-				"span attributes": [
-					spanAttributes("mapped"),
+				["leaked into the answers", () => answerMentions("private ordered contact"), []],
+				[
+					"span attributes",
+					() => spanAttributes("mapped"),
 					[
 						expect.objectContaining({
 							control: "public control",
@@ -92,7 +101,7 @@ for (const order of ["first", "last"] as const) {
 						}),
 					],
 				],
-			});
+			]);
 		},
 	);
 }

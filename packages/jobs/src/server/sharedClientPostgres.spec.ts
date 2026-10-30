@@ -10,10 +10,10 @@ sharedClient.it(
 
 		yield* publish("work from the shared producer");
 
-		yield* outcomes({
-			"registration health": [registeredQueues(), ["shared-client"]],
-			"worker delivery": [deliveredMessage(), "work from the shared producer"],
-		});
+		yield* outcomes([
+			["registration health", () => registeredQueues(), ["shared-client"]],
+			["worker delivery", () => deliveredMessage(), "work from the shared producer"],
+		]);
 
 		yield* close();
 

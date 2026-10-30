@@ -66,10 +66,10 @@ for (const [remaining, saved] of [
 
 			yield* poll();
 
-			yield* outcomes({
-				"printed": [printed(), []],
-				"saved snapshot of PR 1": [savedSnapshot(1), saved],
-			});
+			yield* outcomes([
+				["printed", () => printed(), []],
+				["saved snapshot of PR 1", () => savedSnapshot(1), saved],
+			]);
 		},
 	);
 }
@@ -142,11 +142,11 @@ for (const data of [
 
 			yield* poll();
 
-			yield* outcomes({
-				"poll": [lastPoll(), "failed: GitHub queue confirmation: No such type DequeuedEvent, so it can't be a fragment condition"],
-				"printed": [printed(), []],
-				"saved snapshot of PR 1": [savedSnapshot(1), "open, queued"],
-			});
+			yield* outcomes([
+				["poll", () => lastPoll(), "failed: GitHub queue confirmation: No such type DequeuedEvent, so it can't be a fragment condition"],
+				["printed", () => printed(), []],
+				["saved snapshot of PR 1", () => savedSnapshot(1), "open, queued"],
+			]);
 		},
 	);
 }
@@ -165,11 +165,11 @@ for (const [answer, failure] of [
 
 			yield* poll();
 
-			yield* outcomes({
-				"poll": [lastPoll(), `failed: ${failure}`],
-				"printed": [printed(), []],
-				"saved snapshot of PR 1": [savedSnapshot(1), "open, queued"],
-			});
+			yield* outcomes([
+				["poll", () => lastPoll(), `failed: ${failure}`],
+				["printed", () => printed(), []],
+				["saved snapshot of PR 1", () => savedSnapshot(1), "open, queued"],
+			]);
 		},
 	);
 }
@@ -183,9 +183,9 @@ watch.it(
 
 		yield* poll();
 
-		yield* outcomes({
-			"GraphQL confirmations": [confirmations(), []],
-			"printed": [printed(), ["PR 1 merged"]],
-		});
+		yield* outcomes([
+			["GraphQL confirmations", () => confirmations(), []],
+			["printed", () => printed(), ["PR 1 merged"]],
+		]);
 	},
 );

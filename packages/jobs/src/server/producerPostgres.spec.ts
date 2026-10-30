@@ -17,19 +17,19 @@ const Producer = defineQueue({
 database.it("a producer-only runtime creates its queue and the queue's dead-letter queue", [], function* ({ start, storedQueue }) {
 	yield* start("producer", [Producer]);
 
-	yield* outcomes({
-		"stored dead-letter queue": [storedQueue(deadLetterQueueName(Producer.name)), expect.objectContaining({ name: "producer-dlq" })],
-		"stored queue": [storedQueue(Producer.name), expect.objectContaining({ deadLetter: "producer-dlq", retryLimit: 2 })],
-	});
+	yield* outcomes([
+		["stored dead-letter queue", () => storedQueue(deadLetterQueueName(Producer.name)), expect.objectContaining({ name: "producer-dlq" })],
+		["stored queue", () => storedQueue(Producer.name), expect.objectContaining({ deadLetter: "producer-dlq", retryLimit: 2 })],
+	]);
 });
 
 database.it("a job enqueued by a producer-only runtime waits unhandled", [running("producer", [Producer])], function* ({ enqueue, handled, job }) {
 	yield* enqueue("producer", Producer, { id: 42 }, { as: "job 42" });
 
-	yield* outcomes({
-		"handled payloads": [handled(Producer), []],
-		"job 42": [job("job 42"), expect.objectContaining({ data: { id: 42 }, state: "created" })],
-	});
+	yield* outcomes([
+		["handled payloads", () => handled(Producer), []],
+		["job 42", () => job("job 42"), expect.objectContaining({ data: { id: 42 }, state: "created" })],
+	]);
 });
 
 database.it(
@@ -39,10 +39,10 @@ database.it(
 		yield* start("worker", [worker(Producer, { fails: "Retry this job" })]);
 		yield* untilJob("job 42", "failed");
 
-		yield* outcomes({
-			"attempts": [attempts(Producer), ["job 42", "job 42", "job 42"]],
-			"dead-lettered": [deadLettered(Producer), ["job 42"]],
-			"job 42": [job("job 42"), expect.objectContaining({ error: "Error: Retry this job", retryCount: 2, state: "failed" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Producer), ["job 42", "job 42", "job 42"]],
+			["dead-lettered", () => deadLettered(Producer), ["job 42"]],
+			["job 42", () => job("job 42"), expect.objectContaining({ error: "Error: Retry this job", retryCount: 2, state: "failed" })],
+		]);
 	},
 );

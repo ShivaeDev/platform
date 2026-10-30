@@ -23,13 +23,17 @@ for (const field of fields) {
 
 				yield* callRpc("nestedErrors", { field, kind, value: secret });
 
-				yield* outcomes({
-					"diagnostic log": [diagnosticLog("nested errors"), maskedDiagnostic],
-					"leaked into reports": [reportMentions(secret), []],
-					"leaked into the answer": [answerMentions(secret), []],
-					"leaked into the diagnostic log": [diagnosticLogMentions("nested errors", secret), []],
-					"reported error": [reportedErrors(), [expect.objectContaining({ cause: maskedCause, details: { errors: [maskedStack, maskedStack] } })]],
-				});
+				yield* outcomes([
+					["diagnostic log", () => diagnosticLog("nested errors"), maskedDiagnostic],
+					["leaked into reports", () => reportMentions(secret), []],
+					["leaked into the answer", () => answerMentions(secret), []],
+					["leaked into the diagnostic log", () => diagnosticLogMentions("nested errors", secret), []],
+					[
+						"reported error",
+						() => reportedErrors(),
+						[expect.objectContaining({ cause: maskedCause, details: { errors: [maskedStack, maskedStack] } })],
+					],
+				]);
 			},
 		);
 	}

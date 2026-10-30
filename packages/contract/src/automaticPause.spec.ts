@@ -12,11 +12,11 @@ sessionStory.it(
 		yield* announce("alice");
 		yield* untilPending("alice");
 
-		yield* outcomes({
-			"alice's preferences": [shown("alice", "preferences"), "Alice"],
-			"alice's reads": [timesRead("alice", "preferences"), "read once"],
-			"alice's status": [status("alice"), { needsResync: true, pending: 1 }],
-		});
+		yield* outcomes([
+			["alice's preferences", () => shown("alice", "preferences"), "Alice"],
+			["alice's reads", () => timesRead("alice", "preferences"), "read once"],
+			["alice's status", () => status("alice"), { needsResync: true, pending: 1 }],
+		]);
 	},
 );
 

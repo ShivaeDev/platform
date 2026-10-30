@@ -18,10 +18,10 @@ host.it(
 	"a failed migration fails startup before application services start",
 	[failedMigration, startupFails],
 	function* ({ serviceLifecycle, startup }) {
-		yield* outcomes({
-			"application services": [serviceLifecycle(), []],
-			"startup": [startup(), "failed with migration error"],
-		});
+		yield* outcomes([
+			["application services", () => serviceLifecycle(), []],
+			["startup", () => startup(), "failed with migration error"],
+		]);
 	},
 );
 
@@ -52,10 +52,10 @@ for (const [request, headers] of [
 		function* ({ postRpc, responseStatus, sessionLookups }) {
 			yield* postRpc(headers);
 
-			yield* outcomes({
-				"response status": [responseStatus(), HttpStatus.fromLiteral("Forbidden")],
-				"session lookups": [sessionLookups(), []],
-			});
+			yield* outcomes([
+				["response status", () => responseStatus(), HttpStatus.fromLiteral("Forbidden")],
+				["session lookups", () => sessionLookups(), []],
+			]);
 		},
 	);
 }

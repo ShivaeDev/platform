@@ -22,9 +22,17 @@ visitor.it("signs in, saves a draft and opens a tab", [], function* ({ cookies, 
 	yield* savesDraft("Bread");
 	yield* opensTab("list");
 
-	yield* outcomes({ cookies: [cookies(), "session=ada"], draft: [draft(), "Bread"], tab: [tab(), "list"] });
+	yield* outcomes([
+		["cookies", () => cookies(), "session=ada"],
+		["draft", () => draft(), "Bread"],
+		["tab", () => tab(), "list"],
+	]);
 });
 
 visitor.it("starts signed out with no draft and no tab", [], function* ({ cookies, draft, tab }) {
-	yield* outcomes({ cookies: [cookies(), ""], draft: [draft(), "none"], tab: [tab(), "none"] });
+	yield* outcomes([
+		["cookies", () => cookies(), ""],
+		["draft", () => draft(), "none"],
+		["tab", () => tab(), "none"],
+	]);
 });

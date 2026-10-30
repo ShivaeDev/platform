@@ -20,10 +20,10 @@ usersStory.it(
 	function* ({ answerTo, assign, rolesSeenBy }) {
 		yield* assign("carol", "bob", "owner");
 
-		yield* outcomes({
-			"carol's answer": [answerTo("carol"), "forbidden"],
-			"roles alice sees": [rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
-		});
+		yield* outcomes([
+			["carol's answer", () => answerTo("carol"), "forbidden"],
+			["roles alice sees", () => rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
+		]);
 	},
 );
 
@@ -33,10 +33,10 @@ usersStory.it(
 	function* ({ answerTo, assign, rolesSeenBy }) {
 		yield* assign("alice", "alice", "admin");
 
-		yield* outcomes({
-			"alice's answer": [answerTo("alice"), "alice is the last role assigner"],
-			"roles alice sees": [rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
-		});
+		yield* outcomes([
+			["alice's answer", () => answerTo("alice"), "alice is the last role assigner"],
+			["roles alice sees", () => rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
+		]);
 	},
 );
 

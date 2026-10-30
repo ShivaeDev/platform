@@ -14,10 +14,10 @@ httpFaultApp.it(
 		yield* sends("client");
 		yield* paused.waiting;
 
-		yield* outcomes({
-			"the unauthorized release": [asks("/trigger", { headers: { authorization: "rejected" } }), "HTTP 401"],
-			"while the client": [progress("client"), "waiting for an answer"],
-		});
+		yield* outcomes([
+			["the unauthorized release", () => asks("/trigger", { headers: { authorization: "rejected" } }), "HTTP 401"],
+			["while the client", () => progress("client"), "waiting for an answer"],
+		]);
 	},
 );
 
@@ -42,10 +42,10 @@ httpFaultApp.it("answers a waiting request with a status fault's reply and heade
 		reply: { body: { error: "late failure" }, headers: { "retry-after": "2" }, status: HttpStatus.fromLiteral("ServiceUnavailable") },
 	});
 
-	yield* outcomes({
-		answer: [answer("client"), 'HTTP 503 {"error":"late failure"}'],
-		"retry-after": [header("client", "retry-after"), "2"],
-	});
+	yield* outcomes([
+		["answer", () => answer("client"), 'HTTP 503 {"error":"late failure"}'],
+		["retry-after", () => header("client", "retry-after"), "2"],
+	]);
 });
 
 httpFaultApp.it("drops a waiting request's connection before any response headers", [], function* ({ answer, fault, hold, sends }) {
@@ -84,8 +84,8 @@ httpFaultApp.it("resets stalled and held connections when its scope closes", [],
 
 	yield* closesService();
 
-	yield* outcomes({
-		"held client": [answer("held client"), "connection reset"],
-		"stalled client": [answer("stalled client"), "HTTP 200, then connection reset"],
-	});
+	yield* outcomes([
+		["held client", () => answer("held client"), "connection reset"],
+		["stalled client", () => answer("stalled client"), "HTTP 200, then connection reset"],
+	]);
 });

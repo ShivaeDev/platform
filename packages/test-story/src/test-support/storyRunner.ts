@@ -87,6 +87,7 @@ export const storyRunner = storyKit({
 		return {
 			cause: () => Effect.sync(() => ran(runner).causes[0]),
 			changedRows: () => Effect.sync(() => (ran(runner).diffs[0] ?? "").split("\n").filter((line) => /^[-+]\s+"/u.test(line))),
+			diff: () => Effect.sync(() => ran(runner).diffs[0] ?? ""),
 			failedAt: () =>
 				Effect.sync(() =>
 					outcomeOf(ran(runner))

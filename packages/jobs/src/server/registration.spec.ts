@@ -14,16 +14,17 @@ runtime.it(
 	function* ({ clientCalls, createdQueues, start }) {
 		yield* start("app", [worker(Emails, "succeeds")]);
 
-		yield* outcomes({
-			"client calls": [clientCalls(), ["start", "create queue emails-dlq", "create queue emails", "work emails"]],
-			"created queues": [
-				createdQueues(),
+		yield* outcomes([
+			["client calls", () => clientCalls(), ["start", "create queue emails-dlq", "create queue emails", "work emails"]],
+			[
+				"created queues",
+				() => createdQueues(),
 				[
 					{ name: "emails-dlq", options: undefined },
 					{ name: "emails", options: { deadLetter: "emails-dlq", retryBackoff: true, retryLimit: 5 } },
 				],
 			],
-		});
+		]);
 	},
 );
 
@@ -33,17 +34,18 @@ runtime.it(
 	function* ({ clientCalls, createdQueues, scheduledCrons, start }) {
 		yield* start("app", [scheduled(Cleanup, "succeeds")]);
 
-		yield* outcomes({
-			"client calls": [clientCalls(), ["start", "create queue cleanup-dlq", "create queue cleanup", "work cleanup", "schedule cleanup"]],
-			"created queues": [
-				createdQueues(),
+		yield* outcomes([
+			["client calls", () => clientCalls(), ["start", "create queue cleanup-dlq", "create queue cleanup", "work cleanup", "schedule cleanup"]],
+			[
+				"created queues",
+				() => createdQueues(),
 				[
 					{ name: "cleanup-dlq", options: undefined },
 					{ name: "cleanup", options: { deadLetter: "cleanup-dlq", retryBackoff: true, retryLimit: 3 } },
 				],
 			],
-			"scheduled crons": [scheduledCrons(), [{ cron: "17 3 * * *", name: "cleanup", options: { tz: "UTC" } }]],
-		});
+			["scheduled crons", () => scheduledCrons(), [{ cron: "17 3 * * *", name: "cleanup", options: { tz: "UTC" } }]],
+		]);
 	},
 );
 
@@ -59,10 +61,10 @@ runtime.it(
 	function* ({ applicationLog, deliver, handled }) {
 		yield* deliver("emails", [{ data: { id: "7" }, id: "job-7" }]);
 
-		yield* outcomes({
-			"application log": [applicationLog(), ["emails ran job-7"]],
-			"handled payloads": [handled("emails"), [{ id: 7 }]],
-		});
+		yield* outcomes([
+			["application log", () => applicationLog(), ["emails ran job-7"]],
+			["handled payloads", () => handled("emails"), [{ id: 7 }]],
+		]);
 	},
 );
 
@@ -72,10 +74,10 @@ runtime.it(
 	function* ({ deliver, handled, settlements }) {
 		yield* deliver("typed", [{ data: { count: "wrong" }, id: "job-1" }]);
 
-		yield* outcomes({
-			"handled payloads": [handled("typed"), []],
-			"settlements": [settlements(), ["job-1 failed with PgBossPayloadError"]],
-		});
+		yield* outcomes([
+			["handled payloads", () => handled("typed"), []],
+			["settlements", () => settlements(), ["job-1 failed with PgBossPayloadError"]],
+		]);
 	},
 );
 
@@ -88,10 +90,10 @@ runtime.it(
 	function* ({ clientCalls, failureMessage, start, startup }) {
 		yield* start("app", [worker(Duplicate, "succeeds"), scheduled(DuplicateSchedule, "succeeds")]);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "register failed with pg-boss job names must be unique"],
-			"client calls": [clientCalls(), ["start", "stop"]],
-			"failure message": [failureMessage("app"), "pg-boss register failed: TypeError"],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "register failed with pg-boss job names must be unique"],
+			["client calls", () => clientCalls(), ["start", "stop"]],
+			["failure message", () => failureMessage("app"), "pg-boss register failed: TypeError"],
+		]);
 	},
 );

@@ -35,12 +35,12 @@ database.it(
 		yield* enqueue("app", Deferring, { id: 42 }, { as: "job 42", singletonKey: "account-42" });
 		yield* untilDeferred("app", Deferring, 1);
 
-		yield* outcomes({
-			"dead-lettered": [deadLettered(Deferring), []],
-			"deferrals": [deferrals("app", Deferring), [{ at: "the time the worker asked for", reason: "Provider quota" }]],
-			"job 42": [job("job 42"), expect.objectContaining({ retryCount: 0, singletonKey: "account-42", state: "retry" })],
-			"reported errors": [reported(), []],
-		});
+		yield* outcomes([
+			["dead-lettered", () => deadLettered(Deferring), []],
+			["deferrals", () => deferrals("app", Deferring), [{ at: "the time the worker asked for", reason: "Provider quota" }]],
+			["job 42", () => job("job 42"), expect.objectContaining({ retryCount: 0, singletonKey: "account-42", state: "retry" })],
+			["reported errors", () => reported(), []],
+		]);
 	},
 );
 
@@ -66,11 +66,11 @@ database.it(
 		yield* runDeferredNow("app", RarelyPolled);
 		yield* untilJob("job 42", "completed");
 
-		yield* outcomes({
-			"attempts": [attempts(RarelyPolled), ["job 42", "job 42"]],
-			"deferrals": [deferrals("app", RarelyPolled), []],
-			"job 42": [job("job 42"), expect.objectContaining({ retryCount: 0, singletonKey: "account-42" })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(RarelyPolled), ["job 42", "job 42"]],
+			["deferrals", () => deferrals("app", RarelyPolled), []],
+			["job 42", () => job("job 42"), expect.objectContaining({ retryCount: 0, singletonKey: "account-42" })],
+		]);
 	},
 );
 
@@ -88,9 +88,9 @@ database.it(
 		yield* enqueue("app", Due, {}, { as: "due job" });
 		yield* untilJob("due job", "completed");
 
-		yield* outcomes({
-			"deferrals": [deferralsKept("due job"), ["ran again at or after the deferral time"]],
-			"due job": [job("due job"), expect.objectContaining({ retryCount: 0 })],
-		});
+		yield* outcomes([
+			["deferrals", () => deferralsKept("due job"), ["ran again at or after the deferral time"]],
+			["due job", () => job("due job"), expect.objectContaining({ retryCount: 0 })],
+		]);
 	},
 );

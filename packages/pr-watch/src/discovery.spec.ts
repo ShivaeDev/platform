@@ -19,10 +19,10 @@ for (const [problem, trait] of [
 		function* ({ awaitingFirstSnapshot, poll, savedSnapshot }) {
 			yield* poll();
 
-			yield* outcomes({
-				"awaiting a first snapshot": [awaitingFirstSnapshot(), ["PR 1"]],
-				"saved snapshot of PR 1": [savedSnapshot(1), "none"],
-			});
+			yield* outcomes([
+				["awaiting a first snapshot", () => awaitingFirstSnapshot(), ["PR 1"]],
+				["saved snapshot of PR 1", () => savedSnapshot(1), "none"],
+			]);
 		},
 	);
 }

@@ -18,10 +18,10 @@ tracingApp.it("runs a request's work under its server span", [], function* ({ se
 tracingApp.it("runs traits and engine steps under the story's span", [ready], function* ({ spansNamed, takesOneStep }) {
 	yield* takesOneStep();
 
-	yield* outcomes({
-		"story step": [spansNamed("story step"), ['under "story", ended']],
-		"story trait": [spansNamed("story trait"), ['under "story", ended']],
-	});
+	yield* outcomes([
+		["story step", () => spansNamed("story step"), ['under "story", ended']],
+		["story trait", () => spansNamed("story trait"), ['under "story", ended']],
+	]);
 });
 
 tracingApp.it("continues the trace context a request's headers carry", [], function* ({ sendsRequest, serverSpans }) {

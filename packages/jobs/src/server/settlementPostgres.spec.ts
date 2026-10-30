@@ -35,11 +35,11 @@ for (const { attempt, outcome } of poisons) {
 			yield* start("app", [workerBy(Settled, ({ id }) => (id === 4 ? attempt : "succeeds"))]);
 			yield* untilSettled(Settled, ids.length);
 
-			yield* outcomes({
-				"attempts": [attemptCounts(Settled), Object.fromEntries(ids.map((id) => [`job ${id}`, id === 4 ? 2 : 1]))],
-				"job 4": [job("job 4"), expect.objectContaining({ error: "Error: Poison job", retryCount: 1, state: "failed" })],
-				"stored states": [storedStates("settlement"), Object.fromEntries(ids.map((id) => [`job ${id}`, id === 4 ? "failed" : "completed"]))],
-			});
+			yield* outcomes([
+				["attempts", () => attemptCounts(Settled), Object.fromEntries(ids.map((id) => [`job ${id}`, id === 4 ? 2 : 1]))],
+				["job 4", () => job("job 4"), expect.objectContaining({ error: "Error: Poison job", retryCount: 1, state: "failed" })],
+				["stored states", () => storedStates("settlement"), Object.fromEntries(ids.map((id) => [`job ${id}`, id === 4 ? "failed" : "completed"]))],
+			]);
 		},
 	);
 }

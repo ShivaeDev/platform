@@ -11,18 +11,18 @@ for (const edits of [257, 1000]) {
 
 			yield* renameRepeatedly(edits);
 
-			yield* outcomes({
-				"hints before resuming": [received(), ["resync"]],
-				"notes while stalled": [shown(), ["One", "Other"]],
-			});
+			yield* outcomes([
+				["hints before resuming", () => received(), ["resync"]],
+				["notes while stalled", () => shown(), ["One", "Other"]],
+			]);
 
 			yield* resume();
 			yield* untilReRead();
 
-			yield* outcomes({
-				"hints including the entire pending queue": [received(), ["resync", "resync"]],
-				"newest notes": [shown(), [`Edit ${edits}`, "Other"]],
-			});
+			yield* outcomes([
+				["hints including the entire pending queue", () => received(), ["resync", "resync"]],
+				["newest notes", () => shown(), [`Edit ${edits}`, "Other"]],
+			]);
 		},
 	);
 }

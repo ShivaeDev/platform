@@ -12,10 +12,10 @@ for (const [role, grants, withheld] of [
 		`alice as a ${role} is shown and allowed exactly ${grants.length === 0 ? "nothing" : grants.join(" and ")}, not ${withheld}`,
 		[signedIn(role)],
 		function* ({ allowedGrants, shownGrants }) {
-			yield* outcomes({
-				"grants enforcement allows": [allowedGrants(), grants],
-				"grants the check shows": [shownGrants(), grants],
-			});
+			yield* outcomes([
+				["grants enforcement allows", () => allowedGrants(), grants],
+				["grants the check shows", () => shownGrants(), grants],
+			]);
 		},
 	);
 }
@@ -28,10 +28,10 @@ accessStory.it(
 	"alice as a reader, in a role set that repeats reader under a name the compiler cannot check, is shown, allowed and resolved to the first declaration's grants alone",
 	[readerDeclaredTwice(), signedIn("reader")],
 	function* ({ allowedGrants, resolvedGrants, shownGrants }) {
-		yield* outcomes({
-			"grants enforcement allows": [allowedGrants(), ["users.read", "jobs.read"]],
-			"grants the check shows": [shownGrants(), ["users.read", "jobs.read"]],
-			"grants the stored role resolves to": [resolvedGrants(), ["users.read", "jobs.read"]],
-		});
+		yield* outcomes([
+			["grants enforcement allows", () => allowedGrants(), ["users.read", "jobs.read"]],
+			["grants the check shows", () => shownGrants(), ["users.read", "jobs.read"]],
+			["grants the stored role resolves to", () => resolvedGrants(), ["users.read", "jobs.read"]],
+		]);
 	},
 );

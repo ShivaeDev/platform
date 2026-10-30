@@ -16,10 +16,10 @@ for (const { client, controller } of [
 			yield* stopInBackground("app");
 			yield* untilDisconnectsHeld();
 
-			yield* outcomes({
-				"open backends": [backends("app"), 0],
-				"shutdown": [shutdown("app"), "still stopping"],
-			});
+			yield* outcomes([
+				["open backends", () => backends("app"), 0],
+				["shutdown", () => shutdown("app"), "still stopping"],
+			]);
 
 			yield* releaseDisconnects();
 			yield* untilStopped("app");

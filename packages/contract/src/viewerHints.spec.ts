@@ -56,18 +56,18 @@ viewerStory.it(
 	"renaming alice's note 3 to One more adds it to her filtered page and leaves bob's page unread",
 	[pageOpen("alice", "One"), pageOpen("bob")],
 	function* ({ pageReads, rename, shown, untilPageReRead }) {
-		yield* outcomes({
-			"alice's page": [shown("alice"), ["One"]],
-			"bob's page": [shown("bob"), ["Two"]],
-		});
+		yield* outcomes([
+			["alice's page", () => shown("alice"), ["One"]],
+			["bob's page", () => shown("bob"), ["Two"]],
+		]);
 
 		yield* rename("alice", 3, "One more");
 		yield* untilPageReRead("alice");
 
-		yield* outcomes({
-			"alice's page": [shown("alice"), ["One", "One more"]],
-			"bob's page reads": [pageReads("bob"), "read once"],
-		});
+		yield* outcomes([
+			["alice's page", () => shown("alice"), ["One", "One more"]],
+			["bob's page reads", () => pageReads("bob"), "read once"],
+		]);
 	},
 );
 

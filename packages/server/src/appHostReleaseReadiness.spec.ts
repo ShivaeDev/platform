@@ -7,12 +7,12 @@ migrationHost.it(
 	function* ({ applicationLifecycle, bootStep, hostStarts, migrationLogMessages, pingHost }) {
 		yield* hostStarts({ mode: "check", release: "unrecorded" });
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), ["started"]],
-			"boot step": [bootStep(), "ready"],
-			"migration logs": [migrationLogMessages(), []],
-			ping: [pingHost(), "pong"],
-		});
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), ["started"]],
+			["boot step", () => bootStep(), "ready"],
+			["migration logs", () => migrationLogMessages(), []],
+			["ping", () => pingHost(), "pong"],
+		]);
 	},
 );
 
@@ -24,16 +24,17 @@ migrationHost.it(
 
 		yield* pollBudgetExpires();
 
-		yield* outcomes({
-			"application lifecycle": [applicationLifecycle(), []],
-			"host ending": [hostEnding(), "failed with migration error"],
-			"timeout log": [
-				migrationLog("Timed out waiting for database migrations"),
+		yield* outcomes([
+			["application lifecycle", () => applicationLifecycle(), []],
+			["host ending", () => hostEnding(), "failed with migration error"],
+			[
+				"timeout log",
+				() => migrationLog("Timed out waiting for database migrations"),
 				{
 					annotations: { pendingComponents: [{ detail: "Expected release next; recorded none", name: "database release" }], pendingMigrations: [] },
 					level: "Info",
 				},
 			],
-		});
+		]);
 	},
 );

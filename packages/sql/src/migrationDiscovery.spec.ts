@@ -9,9 +9,9 @@ discoveredMigrations.it(
 
 		yield* migrate();
 
-		yield* outcomes({
-			labels: [labels(), ["Discovered"]],
-			runs: [runs(), [[[2, "seed_labels"]]]],
-		});
+		yield* outcomes([
+			["labels", () => labels(), ["Discovered"]],
+			["runs", () => runs(), [[[2, "seed_labels"]]]],
+		]);
 	},
 );

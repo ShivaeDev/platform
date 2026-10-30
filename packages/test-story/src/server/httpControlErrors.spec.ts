@@ -50,10 +50,10 @@ for (const [kind, scripted] of [
 	["reset", { kind: "reset" }],
 ] as const) {
 	httpFaultApp.it(`refuses a ${kind} fault while no request waits and answers the next request normally`, [], function* ({ asks, fault }) {
-		yield* outcomes({
-			"the fault": [attempt(fault("data", scripted)), notReadyForFault(kind)],
-			"the next request": [asks("/data"), 'HTTP 200 {"ready":true}'],
-		});
+		yield* outcomes([
+			["the fault", () => attempt(fault("data", scripted)), notReadyForFault(kind)],
+			["the next request", () => asks("/data"), 'HTTP 200 {"ready":true}'],
+		]);
 	});
 }
 
@@ -74,10 +74,10 @@ for (const [kind, scripted] of [
 		yield* sends("client");
 		yield* paused.waiting;
 
-		yield* outcomes({
-			"the client's status": [status("client"), "HTTP 200"],
-			"the fault": [attempt(fault("data", scripted)), notReadyForFault(kind)],
-		});
+		yield* outcomes([
+			["the client's status", () => status("client"), "HTTP 200"],
+			["the fault", () => attempt(fault("data", scripted)), notReadyForFault(kind)],
+		]);
 	});
 }
 

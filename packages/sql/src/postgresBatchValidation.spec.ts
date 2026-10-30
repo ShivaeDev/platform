@@ -15,10 +15,10 @@ for (const [reason, updateColumns] of [
 		function* ({ endings, statementsRun, writeBatch }) {
 			yield* writeBatch("upsertMany", meterReadings(2), updateColumns);
 
-			yield* outcomes({
-				"insert statements that ran": [statementsRun(), 0],
-				"upsertMany ending": [endings(), ["failed with a schema error"]],
-			});
+			yield* outcomes([
+				["insert statements that ran", () => statementsRun(), 0],
+				["upsertMany ending", () => endings(), ["failed with a schema error"]],
+			]);
 		},
 	);
 }
@@ -29,9 +29,9 @@ batchReadings.it(
 	function* ({ endings, statementsRun, writeRowMissingFields }) {
 		yield* writeRowMissingFields();
 
-		yield* outcomes({
-			"insert statements that ran": [statementsRun(), 0],
-			"insertMany ending": [endings(), ["failed with a schema error"]],
-		});
+		yield* outcomes([
+			["insert statements that ran", () => statementsRun(), 0],
+			["insertMany ending", () => endings(), ["failed with a schema error"]],
+		]);
 	},
 );

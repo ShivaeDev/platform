@@ -122,13 +122,13 @@ for (const queue of ["private", "mail-dlq"]) {
 		function* ({ counts, deadLettered, failedJobs, job, pgBossReadsSinceRegistration }) {
 			const refusal = `${queue} is not a registered queue`;
 
-			yield* outcomes({
-				"a job": [job("an unknown job", queue), refusal],
-				counts: [counts(queue), refusal],
-				"dead-lettered jobs": [deadLettered(queue), refusal],
-				"failed jobs": [failedJobs(queue), refusal],
-				"pg-boss reads since registration": [pgBossReadsSinceRegistration(), 0],
-			});
+			yield* outcomes([
+				["a job", () => job("an unknown job", queue), refusal],
+				["counts", () => counts(queue), refusal],
+				["dead-lettered jobs", () => deadLettered(queue), refusal],
+				["failed jobs", () => failedJobs(queue), refusal],
+				["pg-boss reads since registration", () => pgBossReadsSinceRegistration(), 0],
+			]);
 		},
 	);
 }
@@ -137,10 +137,10 @@ jobsStory.it(
 	"registering the Jobs page and serving the users page reads nothing from pg-boss",
 	[admin],
 	function* ({ pgBossReadsSinceRegistration, profile }) {
-		yield* outcomes({
-			"pg-boss reads since registration": [pgBossReadsSinceRegistration(), 0],
-			profile: [profile(), "admin@example.test"],
-		});
+		yield* outcomes([
+			["pg-boss reads since registration", () => pgBossReadsSinceRegistration(), 0],
+			["profile", () => profile(), "admin@example.test"],
+		]);
 	},
 );
 
@@ -157,17 +157,20 @@ jobsStory.it("reading the invalid mail job answers that mail holds an invalid pa
 });
 
 jobsStory.it("a failed mail list asked for no jobs answers bad input", [admin], function* ({ failedJobs, pgBossReadsSinceRegistration }) {
-	yield* outcomes({ "page input": [failedJobs("mail", { limit: 0 }), "bad input"], "pg-boss reads": [pgBossReadsSinceRegistration(), 0] });
+	yield* outcomes([
+		["page input", () => failedJobs("mail", { limit: 0 }), "bad input"],
+		["pg-boss reads", () => pgBossReadsSinceRegistration(), 0],
+	]);
 });
 
 jobsStory.it(
 	"a dead-lettered mail list given a malformed cursor answers bad input",
 	[admin],
 	function* ({ deadLettered, pgBossReadsSinceRegistration }) {
-		yield* outcomes({
-			"page input": [deadLettered("mail", { cursor: "invalid cursor", limit: 1 }), "bad input"],
-			"pg-boss reads": [pgBossReadsSinceRegistration(), 0],
-		});
+		yield* outcomes([
+			["page input", () => deadLettered("mail", { cursor: "invalid cursor", limit: 1 }), "bad input"],
+			["pg-boss reads", () => pgBossReadsSinceRegistration(), 0],
+		]);
 	},
 );
 
@@ -177,10 +180,10 @@ jobsStory.it(
 	function* ({ counts, pgBossStops, profile }) {
 		yield* pgBossStops();
 
-		yield* outcomes({
-			"mail counts": [counts("mail"), "jobs unavailable for counts"],
-			profile: [profile(), "admin@example.test"],
-		});
+		yield* outcomes([
+			["mail counts", () => counts("mail"), "jobs unavailable for counts"],
+			["profile", () => profile(), "admin@example.test"],
+		]);
 	},
 );
 
@@ -193,14 +196,14 @@ for (const [caller, session, refusal] of [
 		`${caller} is ${refusal} on every Jobs read and on retrying failed mail 42`,
 		[session, mailFails(42)],
 		function* ({ counts, deadLettered, failedJobs, health, job, retry }) {
-			yield* outcomes({
-				counts: [counts("mail"), refusal],
-				"dead-lettered jobs": [deadLettered("mail"), refusal],
-				"failed jobs": [failedJobs("mail"), refusal],
-				health: [health(), refusal],
-				"mail 42": [job("mail 42", "mail"), refusal],
-				"retry of mail 42": [retry("mail 42"), refusal],
-			});
+			yield* outcomes([
+				["counts", () => counts("mail"), refusal],
+				["dead-lettered jobs", () => deadLettered("mail"), refusal],
+				["failed jobs", () => failedJobs("mail"), refusal],
+				["health", () => health(), refusal],
+				["mail 42", () => job("mail 42", "mail"), refusal],
+				["retry of mail 42", () => retry("mail 42"), refusal],
+			]);
 		},
 	);
 }

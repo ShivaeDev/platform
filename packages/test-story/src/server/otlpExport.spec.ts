@@ -63,10 +63,10 @@ for (const [format, contentType] of [
 	app.it(`keeps the raw bytes of each ${format} export`, [], function* ({ exportsCarrying, exportsItsWork }) {
 		yield* exportsItsWork();
 
-		yield* outcomes({
-			"exports carrying the header secret": [exportsCarrying("collector secret"), 0],
-			"exports carrying the planted span attribute": [exportsCarrying("raw-export-secret"), 1],
-		});
+		yield* outcomes([
+			["exports carrying the header secret", () => exportsCarrying("collector secret"), 0],
+			["exports carrying the planted span attribute", () => exportsCarrying("raw-export-secret"), 1],
+		]);
 	});
 }
 

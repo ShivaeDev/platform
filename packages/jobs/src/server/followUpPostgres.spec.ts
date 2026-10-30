@@ -30,10 +30,10 @@ database.it(
 		yield* enqueue("app", Source, { id: 42 }, { as: "job 42" });
 		yield* untilFinished(FollowUp, 1);
 
-		yield* outcomes({
-			"follow-up payloads": [handled(FollowUp), [{ id: 42 }]],
-			"producer payloads": [storedPayloads(Producer), [Option.some({ id: 42 })]],
-		});
+		yield* outcomes([
+			["follow-up payloads", () => handled(FollowUp), [{ id: 42 }]],
+			["producer payloads", () => storedPayloads(Producer), [Option.some({ id: 42 })]],
+		]);
 	},
 );
 

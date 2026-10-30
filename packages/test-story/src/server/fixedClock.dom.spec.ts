@@ -11,13 +11,14 @@ clockApp.it(
 	function* ({ runsTimestampJob, shownDays, hostInstants }) {
 		yield* runsTimestampJob();
 
-		yield* outcomes({
-			"the host's instants": [
-				hostInstants(),
+		yield* outcomes([
+			[
+				"the host's instants",
+				() => hostInstants(),
 				{ createdAt: "2026-10-17T12:34:56.000Z", hostAt: "2026-10-17T12:34:56.000Z", workerAt: "2026-10-17T12:34:56.000Z" },
 			],
-			"the shown days": [shownDays(), ["Host: Oct 17", "Worker: since Oct 17", "Screen: Oct 17"]],
-		});
+			["the shown days", () => shownDays(), ["Host: Oct 17", "Worker: since Oct 17", "Screen: Oct 17"]],
+		]);
 	},
 	pinned,
 );
@@ -32,13 +33,14 @@ clockApp.it(
 		yield* aDayPasses();
 		yield* runsTimestampJob();
 
-		yield* outcomes({
-			"the host's instants": [
-				hostInstants(),
+		yield* outcomes([
+			[
+				"the host's instants",
+				() => hostInstants(),
 				{ createdAt: "2026-10-17T12:34:56.000Z", hostAt: "2026-10-18T12:34:56.000Z", workerAt: "2026-10-18T12:34:56.000Z" },
 			],
-			"the shown days": [shownDays(), ["Host: Oct 18", "Worker: since Oct 18", "Screen: Oct 18"]],
-		});
+			["the shown days", () => shownDays(), ["Host: Oct 18", "Worker: since Oct 18", "Screen: Oct 18"]],
+		]);
 	},
 	pinned,
 );

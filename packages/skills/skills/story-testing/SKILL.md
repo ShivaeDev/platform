@@ -52,7 +52,7 @@ Good: a verb submits a title, a readout returns the displayed title, and the spe
 
 A reader looks for what happens first, so a blank line separates the action from the setup before it and the checks after it. When the claim is a change, assert the state before it too; without the before, “loses every session” could mean it never had any.
 
-The story's words lead each line, not `expect(yield* …)` scaffolding, because the eye reads the left edge. After one action, check several outcomes with `outcomes` from `@shivaedev/test-story/server/outcomes.ts`, called in the spec: each row is `label: [readout, expected]`, where the readout is an Effect. For one outcome, keep a plain `expect`.
+The story's words lead each line, not `expect(yield* …)` scaffolding, because the eye reads the left edge. After one action, check several outcomes with `outcomes` from `@shivaedev/test-story/server/outcomes.ts`, called in the spec: each row is `[label, () => readout(), expected]`. The list states run order; keep natural labels instead of bending them to sort alphabetically. The callback builds the Effect when that row runs, so story lines told before the Effect also appear in order. Nested expected objects match partially at every depth, like `toMatchObject`; arrays keep their length and order. Use `lessThan(limit)`, `atMost(limit)`, `greaterThan(limit)` or `atLeast(limit)` from `@shivaedev/test-story/server/adapters/outcomeMatchers.ts` for numeric bounds, including inside nested objects. For one outcome, keep a plain `expect`.
 
 ```ts
 names.it("a successful save leaves nothing unsaved", [names.edited("name", "  Saved  ")], function* ({ submit, unsavedChanges }) {
@@ -69,13 +69,15 @@ names.it(
 	function* ({ savedValue, shown, submit }) {
 		yield* submit();
 
-		yield* outcomes({
-			"saved name": [savedValue(), { name: "Saved" }],
-			"shown name": [shown("name"), "  Saved  "],
-		});
+		yield* outcomes([
+			["saved name", () => savedValue(), { name: "Saved" }],
+			["shown name", () => shown("name"), "  Saved  "],
+		]);
 	},
 );
 ```
+
+A nested partial expectation can be `{ account: { sessions: atMost(0) } }`, and a whole-row bound can be `["request time", () => elapsed(), lessThan(100)]`. Import the bound helpers from that Vitest adapter and `outcomes` from its own module. Inclusive bounds (`atMost`, `atLeast`) accept the limit; strict bounds (`lessThan`, `greaterThan`) exclude it. A failure shows the row label, expected bound or nested field, and received value in one diff.
 
 ## Settle on the engine's signals
 

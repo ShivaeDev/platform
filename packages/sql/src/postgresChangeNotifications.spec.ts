@@ -11,10 +11,10 @@ changeFeed.it(
 			yield* announce(WIDE_KEYS);
 		});
 
-		yield* outcomes({
-			"announced keys": [announced(), WIDE_KEYS],
-			"published payloads": [published(), [WIDE_KEYS.slice(0, 3), WIDE_KEYS.slice(3)]],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), WIDE_KEYS],
+			["published payloads", () => published(), [WIDE_KEYS.slice(0, 3), WIDE_KEYS.slice(3)]],
+		]);
 	},
 );
 
@@ -41,11 +41,11 @@ for (const { failure, keys, name } of REFUSED_KEYS) {
 				yield* announce(keys);
 			});
 
-			yield* outcomes({
-				"published payloads": [published(), []],
-				"stored rows": [storedRows(), []],
-				"transaction endings": [endings(), [`failed with storage unavailable after ${failure}`]],
-			});
+			yield* outcomes([
+				["published payloads", () => published(), []],
+				["stored rows", () => storedRows(), []],
+				["transaction endings", () => endings(), [`failed with storage unavailable after ${failure}`]],
+			]);
 		},
 	);
 }
@@ -59,11 +59,11 @@ changeFeed.it(
 			yield* announce(["rows:4"]);
 		});
 
-		yield* outcomes({
-			"published payloads": [published(), []],
-			"stored rows": [storedRows(), []],
-			"transaction endings": [endings(), ["failed with storage unavailable after a constraint violation (SQLSTATE 23503)"]],
-		});
+		yield* outcomes([
+			["published payloads", () => published(), []],
+			["stored rows", () => storedRows(), []],
+			["transaction endings", () => endings(), ["failed with storage unavailable after a constraint violation (SQLSTATE 23503)"]],
+		]);
 	},
 );
 
@@ -75,10 +75,10 @@ changeFeed.it(
 			yield* announce(["other:1"]);
 		});
 
-		yield* outcomes({
-			"announced keys": [announced(), ["other:1"]],
-			"published payloads": [published(), []],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), ["other:1"]],
+			["published payloads", () => published(), []],
+		]);
 	},
 );
 
@@ -88,9 +88,9 @@ changeFeed.it(
 	function* ({ announce, announced, published }) {
 		yield* announce(["orders"]);
 
-		yield* outcomes({
-			"announced keys": [announced(), ["orders"]],
-			"published payloads": [published(), []],
-		});
+		yield* outcomes([
+			["announced keys", () => announced(), ["orders"]],
+			["published payloads", () => published(), []],
+		]);
 	},
 );

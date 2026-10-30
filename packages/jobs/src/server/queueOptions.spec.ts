@@ -40,10 +40,10 @@ runtime.it(
 	function* ({ clientCalls, start, startup }) {
 		yield* start("app", [worker(Immutable, "succeeds")]);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "Queue immutable cannot change options after creation: partition, policy"],
-			"client calls": [clientCalls(), ["start", "create queue immutable-dlq", "create queue immutable", "stop"]],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "Queue immutable cannot change options after creation: partition, policy"],
+			["client calls", () => clientCalls(), ["start", "create queue immutable-dlq", "create queue immutable", "stop"]],
+		]);
 	},
 );
 
@@ -55,17 +55,18 @@ runtime.it(
 	function* ({ createdQueues, queueCreationAttempts, start, startup }) {
 		yield* start("app", [Contended]);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "started"],
-			"created queues": [
-				createdQueues(),
+		yield* outcomes([
+			["app runtime", () => startup("app"), "started"],
+			[
+				"created queues",
+				() => createdQueues(),
 				[
 					{ name: "contended-dlq", options: undefined },
 					{ name: "contended", options: expect.objectContaining({ partition: true }) },
 				],
 			],
-			"creation attempts": [queueCreationAttempts(), 4],
-		});
+			["creation attempts", () => queueCreationAttempts(), 4],
+		]);
 	},
 );
 
@@ -75,23 +76,23 @@ runtime.it(
 	function* ({ clockPasses, queueCreationAttempts, startsInBackground, startup, startupFinishes }) {
 		yield* startsInBackground("app", [Contended]);
 		yield* clockPasses(24);
-		yield* outcomes({ "creation attempts": [queueCreationAttempts(), 1] });
+		yield* outcomes([["creation attempts", () => queueCreationAttempts(), 1]]);
 
 		yield* clockPasses(1);
-		yield* outcomes({ "creation attempts": [queueCreationAttempts(), 2] });
+		yield* outcomes([["creation attempts", () => queueCreationAttempts(), 2]]);
 
 		yield* clockPasses(49);
-		yield* outcomes({
-			"app runtime": [startup("app"), "still starting"],
-			"creation attempts": [queueCreationAttempts(), 2],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "still starting"],
+			["creation attempts", () => queueCreationAttempts(), 2],
+		]);
 
 		yield* clockPasses(1);
 		yield* startupFinishes("app");
-		yield* outcomes({
-			"app runtime": [startup("app"), "started"],
-			"creation attempts": [queueCreationAttempts(), 4],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "started"],
+			["creation attempts", () => queueCreationAttempts(), 4],
+		]);
 	},
 	{ clock: "test" },
 );
@@ -102,10 +103,10 @@ runtime.it(
 	function* ({ queueCreationAttempts, start, startup }) {
 		yield* start("app", [Contended]);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "register contended failed with deadlock detected"],
-			"creation attempts": [queueCreationAttempts(), 6],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "register contended failed with deadlock detected"],
+			["creation attempts", () => queueCreationAttempts(), 6],
+		]);
 	},
 );
 
@@ -121,9 +122,9 @@ runtime.it(
 	function* ({ queueCreationAttempts, start, startup }) {
 		yield* start("app", [Contended]);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "register contended failed with duplicate key value violates unique constraint"],
-			"creation attempts": [queueCreationAttempts(), 1],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "register contended failed with duplicate key value violates unique constraint"],
+			["creation attempts", () => queueCreationAttempts(), 1],
+		]);
 	},
 );

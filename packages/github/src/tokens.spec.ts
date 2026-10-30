@@ -41,11 +41,11 @@ github.it(
 	function* ({ privateQuerySeenIn, readPullWithPrivateQuery, spanNames, tokenSeenIn }) {
 		yield* readPullWithPrivateQuery();
 
-		yield* outcomes({
-			"private query seen in": [privateQuerySeenIn(), []],
-			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub request"])],
-			"token seen in": [tokenSeenIn(), []],
-		});
+		yield* outcomes([
+			["private query seen in", () => privateQuerySeenIn(), []],
+			["spans recorded", () => spanNames(), expect.arrayContaining(["GitHub request"])],
+			["token seen in", () => tokenSeenIn(), []],
+		]);
 	},
 );
 
@@ -74,10 +74,10 @@ github.it(
 		const result = yield* readWithCliToken(undefined);
 
 		expect(result).toBe("authentication refused failed");
-		yield* outcomes({
-			"cause storage": [failureCauseStorage(), [{ enumerable: false, failure: "GitHubTokenError", hasCause: true }]],
-			"requests": [requests(), []],
-		});
+		yield* outcomes([
+			["cause storage", () => failureCauseStorage(), [{ enumerable: false, failure: "GitHubTokenError", hasCause: true }]],
+			["requests", () => requests(), []],
+		]);
 	},
 );
 
@@ -88,10 +88,10 @@ github.it(
 		const result = yield* readWithMissingGh();
 
 		expect(result).toBe("authentication command failed");
-		yield* outcomes({
-			"cause storage": [failureCauseStorage(), [{ enumerable: false, failure: "GitHubTokenError", hasCause: true }]],
-			"requests": [requests(), []],
-		});
+		yield* outcomes([
+			["cause storage", () => failureCauseStorage(), [{ enumerable: false, failure: "GitHubTokenError", hasCause: true }]],
+			["requests", () => requests(), []],
+		]);
 	},
 );
 

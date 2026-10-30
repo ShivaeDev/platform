@@ -10,10 +10,10 @@ liveHints.it(
 	function* ({ heard, invalidate }) {
 		yield* invalidate(invalidationKeys([notes.item(1)]));
 
-		yield* outcomes({
-			"the note 1 watcher": [heard("the note 1 watcher"), ["changed notes 1"]],
-			"the note 2 watcher": [heard("the note 2 watcher"), []],
-		});
+		yield* outcomes([
+			["the note 1 watcher", () => heard("the note 1 watcher"), ["changed notes 1"]],
+			["the note 2 watcher", () => heard("the note 2 watcher"), []],
+		]);
 	},
 );
 
@@ -23,10 +23,10 @@ liveHints.it(
 	function* ({ nextHint, resync }) {
 		expect(yield* resync()).toBe("2 streams open");
 
-		yield* outcomes({
-			"the note 1 watcher": [nextHint("the note 1 watcher"), "resync"],
-			"the note 2 watcher": [nextHint("the note 2 watcher"), "resync"],
-		});
+		yield* outcomes([
+			["the note 1 watcher", () => nextHint("the note 1 watcher"), "resync"],
+			["the note 2 watcher", () => nextHint("the note 2 watcher"), "resync"],
+		]);
 	},
 );
 
@@ -36,10 +36,10 @@ liveHints.it(
 	function* ({ heard, nextHint, resync }) {
 		yield* resync("the first server");
 
-		yield* outcomes({
-			"the first watcher": [nextHint("the first watcher"), "resync"],
-			"the second watcher": [heard("the second watcher"), []],
-		});
+		yield* outcomes([
+			["the first watcher", () => nextHint("the first watcher"), "resync"],
+			["the second watcher", () => heard("the second watcher"), []],
+		]);
 	},
 );
 

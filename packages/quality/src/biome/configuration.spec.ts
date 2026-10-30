@@ -13,10 +13,10 @@ for (const [setting, value] of [
 		function* ({ check, status, stderr }) {
 			yield* check();
 
-			yield* outcomes({
-				"exit status": [Effect.sync(status), 2],
-				"rule failure": [Effect.sync(stderr), expect.stringContaining("rule biome failed")],
-			});
+			yield* outcomes([
+				["exit status", () => Effect.sync(status), 2],
+				["rule failure", () => Effect.sync(stderr), expect.stringContaining("rule biome failed")],
+			]);
 		},
 	);
 }

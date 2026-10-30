@@ -27,10 +27,10 @@ signOuts.it("a second click starts no second request or navigation", [pendingSig
 	yield* click();
 	yield* complete();
 
-	yield* outcomes({
-		"navigation destinations": [Effect.sync(destinations), ["/sign-in"]],
-		"sign-out requests": [Effect.sync(requests), ["sign-out"]],
-	});
+	yield* outcomes([
+		["navigation destinations", () => Effect.sync(destinations), ["/sign-in"]],
+		["sign-out requests", () => Effect.sync(requests), ["sign-out"]],
+	]);
 });
 
 signOuts.it("a sign-out started by the auth owner remains pending in the screen", [pendingSignOut()], function* ({ phase, startFromAuthOwner }) {

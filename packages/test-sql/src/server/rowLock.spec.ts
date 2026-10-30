@@ -8,9 +8,9 @@ database.it(
 	function* ({ items, secondTestSaw, secondTestWritesLockedRow }) {
 		yield* secondTestWritesLockedRow();
 
-		yield* outcomes({
-			"items in the shared database": [items("the shared database"), ["seed"]],
-			"items the second test saw": [secondTestSaw(), ["second"]],
-		});
+		yield* outcomes([
+			["items in the shared database", () => items("the shared database"), ["seed"]],
+			["items the second test saw", () => secondTestSaw(), ["second"]],
+		]);
 	},
 );

@@ -46,10 +46,10 @@ runtime.it(
 	function* ({ logged, start, startup }) {
 		yield* start("app", []);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "start failed with terminating connection due to administrator command"],
-			"logs": [logged(), [terminationLogged]],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "start failed with terminating connection due to administrator command"],
+			["logs", () => logged(), [terminationLogged]],
+		]);
 	},
 );
 
@@ -78,10 +78,10 @@ for (const ending of endings) {
 		function* ({ emitClientError, errorListeners, logged }) {
 			yield* emitClientError(connectionTerminated());
 
-			yield* outcomes({
-				"client error listeners": [errorListeners(), 1],
-				"logs": [logged(), ending.logs],
-			});
+			yield* outcomes([
+				["client error listeners", () => errorListeners(), 1],
+				["logs", () => logged(), ending.logs],
+			]);
 		},
 	);
 }
@@ -110,10 +110,10 @@ runtime.it(
 	function* ({ applicationLog, emitClientError, logged }) {
 		yield* emitClientError(connectionTerminated());
 
-		yield* outcomes({
-			"application log": [applicationLog(), []],
-			"logs": [logged(), [terminationLogged]],
-		});
+		yield* outcomes([
+			["application log", () => applicationLog(), []],
+			["logs", () => logged(), [terminationLogged]],
+		]);
 	},
 );
 

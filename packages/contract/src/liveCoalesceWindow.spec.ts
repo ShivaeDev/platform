@@ -8,12 +8,12 @@ liveNotesStory.it(
 		yield* edit(1, "Changed");
 		yield* windowCloses("note 1", "the list");
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Changed"],
-			"note 1's re-read": [reReadDelay("note 1"), "once the 20 ms window closed"],
-			"note 1's reads": [timesRead("note 1"), "read 3 times"],
-			"the list's re-read": [reReadDelay("the list"), "once the 20 ms window closed"],
-			"the list's reads": [timesRead("the list"), "read 3 times"],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Changed"],
+			["note 1's re-read", () => reReadDelay("note 1"), "once the 20 ms window closed"],
+			["note 1's reads", () => timesRead("note 1"), "read 3 times"],
+			["the list's re-read", () => reReadDelay("the list"), "once the 20 ms window closed"],
+			["the list's reads", () => timesRead("the list"), "read 3 times"],
+		]);
 	},
 );

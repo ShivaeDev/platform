@@ -10,11 +10,17 @@ screenApp.it("waits for held news before reporting a settled screen", [], functi
 	yield* click("#load");
 	yield* news.waiting;
 	yield* startsSettling();
-	yield* outcomes({ settling: [settling(), "still settling"], "the output": [output(), "Loading"] });
+	yield* outcomes([
+		["settling", () => settling(), "still settling"],
+		["the output", () => output(), "Loading"],
+	]);
 
 	yield* news.release;
 
-	yield* outcomes({ "settling": [settled(), "succeeded"], "the output": [output(), "Today's news"] });
+	yield* outcomes([
+		["settling", () => settled(), "succeeded"],
+		["the output", () => output(), "Today's news"],
+	]);
 });
 
 screenApp.it(
@@ -28,7 +34,10 @@ screenApp.it(
 
 		yield* repaints(20);
 
-		yield* outcomes({ settling: [settling(), "still settling"], "the output": [output(), "Loading"] });
+		yield* outcomes([
+			["settling", () => settling(), "still settling"],
+			["the output", () => output(), "Loading"],
+		]);
 	},
 );
 
@@ -45,10 +54,10 @@ screenApp.it("signs in from the form through the fake identity provider", [], fu
 screenApp.it("narrates entering a draft and reading it back", [], function* ({ enter, value, narration }) {
 	yield* enter("textarea", "a draft");
 
-	yield* outcomes({
-		"the draft": [Effect.sync(() => value("textarea")), "a draft"],
-		"the narration": [narration(), ["enter a value in textarea", 'read the value in textarea: "a draft"']],
-	});
+	yield* outcomes([
+		["the draft", () => Effect.sync(() => value("textarea")), "a draft"],
+		["the narration", () => narration(), ["enter a value in textarea", 'read the value in textarea: "a draft"']],
+	]);
 });
 
 const refusals = [

@@ -10,14 +10,15 @@ for (const source of ["schema", "host"] as const) {
 		function* ({ answerMentions, callRpc, diagnosticLog, logMentions }) {
 			yield* callRpc("taggedFailure", { _tag: "private-marker" });
 
-			yield* outcomes({
-				"answer text": [answerMentions("public detail", "private-marker"), ["public detail"]],
-				"failure log": [
-					diagnosticLog("RPC failure"),
+			yield* outcomes([
+				["answer text", () => answerMentions("public detail", "private-marker"), ["public detail"]],
+				[
+					"failure log",
+					() => diagnosticLog("RPC failure"),
 					expect.objectContaining({ "rpc.failure": "<redacted>", "rpc.method": "taggedFailure", "rpc.payload": { _tag: "<redacted>" } }),
 				],
-				"leaked into logs": [logMentions("private-marker"), []],
-			});
+				["leaked into logs", () => logMentions("private-marker"), []],
+			]);
 		},
 	);
 }

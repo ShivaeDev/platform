@@ -35,19 +35,19 @@ updates.it(
 		starterAt020("registers the Users page", { [PAGES]: AS_RELEASED }),
 	],
 	function* ({ fileMentions, update }) {
-		yield* outcomes({
-			"admin title": [fileMentions(SHELL, "Acme operations"), true],
-			"Users import": [fileMentions(PAGES, USERS_IMPORT), false],
-			"Users registered": [fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), false],
-		});
+		yield* outcomes([
+			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
+			["Users import", () => fileMentions(PAGES, USERS_IMPORT), false],
+			["Users registered", () => fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), false],
+		]);
 
 		yield* update();
 
-		yield* outcomes({
-			"admin title": [fileMentions(SHELL, "Acme operations"), true],
-			"Users import": [fileMentions(PAGES, USERS_IMPORT), true],
-			"Users registered": [fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), true],
-		});
+		yield* outcomes([
+			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
+			["Users import", () => fileMentions(PAGES, USERS_IMPORT), true],
+			["Users registered", () => fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), true],
+		]);
 	},
 );
 
@@ -68,12 +68,12 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
-			"admin title": [fileMentions(SHELL, "Acme operations"), true],
-			"dashboard files left": [filesPresent(DASHBOARD), []],
-			"Operator tools label": [fileMentions(SHELL, "Operator tools</p>"), true],
-		});
+		yield* outcomes([
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.2.0" }],
+			["admin title", () => fileMentions(SHELL, "Acme operations"), true],
+			["dashboard files left", () => filesPresent(DASHBOARD), []],
+			["Operator tools label", () => fileMentions(SHELL, "Operator tools</p>"), true],
+		]);
 	},
 );
 
@@ -94,15 +94,15 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			".create-app.json": [generationRecord(), { name: "my-app", version: "0.1.0" }],
-			answer: [answer(), `create-app: Resolve these conflicts, then commit your changes:\n${SHELL}\nThe recorded version remains 0.1.0.`],
-			"conflict between both titles": [fileMentions(SHELL, "<<<<<<< ours"), true],
-			"conflicted files": [conflictedFiles(), [SHELL]],
-			"dashboard files left": [filesPresent(DASHBOARD), []],
-			"my-app's title kept": [fileMentions(SHELL, "Acme operations"), true],
-			"starter's title offered": [fileMentions(SHELL, "New app name"), true],
-		});
+		yield* outcomes([
+			[".create-app.json", () => generationRecord(), { name: "my-app", version: "0.1.0" }],
+			["answer", () => answer(), `create-app: Resolve these conflicts, then commit your changes:\n${SHELL}\nThe recorded version remains 0.1.0.`],
+			["conflict between both titles", () => fileMentions(SHELL, "<<<<<<< ours"), true],
+			["conflicted files", () => conflictedFiles(), [SHELL]],
+			["dashboard files left", () => filesPresent(DASHBOARD), []],
+			["my-app's title kept", () => fileMentions(SHELL, "Acme operations"), true],
+			["starter's title offered", () => fileMentions(SHELL, "New app name"), true],
+		]);
 	},
 );
 
@@ -126,9 +126,9 @@ updates.it(
 
 		yield* update();
 
-		yield* outcomes({
-			"Owner keeps ReadUsers.any": [fileMentions("src/roles/Owner.ts", "ReadUsers.any"), true],
-			"src/AppAccess.ts": [file("src/AppAccess.ts"), released],
-		});
+		yield* outcomes([
+			["Owner keeps ReadUsers.any", () => fileMentions("src/roles/Owner.ts", "ReadUsers.any"), true],
+			["src/AppAccess.ts", () => file("src/AppAccess.ts"), released],
+		]);
 	},
 );

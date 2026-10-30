@@ -15,10 +15,10 @@ application.it(
 
 		yield* createApp("demo", "--no-git");
 
-		yield* outcomes({
-			"field order": [manifestFields(), starterOrder],
-			"opening lines": [fileLines("package.json", 2), ["{", '\t"name": "demo",']],
-		});
+		yield* outcomes([
+			["field order", () => manifestFields(), starterOrder],
+			["opening lines", () => fileLines("package.json", 2), ["{", '\t"name": "demo",']],
+		]);
 	},
 );
 
@@ -104,12 +104,12 @@ application.it("the generated CI workflow runs the tests with coverage and uploa
 application.it("the generated app's Git ignores the coverage reports CI writes", [], function* ({ createApp, gitState }) {
 	yield* createApp("demo");
 
-	yield* outcomes({
-		"coverage/job.txt": [gitState("coverage/job.txt"), "ignored"],
-		"coverage/junit.xml": [gitState("coverage/junit.xml"), "ignored"],
-		"coverage/lcov.info": [gitState("coverage/lcov.info"), "ignored"],
-		"coverage/measured-commits.txt": [gitState("coverage/measured-commits.txt"), "ignored"],
-	});
+	yield* outcomes([
+		["coverage/job.txt", () => gitState("coverage/job.txt"), "ignored"],
+		["coverage/junit.xml", () => gitState("coverage/junit.xml"), "ignored"],
+		["coverage/lcov.info", () => gitState("coverage/lcov.info"), "ignored"],
+		["coverage/measured-commits.txt", () => gitState("coverage/measured-commits.txt"), "ignored"],
+	]);
 });
 
 application.it(
@@ -118,10 +118,10 @@ application.it(
 	function* ({ createApp, dependsOn, filesPresent }) {
 		yield* createApp("demo", "--no-git");
 
-		yield* outcomes({
-			"chart and tooltip components": [filesPresent(["src/client/ui/chart.tsx", "src/client/ui/tooltip.tsx"]), []],
-			"Recharts dependency": [dependsOn("recharts"), false],
-		});
+		yield* outcomes([
+			["chart and tooltip components", () => filesPresent(["src/client/ui/chart.tsx", "src/client/ui/tooltip.tsx"]), []],
+			["Recharts dependency", () => dependsOn("recharts"), false],
+		]);
 	},
 );
 
@@ -131,12 +131,12 @@ application.it(
 	function* ({ createApp, devDependsOn, script, scriptsMentioning, wordsIn }) {
 		yield* createApp("demo", "--no-git");
 
-		yield* outcomes({
-			"browser tools the CI workflow names": [wordsIn(".github/workflows/ci.yml", ["browser-check", "playwright"]), []],
-			"browser-check devDependency": [devDependsOn("@shivaedev/browser-check"), true],
-			"browser-check script": [script("browser-check"), "browser-check"],
-			"scripts that call it": [scriptsMentioning(["browser-check", "playwright"]), ["browser-check"]],
-		});
+		yield* outcomes([
+			["browser tools the CI workflow names", () => wordsIn(".github/workflows/ci.yml", ["browser-check", "playwright"]), []],
+			["browser-check devDependency", () => devDependsOn("@shivaedev/browser-check"), true],
+			["browser-check script", () => script("browser-check"), "browser-check"],
+			["scripts that call it", () => scriptsMentioning(["browser-check", "playwright"]), ["browser-check"]],
+		]);
 	},
 );
 

@@ -21,11 +21,11 @@ for (const [client, given, failedCommand] of [
 			function* ({ failureCause, outcome, passwordsInFailure, queryWith }) {
 				yield* queryWith(credentials, "SELECT 1 / 0");
 
-				yield* outcomes({
-					"cause": [failureCause(), failedCommand],
-					"passwords shown": [passwordsInFailure(), []],
-					"query": [outcome(), "failed: ERROR:  division by zero"],
-				});
+				yield* outcomes([
+					["cause", () => failureCause(), failedCommand],
+					["passwords shown", () => passwordsInFailure(), []],
+					["query", () => outcome(), "failed: ERROR:  division by zero"],
+				]);
 			},
 		);
 	}

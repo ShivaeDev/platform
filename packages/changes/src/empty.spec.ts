@@ -8,10 +8,10 @@ for (const place of ["outside any transaction", "in a batch", "in a transaction"
 		function* ({ observing, inPlace, record, observed, published }) {
 			yield* observing(inPlace(place, record()));
 
-			yield* outcomes({
-				"observed changes": [observed(), []],
-				"published changes": [published(), []],
-			});
+			yield* outcomes([
+				["observed changes", () => observed(), []],
+				["published changes", () => published(), []],
+			]);
 		},
 	);
 }

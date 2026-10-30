@@ -22,19 +22,19 @@ for (const client of ["its own", "a shared"] as const) {
 			yield* stopInBackground("app");
 			yield* untilPgBossStopsWorking();
 
-			yield* outcomes({
-				"held job": [job("held job"), expect.objectContaining({ state: "active" })],
-				"shutdown": [shutdown("app"), "still stopping"],
-			});
+			yield* outcomes([
+				["held job", () => job("held job"), expect.objectContaining({ state: "active" })],
+				["shutdown", () => shutdown("app"), "still stopping"],
+			]);
 
 			yield* open("held");
 			yield* untilStopped("app");
 
-			yield* outcomes({
-				"held job": [job("held job"), expect.objectContaining({ state: "completed" })],
-				"interrupted handlers": [interruptions(Held), []],
-				"shutdown": [shutdown("app"), "stopped"],
-			});
+			yield* outcomes([
+				["held job", () => job("held job"), expect.objectContaining({ state: "completed" })],
+				["interrupted handlers", () => interruptions(Held), []],
+				["shutdown", () => shutdown("app"), "stopped"],
+			]);
 		},
 	);
 }

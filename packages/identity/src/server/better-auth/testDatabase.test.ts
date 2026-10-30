@@ -24,18 +24,18 @@ authStorage.it(
 	"expiring every stored session signs alice and bob out and keeps both their users",
 	[mintedAccounts()],
 	function* ({ expireAllSessions, signedInAs, storedUsers }) {
-		yield* outcomes({
-			"alice's cookie": [signedInAs("alice"), "alice"],
-			"bob's cookie": [signedInAs("bob"), "bob"],
-		});
+		yield* outcomes([
+			["alice's cookie", () => signedInAs("alice"), "alice"],
+			["bob's cookie", () => signedInAs("bob"), "bob"],
+		]);
 
 		yield* expireAllSessions();
 
-		yield* outcomes({
-			"alice's cookie": [signedInAs("alice"), "signed out"],
-			"bob's cookie": [signedInAs("bob"), "signed out"],
-			"stored users": [storedUsers(), ["alice", "bob"]],
-		});
+		yield* outcomes([
+			["alice's cookie", () => signedInAs("alice"), "signed out"],
+			["bob's cookie", () => signedInAs("bob"), "signed out"],
+			["stored users", () => storedUsers(), ["alice", "bob"]],
+		]);
 	},
 );
 
@@ -43,17 +43,17 @@ authStorage.it(
 	"expiring alice's stored sessions signs her out and leaves bob signed in",
 	[mintedAccounts()],
 	function* ({ expireSessions, signedInAs }) {
-		yield* outcomes({
-			"alice's cookie": [signedInAs("alice"), "alice"],
-			"bob's cookie": [signedInAs("bob"), "bob"],
-		});
+		yield* outcomes([
+			["alice's cookie", () => signedInAs("alice"), "alice"],
+			["bob's cookie", () => signedInAs("bob"), "bob"],
+		]);
 
 		yield* expireSessions("alice");
 
-		yield* outcomes({
-			"alice's cookie": [signedInAs("alice"), "signed out"],
-			"bob's cookie": [signedInAs("bob"), "bob"],
-		});
+		yield* outcomes([
+			["alice's cookie", () => signedInAs("alice"), "signed out"],
+			["bob's cookie", () => signedInAs("bob"), "bob"],
+		]);
 	},
 );
 

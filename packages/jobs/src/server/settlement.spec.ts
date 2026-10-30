@@ -41,10 +41,10 @@ runtime.it(
 	function* ({ deliver, handled, settlements }) {
 		yield* deliver("reports", [{ data: { id: 0 }, expireInSeconds: 1, id: "job-0", startedMillisAgo: 1500 }]);
 
-		yield* outcomes({
-			"handled payloads": [handled("reports"), []],
-			"settlements": [settlements(), []],
-		});
+		yield* outcomes([
+			["handled payloads", () => handled("reports"), []],
+			["settlements", () => settlements(), []],
+		]);
 	},
 );
 
@@ -57,10 +57,10 @@ runtime.it(
 			{ data: { id: 1 }, expireInSeconds: 3, id: "job-1", startedMillisAgo: 1500 },
 		]);
 
-		yield* outcomes({
-			"handled payloads": [handled("reports"), [{ id: 1 }]],
-			"settlements": [settlements(), ["job-1 completed"]],
-		});
+		yield* outcomes([
+			["handled payloads", () => handled("reports"), [{ id: 1 }]],
+			["settlements", () => settlements(), ["job-1 completed"]],
+		]);
 	},
 );
 
@@ -73,10 +73,10 @@ runtime.it(
 	function* ({ deliver, handled, settlements }) {
 		yield* deliver("reports", threeJobs);
 
-		yield* outcomes({
-			"handled payloads": [handled("reports"), [{ id: 0 }, { id: 1 }]],
-			"settlements": [settlements(), ["job-0 completed"]],
-		});
+		yield* outcomes([
+			["handled payloads", () => handled("reports"), [{ id: 0 }, { id: 1 }]],
+			["settlements", () => settlements(), ["job-0 completed"]],
+		]);
 	},
 );
 
@@ -86,11 +86,11 @@ runtime.it(
 	function* ({ deliver, handled, interrupted, settlements }) {
 		yield* deliver("reports", threeJobs, { pgBossAborts: "job-1" });
 
-		yield* outcomes({
-			"handled payloads": [handled("reports"), [{ id: 0 }, { id: 1 }]],
-			"interrupted": [interrupted(), ["job-1"]],
-			"settlements": [settlements(), ["job-0 completed"]],
-		});
+		yield* outcomes([
+			["handled payloads", () => handled("reports"), [{ id: 0 }, { id: 1 }]],
+			["interrupted", () => interrupted(), ["job-1"]],
+			["settlements", () => settlements(), ["job-0 completed"]],
+		]);
 	},
 );
 
@@ -104,11 +104,11 @@ for (const reads of [
 		function* ({ batchAnswer, deliver, deliveryReturned, logged }) {
 			yield* deliver("reports", [{ data: { id: 1 }, expireInSeconds: 1, id: "job-1", startedMillisAgo: 900 }]);
 
-			yield* outcomes({
-				"batch": [batchAnswer(), expect.stringMatching(/^rejected with settle reports failed with Operation timed out/u)],
-				"batch returned": [deliveryReturned(), "1 second after the batch deadline"],
-				"logs": [logged(), [{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) }]],
-			});
+			yield* outcomes([
+				["batch", () => batchAnswer(), expect.stringMatching(/^rejected with settle reports failed with Operation timed out/u)],
+				["batch returned", () => deliveryReturned(), "1 second after the batch deadline"],
+				["logs", () => logged(), [{ level: "Error", message: expect.stringMatching(/^settle reports failed with Operation timed out/u) }]],
+			]);
 		},
 	);
 }

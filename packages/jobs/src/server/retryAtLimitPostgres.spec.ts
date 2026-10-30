@@ -22,10 +22,10 @@ database.it(
 		yield* enqueue("app", Limited, {}, { as: "job" });
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			"attempts": [attemptCounts(Limited), { job: DEFAULT_LIMIT + 2 }],
-			"job": [job("job"), expect.objectContaining({ retryCount: 1 })],
-		});
+		yield* outcomes([
+			["attempts", () => attemptCounts(Limited), { job: DEFAULT_LIMIT + 2 }],
+			["job", () => job("job"), expect.objectContaining({ retryCount: 1 })],
+		]);
 	},
 );
 
@@ -50,10 +50,10 @@ database.it(
 		yield* runDeferredNow("second", Restarted);
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			"attempts": [attempts(Restarted), ["job", "job", "job"]],
-			"job": [job("job"), expect.objectContaining({ retryCount: 1 })],
-		});
+		yield* outcomes([
+			["attempts", () => attempts(Restarted), ["job", "job", "job"]],
+			["job", () => job("job"), expect.objectContaining({ retryCount: 1 })],
+		]);
 	},
 );
 

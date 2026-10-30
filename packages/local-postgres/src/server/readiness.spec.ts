@@ -12,10 +12,10 @@ postgres.it(
 	function* ({ containerChanges, outcome, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"container changes": [containerChanges(), []],
-			"setup": [outcome(), "started"],
-		});
+		yield* outcomes([
+			["container changes", () => containerChanges(), []],
+			["setup", () => outcome(), "started"],
+		]);
 	},
 );
 
@@ -25,10 +25,10 @@ postgres.it(
 	function* ({ containerChanges, outcome, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"container changes": [containerChanges(), ["docker start development-postgres"]],
-			"setup": [outcome(), "started"],
-		});
+		yield* outcomes([
+			["container changes", () => containerChanges(), ["docker start development-postgres"]],
+			["setup", () => outcome(), "started"],
+		]);
 	},
 );
 
@@ -38,10 +38,10 @@ postgres.it(
 	function* ({ outcome, readinessChecks, start }) {
 		yield* start();
 
-		yield* outcomes({
-			"readiness checks": [readinessChecks(), ATTEMPTS],
-			"setup": [outcome(), "version mismatch: expected 18.6, observed none"],
-		});
+		yield* outcomes([
+			["readiness checks", () => readinessChecks(), ATTEMPTS],
+			["setup", () => outcome(), "version mismatch: expected 18.6, observed none"],
+		]);
 	},
 );
 

@@ -8,10 +8,10 @@ migrationRuns.it(
 	function* ({ migrate, recordedRelease, releasesSeenByComponents }) {
 		yield* migrate(["1_record_first"], { components: ["release watcher"], release: "first" });
 
-		yield* outcomes({
-			"recorded release": [recordedRelease(), "first"],
-			"release seen by the component": [releasesSeenByComponents(), ["none"]],
-		});
+		yield* outcomes([
+			["recorded release", () => recordedRelease(), "first"],
+			["release seen by the component", () => releasesSeenByComponents(), ["none"]],
+		]);
 	},
 );
 
@@ -41,12 +41,13 @@ migrationRuns.it(
 	function* ({ existingTables, migrate, pendingWork }) {
 		yield* migrate(["1_create_orders"]);
 
-		yield* outcomes({
-			"existing tables": [existingTables(), ["ledger", "orders"]],
-			"pending work for release first": [
-				pendingWork(["1_create_orders"], { release: "first" }),
+		yield* outcomes([
+			["existing tables", () => existingTables(), ["ledger", "orders"]],
+			[
+				"pending work for release first",
+				() => pendingWork(["1_create_orders"], { release: "first" }),
 				{ components: [{ detail: "Expected release first; recorded none", name: "database release" }], migrations: [] },
 			],
-		});
+		]);
 	},
 );

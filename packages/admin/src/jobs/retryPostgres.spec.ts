@@ -14,10 +14,10 @@ jobsStory.it(
 
 		yield* workersFinish();
 
-		yield* outcomes({
-			deliveries: [deliveries(), ["mail 42"]],
-			"mail 42's state": [stateOf("mail 42"), "failed"],
-		});
+		yield* outcomes([
+			["deliveries", () => deliveries(), ["mail 42"]],
+			["mail 42's state", () => stateOf("mail 42"), "failed"],
+		]);
 	},
 );
 
@@ -30,10 +30,10 @@ jobsStory.it(
 		yield* retry("mail 42");
 		yield* workersFinish();
 
-		yield* outcomes({
-			deliveries: [deliveries(), ["mail 42", "mail 42"]],
-			"mail 42's state": [stateOf("mail 42"), "completed"],
-		});
+		yield* outcomes([
+			["deliveries", () => deliveries(), ["mail 42", "mail 42"]],
+			["mail 42's state", () => stateOf("mail 42"), "completed"],
+		]);
 	},
 );
 

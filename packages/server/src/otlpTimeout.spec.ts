@@ -16,10 +16,10 @@ for (const [stalled, options] of [
 		function* ({ exportPaths, probeCollector }) {
 			const answer = yield* probeCollector(80);
 
-			yield* outcomes({
-				"collector requests": [exportPaths(), ["/v1/traces"]],
-				"export answer": [Effect.succeed(answer), "failed with transport error: OTLP export request timed out"],
-			});
+			yield* outcomes([
+				["collector requests", () => exportPaths(), ["/v1/traces"]],
+				["export answer", () => Effect.succeed(answer), "failed with transport error: OTLP export request timed out"],
+			]);
 		},
 	);
 }

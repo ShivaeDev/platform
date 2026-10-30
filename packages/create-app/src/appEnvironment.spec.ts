@@ -9,10 +9,10 @@ application.it(
 	function* ({ createApp, environmentSetting }) {
 		yield* createApp("my-app", "--no-git");
 
-		yield* outcomes({
-			"DATABASE_URL": [environmentSetting("DATABASE_URL"), "postgresql://postgres:postgres@127.0.0.1:55432/my_app_dev"],
-			"TEST_DATABASE_URL": [environmentSetting("TEST_DATABASE_URL"), "postgresql://postgres:postgres@127.0.0.1:55432/my_app_test"],
-		});
+		yield* outcomes([
+			["DATABASE_URL", () => environmentSetting("DATABASE_URL"), "postgresql://postgres:postgres@127.0.0.1:55432/my_app_dev"],
+			["TEST_DATABASE_URL", () => environmentSetting("TEST_DATABASE_URL"), "postgresql://postgres:postgres@127.0.0.1:55432/my_app_test"],
+		]);
 	},
 );
 

@@ -19,11 +19,11 @@ ruleKit.it(
 	"a story named after its module, with or without an environment modifier, is held to the story rules like a spec",
 	[repositoryHas(...STORIES.map((path) => ({ content: STORY, path })))],
 	function* ({ checks }) {
-		yield* outcomes({
-			"domain outcomes": [checks(domainOutcomes), EVERY_STORY],
-			"grouped outcomes": [checks(groupedOutcomes), EVERY_STORY],
-			"wait on events": [checks(waitOnEvents), EVERY_STORY],
-		});
+		yield* outcomes([
+			["domain outcomes", () => checks(domainOutcomes), EVERY_STORY],
+			["grouped outcomes", () => checks(groupedOutcomes), EVERY_STORY],
+			["wait on events", () => checks(waitOnEvents), EVERY_STORY],
+		]);
 	},
 );
 
@@ -37,10 +37,10 @@ ruleKit.it(
 		),
 	],
 	function* ({ checks }) {
-		yield* outcomes({
-			"domain outcomes": [checks(domainOutcomes), []],
-			"grouped outcomes": [checks(groupedOutcomes), []],
-			"wait on events": [checks(waitOnEvents), []],
-		});
+		yield* outcomes([
+			["domain outcomes", () => checks(domainOutcomes), []],
+			["grouped outcomes", () => checks(groupedOutcomes), []],
+			["wait on events", () => checks(waitOnEvents), []],
+		]);
 	},
 );

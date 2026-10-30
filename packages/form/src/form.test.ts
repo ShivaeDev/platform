@@ -28,10 +28,10 @@ requiredName.it(
 	function* ({ saveOutcome, serverReceived, submit }) {
 		yield* submit();
 
-		yield* outcomes({
-			"names the server received": [serverReceived(), []],
-			save: [saveOutcome(), "invalid"],
-		});
+		yield* outcomes([
+			["names the server received", () => serverReceived(), []],
+			["save", () => saveOutcome(), "invalid"],
+		]);
 	},
 );
 
@@ -88,10 +88,10 @@ slugs.it("a slug the runtime's slug service already holds is rejected on the slu
 
 	yield* submit();
 
-	yield* outcomes({
-		slug: [feedbackOn("slug"), `"${HELD_SLUG}" is already in use`],
-		title: [feedbackOn("title"), undefined],
-	});
+	yield* outcomes([
+		["slug", () => feedbackOn("slug"), `"${HELD_SLUG}" is already in use`],
+		["title", () => feedbackOn("title"), undefined],
+	]);
 });
 
 names.it("typing the starting name back leaves nothing unsaved", [names.edited("name", "Ops")], function* ({ enter, unsavedChanges }) {

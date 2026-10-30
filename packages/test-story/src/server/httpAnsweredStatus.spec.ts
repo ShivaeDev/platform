@@ -27,10 +27,10 @@ for (const [kind, gate] of [
 
 			yield* fault("data", { kind });
 
-			yield* outcomes({
-				answer: [answer("client"), ENDED[kind]],
-				requests: [requests(), ["GET /data unanswered"]],
-			});
+			yield* outcomes([
+				["answer", () => answer("client"), ENDED[kind]],
+				["requests", () => requests(), ["GET /data unanswered"]],
+			]);
 		},
 	);
 }
@@ -58,11 +58,11 @@ httpFaultApp.it("keeps every unscoped request held until one release answers the
 
 	yield* paused.release;
 
-	yield* outcomes({
-		"first answer": [answer("first"), 'HTTP 200 {"ready":true}'],
-		"second answer": [answer("second"), 'HTTP 200 {"ready":true}'],
-		"the requests": [requests(), ["GET /data 200", "GET /data 200", "GET /trigger 200"]],
-	});
+	yield* outcomes([
+		["first answer", () => answer("first"), 'HTTP 200 {"ready":true}'],
+		["second answer", () => answer("second"), 'HTTP 200 {"ready":true}'],
+		["the requests", () => requests(), ["GET /data 200", "GET /data 200", "GET /trigger 200"]],
+	]);
 });
 
 httpFaultApp.it("holds only the first unscoped request when the hold is once", [], function* ({ asks, hold, requests, sends }) {
@@ -84,10 +84,10 @@ for (const kind of ["drop", "reset"] as const) {
 
 			yield* sends("client");
 
-			yield* outcomes({
-				answer: [answer("client"), ENDED[kind]],
-				requests: [requests(), ["GET /data unanswered"]],
-			});
+			yield* outcomes([
+				["answer", () => answer("client"), ENDED[kind]],
+				["requests", () => requests(), ["GET /data unanswered"]],
+			]);
 		},
 	);
 }

@@ -50,21 +50,21 @@ workspace.it(
 );
 
 workspace.it("apply sets every released package's version from the plan", [pending()], function* ({ apply, version }) {
-	yield* outcomes({
-		[CORE]: [version(CORE), "0.2.3"],
-		"@test/api": [version("@test/api"), "0.5.0"],
-		"@test/optional": [version("@test/optional"), "1.0.0"],
-		"@test/peer": [version("@test/peer"), "1.0.0"],
-	});
+	yield* outcomes([
+		[CORE, () => version(CORE), "0.2.3"],
+		["@test/api", () => version("@test/api"), "0.5.0"],
+		["@test/optional", () => version("@test/optional"), "1.0.0"],
+		["@test/peer", () => version("@test/peer"), "1.0.0"],
+	]);
 
 	yield* apply();
 
-	yield* outcomes({
-		[CORE]: [version(CORE), "0.3.0"],
-		"@test/api": [version("@test/api"), "0.5.1"],
-		"@test/optional": [version("@test/optional"), "1.0.1"],
-		"@test/peer": [version("@test/peer"), "1.0.1"],
-	});
+	yield* outcomes([
+		[CORE, () => version(CORE), "0.3.0"],
+		["@test/api", () => version("@test/api"), "0.5.1"],
+		["@test/optional", () => version("@test/optional"), "1.0.1"],
+		["@test/peer", () => version("@test/peer"), "1.0.1"],
+	]);
 });
 
 for (const { dependency, dependent, field, range, released, to } of [
@@ -92,10 +92,10 @@ for (const { dependency, dependent, field, range, released, to } of [
 
 			yield* apply();
 
-			yield* outcomes({
-				range: [dependencyRange(dependent, dependency), `${to} in ${field}`],
-				version: [version(dependent), released],
-			});
+			yield* outcomes([
+				["range", () => dependencyRange(dependent, dependency), `${to} in ${field}`],
+				["version", () => version(dependent), released],
+			]);
 		},
 	);
 }
@@ -120,11 +120,11 @@ workspace.it(
 
 		yield* apply();
 
-		yield* outcomes({
-			[`${CORE}'s version`]: [version(CORE), "0.3.0"],
-			"@test/private's changelog": [changelog("@test/private"), "no changelog"],
-			"@test/private's manifest": [manifestFile("@test/private"), manifest],
-		});
+		yield* outcomes([
+			[`${CORE}'s version`, () => version(CORE), "0.3.0"],
+			["@test/private's changelog", () => changelog("@test/private"), "no changelog"],
+			["@test/private's manifest", () => manifestFile("@test/private"), manifest],
+		]);
 	},
 );
 
@@ -133,8 +133,8 @@ workspace.it("apply with no changesets answers that nothing is pending and write
 
 	yield* apply();
 
-	yield* outcomes({
-		answer: [lastAnswer(), ["No pending releases."]],
-		"workspace files": [workspaceFiles(), files],
-	});
+	yield* outcomes([
+		["answer", () => lastAnswer(), ["No pending releases."]],
+		["workspace files", () => workspaceFiles(), files],
+	]);
 });

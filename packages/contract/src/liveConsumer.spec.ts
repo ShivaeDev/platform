@@ -10,11 +10,11 @@ liveNotesStory.it(
 
 		yield* edit(1, "Changed");
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Changed"],
-			"note 2's reads": [timesRead("note 2"), "read twice"],
-			"the list": [shown("the list"), ["Changed", "Second"]],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Changed"],
+			["note 2's reads", () => timesRead("note 2"), "read twice"],
+			["the list", () => shown("the list"), ["Changed", "Second"]],
+		]);
 	},
 );
 
@@ -24,10 +24,10 @@ liveNotesStory.it(
 	function* ({ serverSendsResyncs, status, timesRead }) {
 		yield* serverSendsResyncs(257);
 
-		yield* outcomes({
-			"note 1's reads": [timesRead("note 1"), "read twice"],
-			status: [status(), { connection: "live", failure: "none", needsResync: true, pending: 256 }],
-		});
+		yield* outcomes([
+			["note 1's reads", () => timesRead("note 1"), "read twice"],
+			["status", () => status(), { connection: "live", failure: "none", needsResync: true, pending: 256 }],
+		]);
 	},
 );
 
@@ -65,11 +65,11 @@ liveNotesStory.it(
 
 		yield* serverAcceptsStreamsAgain();
 
-		yield* outcomes({
-			"note 1": [shown("note 1"), "Missed while refused"],
-			"open server streams": [openServerStreams(), "one stream open"],
-			status: [status(), { connection: "live", failure: "none", needsResync: false, pending: 0 }],
-		});
+		yield* outcomes([
+			["note 1", () => shown("note 1"), "Missed while refused"],
+			["open server streams", () => openServerStreams(), "one stream open"],
+			["status", () => status(), { connection: "live", failure: "none", needsResync: false, pending: 0 }],
+		]);
 	},
 );
 

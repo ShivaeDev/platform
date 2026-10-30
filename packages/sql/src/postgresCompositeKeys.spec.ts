@@ -9,11 +9,11 @@ const readings = readingsExist([
 ]);
 
 conflicts.it("findById reads the reading whose source and sequence both match", [readings], function* ({ reading }) {
-	yield* outcomes({
-		"meter/1": [reading("meter", 1), { amount: 52, label: "original" }],
-		"meter/2": [reading("meter", 2), { amount: 53, label: "original" }],
-		"other/1": [reading("other", 1), { amount: 54, label: "original" }],
-	});
+	yield* outcomes([
+		["meter/1", () => reading("meter", 1), { amount: 52, label: "original" }],
+		["meter/2", () => reading("meter", 2), { amount: 53, label: "original" }],
+		["other/1", () => reading("other", 1), { amount: 54, label: "original" }],
+	]);
 });
 
 conflicts.it("findById with only part of the key fails with a schema error", [readings], function* ({ endings, findReadingWithoutSequence }) {
@@ -28,20 +28,20 @@ conflicts.it(
 	function* ({ endings, insertReadingOrIgnore, reading }) {
 		yield* insertReadingOrIgnore("meter", 1, 99);
 
-		yield* outcomes({
-			"insertOrIgnore ending": [endings(), ["ignored"]],
-			"meter/1": [reading("meter", 1), { amount: 52, label: "original" }],
-		});
+		yield* outcomes([
+			["insertOrIgnore ending", () => endings(), ["ignored"]],
+			["meter/1", () => reading("meter", 1), { amount: 52, label: "original" }],
+		]);
 	},
 );
 
 conflicts.it("insertOrIgnore of a new sequence for a known source inserts it", [readings], function* ({ endings, insertReadingOrIgnore, reading }) {
 	yield* insertReadingOrIgnore("meter", 3, 99);
 
-	yield* outcomes({
-		"insertOrIgnore ending": [endings(), ["inserted"]],
-		"meter/3": [reading("meter", 3), { amount: 99, label: "offered" }],
-	});
+	yield* outcomes([
+		["insertOrIgnore ending", () => endings(), ["inserted"]],
+		["meter/3", () => reading("meter", 3), { amount: 99, label: "offered" }],
+	]);
 });
 
 conflicts.it(
@@ -50,31 +50,31 @@ conflicts.it(
 	function* ({ reading, returned, upsertReading }) {
 		yield* upsertReading("meter", 1, 60, "ignored");
 
-		yield* outcomes({
-			"meter/1": [reading("meter", 1), { amount: 60, label: "original" }],
-			"returned value": [returned(), [{ inserted: false, row: { amount: 60, label: "original" } }]],
-		});
+		yield* outcomes([
+			["meter/1", () => reading("meter", 1), { amount: 60, label: "original" }],
+			["returned value", () => returned(), [{ inserted: false, row: { amount: 60, label: "original" } }]],
+		]);
 	},
 );
 
 conflicts.it("upsert of a new key inserts the reading and reports an insert", [readings], function* ({ reading, returned, upsertReading }) {
 	yield* upsertReading("meter", 4, 60, "fresh");
 
-	yield* outcomes({
-		"meter/4": [reading("meter", 4), { amount: 60, label: "fresh" }],
-		"returned value": [returned(), [{ inserted: true, row: { amount: 60, label: "fresh" } }]],
-	});
+	yield* outcomes([
+		["meter/4", () => reading("meter", 4), { amount: 60, label: "fresh" }],
+		["returned value", () => returned(), [{ inserted: true, row: { amount: 60, label: "fresh" } }]],
+	]);
 });
 
 for (const write of ["update", "updateVoid"] as const) {
 	conflicts.it(`${write} of meter/2 changes only that reading`, [readings], function* ({ reading, updateReading }) {
 		yield* updateReading("meter", 2, 80, write);
 
-		yield* outcomes({
-			"meter/1": [reading("meter", 1), { amount: 52, label: "original" }],
-			"meter/2": [reading("meter", 2), { amount: 80, label: "original" }],
-			"other/1": [reading("other", 1), { amount: 54, label: "original" }],
-		});
+		yield* outcomes([
+			["meter/1", () => reading("meter", 1), { amount: 52, label: "original" }],
+			["meter/2", () => reading("meter", 2), { amount: 80, label: "original" }],
+			["other/1", () => reading("other", 1), { amount: 54, label: "original" }],
+		]);
 	});
 }
 
@@ -95,10 +95,10 @@ conflicts.it(
 			yield* insertReadingOrIgnore("meter", 5, 100);
 		});
 
-		yield* outcomes({
-			"meter/2": [reading("meter", 2), { amount: 53, label: "original" }],
-			"stored keys": [readingKeys(), ["meter/1", "meter/2", "other/1"]],
-			"write endings": [endings(), ["succeeded", "inserted", "failed with cancelled"]],
-		});
+		yield* outcomes([
+			["meter/2", () => reading("meter", 2), { amount: 53, label: "original" }],
+			["stored keys", () => readingKeys(), ["meter/1", "meter/2", "other/1"]],
+			["write endings", () => endings(), ["succeeded", "inserted", "failed with cancelled"]],
+		]);
 	},
 );

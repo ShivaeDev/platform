@@ -9,10 +9,10 @@ const binary = Buffer.from([0, 255, 195, 169, 128, 13, 10]);
 host.it("a chunked body over eight bytes is answered 413 before the route handles it", [boundedBody], function* ({ handledCalls, postBytes }) {
 	const answer = yield* postBytes([Buffer.alloc(4), Buffer.alloc(5)], { finishAfterResponse: true });
 
-	yield* outcomes({
-		"handled bodies": [handledCalls(), []],
-		"status": [Effect.succeed(answer.status), HttpStatus.fromLiteral("PayloadTooLarge")],
-	});
+	yield* outcomes([
+		["handled bodies", () => handledCalls(), []],
+		["status", () => Effect.succeed(answer.status), HttpStatus.fromLiteral("PayloadTooLarge")],
+	]);
 });
 
 host.it(
@@ -23,10 +23,10 @@ host.it(
 
 		const answer = yield* postBytes([binary.subarray(0, 3), binary.subarray(3)]);
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), { body: binary, reusedSocket: true, status: HttpStatus.fromLiteral("OK") }],
-			"handled bodies": [handledCalls(), [binary]],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), { body: binary, reusedSocket: true, status: HttpStatus.fromLiteral("OK") }],
+			["handled bodies", () => handledCalls(), [binary]],
+		]);
 	},
 );
 
@@ -36,9 +36,9 @@ host.it(
 	function* ({ handledCalls, postBytes }) {
 		const answer = yield* postBytes([], { contentLength: 9 });
 
-		yield* outcomes({
-			"handled bodies": [handledCalls(), []],
-			"status": [Effect.succeed(answer.status), HttpStatus.fromLiteral("PayloadTooLarge")],
-		});
+		yield* outcomes([
+			["handled bodies", () => handledCalls(), []],
+			["status", () => Effect.succeed(answer.status), HttpStatus.fromLiteral("PayloadTooLarge")],
+		]);
 	},
 );

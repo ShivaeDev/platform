@@ -9,10 +9,10 @@ answers.it(
 	function* ({ answerError, finishSave }) {
 		yield* finishSave();
 
-		yield* outcomes({
-			"first answer's text, now where the second answer was": [answerError("first", "text"), undefined],
-			"second answer's text": [answerError("second", "text"), REJECTED_MESSAGE],
-		});
+		yield* outcomes([
+			["first answer's text, now where the second answer was", () => answerError("first", "text"), undefined],
+			["second answer's text", () => answerError("second", "text"), REJECTED_MESSAGE],
+		]);
 	},
 );
 
@@ -22,11 +22,11 @@ answers.it(
 	function* ({ answerError, answersSummary, finishSave }) {
 		yield* finishSave();
 
-		yield* outcomes({
-			"answers summary": [answersSummary(), undefined],
-			"first answer's text": [answerError("first", "text"), undefined],
-			"second answer's text": [answerError("second", "text"), undefined],
-		});
+		yield* outcomes([
+			["answers summary", () => answersSummary(), undefined],
+			["first answer's text", () => answerError("first", "text"), undefined],
+			["second answer's text", () => answerError("second", "text"), undefined],
+		]);
 	},
 );
 
@@ -36,10 +36,10 @@ answers.it(
 	function* ({ answerError, answersSummary, finishSave }) {
 		yield* finishSave();
 
-		yield* outcomes({
-			"answers summary": [answersSummary(), undefined],
-			"first answer's text": [answerError("first", "text"), undefined],
-		});
+		yield* outcomes([
+			["answers summary", () => answersSummary(), undefined],
+			["first answer's text", () => answerError("first", "text"), undefined],
+		]);
 	},
 );
 
@@ -54,11 +54,11 @@ answers.it(
 	function* ({ answerError, answersSummary, finishSave }) {
 		yield* finishSave();
 
-		yield* outcomes({
-			"answers summary": [answersSummary(), undefined],
-			"first answer's text": [answerError("first", "text"), undefined],
-			"replacement answer's text": [answerError("replacement", "text"), undefined],
-		});
+		yield* outcomes([
+			["answers summary", () => answersSummary(), undefined],
+			["first answer's text", () => answerError("first", "text"), undefined],
+			["replacement answer's text", () => answerError("replacement", "text"), undefined],
+		]);
 	},
 );
 
@@ -67,10 +67,10 @@ answers.it("a refresh that reorders the answers moves the rejection with its ans
 
 	yield* refresh({ answers: [second, first] });
 
-	yield* outcomes({
-		"first answer's text, now where the second answer was": [answerError("first", "text"), undefined],
-		"second answer's text": [answerError("second", "text"), REJECTED_MESSAGE],
-	});
+	yield* outcomes([
+		["first answer's text, now where the second answer was", () => answerError("first", "text"), undefined],
+		["second answer's text", () => answerError("second", "text"), REJECTED_MESSAGE],
+	]);
 });
 
 answers.it(
@@ -85,10 +85,10 @@ answers.it(
 
 		yield* revert();
 
-		yield* outcomes({
-			"first answer's text, now where the second answer was": [answerError("first", "text"), undefined],
-			"second answer's text, back at the front": [answerError("second", "text"), REJECTED_MESSAGE],
-		});
+		yield* outcomes([
+			["first answer's text, now where the second answer was", () => answerError("first", "text"), undefined],
+			["second answer's text, back at the front", () => answerError("second", "text"), REJECTED_MESSAGE],
+		]);
 	},
 );
 
@@ -100,9 +100,9 @@ answers.it(
 
 		yield* replaceAnswer("first", second);
 
-		yield* outcomes({
-			"first position": [answerErrorAt(0, "text"), undefined],
-			"second position": [answerErrorAt(1, "text"), undefined],
-		});
+		yield* outcomes([
+			["first position", () => answerErrorAt(0, "text"), undefined],
+			["second position", () => answerErrorAt(1, "text"), undefined],
+		]);
 	},
 );

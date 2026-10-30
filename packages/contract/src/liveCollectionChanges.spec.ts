@@ -9,17 +9,17 @@ liveNotesStory.it(
 	"with a read scope of only note 1, connecting re-reads note 1 and leaves note 2 unread",
 	[readScopeOfOnlyNoteOne(), watching("note 1", "note 2")],
 	function* ({ connect, timesRead }) {
-		yield* outcomes({
-			"note 1's reads": [timesRead("note 1"), "read once"],
-			"note 2's reads": [timesRead("note 2"), "read once"],
-		});
+		yield* outcomes([
+			["note 1's reads", () => timesRead("note 1"), "read once"],
+			["note 2's reads", () => timesRead("note 2"), "read once"],
+		]);
 
 		yield* connect();
 
-		yield* outcomes({
-			"note 1's reads": [timesRead("note 1"), "read twice"],
-			"note 2's reads": [timesRead("note 2"), "read once"],
-		});
+		yield* outcomes([
+			["note 1's reads", () => timesRead("note 1"), "read twice"],
+			["note 2's reads", () => timesRead("note 2"), "read once"],
+		]);
 	},
 );
 

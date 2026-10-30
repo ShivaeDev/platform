@@ -120,10 +120,10 @@ pluginPane.it(
 	"✓ achieved shows in the Done color, while ✓ all tasks done stays dimmed",
 	[goalsAnswered(achievedGoal, completeTasks), achievedOpen],
 	function* ({ lookOf }) {
-		yield* outcomes({
-			"✓ achieved": [lookOf("✓ achieved"), "#16853f"],
-			"✓ all tasks done": [lookOf("✓ all tasks done"), "dimmed"],
-		});
+		yield* outcomes([
+			["✓ achieved", () => lookOf("✓ achieved"), "#16853f"],
+			["✓ all tasks done", () => lookOf("✓ all tasks done"), "dimmed"],
+		]);
 	},
 );
 

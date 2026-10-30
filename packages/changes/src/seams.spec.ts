@@ -10,10 +10,10 @@ for (const place of ["in a transaction", "outside any transaction", "in a driver
 		function* ({ withScopedSink, inPlace, write, scopedSinkReceived, published }) {
 			yield* withScopedSink(inPlace(place, write("ada's order", change("ada"))));
 
-			yield* outcomes({
-				"configured sink": [published(), []],
-				"scoped sink": [scopedSinkReceived(), [["ada:orders"]]],
-			});
+			yield* outcomes([
+				["configured sink", () => published(), []],
+				["scoped sink", () => scopedSinkReceived(), [["ada:orders"]]],
+			]);
 		},
 	);
 }
@@ -24,10 +24,10 @@ changes.it(
 	function* ({ withCommittedSink, inTransaction, write, committedSinkReceived, published }) {
 		yield* withCommittedSink(inTransaction(write("ada's order", change("ada"))));
 
-		yield* outcomes({
-			"committed-changes sink": [committedSinkReceived(), [["ada:orders"]]],
-			"configured sink": [published(), []],
-		});
+		yield* outcomes([
+			["committed-changes sink", () => committedSinkReceived(), [["ada:orders"]]],
+			["configured sink", () => published(), []],
+		]);
 	},
 );
 
@@ -38,10 +38,10 @@ for (const place of ["outside any transaction", "in a batch"] as const) {
 		function* ({ withCommittedSink, inPlace, write, committedSinkReceived, published }) {
 			yield* withCommittedSink(inPlace(place, write("ada's order", change("ada"))));
 
-			yield* outcomes({
-				"committed-changes sink": [committedSinkReceived(), []],
-				"configured sink": [published(), [["ada:orders"]]],
-			});
+			yield* outcomes([
+				["committed-changes sink", () => committedSinkReceived(), []],
+				["configured sink", () => published(), [["ada:orders"]]],
+			]);
 		},
 	);
 }

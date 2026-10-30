@@ -8,21 +8,27 @@ compilerStory.it(
 	function* ({ compileValid, errors, emitted }) {
 		yield* compileValid();
 
-		yield* outcomes({
-			"compiler errors": [errors(), []],
-			"generic's Layer": [emitted.layer("fixture/Generic"), 'Layer.Layer<"fixture/Generic", never, Declared>'],
-			"generic's preserve": [
-				emitted.method("fixture/Generic", "preserve"),
+		yield* outcomes([
+			["compiler errors", () => errors(), []],
+			["generic's Layer", () => emitted.layer("fixture/Generic"), 'Layer.Layer<"fixture/Generic", never, Declared>'],
+			[
+				"generic's preserve",
+				() => emitted.method("fixture/Generic", "preserve"),
 				"<TSuccess, TFailure, TRequirements>(effect: Effect.Effect<TSuccess, TFailure, TRequirements>) => Effect.Effect<{ readonly value: TSuccess; }, TFailure | GenericFailure, TRequirements>",
 			],
-			"ordinary's Layer": [emitted.layer("fixture/Ordinary"), 'Layer.Layer<"fixture/Ordinary", InitializationFailure, Declared | Residual>'],
-			"ordinary's read": [emitted.method("fixture/Ordinary", "read"), "(...arguments_: number[]) => Effect.Effect<number, MethodFailure, never>"],
-			"ordinary's subscribe": [
-				emitted.method("fixture/Ordinary", "subscribe"),
+			["ordinary's Layer", () => emitted.layer("fixture/Ordinary"), 'Layer.Layer<"fixture/Ordinary", InitializationFailure, Declared | Residual>'],
+			[
+				"ordinary's read",
+				() => emitted.method("fixture/Ordinary", "read"),
+				"(...arguments_: number[]) => Effect.Effect<number, MethodFailure, never>",
+			],
+			[
+				"ordinary's subscribe",
+				() => emitted.method("fixture/Ordinary", "subscribe"),
 				"() => Effect.Effect<PubSub.Subscription<number>, never, Scope.Scope>",
 			],
-			"private names in the declaration": [emitted.mentions("PrivateState", "initialize", "methods"), []],
-		});
+			["private names in the declaration", () => emitted.mentions("PrivateState", "initialize", "methods"), []],
+		]);
 	},
 );
 

@@ -8,11 +8,11 @@ serviceStory.it(
 	function* ({ build, buildOutcome, released, methodBuilds }) {
 		yield* build();
 
-		yield* outcomes({
-			"method builds": [methodBuilds(), 0],
-			"released resources": [released(), ["the initializer's resource"]],
-			"the build": [buildOutcome(), "failed with initialization failure"],
-		});
+		yield* outcomes([
+			["method builds", () => methodBuilds(), 0],
+			["released resources", () => released(), ["the initializer's resource"]],
+			["the build", () => buildOutcome(), "failed with initialization failure"],
+		]);
 	},
 );
 

@@ -13,10 +13,10 @@ changeFeed.it(
 			},
 		});
 
-		yield* outcomes({
-			"applied migrations": [appliedMigrations(), ["1_seed"]],
-			"published payloads": [published(), [["rows", "rows:1"]]],
-		});
+		yield* outcomes([
+			["applied migrations", () => appliedMigrations(), ["1_seed"]],
+			["published payloads", () => published(), [["rows", "rows:1"]]],
+		]);
 	},
 );
 
@@ -31,10 +31,10 @@ changeFeed.it(
 			},
 		});
 
-		yield* outcomes({
-			"migration endings": [endings(), ['failed with a failed migration: Migration "1_rejected" failed']],
-			"published payloads": [published(), []],
-			"stored rows": [storedRows(), []],
-		});
+		yield* outcomes([
+			["migration endings", () => endings(), ['failed with a failed migration: Migration "1_rejected" failed']],
+			["published payloads", () => published(), []],
+			["stored rows", () => storedRows(), []],
+		]);
 	},
 );

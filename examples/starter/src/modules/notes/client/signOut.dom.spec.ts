@@ -28,10 +28,10 @@ for (const first of ["session refresh", "sign-out response"] as const) {
 			}
 			yield* settle();
 
-			yield* outcomes({
-				"location": [Effect.sync(href), "/sign-in"],
-				"page heading": [Effect.sync(() => text({ name: "Sign in", role: "heading" })), "Sign in"],
-			});
+			yield* outcomes([
+				["location", () => Effect.sync(href), "/sign-in"],
+				["page heading", () => Effect.sync(() => text({ name: "Sign in", role: "heading" })), "Sign in"],
+			]);
 		},
 	);
 }

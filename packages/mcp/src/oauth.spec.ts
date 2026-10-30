@@ -71,12 +71,13 @@ mcp.it(
 		const answer = yield* connects("alice");
 
 		expect(answer).toBe("auth unavailable");
-		yield* outcomes({
-			"OAuth restart challenge": [oauthChallenge(), "no challenge"],
-			"recorded bearer failure": [
-				bearerFailureLogs(),
+		yield* outcomes([
+			["OAuth restart challenge", () => oauthChallenge(), "no challenge"],
+			[
+				"recorded bearer failure",
+				() => bearerFailureLogs(),
 				[["MCP authentication verification failed", expect.objectContaining({ message: "Jwks failed: JWKS unavailable token=<redacted>" })]],
 			],
-		});
+		]);
 	},
 );

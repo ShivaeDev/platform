@@ -52,10 +52,10 @@ boardStory.it(
 		expect(item.requests?.flatMap((request) => request.responses ?? [])).toMatchObject([
 			{ body: "Keep the reviewed option.\n", id: "answer.settled" },
 		]);
-		yield* outcomes({
-			"answer item link": [Effect.map(board.readItem("answer.settled"), (document) => document.source), "Keep the reviewed option.\n"],
-			"original source link": [Effect.map(board.readDocument("decisions/settled.md"), (document) => document.source), item.source],
-		});
+		yield* outcomes([
+			["answer item link", () => Effect.map(board.readItem("answer.settled"), (document) => document.source), "Keep the reviewed option.\n"],
+			["original source link", () => Effect.map(board.readDocument("decisions/settled.md"), (document) => document.source), item.source],
+		]);
 		for (const [file, source] of Object.entries(fixture.files)) {
 			if (!["questions/open.md", "questions/mixed.md", "questions/deferred.md"].includes(file)) {
 				const id = /^id: (?<id>.+)$/mu.exec(source)?.groups?.id;

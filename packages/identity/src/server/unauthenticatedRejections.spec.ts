@@ -25,11 +25,11 @@ for (const fault of ["fails", "crashes"] as const) {
 		function* ({ rejection, rejectionCause, rejectionMentions, save }) {
 			yield* save();
 
-			yield* outcomes({
-				"the caller's rejection": [rejection(), "InternalServerError: Internal server error"],
-				"the cause sent to the caller": [rejectionCause(), "none"],
-				"the secret in the caller's answer": [rejectionMentions("private-value"), false],
-			});
+			yield* outcomes([
+				["the caller's rejection", () => rejection(), "InternalServerError: Internal server error"],
+				["the cause sent to the caller", () => rejectionCause(), "none"],
+				["the secret in the caller's answer", () => rejectionMentions("private-value"), false],
+			]);
 		},
 	);
 

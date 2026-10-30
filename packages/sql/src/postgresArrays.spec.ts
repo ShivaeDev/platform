@@ -8,10 +8,10 @@ const EMPTY_INT4_ARRAY = { missing: false, size: 0, type: "integer[]" };
 codecs.it("insert stores an empty array as a typed empty int4[] and reads it back empty", [], function* ({ insertSample, sample, storedArray }) {
 	yield* insertSample(2, []);
 
-	yield* outcomes({
-		"sample 2 as read back": [sample(2), { id: 2, values: [] }],
-		"stored array": [storedArray(2), EMPTY_INT4_ARRAY],
-	});
+	yield* outcomes([
+		["sample 2 as read back", () => sample(2), { id: 2, values: [] }],
+		["stored array", () => storedArray(2), EMPTY_INT4_ARRAY],
+	]);
 });
 
 codecs.it("insert round-trips the int4 extremes", [], function* ({ insertSample, sample }) {
@@ -56,16 +56,17 @@ codecs.it("insertMany writes and returns empty and non-empty arrays", [], functi
 		{ id: 4, values: [3] },
 	]);
 
-	yield* outcomes({
-		"returned samples": [
-			returned(),
+	yield* outcomes([
+		[
+			"returned samples",
+			() => returned(),
 			[
 				{ id: 3, values: [] },
 				{ id: 4, values: [3] },
 			],
 		],
-		"sample 3 as read back": [sample(3), { id: 3, values: [] }],
-	});
+		["sample 3 as read back", () => sample(3), { id: 3, values: [] }],
+	]);
 });
 
 codecs.it(
@@ -77,10 +78,10 @@ codecs.it(
 			{ id: 5, values: [] },
 		]);
 
-		yield* outcomes({
-			"returned samples": [returned(), [{ id: 5, values: [] }]],
-			"sample 4 as read back": [sample(4), { id: 4, values: [3] }],
-		});
+		yield* outcomes([
+			["returned samples", () => returned(), [{ id: 5, values: [] }]],
+			["sample 4 as read back", () => sample(4), { id: 4, values: [3] }],
+		]);
 	},
 );
 
@@ -98,15 +99,16 @@ codecs.it(
 			{ id: 4, values: [] },
 		]);
 
-		yield* outcomes({
-			"returned results": [
-				returned(),
+		yield* outcomes([
+			[
+				"returned results",
+				() => returned(),
 				[
 					{ inserted: false, row: { id: 3, values: [4, 5] } },
 					{ inserted: false, row: { id: 4, values: [] } },
 				],
 			],
-			"stored array of sample 4": [storedArray(4), EMPTY_INT4_ARRAY],
-		});
+			["stored array of sample 4", () => storedArray(4), EMPTY_INT4_ARRAY],
+		]);
 	},
 );

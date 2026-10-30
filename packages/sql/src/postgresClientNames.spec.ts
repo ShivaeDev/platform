@@ -11,10 +11,10 @@ snakeCaseNames.it(
 	function* ({ insertRow, returned, storedCreatedAt }) {
 		yield* insertRow(noon);
 
-		yield* outcomes({
-			"returned row": [returned(), { createdAt: noon, id: 1 }],
-			"stored created_at column": [storedCreatedAt(), [{ "created_at": noon }]],
-		});
+		yield* outcomes([
+			["returned row", () => returned(), { createdAt: noon, id: 1 }],
+			["stored created_at column", () => storedCreatedAt(), [{ "created_at": noon }]],
+		]);
 	},
 );
 
@@ -22,10 +22,10 @@ snakeCaseNames.it(
 	"findById and a findMany that selects, filters and orders by createdAt read the created_at column",
 	[datedRowExists(snakeCaseNames, noon)],
 	function* ({ findByCreatedAt, findById }) {
-		yield* outcomes({
-			"found by createdAt": [findByCreatedAt(noon), [{ createdAt: noon }]],
-			"found by id": [findById(), { createdAt: noon, id: 1 }],
-		});
+		yield* outcomes([
+			["found by createdAt", () => findByCreatedAt(noon), [{ createdAt: noon }]],
+			["found by id", () => findById(), { createdAt: noon, id: 1 }],
+		]);
 	},
 );
 
@@ -35,10 +35,10 @@ snakeCaseNames.it(
 	function* ({ returned, storedCreatedAt, updateRow }) {
 		yield* updateRow(nextNoon);
 
-		yield* outcomes({
-			"returned row": [returned(), { createdAt: nextNoon, id: 1 }],
-			"stored created_at column": [storedCreatedAt(), [{ "created_at": nextNoon }]],
-		});
+		yield* outcomes([
+			["returned row", () => returned(), { createdAt: nextNoon, id: 1 }],
+			["stored created_at column", () => storedCreatedAt(), [{ "created_at": nextNoon }]],
+		]);
 	},
 );
 
@@ -76,16 +76,17 @@ snakeCaseNames.it(
 			{ createdAt: nextNoon, id: 2 },
 		]);
 
-		yield* outcomes({
-			"returned results": [
-				returned(),
+		yield* outcomes([
+			[
+				"returned results",
+				() => returned(),
 				[
 					{ inserted: false, row: { createdAt: noon, id: 1 } },
 					{ inserted: true, row: { createdAt: nextNoon, id: 2 } },
 				],
 			],
-			"row 1 as read back": [findById(), { createdAt: noon, id: 1 }],
-		});
+			["row 1 as read back", () => findById(), { createdAt: noon, id: 1 }],
+		]);
 	},
 );
 
@@ -111,10 +112,10 @@ preservedNames.it(
 	function* ({ findById, insertRow, rawCreatedAtWithRowId }) {
 		yield* insertRow(noon);
 
-		yield* outcomes({
-			"found by id": [findById(), { createdAt: noon, id: 1 }],
-			"raw columns": [rawCreatedAtWithRowId(), [{ createdAt: noon, "row_id": 1 }]],
-		});
+		yield* outcomes([
+			["found by id", () => findById(), { createdAt: noon, id: 1 }],
+			["raw columns", () => rawCreatedAtWithRowId(), [{ createdAt: noon, "row_id": 1 }]],
+		]);
 	},
 );
 

@@ -28,10 +28,10 @@ database.it(
 		yield* adminSends(RoundTrip.name, { id: null }, { as: "malformed job" });
 		yield* untilDeadLettered(RoundTrip, 1);
 
-		yield* outcomes({
-			"dead-lettered": [deadLettered(RoundTrip), ["malformed job"]],
-			"handled payloads": [handled(RoundTrip), []],
-		});
+		yield* outcomes([
+			["dead-lettered", () => deadLettered(RoundTrip), ["malformed job"]],
+			["handled payloads", () => handled(RoundTrip), []],
+		]);
 	},
 );
 

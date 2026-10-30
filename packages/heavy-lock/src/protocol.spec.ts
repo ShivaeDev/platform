@@ -26,10 +26,10 @@ lockStory.it(
 
 		yield* lock.tries("waiter");
 
-		yield* outcomes({
-			"lock file": [lock.contents(), before],
-			"waiter's answer": [lock.answerOf("waiter"), "blocked by the reference holder"],
-		});
+		yield* outcomes([
+			["lock file", () => lock.contents(), before],
+			["waiter's answer", () => lock.answerOf("waiter"), "blocked by the reference holder"],
+		]);
 	},
 );
 

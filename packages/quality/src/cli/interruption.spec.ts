@@ -14,25 +14,25 @@ qualityLifecycle.it(
 
 		yield* interrupt();
 
-		yield* outcomes({
-			"Biome child running": [childRunning(), false],
-			"error output": [Effect.sync(stderr), ""],
-			"exit status": [Effect.sync(status), 130],
-			"repository entries": [rootEntries(), before],
-			"temporary config exists": [temporaryConfigExists(), false],
-		});
+		yield* outcomes([
+			["Biome child running", () => childRunning(), false],
+			["error output", () => Effect.sync(stderr), ""],
+			["exit status", () => Effect.sync(status), 130],
+			["repository entries", () => rootEntries(), before],
+			["temporary config exists", () => temporaryConfigExists(), false],
+		]);
 	},
 );
 
 qualityLifecycle.it("a crashing rule exits 2 and prints its id and original stack", [crashingRule], function* ({ check, status, stderr }) {
 	yield* check();
 
-	yield* outcomes({
-		"defect output": [Effect.sync(stderr), expect.stringContaining("quality: internal error")],
-		"exit status": [Effect.sync(status), 2],
-		"original stack": [Effect.sync(stderr), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
-		"rule and error": [Effect.sync(stderr), expect.stringContaining("rule local/crash failed: policy crashed")],
-	});
+	yield* outcomes([
+		["defect output", () => Effect.sync(stderr), expect.stringContaining("quality: internal error")],
+		["exit status", () => Effect.sync(status), 2],
+		["original stack", () => Effect.sync(stderr), expect.stringMatching(/at .*crashRule.*quality\.config\.ts:\d+:\d+/u)],
+		["rule and error", () => Effect.sync(stderr), expect.stringContaining("rule local/crash failed: policy crashed")],
+	]);
 });
 
 qualityLifecycle.it(

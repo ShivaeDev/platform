@@ -12,10 +12,10 @@ application.it(
 	function* ({ createApp, filesMissingFrom, filesOnlyIn }) {
 		yield* createApp("my-app", "--minimal", "--no-git");
 
-		yield* outcomes({
-			"only in the full app": [filesOnlyIn("full/my-app"), ["src/modules/notes/"]],
-			"only in the minimal app": [filesMissingFrom("full/my-app"), []],
-		});
+		yield* outcomes([
+			["only in the full app", () => filesOnlyIn("full/my-app"), ["src/modules/notes/"]],
+			["only in the minimal app", () => filesMissingFrom("full/my-app"), []],
+		]);
 	},
 );
 

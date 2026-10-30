@@ -9,10 +9,10 @@ database.it(
 	function* ({ notes, writeNote }) {
 		yield* writeNote("first", "the first test");
 
-		yield* outcomes({
-			"notes in the first test": [notes("the first test"), ["first"]],
-			"notes in the second test": [notes("the second test"), []],
-		});
+		yield* outcomes([
+			["notes in the first test", () => notes("the first test"), ["first"]],
+			["notes in the second test", () => notes("the second test"), []],
+		]);
 	},
 );
 
@@ -29,10 +29,10 @@ for (const [ending, outcome] of [
 
 			yield* end("the rollback test", ending);
 
-			yield* outcomes({
-				"items in the shared database": [items("the shared database"), ["seed"]],
-				"the rollback test": [blockOutcome("the rollback test"), outcome],
-			});
+			yield* outcomes([
+				["items in the shared database", () => items("the shared database"), ["seed"]],
+				["the rollback test", () => blockOutcome("the rollback test"), outcome],
+			]);
 		},
 	);
 }
@@ -45,10 +45,10 @@ database.it(
 
 		yield* interrupt("the rollback test");
 
-		yield* outcomes({
-			"items in the shared database": [items("the shared database"), ["seed"]],
-			"the rollback test": [blockOutcome("the rollback test"), "interrupted"],
-		});
+		yield* outcomes([
+			["items in the shared database", () => items("the shared database"), ["seed"]],
+			["the rollback test", () => blockOutcome("the rollback test"), "interrupted"],
+		]);
 	},
 );
 

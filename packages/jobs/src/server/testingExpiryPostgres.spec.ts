@@ -24,10 +24,10 @@ database.it(
 		yield* enqueue("app", Stuck, { id: 7 }, { as: "job" });
 		yield* untilJob("job", "completed");
 
-		yield* outcomes({
-			interruptions: [interruptions(Stuck), [expect.stringMatching(/^job /u)]],
-			job: [job("job"), expect.objectContaining({ expireInSeconds: 1, retryCount: 1, state: "completed" })],
-		});
+		yield* outcomes([
+			["interruptions", () => interruptions(Stuck), [expect.stringMatching(/^job /u)]],
+			["job", () => job("job"), expect.objectContaining({ expireInSeconds: 1, retryCount: 1, state: "completed" })],
+		]);
 	},
 );
 
@@ -40,11 +40,11 @@ database.it(
 		yield* enqueue("app", Stuck, { id: 8 }, { as: "job", retryLimit: 1 });
 		yield* untilDeadLettered(Stuck, 1);
 
-		yield* outcomes({
-			"dead-lettered": [deadLettered(Stuck), ["job"]],
-			"interruptions": [interruptions(Stuck), [expect.stringMatching(/^job /u), expect.stringMatching(/^job /u)]],
-			"job": [job("job"), expect.objectContaining({ error: "handler execution exceeded 1s", retryCount: 1, state: "failed" })],
-		});
+		yield* outcomes([
+			["dead-lettered", () => deadLettered(Stuck), ["job"]],
+			["interruptions", () => interruptions(Stuck), [expect.stringMatching(/^job /u), expect.stringMatching(/^job /u)]],
+			["job", () => job("job"), expect.objectContaining({ error: "handler execution exceeded 1s", retryCount: 1, state: "failed" })],
+		]);
 	},
 );
 
@@ -63,11 +63,11 @@ database.it(
 
 		yield* enqueue("app", Stuck, { id: 2 }, { as: "rounded job again", sameIdAs: "rounded job" });
 
-		yield* outcomes({
-			"later job": [job("later job"), expect.objectContaining({ expireInSeconds: 1 })],
-			"rounded job": [job("rounded job"), expect.objectContaining({ expireInSeconds: 2 })],
-			"unruled job": [job("unruled job"), expect.objectContaining({ expireInSeconds: 60 })],
-		});
+		yield* outcomes([
+			["later job", () => job("later job"), expect.objectContaining({ expireInSeconds: 1 })],
+			["rounded job", () => job("rounded job"), expect.objectContaining({ expireInSeconds: 2 })],
+			["unruled job", () => job("unruled job"), expect.objectContaining({ expireInSeconds: 60 })],
+		]);
 	},
 );
 

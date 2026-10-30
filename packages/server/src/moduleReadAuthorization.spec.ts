@@ -9,12 +9,12 @@ readPolicyHost.it(
 	function* ({ handledReads, plainRead, policyChecks, sessionLookups }) {
 		const answer = yield* plainRead();
 
-		yield* outcomes({
-			"answer": [Effect.succeed(answer), "failed with query read denied"],
-			"handled reads": [handledReads(), []],
-			"policy checks": [policyChecks(), ["document private for no viewer"]],
-			"session lookups": [sessionLookups(), []],
-		});
+		yield* outcomes([
+			["answer", () => Effect.succeed(answer), "failed with query read denied"],
+			["handled reads", () => handledReads(), []],
+			["policy checks", () => policyChecks(), ["document private for no viewer"]],
+			["session lookups", () => sessionLookups(), []],
+		]);
 	},
 );
 
@@ -25,11 +25,11 @@ for (const boundary of ["account.get", "profile.get"] as const) {
 		function* ({ policyChecks, read, sessionLookups }) {
 			const answer = yield* read(boundary, "alice", "alice");
 
-			yield* outcomes({
-				"answer": [Effect.succeed(answer), "Alice's document"],
-				"policy checks": [policyChecks(), ["document alice for alice", "document alice for alice"]],
-				"session lookups": [sessionLookups(), ["alice"]],
-			});
+			yield* outcomes([
+				["answer", () => Effect.succeed(answer), "Alice's document"],
+				["policy checks", () => policyChecks(), ["document alice for alice", "document alice for alice"]],
+				["session lookups", () => sessionLookups(), ["alice"]],
+			]);
 		},
 	);
 
@@ -39,10 +39,10 @@ for (const boundary of ["account.get", "profile.get"] as const) {
 		function* ({ policyChecks, read }) {
 			const answer = yield* read(boundary, "bob", "alice");
 
-			yield* outcomes({
-				"answer": [Effect.succeed(answer), "failed with query read denied"],
-				"policy checks": [policyChecks(), ["document alice for bob"]],
-			});
+			yield* outcomes([
+				["answer", () => Effect.succeed(answer), "failed with query read denied"],
+				["policy checks", () => policyChecks(), ["document alice for bob"]],
+			]);
 		},
 	);
 }
@@ -50,19 +50,19 @@ for (const boundary of ["account.get", "profile.get"] as const) {
 readPolicyHost.it("a public read without a session reaches its policy with no viewer", [], function* ({ policyChecks, publicRead }) {
 	const answer = yield* publicRead();
 
-	yield* outcomes({
-		"answer": [Effect.succeed(answer), "Public documents"],
-		"policy checks": [policyChecks(), ["the document list for no viewer", "the document list for no viewer"]],
-	});
+	yield* outcomes([
+		["answer", () => Effect.succeed(answer), "Public documents"],
+		["policy checks", () => policyChecks(), ["the document list for no viewer", "the document list for no viewer"]],
+	]);
 });
 
 readPolicyHost.it("a public read with alice's session reaches its policy with alice as viewer", [], function* ({ policyChecks, publicRead }) {
 	const answer = yield* publicRead("alice");
 
-	yield* outcomes({
-		"answer": [Effect.succeed(answer), "Public documents"],
-		"policy checks": [policyChecks(), ["the document list for alice", "the document list for alice"]],
-	});
+	yield* outcomes([
+		["answer", () => Effect.succeed(answer), "Public documents"],
+		["policy checks", () => policyChecks(), ["the document list for alice", "the document list for alice"]],
+	]);
 });
 
 readPolicyHost.it("alice's socket subscription hears only the change to her own document", [], function* ({ listen, nextHint, publish }) {

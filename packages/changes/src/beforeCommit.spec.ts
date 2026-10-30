@@ -27,11 +27,11 @@ changes.it(
 	function* ({ saveOrder, orderEnding, committedRows, published }) {
 		yield* saveOrder("ada");
 
-		yield* outcomes({
-			"committed rows": [committedRows(), []],
-			"how the transaction ended": [orderEnding(), "notify failed"],
-			"published changes": [published(), []],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), []],
+			["how the transaction ended", () => orderEnding(), "notify failed"],
+			["published changes", () => published(), []],
+		]);
 	},
 );
 

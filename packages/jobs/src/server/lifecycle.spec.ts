@@ -13,10 +13,10 @@ runtime.it(
 	function* ({ clientCalls, clientsConstructed, start }) {
 		yield* start("second", []);
 
-		yield* outcomes({
-			"client calls": [clientCalls(), ["start", "start"]],
-			"clients constructed": [clientsConstructed(), 2],
-		});
+		yield* outcomes([
+			["client calls", () => clientCalls(), ["start", "start"]],
+			["clients constructed", () => clientsConstructed(), 2],
+		]);
 	},
 );
 
@@ -26,10 +26,10 @@ runtime.it(
 	function* ({ clientCalls, start, startup }) {
 		yield* start("app", [worker(Broken, "succeeds")]);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "register broken failed with queue unavailable"],
-			"client calls": [clientCalls(), ["start", "stop"]],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "register broken failed with queue unavailable"],
+			["client calls", () => clientCalls(), ["start", "stop"]],
+		]);
 	},
 );
 
@@ -39,10 +39,10 @@ runtime.it(
 	function* ({ clientCalls, start, startup }) {
 		yield* start("app", []);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "start failed with start unavailable"],
-			"client calls": [clientCalls(), ["start", "stop"]],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "start failed with start unavailable"],
+			["client calls", () => clientCalls(), ["start", "stop"]],
+		]);
 	},
 );
 
@@ -52,10 +52,10 @@ runtime.it(
 	function* ({ clientCalls, start, startup }) {
 		yield* start("app", []);
 
-		yield* outcomes({
-			"app runtime": [startup("app"), "start failed with external client initialization failed"],
-			"client calls": [clientCalls(), ["start", "stop"]],
-		});
+		yield* outcomes([
+			["app runtime", () => startup("app"), "start failed with external client initialization failed"],
+			["client calls", () => clientCalls(), ["start", "stop"]],
+		]);
 	},
 );
 
@@ -96,9 +96,9 @@ runtime.it(
 		yield* stop("app");
 		yield* deliveryFinishes();
 
-		yield* outcomes({
-			"interrupted": [interrupted(), ["job-1"]],
-			"settlements": [settlements(), []],
-		});
+		yield* outcomes([
+			["interrupted", () => interrupted(), ["job-1"]],
+			["settlements", () => settlements(), []],
+		]);
 	},
 );

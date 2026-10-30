@@ -17,13 +17,14 @@ for (const path of [undefined, "PUBLIC"]) {
 			const value = yield* readPublicConfiguration();
 
 			expectTypeOf(value).toEqualTypeOf<{ readonly installUrl: URL; readonly retryLimit: number }>();
-			yield* outcomes({
-				"configuration": [
-					Effect.succeed({ installUrl: value.installUrl.href, retryLimit: value.retryLimit }),
+			yield* outcomes([
+				[
+					"configuration",
+					() => Effect.succeed({ installUrl: value.installUrl.href, retryLimit: value.retryLimit }),
 					{ installUrl: "https://example.com/install", retryLimit: 3 },
 				],
-				"session lookups": [sessionLookups(), []],
-			});
+				["session lookups", () => sessionLookups(), []],
+			]);
 		},
 	);
 }

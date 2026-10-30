@@ -14,10 +14,10 @@ for (const ending of ["succeeds", "fails", "is interrupted"] as const) {
 				expect(yield* published()).toEqual([]);
 			});
 
-			yield* outcomes({
-				"committed rows": [committedRows(), ["ada's order", "bob's order"]],
-				"published changes": [published(), [["ada:orders", "bob:orders"]]],
-			});
+			yield* outcomes([
+				["committed rows", () => committedRows(), ["ada's order", "bob's order"]],
+				["published changes", () => published(), [["ada:orders", "bob:orders"]]],
+			]);
 		},
 	);
 }
@@ -48,10 +48,10 @@ changes.it(
 			});
 		});
 
-		yield* outcomes({
-			"committed rows": [committedRows(), ["ada's order"]],
-			"published changes": [published(), [["ada:orders"]]],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), ["ada's order"]],
+			["published changes", () => published(), [["ada:orders"]]],
+		]);
 	},
 );
 
@@ -64,10 +64,10 @@ changes.it(
 			yield* rollback();
 		});
 
-		yield* outcomes({
-			"committed rows": [committedRows(), []],
-			"published changes": [published(), []],
-		});
+		yield* outcomes([
+			["committed rows", () => committedRows(), []],
+			["published changes", () => published(), []],
+		]);
 	},
 );
 

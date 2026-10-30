@@ -9,12 +9,12 @@ missingUpdates.it(
 	function* ({ announced, announcedBeforeCommit, reading, returned, updateReadingOrFail }) {
 		yield* updateReadingOrFail(20, "commits");
 
-		yield* outcomes({
-			"announced after commit": [announced(), ["readings", "readings:1"]],
-			"announced before commit": [announcedBeforeCommit(), []],
-			"returned reading": [returned(), [{ ...draft, amount: 20 }]],
-			"stored reading": [reading(), { ...draft, amount: 20 }],
-		});
+		yield* outcomes([
+			["announced after commit", () => announced(), ["readings", "readings:1"]],
+			["announced before commit", () => announcedBeforeCommit(), []],
+			["returned reading", () => returned(), [{ ...draft, amount: 20 }]],
+			["stored reading", () => reading(), { ...draft, amount: 20 }],
+		]);
 	},
 );
 
@@ -24,11 +24,11 @@ missingUpdates.it(
 	function* ({ announced, endings, statementKinds, updateReadingOrFail }) {
 		yield* updateReadingOrFail(20);
 
-		yield* outcomes({
-			"announced changes": [announced(), []],
-			"statements run": [statementKinds(), ["update"]],
-			"update ending": [endings(), ["failed with no such row"]],
-		});
+		yield* outcomes([
+			["announced changes", () => announced(), []],
+			["statements run", () => statementKinds(), ["update"]],
+			["update ending", () => endings(), ["failed with no such row"]],
+		]);
 	},
 );
 
@@ -38,10 +38,10 @@ missingUpdates.it(
 	function* ({ announced, endings, updateReading }) {
 		yield* updateReading(20);
 
-		yield* outcomes({
-			"announced changes": [announced(), []],
-			"update ending": [endings(), ["died with no such row"]],
-		});
+		yield* outcomes([
+			["announced changes", () => announced(), []],
+			["update ending", () => endings(), ["died with no such row"]],
+		]);
 	},
 );
 
@@ -51,11 +51,11 @@ missingUpdates.it(
 	function* ({ announced, endings, reading, updateReadingOrFail }) {
 		yield* updateReadingOrFail(20, "fails");
 
-		yield* outcomes({
-			"announced changes": [announced(), []],
-			"stored reading": [reading(), { ...draft, amount: 10 }],
-			"transaction ending": [endings(), ["failed with cancelled"]],
-		});
+		yield* outcomes([
+			["announced changes", () => announced(), []],
+			["stored reading", () => reading(), { ...draft, amount: 10 }],
+			["transaction ending", () => endings(), ["failed with cancelled"]],
+		]);
 	},
 );
 
@@ -65,12 +65,12 @@ missingUpdates.it(
 	function* ({ announced, announcedBeforeCommit, measurement, returned, updateMeasurementOrFail }) {
 		yield* updateMeasurementOrFail(1, 20, "commits");
 
-		yield* outcomes({
-			"announced after commit": [announced(), ["measurements", 'measurements:["encoded/meter",1]']],
-			"announced before commit": [announcedBeforeCommit(), []],
-			"returned measurement": [returned(), [{ amount: 20, sequence: 1, source: "meter" }]],
-			"stored measurement": [measurement(1), { amount: 20, sequence: 1, source: "meter" }],
-		});
+		yield* outcomes([
+			["announced after commit", () => announced(), ["measurements", 'measurements:["encoded/meter",1]']],
+			["announced before commit", () => announcedBeforeCommit(), []],
+			["returned measurement", () => returned(), [{ amount: 20, sequence: 1, source: "meter" }]],
+			["stored measurement", () => measurement(1), { amount: 20, sequence: 1, source: "meter" }],
+		]);
 	},
 );
 
@@ -80,10 +80,10 @@ missingUpdates.it(
 	function* ({ announced, endings, measurement, updateMeasurementOrFail }) {
 		yield* updateMeasurementOrFail(2, 20, "commits");
 
-		yield* outcomes({
-			"announced changes": [announced(), []],
-			"meter/1": [measurement(1), { amount: 10, sequence: 1, source: "meter" }],
-			"update ending": [endings(), ["failed with no such row"]],
-		});
+		yield* outcomes([
+			["announced changes", () => announced(), []],
+			["meter/1", () => measurement(1), { amount: 10, sequence: 1, source: "meter" }],
+			["update ending", () => endings(), ["failed with no such row"]],
+		]);
 	},
 );
