@@ -3,6 +3,7 @@ import process from "node:process";
 import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
 import { Clock, Config, Console, Effect } from "effect";
 import { applyRelease } from "@shivaedev/releases/applyRelease.ts";
+import { githubLayer } from "#lib/githubLayer.ts";
 import config from "#release-config";
 import { compareRelease } from "./compare.ts";
 import { releaseGitHub } from "./gitHub.ts";
@@ -13,7 +14,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	function git(...args: readonly string[]) {
 		return execFileSync("git", ["-C", root, ...args], { encoding: "utf8", stdio: "pipe" }).trim();
 	}
-	const { pull, head, hold } = github.snapshot();
+	const { pull, head, hold } = yield* github.snapshot();
 	if (
 		hold !== undefined
 		&& (hold === "merge queue" || spawnSync("git", ["-C", root, "merge-tree", "--write-tree", "origin/main", head]).status === 0)
@@ -24,7 +25,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	const plan = yield* planPullRequest(root);
 	if (plan.releases.length === 0) {
 		if (pull !== undefined) {
-			github.close(pull.number);
+			yield* github.close(pull.number);
 		}
 		return "empty";
 	}
@@ -47,7 +48,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	if (comparison?.base === git("rev-parse", "origin/main") && comparison.tree === git("write-tree")) {
 		git("reset", "--hard", head);
 		if (pull === undefined) {
-			github.save(undefined, title, body);
+			yield* github.save(undefined, title, body);
 		}
 		return "unchanged";
 	}
@@ -59,7 +60,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 	}
 	git("commit", "-m", title);
 	git("push", `--force-with-lease=refs/heads/release/next:${head}`, "origin", "HEAD:refs/heads/release/next");
-	github.save(pull?.number, title, body);
+	yield* github.save(pull?.number, title, body);
 	return "updated";
 });
 
@@ -69,6 +70,6 @@ if (import.meta.main) {
 			const repository = yield* Config.String("GITHUB_REPOSITORY");
 			const result = yield* maintainPullRequest(process.cwd(), releaseGitHub(repository));
 			yield* Console.log(`Release PR: ${result}`);
-		}).pipe(Effect.provide(NodeFileSystem.layer)),
+		}).pipe(Effect.provide(githubLayer), Effect.provide(NodeFileSystem.layer)),
 	);
 }
