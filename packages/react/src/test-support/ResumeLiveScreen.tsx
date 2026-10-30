@@ -12,7 +12,7 @@ function LiveValues({ client }: { readonly client: Client }) {
 	const two = useQuery(client.api.get.query({ id: 2 }));
 	const status = useAtomValue(client.api[LiveConnection].status);
 	return (
-		<output data-live={status.connection}>
+		<output data-live={status.connection} data-pending={one.pending || two.pending}>
 			{Option.getOrUndefined(one.data)} / {Option.getOrUndefined(two.data)}
 		</output>
 	);

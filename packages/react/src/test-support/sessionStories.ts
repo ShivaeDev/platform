@@ -1,83 +1,128 @@
 import { Effect } from "effect";
+import { act } from "react";
+import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { sessionCookie } from "#test/live-session/cookie.ts";
-import { openHost } from "#test/live-session/openHost.ts";
-import { shell as scopedShell } from "#test/live-session/shell.tsx";
 import { startServer } from "#test/order-example/startServer.ts";
+import { clickButton, type Screen, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
-import { sessions, shell } from "./session.tsx";
+import { type Session, sessions, shell } from "./session.tsx";
+
+type User = "alice" | "bob";
+
+const orders = { alice: 1, bob: 2 } as const;
 
 interface State {
-	active: ReturnType<typeof sessions>;
-	private?: { readonly browser: boolean; readonly view: ReturnType<typeof scopedShell>; readonly host: Awaited<ReturnType<typeof openHost>> };
+	readonly active: ReturnType<typeof sessions>;
+	current?: { readonly session: Session | undefined; readonly order: number };
+	readonly signIns: Record<User, number>;
 	view?: ReturnType<typeof shell>;
 }
-function current(state: State) {
+
+function opened(state: State) {
 	if (!state.view) {
 		throw new Error("No session screen");
 	}
 	return state.view;
 }
-function privateSession(state: State) {
-	if (!state.private) {
-		throw new Error("No private session screen");
+
+function sessionVerbs(state: State, screen: Screen) {
+	function settle() {
+		const view = opened(state);
+		return screenDriver({
+			act: async (action) => {
+				await act(action);
+			},
+			pending: view.pending,
+			root: view.container,
+			tell: screen.tell,
+		}).settle();
 	}
-	return state.private;
+	function show(line: string, session: Session | undefined, order: number) {
+		state.current = { order, session };
+		return screen.act(line, () => opened(state).show(session, order)).pipe(Effect.andThen(settle()));
+	}
+	function field() {
+		return opened(state).container.querySelector<HTMLInputElement>('input[name="name"]');
+	}
+	return {
+		alert: () => Effect.sync(() => opened(state).container.querySelector('[role="alert"]')?.textContent ?? "no alert"),
+		close: () => screen.act("close the session screen", () => opened(state).close()),
+		draft: () => Effect.sync(() => field()?.value ?? "no form"),
+		heldAtoms: (session: string) =>
+			Effect.sync(() => {
+				const registry = opened(state).registries.get(session);
+				if (registry === undefined) {
+					throw new Error(`Session ${session} never rendered`);
+				}
+				return registry.getNodes().size;
+			}),
+		rechecks: () => Effect.sync(() => [...opened(state).rechecks]),
+		refresh: () => screen.act("refresh the order", () => clickButton(opened(state).container, "Refresh")).pipe(Effect.andThen(settle())),
+		screenText: () => Effect.sync(() => opened(state).container.textContent),
+		sessionExpires: (user: User) =>
+			Effect.sync(() => {
+				screen.tell(`${user}'s session expires on the server`);
+				state.active.delete(`${user}-token`);
+			}),
+		sessionIsValidAgain: (user: User) =>
+			Effect.sync(() => {
+				screen.tell(`${user}'s session is valid on the server again`);
+				state.active.set(`${user}-token`, { expiresAt: Number.POSITIVE_INFINITY, userId: user });
+			}),
+		sessionRegistries: () => Effect.sync(() => [...opened(state).registries.keys()]),
+		showAgain: () => {
+			const current = state.current;
+			if (current === undefined) {
+				throw new Error("No session was shown");
+			}
+			return show(`show ${current.session?.id ?? "the signed-out screen"} again`, current.session, current.order);
+		},
+		shownOrder: () => Effect.sync(() => opened(state).container.querySelector('[data-testid="server-order"]')?.textContent ?? "no order"),
+		signIn: (user: User) => {
+			state.signIns[user] += 1;
+			const id = `${user}-${state.signIns[user]}`;
+			return show(`${user} signs in as session ${id}`, { id, token: `${user}-token` }, orders[user]);
+		},
+		signOut: () => show("sign out", undefined, state.current?.order ?? orders.alice),
+		type: (value: string) => screen.act(`type the order name ${value}`, () => typeInput(opened(state).container, "name", value)),
+	};
 }
+
 export const sessionScreens = storyKit(
-	screenKit(
-		"session screen",
-		(): State => ({ active: sessions() }),
-		(state, screen) => ({
-			close: () => screen.act("unmount the session screen", () => current(state).close()),
-			expire: () => {
-				screen.tell("Alice's session expires");
-				state.active.delete("alice-token");
-			},
-			refresh: () => screen.act("refresh the session's order", () => current(state).refresh()),
-			renameScoped: (title: string) => screen.act(`rename the private note to ${title}`, () => privateSession(state).host.rename(title)),
-			restore: () => {
-				screen.tell("Alice's session is valid again");
-				state.active.set("alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" });
-			},
-			scoped: () => privateSession(state),
-			session: () => current(state),
-			show: (session: Parameters<ReturnType<typeof shell>["show"]>[0], id: number) =>
-				screen.act(`show session ${session?.id ?? "signed out"}, order ${id}`, () => current(state).show(session, id)),
-			showScoped: (session: Parameters<ReturnType<typeof scopedShell>["show"]>[0]) =>
-				Effect.gen(function* () {
-					const privateScreen = privateSession(state);
-					if (privateScreen.browser) {
-						yield* sessionCookie(session?.token);
-					}
-					yield* screen.act(`show private session ${session?.id ?? "signed out"}`, () => privateScreen.view.show(session));
-				}),
-			type: (value: string) => screen.act(`type name: ${value}`, () => current(state).edit(value)),
-		}),
-	),
+	screenKit("order sessions over loopback HTTP", (): State => ({ active: sessions(), signIns: { alice: 0, bob: 0 } }), sessionVerbs),
 );
-export function orderSessions() {
-	return sessionScreens.trait("screen", "order sessions over loopback HTTP", function* ({ screen, state }) {
-		const server = yield* Effect.acquireRelease(
-			Effect.promise(() => startServer({ sessions: state.active })),
-			(host) => Effect.promise(host.close),
-		);
-		const root = yield* screen.open();
-		state.view = shell(server.url, root);
+
+function* openSessions({ screen, state }: { screen: Screen; state: State }) {
+	const server = yield* Effect.acquireRelease(
+		Effect.promise(() => startServer({ sessions: state.active })),
+		(host) => Effect.promise(host.close),
+	);
+	state.view = shell(server.url, yield* screen.open());
+}
+
+export function aliceSignedIn() {
+	return sessionScreens.trait("screen", "alice is signed in as alice-1 and sees her order", function* (engine) {
+		yield* openSessions(engine);
+		yield* sessionVerbs(engine.state, engine.screen).signIn("alice");
 	});
 }
 
-export function scopedSessions(browser = false) {
-	return sessionScreens.trait(
-		"screen",
-		`session-owned private notes over a ${browser ? "cookie" : "bearer"} WebSocket`,
-		function* ({ screen, state }) {
-			const host = yield* Effect.acquireRelease(Effect.promise(openHost), (value) => Effect.promise(value.close));
-			window.location.href = host.url;
-			state.private = { browser, host, view: scopedShell(host.url, yield* screen.open(), browser) };
-			if (browser) {
-				yield* Effect.addFinalizer(() => sessionCookie());
-			}
-		},
-	);
+export function aliceEdited(draft: string) {
+	return sessionScreens.trait("screen", `alice is signed in as alice-1 and typed ${draft} over her order's name`, function* (engine) {
+		yield* openSessions(engine);
+		const verbs = sessionVerbs(engine.state, engine.screen);
+		yield* verbs.signIn("alice");
+		yield* verbs.type(draft);
+	});
+}
+
+export function aliceRefreshedAfterExpiry(draft: string) {
+	return sessionScreens.trait("screen", `alice typed ${draft}, her session expired and her refresh failed`, function* (engine) {
+		yield* openSessions(engine);
+		const verbs = sessionVerbs(engine.state, engine.screen);
+		yield* verbs.signIn("alice");
+		yield* verbs.type(draft);
+		yield* verbs.sessionExpires("alice");
+		yield* verbs.refresh();
+	});
 }

@@ -1,70 +1,92 @@
 import { expect } from "vitest";
-import { feedback, notesFeature } from "#test/feedback-path/story.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { aliceBusy, bobNoticedAfterBusyAlice, bobReplacedBusyAlice, feedback } from "#test/feedback-path/story.tsx";
 
 feedback.it(
-	"Replacing a busy session isolates its registry, completions and retained notice handlers",
-	[notesFeature({ uninterruptible: true })],
-	function* ({
-		click,
-		complete,
-		dismissRetainedNotice,
-		observe,
-		readSucceeds,
-		replaceSession,
-		retainNotice,
-		runRetainedAction,
-		session,
-		snapshot,
-		type,
-	}) {
-		yield* observe("Alice's query starts", () => expect(session()).toMatchObject({ reads: 1 }));
-		yield* readSucceeds(1);
-		yield* observe("Alice's content loads", () => expect(snapshot().rows).toBe("existing"));
-		yield* click("Remove first");
-		yield* observe("Alice's removal starts", () => expect(session().removals).toEqual(["first"]));
-		yield* complete("remove", "first");
-		yield* observe("Alice receives Undo", () => expect(snapshot().notices[0]?.message).toBe("Removed first"));
-		retainNotice("Removed first");
-		yield* click("Undo first");
-		yield* click("Remove second");
-		yield* type("Alice's draft");
-		yield* observe("an Undo and another command are active", () => {
-			expect(session()).toMatchObject({
-				callbacks: ["alice: first"],
-				calls: [{ expectedVersion: 8, title: "first" }],
-				removals: ["first", "second"],
-			});
-			expect(session().nodes[0]).toBeGreaterThan(0);
-			expect(snapshot().notices[0]?.pending).toBe(true);
-		});
+	"replacing a busy session empties its registry and starts bob's notes fresh",
+	[aliceBusy()],
+	function* ({ heldAtoms, loading, notices, reads, replaceSession }) {
+		expect(yield* heldAtoms("alice")).toBe("holds atoms");
+
 		yield* replaceSession("bob");
-		yield* observe("the outgoing registry is disposed and Bob starts fresh", () => {
-			expect(session("alice").nodes).toEqual([0]);
-			expect(session()).toMatchObject({ reads: 1 });
-			expect(snapshot()).toMatchObject({ loading: "Loading notes", notices: [], rows: undefined });
+
+		yield* outcomes({
+			"alice's atoms": [heldAtoms("alice"), "empty"],
+			"bob's reads": [reads("bob"), 1],
+			loading: [loading(), "Loading notes"],
+			notices: [notices(), []],
 		});
-		yield* readSucceeds(1);
-		yield* observe("Bob's content has no inherited draft", () => expect(snapshot()).toMatchObject({ notices: [], rows: "existing", title: "" }));
-		yield* click("Remove first");
-		yield* observe("Bob can issue the same command", () => expect(session().removals).toEqual(["first"]));
-		yield* complete("remove", "first");
-		yield* observe("Bob's host publishes its own notice", () => expect(snapshot().notices[0]?.message).toBe("Removed first"));
-		yield* complete("remove", "second", "alice");
-		yield* complete("restore", "first", "alice");
-		yield* observe("outgoing uninterruptible work finishes without publishing", () => {
-			expect(session("alice").finished).toContain("second");
-			expect(session("alice").released).toEqual(["first"]);
-		});
-		yield* runRetainedAction();
-		yield* dismissRetainedNotice();
-		expect(session("alice")).toMatchObject({ callbacks: ["alice: first"], calls: [{ expectedVersion: 8, title: "first" }], nodes: [0] });
-		expect(session().callbacks).toEqual(["bob: first"]);
-		expect(snapshot().notices).toEqual([{ message: "Removed first", outcome: "", pending: false }]);
-		yield* click("Undo first");
-		yield* observe("only Bob's live action runs", () => expect(session().calls).toEqual([{ expectedVersion: 8, title: "first" }]));
-		yield* complete("restore", "first");
-		yield* observe("Bob's action can still complete", () => expect(snapshot().notices[0]?.outcome).toBe("Restored first"));
-		yield* readSucceeds(session().reads);
-		yield* observe("Bob's registry receives only his content", () => expect(snapshot().rows).toBe("existing, first@9"));
 	},
 );
+
+feedback.it("bob's notes show without alice's draft or notices", [bobReplacedBusyAlice(false)], function* ({ answerRead, draft, notices, rows }) {
+	yield* answerRead();
+
+	yield* outcomes({
+		draft: [draft(), ""],
+		notices: [notices(), []],
+		rows: [rows(), "existing"],
+	});
+});
+
+feedback.it(
+	"alice's held uninterruptible work finishes after the switch without reaching bob's screen",
+	[bobReplacedBusyAlice(true)],
+	function* ({ callbacks, completeRemove, completeRestore, notices, restoresReleased }) {
+		yield* completeRemove("second", "alice");
+		yield* completeRestore("first", "alice");
+
+		yield* outcomes({
+			"alice's callbacks": [callbacks("alice"), ["alice: first"]],
+			"alice's restores released": [restoresReleased("alice"), ["first"]],
+			"bob's notices": [notices(), []],
+		});
+	},
+);
+
+feedback.it(
+	"running alice's retained Undo after the switch sends nothing",
+	[bobReplacedBusyAlice(true)],
+	function* ({ heldAtoms, restoreCalls, runRetainedAction }) {
+		yield* runRetainedAction();
+
+		yield* outcomes({
+			"alice's atoms": [heldAtoms("alice"), "empty"],
+			"alice's restore calls": [restoreCalls("alice"), [{ expectedVersion: 8, title: "first" }]],
+		});
+	},
+);
+
+feedback.it(
+	"bob's removal publishes through his own notice host and callback",
+	[bobReplacedBusyAlice(true)],
+	function* ({ callbacks, completeRemove, notices, remove }) {
+		yield* remove("first");
+
+		yield* completeRemove("first");
+
+		yield* outcomes({
+			"bob's callbacks": [callbacks("bob"), ["bob: first"]],
+			notices: [notices(), ["Removed first"]],
+		});
+	},
+);
+
+feedback.it(
+	"dismissing alice's retained notice after the switch leaves bob's notice",
+	[bobNoticedAfterBusyAlice()],
+	function* ({ dismissRetainedNotice, notices }) {
+		yield* dismissRetainedNotice();
+
+		expect(yield* notices()).toEqual(["Removed first"]);
+	},
+);
+
+feedback.it("bob's Undo runs his own restore, not alice's", [bobNoticedAfterBusyAlice()], function* ({ restoreCalls, undo }) {
+	yield* undo("first");
+
+	yield* outcomes({
+		"alice's restore calls": [restoreCalls("alice"), [{ expectedVersion: 8, title: "first" }]],
+		"bob's restore calls": [restoreCalls("bob"), [{ expectedVersion: 8, title: "first" }]],
+	});
+});

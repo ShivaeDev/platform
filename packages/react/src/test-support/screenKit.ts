@@ -19,10 +19,7 @@ export function screenKit<TState, TVerbs extends object>(
 		stages: ["screen"] as const,
 		verbs: ({ now, screen, state }: { now: () => number; screen: Screen; state: TState }, story: Story<{ screen: Screen; state: TState }>) => {
 			screen.tell = story.tell;
-			return {
-				observe: (line: string, check: () => void) => screen.observe(line, check),
-				...verbs(state, screen, now),
-			};
+			return verbs(state, screen, now);
 		},
 	};
 }

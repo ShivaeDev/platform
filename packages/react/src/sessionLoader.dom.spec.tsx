@@ -1,59 +1,54 @@
-import { expect, vi } from "vitest";
-import { Unauthorized, Unavailable } from "#test/loaderSession.ts";
-import { expiredLoaderSession, sessionLoaders } from "#test/sessionLoaderStories.tsx";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { privateLoadWaiting, sessionLoaders, unauthorizedLoad } from "#test/sessionLoaderStories.tsx";
 
 for (const mode of ["route", "direct"] as const) {
 	sessionLoaders.it(
-		`${mode} Unauthorized rechecks once before the auth owner ends the session`,
-		[expiredLoaderSession(mode)],
-		function* ({ load, fail, observe, view, applySession }) {
-			yield* load();
-			const failure = new Unauthorized();
-			yield* fail(failure);
-			yield* observe("the failed load is visible", () =>
-				expect(view().root.container.querySelector("[role=alert]")?.textContent).toBe("Session expired"),
-			);
-			expect(vi.mocked(console.error).mock.calls.map(([, error]) => error)).toEqual(mode === "route" ? [failure] : []);
-			vi.mocked(console.error).mockClear();
-			expect(view().recheckedSessions).toEqual(["visitor"]);
-			yield* applySession();
-			expect(view().root.container.textContent).toBe("Session ended");
-			expect(view().recheckedSessions).toEqual(["visitor"]);
+		`a ${mode} load failing as Unauthorized shows Session expired and asks the auth owner to recheck once`,
+		[privateLoadWaiting(mode, "Unauthorized")],
+		function* ({ alert, failLoad, rechecks }) {
+			yield* failLoad("Unauthorized");
+
+			yield* outcomes({
+				alert: [alert(), "Session expired"],
+				rechecks: [rechecks(), ["visitor"]],
+			});
 		},
 	);
+
 	sessionLoaders.it(
-		`${mode} failures other than Unauthorized do not recheck`,
-		[expiredLoaderSession(mode)],
-		function* ({ load, fail, observe, view }) {
-			yield* load();
-			const failure = new Unavailable();
-			yield* fail(failure);
-			yield* observe("the failed load is visible", () =>
-				expect(view().root.container.querySelector("[role=alert]")?.textContent).toBe("Load unavailable"),
-			);
-			expect(vi.mocked(console.error).mock.calls.map(([, error]) => error)).toEqual(mode === "route" ? [failure] : []);
-			vi.mocked(console.error).mockClear();
-			expect(view().rechecks).toBe(0);
-			expect(view().session).toBe("visitor");
+		`applying the auth owner's verdict after a ${mode} Unauthorized load ends the session without another recheck`,
+		[unauthorizedLoad(mode)],
+		function* ({ applySession, rechecks, screenText }) {
+			yield* applySession();
+
+			yield* outcomes({
+				rechecks: [rechecks(), ["visitor"]],
+				screen: [screenText(), "Session ended"],
+			});
+		},
+	);
+
+	sessionLoaders.it(
+		`a ${mode} load failing as Unavailable shows Load unavailable and asks for no recheck`,
+		[privateLoadWaiting(mode, "Unavailable")],
+		function* ({ alert, failLoad, rechecks }) {
+			yield* failLoad("Unavailable");
+
+			yield* outcomes({
+				alert: [alert(), "Load unavailable"],
+				rechecks: [rechecks(), []],
+			});
 		},
 	);
 }
+
 sessionLoaders.it(
-	"the sign-in redirect sees the signed-out session after an Unauthorized loader",
-	[expiredLoaderSession("route")],
-	function* ({ load, fail, observe, view, signIn }) {
-		yield* load();
-		const failure = new Unauthorized();
-		yield* fail(failure);
-		yield* observe("the route reports the expired session", () =>
-			expect(view().root.container.querySelector("[role=alert]")?.textContent).toBe("Session expired"),
-		);
-		expect(vi.mocked(console.error).mock.calls.map(([, error]) => error)).toEqual([failure]);
-		vi.mocked(console.error).mockClear();
+	"after an Unauthorized route load, following the sign-in redirect stays on the signed-out sign-in screen",
+	[unauthorizedLoad("route")],
+	function* ({ screenText, signIn }) {
 		yield* signIn();
-		yield* observe("sign-in stays signed out instead of redirecting back", () =>
-			expect(view().root.container.textContent).toContain("Signed out: sign in"),
-		);
-		expect(view().recheckedSessions).toEqual(["visitor"]);
+
+		expect(yield* screenText()).toContain("Signed out: sign in");
 	},
 );

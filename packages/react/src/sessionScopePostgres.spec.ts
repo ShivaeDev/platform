@@ -1,50 +1,39 @@
-import { expect } from "vitest";
-import { privateSessionsAcrossHosts, processes } from "#test/postgres-example/processKit.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { privateSaveCommitted, privateSaveHeld, privateSessionsAcrossHosts, processes } from "#test/postgres-example/processKit.ts";
 
 processes.it(
-	"private item and list hints cross hosts only after commit, stay silent on rollback and never reach another account",
-	[privateSessionsAcrossHosts()],
-	function* ({
-		privateSave,
-		privateRead,
-		privateDeliveries,
-		rejectNextPrivateCommit,
-		settlePrivate,
-		observePrivate,
-		holdPrivateCommit,
-		beginPrivateSave,
-		privateCommitEntered,
-		releasePrivateCommit,
-		privateSaveResult,
-	}) {
-		const bob = privateDeliveries("bob");
-		const writer = privateDeliveries("writer");
-		const reader = privateDeliveries("reader");
-		yield* holdPrivateCommit();
-		yield* beginPrivateSave("Private title");
-		yield* privateCommitEntered();
-		yield* settlePrivate();
-		expect(yield* privateRead("reader")).toBe("Printer paper");
-		expect(privateDeliveries("reader")).toEqual(reader);
-		expect(privateDeliveries("writer")).toEqual(writer);
-		expect(privateDeliveries("bob")).toEqual(bob);
+	"a private commit reaches Alice's clients on both hosts once, after it commits",
+	[privateSaveHeld()],
+	function* ({ privateDeliveries, privateSaves, releasePrivateCommit }) {
 		yield* releasePrivateCommit();
-		expect(yield* privateSaveResult()).toMatchObject({ _tag: "Success" });
-		yield* observePrivate(() => {
-			for (const name of ["writer", "reader"]) {
-				expect(privateDeliveries(name).at(-1)).toMatchObject({ hint: { _tag: "Changed" }, list: ["Private title"], title: "Private title" });
-			}
+
+		yield* outcomes({
+			reader: [privateDeliveries("reader"), ["changed: Private title / Private title"]],
+			saves: [privateSaves(), ["saved"]],
+			writer: [privateDeliveries("writer"), ["changed: Private title / Private title"]],
 		});
-		expect(privateDeliveries("bob")).toEqual(bob);
-		expect(yield* privateRead("bob")).toBe("Unset");
-		const before = privateDeliveries("reader");
-		const writerBefore = privateDeliveries("writer");
-		yield* rejectNextPrivateCommit();
-		expect(yield* privateSave("Rolled back")).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });
-		yield* settlePrivate();
-		expect(yield* privateRead("reader")).toBe("Private title");
-		expect(privateDeliveries("reader")).toEqual(before);
-		expect(privateDeliveries("writer")).toEqual(writerBefore);
-		expect(privateDeliveries("bob")).toEqual(bob);
+	},
+);
+
+processes.it("Alice's private commit never reaches Bob", [privateSaveCommitted()], function* ({ bobSaves, privateDeliveries, privateRead }) {
+	yield* bobSaves("Bob's title");
+
+	yield* outcomes({
+		"Bob reads": [privateRead("bob"), "Unset"],
+		"Bob's deliveries": [privateDeliveries("bob"), ["changed: Unset / Unset"]],
+	});
+});
+
+processes.it(
+	"a rolled-back private write sends no hint to either host",
+	[privateSessionsAcrossHosts()],
+	function* ({ privateDeliveries, privateSaves, rejectedPrivateSave }) {
+		yield* rejectedPrivateSave("Rolled back");
+
+		yield* outcomes({
+			reader: [privateDeliveries("reader"), ["changed: After rollback / After rollback"]],
+			saves: [privateSaves(), ["rejected as Rejected", "saved"]],
+			writer: [privateDeliveries("writer"), ["changed: After rollback / After rollback"]],
+		});
 	},
 );

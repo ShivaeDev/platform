@@ -1,45 +1,76 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { suspended, suspendedDraft } from "#test/suspendedStories.ts";
 
 suspended.it(
-	"a canceled suspended transition preserves the visible draft and future persistence",
-	[suspendedDraft()],
-	function* ({ draft, type, show, staleEdit }) {
-		const form = draft().editor().form;
-		yield* type("Visible draft");
-		const saved = window.localStorage.getItem("transition-draft");
-		expect(saved).toContain("Visible draft");
-		yield* show("second", true, true);
-		expect(draft().attempts).not.toHaveLength(0);
-		expect(draft().editor("second").form).not.toBe(form);
-		expect(draft().container.querySelector("input")?.value).toBe("Visible draft");
-		expect(draft().container.textContent).not.toContain("Loading");
-		expect(window.localStorage.getItem("transition-draft")).toBe(saved);
-		yield* show("first");
-		expect(draft().editor().form).toBe(form);
-		yield* type("Continued editing");
-		expect(window.localStorage.getItem("transition-draft")).toContain("Continued editing");
-		yield* show("second");
-		expect(window.localStorage.getItem("transition-draft")).toBeNull();
-		yield* type("New session");
-		expect(window.localStorage.getItem("transition-draft")).toContain("New session");
-		yield* staleEdit(form, "Late old edit");
-		expect(window.localStorage.getItem("transition-draft")).toContain("New session");
+	"a suspending session transition keeps the visible draft and its stored copy",
+	[suspendedDraft("typed")],
+	function* ({ loading, name, stored, suspendingTransition, suspensions }) {
+		yield* suspendingTransition("second");
+
+		yield* outcomes({
+			loading: [loading(), "not shown"],
+			name: [name(), "Visible draft"],
+			stored: [stored(), "Visible draft"],
+			suspensions: [suspensions(), "suspended"],
+		});
 	},
 );
 
 suspended.it(
-	"a session replaced while Activity is hidden drops the old draft and activates the new owner",
-	[suspendedDraft()],
-	function* ({ type, show, draft }) {
-		yield* type("Visible draft");
-		yield* show("first", false, false, "hidden");
-		expect(window.localStorage.getItem("transition-draft")).toContain("Visible draft");
-		yield* show("second", false, false, "hidden");
-		expect(window.localStorage.getItem("transition-draft")).toBeNull();
-		yield* show("second");
-		expect(draft().container.querySelector("input")?.value).toBe("Paper");
-		yield* type("Revealed draft");
-		expect(window.localStorage.getItem("transition-draft")).toContain("Revealed draft");
+	"returning from a canceled transition keeps the first session's form",
+	[suspendedDraft("transition canceled")],
+	function* ({ firstSessionForm, session }) {
+		yield* session("first");
+
+		expect(yield* firstSessionForm()).toBe("same form");
 	},
 );
+
+suspended.it("the first session keeps storing its draft after a canceled transition", [suspendedDraft("returned")], function* ({ stored, type }) {
+	yield* type("Continued editing");
+
+	expect(yield* stored()).toBe("Continued editing");
+});
+
+suspended.it(
+	"a completed switch after a canceled transition drops the first session's draft",
+	[suspendedDraft("continued")],
+	function* ({ session, stored }) {
+		yield* session("second");
+
+		expect(yield* stored()).toBe("none");
+	},
+);
+
+suspended.it(
+	"a late edit from the first session's form leaves the second session's draft alone",
+	[suspendedDraft("second typed")],
+	function* ({ firstFormEdits, stored }) {
+		yield* firstFormEdits("Late old edit");
+
+		expect(yield* stored()).toBe("New session");
+	},
+);
+
+suspended.it(
+	"a session replaced inside hidden Activity drops the old session's draft",
+	[suspendedDraft("hidden")],
+	function* ({ hiddenSession, stored }) {
+		yield* hiddenSession("second");
+
+		expect(yield* stored()).toBe("none");
+	},
+);
+
+suspended.it("revealing the replacing session shows a fresh form", [suspendedDraft("replaced while hidden")], function* ({ name, session }) {
+	yield* session("second");
+
+	expect(yield* name()).toBe("Paper");
+});
+
+suspended.it("the revealed session stores its own draft", [suspendedDraft("revealed")], function* ({ stored, type }) {
+	yield* type("Revealed draft");
+
+	expect(yield* stored()).toBe("Revealed draft");
+});

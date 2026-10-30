@@ -1,7 +1,8 @@
+import { Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { createApplication } from "./applicationEngine.ts";
 import { isolate } from "./isolation.ts";
-import { hasPostgres, kitDatabases, workerDatabase } from "./postgres.ts";
+import { hasPostgres, workerDatabase } from "./postgres.ts";
 import { activeScreens } from "./screens.ts";
 import { orderVerbs } from "./verbs.ts";
 
@@ -25,12 +26,6 @@ export const app = storyKit({
 	stages: ["database", "orders", "screen"],
 	verbs: (engine, story) => ({
 		...orderVerbs(engine, story.tell),
-		databaseSetup: () => ({ ...engine.databaseSetup, activeScreens: engine.initialScreens }),
+		startingState: () => Effect.sync(() => ({ ...engine.databaseSetup, openScreens: engine.initialScreens })),
 	}),
 });
-
-export function realPostgres() {
-	return app.trait("database", "the application registers its worker database", (engine) => {
-		kitDatabases.add(engine.database.name);
-	});
-}

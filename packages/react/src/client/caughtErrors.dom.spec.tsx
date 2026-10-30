@@ -1,44 +1,67 @@
 import { expect } from "vitest";
 import { caughtErrorScreen, RouteFailure } from "#test/caughtErrorScreen.tsx";
 
-caughtErrorScreen.it("routes caught errors through React root options", [], function* ({ openRoute }) {
+caughtErrorScreen.it("a route's caught error reaches the root's onCaughtError with its component stack", [], function* ({ openRoute }) {
 	const failure = new RouteFailure("Route unavailable");
 	const caught: unknown[] = [];
-	const view = yield* openRoute(failure, { onCaughtError: (error, info) => caught.push({ error, stack: info.componentStack }) });
-	expect(view.container.querySelector('[role="alert"]')?.textContent).toBe(failure.message);
-	expect(caught).toEqual([{ error: failure, stack: expect.any(String) }]);
+
+	yield* openRoute(failure, { onCaughtError: (error, info) => caught.push({ error, stack: typeof info.componentStack }) });
+
+	expect(caught).toEqual([{ error: failure, stack: "string" }]);
 });
 
-caughtErrorScreen.it("keeps the warnings guard for an expected route failure", [], function* ({ openRoute, expectCaughtError }) {
-	const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
-	const view = yield* openRoute(new RouteFailure("Route unavailable"), { onCaughtError });
-	expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Route unavailable");
-});
+caughtErrorScreen.it(
+	"a route failure declared to the warnings guard shows the route's alert and passes the story",
+	[],
+	function* ({ alert, expectCaughtError, openRoute }) {
+		const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
 
-caughtErrorScreen.it.fails("rejects an unexpected caught route error", [], function* ({ openRoute, expectCaughtError }) {
-	const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
-	yield* openRoute(new RouteFailure("Expected route failure"), { onCaughtError });
-	yield* openRoute(new TypeError("Unexpected route defect"), { onCaughtError });
-});
+		yield* openRoute(new RouteFailure("Route unavailable"), { onCaughtError });
 
-caughtErrorScreen.it.fails("rejects a React warning alongside an expected route failure", [], function* ({ openRoute, expectCaughtError }) {
-	const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
-	const view = yield* openRoute(new RouteFailure("Route unavailable"), { onCaughtError }, true);
-	expect(view.container.querySelector('[role="alert"]')?.textContent).toBe("Route unavailable");
-});
-
-caughtErrorScreen.it.fails("rejects an expected error that never happens", [], function* ({ openRoute, expectCaughtError }) {
-	const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
-	const view = yield* openRoute(null, { onCaughtError });
-	expect(view.container.querySelector("h1")?.textContent).toBe("Route ready");
-});
+		expect(yield* alert()).toBe("Route unavailable");
+	},
+);
 
 caughtErrorScreen.it.fails(
-	"rejects unrelated console errors alongside an expected route failure",
+	"the warnings guard fails a story whose route throws an error it was not told to expect",
 	[],
-	function* ({ openRoute, expectCaughtError, logError }) {
+	function* ({ expectCaughtError, openRoute }) {
+		const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
+		yield* openRoute(new RouteFailure("Expected route failure"), { onCaughtError });
+
+		yield* openRoute(new TypeError("Unexpected route defect"), { onCaughtError });
+	},
+);
+
+caughtErrorScreen.it.fails(
+	"the warnings guard fails a story whose expected route failure renders a React warning",
+	[],
+	function* ({ expectCaughtError, openRoute }) {
+		const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
+
+		yield* openRoute(new RouteFailure("Route unavailable"), { onCaughtError }, true);
+	},
+);
+
+caughtErrorScreen.it.fails(
+	"the warnings guard fails a story whose expected route failure never happens",
+	[],
+	function* ({ expectCaughtError, heading, openRoute }) {
+		const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
+
+		yield* openRoute(null, { onCaughtError });
+
+		expect(yield* heading()).toBe("Route ready");
+	},
+);
+
+caughtErrorScreen.it.fails(
+	"the warnings guard fails a story that logs an unrelated console error beside an expected route failure",
+	[],
+	function* ({ expectCaughtError, logError, openRoute }) {
 		const onCaughtError = expectCaughtError((error) => error instanceof RouteFailure);
 		yield* openRoute(new RouteFailure("Route unavailable"), { onCaughtError });
+
 		yield* logError("Unexpected screen error");
 	},
 );

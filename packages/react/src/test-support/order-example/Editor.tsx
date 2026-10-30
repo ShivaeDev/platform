@@ -36,7 +36,7 @@ export function OrderList({ renameId, client: { api, renameOrder } }: { readonly
 	const query = useQuery(api.list.query());
 	return createElement(
 		"ul",
-		{ "data-testid": "order-list" },
+		{ "data-pending": query.pending || rename.pending, "data-testid": "order-list" },
 		renameId !== undefined
 			&& createElement(
 				"button",

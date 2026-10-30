@@ -1,12 +1,15 @@
 import { expect } from "vitest";
 import { dyingSave, saves } from "#test/saveStories.ts";
 
-for (const kind of ["create", "editor"] as const) {
-	saves.it(`a ${kind} save that dies renders the failure alert`, [dyingSave(kind)], function* ({ alert, submit }) {
-		expect(alert()).toBeUndefined();
+for (const [kind, alert] of [
+	["create", "Could not create"],
+	["editor", "Could not save"],
+] as const) {
+	saves.it(`a ${kind} save that dies shows ${alert}`, [dyingSave(kind)], function* ({ alert: shownAlert, submit }) {
+		expect(yield* shownAlert()).toBe("nothing");
 
 		yield* submit();
 
-		expect(alert()).toBe(kind === "create" ? "Could not create" : "Could not save");
+		expect(yield* shownAlert()).toBe(alert);
 	});
 }

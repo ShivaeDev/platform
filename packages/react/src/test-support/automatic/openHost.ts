@@ -7,6 +7,24 @@ import { Api, migrations, Preview, repository } from "./feature.ts";
 
 export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 	const reads: number[] = [];
+	const readers = new Set<(id: number) => void>();
+	function read(id: number) {
+		reads.push(id);
+		for (const reader of [...readers]) {
+			reader(id);
+		}
+	}
+	function nextRead(id: number) {
+		return new Promise<void>((resolve) => {
+			function reader(readId: number) {
+				if (readId === id) {
+					readers.delete(reader);
+					resolve();
+				}
+			}
+			readers.add(reader);
+		});
+	}
 	const publications: string[] = [];
 	const application = Api.application.merge(Preview.application);
 	const handlers = application.toLayer(
@@ -20,9 +38,9 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 				);
 			}
 			return application.of({
-				"notes.get": ({ id }) => Effect.sync(() => reads.push(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
+				"notes.get": ({ id }) => Effect.sync(() => read(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
 				"notes.rename": (input) => rows.update(input).pipe(Effect.orDie),
-				"preview.get": ({ id }) => Effect.sync(() => reads.push(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
+				"preview.get": ({ id }) => Effect.sync(() => read(id)).pipe(Effect.andThen(rows.findById(id)), Effect.orDie),
 			});
 		}),
 	);
@@ -40,7 +58,7 @@ export async function openHost(databaseUrl: Redacted.Redacted<string>) {
 		if (!NetAddress.isInetAddress(server.address)) {
 			throw new Error("Expected TCP host");
 		}
-		return { close: () => runtime.dispose(), publications, reads, url: `http://127.0.0.1:${server.address.port}/rpc` };
+		return { close: () => runtime.dispose(), nextRead, publications, reads, url: `http://127.0.0.1:${server.address.port}/rpc` };
 	} catch (error) {
 		await runtime.dispose();
 		throw error;

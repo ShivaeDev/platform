@@ -2,7 +2,7 @@ import { CatchBoundary } from "@tanstack/react-router";
 import { Effect } from "effect";
 import type { ReactNode } from "react";
 import type { RootOptions } from "react-dom/client";
-import { captureReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
+import { captureReactWarnings, type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { BrokenScreen } from "./BrokenScreen.tsx";
 
@@ -15,25 +15,41 @@ export const warningScreen = storyKit({
 	name: "React warning screen",
 	stages: ["screen"],
 	verbs: (warnings, story) => {
-		function open(node: ReactNode, options?: RootOptions) {
-			story.tell("render the screen");
+		const roots: Rendered[] = [];
+		function open(line: string, node: ReactNode, options?: RootOptions) {
+			story.tell(line);
 			return Effect.acquireRelease(
-				Effect.promise(() => render(node, options)),
+				Effect.promise(async () => {
+					const view = await render(node, options);
+					roots.push(view);
+					return view;
+				}),
 				(view) => Effect.promise(view.unmount),
-			);
+			).pipe(Effect.asVoid);
+		}
+		function screen() {
+			const view = roots.at(-1);
+			if (view === undefined) {
+				throw new Error("No screen is open");
+			}
+			return view.container;
 		}
 		return {
+			alert: () => Effect.sync(() => screen().querySelector('[role="alert"]')?.textContent ?? "no alert"),
 			expectCaughtError: warnings.expectCaughtError,
-			openCleanScreen: () => open(<h1>Screen ready</h1>),
+			field: () => Effect.sync(() => screen().querySelector("input")?.value ?? "no field"),
+			openCleanScreen: () => open("render a screen without warnings", <h1>Screen ready</h1>),
 			openFailedScreen: (failure: Error, onCaughtError = warnings.onCaughtError) =>
 				open(
+					`render a screen that throws ${failure.name}: ${failure.message} inside a catch boundary`,
 					<CatchBoundary errorComponent={() => <p role="alert">Screen unavailable</p>} getResetKey={() => "screen"}>
 						<BrokenScreen failure={failure} />
 					</CatchBoundary>,
 					{ onCaughtError },
 				),
-			openWarningScreen: () => open(<input value="Uneditable screen field" />),
-			warnings: warnings.read,
+			openWarningScreen: () => open("render a controlled field without onChange", <input value="Uneditable screen field" />),
+			shown: () => Effect.sync(() => screen().textContent),
+			warnings: () => Effect.sync(() => warnings.read()),
 		};
 	},
 });

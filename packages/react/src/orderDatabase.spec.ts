@@ -1,56 +1,69 @@
-import { Cause, Exit } from "effect";
 import { expect } from "vitest";
-import { databases, twoLeasesAreOpen } from "#test/order-example/databaseKit.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { databases, leasesAreOpen } from "#test/order-example/databaseKit.ts";
+
+databases.it("two leases share one disposable database with usable pools", [leasesAreOpen()], function* ({ leaseDatabases }) {
+	const [first, second] = yield* leaseDatabases();
+
+	expect([first, second]).toEqual([expect.stringMatching(/^platform_story_[a-f0-9]{32}$/u), first]);
+});
 
 databases.it(
-	"database leases share one disposable database, close pools before the last drop, and preserve the migration ledger",
-	[twoLeasesAreOpen()],
-	function* ({ leaseDatabases, closeLease, migrationLedger, database }) {
-		const names = yield* leaseDatabases();
-		expect(names).toEqual([expect.stringMatching(/^platform_story_/u), names[0]]);
+	"closing one lease keeps the database and its migration ledger for the other",
+	[leasesAreOpen()],
+	function* ({ closeLease, database, migrationLedger }) {
 		yield* closeLease("first");
-		expect(yield* migrationLedger("second")).toEqual([{ "migration_id": 1 }]);
-		yield* closeLease("second");
-		const dropped = yield* database();
-		expect(dropped.name).toMatch(/^platform_story_/u);
-		expect(dropped.rows).toEqual([]);
+
+		yield* outcomes({
+			database: [database(), "still exists"],
+			"second lease's ledger": [migrationLedger("second"), [{ "migration_id": 1 }]],
+		});
 	},
 );
+
+databases.it("closing the last lease drops the database", [leasesAreOpen(["first"])], function* ({ closeLease, database }) {
+	yield* closeLease("first");
+
+	expect(yield* database()).toBe("dropped");
+});
+
+databases.it("application setup that fails after acquiring the database releases it", [], function* ({ database, setup, setupFails }) {
+	yield* setupFails();
+
+	yield* outcomes({
+		database: [database(), "dropped"],
+		setup: [setup(), "failed: application setup failed after database acquisition"],
+	});
+});
 
 databases.it(
-	"a failed acquisition after pool setup releases the database, and impossible seeds insert nothing",
+	"a migration that fails during acquisition closes the pools and releases the lease",
 	[],
-	function* ({ setupFailsAfterRejectingSeed, database }) {
-		const failed = yield* setupFailsAfterRejectingSeed();
-		expect(failed.seed).toMatchObject({ _tag: "Failure" });
-		expect(failed.rows).toEqual([]);
-		expect(failed.exit).toEqual(Exit.fail("application setup failed after database acquisition"));
-		const dropped = yield* database();
-		expect(dropped.name).toMatch(/^platform_story_/u);
-		expect(dropped.rows).toEqual([]);
+	function* ({ database, migrationFails, setup }) {
+		yield* migrationFails();
+
+		yield* outcomes({
+			database: [database(), "dropped"],
+			setup: [setup(), "failed: migration setup failed"],
+		});
 	},
 );
 
-databases.it("migration failure during database acquisition closes pools and releases the lease", [], function* ({ migrationFails, database }) {
-	const exit = yield* migrationFails();
-	expect(Exit.isFailure(exit) && Cause.squash(exit.cause)).toBe("migration setup failed");
-	const dropped = yield* database();
-	expect(dropped.name).toMatch(/^platform_story_/u);
-	expect(dropped.rows).toEqual([]);
-});
-
-databases.it("interruption closes the database pools and drops the worker database", [], function* ({ startLongQuery, interruptQuery, database }) {
+databases.it("interrupting a query closes its pools and drops the database", [], function* ({ database, interruptQuery, startLongQuery }) {
 	yield* startLongQuery();
+
 	yield* interruptQuery();
-	const dropped = yield* database();
-	expect(dropped.name).toMatch(/^platform_story_/u);
-	expect(dropped.rows).toEqual([]);
+
+	expect(yield* database()).toBe("dropped");
 });
 
-databases.it("overlapping stories serialize resets so one story cannot erase another story's committed rows", [], function* ({ overlappingStories }) {
-	expect(yield* overlappingStories()).toEqual({
-		firstRows: [{ name: "First" }],
-		remaining: [],
-		secondRows: { initial: [], saved: [{ name: "Second" }] },
+databases.it("overlapping stories run one at a time, each starting from empty tables", [], function* ({ overlappingReport, runOverlappingStories }) {
+	yield* runOverlappingStories();
+
+	expect(yield* overlappingReport()).toEqual({
+		afterwards: [],
+		"first story saw": ["First"],
+		"second story saw": ["Second"],
+		"second story started with": [],
 	});
 });

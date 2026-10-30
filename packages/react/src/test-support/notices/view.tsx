@@ -92,7 +92,9 @@ function Operations({ state }: { readonly state: NoticeScreen }) {
 					() => "",
 				)}
 			</output>
-			<output data-rows="">{Option.getOrElse(list.data, () => "")}</output>
+			<output data-pending={list.pending || breakReads.pending || edit.pending} data-rows="">
+				{Option.getOrElse(list.data, () => "")}
+			</output>
 		</>
 	);
 }

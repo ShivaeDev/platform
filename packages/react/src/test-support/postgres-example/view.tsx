@@ -18,6 +18,8 @@ export async function mountView(url: string, token = "alice-session") {
 	window.location.href = url;
 	const client = makeClient(url, token);
 	const registry = AtomRegistry.make();
+	// A live hint invalidates at once, so a story can wait for the refetch it causes.
+	registry.set(client.coalesceWindow, 0);
 	const releaseQuery = registry.mount(client.query);
 	try {
 		await Effect.runPromise(AtomRegistry.getResult(registry, client.query));
@@ -71,6 +73,13 @@ export async function mountView(url: string, token = "alice-session") {
 				field.dispatchEvent(new Event("input", { bubbles: true }));
 			}),
 		input,
+		nextHint: () =>
+			new Promise<void>((resolve) => {
+				const stop = registry.subscribe(client.status, () => {
+					stop();
+					resolve();
+				});
+			}),
 		registry,
 	};
 }

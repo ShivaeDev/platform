@@ -3,9 +3,10 @@ import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { isolate, rollback } from "./isolation.ts";
-import { hasPostgres, kitDatabases, StoryDatabase, workerDatabase } from "./postgres.ts";
+import { hasPostgres, StoryDatabase, workerDatabase } from "./postgres.ts";
 import { seedOrder } from "./seed.ts";
 import { makeOrdersRepository, OrderService, OrdersRepository } from "./service.ts";
+import { outcomeOf } from "./verbs.ts";
 
 export const localApplication = storyKit({
 	around: isolate,
@@ -26,30 +27,35 @@ export const localApplication = storyKit({
 			),
 			OrderService,
 		);
-		return { changes, database, id: 0, service };
+		const inside: unknown = undefined;
+		return { changes, database, inside, service };
 	},
 	layer: workerDatabase,
 	name: "local orders",
 	runIf: hasPostgres,
 	stages: ["orders"],
 	verbs: (engine, story) => ({
-		changes: () => [...engine.changes],
-		inRollback: <A, E, R>(effect: Effect.Effect<A, E, R>) =>
-			rollback(effect).pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql), Effect.provide(Reactivity.layer)),
+		changes: () => Effect.sync(() => [...engine.changes]),
+		insideRollback: () => Effect.sync(() => engine.inside),
 		observerOrders: () => engine.database.observer`select id from orders`,
-		rejectLocally: () => {
-			story.tell("Alice tries an invalid nested save");
-			return engine.service.save("alice", { id: engine.id, name: "Rejected", quantity: -1 }).pipe(Effect.result);
-		},
-		saveLocally: () => {
-			story.tell("Alice saves the order inside the story transaction");
-			return engine.service.save("alice", { id: engine.id, name: "Local save", quantity: 12 });
-		},
-		seedLocalOrder: () =>
+		rollbackStory: () =>
 			Effect.gen(function* () {
-				story.tell("Alice seeds an order inside the story transaction");
-				engine.id = (yield* seedOrder().pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql))).id;
+				story.tell("Alice seeds an order, saves it and tries an invalid save inside a rolled-back story transaction");
+				const inside = Effect.gen(function* () {
+					const order = yield* seedOrder();
+					const saved = yield* engine.service.save("alice", { id: order.id, name: "Local save", quantity: 12 });
+					const rejected = yield* outcomeOf(engine.service.save("alice", { id: order.id, name: "Rejected", quantity: -1 }));
+					return {
+						changes: [...engine.changes],
+						observerOrders: yield* engine.database.observer`select id from orders`,
+						rejected,
+						saved: `${saved.name} / ${saved.quantity}`,
+					};
+				});
+				engine.inside = yield* rollback(inside).pipe(
+					Effect.provideService(SqlClient.SqlClient, engine.database.sql),
+					Effect.provide(Reactivity.layer),
+				);
 			}),
-		sharesWorkerDatabase: () => kitDatabases.has(engine.database.name),
 	}),
 });

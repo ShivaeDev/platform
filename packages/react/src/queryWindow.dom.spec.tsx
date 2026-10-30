@@ -1,65 +1,27 @@
 import { expect } from "vitest";
-import { queryWindowScreen } from "#test/queryWindowScreen.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { queryWindowPageShown, queryWindows } from "#test/queryWindowScreen.tsx";
 
-queryWindowScreen.it(
-	"queries refetch on independent windows over independent subscriptions while the session remains the default",
-	[],
-	function* (test) {
-		yield* test.open();
-		yield* test.observe(() => expect(test.values()).toEqual(["0", "0", "0"]));
-		yield* test.resync();
-		test.fakeTime();
-		const before = test.reads();
-		yield* test.publish(1);
-		yield* test.advance(50);
-		yield* test.publish(2);
-		yield* test.advance(50);
-		expect(test.values()).toEqual(["2", "0", "0"]);
-		expect(test.reads()).toEqual({ ...before, detail: before.detail + 1 });
-		yield* test.advance(400);
-		expect(test.values()).toEqual(["2", "0", "2"]);
-		yield* test.advance(1500);
-		expect(test.values()).toEqual(["2", "2", "2"]);
-		expect(test.reads()).toEqual({ dashboard: before.dashboard + 1, detail: before.detail + 1, inherited: before.inherited + 1 });
-		expect(test.subscriptions()).toMatchObject([
-			{ queries: [{ payload: { id: "detail" }, query: "get" }] },
-			{ queries: [{ payload: { id: "dashboard" }, query: "get" }] },
-			{ queries: [{ payload: { id: "inherited" }, query: "get" }] },
-		]);
+queryWindows.it(
+	"each query hands its own coalesce window to its live binding, and a query without one sets none",
+	[queryWindowPageShown()],
+	function* ({ windows }) {
+		expect(yield* windows()).toEqual({ dashboard: "2 seconds", detail: "100 millis", inherited: undefined });
 	},
 );
 
-queryWindowScreen.it("changing a query window keeps its connection and cached reads and uses the new schedule", [], function* (test) {
-	yield* test.open();
-	yield* test.observe(() => expect(test.values()).toEqual(["0", "0", "0"]));
-	yield* test.resync();
-	test.fakeTime();
-	const before = test.reads();
-	yield* test.publish(1);
-	yield* test.advance(50);
-	yield* test.changeWindow();
-	expect(test.values()).toEqual(["0", "0", "0"]);
-	expect(test.reads()).toEqual(before);
-	expect(test.subscriptions()).toMatchObject([
-		{ queries: [{ payload: { id: "detail" }, query: "get" }] },
-		{ queries: [{ payload: { id: "dashboard" }, query: "get" }] },
-		{ queries: [{ payload: { id: "inherited" }, query: "get" }] },
-	]);
-	yield* test.advance(50);
-	expect(test.values()).toEqual(["1", "0", "0"]);
-	yield* test.publish(2);
-	yield* test.advance(100);
-	expect(test.values()).toEqual(["1", "0", "0"]);
-	yield* test.advance(200);
-	expect(test.values()).toEqual(["2", "0", "0"]);
-	yield* test.advance(100);
-	expect(test.values()).toEqual(["2", "0", "2"]);
-	yield* test.advance(1500);
-	expect(test.values()).toEqual(["2", "2", "2"]);
-	expect(test.reads()).toEqual({ dashboard: before.dashboard + 1, detail: before.detail + 2, inherited: before.inherited + 1 });
-	expect(test.subscriptions()).toMatchObject([
-		{ queries: [{ payload: { id: "detail" }, query: "get" }] },
-		{ queries: [{ payload: { id: "dashboard" }, query: "get" }] },
-		{ queries: [{ payload: { id: "inherited" }, query: "get" }] },
-	]);
-});
+queryWindows.it(
+	"changing a query's window hands the new window over without a new subscription or read",
+	[queryWindowPageShown()],
+	function* ({ reads, slowDetail, subscriptions, windows }) {
+		expect((yield* windows()).detail).toBe("100 millis");
+
+		yield* slowDetail();
+
+		yield* outcomes({
+			reads: [reads(), { dashboard: 1, detail: 1, inherited: 1 }],
+			subscriptions: [subscriptions(), 3],
+			window: [windows(), { dashboard: "2 seconds", detail: "300 millis", inherited: undefined }],
+		});
+	},
+);

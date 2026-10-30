@@ -1,8 +1,19 @@
-import { Effect } from "effect";
+import { Deferred, Effect } from "effect";
 import { act } from "react";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
+import { settleScreen } from "#test/settleScreen.ts";
 import type { Application } from "./applicationEngine.ts";
 import { getContainer, input } from "./screens.ts";
+
+function busy(engine: Application) {
+	return [...engine.screens.values()].some(({ container }) => {
+		const text = container.textContent ?? "";
+		return container.querySelector('[data-pending="true"]') !== null || text.includes("Loading order…") || text.includes("Saving…");
+	});
+}
+
+export function settleOrders(engine: Application, tell: (line: string) => void) {
+	return settleScreen(document.body, () => !engine.saves.holding && busy(engine), tell);
+}
 
 export function screenVerbs(engine: Application, tell: (line: string) => void) {
 	function click(key: string, name: string) {
@@ -13,10 +24,10 @@ export function screenVerbs(engine: Application, tell: (line: string) => void) {
 				throw new Error(`Button ${name} is missing or disabled`);
 			}
 			await act(async () => button.click());
-		});
+		}).pipe(Effect.andThen(settleOrders(engine, tell)));
 	}
 	function edit(name: string, value: string, key = "editor") {
-		tell(`${key} enters ${name} ${value}`);
+		tell(`${key} enters ${name} ${JSON.stringify(value)}`);
 		return Effect.promise(async () => {
 			await act(() => {
 				const element = input(engine, name, key);
@@ -30,29 +41,31 @@ export function screenVerbs(engine: Application, tell: (line: string) => void) {
 			});
 		});
 	}
+	function read(key: string, selector: string) {
+		return Effect.sync(() => getContainer(engine, key).querySelector(selector)?.textContent ?? "none");
+	}
 	return {
+		alert: (key = "editor") => read(key, '[role="alert"]'),
 		editName: (value: string, key = "editor") => edit("name", value, key),
-		editor: (key = "editor") => {
-			const container = getContainer(engine, key);
-			return {
-				alert: container.querySelector('[role="alert"]')?.textContent,
-				name: container.querySelector<HTMLInputElement>('input[name="name"]')?.value,
-				quantity: container.querySelector<HTMLInputElement>('input[name="quantity"]')?.value,
-				refreshDisabled: container.querySelector<HTMLButtonElement>("button")?.disabled,
-				serverOrder: container.querySelector("output")?.textContent,
-				status: container.querySelector('[role="status"]')?.textContent,
-				text: container.textContent,
-			};
-		},
 		editQuantity: (value: string, key = "editor") => edit("quantity", value, key),
-		list: () => [...getContainer(engine, "list").querySelectorAll("li")].map((li) => li.textContent),
-		observe: (line: string, check: () => void) => {
-			tell(line);
-			return eventually(check);
-		},
+		field: (name: "name" | "quantity", key = "editor") =>
+			Effect.sync(() => getContainer(engine, key).querySelector<HTMLInputElement>(`input[name="${name}"]`)?.value ?? "missing"),
+		list: () => Effect.sync(() => [...getContainer(engine, "list").querySelectorAll("li")].map((li) => li.textContent)),
 		refreshOrder: () => click("editor", "Refresh"),
 		renameFromList: () => click("list", "Rename order"),
 		revertOrder: () => click("editor", "Revert"),
-		submitOrder: (key = "editor") => click(key, "Save"),
+		serverOrder: (key = "editor") => read(key, "output"),
+		status: (key = "editor") => read(key, '[role="status"]'),
+		submitOrder: (key = "editor") =>
+			Effect.suspend(() => {
+				if (!engine.saves.held) {
+					return click(key, "Save");
+				}
+				engine.saves.holding = true;
+				return click(key, "Save").pipe(
+					Effect.andThen(Deferred.await(engine.saves.entered)),
+					Effect.andThen(Effect.sync(() => tell("the save waits before writing"))),
+				);
+			}),
 	};
 }

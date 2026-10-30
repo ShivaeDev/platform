@@ -1,28 +1,20 @@
-import { expect } from "vitest";
-import { loaderScreen } from "#test/loaderScreen.tsx";
+import { Effect } from "effect";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { loaderScreen, noteLeftAfterShowing } from "#test/loaderScreen.tsx";
 
 loaderScreen.it(
-	"a link after invalidation renders the changed query on the target's first frame with one handler call per navigation",
-	[],
-	function* ({ respond, click, settle, text, firstRenders, calls, unmounted, rename }) {
-		yield* respond("Original note");
-		yield* settle();
-		expect(text("h1")).toBe("Original note");
-		expect(calls()).toEqual(["get"]);
-		yield* click('a[href="/"]');
-		yield* settle();
-		yield* unmounted();
+	"following the Note link after the note was renamed elsewhere shows the new title from its first render, with one server read per visit",
+	[noteLeftAfterShowing("Original note")],
+	function* ({ clickLink, firstRenders, rename, serverCalls, shownTitle }) {
 		yield* rename("Changed note");
-		const before = firstRenders().length;
-		yield* click('a[href="/note"]');
-		yield* settle();
-		expect(text("h1")).toBe("Changed note");
-		expect(firstRenders()[before]).toBe("Changed note");
-		expect(
-			firstRenders()
-				.slice(before)
-				.every((title) => title === "Changed note"),
-		).toBe(true);
-		expect(calls()).toEqual(["get", "get"]);
+		const before = (yield* firstRenders()).length;
+
+		yield* clickLink("Note");
+
+		yield* outcomes({
+			"renders since the visit": [Effect.map(firstRenders(), (titles) => [...new Set(titles.slice(before))]), ["Changed note"]],
+			"server calls": [serverCalls(), ["get", "get"]],
+			"shown title": [shownTitle(), "Changed note"],
+		});
 	},
 );

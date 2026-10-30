@@ -1,99 +1,133 @@
 import { expect } from "vitest";
-import { configurations, configuredForm } from "#test/configurationStories.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { configurations, configuredForm, draftTypedThenReconfigured, rejectedSaveWaiting } from "#test/configurationStories.tsx";
 
 for (const kind of ["create", "editor"] as const) {
+	function initial(revision: string) {
+		return kind === "create" ? revision : `${revision}:stored`;
+	}
+
 	configurations.it(
-		`${kind} uses the latest inline save without replacing the draft`,
-		[configuredForm(kind)],
-		function* ({ form, type, reconfigure, input, submit, saved }) {
-			const original = form();
+		`a ${kind} form rerendered with new inline callbacks keeps its form and draft`,
+		[configuredForm({ kind })],
+		function* ({ form, input, reconfigure, type }) {
 			yield* type("draft");
-			yield* reconfigure("callbacks");
-			expect(form()).toBe(original);
-			expect(input()).toBe("draft");
-			yield* submit();
-			expect(saved()).toEqual(["after:first:draft"]);
-			yield* type("next");
-			yield* submit();
-			expect(saved()).toEqual(["after:first:draft", "after:first:next"]);
+
+			yield* reconfigure("inline callbacks");
+
+			yield* outcomes({
+				draft: [input(), "draft"],
+				form: [form(), "original form"],
+			});
 		},
 	);
 
-	configurations.it(`${kind} uses the latest rejection mapper`, [configuredForm(kind, true)], function* ({ reconfigure, submit, output }) {
-		yield* reconfigure("callbacks");
-		yield* submit();
-		expect(output().error).toBe("after");
-	});
+	configurations.it(
+		`a ${kind} form saves through the inline save callback it last rendered`,
+		[draftTypedThenReconfigured(kind, "inline callbacks")],
+		function* ({ save, savedWith }) {
+			yield* save();
+
+			expect(yield* savedWith()).toEqual(["after:first:draft"]);
+		},
+	);
+
+	for (const [change, error] of [
+		[undefined, "before"],
+		["inline callbacks", "after"],
+		["removing the rejection mapper", "automatic"],
+	] as const) {
+		configurations.it(
+			`a ${kind} form ${change ? `rerendered with ${change} changed ` : ""}maps a rejected save to "${error}"`,
+			[configuredForm({ kind, rejected: true })],
+			function* ({ fieldError, reconfigure, save }) {
+				if (change) {
+					yield* reconfigure(change);
+				}
+
+				yield* save();
+
+				expect(yield* fieldError()).toBe(error);
+			},
+		);
+	}
 
 	configurations.it(
-		`${kind} maps a pending save failure with the latest mapper`,
-		[configuredForm(kind, true, true)],
-		function* ({ submit, reconfigure, finishSave, observe, output }) {
-			yield* submit();
-			yield* reconfigure("callbacks");
+		`a ${kind} form maps a rejection that arrives after a mapper change with the new mapper`,
+		[rejectedSaveWaiting(kind)],
+		function* ({ fieldError, finishSave, reconfigure }) {
+			yield* reconfigure("inline callbacks");
+
 			yield* finishSave();
-			yield* observe("the rejection uses the current mapper", () => expect(output().error).toBe("after"));
+
+			expect(yield* fieldError()).toBe("after");
 		},
 	);
 
 	configurations.it(
-		`${kind} returns to automatic rejection mapping when the mapper is removed`,
-		[configuredForm(kind, true)],
-		function* ({ reconfigure, submit, output }) {
-			yield* reconfigure("automatic");
-			yield* submit();
-			expect(output().error).toBe("automatic");
-		},
-	);
-
-	configurations.it(
-		`${kind} keeps its initial value conversion until the form is replaced`,
-		[configuredForm(kind)],
-		function* ({ type, reconfigure, revert, input }) {
-			yield* type("draft");
-			yield* reconfigure("callbacks");
+		`a ${kind} form reverts to the initial values it converted when it was created`,
+		[draftTypedThenReconfigured(kind, "inline callbacks")],
+		function* ({ input, revert }) {
 			yield* revert();
-			expect(input()).toBe(kind === "create" ? "before" : "before:stored");
-		},
-	);
 
-	configurations.it(`${kind} captures persistence options for its form lifetime`, [configuredForm(kind)], function* ({ type, reconfigure }) {
-		yield* reconfigure("callbacks");
-		yield* type("draft");
-		expect(window.localStorage.getItem(`${kind}-before`)).toContain("draft");
-		expect(window.localStorage.getItem(`${kind}-after`)).toBeNull();
-		yield* reconfigure("schema");
-		yield* type("new draft");
-		expect(window.localStorage.getItem(`${kind}-after`)).toContain("new draft");
-	});
-
-	configurations.it(
-		`${kind} replaces the form and decodes with a changed schema`,
-		[configuredForm(kind)],
-		function* ({ form, type, reconfigure, input, submit, saved }) {
-			const original = form();
-			yield* type("discarded");
-			yield* reconfigure("schema");
-			expect(form()).not.toBe(original);
-			expect(input()).toBe(kind === "create" ? "after" : "after:stored");
-			yield* type(" draft ");
-			yield* submit();
-			expect(saved()).toEqual(["after:first:draft"]);
+			expect(yield* input()).toBe(initial("before"));
 		},
 	);
 
 	configurations.it(
-		`${kind} replaces the form and runs with a changed runtime`,
-		[configuredForm(kind)],
-		function* ({ form, type, reconfigure, input, submit, saved }) {
-			const original = form();
-			yield* type("discarded");
-			yield* reconfigure("runtime");
-			expect(form()).not.toBe(original);
-			expect(input()).toBe(kind === "create" ? "after" : "after:stored");
+		`a ${kind} form keeps persisting under the draft key it was created with`,
+		[configuredForm({ kind })],
+		function* ({ reconfigure, storedDraft, type }) {
+			yield* reconfigure("inline callbacks");
+
 			yield* type("draft");
-			yield* submit();
-			expect(saved()).toEqual(["after:second:draft"]);
+
+			yield* outcomes({
+				"created key": [storedDraft("before"), "draft"],
+				"rendered key": [storedDraft("after"), "none"],
+			});
 		},
 	);
+
+	configurations.it(
+		`a ${kind} form replaced by a schema change persists under its new draft key`,
+		[draftTypedThenReconfigured(kind, "the schema")],
+		function* ({ storedDraft, type }) {
+			yield* type("new draft");
+
+			expect(yield* storedDraft("after")).toBe("new draft");
+		},
+	);
+
+	for (const [change, typed, saved] of [
+		["the schema", " draft ", "after:first:draft"],
+		["the runtime", "draft", "after:second:draft"],
+	] as const) {
+		configurations.it(
+			`a ${kind} form rerendered with ${change} changed starts over from new initial values`,
+			[configuredForm({ kind })],
+			function* ({ form, input, reconfigure, type }) {
+				yield* type("discarded");
+
+				yield* reconfigure(change);
+
+				yield* outcomes({
+					draft: [input(), initial("after")],
+					form: [form(), "replaced form"],
+				});
+			},
+		);
+
+		configurations.it(
+			`a ${kind} form replaced by a change to ${change} saves with it`,
+			[draftTypedThenReconfigured(kind, change, "discarded")],
+			function* ({ save, savedWith, type }) {
+				yield* type(typed);
+
+				yield* save();
+
+				expect(yield* savedWith()).toEqual([saved]);
+			},
+		);
+	}
 }

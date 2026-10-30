@@ -45,6 +45,13 @@ function EditorProbe({ held, denied, dies }: ProbeProps) {
 	return createElement(SaveControls, { held });
 }
 
+function statusOf({ dirty, saving }: { readonly dirty: boolean; readonly saving: boolean }) {
+	if (saving) {
+		return "Saving";
+	}
+	return dirty ? "Unsaved changes" : "Saved";
+}
+
 function SaveControls({ held }: { readonly held: Held }) {
 	const current = held.current;
 	if (!current?.form) {
@@ -61,7 +68,11 @@ function SaveControls({ held }: { readonly held: Held }) {
 		}),
 		createElement("button", { onClick: current.save, type: "button" }, "Save"),
 		Option.isSome(current.cause) ? createElement("p", { role: "alert" }, "created" in current ? "Could not create" : "Could not save") : null,
-		createElement("output", null, JSON.stringify({ dirty: current.dirty, failure: current.failure, saving: current.saving })),
+		createElement("output", null, statusOf(current)),
+		Option.match(current.failure, {
+			onNone: () => null,
+			onSome: (failure) => createElement("p", { "data-failure": "" }, `${failure.name}: ${failure.message}`),
+		}),
 	);
 }
 export async function saveSession(view: Rendered, kind: "create" | "editor", dies = false) {
@@ -85,25 +96,5 @@ export async function saveSession(view: Rendered, kind: "create" | "editor", die
 		});
 	}
 	await render();
-	function current() {
-		if (held.current === undefined) {
-			throw new Error("Save hook did not render");
-		}
-		return held.current;
-	}
-	return {
-		close: view.unmount,
-		container: view.container,
-		current,
-		denied,
-		form: () => {
-			const form = current().form;
-			if (form === undefined) {
-				throw new Error("Editor form did not initialize");
-			}
-			return form;
-		},
-		rechecks,
-		render,
-	};
+	return { container: view.container, rechecks, render };
 }

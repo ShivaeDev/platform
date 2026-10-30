@@ -93,7 +93,7 @@ export function InvoiceLineScreen({ id, server: { api, runtime } }: { readonly i
 	const { query, form } = editor;
 	return createElement(
 		"section",
-		null,
+		{ "data-pending": query.pending },
 		createElement("button", { onClick: query.refresh, type: "button" }, "Refresh"),
 		createElement(QueryView<InvoiceLine, unknown>, {
 			content: (line) =>

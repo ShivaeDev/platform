@@ -1,32 +1,30 @@
 import { RegistryContext } from "@effect/atom-react";
-import { Cause, Deferred, Effect, type Exit, Layer, Option } from "effect";
+import { Cause, Deferred, Effect, Layer, Option } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { type QueryOptions, useQuery } from "#client/resultState.ts";
+import { statusWords } from "./outcomeWords.ts";
 import { QueryFeedbackScreen } from "./QueryFeedbackScreen.tsx";
-import { clickButton, typeInput } from "./Screen.ts";
 
 export interface Unavailable {
 	readonly _tag: "Unavailable";
 	readonly message: string;
 }
 
-type Query = Atom.Atom<AsyncResult.AsyncResult<string, Unavailable>>;
-export function queryGate() {
-	return Effect.runSync(Deferred.make<string, Unavailable>());
+export type Query = Atom.Atom<AsyncResult.AsyncResult<string, Unavailable>>;
+
+export interface Shown {
+	readonly data: string;
+	readonly failure: string;
+	readonly status: string;
 }
 
-export async function finishQuery(gate: Deferred.Deferred<string, Unavailable>, result: Exit.Exit<string, Unavailable>) {
-	await act(async () => {
-		await Effect.runPromise(Deferred.done(gate, result));
-	});
-}
-
-export function queryRequests() {
-	let gate = queryGate();
+export function heldReads() {
+	const held = new Map<string, Deferred.Deferred<string, Unavailable>>();
+	let gate = Deferred.makeUnsafe<string, Unavailable>();
 	const interrupted: string[] = [];
 	const queries = Atom.family((payload: string) =>
 		Atom.make(Effect.suspend(() => Deferred.await(gate)).pipe(Effect.onInterrupt(() => Effect.sync(() => interrupted.push(payload))))).pipe(
@@ -37,12 +35,18 @@ export function queryRequests() {
 	const runtime = Atom.runtime(Layer.empty);
 	const invalidation = runtime.fn<void>()(() => Reactivity.invalidate(["reports"]));
 	return {
-		gate: () => gate,
+		held: (label: string) => {
+			const found = held.get(label);
+			if (found === undefined) {
+				throw new Error(`No read named ${label} was started`);
+			}
+			return found;
+		},
 		interrupted,
 		invalidation,
-		next: () => {
-			gate = queryGate();
-			return gate;
+		next: (label: string) => {
+			gate = Deferred.makeUnsafe<string, Unavailable>();
+			held.set(label, gate);
 		},
 		queries,
 	};
@@ -50,16 +54,13 @@ export function queryRequests() {
 
 function QueryProbe({ atom, options }: { readonly atom: Query; readonly options: QueryOptions }) {
 	const query = useQuery(atom, options);
-	return createElement(
-		"button",
-		{ onClick: query.refresh, type: "button" },
-		JSON.stringify({
-			data: Option.getOrNull(query.data),
-			failure: Option.getOrNull(Option.flatMap(query.cause, Cause.findErrorOption)),
-			pending: query.pending,
-			refreshing: query.refreshing,
-		}),
-	);
+	const failure = Option.getOrNull(Option.flatMap(query.cause, Cause.findErrorOption));
+	const shown: Shown = {
+		data: Option.getOrElse(query.data, () => "none"),
+		failure: failure === null ? "none" : `${failure._tag}: ${failure.message}`,
+		status: statusWords(query),
+	};
+	return createElement("button", { onClick: query.refresh, type: "button" }, JSON.stringify(shown));
 }
 
 export async function queryView(view: Rendered, atom: Query, options: QueryOptions = {}, feedback = false) {
@@ -75,24 +76,13 @@ export async function queryView(view: Rendered, atom: Query, options: QueryOptio
 	}
 	await render(atom);
 	return {
-		click: (label: string) => clickButton(container, label),
 		container,
 		invalidate: async (invalidation: Atom.AtomResultFn<void, void>) => {
 			await act(async () => registry.set(invalidation, undefined));
 		},
-		refresh: async () => {
-			await act(() => {
-				const button = container.querySelector("button");
-				if (!button) {
-					throw new Error("Missing query refresh button");
-				}
-				button.click();
-			});
-		},
 		registry,
 		render,
-		snapshot: () => JSON.parse(container.textContent ?? ""),
-		type: (name: string, value: string) => typeInput(container, name, value),
+		shown: (): Shown => JSON.parse(container.querySelector("button")?.textContent ?? ""),
 		unmount: view.unmount,
 	};
 }

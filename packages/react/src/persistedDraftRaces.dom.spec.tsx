@@ -1,45 +1,49 @@
 import { expect } from "vitest";
-import { drafts, persistedDraft } from "#test/draftStories.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { activityDraft, drafts, draftTyped, laterEditSaved, saveHeld } from "#test/draftStories.ts";
 
 drafts.it(
-	"later edits survive a successful save response and reload",
-	[persistedDraft(undefined, "held")],
-	function* ({ type, submit, observe, draft, refresh, finishSave, reload }) {
-		yield* type("name", "Submitted");
-		yield* submit();
-		yield* observe("saving", () => expect(draft().editor().saving).toBe(true));
-		yield* type("name", "Later edit");
-		yield* refresh({ name: "Remote", quantity: "350" });
+	"an edit made while a save waits survives the save's success and stays stored",
+	[saveHeld(true)],
+	function* ({ fields, finishSave, stored }) {
 		yield* finishSave();
-		yield* observe("saved", () => expect(draft().editor().saving).toBe(false));
-		expect(draft().editor().form.values.value.name).toBe("Later edit");
-		expect(window.localStorage.getItem("order-draft")).toContain("Later edit");
-		yield* reload();
-		expect(draft().editor().form.values.value).toEqual({ name: "Later edit", quantity: "300" });
-		expect(draft().editor().dirty).toBe(true);
+
+		yield* outcomes({
+			fields: [fields(), { name: "Later edit", quantity: "300" }],
+			stored: [stored(), { name: "Later edit", quantity: "300" }],
+		});
 	},
 );
 
-drafts.it(
-	"a refresh during a save does not persist the accepted submission",
-	[persistedDraft(undefined, "held")],
-	function* ({ type, submit, observe, draft, refresh, finishSave }) {
-		yield* type("name", "Submitted");
-		yield* submit();
-		yield* observe("saving", () => expect(draft().editor().saving).toBe(true));
-		yield* refresh({ name: "Remote", quantity: "350" });
-		yield* finishSave();
-		yield* observe("saved", () => expect(draft().editor().saving).toBe(false));
-		expect(window.localStorage.getItem("order-draft")).toBeNull();
-	},
-);
+drafts.it("a reload after the save restores the later edit as unsaved", [laterEditSaved()], function* ({ fields, reload, status }) {
+	yield* reload();
 
-drafts.it("hiding and revealing Activity keeps its draft and session ownership", [persistedDraft()], function* ({ type, activity, draft, show }) {
-	yield* type("name", "Retained");
+	yield* outcomes({
+		fields: [fields(), { name: "Later edit", quantity: "300" }],
+		status: [status(), "Unsaved"],
+	});
+});
+
+drafts.it("a refresh during a save does not store the accepted submission", [saveHeld(false)], function* ({ finishSave, stored }) {
+	yield* finishSave();
+
+	expect(yield* stored()).toBe("none");
+});
+
+drafts.it("hiding Activity keeps the stored draft", [draftTyped("name", "Retained")], function* ({ activity, stored }) {
 	yield* activity("hidden");
-	expect(window.localStorage.getItem("order-draft")).toContain("Retained");
+
+	expect(yield* stored()).toEqual({ name: "Retained", quantity: "300" });
+});
+
+drafts.it("revealing Activity shows the retained draft", [activityDraft("hidden")], function* ({ activity, fields }) {
 	yield* activity("visible");
-	expect(draft().editor().form.values.value.name).toBe("Retained");
-	yield* show("second");
-	expect(window.localStorage.getItem("order-draft")).toBeNull();
+
+	expect(yield* fields()).toEqual({ name: "Retained", quantity: "300" });
+});
+
+drafts.it("a session change after Activity was revealed still drops the draft", [activityDraft("revealed")], function* ({ session, stored }) {
+	yield* session("second");
+
+	expect(yield* stored()).toBe("none");
 });

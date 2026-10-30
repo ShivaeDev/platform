@@ -63,9 +63,11 @@ export const driverScreen = storyKit({
 			root: view.container,
 			tell: story.tell,
 		}),
-		deliverTitle: (title: string) =>
+		fieldValue: () => Effect.sync(() => view.container.querySelector("input")?.value),
+		renderedDraft: () => Effect.sync(() => view.container.querySelector("output")?.textContent),
+		responseArrivesLater: (title: string) =>
 			Effect.sync(() => {
-				story.tell(`the response delivers ${title}`);
+				story.tell(`the response with ${title} arrives after the click returns`);
 				deliver(title);
 			}),
 	}),

@@ -1,90 +1,107 @@
 import { Effect } from "effect";
 import { Order } from "./contract.ts";
-import { failoverVerbs } from "./failoverVerbs.ts";
+import { answerWord, hintWord } from "./hintWords.ts";
 import { client, type ProcessEngine, process } from "./processEngine.ts";
-import { until } from "./processHarness.ts";
+
+type Client = "a" | "b" | "another";
+
+const listenerMessages = [
+	"PostgreSQL change listener lost; resynchronizing live streams",
+	"PostgreSQL change listener recovered; resynchronized live streams",
+];
+
+function listenerLogs(engine: ProcessEngine, name: string) {
+	return process(engine, name).responses.items.flatMap((response) => {
+		if (response._tag !== "Log" || !Array.isArray(response.message)) {
+			return [];
+		}
+		const [message] = response.message;
+		if (typeof message !== "string" || !listenerMessages.includes(message)) {
+			return [];
+		}
+		const streams = response.annotations.streamCount;
+		return [`${response.level}: ${message}${streams === undefined ? "" : ` (${String(streams)} streams)`}`];
+	});
+}
 
 export function processVerbs(engine: ProcessEngine, tell: (line: string) => void) {
-	function counts() {
-		return [client(engine, "a").hints.length, client(engine, "b").hints.length];
+	function mark() {
+		for (const [name, remote] of engine.clients) {
+			engine.marks.set(name, remote.hints.items.length);
+		}
 	}
-	async function bothSee(previous: number[]) {
-		await until(() => client(engine, "a").hints.length > (previous[0] ?? 0) && client(engine, "b").hints.length > (previous[1] ?? 0));
-		return { a: await client(engine, "a").get(), b: await client(engine, "b").get(), hints: [...client(engine, "a").hints] };
+	function since(name: Client) {
+		return client(engine, name).hints.items.slice(engine.marks.get(name) ?? 0);
+	}
+	function changedSinceMark(...names: readonly Client[]) {
+		return Promise.all(names.map((name) => client(engine, name).hints.when(() => since(name).some((hint) => hint._tag === "Changed"))));
+	}
+	async function save(writer: Client, name: string) {
+		engine.answers.push(answerWord(await client(engine, writer).save(name)));
+	}
+	function recovered(name: string) {
+		return process(engine, name).responses.when(() => listenerLogs(engine, name).some((log) => log.includes("recovered")));
 	}
 	return {
-		...failoverVerbs(engine, tell),
-		hints: (name: string) => [...client(engine, name).hints],
-		localResyncs: () =>
-			Effect.promise(async () => {
-				tell("wait for both local clients to resync and the listener to reconnect");
-				await until(
-					() =>
-						client(engine, "a")
-							.hints.slice(engine.beforeRollback[0])
-							.filter((hint) => hint._tag === "Resync").length >= 2
-						&& client(engine, "another")
-							.hints.slice(engine.anotherBeforeLoss)
-							.some((hint) => hint._tag === "Resync"),
-				);
-				return {
-					a: client(engine, "a").hints.slice(engine.beforeRollback[0]),
-					another: client(engine, "another").hints.slice(engine.anotherBeforeLoss),
-				};
-			}),
+		answers: () => Effect.sync(() => [...engine.answers]),
+		hintsSinceAction: (name: Client) => Effect.sync(() => since(name).map(hintWord)),
+		initialHints: (name: Client) => Effect.sync(() => client(engine, name).hints.items.map(hintWord)),
+		listenerLogs: (name: "first" | "second") => Effect.sync(() => listenerLogs(engine, name)),
 		loseListener: () =>
 			Effect.gen(function* () {
-				tell("the first server loses its PostgreSQL listener");
-				const sql = engine.sql;
-				const listeners = yield* sql<{
+				tell("the first server loses its PostgreSQL listener; once it recovers, b commits after reconnect");
+				mark();
+				const listeners = yield* engine.sql<{
 					readonly pid: number;
 				}>`select pid from pg_stat_activity where application_name = ${engine.configuration.applicationName} and query like 'LISTEN%'`;
 				const listener = listeners[0];
 				if (listeners.length !== 1 || listener === undefined) {
 					return yield* Effect.die(new Error(`Expected one listener to terminate, found ${listeners.length}`));
 				}
-				return yield* sql`select pg_terminate_backend(${listener.pid}) as terminated`;
+				yield* engine.sql`select pg_terminate_backend(${listener.pid})`;
+				yield* Effect.promise(async () => {
+					await recovered("first");
+					await save("b", "after reconnect");
+					await changedSinceMark("a", "another");
+				});
 			}),
+		order: (name: Client) => Effect.promise(async () => (await client(engine, name).get()).name),
 		rejectWrite: () =>
-			Effect.gen(function* () {
-				tell("a server rejects a transaction before commit");
-				engine.beforeRollback = counts();
-				engine.anotherBeforeLoss = client(engine, "another").hints.length;
-				const first = process(engine, "first");
-				first.child.send({ _tag: "Reject" });
-				yield* Effect.promise(() => first.wait("Rejected"));
-				const result = yield* Effect.promise(() => client(engine, "a").save("rolled back"));
-				yield* Effect.sleep("350 millis");
-				return {
-					after: counts(),
-					before: engine.beforeRollback,
-					order: yield* Effect.promise(() => client(engine, "b").get()),
-					result,
-				};
-			}),
-		saveAfterReconnect: () =>
 			Effect.promise(async () => {
-				tell("a new commit reaches the reconnected listener");
-				const previous = client(engine, "a").hints.length;
-				const result = await client(engine, "b").save("after reconnect");
-				await until(() => client(engine, "a").hints.length > previous && client(engine, "a").hints.at(-1)?._tag === "Changed");
-				return { order: await client(engine, "a").get(), result };
+				tell("the first server rejects a's transaction before commit; then b commits after rollback");
+				mark();
+				await process(engine, "first").send({ _tag: "Reject" }, "Rejected");
+				await save("a", "rolled back");
+				await save("b", "after rollback");
+				await changedSinceMark("a", "b");
 			}),
-		saveFromServer: (writer: string, name: string) =>
+		saveFromServer: (writer: "a" | "b", name: string) =>
 			Effect.promise(async () => {
-				tell(`${writer} commits ${name} and both servers deliver the change`);
-				const previous = counts();
-				const result = await client(engine, writer).save(name);
-				return { result, ...(await bothSee(previous)) };
+				tell(`${writer} commits ${name} through its server`);
+				mark();
+				await save(writer, name);
+				await changedSinceMark("a", "b");
 			}),
 		saveFromWorker: () =>
 			Effect.promise(async () => {
-				tell("the pg-boss worker commits an order and both servers deliver it");
-				const previous = counts();
+				tell("the pg-boss worker commits the order as worker");
+				mark();
 				const worker = process(engine, "worker");
-				worker.child.send({ _tag: "Enqueue", order: new Order({ id: 1, name: "worker", quantity: 500 }) });
-				await worker.wait("Handled");
-				return bothSee(previous);
+				const handled = worker.next("Handled");
+				await worker.send({ _tag: "Enqueue", order: new Order({ id: 1, name: "worker", quantity: 500 }) }, "Enqueued");
+				await handled;
+				await changedSinceMark("a", "b");
+			}),
+		terminateBackends: () =>
+			Effect.gen(function* () {
+				tell("PostgreSQL terminates every other backend in the story database; once both servers recover, a commits after failover");
+				mark();
+				yield* engine.sql`select pg_terminate_backend(pid) from pg_stat_activity where datname = current_database() and pid <> pg_backend_pid()`;
+				yield* Effect.promise(async () => {
+					await Promise.all([recovered("first"), recovered("second")]);
+					await save("a", "after failover");
+					await changedSinceMark("a", "b", "another");
+				});
 			}),
 	};
 }

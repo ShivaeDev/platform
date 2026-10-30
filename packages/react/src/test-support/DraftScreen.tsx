@@ -1,4 +1,5 @@
 import { RegistryContext } from "@effect/atom-react";
+import { Option } from "effect";
 import { useContext } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
 import { useEditor } from "#client/editor.ts";
@@ -16,6 +17,8 @@ export function DraftInputs({ editor }: { readonly editor: ViewEditor }) {
 	}
 	const name = useField(editor.form, "name");
 	const quantity = useField(editor.form, "quantity");
+	const alert = Option.isSome(editor.failure) ? <p role="alert">Save failed</p> : null;
+	const status = editor.dirty ? "Unsaved" : "Saved";
 	return (
 		<form
 			onSubmit={(event) => {
@@ -37,7 +40,8 @@ export function DraftInputs({ editor }: { readonly editor: ViewEditor }) {
 			<button onClick={() => editor.form?.revert()} type="button">
 				Revert
 			</button>
-			<output>{editor.dirty ? "Unsaved" : "Saved"}</output>
+			{alert}
+			<output data-saving={editor.saving}>{status}</output>
 		</form>
 	);
 }

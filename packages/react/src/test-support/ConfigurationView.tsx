@@ -70,7 +70,9 @@ function Controls({ current }: { readonly current: Current }) {
 			<button onClick={current.revert} type="button">
 				Revert
 			</button>
-			<output>{JSON.stringify({ created: "created" in current ? Option.getOrNull(current.created) : undefined, error: name.error })}</output>
+			<output data-saving={current.saving}>
+				{JSON.stringify({ created: "created" in current ? Option.getOrNull(current.created) : undefined, error: name.error })}
+			</output>
 		</section>
 	);
 }

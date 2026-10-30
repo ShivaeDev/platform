@@ -5,8 +5,13 @@ import { SessionBoundary } from "#client/sessionBoundary.ts";
 import { Note } from "./App.tsx";
 import { connect } from "./connect.ts";
 
-export function shell(url: string, view: Rendered, browser = false) {
-	const connections: Array<{ readonly api: ReturnType<typeof connect>; readonly id: string; readonly registry: AtomRegistry.AtomRegistry }> = [];
+export interface Connection {
+	readonly id: string;
+	readonly registry: AtomRegistry.AtomRegistry;
+}
+
+export function shell(url: string, view: Rendered, browser: boolean) {
+	const connections: Connection[] = [];
 	return {
 		connections,
 		show: (session: { readonly id: string; readonly token: string } | undefined) =>
@@ -14,7 +19,7 @@ export function shell(url: string, view: Rendered, browser = false) {
 				<SessionBoundary
 					connect={(current, registry) => {
 						const api = browser ? connect(url, registry, undefined, Socket.layerWebSocketConstructorGlobal) : connect(url, registry, current.token);
-						connections.push({ api, id: current.id, registry });
+						connections.push({ id: current.id, registry });
 						return api;
 					}}
 					identify={(current) => current.id}
@@ -25,6 +30,5 @@ export function shell(url: string, view: Rendered, browser = false) {
 					{(api) => <Note client={api} />}
 				</SessionBoundary>,
 			),
-		text: () => view.container.textContent,
 	};
 }

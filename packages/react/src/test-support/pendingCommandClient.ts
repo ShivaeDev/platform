@@ -1,4 +1,4 @@
-import { Deferred, Effect, Schema, Stream } from "effect";
+import { Deferred, Effect, Exit, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
@@ -20,33 +20,37 @@ const Toggle = command("toggle", {
 const Items = contract("items", { commands: [Toggle], queries: [List, Count] });
 
 export function pendingCommandClient(ids: readonly number[] = [1]) {
-	const commandGates = new Map(ids.map((id) => [id, Effect.runSync(Deferred.make<void, ToggleRejected>())]));
-	function commandGate(id: number) {
-		const gate = commandGates.get(id);
-		if (!gate) {
+	const commands = new Map(ids.map((id) => [id, { finished: Deferred.makeUnsafe<void>(), gate: Deferred.makeUnsafe<void, ToggleRejected>() }]));
+	function commandFor(id: number) {
+		const held = commands.get(id);
+		if (!held) {
 			throw new Error(`No command response for row ${id}`);
 		}
-		return gate;
+		return held;
 	}
-	const listGate = Effect.runSync(Deferred.make<boolean>());
-	const countGate = Effect.runSync(Deferred.make<number>());
+	const list = { gate: Deferred.makeUnsafe<boolean>(), served: Deferred.makeUnsafe<void>() };
+	const count = { gate: Deferred.makeUnsafe<number>(), served: Deferred.makeUnsafe<void>() };
+	function refetch<A>(held: { readonly gate: Deferred.Deferred<A>; readonly served: Deferred.Deferred<void> }) {
+		return Deferred.await(held.gate).pipe(Effect.ensuring(Deferred.done(held.served, Exit.void)));
+	}
 	let written = false;
 	function toggle({ id }: typeof Row.Type) {
-		return Deferred.await(commandGate(id)).pipe(
+		const held = commandFor(id);
+		return Deferred.await(held.gate).pipe(
 			Effect.tap(() =>
 				Effect.sync(() => {
 					written = true;
 				}),
 			),
+			Effect.ensuring(Deferred.done(held.finished, Exit.void)),
 		);
 	}
 	const handlers = Items.toLayer(
 		Effect.succeed(
 			Items.of({
 				"items.$changes": () => Stream.never,
-				"items.count": () => (written ? Deferred.await(countGate) : Effect.succeed(0)),
-				"items.list": () =>
-					(written ? Deferred.await(listGate) : Effect.succeed(false)).pipe(Effect.map((enabled) => ids.map((id) => ({ enabled, id })))),
+				"items.count": () => (written ? refetch(count) : Effect.succeed(0)),
+				"items.list": () => (written ? refetch(list) : Effect.succeed(false)).pipe(Effect.map((enabled) => ids.map((id) => ({ enabled, id })))),
 				"items.toggle": toggle,
 			}),
 		),
@@ -58,6 +62,6 @@ export function pendingCommandClient(ids: readonly number[] = [1]) {
 	}) {}
 	const api = bind(Items, Client, { live: false });
 	const toggles = Atom.family((id: number) => Client.runtime.fn((input: { readonly enabled: boolean }) => api.toggle.run({ id, ...input })));
-	return { command: toggles, commandGate, count: api.count.query(), countGate, list: api.list.query(), listGate };
+	return { command: toggles, commands: commandFor, count: api.count.query(), countHeld: count, list: api.list.query(), listHeld: list };
 }
 export type PendingClient = ReturnType<typeof pendingCommandClient>;

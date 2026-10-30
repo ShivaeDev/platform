@@ -1,83 +1,97 @@
-import { expect } from "vitest";
-import { pendingCommands, toggleScreen } from "#test/pendingCommandStories.tsx";
-
-pendingCommands.it("a list toggle displays the wanted value before its command answers", [toggleScreen()], function* ({ observe, click, snapshot }) {
-	yield* observe("the server row is disabled", () => expect(snapshot().server).toBe("false"));
-	yield* click();
-	expect(snapshot()).toMatchObject({ command: "Initial", enabled: true, pending: true, server: "false" });
-});
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { firstSucceededSecondToggled, pendingCommands, toggledOn, toggleScreen, toggleSucceeded } from "#test/pendingCommandStories.tsx";
 
 pendingCommands.it(
-	"a successful command keeps its wanted value until every watched invalidated query refetches",
+	"a toggled row shows the wanted value before its command answers",
 	[toggleScreen()],
-	function* ({ observe, click, commandSucceeds, listResponds, countResponds, snapshot }) {
-		yield* observe("the server row is disabled", () => expect(snapshot().server).toBe("false"));
-		yield* click();
-		yield* commandSucceeds();
-		yield* observe("the command has answered while refetches wait", () => expect(snapshot().command).toBe("Success"));
-		expect(snapshot()).toMatchObject({ enabled: true, pending: true, server: "false" });
-		yield* listResponds(false);
-		expect(snapshot()).toMatchObject({ enabled: true, pending: true });
-		yield* countResponds(0);
-		yield* observe("the server is authoritative after both refetches", () => expect(snapshot()).toMatchObject({ enabled: false, pending: false }));
+	function* ({ command, serverRows, shown, toggle, toggleState }) {
+		yield* toggle();
+
+		yield* outcomes({
+			command: [command(), "not answered"],
+			"server rows": [serverRows(), ["disabled"]],
+			shown: [shown(), "enabled"],
+			toggle: [toggleState(), "waiting"],
+		});
 	},
 );
 
 pendingCommands.it(
-	"a refetched list adopts the server's enabled value",
-	[toggleScreen()],
-	function* ({ observe, click, commandSucceeds, listResponds, countResponds, snapshot }) {
-		yield* observe("the server row is disabled", () => expect(snapshot().server).toBe("false"));
-		yield* click();
+	"a successful command keeps the wanted value while its invalidated queries refetch",
+	[toggledOn()],
+	function* ({ command, commandSucceeds, serverRows, shown, toggleState }) {
 		yield* commandSucceeds();
-		yield* countResponds(1);
-		expect(snapshot()).toMatchObject({ enabled: true, pending: true, server: "false" });
-		yield* listResponds(true);
-		yield* observe("the enabled server row is visible", () => expect(snapshot()).toMatchObject({ enabled: true, pending: false, server: "true" }));
+
+		yield* outcomes({
+			command: [command(), "succeeded"],
+			"server rows": [serverRows(), ["disabled"]],
+			shown: [shown(), "enabled"],
+			toggle: [toggleState(), "waiting"],
+		});
 	},
 );
 
+for (const first of ["list", "count"] as const) {
+	pendingCommands.it(
+		`the wanted value stays while the ${first === "list" ? "count" : "list"} has not refetched yet`,
+		[toggleSucceeded()],
+		function* ({ countResponds, listResponds, shown, toggleState }) {
+			yield* first === "list" ? listResponds(false) : countResponds(0);
+
+			yield* outcomes({
+				shown: [shown(), "enabled"],
+				toggle: [toggleState(), "waiting"],
+			});
+		},
+	);
+}
+
+for (const enabled of [false, true]) {
+	const value = enabled ? "enabled" : "disabled";
+	pendingCommands.it(
+		`after both refetches the row shows the server's ${value} value`,
+		[toggleSucceeded()],
+		function* ({ countResponds, listResponds, serverRows, shown, toggleState }) {
+			yield* listResponds(enabled);
+			yield* countResponds(enabled ? 1 : 0);
+
+			yield* outcomes({
+				"server rows": [serverRows(), [value]],
+				shown: [shown(), value],
+				toggle: [toggleState(), "available"],
+			});
+		},
+	);
+}
+
 pendingCommands.it(
-	"a typed command failure reverts the toggle and preserves its rejection fields",
-	[toggleScreen()],
-	function* ({ observe, click, commandFails, snapshot }) {
-		yield* observe("the server row is disabled", () => expect(snapshot().server).toBe("false"));
-		yield* click();
-		expect(snapshot().enabled).toBe(true);
+	"a typed command rejection reverts the toggle and shows its reason",
+	[toggledOn()],
+	function* ({ command, commandFails, serverRows, shown, toggleState }) {
 		yield* commandFails("This row is locked");
-		yield* observe("the rejection reverts the displayed value", () =>
-			expect(snapshot()).toEqual({
-				command: "Failure",
-				enabled: false,
-				failure: "ToggleRejected: This row is locked",
-				pending: false,
-				server: "false",
-			}),
-		);
+
+		yield* outcomes({
+			command: [command(), "rejected (ToggleRejected: This row is locked)"],
+			"server rows": [serverRows(), ["disabled"]],
+			shown: [shown(), "disabled"],
+			toggle: [toggleState(), "available"],
+		});
 	},
 );
 
 pendingCommands.it(
-	"another row's typed failure does not revert a successful toggle awaiting refetch",
-	[toggleScreen([1, 2])],
-	function* ({ observe, click, commandSucceeds, commandFails, listResponds, countResponds, snapshot }) {
-		yield* observe("both server rows are disabled", () => expect(snapshot(1).server).toBe("false,false"));
-		yield* click(1);
-		yield* commandSucceeds(1);
-		yield* observe("A waits for its refetch while B is available", () => {
-			expect(snapshot(1)).toMatchObject({ command: "Success", enabled: true, pending: true });
-			expect(snapshot(2).pending).toBe(false);
+	"another row's rejection leaves a successful toggle waiting for its refetch",
+	[firstSucceededSecondToggled()],
+	function* ({ command, commandFails, shown, toggleState }) {
+		yield* commandFails("Row 2 is locked", 2);
+
+		yield* outcomes({
+			"row 1 command": [command(1), "succeeded"],
+			"row 1 shown": [shown(1), "enabled"],
+			"row 1 toggle": [toggleState(1), "waiting"],
+			"row 2 command": [command(2), "rejected (ToggleRejected: Row 2 is locked)"],
+			"row 2 shown": [shown(2), "disabled"],
+			"row 2 toggle": [toggleState(2), "available"],
 		});
-		yield* click(2);
-		expect(snapshot(2).enabled).toBe(true);
-		yield* commandFails("B is locked", 2);
-		yield* observe("B's typed rejection reverts only B", () => {
-			expect(snapshot(2)).toMatchObject({ command: "Failure", enabled: false, failure: "ToggleRejected: B is locked", pending: false });
-			expect(snapshot(1)).toMatchObject({ command: "Success", enabled: true, failure: "", pending: true, server: "false,false" });
-		});
-		yield* listResponds(false);
-		expect(snapshot(1)).toMatchObject({ enabled: true, pending: true });
-		yield* countResponds(0);
-		yield* observe("A returns to the server after its refetches finish", () => expect(snapshot(1)).toMatchObject({ enabled: false, pending: false }));
 	},
 );

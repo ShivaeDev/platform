@@ -1,10 +1,16 @@
 import { expect } from "vitest";
 import { nowStory } from "#test/nowStory.ts";
 
-nowStory.it("renders the runtime clock and reads it again on the interval", [], function* ({ advance, time }) {
-	expect(time()).toBe("123000");
-	yield* advance(1000);
-	expect(time()).toBe("124000");
-	yield* advance(1000);
-	expect(time()).toBe("125000");
+nowStory.it("the screen shows the runtime clock's time", [], function* ({ shownTime }) {
+	expect(yield* shownTime()).toBe("123000");
 });
+
+for (const intervals of [1, 2]) {
+	nowStory.it(`after ${intervals} intervals the screen shows the clock's time again`, [], function* ({ intervalsPass, shownTime }) {
+		expect(yield* shownTime()).toBe("123000");
+
+		yield* intervalsPass(intervals);
+
+		expect(yield* shownTime()).toBe(String(123_000 + intervals * 1000));
+	});
+}

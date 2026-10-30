@@ -49,7 +49,7 @@ export const createApplication = Effect.gen(function* () {
 		["bob-session", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
 		["expired-session", { expiresAt: 0, userId: "alice" }],
 	]);
-	const saves = { entered: yield* Deferred.make<void>(), held: false, released: yield* Deferred.make<void>() };
+	const saves = { entered: yield* Deferred.make<void>(), held: false, holding: false, released: yield* Deferred.make<void>() };
 	const gets = new Map<number, number>();
 	const server = yield* Effect.acquireRelease(
 		Effect.promise(() =>
@@ -70,8 +70,10 @@ export const createApplication = Effect.gen(function* () {
 	yield* Effect.addFinalizer(() => Deferred.succeed(saves.released, undefined));
 	const alice = yield* client(server.url, "alice-session");
 	const bob = yield* client(server.url, "bob-session");
+	const answers: string[] = [];
 	return {
 		alice,
+		answers,
 		bob,
 		changes,
 		connect: (token?: string) => client(server.url, token),

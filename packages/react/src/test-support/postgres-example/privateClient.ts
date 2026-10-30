@@ -4,6 +4,7 @@ import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { Preferences } from "./privateFeature.ts";
+import { recorded } from "./recorded.ts";
 
 export async function privateClient(url: string, account: "alice" | "bob") {
 	const registry = AtomRegistry.make();
@@ -15,7 +16,7 @@ export async function privateClient(url: string, account: "alice" | "bob") {
 	});
 	const runtime = ManagedRuntime.make(connection);
 	const client = await runtime.runPromise(connection.Client);
-	const delivered: Array<{ readonly hint: LiveHint; readonly title: string; readonly list: readonly string[] }> = [];
+	const delivered = recorded<{ readonly hint: LiveHint; readonly title: string; readonly list: readonly string[] }>();
 	runtime.runFork(
 		client("preferences.$changes", {
 			queries: [

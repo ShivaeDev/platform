@@ -7,7 +7,6 @@ import { migratePostgres } from "@shivaedev/sql/migrations.ts";
 export const databaseUrl = Effect.runSync(Config.String("PLATFORM_SQL_TEST_DATABASE_URL").pipe(Config.option));
 const destination = databaseUrl._tag === "Some" ? databaseUrl.value : undefined;
 export const hasPostgres = destination !== undefined;
-export const kitDatabases = new Set<string>();
 const name = `platform_story_${crypto.randomUUID().replaceAll("-", "")}`;
 const leases = Semaphore.makeUnsafe(1);
 let references = 0;

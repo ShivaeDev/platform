@@ -1,79 +1,103 @@
 import { Deferred, Effect } from "effect";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
-import { type LiveEngine, rejectedSave, view } from "./liveEngine.ts";
-import { makeClient } from "./makeClient.ts";
-import { call } from "./view.tsx";
+import { act } from "react";
+import { settleScreen } from "#test/settleScreen.ts";
+import { answerWord } from "./hintWords.ts";
+import { apiSave, type LiveEngine, view } from "./liveEngine.ts";
+
+type Editor = "writer" | "reader";
 
 export function liveVerbs(engine: LiveEngine, tell: (line: string) => void) {
 	const { server, gate, baseline } = engine;
-	return {
-		beginRejectedSave: () =>
-			Effect.sync(() => {
-				tell("Alice submits a write that will roll back");
-				engine.saving.pending = rejectedSave(server.url);
+	function settle() {
+		return settleEditors(engine, tell);
+	}
+	function hinted(action: () => Promise<void>) {
+		return Effect.promise(() =>
+			act(async () => {
+				const hints = Promise.all([...engine.views.values()].map((screen) => screen.nextHint()));
+				await action();
+				await hints;
 			}),
-		commitHasEntered: () => {
-			tell("the write waits inside its transaction");
-			return Deferred.await(gate.entered);
-		},
-		deliveriesSinceBaseline: () => server.delivered.slice(baseline.deliveries),
-		editName: (editor: string, name: string) => {
-			tell(`${editor} enters the name ${name}`);
-			return Effect.promise(() => view(engine, editor).edit("name", name));
-		},
-		editor: (name: string) => {
-			const screen = view(engine, name);
-			return {
-				connection: screen.registry.get(screen.status).connection,
-				name: screen.input("name").value,
-				quantity: screen.input("quantity").value,
-				serverOrder: screen.container.querySelector("output")?.textContent,
-				status: screen.container.querySelector('[role="status"]')?.textContent,
-				waiting: screen.registry.get(screen.query).waiting,
-			};
-		},
-		editQuantity: (editor: string, quantity: string) => {
-			tell(`${editor} enters the quantity ${quantity}`);
-			return Effect.promise(() => view(engine, editor).edit("quantity", quantity));
-		},
+		).pipe(Effect.andThen(settle()));
+	}
+	function edit(editor: Editor, field: "name" | "quantity", value: string) {
+		tell(`${editor} enters the ${field} ${JSON.stringify(value)}`);
+		return Effect.promise(() => view(engine, editor).edit(field, value));
+	}
+	return {
+		answers: () => Effect.sync(() => [...engine.answers]),
+		deliveries: () =>
+			Effect.sync(() => server.delivered.slice(baseline.deliveries).map((rows) => rows.map((row) => `${row.name} / ${row.quantity}`).join(", "))),
+		editName: (editor: Editor, name: string) => edit(editor, "name", name),
+		editor: (name: Editor) =>
+			Effect.sync(() => {
+				const screen = view(engine, name);
+				return {
+					name: screen.input("name").value,
+					quantity: screen.input("quantity").value,
+					server: screen.container.querySelector("output")?.textContent,
+					status: screen.container.querySelector('[role="status"]')?.textContent,
+				};
+			}),
+		editQuantity: (editor: Editor, quantity: string) => edit(editor, "quantity", quantity),
 		forbiddenSave: (token?: string) =>
 			Effect.promise(async () => {
 				tell(`${token ?? "an anonymous caller"} tries to overwrite the order`);
-				const client = makeClient(server.url, token);
-				return await call(client, client.api.save.run({ id: 1, name: "Forbidden", quantity: 1 }).pipe(Effect.result));
+				engine.answers.push(answerWord(await apiSave(server.url, "Forbidden", 1, token)));
 			}),
-		observe: (line: string, check: () => void) => {
-			tell(line);
-			return eventually(check);
-		},
-		publications: () => [...server.publications],
-		reads: () => [...server.reads],
-		readsSinceBaseline: () => server.reads.slice(baseline.reads),
-		recordBaseline: () =>
-			Effect.sync(() => {
-				baseline.reads = server.reads.length;
-				baseline.deliveries = server.delivered.length;
+		publications: () => Effect.sync(() => server.publications.slice(baseline.publications)),
+		readsSinceAction: () => Effect.sync(() => server.reads.slice(baseline.reads)),
+		rejectedSave: () =>
+			Effect.gen(function* () {
+				tell("Alice's API save rolls back at commit; then she saves After rollback through the API");
+				const rejected = apiSave(server.url, "Rolled back", 999, "alice-session");
+				yield* Deferred.await(gate.entered);
+				yield* Deferred.succeed(gate.released, undefined);
+				engine.answers.push(answerWord(yield* Effect.promise(() => rejected)));
+				yield* hinted(async () => {
+					engine.answers.push(answerWord(await apiSave(server.url, "After rollback", 300, "alice-session")));
+				});
 			}),
 		releaseCommit: () => {
-			tell("the transaction may finish");
-			return Deferred.succeed(gate.released, undefined);
+			tell("the held transaction commits");
+			return hinted(async () => {
+				await Effect.runPromise(Deferred.succeed(gate.released, undefined));
+			});
 		},
-		revertOrder: (editor: string) => {
+		revertOrder: (editor: Editor) => {
 			tell(`${editor} reverts the draft`);
-			return Effect.promise(() => view(engine, editor).click("Revert"));
+			return Effect.promise(() => view(engine, editor).click("Revert")).pipe(Effect.andThen(settle()));
 		},
-		saveResult: () =>
-			Effect.promise(async () => {
-				tell("the caller receives the save result");
-				if (engine.saving.pending === undefined) {
-					throw new Error("No save is pending");
-				}
-				return await engine.saving.pending;
-			}),
-		storedOrder: () => Effect.promise(server.read),
-		submitOrder: (editor: string) => {
+		storedOrder: () => Effect.promise(async () => (await server.read()).map((row) => `${row.name} / ${row.quantity}`)),
+		submitOrder: (editor: Editor) => {
 			tell(`${editor} submits the order`);
-			return Effect.promise(() => view(engine, editor).click("Save"));
+			function click() {
+				return view(engine, editor).click("Save");
+			}
+			if (gate.held && !Deferred.isDoneUnsafe(gate.released)) {
+				return Effect.promise(click).pipe(Effect.andThen(Deferred.await(gate.entered)));
+			}
+			return hinted(click);
 		},
 	};
+}
+
+export function settleEditors(engine: LiveEngine, tell: (line: string) => void) {
+	return settleScreen(
+		document.body,
+		() =>
+			[...engine.views.values()].some(
+				(screen) =>
+					screen.registry.get(screen.status).connection !== "live"
+					|| screen.registry.get(screen.query).waiting
+					|| screen.container.querySelector<HTMLButtonElement>('button[type="submit"]')?.disabled === true,
+			),
+		tell,
+	);
+}
+
+export function markBaseline(engine: LiveEngine) {
+	engine.baseline.deliveries = engine.server.delivered.length;
+	engine.baseline.publications = engine.server.publications.length;
+	engine.baseline.reads = engine.server.reads.length;
 }

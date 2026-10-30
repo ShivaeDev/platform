@@ -1,125 +1,152 @@
 import { expect } from "vitest";
-import { feedback, notesFeature } from "#test/feedback-path/story.tsx";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	feedback,
+	firstLoadFailed,
+	firstUndoConflictingAfterSecondRestored,
+	notesLoading,
+	notesShown,
+	notesShownWithDraft,
+	refreshWaitingWithDraft,
+	saveAndTwoRemovalsHeld,
+	saveCompleted,
+	saveWaitingWithNewerDraft,
+} from "#test/feedback-path/story.tsx";
+
+feedback.it("a failed first load offers Retry and publishes Load failed", [notesLoading()], function* ({ failRead, notices, queryError }) {
+	yield* failRead();
+
+	yield* outcomes({
+		notices: [notices(), ["Load failed"]],
+		"query error": [queryError(), "Could not load notes Retry"],
+	});
+});
+
+feedback.it("Retry reads the notes again and shows them when the server answers", [firstLoadFailed()], function* ({ answerRead, retry, rows }) {
+	yield* retry();
+
+	yield* answerRead();
+
+	expect(yield* rows()).toBe("existing");
+});
 
 feedback.it(
-	"Notes load, retry and save through the query and form owners",
-	[notesFeature()],
-	function* ({ click, complete, observe, readFails, readSucceeds, session, snapshot, submit, type }) {
-		yield* observe("the initial query is held", () => {
-			expect(session()).toMatchObject({ reads: 1 });
-			expect(snapshot()).toMatchObject({ loading: "Loading notes", rows: undefined });
-		});
-		yield* readFails(1);
-		yield* observe("initial failure offers retry", () => {
-			expect(snapshot().queryError).toBe("Could not load notes Retry");
-			expect(snapshot().notices).toEqual([{ message: "Load failed", outcome: "", pending: false }]);
-		});
-		yield* click("Retry");
-		yield* observe("retry starts a new query", () => expect(session()).toMatchObject({ reads: 2 }));
-		yield* readSucceeds(2);
-		yield* observe("the real query supplies the content", () => expect(snapshot().rows).toBe("existing"));
-		yield* click("Dismiss Load failed");
+	"a save the server rejects shows its message on the title field and publishes no notice",
+	[notesShown()],
+	function* ({ draft, fieldError, notices, saveStatus, submit, type }) {
 		yield* type("blocked");
+
 		yield* submit();
-		yield* observe("the server rejection belongs to the submitted field", () => {
-			expect(snapshot()).toMatchObject({ fieldError: "Choose another title", saving: false, title: "blocked" });
-			expect(snapshot().notices).toEqual([]);
+
+		yield* outcomes({
+			draft: [draft(), "blocked"],
+			"field error": [fieldError(), "Choose another title"],
+			notices: [notices(), []],
+			"save status": [saveStatus(), "Unsaved"],
 		});
-		yield* type("new note");
-		yield* submit();
-		yield* observe("the form save waits for its response", () => {
-			expect(session().saves).toEqual(["new note"]);
-			expect(snapshot()).toMatchObject({ saving: true, status: "Saving" });
+	},
+);
+
+feedback.it("a submitted save shows Saving while the server holds it", [notesShown()], function* ({ saves, saveStatus, submit, type }) {
+	yield* type("new note");
+
+	yield* submit();
+
+	yield* outcomes({
+		"save status": [saveStatus(), "Saving"],
+		saves: [saves(), ["new note"]],
+	});
+});
+
+feedback.it(
+	"a completed save publishes its notice before its refetch answers and keeps the newer draft",
+	[saveWaitingWithNewerDraft()],
+	function* ({ completeSave, draft, fieldError, loading, notices, rows, saveStatus }) {
+		yield* completeSave();
+
+		yield* outcomes({
+			draft: [draft(), "next draft"],
+			"field error": [fieldError(), "none"],
+			loading: [loading(), "Refreshing notes"],
+			notices: [notices(), ["Saved new note"]],
+			rows: [rows(), "existing"],
+			"save status": [saveStatus(), "Unsaved"],
 		});
-		yield* type("next draft");
-		yield* complete("save", "new note");
-		yield* observe("submission publishes before the invalidated read finishes", () => {
-			expect(session()).toMatchObject({ reads: 3 });
-			expect(snapshot()).toMatchObject({
-				fieldError: undefined,
-				loading: "Refreshing notes",
-				rows: "existing",
-				saving: false,
-				status: "Unsaved",
-				title: "next draft",
-			});
-			expect(snapshot().notices).toEqual([{ message: "Saved new note", outcome: "", pending: false }]);
-		});
-		yield* readSucceeds(3);
-		yield* observe("contract invalidation delivers the saved note", () => expect(snapshot().rows).toBe("existing, new note"));
-		yield* click("Refresh");
-		yield* observe("refresh starts without unmounting the draft", () => {
-			expect(session()).toMatchObject({ reads: 4 });
-			expect(snapshot().title).toBe("next draft");
-		});
-		yield* readFails(4);
-		yield* observe("failed refresh retains the last content and the newer draft", () => {
-			expect(snapshot()).toMatchObject({ queryError: "Could not load notes Retry", rows: "existing, new note", title: "next draft" });
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Saved new note", "Refresh failed"]);
+	},
+);
+
+feedback.it("the refetch a save caused shows the saved note", [saveCompleted()], function* ({ answerRead, rows }) {
+	yield* answerRead();
+
+	expect(yield* rows()).toBe("existing, new note");
+});
+
+feedback.it("Refresh reads again while keeping the draft", [notesShownWithDraft("next draft")], function* ({ draft, loading, reads, refresh }) {
+	yield* refresh();
+
+	yield* outcomes({
+		draft: [draft(), "next draft"],
+		loading: [loading(), "Refreshing notes"],
+		reads: [reads(), 2],
+	});
+});
+
+feedback.it(
+	"a failed refresh keeps the shown notes and the draft and publishes Refresh failed",
+	[refreshWaitingWithDraft("next draft")],
+	function* ({ draft, failRead, notices, queryError, rows }) {
+		yield* failRead();
+
+		yield* outcomes({
+			draft: [draft(), "next draft"],
+			notices: [notices(), ["Refresh failed"]],
+			"query error": [queryError(), "Could not load notes Retry"],
+			rows: [rows(), "existing"],
 		});
 	},
 );
 
 feedback.it(
-	"Concurrent form and command completions publish their own notices and keep a conflict on its Undo",
-	[notesFeature()],
-	function* ({ click, complete, observe, readSucceeds, session, snapshot, submit, type }) {
-		yield* observe("the initial query starts", () => expect(session()).toMatchObject({ reads: 1 }));
-		yield* readSucceeds(1);
-		yield* observe("the command controls appear", () => expect(snapshot().rows).toBe("existing"));
-		yield* type("concurrent note");
-		yield* submit();
-		yield* click("Remove first");
-		yield* click("Remove second");
-		yield* observe("the form and both commands reach the handlers", () =>
-			expect(session()).toMatchObject({ removals: ["first", "second"], saves: ["concurrent note"] }),
-		);
-		yield* complete("remove", "second");
-		yield* observe("second publishes while first is still held", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed second"]),
-		);
-		expect(snapshot().saving).toBe(true);
-		yield* complete("save", "concurrent note");
-		yield* observe("form completion publishes between the command completions", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed second", "Saved concurrent note"]),
-		);
-		yield* complete("remove", "first");
-		yield* observe("out-of-order completion preserves both notices", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed second", "Saved concurrent note", "Removed first"]),
-		);
-		yield* click("Remove blocked");
-		yield* observe("command failure publishes separately", () =>
-			expect(snapshot().notices.map((notice) => notice.message)).toEqual([
-				"Removed second",
-				"Saved concurrent note",
-				"Removed first",
-				"Could not remove note",
-			]),
-		);
-		yield* click("Undo second");
-		yield* observe("Undo receives the application's payload", () => {
-			expect(session().calls).toEqual([{ expectedVersion: 8, title: "second" }]);
-			expect(snapshot().notices[0]?.pending).toBe(true);
+	"a removal that completes while a save and another removal are held publishes only its own notice",
+	[saveAndTwoRemovalsHeld(false)],
+	function* ({ completeRemove, notices, saveStatus }) {
+		yield* completeRemove("second");
+
+		yield* outcomes({
+			notices: [notices(), ["Removed second"]],
+			"save status": [saveStatus(), "Saving"],
 		});
-		yield* complete("restore", "second");
-		yield* observe("Undo completes on its own notice", () =>
-			expect(snapshot().notices[0]).toMatchObject({ outcome: "Restored second", pending: false }),
-		);
-		yield* click("Edit first");
-		yield* click("Undo first");
-		yield* observe("the other notice keeps its original expected version", () =>
-			expect(session().calls).toEqual([
-				{ expectedVersion: 8, title: "second" },
-				{ expectedVersion: 8, title: "first" },
-			]),
-		);
-		yield* complete("restore", "first");
-		yield* observe("a command conflict stays on the relevant Undo", () => {
-			expect(snapshot().notices[2]?.outcome).toContain("Conflict");
-			expect(snapshot().notices[2]?.pending).toBe(false);
-			expect(snapshot().notices[0]?.outcome).toBe("Restored second");
+	},
+);
+
+feedback.it(
+	"form and command notices appear in the order their work completes",
+	[saveAndTwoRemovalsHeld(true)],
+	function* ({ completeRemove, notices }) {
+		expect(yield* notices()).toEqual(["Removed second", "Saved concurrent note"]);
+
+		yield* completeRemove("first");
+
+		expect(yield* notices()).toEqual(["Removed second", "Saved concurrent note", "Removed first"]);
+	},
+);
+
+feedback.it(
+	"a conflicting Undo shows its conflict on its own notice while the other notice keeps its restore",
+	[firstUndoConflictingAfterSecondRestored()],
+	function* ({ completeRestore, notice, restoreCalls }) {
+		yield* completeRestore("first");
+
+		yield* outcomes({
+			"Removed first": [notice("Removed first"), expect.stringContaining("Conflict")],
+			"Removed second": [notice("Removed second"), "Restored second"],
+			"restore calls": [
+				restoreCalls(),
+				[
+					{ expectedVersion: 8, title: "second" },
+					{ expectedVersion: 8, title: "first" },
+				],
+			],
 		});
-		yield* readSucceeds(session().reads);
-		yield* observe("Undo invalidation reaches the query", () => expect(snapshot().rows).toBe("existing, concurrent note, second@9"));
 	},
 );

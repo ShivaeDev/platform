@@ -1,70 +1,80 @@
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authQuery } from "#client/authQuery.ts";
-import { AuthRead } from "./AuthRead.tsx";
+import { type AuthError, AuthRead } from "./AuthRead.tsx";
 import { screenKit } from "./screenKit.ts";
 
-interface AuthError {
-	readonly code: "REFUSED";
-	readonly status: number;
-}
 interface Response {
-	data: string | null;
-	error: AuthError | null;
+	readonly data: string | null;
+	readonly error: AuthError | null;
+}
+interface Request {
+	readonly input: string;
+	readonly reject: (cause: unknown) => void;
+	readonly resolve: (response: Response) => void;
+	readonly signal: AbortSignal;
 }
 interface State {
-	readonly inputs: string[];
-	query?: ReturnType<typeof authQuery<string, string | null, AuthError>>;
-	reject?: (cause: unknown) => void;
-	resolve?: (response: Response) => void;
-	signal?: AbortSignal;
+	readonly query: ReturnType<typeof authQuery<string, string | null, AuthError>>;
+	readonly requests: Request[];
 	view?: Rendered;
 }
 
-function current(state: State) {
-	if (!(state.view && state.resolve && state.reject && state.signal)) {
-		throw new Error("No pending auth read");
+function view(state: State) {
+	if (!state.view) {
+		throw new Error("No auth read is open");
 	}
-	return { reject: state.reject, resolve: state.resolve, signal: state.signal, view: state.view };
+	return state.view;
+}
+function latest(state: State) {
+	const request = state.requests.at(-1);
+	if (!request) {
+		throw new Error("No auth read reached the auth client");
+	}
+	return request;
 }
 
 export const authReads = storyKit(
 	screenKit(
 		"auth query screen",
-		(): State => ({ inputs: [] }),
+		(): State => {
+			const requests: Request[] = [];
+			const query = authQuery(
+				(input: string, signal) => new Promise<Response>((resolve, reject) => requests.push({ input, reject, resolve, signal })),
+			);
+			return { query, requests };
+		},
 		(state, screen) => ({
-			close: () => screen.act("unmount the pending auth read", () => current(state).view.unmount()),
-			read: (input: string) =>
-				screen.act("read another auth input", () => {
-					if (!state.query) {
-						throw new Error("No auth query family");
-					}
-					return current(state).view.render(<AuthRead query={state.query(input)} />);
-				}),
-			refuse: () =>
-				screen.act("the auth read is refused", () =>
-					current(state).resolve({ data: null, error: { code: "REFUSED", status: HttpStatus.fromLiteral("Forbidden") } }),
+			authAnswers: (data: string) => screen.act(`the auth client answers ${data}`, () => latest(state).resolve({ data, error: null })),
+			authRefuses: () =>
+				screen.act("the auth client returns its REFUSED error", () =>
+					latest(state).resolve({ data: null, error: { code: "REFUSED", status: HttpStatus.fromLiteral("Forbidden") } }),
 				),
-			reject: () => screen.act("the auth connection rejects", () => current(state).reject("offline")),
-			request: () => ({ aborted: current(state).signal.aborted, inputs: state.inputs }),
-			succeed: (data: string) => screen.act("the auth read succeeds", () => current(state).resolve({ data, error: null })),
-			text: () => current(state).view.container.textContent,
+			closeScreen: () => screen.act("close the screen", () => view(state).unmount()),
+			connectionRejects: (reason: string) => screen.act(`the auth connection rejects with ${reason}`, () => latest(state).reject(reason)),
+			consentRead: () => Effect.sync(() => (latest(state).signal.aborted ? "aborted" : "open")),
+			requestedInputs: () => Effect.sync(() => state.requests.map(({ input }) => input)),
+			shown: () => Effect.sync(() => view(state).container.textContent),
+			showRead: (input: string) => screen.act(`show the auth read for ${input}`, () => view(state).render(<AuthRead query={state.query(input)} />)),
 		}),
 	),
 );
-export function pendingAuthRead() {
-	return authReads.trait("screen", "an auth read is pending", function* ({ state, screen }) {
-		const query = authQuery(
-			(input: string, signal) =>
-				new Promise<Response>((resolve, reject) => {
-					state.inputs.push(input);
-					state.signal = signal;
-					state.resolve = resolve;
-					state.reject = reject;
-				}),
-		);
-		state.query = query;
-		state.view = yield* screen.open(<AuthRead query={query("consent")} />);
+
+export function consentReadIsOpen() {
+	return authReads.trait(
+		"screen",
+		"the screen shows the auth read for consent, which the auth client has not answered",
+		function* ({ state, screen }) {
+			state.view = yield* screen.open(<AuthRead query={state.query("consent")} />);
+		},
+	);
+}
+
+export function consentReadAnswered(data: string) {
+	return authReads.trait("screen", `the screen shows the auth read for consent, answered with ${data}`, function* ({ state, screen }) {
+		state.view = yield* screen.open(<AuthRead query={state.query("consent")} />);
+		yield* screen.act(`the auth client answers ${data}`, () => latest(state).resolve({ data, error: null }));
 	});
 }

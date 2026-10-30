@@ -1,37 +1,27 @@
 import { expect } from "vitest";
-import { nativeNotes, nativeStory } from "#test/nativeStories.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { emptyNotesShown, morningWalkSaved, nativeStory } from "#test/nativeStories.ts";
+
+nativeStory.it("saving a note through the native RPC client refreshes the list to show it", [emptyNotesShown()], function* ({ click, listedTitles }) {
+	expect(yield* listedTitles()).toEqual([]);
+
+	yield* click("Save");
+
+	expect(yield* listedTitles()).toEqual(["Morning walk"]);
+});
 
 nativeStory.it(
-	"rendered create persists through RPC and refreshes its query; rejected saves preserve the list",
-	[nativeNotes()],
-	function* ({ click, notes, observe, persisted }) {
-		const container = notes();
-		yield* observe("the initial list settles", () => {
-			expect(JSON.parse(container.querySelector("output")?.textContent ?? "null")).toEqual({
-				error: false,
-				loading: false,
-				saving: false,
-				titles: [],
-			});
-		});
-		yield* click("Save");
-		yield* observe("the save refreshes the list", () => {
-			expect(JSON.parse(container.querySelector("output")?.textContent ?? "null")).toEqual({
-				error: false,
-				loading: false,
-				saving: false,
-				titles: ["Morning walk"],
-			});
-		});
+	"a save the server rejects shows its error, stores nothing and keeps the listed notes",
+	[morningWalkSaved()],
+	function* ({ click, listedTitles, saveError, storedNotes }) {
+		expect(yield* saveError()).toBe("none");
+
 		yield* click("Save empty");
-		yield* observe("the rejected save keeps the list", () => {
-			expect(JSON.parse(container.querySelector("output")?.textContent ?? "null")).toEqual({
-				error: true,
-				loading: false,
-				saving: false,
-				titles: ["Morning walk"],
-			});
+
+		yield* outcomes({
+			"listed titles": [listedTitles(), ["Morning walk"]],
+			"save error": [saveError(), "shown"],
+			"stored notes": [storedNotes(), [{ id: 1, title: "Morning walk" }]],
 		});
-		expect(yield* persisted()).toEqual([{ id: 1, title: "Morning walk" }]);
 	},
 );

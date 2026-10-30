@@ -22,8 +22,10 @@ export const createEngine = Effect.gen(function* () {
 			}
 		}),
 	);
+	const answers: string[] = [];
 	return {
 		...host,
+		answers,
 		gate,
 		screen: new Screen(() => undefined),
 		screens: new Map<string, Effect.Success<ReturnType<typeof openScreen>>>(),
