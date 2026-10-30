@@ -1,6 +1,6 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
-import type { roleSet } from "@shivaedev/access/roleSet.ts";
+import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { requirePermission } from "@shivaedev/identity/permission.ts";
@@ -13,7 +13,7 @@ function unavailable() {
 }
 
 export const listUsers = Effect.fn("Admin.listUsers")(function* <TRole extends string>(
-	access: Pick<ReturnType<typeof roleSet<TRole>>, "Role">,
+	access: Pick<AccessPolicy<TRole>, "Role">,
 	input: typeof UserListInput.Type,
 ) {
 	yield* requirePermission(ReadUsers);
@@ -30,7 +30,7 @@ export const listUsers = Effect.fn("Admin.listUsers")(function* <TRole extends s
 });
 
 export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole extends string>(
-	access: Pick<ReturnType<typeof roleSet<TRole>>, "Role" | "hasPermission">,
+	access: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">,
 	input: ChangeRoleInput<TRole>,
 ) {
 	const actor = yield* SessionUser;
