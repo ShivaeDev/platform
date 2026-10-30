@@ -514,7 +514,7 @@ const read = Effect.scoped(
 ).pipe(Effect.provide(NodeServices.layer));
 ```
 
-Start `board.watchIndex(root, home?, maintainer?)` once in the owning Effect scope and share its `read` Effect and `changes` with in-process consumers. It starts indexing immediately, retains the listing, parsed documents, identity diagnostics and unavailable paths, and updates the index before publishing each settled change through `changes.events`. Reads share the snapshot and touch no unchanged files while the watcher is healthy. A full check every minute rereads source bytes to repair missed events, including edits that preserve timestamps. Closing the scope releases the watcher and background checks.
+Start `board.watchIndex(root, home?, maintainer?)` once in the owning Effect scope and share its `read` Effect and `changes` with in-process consumers. It starts indexing immediately, retains the listing, parsed documents, identity diagnostics and unavailable paths, and updates the index before publishing each settled change through `changes.events`. Reads share the snapshot and touch no unchanged files while the watcher is healthy. A full check every minute rereads source bytes to repair missed events, including edits that preserve timestamps; `index.reconcile` runs the same check on demand. Closing the scope releases the watcher and background checks.
 
 Other processes read the same listing, parsed metadata, diagnostics and unavailable paths with the `work-board.index` RPC, available over TCP and `board.sock`. Subscribe to that query through the native `work-board.$changes` API and reread on a change or resync. `BoardIndex` from `@shivaedev/work-board/rpc/BoardIndex.ts` describes the RPC result; maps are represented as arrays for transport.
 

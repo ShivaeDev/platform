@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Layer, Path, Schedule, Stream, SubscriptionRef } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, Stream, SubscriptionRef } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
@@ -46,7 +46,6 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 			Effect.andThen(pullRequests),
 		),
 	);
-	yield* index.pipe(Effect.ignore, Effect.repeat(Schedule.spaced("1 hour")), Effect.forkScoped);
 	const provided = yield* Effect.serviceOption(DiagnosticsSources);
 	const services = yield* Layer.build(
 		boardServices({
