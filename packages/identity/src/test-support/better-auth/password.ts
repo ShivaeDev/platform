@@ -3,12 +3,12 @@ import { getMigrations } from "better-auth/db/migration";
 import { testUtils } from "better-auth/plugins";
 import { Effect, Schema } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
 import { passwordUser } from "#server/better-auth/testing.ts";
-import { postgres } from "./postgres.ts";
 
 const ORIGIN = "http://localhost:3000";
 const credentials = { email: "ada@password.test", password: "correct-horse-battery-staple" };

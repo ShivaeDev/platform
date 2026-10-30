@@ -1,11 +1,12 @@
 import { randomUUID } from "node:crypto";
-import { Config, ConfigProvider, Effect, Option } from "effect";
+import { Config, ConfigProvider, Effect } from "effect";
 import { LOCAL_SERVER, localPostgres } from "@shivaedev/local-postgres/server/localPostgres.ts";
+import { answered } from "@shivaedev/test/answers.ts";
+import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { setupDatabases } from "#setupDatabases.ts";
-import { answered } from "#test/answers.ts";
 
-export const hasTestDatabase = Option.isSome(Effect.runSync(Config.option(Config.String("TEST_DATABASE_URL"))));
+export const hasTestDatabase = environmentVariable("TEST_DATABASE_URL") !== undefined;
 
 type Setting = "DATABASE_URL" | "TEST_DATABASE_URL";
 

@@ -3,8 +3,8 @@ import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
+import { causeWords } from "@shivaedev/test/answers.ts";
 import { appHost } from "#appHost.ts";
-import { causeWords } from "#test/answers.ts";
 import type { migrationLoader } from "#test/app-host/migrationLoader.ts";
 import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
 

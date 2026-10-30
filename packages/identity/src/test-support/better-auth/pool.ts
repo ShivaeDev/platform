@@ -3,10 +3,10 @@ import { SqlClient } from "effect/sql";
 import type { Pool } from "pg";
 import { vi } from "vitest";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
 
 const LOCK = 72_401;
 

@@ -1,6 +1,6 @@
 import { request } from "node:http";
 import { Effect, Result } from "effect";
-import { answered, decodedErrorWords, resultOf } from "#test/answers.ts";
+import { answered, decodedErrorWords, resultOf } from "@shivaedev/test/answers.ts";
 import { call, post } from "./fixture.ts";
 import { createInvite } from "./invites.ts";
 import { directPing, ping } from "./ping.ts";
