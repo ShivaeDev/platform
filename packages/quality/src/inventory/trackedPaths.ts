@@ -1,33 +1,31 @@
-import { execFile } from "node:child_process";
 import { join, resolve } from "node:path";
-import { promisify } from "node:util";
+import { Effect } from "effect";
+import { SetupFailure } from "#failure.ts";
+import { run } from "#git/command.ts";
 
-const run = promisify(execFile);
-
-async function listedPaths(directory: string, options: readonly string[]): Promise<readonly string[] | undefined> {
-	try {
-		const { stdout } = await run("git", ["ls-files", "-z", ...options, "--", "."], { cwd: directory, maxBuffer: 2 ** 30 });
-		return stdout
-			.split("\0")
-			.filter(Boolean)
-			.map((path) => join(directory, path));
-	} catch (error) {
-		if (error instanceof Error && "stderr" in error && String(error.stderr).includes("not a git repository")) {
+const listedPaths = Effect.fn("Inventory.listedPaths")(function* (directory: string, options: readonly string[], path = ".") {
+	const result = yield* run(directory, ["ls-files", "-z", ...options, "--", path]);
+	if (result.code !== 0) {
+		if (result.stderr.includes("not a git repository")) {
 			return undefined;
 		}
-		throw error;
+		return yield* new SetupFailure({ message: `git ls-files exited ${result.code}: ${result.stderr.trim()}` });
 	}
-}
+	return result.stdout
+		.split("\0")
+		.filter(Boolean)
+		.map((file) => join(directory, file));
+});
 
-export async function trackedPaths(directory: string): Promise<readonly string[]> {
-	return (await listedPaths(directory, [])) ?? [];
-}
+export const trackedPaths = Effect.fn("Inventory.trackedPaths")(function* (directory: string, path = ".") {
+	return (yield* listedPaths(directory, [], path)) ?? [];
+});
 
-export async function ignoredTrackedPaths(directory: string): Promise<readonly string[]> {
-	return (await listedPaths(directory, ["--cached", "--ignored", "--exclude-standard"])) ?? [];
-}
+export const ignoredTrackedPaths = Effect.fn("Inventory.ignoredTrackedPaths")(function* (directory: string) {
+	return (yield* listedPaths(directory, ["--cached", "--ignored", "--exclude-standard"])) ?? [];
+});
 
-export async function ignoredPaths(directory: string): Promise<readonly string[] | undefined> {
-	const paths = await listedPaths(directory, ["--others", "--ignored", "--exclude-standard", "--directory"]);
+export const ignoredPaths = Effect.fn("Inventory.ignoredPaths")(function* (directory: string) {
+	const paths = yield* listedPaths(directory, ["--others", "--ignored", "--exclude-standard", "--directory"]);
 	return paths?.map((path) => resolve(path));
-}
+});

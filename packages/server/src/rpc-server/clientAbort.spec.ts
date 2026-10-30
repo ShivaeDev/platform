@@ -1,4 +1,5 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { abortableRpc } from "#test/app-host/abortableRpc.ts";
 import { hostOptions } from "#test/app-host/story.ts";
@@ -7,83 +8,106 @@ import { collector } from "#test/app-host/telemetry.ts";
 const cancellation = storyKit(hostOptions({ database: true }));
 
 cancellation.it(
-	"aborting HTTP interrupts the handler, rolls back its transaction and returns the only pool connection",
-	[abortableRpc("transaction"), collector()],
-	function* ({ beginRpc, awaitWrite, abortClient, awaitAbort, abortProbe, rpcResult, poolActivity, close, logs, exportedSpans }) {
-		yield* beginRpc("hold");
-		yield* awaitWrite();
-		expect(abortProbe().written).toBe(true);
-		expect(yield* poolActivity()).toContainEqual({ state: "idle in transaction" });
-		yield* abortClient();
-		yield* awaitAbort();
-		expect(abortProbe()).toMatchObject({ finalized: true, interrupted: true });
-		expect(yield* rpcResult("rows")).toContainEqual(expect.objectContaining({ exit: { _tag: "Success", value: [] } }));
-		const activity = yield* poolActivity();
-		expect(activity.length).toBeGreaterThan(0);
-		expect(activity).not.toContainEqual({ state: "idle in transaction" });
-		yield* rpcResult("reject");
-		yield* close();
-		const interrupted = logs().filter((log) => String(log.message).includes("RPC interrupted"));
-		expect(interrupted).toEqual([
-			expect.objectContaining({
-				annotations: { requestId: "abort-hold", "rpc.method": "hold", "rpc.payload": { password: "<redacted>" } },
-				level: "Debug",
-				spans: { "rpc.duration": expect.any(Number) },
-			}),
-		]);
-		expect(logs().filter((log) => String(log.message).includes("RPC failure") || String(log.message).includes("RPC defect"))).toEqual([
-			expect.objectContaining({ annotations: expect.objectContaining({ "rpc.method": "reject" }) }),
-		]);
-		const span = exportedSpans().find((candidate) => candidate.kind === 2 && candidate.name === "hold");
-		expect(span?.attributes).toContainEqual({ key: "rpc.interrupted", value: { boolValue: true } });
-		expect(span?.attributes).toContainEqual({ key: "request.id", value: { stringValue: "abort-hold" } });
-		expect(span?.status.code).toBe(0);
-		for (const name of ["rows", "reject"]) {
-			const finished = exportedSpans().find((candidate) => candidate.kind === 2 && candidate.name === name);
-			expect(finished).toBeDefined();
-			expect(finished?.attributes.map(({ key }) => key)).not.toContain("rpc.interrupted");
-		}
-		expect(JSON.stringify(logs())).not.toContain("abort-secret");
+	"the browser aborting a held transaction interrupts its handler, rolls back its row and frees the only pool connection",
+	[abortableRpc("transaction")],
+	function* ({ browserAborts, connectionStates, handlerEnding, holdTransaction, storedRows }) {
+		yield* holdTransaction();
+		expect(yield* connectionStates()).toEqual(["idle in transaction"]);
+
+		yield* browserAborts();
+
+		yield* outcomes({
+			"handler ending": [handlerEnding(), "interrupted"],
+			"rows read over the freed connection": [storedRows(), []],
+		});
 	},
 );
 
 cancellation.it(
-	"aborting a live HTTP subscription finalizes AppChanges and releases its Reactivity registrations",
-	[abortableRpc("subscription"), collector()],
-	function* ({ beginRpc, nextHint, rpcResult, awaitCommit, abortClient, awaitAbort, abortProbe, close, logs, exportedSpans }) {
-		yield* beginRpc("watch");
-		expect(yield* nextHint()).toContain('"_tag":"Resync"');
-		expect(abortProbe().registrations).toEqual([["abort_items"], [expect.stringMatching(/^@shivaedev\/contract\/resync\//u)]]);
-		yield* rpcResult("commit");
-		yield* awaitCommit(1);
-		expect(yield* nextHint()).toContain('"_tag":"Changed"');
-		expect(abortProbe().callbacks).toBeGreaterThan(0);
-		yield* abortClient();
-		yield* awaitAbort();
-		expect(abortProbe()).toMatchObject({ finalized: true, interrupted: true, registrations: [] });
-		const callbacks = abortProbe().callbacks;
-		yield* rpcResult("commit");
-		yield* awaitCommit(2);
-		expect(abortProbe().callbacks).toBe(callbacks);
-		expect(yield* rpcResult("rows")).toContainEqual(
-			expect.objectContaining({
-				exit: { _tag: "Success", value: [{ value: "committed" }, { value: "committed" }] },
-			}),
-		);
-		yield* close();
-		const interrupted = logs().filter((log) => String(log.message).includes("RPC interrupted"));
-		expect(interrupted).toEqual([
-			expect.objectContaining({
-				annotations: { requestId: "abort-watch", "rpc.method": "watch", "rpc.payload": { password: "<redacted>" } },
-				level: "Debug",
-				spans: { "rpc.duration": expect.any(Number) },
-			}),
-		]);
-		expect(logs().filter((log) => String(log.message).includes("RPC failure") || String(log.message).includes("RPC defect"))).toEqual([]);
-		const span = exportedSpans().find((candidate) => candidate.kind === 2 && candidate.name === "watch");
-		expect(span?.attributes).toContainEqual({ key: "rpc.interrupted", value: { boolValue: true } });
-		expect(span?.attributes).toContainEqual({ key: "request.id", value: { stringValue: "abort-watch" } });
-		expect(span?.status.code).toBe(0);
-		expect(JSON.stringify(logs())).not.toContain("abort-secret");
+	"the browser aborting a live subscription interrupts its stream and releases its Reactivity registrations",
+	[abortableRpc("subscription")],
+	function* ({ browserAborts, handlerEnding, openWatch, subscriptionRegistrations }) {
+		yield* openWatch();
+		expect(yield* subscriptionRegistrations()).toEqual([["abort_items"], ["a resync key"]]);
+
+		yield* browserAborts();
+
+		yield* outcomes({
+			"handler ending": [handlerEnding(), "interrupted"],
+			registrations: [subscriptionRegistrations(), []],
+		});
 	},
 );
+
+cancellation.it(
+	"a commit after the browser aborts a subscription is stored but no longer notifies it",
+	[abortableRpc("subscription")],
+	function* ({ browserAborts, commitChange, nextHint, openWatch, storedRows, subscriptionCallbacks }) {
+		yield* openWatch();
+		yield* commitChange();
+		expect(yield* nextHint()).toBe("changed");
+		yield* browserAborts();
+		const notified = yield* subscriptionCallbacks();
+
+		yield* commitChange();
+
+		yield* outcomes({
+			"stored rows": [storedRows(), ["committed", "committed"]],
+			"subscription callbacks": [subscriptionCallbacks(), notified],
+		});
+	},
+);
+
+for (const [mode, method] of [
+	["transaction", "hold"],
+	["subscription", "watch"],
+] as const) {
+	cancellation.it(
+		`the browser aborting the ${method} RPC logs one Debug interruption with its request ID, redacted payload and duration, and no failure`,
+		[abortableRpc(mode)],
+		function* ({ browserAborts, failureLogs, holdTransaction, interruptionLogs, logMentions, openWatch }) {
+			yield* mode === "transaction" ? holdTransaction() : openWatch();
+
+			yield* browserAborts();
+
+			yield* outcomes({
+				"failure logs": [failureLogs(), []],
+				"interruption logs": [
+					interruptionLogs(),
+					[
+						{
+							annotations: { requestId: `abort-${method}`, "rpc.method": method, "rpc.payload": { password: "<redacted>" } },
+							duration: "recorded",
+							level: "Debug",
+						},
+					],
+				],
+				"leaked secrets": [logMentions("abort-secret"), []],
+			});
+		},
+	);
+
+	cancellation.it(
+		`the browser aborting the ${method} RPC marks only its server span interrupted, with its request ID and an unset status`,
+		[abortableRpc(mode), collector()],
+		function* ({ browserAborts, close, commitChange, completedRpc, holdTransaction, openWatch, rpcSpanMarks, serverSpan }) {
+			yield* mode === "transaction" ? holdTransaction() : openWatch();
+
+			yield* browserAborts();
+			yield* mode === "transaction" ? completedRpc() : commitChange();
+
+			yield* close();
+
+			yield* outcomes({
+				"aborted span": [
+					serverSpan(method),
+					expect.objectContaining({ attributes: expect.objectContaining({ "request.id": `abort-${method}` }), status: "unset" }),
+				],
+				"span marks": [
+					rpcSpanMarks(),
+					mode === "transaction" ? { hold: "interrupted", rows: "completed" } : { commit: "completed", watch: "interrupted" },
+				],
+			});
+		},
+	);
+}

@@ -1,19 +1,20 @@
-import { Fiber } from "effect";
 import { expect } from "vitest";
 import { applicationHandlersStory, hostChangesStory } from "#test/hostChangesStory.ts";
 
 hostChangesStory.it(
-	"a host without a changes service opens an idle subscription under its contract middleware",
+	"a host without a changes service runs the contract middleware for a subscription and keeps it open without hints",
 	[],
-	function* ({ subscribe, awaitSubscribed }) {
-		const subscription = yield* subscribe();
-		yield* awaitSubscribed();
-		expect(subscription.pollUnsafe()).toBeUndefined();
-		yield* Fiber.interrupt(subscription);
+	function* ({ subscribe, subscriptionAfterAnotherRequest }) {
+		yield* subscribe();
+
+		expect(yield* subscriptionAfterAnotherRequest()).toEqual({ hints: [], state: "open" });
 	},
 );
 
-applicationHandlersStory.it("application handlers serve requests while the host completes the changes stream", [], function* ({ greet, subscribe }) {
+applicationHandlersStory.it("a host with a changes service still answers its application handlers", [], function* ({ greet }) {
 	expect(yield* greet("Ada")).toBe("Hello, Ada");
-	expect(yield* subscribe()).toEqual([{ _tag: "Resync" }]);
+});
+
+applicationHandlersStory.it("a host with a changes service opens each subscription with a resync", [], function* ({ firstHint }) {
+	expect(yield* firstHint()).toBe("resync");
 });

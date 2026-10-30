@@ -35,10 +35,20 @@ export const shutdownHost = storyKit({
 	name: "streaming host shutdown",
 	stages: [],
 	verbs: (state, story) => ({
-		lifecycle: () => state.lifecycle,
+		hostDisposes: () =>
+			Effect.promise(async () => {
+				story.tell("the host is disposed while the client keeps its RPC stream open");
+				await state.runtime.dispose();
+				state.lifecycle.push("host disposed");
+			}),
+		httpAnswer: () =>
+			Effect.tryPromise(() => fetch(`${state.url}/health`)).pipe(
+				Effect.match({ onFailure: () => "refuses connections", onSuccess: () => "answers" }),
+			),
+		lifecycle: () => Effect.sync(() => state.lifecycle),
 		openStream: () =>
 			Effect.promise(async () => {
-				story.tell("a native HTTP RPC client opens a never-ending stream");
+				story.tell("a native HTTP RPC client opens a never-ending stream and receives its first item");
 				const protocol = RpcClient.layerProtocolHttp({ url: `${state.url}/rpc` }).pipe(
 					Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]),
 				);
@@ -56,13 +66,6 @@ export const shutdownHost = storyKit({
 						throw new Error("The RPC stream ended before its first item", { cause: exit });
 					}),
 				]);
-			}),
-		request: () => Effect.tryPromise(() => fetch(`${state.url}/health`)),
-		shutdown: () =>
-			Effect.promise(async () => {
-				story.tell("dispose the host while the client keeps its RPC stream open");
-				await state.runtime.dispose();
-				state.lifecycle.push("host disposed");
 			}),
 	}),
 });

@@ -18,7 +18,7 @@ const onSqlError = mapSqlError({
 const saved = save.pipe(transact({ onSqlError }));
 ```
 
-The migration owns the constraint names; the application owns the error types and messages. Each callback receives the original `SqlError`. An unknown constraint, a violation without a recognized name, or any other SQL failure uses `fallback`. PostgreSQL supplies foreign-key and check constraint names through the native driver's cause; `UniqueViolation` supplies its constraint directly. Other drivers may not identify constraints with the same precision.
+The migration owns the constraint names; the application owns the error types and messages. Each callback receives the original `SqlError`. An unknown constraint, a violation without a recognized name, or any other SQL failure uses `fallback`. PostgreSQL supplies foreign-key and check constraint names through the native driver's cause; `UniqueViolation` supplies its constraint directly. PostgreSQL clips identifiers to 63 bytes at a character boundary, so declare the full name and the mapper matches the clipped name PostgreSQL reports. Other drivers may not identify constraints with the same precision.
 
 For an Effect that fails with `SqlError`, including generic `Effect<A, SqlError, R>` code, use the same mapper with `Effect.mapError`:
 

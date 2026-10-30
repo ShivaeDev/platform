@@ -23,9 +23,11 @@ export interface Session {
 }
 
 function setup<TValue, TRequirements>(
-	effect: Effect.Effect<TValue, FilesystemFailure, TRequirements>,
+	effect: Effect.Effect<TValue, FilesystemFailure | SetupFailure, TRequirements>,
 ): Effect.Effect<TValue, SetupFailure, TRequirements> {
-	return Effect.mapError(effect, (failure) => new SetupFailure({ cause: failure, message: failure.message }));
+	return Effect.mapError(effect, (failure) =>
+		failure instanceof SetupFailure ? failure : new SetupFailure({ cause: failure, message: failure.message }),
+	);
 }
 
 export const scan = Effect.fn("Engine.scan")(function* (

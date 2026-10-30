@@ -2,6 +2,7 @@ import { Effect, Fiber, Layer, Queue, Stream } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
 import { SqlClient } from "effect/sql";
+import { answered } from "#test/answers.ts";
 import { AdminApi } from "./adminApi.ts";
 import type { AdminHost } from "./adminHost.ts";
 import { adminRouteVerbs } from "./adminRouteVerbs.ts";
@@ -15,20 +16,20 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 		}),
 	).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson]));
 	const makeClient = RpcClient.make(AdminApi);
+	let feed: { readonly fiber: Fiber.Fiber<unknown> } | undefined;
 	function call<A, E>(use: (client: Effect.Success<typeof makeClient>) => Effect.Effect<A, E>) {
-		return makeClient.pipe(Effect.flatMap(use), Effect.result, Effect.provide(protocol));
+		return answered(makeClient.pipe(Effect.flatMap(use), Effect.provide(protocol), Effect.scoped));
 	}
 	return {
 		...profileVerbs(host, story),
 		...adminRouteVerbs(host, story),
+		adminFeedEnding: () => (feed === undefined ? Effect.succeed("no feed followed") : Fiber.join(feed.fiber)),
 		callAdminTools: Effect.fn("AuthStory.callAdminTools")(function* () {
-			story.tell("call the admin-only RPC");
-			return yield* call((client) => client.adminTools()).pipe(
-				Effect.catchDefect((defect) => Effect.succeed(`defect: ${defect instanceof Error ? defect.message : String(defect)}`)),
-			);
+			story.tell("the caller calls the admin-only RPC");
+			return yield* call((client) => client.adminTools());
 		}),
 		callOwnerTools: Effect.fn("AuthStory.callOwnerTools")(function* () {
-			story.tell("call the owner-only RPC");
+			story.tell("the caller calls the owner-only RPC");
 			return yield* call((client) => client.ownerTools());
 		}),
 		clientSession: Effect.fn("AuthStory.clientSession")(function* () {
@@ -45,10 +46,11 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 		}),
 		currentUserId: () => host.userId,
 		followAdminFeed: Effect.fn("AuthStory.followAdminFeed")(function* () {
-			story.tell("subscribe to the admin-only RPC stream");
+			story.tell("the caller subscribes to the admin-only RPC stream and receives its first item");
 			const received = yield* Queue.unbounded<string>();
 			const fiber = yield* Effect.forkScoped(call((client) => Stream.runForEach(client.adminFeed(), (value) => Queue.offer(received, value))));
-			return { ended: Fiber.join(fiber), next: Queue.take(received) };
+			feed = { fiber };
+			return yield* Queue.take(received);
 		}),
 		profile: Effect.fn("AuthStory.profile")(function* () {
 			story.tell("read the protected profile from the HTTP host");

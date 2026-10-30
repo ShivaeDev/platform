@@ -1,7 +1,7 @@
 import { dirname, join } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { SetupFailure } from "#failure.ts";
-import { git } from "#git/command.ts";
+import { run } from "#git/command.ts";
 import { readOptionalText } from "#inventory/filesystem.ts";
 import { shellWords } from "./command.ts";
 import { isHookShim, OWNER } from "./shim.ts";
@@ -42,7 +42,7 @@ export function forwardingPath(file: string): string {
 }
 
 export const globalHooksPath = Effect.fn("Hooks.globalHooksPath")(function* (cwd: string) {
-	const global = yield* git(cwd, ["config", "--global", "--includes", "--type=path", "--get", "core.hooksPath"]);
+	const global = yield* run(cwd, ["config", "--global", "--includes", "--type=path", "--get", "core.hooksPath"]);
 	if (global.code !== 0 && global.code !== 1) {
 		return yield* new SetupFailure({ message: `cannot read global core.hooksPath: ${global.stderr.trim()}` });
 	}

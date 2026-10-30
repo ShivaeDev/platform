@@ -43,3 +43,19 @@ app.it("refreshes an open note detail after its title changes", [signedIn()], fu
 
 	expect(yield* live.nextNote()).toEqual(edited);
 });
+
+app.it(
+	"reports a database failure checking the owner's live note as ServiceUnavailable",
+	[signedIn()],
+	function* ({ actor, failNoteReads, liveNote }) {
+		const note = yield* actor().notes.create({ title: "Alice's note" });
+		const live = yield* liveNote(note.id);
+		expect(yield* live.nextNote()).toEqual(note);
+		yield* failNoteReads;
+
+		yield* live.refresh();
+
+		const failure = yield* live.nextNote().pipe(Effect.flip);
+		expect(failure).toMatchObject({ _tag: "ServiceUnavailable", message: "Could not reach the notes database" });
+	},
+);

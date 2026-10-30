@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Context, Deferred, Effect, Layer, ManagedRuntime, Schema, Stream } from "effect";
+import { Context, Deferred, Effect, type Fiber, Layer, ManagedRuntime, Option, Schema, Stream } from "effect";
 import { HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -9,6 +9,8 @@ import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { query } from "@shivaedev/contract/operation.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppChanges, appHost } from "#appHost.ts";
+import { answered } from "#test/answers.ts";
+import { hintWords } from "#test/rpc/followHints.ts";
 
 class Greeting extends Context.Service<Greeting, string>()("test/ChangesGreeting") {}
 class Observed extends RpcMiddleware.Service<Observed, { provides: Greeting }>()("test/ObservedChanges") {}
@@ -50,15 +52,30 @@ const openHost = Effect.fn("Test.openHost")(function* (live: boolean) {
 
 export const hostChangesStory = storyKit({
 	clock: "live",
-	create: () => openHost(false),
+	*create() {
+		const state: { hints: string[]; subscription?: Fiber.Fiber<string> } = { hints: [] };
+		return Object.assign(state, yield* openHost(false));
+	},
 	name: "host change handlers",
 	stages: [],
-	verbs: (engine, story) => ({
-		awaitSubscribed: () => Deferred.await(engine.started),
-		subscribe: () => {
-			story.tell("subscribe through the host without a changes service");
-			return engine.client("idle.$changes", { queries: [] }).pipe(Stream.runDrain, Effect.forkScoped);
-		},
+	verbs: (state, story) => ({
+		subscribe: () =>
+			Effect.gen(function* () {
+				story.tell("a client subscribes through a host without a changes service");
+				state.subscription = yield* state.client("idle.$changes", { queries: [] }).pipe(
+					Stream.runForEach((hint) => Effect.sync(() => state.hints.push(hintWords(hint)))),
+					answered,
+					Effect.map((answer) => (answer === undefined ? "completed" : answer)),
+					Effect.forkScoped,
+				);
+				yield* Deferred.await(state.started);
+			}),
+		subscriptionAfterAnotherRequest: () =>
+			Effect.gen(function* () {
+				yield* state.client("idle.greet", { name: "barrier" });
+				const ending = state.subscription?.pollUnsafe();
+				return { hints: [...state.hints], state: ending === undefined ? "open" : "ended" };
+			}),
 	}),
 });
 
@@ -67,8 +84,16 @@ export const applicationHandlersStory = storyKit({
 	create: () => openHost(true),
 	name: "hosted application handlers",
 	stages: [],
-	verbs: (engine) => ({
-		greet: (name: string) => engine.client("idle.greet", { name }),
-		subscribe: () => engine.client("idle.$changes", { queries: [] }).pipe(Stream.take(1), Stream.runCollect),
+	verbs: (state, story) => ({
+		firstHint: () => {
+			story.tell("a client subscribes through the host's changes service");
+			return state
+				.client("idle.$changes", { queries: [] })
+				.pipe(Stream.map(hintWords), Stream.runHead, Effect.map(Option.getOrElse(() => "no hint")));
+		},
+		greet: (name: string) => {
+			story.tell(`a client greets ${name}`);
+			return answered(state.client("idle.greet", { name }));
+		},
 	}),
 });

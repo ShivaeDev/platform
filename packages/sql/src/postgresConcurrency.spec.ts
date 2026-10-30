@@ -1,112 +1,132 @@
-import { Effect, Result } from "effect";
 import { expect } from "vitest";
-import { OptimisticConcurrencyError } from "#repository.ts";
-import { Document } from "#test/postgresVersioned.ts";
-import { postgres } from "#test/sqlStory.ts";
-import { hasVersionedDocuments } from "#test/sqlTraits.ts";
-import { transaction } from "#test/transaction.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { documentDeleted, documentSaved, versions } from "#test/versions.ts";
 
-postgres.it("PostgreSQL inserts initialize versions and updates return the incremented model", [hasVersionedDocuments()], function* ({ versions }) {
-	const { documents } = versions();
-	const original = yield* documents.insert({ name: "Draft" });
-	expect(original).toMatchObject({ lockVersion: 0, name: "Draft" });
-	const updated = yield* documents.update({ ...original, name: "Published" });
-	expect(updated).toBeInstanceOf(Document);
-	expect(updated).toEqual({ ...original, lockVersion: 1, name: "Published" });
-	expect(yield* documents.findById(original.id)).toEqual(updated);
-	const conflict = yield* documents.update({ ...original, name: "Stale" }).pipe(Effect.flip);
-	expect(conflict).toBeInstanceOf(OptimisticConcurrencyError);
-	expect(yield* documents.findById(original.id)).toEqual(updated);
-});
+for (const write of ["insert", "insertVoid", "insertOrIgnore"] as const) {
+	versions.it(`${write} saves a new document at version 0`, [], function* ({ document, insertDocument }) {
+		yield* insertDocument("Draft", write);
 
-postgres.it("PostgreSQL versioned writes roll back with the caller's transaction", [hasVersionedDocuments()], function* ({ versions }) {
-	const { documents } = versions();
-	const original = yield* documents.insert({ name: "Draft" });
-	const result = yield* transaction(
-		Effect.gen(function* () {
-			const updated = yield* documents.update({ ...original, name: "Published" });
-			yield* documents.insertVoid({ name: "Temporary" });
-			yield* documents.delete(updated.id, updated.lockVersion);
-			return yield* Effect.fail("cancelled");
-		}),
-	).pipe(Effect.result);
-	expect(result).toEqual(Result.fail("cancelled"));
-	expect(yield* documents.findById(original.id)).toEqual(original);
-	expect(yield* documents.findMany({ select: ["lockVersion", "name"] })).toEqual([{ lockVersion: 0, name: "Draft" }]);
-});
-
-postgres.it("PostgreSQL concurrent writers produce exactly one winner and one typed conflict", [hasVersionedDocuments()], function* ({ versions }) {
-	const { documents, tableName } = versions();
-	const original = yield* documents.insert({ name: "Draft" });
-	const readers = yield* Effect.all([documents.findById(original.id), documents.findById(original.id)], { concurrency: 2 });
-	const outcomes = yield* Effect.forEach(readers, (read, index) => documents.update({ ...read, name: `Writer ${index}` }).pipe(Effect.result), {
-		concurrency: 2,
+		expect(yield* document()).toEqual({ lockVersion: 0, name: "Draft" });
 	});
-	const winners = outcomes.filter(Result.isSuccess);
-	const losers = outcomes.filter(Result.isFailure);
-	expect(winners.map(({ success }) => success)).toEqual([{ ...original, lockVersion: 1, name: expect.stringMatching(/^Writer [01]$/u) }]);
-	expect(losers.map(({ failure }) => failure)).toEqual([
-		expect.objectContaining({
-			_tag: "OptimisticConcurrencyError",
-			expectedVersion: original.lockVersion,
-			id: original.id,
-			reason: "stale",
-			tableName,
-		}),
-	]);
-	expect(yield* documents.findById(original.id)).toEqual(winners[0]?.success);
-});
+}
 
-postgres.it("PostgreSQL versioned deletes reject stale and missing rows", [hasVersionedDocuments()], function* ({ versions }) {
-	const { documents, tableName } = versions();
-	const original = yield* documents.insert({ name: "Draft" });
-	const updated = yield* documents.update({ ...original, name: "Published" });
-	const stale = yield* documents.delete(original.id, original.lockVersion).pipe(Effect.flip);
-	expect(stale).toBeInstanceOf(OptimisticConcurrencyError);
-	expect(stale).toMatchObject({ expectedVersion: 0, id: original.id, reason: "stale", tableName });
-	expect(yield* documents.findById(original.id)).toEqual(updated);
-	yield* documents.delete(updated.id, updated.lockVersion);
-	expect(yield* documents.findMany()).toEqual([]);
-	const missing = yield* documents.delete(updated.id, updated.lockVersion).pipe(Effect.flip);
-	expect(missing).toMatchObject({ _tag: "OptimisticConcurrencyError", reason: "missing" });
-	const missingUpdate = yield* documents.update(updated).pipe(Effect.flip);
-	expect(missingUpdate).toMatchObject({ _tag: "OptimisticConcurrencyError", reason: "missing" });
-});
+versions.it(
+	"update from the current version saves the document at the next version and returns it",
+	[documentSaved("Draft")],
+	function* ({ document, endings, renameDocument }) {
+		expect(yield* document()).toEqual({ lockVersion: 0, name: "Draft" });
 
-postgres.it(
-	"PostgreSQL void writes initialize and increment versions and reject stale inputs",
-	[hasVersionedDocuments()],
-	function* ({ versions, sql }) {
-		const { documents, tableName } = versions();
-		yield* documents.insertVoid({ name: "Draft" });
-		const original = yield* documents.findById(1);
-		expect(original).toMatchObject({ lockVersion: 0, name: "Draft" });
-		yield* documents.updateVoid({ ...original, name: "Published" });
-		expect(yield* documents.findById(1)).toEqual({ ...original, lockVersion: 1, name: "Published" });
-		const stale = yield* documents.updateVoid(original).pipe(Effect.flip);
-		expect(stale).toBeInstanceOf(OptimisticConcurrencyError);
-		yield* sql`delete from ${sql(tableName)}`;
-		const missing = yield* documents.updateVoid({ ...original, lockVersion: 1 }).pipe(Effect.flip);
-		expect(missing).toMatchObject({ _tag: "OptimisticConcurrencyError", reason: "missing" });
+		yield* renameDocument(0, "Published");
+
+		yield* outcomes({
+			"stored document": [document(), { lockVersion: 1, name: "Published" }],
+			"update ending": [endings(), ["saved at version 1"]],
+		});
 	},
 );
 
-postgres.it(
-	"scalar versioned repositories can insertOrIgnore without resetting a version",
-	[hasVersionedDocuments()],
-	function* ({ versions, makeRepository, sql }) {
-		const { tableName } = versions();
-		yield* sql`create unique index ${sql(`${tableName}_name`)} on ${sql(tableName)} (name)`;
-		const documents = yield* makeRepository(Document, {
-			conflictColumns: ["name"],
-			idColumn: "id",
-			spanPrefix: "Document",
-			tableName,
-			versionColumn: "lockVersion",
+versions.it(
+	"updateVoid from the current version saves the document at the next version",
+	[documentSaved("Draft")],
+	function* ({ document, renameDocument }) {
+		yield* renameDocument(0, "Published", "updateVoid");
+
+		expect(yield* document()).toEqual({ lockVersion: 1, name: "Published" });
+	},
+);
+
+for (const write of ["update", "updateVoid"] as const) {
+	versions.it(
+		`${write} from a stale version fails with a stale conflict and keeps the newer document`,
+		[documentSaved("Draft", ["Published"])],
+		function* ({ document, endings, renameDocument }) {
+			yield* renameDocument(0, "Stale", write);
+
+			yield* outcomes({
+				"stored document": [document(), { lockVersion: 1, name: "Published" }],
+				[`${write} ending`]: [endings(), ["failed with a stale version conflict for 1 at version 0"]],
+			});
+		},
+	);
+}
+
+versions.it(
+	"delete at a stale version fails with a stale conflict and keeps the newer document",
+	[documentSaved("Draft", ["Published"])],
+	function* ({ deleteDocument, document, endings }) {
+		yield* deleteDocument(0);
+
+		yield* outcomes({
+			"delete ending": [endings(), ["failed with a stale version conflict for 1 at version 0"]],
+			"stored document": [document(), { lockVersion: 1, name: "Published" }],
 		});
-		const created = yield* documents.insertOrIgnore({ name: "Draft" });
-		expect(created).toMatchObject({ _tag: "Some", value: { lockVersion: 0, name: "Draft" } });
-		expect(yield* documents.insertOrIgnore({ name: "Draft" })).toMatchObject({ _tag: "None" });
-		expect(yield* documents.findMany()).toEqual([{ id: 1, lockVersion: 0, name: "Draft" }]);
+	},
+);
+
+versions.it("delete at the current version removes the document", [documentSaved("Draft", ["Published"])], function* ({ deleteDocument, document }) {
+	yield* deleteDocument(1);
+
+	expect(yield* document()).toBe("no such row");
+});
+
+for (const write of ["update", "updateVoid"] as const) {
+	versions.it(
+		`${write} of a deleted document fails with a missing conflict`,
+		[documentSaved("Draft", ["Published"]), documentDeleted()],
+		function* ({ renameDocument }) {
+			expect(yield* renameDocument(1, "Late", write)).toBe("failed with a missing version conflict for 1 at version 1");
+		},
+	);
+}
+
+versions.it(
+	"delete of a deleted document fails with a missing conflict",
+	[documentSaved("Draft", ["Published"]), documentDeleted()],
+	function* ({ deleteDocument }) {
+		expect(yield* deleteDocument(1)).toBe("failed with a missing version conflict for 1 at version 1");
+	},
+);
+
+versions.it(
+	"two writers renaming the same version concurrently save once, fail once with a stale conflict, and the stored document is the winner's",
+	[documentSaved("Draft")],
+	function* ({ raceEndings, storedDocumentWriter, writersRace }) {
+		yield* writersRace();
+
+		yield* outcomes({
+			"race endings": [raceEndings(), ["failed with a stale version conflict for 1 at version 0", "saved at version 1"]],
+			"stored document": [storedDocumentWriter(), "the winning writer"],
+		});
+	},
+);
+
+versions.it(
+	"versioned writes inside a failing transaction roll back and leave the document at its earlier version",
+	[documentSaved("Draft")],
+	function* ({ deleteDocument, document, documentNames, endings, inFailingTransaction, insertDocument, renameDocument }) {
+		yield* inFailingTransaction(function* () {
+			yield* renameDocument(0, "Published");
+			yield* insertDocument("Temporary", "insertVoid");
+			yield* deleteDocument(1);
+		});
+
+		yield* outcomes({
+			"stored document": [document(), { lockVersion: 0, name: "Draft" }],
+			"stored names": [documentNames(), ["Draft"]],
+			"write endings": [endings(), ["saved at version 1", "inserted", "succeeded", "failed with cancelled"]],
+		});
+	},
+);
+
+versions.it(
+	"insertOrIgnore of a document whose name is taken is ignored and keeps the stored version",
+	[documentSaved("Draft", ["Published"])],
+	function* ({ document, endings, insertDocument }) {
+		yield* insertDocument("Published", "insertOrIgnore");
+
+		yield* outcomes({
+			"insertOrIgnore ending": [endings(), ["ignored"]],
+			"stored document": [document(), { lockVersion: 1, name: "Published" }],
+		});
 	},
 );
