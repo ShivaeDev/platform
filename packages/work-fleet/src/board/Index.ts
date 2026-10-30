@@ -9,4 +9,4 @@ export class BoardIndex extends Context.Service<
 		readonly index: Effect.Success<ReturnType<typeof board.watchIndex>>;
 		readonly snapshot: Effect.Effect<BoardSnapshot, BoardFailure>;
 	}
->()("Fleet/BoardIndex") {}
+>()("@shivaedev/work-fleet/BoardIndex") {}

@@ -1,7 +1,21 @@
-import { Clock, Context, Deferred, Duration, Effect, Fiber, PubSub, Schedule } from "effect";
+import { Clock, Context, Deferred, Duration, Effect, Fiber, PubSub, Stream } from "effect";
 import { BoardIndex } from "#board/Index.ts";
 import { hostScheduler } from "#host/commands.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+
+function indexedWork(index: typeof BoardIndex.Service.index, workId: string) {
+	return Effect.scoped(
+		Effect.gen(function* () {
+			const events = yield* PubSub.subscribe(index.changes.events);
+			return yield* Stream.fromEffect(index.read).pipe(
+				Stream.concat(Stream.fromSubscription(events).pipe(Stream.mapEffect(() => index.read))),
+				Stream.filter((snapshot) => snapshot.model.ids.has(workId)),
+				Stream.take(1),
+				Stream.runDrain,
+			);
+		}),
+	);
+}
 
 export function missedBoardEventVerbs(engine: HostStoryEngine, tell: (line: string) => void) {
 	return {
@@ -38,11 +52,7 @@ export function missedBoardEventVerbs(engine: HostStoryEngine, tell: (line: stri
 				yield* Effect.raceFirst(Deferred.await(paused), Fiber.join(scheduler));
 				return {
 					elapse: Deferred.succeed(elapsed, undefined),
-					indexed: (workId: string) =>
-						shared.index.read.pipe(
-							Effect.repeat({ schedule: Schedule.spaced("10 millis"), until: (snapshot) => snapshot.model.ids.has(workId) }),
-							Effect.asVoid,
-						),
+					indexed: (workId: string) => indexedWork(shared.index, workId),
 				};
 			}),
 	};
