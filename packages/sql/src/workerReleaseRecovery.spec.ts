@@ -1,66 +1,54 @@
 import { expect } from "vitest";
-import { workerReleaseStory } from "#test/workerReleaseStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { drainingForSecondRelease, secondReleaseRecorded, workerHandover } from "#test/workerHandover.ts";
 
-workerReleaseStory.it(
-	"a heartbeat connection blip recovers while draining and keeps the second release waiting",
-	[],
-	function* ({
-		claimSecond,
-		connectionFails,
-		finishDrain,
-		nextFailure,
-		pollIntervalPasses,
-		retryDelayPasses,
-		startDrain,
-		waitForDrain,
-		waitForHeartbeat,
-	}) {
-		yield* startDrain();
-		yield* connectionFails("heartbeat");
-
+workerHandover.it(
+	"a heartbeat that loses its connection while the worker drains logs the failure, beats again on retry and keeps the second release waiting",
+	[drainingForSecondRelease()],
+	function* ({ connectionBlipsOnce, nextHeartbeat, nextWarning, pollIntervalPasses, retryDelayPasses, secondReleaseClaims }) {
+		yield* connectionBlipsOnce("heartbeat");
 		yield* pollIntervalPasses();
-		yield* waitForDrain();
-		expect(yield* nextFailure()).toContain("Connection closed");
+		expect(yield* nextWarning()).toBe("Worker release heartbeat failed: connection closed");
+
 		yield* retryDelayPasses();
-		yield* waitForHeartbeat();
-		yield* pollIntervalPasses();
-		yield* waitForHeartbeat();
 
-		expect(yield* claimSecond()).toBe(false);
-		yield* finishDrain();
+		yield* outcomes({
+			"after the retry": [nextHeartbeat(), "a heartbeat"],
+			"the second release's claim": [secondReleaseClaims(), "refused"],
+		});
 	},
 );
 
-workerReleaseStory.it(
-	"a poll connection blip recovers and starts draining for the second release",
-	[],
-	function* ({ connectionFails, finishDrain, nextFailure, pollIntervalPasses, retryDelayPasses, startDrain, waitForDrain }) {
-		yield* startDrain();
-		yield* connectionFails("poll");
-
+workerHandover.it(
+	"a poll that loses its connection logs the failure and starts draining for the second release on retry",
+	[secondReleaseRecorded()],
+	function* ({ connectionBlipsOnce, drainStarts, drainState, nextWarning, pollIntervalPasses, retryDelayPasses }) {
+		yield* connectionBlipsOnce("poll");
 		yield* pollIntervalPasses();
-		expect(yield* nextFailure()).toContain("Connection closed");
-		yield* retryDelayPasses();
-		yield* waitForDrain();
+		yield* outcomes({
+			"logged warning": [nextWarning(), "Worker release poll failed: connection closed"],
+			"the drain before the retry": [drainState(), "not draining"],
+		});
 
-		yield* finishDrain();
+		yield* retryDelayPasses();
+
+		expect(yield* drainStarts()).toBe("draining");
 	},
 );
 
 for (const loop of ["heartbeat", "poll"] as const) {
-	workerReleaseStory.it(
-		`an unrecoverable ${loop} fails the owning scope with its SQL cause`,
+	workerHandover.it(
+		`a ${loop} that keeps losing its connection logs each of its four attempts and then fails the owning scope with that cause`,
 		[],
-		function* ({ connectionFails, nextFailure, owningScopeFailure, pollIntervalPasses, retryDelayPasses }) {
-			yield* connectionFails(loop, true);
+		function* ({ connectionDiesFor, loggedWarnings, owningScopeEnding, retriesRunOut }) {
+			yield* connectionDiesFor(loop);
 
-			yield* pollIntervalPasses();
-			for (let attempt = 0; attempt < 3; attempt += 1) {
-				expect(yield* nextFailure()).toContain("Connection closed");
-				yield* retryDelayPasses();
-			}
+			yield* retriesRunOut();
 
-			expect(yield* owningScopeFailure()).toContain("Connection closed");
+			yield* outcomes({
+				"logged warnings": [loggedWarnings(), Array.from({ length: 4 }, () => `Worker release ${loop} failed: connection closed`)],
+				"owning scope": [owningScopeEnding(), "failed with connection closed"],
+			});
 		},
 	);
 }
