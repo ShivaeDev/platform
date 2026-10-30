@@ -2,15 +2,19 @@ import { spawnSync } from "node:child_process";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 
-const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
+export const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 
-export interface CliRun {
-	readonly status: number | null;
+export interface ProcessRun {
+	readonly exit: number | null;
 	readonly stderr: string;
 	readonly stdout: string;
 }
 
-export function runCli(repo: string, args: readonly string[]): CliRun {
-	const { status, stderr, stdout } = spawnSync(process.execPath, ["--conditions=source", CLI, ...args], { cwd: repo, encoding: "utf8" });
-	return { status, stderr, stdout };
+export function exec(command: string, args: readonly string[], cwd: string): ProcessRun {
+	const { status, stderr, stdout } = spawnSync(command, args, { cwd, encoding: "utf8" });
+	return { exit: status, stderr, stdout };
+}
+
+export function runCli(repo: string, args: readonly string[]): ProcessRun {
+	return exec(process.execPath, ["--conditions=source", CLI, ...args], repo);
 }

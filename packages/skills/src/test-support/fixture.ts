@@ -10,6 +10,7 @@ export interface Fixture {
 	installed: Installed;
 	remote: string | undefined;
 	readonly repo: string;
+	selection: readonly string[];
 }
 
 export function writeFile(file: string, content: string) {
@@ -29,14 +30,9 @@ export function removeFile(file: string) {
 	});
 }
 
-export const readFile = Effect.fn("SkillsFixture.readFile")(function* (root: string, file: string) {
-	const fs = yield* FileSystem.FileSystem;
-	const path = yield* Path.Path;
-	return yield* fs.readFileString(path.join(root, file));
-});
-
-export function select(repo: string, skills: readonly string[]) {
-	return writeFile("package.json", `${JSON.stringify({ name: "consumer", [SELECTION_FIELD]: skills }, null, "\t")}\n`)(repo);
+export function select(engine: Fixture, skills: readonly string[]) {
+	engine.selection = skills;
+	return writeFile("package.json", `${JSON.stringify({ name: "consumer", [SELECTION_FIELD]: skills }, null, "\t")}\n`)(engine.repo);
 }
 
 export const makeFixture = Effect.fn("SkillsFixture.makeFixture")(function* () {
@@ -48,6 +44,6 @@ export const makeFixture = Effect.fn("SkillsFixture.makeFixture")(function* () {
 	yield* writeFile("skills/beta/SKILL.md", BETA)(root);
 	const repo = yield* fs.makeTempDirectoryScoped({ prefix: "skills-consumer-" });
 	yield* writeFile("package.json", '{ "name": "consumer" }\n')(repo);
-	const fixture: Fixture = { installed: yield* readInstalled(root), remote: undefined, repo };
+	const fixture: Fixture = { installed: yield* readInstalled(root), remote: undefined, repo, selection: [] };
 	return fixture;
 });

@@ -1,53 +1,75 @@
 import { expect } from "@effect/vitest";
-import { RUN_SYNC, skills } from "#test/skills.ts";
-import { addedCopyFile, deletedBeta, editedCopy, removedNotes, selected, selectionChangedTo, synced, versionBumped } from "#test/traits.ts";
+import { outOfSync, skills } from "#test/skills.ts";
+import { addedByHand, alsoSelects, copyDeleted, deselects, editedByHand, packageBumpedTo, removedByHand, selected, synced } from "#test/traits.ts";
 
-skills.it("passes once the selection is synced", [selected("alpha", "beta")], function* ({ repository }) {
-	yield* repository.sync();
-	yield* repository.check();
+skills.it(
+	"check passes on a freshly synced alpha and beta and names the package version",
+	[selected("alpha", "beta"), synced],
+	function* ({ check }) {
+		expect(yield* check()).toBe("The shared skills match @shivaedev/skills 1.2.0.");
+	},
+);
+
+skills.it("check before the first sync reports the missing manifest", [selected("alpha")], function* ({ check }) {
+	expect(yield* check()).toBe(outOfSync(".agents/skills/.shivaedev-skills.json is missing."));
 });
 
-skills.it("fails until sync records the installed version after a bump", [selected("alpha"), synced, versionBumped], function* ({ repository }) {
-	const error = yield* repository.checkFailure();
+skills.it(
+	"after the installed package is bumped to 1.3.0, check reports that the skills were synced from 1.2.0",
+	[selected("alpha"), synced, packageBumpedTo("1.3.0")],
+	function* ({ check }) {
+		expect(yield* check()).toBe(outOfSync("The skills were synced from @shivaedev/skills 1.2.0, but 1.3.0 is installed."));
+	},
+);
 
-	expect(error.message).toBe(
-		`The shared skills are out of sync:\n- The skills were synced from @shivaedev/skills 1.2.0, but 1.3.0 is installed.\n${RUN_SYNC}`,
-	);
-	yield* repository.sync();
-	yield* repository.check();
-});
+skills.it(
+	"after a bump to 1.3.0, a sync makes check pass for 1.3.0",
+	[selected("alpha"), synced, packageBumpedTo("1.3.0")],
+	function* ({ check, sync }) {
+		expect(yield* check()).toBe(outOfSync("The skills were synced from @shivaedev/skills 1.2.0, but 1.3.0 is installed."));
+
+		yield* sync();
+
+		expect(yield* check()).toBe("The shared skills match @shivaedev/skills 1.3.0.");
+	},
+);
 
 for (const [change, trait] of [
-	["edited", editedCopy("alpha")],
-	["added", addedCopyFile("alpha")],
-	["removed", removedNotes],
+	["SKILL.md is edited", editedByHand("alpha", "SKILL.md")],
+	["references/more.md is added", addedByHand("alpha", "references/more.md")],
+	["references/notes.md is removed", removedByHand("alpha", "references/notes.md")],
 ] as const) {
-	skills.it(`fails when a file of a synced copy is ${change} by hand`, [selected("alpha"), synced, trait], function* ({ repository }) {
-		const error = yield* repository.checkFailure();
-
-		expect(error.message).toContain(
-			"- .agents/skills/alpha differs from what shivaedev-skills synced. Shared skills change in @shivaedev/skills, not in the copy.",
-		);
-		expect(error.message).toContain(RUN_SYNC);
-	});
+	skills.it(
+		`check reports that alpha's copy differs from the sync after ${change} by hand`,
+		[selected("alpha"), synced, trait],
+		function* ({ check }) {
+			expect(yield* check()).toBe(
+				outOfSync(".agents/skills/alpha differs from what shivaedev-skills synced. Shared skills change in @shivaedev/skills, not in the copy."),
+			);
+		},
+	);
 }
 
-skills.it("fails when a synced copy is deleted", [selected("alpha", "beta"), synced, deletedBeta], function* ({ repository }) {
-	const error = yield* repository.checkFailure();
+skills.it(
+	"check reports beta's copy missing after its folder is deleted",
+	[selected("alpha", "beta"), synced, copyDeleted("beta")],
+	function* ({ check }) {
+		expect(yield* check()).toBe(outOfSync(".agents/skills/beta is missing."));
+	},
+);
 
-	expect(error.message).toBe(`The shared skills are out of sync:\n- .agents/skills/beta is missing.\n${RUN_SYNC}`);
-});
+skills.it(
+	"check reports beta as selected but not synced after it is added to the selection",
+	[selected("alpha"), synced, alsoSelects("beta")],
+	function* ({ check }) {
+		expect(yield* check()).toBe(outOfSync('beta is selected in "shivaedevSkills" but not synced.'));
+	},
+);
 
-skills.it("fails when the selection and the manifest disagree", [selected("alpha"), synced, selectionChangedTo("beta")], function* ({ repository }) {
-	const error = yield* repository.checkFailure();
-
-	expect(error.message).toContain('- beta is selected in "shivaedevSkills" but not synced.');
-	expect(error.message).toContain('- alpha is synced but no longer selected in "shivaedevSkills".');
-	expect(error.message).toContain(RUN_SYNC);
-});
-
-skills.it("fails when nothing was synced yet", [selected("alpha")], function* ({ repository }) {
-	const error = yield* repository.checkFailure();
-
-	expect(error.message).toBe(`The shared skills are out of sync:\n- .agents/skills/.shivaedev-skills.json is missing.\n${RUN_SYNC}`);
-});
+skills.it(
+	"check reports beta as synced but no longer selected after it is dropped from the selection",
+	[selected("alpha", "beta"), synced, deselects("beta")],
+	function* ({ check }) {
+		expect(yield* check()).toBe(outOfSync('beta is synced but no longer selected in "shivaedevSkills".'));
+	},
+);

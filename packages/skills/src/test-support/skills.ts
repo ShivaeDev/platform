@@ -1,87 +1,134 @@
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem, Path } from "effect";
+import { Console, Effect, FileSystem, Option, Path } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkSkills } from "#checkSkills.ts";
-import { hashSkill } from "#hashSkill.ts";
 import { syncSkills } from "#syncSkills.ts";
 import { runCli } from "./cli.ts";
-import { makeFixture, readFile } from "./fixture.ts";
-import { pushedCommit, runStep, workflowStep, workflowTemplate, workingTreeChanges } from "./workflow.ts";
+import { type Fixture, makeFixture } from "./fixture.ts";
+import { pushedCommit, runStep, workflow } from "./workflow.ts";
 
-export const RUN_SYNC = "Run `shivaedev-skills sync` and commit the result.";
 export const MANIFEST = ".agents/skills/.shivaedev-skills.json";
+
+export function outOfSync(...problems: readonly string[]) {
+	return `failed: The shared skills are out of sync:\n${problems.map((problem) => `- ${problem}`).join("\n")}\nRun \`shivaedev-skills sync\` and commit the result.`;
+}
+
+export const printedOrFailed = Effect.fn("SkillsStory.printedOrFailed")(function* (
+	repo: string,
+	operation: Effect.Effect<void, { readonly message: string }, FileSystem.FileSystem | Path.Path>,
+) {
+	const console = yield* Console.Console;
+	const printed: string[] = [];
+	const captured: Console.Console = {
+		...console,
+		log: (...parts) => {
+			printed.push(parts.join(" "));
+		},
+	};
+	return yield* operation.pipe(
+		Effect.provideService(Console.Console, captured),
+		Effect.match({
+			onFailure: (error) => `failed: ${error.message.replaceAll(repo, "<repository>")}`,
+			onSuccess: () => printed.join("\n"),
+		}),
+	);
+});
+
+const entryOf = Effect.fn("SkillsStory.entryOf")(function* (file: string) {
+	const fs = yield* FileSystem.FileSystem;
+	const target = yield* Effect.option(fs.readLink(file));
+	if (Option.isSome(target)) {
+		return `link to ${target.value}`;
+	}
+	return (yield* fs.stat(file)).type === "File" ? yield* fs.readFileString(file) : undefined;
+});
+
+const namesIn = Effect.fn("SkillsStory.namesIn")(function* (folder: string) {
+	const fs = yield* FileSystem.FileSystem;
+	return (yield* fs.exists(folder)) ? (yield* fs.readDirectory(folder)).filter((name) => !name.startsWith(".")).sort() : [];
+});
+
+function verbs(engine: Fixture, tell: (line: string) => void) {
+	const resolve = Effect.fn("SkillsStory.resolve")(function* (file: string) {
+		return (yield* Path.Path).join(engine.repo, file);
+	});
+	const folder = Effect.fn("SkillsStory.folder")(function* (relative: string) {
+		const fs = yield* FileSystem.FileSystem;
+		const path = yield* Path.Path;
+		const root = yield* resolve(relative);
+		const top = yield* Effect.option(fs.readLink(root));
+		if (Option.isSome(top)) {
+			return `link to ${top.value}`;
+		}
+		if (!(yield* fs.exists(root))) {
+			return "missing";
+		}
+		const files: Record<string, string> = {};
+		for (const entry of (yield* fs.readDirectory(root, { recursive: true })).sort()) {
+			const content = yield* entryOf(path.join(root, entry));
+			if (content !== undefined) {
+				files[entry.split(path.sep).join("/")] = content;
+			}
+		}
+		return files;
+	});
+	function remote() {
+		if (engine.remote === undefined) {
+			throw new Error("Declare pullRequestBranch before reading what was pushed");
+		}
+		return engine.remote;
+	}
+	return {
+		check: () => {
+			tell("the repository checks its shared skills");
+			return printedOrFailed(engine.repo, checkSkills(engine.repo, engine.installed));
+		},
+		cli: {
+			check: () =>
+				Effect.sync(() => {
+					tell("the repository runs shivaedev-skills check");
+					return runCli(engine.repo, ["check"]);
+				}),
+			sync: () =>
+				Effect.sync(() => {
+					tell("the repository runs shivaedev-skills sync");
+					return runCli(engine.repo, ["sync"]);
+				}),
+		},
+		folder,
+		installedVersion: () => engine.installed.version,
+		manifest: Effect.fn("SkillsStory.manifest")(function* () {
+			const fs = yield* FileSystem.FileSystem;
+			const file = yield* resolve(MANIFEST);
+			return (yield* fs.exists(file)) ? JSON.parse(yield* fs.readFileString(file)) : "missing";
+		}),
+		skillFolders: Effect.fn("SkillsStory.skillFolders")(function* () {
+			return {
+				".agents/skills": yield* namesIn(yield* resolve(".agents/skills")),
+				".claude/skills": yield* namesIn(yield* resolve(".claude/skills")),
+			};
+		}),
+		sync: () => {
+			tell("the repository syncs its selection");
+			return printedOrFailed(engine.repo, syncSkills(engine.repo, engine.installed));
+		},
+		workflow: {
+			...workflow,
+			pushedCommit: () => Effect.sync(() => pushedCommit(remote())),
+			runs: (step: string) => {
+				tell(`the sync workflow runs its step: ${step}`);
+				return runStep(engine.repo, step);
+			},
+		},
+	};
+}
 
 export const skills = storyKit({
 	clock: "live",
 	create: makeFixture,
-	inspect: ({ installed, repo }) => ({ installed, repo }),
+	inspect: ({ installed, repo, selection }) => ({ installed, repo, selection }),
 	layer: NodeServices.layer,
 	name: "skills",
-	stages: ["selected", "synced", "changed"],
-	verbs: (engine, story) => {
-		function sync() {
-			story.tell("the repository syncs its selected skills");
-			return syncSkills(engine.repo, engine.installed);
-		}
-		function check() {
-			story.tell("the repository checks its shared skills");
-			return checkSkills(engine.repo, engine.installed);
-		}
-		function cli(command: "sync" | "check") {
-			return Effect.sync(() => {
-				story.tell(`the repository runs shivaedev-skills ${command}`);
-				return runCli(engine.repo, [command]);
-			});
-		}
-		const resolve = Effect.fn("SkillsStory.resolve")(function* (file: string) {
-			return (yield* Path.Path).join(engine.repo, file);
-		});
-		const link = Effect.fn("SkillsStory.link")(function* (name: string) {
-			return yield* (yield* FileSystem.FileSystem).readLink(yield* resolve(`.claude/skills/${name}`));
-		});
-		function remote() {
-			if (engine.remote === undefined) {
-				throw new Error("The repository has no pull request branch to push to");
-			}
-			return engine.remote;
-		}
-		const step = Effect.fn("SkillsStory.step")(function* (name: string) {
-			return workflowStep(yield* workflowTemplate(), name);
-		});
-		return {
-			cli: { check: () => cli("check"), sync: () => cli("sync") },
-			pullRequest: {
-				pushedCommit: () => pushedCommit(remote()),
-				uncommittedChanges: () => workingTreeChanges(engine.repo),
-			},
-			repository: {
-				check,
-				checkFailure: () => Effect.flip(check()),
-				exists: Effect.fn("SkillsStory.exists")(function* (file: string) {
-					return yield* (yield* FileSystem.FileSystem).exists(yield* resolve(file));
-				}),
-				fileType: Effect.fn("SkillsStory.fileType")(function* (file: string) {
-					return (yield* (yield* FileSystem.FileSystem).stat(yield* resolve(file))).type;
-				}),
-				link,
-				linkIsMissing: (name: string) => Effect.asVoid(Effect.flip(link(name))),
-				manifest: () => readFile(engine.repo, MANIFEST).pipe(Effect.map((content) => JSON.parse(content))),
-				path: engine.repo,
-				read: (file: string) => readFile(engine.repo, file),
-				sourceHash: (name: string) => hashSkill(`${engine.installed.root}/skills/${name}`),
-				sync,
-				syncFailure: () => Effect.flip(sync()),
-				version: () => engine.installed.version,
-			},
-			workflow: {
-				runs: (name: string) =>
-					Effect.map(step(name), (found) => {
-						story.tell(`the sync workflow runs its step: ${name}`);
-						return runStep(engine.repo, found);
-					}),
-				step,
-				template: workflowTemplate,
-			},
-		};
-	},
+	stages: ["selected", "owned", "synced", "changed", "pushed"],
+	verbs: (engine, story) => verbs(engine, story.tell),
 });
