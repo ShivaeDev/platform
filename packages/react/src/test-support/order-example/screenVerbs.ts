@@ -1,34 +1,22 @@
 import { Effect } from "effect";
-import { act } from "react";
-import { eventually } from "@shivaedev/test-story/client/react.ts";
 import type { Application } from "./applicationEngine.ts";
-import { getContainer, input } from "./screens.ts";
+import { getContainer } from "./screens.ts";
 
 export function screenVerbs(engine: Application, tell: (line: string) => void) {
+	function driver(key: string) {
+		const screen = engine.screens.get(key);
+		if (screen === undefined) {
+			throw new Error(`The ${key} screen is not open`);
+		}
+		return screen.driver;
+	}
 	function click(key: string, name: string) {
 		tell(`${key} clicks ${name}`);
-		return Effect.promise(async () => {
-			const button = [...getContainer(engine, key).querySelectorAll("button")].find((candidate) => candidate.textContent === name);
-			if (button === undefined || button.disabled) {
-				throw new Error(`Button ${name} is missing or disabled`);
-			}
-			await act(async () => button.click());
-		});
+		return driver(key).click({ name, role: "button" });
 	}
 	function edit(name: string, value: string, key = "editor") {
 		tell(`${key} enters ${name} ${value}`);
-		return Effect.promise(async () => {
-			await act(() => {
-				const element = input(engine, name, key);
-				const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-				if (setter === undefined) {
-					throw new Error("Input value setter is missing");
-				}
-				setter.call(element, value);
-				element.dispatchEvent(new Event("input", { bubbles: true }));
-				element.dispatchEvent(new Event("change", { bubbles: true }));
-			});
-		});
+		return driver(key).enter(`input[name="${name}"]`, value);
 	}
 	return {
 		editName: (value: string, key = "editor") => edit("name", value, key),
@@ -48,7 +36,7 @@ export function screenVerbs(engine: Application, tell: (line: string) => void) {
 		list: () => [...getContainer(engine, "list").querySelectorAll("li")].map((li) => li.textContent),
 		observe: (line: string, check: () => void) => {
 			tell(line);
-			return eventually(check);
+			return Effect.forEach(engine.screens.values(), (screen) => screen.driver.settle(), { discard: true }).pipe(Effect.andThen(Effect.sync(check)));
 		},
 		refreshOrder: () => click("editor", "Refresh"),
 		renameFromList: () => click("list", "Rename order"),

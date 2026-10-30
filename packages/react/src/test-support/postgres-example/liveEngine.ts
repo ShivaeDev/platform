@@ -1,19 +1,14 @@
-import { Deferred, Effect } from "effect";
-import { databaseUrl, StoryDatabase } from "#test/order-example/postgres.ts";
+import { Deferred, Effect, Redacted } from "effect";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { Rejected } from "./contract.ts";
 import { makeClient } from "./makeClient.ts";
 import { type ServerOptions, startServer } from "./server.ts";
 import { call, mountView } from "./view.tsx";
 
-function start(name: string, options: ServerOptions) {
+function start(databaseUrl: Redacted.Redacted<string>, options: ServerOptions) {
 	return Effect.acquireRelease(
 		Effect.promise(async () => {
-			if (databaseUrl._tag === "None") {
-				throw new Error("PostgreSQL URL is required");
-			}
-			const url = new URL(databaseUrl.value);
-			url.pathname = `/${name}`;
-			const server = await startServer(url.toString(), options);
+			const server = await startServer(Redacted.value(databaseUrl), options);
 			const views: Awaited<ReturnType<typeof mountView>>[] = [];
 			return {
 				...server,
@@ -43,10 +38,10 @@ export function rejectedSave(url: string) {
 }
 
 export const createLiveEngine = Effect.gen(function* () {
-	const database = yield* StoryDatabase;
+	const database = yield* PostgresTestDatabase;
 	const saving: { pending?: Promise<Awaited<ReturnType<typeof rejectedSave>>> } = {};
 	const gate = { entered: yield* Deferred.make<void>(), held: false, rejected: false, released: yield* Deferred.make<void>() };
-	const server = yield* start(database.name, {
+	const server = yield* start(database.url, {
 		beforeCommit: Effect.gen(function* () {
 			if (gate.held) {
 				yield* Deferred.succeed(gate.entered, undefined);

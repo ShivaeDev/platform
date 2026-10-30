@@ -13,16 +13,16 @@ export function makeClient({
 	readonly token?: string | undefined;
 	readonly httpClient?: Layer.Layer<HttpClient.HttpClient>;
 }) {
-	const { api, Client } = makeRpcClient(Orders, {
+	const { api, Client, client } = makeRpcClient(Orders, {
 		live: false,
 		protocol: RpcClient.layerProtocolHttp({
-			transformClient: (client) =>
-				token === undefined ? client : HttpClient.mapRequest(client, HttpClientRequest.setHeader("authorization", `Bearer ${token}`)),
+			transformClient: (http) =>
+				token === undefined ? http : HttpClient.mapRequest(http, HttpClientRequest.setHeader("cookie", `order-session=${token}`)),
 			url,
-		}).pipe(Layer.provide([httpClient, RpcSerialization.layerJson])),
+		}).pipe(Layer.provide([httpClient, RpcSerialization.layerNdjson])),
 		url,
 	});
 	const renameOrder = Client.runtime.fn(api.save.run);
 
-	return { api, Client, renameOrder };
+	return { api, Client, client, renameOrder };
 }
