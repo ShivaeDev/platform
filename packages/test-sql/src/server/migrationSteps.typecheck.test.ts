@@ -1,11 +1,18 @@
-import { Context, Effect, Schema, Scope } from "effect";
+import { Effect, Schema, Scope } from "effect";
 import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { migrationSteps } from "#migrationSteps.ts";
 import { migrations } from "#test/migrationSteps.ts";
 
-class Dependency extends Context.Service<Dependency, string>()("MigrationStepsDependency") {}
+const Dependency = defineService({
+	id: "MigrationStepsDependency",
+	initialize: Effect.void,
+	methods: () => ({}),
+	requires: [],
+});
+type Dependency = typeof Dependency.Identifier;
 
 const steps = migrationSteps({
 	...migrations,

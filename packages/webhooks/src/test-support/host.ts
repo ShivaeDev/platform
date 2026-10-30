@@ -6,10 +6,10 @@ import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
-import { webhookRoute } from "#route.ts";
+import { webhookRoute } from "#server/route.ts";
+import { webhookReceipts } from "#server/webhookReceipts.ts";
 import { auditQueue, issueQueue, Jobs, MAX_BODY_BYTES, sources, WEBHOOK_SECRET } from "#test/fixture.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
-import { webhookReceipts } from "#webhookReceipts.ts";
 
 export interface HandledJob {
 	readonly id: string;

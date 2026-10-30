@@ -2,7 +2,7 @@ import { type Config, Effect, type Option, type Redacted, Schema } from "effect"
 import type { JobPayloadSchema, QueueDefinition } from "@shivaedev/jobs/server/definition.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
-import type { WebhookUnauthorized } from "#WebhookUnauthorized.ts";
+import type { WebhookUnauthorized } from "#server/WebhookUnauthorized.ts";
 
 const enqueue = Symbol("WebhookJob.enqueue");
 

@@ -5,8 +5,8 @@ import type { SqlClient } from "effect/sql";
 import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
-import { receive } from "#internal/receive.ts";
-import type { WebhookSource } from "#registration.ts";
+import { receive } from "#server/internal/receive.ts";
+import type { WebhookSource } from "#server/registration.ts";
 
 export interface WebhookRouteOptions<TJobs, R> {
 	readonly basePath: `/${string}`;
