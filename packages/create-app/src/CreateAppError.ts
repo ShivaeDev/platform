@@ -1,9 +1,8 @@
-import { Data, Runtime } from "effect";
+import { Data } from "effect";
 
 export class CreateAppError extends Data.TaggedError("CreateAppError")<{ readonly message: string }> {
-	override readonly [Runtime.errorReported] = false;
-}
-
-export function createAppFailure(cause: unknown) {
-	return new CreateAppError({ message: cause instanceof Error ? cause.message : String(cause) });
+	constructor(fields: { readonly message: string }, options?: ErrorOptions) {
+		super(fields);
+		Object.defineProperty(this, "cause", { value: options?.cause });
+	}
 }

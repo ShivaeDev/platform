@@ -10,14 +10,13 @@
 {"path":"packages/jobs/src/server/failedJobsPostgres.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/jobs/src/server/followUp.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/healthPostgres.spec.ts","rule":"effect/boundary","count":7}
-{"path":"packages/jobs/src/server/internal/batchHandler.ts","rule":"effect/boundary","count":9}
+{"path":"packages/jobs/src/server/internal/batchHandler.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/clientCache.ts","rule":"effect/boundary","count":8}
 {"path":"packages/jobs/src/server/internal/clientErrors.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/countsFor.ts","rule":"effect/boundary","count":3}
 {"path":"packages/jobs/src/server/internal/deadlineOf.ts","rule":"effect/boundary","count":1}
 {"path":"packages/jobs/src/server/internal/deferral.ts","rule":"code/unused","count":1}
 {"path":"packages/jobs/src/server/internal/definitionOptions.ts","rule":"effect/boundary","count":1}
-{"path":"packages/jobs/src/server/internal/ensureQueue.ts","rule":"effect/boundary","count":13}
 {"path":"packages/jobs/src/server/internal/expireAttempt.ts","rule":"effect/boundary","count":6}
 {"path":"packages/jobs/src/server/internal/healthFor.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/jobControl.ts","rule":"effect/boundary","count":8}
@@ -26,10 +25,9 @@
 {"path":"packages/jobs/src/server/internal/nativeClient.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/internal/observeTestingSettlements.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"code/unused","count":1}
-{"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/boundary","count":16}
+{"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/boundary","count":2}
 {"path":"packages/jobs/src/server/internal/register.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/jobs/src/server/internal/registerReleasedJobs.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/jobs/src/server/internal/registerWorker.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/internal/registerWorker.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/jobs/src/server/internal/runSchemaPlan.ts","rule":"effect/boundary","count":4}
 {"path":"packages/jobs/src/server/internal/runSchemaPlan.ts","rule":"effect/service-parameters","count":1}

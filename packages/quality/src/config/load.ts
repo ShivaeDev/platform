@@ -27,7 +27,7 @@ function messageOf(cause: unknown): string {
 function importDefault(file: string): Effect.Effect<unknown, SetupFailure> {
 	return Effect.flatMap(
 		Effect.tryPromise({
-			catch: (cause) => new SetupFailure({ message: `cannot load ${file}: ${messageOf(cause)}` }),
+			catch: (cause) => new SetupFailure({ cause, message: `cannot load ${file}: ${messageOf(cause)}` }),
 			try: async (): Promise<unknown> => import(pathToFileURL(file).href),
 		}),
 		(loaded) =>
@@ -71,7 +71,7 @@ export const loadConfig = Effect.fn("Config.loadConfig")(function* (
 			Effect.catchTag("PlatformError", (error) =>
 				error.reason._tag === "NotFound"
 					? Effect.succeed<string[]>([])
-					: Effect.fail(new SetupFailure({ message: `cannot inspect ${file}: ${error.message}` })),
+					: Effect.fail(new SetupFailure({ cause: error, message: `cannot inspect ${file}: ${error.message}` })),
 			),
 		);
 	const present = entries.includes(basename(file));

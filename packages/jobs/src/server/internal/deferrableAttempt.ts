@@ -2,6 +2,7 @@ import { Clock, DateTime, Effect, Schema } from "effect";
 import type { Job } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 import { RetryAt } from "#definition.ts";
+import { toPgBossError } from "#error.ts";
 import { deferralObservers, deferredAttempt } from "#internal/deferral.ts";
 import { settleDeferral } from "#internal/settleDeferral.ts";
 
@@ -23,7 +24,10 @@ export function deferrableAttempt<A, E, R>(
 				return Effect.fail(error);
 			}
 			const at = DateTime.formatIso(error.at);
-			return Effect.promise(() => settleDeferral(client, schema, job, at, error.reason, maxDeferrals)).pipe(
+			return Effect.tryPromise({
+				catch: (failure) => toPgBossError("settle", failure, job.name),
+				try: () => settleDeferral(client, schema, job, at, error.reason, maxDeferrals),
+			}).pipe(
 				Effect.flatMap((settled) => {
 					if (settled.claimed && !settled.deferred) {
 						return Effect.fail(error);

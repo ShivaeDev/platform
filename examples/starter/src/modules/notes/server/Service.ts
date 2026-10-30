@@ -1,21 +1,18 @@
 import { Effect } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { SqlClient } from "effect/sql";
-import { Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { Conflict, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { defineService } from "@shivaedev/service/defineService.ts";
+import type { OptimisticConcurrencyError } from "@shivaedev/sql/repository.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
-import { Create, type Delete, type Import, Update } from "#modules/notes/notes.ts";
+import type { Create, Delete, Import, Update } from "#modules/notes/notes.ts";
 import { CountWords, NoteJobs } from "./jobs.ts";
 import { makeNotesRepository } from "./makeRepository.ts";
 import { NoteSource } from "./Source.ts";
+import { notesSqlFailure } from "./sqlFailure.ts";
 
-function unavailable() {
-	return new ServiceUnavailable({ message: "Could not reach the notes database" });
-}
-function writeFailure(error: { readonly _tag: string }) {
-	return error._tag === "OptimisticConcurrencyError"
-		? new Conflict({ message: "This note changed. Refresh and review your draft before trying again." })
-		: unavailable();
+function changed(cause: OptimisticConcurrencyError) {
+	return Effect.fail(Object.assign(new Conflict({ message: "This note changed. Refresh and review your draft before trying again." }), { cause }));
 }
 
 export const NotesService = defineService({
@@ -24,7 +21,9 @@ export const NotesService = defineService({
 	methods: (repository) => {
 		function get(id: number, userId: string) {
 			return Effect.gen(function* () {
-				const rows = yield* repository.findMany({ limit: 1, where: { id, userId } }).pipe(Effect.mapError(unavailable));
+				const rows = yield* repository
+					.findMany({ limit: 1, where: { id, userId } })
+					.pipe(Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error))));
 				return rows[0] ?? (yield* Effect.fail(new NotFound({ message: "Note not found" })));
 			});
 		}
@@ -36,14 +35,10 @@ export const NotesService = defineService({
 		}
 		function create({ title }: typeof Create.payload.Type, userId: string) {
 			return Effect.gen(function* () {
-				const trimmed = title.trim();
-				if (trimmed === "") {
-					return yield* Create.reject.Invalid({ field: "title", message: "Enter a title" });
-				}
-				const row = yield* repository.insert({ title: trimmed, userId, wordCount: null }).pipe(Effect.mapError(unavailable));
+				const row = yield* repository.insert({ title, userId, wordCount: null });
 				return row;
 			}).pipe(
-				transact({ onSqlError: unavailable }),
+				transact({ onSqlError: notesSqlFailure }),
 				Effect.tap((row) => enqueue(row.id)),
 			);
 		}
@@ -51,14 +46,14 @@ export const NotesService = defineService({
 			canRead: (id: number, userId: string) =>
 				repository.findMany({ limit: 1, where: { id } }).pipe(
 					Effect.map((rows) => rows[0] === undefined || rows[0].userId === userId),
-					Effect.mapError(unavailable),
+					Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error))),
 				),
 			create,
 			delete: (input: typeof Delete.payload.Type, userId: string) =>
 				Effect.gen(function* () {
 					yield* get(input.id, userId);
-					yield* repository.delete(input.id, input.version).pipe(Effect.mapError(writeFailure));
-				}).pipe(transact({ onSqlError: unavailable })),
+					yield* repository.delete(input.id, input.version).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
+				}).pipe(transact({ onSqlError: notesSqlFailure })),
 			get,
 			import: (input: typeof Import.payload.Type, userId: string) =>
 				Effect.gen(function* () {
@@ -69,18 +64,14 @@ export const NotesService = defineService({
 			list: (userId: string) =>
 				repository
 					.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id", "title", "wordCount", "version"], where: { userId } })
-					.pipe(Effect.mapError(unavailable)),
+					.pipe(Effect.catchTag("SqlError", (error) => Effect.fail(notesSqlFailure(error)))),
 			update: (input: typeof Update.payload.Type, userId: string) =>
 				Effect.gen(function* () {
 					const row = yield* get(input.id, userId);
-					const title = input.title.trim();
-					if (title === "") {
-						return yield* Update.reject.Invalid({ field: "title", message: "Enter a title" });
-					}
-					const saved = yield* repository.update({ ...row, ...input, title, wordCount: null }).pipe(Effect.mapError(writeFailure));
+					const saved = yield* repository.update({ ...row, ...input, wordCount: null }).pipe(Effect.catchTag("OptimisticConcurrencyError", changed));
 					return saved;
 				}).pipe(
-					transact({ onSqlError: unavailable }),
+					transact({ onSqlError: notesSqlFailure }),
 					Effect.tap((row) => enqueue(row.id)),
 				),
 		};

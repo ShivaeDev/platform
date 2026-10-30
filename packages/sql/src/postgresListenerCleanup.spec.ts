@@ -1,9 +1,4 @@
-import { Effect, Fiber } from "effect";
-import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { withLive } from "@shivaedev/test/withLive.ts";
-import { onSqlError } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { listeningForChanges } from "#test/sqlTraits.ts";
 
@@ -19,49 +14,44 @@ postgres.it(
 			true,
 		),
 	],
-	function* ({ sql, transact, invalidateOnCommit, notifications, watchChanges, recordedLogs }) {
-		const { state, close, release, nextMutedHeartbeat, nextListener, nextCleanup } = notifications();
-		const changes = yield* watchChanges(["orders:1"]);
-		try {
-			const listeners = sql<{
-				pid: number;
-			}>`select pid from pg_stat_activity where query = ${`LISTEN "${state.channel}"`}`;
-			const originalListeners = yield* listeners;
-			expect(originalListeners).toEqual([{ pid: expect.any(Number) }]);
-			state.muted = true;
-			yield* TestClock.adjust("1 hour");
-			yield* nextMutedHeartbeat;
-			yield* TestClock.adjust("150 millis");
-			yield* withLive(eventually(Effect.try(() => expect(state.resyncEvents).toEqual(["resync", "resync"]))).pipe(Effect.timeout("5 seconds")));
-			yield* nextCleanup;
-			expect(state.listenerOperations).toEqual(["listen", "cleanup"]);
-			state.muted = false;
-			yield* TestClock.adjust("150 millis");
-			yield* withLive(
-				eventually(
-					Effect.try(() =>
-						expect(recordedLogs()).toMatchObject([{ level: "Warn", message: ["PostgreSQL change listener lost; resynchronizing live streams"] }]),
-					),
-				).pipe(Effect.timeout("5 seconds")),
-			);
-			yield* TestClock.adjust("20 millis");
-			yield* nextListener;
-			yield* TestClock.adjust("50 millis");
-			yield* withLive(
-				eventually(Effect.try(() => expect(state.resyncEvents).toEqual(["resync", "resync", "resync"]))).pipe(Effect.timeout("5 seconds")),
-			);
-			expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen"]);
-			expect(yield* listeners).toEqual([{ pid: expect.any(Number) }]);
-			yield* invalidateOnCommit(["orders:1"]).pipe(transact({ onSqlError }));
-			yield* withLive(eventually(Effect.try(() => expect(changes).toEqual(["orders:1"]))).pipe(Effect.timeout("5 seconds")));
-			const closingScope = yield* Effect.forkScoped(close);
-			yield* nextCleanup;
-			yield* TestClock.adjust("150 millis");
-			yield* Fiber.join(closingScope);
-			expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen", "cleanup"]);
-		} finally {
-			release();
-		}
+	function* ({ notifications, recordedLogs }) {
+		const {
+			state,
+			closeAtDeadline,
+			nextMutedHeartbeat,
+			nextListener,
+			nextCleanup,
+			nextResync,
+			nextLoss,
+			nextRecovery,
+			intervalPasses,
+			listenerPids,
+			pauseDelivery,
+			resumeDelivery,
+		} = notifications();
+		const originalListeners = yield* listenerPids;
+		expect(originalListeners).toEqual([{ pid: expect.any(Number) }]);
+		yield* pauseDelivery();
+		yield* intervalPasses("1 hour");
+		yield* nextMutedHeartbeat;
+		yield* intervalPasses("150 millis");
+		yield* nextResync;
+		expect(state.resyncEvents).toEqual(["resync", "resync"]);
+		yield* nextCleanup;
+		expect(state.listenerOperations).toEqual(["listen", "cleanup"]);
+		yield* resumeDelivery();
+		yield* intervalPasses("150 millis");
+		yield* nextLoss;
+		expect(recordedLogs()).toMatchObject([{ cause: expect.stringContaining("heartbeat timed out"), level: "Warn" }]);
+		yield* intervalPasses("20 millis");
+		yield* nextListener;
+		yield* intervalPasses("50 millis");
+		yield* nextRecovery;
+		expect(state.resyncEvents).toEqual(["resync", "resync", "resync"]);
+		expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen"]);
+		expect(yield* listenerPids).toEqual([{ pid: expect.any(Number) }]);
+		yield* closeAtDeadline();
+		expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen", "cleanup"]);
 	},
 	{ clock: "test" },
 );

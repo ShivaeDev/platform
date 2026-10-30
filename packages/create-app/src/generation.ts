@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { dirname, join } from "node:path";
 import { Effect, FileSystem, Schema } from "effect";
 import { appFile } from "#appFiles.ts";
-import { createAppFailure } from "#CreateAppError.ts";
+import { CreateAppError } from "#CreateAppError.ts";
 import { Template } from "#template.ts";
 
 export const Generation = Schema.Struct({ minimal: Schema.optional(Schema.Boolean), name: Schema.String, version: Schema.String });
@@ -25,7 +25,7 @@ export const renderTemplate = Effect.fn("CreateApp.renderTemplate")(function* (t
 	for (const entry of template) {
 		const path = join(target, entry.path);
 		const content = yield* Effect.try({
-			catch: createAppFailure,
+			catch: (cause) => new CreateAppError({ message: `Failed to render template file ${entry.path}` }, { cause }),
 			try: () => appFile(entry.path, Buffer.from(entry.content, "base64"), name),
 		});
 		yield* fs.makeDirectory(dirname(path), { recursive: true });

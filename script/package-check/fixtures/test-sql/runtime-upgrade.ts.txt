@@ -1,3 +1,4 @@
+import "@shivaedev/test-sql/server/internal/connectionLimitHint.ts"
 import assert from "node:assert/strict"
 import { Effect, Schema } from "effect"
 import { Model } from "effect/schema"

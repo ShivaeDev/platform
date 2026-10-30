@@ -9,6 +9,7 @@ export const notificationStreams = Effect.sync(() => {
 	function open() {
 		return Effect.gen(function* () {
 			const hints: Resync[] = [];
+			const received = yield* Queue.unbounded<void>();
 			const fiber = yield* Effect.gen(function* () {
 				const queue = yield* Effect.acquireRelease(
 					Effect.gen(function* () {
@@ -22,9 +23,11 @@ export const notificationStreams = Effect.sync(() => {
 						}),
 				);
 				yield* Queue.offer(queue, { _tag: "Resync" });
-				return yield* Stream.fromQueue(queue).pipe(Stream.runForEach((hint) => Effect.sync(() => hints.push(hint))));
+				return yield* Stream.fromQueue(queue).pipe(
+					Stream.runForEach((hint) => Effect.sync(() => hints.push(hint)).pipe(Effect.andThen(Queue.offer(received, undefined)))),
+				);
 			}).pipe(Effect.scoped, Effect.forkScoped);
-			return { close: Fiber.interrupt(fiber), hints };
+			return { close: Fiber.interrupt(fiber), hints, nextHint: Queue.take(received) };
 		});
 	}
 	const resync = Effect.sync(() => {

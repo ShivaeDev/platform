@@ -89,7 +89,9 @@ for (const [described, versions] of [
 			),
 		],
 		function* ({ pack }) {
-			expect(yield* pack()).toBe("refused: @shivaedev/platform: name an exact published version in published-versions.json");
+			expect(yield* pack()).toBe(
+				"refused: Failed to prepare template file package.json: @shivaedev/platform: name an exact published version in published-versions.json",
+			);
 		},
 	);
 }

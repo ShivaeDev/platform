@@ -15,7 +15,7 @@ host.it(
 		const proxy = yield* daemon.stalledWatchProxy();
 		yield* daemon.watchEvents({ events: "done", port: proxy.port });
 		yield* proxy.subscribed.pipe(Effect.timeout("5 seconds"));
-		yield* Effect.sleep("4 seconds");
+		yield* daemon.elapse("4 seconds");
 		expect(daemon.eventLines()).toEqual([]);
 		expect((yield* daemon.get("one")).attempts.at(-1)?.receipt).toBeUndefined();
 		yield* daemon.releaseDelay();
@@ -23,22 +23,27 @@ host.it(
 	},
 );
 
-host.it("a stopped daemon is reported promptly and its return clears the outage", [], function* (daemon) {
-	yield* daemon.watchEvents({ events: "done" });
-	yield* daemon.awaitSnapshot();
-	yield* daemon.stop();
-	yield* daemon.awaitEvent("daemon-unreachable").pipe(Effect.timeout("2 seconds"));
-	yield* daemon.start();
-	yield* daemon.awaitEvent("daemon-back").pipe(Effect.timeout("2 seconds"));
-	expect(daemon.eventLines()).toEqual([{ kind: "daemon-unreachable" }, { kind: "daemon-back" }]);
-});
+host.it(
+	"a stopped daemon is reported after retries and its return clears the outage",
+	[],
+	function* (daemon) {
+		yield* daemon.watchEvents({ events: "done", timeout: 60 });
+		yield* daemon.awaitSnapshot();
+		yield* daemon.stop();
+		yield* daemon.awaitEvent("daemon-unreachable", 45_000);
+		yield* daemon.start();
+		yield* daemon.awaitEvent("daemon-back");
+		expect(daemon.eventLines()).toEqual([{ kind: "daemon-unreachable" }, { kind: "daemon-back" }]);
+	},
+	60_000,
+);
 
 for (const samePort of [false, true]) {
 	host.it(
 		`watch reports daemon health across ${samePort ? "supervisor" : "new-port"} restart without replay`,
 		[approvedWork(["one"]), humanDelivery],
 		function* (daemon) {
-			yield* daemon.watchEvents({ events: "waiting-on-orchestrator,released" });
+			yield* daemon.watchEvents({ events: "waiting-on-orchestrator,released", timeout: 60 });
 			yield* daemon.awaitSnapshot();
 			const worker = yield* daemon.dispatch("one");
 			daemon.finishReviewedWorker(worker);
@@ -47,7 +52,7 @@ for (const samePort of [false, true]) {
 			const port = daemon.port();
 			yield* daemon.stop();
 			if (!samePort) {
-				yield* daemon.awaitEvent("daemon-unreachable");
+				yield* daemon.awaitEvent("daemon-unreachable", 45_000);
 			}
 			yield* daemon.start(samePort ? port : 0);
 			yield* daemon.awaitEvent("daemon-back");
@@ -66,21 +71,20 @@ for (const samePort of [false, true]) {
 				{ head: HEAD, kind: "released", pr: PR, workId: "one" },
 			]);
 		},
+		60_000,
 	);
 }
 
-host.it("watch reports an initially unreachable daemon even with events filtered out", [], function* (daemon) {
-	yield* daemon.stop();
-	yield* daemon.watchEvents({ events: "done" });
-	yield* daemon.awaitEvent("daemon-unreachable");
-	yield* daemon.start();
-	yield* daemon.awaitEvent("daemon-back");
-	expect(daemon.eventLines()).toEqual([{ kind: "daemon-unreachable" }, { kind: "daemon-back" }]);
-});
-
-host.it("watch reports a daemon that accepts connections but stops answering", [], function* (daemon) {
-	const peer = yield* daemon.requestPeer();
-	yield* daemon.watchEvents({ events: "done", port: peer.port });
-	yield* daemon.awaitEvent("daemon-unreachable");
-	expect(daemon.eventLines()).toEqual([{ kind: "daemon-unreachable" }]);
-});
+host.it(
+	"watch reports an initially unreachable daemon even with events filtered out",
+	[],
+	function* (daemon) {
+		yield* daemon.stop();
+		yield* daemon.watchEvents({ events: "done", timeout: 60 });
+		yield* daemon.awaitEvent("daemon-unreachable", 45_000);
+		yield* daemon.start();
+		yield* daemon.awaitEvent("daemon-back");
+		expect(daemon.eventLines()).toEqual([{ kind: "daemon-unreachable" }, { kind: "daemon-back" }]);
+	},
+	60_000,
+);

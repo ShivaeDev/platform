@@ -21,7 +21,7 @@ const Manifest = Schema.toStandardSchemaV1(
 
 const commitScripts = Effect.fnUntraced(function* (root: string) {
 	const file = join(root, "package.json");
-	const text = yield* readOptionalText(file).pipe(Effect.mapError((error) => new SetupFailure({ message: error.message })));
+	const text = yield* readOptionalText(file).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })));
 	if (text === undefined) {
 		return { manager: "npm", scripts: [] };
 	}
@@ -42,7 +42,7 @@ const runScript = Effect.fnUntraced(
 		return Number(yield* child.exitCode);
 	},
 	Effect.scoped,
-	Effect.mapError((error) => new SetupFailure({ message: `cannot run a pre-commit script: ${error.message}` })),
+	Effect.mapError((error) => new SetupFailure({ cause: error, message: `cannot run a pre-commit script: ${error.message}` })),
 );
 
 export const preCommitHook = Effect.fn("Hooks.preCommitHook")(function* (cwd: string, path: string | undefined) {

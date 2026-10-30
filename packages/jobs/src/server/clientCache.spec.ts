@@ -19,7 +19,7 @@ boss.it("shares equal settings and rejects a conflicting build without losing cl
 	expect(client).toMatchObject({ stopCalls: 0 });
 	yield* second.stop;
 	expect(factory).toHaveBeenCalledTimes(1);
-	expect(client).toMatchObject({ offWorkCalls: ["cached"], startCalls: 1, stopCalls: 1 });
+	expect(client).toMatchObject({ offWorkCalls: ["cached", "cached", "cached"], startCalls: 1, stopCalls: 1 });
 });
 
 const conflicts: readonly { name: string; first: ConstructorOptions; second: ConstructorOptions; options: readonly string[] }[] = [

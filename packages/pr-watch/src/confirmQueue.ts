@@ -1,5 +1,5 @@
-import { type Context, Effect, Schema } from "effect";
-import type { GitHubHttp } from "./GitHubHttp.ts";
+import { Effect, Schema } from "effect";
+import { GitHubHttp } from "./GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "./model.ts";
 
 const QueueResponse = Schema.Struct({
@@ -31,25 +31,27 @@ const query = `query QueueEntry($owner: String!, $name: String!, $number: Int!) 
 		}
 	}
 }`;
-export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (
-	http: Context.Service.Shape<typeof GitHubHttp>,
-	options: Options,
-	snapshot: Snapshot,
-) {
+export const confirmQueue = Effect.fn("GitHub.confirmQueue")(function* (options: Options, snapshot: Snapshot) {
+	const http = yield* GitHubHttp;
 	const [owner, name] = options.repository.split("/");
 	const response = yield* http.graphql(options.apiUrl, query, { name, number: snapshot.number, owner });
 	const { errors } = yield* Schema.decodeUnknownEffect(QueueErrors)(response).pipe(
-		Effect.mapError(() => new WatchError({ message: "Invalid GitHub queue confirmation" })),
+		Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub queue confirmation", reason: "response" }, { cause })),
 	);
 	if (errors !== undefined && errors.length > 0) {
-		return yield* Effect.fail(new WatchError({ message: `GitHub queue confirmation: ${errors.map((error) => error.message).join("; ")}` }));
+		return yield* Effect.fail(
+			new WatchError(
+				{ message: `GitHub queue confirmation: ${errors.map((error) => error.message).join("; ")}`, reason: "response" },
+				{ cause: errors },
+			),
+		);
 	}
 	const body = yield* Schema.decodeUnknownEffect(QueueResponse)(response).pipe(
-		Effect.mapError(() => new WatchError({ message: "Invalid GitHub queue confirmation" })),
+		Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub queue confirmation", reason: "response" }, { cause })),
 	);
 	const pr = body.data?.repository?.pullRequest;
 	if (pr === undefined || pr === null || pr.state !== "OPEN") {
-		return yield* Effect.fail(new WatchError({ message: `Queue confirmation unavailable for PR #${snapshot.number}` }));
+		return yield* Effect.fail(new WatchError({ message: `Queue confirmation unavailable for PR #${snapshot.number}`, reason: "response" }));
 	}
 	const reason = pr.timelineItems?.nodes.at(-1)?.reason;
 	return {

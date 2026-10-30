@@ -1,8 +1,7 @@
-import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
 import process from "node:process";
-import { NodeFileSystem } from "@effect/platform-node";
-import { Effect } from "effect";
+import { Effect, Stream } from "effect";
+import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { shadcnFolders } from "#inventory/shadcnFolders.ts";
 import { withExceptionConfig } from "./exceptionConfig.ts";
@@ -15,8 +14,12 @@ export interface BiomeRun {
 
 const BIN = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");
 
-export async function runBiome(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[] = []): Promise<BiomeRun> {
-	const folders = await Effect.runPromise(shadcnFolders(root).pipe(Effect.provide(NodeFileSystem.layer)));
+export const runBiome = Effect.fn("Biome.runBiome")(function* (
+	root: string,
+	args: readonly string[],
+	exceptions: readonly ExceptionDeclaration[] = [],
+) {
+	const folders = yield* shadcnFolders(root);
 	const toolOwned: readonly ExceptionDeclaration[] = [
 		{
 			files: ["**", "!**/pnpm-lock.yaml", ...folders.map((folder) => `!${folder}`)],
@@ -24,18 +27,19 @@ export async function runBiome(root: string, args: readonly string[], exceptions
 			rules: ["biome/files/includes"],
 		},
 	];
-	return withExceptionConfig(
-		root,
-		[...exceptions, ...toolOwned],
-		(configArgs) =>
-			new Promise((resolve, reject) => {
-				execFile(process.execPath, [BIN, ...args, ...configArgs, "--colors=off"], { cwd: root, maxBuffer: 2 ** 30 }, (error, stdout, stderr) => {
-					if (error !== null && typeof error.code !== "number") {
-						reject(error);
-						return;
-					}
-					resolve({ code: error === null ? 0 : Number(error.code), stderr, stdout });
-				});
+	return yield* Effect.scoped(
+		withExceptionConfig(root, [...exceptions, ...toolOwned], (configArgs) =>
+			Effect.gen(function* () {
+				const spawner = yield* ChildProcessSpawner.ChildProcessSpawner;
+				const child = yield* spawner.spawn(
+					ChildProcess.make(process.execPath, [BIN, ...args, ...configArgs, "--colors=off"], { cwd: root, stdin: "ignore" }),
+				);
+				const [stdout, stderr, code] = yield* Effect.all(
+					[Stream.mkString(Stream.decodeText(child.stdout)), Stream.mkString(Stream.decodeText(child.stderr)), child.exitCode],
+					{ concurrency: "unbounded" },
+				);
+				return { code: Number(code), stderr, stdout };
 			}),
+		),
 	);
-}
+});

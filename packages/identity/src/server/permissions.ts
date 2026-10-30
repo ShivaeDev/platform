@@ -4,9 +4,9 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import type { RpcMiddleware } from "effect/rpc";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
-import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import { type AuthUnavailable, Forbidden, type Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, type SessionUser } from "#identity.ts";
+import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission, type permissionMiddleware, requirePermission } from "#permission.ts";
 import { commandChanges } from "#server/commandChanges.ts";
 import { revalidateStream } from "./revalidateStream.ts";
@@ -17,11 +17,7 @@ export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
 	policy: SessionPolicy<TSession>,
 ) {
 	const permission = middleware.permission;
-	const guard: RpcMiddleware.RpcMiddleware<
-		Identity | SessionUser,
-		Unauthorized | AuthUnavailable | Forbidden | MissingReadPolicy | QueryReadDenied,
-		never
-	> = (effect, { headers, rpc, payload }) => {
+	const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never> = (effect, { headers, rpc, payload }) => {
 		const lookup = Effect.tap(resolveSession(policy, headers, rpc._tag), (session) =>
 			Option.isSome(session) && !hasPermission(session.value.user, permission)
 				? Effect.fail(new Forbidden({ message: `Permission required: ${permission.name} (${permission.strength})` }))

@@ -2,7 +2,7 @@ import { Buffer } from "node:buffer";
 import { basename, join } from "node:path";
 import { Effect, FileSystem, type PlatformError, Schema } from "effect";
 import { MIGRATION_FILE_PATTERN } from "@shivaedev/sql/migrationConvention.ts";
-import { CreateAppError, createAppFailure } from "#CreateAppError.ts";
+import { CreateAppError } from "#CreateAppError.ts";
 import { prepareFile, prepareManifest, type Template, Versions } from "#template.ts";
 
 const appPaths = new Map([
@@ -37,7 +37,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 				const target = appPaths.get(path) ?? path;
 				const source = Buffer.from(yield* fs.readFile(join(starter, path)));
 				const content = yield* Effect.try({
-					catch: createAppFailure,
+					catch: (cause) => new CreateAppError({ message: `Failed to prepare template file ${path}` }, { cause }),
 					try: () => prepareFile(path, source, versions),
 				});
 				entries.push({ content: content.toString("base64"), path: target });
@@ -48,7 +48,7 @@ export const packTemplate = Effect.fn("CreateApp.packTemplate")(function* (start
 	const manifest = entries.find((entry) => entry.path === "package.json");
 	if (manifest !== undefined) {
 		const minimal = yield* Effect.try({
-			catch: createAppFailure,
+			catch: (cause) => new CreateAppError({ message: "Failed to prepare minimal template file package.minimal.json" }, { cause }),
 			try: () => prepareManifest(Buffer.from(manifest.content, "base64").toString(), versions, true),
 		});
 		entries.push({ content: Buffer.from(minimal).toString("base64"), path: "package.minimal.json" });

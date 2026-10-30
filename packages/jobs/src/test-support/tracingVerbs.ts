@@ -13,6 +13,9 @@ export function tracingVerbs(trace: ReturnType<typeof tracingEngine>, runtime: R
 			return (linked ? send.pipe(Effect.withSpan("request")) : send).pipe(Effect.withTracer(trace.tracer));
 		},
 		spans: trace.spans,
-		worker: () => runtime.boot([trace.worker(trace.failFirst)]).pipe(Effect.withTracer(trace.tracer), Effect.withSpan("worker-startup")),
+		worker: () =>
+			runtime
+				.boot([trace.worker(trace.failFirst)])
+				.pipe(Effect.withTracer(trace.tracer), Effect.withSpan("worker-startup"), Effect.annotateLogs({ worker: "traced-worker" })),
 	};
 }

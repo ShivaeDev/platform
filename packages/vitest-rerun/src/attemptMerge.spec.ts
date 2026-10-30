@@ -1,4 +1,3 @@
-import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failsThenSkipped, gainsTest, losesTest, rerunStory } from "#test/kit.ts";
 
@@ -20,23 +19,35 @@ rerunStory.it(
 );
 
 rerunStory.it(
-	"a rerun that collected a test the first attempt did not have is rejected as an unexpected test",
+	"a rerun that collected a test the first attempt did not have is refused, and the first attempt's results stay final",
 	[gainsTest()],
-	function* ({ mergeRerun, recordAttempt }) {
-		yield* recordAttempt();
-		yield* recordAttempt();
+	function* ({ exitCode, junitResults, printedError, runExecutable }) {
+		yield* runExecutable();
 
-		expect(yield* mergeRerun()).toBe("rejected: Rerun collected an unexpected test: appears in the rerun");
+		yield* outcomes({
+			"exit code": [exitCode(), 1],
+			"JUnit results": [junitResults(), [{ classname: "gaining.spec.ts", file: "gaining.spec.ts", name: "fails first", result: "failed" }]],
+			"printed error": [printedError(), "Rerun collected an unexpected test: appears in the rerun"],
+		});
 	},
 );
 
 rerunStory.it(
-	"a rerun that no longer collected a failed test of the first attempt is rejected as missing an original test",
+	"a rerun that no longer collected a failed test of the first attempt is refused, and the first attempt's results stay final",
 	[losesTest()],
-	function* ({ mergeRerun, recordAttempt }) {
-		yield* recordAttempt();
-		yield* recordAttempt();
+	function* ({ exitCode, junitResults, printedError, runExecutable }) {
+		yield* runExecutable();
 
-		expect(yield* mergeRerun()).toBe("rejected: Rerun did not collect every original test in losing.spec.ts");
+		yield* outcomes({
+			"exit code": [exitCode(), 1],
+			"JUnit results": [
+				junitResults(),
+				[
+					{ classname: "losing.spec.ts", file: "losing.spec.ts", name: "disappears in the rerun", result: "failed" },
+					{ classname: "losing.spec.ts", file: "losing.spec.ts", name: "stays", result: "passed" },
+				],
+			],
+			"printed error": [printedError(), "Rerun did not collect every original test in losing.spec.ts"],
+		});
 	},
 );

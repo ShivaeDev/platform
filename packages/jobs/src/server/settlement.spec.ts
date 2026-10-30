@@ -1,7 +1,7 @@
-import { Effect, Schema } from "effect";
+import { DateTime, Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue, defineSchedule } from "#definition.ts";
-import { boss } from "#test/boss.ts";
+import { defineQueue, defineSchedule, RetryAt } from "#definition.ts";
+import { boss, deferralWritesFail } from "#test/boss.ts";
 import { job } from "#test/fakeClient.ts";
 import { scriptedClient } from "#test/scriptedClient.ts";
 
@@ -35,4 +35,14 @@ boss.it("allows producer clients without settlement capabilities and fails worke
 		_tag: "PgBossError",
 		operation: "register",
 	});
+});
+
+boss.it("reports a deferral storage outage as a typed settlement failure", [deferralWritesFail], function* ({ boot, client, dispatch }) {
+	const queue = defineQueue({ name: "deferral-outage", schema: Schema.Struct({}) });
+	yield* boot([queue.handle(() => Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "quota" })))]);
+
+	yield* dispatch(queue.name, [job(queue.name, {})]);
+
+	expect(client.failCalls).toMatchObject([{ error: { _tag: "PgBossError", operation: "settle", queue: queue.name }, name: queue.name }]);
+	expect(client.completeCalls).toEqual([]);
 });
