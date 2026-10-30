@@ -1,8 +1,6 @@
 import { Effect, Redacted } from "effect";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import type { PgBossClientFactory } from "@shivaedev/jobs/server/client.ts";
-import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
-import { notes } from "#modules/notes/notes.ts";
+import { transact } from "@shivaedev/sql/transact.ts";
 import { CountWords, NoteJobs } from "./jobs.ts";
 import { makeNotesRepository } from "./makeRepository.ts";
 
@@ -12,7 +10,6 @@ const countWords = CountWords.handle(({ noteId }) =>
 		const rows = yield* repository.findMany({ where: { id: noteId, wordCount: null } });
 		for (const row of rows) {
 			yield* repository.update({ ...row, wordCount: row.title.split(/\s+/u).length });
-			yield* invalidateOnCommit(invalidationKeys([notes.item(row.id), ...(row.userId === null ? [] : [notes.bucket.userId(row.userId)])]));
 		}
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
