@@ -1,14 +1,11 @@
 import { spawn } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, realpathSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import process from "node:process";
 import { fileURLToPath } from "node:url";
 import { Console, Effect, FileSystem } from "effect";
 import { vi } from "vitest";
 import { main } from "#internal/main.ts";
-import { mergeAttempt } from "#internal/mergeAttempt.ts";
-import { attemptPaths } from "#internal/reportPaths.ts";
-import { readSnapshot, type Snapshot } from "#internal/snapshot.ts";
 import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
@@ -24,8 +21,7 @@ export const createSuite = Effect.gen(function* () {
 	const directory = yield* fs.makeTempDirectoryScoped({ prefix: "vitest-rerun-" });
 	const config: SuiteConfig = { coverage: false, projects: [] };
 	const runs: Run[] = [];
-	const attempts: Snapshot[] = [];
-	return { attempts, config, directory, runs };
+	return { config, directory, runs };
 });
 
 export type Suite = Effect.Success<typeof createSuite>;
@@ -74,25 +70,6 @@ export const runProgram = Effect.fn("VitestRerunSuite.runProgram")(function* (su
 	);
 	suite.runs.push({ exitCode: status, output });
 });
-
-export const recordAttempt = Effect.fn("VitestRerunSuite.recordAttempt")(function* (suite: Suite) {
-	yield* runProgram(suite, ["--reruns", "0"]);
-	suite.attempts.push(yield* readSnapshot(attemptPaths(join(suite.directory, REPORTS), 1).snapshot));
-});
-
-export function mergeRerun(suite: Suite): string {
-	const [first, rerun] = suite.attempts;
-	if (first === undefined || rerun === undefined) {
-		throw new Error("Record two attempts before merging the rerun");
-	}
-	const root = realpathSync(suite.directory);
-	try {
-		mergeAttempt(first, rerun.files, root, () => undefined);
-		return "merged";
-	} catch (error) {
-		return `rejected: ${String(error instanceof Error ? error.message : error).replaceAll(`${root}/`, "")}`;
-	}
-}
 
 export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
 	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));

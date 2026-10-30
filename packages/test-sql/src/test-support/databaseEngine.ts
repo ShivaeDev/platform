@@ -2,6 +2,7 @@ import process from "node:process";
 import { type Context, Deferred, Effect, Exit, Fiber, Layer, Queue, type Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
 import type { PostgresTestDatabase, PostgresTestServices } from "#database.ts";
+import { databaseId } from "#internal/databaseOwner.ts";
 import { makePostgresTestLayer, type PostgresTestOptions } from "#postgres.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { withTestTransaction } from "#withTestTransaction.ts";
@@ -49,13 +50,14 @@ export class DatabaseEngine {
 	readonly endings = new Map<string, string>();
 	readonly published: string[] = [];
 	finalizerQuery = "not registered";
-	marker = `story_${crypto.randomUUID()}`;
+	readonly marker: string;
 
 	readonly admin: SqlClient.SqlClient;
 	readonly scope: Scope.Closeable;
-	constructor(admin: SqlClient.SqlClient, scope: Scope.Closeable) {
+	constructor(admin: SqlClient.SqlClient, scope: Scope.Closeable, marker: string) {
 		this.admin = admin;
 		this.scope = scope;
+		this.marker = marker;
 	}
 
 	recordTemplate() {
@@ -170,5 +172,5 @@ export class DatabaseEngine {
 export const createDatabaseEngine = Effect.gen(function* () {
 	const admin = yield* SqlClient.SqlClient;
 	const scope = yield* Effect.acquireRelease(Scope.make(), (leaseScope) => Scope.close(leaseScope, Exit.void));
-	return new DatabaseEngine(admin, scope);
+	return new DatabaseEngine(admin, scope, `story_${yield* databaseId}`);
 });

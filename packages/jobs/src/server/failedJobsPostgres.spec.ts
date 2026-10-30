@@ -8,12 +8,14 @@ import { postgresIt, realPostgres } from "#test/boss.ts";
 postgresIt(
 	"lists a job that exhausted its retries with its typed error, decoded payload and dead-letter copy",
 	[realPostgres, acceleratedTesting, failingWorker],
-	function* ({ attempts, deadLetteredJobs, failedJobs, queue, retry, send, settle }) {
+	function* ({ attempts, deadLetteredJobs, failedJobs, queue, retry, send, service, settle }) {
 		const id = Option.getOrThrow(yield* send(42, { retryLimit: 2 }).pipe(Effect.withSpan("sender")));
 		yield* settle();
 		expect(attempts).toEqual([42, 42, 42]);
-		const error = { _tag: "WorkerRejected", id: 42, message: "The worker fails this attempt" };
+		const error = { _tag: "WorkerRejected", message: "The worker fails this attempt: password=<redacted>" };
 
+		const stored = Option.getOrThrow(yield* service().getJob(queue, id));
+		expect(stored.output).toEqual(error);
 		const failed = yield* failedJobs({ limit: 10 });
 		expect(failed.next).toEqual(Option.none());
 		expect(failed.jobs.map((listed) => listed.id)).toEqual([id]);
@@ -102,8 +104,13 @@ postgresIt(
 		for (const listing of [jobs.failedJobs(incompatible, { limit: 10 }), jobs.deadLetteredJobs(incompatible, { limit: 10 })]) {
 			expect(yield* listing.pipe(Effect.flip)).toMatchObject({ _tag: "PgBossPayloadError", direction: "decode", queue: queue.name });
 		}
-		for (const options of [{ limit: 0 }, { limit: 1.5 }, { cursor: "not a cursor", limit: 1 }]) {
-			expect(yield* failedJobs(options).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "failedJobs", queue: queue.name });
+		for (const options of [
+			{ limit: 0 },
+			{ limit: 1.5 },
+			{ cursor: "not a cursor", limit: 1 },
+			{ cursor: Schema.encodeSync(Schema.StringFromBase64Url)(JSON.stringify(["tampered", "also tampered"])), limit: 1 },
+		]) {
+			expect(yield* failedJobs(options).pipe(Effect.flip)).toMatchObject({ _tag: "SchemaError" });
 		}
 	},
 );
@@ -123,3 +130,20 @@ postgresIt(
 		expect((yield* failedJobs({ limit: 10 })).jobs).toEqual([]);
 	},
 );
+
+postgresIt("redacts older pg-boss failure messages and omits their diagnostic fields when listing", [realPostgres], function* ({ boot, native }) {
+	const queue = defineQueue({ name: "stored-failure", queue: { retryLimit: 0 }, schema: Schema.Struct({}) });
+	const client = native();
+	const { jobs } = yield* boot([queue], { clientFactory: () => client });
+	const id = Option.getOrThrow(yield* jobs.enqueue(queue, {}));
+	yield* Effect.promise(() =>
+		client.fail(queue.name, id, {
+			_tag: "LegacyRejected",
+			cause: { message: "cause-secret" },
+			message: "password=stored-secret",
+			stack: "stack-secret",
+		}),
+	);
+	const listed = yield* jobs.failedJobs(queue, { limit: 1 });
+	expect(listed.jobs.map((job) => job.output)).toEqual([{ _tag: "LegacyRejected", message: "password=<redacted>" }]);
+});

@@ -30,7 +30,7 @@ An **editor** joins a query atom, a form field schema and a save Effect. The que
 
 A **session generation** is the string returned by `identify(session)`. `SessionBoundary` owns its client, registry and React subtree. Your auth owner supplies the session and decides when to replace or end it. The boundary automatically mounts live connections on bound contract APIs returned by `connect`, directly or as client properties such as `api`. Use a Platform database host and the default shared WebSocket client; the application needs no subscribe handler or `live()` call. Live changed hints coalesce over 20 ms by default. Set `liveCoalesceWindow` on `SessionBoundary` to a native Duration to choose the window for that session, or `0` for immediate per-hint refreshes. A bound query can override that default with `useQuery(atom, { coalesceWindow: "2 seconds" })`. Changing this option applies to subsequent windows without reconnecting or refetching any query; a window already started keeps its deadline. A refetch in flight runs once more after settling when further hints arrive. Cache policy, RPC declarations and transport stay with native Effect and the application; this package supplies their React state and lifecycle boundary.
 
-`useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key }`. Choose a stable key for the record or create request, independent of its server revision. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
+`useEditor` and `useCreate` opt into persisted input with `persistedDraft: { key, now }`. Choose a stable key for the record or create request, independent of its server revision. Supply `now: () => clock.currentTimeMillisUnsafe()` using `Clock.Clock` captured in the application’s Effect setup; draft timestamps and expiry use that clock. The adapters use form's browser storage and inherit ownership from `SessionBoundary`: reload and query refresh preserve edits, successful submission clears accepted input, and a committed session replacement drops tracked drafts. A suspended replacement that is canceled keeps the visible session's draft and future writes. Later edits made during a save remain persisted. Optional `storage`, `maxBytes` and `maxAgeMs` customize the provider and bounds; defaults are `localStorage`, 256 KiB of UTF-8 JSON and seven days. See [form's persisted input API](https://github.com/ShivaeDev/platform/tree/main/packages/form#persist-input-across-reloads) for direct form hooks and limits.
 
 ### 1. Once per application
 
@@ -826,11 +826,11 @@ Without a runtime it uses a native empty atom runtime. Stories supply a runtime 
 
 #### Render tests in happy-dom
 
-Use `@shivaedev/react/client/testing.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
+Use `@shivaedev/test-story/client/react.ts` with Vitest's `happy-dom` environment. Install contract and changes for the example's query, command and key declarations, and the testing peers and environment in your app's dev dependencies:
 
 ```sh
 pnpm add @shivaedev/changes @shivaedev/contract
-pnpm add -D @shivaedev/test @effect/vitest vitest happy-dom react-dom @types/react-dom
+pnpm add -D @shivaedev/test-story @effect/platform-node @effect/vitest vitest happy-dom react-dom @types/react-dom
 ```
 
 Configure Vitest with `test: { environment: "happy-dom" }`, or select that environment for your DOM test project. This complete `notes.dom.test.tsx` renders a component that runs a declared query and command against native RPC test handlers:
@@ -846,7 +846,7 @@ import { contract } from "@shivaedev/contract/contract.ts";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { useAction, useQuery } from "@shivaedev/react/client/resultState.ts";
-import { eventually, expectNoReactWarnings, render } from "@shivaedev/react/client/testing.ts";
+import { eventually, expectNoReactWarnings, render } from "@shivaedev/test-story/client/react.ts";
 import { it } from "@shivaedev/test/it.ts";
 
 Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
@@ -927,7 +927,7 @@ screenStories.it("shows the route failure", [], async () => {
 });
 ```
 
-Story kits can acquire `captureReactWarnings` from `client/testing.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
+Story kits can acquire `captureReactWarnings` from `@shivaedev/test-story/client/react.ts` in their `create` effect with `const warnings = yield* captureReactWarnings`. The scope owns the capture and restores `console.error` when it closes, including after a failed story. Pass `warnings.onCaughtError` to `render` to capture boundary errors, or `warnings.expectCaughtError(predicate)` to exclude a declared error. Both handlers silence caught errors; the capture also silences and records `console.error` calls. `warnings.read()` returns `{ consoleErrors, caughtErrors }`, with each console call's arguments and the unexpected caught errors. It asserts nothing, leaving the story spec to state its expectation. The Vitest guard uses the same capture mechanism and additionally checks that every declared error occurred.
 
 ### API
 

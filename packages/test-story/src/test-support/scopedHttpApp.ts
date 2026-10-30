@@ -54,7 +54,6 @@ export const scopedHttpApp = storyKit({
 			...client,
 			asks: (path: string, caller: Caller = {}) => client.asks(path, sent(caller)),
 			comments: () => Effect.sync(() => [...comments]),
-			failOnce: service.failOnce,
 			fault: service.fault,
 			hold: service.hold,
 			releaseOnArrival: service.releaseOnArrival,

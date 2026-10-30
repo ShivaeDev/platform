@@ -1,12 +1,14 @@
-import { relative, resolve } from "node:path";
-import { Effect, type FileSystem } from "effect";
+import { relative } from "node:path";
+import { Effect } from "effect";
+import { setManifestFiles } from "#adapters/manifestInventory.ts";
+import { manifestReader } from "#adapters/manifestReader.ts";
 import { loadConfig, type ResolvedConfig } from "#config/load.ts";
 import { validOrFail } from "#decoded.ts";
 import { decodeRegistry, type RegistryEntry } from "#exceptions/registry.ts";
 import { registryEntries } from "#exceptions/registryEntries.ts";
 import { SetupFailure } from "#failure.ts";
 import { collectInventory, type Inventory } from "#inventory/collect.ts";
-import { type FilesystemFailure, readOptionalText } from "#inventory/filesystem.ts";
+import type { FilesystemFailure } from "#inventory/filesystem.ts";
 import type { RuleServices } from "#rule.ts";
 import { type BaselineFile, readBaseline, readInput } from "./baselineFile.ts";
 import { runRules } from "./runRules.ts";
@@ -30,10 +32,8 @@ export const scan = Effect.fn("Engine.scan")(function* (
 	config: ResolvedConfig,
 ): Effect.fn.Return<Pick<Session, "inventory" | "violations">, SetupFailure, RuleServices> {
 	const inventory = yield* setup(collectInventory(config.root, config));
-	const services = yield* Effect.context<FileSystem.FileSystem>();
-	function readText(path: string): Promise<string | undefined> {
-		return Effect.runPromiseWith(services)(readOptionalText(resolve(config.root, path)));
-	}
+	const readText = yield* manifestReader(config.root);
+	setManifestFiles(readText, inventory.manifestFiles);
 	const violations = yield* runRules(config.active, {
 		configFile: relative(config.root, config.file),
 		exceptions: config.exceptions,

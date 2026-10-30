@@ -23,7 +23,7 @@ function endpoint(name: string) {
 
 const fake = endpoint("fake");
 const real = endpoint("real");
-const outbound: Record<string, string> = {};
+export const outbound: Record<string, string> = {};
 let realPort = 0;
 
 beforeAll(async () => {
@@ -171,7 +171,7 @@ export const dispatchers = storyKit({
 				story.tell(`a scope routes github.com, sends to github.com and example.com, and ${ending}`);
 				return Effect.scoped(
 					Effect.gen(function* () {
-						yield* routeOutbound({ "github.com": "http://127.0.0.1:4321" });
+						yield* routeOutbound({ "github.com": "http://127.0.0.1:4321" }, { passthrough: true });
 						sends("https://github.com");
 						sends("https://example.com");
 						if (ending === "fails") {

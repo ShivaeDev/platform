@@ -1,4 +1,4 @@
-import { Deferred, Effect, type Schema } from "effect";
+import { Clock, Deferred, Effect, type Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
@@ -59,6 +59,7 @@ export function formStories<
 		clock: "live",
 		*create() {
 			const registry = yield* freshRegistry;
+			const clock = yield* Clock.Clock;
 			const support = definition.support();
 			const engine: Engine = {
 				config: definition.config(support),
@@ -71,7 +72,7 @@ export function formStories<
 				rejection: undefined,
 				schema: schema(support),
 				session: draftSession("form-session"),
-				storage: draftStorage(),
+				storage: draftStorage(() => clock.currentTimeMillisUnsafe()),
 				support,
 			};
 			return engine;

@@ -1,6 +1,6 @@
 import { Deferred, Effect } from "effect";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { clickButton, typeInput } from "#test/Screen.ts";
 import { screenKit } from "#test/screenKit.ts";
 import { noticeClient } from "./client.ts";

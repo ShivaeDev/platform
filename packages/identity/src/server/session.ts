@@ -1,4 +1,4 @@
-import { Duration, Effect, Exit, Layer, Option } from "effect";
+import { Duration, Effect, Exit, Layer, Option, Schema } from "effect";
 import type { Headers } from "effect/http";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
@@ -8,17 +8,16 @@ import {
 	Identity,
 	OptionalIdentity,
 	SessionUser,
+	SessionUserSchema,
 	type SessionUserValue,
 	SessionUserWithProviderAccounts,
 	type SessionUserWithProviderAccountsValue,
 } from "#identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
 import { commandChanges } from "#server/commandChanges.ts";
-import { type OriginPolicy, originRequest } from "./origin.ts";
+import { type OriginPolicy, transportOriginRequest } from "#server/origin.ts";
 import { resolveRole } from "./resolveRole.ts";
 import { revalidateStream } from "./revalidateStream.ts";
-import { sessionProfile } from "./sessionProfile.ts";
-import { transportHeaders } from "./transportHeaders.ts";
 export interface SessionShape {
 	readonly user: {
 		readonly id: string;
@@ -43,15 +42,16 @@ export const resolveSession: <TSession extends SessionShape>(
 		headers: Headers.Headers,
 		rpc: string,
 	) {
-		const transport = yield* transportHeaders(headers);
-		if (!policy.origin(originRequest(transport, rpc))) {
+		const request = yield* transportOriginRequest(headers, rpc);
+		if (!policy.origin(request)) {
 			return yield* new Forbidden({ message: "Origin not allowed" });
 		}
-		const session = yield* policy.provider.get(transport);
+		const session = yield* policy.provider.get(request.headers);
 		if (Option.isNone(session) || policy.roles === undefined) {
 			return session;
 		}
-		const access = yield* resolveRole(policy.roles, Reflect.get(session.value.user, "role"));
+		const role: unknown = Reflect.get(session.value.user, "role");
+		const access = yield* resolveRole(policy.roles, role);
 		return Option.some({ ...session.value, user: { ...session.value.user, ...access } });
 	});
 function identified(id: string) {
@@ -99,7 +99,7 @@ export function withSessionUser<TSession extends UserSessionShape>(policy: Sessi
 			if (Option.isNone(session)) {
 				return yield* new Unauthorized({ message: "Authentication required" });
 			}
-			const user = sessionProfile(session.value.user);
+			const user = Schema.decodeSync(SessionUserSchema)(session.value.user);
 			const id = yield* identified(session.value.user.id);
 			return yield* effect.pipe(
 				Effect.provideService(Identity, { id }),
@@ -135,7 +135,7 @@ export function authenticatedUserWithProviderAccountsLayer<TSession extends Prov
 				Effect.map(providerAccounts, (values) => values.map(({ accountId, providerId }) => ({ accountId, providerId }))),
 				(exit) => (Exit.isSuccess(exit) ? Duration.infinity : Duration.zero),
 			);
-			const user = sessionProfile(session.value.user);
+			const user = Schema.decodeSync(SessionUserSchema)(session.value.user);
 			yield* identified(id);
 			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
 				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),

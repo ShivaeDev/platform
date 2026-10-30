@@ -1,8 +1,8 @@
 import { Cause, Clock, Effect, Exit } from "effect";
 import { afterAll, expect, vi } from "vitest";
 import { withLive } from "@shivaedev/test/withLive.ts";
-import { eventually } from "#client/testing.ts";
-import { isolatedMounts, notesScreen, testing } from "#test/testingStories.ts";
+import { isolatedMounts, pendingResultScreen, testing } from "#test/reactRendering.ts";
+import { eventually } from "./react.ts";
 
 const originalError = console.error;
 afterAll(() => {
@@ -11,7 +11,7 @@ afterAll(() => {
 });
 testing.it(
 	"eventually reports the last assertion and elapsed live time",
-	[notesScreen()],
+	[pendingResultScreen()],
 	function* ({ first }) {
 		const { container } = first();
 		const started = yield* withLive(Clock.currentTimeMillis);
@@ -44,18 +44,16 @@ testing.it(
 	{ clock: "test" },
 );
 testing.it(
-	"yieldable assertions let RPC responses render without advancing the story clock",
-	[notesScreen()],
-	function* ({ first, click }) {
+	"yieldable assertions let native atom results render without advancing the story clock",
+	[pendingResultScreen()],
+	function* ({ first, answer }) {
 		const { container } = first();
 		yield* eventually(() => {
 			expect(container.querySelector("output")?.textContent).toBe("");
-			expect(container.querySelector("button")?.disabled).toBe(false);
 		});
-		yield* click();
+		yield* answer("Morning walk");
 		yield* eventually(() => {
 			expect(container.querySelector("output")?.textContent).toBe("Morning walk");
-			expect(container.querySelector("button")?.disabled).toBe(false);
 		});
 		expect(yield* Clock.currentTimeMillis).toBe(0);
 	},

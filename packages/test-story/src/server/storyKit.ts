@@ -4,7 +4,7 @@ import type { EffectClock, EffectTestOptions } from "@shivaedev/test/types.ts";
 import { compose } from "#internal/compose.ts";
 import { type ComposedKit, type Composition, type KitDefinition, type KitList, kitDefinition } from "#internal/compositionTypes.ts";
 import { type AnyEffect, type EffectHook, type ErrorOf, type Hook, type HookValue, hooked, type ServicesOf } from "#internal/hooked.ts";
-import type { AfterResults, InferredDefinition, LegacyDefinition } from "#internal/hookInference.ts";
+import type { AfterResults, InferredDefinition } from "#internal/hookInference.ts";
 import type { LooseDefinition } from "#internal/seed.ts";
 import { storyIt } from "#internal/storyIt.ts";
 import { type Parts, trait, traits } from "#internal/traits.ts";
@@ -55,6 +55,7 @@ export interface StoryKitDefinition<
 	readonly layer?: Layer.Layer<TProvided, unknown, never>;
 	readonly name: string;
 	readonly outbound?: Readonly<Record<string, string>>;
+	readonly outboundPassthrough?: boolean;
 	readonly run?: RunHooks<TEngine, TStep, TFailed, TDiagnose>;
 	readonly runIf?: boolean;
 	readonly stages: readonly TStage[];
@@ -114,20 +115,6 @@ export function storyKit<
 >(
 	definition: InferredDefinition<TCreate, TStage, TVerbs, TProvided, TAfter, TStep, TFailed, TDiagnose>,
 ): StoryKit<HookValue<ReturnType<TCreate>>, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
-// Keep explicit engine and effect type arguments accepted by existing kits.
-export function storyKit<
-	TEngine,
-	const TStage extends string = never,
-	TVerbs extends object = object,
-	TProvided = never,
-	TCreate extends AnyEffect = never,
-	TAfter extends { readonly [TKey in TStage]?: AnyEffect } = Record<never, never>,
-	TStep extends AnyEffect = never,
-	TFailed extends AnyEffect = never,
-	TDiagnose extends AnyEffect = never,
->(
-	definition: LegacyDefinition<TEngine, TStage, TVerbs, TProvided, TCreate, TAfter, TStep, TFailed, TDiagnose>,
-): StoryKit<TEngine, TStage, TVerbs, TStep | TFailed | TDiagnose, TProvided>;
 export function storyKit<const TKits extends KitList>(definition: Composition<TKits>): ComposedKit<TKits>;
 export function storyKit(input: LooseDefinition | Composition<KitList>): unknown {
 	const definition = "extends" in input ? compose(input.name, input.extends) : input;

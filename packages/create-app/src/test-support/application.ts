@@ -3,6 +3,7 @@ import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { CreateAppError } from "#CreateAppError.ts";
 import { scriptOutcome } from "./answers.ts";
 import { appReadouts } from "./appReadouts.ts";
 import { appFolder } from "./cli.ts";
@@ -52,6 +53,7 @@ export const application = storyKit({
 				story.tell(`create-app ${[folder, ...flags].join(" ")}`);
 				return createAppIn(engine, [folder, ...flags]);
 			},
+			diagnosticLog: () => Effect.sync(() => engine.diagnostics),
 			help: () => {
 				story.tell("create-app --help");
 				return createAppIn(engine, ["--help"]).pipe(Effect.map(() => engine.printed.split("\n").map((line) => line.trim().replaceAll(/\s+/gu, " "))));
@@ -64,7 +66,9 @@ export const application = storyKit({
 					return engine.source.pack();
 				}).pipe(
 					Effect.map(() => "packed"),
-					Effect.catchTag("CreateAppError", (error) => Effect.succeed(`refused: ${error.message}`)),
+					Effect.catchTag("CreateAppError", (error) =>
+						Effect.succeed(`refused: ${error.message}${error.cause instanceof CreateAppError ? `: ${error.cause.message}` : ""}`),
+					),
 				),
 			pnpm: (...args: readonly string[]) =>
 				script(`pnpm ${args.join(" ")}`, () => {

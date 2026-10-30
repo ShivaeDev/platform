@@ -1,4 +1,5 @@
-import { Clock, Deferred, Effect } from "effect";
+import { Deferred, Effect } from "effect";
+import { TestClock } from "effect/testing";
 import { vi } from "vitest";
 import type { BrowserDraftConfig } from "@shivaedev/form/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -11,7 +12,7 @@ import { screenKit } from "./screenKit.ts";
 draftStorage();
 interface State {
 	complete: Deferred.Deferred<void>;
-	config?: BrowserDraftConfig | undefined;
+	config?: Omit<BrowserDraftConfig, "now"> | undefined;
 	storage?: BrowserDraftConfig["storage"];
 	view?: Awaited<ReturnType<typeof persistedDraftView>>;
 }
@@ -21,16 +22,15 @@ function current(state: State) {
 	}
 	return state.view;
 }
-export const drafts = storyKit(
-	screenKit(
+export const drafts = storyKit({
+	...screenKit(
 		"persisted draft screen",
 		(): State => ({ complete: Effect.runSync(Deferred.make<void>()) }),
-		(state, screen) => ({
+		(state, screen, now) => ({
 			activity: (mode: "visible" | "hidden") => screen.act(`Activity is ${mode}`, () => current(state).activity(mode)),
 			advanceAgeBy: (ms: number) => {
 				screen.tell(`the draft ages by ${ms} milliseconds`);
-				vi.useFakeTimers({ toFake: ["Date"] });
-				vi.setSystemTime(Effect.runSync(Clock.currentTimeMillis) + ms);
+				return TestClock.adjust(ms);
 			},
 			draft: () => current(state),
 			finishSave: () => screen.act("the save responds", () => Effect.runPromise(Deferred.succeed(state.complete, undefined))),
@@ -39,7 +39,7 @@ export const drafts = storyKit(
 				screen.tell("reload the draft in a fresh root and registry");
 				yield* Effect.promise(current(state).unmount);
 				const view = yield* screen.open();
-				state.view = yield* Effect.promise(() => persistedDraftView(view, config));
+				state.view = yield* Effect.promise(() => persistedDraftView(view, { key: "order-draft", ...config, now }));
 			},
 			revert: () => screen.act("revert the draft", () => clickButton(current(state).container, "Revert")),
 			show: (session: string | undefined, visible = true) =>
@@ -55,9 +55,10 @@ export const drafts = storyKit(
 			type: (name: "name" | "quantity", value: string) => screen.act(`type ${name}: ${value}`, () => current(state).change(name, value)),
 		}),
 	),
-);
-export function persistedDraft(config?: BrowserDraftConfig | undefined, save: "immediate" | "held" | "rejected" = "immediate") {
-	return drafts.trait("screen", `an editable persisted draft with ${save} saves`, function* ({ screen, state }) {
+	clock: "test",
+});
+export function persistedDraft(config?: Omit<BrowserDraftConfig, "now"> | undefined, save: "immediate" | "held" | "rejected" = "immediate") {
+	return drafts.trait("screen", `an editable persisted draft with ${save} saves`, function* ({ now, screen, state }) {
 		state.config = config;
 		const saveRow: Save = (values) => {
 			const row = { ...values, quantity: String(values.quantity) };
@@ -70,7 +71,7 @@ export function persistedDraft(config?: BrowserDraftConfig | undefined, save: "i
 			return Effect.succeed(row);
 		};
 		const view = yield* screen.open();
-		state.view = yield* Effect.promise(() => persistedDraftView(view, config, saveRow));
+		state.view = yield* Effect.promise(() => persistedDraftView(view, { key: "order-draft", ...config, now }, saveRow));
 	});
 }
 

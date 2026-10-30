@@ -31,7 +31,6 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [
@@ -55,8 +54,7 @@
 		"@shivaedev/access": "workspace:*",
 		"@shivaedev/contract": "workspace:*",
 		"@shivaedev/errors": "workspace:*",
-		"@shivaedev/form": "workspace:*",
-		"@shivaedev/test": "workspace:*"
+		"@shivaedev/form": "workspace:*"
 	},
 	"devDependencies": {
 		"@effect/atom-react": "catalog:",
@@ -71,6 +69,7 @@
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*",
+		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@tanstack/react-router": "catalog:",
@@ -88,18 +87,10 @@
 		"@effect/atom-react": "catalog:",
 		"@tanstack/react-router": "catalog:",
 		"effect": "catalog:",
-		"react": "catalog:",
-		"react-dom": "catalog:",
-		"vitest": "catalog:"
+		"react": "catalog:"
 	},
 	"peerDependenciesMeta": {
 		"@tanstack/react-router": {
-			"optional": true
-		},
-		"react-dom": {
-			"optional": true
-		},
-		"vitest": {
 			"optional": true
 		}
 	},

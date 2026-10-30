@@ -1,17 +1,12 @@
 import { outcomes } from "#outcomes.ts";
 import { rateLimited, timedHttpApp } from "#test/httpFaultApp.ts";
 
-for (const control of ["failOnce", "replyOnce", "scriptFault", "scriptFault after the reply"] as const) {
+for (const phase of ["before", "after"] as const) {
 	timedHttpApp.it(
-		`builds a ${control} reply when the request arrives, at the story clock's time`,
+		`builds a one-shot fault's reply ${phase} the route's reply when the request arrives, at the story clock's time`,
 		[],
-		function* ({ answer, failOnce, header, replyOnce, scriptFault, sends, timePasses }) {
-			yield* {
-				failOnce: failOnce("data", rateLimited),
-				replyOnce: replyOnce("data", rateLimited),
-				scriptFault: scriptFault("data", { kind: "status", reply: rateLimited }),
-				"scriptFault after the reply": scriptFault("data", { kind: "status", reply: rateLimited }, { phase: "after" }),
-			}[control];
+		function* ({ answer, header, scriptFault, sends, timePasses }) {
+			yield* scriptFault("data", { kind: "status", reply: rateLimited }, { phase });
 			yield* timePasses(12_000);
 
 			yield* sends("client", "/data?value=first");

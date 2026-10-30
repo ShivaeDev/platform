@@ -13,6 +13,8 @@ export function refusal(error: unknown, jobName: (id: string) => string = (id) =
 			return "unauthorized";
 		case "Forbidden":
 			return "forbidden";
+		case "BadRequest":
+			return "bad input";
 		case "NotFound":
 			return "not found";
 		case "LastRoleAssigner":

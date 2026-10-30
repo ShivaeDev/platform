@@ -4,12 +4,8 @@ import type { PgBossClient } from "#client.ts";
 import { toPgBossError } from "#error.ts";
 import { deadlineOf } from "#internal/deadlineOf.ts";
 import { deferredAttempt } from "#internal/deferral.ts";
+import { failureOutput } from "#internal/failureOutput.ts";
 import { waitForBatchExpiry } from "#internal/waitForBatchExpiry.ts";
-
-function failureOutput(cause: Cause.Cause<unknown>): object {
-	const error = Cause.squash(cause);
-	return typeof error === "object" && error !== null ? error : { message: String(error) };
-}
 
 function settleAttempt(
 	complete: NonNullable<PgBossClient["complete"]>,

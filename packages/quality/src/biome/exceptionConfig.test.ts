@@ -1,12 +1,14 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { run as execute } from "#test/run.ts";
 import { linkPackage, removeSeededTrees, seedTree } from "#test/tree.ts";
 import { exceptionConfig, withExceptionConfig } from "./exceptionConfig.ts";
 
 afterEach(removeSeededTrees);
+
+const IncludedFiles = Schema.fromJsonString(Schema.Struct({ files: Schema.Struct({ includes: Schema.Array(Schema.String) }) }));
 
 const REASON = "The external format requires it.";
 
@@ -43,7 +45,7 @@ describe("Biome exception config", () => {
 				withExceptionConfig(root, declarations, (args) =>
 					Effect.sync(() => {
 						const path = args[0]?.slice("--config-path=".length) ?? "";
-						expect(JSON.parse(readFileSync(path, "utf8")).files.includes).toEqual([
+						expect(Schema.decodeUnknownSync(IncludedFiles)(readFileSync(path, "utf8")).files.includes).toEqual([
 							...(previous ?? ["**"]),
 							"!**/generated",
 							"!**/fixtures",
@@ -87,7 +89,7 @@ describe("Biome exception config", () => {
 				Effect.gen(function* () {
 					generated = args[0]?.slice("--config-path=".length) ?? "";
 					expect(generated).toContain(`${root}/.quality-biome-`);
-					expect(JSON.parse(readFileSync(generated, "utf8"))).toMatchObject({
+					expect(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(readFileSync(generated, "utf8"))).toMatchObject({
 						...native,
 						extends: [expect.stringContaining("quality-biome-")],
 						files: { includes: expect.arrayContaining(["**"]) },

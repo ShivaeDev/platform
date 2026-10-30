@@ -22,7 +22,7 @@ for (const outcome of ["failure", "defect"] as const) {
 		yield* dispatch(Schedule.name, jobs);
 		expect(handled).toEqual(jobs.map((entry) => entry.name));
 		expect(client.completeCalls.map(({ job: completed }) => completed)).toEqual(jobs.filter((entry) => entry.id !== "1"));
-		expect(client.failCalls).toEqual([{ error: failure, job: jobs[1], name: Schedule.name }]);
+		expect(client.failCalls).toEqual([{ error: { _tag: "Error", message: failure.message }, job: jobs[1], name: Schedule.name }]);
 	});
 }
 
@@ -43,6 +43,8 @@ boss.it("reports a deferral storage outage as a typed settlement failure", [defe
 
 	yield* dispatch(queue.name, [job(queue.name, {})]);
 
-	expect(client.failCalls).toMatchObject([{ error: { _tag: "PgBossError", operation: "settle", queue: queue.name }, name: queue.name }]);
+	expect(client.failCalls).toMatchObject([
+		{ error: { _tag: "PgBossError", message: expect.stringContaining("pg-boss settle for queue deferral-outage failed:") }, name: queue.name },
+	]);
 	expect(client.completeCalls).toEqual([]);
 });

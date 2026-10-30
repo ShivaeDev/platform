@@ -30,8 +30,8 @@ scopedHttpApp.it("lets an accepted request reach the route's hold and scripted f
 	expect(yield* answer("installation request")).toBe("connection reset");
 });
 
-scopedHttpApp.it("keeps a one-shot reply for the request the route's guard accepts", [], function* ({ asks, failOnce }) {
-	yield* failOnce("installation", { status: HttpStatus.fromLiteral("ServiceUnavailable") });
+scopedHttpApp.it("keeps a one-shot reply for the request the route's guard accepts", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("installation", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } });
 
 	yield* outcomes({
 		"a request the guard refuses": [asks("/installations/4", { token: "wrong" }), "HTTP 401"],

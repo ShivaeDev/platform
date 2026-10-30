@@ -1,7 +1,7 @@
 import { createMemoryHistory } from "@tanstack/react-router";
 import { Deferred, Effect, Predicate } from "effect";
 import { act } from "react";
-import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { JobsView } from "#client/admin/JobsView.tsx";

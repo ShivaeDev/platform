@@ -1,4 +1,5 @@
-import type { GitHubRequest } from "#release/gitHub.ts";
+import { Schema } from "effect";
+import { type FakeHttpRequest, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import type { ReleaseCiRun } from "#release/holdReason.ts";
 
 interface PrState {
@@ -19,7 +20,7 @@ function snapshot(state: PrState, head: string) {
 		number: 1,
 		state: "OPEN",
 	};
-	return JSON.stringify({
+	return {
 		data: {
 			repository: {
 				pullRequests: {
@@ -28,7 +29,7 @@ function snapshot(state: PrState, head: string) {
 				ref: head === "" ? null : { target: { oid: head } },
 			},
 		},
-	});
+	};
 }
 
 export function releasePrApi(branchHead: () => string) {
@@ -41,13 +42,16 @@ export function releasePrApi(branchHead: () => string) {
 		run: undefined,
 		title: "",
 	};
-	const request: GitHubRequest = (endpoint, method, body) => {
+	function request(endpoint: string, method: string, body?: Readonly<Record<string, unknown>>) {
 		state.requests.push({ body, endpoint, method });
 		if (endpoint === "graphql") {
 			return snapshot(state, branchHead());
 		}
 		if (method === "GET") {
-			return JSON.stringify({ "workflow_runs": state.run === undefined ? [] : [state.run] });
+			return {
+				"workflow_runs":
+					state.run === undefined ? [] : [{ conclusion: state.run.conclusion, "head_sha": state.run.headSha, status: state.run.status }],
+			};
 		}
 		if (body === undefined) {
 			throw new Error(`Missing body for ${endpoint}`);
@@ -62,7 +66,22 @@ export function releasePrApi(branchHead: () => string) {
 			state.title = String(body.title);
 			state.body = String(body.body);
 		}
-		return "{}";
-	};
-	return { request, state };
+		return { number: 1 };
+	}
+	function reply(input: FakeHttpRequest) {
+		const body =
+			input.body.length === 0
+				? undefined
+				: Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Record(Schema.String, Schema.Unknown)))(input.body.toString());
+		return { body: request(input.path.slice(1), input.method, body) };
+	}
+	const serve = fakeHttpService({
+		routes: {
+			create: { method: "POST", path: "/repos/:path*", reply },
+			edit: { method: "PATCH", path: "/repos/:path*", reply },
+			graphql: { method: "POST", path: "/graphql", reply },
+			runs: { path: "/repos/:path*", reply },
+		},
+	});
+	return { serve, state };
 }

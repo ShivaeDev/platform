@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
 import { bindsModule, importBindings } from "./importBindings.ts";
-import { storySpecSources } from "./specSources.ts";
+import { storySources } from "./sources.ts";
 import { memberName, nodesWhere, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
-	'Uses an Exit, Cause or Result value or reads a _tag in a spec. Have the kit\'s verb or readout return the outcome in the domain\'s words, such as "unauthorized" or "rolled back", and expect that; build failing inputs in a kit trait.';
+	'Uses an Exit, Cause or Result value or reads a _tag in a story. Have the kit\'s verb or readout return the outcome in the domain\'s words, such as "unauthorized" or "rolled back", and expect that; build failing inputs in a kit trait.';
 
 const SHAPES = ["Exit", "Cause", "Result"];
 const OUTCOME_TAGS = new Set(["Failure", "Success"]);
@@ -39,7 +39,7 @@ function shapeReads(source: ts.SourceFile): readonly ts.Node[] {
 
 export const domainOutcomes = defineRule({
 	check: (inputs) =>
-		Effect.runPromise(Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, shapeReads, MESSAGE)))),
+		Effect.runPromise(Effect.map(storySources(inputs), (stories) => stories.flatMap((file) => syntaxFindings(file, shapeReads, MESSAGE)))),
 	description: "Story verbs and readouts return outcomes in the domain's words, not Exit, Cause or Result shapes or _tag reads.",
 	id: "tests/domain-outcomes",
 });

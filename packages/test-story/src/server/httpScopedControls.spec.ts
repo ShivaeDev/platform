@@ -12,15 +12,15 @@ for (const [difference, path] of [
 	["another repository", "/repos/a%2Fb/other/pulls/7"],
 	["another number", "/repos/a%2Fb/platform/pulls/8"],
 ] as const) {
-	scopedHttpApp.it(`answers a pull with ${difference} normally while a scoped failure waits`, [], function* ({ asks, failOnce }) {
-		yield* failOnce("pull", { status: HttpStatus.fromLiteral("ServiceUnavailable") }, SCOPED_PULL);
+	scopedHttpApp.it(`answers a pull with ${difference} normally while a scoped failure waits`, [], function* ({ asks, scriptFault }) {
+		yield* scriptFault("pull", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } }, SCOPED_PULL);
 
 		expect(yield* asks(path)).toMatch(/^HTTP 200 /u);
 	});
 }
 
-scopedHttpApp.it("spends a scoped failure on the pull whose decoded parameters all match", [], function* ({ asks, failOnce }) {
-	yield* failOnce("pull", { status: HttpStatus.fromLiteral("ServiceUnavailable") }, SCOPED_PULL);
+scopedHttpApp.it("spends a scoped failure on the pull whose decoded parameters all match", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("pull", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } }, SCOPED_PULL);
 
 	yield* outcomes({
 		"the first matching pull": [asks("/repos/a%2Fb/platform/pulls/7"), "HTTP 503"],

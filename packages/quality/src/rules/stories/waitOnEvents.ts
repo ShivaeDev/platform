@@ -2,11 +2,11 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
 import { bindsModule, type ImportBinding, importBindings } from "./importBindings.ts";
-import { storySpecSources } from "./specSources.ts";
+import { storySources } from "./sources.ts";
 import { memberName, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
-	"Waits on time in a spec: a sleep, a timer, polling with eventually or waitFor, fake timers or a TestClock adjustment. Settle on the engine's own signal through a kit verb, such as a Deferred the engine completes, story.runUntil or screenDriver's settle(); when time passing is the behaviour, name it in a kit verb that advances the clock.";
+	"Waits on time in a story: a sleep, a timer, polling with eventually or waitFor, fake timers or a TestClock adjustment. Settle on the engine's own signal through a kit verb, such as a Deferred the engine completes, story.runUntil or screenDriver's settle(); when time passing is the behaviour, name it in a kit verb that advances the clock.";
 
 const TIMERS = new Set(["setInterval", "setTimeout"]);
 const VI_TIMING = /^(?:useFakeTimers|advanceTimers\w*|runAllTimers\w*|runOnlyPendingTimers\w*|runAllTicks|setSystemTime|waitFor|waitUntil)$/u;
@@ -56,7 +56,7 @@ function timedWaits(source: ts.SourceFile): readonly ts.Node[] {
 
 export const waitOnEvents = defineRule({
 	check: (inputs) =>
-		Effect.runPromise(Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, timedWaits, MESSAGE)))),
-	description: "Stories settle on the engine's own signals, never on sleeps, polling, fake timers or clock adjustments in the spec.",
+		Effect.runPromise(Effect.map(storySources(inputs), (stories) => stories.flatMap((file) => syntaxFindings(file, timedWaits, MESSAGE)))),
+	description: "Stories settle on the engine's own signals, never on sleeps, polling, fake timers or clock adjustments in the story.",
 	id: "tests/wait-on-events",
 });
