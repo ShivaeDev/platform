@@ -107,11 +107,7 @@ export async function fakeHttpReceive(
 		}
 		await fakeHttpAnswer(found.name, found.route, request, response, controls, tell);
 	} catch (error) {
-		tell(`fake HTTP could not answer: ${String(error)}`);
-		if (response.headersSent) {
-			response.destroy();
-		} else {
-			await fakeHttpSend(response, { status: HttpStatus.fromLiteral("InternalServerError") });
-		}
+		controls.failed(incoming.method ?? "GET", incoming.url ?? "/", error);
+		response.destroy();
 	}
 }
