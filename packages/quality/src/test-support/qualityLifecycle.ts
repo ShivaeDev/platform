@@ -127,3 +127,9 @@ export default { local: [defineRule({ id: "local/crash", description: "Checks a 
 export const brokenConfig = qualityLifecycle.trait("repository", "loading the config throws an error", (engine) => {
 	writeFileSync(join(engine.root, "quality.config.ts"), 'throw new Error("config crashed");\n');
 });
+
+export function malformedBiomeVcs(value: unknown) {
+	return qualityLifecycle.trait("repository", "the Biome config has a malformed VCS setting", (engine) => {
+		writeFileSync(join(engine.root, "biome.json"), JSON.stringify({ extends: ["@shivaedev/quality/biome/preset.json"], vcs: value }));
+	});
+}

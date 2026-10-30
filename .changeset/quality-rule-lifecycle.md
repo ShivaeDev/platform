@@ -10,5 +10,6 @@
 
 ### Fixed
 
+- Scoped Biome configs preserve malformed VCS settings so the native tool reports them instead of applying defaults.
 - Interrupting rules stops Biome and knip child processes and removes their scoped temporary configs before the run ends.
 - A crashing rule prints its id and original stack through `Cause.pretty`. Setup failures retain their original cause as a non-enumerable property.

@@ -32,7 +32,7 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 		const inherited = yield* parseConfig(source, yield* fs.readFileString(source));
 		extended.push(yield* writeConfig(root, source, inherited, paths));
 	}
-	const vcs = Schema.is(ObjectConfig)(config.vcs) ? config.vcs : {};
+	const vcs = config.vcs ?? {};
 	const generated = {
 		...config,
 		...(Array.isArray(config.extends) ? { extends: extended } : {}),
@@ -43,7 +43,12 @@ const writeConfig = Effect.fn("Biome.writeConfig")(function* (
 					),
 				}
 			: {}),
-		vcs: { ...vcs, root: typeof vcs.root === "string" ? resolve(root, vcs.root) : root },
+		vcs: Schema.is(ObjectConfig)(vcs)
+			? {
+					...vcs,
+					root: typeof vcs.root === "string" ? resolve(root, vcs.root) : (vcs.root ?? root),
+				}
+			: vcs,
 	};
 	yield* fs.writeFileString(path, JSON.stringify(generated));
 	return path;
