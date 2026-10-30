@@ -1,6 +1,7 @@
 import { Clock, Effect } from "effect";
 import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import type { PgBossClient } from "#client.ts";
+import { toPgBossError } from "#error.ts";
 
 export function retryWake(client: PgBossClient, name: string, id: string, registration: Promise<string>): Effect.Effect<void> {
 	return Effect.gen(function* () {
@@ -8,12 +9,12 @@ export function retryWake(client: PgBossClient, name: string, id: string, regist
 		if (findJobs === undefined || client.notifyWorker === undefined) {
 			return;
 		}
-		const jobs = yield* Effect.tryPromise(() => findJobs(name, { id }));
+		const jobs = yield* Effect.tryPromise({ catch: (error) => toPgBossError("settle", error, name), try: () => findJobs(name, { id }) });
 		const job = jobs[0];
 		if (job?.state !== "retry") {
 			return;
 		}
-		const workId = yield* Effect.tryPromise(() => registration);
+		const workId = yield* Effect.tryPromise({ catch: (error) => toPgBossError("register", error, name), try: () => registration });
 		// Host timers can fire early; PostgreSQL retains precision that Date drops.
 		const deadline = job.startAfter.getTime() + 1;
 		let remaining = deadline - (yield* Clock.currentTimeMillis);

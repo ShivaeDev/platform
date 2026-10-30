@@ -43,7 +43,7 @@ export const maintainPullRequest = Effect.fn("Release.maintainPullRequest")(func
 		}),
 	);
 	git("add", "--all");
-	const { title, body } = releasePrSummary(plan);
+	const { title, body } = yield* releasePrSummary(plan);
 	if (comparison?.base === git("rev-parse", "origin/main") && comparison.tree === git("write-tree")) {
 		git("reset", "--hard", head);
 		if (pull === undefined) {

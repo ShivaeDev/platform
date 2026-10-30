@@ -1,4 +1,5 @@
 import { EventEmitter } from "node:events";
+import type { Tracer } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { PgBossClientFactory } from "#client.ts";
 import { FakeClient } from "#test/fakeClient.ts";
@@ -8,6 +9,7 @@ export function clientEngine(): {
 	connectionString: string;
 	events: EventEmitter;
 	factory: PgBossClientFactory | undefined;
+	workerLogs: Array<{ message: unknown; span: Tracer.AnySpan | undefined; annotations: Readonly<Record<string, unknown>> }>;
 	logs: Array<{ logLevel: string; message: unknown; cause?: string }>;
 	sql: SqlClient.SqlClient | undefined;
 } {
@@ -20,5 +22,6 @@ export function clientEngine(): {
 		factory: () => client,
 		logs,
 		sql: undefined,
+		workerLogs: [],
 	};
 }

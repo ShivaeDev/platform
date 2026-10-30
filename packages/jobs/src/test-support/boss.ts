@@ -6,8 +6,10 @@ import { batchBudget } from "#test/batchBudget.ts";
 import { budgetVerbs } from "#test/budgetVerbs.ts";
 import { clientEngine } from "#test/clientEngine.ts";
 import { connectionSecurity } from "#test/connectionSecurity.ts";
+import { gracefulShutdown } from "#test/gracefulShutdown.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
+import { queueRetry } from "#test/queueRetry.ts";
 import { scheduledTesting } from "#test/scheduledTesting.ts";
 import { settlementProbe } from "#test/settlementProbe.ts";
 import { testingEngine } from "#test/testingEngine.ts";
@@ -15,6 +17,7 @@ import { testingProducer, testingVerbs, testingWorker } from "#test/testingProdu
 import { tracingEngine } from "#test/tracingEngine.ts";
 import { tracingVerbs } from "#test/tracingVerbs.ts";
 import { waitingVerbs } from "#test/waitingVerbs.ts";
+import { workerRuntime } from "#test/workerRuntime.ts";
 
 export const boss = storyKit({
 	after: { producer: testingProducer, runtime: testingWorker },
@@ -36,6 +39,9 @@ export const boss = storyKit({
 		const runtime = pgBossRuntime(state, story.tell);
 		return {
 			...runtime,
+			gracefulShutdown: (shared: boolean) => gracefulShutdown(runtime, shared),
+			queueRetry: queueRetry(runtime),
+			workerRuntime: workerRuntime(runtime),
 			...connectionSecurity(state, runtime),
 			...waitingVerbs(),
 			budgets: budgetVerbs(state.budget, runtime),
@@ -74,4 +80,17 @@ export const clientFailsQueue = boss.trait("client", "the client cannot create q
 
 export const retryTracedJob = boss.trait("configuration", "the traced worker fails its first attempt", (state) => {
 	state.trace.failFirst = true;
+});
+
+export const deferralWritesFail = boss.trait("client", "deferral writes are unavailable", (state) => {
+	Object.assign(state.client, {
+		getDb: () => ({
+			executeSql: (text: string) => {
+				if (text.includes("WITH claimed AS MATERIALIZED")) {
+					return Promise.reject(new Error("deferral storage unavailable"));
+				}
+				return Promise.resolve({ rows: [] });
+			},
+		}),
+	});
 });

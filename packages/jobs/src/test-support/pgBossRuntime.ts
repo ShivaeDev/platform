@@ -1,4 +1,4 @@
-import { Cause, Context, Effect, Exit, Layer, Logger, References, Scope } from "effect";
+import { Cause, Context, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import { makeWorkerRelease, WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
@@ -13,9 +13,14 @@ export const Jobs = makePgBoss("@test/PgBossStory");
 
 export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (line: string) => void) {
 	const logger = Logger.layer([
-		Logger.make(({ logLevel, message, cause }) =>
-			state.logs.push(cause.reasons.length === 0 ? { logLevel, message } : { cause: Cause.pretty(cause), logLevel, message }),
-		),
+		Logger.make(({ logLevel, message, fiber, cause }) => {
+			state.logs.push(cause.reasons.length === 0 ? { logLevel, message } : { cause: Cause.pretty(cause), logLevel, message });
+			state.workerLogs.push({
+				annotations: fiber.getRef(References.CurrentLogAnnotations),
+				message,
+				span: Option.getOrUndefined(Context.getOption(fiber.context, Tracer.ParentSpan)),
+			});
+		}),
 	]);
 	function logged<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(Effect.provide(logger), Effect.provideService(References.MinimumLogLevel, "Debug"));
@@ -35,11 +40,15 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 			...options,
 		});
 	}
-	function boot<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
+	function boot<const T extends readonly JobRegistration[], R = never>(
+		jobs: T,
+		options?: Partial<PgBossLayerOptions<T, R>>,
+		finalizerStrategy?: Parameters<typeof Scope.fork>[1],
+	) {
 		return Effect.gen(function* () {
 			tell(`start the jobs runtime with ${jobs.length} registrations`);
 			const parent = yield* Scope.Scope;
-			const scope = yield* Scope.fork(parent);
+			const scope = yield* Scope.fork(parent, finalizerStrategy);
 			const context = yield* logged(Layer.build(layer(jobs, options)).pipe(Effect.provideService(Scope.Scope, scope)));
 			return {
 				jobs: Context.get(context, Jobs),
@@ -78,6 +87,7 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 		layer,
 		logs: state.logs,
 		native,
+		recordedWorkerLogs: state.workerLogs,
 		register: <const T extends readonly JobRegistration[]>(jobs: T) => boot(jobs).pipe(Effect.flatMap((runtime) => runtime.stop)),
 
 		seed: <const TPayload extends JobPayloadSchema>(

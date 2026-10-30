@@ -55,3 +55,27 @@ boss.it("fails registration at once on a non-deadlock error, and after repeated 
 		expect(client.createQueueCalls).toEqual([]);
 	}
 });
+
+boss.it(
+	"waits for the runtime Clock before retrying queue creation",
+	[],
+	function* ({ client, queueRetry }) {
+		const secondDeadlock = deadlock();
+		client.createQueueFailures.push(deadlock(), secondDeadlock);
+		const registration = yield* queueRetry.start();
+
+		yield* queueRetry.advance(24);
+		expect(queueRetry.finished(registration)).toBe(false);
+		expect(client.createQueueFailures).toEqual([secondDeadlock]);
+		yield* queueRetry.advance(1);
+		expect(client.createQueueFailures).toEqual([]);
+		expect(queueRetry.finished(registration)).toBe(false);
+		yield* queueRetry.advance(49);
+		expect(queueRetry.finished(registration)).toBe(false);
+		yield* queueRetry.advance(1);
+		yield* queueRetry.finish(registration);
+
+		expect(client.createQueueCalls.map(({ name }) => name)).toEqual(["contended-dlq", "contended"]);
+	},
+	{ clock: "test" },
+);

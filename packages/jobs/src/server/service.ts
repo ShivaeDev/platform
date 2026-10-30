@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, type Option, type Schema } from "effect";
+import { Context, Effect, Exit, Layer, type Option, type Schema, Scope } from "effect";
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
@@ -69,25 +69,38 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 		const acquire = Effect.acquireRelease(
 			Effect.gen(function* () {
 				const dependencies = yield* Effect.context<Requirements>();
-				const acquired = yield* acquireClient({
-					clientCacheKey,
-					clientFactory,
-					constructor: constructorOptions,
+				const execute = Effect.runPromiseWith(dependencies);
+				const acquired = yield* acquireClient({ clientCacheKey, clientFactory, constructor: constructorOptions }, (error) => {
+					void execute(logClientError(error));
 				});
+				const workerScope = yield* Scope.make();
 				const service = makeService(acquired.client, names, constructorOptions.schema);
 				const context = Context.add(dependencies, Service, service);
 				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements | TIdentifier> = onError ?? logClientError;
 				function errorListener(error: Error): void {
-					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
+					void execute(Effect.exit(Effect.provide(reportError(error), context)));
 				}
 				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
-				const registration = registerReleasedJobs(acquired.client, jobs, context, acquired.reused, constructorOptions.schema);
+				// Layer scopes can finalize in parallel; drain callbacks before interrupting their fibers.
+				const release = releaseClient(acquired, stop).pipe(
+					Effect.ensuring(Effect.sync(unsubscribe)),
+					Effect.ensuring(Scope.close(workerScope, Exit.void)),
+				);
+				const registration = registerReleasedJobs(
+					acquired.client,
+					jobs,
+					context,
+					acquired.reused,
+					(effect) => execute(effect),
+					constructorOptions.schema,
+					stop?.graceful !== false,
+				).pipe(Effect.provideService(Scope.Scope, workerScope));
 				return yield* registration.pipe(
-					Effect.as({ acquired, service, unsubscribe }),
-					Effect.onError(() => releaseClient(acquired, stop).pipe(Effect.ensuring(Effect.sync(unsubscribe)))),
+					Effect.as({ release, service }),
+					Effect.onError(() => release),
 				);
 			}),
-			(resource) => releaseClient(resource.acquired, stop).pipe(Effect.ensuring(Effect.sync(resource.unsubscribe))),
+			(resource) => resource.release,
 		);
 
 		return Layer.effect(

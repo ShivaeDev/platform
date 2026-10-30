@@ -1,13 +1,22 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { Connection } from "effect/sql/SqlConnection";
-import { getConstructionPlans, getMigrationPlans, type MigrationPartition, PgBoss } from "pg-boss";
+import { getConstructionPlans, getMigrationPlans, PgBoss } from "pg-boss";
 import pgBossPackage from "pg-boss/package.json" with { type: "json" };
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
 import { type PgBossError, toPgBossError } from "#error.ts";
 import { deferralStorePlan } from "#internal/deferralStorePlan.ts";
 import { runSchemaPlan } from "#internal/runSchemaPlan.ts";
 import { resumeSchemaIndexes } from "#internal/schemaIndexBuilds.ts";
+
+const Partitions = Schema.Array(
+	Schema.Struct({
+		policy: Schema.String,
+		tableName: Schema.String,
+	}),
+);
+const InstalledSchema = Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) }));
+const InstalledVersion = Schema.Array(Schema.Struct({ version: Schema.Number }));
 
 export interface PgBossSchemaOptions {
 	readonly schema?: string;
@@ -39,10 +48,13 @@ async function installSchema(
 		await resumeSchemaIndexes(client, schema);
 	}
 	if (version < pgBossPackage.pgboss.schema) {
-		const partitionTables: MigrationPartition[] = Array.from(
+		const partitionTables = Schema.decodeUnknownSync(Partitions)(
 			await run(connection.executeUnprepared(`SELECT table_name AS "tableName", policy FROM ${schema}.queue WHERE partition = true`, [], undefined)),
 		);
-		await runSchemaPlan(connection, getMigrationPlans(schema, version, { partitionTables }), run, { schema, version: pgBossPackage.pgboss.schema });
+		await runSchemaPlan(connection, getMigrationPlans(schema, version, { partitionTables: Array.from(partitionTables) }), run, {
+			schema,
+			version: pgBossPackage.pgboss.schema,
+		});
 		await resumeSchemaIndexes(client, schema);
 	}
 }
@@ -72,9 +84,13 @@ export function pgBossSchema(options: PgBossSchemaOptions = {}): SchemaComponent
 		pending: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
 			const table = sql`${sql(schema)}.${sql("version")}`;
-			const [installed] = yield* sql<{ name: string | null }>`select to_regclass(${table.compile()[0]})::text as name`.withoutTransform;
+			const [installed] = yield* sql`select to_regclass(${table.compile()[0]})::text as name`.withoutTransform.pipe(
+				Effect.flatMap(Schema.decodeUnknownEffect(InstalledSchema)),
+			);
 			const [row] =
-				installed === undefined || installed.name === null ? [] : yield* sql<{ version: number }>`select version from ${table}`.withoutTransform;
+				installed === undefined || installed.name === null
+					? []
+					: yield* sql`select version from ${table}`.withoutTransform.pipe(Effect.flatMap(Schema.decodeUnknownEffect(InstalledVersion)));
 			const required = pgBossPackage.pgboss.schema;
 			return row === undefined || row.version < required
 				? `schema ${schema}, installed version ${row?.version ?? "missing"}, required version ${required}`

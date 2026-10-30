@@ -45,7 +45,7 @@ postgresIt(
 		]);
 		expect(handled).toEqual([0, 1, 2]);
 		expect(probe.reads).not.toEqual([]);
-		expect(JSON.stringify(logs.filter(({ logLevel }) => logLevel === "Error"))).toContain("retry lookup failed: password=<redacted>");
+		expect(JSON.stringify(logs.filter(({ logLevel }) => logLevel === "Error"))).toContain("pg-boss settle for queue wake-read-failure failed: Error");
 		expect(JSON.stringify(logs)).not.toContain("wake-secret");
 	},
 );
