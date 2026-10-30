@@ -80,7 +80,11 @@ export function watchedBoard(root: string) {
 					}),
 				)
 				.pipe(Effect.provideContext(platform));
-			return { index, snapshot: read };
+			return {
+				index,
+				// Keep pass-local edits out of the cached indexed observation.
+				snapshot: read.pipe(Effect.map((current) => new BoardSnapshot(current.documents, new Map(current.problems), current.model))),
+			};
 		}),
 	);
 }
