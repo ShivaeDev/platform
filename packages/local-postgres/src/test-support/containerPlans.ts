@@ -1,8 +1,13 @@
 import { PINNED_IMAGE } from "#test/dockerScript.ts";
 
+const CONTAINER_ID = "container-id";
+const DISCOVER = ["ps", "--filter", "publish=55432", "--format", "{{.ID}}"];
+
+export const daemonAnswers = { args: ["info"], result: "Docker is available" };
+
 export function containerPlan(state: "existing" | "missing" | "outdated") {
 	return [
-		{ args: ["info"], result: "Docker is available" },
+		daemonAnswers,
 		{
 			args: ["container", "inspect", "development-postgres"],
 			result: state === "missing" ? new Error("No such container: development-postgres") : "[]",
@@ -38,35 +43,37 @@ export function containerPlan(state: "existing" | "missing" | "outdated") {
 	];
 }
 
-export function clientPlan(ids: string, image = PINNED_IMAGE) {
+export function publishedBy(ids: string, image = PINNED_IMAGE) {
 	return [
-		{ args: ["ps", "--filter", "publish=55432", "--format", "{{.ID}}"], result: ids },
+		{ args: DISCOVER, result: ids },
 		...(ids.trim() && !ids.trim().includes("\n") ? [{ args: ["inspect", "--format", "{{.Config.Image}}", ids.trim()], result: image }] : []),
 	];
 }
 
-export function readinessPlan(unavailableProbes: number) {
-	const discover = ["ps", "--filter", "publish=55432", "--format", "{{.ID}}"];
+export function unanswered(checks: number) {
+	return Array.from({ length: checks }, () => ({ args: DISCOVER, result: "" }));
+}
+
+export function answers(query: string, answer: string) {
 	return [
-		...Array.from({ length: unavailableProbes }, () => ({ args: discover, result: "" })),
-		...clientPlan("container-id\n"),
+		...publishedBy(`${CONTAINER_ID}\n`),
 		{
 			args: [
 				"exec",
 				"--env",
 				"PGPASSWORD",
-				"container-id",
+				CONTAINER_ID,
 				"psql",
 				"-X",
 				"--set",
 				"ON_ERROR_STOP=1",
 				"-At",
 				"-c",
-				"SHOW server_version",
+				query,
 				"--dbname",
 				"postgresql://postgres@127.0.0.1:5432/postgres?connect_timeout=3",
 			],
-			result: "18.6\n",
+			result: `${answer}\n`,
 		},
 	];
 }

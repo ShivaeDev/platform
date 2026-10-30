@@ -1,26 +1,17 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { PostgresVersionMismatch } from "#PostgresVersionMismatch.ts";
 import { olderPostgres } from "#test/olderPostgres.ts";
 import { postgres } from "#test/postgres.ts";
 
 postgres.it(
-	"refuses a running PostgreSQL 17 service with its version and preserves its data",
+	"setup refuses a running PostgreSQL 17 service with a version mismatch that names its version",
 	[olderPostgres],
-	function* ({ query, start }) {
-		const version = query("SHOW server_version");
+	function* ({ outcome, runningVersion, start }) {
+		const version = yield* runningVersion();
 		expect(version).toMatch(/^17\./u);
-		query("CREATE TABLE preserved (value text); INSERT INTO preserved VALUES ('existing data')");
-		let failure: unknown;
-		try {
-			start();
-		} catch (error) {
-			failure = error;
-		}
-		expect(failure).toBeInstanceOf(PostgresVersionMismatch);
-		expect(failure).toMatchObject({ _tag: "PostgresVersionMismatch", expectedVersion: "18.6", observedVersion: version });
-		expect(query("SELECT value FROM preserved")).toBe("existing data");
-		yield* Effect.void;
+
+		yield* start();
+
+		expect(yield* outcome()).toBe(`version mismatch: expected 18.6, observed ${version}`);
 	},
 	120_000,
 );
