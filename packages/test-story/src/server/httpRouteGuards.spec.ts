@@ -24,8 +24,8 @@ scopedHttpApp.it(
 	},
 );
 
-scopedHttpApp.it("does not consume a one-shot reply for a route's rejected token", [], function* ({ failOnce, request }) {
-	yield* failOnce("installation", { status: HttpStatus.fromLiteral("ServiceUnavailable") });
+scopedHttpApp.it("does not consume a one-shot reply for a route's rejected token", [], function* ({ scriptFault, request }) {
+	yield* scriptFault("installation", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } });
 	const rejected = yield* request("/installations/4", { token: "wrong" });
 	expect(yield* rejected.headers).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
 	const accepted = yield* request("/installations/4");

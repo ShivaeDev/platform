@@ -7,10 +7,10 @@ import { httpFaultApp } from "#test/httpFaultApp.ts";
 httpFaultApp.it(
 	"checks both route names before installing any control",
 	[],
-	function* ({ stall, replyOnce, releaseOnArrival, fault, hold, request }) {
+	function* ({ stall, scriptFault, releaseOnArrival, fault, hold, request }) {
 		for (const action of [
 			stall("missing"),
-			replyOnce("missing", { body: new Uint8Array([1]) }),
+			scriptFault("missing", { kind: "status", reply: { body: new Uint8Array([1]) } }),
 			releaseOnArrival("missing", "trigger"),
 			releaseOnArrival("data", "missing"),
 			fault("missing", { kind: "drop" }),
@@ -63,8 +63,8 @@ httpFaultApp.it("requires headers for a reset and refuses status or drop faults 
 httpFaultApp.it(
 	"tells the story about reply, stall, arrival release and fault controls",
 	[],
-	function* ({ replyOnce, stall, hold, releaseOnArrival, request, fault, story }) {
-		yield* replyOnce("data", { body: new Uint8Array([0, 255]) });
+	function* ({ scriptFault, stall, hold, releaseOnArrival, request, fault, story }) {
+		yield* scriptFault("data", { kind: "status", reply: { body: new Uint8Array([0, 255]) } });
 		const stalled = yield* stall("data");
 		const client = yield* request();
 		yield* stalled.waiting;
@@ -79,7 +79,7 @@ httpFaultApp.it(
 		const trigger = yield* request("/trigger");
 		yield* trigger.finished;
 		expect(story.lines).toEqual([
-			"fake HTTP data will answer once with 200",
+			"fake HTTP data will fault status before reply once",
 			"fake HTTP data body will stall",
 			"fake HTTP received GET /data",
 			"fake HTTP answered GET /data with 200",

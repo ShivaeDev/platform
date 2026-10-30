@@ -11,7 +11,7 @@ export function ConfigurationView(props: ConfigurationProps) {
 	const { revision, rejected, mapping, held, saved } = props;
 	const config = {
 		fields: props.fields,
-		persistedDraft: { key: `${props.kind}-${revision}` },
+		persistedDraft: { key: `${props.kind}-${revision}`, now: props.now },
 		...(mapping ? { rejectField: (_error: Rejected) => ({ field: "name" as const, message: revision }) } : {}),
 		runtime: props.runtime,
 	};
@@ -36,7 +36,7 @@ export function ConfigurationView(props: ConfigurationProps) {
 }
 interface ViewProps {
 	readonly config: Pick<ConfigurationProps, "fields" | "runtime"> & {
-		readonly persistedDraft: { readonly key: string };
+		readonly persistedDraft: { readonly key: string; readonly now: () => number };
 		readonly rejectField?: (error: Rejected) => { field: "name"; message: string };
 	};
 	readonly held: ConfigurationProps["held"];

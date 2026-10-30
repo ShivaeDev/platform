@@ -56,8 +56,11 @@ export function handlerThrows(source: "reply" | "guard" | "script" | "stream", t
 		state.source = source;
 		state.thrown = thrown;
 		if (source === "script") {
-			yield* service.replyOnce("data", () => {
-				throw thrown;
+			yield* service.scriptFault("data", {
+				kind: "status",
+				reply: () => {
+					throw thrown;
+				},
 			});
 		}
 	});

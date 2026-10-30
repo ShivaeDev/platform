@@ -10,13 +10,11 @@ export function fakeHttpScripts(tell: (line: string) => void) {
 	}>();
 	return {
 		clear: () => scripts.clear(),
-		make: (route: string, fault: FakeHttpFault, options: FakeHttpScriptOptions = {}, narrate = true): FakeHttpScript => {
+		make: (route: string, fault: FakeHttpFault, options: FakeHttpScriptOptions = {}): FakeHttpScript => {
 			const selection = fakeHttpSelection(route, options);
 			const script = { fault, options, selection };
 			scripts.add(script);
-			if (narrate) {
-				tell(`fake HTTP ${selection.label} will fault ${fault.kind} ${options.phase ?? "before"} reply ${options.repeat ? "until lifted" : "once"}`);
-			}
+			tell(`fake HTTP ${selection.label} will fault ${fault.kind} ${options.phase ?? "before"} reply ${options.repeat ? "until lifted" : "once"}`);
 			return {
 				lift: Effect.sync(() => {
 					if (scripts.delete(script)) {

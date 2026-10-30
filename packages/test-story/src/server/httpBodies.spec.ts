@@ -3,8 +3,11 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { httpFaultApp } from "#test/httpFaultApp.ts";
 
-httpFaultApp.it("flushes status and headers while its body waits for release", [], function* ({ stall, replyOnce, request }) {
-	yield* replyOnce("data", { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") });
+httpFaultApp.it("flushes status and headers while its body waits for release", [], function* ({ stall, scriptFault, request }) {
+	yield* scriptFault("data", {
+		kind: "status",
+		reply: { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") },
+	});
 	const paused = yield* stall("data");
 	const client = yield* request();
 	yield* paused.waiting;
@@ -17,9 +20,9 @@ httpFaultApp.it("flushes status and headers while its body waits for release", [
 	expect(yield* Fiber.join(body)).toEqual({ bytes: Buffer.from('{"released":true}'), kind: "complete" });
 });
 
-httpFaultApp.it("delivers binary reply bytes with the supplied content type exactly once", [], function* ({ replyOnce, request }) {
+httpFaultApp.it("delivers binary reply bytes with the supplied content type exactly once", [], function* ({ scriptFault, request }) {
 	const bytes = Uint8Array.from([0, 255, 128, 13, 10]);
-	yield* replyOnce("data", { body: bytes, headers: { "content-type": "image/png" } });
+	yield* scriptFault("data", { kind: "status", reply: { body: bytes, headers: { "content-type": "image/png" } } });
 	const client = yield* request();
 	expect(yield* client.headers).toMatchObject({ headers: { "content-type": "image/png" }, status: HttpStatus.fromLiteral("OK") });
 	expect(yield* client.finished).toEqual({ bytes: Buffer.from(bytes), kind: "complete" });
@@ -70,11 +73,14 @@ httpFaultApp.it("keeps later matching bodies stalled until the same release", []
 	expect(yield* Fiber.join(pending)).toEqual({ bytes: Buffer.from('{"ready":true}'), kind: "complete" });
 });
 
-httpFaultApp.it("writes Buffer bodies and synchronous chunks without JSON encoding", [], function* ({ replyOnce, request }) {
-	yield* replyOnce("data", { body: Buffer.from([0, 255]), headers: { "content-type": "application/octet-stream" } });
+httpFaultApp.it("writes Buffer bodies and synchronous chunks without JSON encoding", [], function* ({ scriptFault, request }) {
+	yield* scriptFault("data", { kind: "status", reply: { body: Buffer.from([0, 255]), headers: { "content-type": "application/octet-stream" } } });
 	const binary = yield* request();
 	expect(yield* binary.finished).toEqual({ bytes: Buffer.from([0, 255]), kind: "complete" });
-	yield* replyOnce("data", { chunks: ["head", Buffer.from([0, 255]), "tail"], headers: { "content-type": "application/octet-stream" } });
+	yield* scriptFault("data", {
+		kind: "status",
+		reply: { chunks: ["head", Buffer.from([0, 255]), "tail"], headers: { "content-type": "application/octet-stream" } },
+	});
 	const chunked = yield* request();
 	expect(yield* chunked.finished).toEqual({
 		bytes: Buffer.concat([Buffer.from("head"), Buffer.from([0, 255]), Buffer.from("tail")]),

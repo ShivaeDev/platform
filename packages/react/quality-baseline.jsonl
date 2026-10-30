@@ -5,6 +5,8 @@
 {"path":"packages/react/src/client/mountLive.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/permissionBoundary.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/reactWarnings.dom.spec.tsx","rule":"effect/boundary","count":1}
+{"path":"packages/react/src/client/resultState.dom.test.ts","rule":"tests/domain-outcomes","count":6}
+{"path":"packages/react/src/client/sessionBoundary.dom.test.tsx","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/entitySettings.dom.spec.tsx","rule":"tests/domain-outcomes","count":6}
 {"path":"packages/react/src/entitySettings.dom.spec.tsx","rule":"tests/grouped-outcomes","count":4}

@@ -44,7 +44,6 @@ export const scopedHttpApp = storyKit({
 
 		return {
 			comments: () => Effect.tryPromise(async () => (await fetch(`${service.url}/comments`, { headers: { "x-service-key": "story-key" } })).json()),
-			failOnce: service.failOnce,
 			fault: service.fault,
 			hold: service.hold,
 			releaseOnArrival: service.releaseOnArrival,
