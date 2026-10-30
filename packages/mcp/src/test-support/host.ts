@@ -2,6 +2,7 @@ import { createServer } from "node:net";
 import { getMigrations } from "better-auth/db/migration";
 import { admin, jwt, testUtils } from "better-auth/plugins";
 import { Effect, Layer } from "effect";
+import type { McpClient } from "effect/ai";
 import { RpcGroup } from "effect/rpc";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { trustedOrigins } from "@shivaedev/identity/server/origin.ts";
@@ -22,7 +23,7 @@ async function availablePort() {
 	return address.port;
 }
 
-export const startHost = Effect.gen(function* () {
+const startHost = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const pool = yield* authDatabase(database.url);
 	const port = yield* Effect.promise(availablePort);
@@ -73,4 +74,47 @@ export const startHost = Effect.gen(function* () {
 	);
 	return { auth: mounted.auth, baseUrl, resource };
 });
-export type Host = Effect.Success<typeof startHost>;
+type Host = Effect.Success<typeof startHost>;
+
+interface Person {
+	readonly cookie: string;
+	readonly id: string;
+}
+
+interface Story {
+	readonly clients: Map<string, McpClient.McpClient>;
+	readonly flow: { clientId?: string; code?: string; consentQuery?: string };
+	readonly people: Map<string, Person>;
+	refusal: { readonly challenge: string | undefined; readonly status: number } | undefined;
+	readonly tokens: Map<string, string>;
+}
+
+export const startEngine = Effect.map(startHost, (host): Host & Story => ({
+	...host,
+	clients: new Map(),
+	flow: {},
+	people: new Map(),
+	refusal: undefined,
+	tokens: new Map(),
+}));
+export type Engine = Effect.Success<typeof startEngine>;
+
+export function person(engine: Engine, name: string) {
+	const found = engine.people.get(name);
+	if (found === undefined) {
+		throw new Error(`${name} is not signed in`);
+	}
+	return found;
+}
+
+export function named(engine: Engine, text: string) {
+	let replaced = text;
+	for (const [name, { id }] of engine.people) {
+		replaced = replaced.replaceAll(id, name);
+	}
+	return replaced;
+}
+
+export function path(engine: Engine, url: string) {
+	return url.startsWith(engine.baseUrl) ? url.slice(engine.baseUrl.length) : url;
+}

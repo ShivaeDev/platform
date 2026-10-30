@@ -1,85 +1,90 @@
 import { createHash } from "node:crypto";
 import { Effect } from "effect";
-import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
-import type { Host } from "./host.ts";
+import { type Engine, person } from "./host.ts";
 
 const VERIFIER = "mcp-story-pkce-verifier-long-enough-for-sha256";
 const CALLBACK = "http://localhost:8123/callback";
-export function oauthVerbs(host: Host, tell: (line: string) => void) {
+
+function registered(engine: Engine) {
+	const { clientId } = engine.flow;
+	if (clientId === undefined) {
+		throw new Error("No client has registered");
+	}
+	return clientId;
+}
+
+function step<A>(line: string, tell: (line: string) => void, run: () => Promise<A>) {
+	return Effect.suspend(() => {
+		tell(line);
+		return Effect.promise(run);
+	});
+}
+
+export function oauthVerbs(engine: Engine, tell: (line: string) => void) {
+	const auth = `${engine.baseUrl}/api/auth`;
 	return {
-		authorize: (clientId: string, cookie: string) =>
-			Effect.promise(async () => {
-				tell("the signed-in user authorizes the client");
+		authorizes: (name: string) =>
+			step(`${name} authorizes ${name}'s client in the browser`, tell, async () => {
 				const query = new URLSearchParams({
-					"client_id": clientId,
+					"client_id": registered(engine),
 					"code_challenge": createHash("sha256").update(VERIFIER).digest("base64url"),
 					"code_challenge_method": "S256",
 					"redirect_uri": CALLBACK,
-					resource: host.resource,
+					resource: engine.resource,
 					"response_type": "code",
 					scope: "mcp",
 					state: "client-state",
 				});
-				const response = await fetch(`${host.baseUrl}/api/auth/oauth2/authorize?${query}`, {
-					headers: { accept: "application/json", cookie },
+				const response = await fetch(`${auth}/oauth2/authorize?${query}`, {
+					headers: { accept: "application/json", cookie: person(engine, name).cookie },
 					redirect: "manual",
 				});
-				return { body: await response.text(), location: response.headers.get("location"), status: response.status };
+				const body = await response.text();
+				const consentPage = response.ok ? new URL(JSON.parse(body).url, engine.baseUrl) : undefined;
+				if (consentPage?.pathname !== "/consent") {
+					throw new Error(`Authorization did not lead to the consent page: ${response.status} ${body}`);
+				}
+				engine.flow.consentQuery = consentPage.search.slice(1);
 			}),
-		changeRole: (id: string, role: "admin" | "user", cookie: string) =>
-			Effect.promise(async () => {
-				tell("the administrator changes the stored role");
-				const response = await fetch(`${host.baseUrl}/api/auth/admin/set-role`, {
-					body: JSON.stringify({ role, userId: id }),
-					headers: { "content-type": "application/json", cookie, origin: host.baseUrl },
-					method: "POST",
-				});
-				await response.text();
-				return response.status;
-			}),
-		consent: (query: string, cookie: string) =>
-			Effect.promise(async () => {
-				tell("the user grants consent");
-				const response = await fetch(`${host.baseUrl}/api/auth/oauth2/consent`, {
-					body: JSON.stringify({ accept: true, "oauth_query": query }),
-					headers: { "content-type": "application/json", cookie, origin: host.baseUrl },
+		consents: (name: string) =>
+			step(`${name} grants ${name}'s client consent`, tell, async () => {
+				const response = await fetch(`${auth}/oauth2/consent`, {
+					body: JSON.stringify({ accept: true, "oauth_query": engine.flow.consentQuery }),
+					headers: { "content-type": "application/json", cookie: person(engine, name).cookie, origin: engine.baseUrl },
 					method: "POST",
 					redirect: "manual",
 				});
-				return { body: await response.json(), location: response.headers.get("location"), status: response.status };
+				const body = await response.text();
+				const code = response.ok ? new URL(JSON.parse(body).url).searchParams.get("code") : null;
+				if (code === null) {
+					throw new Error(`Consent returned no authorization code: ${response.status} ${body}`);
+				}
+				engine.flow.code = code;
 			}),
-		exchange: (clientId: string, code: string) =>
-			Effect.promise(async () => {
-				tell("the client exchanges the code and PKCE VERIFIER");
-				const response = await fetch(`${host.baseUrl}/api/auth/oauth2/token`, {
+		exchangesCode: (name: string) =>
+			step(`${name}'s client exchanges the code and its PKCE verifier for an access token`, tell, async () => {
+				const response = await fetch(`${auth}/oauth2/token`, {
 					body: new URLSearchParams({
-						"client_id": clientId,
-						code,
+						"client_id": registered(engine),
+						code: engine.flow.code ?? "",
 						"code_verifier": VERIFIER,
 						"grant_type": "authorization_code",
 						"redirect_uri": CALLBACK,
-						resource: host.resource,
+						resource: engine.resource,
 					}),
 					headers: { "content-type": "application/x-www-form-urlencoded" },
 					method: "POST",
 				});
-				return { body: await response.json(), status: response.status };
+				const body = await response.text();
+				const token: unknown = response.ok ? JSON.parse(body).access_token : undefined;
+				if (typeof token !== "string") {
+					throw new Error(`The code exchange returned no access token: ${response.status} ${body}`);
+				}
+				engine.tokens.set(name, token);
 			}),
-		mintSession: (role: "user" | "admin") =>
-			Effect.promise(async () => {
-				tell(`a ${role} is already signed in`);
-				const session = await signedInUser(host.auth, { email: `${role}@mcp.test`, name: role, role });
-				return { cookie: session.headers.get("cookie") ?? "", id: session.user.id };
-			}),
-		mintToken: (id: string, audience = host.resource, scope = "mcp") =>
-			Effect.promise(async () => {
-				tell("the client starts with a signed access token");
-				return (await host.auth.api.signJWT({ body: { payload: { aud: audience, iss: `${host.baseUrl}/api/auth`, scope, sub: id } } })).token;
-			}),
-		register: () =>
-			Effect.promise(async () => {
-				tell("the client registers its callback");
-				const response = await fetch(`${host.baseUrl}/api/auth/oauth2/register`, {
+		registersClient: (name: string) =>
+			step(`${name}'s client registers its callback with the authorization server`, tell, async () => {
+				const response = await fetch(`${auth}/oauth2/register`, {
 					body: JSON.stringify({
 						"application_type": "native",
 						"client_name": "Story client",
@@ -92,7 +97,12 @@ export function oauthVerbs(host: Host, tell: (line: string) => void) {
 					headers: { "content-type": "application/json" },
 					method: "POST",
 				});
-				return { body: await response.json(), status: response.status };
+				const body = await response.text();
+				const clientId: unknown = response.ok ? JSON.parse(body).client_id : undefined;
+				if (typeof clientId !== "string") {
+					throw new Error(`Registration returned no client id: ${response.status} ${body}`);
+				}
+				engine.flow.clientId = clientId;
 			}),
 	};
 }

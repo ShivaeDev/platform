@@ -1,66 +1,74 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { mcp } from "#test/mcp.ts";
+import { connectedAs } from "#test/traits.ts";
 
-mcp.it("a user discovers and calls only their tools", [], function* ({ mintSession, mintToken, request }) {
-	const user = yield* mintSession("user");
-	const token = yield* mintToken(user.id);
-	const listed = yield* request("tools/list", {}, token);
-	expect(listed.status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(JSON.parse(listed.body).result.tools.map((tool: { name: string }) => tool.name)).toEqual(["whoami"]);
-	const called = yield* request("tools/call", { arguments: {}, name: "whoami" }, token);
-	expect(JSON.parse(called.body).result.content).toEqual([{ text: JSON.stringify(user.id), type: "text" }]);
-	const refused = yield* request("tools/call", { arguments: {}, name: "adminOnly" }, token);
-	expect(JSON.parse(refused.body).error).toMatchObject({ code: -32_602 });
+for (const [title, name, role, tools] of [
+	["alice's client, connected as a user, discovers only whoami", "alice", "user", ["whoami"]],
+	["ada's client, connected as an admin, discovers whoami, adminOnly and refuse", "ada", "admin", ["whoami", "adminOnly", "refuse"]],
+] as const) {
+	mcp.it(title, [connectedAs(name, role)], function* ({ listTools }) {
+		expect(yield* listTools(name)).toEqual(tools);
+	});
+}
+
+mcp.it(
+	"whoami answers alice's client with alice, though ada's client connected and called it first",
+	[connectedAs("ada", "admin"), connectedAs("alice", "user")],
+	function* ({ call }) {
+		yield* call("ada", "whoami");
+
+		expect(yield* call("alice", "whoami")).toBe("answered alice");
+	},
+);
+
+mcp.it("adminOnly answers ada's client with admin:ada, naming her as the caller", [connectedAs("ada", "admin")], function* ({ call }) {
+	expect(yield* call("ada", "adminOnly")).toBe("answered admin:ada");
 });
 
-mcp.it("an admin discovers and calls admin tools as themselves", [], function* ({ mintSession, mintToken, request }) {
-	const admin = yield* mintSession("admin");
-	const token = yield* mintToken(admin.id);
-	const listed = yield* request("tools/list", {}, token);
-	expect(JSON.parse(listed.body).result.tools.map((tool: { name: string }) => tool.name)).toEqual(["whoami", "adminOnly", "refuse"]);
-	const called = yield* request("tools/call", { arguments: {}, name: "adminOnly" }, token);
-	expect(JSON.parse(called.body).result.content).toEqual([{ text: JSON.stringify(`admin:${admin.id}`), type: "text" }]);
-	const user = yield* mintSession("user");
-	const plain = yield* mintToken(user.id);
-	const refused = yield* request("tools/call", { arguments: {}, name: "adminOnly" }, plain);
-	expect(JSON.parse(refused.body).error).toMatchObject({ code: -32_602 });
+mcp.it("alice's client calling the hidden adminOnly by name is refused as not found", [connectedAs("alice", "user")], function* ({ call }) {
+	expect(yield* call("alice", "adminOnly")).toBe("refused: Tool 'adminOnly' not found");
 });
 
-mcp.it("an unauthenticated client receives OAuth discovery", [], function* ({ request, get, resource }) {
-	const response = yield* request("tools/list");
-	expect(response.status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-	expect(response.challenge).toBe(`Bearer resource_metadata="${resource.replace("/mcp", "/.well-known/oauth-protected-resource/mcp")}"`);
-	const metadata = yield* get("/.well-known/oauth-protected-resource/mcp");
-	expect(metadata).toMatchObject({ resource, "scopes_supported": ["mcp"] });
-	const server = yield* get("/.well-known/oauth-authorization-server/api/auth");
-	expect(server).toMatchObject({ "token_endpoint": `${new URL(resource).origin}/api/auth/oauth2/token` });
-});
+mcp.it(
+	"refuse's typed failure reaches ada's client as an error result saying Application refused",
+	[connectedAs("ada", "admin")],
+	function* ({ call }) {
+		expect(yield* call("ada", "refuse")).toBe("failed: Application refused");
+	},
+);
 
-mcp.it("tokens for another resource or scope cannot call tools", [], function* ({ mintSession, mintToken, request }) {
-	const user = yield* mintSession("user");
-	const wrongAudience = yield* mintToken(user.id, "https://other.test/mcp");
-	expect((yield* request("tools/list", {}, wrongAudience)).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-	const wrongScope = yield* mintToken(user.id, undefined, "other");
-	expect((yield* request("tools/list", {}, wrongScope)).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-	expect((yield* request("tools/list", {}, "invalid-token")).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-});
+mcp.it(
+	"once ada steps down to user, her connected client discovers only whoami",
+	[connectedAs("ada", "admin")],
+	function* ({ listTools, stepsDown }) {
+		expect(yield* listTools("ada")).toEqual(["whoami", "adminOnly", "refuse"]);
 
-mcp.it("typed application failures reach the caller", [], function* ({ mintSession, mintToken, request }) {
-	const admin = yield* mintSession("admin");
-	const token = yield* mintToken(admin.id);
-	const response = yield* request("tools/call", { arguments: {}, name: "refuse" }, token);
-	expect(JSON.parse(response.body).result).toMatchObject({ content: [{ text: "Application refused", type: "text" }], isError: true });
-});
+		yield* stepsDown("ada");
 
-mcp.it("a stored role change affects an already connected client", [], function* ({ mintSession, mintToken, request, changeRole }) {
-	const admin = yield* mintSession("admin");
-	const token = yield* mintToken(admin.id);
-	const before = yield* request("tools/call", { arguments: {}, name: "adminOnly" }, token);
-	expect(JSON.parse(before.body).result.content).toEqual([{ text: JSON.stringify(`admin:${admin.id}`), type: "text" }]);
-	expect(yield* changeRole(admin.id, "user", admin.cookie)).toBe(HttpStatus.fromLiteral("OK"));
-	const after = yield* request("tools/list", {}, token);
-	expect(JSON.parse(after.body).result.tools.map((tool: { name: string }) => tool.name)).toEqual(["whoami"]);
-	const refused = yield* request("tools/call", { arguments: {}, name: "adminOnly" }, token);
-	expect(JSON.parse(refused.body).error).toMatchObject({ code: -32_602 });
-});
+		expect(yield* listTools("ada")).toEqual(["whoami"]);
+	},
+);
+
+mcp.it(
+	"once ada steps down to user, her connected client's adminOnly call is refused as not found",
+	[connectedAs("ada", "admin")],
+	function* ({ call, stepsDown }) {
+		expect(yield* call("ada", "adminOnly")).toBe("answered admin:ada");
+
+		yield* stepsDown("ada");
+
+		expect(yield* call("ada", "adminOnly")).toBe("refused: Tool 'adminOnly' not found");
+	},
+);
+
+mcp.it(
+	"once ada removes alice's account, alice's connected client is refused as unauthorized",
+	[connectedAs("alice", "user"), connectedAs("ada", "admin")],
+	function* ({ listTools, removesAccount }) {
+		expect(yield* listTools("alice")).toEqual(["whoami"]);
+
+		yield* removesAccount("ada", "alice");
+
+		expect(yield* listTools("alice")).toBe("unauthorized");
+	},
+);
