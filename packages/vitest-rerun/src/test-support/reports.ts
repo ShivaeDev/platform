@@ -7,7 +7,7 @@ export interface Testcase {
 	readonly classname: string;
 	readonly file: string | undefined;
 	readonly name: string;
-	readonly result: "failed" | "passed";
+	readonly result: "failed" | "passed" | "skipped";
 }
 
 interface JsonReport {
@@ -26,6 +26,7 @@ interface JsonReport {
 const TESTCASE = /<testcase (?<attributes>[^>]*?)(?<selfClosing>\/?)>(?<body>[\s\S]*?)(?:<\/testcase>|(?=<testcase )|(?=<\/testsuite>))/gu;
 const ATTRIBUTE = /(?<key>\w+)="(?<value>[^"]*)"/gu;
 const ENTITIES: Readonly<Record<string, string>> = { "&amp;": "&", "&apos;": "'", "&gt;": ">", "&lt;": "<", "&quot;": '"' };
+const RESULT_ELEMENTS = { failed: "failure", skipped: "skipped" } as const;
 const REPORT_FILE = /^[^/]+\.(?:json|xml)$/u;
 const COVERED_FUNCTION = /^FNDA:(?<count>\d+),(?<name>\w+)$/gmu;
 const RESULTS_CACHE = /^(?<cache>.+)\/vitest\/\w+\/results\.json$/u;
@@ -50,8 +51,9 @@ function testcases(xml: string): readonly Testcase[] {
 				unescapeXml(attribute.groups?.value ?? ""),
 			]),
 		);
-		const failed = match.groups?.selfClosing === "" && /<failure/u.test(match.groups?.body ?? "");
-		return { classname: attributes.classname ?? "", file: attributes.file, name: attributes.name ?? "", result: failed ? "failed" : "passed" };
+		const body = match.groups?.selfClosing === "" ? (match.groups?.body ?? "") : "";
+		const result = (["failed", "skipped"] as const).find((outcome) => body.includes(`<${RESULT_ELEMENTS[outcome]}`)) ?? "passed";
+		return { classname: attributes.classname ?? "", file: attributes.file, name: attributes.name ?? "", result };
 	});
 	return found.toSorted((left, right) => byText(`${left.classname} ${left.name}`, `${right.classname} ${right.name}`));
 }

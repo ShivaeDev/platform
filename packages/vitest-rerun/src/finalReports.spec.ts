@@ -3,25 +3,30 @@ import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { failsTimes, inProjects, passes, rerunStory, STALE_REPORTS, staleReports, withCoverage } from "#test/kit.ts";
 
 rerunStory.it(
-	"the final JUnit report shows the recovered test and the test beside it, which the rerun skipped, as passed",
-	[failsTimes(1)],
+	"the final JUnit report shows the recovered test, the test beside it and the passing file's test as passed, though the rerun ran only the first",
+	[failsTimes(1), passes()],
 	function* ({ junitResults, run }) {
 		yield* run();
 
 		expect(yield* junitResults()).toEqual([
 			{ classname: "flaky.spec.ts", file: "flaky.spec.ts", name: "checkout > passes beside it", result: "passed" },
 			{ classname: "flaky.spec.ts", file: "flaky.spec.ts", name: "checkout > recovers only in a fresh process", result: "passed" },
+			{ classname: "passing.spec.ts", file: "passing.spec.ts", name: "passes", result: "passed" },
 		]);
 	},
 );
 
 rerunStory.it(
-	"the final JSON report shows the recovered test and the test beside it, which the rerun skipped, as passed",
-	[failsTimes(1)],
+	"the final JSON report shows the recovered test, the test beside it and the passing file's test as passed, though the rerun ran only the first",
+	[failsTimes(1), passes()],
 	function* ({ jsonResults, run }) {
 		yield* run();
 
-		expect(yield* jsonResults()).toEqual({ "checkout > passes beside it": "passed", "checkout > recovers only in a fresh process": "passed" });
+		expect(yield* jsonResults()).toEqual({
+			"checkout > passes beside it": "passed",
+			"checkout > recovers only in a fresh process": "passed",
+			passes: "passed",
+		});
 	},
 );
 
