@@ -2,9 +2,9 @@ import { createRequire } from "node:module";
 import process from "node:process";
 import { Effect, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { withExceptionConfig } from "#biome/exceptionConfig.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
 import { shadcnFolders } from "#inventory/shadcnFolders.ts";
-import { withExceptionConfig } from "./exceptionConfig.ts";
 
 export interface BiomeRun {
 	readonly code: number;
