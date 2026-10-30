@@ -496,8 +496,8 @@ Work Fleet uses the server entry points below and the portable metadata type ent
 | Entry point                                 | API object                                                                                                    |
 | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
 | `server/processOwnership.ts`                | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision                   |
-| `server/integration/board.ts`               | `board`: metadata parsing and model, Markdown listing, watching and the search snapshot                       |
-| `integration/metadata.ts`                   | Portable metadata types, also available through `server/integration/board.ts`                                 |
+| `server/integration/board.ts`               | `board`: the scoped watched index, metadata parsing and model, Markdown listing and watching                  |
+| `integration/metadata.ts`                   | Portable metadata types                                                                                       |
 | `server/integration/responses.ts`           | `responses`: the workspace and response services, reading, recording and publishing questions and responses   |
 | `server/attention/managedRequestReceipt.ts` | `managedRequestReceipt`: managed request acknowledgements                                                     |
 | `attention/RequestReceipt.ts`               | `RequestReceipt`: the request acknowledgement schema                                                          |
@@ -512,14 +512,17 @@ import { board } from "@shivaedev/work-board/server/integration/board.ts";
 
 const read = Effect.scoped(
 	Effect.gen(function* () {
-		const changes = yield* board.watchChanges("./notes");
-		const snapshot = yield* board.searchSnapshot("./notes", undefined, changes);
-		return yield* snapshot;
+		const index = yield* board.watchIndex("./notes");
+		return yield* index.read;
 	}),
 ).pipe(Effect.provide(NodeServices.layer));
 ```
 
-The snapshot retains parsed documents, identity diagnostics and unavailable paths. Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attention.projection(snapshot)` returns the typed attention projection: `you`, `answered`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `attention.managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
+Start `board.watchIndex(root, home?, maintainer?)` once in the owning Effect scope and share its `read` Effect and `changes` with in-process consumers. It starts indexing immediately, retains the listing, parsed documents, identity diagnostics and unavailable paths, and updates the index before publishing each settled change through `changes.events`. Reads share the snapshot and touch no unchanged files while the watcher is healthy. A full check every minute rereads source bytes to repair missed events, including edits that preserve timestamps; `index.reconcile` runs the same check on demand. Closing the scope releases the watcher and background checks.
+
+Other processes read the same listing, parsed metadata, diagnostics and unavailable paths with the `work-board.index` RPC, available over TCP and `board.sock`. Subscribe to that query through the native `work-board.$changes` API and reread on a change or resync. `BoardIndex` from `@shivaedev/work-board/rpc/BoardIndex.ts` describes the RPC result; maps are represented as arrays for transport.
+
+Provide `responses.Workspace.layer` to `responses.Responses.layer`, then supply `responses.WorkspaceConfig` with that typed index, the same watcher, workspace `root`, optional `home` and explicit `writable` choice. The workspace service exposes `settings()` (root, real root, changes, home and write choice), `index()` (with `PlatformError` failures) and `document(url)`; the Board runtime and its in-memory harness compose the same service and RPC Layer. Use the service to register reviewed questions and record answers; `responses.publish` writes an immutable record under `responses/` (or `handoffs/` when selected), and the record helpers preserve exact reviewed bytes and source path. Agent-owned items remain ordinary Markdown edits. `attentionProjection(snapshot)` returns the typed attention projection: `you`, `answered`, `agents`, `resolved`, `parked`, `later`, `issues` and `complete`, with `items` retaining the same rows as `you` for existing clients. `managedRequestReceipt` qualifies an acknowledgement against those records; it does not confer execution or acceptance authority. The publication helpers retain the filesystem limits below.
 
 `pnpm lint` fences Fleet's production imports to these entry points; its test fixtures may use Board modules directly.
 

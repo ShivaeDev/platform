@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { reviewSatisfied } from "#completion.ts";
 import { withFailureContext } from "#engine/failureContext.ts";
 import { allAttempts, executing, type FleetRecord } from "#model.ts";
+import { areaQueueOrder, areaWaiter, blocksMergeChain } from "#scheduling/areaQueue.ts";
 import { priorityRanks } from "#scheduling/priorityRanks.ts";
 import { openSweep } from "#scheduling/sweeps.ts";
 import { StorageAdmission } from "#storage/errors.ts";
@@ -97,22 +98,30 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 		return;
 	}
 	const index = records.findIndex((entry) => entry.workId === record.workId);
-	const rank = priorityRanks[(previous?.step === "queued" ? previous.queuePriority : undefined) ?? "normal"];
+	const contender = { ...previous, ...record, areaQueuedAt: previous?.areaQueuedAt ?? scheduling.now };
 	// Queue precedence must use the same locked snapshot as area ownership; a brief revision can move a waiter during Board reads.
-	const ahead = records.find(
-		(entry, position) =>
-			entry.step === "queued"
+	const ordered = records
+		.map((entry, position) => ({ entry, position, protectsChain: previous?.step === "queued" && blocksMergeChain(entry, records) }))
+		.sort((left, right) => areaQueueOrder(left.entry, right.entry, left.position, right.position));
+	const ahead = ordered.find(
+		({ entry, position, protectsChain }) =>
+			entry.workId !== record.workId
+			&& areaWaiter(entry, scheduling.now)
 			&& scheduling.waiters.includes(entry.workId)
-			&& (priorityRanks[entry.queuePriority ?? "normal"] < rank || (priorityRanks[entry.queuePriority ?? "normal"] === rank && position < index))
+			&& (areaQueueOrder(entry, contender, position, index) < 0
+				|| (protectsChain && priorityRanks[entry.queuePriority ?? "normal"] === priorityRanks[contender.queuePriority ?? "normal"]))
 			&& overlappingArea(areas, entry.areas) !== undefined
-			&& !external.some((reservation) => overlappingArea(entry.areas ?? [], reservation.areas) !== undefined)
-			&& !records.some(
-				(occupant) =>
-					occupant.workId !== entry.workId
-					&& holdsAreas(occupant, scheduling.now, scheduling.areaMergeWaitMs)
-					&& overlappingArea(entry.areas ?? [], occupant.areas) !== undefined,
-			),
-	);
+			&& (protectsChain
+				|| !(
+					external.some((reservation) => overlappingArea(entry.areas ?? [], reservation.areas) !== undefined)
+					|| records.some(
+						(occupant) =>
+							occupant.workId !== entry.workId
+							&& holdsAreas(occupant, scheduling.now, scheduling.areaMergeWaitMs)
+							&& overlappingArea(entry.areas ?? [], occupant.areas) !== undefined,
+					)
+				)),
+	)?.entry;
 	if (ahead !== undefined) {
 		const queuedArea = overlappingArea(areas, ahead.areas);
 		return yield* Effect.fail(

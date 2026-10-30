@@ -68,3 +68,13 @@ export const typeImportForms: SeedFile = {
 	].join("\n"),
 	path: "src/typeForms.ts",
 };
+
+export const localAliasFacade: SeedFile = {
+	content: [
+		'import { original } from "./owner.ts";',
+		"const direct: typeof original = original;",
+		"const next = direct;",
+		"export const facade = { read: next };",
+	].join("\n"),
+	path: "src/chain.ts",
+};

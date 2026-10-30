@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { repositoryHas, ruleKit } from "#rule-story";
 import { biome } from "#rules/biome.ts";
-import { importForms, realWrappers, secondNameFiles, typeImportForms } from "#test/secondNameFiles.ts";
+import { importForms, localAliasFacade, realWrappers, secondNameFiles, typeImportForms } from "#test/secondNameFiles.ts";
 import { qualityInstalled, testTitlePreset } from "#test/titleInputs.ts";
 import { noBarrel } from "./noBarrel.ts";
 
@@ -18,6 +18,12 @@ for (const file of secondNameFiles) {
 		},
 	);
 }
+
+ruleKit.it("local const aliases cannot hide an imported facade", [repositoryHas(localAliasFacade)], function* ({ checks }) {
+	expect(yield* checks(noBarrel)).toEqual([
+		{ file: "src/chain.ts", line: 4, message: expect.stringContaining('Help: Import directly from "./owner.ts"') },
+	]);
+});
 
 ruleKit.it(
 	"wrappers that add behaviour keep their own names",

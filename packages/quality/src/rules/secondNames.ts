@@ -21,6 +21,7 @@ function forwarding(node: ts.FunctionLikeDeclaration, origins: ReadonlyMap<strin
 	if (call === undefined || !ts.isCallExpression(call) || call.questionDotToken !== undefined || call.arguments.length !== node.parameters.length) {
 		return undefined;
 	}
+	const visible = new Map(origins);
 	for (const [index, parameter] of node.parameters.entries()) {
 		const argument = call.arguments[index];
 		if (!ts.isIdentifier(parameter.name) || parameter.initializer !== undefined || argument === undefined) {
@@ -30,11 +31,9 @@ function forwarding(node: ts.FunctionLikeDeclaration, origins: ReadonlyMap<strin
 		if (!ts.isIdentifier(value) || value.text !== parameter.name.text || Boolean(parameter.dotDotDotToken) !== ts.isSpreadElement(argument)) {
 			return undefined;
 		}
-		if (origins.has(parameter.name.text)) {
-			return undefined;
-		}
+		visible.delete(parameter.name.text);
 	}
-	return originOf(call.expression, origins);
+	return originOf(call.expression, visible);
 }
 
 function valueOrigins(node: ts.Expression, origins: ReadonlyMap<string, string>): readonly string[] {

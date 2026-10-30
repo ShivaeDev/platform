@@ -5,6 +5,7 @@ import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
 import { metadataModel } from "#server/metadata/model.ts";
 import { metadataParse } from "#server/metadata/parse.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { watchIndex } from "#server/search/watchIndex.ts";
 
 const snapshot: (
 	root: string,
@@ -23,6 +24,7 @@ export const board = {
 	metadataParse,
 	searchSnapshot: snapshot,
 	watchChanges,
+	watchIndex,
 } as const;
 
 import type { Effect, FileSystem, Path, PlatformError } from "effect";

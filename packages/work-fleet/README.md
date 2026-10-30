@@ -291,7 +291,7 @@ An overlapping task waits on automation, with a reason such as `waiting for area
 
 For a reviewed, green PR ready for a human merge, `areaMergeWaitMs` in Fleet policy or `fleet.config.json` defaults to `1800000` (30 minutes), counted from that readiness event. Once the wait expires, other tasks can use its areas while Fleet continues observing the PR for delivery.
 
-PostgreSQL preserves admission order across restarts; eligible overlapping tasks wait behind earlier queued work. Each scheduler pass retries waiting work but rewrites a waiting item only when its reason changes, and admission reads decode only the records that changed since the previous read.
+Fleet gives available areas to eligible queued tasks and waiting PR repairs by `fleet-priority`, highest first, then by time waiting. PostgreSQL preserves that order across restarts. A conflict or CI repair waiting for an area goes before a new launch of the same or lower priority, including when other open PRs wait for that repair to merge. Each scheduler pass retries waiting work but rewrites a waiting item only when its reason changes, and admission reads decode only the records that changed since the previous read.
 
 #### Hold work behind predicted conflicts
 

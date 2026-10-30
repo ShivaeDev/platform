@@ -105,6 +105,23 @@ LISTEN requires a direct or session-mode PostgreSQL connection. If `DATABASE_URL
 
 Before host startup completes, the listener must receive its own heartbeat within `config.changes.heartbeatTimeout` (10 seconds by default). A timeout fails startup with `PostgresListenerError`, naming the selected setting and requiring a direct or session-mode connection. SQL errors remain typed SQL failures. After successful startup, a lost listener still reconnects and resynchronizes live streams; a permanently broken connection after startup can therefore continue to cause repeated Resyncs until its configuration is corrected.
 
+## Session revalidation and write budget
+
+A hosted WebSocket owns one session revalidation timer, shared by all its authenticated streams. Session rechecks using the same provider join a batch on the next event-loop turn and share its in-flight lookup. Once it finishes, the next batch performs a fresh lookup; there is no session TTL cache. Origin admission, role resolution and each subscription's read policy still run independently. Different sockets and different session providers do not share session results.
+
+Each interval checks every registered stream through that shared lookup. An expired or replaced session ends every affected stream with `Unauthorized`; an unavailable session provider leaves them open until a later check. A hint-time session denial ends its subscription with `QueryReadDenied`. Ordinary query reads authenticate independently and keep their typed result and authorization path. Custom RPC hosts can provide `SocketSession` from `makeSocketSession(interval)` in the connection's scope; without that service, identity middleware keeps its per-stream timer. Closing a stream removes its check, and closing the socket releases the timer.
+
+The subscriber fan-out budget for one committed write is at most S hint-time session lookups plus N authenticated read lookups, 3N read-policy checks, and N query reruns, where S sockets each watch N/S queries in one shared bucket. The hosted read currently checks the policy in both identity middleware and the host guard, in addition to the hint-time check. Policy checks and query SQL therefore still grow with query count. Separate hint batches, concurrent writes, reconnects and slow readers can add work; this is a single-write fan-out budget, not a process-wide rate limit.
+
+A loopback measurement against real PostgreSQL, with 12 signed-in viewers, one socket per viewer, native RPC query subscriptions and an authorized typed read after each hint, records:
+
+| Queries per socket | Total queries | Per-stream session lookups (comparison) | Shared session lookups | Read-policy checks | Query reruns |
+| ------------------ | ------------- | --------------------------------------- | ---------------------- | ------------------ | ------------ |
+| 1                  | 12            | 24                                      | 24                     | 36                 | 12           |
+| 8                  | 96            | 192                                     | 108                    | 288                | 96           |
+
+The write uses the repository's model-derived bucket keys and no command invalidations. Counts exclude initial connection/subscription reads and the command's own authorization and write SQL, and include the complete subscriber fan-out. These counts measure the host and identity composition, not browser rendering, provider-specific session SQL, deployment latency or a host restart. Run the PostgreSQL load story with `PLATFORM_SQL_TEST_DATABASE_URL` set: `pnpm --filter @shivaedev/server test src/liveCost.spec.ts`. It asserts delivery and the shared-session budget at both query counts. The shared idle-session story also asserts one lookup for four stream middleware variants at one interval and revocation of all four at the next interval.
+
 ## Limits
 
 There is no replay cursor, event journal, offline mutation or deployment delivery guarantee. The [PostgreSQL composition](./composed-example.md) shows delivery between processes after commit.

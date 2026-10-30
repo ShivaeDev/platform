@@ -335,6 +335,7 @@
 {"path":"packages/work-board/src/server/http/viewFailures.dom.spec.tsx","rule":"tests/wait-on-events","count":2}
 {"path":"packages/work-board/src/server/inboxLatency.spec.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/server/integration/board.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/server/integration/board.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/integration/diagnostics.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/integration/responses.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/domain-outcomes","count":1}

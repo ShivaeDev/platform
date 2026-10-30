@@ -1,26 +1,33 @@
 import ts from "typescript";
+import { importBindings } from "#rules/stories/importBindings.ts";
 
-export function importOrigins(source: ts.SourceFile): ReadonlyMap<string, string> {
-	const origins = new Map<string, string>();
+function constantOrigins(source: ts.SourceFile, origins: Map<string, string>): void {
 	for (const statement of source.statements) {
-		if (!(ts.isImportDeclaration(statement) && ts.isStringLiteral(statement.moduleSpecifier))) {
+		if (!ts.isVariableStatement(statement) || (statement.declarationList.flags & ts.NodeFlags.Const) === 0) {
 			continue;
 		}
-		const clause = statement.importClause;
-		const names = clause?.namedBindings;
-		if (clause?.name !== undefined) {
-			origins.set(clause.name.text, statement.moduleSpecifier.text);
-		}
-		if (names !== undefined) {
-			for (const name of ts.isNamespaceImport(names) ? [names.name] : names.elements.map((element) => element.name)) {
-				origins.set(name.text, statement.moduleSpecifier.text);
+		for (const declaration of statement.declarationList.declarations) {
+			if (!ts.isIdentifier(declaration.name) || declaration.initializer === undefined) {
+				continue;
+			}
+			const origin = originOf(declaration.initializer, origins);
+			if (origin !== undefined) {
+				origins.set(declaration.name.text, origin);
 			}
 		}
 	}
+}
+
+export function importOrigins(source: ts.SourceFile): ReadonlyMap<string, string> {
+	const origins = new Map([...importBindings(source)].map(([name, binding]) => [name, binding.module]));
+	constantOrigins(source, origins);
 	return origins;
 }
 
 export function originOf(node: ts.Node, origins: ReadonlyMap<string, string>): string | undefined {
+	if (ts.isParenthesizedExpression(node) || ts.isAsExpression(node) || ts.isSatisfiesExpression(node)) {
+		return originOf(node.expression, origins);
+	}
 	if (ts.isIdentifier(node)) {
 		return origins.get(node.text);
 	}

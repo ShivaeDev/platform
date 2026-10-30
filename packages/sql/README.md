@@ -634,7 +634,7 @@ const onSqlError = mapSqlError({
 const insertNamedLine = lines.insert({ amount: 52, name: "Consulting", note: null }).pipe(transact({ onSqlError }));
 ```
 
-The mapper handles named unique violations and PostgreSQL foreign-key and check violations. Every other `SqlError`, including unknown constraints, goes to `fallback`. Each callback receives the original error. The inferred error type contains exactly the mapped errors and the fallback; `transact` also preserves other typed failures from the operation. Constraint names belong to the application's migration; error types and presentation belong to the application.
+The mapper handles named unique violations and PostgreSQL foreign-key and check violations. Every other `SqlError`, including unknown constraints, goes to `fallback`. A constraint name longer than PostgreSQL's 63-byte identifier limit matches the clipped name PostgreSQL stores and reports. Each callback receives the original error. The inferred error type contains exactly the mapped errors and the fallback; `transact` also preserves other typed failures from the operation. Constraint names belong to the application's migration; error types and presentation belong to the application.
 
 Recover outside `transact` so earlier writes roll back before handling a mapped domain error. A losing unique-key insert can then catch `NameTaken` and read the winner's row without a private transaction error. See the [constraint-failures guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/constraint-errors.md).
 

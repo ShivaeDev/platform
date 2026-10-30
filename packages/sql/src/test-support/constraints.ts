@@ -6,7 +6,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { mapSqlError } from "#mapSqlError.ts";
 import { makeRepository } from "#repository.ts";
 import { transact } from "#transact.ts";
-import { InvalidQuantity, Item, NameTaken, ParentMissing, StorageUnavailable } from "./constrainedItemModels.ts";
+import { InvalidQuantity, Item, NameTaken, NameTooLong, ParentMissing, StorageUnavailable } from "./constrainedItemModels.ts";
 import { onPostgres } from "./engines.ts";
 import { endingOf, failureOf } from "./outcome.ts";
 import { ownTable, readEndings, recorded, records, uniqueTable } from "./writeTables.ts";
@@ -22,14 +22,20 @@ export type RawStatement = "a negative quantity" | "a missing quantity" | "an un
 const constraintEngine = Effect.fnUntraced(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const table = uniqueTable("items");
-	const names = { check: `${table}_quantity_check`, foreign: `${table}_parent_fkey`, unique: `${table}_name_key` };
+	const names = {
+		check: `${table}_quantity_check`,
+		foreign: `${table}_parent_fkey`,
+		length: `${table}_name_${"ä".repeat(12)}_length_check`,
+		unique: `${table}_name_key`,
+	};
 	yield* ownTable(
 		sql,
 		table,
 		sql`id integer generated always as identity primary key, name text not null,
 			"parentId" integer constraint ${sql(names.foreign)} references ${sql(table)} (id),
 			quantity integer not null constraint ${sql(names.check)} check (quantity >= 0),
-			constraint ${sql(names.unique)} unique (name)`,
+			constraint ${sql(names.unique)} unique (name),
+			constraint ${sql(names.length)} check (length(name) <= 40)`,
 	);
 	return {
 		items: yield* makeRepository(Item, { idColumn: "id", spanPrefix: "ConstrainedItem", tableName: table }),
@@ -37,6 +43,7 @@ const constraintEngine = Effect.fnUntraced(function* () {
 			constraints: {
 				[names.check]: () => new InvalidQuantity(),
 				[names.foreign]: () => new ParentMissing(),
+				[names.length]: () => new NameTooLong(),
 				[names.unique]: () => new NameTaken(),
 			},
 			fallback: () => new StorageUnavailable(),
