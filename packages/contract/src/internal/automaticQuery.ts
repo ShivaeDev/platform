@@ -90,12 +90,12 @@ export function automaticQuery<A, E>({
 			);
 			get.subscribe(subscription.status, failed);
 			get.addFinalizer(registry.subscribe(paused, (value) => registry.set(subscription.paused, value), { immediate: true }));
-			if (pushed) {
-				function resume() {
-					if (get.once(subscription.status).connection !== "failed") {
-						get.refresh(subscription.connection);
-					}
+			function resume() {
+				if (get.once(subscription.status).connection !== "failed") {
+					get.refresh(subscription.connection);
 				}
+			}
+			if (pushed) {
 				get.once(signal);
 				get.subscribe(signal, resume);
 				get.subscribe(paused, (value) => {
