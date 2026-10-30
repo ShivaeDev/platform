@@ -1,9 +1,9 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { requirePermission } from "@shivaedev/access/requirePermission.ts";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { requirePermission } from "@shivaedev/identity/permission.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { AssignRoles, ReadUsers } from "#permissions.ts";
 import { AppUser, type ChangeRoleInput, LastRoleAssigner, type UserListInput } from "#users/roles.ts";
@@ -16,7 +16,7 @@ export const listUsers = Effect.fn("Admin.listUsers")(function* <TRole extends s
 	access: Pick<AccessPolicy<TRole>, "Role">,
 	input: typeof UserListInput.Type,
 ) {
-	yield* requirePermission(ReadUsers);
+	yield* requirePermission(yield* SessionUser, ReadUsers);
 	const sql = yield* SqlClient.SqlClient;
 	const read = SqlSchema.findAll({
 		execute: () => sql`select id, name, email, role, "createdAt" from "user"
@@ -34,7 +34,7 @@ export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole
 	input: ChangeRoleInput<TRole>,
 ) {
 	const actor = yield* SessionUser;
-	yield* requirePermission(AssignRoles);
+	yield* requirePermission(actor, AssignRoles);
 	const sql = yield* SqlClient.SqlClient;
 	const changed = yield* Effect.gen(function* () {
 		yield* sql`select pg_advisory_xact_lock(hashtext('platform.auth.user-roles'))`;
