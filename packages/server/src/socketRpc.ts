@@ -3,6 +3,7 @@ import { Headers, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { localTransport } from "@shivaedev/identity/server/local.ts";
 import { resolveSession, type SessionShape } from "@shivaedev/identity/server/session.ts";
+import { makeSocketSession, SocketSession } from "@shivaedev/identity/server/socketSession.ts";
 import type { HostPolicy } from "#hostOptions.ts";
 
 export function socketRpc<TSession extends SessionShape>(
@@ -18,6 +19,8 @@ export function socketRpc<TSession extends SessionShape>(
 		}
 		if (policy.policy !== "loopback") {
 			yield* resolveSession(policy.sessions, Headers.empty, "$connect");
+			const session = yield* makeSocketSession(policy.sessions.streamRevalidationInterval ?? "30 seconds");
+			return yield* Effect.provideService(handler, SocketSession, session);
 		}
 		return yield* handler;
 	}).pipe(

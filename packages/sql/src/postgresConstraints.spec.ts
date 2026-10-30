@@ -32,6 +32,19 @@ for (const [violation, item, error] of [
 	});
 }
 
+constraints.it(
+	"an insert that breaks a constraint named past 63 bytes fails with the error mapped to its full name",
+	[],
+	function* ({ endings, insertItems, storedItems }) {
+		yield* insertItems([{ name: "n".repeat(41), quantity: 1 }]);
+
+		yield* outcomes({
+			"insert ending": [endings(), ["failed with name too long"]],
+			"stored items": [storedItems(), []],
+		});
+	},
+);
+
 for (const [statement, error] of [
 	["a negative quantity", "invalid quantity"],
 	["a missing quantity", "storage unavailable"],
