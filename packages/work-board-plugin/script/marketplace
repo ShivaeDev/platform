@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/../../.."
+pnpm install --frozen-lockfile >&2
+pnpm --filter @shivaedev/work-board-plugin build:client >&2
+plugin=$(mktemp -d)
+cp -R packages/work-board-plugin/.claude-plugin packages/work-board-plugin/hooks packages/work-board-plugin/types "$plugin/"
+mkdir -p "$plugin/src/adapters"
+cp -R packages/work-board-plugin/src/adapters/generated "$plugin/src/adapters/"
+printf '%s\n' "$plugin"

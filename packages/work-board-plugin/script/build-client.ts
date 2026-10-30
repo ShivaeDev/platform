@@ -1,5 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import process from "node:process";
+import { mkdir, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { Effect } from "effect";
 import { build } from "esbuild";
@@ -27,33 +26,15 @@ const program = Effect.gen(function* () {
 			write: false,
 		}),
 	);
-	const artifacts = [
-		...result.outputFiles.map((file) => ({ name: file.path.slice(file.path.lastIndexOf("/") + 1), text: file.text })),
-		{ name: "platformClient.d.ts", text: 'export { platformClient } from "#adapters/platformClient.ts";\n' },
-	];
-	if (!process.argv.includes("--check")) {
-		yield* Effect.promise(() => mkdir(output, { recursive: true }));
-	}
-	for (const file of artifacts) {
-		const destination = new URL(file.name, output);
+	for (const file of result.outputFiles) {
 		if (file.text.includes(root)) {
 			return yield* Effect.die("The plugin bundle contains a local path.");
 		}
-		if (process.argv.includes("--check")) {
-			const committed = yield* Effect.promise(() => readFile(destination, "utf8"));
-			if (committed !== file.text) {
-				return yield* Effect.die("The plugin bundle is stale. Run pnpm build:client in work-board-plugin.");
-			}
-		} else {
-			yield* Effect.promise(() => writeFile(destination, file.text));
-		}
 	}
-	const expected = artifacts.map((file) => file.name).sort((left, right) => left.localeCompare(right));
-	const actual = (yield* Effect.promise(() => readdir(output)))
-		.filter((file) => file.endsWith(".js") || file.endsWith(".d.ts"))
-		.sort((left, right) => left.localeCompare(right));
-	if (JSON.stringify(actual) !== JSON.stringify(expected)) {
-		return yield* Effect.die("The generated folder contains stale client files.");
+	yield* Effect.promise(() => rm(output, { force: true, recursive: true }));
+	yield* Effect.promise(() => mkdir(output, { recursive: true }));
+	for (const file of result.outputFiles) {
+		yield* Effect.promise(() => writeFile(file.path, file.contents));
 	}
 });
 Effect.runPromise(program);
