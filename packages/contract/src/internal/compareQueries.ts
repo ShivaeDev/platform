@@ -2,12 +2,10 @@ import { Crypto, Effect, Schema } from "effect";
 import * as Hex from "effect/encoding/Hex";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { changedHint } from "#internal/queryHints.ts";
-import type { QueryResult, QueryUpdate } from "#internal/queryUpdate.ts";
 import type { LiveHint } from "#live.ts";
-import type { QuerySubscription } from "#querySubscription.ts";
+import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
+import type { QueryResult, QueryUpdate } from "#queryUpdate.ts";
 import type { QueryRequest } from "#serverMetadata.ts";
-
-export type QueryRerun = (request: QueryRequest) => Effect.Effect<unknown, unknown>;
 
 function hintsFor(hint: LiveHint, subscription: QuerySubscription): readonly LiveHint[] {
 	const queries = subscription.queries ?? [];

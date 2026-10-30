@@ -1,11 +1,11 @@
 import { Context, Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
-import { compareQueries, type QueryRerun } from "#internal/compareQueries.ts";
+import { compareQueries } from "#internal/compareQueries.ts";
 import { liveHintQueue } from "#internal/liveHintQueue.ts";
-import type { QueryUpdate } from "#internal/queryUpdate.ts";
 import type { LiveHint } from "#live.ts";
-import type { QuerySubscription } from "#querySubscription.ts";
+import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
+import type { QueryUpdate } from "#queryUpdate.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const makeLiveServer = Effect.gen(function* () {

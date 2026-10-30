@@ -12,14 +12,6 @@ type ResultSchema<TQuery extends QueryShape> = TQuery extends QueryShape
 		}>
 	: never;
 
-export interface QueryResult {
-	readonly _tag: "Result";
-	readonly query: string;
-	readonly queryIndex: number;
-	readonly value: unknown;
-}
-export type QueryUpdate = LiveHint | QueryResult;
-
 export function changesSuccess<const TQueries extends readonly QueryShape[]>(
 	queries: TQueries,
 ): Schema.Union<readonly [typeof LiveHint, ...ResultSchema<Rerun<TQueries[number]>>[]]>;

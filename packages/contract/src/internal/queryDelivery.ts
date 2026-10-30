@@ -2,8 +2,8 @@ import { Effect, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import type { QueryUpdate } from "#internal/queryUpdate.ts";
 import type { LiveHint } from "#live.ts";
+import type { QueryUpdate } from "#queryUpdate.ts";
 
 export function queryDelivery<A, E>(
 	atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>,

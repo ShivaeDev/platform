@@ -3,6 +3,8 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import { checkQuery, type Viewer } from "#readPolicy.ts";
 import type { QueryRequest } from "#serverMetadata.ts";
 
+export type QueryRerun = (request: QueryRequest) => Effect.Effect<unknown, unknown>;
+
 export interface QuerySubscription {
 	readonly authorized: Effect.Effect<boolean>;
 	readonly keys: readonly Key[];

@@ -9,9 +9,9 @@ import { automaticQuery } from "#internal/automaticQuery.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
 import { queryDelivery } from "#internal/queryDelivery.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
-import type { QueryUpdate } from "#internal/queryUpdate.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
 import { type LiveStatus, live } from "#live.ts";
+import type { QueryUpdate } from "#queryUpdate.ts";
 import { type ResumeSource, type ResumeWindow, resumeSignal } from "#resume.ts";
 import type { QueryReference } from "#serverMetadata.ts";
 
