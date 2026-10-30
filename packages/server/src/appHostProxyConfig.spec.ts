@@ -1,5 +1,4 @@
-import { Cause, Config } from "effect";
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { invalidTrust } from "#test/app-host/options.ts";
 import { configuration, environment, host, startupFails } from "#test/app-host/story.ts";
 
@@ -20,13 +19,18 @@ for (const value of [
 	"*",
 	"proxy.example",
 ]) {
-	for (const source of ["config", "environment"]) {
+	for (const [source, trust] of [
+		["config.trustedProxy", configuration({ trustedProxy: value })],
+		["TRUSTED_PROXY", environment({ "TRUSTED_PROXY": value })],
+	] as const) {
 		host.it(
-			`rejects malformed trust at startup from ${source}: ${value}`,
-			[invalidTrust, startupFails, source === "config" ? configuration({ trustedProxy: value }) : environment({ "TRUSTED_PROXY": value })],
-			({ bootFailure, lifecycle }) => {
-				expect(Cause.squash(bootFailure())).toBeInstanceOf(Config.ConfigError);
-				expect(lifecycle()).toEqual([]);
+			`${source} ${JSON.stringify(value)} fails startup with a config error before migrations, routes or services run`,
+			[invalidTrust, startupFails, trust],
+			function* ({ serviceLifecycle, startup }) {
+				yield* outcomes({
+					"construction steps": [serviceLifecycle(), []],
+					"startup": [startup(), "failed with config error"],
+				});
 			},
 		);
 	}

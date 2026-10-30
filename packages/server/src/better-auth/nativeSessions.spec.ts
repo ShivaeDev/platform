@@ -1,126 +1,173 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { cookieOnly, nativeSessions, nativeTransport, signedIn } from "#test/native-sessions/story.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { cookieOnly, type ForgedBearer, nativeSessions, nativeTransport, signedIn } from "#test/native-sessions/story.ts";
 
 const alice = signedIn("alice");
 const both = signedIn("alice", "bob");
-const unauthorized = { _tag: "Failure", failure: { _tag: "Unauthorized", message: "Authentication required" } };
+const WEB_VIEW = "capacitor://localhost";
+const UNAUTHORIZED = "failed with unauthorized";
+const mixed = { bearer: "alice", cookie: "bob" };
 
 nativeSessions.it(
-	"native sign-in issues a signed credential accepted by auth and request-local profile RPC",
+	"Alice's native sign-in issues a signed bearer credential exposed to the WebView",
 	[nativeTransport, alice],
-	function* ({ account, bearer, getSession, profile }) {
-		const session = account("alice");
-		expect(session.credential).toEqual(expect.stringContaining("."));
-		expect(session.exposed).toContain("set-auth-token");
-		expect(yield* getSession({ origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({
-			body: { user: session.user },
-			status: HttpStatus.fromLiteral("OK"),
-		});
-		expect(yield* profile("alice", { origin: "capacitor://localhost", ...bearer("alice") })).toMatchObject({
-			_tag: "Success",
-			success: { email: session.user.email, id: session.user.id, name: session.user.name, role: "user" },
+	function* ({ exposedHeaders, issuedCredential }) {
+		yield* outcomes({
+			credential: [issuedCredential("alice"), "signed"],
+			"exposed headers": [exposedHeaders("alice"), expect.stringContaining("set-auth-token")],
 		});
 	},
 );
 
-nativeSessions.it("two bearer accounts stay isolated", [both], function* ({ account, profile }) {
-	expect(yield* profile("alice")).toMatchObject({ _tag: "Success", success: { id: account("alice").user.id } });
-	expect(yield* profile("bob")).toMatchObject({ _tag: "Success", success: { id: account("bob").user.id } });
-	expect(yield* profile("bob", undefined, "alice")).toMatchObject({ _tag: "Failure", failure: { _tag: "Forbidden" } });
-});
-
 nativeSessions.it(
-	"cookies win on auth and RPC even when another account supplies a bearer",
-	[both],
-	function* ({ account, bearer, getSession, profile, signout }) {
-		const headers = { ...bearer("alice"), cookie: account("bob").cookie };
-		expect(yield* getSession(headers)).toMatchObject({ body: { user: account("bob").user } });
-		expect(yield* profile("bob", headers)).toMatchObject({ _tag: "Success", success: { id: account("bob").user.id } });
-		const status = yield* signout("bob", headers);
-		expect(status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(yield* profile("bob", headers)).toMatchObject(unauthorized);
-		expect(yield* profile("alice")).toMatchObject({ _tag: "Success" });
+	"the WebView's bearer reaches Alice's session through the auth route and her profile through RPC",
+	[nativeTransport, alice],
+	function* ({ profile, sessionUser }) {
+		yield* outcomes({
+			profile: [profile({ bearer: "alice", origin: WEB_VIEW }, "alice"), "alice's profile"],
+			session: [sessionUser({ bearer: "alice", origin: WEB_VIEW }), "alice"],
+		});
 	},
 );
 
+nativeSessions.it("Alice's and Bob's bearers each read their own profile", [both], function* ({ profile }) {
+	yield* outcomes({
+		alice: [profile({ bearer: "alice" }, "alice"), "alice's profile"],
+		bob: [profile({ bearer: "bob" }, "bob"), "bob's profile"],
+	});
+});
+
+nativeSessions.it("Alice's bearer is forbidden from Bob's profile", [both], function* ({ profile }) {
+	expect(yield* profile({ bearer: "alice" }, "bob")).toBe("failed with forbidden");
+});
+
+nativeSessions.it("with Alice's bearer and Bob's cookie, the auth route and RPC both act as Bob", [both], function* ({ profile, sessionUser }) {
+	yield* outcomes({
+		profile: [profile(mixed, "bob"), "bob's profile"],
+		session: [sessionUser(mixed), "bob"],
+	});
+});
+
+nativeSessions.it("signing out with Alice's bearer and Bob's cookie ends Bob's session and keeps Alice's", [both], function* ({ profile, signsOut }) {
+	expect(yield* profile(mixed, "bob")).toBe("bob's profile");
+
+	yield* signsOut(mixed);
+
+	yield* outcomes({
+		"Alice's bearer": [profile({ bearer: "alice" }, "alice"), "alice's profile"],
+		"Bob's cookie": [profile(mixed, "bob"), UNAUTHORIZED],
+	});
+});
+
 nativeSessions.it(
-	"browser sign-in keeps HttpOnly cookies without exposing either token response",
+	"Alice's browser sign-in sets an HttpOnly session cookie and exposes no bearer credential or token",
 	[alice],
-	function* ({ browserLogin, getSession, profile }) {
-		const browser = yield* browserLogin("alice");
-		expect(browser.credential).toBeNull();
-		expect(browser.httpOnly).toBe(true);
-		expect(browser.exposed ?? "").not.toContain("set-auth-token");
-		expect(browser.token).toBeUndefined();
-		expect(browser.cookie).toContain("better-auth.session_token=");
-		expect(yield* profile("alice", { cookie: browser.cookie })).toMatchObject({ _tag: "Success" });
-		const session = yield* getSession({ cookie: browser.cookie });
-		expect(session).toMatchObject({ body: { session: expect.not.objectContaining({ token: expect.any(String) }) }, credential: null });
+	function* ({ browserSignsIn }) {
+		expect(yield* browserSignsIn("alice")).toEqual({
+			bearerCredential: "none",
+			cookie: "HttpOnly session cookie",
+			exposedHeaders: "no auth token",
+			responseToken: "none",
+		});
 	},
 );
 
 nativeSessions.it(
-	"missing, unsigned, tampered and malformed bearers fail typed without a cookie fallback",
+	"Alice's browser cookie reads her profile while the session route returns neither a token nor a bearer credential",
 	[alice],
-	function* ({ account, getSession, profile }) {
-		const credential = account("alice").credential ?? "";
-		const unsigned = credential.split(".")[0] ?? "";
-		for (const authorization of [
-			"",
-			`Bearer ${unsigned}`,
-			`Bearer x${credential}`,
-			`Bearer ${credential.split(".")[0]}.tampered`,
-			"Bearer %broken",
-			"Bearer invalid.signature",
-		]) {
-			expect(yield* profile("alice", { authorization })).toMatchObject(unauthorized);
-			expect(yield* getSession({ authorization })).toMatchObject({ body: null, status: HttpStatus.fromLiteral("OK") });
-		}
+	function* ({ browserSignsIn, profile, sessionTokens }) {
+		yield* browserSignsIn("alice");
+
+		yield* outcomes({
+			profile: [profile({ cookie: "alice in the browser" }, "alice"), "alice's profile"],
+			session: [sessionTokens({ cookie: "alice in the browser" }), { bearerCredential: "none", sessionToken: "none" }],
+		});
 	},
 );
 
-nativeSessions.it("expired bearer sessions fail typed", [alice], function* ({ expire, profile, bearer, getSession }) {
-	yield* expire();
-	expect(yield* profile("alice")).toMatchObject(unauthorized);
-	expect(yield* getSession(bearer("alice"))).toMatchObject({ body: null, status: HttpStatus.fromLiteral("OK") });
+for (const kind of ["missing", "unsigned", "prefixed", "tampered", "malformed", "invented"] satisfies ForgedBearer[]) {
+	nativeSessions.it(`a ${kind} bearer fails the profile RPC as unauthorized and finds no session`, [alice], function* ({ profile, sessionUser }) {
+		yield* outcomes({
+			profile: [profile({ forged: [kind, "alice"] }, "alice"), UNAUTHORIZED],
+			session: [sessionUser({ forged: [kind, "alice"] }), "no session"],
+		});
+	});
+}
+
+nativeSessions.it(
+	"after Alice's session expires, her bearer fails the profile RPC as unauthorized and finds no session",
+	[alice],
+	function* ({ profile, sessionExpires, sessionUser }) {
+		expect(yield* profile({ bearer: "alice" }, "alice")).toBe("alice's profile");
+
+		yield* sessionExpires();
+
+		yield* outcomes({
+			profile: [profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
+			session: [sessionUser({ bearer: "alice" }), "no session"],
+		});
+	},
+);
+
+nativeSessions.it(
+	"signing out revokes Alice's bearer and ends her open socket subscription as unauthorized",
+	[alice],
+	function* ({ profile, signsOut, subscribes, subscriptionEnding }) {
+		yield* subscribes("alice");
+
+		yield* signsOut({ bearer: "alice" });
+
+		yield* outcomes({
+			profile: [profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
+			subscription: [subscriptionEnding(), UNAUTHORIZED],
+		});
+	},
+);
+
+nativeSessions.it(
+	"signing in again revokes Alice's old bearer and subscription while the replacement bearer reads her profile",
+	[alice],
+	function* ({ profile, signsInAgain, subscribes, subscriptionEnding }) {
+		yield* subscribes("alice");
+
+		yield* signsInAgain("alice");
+
+		yield* outcomes({
+			"old bearer": [profile({ bearer: "alice" }, "alice"), UNAUTHORIZED],
+			"replacement bearer": [profile({ bearer: "alice's replacement" }, "alice"), "alice's profile"],
+			subscription: [subscriptionEnding(), UNAUTHORIZED],
+		});
+	},
+);
+
+nativeSessions.it(
+	"Alice's bearer reaches host logs and spans only as a redacted value",
+	[alice],
+	function* ({ credentialLeaks, diagnosticMentions, hostStops, recordDiagnostics }) {
+		yield* recordDiagnostics("alice");
+		yield* hostStops();
+
+		yield* outcomes({
+			"encoded redaction": [diagnosticMentions('"encoded":"Bearer <redacted>"'), ["logs"]],
+			leaks: [credentialLeaks("alice"), []],
+			"redacted bearer": [diagnosticMentions("Bearer <redacted>"), ["logs", "spans"]],
+		});
+	},
+);
+
+nativeSessions.it("the default host issues Alice no bearer credential", [cookieOnly, alice], function* ({ issuedCredential }) {
+	expect(yield* issuedCredential("alice")).toBe("none");
 });
 
-nativeSessions.it("sign-out revokes the bearer and ends its open socket change subscription", [alice], function* ({ subscribe, signout, profile }) {
-	const subscription = yield* subscribe("alice");
-	yield* subscription.next;
-	const status = yield* signout("alice");
-	expect(status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(yield* subscription.ended).toMatchObject(unauthorized);
-	expect(yield* profile("alice")).toMatchObject(unauthorized);
-});
+for (const [sent, caller] of [
+	["session token", { tokenAsBearer: "alice" }],
+	["session cookie value", { cookieValueAsBearer: "alice" }],
+] as const) {
+	nativeSessions.it(`the default host refuses Alice's ${sent} sent as a bearer`, [cookieOnly, alice], function* ({ profile }) {
+		expect(yield* profile(caller, "alice")).toBe(UNAUTHORIZED);
+	});
+}
 
-nativeSessions.it("replacing a bearer session revokes the old credential and subscription", [alice], function* ({ subscribe, replace, profile }) {
-	const subscription = yield* subscribe("alice");
-	yield* subscription.next;
-	const replacement = yield* replace("alice");
-	expect(yield* subscription.ended).toMatchObject(unauthorized);
-	expect(yield* profile("alice")).toMatchObject(unauthorized);
-	expect(yield* profile("alice", { authorization: `Bearer ${replacement.credential}` })).toMatchObject({ _tag: "Success" });
-});
-
-nativeSessions.it("bearer credentials stay out of host logs and spans", [alice], function* ({ account, diagnostics, recordDiagnostics, stopHost }) {
-	yield* recordDiagnostics("alice");
-	yield* stopHost();
-	const result = diagnostics();
-	expect(result.logs).toContain('"encoded":"Bearer <redacted>"');
-	for (const output of [result.logs, result.spans]) {
-		expect(output).toContain("Bearer <redacted>");
-		expect(output).not.toContain(account("alice").credential);
-		expect(output).not.toContain(encodeURIComponent(account("alice").credential ?? ""));
-		expect(output).not.toContain(account("alice").token);
-	}
-});
-
-nativeSessions.it("the default host refuses bearer sessions while accepting cookies", [cookieOnly, alice], function* ({ account, profile }) {
-	const session = account("alice");
-	expect(session.credential).toBeNull();
-	expect(yield* profile("alice", { authorization: `Bearer ${session.token}` })).toMatchObject(unauthorized);
-	expect(yield* profile("alice", { authorization: `Bearer ${session.cookie.split("=")[1]}` })).toMatchObject(unauthorized);
-	expect(yield* profile("alice", { cookie: session.cookie })).toMatchObject({ _tag: "Success" });
+nativeSessions.it("the default host accepts Alice's cookie", [cookieOnly, alice], function* ({ profile }) {
+	expect(yield* profile({ cookie: "alice" }, "alice")).toBe("alice's profile");
 });
