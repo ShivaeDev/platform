@@ -16,6 +16,6 @@ for (const phase of ["acquisition", "heartbeat"] as const) {
 	listenerStartupStory.it(`a stalled first LISTEN ${phase} fails Layer startup within the heartbeat deadline`, [], function* ({ stallStartup }) {
 		const outcome = yield* stallStartup(phase);
 
-		expect(outcome).toMatchObject({ failure: "SQL failure", reason: "ConnectionError" });
+		expect(outcome).toMatchObject({ failure: "listener unavailable", setting: "client" });
 	});
 }
