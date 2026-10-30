@@ -75,7 +75,7 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 	const controls = fakeHttpControls(tell, () => clock.currentTimeMillisUnsafe());
 	const server = createServer((request, response) => fakeHttpReceive(request, response, options, requests, controls, tell));
 	const url = yield* loopbackServer(server);
-	yield* Effect.addFinalizer(() => Effect.sync(controls.close));
+	yield* Effect.addFinalizer(controls.close);
 	function checkRoute(route: string) {
 		if (!Object.hasOwn(options.routes, route)) {
 			throw new Error(`Unknown fake HTTP route "${route}".\nhelp: Use a name from fakeHttpService's routes when scripting a reply or hold.`);

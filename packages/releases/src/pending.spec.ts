@@ -81,8 +81,10 @@ for (const { description, file, refusal, text } of [
 }
 
 for (const command of ["check", "plan", "apply"] as const) {
-	workspace.it(`${command} refuses a major bump of the 0.x ${CORE} and asks for minor`, [pending({ [CORE]: "major" })], function* (verbs) {
-		expect(yield* verbs[command]()).toBe(`refused: ${CORE}: major is not allowed on a 0.x package; use minor for breaking changes.`);
+	workspace.it(`${command} refuses feature.md's major bump of the 0.x ${CORE} and asks for minor`, [pending({ [CORE]: "major" })], function* (verbs) {
+		expect(yield* verbs[command]()).toBe(
+			`refused: feature.md: ${CORE} has a major bump but is a 0.x package; use minor for breaking changes before 1.0.`,
+		);
 	});
 }
 
