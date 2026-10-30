@@ -2,7 +2,7 @@ import { Clock, Deferred, Effect, type Schema } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { draftSession } from "#draftSession.ts";
-import type { Config, Decoded, Encoded, FieldFailure, Fields, Form, Name, Path } from "#shape.ts";
+import type { Config, Decoded, Encoded, FieldFailure, Fields, Form, Name, Path, Submitter } from "#shape.ts";
 import { draftStorage } from "./draftStorage.ts";
 import type { FormEngine } from "./formEngine.ts";
 import { type FormDriver, formDriver, formVerbs } from "./formVerbs.ts";
@@ -19,11 +19,9 @@ function silent() {
 	return undefined;
 }
 
-function answeredByEngine<TFields extends Fields, A, E, R, TRuntimeError, TSupport>(
-	engine: FormEngine<TFields, A, E, R, TRuntimeError, TSupport>,
-): Config<TFields, A, E | FieldFailure, R, TRuntimeError>["onSubmit"] {
+function answeredByEngine<TFields extends Fields, A, E, R, TRuntimeError, TSupport>(engine: FormEngine<TFields, A, E, R, TRuntimeError, TSupport>) {
 	const handler = engine.config.onSubmit;
-	return (values, submitter, submitted) => {
+	return (values: Decoded<TFields>, submitter: Submitter<Name<TFields>>, submitted: Encoded<TFields>) => {
 		engine.received.push(values);
 		const answer = Effect.suspend(() =>
 			engine.rejection === undefined ? handler(values, submitter, submitted) : submitter.fail(engine.rejection.path, engine.rejection.message),
