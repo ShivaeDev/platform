@@ -1,8 +1,6 @@
-import { createServer, type IncomingMessage, type RequestListener, request } from "node:http";
-import { isIP } from "node:net";
-import type { Duplex } from "node:stream";
+import { createServer } from "node:http";
 import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
+import { makeForwardingProxy } from "#adapters/makeForwardingProxy.ts";
 import { loopbackServer } from "#internal/loopback.ts";
 
 export interface ForwardingProxyOptions {
@@ -17,94 +15,8 @@ export const forwardingProxy = Effect.fnUntraced(function* (upstream: string, op
 			Effect.mapError((cause) => new Error(`Cannot acquire forwarding proxy with local address ${options.localAddress}`, { cause })),
 		);
 	}
-	function requestOptions(incoming: IncomingMessage) {
-		return {
-			family: options.localAddress === undefined ? undefined : isIP(options.localAddress),
-			headers: {
-				...incoming.headers,
-				"x-forwarded-for": [incoming.headers["x-forwarded-for"], ...(options.forwardedHops ?? [incoming.socket.remoteAddress])]
-					.filter(Boolean)
-					.join(", "),
-				...options.headers,
-			},
-			localAddress: options.localAddress,
-			method: incoming.method,
-		};
-	}
-	let offline = false;
-	const forward: RequestListener = (incoming, response) => {
-		if (offline) {
-			incoming.destroy();
-			return;
-		}
-		const outgoing = request(`${upstream}${incoming.url}`, requestOptions(incoming), (result) => {
-			response.writeHead(result.statusCode ?? HttpStatus.fromLiteral("BadGateway"), result.headers);
-			result.pipe(response);
-		});
-		outgoing.on("error", (error) => {
-			if (response.headersSent) {
-				response.destroy(error);
-			} else {
-				response.writeHead(HttpStatus.fromLiteral("BadGateway")).end();
-			}
-		});
-		response.on("close", () => outgoing.destroy());
-		incoming.pipe(outgoing);
-	};
-	const sockets = new Set<Duplex>();
-	function server() {
-		return createServer(forward)
-			.on("connection", (socket) => {
-				sockets.add(socket);
-				socket.on("close", () => sockets.delete(socket));
-			})
-			.on("upgrade", (incoming, downstream, head) => {
-				if (offline) {
-					downstream.destroy();
-					return;
-				}
-				const outgoing = request(`${upstream}${incoming.url}`, requestOptions(incoming));
-				outgoing.on("upgrade", (result, upstreamSocket, upstreamHead) => {
-					downstream.write(`HTTP/1.1 ${result.statusCode} ${result.statusMessage}\r\n`);
-					for (let index = 0; index < result.rawHeaders.length; index += 2) {
-						downstream.write(`${result.rawHeaders[index]}: ${result.rawHeaders[index + 1]}\r\n`);
-					}
-					downstream.write("\r\n");
-					downstream.write(upstreamHead);
-					upstreamSocket.write(head);
-					downstream.pipe(upstreamSocket).pipe(downstream);
-					downstream.on("close", () => upstreamSocket.destroy());
-					upstreamSocket.on("error", () => downstream.destroy());
-				});
-				outgoing.on("response", (result) => {
-					downstream.end(`HTTP/1.1 ${result.statusCode} ${result.statusMessage}\r\nConnection: close\r\n\r\n`);
-					result.resume();
-				});
-				outgoing.on("error", () => downstream.destroy());
-				downstream.on("error", () => outgoing.destroy());
-				downstream.on("close", () => outgoing.destroy());
-				outgoing.end();
-			});
-	}
-	const url = yield* loopbackServer(server());
-	yield* loopbackServer(server(), { host: "::1", port: Number(new URL(url).port) });
-	yield* Effect.addFinalizer(() =>
-		Effect.sync(() => {
-			for (const socket of sockets) {
-				socket.destroy();
-			}
-		}),
-	);
-	return {
-		disconnect: () => {
-			offline = true;
-			for (const socket of sockets) {
-				socket.destroy();
-			}
-		},
-		resume: () => {
-			offline = false;
-		},
-		url,
-	};
+	const proxy = yield* Effect.sync(() => makeForwardingProxy(upstream, options));
+	const url = yield* loopbackServer(proxy.server);
+	yield* Effect.addFinalizer(() => Effect.sync(proxy.close));
+	return { disconnect: proxy.disconnect, hold: proxy.hold, online: proxy.online, url };
 });
