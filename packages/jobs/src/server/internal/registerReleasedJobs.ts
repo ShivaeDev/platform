@@ -3,6 +3,7 @@ import { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import type { PgBossClient } from "#client.ts";
 import type { JobRegistration } from "#definition.ts";
 import { toPgBossError } from "#error.ts";
+import type { PgBossRunner } from "#internal/batchHandler.ts";
 import { registerJobs, registrationName } from "./register.ts";
 
 export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
@@ -10,16 +11,17 @@ export const registerReleasedJobs = Effect.fnUntraced(function* <R>(
 	jobs: readonly JobRegistration[],
 	context: Context.Context<R>,
 	replaceWorkers: boolean,
+	execute: PgBossRunner,
 	schema?: string,
 ) {
 	const signal = yield* Effect.serviceOption(WorkerRelease);
 	const workers = jobs.filter((job) => job._tag !== "QueueDefinition");
 	const scope = yield* Effect.scope;
-	const register = registerJobs(client, jobs, context, replaceWorkers, schema).pipe(Effect.provideService(Scope.Scope, scope));
+	const register = registerJobs(client, jobs, context, replaceWorkers, execute, schema).pipe(Effect.provideService(Scope.Scope, scope));
 	if (Option.isNone(signal) || workers.length === 0) {
 		return yield* register;
 	}
-	yield* registerJobs(client, jobs, context, replaceWorkers, schema, false);
+	yield* registerJobs(client, jobs, context, replaceWorkers, execute, schema, false);
 	let working = replaceWorkers;
 	let paused = false;
 	yield* signal.value.register((active) =>

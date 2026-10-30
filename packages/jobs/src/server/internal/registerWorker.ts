@@ -1,7 +1,7 @@
-import { Clock, type Context, Effect, type Scope } from "effect";
+import { Clock, type Context, Effect, Fiber, type Scope } from "effect";
 import type { Job, WorkOptions } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
-import { batchHandler } from "#internal/batchHandler.ts";
+import { batchHandler, type PgBossRunner } from "#internal/batchHandler.ts";
 import { deferrableAttempt } from "#internal/deferrableAttempt.ts";
 import { traceJob } from "#internal/tracing.ts";
 
@@ -14,47 +14,42 @@ export function registerWorker(
 	schema: string,
 	maxDeferrals: number,
 	context: Context.Context<unknown>,
+	execute: PgBossRunner,
 ): Promise<string> {
-	const registration = client.work(
+	const handle = batchHandler(
+		client,
 		name,
-		{ ...options, includeMetadata: true },
-		batchHandler(
-			client,
-			name,
-			(job) => {
-				const attempt = traceJob(deferrableAttempt(run(job), client, schema, job, maxDeferrals), job, name);
-				return Effect.provide(attempt, context);
-			},
-			async (attempt) => {
+		(job) => Effect.provide(traceJob(deferrableAttempt(run(job), client, schema, job, maxDeferrals), job, name), context),
+		(attempt) =>
+			Effect.gen(function* () {
 				if (client.findJobs === undefined || client.notifyWorker === undefined) {
 					return;
 				}
-				const job = (await client.findJobs(name, { id: attempt.id }))[0];
+				const findJobs = client.findJobs.bind(client);
+				const job = (yield* Effect.tryPromise({ catch: (error) => error, try: () => findJobs(name, { id: attempt.id }) }))[0];
 				if (job?.state !== "retry") {
 					return;
 				}
-				const workId = await registration;
-				await Effect.runPromise(
-					Effect.gen(function* () {
-						// Host timers can fire early; PostgreSQL also retains precision that Date drops.
-						const deadline = job.startAfter.getTime() + 1;
-						let remaining = deadline - (yield* Clock.currentTimeMillis);
-						while (remaining > 0) {
-							yield* Effect.sleep(remaining);
-							remaining = deadline - (yield* Clock.currentTimeMillis);
-						}
-						const workerIds = client
-							.getWipData?.()
-							.filter((worker) => worker.workId === workId)
-							.map((worker) => worker.id) ?? [workId];
-						for (const workerId of workerIds) {
-							client.notifyWorker?.(workerId);
-						}
-					}).pipe(Effect.forkIn(scope)),
-				);
-			},
-			Effect.runPromiseWith(context),
-		),
+				const workId = yield* Effect.promise(() => registration);
+				yield* Effect.gen(function* () {
+					const deadline = job.startAfter.getTime() + 1;
+					let remaining = deadline - (yield* Clock.currentTimeMillis);
+					while (remaining > 0) {
+						yield* Effect.sleep(remaining);
+						remaining = deadline - (yield* Clock.currentTimeMillis);
+					}
+					const workerIds = client
+						.getWipData?.()
+						.filter((worker) => worker.workId === workId)
+						.map((worker) => worker.id) ?? [workId];
+					for (const workerId of workerIds) {
+						client.notifyWorker?.(workerId);
+					}
+				}).pipe(Effect.forkIn(scope));
+			}),
+	);
+	const registration = client.work(name, { ...options, includeMetadata: true }, (jobs) =>
+		execute(handle(jobs).pipe(Effect.forkIn(scope), Effect.flatMap(Fiber.join))),
 	);
 	return registration;
 }

@@ -69,19 +69,25 @@ export function makePgBoss<const TIdentifier extends string>(identifier: TIdenti
 		const acquire = Effect.acquireRelease(
 			Effect.gen(function* () {
 				const dependencies = yield* Effect.context<Requirements>();
-				const acquired = yield* acquireClient({
-					clientCacheKey,
-					clientFactory,
-					constructor: constructorOptions,
+				const execute = Effect.runPromiseWith(dependencies);
+				const acquired = yield* acquireClient({ clientCacheKey, clientFactory, constructor: constructorOptions }, (error) => {
+					void execute(logClientError(error));
 				});
 				const service = makeService(acquired.client, names, constructorOptions.schema);
 				const context = Context.add(dependencies, Service, service);
 				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements | TIdentifier> = onError ?? logClientError;
 				function errorListener(error: Error): void {
-					void Effect.runPromise(Effect.exit(Effect.provide(reportError(error), context)));
+					void execute(Effect.exit(Effect.provide(reportError(error), context)));
 				}
 				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
-				const registration = registerReleasedJobs(acquired.client, jobs, context, acquired.reused, constructorOptions.schema);
+				const registration = registerReleasedJobs(
+					acquired.client,
+					jobs,
+					context,
+					acquired.reused,
+					(effect) => execute(effect),
+					constructorOptions.schema,
+				);
 				return yield* registration.pipe(
 					Effect.as({ acquired, service, unsubscribe }),
 					Effect.onError(() => releaseClient(acquired, stop).pipe(Effect.ensuring(Effect.sync(unsubscribe)))),

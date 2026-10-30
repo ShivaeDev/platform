@@ -1,4 +1,4 @@
-import { Context, Effect, Exit, Layer, Logger, References, Scope } from "effect";
+import { Context, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import { makeWorkerRelease, WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
@@ -12,7 +12,16 @@ import { waitingVerbs } from "#test/waitingVerbs.ts";
 export const Jobs = makePgBoss("@test/PgBossStory");
 
 export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (line: string) => void) {
-	const logger = Logger.layer([Logger.make(({ logLevel, message }) => state.logs.push({ logLevel, message }))]);
+	const logger = Logger.layer([
+		Logger.make(({ logLevel, message, fiber }) => {
+			state.logs.push({ logLevel, message });
+			state.workerLogs.push({
+				annotations: fiber.getRef(References.CurrentLogAnnotations),
+				message,
+				span: Option.getOrUndefined(Context.getOption(fiber.context, Tracer.ParentSpan)),
+			});
+		}),
+	]);
 	function logged<A, E, R>(effect: Effect.Effect<A, E, R>) {
 		return effect.pipe(Effect.provide(logger), Effect.provideService(References.MinimumLogLevel, "Debug"));
 	}
@@ -74,6 +83,7 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 		layer,
 		logs: state.logs,
 		native,
+		recordedWorkerLogs: state.workerLogs,
 		register: <const T extends readonly JobRegistration[]>(jobs: T) => boot(jobs).pipe(Effect.flatMap((runtime) => runtime.stop)),
 
 		seed: <const TPayload extends JobPayloadSchema>(
