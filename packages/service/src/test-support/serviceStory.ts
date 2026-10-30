@@ -1,53 +1,68 @@
+import { Deferred, Effect, Layer, Scope } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { failureVerbs } from "./failureVerbs.ts";
-import { lifetimeVerbs } from "./lifetimeVerbs.ts";
-import { failureEngine, genericService, lifetimeEngine, requiredService, scopedService, serviceEngine } from "./serviceEngine.ts";
+import { builtCounter, serviceEngine, serviceLayer } from "./serviceEngine.ts";
 import { serviceVerbs } from "./serviceVerbs.ts";
 
 export const serviceStory = storyKit({
 	create: serviceEngine,
-	inspect: ({ built, counts, declaration }) => ({ ...counts, built: built.kind, declaration: declaration.kind }),
+	inspect: ({ answers, initialization, initializerRuns, methodBuilds, released }) => ({
+		answers,
+		initialization,
+		initializerRuns,
+		methodBuilds,
+		released,
+	}),
 	name: "defined service",
-	stages: ["declaration"],
+	stages: ["initializer", "layer", "call"],
 	verbs: (engine, story) => serviceVerbs(engine, story.tell),
 });
 
-export const serviceFailureStory = storyKit({
-	create: failureEngine,
-	inspect: (engine) => engine.counts,
-	name: "service failures",
-	stages: [],
-	verbs: (engine, story) => failureVerbs(engine, story.tell),
-});
-
-export const serviceLifetimeStory = storyKit({
-	create: lifetimeEngine,
-	inspect: (engine) => engine.counts,
-	name: "service lifetime",
-	stages: ["declaration"],
-	verbs: (engine, story) => lifetimeVerbs(engine, story.tell),
-});
-
-export function declaresWaitingInitialization() {
-	return serviceLifetimeStory.trait("declaration", "the initializer waits after acquiring its resource", (engine) => {
-		engine.initialization.wait = true;
+export function initializationFails() {
+	return serviceStory.trait("initializer", "the initializer acquires its resource and then fails with initialization failure", (engine) => {
+		engine.initialization = "fails after acquiring its resource";
 	});
 }
 
-export function declaresScopedService() {
-	return serviceStory.trait("declaration", "the service declares scoped initialization and caller resources", (engine) => {
-		engine.declaration = { kind: "scoped", service: scopedService(engine.counts) };
+export function serviceBuilt({ greeting = "hello" }: { readonly greeting?: string } = {}) {
+	return serviceStory.trait("layer", `the service's Layer is built in its own scope with the greeting "${greeting}"`, function* (engine) {
+		engine.built = yield* Layer.buildWithScope(serviceLayer(engine, greeting), engine.layerScope);
 	});
 }
 
-export function declaresRequirement(prefix = "declared") {
-	return serviceStory.trait("declaration", `the service declares a requirement with prefix ${prefix}`, (engine) => {
-		engine.declaration = { kind: "required", prefix, service: requiredService() };
+export function buildWaitsInInitializer() {
+	return serviceStory.trait(
+		"layer",
+		"the service's Layer is being built, and its initializer waits after acquiring its resource",
+		function* (engine) {
+			engine.initialization = "waits after acquiring its resource";
+			engine.build = yield* Effect.forkScoped(Layer.build(serviceLayer(engine, "hello")).pipe(Effect.scoped));
+			yield* Deferred.await(engine.initializerAcquired);
+		},
+	);
+}
+
+export function ownerHoldsService() {
+	return serviceStory.trait("layer", "the owner provides the service's Layer to a program that holds the service", function* (engine) {
+		const holding = yield* Deferred.make<void>();
+		const program = Effect.service(engine.counter).pipe(Effect.andThen(Deferred.succeed(holding, undefined)), Effect.andThen(Effect.never));
+		engine.owner = yield* Effect.forkScoped(Effect.provide(program, serviceLayer(engine, "hello")));
+		yield* Deferred.await(holding);
 	});
 }
 
-export function declaresGenericMethod() {
-	return serviceStory.trait("declaration", "the requirement-free service declares a generic method", (engine) => {
-		engine.declaration = { kind: "generic", service: genericService() };
+export function callHoldsResource() {
+	return serviceStory.trait("call", "the caller's call acquires the call's resource in the caller's scope and keeps running", function* (engine) {
+		const service = yield* builtCounter(engine);
+		engine.call = yield* Effect.forkScoped(Effect.scoped(service.hold()));
+		yield* Deferred.await(engine.resourceHeld);
+	});
+}
+
+export function callOpensResource() {
+	return serviceStory.trait("call", "the caller's call opens the call's resource in a scope the caller keeps open", function* (engine) {
+		const service = yield* builtCounter(engine);
+		const callerScope = yield* Scope.fork(yield* Effect.scope);
+		engine.callerScope = callerScope;
+		yield* service.open().pipe(Scope.provide(callerScope));
 	});
 }
