@@ -70,7 +70,7 @@ export const checkPlatform = Effect.fn("Release.checkPlatform")(function* (root:
 	const pins = yield* checkStarterPins(root);
 	yield* checkStarterPnpm(root);
 	yield* checkStarterCatalog(root);
-	yield* validateRelease(root, pins, reference);
+	return yield* validateRelease(root, pins, reference);
 });
 
 if (import.meta.main) {

@@ -8,6 +8,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { checkPlatform } from "#release/check.ts";
 import { releaseGitHub } from "#release/gitHub.ts";
 import { maintainPullRequest } from "#release/maintainPullRequest.ts";
+import { publishNotes } from "#release/publishNotes.ts";
 import { releasePrApi } from "./prApi.ts";
 import { releasePrRepository } from "./prRepository.ts";
 
@@ -56,6 +57,7 @@ export const releasePullRequest = storyKit({
 					Effect.map((failure) => failure._tag),
 				),
 			git: (...args: readonly string[]) => Effect.sync(() => git(...args)),
+			publishNotes: (base: string) => publishNotes(root, "example/workspace", base, git("rev-parse", "HEAD")).pipe(Effect.provide(context)),
 			pushMain,
 			queue: () =>
 				Effect.sync(() => {

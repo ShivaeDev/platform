@@ -7,6 +7,7 @@ import manifest from "@shivaedev/releases/package.json" with { type: "json" };
 import { applyRelease } from "#applyRelease.ts";
 import { checkRepository } from "#check.ts";
 import { planRelease, summarizePlan } from "#planner.ts";
+import { collectMigrationNotes } from "#releaseNotes.ts";
 import { loadConfig } from "#workspace.ts";
 
 const plan = Command.make(
@@ -23,7 +24,11 @@ const apply = Command.make(
 	{},
 	Effect.fn("Changesets.applyCommand")(function* () {
 		const root = process.cwd();
-		yield* Console.log(summarizePlan(yield* applyRelease(root, yield* loadConfig(root))));
+		const result = yield* applyRelease(root, yield* loadConfig(root));
+		if (result.releases.length > 0) {
+			yield* Console.log(yield* collectMigrationNotes(result));
+		}
+		yield* Console.log(summarizePlan(result));
 	}),
 );
 const check = Command.make(
