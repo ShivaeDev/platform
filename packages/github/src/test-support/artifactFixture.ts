@@ -1,11 +1,12 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { FakeHttpReply, FakeHttpRoute } from "@shivaedev/test-story/server/fakeHttpService.ts";
 
+export const ARCHIVE = new Uint8Array([80, 75, 3, 4, 0, 255, 10, 13]);
+
 export function artifactFixture(origin: () => string) {
-	const state: { redirect: FakeHttpReply | undefined; archive: FakeHttpReply; sentBytes: number } = {
-		archive: { chunks: [new Uint8Array([80, 75, 3, 4]), new Uint8Array([0, 255, 10, 13])] },
+	const state: { redirect: FakeHttpReply | undefined; archive: FakeHttpReply } = {
+		archive: { chunks: [ARCHIVE.slice(0, 4), ARCHIVE.slice(4)] },
 		redirect: undefined,
-		sentBytes: 0,
 	};
 	const routes = {
 		archive: {

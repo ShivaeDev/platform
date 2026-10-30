@@ -1,123 +1,187 @@
-import { Context, Effect, Layer, Option, Redacted, type Schema, Stream } from "effect";
+import { Context, type Duration, Effect, Layer, Option, Redacted, Schema, Stream } from "effect";
 import { FetchHttpClient } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { type FakeHttpReply, fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import * as TestClock from "effect/testing/TestClock";
+import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { GitHub, list, listBounded, read, write } from "#GitHub.ts";
 import { GitHubConfig } from "#GitHubConfig.ts";
 import { GitHubToken } from "#GitHubToken.ts";
-import { artifactFixture } from "./artifactFixture.ts";
 import { budgetHeaders } from "./budgetHeaders.ts";
-import { FIXTURE_TOKEN, PullRequest } from "./fixtures.ts";
-import { pullRequestWrites } from "./pullRequestWrites.ts";
-import { readWithEnvironment } from "./readWithEnvironment.ts";
+import { type FakeRepository, fakeRepository, SECONDARY_LIMIT } from "./fakeRepository.ts";
+import { FIXTURE_TOKEN, PRIVATE_QUERY, PullRequest } from "./fixtures.ts";
+import { answered, clockTime } from "./outcome.ts";
+import { environmentToken, readWithEnvironment, type TokenVariable } from "./readWithEnvironment.ts";
 import { telemetry } from "./telemetry.ts";
+import { rateLimitEvents, rateLimitLogs, seenIn } from "./telemetryReadouts.ts";
 import { writeVerbs } from "./writeVerbs.ts";
+
+const SearchResult = Schema.Struct({ totalCount: Schema.Number }).pipe(Schema.encodeKeys({ totalCount: "total_count" }));
+const credentialNames = new Map<string | undefined, string>([
+	[`Bearer ${FIXTURE_TOKEN}`, "the configured token"],
+	[`Bearer ${environmentToken("GH_TOKEN")}`, "GH_TOKEN"],
+	[`Bearer ${environmentToken("GITHUB_TOKEN")}`, "GITHUB_TOKEN"],
+	[undefined, "no credential"],
+]);
+
+function credentialOf(authorization: string | undefined) {
+	return credentialNames.get(authorization) ?? `an unknown credential: ${authorization}`;
+}
 
 export const github = storyKit({
 	*create() {
-		const writes = pullRequestWrites();
-		const state: {
-			etag: string;
-			headers: Record<string, string>;
-			items: Array<{ number: number; title: string }>;
-			reply: FakeHttpReply | undefined;
-			pageReplies: Map<number, FakeHttpReply>;
-		} = {
-			etag: '"pull-1"',
-			headers: {},
-			items: Array.from({ length: 5 }, (_, index) => ({ number: index + 1, title: `Pull request ${index + 1}` })),
-			pageReplies: new Map(),
-			reply: undefined,
-		};
-		const archive = artifactFixture(() => server.url);
-		const server = yield* fakeHttpService({
-			routes: {
-				...writes.routes,
-				...archive.routes,
-				artifact: { path: "/artifact", reply: () => state.reply ?? { chunks: ["patch", " bytes"] } },
-				patchIssue: { method: "PATCH", path: "/repos/acme/widgets/issues", reply: () => ({ body: state.items[0] }) },
-				postIssue: { method: "POST", path: "/repos/acme/widgets/issues", reply: () => ({ body: state.items[0] }) },
-				pull: {
-					path: "/repos/acme/widgets/pulls/:number",
-					reply: (request) => {
-						if (state.reply !== undefined) {
-							return state.reply;
-						}
-						const headers = { ...state.headers, "ETag": state.etag };
-						return request.headers["if-none-match"] === state.etag
-							? { headers, status: HttpStatus.fromLiteral("NotModified") }
-							: { body: state.items[0], headers };
-					},
-				},
-				pulls: {
-					path: "/repos/acme/widgets/pulls",
-					reply: ({ query }) => {
-						const page = Number(query.get("page") ?? 1);
-						const scripted = state.pageReplies.get(page);
-						if (scripted !== undefined) {
-							return scripted;
-						}
-						const more = page * 2 < state.items.length;
-						return {
-							body: state.items.slice((page - 1) * 2, page * 2),
-							headers: { ...state.headers, ...(more ? { Link: `</repos/acme/widgets/pulls?page=${page + 1}>; rel="next"` } : {}) },
-						};
-					},
-				},
-				search: { path: "/search/issues", reply: () => state.reply ?? { body: state.items[0], headers: state.headers } },
-			},
-		});
+		const repository = yield* fakeRepository;
 		const recording = telemetry();
 		const layer = GitHub.layer.pipe(
 			Layer.provide(
 				Layer.mergeAll(
 					FetchHttpClient.layer,
 					Layer.succeed(GitHubToken)(Option.some(Redacted.make(FIXTURE_TOKEN))),
-					Layer.succeed(GitHubConfig)({ apiUrl: server.url }),
+					Layer.succeed(GitHubConfig)({ apiUrl: repository.server.url }),
 				),
 			),
 		);
 		const context = yield* Layer.build(Layer.fresh(layer));
-		return { archive: archive.state, client: Context.get(context, GitHub), context, recording, server, state, writes: writes.state };
+		const failures: unknown[] = [];
+		return { ...repository, client: Context.get(context, GitHub), context, failures, recording };
 	},
-	inspect: ({ server }) => ({ requests: server.requests.map(({ method, path }) => ({ method, path })) }),
+	inspect: ({ server }) => ({ requests: server.requests.map(({ method, path, status }) => `${method} ${path} ${status}`) }),
 	name: "GitHub REST client",
 	stages: ["github"],
-	verbs: ({ archive, client, context, recording, server, state }, story) => {
+	verbs: (engine, story) => {
+		const { client, context, failures, recording, server, state } = engine;
 		server.narrate(story.tell);
 		function run<A, E>(effect: Effect.Effect<A, E, Context.Service.Identifier<typeof GitHub>>) {
 			return effect.pipe(Effect.provide(context), Effect.withSpan("GitHub request"), Effect.provide(recording.layer));
 		}
+		function attempt<A, E>(line: string, effect: Effect.Effect<A, E, Context.Service.Identifier<typeof GitHub>>) {
+			return Effect.suspend(() => {
+				story.tell(line);
+				return answered(run(effect), failures);
+			});
+		}
+		const pacingCalls: string[] = [];
+		function pacing(refusedCall: number | undefined) {
+			return (resource: string) =>
+				Effect.suspend(() => {
+					pacingCalls.push(resource);
+					return pacingCalls.length === refusedCall ? Effect.fail(new ServiceUnavailable({ message: "pacing budget spent" })) : Effect.void;
+				});
+		}
+		function received(route: (path: string) => boolean) {
+			return server.requests.filter(({ path }) => route(path.split("?")[0] ?? path));
+		}
 		return {
-			...writeVerbs(client),
-			archiveBytesSent: () => archive.sentBytes,
-			bytes: (limit: number) => run(client.bytes("/artifact", "application/octet-stream", limit)),
-			downloadArchive: (byteLimit: number) => run(client.downloadArtifactArchive({ artifactId: 7, byteLimit, owner: "acme", repo: "widgets" })),
-			dropConnection: () => server.scriptFault("pull", { kind: "drop" }, { repeat: true }).pipe(Effect.asVoid),
-			observations: () => client.observations(),
-			readPull: (number = 1) => run(read(`/repos/acme/widgets/pulls/${number}?private=query-secret`, PullRequest)),
-			readPullAs: <TSchema extends Schema.ConstraintDecoder<unknown>>(schema: TSchema) =>
-				run(read("/repos/acme/widgets/pulls/1?private=query-secret", schema)),
-			readPulls: (take?: number) =>
-				run(
+			...writeVerbs(client, engine satisfies FakeRepository, run, story.tell),
+			archiveRequestHeaders: () =>
+				Effect.sync(() =>
+					received((path) => path === "/repos/acme/widgets/actions/artifacts/7/zip" || path === "/storage/archive.zip").map(({ headers, path }) => ({
+						apiVersion: headers["x-github-api-version"] ?? "none",
+						credential: credentialOf(headers.authorization),
+						to: path.startsWith("/storage/") ? "storage" : "GitHub",
+					})),
+				),
+			coreBudgetSpentElsewhere: (remaining: number, reset: number) =>
+				Effect.sync(() => {
+					story.tell(`other clients spend the core budget down to ${remaining} with its reset moved to ${reset} seconds`);
+					state.budgets.core = { ...state.budgets.core, remaining, reset };
+				}),
+			credentialsSent: () => Effect.sync(() => server.requests.map(({ headers }) => credentialOf(headers.authorization))),
+			downloadArchive: (byteLimit = 8) =>
+				attempt(
+					`the client downloads artifact 7 within ${byteLimit} bytes`,
+					Effect.flatMap(GitHub, (service) => service.downloadArtifactArchive({ artifactId: 7, byteLimit, owner: "acme", repo: "widgets" })),
+				),
+			headersSent: () =>
+				Effect.sync(() =>
+					server.requests.map(({ headers }) => ({
+						accept: headers.accept,
+						apiVersion: headers["x-github-api-version"],
+						credential: credentialOf(headers.authorization),
+					})),
+				),
+			listPulls: (take?: number) =>
+				attempt(
+					take === undefined ? "the client lists every pull request" : `the client takes ${take} pull request from the list`,
 					list("/repos/acme/widgets/pulls", PullRequest).pipe(
 						(stream) => (take === undefined ? stream : Stream.take(stream, take)),
 						Stream.runCollect,
 					),
 				),
-			readPullsBounded: (pageCap: number, byteLimit?: number) => run(listBounded("/repos/acme/widgets/pulls", PullRequest, pageCap, byteLimit)),
-			readWithEnvironment: (variables: Record<string, string>) => readWithEnvironment(server.url, variables),
-			rejectArchive: () => server.replyOnce("artifactRedirect", { status: HttpStatus.fromLiteral("Unauthorized") }),
-			requests: () => server.requests,
-			search: () => run(read("/search/issues?private=query-secret", PullRequest)),
-			setBudget: (resource: string, remaining: number, reset: number) =>
-				Effect.sync(() => {
-					state.headers = budgetHeaders(resource, remaining, reset);
+			listPullsBounded: (pageCap: number, byteLimit?: number) =>
+				attempt(
+					`the client lists pull requests within ${pageCap} pages${byteLimit === undefined ? "" : ` and ${byteLimit} bytes a page`}`,
+					listBounded("/repos/acme/widgets/pulls", PullRequest, pageCap, byteLimit),
+				),
+			listPullsPaced: (refusedCall?: number) =>
+				attempt(
+					refusedCall === undefined
+						? "the client lists every pull request through a pacing callback"
+						: `the client lists every pull request through a pacing callback that refuses its call ${refusedCall}`,
+					Effect.flatMap(GitHub, (service) => service.list("/repos/acme/widgets/pulls", pacing(refusedCall))).pipe(Effect.flatMap(Stream.runCount)),
+				),
+			observations: () =>
+				Effect.map(client.observations(), (observed) => observed.map(({ reset, ...budget }) => ({ ...budget, reset: clockTime(reset) }))),
+			pacingCalls: () => Effect.sync(() => [...pacingCalls]),
+			pagesRequested: () =>
+				Effect.sync(() => received((path) => path === "/repos/acme/widgets/pulls").map(({ query }) => Number(query.get("page") ?? 1))),
+			privateQuerySeenIn: () => Effect.sync(() => seenIn(PRIVATE_QUERY, recording, failures, ["failures", "logs", "span events"])),
+			rateLimitEvents: () => Effect.sync(() => rateLimitEvents(recording)),
+			rateLimitLogs: () => Effect.sync(() => rateLimitLogs(recording)),
+			readDiff: (byteLimit = 1024) =>
+				attempt(
+					`the client reads pull request 1 as a diff within ${byteLimit} bytes`,
+					Effect.flatMap(GitHub, (service) => service.text("/repos/acme/widgets/pulls/1", "application/vnd.github.diff", byteLimit)),
+				),
+			readLogo: (byteLimit = 1024) =>
+				attempt(
+					`the client reads logo.png raw within ${byteLimit} bytes`,
+					Effect.flatMap(GitHub, (service) => service.bytes("/repos/acme/widgets/contents/logo.png", "application/vnd.github.raw", byteLimit)),
+				),
+			readPull: (number = 1) => attempt(`the client reads pull request ${number}`, read(`/repos/acme/widgets/pulls/${number}`, PullRequest)),
+			readPullAs: <TSchema extends Schema.ConstraintDecoder<unknown>>(name: string, schema: TSchema) =>
+				attempt(`the client reads pull request 1 as ${name}`, read("/repos/acme/widgets/pulls/1", schema)),
+			readPullWithin: (byteLimit: number) =>
+				attempt(`the client reads pull request 1 within ${byteLimit} bytes`, read("/repos/acme/widgets/pulls/1", PullRequest, byteLimit)),
+			readPullWithPrivateQuery: () =>
+				attempt("the client reads pull request 1 with a private query", read(`/repos/acme/widgets/pulls/1?ref=${PRIVATE_QUERY}`, PullRequest)),
+			readWithEnvironment: (variables: readonly TokenVariable[]) =>
+				Effect.suspend(() => {
+					story.tell(`a client built from an environment with ${variables.join(" and ") || "no token variable"} reads pull request 1`);
+					return answered(readWithEnvironment(server.url, variables));
 				}),
-			telemetry: () => recording,
-			text: (limit: number) => run(client.text("/artifact", "application/vnd.github.diff", limit)),
-			writeIssue: (method: "POST" | "PATCH") => run(write(method, "/repos/acme/widgets/issues", { title: "New title" }, PullRequest)),
+			requests: () => Effect.sync(() => server.requests.map(({ method, path, status }) => `${method} ${path} ${status}`)),
+			resourceOf: (path: string) => Effect.flatMap(GitHub, (service) => service.resource(path)).pipe(Effect.provide(context)),
+			revalidations: () =>
+				Effect.sync(() =>
+					received((path) => path.startsWith("/repos/acme/widgets/pulls/")).map(({ headers }) => headers["if-none-match"] ?? "no ETag"),
+				),
+			search: () => attempt("the client searches issues with a private query", read(`/search/issues?q=${PRIVATE_QUERY}`, SearchResult)),
+			searchCode: () => attempt("the client searches code", read("/search/code?q=widgets", SearchResult)),
+			secondaryLimitStrikesAgain: () =>
+				Effect.gen(function* () {
+					story.tell("GitHub strikes the next read of pull request 1 with a message-only secondary rate limit");
+					yield* server.scriptFault("pull", {
+						kind: "status",
+						reply: {
+							body: { message: SECONDARY_LIMIT },
+							headers: budgetHeaders("core", { limit: 5000, remaining: 40, reset: 3600 }),
+							status: HttpStatus.fromLiteral("Forbidden"),
+						},
+					});
+				}),
+			spanNames: () => Effect.sync(() => recording.spans.map(({ name }) => name)),
+			timePasses: (duration: Duration.Input) =>
+				Effect.suspend(() => {
+					story.tell(`${duration} pass`);
+					return TestClock.adjust(duration);
+				}),
+			tokenSeenIn: () => Effect.sync(() => seenIn(FIXTURE_TOKEN, recording, failures, ["failures", "logs", "spans"])),
+			writeIssue: (method: "POST" | "PATCH", title: string) =>
+				attempt(
+					method === "POST" ? `the client opens an issue titled "${title}"` : `the client retitles issue 2 to "${title}"`,
+					write(method, method === "POST" ? "/repos/acme/widgets/issues" : "/repos/acme/widgets/issues/2", { title }, PullRequest),
+				),
 		};
 	},
 });

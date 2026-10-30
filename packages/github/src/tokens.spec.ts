@@ -1,51 +1,56 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { GitHubTransportError } from "#errors.ts";
-import { FIXTURE_TOKEN } from "#test/fixtures.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { github } from "#test/github.ts";
-import { routeAnswers } from "#test/traits.ts";
+import { connectionDrops, connectionResetsMidBody, tokenRejected } from "#test/traits.ts";
 
-github.it("GH_TOKEN takes precedence over GITHUB_TOKEN in authenticated reads", [], function* ({ readWithEnvironment, requests }) {
-	yield* readWithEnvironment({ "GH_TOKEN": "preferred-token", "GITHUB_TOKEN": "fallback-token" });
-	expect(requests()[0]?.headers.authorization).toBe("Bearer preferred-token");
-});
+for (const [variables, sent] of [
+	[["GH_TOKEN", "GITHUB_TOKEN"], "GH_TOKEN"],
+	[["GITHUB_TOKEN"], "GITHUB_TOKEN"],
+	[[], "no credential"],
+] as const) {
+	github.it(
+		`a client built from an environment with ${variables.join(" and ") || "neither token variable"} reads with ${sent}`,
+		[],
+		function* ({ credentialsSent, readWithEnvironment }) {
+			yield* readWithEnvironment(variables);
 
-github.it("GITHUB_TOKEN authenticates when GH_TOKEN is absent", [], function* ({ readWithEnvironment, requests }) {
-	yield* readWithEnvironment({ "GITHUB_TOKEN": "fallback-token" });
-	expect(requests()[0]?.headers.authorization).toBe("Bearer fallback-token");
-});
-
-github.it("an absent environment token permits anonymous reads", [], function* ({ readWithEnvironment, requests }) {
-	yield* readWithEnvironment({});
-	expect(requests()[0]?.headers.authorization).toBeUndefined();
-});
-
-github.it("a transport failure retains neither credentials nor the query in its error", [], function* ({ dropConnection, readPull, telemetry }) {
-	yield* dropConnection();
-	const error = yield* Effect.flip(readPull());
-	expect(error).toEqual(new GitHubTransportError({ path: "/repos/acme/widgets/pulls/1" }));
-	const { logs, spans } = telemetry();
-	const captured = JSON.stringify({
-		error,
-		logs,
-		spans: spans.map((span) => ({
-			attributes: [...span.attributes],
-			events: span.events.map(([name, , attributes]) => ({ attributes, name })),
-			exit: span.status._tag === "Ended" ? span.status.exit : undefined,
-		})),
-	});
-	expect(captured).not.toContain(FIXTURE_TOKEN);
-	expect(JSON.stringify(error)).not.toContain("query-secret");
-});
+			expect(yield* credentialsSent()).toEqual([sent]);
+		},
+	);
+}
 
 github.it(
-	"a custom GitHubToken authenticates without automatic installation refresh",
-	[routeAnswers({ status: HttpStatus.fromLiteral("Unauthorized") })],
-	function* ({ readPull, requests }) {
-		expect(yield* Effect.flip(readPull())).toMatchObject({ _tag: "RemoteUnauthorized", status: HttpStatus.fromLiteral("Unauthorized") });
-		expect(requests().map(({ headers, method }) => ({ authorization: headers.authorization, method }))).toEqual([
-			{ authorization: `Bearer ${FIXTURE_TOKEN}`, method: "GET" },
-		]);
+	"a dropped connection fails the read as a transport failure at its path without the query",
+	[connectionDrops],
+	function* ({ readPullWithPrivateQuery }) {
+		expect(yield* readPullWithPrivateQuery()).toBe("transport failure at /repos/acme/widgets/pulls/1");
 	},
 );
+
+github.it(
+	"a connection reset in the middle of the body fails the read as a transport failure at its path without the query",
+	[connectionResetsMidBody],
+	function* ({ readPullWithPrivateQuery }) {
+		expect(yield* readPullWithPrivateQuery()).toBe("transport failure at /repos/acme/widgets/pulls/1");
+	},
+);
+
+github.it(
+	"a dropped read records its span but keeps the configured token out of failures, logs and spans and the private query out of failures, logs and span events",
+	[connectionDrops],
+	function* ({ privateQuerySeenIn, readPullWithPrivateQuery, spanNames, tokenSeenIn }) {
+		yield* readPullWithPrivateQuery();
+
+		yield* outcomes({
+			"private query seen in": [privateQuerySeenIn(), []],
+			"spans recorded": [spanNames(), expect.arrayContaining(["GitHub request"])],
+			"token seen in": [tokenSeenIn(), []],
+		});
+	},
+);
+
+github.it("a read GitHub answers 401 for the configured token is not retried", [tokenRejected], function* ({ readPull, requests }) {
+	yield* readPull();
+
+	expect(yield* requests()).toEqual(["GET /repos/acme/widgets/pulls/1 401"]);
+});
