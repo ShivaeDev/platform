@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.25.2 - 2026-10-30
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.25.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.25.0 - 2026-10-30
 
 ### Added

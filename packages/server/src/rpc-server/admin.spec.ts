@@ -1,217 +1,188 @@
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { auth, signedInWithRole } from "#test/auth/story.ts";
 
+const ADMIN_TOOLS = "Admin tools for member@example.test";
+const OWNER_TOOLS = "Owner tools for member@example.test";
+const grants = [{ name: "tools.use", strength: "own" }];
+
 auth.it(
-	"an admin reaches the admin RPC and the admin HTTP route",
+	"an admin reaches the protected profile, the admin HTTP route and the admin RPC",
 	[signedInWithRole("admin")],
-	function* ({ openAdminTools, callAdminTools, profile }) {
-		expect(yield* profile()).toMatchObject({
-			status: HttpStatus.fromLiteral("OK"),
-			user: { email: "member@example.test", role: "admin" },
-		});
-		expect(yield* openAdminTools()).toEqual({
-			body: "Admin tools for member@example.test",
-			status: HttpStatus.fromLiteral("OK"),
-		});
-		expect(yield* callAdminTools()).toMatchObject({
-			_tag: "Success",
-			success: "Admin tools for member@example.test",
-		});
-	},
-);
-
-auth.it(
-	"a signed-in user without a role is forbidden by the admin and owner RPCs",
-	[signedInWithRole("user")],
-	function* ({ openAdminTools, callAdminTools, callOwnerTools }) {
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect(yield* callAdminTools()).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Forbidden" },
-		});
-		expect(yield* callOwnerTools()).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Forbidden" },
+	function* ({ callAdminTools, openAdminTools, profile }) {
+		yield* outcomes({
+			"admin RPC": [callAdminTools(), ADMIN_TOOLS],
+			"admin route": [openAdminTools(), { body: ADMIN_TOOLS, status: HttpStatus.fromLiteral("OK") }],
+			profile: [
+				profile(),
+				expect.objectContaining({
+					status: HttpStatus.fromLiteral("OK"),
+					user: expect.objectContaining({ email: "member@example.test", role: "admin" }),
+				}),
+			],
 		});
 	},
 );
 
-auth.it("a signed-out caller is unauthorized by the admin and owner RPCs", [], function* ({ openAdminTools, callAdminTools, callOwnerTools }) {
-	expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-	expect(yield* callAdminTools()).toMatchObject({
-		_tag: "Failure",
-		failure: { _tag: "Unauthorized" },
-	});
-	expect(yield* callOwnerTools()).toMatchObject({
-		_tag: "Failure",
-		failure: { _tag: "Unauthorized" },
-	});
-});
-
-auth.it("an owner reaches the owner RPC without holding the admin role", [signedInWithRole("owner")], function* ({ callAdminTools, callOwnerTools }) {
-	expect(yield* callOwnerTools()).toMatchObject({
-		_tag: "Success",
-		success: "Owner tools for member@example.test",
-	});
-	expect(yield* callAdminTools()).toMatchObject({
-		_tag: "Failure",
-		failure: { _tag: "Forbidden" },
-	});
-});
-
-auth.it("an admin who is not owner is forbidden by the owner RPC", [signedInWithRole("admin")], function* ({ callAdminTools, callOwnerTools }) {
-	expect(yield* callAdminTools()).toMatchObject({ _tag: "Success" });
-	expect(yield* callOwnerTools()).toMatchObject({
-		_tag: "Failure",
-		failure: { _tag: "Forbidden" },
-	});
-});
-
-auth.it(
-	"revoking a minted session closes the admin HTTP route and RPC",
-	[signedInWithRole("admin")],
-	function* ({ openAdminTools, callAdminTools, revokeSession }) {
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("OK"));
-		yield* revokeSession();
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Unauthorized"));
-		expect(yield* callAdminTools()).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Unauthorized" },
-		});
-	},
-);
-
-auth.it(
-	"removing the admin role closes access on the next call with the same session",
-	[signedInWithRole("admin")],
-	function* ({ openAdminTools, callAdminTools, setRole }) {
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(yield* callAdminTools()).toMatchObject({ _tag: "Success" });
-		yield* setRole("user");
-		expect((yield* openAdminTools()).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect(yield* callAdminTools()).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Forbidden" },
-		});
-	},
-);
-
-auth.it(
-	"removing the owner role closes the owner RPC on the next call",
-	[signedInWithRole("admin,owner")],
-	function* ({ callAdminTools, callOwnerTools, setRole }) {
-		expect(yield* callOwnerTools()).toMatchObject({ _tag: "Success" });
-		yield* setRole("admin");
-		expect(yield* callOwnerTools()).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Forbidden" },
-		});
-		expect(yield* callAdminTools()).toMatchObject({ _tag: "Success" });
-	},
-);
-
-auth.it("removing the admin role ends an open admin stream with forbidden", [signedInWithRole("admin")], function* ({ followAdminFeed, setRole }) {
-	const feed = yield* followAdminFeed();
-	expect(yield* feed.next).toBe("Admin feed for member@example.test");
-	yield* setRole("user");
-	expect(yield* feed.ended).toMatchObject({
-		_tag: "Failure",
-		failure: { _tag: "Forbidden" },
-	});
-});
-
-auth.it(
-	"the client session and request profile expose the decoded role and its exact grants",
-	[signedInWithRole("admin")],
-	function* ({ clientSession, profile, setRole }) {
-		expect(yield* clientSession()).toMatchObject({
-			payload: {
-				user: {
-					permissions: [{ name: "tools.use", strength: "own" }],
-					role: "admin",
-				},
-			},
-			status: HttpStatus.fromLiteral("OK"),
-		});
-		expect(yield* profile()).toMatchObject({
-			status: HttpStatus.fromLiteral("OK"),
-			user: {
-				permissions: [{ name: "tools.use", strength: "own" }],
-				role: "admin",
-			},
-		});
-		yield* setRole("user");
-		expect(yield* clientSession()).toMatchObject({
-			payload: { user: { permissions: [], role: "user" } },
-			status: HttpStatus.fromLiteral("OK"),
-		});
-	},
-);
-
-for (const { role, failure } of [
-	{ failure: "Forbidden", role: "user" },
-	{ failure: "Unauthorized", role: undefined },
-]) {
+for (const [caller, traits, refusal, status] of [
+	["a signed-in user without a role", [signedInWithRole("user")], "forbidden", HttpStatus.fromLiteral("Forbidden")],
+	["a signed-out caller", [], "unauthorized", HttpStatus.fromLiteral("Unauthorized")],
+] as const) {
 	auth.it(
-		`a ${failure} RPC never runs its handler`,
-		role === undefined ? [] : [signedInWithRole(role)],
-		function* ({ callAdminTools, adminHandlerRequests }) {
-			expect(yield* callAdminTools()).toMatchObject({
-				_tag: "Failure",
-				failure: { _tag: failure },
+		`${caller} is refused as ${refusal} by the admin route and the admin and owner RPCs`,
+		traits,
+		function* ({ callAdminTools, callOwnerTools, openAdminTools }) {
+			yield* outcomes({
+				"admin RPC": [callAdminTools(), `failed with ${refusal}`],
+				"admin route status": [openAdminTools(), expect.objectContaining({ status })],
+				"owner RPC": [callOwnerTools(), `failed with ${refusal}`],
 			});
-			expect(yield* adminHandlerRequests()).toEqual([]);
 		},
 	);
+
+	auth.it(`an RPC refused as ${refusal} for ${caller} never runs its handler`, traits, function* ({ adminHandlerRequests, callAdminTools }) {
+		yield* callAdminTools();
+
+		expect(yield* adminHandlerRequests()).toEqual([]);
+	});
 }
 
+auth.it("an owner reaches the owner RPC but not the admin RPC", [signedInWithRole("owner")], function* ({ callAdminTools, callOwnerTools }) {
+	yield* outcomes({
+		"admin RPC": [callAdminTools(), "failed with forbidden"],
+		"owner RPC": [callOwnerTools(), OWNER_TOOLS],
+	});
+});
+
 auth.it(
-	"an undeclared stored role reaches the admin caller as a defect naming the role",
+	"an admin who is not an owner reaches the admin RPC but not the owner RPC",
+	[signedInWithRole("admin")],
+	function* ({ callAdminTools, callOwnerTools }) {
+		yield* outcomes({
+			"admin RPC": [callAdminTools(), ADMIN_TOOLS],
+			"owner RPC": [callOwnerTools(), "failed with forbidden"],
+		});
+	},
+);
+
+auth.it(
+	"revoking the admin's session refuses the admin route and RPC as unauthorized",
+	[signedInWithRole("admin")],
+	function* ({ callAdminTools, openAdminTools, revokeSession }) {
+		expect(yield* openAdminTools()).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+
+		yield* revokeSession();
+
+		yield* outcomes({
+			"admin RPC": [callAdminTools(), "failed with unauthorized"],
+			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Unauthorized") })],
+		});
+	},
+);
+
+auth.it(
+	"removing the admin role refuses the same session's next admin route and RPC calls as forbidden",
+	[signedInWithRole("admin")],
+	function* ({ callAdminTools, openAdminTools, setRole }) {
+		expect(yield* callAdminTools()).toBe(ADMIN_TOOLS);
+
+		yield* setRole("user");
+
+		yield* outcomes({
+			"admin RPC": [callAdminTools(), "failed with forbidden"],
+			"admin route": [openAdminTools(), expect.objectContaining({ status: HttpStatus.fromLiteral("Forbidden") })],
+		});
+	},
+);
+
+auth.it(
+	"removing the owner role refuses the next owner RPC call but keeps admin access",
+	[signedInWithRole("admin,owner")],
+	function* ({ callAdminTools, callOwnerTools, setRole }) {
+		expect(yield* callOwnerTools()).toBe(OWNER_TOOLS);
+
+		yield* setRole("admin");
+
+		yield* outcomes({
+			"admin RPC": [callAdminTools(), ADMIN_TOOLS],
+			"owner RPC": [callOwnerTools(), "failed with forbidden"],
+		});
+	},
+);
+
+auth.it(
+	"removing the admin role ends an open admin stream as forbidden",
+	[signedInWithRole("admin")],
+	function* ({ adminFeedEnding, followAdminFeed, setRole }) {
+		expect(yield* followAdminFeed()).toBe("Admin feed for member@example.test");
+
+		yield* setRole("user");
+
+		expect(yield* adminFeedEnding()).toBe("failed with forbidden");
+	},
+);
+
+auth.it(
+	"the client session and the request profile expose the admin role and its exact grants",
+	[signedInWithRole("admin")],
+	function* ({ clientSession, profile }) {
+		yield* outcomes({
+			"client session": [
+				clientSession(),
+				expect.objectContaining({ payload: expect.objectContaining({ user: expect.objectContaining({ permissions: grants, role: "admin" }) }) }),
+			],
+			profile: [profile(), expect.objectContaining({ user: expect.objectContaining({ permissions: grants, role: "admin" }) })],
+		});
+	},
+);
+
+auth.it(
+	"after the admin role is removed, the client session shows the user role with no grants",
+	[signedInWithRole("admin")],
+	function* ({ clientSession, setRole }) {
+		expect(yield* clientSession()).toMatchObject({ payload: { user: { permissions: grants, role: "admin" } } });
+
+		yield* setRole("user");
+
+		expect(yield* clientSession()).toMatchObject({ payload: { user: { permissions: [], role: "user" } }, status: HttpStatus.fromLiteral("OK") });
+	},
+);
+
+auth.it(
+	"an undeclared stored role reaches the admin RPC caller as a defect naming the role",
 	[signedInWithRole("retired")],
 	function* ({ callAdminTools }) {
-		expect(yield* callAdminTools()).toBe("defect: Stored user role is not declared by the application: retired");
+		expect(yield* callAdminTools()).toBe("died with Stored user role is not declared by the application: retired");
 	},
 );
 
 auth.it(
-	"an application role grants entry without being named admin",
+	"an application role not named admin is granted the admin RPC and runs its handler",
 	[signedInWithRole("operator")],
-	function* ({ callAdminTools, adminHandlerRequests }) {
-		expect(yield* callAdminTools()).toMatchObject({
-			_tag: "Success",
-			success: "Admin tools for member@example.test",
-		});
-		expect(yield* adminHandlerRequests()).toEqual(["adminTools"]);
-	},
-);
+	function* ({ adminHandlerRequests, callAdminTools }) {
+		const answer = yield* callAdminTools();
 
-auth.it(
-	"an own grant checks the record owner read from PostgreSQL",
-	[signedInWithRole("admin")],
-	function* ({ currentUserId, readRecord, signInProfile }) {
-		expect(yield* readRecord(currentUserId())).toMatchObject({
-			_tag: "Success",
-			success: currentUserId(),
-		});
-		const other = yield* signInProfile({
-			email: "other@example.test",
-			name: "Other",
-		});
-		expect(yield* readRecord(other.user.id)).toMatchObject({
-			_tag: "Failure",
-			failure: { _tag: "Forbidden" },
+		yield* outcomes({
+			"admin handler requests": [adminHandlerRequests(), ["adminTools"]],
+			answer: [Effect.succeed(answer), ADMIN_TOOLS],
 		});
 	},
 );
 
-auth.it("an explicit any grant permits a different record owner", [signedInWithRole("auditor")], function* ({ readRecord, signInProfile }) {
-	const other = yield* signInProfile({
-		email: "other@example.test",
-		name: "Other",
-	});
-	expect(yield* readRecord(other.user.id)).toMatchObject({
-		_tag: "Success",
-		success: other.user.id,
-	});
+auth.it("an own grant reads the caller's own record", [signedInWithRole("admin")], function* ({ currentUserId, readRecord }) {
+	expect(yield* readRecord(currentUserId())).toBe(currentUserId());
+});
+
+auth.it("an own grant refuses another member's record as forbidden", [signedInWithRole("admin")], function* ({ readRecord, signInProfile }) {
+	const other = yield* signInProfile({ email: "other@example.test", name: "Other" });
+
+	expect(yield* readRecord(other.user.id)).toBe("failed with forbidden");
+});
+
+auth.it("an explicit any grant reads another member's record", [signedInWithRole("auditor")], function* ({ readRecord, signInProfile }) {
+	const other = yield* signInProfile({ email: "other@example.test", name: "Other" });
+
+	expect(yield* readRecord(other.user.id)).toBe(other.user.id);
 });

@@ -8,7 +8,7 @@ import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
 import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import { revalidateSession } from "@shivaedev/identity/server/socketSession.ts";
-import type { AppChanges } from "./appHost.ts";
+import type { AppChanges } from "#appHost.ts";
 
 export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 	group: RpcGroup.RpcGroup<R>,
@@ -56,11 +56,11 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 	);
 }
 
-function authorizeSession<TSession extends SessionShape>(
+function authorizeSession<TSession extends SessionShape, E, R>(
 	sessions: SessionPolicy<TSession> | undefined,
 	tag: string,
 	viewer: Option.Option<Viewer>,
-	policy: Effect.Effect<boolean>,
+	policy: Effect.Effect<boolean, E, R>,
 ) {
 	if (sessions === undefined) {
 		return policy;

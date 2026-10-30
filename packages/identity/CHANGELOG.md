@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.6.0 - 2026-10-30
+
+### Added
+
+- Identity exposes a socket-scoped session coordinator for hosts to share session rechecks within a batch and drive stream revalidation from one timer.
+
+### Fixed
+
+- Hosted live subscriptions on one socket share hint-time session lookups and periodic session revalidation while retaining per-query read-policy checks and typed revocation failures.
+
+## 0.5.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.5.0 - 2026-10-30
 
 ### Added

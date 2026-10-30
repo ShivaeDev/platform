@@ -164,7 +164,7 @@ Keep Better Auth cookie caching disabled so requests see current permissions. Ro
 
 ### Client permission routes
 
-`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract and exposes its permission as `page.route.permission`. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback.
+`adminPage` requires a permission middleware, including for custom pages. It applies that middleware to the whole contract, installs a read policy checking the page grant on every query, and exposes its permission as `page.route.permission`. Queries need no repeated page-grant policy. An additional query policy can restrict access further. Bound live queries use the same page grant as one-off reads. Set the React route's `staticData.permission` to that value. Use `permissionGuard` from `@shivaedev/react/permissionGuard.ts` in protected routes' `beforeLoad` and wrap the router in `PermissionBoundary` from `@shivaedev/react/client/permissionBoundary.ts` with the session and one application fallback.
 
 ### Install and limits
 

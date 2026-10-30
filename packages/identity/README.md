@@ -373,7 +373,7 @@ const handlers = Api.toLayer({
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
+Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
 Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
 

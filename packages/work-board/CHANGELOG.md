@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.37.0 - 2026-10-30
+
+### Added
+
+- Share a scoped watched index through `board.watchIndex`, with parsed metadata, diagnostics and change events. Reconcile missed filesystem events every minute.
+- Read the same index through the `work-board.index` RPC and subscribe with the native live query API.
+
+### Changed
+
+- Keep the Board server's index current in the background before publishing changes to consumers.
+
+## 0.36.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
 ## 0.36.0 - 2026-10-30
 
 ### Added
