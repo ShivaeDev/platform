@@ -1,7 +1,7 @@
-import { NodeFileSystem } from "@effect/platform-node";
 import { Cause, Effect, Exit } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { MAX_FIX_ROUNDS, type Pass, type Settling, settle, snapshotOf } from "#cli/fix.ts";
+import { services } from "#cli/runMain.ts";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -74,7 +74,7 @@ describe("the snapshot that names the files still changing", () => {
 			{ content: "export const a = 1;\n", path: "src/a.ts" },
 			{ content: "\u0089PNG\r\n\u001a\n\u0000\u0000\u0000\rIHDR", path: "assets/logo.png" },
 		]);
-		const snapshot = await Effect.runPromise(Effect.provide(snapshotOf(root), NodeFileSystem.layer));
+		const snapshot = await Effect.runPromise(Effect.provide(snapshotOf(root), services));
 		expect([...snapshot]).toEqual([["src/a.ts", "export const a = 1;\n"]]);
 	});
 });

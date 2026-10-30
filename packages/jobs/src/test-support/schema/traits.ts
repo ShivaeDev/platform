@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, type Schema } from "effect";
+import { Context, Effect, Layer, Redacted, type Schema } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { getRollbackPlans, PgBoss } from "pg-boss";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -64,7 +64,9 @@ export function stopped(name: string) {
 export function rolledBackTo(schema: string, version: number) {
 	return schemaKit.trait("afterwards", `the ${schema} schema was rolled back to version ${version}`, (state) =>
 		Effect.acquireUseRelease(
-			Effect.sync(() => new PgBoss({ connectionString: state.engine.url, migrate: false, schedule: false, schema, supervise: false })),
+			Effect.sync(
+				() => new PgBoss({ connectionString: Redacted.value(state.engine.url), migrate: false, schedule: false, schema, supervise: false }),
+			),
 			(client) =>
 				Effect.promise(async () => {
 					await client.start();

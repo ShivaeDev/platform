@@ -1,98 +1,58 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { AnnouncedRow } from "#test/AnnouncedRow.ts";
-import { postgres } from "#test/sqlStory.ts";
-import { hasNotificationRows, listeningForChanges } from "#test/sqlTraits.ts";
+import { changeFeed, feedListens, hasTable, idsFrom, keysOf } from "#test/changeFeed.ts";
+
+const ROWS = idsFrom(0, 1001);
 
 for (const count of [1000, 1001]) {
-	postgres.it(
-		`an insertMany of ${count} rows announces its returned rows only after commit`,
-		[listeningForChanges(), hasNotificationRows()],
-		function* ({ makeRepository, notificationTable, notifications, transact, watchChanges }) {
-			const tableName = notificationTable();
-			const { state } = notifications();
-			const rows = yield* makeRepository(AnnouncedRow, { idColumn: "id", spanPrefix: "Rows", tableName });
-			const delivered = yield* watchChanges([tableName, `${tableName}:*`, `${tableName}:0`, `${tableName}:1000`]);
-			yield* Effect.gen(function* () {
-				yield* rows.insertMany(Array.from({ length: count }, (_, id) => ({ id, parent: null })));
-				expect(state.payloads).toEqual([]);
-				expect(delivered).toEqual([]);
-			}).pipe(transact({ onSqlError: (error) => error }));
-			const expected = [tableName, ...Array.from({ length: count }, (_, id) => `${tableName}:${id}`)];
-			yield* eventually(Effect.try(() => expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual(expected)));
-			yield* eventually(
-				Effect.try(() =>
-					expect(delivered).toEqual(count === 1001 ? [tableName, `${tableName}:0`, `${tableName}:1000`] : [tableName, `${tableName}:0`]),
-				),
-			);
+	changeFeed.it(
+		`an insertMany of ${count} rows publishes every row key only after its transaction commits`,
+		[feedListens(), hasTable("rows")],
+		function* ({ inTransaction, insertRows, publishedKeys }) {
+			yield* inTransaction(function* () {
+				yield* insertRows(idsFrom(0, count));
+				expect(yield* publishedKeys()).toEqual([]);
+			});
+
+			expect(yield* publishedKeys()).toEqual(keysOf("rows", idsFrom(0, count)));
 		},
 	);
 }
 
-postgres.it(
-	"an upsertMany that only updates 1001 existing rows announces every record",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications }) {
-		const tableName = notificationTable();
-		const { binding, state } = notifications();
-		const rows = yield* makeRepository(AnnouncedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Rows", tableName });
-		const inputs = Array.from({ length: 1001 }, (_, id) => ({ id, parent: null }));
-		yield* rows.insertMany(inputs);
-		const updated = yield* rows
-			.upsertMany(
-				inputs.map((row) => ({ ...row, parent: 0 })),
-				{ updateColumns: ["parent"] },
-			)
-			.pipe(Effect.provideContext(binding));
-		expect(updated.map(({ row: { id, parent } }) => ({ id, parent }))).toEqual(inputs.map(({ id }) => ({ id, parent: 0 })));
-		yield* eventually(
-			Effect.try(() =>
-				expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)]),
-			),
-		);
+changeFeed.it(
+	"an upsertMany that only updates 1001 existing rows publishes every row key",
+	[feedListens(), hasTable("rows")],
+	function* ({ insertRows, publishedKeys, upsertRows }) {
+		yield* insertRows(ROWS);
+		expect(yield* publishedKeys()).toEqual(keysOf("rows", ROWS));
+
+		yield* upsertRows(ROWS, 0);
+
+		expect(yield* publishedKeys()).toEqual([...keysOf("rows", ROWS), ...keysOf("rows", ROWS)]);
 	},
 );
 
-postgres.it(
-	"ignored rows are not announced across chunks",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications }) {
-		const tableName = notificationTable();
-		const { binding, state } = notifications();
-		const rows = yield* makeRepository(AnnouncedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Rows", tableName });
-		yield* rows.insert({ id: 0, parent: null });
-		yield* rows.insertManyOrIgnore(Array.from({ length: 1001 }, (_, id) => ({ id, parent: null }))).pipe(Effect.provideContext(binding));
-		yield* eventually(
-			Effect.try(() =>
-				expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([
-					tableName,
-					...Array.from({ length: 1000 }, (_, index) => `${tableName}:${index + 1}`),
-				]),
-			),
-		);
+changeFeed.it(
+	"an insertManyOrIgnore across statement chunks publishes only the rows it inserted",
+	[feedListens(), hasTable("rows")],
+	function* ({ insertRow, insertRowsOrIgnore, publishedKeys }) {
+		yield* insertRow(0);
+		expect(yield* publishedKeys()).toEqual(keysOf("rows", [0]));
+
+		yield* insertRowsOrIgnore(ROWS);
+
+		expect(yield* publishedKeys()).toEqual([...keysOf("rows", [0]), ...keysOf("rows", idsFrom(1, 1000))]);
 	},
 );
 
-postgres.it(
-	"conditional upserts count changed rows across their statements",
-	[listeningForChanges(), hasNotificationRows()],
-	function* ({ makeRepository, notificationTable, notifications }) {
-		const tableName = notificationTable();
-		const { binding, state } = notifications();
-		const rows = yield* makeRepository(AnnouncedRow, { conflictColumns: ["id"], idColumn: "id", spanPrefix: "Rows", tableName });
-		const inputs = Array.from({ length: 1001 }, (_, id) => ({ id, parent: null }));
-		yield* rows.insertMany(inputs);
-		yield* rows
-			.upsertMany(
-				inputs.map((row) => ({ ...row, parent: 0 })),
-				{ updateColumns: ["parent"], updateWhere: { parent: null } },
-			)
-			.pipe(Effect.provideContext(binding));
-		yield* eventually(
-			Effect.try(() =>
-				expect(state.payloads.flatMap((payload) => JSON.parse(payload))).toEqual([tableName, ...inputs.map(({ id }) => `${tableName}:${id}`)]),
-			),
-		);
+changeFeed.it(
+	"a conditional upsertMany across statement chunks publishes every row it changed",
+	[feedListens(), hasTable("rows")],
+	function* ({ insertRows, publishedKeys, upsertParentlessRows }) {
+		yield* insertRows(ROWS);
+		expect(yield* publishedKeys()).toEqual(keysOf("rows", ROWS));
+
+		yield* upsertParentlessRows(ROWS, 0);
+
+		expect(yield* publishedKeys()).toEqual([...keysOf("rows", ROWS), ...keysOf("rows", ROWS)]);
 	},
 );

@@ -1,54 +1,71 @@
 import { BigDecimal } from "effect";
 import { expect } from "vitest";
-import { input } from "#test/postgresCodecs.ts";
-import { hasArraySamples } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
-import { hasPayments } from "#test/sqlTraits.ts";
+import { queries } from "#test/queries.ts";
 
-postgres.it("findMany matches several IDs from a list", [hasArraySamples()], function* ({ arraySamples }) {
-	const { samples } = arraySamples();
-	yield* samples.insertMany([
+queries.it("findMany with an in list reads the samples whose ids are in the list", [], function* ({ findSamples, saveSamples }) {
+	yield* saveSamples([
 		{ id: 1, values: [10] },
 		{ id: 2, values: [20] },
 		{ id: 3, values: [30] },
 	]);
-	expect(yield* samples.findMany({ orderBy: { direction: "asc", field: "id" }, select: ["id"], where: { id: { in: [1, 3] } } })).toEqual([
-		{ id: 1 },
-		{ id: 3 },
-	]);
+
+	const found = yield* findSamples({ orderBy: { direction: "asc", field: "id" }, select: ["id"], where: { id: { in: [1, 3] } } });
+
+	expect(found).toEqual([{ id: 1 }, { id: 3 }]);
 });
 
-postgres.it("list entries combine with equality on an array field", [hasArraySamples()], function* ({ arraySamples }) {
-	const { samples } = arraySamples();
-	yield* samples.insertMany([
-		{ id: 1, values: [10] },
-		{ id: 2, values: [20] },
-		{ id: 3, values: [10] },
-		{ id: 4, values: [10] },
-	]);
-	expect(yield* samples.findMany({ orderBy: { direction: "asc", field: "id" }, where: { id: { in: [1, 2, 3] }, values: [10] } })).toEqual([
-		{ id: 1, values: [10] },
-		{ id: 3, values: [10] },
-	]);
+queries.it(
+	"an in list combines with equality on an array field, so only samples matching both are read",
+	[],
+	function* ({ findSamples, saveSamples }) {
+		yield* saveSamples([
+			{ id: 1, values: [10] },
+			{ id: 2, values: [20] },
+			{ id: 3, values: [10] },
+			{ id: 4, values: [10] },
+		]);
+
+		const found = yield* findSamples({ orderBy: { direction: "asc", field: "id" }, where: { id: { in: [1, 2, 3] }, values: [10] } });
+
+		expect(found).toEqual([
+			{ id: 1, values: [10] },
+			{ id: 3, values: [10] },
+		]);
+	},
+);
+
+queries.it("an empty in list reads no samples", [], function* ({ findSamples, saveSamples }) {
+	yield* saveSamples([{ id: 1, values: [] }]);
+
+	const found = yield* findSamples({ where: { id: { in: [] } } });
+
+	expect(found).toEqual([]);
 });
 
-postgres.it("an empty list matches no rows", [hasArraySamples()], function* ({ arraySamples }) {
-	const { samples } = arraySamples();
-	yield* samples.insert({ id: 1, values: [] });
-	expect(yield* samples.findMany({ where: { id: { in: [] } } })).toEqual([]);
-	expect(yield* samples.findMany({ where: { values: [] } })).toEqual([{ id: 1, values: [] }]);
-});
+queries.it(
+	"equality with an empty array reads the sample whose array is empty instead of treating it as an empty list",
+	[],
+	function* ({ findSamples, saveSamples }) {
+		yield* saveSamples([
+			{ id: 1, values: [] },
+			{ id: 2, values: [10] },
+		]);
 
-postgres.it("every list value passes through its field codec", [hasPayments()], function* ({ paymentFixture }) {
-	const { payments } = paymentFixture();
-	const first = yield* payments.insert(input);
-	const second = yield* payments.insert({ ...input, amount: BigDecimal.fromStringUnsafe("42.125") });
-	yield* payments.insert({ ...input, amount: BigDecimal.fromStringUnsafe("99.5") });
-	expect(
-		yield* payments.findMany({
-			orderBy: { direction: "asc", field: "id" },
-			select: ["id"],
-			where: { amount: { in: [first.amount, second.amount] } },
-		}),
-	).toEqual([{ id: first.id }, { id: second.id }]);
+		const found = yield* findSamples({ where: { values: [] } });
+
+		expect(found).toEqual([{ id: 1, values: [] }]);
+	},
+);
+
+queries.it("each in list value passes through the decimal field's codec", [], function* ({ findPayments, savePayments }) {
+	const amount = BigDecimal.fromStringUnsafe;
+	yield* savePayments([{ amount: amount("9007199254740993.123456789012") }, { amount: amount("42.125") }, { amount: amount("99.5") }]);
+
+	const found = yield* findPayments({
+		orderBy: { direction: "asc", field: "id" },
+		select: ["amount"],
+		where: { amount: { in: [amount("9007199254740993.123456789012"), amount("42.125")] } },
+	});
+
+	expect(found).toEqual([{ amount: "decimal 9007199254740993.123456789012" }, { amount: "decimal 42.125" }]);
 });

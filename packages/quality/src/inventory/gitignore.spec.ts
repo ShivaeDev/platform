@@ -1,6 +1,6 @@
-import { NodeFileSystem } from "@effect/platform-node";
 import { Order, Schema } from "effect";
 import { afterEach, expect } from "vitest";
+import { services } from "#cli/runMain.ts";
 import rawTree from "#test/fixtures/gitignore-tree.json" with { type: "json" };
 import { git } from "#test/git.ts";
 import { pathsOf, sourceFiles } from "#test/inventoryPaths.ts";
@@ -18,7 +18,7 @@ const ignored = sourceFiles(tree.ignoredPaths);
 const kept = sourceFiles(tree.keptPaths);
 
 // Expected paths were captured from git check-ignore against the same fixture.
-effectIt.layer(NodeFileSystem.layer)("gitignore-aware discovery", (it) => {
+effectIt.layer(services)("gitignore-aware discovery", (it) => {
 	it.effect("keeps gitignored files out of the inventory", function* () {
 		const paths = yield* pathsOf(seedTree(tree.gitignores, ignored, kept));
 		for (const path of tree.ignoredPaths) {

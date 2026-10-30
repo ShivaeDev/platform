@@ -1,5 +1,36 @@
 # Changelog
 
+## 0.5.0 - 2026-10-30
+
+### Added
+
+- Export `SessionUserSchema` from `identity.ts`, `IdentityFailures` from `middleware.ts`, and `providerFailure` from `server/providerFailure.ts` as the shared user description, middleware failure union and redacted provider-failure mapper.
+- Access exports the `Permission` Schema and derives its type from it. Role resolution and identity session decoding use that Schema.
+- Access exports `forbidden(permission)` and `unauthorized()` from `refusal.ts` for consistent permission refusals.
+- Identity's `trustedOrigins` accepts an optional `sameOrigin: { trustedProxy }` policy using the transport guard's loopback and trusted-proxy authority checks. Session resolution supplies the transport peer address; RPC message headers cannot establish proxy trust.
+
+### Fixed
+
+- Report failures and defects masked by `rpcBoundary` through Effect's error reporters at Error severity with diagnostic redaction before returning the rejection.
+- Log boundary-masked RPC failures once at ERROR with their redacted stack; keep declared rejections at INFO.
+- Retry command-declared invalidation publication after the handler returns, with two bounded exponential backoffs. Exhausted retries preserve the committed result and resynchronize local live streams, then broadcast Resync to other PostgreSQL hosts when the change channel is reachable.
+- Clarify that atomic record and bucket invalidation comes from the stored model and repository; command `invalidates` keys remain after-commit. No consumer API changes or migration are required.
+- Run mounted session admission and session permission enrichment in the request fiber so request spans, log annotations and interruption survive policy checks.
+- Generated apps accept their own forwarded HTTPS RPC requests without `PUBLIC_URL`, while refusing foreign origins. A configured `PUBLIC_URL` remains the explicit RPC origin allowlist.
+
+### Breaking
+
+- `mounted.admittedSessions(lookup)` now returns an Effect `SessionProvider`. Assign it directly to `sessions.provider` instead of wrapping it with `betterAuthSessions`, or use `mounted.sessions` for the default lookup and mounted roles. Provide the application's Config provider to the server Layer for request-time account checks and to explicit revocation workflows; revocation also uses the caller's environment.
+- Import `trustedProxyRanges` from `server/trustedProxyRanges.ts` instead of `server/local.ts`, and `proxyRanges` from `server/proxyRanges.ts` instead of `server/trustedProxy.ts`. The forwarding exports have been removed.
+- `sessionPermissions` now returns an Effect instead of a Promise. Yield it in the caller's Effect workflow.
+- `server/sessionProfile.ts` has been removed. Decode or project profiles with `Schema.decodeSync(SessionUserSchema)` from `identity.ts`.
+- Access, identity and React now share access's grant evaluator: an `any` grant covers an `own` check for the same permission name. An `own` grant still cannot cover an `any` check. Applications that need separate capabilities must declare separate permission names; record ownership checks still belong in `canAccess` or `requireAccess`.
+- Replace `Access.requirePermission(user, permission)` with `requirePermission(yield* Access.resolve(user.role), permission)` from `@shivaedev/access/requirePermission.ts`. The new function takes a signed-in user; reject an absent session with `unauthorized()` from `@shivaedev/access/refusal.ts` before resolving its role. `requireAccess` continues to handle signed-out users itself.
+- Replace identity's `requirePermission(permission)` with access's `requirePermission(yield* SessionUser, permission)`. There is no identity re-export. Admin's built-in handlers use this shared enforcement.
+- Access's `requireAccess` now uses the shared permission refusal message, `Permission required: <name> (<strength>)`, instead of `Access denied: <name>`. Consumers should branch on the `Forbidden` tag.
+- Identity treats an undeclared stored user role as a defect naming the role, rather than `AuthUnavailable`. RPC request tracing logs the defect and Better Auth's session endpoint returns HTTP 500. Consumers must correct the user's stored role or restore its application declaration; reserve `AuthUnavailable` handling for provider outages.
+- Admin role assignment trusts its typed role input and leaves session role resolution to identity. RPC consumers need no change: the contract decodes the role. Direct callers of `changeUserRole` must decode untrusted role input with the application's `Role` schema before calling it.
+
 ## 0.4.0 - 2026-10-30
 
 ### Added

@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.22.0 - 2026-10-30
+
+### Added
+
+- Export modules under `internal/` in `contract` and `react` and `server/internal/` in `jobs` through the existing `.ts` wildcard, so consumers can import those modules directly by their file paths.
+
+### Fixed
+
+- Bound each `makeLiveServer` stream to 256 pending hints. On overflow, pending hints collapse into a single `Resync`, so stalled consumers reconcile current query results without accumulating a write backlog.
+- A denied per-hint query policy recheck ends the live subscription with `QueryReadDenied` instead of dropping the hint. Automatic bound queries rerun through their authorized read so an open screen can render the denial from its query result.
+- Jitter live subscription retries and the shared WebSocket reconnect backoff so clients recovering from the same host restart spread their query reruns over time.
+
+### Breaking
+
+- `makeLiveServer.subscribe` now has `QueryReadDenied` in its stream error channel. Custom RPC streams using it must include `QueryReadDenied` in their error schema and handle the failure. Contract-generated change streams already declare this error.
+
 ## 0.21.0 - 2026-10-30
 
 ### Changed

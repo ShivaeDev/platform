@@ -1,7 +1,7 @@
 import { expect } from "vitest";
+import { namedAfterExport } from "@shivaedev/quality/rules/files/namedAfterExport.ts";
+import { otherNames } from "@shivaedev/quality/rules/files/otherNames.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { namedAfterExport } from "#quality-internal/rules/files/namedAfterExport.ts";
-import { otherNames } from "#quality-internal/rules/files/otherNames.ts";
 
 ruleKit.it(
 	"configured source paths extend the default tool-owned names",

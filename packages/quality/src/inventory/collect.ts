@@ -1,8 +1,9 @@
 import { join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import ignore from "ignore";
+import type { SetupFailure } from "#failure.ts";
 import { manifestsIn } from "#manifests/sorted.ts";
-import type { SourceFile } from "#rule.ts";
+import type { RuleServices, SourceFile } from "#rule.ts";
 import { FilesystemFailure, orWhenAbsent, readRequiredText } from "./filesystem.ts";
 import { posix } from "./ignoreScope.ts";
 import { linesOf } from "./linesOf.ts";
@@ -26,7 +27,7 @@ const READ_CONCURRENCY = 16;
 const zoneFiles = Effect.fn("Inventory.zoneFiles")(function* (
 	root: string,
 	zone: string,
-): Effect.fn.Return<readonly string[], FilesystemFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<readonly string[], FilesystemFailure | SetupFailure, RuleServices> {
 	const fs = yield* FileSystem.FileSystem;
 	const path = join(root, zone);
 	if (posix(relative(root, path)).startsWith("..")) {
@@ -46,7 +47,7 @@ function readSource(root: string, path: string): Effect.Effect<SourceFile, Files
 export const collectInventory = Effect.fn("Inventory.collectInventory")(function* (
 	root: string,
 	scope: InventoryScope,
-): Effect.fn.Return<Inventory, FilesystemFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<Inventory, FilesystemFailure | SetupFailure, RuleServices> {
 	const excluded = ignore().add([...scope.exclude]);
 	const toolOwned = yield* shadcnFolders(root);
 	const zones = yield* Effect.forEach(scope.sources, (zone) => zoneFiles(root, zone), { concurrency: READ_CONCURRENCY });

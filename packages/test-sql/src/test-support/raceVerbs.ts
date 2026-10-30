@@ -20,18 +20,24 @@ function takeLock(sql: SqlClient.SqlClient, lock: Lock) {
 	}
 }
 
-// PostgreSQL signals nothing when a session starts waiting on a lock, so the late contender polls its lock view.
-function afterTwoWait(sql: SqlClient.SqlClient) {
+// PostgreSQL signals nothing when a session starts waiting on a lock, so the kit polls its lock view.
+function afterWaiting(sql: SqlClient.SqlClient, count: number) {
 	return sql`select pg_stat_clear_snapshot()`.pipe(
 		Effect.andThen(sql<{ waiting: number }>`select count(*)::integer as waiting from pg_stat_activity
 			where datname = current_database() and wait_event_type = 'Lock'`),
-		Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.waiting !== 2 }),
+		Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.waiting !== count }),
 	);
 }
 
-const claim = Effect.fnUntraced(function* (sql: SqlClient.SqlClient, name: string, guarded: boolean, lock: Lock) {
+const anotherSessionWaits = Effect.fnUntraced(function* (sql: SqlClient.SqlClient) {
+	const connection = yield* sql.reserve;
+	yield* Effect.forkScoped(connection.executeRaw("select pg_advisory_xact_lock(42)", []));
+	yield* afterWaiting(sql, 1);
+});
+
+const claim = Effect.fnUntraced(function* (sql: SqlClient.SqlClient, name: string, guarded: boolean, lock: Lock, waitersAhead: number) {
 	if (name === "charlie") {
-		yield* afterTwoWait(sql);
+		yield* afterWaiting(sql, waitersAhead + 2);
 	}
 	if (lock === "advisory") {
 		yield* sql`select pg_advisory_xact_lock(42)`;
@@ -61,7 +67,7 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 	let results: readonly string[] = [];
 	let seen: readonly string[] = [];
 	let read = "";
-	const race = Effect.fnUntraced(function* (guarded: boolean, lock: Lock) {
+	const race = Effect.fnUntraced(function* (guarded: boolean, lock: Lock, outsider: boolean) {
 		const sql = yield* SqlClient.SqlClient;
 		const recordWaiting = Effect.gen(function* () {
 			yield* sql`select pg_stat_clear_snapshot()`;
@@ -70,9 +76,12 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 			waiting = rows.map(({ query }) => waitingOn(query));
 		});
 		const raced = yield* raceWithLock({
-			effects: ["alice", "bob", "charlie"].map((name) => sql.withTransaction(claim(sql, name, guarded, lock))),
+			effects: ["alice", "bob", "charlie"].map((name) => sql.withTransaction(claim(sql, name, guarded, lock, outsider ? 1 : 0))),
 			lock: Effect.gen(function* () {
 				yield* takeLock(sql, lock);
+				if (outsider) {
+					yield* anotherSessionWaits(sql);
+				}
 				yield* Effect.addFinalizer(() => recordWaiting.pipe(Effect.orDie));
 			}),
 		});
@@ -109,7 +118,7 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 		contenderSaw: () => Effect.sync(() => read),
 		race: (contenders: { readonly lock: Lock; readonly writes: "guarded" | "unguarded" }) => {
 			story.tell(`alice, bob and charlie race with ${contenders.writes} writes against a ${contenders.lock} lock`);
-			return engine.run(withIsolatedDatabase(race(contenders.writes === "guarded", contenders.lock)));
+			return engine.run(withIsolatedDatabase(race(contenders.writes === "guarded", contenders.lock, false)));
 		},
 		raceResults: () => Effect.sync(() => results),
 		raceTally: () =>
@@ -117,6 +126,10 @@ export function raceVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>) 
 				claimed: results.filter((result) => result !== "full").length,
 				full: results.filter((result) => result === "full").length,
 			})),
+		raceWhileAnotherSessionWaits: () => {
+			story.tell("another session waits on the advisory lock, then alice, bob and charlie race with guarded writes behind it");
+			return engine.run(withIsolatedDatabase(race(true, "advisory", true)));
+		},
 		secondTestSaw: () => Effect.sync(() => seen),
 		secondTestWritesLockedRow: () => {
 			story.tell("a second rollback test writes the row the first rollback test holds");

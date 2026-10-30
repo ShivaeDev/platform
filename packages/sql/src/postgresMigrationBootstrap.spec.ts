@@ -1,116 +1,49 @@
-import { Duration, Effect, Fiber } from "effect";
-import { Migrator } from "effect/sql";
+import { Duration } from "effect";
 import { expect } from "vitest";
-import { postgres } from "#test/sqlStory.ts";
-import { hasHeldSeed, hasMigrationTables } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { migrationRuns } from "#test/migrationRuns.ts";
 
-postgres.it(
-	"migratePostgres serializes empty-database runners and applies each migration once",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres, advisoryXactLock, raceWithLock }) {
-		const { ledger, orders } = migrations();
+migrationRuns.it(
+	"a runner that cannot take the ledger lock within its lockTimeout fails with a lock timeout while the holder finishes",
+	[],
+	function* ({ migrate, orders, resumePausedRunner, runs, startPausedRunner }) {
+		yield* startPausedRunner(["1_create_orders", "2_pause_then_add_printer_paper"]);
 
-		const options = {
-			loader: Migrator.fromRecord({
-				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
-				"2_seed_orders": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid),
-			}),
-			lockTimeout: "5 seconds",
-			table: ledger,
-		} as const;
+		yield* migrate(["1_create_orders", "2_pause_then_add_printer_paper"], { lockTimeout: "100 millis" });
+		yield* resumePausedRunner();
 
-		const results = yield* raceWithLock({
-			effects: [migratePostgres(options), migratePostgres(options)],
-			lock: advisoryXactLock(`effect_sql_migrations:${ledger}`),
-		});
-
-		expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual(
-			expect.arrayContaining([
+		yield* outcomes({
+			orders: [orders(), ["Printer paper"]],
+			runs: [
+				runs(),
 				[
-					[1, "create_orders"],
-					[2, "seed_orders"],
+					"failed with a lock timeout (SQLSTATE 55P03)",
+					[
+						[1, "create_orders"],
+						[2, "pause_then_add_printer_paper"],
+					],
 				],
-				[],
-			]),
-		);
-		expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
-		expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
+			],
+		});
 	},
 	15_000,
 );
 
-postgres.it(
-	"migratePostgres fails with a typed lock timeout while another runner holds the migration lock",
-	[hasMigrationTables(), hasHeldSeed()],
-	function* ({ migrations, migratePostgres, heldSeed }) {
-		const { ledger } = migrations();
+migrationRuns.it("a failed first batch also rolls back the ledger it bootstrapped", [], function* ({ existingTables, migrate }) {
+	yield* migrate(["1_create_orders", "2_add_printer_paper_twice"]);
 
-		const held = heldSeed();
-		const first = yield* migratePostgres({
-			loader: held.loader,
-			lockTimeout: "5 seconds",
-			table: ledger,
-		}).pipe(Effect.forkScoped);
-		yield* held.entered;
-		const blocked = yield* migratePostgres({
-			loader: held.loader,
-			lockTimeout: "100 millis",
-			table: ledger,
-		}).pipe(Effect.timeout("3 seconds"), Effect.flip);
-		expect(blocked).toMatchObject({
-			_tag: "SqlError",
-			reason: { _tag: "LockTimeoutError" },
-		});
-		yield* held.release;
-		expect(yield* Fiber.join(first)).toEqual([
-			[1, "create_orders"],
-			[2, "seed_orders"],
-		]);
-	},
-	15_000,
-);
+	expect(yield* existingTables()).toEqual([]);
+});
 
-postgres.it(
-	"a failed migratePostgres batch rolls back the bootstrapped ledger with the batch",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres }) {
-		const { ledger, orders } = migrations();
+const LOCK_TIMEOUTS = [
+	{ lockTimeout: Duration.seconds(5), name: "5 seconds", setting: "5s" },
+	{ lockTimeout: Duration.infinity, name: "Duration.infinity", setting: "0" },
+] as const;
 
-		const failure = yield* migratePostgres({
-			loader: Migrator.fromRecord({
-				"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
-				"2_duplicate_order": sql`insert into ${sql(orders)} (name) values ('Printer paper'), ('Printer paper')`.pipe(Effect.asVoid),
-			}),
-			lockTimeout: "5 seconds",
-			table: ledger,
-		}).pipe(Effect.flip);
-		expect(failure).toMatchObject({ _tag: "MigrationError", kind: "Failed" });
-		expect(yield* sql`select to_regclass(${ledger}) as ledger, to_regclass(${orders}) as orders`).toEqual([{ ledger: null, orders: null }]);
-	},
-);
+for (const { lockTimeout, name, setting } of LOCK_TIMEOUTS) {
+	migrationRuns.it(`a lockTimeout of ${name} sets the batch's PostgreSQL lock_timeout to ${setting}`, [], function* ({ lockTimeoutsSeen, migrate }) {
+		yield* migrate(["1_read_lock_timeout"], { lockTimeout });
 
-postgres.it(
-	"an infinite migratePostgres lock timeout disables PostgreSQL's lock timeout for the batch",
-	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres }) {
-		const { ledger } = migrations();
-
-		const seen: Array<string | undefined> = [];
-		const applied = yield* migratePostgres({
-			loader: Migrator.fromRecord({
-				"1_read_lock_timeout": Effect.map(
-					sql<{
-						timeout: string;
-					}>`select current_setting('lock_timeout') as timeout`,
-					([row]) => {
-						seen.push(row?.timeout);
-					},
-				),
-			}),
-			lockTimeout: Duration.infinity,
-			table: ledger,
-		});
-		expect(applied).toEqual([[1, "read_lock_timeout"]]);
-		expect(seen).toEqual(["0"]);
-	},
-);
+		expect(yield* lockTimeoutsSeen()).toEqual([setting]);
+	});
+}

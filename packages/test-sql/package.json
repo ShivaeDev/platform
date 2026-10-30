@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test-sql",
-	"version": "0.11.0",
+	"version": "0.12.0",
 	"description": "PostgreSQL rollback and real-commit test isolation for Effect",
 	"keywords": [
 		"effect"

@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.46.0 - 2026-10-30
+
+### Added
+
+- Export every Quality module through its file path, including the DOM environment, unit I/O guard, tooling classifier, bundle-input analysis, shadcn inventory helpers and migration-file naming helpers.
+
+### Changed
+
+- `tests/domain-outcomes`, `tests/grouped-outcomes` and `tests/wait-on-events` now read every story file, whatever its suffix, so a story named after its module such as `pane.dom.test.ts` follows the same rules as a `.spec.ts`. Type tests, unit tests and `test-support` files stay out of scope. Repair the new findings, or record them with `quality baseline write --rule <rule>` for each of the three rules.
+
+### Fixed
+
+- Keep plain option objects such as `RequestInit`, including options nested inside Vitest types, out of service-parameter findings when an Effect service uses the same type. Service keys, callable services and method-bearing service implementations remain checked.
+- Decode package manifests once per scan through a shared Schema, report an invalid manifest once with its path before dependent checks run, and surface read failures instead of treating them as missing files.
+- Decode Quality configuration, baselines, registries and declarations directly with Effect Schema.
+- Rule checks retain the caller's services and interruption instead of starting independent runtimes. The deprecation check reads configuration through the supplied file system and fails when a discovered configuration cannot be read.
+- Read the CI test-output policy while building its Effect Layer, keeping the synchronous Vitest configuration bridge in an adapter.
+- Keep the shared Vitest configuration loadable with both bundled and native config loaders.
+- Scoped Biome configs preserve malformed VCS settings so the native tool reports them instead of applying defaults.
+- Interrupting rules stops Biome and knip child processes and removes their scoped temporary configs before the run ends.
+- A crashing rule prints its id and original stack through `Cause.pretty`. Setup failures retain their original cause as a non-enumerable property.
+
+### Breaking
+
+- Invalid manifest fields now fail `manifests/valid`; correct malformed JSON and manifest field types before running lint or fix. Optional files are absent only for `NotFound`; repair unreadable paths instead of relying on them being ignored.
+- `sortManifests` reports invalid data as `ManifestFailure`; handle that tag or repair the manifest before sorting.
+- `decodeWith` accepts an Effect Schema instead of a Standard Schema; pass the original Effect Schema. Rule option schemas still use Standard Schema.
+- `runtimeOf` and `runtimeDeclarationProblems` return Effects; yield their results in Effect programs. `sortingOf` expects validated JSON; validate a manifest through the shared inventory before sorting. `Inventory` includes `manifestFiles`; provide the repository's manifest paths when constructing an inventory.
+- `manifests/exports-shape` rejects null export entries. Remove those entries so callers can import modules through the file-preserving wildcard; record existing blocks in the baseline while adopting the rule.
+- `docs/references` reports null-blocked module paths as unavailable modules instead of private APIs, and `documentedModule` returns `kind: "missing"` for them. Handle `"missing"` instead of `"private"` when using that result, and remove the export blocks before documenting those paths.
+- Import `testProjects` and `TestProjectsOptions` from `@shivaedev/quality/adapters/testProjects.ts` instead of `@shivaedev/quality/testProjects.ts`. The Vitest configuration entry point now lives with its adapter; no alias remains at the old path.
+- Direct callers of the configured `suppressions/no-ignore-deprecations` check must provide Effect's `FileSystem` service. The Quality CLI already supplies it; custom runners can provide `NodeFileSystem.layer` at their entry point.
+- Configured rules now return an Effect. Use `yield* configured.check(inputs)` and provide the services required by the check at your application's boundary; raw `Rule.configure` implementations must return an Effect check. `defineRule` still accepts synchronous and Promise checks, now also accepts Effect checks, and supplies `context.signal` for cancellable Promise work.
+- `runBiome`, `biomeReport`, `recommendedRules`, `runKnip` and `withExceptionConfig` now return Effects. Compose them with `yield*` instead of awaiting them; supply the filesystem and child-process services, and scope `withExceptionConfig` and its Effect callback. Engine scans and CLI commands that run rules require both services too.
+- Rule crashes are defects rather than `SetupFailure` values. Handle expected setup failures in the error channel and use Effect cause handling for rule defects.
+
 ## 0.45.0 - 2026-10-30
 
 ### Added
