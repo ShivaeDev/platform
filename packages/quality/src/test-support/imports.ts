@@ -5,6 +5,7 @@ import { Effect, Schema } from "effect";
 import { collectInventory } from "#inventory/collect.ts";
 import type { Findings, Rule, RuleInputs } from "#rule.ts";
 import rawTrees from "#test/fixtures/import-trees.json" with { type: "json" };
+import { run } from "#test/run.ts";
 import { seedTree } from "./tree.ts";
 
 const SeedFile = Schema.Struct({ content: Schema.String, path: Schema.String });
@@ -49,5 +50,5 @@ export async function findingsIn<TInput>(rule: Rule<string, TInput>, options: TI
 	if (configured._tag === "Invalid") {
 		throw new Error(`invalid options: ${configured.issues.join("; ")}`);
 	}
-	return configured.check(await scanned(root));
+	return run(configured.check(await scanned(root)));
 }
