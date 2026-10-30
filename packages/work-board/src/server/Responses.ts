@@ -28,11 +28,13 @@ export const Responses = defineService({
 	id: "WorkBoard/Responses",
 	initialize: Effect.gen(function* () {
 		const workspace = yield* Workspace;
+		const saves = yield* FiberSet.make<RecordedResponse, ResponseRejection>();
+		yield* Effect.addFinalizer(() => FiberSet.awaitEmpty(saves));
 		return {
 			fs: yield* FileSystem.FileSystem,
 			lock: yield* Semaphore.make(1),
 			options: yield* workspace.settings(),
-			saves: yield* FiberSet.make<RecordedResponse, ResponseRejection>(),
+			saves,
 			workspace,
 		};
 	}),
