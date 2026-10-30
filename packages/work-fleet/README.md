@@ -297,11 +297,13 @@ Fleet gives available areas to eligible queued tasks and waiting PR repairs by `
 
 The Git-backed host also predicts conflicts as reconciliation observes worker pushes. It uses `git merge-tree --write-tree --name-only` without checking out a branch, comparing the pushed head with current main and every other open PR it watches, including foreign reservations and worker PRs not yet adopted. Conflicts between PRs include only files both branches changed from their merge base with current main; a stale branch's conflict with main stays on that PR. `mergePrediction` records each conflict's two heads, PR URL (`main` for the base branch), file names and UTC observation time in typed PostgreSQL rows.
 
-A later-opened conflicting PR waits before review and merge readiness with an automation reason such as `waiting for https://github.com/example/project/pull/7 to merge: conflicting packages/work-fleet/src/storage/fleetMigrations.ts`. This hold survives restarts and remains independent of `areaMergeWaitMs`. When the earlier PR merges, Fleet continues the held worker on the same branch and PR once to fetch and merge main, resolve the conflicts, then receive fresh review and checks. Non-conflicting PRs proceed in parallel.
+Normally, a later-opened conflicting PR waits before review and merge readiness with an automation reason such as `waiting for https://github.com/example/project/pull/7 to merge: conflicting packages/work-fleet/src/storage/fleetMigrations.ts`. This hold survives restarts and remains independent of `areaMergeWaitMs`. When the earlier PR merges, Fleet continues the held worker on the same branch and PR once to fetch and merge main, resolve the conflicts, then receive fresh review and checks. Non-conflicting PRs proceed in parallel.
 
 Work waiting for another PR or sweep to merge releases its areas immediately once execution has ended. Those areas stay released until a new worker or repair turn passes normal area admission, so a merge wait cannot hold an area needed to repair the PR it waits for.
 
-Status and watch report observed cycles among area waits, predicted PR merge waits and sweep holds as `Stuck: wait cycle`, naming the work items and PRs involved; items blocked behind the cycle report the same reason. This includes cycles from custom prediction integrations.
+Fleet breaks a cycle between an area hold and merge order by letting a PR with fresh passing required checks and no conflict with main go first. It drops only that PR's merge waits inside the cycle and preserves the exception across restarts for the selected head. If neither PR qualifies, Fleet lends the held area to the repair. Review, validation and human merge authority still apply.
+
+Status and watch report remaining cycles among area waits, predicted PR merge waits and sweep holds as `Stuck: wait cycle`, naming the work items and PRs involved on one stable member per cycle. Items blocked behind the cycle keep their own waiting reasons, and repairable area cycles stay with automation. This includes cycles from custom prediction integrations.
 
 #### Depend on other work
 
