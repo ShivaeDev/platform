@@ -1,11 +1,11 @@
 import { expect } from "@effect/vitest";
 import { Effect } from "effect";
-import { answers, approvedPullRequest } from "#test/answerHost.ts";
+import { answers, approvedPullRequest, manualScheduling } from "#test/answerHost.ts";
 import { repairAttempts, reviewHeads } from "#test/approvedPrDaemon.ts";
 import { BASE, HEAD, MOVED } from "#test/githubResult.ts";
 
 for (const conflicting of [false, true]) {
-	answers.it(`daemon reconciliation consumes retry text when conflict=${conflicting}`, [approvedPullRequest], function* (daemon) {
+	answers.it(`daemon reconciliation consumes retry text when conflict=${conflicting}`, [approvedPullRequest, manualScheduling], function* (daemon) {
 		const ready = yield* daemon.readyPullRequest();
 		const response = daemon.publishPullRequestResponse(ready, "Keep the loading indicator visible.");
 		if (conflicting) {
@@ -28,7 +28,7 @@ for (const conflicting of [false, true]) {
 for (const author of ["maintainer", "orchestrator"]) {
 	answers.it(
 		`daemon sends ${author} retry text to the same worker and reviews its new PR head after restart`,
-		[approvedPullRequest],
+		[approvedPullRequest, manualScheduling],
 		function* (daemon) {
 			const resolved = yield* Effect.gen(function* () {
 				let ready = yield* daemon.readyPullRequest();
@@ -72,36 +72,44 @@ for (const author of ["maintainer", "orchestrator"]) {
 	);
 }
 
-answers.it("daemon retries an unchanged approved head without text by republishing merge readiness", [approvedPullRequest], function* (daemon) {
-	let ready = yield* daemon.readyPullRequest();
-	for (const body of ["", "  \n  "]) {
-		daemon.publishPullRequestResponse(ready, body);
-		const retried = yield* daemon.request("fleet.reconcile", { workId: "one" });
-		expect(retried.decision?.reason).toBe("Reviewed PR is ready to merge");
-		expect(retried.decision?.id).not.toBe(ready.decision?.id);
-		expect(retried.result).toEqual(ready.result);
-		expect(retried.review).toEqual(ready.review);
-		expect(retried.checks).toEqual(ready.checks);
-		expect(retried.attempts).toEqual(ready.attempts);
-		expect(daemon.launchedSessions()).toEqual(ready.attempts.map(({ operationId }) => operationId));
-		ready = retried;
-	}
-});
+answers.it(
+	"daemon retries an unchanged approved head without text by republishing merge readiness",
+	[approvedPullRequest, manualScheduling],
+	function* (daemon) {
+		let ready = yield* daemon.readyPullRequest();
+		for (const body of ["", "  \n  "]) {
+			daemon.publishPullRequestResponse(ready, body);
+			const retried = yield* daemon.request("fleet.reconcile", { workId: "one" });
+			expect(retried.decision?.reason).toBe("Reviewed PR is ready to merge");
+			expect(retried.decision?.id).not.toBe(ready.decision?.id);
+			expect(retried.result).toEqual(ready.result);
+			expect(retried.review).toEqual(ready.review);
+			expect(retried.checks).toEqual(ready.checks);
+			expect(retried.attempts).toEqual(ready.attempts);
+			expect(daemon.launchedSessions()).toEqual(ready.attempts.map(({ operationId }) => operationId));
+			ready = retried;
+		}
+	},
+);
 
-answers.it("answer text queues requested changes on the same branch and PR through daemon HTTP", [approvedPullRequest], function* (daemon) {
-	const ready = yield* daemon.readyPullRequest();
-	const queued = yield* daemon.answerAndWait("Keep the loading indicator visible.");
-	expect(queued.step).toBe("repairing");
-	expect(queued.responses?.at(-1)).toMatchObject({ action: "retry", boardAcknowledged: true });
-	yield* daemon.request("fleet.reconcile", { workId: "one" });
-	const reworked = yield* daemon.workerStarted("repair");
-	expect(reworked.result).toEqual(ready.result);
-	expect(reworked.attempts.at(-1)?.receipt?.sessionId).toBe(ready.attempts[0]?.receipt?.sessionId);
-	expect(reworked.attempts.at(-1)?.prompt).toContain("Keep the loading indicator visible.");
-	expect(reworked.attempts.at(-1)?.prompt).toContain(`same branch and PR (${daemon.pullRequestUrl()})`);
-});
+answers.it(
+	"answer text queues requested changes on the same branch and PR through daemon HTTP",
+	[approvedPullRequest, manualScheduling],
+	function* (daemon) {
+		const ready = yield* daemon.readyPullRequest();
+		const queued = yield* daemon.answerAndWait("Keep the loading indicator visible.");
+		expect(queued.step).toBe("repairing");
+		expect(queued.responses?.at(-1)).toMatchObject({ action: "retry", boardAcknowledged: true });
+		yield* daemon.request("fleet.reconcile", { workId: "one" });
+		const reworked = yield* daemon.workerStarted("repair");
+		expect(reworked.result).toEqual(ready.result);
+		expect(reworked.attempts.at(-1)?.receipt?.sessionId).toBe(ready.attempts[0]?.receipt?.sessionId);
+		expect(reworked.attempts.at(-1)?.prompt).toContain("Keep the loading indicator visible.");
+		expect(reworked.attempts.at(-1)?.prompt).toContain(`same branch and PR (${daemon.pullRequestUrl()})`);
+	},
+);
 
-answers.it("answer without text retries a ready PR without requesting rework", [approvedPullRequest], function* (daemon) {
+answers.it("answer without text retries a ready PR without requesting rework", [approvedPullRequest, manualScheduling], function* (daemon) {
 	const ready = yield* daemon.readyPullRequest();
 	const retried = yield* daemon.answerAndWait();
 	expect(retried.step).toBe("delivering");

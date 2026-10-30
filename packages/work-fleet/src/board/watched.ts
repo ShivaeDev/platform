@@ -1,4 +1,4 @@
-import { Clock, Context, Effect, FileSystem, Layer, Path, Semaphore } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, Semaphore } from "effect";
 import { board, type MetadataDocument, type Snapshot } from "@shivaedev/work-board/server/integration/board.ts";
 import type { BoardDocument } from "#board/documents.ts";
 import { BoardIndex } from "#board/Index.ts";
@@ -11,10 +11,14 @@ import { BoardFailure } from "#policy.ts";
 export function watchedBoard(root: string) {
 	return Layer.effect(BoardIndex)(
 		Effect.gen(function* () {
-			const clock = yield* Clock.Clock;
+			const owner = yield* Effect.context<never>();
 			const watched = yield* board.watchIndex(root);
-			// A request clock must not pause a shared index read while another request waits for it.
-			const index = { ...watched, read: watched.read.pipe(Effect.provideService(Clock.Clock, clock)) };
+			// Transient request passes and clocks must not become part of the long-lived index.
+			const index = {
+				...watched,
+				read: watched.read.pipe(Effect.updateContext<never, never>(() => owner)),
+				reconcile: watched.reconcile.pipe(Effect.updateContext<never, never>(() => owner)),
+			};
 			const platform = (yield* Effect.context<FileSystem.FileSystem | Path.Path>()).pipe(Context.pick(FileSystem.FileSystem, Path.Path));
 			const lock = yield* Semaphore.make(1);
 			const checked = new WeakMap<MetadataDocument, Effect.Success<ReturnType<typeof validateDocument>>>();

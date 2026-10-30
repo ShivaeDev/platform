@@ -9,6 +9,7 @@ import type { FleetHost } from "#host/config.ts";
 import { stopDispatchWork } from "#host/stopDispatchWork.ts";
 import { BoardGateway, type BoardWork } from "#policy.ts";
 import { dispatchStore } from "#storage/dispatchStore.ts";
+import { StorageConflict } from "#storage/errors.ts";
 
 export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(function* (host: FleetHost) {
 	const scope = yield* Effect.scope;
@@ -38,6 +39,7 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 			return;
 		}
 		const fiber = yield* dispatchApproved(host, request.workId, request.now ? { ignoreAreas: request.ignoreAreas === true } : undefined).pipe(
+			Effect.retry({ while: (error) => error instanceof StorageConflict }),
 			Effect.andThen(store.finish(request)),
 			Effect.catchCause((cause) =>
 				Cause.hasInterrupts(cause) ? Effect.failCause(cause) : store.finish(request, failureMessage(Cause.squash(cause))),

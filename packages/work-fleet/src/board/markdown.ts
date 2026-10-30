@@ -9,6 +9,7 @@ import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { decisionReading } from "#board/decisionReading.ts";
 import { boundSnapshot, refreshSnapshotDocument, snapshotDocument } from "#board/documents.ts";
 import { fleetApproved, fleetDeliverable, fleetPriority } from "#board/fleetField.ts";
+import { observedBoard } from "#board/observed.ts";
 import { publishBoard } from "#board/publish.ts";
 import { publishReport } from "#board/publishReport.ts";
 import { recordBoardSource, workMetadata } from "#board/readPass.ts";
@@ -42,7 +43,7 @@ const MarkdownBoard = defineService({
 			return decisionSnapshot(item).pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
 		}
 		const get = Effect.fn("FleetBoard.get")(function* (workId: string, options?: { readonly fresh?: boolean }) {
-			const current = yield* snapshot;
+			const current = yield* snapshot.pipe(Effect.flatMap((observed) => observedBoard(observed, workId)));
 			const found = yield* options?.fresh
 				? refreshSnapshotDocument(root, realRoot, current, workId).pipe(
 						Effect.provideService(FileSystem.FileSystem, fs),

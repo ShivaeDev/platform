@@ -19,7 +19,11 @@ host.it(
 		yield* replacement.ready;
 		daemon.acknowledgeRestartTurn();
 		daemon.finishRestartTurn();
-		const completed = yield* daemon.awaitProcessRecord(client, "one", (record) => record.stage === "done");
+		const completed = yield* daemon.awaitProcessRecord(
+			client,
+			"one",
+			(record) => record.stage === "done" && record.attempts.every((attempt) => attempt.sessionCleanupComplete),
+		);
 		yield* client("fleet.reconcile", { workId: "one" });
 
 		expect(completed.attempts.map(({ operationId }) => operationId)).toEqual(submitting.attempts.map(({ operationId }) => operationId));

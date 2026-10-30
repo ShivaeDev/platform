@@ -7,11 +7,11 @@ import { boardWork } from "#test/hostStory.ts";
 import { MAIN } from "#test/mainSource.ts";
 import { noChangeHost } from "#test/noChangeHost.ts";
 import { prepared } from "#test/preparation.ts";
-import { observedConnections, readyScheduledHost } from "#test/scheduledHost.ts";
+import { observedConnections } from "#test/scheduledHost.ts";
 
 fleetDaemon.it(
 	"HTTP operations stay within the configured PostgreSQL connections, close them on shutdown, share one provider lifetime and carry request ids",
-	[boardWork({}, { database: { maxConnections: 2 }, intervalSeconds: 60 }), readyScheduledHost, observedConnections, noChangeHost],
+	[boardWork({}, { database: { maxConnections: 2 }, intervalSeconds: 60 }), observedConnections, noChangeHost],
 	function* (daemon) {
 		expect(daemon.address()).toMatch(/^http:\/\/127\.0\.0\.1:\d+$/u);
 		daemon.writeBoard("one.md", task("one", "approved"));
@@ -72,7 +72,7 @@ fleetDaemon.it(
 
 fleetDaemon.it(
 	"an occupied listener prevents a second daemon from scheduling work",
-	[boardWork({}, { intervalSeconds: 60 }), readyScheduledHost],
+	[boardWork({}, { intervalSeconds: 60 })],
 	function* (daemon) {
 		daemon.writeBoard("one.md", task("one", "approved"));
 		const collision = yield* daemon.startOnOccupiedPort();
