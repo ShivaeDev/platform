@@ -52,9 +52,6 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 	);
 	const reads = batches.flat();
 	const problems = new Map(reads.flatMap(({ file, problem }) => (problem === undefined ? [] : [[file, problem] as const])));
-	for (const problem of problems.values()) {
-		yield* Effect.logWarning(problem.message);
-	}
 	return new BoardSnapshot(
 		reads.flatMap(({ document }) => (document === undefined ? [] : [document])),
 		problems,

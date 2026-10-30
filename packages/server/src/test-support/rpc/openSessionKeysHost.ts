@@ -46,7 +46,6 @@ export const openSessionKeysHost = Effect.fnUntraced(function* (provider: Provid
 			get: (headers: Parameters<typeof lookup.get>[0]) => lookup.get(headers).pipe(Effect.map(Option.map((session) => sessionWithAccounts(session)))),
 		},
 		roles: TestRoles,
-		streamRevalidationInterval: "50 millis" as const,
 	};
 	const customAuth = Layer.succeed(CustomAuthenticated, (effect, { headers, rpc, payload }) =>
 		Effect.gen(function* () {

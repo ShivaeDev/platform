@@ -2,6 +2,28 @@ import { expect } from "vitest";
 import { liveSessionStory } from "#test/live-session/story.tsx";
 
 liveSessionStory.it(
+	"one hint replaces an open note with read denied after Alice loses read access and closes her subscription",
+	[],
+	function* ({ active, denyRead, rename, subscribers, text, untilQueryFails, untilQueryReady }) {
+		yield* untilQueryReady();
+		expect(text()).toBe("First");
+		expect(subscribers()).toEqual(["alice"]);
+
+		yield* denyRead();
+		yield* rename("Private after denial");
+		yield* untilQueryFails();
+
+		expect(text()).toBe("Read denied");
+		expect(active()).toBe(0);
+
+		yield* rename("Another private change");
+
+		expect(text()).toBe("Read denied");
+		expect(active()).toBe(0);
+	},
+);
+
+liveSessionStory.it(
 	"stream revalidation shows sign-in without another query read",
 	[],
 	function* ({ observe, ready, reads, recheckedSessions, signOut, text }) {

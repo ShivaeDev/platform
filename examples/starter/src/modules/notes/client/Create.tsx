@@ -2,6 +2,7 @@ import { Option, Predicate } from "effect";
 import { useId } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
 import { useCreate } from "@shivaedev/react/client/create.ts";
+import { fieldRejectionOf } from "@shivaedev/react/fieldRejection.ts";
 import { Button } from "#client/ui/button.tsx";
 import { Input } from "#client/ui/input.tsx";
 import { NoteFields } from "#modules/notes/notes.ts";
@@ -10,7 +11,13 @@ import type { NotesClient } from "./make.ts";
 export function NoteCreate({ client }: { readonly client: NotesClient }) {
 	const titleId = useId();
 	const errorId = useId();
-	const create = useCreate({ create: client.api.create.run, fields: NoteFields, initialValues: { title: "" }, runtime: client.runtime });
+	const create = useCreate({
+		create: client.api.create.run,
+		fields: NoteFields,
+		initialValues: { title: "" },
+		rejectField: fieldRejectionOf(NoteFields),
+		runtime: client.runtime,
+	});
 	const title = useField(create.form, "title");
 	return (
 		<form

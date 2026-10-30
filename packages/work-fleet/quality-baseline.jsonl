@@ -300,7 +300,6 @@
 {"path":"packages/work-fleet/src/host/supervisorCode.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-fleet/src/host/supervisorPort.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/supervisorState.ts","rule":"effect/boundary","count":3}
-{"path":"packages/work-fleet/src/host/watchHealth.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"packages/work-fleet/src/host/watchScheduler.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/workerQuestion.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-fleet/src/host/workerQuestion.spec.ts","rule":"tests/grouped-outcomes","count":1}

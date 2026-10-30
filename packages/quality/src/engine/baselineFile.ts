@@ -14,14 +14,14 @@ export interface BaselineFile {
 }
 
 export function readInput(root: string, path: string): Effect.Effect<string | undefined, SetupFailure, FileSystem.FileSystem> {
-	return Effect.mapError(readOptionalText(join(root, path)), (failure) => new SetupFailure({ message: failure.message }));
+	return Effect.mapError(readOptionalText(join(root, path)), (failure) => new SetupFailure({ cause: failure, message: failure.message }));
 }
 
 export const readBaseline = Effect.fn("Engine.readBaseline")(function* (
 	config: ResolvedConfig,
 ): Effect.fn.Return<BaselineFile, SetupFailure, FileSystem.FileSystem> {
 	const files = new Map<string, Shard>();
-	for (const path of yield* shardPaths(config).pipe(Effect.mapError((error) => new SetupFailure({ message: error.message })))) {
+	for (const path of yield* shardPaths(config).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })))) {
 		const raw = yield* readInput(config.root, path);
 		if (raw === undefined) {
 			continue;

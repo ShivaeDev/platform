@@ -17,9 +17,10 @@ export const readDocument = Effect.fn("WorkBoard.readDocument")(function* (
 	home: string | undefined,
 	modified: number,
 	previous?: IndexedDocument,
+	resolve?: (file: string) => Effect.Effect<string | undefined>,
 ) {
 	const fs = yield* FileSystem.FileSystem;
-	const real = yield* markdownPath(root, realRoot, file);
+	const real = yield* resolve ? resolve(file) : markdownPath(root, realRoot, file);
 	if (real === undefined) {
 		return undefined;
 	}

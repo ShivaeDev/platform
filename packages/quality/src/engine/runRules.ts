@@ -1,12 +1,11 @@
 import { isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
-import { SetupFailure } from "#failure.ts";
 import { posix } from "#inventory/ignoreScope.ts";
-import type { Finding, Findings, RuleInputs } from "#rule.ts";
+import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
 
 export interface ActiveRule {
-	readonly check: (inputs: RuleInputs) => Promise<Findings>;
+	readonly check: RuleCheck;
 	readonly description: string;
 	readonly family: boolean;
 	readonly id: string;
@@ -48,17 +47,15 @@ function violationOf(rule: ActiveRule, root: string, finding: Finding, exception
 	};
 }
 
-function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure> {
-	return Effect.map(
-		Effect.tryPromise({
-			catch: (cause) => new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` }),
-			try: () => rule.check(inputs),
-		}),
-		(findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
+function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], never, RuleServices> {
+	return Effect.suspend(() => rule.check(inputs)).pipe(
+		Effect.orDie,
+		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
+		Effect.catchDefect((cause) => Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause }))),
 	);
 }
 
-export function runRules(rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], SetupFailure> {
+export function runRules(rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], never, RuleServices> {
 	return Effect.map(
 		Effect.forEach(rules, (rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"), { concurrency: "unbounded" }),
 		(results) => results.flat(),

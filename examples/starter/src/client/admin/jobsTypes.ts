@@ -1,31 +1,15 @@
-import type { Option, Schema } from "effect";
 import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import type { JobFields, JobsHealth, QueueCounts } from "@shivaedev/admin/jobs/schemas.ts";
+import type { foundation } from "#modules.ts";
 
-export type AdminJob = Schema.Struct.Type<typeof JobFields> & {
-	readonly data: object | null;
-	readonly queue: string;
-	readonly sourceId?: Option.Option<string>;
-	readonly sourceOutput?: unknown;
-};
+type JobsQuery = (typeof foundation.JobsPage.contract.declaration.queries)[number];
+type Operation<TName extends JobsQuery["name"]> = Extract<JobsQuery, { readonly name: TName }>;
+type Success<TName extends JobsQuery["name"]> = Operation<TName>["success"]["Type"];
+export type AdminJob = Success<"failed">["jobs"][number] | Success<"deadLettered">["jobs"][number];
 interface Query<TInput, A> {
 	readonly query: (input: TInput) => Atom.Atom<AsyncResult.AsyncResult<A, unknown>>;
 }
-interface Listing {
-	readonly jobs: readonly AdminJob[];
-	readonly next: Option.Option<string>;
-}
-interface PageInput {
-	readonly cursor?: string;
-	readonly limit: number;
-	readonly queue: string;
-}
-export interface JobsViewClient {
-	readonly counts: Query<{ readonly queue: string }, typeof QueueCounts.Type>;
-	readonly deadLettered: Query<PageInput, Listing>;
-	readonly failed: Query<PageInput, Listing>;
-	readonly health: Query<void, typeof JobsHealth.Type>;
-	readonly job: Query<{ readonly queue: string; readonly id: string }, Option.Option<AdminJob>>;
-}
-export type RetryJob = Atom.AtomResultFn<{ readonly queue: string; readonly id: string }, void, unknown>;
+export type JobsViewClient = {
+	readonly [TName in JobsQuery["name"]]: Query<Operation<TName>["payload"]["Type"], Success<TName>>;
+};
+export type RetryJob = Atom.AtomResultFn<Operation<"job">["payload"]["Type"], void, unknown>;

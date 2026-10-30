@@ -22,13 +22,15 @@ export const GitHub = defineService({
 	initialize: GitHubHttp,
 	methods: (http) => {
 		function decode<TSchema extends Schema.Top>(schema: TSchema, body: unknown) {
-			return Schema.decodeUnknownEffect(schema)(body).pipe(Effect.mapError(() => new WatchError({ message: "Invalid GitHub response" })));
+			return Schema.decodeUnknownEffect(schema)(body).pipe(
+				Effect.mapError((cause) => new WatchError({ message: "Invalid GitHub response", reason: "response" }, { cause })),
+			);
 		}
 		function pages(options: Options, path: string) {
 			return http.list(`${options.apiUrl}/repos/${options.repository}${path}`);
 		}
 		return {
-			confirmQueue: (options: Options, snapshot: Snapshot) => confirmQueue(http, options, snapshot),
+			confirmQueue: (options: Options, snapshot: Snapshot) => confirmQueue(options, snapshot),
 			delay: http.delay,
 			discover: (options: Options) =>
 				Effect.gen(function* () {
@@ -53,7 +55,7 @@ export const GitHub = defineService({
 					const response = yield* http.get(`${options.apiUrl}/repos/${options.repository}/pulls/${number}`);
 					const pr = yield* decode(Pull, response);
 					if (pr.number !== number) {
-						return yield* Effect.fail(new WatchError({ message: "GitHub returned the wrong PR" }));
+						return yield* Effect.fail(new WatchError({ message: "GitHub returned the wrong PR", reason: "response" }));
 					}
 					const open = pr.state === "open" && !pr.merged;
 					if (open && (pr.mergeable === null || pr.mergeableState === "unknown")) {

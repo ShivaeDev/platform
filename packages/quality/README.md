@@ -28,6 +28,12 @@ Exceptions apply first, then the baseline. With the default rule settings, remai
 
 The work has three parts: connect the repository to the shared tools once; describe an import boundary when its architecture needs one; run the gate and repair findings every day. Writing local rules is not an adoption requirement.
 
+### Rule lifecycle
+
+`defineRule` accepts synchronous, Promise and Effect checks. Promise checks receive an abort signal as `context.signal`; pass it to cancellable APIs. Effect checks compose filesystem and child-process work in the run's scope. Configured checks return Effects and preserve their service requirements; tool checks read `FileSystem` and `ChildProcessSpawner` from the environment.
+
+Interrupting a run stops its Biome and knip processes and removes their scoped temporary configs before it ends. A rule crash is a defect; the CLI prints the rule id and original stack. Expected setup failures retain their underlying cause without including it in enumerable error data.
+
 ### Effect boundaries and services
 
 `effect/boundary` checks every TypeScript or JavaScript source in Quality's inventory, including shipped code, tooling and specs. It reports async functions, methods and arrows, await (including `for await`), `new Promise(...)`, `.then(...)`, try statements and throw statements. Model the work with Effect, fail with a tagged error, and use `Effect.die` for defects. Effect's resource and finalizer primitives model cleanup.

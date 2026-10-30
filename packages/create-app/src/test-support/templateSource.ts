@@ -54,6 +54,13 @@ export function templateSource(root: string, { realStarter = false, localArtifac
 			}
 			return Buffer.from(entry.content, "base64");
 		},
+		replacePacked: (path: string, content: string) => {
+			const template = decodeTemplate(readFileSync(output, "utf8"));
+			writeFileSync(
+				output,
+				JSON.stringify(template.map((entry) => (entry.path === path ? { ...entry, content: Buffer.from(content).toString("base64") } : entry))),
+			);
+		},
 		starter,
 	};
 }
