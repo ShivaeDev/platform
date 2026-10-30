@@ -1,4 +1,3 @@
-{"path":"packages/admin/src/client/UsersTable.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/admin/src/page.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/registry.ts","rule":"effect/boundary","count":1}
 {"path":"packages/admin/src/server/jobsHandlers.ts","rule":"effect/service-parameters","count":1}
