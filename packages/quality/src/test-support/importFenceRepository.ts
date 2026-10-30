@@ -27,7 +27,10 @@ export function seedFences(): string {
 				'{ "name": "@demo/cms", "exports": { ".": "./src/edit.ts", "./*.ts": { "source": "./src/*.ts", "types": "./dist/*.d.ts", "default": "./dist/*.js" } } }',
 			path: "packages/cms/package.json",
 		},
-		{ content: 'import { edit } from "@demo/cms";\n\nexport const play = edit;\n', path: "packages/game/src/play.ts" },
+		{
+			content: 'import { edit } from "@demo/cms";\n\nexport function play(): string {\n\treturn ["Draft", edit()].join(" ");\n}\n',
+			path: "packages/game/src/play.ts",
+		},
 		{ content: "export function run(): number {\n\treturn 1;\n}\n", path: "packages/game/src/run.ts" },
 		{ content: "export function edit(): number {\n\treturn 1;\n}\n", path: "packages/cms/src/edit.ts" },
 	]);
