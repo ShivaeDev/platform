@@ -1,53 +1,86 @@
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { checksAre, githubReplies, hasPull, openPulls, statusIs, watchesFleet } from "#test/traits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { reads, replies } from "#test/github.ts";
+import { autoMergeOff, conflicted, failingCheck, failingStatus, mergeabilityPending, openPr, watching, watchingFleet } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
+const fleetAtStartup = [
+	openPr(1, 2, 3, 4, 5),
+	conflicted(1),
+	failingStatus(2),
+	conflicted(3),
+	failingCheck(3, { conclusion: "failure", status: "completed" }),
+	autoMergeOff(5),
+	failingStatus(5),
+	watchingFleet,
+];
+
 watch.it(
-	"fleet startup reports all already-stuck PRs and persists the baseline",
-	[
-		watchesFleet(),
-		hasPull(1, { mergeable: false, "mergeable_state": "dirty" }),
-		hasPull(2),
-		statusIs(2, "failure"),
-		hasPull(3, { mergeable: false, "mergeable_state": "dirty" }),
-		checksAre(3, [{ conclusion: "failure", status: "completed" }]),
-		hasPull(4),
-		hasPull(5, { "auto_merge": null }),
-		statusIs(5, "failure"),
-		openPulls(1, 2, 3, 4, 5),
-	],
-	function* (h) {
-		const state = yield* h.poll;
-		const events = h.events();
-		expect(events).toEqual([
-			{ branch: "feature-1", event: "conflict", number: 1, title: "Change 1" },
-			{ branch: "feature-1", event: "stuck", number: 1, title: "Change 1" },
-			{ branch: "feature-2", event: "checks-failed", number: 2, title: "Change 2" },
-			{ branch: "feature-2", event: "stuck", number: 2, title: "Change 2" },
-			{ branch: "feature-3", event: "conflict", number: 3, title: "Change 3" },
-			{ branch: "feature-3", event: "checks-failed", number: 3, title: "Change 3" },
-			{ branch: "feature-3", event: "stuck", number: 3, title: "Change 3" },
+	"the first fleet poll reports every PR that is already stuck, and not PR 5, whose auto-merge is off",
+	fleetAtStartup,
+	function* ({ poll, printed }) {
+		yield* poll();
+
+		expect(yield* printed()).toEqual([
+			"PR 1 conflict",
+			"PR 1 stuck",
+			"PR 2 checks-failed",
+			"PR 2 stuck",
+			"PR 3 conflict",
+			"PR 3 checks-failed",
+			"PR 3 stuck",
 		]);
-		expect(Object.keys(state.prs)).toEqual(["1", "2", "3", "4", "5"]);
-		yield* h.poll;
-		yield* h.restart;
-		expect(h.events()).toEqual(events);
 	},
 );
+
+watch.it("a restart after the first fleet poll does not report the stuck PRs again", fleetAtStartup, function* ({ poll, printed, restart }) {
+	yield* poll();
+	const reported = yield* printed();
+
+	yield* restart();
+
+	expect(yield* printed()).toEqual(reported);
+});
+
+watch.it("the first fleet poll saves a baseline for every open PR", fleetAtStartup, function* ({ poll, savedSnapshot }) {
+	yield* poll();
+
+	yield* outcomes({
+		"PR 1": [savedSnapshot(1), "open, auto-merge, conflict"],
+		"PR 2": [savedSnapshot(2), "open, auto-merge, failing checks"],
+		"PR 3": [savedSnapshot(3), "open, auto-merge, conflict, failing checks"],
+		"PR 4": [savedSnapshot(4), "open, auto-merge"],
+		"PR 5": [savedSnapshot(5), "open, failing checks"],
+	});
+});
+
 watch.it(
-	"an incomplete initial observation reports stuck only after valid evidence arrives",
-	[
-		hasPull(1, { mergeable: false, "mergeable_state": "dirty" }),
-		githubReplies("/commits/sha1/status", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") }),
-	],
-	function* (h) {
-		yield* Effect.result(h.poll);
-		const events = h.events();
-		expect(events).toEqual([]);
-		h.statusIs(1, "success");
-		yield* h.poll;
-		expect(h.eventNames()).toEqual(["conflict", "stuck"]);
+	"conflicted PR 1 is reported stuck only once its commit status, which answered HTTP 500 at startup, can be read",
+	[openPr(1), conflicted(1), watching(1)],
+	function* ({ answers, poll, printed, recovers }) {
+		yield* answers(reads.status(1), replies.status(HttpStatus.fromLiteral("InternalServerError")));
+		yield* poll();
+		expect(yield* printed()).toEqual([]);
+
+		yield* recovers(reads.status(1));
+		yield* poll();
+
+		expect(yield* printed()).toEqual(["PR 1 conflict", "PR 1 stuck"]);
+	},
+);
+
+watch.it(
+	"while GitHub computes PR 1's mergeability, a poll succeeds without printing or saving anything for it",
+	[openPr(1), mergeabilityPending(1), watching(1)],
+	function* ({ diagnostics, lastPoll, poll, printed, savedSnapshot }) {
+		yield* poll();
+
+		yield* outcomes({
+			"diagnostics": [diagnostics(), []],
+			"poll": [lastPoll(), "polled"],
+			"printed": [printed(), []],
+			"saved snapshot of PR 1": [savedSnapshot(1), "none"],
+		});
 	},
 );

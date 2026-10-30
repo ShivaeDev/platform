@@ -1,74 +1,123 @@
-import * as HttpStatus from "effect/http/HttpStatus";
-import { type Check, github, type PullChanges } from "./fixtures.ts";
-import type { Reply } from "./server.ts";
+import { Effect } from "effect";
+import type { EventKind } from "#events.ts";
+import type { Engine } from "./engine.ts";
+import { type Answer, type Change, github, type Read } from "./github.ts";
+import type { Check } from "./server.ts";
 import { watch } from "./watch.ts";
-export function hasPull(number: number, changes: PullChanges = {}) {
-	return watch.trait("github", `PR #${number} is ${JSON.stringify(changes)}`, (engine) => {
-		engine.setPull(number, changes);
+import { pollOnce } from "./watcherVerbs.ts";
+
+function given(change: Change) {
+	return watch.trait("github", change.line, (engine) => {
+		change.apply(engine.github);
 	});
 }
-export function watchesFleet() {
-	return watch.trait("github", "the watcher follows all open PRs", (engine) => {
-		engine.options.fleet = true;
-		engine.options.numbers = [];
+
+function pr(number: number, description: string, change: Change) {
+	return watch.trait("github", `PR ${number} ${description}`, (engine) => {
+		change.apply(engine.github);
 	});
 }
-export function watchesPulls(...numbers: number[]) {
-	return watch.trait("github", `the watcher follows PRs ${numbers.join(", ")}`, (engine) => {
+
+function prs(numbers: readonly number[]) {
+	return numbers.length === 1 ? `PR ${numbers[0]}` : `PRs ${numbers.slice(0, -1).join(", ")} and ${numbers.at(-1)}`;
+}
+
+export function openPr(...numbers: number[]) {
+	return watch.trait(
+		"github",
+		`${prs(numbers)} ${numbers.length === 1 ? "is" : "are"} open with auto-merge on, no conflict and passing checks`,
+		(engine) => {
+			for (const number of numbers) {
+				github.opens(number).apply(engine.github);
+			}
+		},
+	);
+}
+
+export function autoMergeOff(number: number) {
+	return pr(number, "has auto-merge off", github.disablesAutoMerge(number));
+}
+export function conflicted(number: number) {
+	return pr(number, "has a merge conflict", github.conflicts(number));
+}
+export function inQueue(number: number) {
+	return pr(number, "is in the merge queue, which cleared its auto-merge request", github.entersQueue(number));
+}
+export function mergeabilityPending(number: number) {
+	return given(github.mergeabilityPending(number));
+}
+export function mergedStillListed(number: number) {
+	return given(github.mergesStillListed(number));
+}
+export function merged(number: number) {
+	return pr(number, "has merged", github.merges(number));
+}
+export function failingStatus(number: number, state = "failure") {
+	return pr(number, `has a ${state} commit status`, github.statusBecomes(number, state));
+}
+export function failingCheck(number: number, check: Check) {
+	return given(github.checkConcludes(number, check));
+}
+export function githubAnswers(read: Read, answer: Answer) {
+	return given(github.answers(read, answer));
+}
+export function budget(resource: string, remaining: number, limit: number, resetAt: number) {
+	return given(github.budget(resource, remaining, limit, resetAt));
+}
+
+export function watching(...numbers: number[]) {
+	return watch.trait("settings", `the watcher follows ${prs(numbers)}`, (engine) => {
 		engine.options.numbers = numbers;
 	});
 }
-export function queuedPulls(...numbers: number[]) {
-	return watch.trait("github", `the queue contains PRs ${numbers.join(", ")}`, (engine) => {
-		github(engine, () => undefined).queueHas(...numbers);
+
+export const watchingFleet = watch.trait("settings", "the watcher follows every open PR", (engine) => {
+	engine.options.fleet = true;
+});
+
+export function printingOnly(...kinds: EventKind[]) {
+	return watch.trait("settings", `the watcher prints only ${kinds.join(" and ")} transitions`, (engine) => {
+		engine.options.events = kinds;
 	});
 }
-export function openPulls(...numbers: number[]) {
-	return watch.trait("github", `open PRs are ${numbers.join(", ")}`, (engine) => {
-		github(engine, () => undefined).openPulls(...numbers);
+
+export function heartbeatEvery(seconds: number) {
+	return watch.trait("settings", seconds === 0 ? "heartbeats are off" : `the watcher prints a heartbeat after ${seconds} quiet seconds`, (engine) => {
+		engine.settings.heartbeat = seconds;
 	});
 }
-export function checksAre(number: number, checks: readonly Check[]) {
-	return watch.trait("github", `PR #${number} has checks ${JSON.stringify(checks)}`, (engine) => {
-		github(engine, () => undefined).checksAre(number, checks);
-	});
+
+export const heartbeatsOff = heartbeatEvery(0);
+
+export const enterpriseBase = watch.trait("settings", "the watcher reads GitHub through an Enterprise /api/v3 REST base", (engine) => {
+	engine.options.apiUrl += "/api/v3";
+});
+
+function quietPoll(engine: Engine) {
+	return pollOnce(engine).pipe(
+		Effect.flatMap((outcome) =>
+			outcome === "polled" && engine.lines.length === 0
+				? Effect.void
+				: Effect.die(new Error(`The setup poll ${outcome} and printed ${JSON.stringify(engine.lines)}`)),
+		),
+	);
 }
-export function statusIs(number: number, state: string) {
-	return watch.trait("github", `PR #${number} has commit status ${state}`, (engine) => {
-		github(engine, () => undefined).statusIs(number, state);
-	});
+
+export const baselineSaved = watch.trait("history", "the watcher has polled once and saved its baseline without printing anything", quietPoll);
+
+export const polledOnce = watch.trait("history", "the watcher has polled once without printing anything", quietPoll);
+
+export function sawChecksFailAndRecover(number: number) {
+	return watch.trait("history", `the watcher saw PR ${number}'s check run fail and then succeed`, (engine) =>
+		Effect.gen(function* () {
+			github.checkConcludes(number, { conclusion: "failure", status: "completed" }).apply(engine.github);
+			yield* pollOnce(engine);
+			github.checkConcludes(number, { conclusion: "success", status: "completed" }).apply(engine.github);
+			yield* pollOnce(engine);
+		}),
+	);
 }
-export function githubReplies(path: string, reply: Reply) {
-	return watch.trait("github", `GitHub replies to ${path}: ${JSON.stringify(reply)}`, (engine) => {
-		engine.set(path, reply);
-	});
-}
-export function historyIs(text: string) {
-	return watch.trait("history", `stored history is ${text}`, (engine) => engine.io.fs.writeFileString(engine.options.stateFile, text));
-}
-export function quotaRemaining(remaining: number) {
-	return watch.trait("github", `GitHub has ${remaining} requests left`, (engine) => github(engine, () => undefined).quotaRemaining(remaining));
-}
-export function enterprise() {
-	return watch.trait("github", "GitHub uses an Enterprise REST base", (engine) => {
-		engine.options.apiUrl += "/api/v3";
-	});
-}
-export function hasMergedPull(number: number) {
-	return hasPull(number, { merged: true, state: "closed" });
-}
-export function incompleteObservation(failure: string) {
-	return watch.trait("github", `the first ${failure} observation fails`, (engine) => {
-		const fixture = github(engine, () => undefined);
-		fixture.pullIs(1, { "auto_merge": null, ...(failure === "mergeability" ? { mergeable: null, "mergeable_state": "unknown" } : {}) });
-		if (failure === "checks") {
-			fixture.reply("/commits/sha1/status", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
-		}
-		if (failure === "detail") {
-			fixture.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
-		}
-		if (failure === "queue") {
-			fixture.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
-		}
-	});
+
+export function stateFileHolds(text: string) {
+	return watch.trait("history", `the state file holds ${text}`, (engine) => engine.io.fs.writeFileString(engine.options.stateFile, text));
 }

@@ -1,68 +1,130 @@
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { replies } from "#test/github.ts";
+import { baselineSaved, openPr, sawChecksFailAndRecover, watching } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
 for (const conclusion of ["failure", "timed_out", "cancelled", "action_required", "startup_failure", "stale"]) {
-	watch.it(`completed ${conclusion} is failure evidence`, [], function* (h) {
-		yield* h.poll;
-		h.checksAre(1, [{ conclusion, status: "completed" }]);
-		yield* h.poll;
-		expect(h.eventNames()).toEqual(["checks-failed", "stuck"]);
-	});
-}
-for (const conclusion of ["neutral", "skipped", "success", null]) {
-	watch.it(`${conclusion} and pending check runs do not infer failure`, [], function* (h) {
-		yield* h.poll;
-		h.checksAre(1, [
-			{ conclusion, status: "completed" },
-			{ conclusion: "failure", status: "in_progress" },
-		]);
-		yield* h.poll;
-		expect(h.events()).toEqual([]);
-	});
-}
-watch.it("checks and queue refs include later pages", [], function* (h) {
-	yield* h.poll;
-	h.pages("/commits/sha1/check-runs?per_page=100&filter=latest", { "check_runs": [] }, "/checks?page=2", {
-		body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
-	});
-	h.pages("/git/matching-refs/heads/gh-readonly-queue/", [], "/refs?page=2", { body: [{ ref: "refs/heads/gh-readonly-queue/main/pr-1-abc" }] });
-	const state = yield* h.poll;
-	expect(state.prs["1"]?.queued).toBe(true);
-	expect(h.eventNames()).toEqual(["queued", "checks-failed", "stuck"]);
-});
-watch.it("a new head uses its own checks and preserves updated event identity", [], function* (h) {
-	yield* h.poll;
-	h.pullIs(1, { head: { ref: "new-branch", sha: "new-head" }, title: "Changed\ntitle" });
-	h.checksAre(1, [], "new-head");
-	h.statusIs(1, "failure", "new-head");
-	yield* h.poll;
-	expect(h.events()).toEqual([
-		{ branch: "new-branch", event: "checks-failed", number: 1, title: "Changed\ntitle" },
-		{ branch: "new-branch", event: "stuck", number: 1, title: "Changed\ntitle" },
-	]);
-});
-watch.it("a failed later checks page retains the last successful snapshot", [], function* (h) {
-	yield* h.poll;
-	h.pages(
-		"/commits/sha1/check-runs?per_page=100&filter=latest",
-		{ "check_runs": [{ conclusion: "failure", status: "completed" }] },
-		"/checks?page=2",
-		{ body: {}, status: HttpStatus.fromLiteral("InternalServerError") },
-	);
-	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
-	expect(h.events()).toEqual([]);
-});
+	watch.it(
+		`a check run completing as ${conclusion} on PR 1 with auto-merge prints checks-failed and stuck`,
+		[openPr(1), watching(1), baselineSaved],
+		function* ({ checkConcludes, poll, printed }) {
+			yield* checkConcludes(1, { conclusion, status: "completed" });
 
-watch.it("a cross-origin next page fails without sending credentials or inferring failed checks", [], function* (h) {
-	yield* h.poll;
-	h.reply("/commits/sha1/check-runs?per_page=100&filter=latest", {
-		body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
-		headers: { link: '<https://other.example/checks?page=2>; rel="next"' },
-	});
-	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
-	expect(h.io.urls.every((url) => url.startsWith(h.options.apiUrl))).toBe(true);
-	expect(h.events()).toEqual([]);
-	expect((yield* h.saved()).prs["1"]?.failed).toBe(false);
-});
+			yield* poll();
+
+			expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck"]);
+		},
+	);
+}
+
+for (const conclusion of ["neutral", "skipped", "success", null]) {
+	watch.it(
+		`a check run completing as ${conclusion} on PR 1 prints nothing`,
+		[openPr(1), watching(1), baselineSaved],
+		function* ({ checkConcludes, poll, printed }) {
+			yield* checkConcludes(1, { conclusion, status: "completed" });
+
+			yield* poll();
+
+			expect(yield* printed()).toEqual([]);
+		},
+	);
+}
+
+watch.it(
+	"a check run still in progress on PR 1 prints nothing, even with a failure conclusion",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ checkConcludes, poll, printed }) {
+		yield* checkConcludes(1, { conclusion: "failure", status: "in_progress" });
+
+		yield* poll();
+
+		expect(yield* printed()).toEqual([]);
+	},
+);
+
+for (const state of ["failure", "error"]) {
+	watch.it(
+		`a ${state} commit status on PR 1 prints checks-failed and stuck`,
+		[openPr(1), watching(1), baselineSaved],
+		function* ({ poll, printed, statusBecomes }) {
+			yield* statusBecomes(1, state);
+
+			yield* poll();
+
+			expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck"]);
+		},
+	);
+}
+
+watch.it(
+	"PR 1's check run failing again after it recovered prints checks-failed and stuck again",
+	[openPr(1), watching(1), baselineSaved, sawChecksFailAndRecover(1)],
+	function* ({ checkConcludes, poll, printed }) {
+		expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck"]);
+
+		yield* checkConcludes(1, { conclusion: "failure", status: "completed" });
+		yield* poll();
+
+		expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck", "PR 1 checks-failed", "PR 1 stuck"]);
+	},
+);
+
+watch.it(
+	"after PR 1 moves to a new head, a failing status on that head prints checks-failed and stuck",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ poll, printed, pushesHead, statusBecomes }) {
+		yield* pushesHead(1, "feature-1", "new-head", "Change 1");
+		yield* statusBecomes(1, "failure");
+
+		yield* poll();
+
+		expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck"]);
+	},
+);
+
+watch.it(
+	"a failed check run on PR 1's second checks page prints checks-failed and stuck",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ failingCheckOnSecondPage, poll, printed }) {
+		yield* failingCheckOnSecondPage(1);
+
+		yield* poll();
+
+		expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck"]);
+	},
+);
+
+watch.it(
+	"a failed second checks page fails the poll and keeps PR 1's saved snapshot free of the first page's failure",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ lastPoll, poll, printed, savedSnapshot, secondChecksPage }) {
+		yield* secondChecksPage(1, replies.status(HttpStatus.fromLiteral("InternalServerError")));
+
+		yield* poll();
+
+		yield* outcomes({
+			"poll": [lastPoll(), "failed: GitHub HTTP 500 (GET /repos/acme/project/checks)"],
+			"printed": [printed(), []],
+			"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
+		});
+	},
+);
+
+watch.it(
+	"a checks page linking its next page on another origin fails the poll and keeps PR 1's saved snapshot free of its failure",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ checksPageLinksElsewhere, lastPoll, poll, printed, savedSnapshot }) {
+		yield* checksPageLinksElsewhere(1);
+
+		yield* poll();
+
+		yield* outcomes({
+			"poll": [lastPoll(), "failed: GitHub request failed: PaginationLinkError"],
+			"printed": [printed(), []],
+			"saved snapshot of PR 1": [savedSnapshot(1), "open, auto-merge"],
+		});
+	},
+);

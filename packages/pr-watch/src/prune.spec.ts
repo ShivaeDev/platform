@@ -1,48 +1,71 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { hasMergedPull, watchesFleet } from "#test/traits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { baselineSaved, merged, openPr, watching, watchingFleet } from "#test/traits.ts";
 import { watch } from "#test/watch.ts";
 
-for (const merged of [false, true]) {
-	watch.it(`terminal merged=${merged} PRs make no further requests, even across restart`, [], function* (h) {
-		yield* h.poll;
-		h.pullIs(1, { merged, state: "closed" });
-		const state = yield* h.poll;
-		expect(state.prs["1"]).toMatchObject({ merged, state: "closed" });
-		expect(h.eventNames()).toEqual([merged ? "merged" : "closed"]);
-		const requests = h.requests.length;
-		h.reply("/pulls/1", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
-		h.reply("/git/matching-refs/heads/gh-readonly-queue/", { body: {}, status: HttpStatus.fromLiteral("InternalServerError") });
-		yield* h.poll;
-		yield* h.restart;
-		expect(h.requests).toHaveLength(requests);
-		expect(h.eventNames()).toEqual([merged ? "merged" : "closed"]);
+for (const [verb, event] of [
+	["merges", "merged"],
+	["closes", "closed"],
+] as const) {
+	watch.it(`once PR 1 ${verb}, a restart sends GitHub no request for it`, [openPr(1), watching(1), baselineSaved], function* (story) {
+		yield* story[verb](1);
+		yield* story.poll();
+		expect(yield* story.printed()).toEqual([`PR 1 ${event}`]);
+
+		yield* story.restart();
+
+		yield* outcomes({
+			"printed": [story.printed(), [`PR 1 ${event}`]],
+			"requests": [story.lastRoundRequests(), []],
+		});
 	});
 }
-watch.it("fleet retains terminal history and polls only new and still-open PRs", [watchesFleet()], function* (h) {
-	yield* h.poll;
-	h.merged(1);
-	h.openPulls();
-	yield* h.poll;
-	const count = h.requests.length;
-	yield* h.restart;
-	expect(h.requests.slice(count).map((request) => request.path)).toEqual(["/repos/acme/project/pulls?state=open&per_page=100"]);
-	h.pullIs(2);
-	h.pullIs(3);
-	h.openPulls(2, 3);
-	const state = yield* h.poll;
-	expect(state.prs["1"]?.merged).toBe(true);
-	expect(Object.keys(state.prs)).toEqual(["1", "2", "3"]);
-	expect(h.requests.filter((request) => request.path.endsWith("/pulls/1")).map(({ status }) => status)).toEqual([
-		HttpStatus.fromLiteral("OK"),
-		HttpStatus.fromLiteral("OK"),
-	]);
-	expect(h.eventNames()).toEqual(["merged"]);
-});
-watch.it("a PR first observed as terminal is saved without a historical event and then pruned", [hasMergedPull(1)], function* (h) {
-	yield* h.poll;
-	const requests = h.requests.length;
-	yield* h.restart;
-	expect(h.requests).toHaveLength(requests);
-	expect(h.events()).toEqual([]);
-});
+
+watch.it(
+	"once PR 1 merged, a fleet restart only lists the open PRs",
+	[openPr(1), watchingFleet, baselineSaved],
+	function* ({ lastRoundRequests, merges, poll, restart }) {
+		yield* merges(1);
+		yield* poll();
+
+		yield* restart();
+
+		expect(yield* lastRoundRequests()).toEqual(["GET /repos/acme/project/pulls?state=open&per_page=100 200"]);
+	},
+);
+
+watch.it(
+	"after PR 1 merged, fleet polls the newly opened PRs 2 and 3 and keeps PR 1's merged snapshot without reading it",
+	[openPr(1), watchingFleet, baselineSaved],
+	function* ({ merges, opens, poll, pollTimes, savedSnapshot }) {
+		yield* merges(1);
+		yield* poll();
+
+		yield* opens(2);
+		yield* opens(3);
+		yield* poll();
+
+		yield* outcomes({
+			"PR 1 reads": [pollTimes(1), ["00:00:00", "00:00:00"]],
+			"PR 1 snapshot": [savedSnapshot(1), "merged, auto-merge"],
+			"PR 2 snapshot": [savedSnapshot(2), "open, auto-merge"],
+			"PR 3 snapshot": [savedSnapshot(3), "open, auto-merge"],
+		});
+	},
+);
+
+watch.it(
+	"PR 1, already merged at the first poll, is saved without a merged line and not read again after a restart",
+	[openPr(1), merged(1), watching(1)],
+	function* ({ lastRoundRequests, poll, printed, restart, savedSnapshot }) {
+		yield* poll();
+		expect(yield* savedSnapshot(1)).toBe("merged, auto-merge");
+
+		yield* restart();
+
+		yield* outcomes({
+			"printed": [printed(), []],
+			"requests": [lastRoundRequests(), []],
+		});
+	},
+);

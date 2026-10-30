@@ -1,19 +1,21 @@
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { cliVerbs } from "./cliVerbs.ts";
 import { makeEngine, nativeIo } from "./engine.ts";
-import { github } from "./fixtures.ts";
+import { githubVerbs } from "./githubVerbs.ts";
 import { processVerbs } from "./processVerbs.ts";
 import { watcherVerbs } from "./watcherVerbs.ts";
 
 export const watch = storyKit({
-	clock: "live",
+	clock: "test",
 	create: () => makeEngine,
-	inspect: (engine) => ({ diagnostics: engine.diagnostics, events: engine.lines, requests: engine.requests }),
+	inspect: (engine) => ({ cli: engine.cli, diagnostics: engine.diagnostics, printed: engine.lines, requests: engine.github.requests }),
 	layer: nativeIo,
 	name: "PR watcher",
-	stages: ["github", "history"],
+	stages: ["github", "settings", "history"],
 	verbs: (engine, story) => ({
-		...github(engine, story.tell),
+		...githubVerbs(engine, story.tell),
 		...watcherVerbs(engine, story.tell),
 		...processVerbs(engine, story.tell),
+		...cliVerbs(engine, story.tell),
 	}),
 });
