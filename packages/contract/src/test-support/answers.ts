@@ -16,6 +16,8 @@ export function refusal(error: unknown): string {
 		return `untagged failure ${String(error)}`;
 	}
 	switch (error._tag) {
+		case "NotFound":
+			return tagged(error, "not found");
 		case "NoteMissing":
 			return tagged(error, `note ${field(error, "id")} is missing`);
 		case "Invalid":

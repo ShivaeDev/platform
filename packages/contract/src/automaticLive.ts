@@ -83,6 +83,7 @@ export function automaticLive(
 			keyContext: owner?.context,
 			resume: signal,
 			resyncKeys: decode === undefined ? localQueryKeys(keys) : [],
+			retryKeys: keys,
 			stream: Stream.unwrap(service.use((client) => Effect.succeed(client(`${name}.$changes`, { queries: [reference] })))).pipe(
 				delivery.stream,
 				Stream.map((hint) => queryHint(hint, [{ keys }])),
