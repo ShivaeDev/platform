@@ -88,7 +88,7 @@ engine.it(
 		expect(mergedHeads()).toHaveLength(0);
 		expect(publishedDecisions()).toHaveLength(0);
 		movePullRequestHead(NEW_HEAD);
-		checksRespond(NEW_HEAD, [[checkRun({ headSha: NEW_HEAD })]]);
+		checksRespond(NEW_HEAD, [[checkRun({ headSha: NEW_HEAD, name: "build" })]]);
 		finishWorkers();
 		const completed = yield* fleet.reconcile("one");
 		expect(completed.value.step).toBe("done");

@@ -85,7 +85,8 @@ export function checksAreQueued() {
 export function checksAreRunning() {
 	return engineConfiguration("required checks are running and repairs can push a new head", (state) => {
 		const github = githubFixture();
-		github.reply(ADOPTED_HEAD, [[checkRun({ conclusion: null, status: "in_progress" })]]);
+		github.required(["build"]);
+		github.reply(ADOPTED_HEAD, [[checkRun({ conclusion: null, name: "build", status: "in_progress" })]]);
 		state.resultHead = ADOPTED_HEAD;
 		state.checks = github;
 		return { checksQuery: github.checks, resultQuery: () => Effect.succeed(githubResult(state.resultHead)) };
