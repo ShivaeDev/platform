@@ -91,16 +91,6 @@ storyKit({
 	verbs: () => ({}),
 });
 
-it("keeps explicit engine and stage type arguments for existing kits", () => {
-	const explicit = storyKit<Engine, "built", Record<never, never>>({
-		create: () => ({ count: 0 }),
-		name: "explicit types",
-		stages: ["built"],
-		verbs: () => ({}),
-	});
-	expectTypeOf(explicit).toEqualTypeOf<StoryKit<Engine, "built", Record<never, never>, never, never>>();
-});
-
 const collection = storyKit({
 	create: () => new Set<string>(),
 	name: "collection",

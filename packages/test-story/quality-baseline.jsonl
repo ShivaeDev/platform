@@ -1,4 +1,6 @@
 {"path":"packages/test-story/package.json","rule":"code/unused","count":1}
+{"path":"packages/test-story/src/client/react.dom.test.tsx","rule":"effect/boundary","count":2}
+{"path":"packages/test-story/src/client/react.ts","rule":"effect/boundary","count":15}
 {"path":"packages/test-story/src/server/domEnvironment.config.ts","rule":"effect/boundary","count":5}
 {"path":"packages/test-story/src/server/domNavigate.ts","rule":"effect/boundary","count":3}
 {"path":"packages/test-story/src/server/fakeHttpService.ts","rule":"effect/boundary","count":1}

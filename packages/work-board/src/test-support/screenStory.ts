@@ -1,5 +1,5 @@
 import { act } from "react";
-import type { render } from "@shivaedev/react/client/testing.ts";
+import type { render } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { captureReading, restoreReading } from "#client/react/readingState.ts";
 import { appearanceActions } from "./appearanceActions.ts";

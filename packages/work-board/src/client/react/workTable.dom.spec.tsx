@@ -1,6 +1,6 @@
 import { Clock, Effect } from "effect";
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { fleetWorkspace, fleetWorkspaceItems } from "#test/fleetWorkspaceFixture.ts";
 import { nowScreen } from "#test/nowScreen.tsx";
 import { nowFleet } from "#test/nowWork.ts";

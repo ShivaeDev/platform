@@ -14,15 +14,15 @@ acquisitionHttpApp.it("tells the story through the callback it was given when ac
 	]);
 });
 
-fakeHttpApp.it("tells a scripted failure, a rejection and the answer that spends the failure", [MEMBER], function* ({ asks, failOnce, story }) {
-	yield* failOnce("user", { status: HttpStatus.fromLiteral("BadGateway") });
+fakeHttpApp.it("tells a scripted failure, a rejection and the answer that spends the failure", [MEMBER], function* ({ asks, scriptFault, story }) {
+	yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 	yield* asks("/users/alice", { headers: { authorization: "Bearer wrong" } });
 
 	yield* asks("/users/alice");
 
 	expect(story.lines).toEqual([
 		"the caller has an API credential",
-		"fake HTTP user will answer once with 502",
+		"fake HTTP user will fault status before reply once",
 		"the client asks for GET /users/alice",
 		"fake HTTP received GET /users/alice",
 		"fake HTTP rejected GET /users/alice with 401",

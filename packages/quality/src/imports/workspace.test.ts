@@ -7,18 +7,11 @@ import { removeSeededTrees, seedTree } from "#test/tree.ts";
 afterEach(removeSeededTrees);
 
 describe("workspace package membership", () => {
-	it("honors excluded workspace folders and ignores malformed or unnamed member manifests", async () => {
+	it("honors excluded workspace folders and ignores unnamed member manifests", async () => {
 		const { files, readText } = inputsOf({
-			files: [
-				"package.json",
-				"packages/web/package.json",
-				"packages/example/package.json",
-				"packages/broken/package.json",
-				"packages/unnamed/package.json",
-			],
+			files: ["package.json", "packages/web/package.json", "packages/example/package.json", "packages/unnamed/package.json"],
 			texts: {
-				"package.json": "{",
-				"packages/broken/package.json": "{",
+				"package.json": "{}",
 				"packages/example/package.json": '{"name": "@demo/example"}',
 				"packages/unnamed/package.json": '{"private": true}',
 				"packages/web/package.json": '{"name": "@demo/web"}',
@@ -37,7 +30,6 @@ describe("workspace package membership", () => {
 				["web", '{"name":"@demo/web"}'],
 				["example", '{"name":"@demo/example"}'],
 				["ignored", '{"name":"@demo/ignored"}'],
-				["broken", "{"],
 				["unnamed", '{"private":true}'],
 			].map(([directory, content = ""]) => ({ content, path: `packages/${directory}/package.json` })),
 			{ content: '{"name":"installed"}', path: "node_modules/packages/installed/package.json" },

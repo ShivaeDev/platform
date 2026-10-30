@@ -1,6 +1,6 @@
 import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { malformedSession, notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 
 screens.it(

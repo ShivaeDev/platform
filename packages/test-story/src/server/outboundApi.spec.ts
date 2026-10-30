@@ -20,8 +20,8 @@ for (const [credential, headers] of [
 	["no credential", {}],
 	["a wrong credential", { authorization: "Bearer wrong" }],
 ] as const) {
-	fakeHttpApp.it(`rejects a request with ${credential} before it can take a scripted failure`, [MEMBER], function* ({ asks, failOnce }) {
-		yield* failOnce("user", { status: HttpStatus.fromLiteral("BadGateway") });
+	fakeHttpApp.it(`rejects a request with ${credential} before it can take a scripted failure`, [MEMBER], function* ({ asks, scriptFault }) {
+		yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 
 		yield* outcomes({
 			"a rejected request": [asks("/users/alice", { headers }), "HTTP 401"],
@@ -75,8 +75,11 @@ for (const [path, answer] of [
 fakeHttpApp.it(
 	"answers a route's next request with its scripted failure, headers included",
 	[MEMBER],
-	function* ({ answer, asks, failOnce, header, sends }) {
-		yield* failOnce("user", { body: { error: "try again" }, headers: { "retry-after": "1" }, status: HttpStatus.fromLiteral("BadGateway") });
+	function* ({ answer, asks, scriptFault, header, sends }) {
+		yield* scriptFault("user", {
+			kind: "status",
+			reply: { body: { error: "try again" }, headers: { "retry-after": "1" }, status: HttpStatus.fromLiteral("BadGateway") },
+		});
 		expect(yield* asks("/items")).toBe('HTTP 200 {"items":["paper","ink"],"next":2}');
 
 		yield* sends("alice's request", "/users/alice");
@@ -88,8 +91,8 @@ fakeHttpApp.it(
 	},
 );
 
-fakeHttpApp.it("answers a route normally once its scripted failure is spent", [MEMBER], function* ({ asks, failOnce }) {
-	yield* failOnce("user", { status: HttpStatus.fromLiteral("BadGateway") });
+fakeHttpApp.it("answers a route normally once its scripted failure is spent", [MEMBER], function* ({ asks, scriptFault }) {
+	yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 
 	yield* outcomes({
 		"the first request": [asks("/users/alice"), "HTTP 502"],

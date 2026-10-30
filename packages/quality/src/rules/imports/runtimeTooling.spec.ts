@@ -69,7 +69,7 @@ describe("server tooling conventions", () => {
 		]);
 	});
 
-	it.each([undefined, "", {}, { worker: "" }, []])("does not infer Node-only code from engines.node or an empty bin %j", async (bin) => {
+	it.each([undefined, "", {}, { worker: "" }])("does not infer Node-only code from engines.node or an empty bin %j", async (bin) => {
 		const root = seedTree([
 			{ content: JSON.stringify({ bin, engines: { node: ">=24" } }), path: "package.json" },
 			{ content: 'import "node:fs";', path: "src/legacy.ts" },

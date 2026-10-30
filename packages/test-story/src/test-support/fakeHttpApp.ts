@@ -58,11 +58,11 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 					story.tell("the fake HTTP service's scope closes");
 					return Scope.close(scope, Exit.void);
 				},
-				failOnce: service.failOnce,
 				hold: service.hold,
 				received: () =>
 					Effect.sync(() => service.requests.map(({ body, method, path }) => `${method} ${path}${body.length === 0 ? "" : ` "${body.toString()}"`}`)),
 				requests: () => Effect.sync(() => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`)),
+				scriptFault: service.scriptFault,
 			};
 		},
 	});

@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { act } from "react";
-import { eventually } from "#client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import type { Application } from "./applicationEngine.ts";
 import { getContainer, input } from "./screens.ts";
 

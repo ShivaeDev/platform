@@ -31,8 +31,8 @@ export const ExceptionDeclaration = Schema.Struct({
 
 export type ExceptionDeclaration = typeof ExceptionDeclaration.Type;
 
-const standard = Schema.toStandardSchemaV1(Schema.Array(ExceptionDeclaration), { parseOptions: { errors: "all", onExcessProperty: "error" } });
+const ExceptionDeclarations = Schema.Array(ExceptionDeclaration);
 
 export function decodeExceptions(value: unknown): Promise<Decoded<readonly ExceptionDeclaration[]>> {
-	return decodeWith(standard, value);
+	return decodeWith(ExceptionDeclarations, value);
 }

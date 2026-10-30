@@ -5,22 +5,26 @@ import { httpFaultApp } from "#test/httpFaultApp.ts";
 
 const STALLED_REPLY = { body: { released: true }, headers: { "x-story": "stalled" }, status: HttpStatus.fromLiteral("Accepted") };
 
-httpFaultApp.it("sends a stalled reply's status and headers before its body", [], function* ({ header, progress, replyOnce, sends, stall, status }) {
-	yield* replyOnce("data", STALLED_REPLY);
-	const paused = yield* stall("data");
+httpFaultApp.it(
+	"sends a stalled reply's status and headers before its body",
+	[],
+	function* ({ header, progress, scriptFault, sends, stall, status }) {
+		yield* scriptFault("data", { kind: "status", reply: STALLED_REPLY });
+		const paused = yield* stall("data");
 
-	yield* sends("client");
+		yield* sends("client");
 
-	yield* paused.waiting;
-	yield* outcomes({
-		"the status": [status("client"), "HTTP 202"],
-		"the x-story header": [header("client", "x-story"), "stalled"],
-		"while the body": [progress("client"), "waiting for its body"],
-	});
-});
+		yield* paused.waiting;
+		yield* outcomes({
+			"the status": [status("client"), "HTTP 202"],
+			"the x-story header": [header("client", "x-story"), "stalled"],
+			"while the body": [progress("client"), "waiting for its body"],
+		});
+	},
+);
 
-httpFaultApp.it("sends a stalled reply's body once the stall is released", [], function* ({ answer, replyOnce, sends, stall, status }) {
-	yield* replyOnce("data", STALLED_REPLY);
+httpFaultApp.it("sends a stalled reply's body once the stall is released", [], function* ({ answer, scriptFault, sends, stall, status }) {
+	yield* scriptFault("data", { kind: "status", reply: STALLED_REPLY });
 	const paused = yield* stall("data");
 	yield* sends("client");
 	yield* paused.waiting;
@@ -59,8 +63,8 @@ httpFaultApp.it("serves the next request after a client hangs up on a stalled bo
 	expect(yield* asks("/data")).toBe('HTTP 200 {"ready":true}');
 });
 
-httpFaultApp.it("sends binary reply bytes as they are with the content type the reply names", [], function* ({ answer, header, replyOnce, sends }) {
-	yield* replyOnce("data", { body: Uint8Array.from([0, 255, 128, 13, 10]), headers: { "content-type": "image/png" } });
+httpFaultApp.it("sends binary reply bytes as they are with the content type the reply names", [], function* ({ answer, header, scriptFault, sends }) {
+	yield* scriptFault("data", { kind: "status", reply: { body: Uint8Array.from([0, 255, 128, 13, 10]), headers: { "content-type": "image/png" } } });
 
 	yield* sends("client");
 
@@ -70,8 +74,8 @@ httpFaultApp.it("sends binary reply bytes as they are with the content type the 
 	});
 });
 
-httpFaultApp.it("answers normally once a one-shot reply is spent", [], function* ({ asks, replyOnce }) {
-	yield* replyOnce("data", { body: Uint8Array.from([0, 255]) });
+httpFaultApp.it("answers normally once a one-shot reply is spent", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("data", { kind: "status", reply: { body: Uint8Array.from([0, 255]) } });
 
 	yield* outcomes({
 		"the first request": [asks("/data"), "HTTP 200 <00 ff>"],
@@ -83,8 +87,8 @@ for (const [shape, reply, answer] of [
 	["a Buffer body", { body: Buffer.from([0, 255]) }, "HTTP 200 <00 ff>"],
 	["synchronous chunks", { chunks: ["head", Buffer.from([0, 255]), "tail"] }, "HTTP 200 head<00 ff>tail"],
 ] as const) {
-	httpFaultApp.it(`writes ${shape} without JSON encoding`, [], function* ({ asks, replyOnce }) {
-		yield* replyOnce("data", { ...reply, headers: { "content-type": "application/octet-stream" } });
+	httpFaultApp.it(`writes ${shape} without JSON encoding`, [], function* ({ asks, scriptFault }) {
+		yield* scriptFault("data", { kind: "status", reply: { ...reply, headers: { "content-type": "application/octet-stream" } } });
 
 		expect(yield* asks("/data")).toBe(answer);
 	});

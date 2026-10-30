@@ -34,5 +34,5 @@ export const orders = storyKit({
 
 export const loafOrdered = orders.trait("ordered", "a loaf is ordered", function* (engine) {
 	yield* recordLifetime("orders trait");
-	yield* engine.orders.service.replyOnce("order", { body: Buffer.from(yield* OrderLabel) });
+	yield* engine.orders.service.scriptFault("order", { kind: "status", reply: { body: Buffer.from(yield* OrderLabel) } });
 });

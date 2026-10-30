@@ -8,13 +8,13 @@ const UNKNOWN_ROUTE = 'died: Unknown fake HTTP route "missing".\nhelp: Use a nam
 
 const UNAVAILABLE = { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } } as const;
 
-for (const control of ["stall", "replyOnce", "releaseOnArrival", "releaseOnArrival with an unknown arrival", "fault"] as const) {
-	httpFaultApp.it(`refuses ${control} for a route the service does not have`, [], function* ({ fault, releaseOnArrival, replyOnce, stall }) {
+for (const control of ["stall", "scriptFault", "releaseOnArrival", "releaseOnArrival with an unknown arrival", "fault"] as const) {
+	httpFaultApp.it(`refuses ${control} for a route the service does not have`, [], function* ({ fault, releaseOnArrival, scriptFault, stall }) {
 		const scripted = {
 			fault: fault("missing", { kind: "drop" }),
 			releaseOnArrival: releaseOnArrival("missing", "trigger"),
 			"releaseOnArrival with an unknown arrival": releaseOnArrival("data", "missing"),
-			replyOnce: replyOnce("missing", { body: new Uint8Array([1]) }),
+			scriptFault: scriptFault("missing", { kind: "status", reply: { body: new Uint8Array([1]) } }),
 			stall: stall("missing"),
 		}[control];
 
@@ -81,8 +81,8 @@ for (const [kind, scripted] of [
 	});
 }
 
-httpFaultApp.it("tells the story about a one-shot reply and a stall", [], function* ({ replyOnce, sends, stall, story }) {
-	yield* replyOnce("data", { body: new Uint8Array([0, 255]) });
+httpFaultApp.it("tells the story about a one-shot reply and a stall", [], function* ({ scriptFault, sends, stall, story }) {
+	yield* scriptFault("data", { kind: "status", reply: { body: new Uint8Array([0, 255]) } });
 	const paused = yield* stall("data");
 	yield* sends("client");
 	yield* paused.waiting;
@@ -90,7 +90,7 @@ httpFaultApp.it("tells the story about a one-shot reply and a stall", [], functi
 	yield* paused.release;
 
 	expect(story.lines).toEqual([
-		"fake HTTP data will answer once with 200",
+		"fake HTTP data will fault status before reply once",
 		"fake HTTP data body will stall",
 		"client sends GET /data",
 		"fake HTTP received GET /data",

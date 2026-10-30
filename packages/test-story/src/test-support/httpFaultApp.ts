@@ -51,11 +51,9 @@ function httpFaultKit(clock: "live" | "test") {
 					story.tell("the fake HTTP service's scope closes");
 					return Scope.close(scope, Exit.void);
 				},
-				failOnce: service.failOnce,
 				fault: service.fault,
 				hold: service.hold,
 				releaseOnArrival: service.releaseOnArrival,
-				replyOnce: service.replyOnce,
 				requests: () => Effect.sync(() => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`)),
 				scriptFault: service.scriptFault,
 				sendsNextChunk: () =>
@@ -71,9 +69,12 @@ function httpFaultKit(clock: "live" | "test") {
 				streamsChunks: (pieces: readonly (string | Uint8Array)[]) => {
 					const gates = pieces.map(() => Promise.withResolvers<void>());
 					chunkReleases.push(...gates.map((gate) => () => gate.resolve()));
-					return service.replyOnce("data", {
-						chunks: replyChunks(pieces, gates),
-						headers: { "content-type": "application/octet-stream" },
+					return service.scriptFault("data", {
+						kind: "status",
+						reply: {
+							chunks: replyChunks(pieces, gates),
+							headers: { "content-type": "application/octet-stream" },
+						},
 					});
 				},
 				timePasses: (millis: number) => {

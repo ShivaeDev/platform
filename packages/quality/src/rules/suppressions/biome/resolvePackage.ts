@@ -1,17 +1,7 @@
 import { posix } from "node:path";
-import { Schema } from "effect";
-import { decodeWith } from "#decoded.ts";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
+import type { PackageManifest } from "#PackageManifest.ts";
 import type { RuleInputs } from "#rule.ts";
-
-const Manifest = Schema.Struct({
-	exports: Schema.optionalKey(Schema.Unknown),
-	main: Schema.optionalKey(Schema.String),
-	name: Schema.optionalKey(Schema.String),
-});
-
-type Manifest = typeof Manifest.Type;
-
-const manifestSchema = Schema.toStandardSchemaV1(Schema.fromJsonString(Manifest));
 
 const CONDITIONS: ReadonlySet<string> = new Set(["biome", "default"]);
 
@@ -60,13 +50,7 @@ function inPackage(directory: string, target: string | undefined): string | unde
 	return target?.startsWith("./") === true ? posix.join(directory, target) : undefined;
 }
 
-async function manifestAt(readText: RuleInputs["readText"], path: string): Promise<Manifest | undefined> {
-	const text = await readText(path);
-	const decoded = text === undefined ? undefined : await decodeWith(manifestSchema, text);
-	return decoded?._tag === "Valid" ? decoded.value : undefined;
-}
-
-function fromDependency(directory: string, manifest: Manifest, subpath: string): string | undefined {
+function fromDependency(directory: string, manifest: PackageManifest, subpath: string): string | undefined {
 	if (manifest.exports !== undefined) {
 		return inPackage(directory, exported(manifest.exports, subpath));
 	}
@@ -81,11 +65,11 @@ export async function resolvePackage(readText: RuleInputs["readText"], specifier
 	if (name === undefined) {
 		return undefined;
 	}
-	const own = await manifestAt(readText, "package.json");
+	const own = await readPackageManifest(readText, "package.json");
 	if (own?.name === name && own.exports !== undefined && subpath !== "") {
 		return inPackage("", exported(own.exports, subpath));
 	}
 	const directory = posix.join("node_modules", name);
-	const manifest = await manifestAt(readText, posix.join(directory, "package.json"));
+	const manifest = await readPackageManifest(readText, posix.join(directory, "package.json"));
 	return manifest === undefined ? undefined : fromDependency(directory, manifest, subpath);
 }

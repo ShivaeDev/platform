@@ -1,13 +1,11 @@
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
-import { Effect } from "effect";
-import { manifestsIn } from "#manifests/sorted.ts";
+import { manifestEntry, manifestFiles } from "#adapters/manifestInventory.ts";
 import { defineRule, type Finding } from "#rule.ts";
-import { entriesOf, itemsOf, type Json, member, parseJsonc } from "#rules/suppressions/biome/json.ts";
+import { itemsOf, type Json, member, parseJsonc } from "#rules/suppressions/biome/json.ts";
 
 const CONDITION = "source";
 
-function misplaced(path: string, field: string, node: Json): readonly Finding[] {
-	const conditions = entriesOf(node);
+function misplaced(path: string, field: string, value: unknown, node: Json | undefined): readonly Finding[] {
+	const conditions = typeof value === "object" && value !== null && !Array.isArray(value) ? Object.entries(value) : [];
 	const first = conditions[0]?.[0];
 	const own: readonly Finding[] =
 		first === CONDITION || !conditions.some(([key]) => key === CONDITION)
@@ -15,31 +13,33 @@ function misplaced(path: string, field: string, node: Json): readonly Finding[] 
 			: [
 					{
 						file: path,
-						line: node.line,
+						line: node?.line,
 						message: `Lists the "${CONDITION}" condition after "${first}" in ${field}. TypeScript takes the first condition that matches, so once built output exists it reads that instead of the sources the "${CONDITION}" condition names. Move "${CONDITION}" to the top of this condition block.`,
 						subject: field,
 					},
 				];
-	const nested = [...conditions.map(([, value]) => value), ...itemsOf(node)];
-	return [...own, ...nested.flatMap((value) => misplaced(path, field, value))];
-}
-
-function findingsIn(path: string, text: string): readonly Finding[] {
-	const parsed = parseJsonc(path, text);
-	if (parsed._tag !== "Parsed") {
-		return [];
-	}
-	return ["exports", "imports"].flatMap((field) => {
-		const map = member(parsed.json, field);
-		return map === undefined ? [] : misplaced(path, field, map);
-	});
+	const nested = conditions.map(([key, child]) => misplaced(path, field, child, member(node, key)));
+	const items = Array.isArray(value) ? value.flatMap((child: unknown, index) => misplaced(path, field, child, itemsOf(node)[index])) : [];
+	return [...own, ...nested.flat(), ...items];
 }
 
 export const manifestsSourceFirst = defineRule({
-	check: async ({ readText, root }) => {
-		const manifests = await Effect.runPromise(manifestsIn(root).pipe(Effect.provide(NodeFileSystem.layer)));
-		const texts = await Promise.all(manifests.map(async (path) => ({ path, text: (await readText(path)) ?? "" })));
-		return texts.filter(({ text }) => text.includes(`"${CONDITION}"`)).flatMap(({ path, text }) => findingsIn(path, text));
+	check: async (inputs) => {
+		const findings = await Promise.all(
+			manifestFiles(inputs).map(async (path) => {
+				const entry = await manifestEntry(inputs.readText, path);
+				if (entry === undefined) {
+					return [];
+				}
+				const { manifest, text } = entry;
+				const parsed = parseJsonc(path, text);
+				const location = parsed._tag === "Parsed" ? parsed.json : undefined;
+				return ["exports", "imports"].flatMap((field) =>
+					misplaced(path, field, field === "exports" ? manifest.exports : manifest.imports, member(location, field)),
+				);
+			}),
+		);
+		return findings.flat();
 	},
 	description:
 		'Every package.json condition block that names the "source" condition lists it first in exports and imports, so TypeScript reads the sources whether or not built output exists.',
