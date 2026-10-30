@@ -1,4 +1,4 @@
-import { Duration, Effect, type Exit, type Fiber, Option, Ref, type Stream, SubscriptionRef } from "effect";
+import { Effect, type Exit, type Fiber, Option, Ref, type Stream, SubscriptionRef } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
@@ -14,9 +14,6 @@ import { settled, signal } from "./settle.ts";
 export type LiveView = "note 1" | "note 2" | "the list" | "the saved note 1" | "the short-lived note 1";
 
 const NOTE_IDS = { "note 1": 1, "note 2": 2, "the saved note 1": 1, "the short-lived note 1": 1 } as const;
-
-// libuv starts a timer from the event loop's cached time, so it can fire a few milliseconds short of its delay measured from the hint.
-const TIMER_SLACK_MILLIS = 5;
 
 export type LiveServer = Awaited<ReturnType<typeof liveServer>>;
 
@@ -117,25 +114,10 @@ export const untilChangeHandled = Effect.fnUntraced(function* (engine: LiveEngin
 const readAfterLastHint = Effect.fnUntraced(function* (engine: LiveEngine, view: LiveView) {
 	const { at } = yield* SubscriptionRef.get(engine.client.handled);
 	yield* signal(SubscriptionRef.changes(engine.server.served), (served) => readsOf(served, view).some((read) => read.at > at));
-	const first = readsOf(yield* SubscriptionRef.get(engine.server.served), view).find((candidate) => candidate.at > at);
-	return first === undefined ? Option.none() : Option.some(first.at - at);
 });
 
 export function untilReadAfterLastHint(engine: LiveEngine, views: readonly LiveView[]) {
 	return Effect.forEach(views, (view) => readAfterLastHint(engine, view), { discard: true });
-}
-
-export function reReadDelayOf(engine: LiveEngine, view: LiveView) {
-	return Effect.map(readAfterLastHint(engine, view), (delay) => {
-		const window = Duration.toMillis(Duration.fromInputUnsafe(engine.registry.get(engine.client.coalesceWindow)));
-		return Option.match(delay, {
-			onNone: () => "never re-read",
-			onSome: (millis) =>
-				millis + TIMER_SLACK_MILLIS >= window
-					? `once the ${window} ms window closed`
-					: `after only ${Math.round(millis)} ms of the ${window} ms window`,
-		});
-	});
 }
 
 export const watch = Effect.fnUntraced(function* (engine: LiveEngine, views: readonly LiveView[]) {

@@ -31,10 +31,20 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 				}
 				const reactivity = context.value;
 				let pending: (() => boolean) | undefined;
-				let timer: ReturnType<typeof setTimeout> | undefined;
+				let scheduled = false;
+				const timer = runtime.fn(({ delay, active }: { readonly delay: number; readonly active: () => boolean }) =>
+					Effect.andThen(
+						Effect.sleep(delay),
+						Effect.sync(() => {
+							scheduled = false;
+							refresh(active);
+						}),
+					),
+				);
+				get.mount(timer);
 				function clear() {
-					clearTimeout(timer);
-					timer = undefined;
+					get.set(timer, Atom.Interrupt);
+					scheduled = false;
 					pending = undefined;
 				}
 				function refresh(active: () => boolean) {
@@ -58,11 +68,9 @@ export function queryReactivity<R, E>(runtime: Atom.AtomRuntime<R, E>) {
 					if (delay === 0) {
 						clear();
 						get.refresh(source);
-					} else {
-						timer ??= setTimeout(() => {
-							timer = undefined;
-							refresh(batch.active);
-						}, delay);
+					} else if (!scheduled) {
+						scheduled = true;
+						get.set(timer, { active: batch.active, delay });
 					}
 				}
 				get.addFinalizer(clear);

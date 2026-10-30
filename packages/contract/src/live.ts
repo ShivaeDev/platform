@@ -41,10 +41,20 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 					get.set(status, { ...get.once(status), ...value });
 				}
 				const pending = new Set<string>();
-				let timer: ReturnType<typeof setTimeout> | undefined;
+				let scheduled = false;
+				function flush() {
+					const queued = [...pending];
+					scheduled = false;
+					pending.clear();
+					if (!get.once(paused)) {
+						invalidateLive(reactivity, queued, () => active && !get.once(paused));
+					}
+				}
+				const timer = runtime.fn((delay: Duration.Input) => Effect.andThen(Effect.sleep(delay), Effect.sync(flush)));
+				get.mount(timer);
 				function clear() {
-					clearTimeout(timer);
-					timer = undefined;
+					get.set(timer, Atom.Interrupt);
+					scheduled = false;
 					pending.clear();
 				}
 				let active = true;
@@ -64,16 +74,13 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						invalidateLive(reactivity, keys, () => active && !get.once(paused));
 						return;
 					}
-					for (const key of invalidationKeys(changedKeys, options.keyContext)) {
+					for (const key of keys) {
 						pending.add(key);
 					}
-					timer ??= setTimeout(() => {
-						const queued = [...pending];
-						clear();
-						if (!get.once(paused)) {
-							invalidateLive(reactivity, queued, () => active && !get.once(paused));
-						}
-					}, delay);
+					if (!scheduled) {
+						scheduled = true;
+						get.set(timer, window);
+					}
 				}
 				function resync() {
 					clear();

@@ -1,4 +1,4 @@
-import { Effect, Queue, Stream } from "effect";
+import { Effect, Queue, Random, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
 import { liveHintQueue } from "#internal/liveHintQueue.ts";
@@ -10,7 +10,7 @@ import { QueryReadDenied } from "#readPolicyErrors.ts";
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	let openStreams = 0;
-	const resyncKey = `@shivaedev/contract/resync/${crypto.randomUUID()}`;
+	const resyncKey = `@shivaedev/contract/resync/${yield* Random.nextInt}`;
 	function open(keys: readonly Key[], context?: KeyContext): Stream.Stream<LiveHint> {
 		return Stream.unwrap(
 			Effect.gen(function* () {
