@@ -1,61 +1,60 @@
-import { Effect, Order, Result } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { notesStory, signedIn } from "#test/notesStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { liveConnectionOpen, notesStory, watching } from "#test/notesStory.ts";
 
 notesStory.it(
-	"queries register their declared read keys and commands invalidate item and list after success only",
-	[signedIn()],
-	function* ({ query, queryList, mount, rename, registry, reads }) {
-		const one = query(1);
-		const two = query(2);
-		const list = queryList();
-		mount(one);
-		mount(two);
-		mount(list);
-		yield* eventually(() => expect([...reads()].sort(Order.String)).toEqual(["get:1", "get:2", "list"]));
-		const renamed = yield* Effect.result(rename(1, "Uno"));
-		expect(Result.isSuccess(renamed)).toBe(true);
-		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(one), () => undefined)?.title).toBe("Uno"));
-		yield* eventually(() => expect(reads().filter((read) => read === "list")).toHaveLength(2));
-		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
-		const rejected = yield* Effect.result(rename(2, ""));
-		expect(Result.isFailure(rejected) && rejected.failure._tag).toBe("Invalid");
-		expect(reads().filter((read) => read === "list")).toHaveLength(2);
-		expect(reads().filter((read) => read === "get:2")).toHaveLength(1);
+	"renaming note 1 refreshes note 1 and the list and leaves note 2 unread",
+	[watching("note 1", "note 2", "the list")],
+	function* ({ rename, serverReads, shown, timesRead }) {
+		expect(yield* serverReads()).toEqual(["get:1", "get:2", "list"]);
+
+		yield* rename(1, "Uno");
+
+		yield* outcomes({
+			"note 1": [shown("note 1"), "Uno"],
+			"note 2's reads": [timesRead("note 2"), "read once"],
+			"the list": [shown("the list"), ["Uno", "Two"]],
+		});
 	},
 );
 
 notesStory.it(
-	"result-dependent invalidation refreshes the item a command created",
-	[signedIn()],
-	function* ({ query, mount, create, registry, reads }) {
-		const three = query(3);
-		mount(three);
-		yield* eventually(() => expect(AsyncResult.isFailure(registry.get(three))).toBe(true));
-		expect(Result.isSuccess(yield* Effect.result(create("Three")))).toBe(true);
-		yield* eventually(() => expect(AsyncResult.getOrElse(registry.get(three), () => undefined)?.title).toBe("Three"));
-		expect(reads().filter((read) => read === "get:3")).toHaveLength(2);
+	"renaming note 2 to a blank title is rejected as an invalid title and refreshes neither note 2 nor the list",
+	[watching("note 2", "the list")],
+	function* ({ rename, timesRead }) {
+		expect(yield* rename(2, "")).toBe("failed with invalid title: Enter a title");
+
+		yield* outcomes({
+			"note 2's reads": [timesRead("note 2"), "read once"],
+			"the list's reads": [timesRead("the list"), "read once"],
+		});
 	},
 );
 
-notesStory.it("query run performs a one-off typed call without registering keys", [signedIn()], function* ({ get }) {
-	const found = yield* Effect.result(get(2));
-	expect(Result.isSuccess(found) && found.success.title).toBe("Two");
-	const missing = yield* Effect.result(get(7));
-	expect(Result.isFailure(missing) && missing.failure._tag).toBe("NoteMissing");
+notesStory.it("creating the note Three refreshes the watched note 3 that was missing", [watching("note 3")], function* ({ create, shown }) {
+	expect(yield* shown("note 3")).toBe("failed with note 3 is missing");
+
+	yield* create("Three");
+
+	expect(yield* shown("note 3")).toBe("Three");
 });
 
-notesStory.it("query preparation leaves subscriptions idle until the read is mounted", [signedIn()], function* (test) {
-	const query = test.query(1);
-	test.connect();
-	expect(test.subscriptions()).toEqual([]);
-	expect(test.reads()).toEqual([]);
-	test.mount(query);
-	yield* eventually(() => {
-		expect(test.subscriptions()).toEqual([{ payload: { id: 1 }, query: "get" }]);
-		expect(AsyncResult.getOrElse(test.registry.get(query), () => undefined)?.title).toBe("One");
-	});
-	expect(test.reads()).toEqual(["get:1"]);
-});
+notesStory.it(
+	"a prepared note 1 neither reads nor subscribes until it is mounted, and then subscribes to its changes and reads it once",
+	[liveConnectionOpen()],
+	function* ({ mount, prepare, serverReads, shown, subscriptions }) {
+		prepare("note 1");
+		yield* outcomes({
+			"reads before mounting": [serverReads(), []],
+			"subscriptions before mounting": [subscriptions(), []],
+		});
+
+		mount("note 1");
+
+		yield* outcomes({
+			"note 1": [shown("note 1"), "One"],
+			reads: [serverReads(), ["get:1"]],
+			subscriptions: [subscriptions(), [{ payload: { id: 1 }, query: "get" }]],
+		});
+	},
+);

@@ -1,60 +1,43 @@
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
-import { collection } from "@shivaedev/changes/keys.ts";
-import { eventually } from "#test/eventually.ts";
-import { liveNotesStory, liveSession, resyncingKeys } from "#test/liveNotesStory.ts";
-import { notes } from "#test/notes.ts";
+import { collection, invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { liveNotesStory, readScopeOfOnlyNoteOne, watching } from "#test/liveNotesStory.ts";
+import { liveHints, watcher } from "#test/liveStreams.ts";
+
+liveNotesStory.it(
+	"with a read scope of only note 1, connecting re-reads note 1 and leaves note 2 unread",
+	[readScopeOfOnlyNoteOne(), watching("note 1", "note 2")],
+	function* ({ connect, timesRead }) {
+		yield* outcomes({
+			"note 1's reads": [timesRead("note 1"), "read once"],
+			"note 2's reads": [timesRead("note 2"), "read once"],
+		});
+
+		yield* connect();
+
+		yield* outcomes({
+			"note 1's reads": [timesRead("note 1"), "read twice"],
+			"note 2's reads": [timesRead("note 2"), "read once"],
+		});
+	},
+);
 
 const lines = collection("lines", Schema.Number);
 const orders = collection("orders", Schema.Number);
 
-liveNotesStory.it("collection-wide changes name subscribed items and leave lists precise", [liveSession()], function* ({ watchKeys, invalidate }) {
-	const hints: unknown[] = [];
-	yield* watchKeys([lines.item(5), lines.list, orders.item(5)], hints).pipe(Effect.forkScoped);
-	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }]));
-	yield* invalidate(["orders:*"]);
-	yield* eventually(() => expect(hints).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [orders.item(5)] }]));
-	yield* invalidate(["lines:*"]);
-	yield* eventually(() =>
-		expect(hints).toEqual([{ _tag: "Resync" }, { _tag: "Changed", keys: [orders.item(5)] }, { _tag: "Changed", keys: [lines.item(5)] }]),
-	);
-	yield* invalidate(["lines"]);
-	yield* eventually(() =>
-		expect(hints).toEqual([
-			{ _tag: "Resync" },
-			{ _tag: "Changed", keys: [orders.item(5)] },
-			{ _tag: "Changed", keys: [lines.item(5)] },
-			{ _tag: "Changed", keys: [lines.list] },
-		]),
-	);
-});
+for (const [change, keys, heard] of [
+	["every order", ["orders:*"], ["changed orders 5"]],
+	["every line", ["lines:*"], ["changed lines 5"]],
+	["the lines list", invalidationKeys([lines.list]), ["changed the lines list"]],
+] as const) {
+	liveHints.it(
+		`a change to ${change} reaches a watcher of line 5, the lines list and order 5 as ${heard.join(", ")}`,
+		[watcher("the watcher", [lines.item(5), lines.list, orders.item(5)])],
+		function* ({ heard: heardBy, invalidate }) {
+			yield* invalidate(keys);
 
-liveNotesStory.it(
-	"reconciliation keeps its explicit item scope when reads also register a wildcard",
-	[liveSession(), resyncingKeys([notes.item(1)])],
-	function* (test) {
-		test.mount(test.one);
-		test.mount(test.two);
-		yield* eventually(() => {
-			expect(test.body(test.one)).toBe("First");
-			expect(test.body(test.two)).toBe("Second");
-		});
-		const before = test.reads().filter((read) => read === "get:2").length;
-		const readsAfterConnect = test.reads().filter((read) => read === "get:1").length + 1;
-		test.connect();
-		yield* eventually(() => {
-			expect(test.status().connection).toBe("live");
-			expect(test.reads().filter((read) => read === "get:1")).toHaveLength(readsAfterConnect);
-			expect(test.registry.get(test.one).waiting).toBe(false);
-		});
-		expect(test.reads().filter((read) => read === "get:2")).toHaveLength(before);
-		test.pause(true);
-		test.pause(false);
-		const readsAfterResume = readsAfterConnect + 1;
-		yield* eventually(() => {
-			expect(test.reads().filter((read) => read === "get:1")).toHaveLength(readsAfterResume);
-			expect(test.registry.get(test.one).waiting).toBe(false);
-		});
-		expect(test.reads().filter((read) => read === "get:2")).toHaveLength(before);
-	},
-);
+			expect(yield* heardBy("the watcher")).toEqual(heard);
+		},
+	);
+}

@@ -1,111 +1,124 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { preferences } from "#test/sessionContract.ts";
-import { sessionStory } from "#test/sessionStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { keptSave, sessionStory, watching } from "#test/sessionStory.ts";
+
+for (const runtime of ["alice", "bob"] as const) {
+	sessionStory.it(
+		`alice's save run through ${runtime}'s runtime refreshes her preferences and list and leaves her preference 1 and bob's preferences unread`,
+		[watching("alice", "preferences", "list", "preference 1"), watching("bob", "preferences")],
+		function* ({ save, shown, timesRead, untilReRead }) {
+			expect(yield* shown("alice", "preferences")).toBe("Alice");
+
+			yield* save("alice", "Changed", runtime);
+			yield* untilReRead("alice", "preferences");
+			yield* untilReRead("alice", "list");
+
+			yield* outcomes({
+				"alice's list": [shown("alice", "list"), ["Changed"]],
+				"alice's preference 1": [timesRead("alice", "preference 1"), "read once"],
+				"alice's preferences": [shown("alice", "preferences"), "Changed"],
+				"bob's preferences": [timesRead("bob", "preferences"), "read once"],
+			});
+		},
+	);
+}
 
 sessionStory.it(
-	"self-only reads and writes refresh their owner's item and list after success, including calls from another runtime",
-	[],
-	function* (test) {
-		const alice = test.watch("alice", "self");
-		const list = test.watch("alice", "list");
-		const other = test.watch("alice", 1);
-		const bob = test.watch("bob", "self");
-		yield* eventually(() => {
-			expect(alice.value()).toBe("Alice");
-			expect(bob.value()).toBe("Bob");
-			expect(list.value()).toEqual(["Alice"]);
-			expect(other.value()).toBe("Alice");
+	"alice's blank save is rejected and re-reads neither her preferences nor her list",
+	[watching("alice", "preferences", "list")],
+	function* ({ save, timesRead }) {
+		expect(yield* save("alice", "")).toBe("failed with rejected");
+
+		yield* outcomes({
+			"alice's list": [timesRead("alice", "list"), "read once"],
+			"alice's preferences": [timesRead("alice", "preferences"), "read once"],
 		});
-		yield* test.saveFromOtherRuntime("Changed");
-		yield* eventually(() => {
-			expect(alice.value()).toBe("Changed");
-			expect(list.value()).toEqual(["Changed"]);
-		});
-		expect(test.reads("alice", "self")).toEqual(["alice:self", "alice:self"]);
-		expect(test.reads("alice", "list")).toEqual(["alice:list", "alice:list"]);
-		expect(test.reads("alice", "get:1")).toEqual(["alice:get:1"]);
-		expect(test.reads("bob", "self")).toEqual(["bob:self"]);
-		expect(bob.value()).toBe("Bob");
 	},
 );
 
-sessionStory.it("a rejected self-only write declares no invalidation", [], function* (test) {
-	const alice = test.watch("alice", "self");
-	yield* eventually(() => expect(alice.value()).toBe("Alice"));
-	expect(yield* test.save("alice", "").pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Rejected" } });
-	expect(test.reads("alice", "self")).toEqual(["alice:self"]);
-	expect(alice.waiting()).toBe(false);
+sessionStory.it(
+	"an announced change to alice's preferences re-reads hers and leaves bob's unread",
+	[watching("alice", "preferences"), watching("bob", "preferences")],
+	function* ({ announce, changeQuietly, shown, timesRead, untilReRead }) {
+		changeQuietly("alice", "Hinted");
+		expect(yield* shown("alice", "preferences")).toBe("Alice");
+
+		yield* announce("alice");
+		yield* untilReRead("alice", "preferences");
+
+		yield* outcomes({
+			"alice's preferences": [shown("alice", "preferences"), "Hinted"],
+			"bob's preferences": [timesRead("bob", "preferences"), "read once"],
+		});
+	},
+);
+
+sessionStory.it(
+	"a server resync re-reads alice's and bob's preferences",
+	[watching("alice", "preferences"), watching("bob", "preferences")],
+	function* ({ changeQuietly, resync, shown, untilReRead }) {
+		changeQuietly("alice", "Reconciled");
+		changeQuietly("bob", "Reconciled too");
+
+		yield* resync();
+		yield* untilReRead("alice", "preferences");
+		yield* untilReRead("bob", "preferences");
+
+		yield* outcomes({
+			"alice's preferences": [shown("alice", "preferences"), "Reconciled"],
+			"bob's preferences": [shown("bob", "preferences"), "Reconciled too"],
+		});
+	},
+);
+
+sessionStory.it(
+	"unmounting alice's preferences closes their live subscription and keeps the one for her preference 1",
+	[watching("alice", "preferences", "preference 1")],
+	function* ({ subscriptions, unmount }) {
+		expect(yield* subscriptions("alice")).toEqual(["preferences", "preference 1"]);
+
+		yield* unmount("alice", "preferences");
+
+		expect(yield* subscriptions("alice")).toEqual(["preference 1"]);
+	},
+);
+
+sessionStory.it(
+	"disposing alice's registry closes her live subscriptions",
+	[watching("alice", "preferences")],
+	function* ({ dispose, subscriptions }) {
+		expect(yield* subscriptions("alice")).toEqual(["preferences"]);
+
+		yield* dispose("alice");
+
+		expect(yield* subscriptions("alice")).toEqual([]);
+	},
+);
+
+sessionStory.it("binding a session contract without an owning registry throws", [], ({ bindWithoutOwner }) => {
+	expect(bindWithoutOwner()).toBe("A session-scoped contract requires its owning registry");
 });
 
-sessionStory.it("automatic query references deliver hints and reconcile only the owning registry", [], function* (test) {
-	const alice = test.watch("alice", "self");
-	const bob = test.watch("bob", "self");
-	test.connect("alice");
-	test.connect("bob");
-	yield* eventually(() => {
-		expect(test.subscriptions()).toEqual({ alice: [{ payload: undefined, query: "self" }], bob: [{ payload: undefined, query: "self" }] });
-		expect(alice.value()).toBe("Alice");
-		expect(bob.value()).toBe("Bob");
-		expect(alice.waiting() || bob.waiting()).toBe(false);
+sessionStory.it(
+	"running alice's kept save effect again writes her title again",
+	[watching("alice", "preferences"), keptSave("Saved")],
+	function* ({ changeQuietly, runKeptSaveAgain, stored, timesRead }) {
+		changeQuietly("alice", "Changed elsewhere");
+
+		yield* runKeptSaveAgain();
+
+		yield* outcomes({
+			"alice's preferences": [timesRead("alice", "preferences"), "read 3 times"],
+			"alice's stored title": [stored("alice"), "Saved"],
+		});
+	},
+);
+
+for (const [use, act] of [
+	["reading alice's preferences", "readInBobsRegistry"],
+	["mounting alice's live connection", "connectInBobsRegistry"],
+] as const) {
+	sessionStory.it(`${use} in bob's registry throws because it belongs to alice's`, [], (verbs) => {
+		expect(verbs[act]()).toBe("A session-scoped query belongs to its binding registry");
 	});
-	const before = test.reads("bob", "self").length;
-	yield* test.store("alice", "Hinted");
-	yield* test.announce("alice", [preferences.item(0)]);
-	yield* eventually(() => expect(alice.value()).toBe("Hinted"));
-	expect(test.reads("bob", "self").length).toBe(before);
-	expect(bob.value()).toBe("Bob");
-	const aliceBeforeResync = test.reads("alice", "self").length;
-	const bobBeforeResync = test.reads("bob", "self").length;
-	yield* test.store("alice", "Reconciled");
-	yield* test.resync();
-	yield* eventually(() => {
-		expect(alice.value()).toBe("Reconciled");
-		expect(bob.waiting()).toBe(false);
-		expect(test.reads("alice", "self").length).toBe(aliceBeforeResync + 1);
-		expect(test.reads("bob", "self").length).toBe(bobBeforeResync + 1);
-	});
-	expect(bob.value()).toBe("Bob");
-});
-
-sessionStory.it("unmounted queries leave the tracked references and registry disposal releases subscriptions", [], function* (test) {
-	const self = test.watch("alice", "self");
-	const item = test.watch("alice", 1);
-	test.connect("alice");
-	yield* eventually(() =>
-		expect(test.subscriptions().alice).toEqual([
-			{ payload: undefined, query: "self" },
-			{ payload: { id: 1 }, query: "get" },
-		]),
-	);
-	self.release();
-	yield* eventually(() => expect(test.subscriptions().alice).toEqual([{ payload: { id: 1 }, query: "get" }]));
-	item.release();
-	yield* eventually(() => expect(test.subscriptions()).toEqual({}));
-	test.watch("alice", "self");
-	yield* eventually(() => expect(test.subscriptions().alice).toEqual([{ payload: undefined, query: "self" }]));
-	test.dispose("alice");
-	yield* eventually(() => expect(test.subscriptions()).toEqual({}));
-});
-
-sessionStory.it("session contracts cannot bind without an owning registry", [], (test) => {
-	expect(() => test.bindWithoutOwner()).toThrow("requires its owning registry");
-});
-
-sessionStory.it("reusing a command effect performs each write through the owner", [], function* (test) {
-	const alice = test.watch("alice", "self");
-	yield* eventually(() => expect(alice.value()).toBe("Alice"));
-	const save = test.save("alice", "Saved");
-	yield* save;
-	yield* eventually(() => expect(alice.value()).toBe("Saved"));
-	yield* test.store("alice", "Changed elsewhere");
-	yield* save;
-	yield* eventually(() => expect(alice.value()).toBe("Saved"));
-	expect(test.reads("alice", "self")).toEqual(["alice:self", "alice:self", "alice:self"]);
-});
-
-sessionStory.it("query registration and live coordination reject another registry", [], (test) => {
-	expect(() => test.readInOtherRegistry()).toThrow("belongs to its binding registry");
-	expect(() => test.connectInOtherRegistry()).toThrow("belongs to its binding registry");
-});
+}

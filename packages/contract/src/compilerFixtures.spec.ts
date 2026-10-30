@@ -10,9 +10,9 @@ const invalidFixtures = {
 	duplicateQuery: "Operation names must be unique; duplicated: get",
 	fieldRejection: `Type '"body"' is not assignable to type '"title"'`,
 	handlerMismatch: "missing the following properties from type 'Note': body, title",
-	"incompatibleClient": "is not assignable",
-	"incompatibleErrors": "is not assignable",
-	"incompleteClient": "is not assignable",
+	incompatibleClient: "is not assignable",
+	incompatibleErrors: "is not assignable",
+	incompleteClient: "is not assignable",
 	inlineReject: "Property 'Anything' does not exist",
 	inlineSuccess: "Type 'number' is not assignable to type 'void",
 	invalidatesResult: "Property 'missing' does not exist on type 'Note'",
@@ -26,28 +26,21 @@ const invalidFixtures = {
 } as const;
 
 compilerStory.it(
-	"accepts the valid contract, binding and handlers",
+	"the valid contract, binding and handlers compile cleanly and declare the notes.rename RPC",
 	[],
-	function* (test) {
-		const { result, declaration } = yield* test.declarations();
-		expect(result.stderr || result.stdout).toBe("");
-		expect(result.status).toBe(0);
-		expect(declaration).toContain('Rpc<"notes.rename"');
+	function* ({ compileValid }) {
+		expect(yield* compileValid()).toBe('compiled cleanly, declaring Rpc<"notes.rename"');
 	},
 	COMPILER_TIMEOUT,
 );
 
-compilerStory.it(
-	"rejects each invalid use with a specific diagnostic",
-	[],
-	function* (test) {
-		const result = yield* test.invalid(Object.keys(invalidFixtures));
-		const diagnostics = (result.stderr || result.stdout).split(/(?=^src\/test-support\/fixtures\/invalid\/)/mu);
-		expect(result.status).not.toBe(0);
-		for (const [fixture, expected] of Object.entries(invalidFixtures)) {
-			const found = diagnostics.filter((message) => message.startsWith(`src/test-support/fixtures/invalid/${fixture}.ts(`)).join("\n");
-			expect(found, fixture).toContain(expected);
-		}
-	},
-	COMPILER_TIMEOUT,
-);
+for (const [fixture, diagnostic] of Object.entries(invalidFixtures)) {
+	compilerStory.it(
+		`tsc rejects the invalid ${fixture} fixture with ${diagnostic}`,
+		[],
+		function* ({ compileInvalid }) {
+			expect(yield* compileInvalid(fixture)).toContain(diagnostic);
+		},
+		COMPILER_TIMEOUT,
+	);
+}

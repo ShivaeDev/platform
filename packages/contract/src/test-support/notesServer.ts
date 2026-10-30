@@ -1,4 +1,4 @@
-import { Effect, Layer, Ref, Stream } from "effect";
+import { Effect, Layer, Ref, Stream, SubscriptionRef } from "effect";
 import type { QueryReference } from "#serverMetadata.ts";
 import { Create, Denied, Get, Guard, Note, Notes, Rename, Session } from "./notes.ts";
 
@@ -9,12 +9,12 @@ export const notesServer = Effect.gen(function* () {
 			[2, new Note({ body: "", id: 2, title: "Two" })],
 		]),
 	);
-	const reads = yield* Ref.make<readonly string[]>([]);
+	const reads = yield* SubscriptionRef.make<readonly string[]>([]);
 	const subscriptions = yield* Ref.make<readonly QueryReference[]>([]);
 	const denied = yield* Ref.make(false);
 	const session = yield* Ref.make({ user: "ada" });
 	function read(label: string) {
-		return Ref.update(reads, (all) => [...all, label]);
+		return SubscriptionRef.update(reads, (all) => [...all, label]);
 	}
 	function find(id: number) {
 		return Effect.flatMap(Ref.get(stored), (all) => {

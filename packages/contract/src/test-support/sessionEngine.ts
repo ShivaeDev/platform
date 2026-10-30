@@ -1,52 +1,55 @@
-import { Effect, Layer, Stream } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
+import { Effect, Layer, Stream, SubscriptionRef } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
-import { invalidationKeys, type Key } from "@shivaedev/changes/keys.ts";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { type QueryReference, queryKeys } from "#serverMetadata.ts";
-import { Guard, Preferences, Save, Session } from "#test/sessionContract.ts";
+import { Guard, Preferences, preferences, Save, Session } from "#test/sessionContract.ts";
+import type { Mark } from "./reRead.ts";
+
+export type Person = "alice" | "bob";
+export type PreferenceView = "preferences" | "list" | "preference 1";
+
+interface OpenSubscription {
+	readonly person: string;
+	readonly queries: readonly QueryReference[];
+}
 
 export const sessionEngine = Effect.gen(function* () {
-	const stored = new Map([
+	const stored = new Map<string, string>([
 		["alice", "Alice"],
 		["bob", "Bob"],
 	]);
-	const reads: string[] = [];
-	const subscriptions = new Map<string, Set<readonly QueryReference[]>>();
+	const reads = yield* SubscriptionRef.make<readonly string[]>([]);
+	const subscriptions = yield* SubscriptionRef.make<readonly OpenSubscription[]>([]);
 	const reactivity = yield* Reactivity.make;
 	const server = yield* makeLiveServer.pipe(Effect.provideService(Reactivity.Reactivity, reactivity));
 	const runtime = Atom.context({ memoMap: Layer.makeMemoMapUnsafe() });
 	function read(label: string) {
-		return Effect.map(Session, (session) => {
-			reads.push(`${session}:${label}`);
-			return stored.get(session) ?? "";
-		});
-	}
-	function trackSubscription(session: string, queries: readonly QueryReference[]) {
-		const current = subscriptions.get(session) ?? new Set();
-		current.add(queries);
-		subscriptions.set(session, current);
-		return () => {
-			current.delete(queries);
-			if (current.size === 0) {
-				subscriptions.delete(session);
-			}
-		};
+		return Effect.flatMap(Session, (person) =>
+			Effect.as(
+				SubscriptionRef.update(reads, (all) => [...all, `${person}:${label}`]),
+				stored.get(person) ?? "",
+			),
+		);
 	}
 	const handlers = Preferences.toLayer({
 		"preferences.$changes": ({ queries }) =>
 			Stream.unwrap(
 				Effect.gen(function* () {
-					const session = yield* Session;
+					const person = yield* Session;
 					const keys = yield* queryKeys(Preferences.declaration.queries, queries);
-					const stop = trackSubscription(session, queries);
-					return server.stream(keys, { scope: session }).pipe(Stream.ensuring(Effect.sync(stop)));
+					const subscription: OpenSubscription = { person, queries };
+					yield* SubscriptionRef.update(subscriptions, (all) => [...all, subscription]);
+					return server
+						.stream(keys, { scope: person })
+						.pipe(Stream.ensuring(SubscriptionRef.update(subscriptions, (all) => all.filter((current) => current !== subscription))));
 				}),
 			),
 		"preferences.get": ({ id }) => read(`get:${id}`),
@@ -54,68 +57,67 @@ export const sessionEngine = Effect.gen(function* () {
 		"preferences.save": ({ title }) =>
 			title === ""
 				? Save.reject.Rejected({})
-				: Effect.flatMap(Session, (session) =>
+				: Effect.flatMap(Session, (person) =>
 						Effect.sync(() => {
-							stored.set(session, title);
+							stored.set(person, title);
 						}),
 					),
 		"preferences.self": () => read("self"),
 	});
-	function open(session: string) {
+	function open(person: Person) {
 		return Effect.gen(function* () {
 			const registry = yield* Effect.acquireRelease(
 				Effect.sync(() => AtomRegistry.make()),
 				(current) => Effect.sync(() => current.dispose()),
 			);
-			class Client extends AtomRpc.Service<Client>()(`test/Private/${session}`, {
+			class Client extends AtomRpc.Service<Client>()(`test/Private/${person}`, {
 				group: Preferences,
 				makeEffect: RpcTest.makeClient(Preferences, { flatten: true }),
 				protocol: Layer.merge(
 					handlers,
-					Layer.succeed(Guard, (effect) => Effect.provideService(effect, Session, session)),
+					Layer.succeed(Guard, (effect) => Effect.provideService(effect, Session, person)),
 				),
 				runtime,
 			}) {}
 			const api = bind(Preferences, Client, { registry });
 			const otherBinding = bind(Preferences, Client, { registry });
+			registry.set(api[LiveConnection].coalesceWindow, 0);
 			function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
 				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(effect)));
 			}
+			function view(name: PreferenceView): Atom.Atom<AsyncResult.AsyncResult<string | readonly string[], unknown>> {
+				switch (name) {
+					case "preferences":
+						return api.self.query(undefined);
+					case "list":
+						return api.list.query(undefined);
+					case "preference 1":
+						return api.get.query({ id: 1 });
+				}
+			}
 			return {
 				api,
-				pause: (paused: boolean) => registry.set(otherBinding[LiveConnection].paused, paused),
+				otherBinding,
 				registry,
 				run,
+				view,
 				withoutOwner: () => Reflect.apply(bind, undefined, [Preferences, Client]),
 			};
 		});
 	}
-	const alice = yield* open("alice");
-	const bob = yield* open("bob");
-	const clients = { alice, bob };
-	function watch(session: keyof typeof clients, query: "self" | "list" | number) {
-		const { api, registry } = clients[session];
-		let atom: Atom.Atom<AsyncResult.AsyncResult<string | readonly string[], unknown>>;
-		if (typeof query === "number") {
-			atom = api.get.query({ id: query });
-		} else {
-			atom = query === "self" ? api.self.query(undefined) : api.list.query(undefined);
-		}
-		const release = registry.mount(atom);
-		return { release, value: () => AsyncResult.getOrElse(registry.get(atom), () => undefined), waiting: () => registry.get(atom).waiting };
-	}
+	const clients = { alice: yield* open("alice"), bob: yield* open("bob") };
+	const kept: { effect?: Effect.Effect<void, unknown> } = {};
 	return {
-		announce: (session: string, keys: readonly Key[]) => reactivity.invalidate(invalidationKeys(keys, { scope: session })),
+		announce: (person: Person) => reactivity.invalidate(invalidationKeys([preferences.item(0)], { scope: person })),
 		clients,
-		connect: (session: keyof typeof clients) => {
-			const { api, registry } = clients[session];
-			registry.set(api[LiveConnection].coalesceWindow, 0);
-			return registry.mount(api[LiveConnection].connection);
-		},
+		kept,
+		marked: new Map<string, Mark<string | readonly string[], unknown>>(),
+		mounted: new Map<string, { readonly person: Person; readonly release: () => void; readonly view: PreferenceView }>(),
 		reads,
 		server,
 		stored,
 		subscriptions,
-		watch,
 	};
 });
+
+export type SessionEngine = Effect.Success<typeof sessionEngine>;

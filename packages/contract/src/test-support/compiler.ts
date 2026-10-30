@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdtempSync, readdirSync, readFileSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -21,7 +21,8 @@ export const compiler = {
 			rmSync(output, { force: true, recursive: true });
 		}
 	},
-	invalid(fixtures: readonly string[]) {
+	invalid() {
+		const fixtures = readdirSync(join(packageDirectory, "src/test-support/fixtures/invalid")).map((file) => file.replace(/\.ts$/u, ""));
 		return compile([
 			"--ignoreConfig",
 			"--noEmit",

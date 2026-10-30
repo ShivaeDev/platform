@@ -1,40 +1,30 @@
-import { Effect, Option, Schema } from "effect";
-import { describe, expect } from "vitest";
-import { Follow } from "#test/edgeEngine.ts";
-import { Get, Note, NoteMissing } from "#test/notes.ts";
-import { denied, notesStory, signedIn, storedNotes } from "#test/notesStory.ts";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { denied, liveNotesStory } from "#test/liveNotesStory.ts";
 
-describe("contract", () => {
-	notesStory.it(
-		"round-trips successes and declared rejections through the bound native client and handlers",
-		[signedIn()],
-		function* ({ get, rename, create, list, deny }) {
-			expect(yield* get(1)).toMatchObject({ id: 1, title: "One" });
-			expect(yield* Effect.flip(get(9))).toBeInstanceOf(NoteMissing);
-			expect(yield* Effect.flip(rename(1, " "))).toMatchObject({ _tag: "Invalid", field: "title" });
-			expect(yield* create("Three", "b")).toMatchObject({ id: 3, title: "Three" });
-			expect((yield* list()).map((note) => note.title)).toEqual(["One", "Two", "Three"]);
-			yield* deny();
-			expect(yield* Effect.flip(list())).toMatchObject({ _tag: "Denied" });
-		},
-	);
-
-	notesStory.it("serves a contract without middleware through toLayer", [], function* ({ plainList }) {
-		expect(yield* plainList()).toEqual([]);
-	});
+liveNotesStory.it("reading note 1 over HTTP answers with note 1 decoded as a Note", [], function* ({ get }) {
+	expect(yield* get(1)).toBe("note 1 titled One: First");
 });
 
-notesStory.it("streams decode payloads and elements with declared read keys through bound native RPC", [], function* ({ follow }) {
-	expect(yield* follow(2)).toEqual(["note:2", "done"]);
-	expect(Follow.reads({ id: 2 })).toEqual(Get.reads({ id: 2 }, Option.none()));
-	expect(Follow.error).toBe(Schema.Never);
+liveNotesStory.it("reading the missing note 9 over HTTP fails with its declared note missing rejection", [], function* ({ get }) {
+	expect(yield* get(9)).toBe("failed with note 9 is missing");
 });
 
-notesStory.it(
-	"denied sessions cannot read seeded notes",
-	[denied(), storedNotes(new Note({ body: "private", id: 1, title: "Secret" }))],
-	function* ({ get, reads }) {
-		expect(yield* Effect.flip(get(1))).toMatchObject({ _tag: "Denied" });
-		expect(reads()).toEqual([]);
+liveNotesStory.it("renaming note 1 to a blank title over HTTP fails with its declared invalid title rejection", [], function* ({ rename }) {
+	expect(yield* rename(1, " ")).toBe("failed with invalid title: Enter a title");
+});
+
+liveNotesStory.it("creating the note Three over HTTP answers with the new note 3", [], function* ({ create }) {
+	expect(yield* create("Three")).toBe("created note 3 titled Three");
+});
+
+liveNotesStory.it(
+	"when the guard denies the session, reading note 1 over HTTP fails with denied and the server reads nothing",
+	[denied()],
+	function* ({ get, serverReads }) {
+		yield* outcomes({
+			"server reads": [serverReads(), []],
+			"the read": [get(1), "failed with denied"],
+		});
 	},
 );

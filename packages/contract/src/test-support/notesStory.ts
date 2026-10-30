@@ -1,79 +1,87 @@
-import { Effect, Ref } from "effect";
+import { Effect, Ref, SubscriptionRef } from "effect";
+import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import type * as Atom from "effect/reactivity/Atom";
-import * as Reactivity from "effect/reactivity/Reactivity";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { LiveConnection } from "#automaticLive.ts";
-import { edgeEngine } from "./edgeEngine.ts";
-import { localEngine } from "./localEngine.ts";
+import { answered, shown, times } from "./answers.ts";
+import { type LocalEngine, localEngine } from "./localEngine.ts";
 import type { Note } from "./notes.ts";
+import { settled } from "./settle.ts";
+
+export type View = "note 1" | "note 2" | "note 3" | "the list";
+
+const NOTE_IDS = { "note 1": 1, "note 2": 2, "note 3": 3 } as const;
+
+function readLabel(view: View) {
+	return view === "the list" ? "list" : `get:${NOTE_IDS[view]}`;
+}
+
+function viewAtom(engine: LocalEngine, view: View): Atom.Atom<AsyncResult.AsyncResult<Note | readonly Note[], unknown>> {
+	return view === "the list" ? engine.api.list.query(undefined) : engine.api.get.query({ id: NOTE_IDS[view] });
+}
+
+function titles(value: Note | readonly Note[]): string | readonly string[] {
+	if (Array.isArray(value)) {
+		return value.map((note) => note.title);
+	}
+	return "title" in value ? value.title : "";
+}
+
+function shownOf(engine: LocalEngine, view: View) {
+	return Effect.map(settled(engine.registry, viewAtom(engine, view)), (result) => shown(result, titles));
+}
 
 export const notesStory = storyKit({
 	clock: "live",
 	create: () => localEngine,
 	inspect: ({ server }) => ({
-		denied: Effect.runSync(Ref.get(server.denied)),
-		reads: Effect.runSync(Ref.get(server.reads)),
-		session: Effect.runSync(Ref.get(server.session)),
+		reads: Effect.runSync(SubscriptionRef.get(server.reads)),
 		stored: [...Effect.runSync(Ref.get(server.stored)).values()],
+		subscriptions: Effect.runSync(Ref.get(server.subscriptions)),
 	}),
 	name: "notes",
-	stages: ["session", "notes"],
+	stages: ["connection", "views"],
 	verbs: (engine, story) => ({
-		connect: () => engine.registry.mount(engine.api[LiveConnection].connection),
-		create: (title: string, body = "") => {
-			story.tell(`create the note ${title}`);
-			return engine.run(engine.api.create.run({ body, title }));
+		create: (title: string) => {
+			story.tell(`the client creates the note ${title}`);
+			return answered(engine.run(engine.api.create.run({ body: "", title })), (note) => `created note ${note.id} titled ${note.title}`);
 		},
-		deny: () => {
-			story.tell("deny further requests");
-			return Ref.set(engine.server.denied, true);
+		mount: (view: View) => {
+			story.tell(`the client mounts ${view}`);
+			engine.registry.mount(viewAtom(engine, view));
 		},
-		follow: (id: number) => {
-			story.tell(`follow note ${id}`);
-			return edgeEngine(engine.registry).follow(id);
+		prepare: (view: View) => {
+			story.tell(`the client prepares ${view} without mounting it`);
+			viewAtom(engine, view);
 		},
-		get: (id: number) => {
-			story.tell(`read note ${id} once`);
-			return engine.run(engine.api.get.run({ id }));
-		},
-		invalidate: (keys: Parameters<typeof Reactivity.invalidate>[0]) => engine.run(Reactivity.invalidate(keys)),
-		invalidations: () => [...engine.invalidations],
-		list: () => {
-			story.tell("list the notes once");
-			return engine.run(engine.api.list.run(undefined));
-		},
-		mount: <A>(atom: Atom.Atom<A>) => engine.registry.mount(atom),
-		plainList: () => {
-			story.tell("read the contract without middleware");
-			return edgeEngine(engine.registry).plainList();
-		},
-		query: (id: number) => engine.api.get.query({ id }),
-		queryList: () => engine.api.list.query(undefined),
-		reads: () => Effect.runSync(Ref.get(engine.server.reads)),
-		registry: engine.registry,
 		rename: (id: number, title: string) => {
-			story.tell(`rename note ${id} to ${JSON.stringify(title)}`);
-			return engine.run(engine.api.rename.run({ id, title }));
+			story.tell(`the client renames note ${id} to ${JSON.stringify(title)}`);
+			return answered(engine.run(engine.api.rename.run({ id, title })), (note) => `renamed note ${note.id} to ${note.title}`);
 		},
-		subscriptions: () => Effect.runSync(Ref.get(engine.server.subscriptions)),
-		watchKeys: (label: string, keys: readonly string[], refreshed: string[]) =>
-			engine.run(
-				Effect.gen(function* () {
-					const reactivity = yield* Reactivity.Reactivity;
-					return reactivity.registerUnsafe(keys, () => refreshed.push(label));
-				}),
+		serverReads: () => SubscriptionRef.get(engine.server.reads),
+		shown: (view: View) => shownOf(engine, view),
+		subscriptions: () => Ref.get(engine.server.subscriptions),
+		timesRead: (view: View) =>
+			Effect.andThen(
+				shownOf(engine, view),
+				Effect.map(SubscriptionRef.get(engine.server.reads), (reads) => `read ${times(reads.filter((read) => read === readLabel(view)).length)}`),
 			),
 	}),
 });
 
-export function signedIn(user = "ada") {
-	return notesStory.trait("session", `${user} has a session`, (engine) => Ref.set(engine.server.session, { user }));
+export function liveConnectionOpen() {
+	return notesStory.trait("connection", "the client's live connection is open", (engine) => {
+		engine.registry.mount(engine.api[LiveConnection].connection);
+	});
 }
-export function denied() {
-	return notesStory.trait("session", "the session is denied", (engine) => Ref.set(engine.server.denied, true));
-}
-export function storedNotes(...values: readonly Note[]) {
-	return notesStory.trait("notes", `the store has notes ${values.map(({ id }) => id).join(", ")}`, (engine) =>
-		Ref.set(engine.server.stored, new Map(values.map((note) => [note.id, note]))),
-	);
+
+export function watching(...views: readonly View[]) {
+	return notesStory.trait("views", `the client watches ${views.join(", ")}, each read once`, function* (engine) {
+		for (const view of views) {
+			engine.registry.mount(viewAtom(engine, view));
+		}
+		for (const view of views) {
+			yield* shownOf(engine, view);
+		}
+	});
 }
