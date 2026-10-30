@@ -1,25 +1,43 @@
 import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { ARCHIVE } from "./artifactFixture.ts";
 import { github } from "./github.ts";
 
-export function unavailableArtifact(status: ReturnType<typeof HttpStatus.fromLiteral<"NotFound" | "Gone">>) {
-	return github.trait("github", `the artifact archive is ${status === HttpStatus.fromLiteral("NotFound") ? "missing" : "expired"}`, ({ archive }) => {
+export function unavailableArtifact(state: "missing" | "expired") {
+	const status = state === "missing" ? HttpStatus.fromLiteral("NotFound") : HttpStatus.fromLiteral("Gone");
+	return github.trait("github", `artifact 7 is ${state}, so GitHub answers its archive with ${status}`, ({ archive }) => {
 		archive.redirect = { status };
 	});
 }
 
-export const archiveWithHeldTail = github.trait("github", "storage streams an archive with its tail held back", function* ({ archive }) {
-	const tail = Promise.withResolvers<void>();
-	yield* Effect.addFinalizer(() => Effect.sync(() => tail.resolve()));
-	archive.archive = {
-		chunks: (async function* () {
-			const first = new Uint8Array([80, 75, 3, 4, 0, 255, 10, 13]);
-			archive.sentBytes += first.byteLength;
-			yield first;
-			await tail.promise;
-			const last = new Uint8Array(1024);
-			archive.sentBytes += last.byteLength;
-			yield last;
-		})(),
-	};
+export const archiveRejected = github.trait("github", "GitHub answers the next archive request with 401 Bad credentials", function* ({ server }) {
+	yield* server.replyOnce("artifactRedirect", { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") });
 });
+
+export const storageSignatureExpired = github.trait(
+	"github",
+	"the signed storage link has expired, so storage answers 403 AuthenticationFailed",
+	({ archive }) => {
+		archive.archive = {
+			chunks: ['<?xml version="1.0" encoding="utf-8"?><Error><Code>AuthenticationFailed</Code></Error>'],
+			headers: { "content-type": "application/xml" },
+			status: HttpStatus.fromLiteral("Forbidden"),
+		};
+	},
+);
+
+export const storageHoldsTail = github.trait(
+	"github",
+	"storage sends the archive's first 8 bytes and holds back its 1 KiB tail",
+	function* ({ archive }) {
+		const tail = Promise.withResolvers<void>();
+		yield* Effect.addFinalizer(() => Effect.sync(() => tail.resolve()));
+		archive.archive = {
+			chunks: (async function* () {
+				yield ARCHIVE;
+				await tail.promise;
+				yield new Uint8Array(1024);
+			})(),
+		};
+	},
+);

@@ -1,55 +1,60 @@
-import { Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { GitHubArtifactError, GitHubArtifactTooLarge } from "#errors.ts";
-import { archiveWithHeldTail, unavailableArtifact } from "#test/artifactTraits.ts";
-import { FIXTURE_TOKEN } from "#test/fixtures.ts";
+import { ARCHIVE } from "#test/artifactFixture.ts";
+import { archiveRejected, storageHoldsTail, storageSignatureExpired, unavailableArtifact } from "#test/artifactTraits.ts";
 import { github } from "#test/github.ts";
 
-github.it("an archive 401 with a plain token fails without retrying", [], function* ({ downloadArchive, rejectArchive, requests }) {
-	yield* rejectArchive();
-	expect(yield* Effect.flip(downloadArchive(8))).toMatchObject({
-		_tag: "RemoteUnauthorized",
-		method: "GET",
-		status: HttpStatus.fromLiteral("Unauthorized"),
-	});
-	expect(requests().map(({ path, status }) => ({ path, status }))).toEqual([
-		{ path: "/repos/acme/widgets/actions/artifacts/7/zip", status: HttpStatus.fromLiteral("Unauthorized") },
-	]);
+github.it(
+	"an archive download GitHub answers 401 for the configured token is not retried",
+	[archiveRejected],
+	function* ({ downloadArchive, requests }) {
+		yield* downloadArchive();
+
+		expect(yield* requests()).toEqual(["GET /repos/acme/widgets/actions/artifacts/7/zip 401"]);
+	},
+);
+
+github.it("downloading artifact 7 follows GitHub's redirect to storage and returns the archive bytes", [], function* ({ downloadArchive }) {
+	expect(yield* downloadArchive()).toEqual(ARCHIVE);
 });
 
 github.it(
-	"downloads the archive within the caller's byte cap without forwarding credentials, even to the same origin",
+	"an archive download sends the configured token and API version to GitHub but neither to storage, though storage shares GitHub's origin",
 	[],
-	function* ({ downloadArchive, requests }) {
-		expect(yield* downloadArchive(8)).toEqual(new Uint8Array([80, 75, 3, 4, 0, 255, 10, 13]));
-		expect(requests().map(({ path }) => path)).toEqual([
-			"/repos/acme/widgets/actions/artifacts/7/zip",
-			"/storage/archive.zip?signature=storage-secret",
+	function* ({ archiveRequestHeaders, downloadArchive }) {
+		yield* downloadArchive();
+
+		expect(yield* archiveRequestHeaders()).toEqual([
+			{ apiVersion: "2022-11-28", credential: "the configured token", to: "GitHub" },
+			{ apiVersion: "none", credential: "no credential", to: "storage" },
 		]);
-		expect(requests()[0]?.headers.authorization).toBe(`Bearer ${FIXTURE_TOKEN}`);
-		expect(requests()[1]?.headers).not.toHaveProperty("authorization");
-		expect(requests()[1]?.headers).not.toHaveProperty("x-github-api-version");
 	},
 );
 
 github.it(
-	"fails typed on a chunked archive over the cap before storage sends the tail",
-	[archiveWithHeldTail],
-	function* ({ downloadArchive, archiveBytesSent }) {
-		const byteLimit = 7;
-		expect(yield* Effect.flip(downloadArchive(byteLimit))).toEqual(new GitHubArtifactTooLarge({ limit: byteLimit }));
-		expect(archiveBytesSent()).toBe(byteLimit + 1);
+	"an archive over the caller's 7-byte cap fails as too large before storage sends the rest",
+	[storageHoldsTail],
+	function* ({ downloadArchive }) {
+		expect(yield* downloadArchive(7)).toBe("archive over 7 bytes");
 	},
 );
 
-for (const status of [HttpStatus.fromLiteral("NotFound"), HttpStatus.fromLiteral("Gone")] as const) {
+github.it(
+	"an archive download whose expired storage link storage refuses with 403 fails as the download answering HTTP 403",
+	[storageSignatureExpired],
+	function* ({ downloadArchive }) {
+		expect(yield* downloadArchive()).toBe("artifact download answered HTTP 403");
+	},
+);
+
+for (const [state, status] of [
+	["missing", 404],
+	["expired", 410],
+] as const) {
 	github.it(
-		`fails typed for a ${status === HttpStatus.fromLiteral("NotFound") ? "missing" : "expired"} artifact without requesting storage`,
-		[unavailableArtifact(status)],
-		function* ({ downloadArchive, requests }) {
-			expect(yield* Effect.flip(downloadArchive(8))).toEqual(new GitHubArtifactError({ stage: "redirect", status }));
-			expect(requests().map(({ path }) => path)).toEqual(["/repos/acme/widgets/actions/artifacts/7/zip"]);
+		`downloading ${state} artifact 7 fails as the redirect answering HTTP ${status}`,
+		[unavailableArtifact(state)],
+		function* ({ downloadArchive }) {
+			expect(yield* downloadArchive()).toBe(`artifact redirect answered HTTP ${status}`);
 		},
 	);
 }

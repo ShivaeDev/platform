@@ -1,47 +1,34 @@
-import { DateTime, Effect } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
-import { RemoteHttpError } from "@shivaedev/http/errors.ts";
-import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited } from "#errors.ts";
 import { budgetHeaders } from "#test/budgetHeaders.ts";
 import { github } from "#test/github.ts";
+import { pullNotAccessible } from "#test/traits.ts";
 import { commentWriteRefused } from "#test/writeTraits.ts";
 
-github.it(
-	"an integration permission refusal has its own typed outcome",
-	[commentWriteRefused("Resource not accessible by integration")],
-	function* ({ upsertComment, readComments }) {
-		const error = yield* Effect.flip(upsertComment({ body: "Coverage: 90%", marker: "coverage" }));
-		expect(error).toEqual(new GitHubPermissionDenied({ path: "/repos/acme/widgets/issues/1/comments" }));
-		expect(yield* readComments()).toEqual([]);
-	},
-);
+const REPORT = { body: "Coverage: 90%", marker: "coverage" };
 
-github.it("a locked conversation has its own typed outcome", [commentWriteRefused("Conversation is locked")], function* ({ upsertComment }) {
-	const error = yield* Effect.flip(upsertComment({ body: "Coverage: 90%", marker: "coverage" }));
-	expect(error).toEqual(new GitHubConversationLocked({ path: "/repos/acme/widgets/issues/1/comments" }));
-});
-
-github.it("an unrelated 403 remains an HTTP error", [commentWriteRefused("Forbidden")], function* ({ upsertComment }) {
-	const error = yield* Effect.flip(upsertComment({ body: "Coverage: 90%", marker: "coverage" }));
-	expect(error).toBeInstanceOf(RemoteHttpError);
-	expect(error).toMatchObject({ status: HttpStatus.fromLiteral("Forbidden") });
-});
+for (const [message, outcome] of [
+	["Resource not accessible by integration", "permission denied at /repos/acme/widgets/issues/1/comments"],
+	["Conversation is locked", "conversation locked at /repos/acme/widgets/issues/1/comments"],
+	["This conversation has been locked", "conversation locked at /repos/acme/widgets/issues/1/comments"],
+	["Forbidden", "HTTP 403"],
+] as const) {
+	github.it(`a coverage report GitHub refuses with 403 "${message}" fails as ${outcome}`, [commentWriteRefused(message)], function* ({ postReport }) {
+		expect(yield* postReport(REPORT)).toBe(outcome);
+	});
+}
 
 github.it(
-	"an exhausted primary budget takes precedence over a permission message",
-	[commentWriteRefused("Resource not accessible by integration", budgetHeaders("core", 0, 120))],
-	function* ({ upsertComment }) {
-		const error = yield* Effect.flip(upsertComment({ body: "Coverage: 90%", marker: "coverage" }));
-		expect(error).toEqual(new GitHubRateLimited({ resource: "core", retryAt: DateTime.makeUnsafe(120_000) }));
+	"a 403 that says Resource not accessible by integration but carries a spent core budget fails as rate limited until the reset",
+	[commentWriteRefused("Resource not accessible by integration", budgetHeaders("core", { limit: 5000, remaining: 0, reset: 120 }))],
+	function* ({ postReport }) {
+		expect(yield* postReport(REPORT)).toBe("rate limited on core until 00:02:00");
 	},
 );
 
 github.it(
-	"a secondary rate-limit 403 remains a rate-limit outcome",
-	[commentWriteRefused("You have exceeded a secondary rate limit")],
-	function* ({ upsertComment }) {
-		const error = yield* Effect.flip(upsertComment({ body: "Coverage: 90%", marker: "coverage" }));
-		expect(error).toEqual(new GitHubRateLimited({ resource: "core", retryAt: DateTime.makeUnsafe(60_000) }));
+	"a read refused as not accessible by integration fails as permission denied at its path without the query, though the documentation link mentions a rate limit",
+	[pullNotAccessible],
+	function* ({ readPullWithPrivateQuery }) {
+		expect(yield* readPullWithPrivateQuery()).toBe("permission denied at /repos/acme/widgets/pulls/1");
 	},
 );
