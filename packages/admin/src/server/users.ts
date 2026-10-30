@@ -47,12 +47,11 @@ export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole
 		if (Option.isNone(target)) {
 			return yield* Effect.fail(new NotFound({ message: "User not found" }));
 		}
-		const next = yield* Schema.decodeUnknownEffect(access.Role)(input.role).pipe(Effect.mapError(unavailable));
-		if (target.value.role === next) {
+		if (target.value.role === input.role) {
 			return false;
 		}
 		const assigners = access.Role.literals.filter((role) => access.hasPermission(role, AssignRoles));
-		if (assigners.some((role) => role === target.value.role) && !access.hasPermission(next, AssignRoles)) {
+		if (assigners.some((role) => role === target.value.role) && !access.hasPermission(input.role, AssignRoles)) {
 			const readHolders = SqlSchema.findAll({
 				execute: () => sql`select id from "user" where role in ${sql.in(assigners)}`,
 				Request: Schema.Void,
@@ -63,7 +62,7 @@ export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole
 				return yield* Effect.fail(new LastRoleAssigner({ userId: input.userId }));
 			}
 		}
-		yield* sql`update "user" set role = ${next}, "updatedAt" = now() where id = ${input.userId}`;
+		yield* sql`update "user" set role = ${input.role}, "updatedAt" = now() where id = ${input.userId}`;
 		yield* invalidateOnCommit(["admin.users"]);
 		return true;
 	}).pipe(transact({ onSqlError: unavailable }));

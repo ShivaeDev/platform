@@ -167,17 +167,10 @@ for (const { role, failure } of [
 }
 
 auth.it(
-	"an undeclared stored role fails visibly instead of granting access",
+	"an undeclared stored role reaches the admin caller as a defect naming the role",
 	[signedInWithRole("retired")],
-	function* ({ callAdminTools, adminHandlerRequests }) {
-		expect(yield* callAdminTools()).toMatchObject({
-			_tag: "Failure",
-			failure: {
-				_tag: "AuthUnavailable",
-				message: "Stored user role is not declared by the application",
-			},
-		});
-		expect(yield* adminHandlerRequests()).toEqual([]);
+	function* ({ callAdminTools }) {
+		expect(yield* callAdminTools()).toBe("defect: Stored user role is not declared by the application: retired");
 	},
 );
 
