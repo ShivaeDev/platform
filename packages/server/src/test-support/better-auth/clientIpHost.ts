@@ -1,14 +1,18 @@
 import type { BetterAuthOptions } from "better-auth";
 import { getMigrations } from "better-auth/db/migration";
-import { ConfigProvider, Effect, Layer, type Redacted } from "effect";
-import { HttpServer } from "effect/http";
+import { ConfigProvider, Effect, Layer, Option, type Redacted } from "effect";
+import { HttpRouter, HttpServer, HttpServerRequest } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
-import { RpcGroup } from "effect/rpc";
 import { betterAuthSessions } from "@shivaedev/identity/server/adapters/betterAuthSessions.ts";
 import { authDatabase, betterAuthMount } from "@shivaedev/identity/server/better-auth/mount.ts";
 import { appHost } from "#appHost.ts";
+import { Ping, pingHandlers } from "#test/app-host/ping.ts";
 
-export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (databaseUrl: Redacted.Redacted<string>, env: Record<string, string>) {
+export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (
+	databaseUrl: Redacted.Redacted<string>,
+	env: Record<string, string>,
+	proxyPeer?: string,
+) {
 	const pool = yield* authDatabase(databaseUrl);
 	const options = {
 		database: pool,
@@ -24,10 +28,10 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (d
 		const mounted = yield* betterAuthMount(options);
 		return yield* Layer.build(
 			appHost({
-				config: { host: "127.0.0.1", port: 0 },
-				group: RpcGroup.make(),
-				handlers: Layer.empty,
-				routes: mounted.routes,
+				config: { port: 0 },
+				group: Ping,
+				handlers: pingHandlers,
+				routes: Layer.merge(mounted.routes, proxyPeer === undefined ? Layer.empty : railwayPeer(proxyPeer)),
 				sessions: {
 					origin: () => true,
 					provider: betterAuthSessions((headers) => mounted.auth.api.getSession({ headers })),
@@ -41,3 +45,14 @@ export const clientIpHost = Effect.fn("ClientIpStory.clientIpHost")(function* (d
 	}
 	return { baseUrl: `http://127.0.0.1:${server.address.port}`, pool };
 });
+
+// The fixture supplies Railway's transport peer without requiring its network on the test machine.
+function railwayPeer(peer: string) {
+	return HttpRouter.middleware(
+		(effect) =>
+			Effect.flatMap(HttpServerRequest.HttpServerRequest, (request) =>
+				Effect.provideService(effect, HttpServerRequest.HttpServerRequest, request.modify({ remoteAddress: Option.some(peer) })),
+			),
+		{ global: true },
+	);
+}

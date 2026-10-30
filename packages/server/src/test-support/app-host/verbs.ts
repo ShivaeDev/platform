@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Cause, Effect, Option } from "effect";
 import { adminVerbs } from "./adminVerbs.ts";
 import { clientAbortVerbs } from "./clientAbortVerbs.ts";
 import { connectionBackends, serverTls } from "./connectionSecurity.ts";
@@ -51,5 +51,6 @@ export function hostVerbs(state: HostState, story: { tell: (line: string) => voi
 				state.proxy?.setResponsive(value);
 			}),
 		runtimeLifecycle: () => state.runtimeLifecycle,
+		startupFailure: () => Option.getOrThrow(Cause.findErrorOption(state.bootFailure ?? Cause.empty)),
 	};
 }

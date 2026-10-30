@@ -1,16 +1,16 @@
 import { defineRailway, postgres, project, service } from "railway/iac";
+import proxy from "./proxy.json" with { type: "json" };
 
 export default defineRailway((ctx) => {
 	const database = postgres("Postgres");
 	const web = service("web", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
 		env: {
-			"AUTH_CLIENT_IP_HEADER": "x-real-ip",
+			...proxy,
 			"BETTER_AUTH_SECRET": ctx.shared.BETTER_AUTH_SECRET,
 			"DATABASE_URL": database.env.DATABASE_URL,
 			"HOST": "0.0.0.0",
 			"PUBLIC_URL": ctx.shared.PUBLIC_URL,
-			"TRUSTED_PROXY": "100.64.0.0/10",
 		},
 		healthcheck: "/health",
 		healthcheckTimeout: 120,
