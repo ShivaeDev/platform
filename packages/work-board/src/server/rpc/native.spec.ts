@@ -1,4 +1,4 @@
-import { Effect, Stream } from "effect";
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
@@ -52,11 +52,11 @@ boardStory.it(
 		const nav = client.api.navigation.query({ current: "note.md" });
 		const releaseNav = client.registry.mount(nav);
 		const oldNav = yield* Effect.promise(() => client.read(nav));
-		editFile("other.md", "# Updated unrelated");
+		editFile("added.md", "# New unrelated");
 		yield* Effect.promise(() =>
 			waitFor(() => {
 				const result = client.registry.get(nav);
-				expect(result._tag === "Success" && result.value !== oldNav).toBe(true);
+				expect(result._tag === "Success" && result.value.counts.library).toBe(oldNav.counts.library + 1);
 			}),
 		);
 		expect(yield* Effect.promise(() => client.read(atom))).toBe(initial);
@@ -90,25 +90,15 @@ boardStory.it(
 	"interrupts an active native subscription when the HTTP server scope ends",
 	readingProject,
 	function* ({ board, client, waitForConnection }) {
+		const query = client.api.watcher.query();
+		const release = client.registry.mount(query);
+		yield* Effect.addFinalizer(() => Effect.sync(release));
+		yield* Effect.promise(() => client.read(query));
 		yield* waitForConnection();
 		yield* board.stop();
 		yield* Effect.promise(() => waitFor(() => expect(client.registry.get(client.updates.status).connection).toBe("reconnecting")));
 	},
 );
-
-boardStory.it("delivers the initial reconciliation hint through the bound Board subscription", readingProject, function* ({ client }) {
-	const hints = yield* Effect.promise(() =>
-		client.run(
-			Stream.runCollect(
-				client.api.subscribe.run(undefined).pipe(
-					Stream.filter((item) => item._tag !== "Indexing"),
-					Stream.take(1),
-				),
-			),
-		),
-	);
-	expect(hints).toEqual([{ _tag: "Resync" }]);
-});
 
 boardStory.it("updates getting-started guidance when the first Markdown file is added", [], function* ({ client, editFile, waitForConnection }) {
 	const atom = client.api.start.query();

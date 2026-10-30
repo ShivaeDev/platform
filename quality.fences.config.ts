@@ -1,7 +1,7 @@
 import { fence } from "@shivaedev/quality/imports/fence.ts";
 import { external, packages, workspace } from "@shivaedev/quality/imports/fences/selectors.ts";
 
-const hosts = packages("server", "work-board", "work-fleet", "starter");
+const hosts = packages("server", "work-board", "work-board-plugin", "work-fleet", "starter");
 
 export default [
 	fence("libraries-never-import-the-host-or-an-application")

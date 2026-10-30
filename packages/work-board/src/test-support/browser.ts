@@ -3,6 +3,7 @@ import { Browser, type BrowserWindow } from "happy-dom";
 import { THEME_ROUTE } from "#server/page/initialTheme.ts";
 import { type RunningBoard, rawGet } from "#test/board.ts";
 import { pageFetch } from "#test/pageFetch.ts";
+import { pageSocket } from "#test/pageSocket.ts";
 import type { RpcStream } from "#test/RpcStream.ts";
 
 export interface MermaidControl {
@@ -13,12 +14,10 @@ export interface MermaidControl {
 
 export interface PageRequests {
 	answered: number;
+	readonly calls: import("./rpc.ts").RpcRequest[];
 	count: number;
-	failWith: number | "network" | undefined;
-	gate: Promise<void>;
 	readonly held: ReadonlyMap<string, Promise<void>>;
 	readonly methods: string[];
-	responseGate?: Promise<void> | undefined;
 }
 
 export interface LiveStream {
@@ -26,6 +25,7 @@ export interface LiveStream {
 	readonly connect: () => void;
 	readonly drop: () => void;
 	readonly emit: (name: string) => void;
+	readonly urls: () => readonly string[];
 }
 
 export interface OpenPage {
@@ -51,7 +51,7 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 ) {
 	const chunkRequests: string[] = [];
 	const mermaidRequests: string[] = [];
-	const pageRequests: PageRequests = { answered: 0, count: 0, failWith: undefined, gate: Promise.resolve(), held: holds, methods: [] };
+	const pageRequests: PageRequests = { answered: 0, calls: [], count: 0, held: holds, methods: [] };
 	const streams: RpcStream[] = [];
 	const response = yield* rawGet(board, path);
 	const resolved = new URL(response.location ?? path, board.url);
@@ -63,12 +63,13 @@ export const openPage = Effect.fn("Test.openPage")(function* (
 		settings: {
 			"enableCSSFileLoading": true,
 			enableJavaScriptEvaluation: true,
-			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, pageRequests, path: activePath, streams, theme }) },
+			fetch: { interceptor: pageFetch({ chunkRequests, mermaidRequests, theme }) },
 			suppressInsecureJavaScriptEnvironmentWarning: true,
 		},
 	});
 	const page = browser.newPage();
 	const window = page.mainFrame.window;
+	pageSocket(window, activePath, pageRequests, streams);
 	const mermaid: MermaidControl = { calls: [], configs: [], gate: Promise.resolve() };
 	Object.assign(window, { mermaidStub: mermaid });
 	page.url = resolved.href;

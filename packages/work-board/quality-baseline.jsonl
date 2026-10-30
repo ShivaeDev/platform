@@ -1,6 +1,6 @@
 {"path":"packages/work-board/package.json","rule":"code/unused","count":4}
 {"path":"packages/work-board/src/browserClient.ts","rule":"effect/boundary","count":13}
-{"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":3}
+{"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/document/Mermaid.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/client/document/highlight.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/client/document/nextSection.ts","rule":"effect/boundary","count":1}
@@ -122,11 +122,8 @@
 {"path":"packages/work-board/src/client/react/lazyChunks.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/client/react/libraryPaging.ts","rule":"code/unused","count":1}
 {"path":"packages/work-board/src/client/react/linkedAnswerCard.dom.spec.tsx","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/client/react/liveReady.ts","rule":"code/unused","count":1}
-{"path":"packages/work-board/src/client/react/liveReady.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/client/react/liveReady.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/liveScreen.dom.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/client/react/loadBoardPage.ts","rule":"effect/boundary","count":12}
+{"path":"packages/work-board/src/client/react/loadBoardPage.ts","rule":"effect/boundary","count":11}
 {"path":"packages/work-board/src/client/react/loadBoardPage.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/client/react/loadProjection.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/loadRemaining.ts","rule":"effect/service-parameters","count":1}
@@ -231,7 +228,6 @@
 {"path":"packages/work-board/src/server/rpc/native.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/server/rpc/rejectionTypes.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/rpc/rootRemoval.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/work-board/src/server/rpc/subscriptionBoundary.spec.ts","rule":"effect/boundary","count":3}
 {"path":"packages/work-board/src/server/search/entries.ts","rule":"effect/boundary","count":2}
 {"path":"packages/work-board/src/server/search/snapshot.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-board/src/server/views/fleetItems.test.ts","rule":"effect/boundary","count":1}

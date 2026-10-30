@@ -4,17 +4,17 @@ import type { ReactNode } from "react";
 import { type MockInstance, vi } from "vitest";
 import type { render } from "@shivaedev/react/client/testing.ts";
 import { loadLazyChunks } from "#client/react/lazyChunks.ts";
+import type { FileSystemWrapper } from "#test/board.ts";
+import { browserStorage } from "#test/browserStorage.ts";
+import type { chrome } from "#test/chrome.ts";
+import type { mountDocument } from "#test/documentRendering.ts";
+import type { BoardFixtureOptions } from "#test/inMemoryBoard.ts";
+import type { mountSession } from "#test/mountSession.ts";
 import type { CurrentFleet } from "#test/pullRequestsFixture.ts";
-import type { FileSystemWrapper } from "./board.ts";
-import { browserStorage } from "./browserStorage.ts";
-import type { chrome } from "./chrome.ts";
-import type { mountDocument } from "./documentRendering.ts";
-import type { BoardFixtureOptions } from "./inMemoryBoard.ts";
-import type { mountSession } from "./mountSession.ts";
-import type { BoardTestApi, renderBoard } from "./react.tsx";
-import type { renderRouter } from "./renderRouter.tsx";
-import type { DiagramDrawing } from "./screenDiagrams.ts";
-import type { SessionTransport } from "./sessionTransport.ts";
+import type { BoardTestApi, renderBoard } from "#test/react.tsx";
+import type { renderRouter } from "#test/renderRouter.tsx";
+import type { DiagramDrawing } from "#test/screenDiagrams.ts";
+import type { SessionTransport } from "#test/sessionTransport.ts";
 
 export interface ScreenEngine {
 	api?: BoardTestApi;
@@ -53,6 +53,7 @@ export interface ScreenEngine {
 	scrollPosition?: number;
 	serverStopped?: boolean;
 	session?: Effect.Success<ReturnType<typeof mountSession>>;
+	sessionDisconnect?: () => void;
 	sessionFleet?: CurrentFleet;
 	sessionFleetPort?: number;
 	sessionTransport?: SessionTransport;

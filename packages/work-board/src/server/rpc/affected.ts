@@ -86,7 +86,7 @@ export function affected(previous: Indexed, current: Indexed, paths: readonly st
 	}
 	const models = [previous.model, current.model];
 	const files = linkedFiles(models, changed);
-	const keys: Key[] = [index.list, navigation.list, ...[...files].map((file) => documents.item(file))];
+	const keys: Key[] = [index.bucket.workspace("local"), navigation.list, ...[...files].map((file) => documents.item(file))];
 	for (const model of models) {
 		if (model.rootFile && files.has(model.rootFile)) {
 			keys.push(documents.item(""));

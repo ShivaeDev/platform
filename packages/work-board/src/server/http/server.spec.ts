@@ -120,7 +120,7 @@ describe("pages", () => {
 			editFile("notes/new.md", "# New\n");
 			expect(yield* changesUntil(events, "notes/new.md")).toMatchObject({
 				_tag: "Changed",
-				keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/new.md" }]),
+				keys: [{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" }],
 			});
 			yield* events.close();
 			expect(yield* rpcPaths(board)).toContain("/notes/new.md");

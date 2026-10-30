@@ -1,18 +1,15 @@
-import type { EngineInterface, HttpResponse, Register, UiOpenResult } from "claude-code";
+import type { EngineInterface, Register, UiOpenResult } from "claude-code";
 import { atom, read, update } from "claude-code";
+import { connection } from "#connect.ts";
+import { clip, updatedLabel } from "#lines.ts";
+import { paneView } from "#pane.tsx";
+import { registerTools } from "#registerTools.ts";
+import { serveTools } from "#serveTools.ts";
+import { bandLine, needsYou } from "#summary.ts";
 import type { WorkboardAsk, WorkboardBoard } from "#types/index.d.ts";
-import { boardInit, readBoard } from "./board.ts";
-import { findBoard } from "./findBoard.ts";
-import { clip, updatedLabel } from "./lines.ts";
-import { paneView } from "./pane.tsx";
-import { registerTools } from "./registerTools.ts";
-import { RPC_URL } from "./rpc.ts";
-import { serveTools } from "./serveTools.ts";
-import { bandLine, needsYou } from "./summary.ts";
 
 const PANE = "workboard";
 const TITLE = "Work Board";
-const REFRESH_MS = 15_000;
 const OPEN_LABEL = "Open board";
 
 const board = atom({ key: "board", plugin: "workboard" } as const, { kind: "loading" });
@@ -20,8 +17,7 @@ const seenAsks = atom({ key: "seenAsks", plugin: "workboard" } as const, null);
 const updatedAt = atom({ key: "updatedAt", plugin: "workboard" } as const, null);
 const achievedOpen = atom({ key: "achievedOpen", plugin: "workboard" } as const, false);
 
-async function refresh($: EngineInterface): Promise<void> {
-	const next = await load($);
+async function receive($: EngineInterface, next: WorkboardBoard): Promise<void> {
 	if (next.kind === "ready") {
 		const now = await $.clock.now();
 		await update($, updatedAt, () => now);
@@ -32,19 +28,12 @@ async function refresh($: EngineInterface): Promise<void> {
 	}
 }
 
-async function load($: EngineInterface): Promise<WorkboardBoard> {
-	const cwd = await $.session.cwd();
-	const directory = await findBoard($, cwd);
-	if (directory === null) {
-		return { cwd, kind: "none" };
-	}
-	let response: HttpResponse;
+async function refresh($: EngineInterface): Promise<void> {
 	try {
-		response = await $.http.fetch(RPC_URL, boardInit(directory));
-	} catch {
-		return { directory, kind: "down" };
+		(await connection($, (next) => void receive($, next))).refresh();
+	} catch (cause) {
+		await receive($, { kind: "error", message: cause instanceof Error ? cause.message : String(cause) });
 	}
-	return readBoard(response, directory, await $.clock.now());
 }
 
 function openUrl($: EngineInterface, url: string | null): void {
@@ -83,7 +72,6 @@ export const register: Register = (on) => {
 			name: "workboard",
 		});
 		await registerTools($);
-		$.clock.every(REFRESH_MS, () => void refresh($));
 		void refresh($);
 
 		return next(e);

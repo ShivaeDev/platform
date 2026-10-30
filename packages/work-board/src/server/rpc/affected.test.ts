@@ -21,13 +21,12 @@ boardStory.it(
 		expect(hint).toMatchObject({
 			_tag: "Changed",
 			keys: expect.arrayContaining([
-				{ _tag: "List", collection: "work-board/index" },
+				{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" },
 				{ _tag: "Item", collection: "work-board/documents", id: "" },
 				{ _tag: "Item", collection: "work-board/documents", id: "nested/home.md" },
 				{ _tag: "Item", collection: "work-board/documents", id: "old.md" },
 				{ _tag: "Item", collection: "work-board/documents", id: "new.md" },
 				{ _tag: "Item", collection: "work-board/identities", id: "home" },
-				{ _tag: "Item", collection: "work-board/identities", id: "renamed" },
 			]),
 		});
 		expect(JSON.stringify(hint)).not.toContain("other.md");
