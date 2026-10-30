@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { testsColocated } from "@shivaedev/quality/rules/test-names/colocated.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { testsColocated } from "#quality-internal/rules/test-names/colocated.ts";
 
 for (const folder of ["test", "tests", "spec"]) {
 	ruleKit.it(

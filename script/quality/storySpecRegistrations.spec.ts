@@ -1,7 +1,7 @@
 import { expect } from "vitest";
+import { storySpecs } from "@shivaedev/quality/rules/stories/specs.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
 import { factoryFiles, kitFiles, spec } from "#quality-fixtures/storySpecFiles.ts";
-import { storySpecs } from "#quality-internal/rules/stories/specs.ts";
 
 ruleKit.it(
 	"inline trait calls belong to the story registration",
