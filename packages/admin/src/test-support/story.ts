@@ -18,7 +18,7 @@ export const adminStory = storyKit({
 	create: () => adminEngine,
 	name: "admin registry",
 	stages: ["session"],
-	verbs: ({ client }, story) => ({
+	verbs: ({ client, liveFailedJobs }, story) => ({
 		failedJobs: () => {
 			story.tell("the caller reads the failed jobs");
 			return answered(client["admin.jobs.failed"]());
@@ -26,6 +26,10 @@ export const adminStory = storyKit({
 		jobChanges: () => {
 			story.tell("the caller subscribes to job changes");
 			return answered(firstChange(client["admin.jobs.$changes"]({ queries: [{ payload: undefined, query: "failed" }] })));
+		},
+		liveFailedJobs: () => {
+			story.tell("the caller opens the live failed jobs query");
+			return answered(liveFailedJobs());
 		},
 		profile: () => {
 			story.tell("the caller reads their profile");

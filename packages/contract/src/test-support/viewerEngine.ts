@@ -8,7 +8,6 @@ import { command, query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, CurrentViewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
-import { ChangesQueries } from "#serverMetadata.ts";
 
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
 export class Row extends Schema.Class<Row>("ViewerRow")({ id: Schema.Number, owner: Schema.String, title: Schema.String }) {}
@@ -64,17 +63,12 @@ export const viewerEngine = Effect.gen(function* () {
 			);
 		});
 	}
-	const changesRpc = Notes.requests.get("notes.$changes");
-	if (changesRpc === undefined) {
-		throw new Error("The notes contract has no change subscription");
-	}
 	const handlers = Notes.toLayer({
-		"notes.$changes": ({ queries }) =>
+		"notes.$changes": ({ queries }, { rpc }) =>
 			Stream.unwrap(
 				Effect.gen(function* () {
 					const viewer = yield* CurrentViewer;
-					const requests = yield* Context.getUnsafe(changesRpc.annotations, ChangesQueries).resolve(queries);
-					const subscription = yield* querySubscription(requests, viewer);
+					const subscription = yield* querySubscription(rpc, queries, viewer);
 					return live.subscribe(subscription, Option.isSome(viewer) ? { scope: viewer.value.id } : undefined);
 				}),
 			),
@@ -99,7 +93,9 @@ export const viewerEngine = Effect.gen(function* () {
 			}),
 		"notes.unprotected": () => Ref.get(stored).pipe(Effect.map((rows) => [...rows.values()])),
 	});
-	const layer = Layer.mergeAll(handlers, guard());
+	const services = Layer.merge(Layer.succeed(Rows, stored), Layer.succeed(PolicyChecks, checks));
+	const providedHandlers = handlers.pipe(Layer.provide(services));
+	const layer = Layer.mergeAll(providedHandlers, guard());
 	const client = yield* RpcTest.makeClient(Notes, { flatten: true }).pipe(Effect.provide(layer));
-	return { checks, client, layer, layerFor: (viewer: string) => Layer.merge(handlers, guard(viewer)), live, reactivity, reads, stored };
+	return { checks, client, layer, layerFor: (viewer: string) => Layer.merge(providedHandlers, guard(viewer)), live, reactivity, reads, stored };
 });

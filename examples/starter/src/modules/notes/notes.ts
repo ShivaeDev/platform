@@ -18,7 +18,10 @@ export const NoteEditFields = Schema.Struct({ title: Note.fields.title, version:
 const NoteId = Schema.Struct({ id: Schema.Number });
 const NoteVersion = Schema.Struct({ ...NoteId.fields, version: Note.fields.version });
 export const notes = collection("notes", Schema.Number, { userId: Schema.String });
-export class NoteReadAccess extends Context.Service<NoteReadAccess, (id: number, userId: string) => Effect.Effect<boolean>>()("app/NoteReadAccess") {}
+export class NoteReadAccess extends Context.Service<
+	NoteReadAccess,
+	(id: number, userId: string) => Effect.Effect<boolean, InternalServerError | NotFound | ServiceUnavailable>
+>()("app/NoteReadAccess") {}
 export const Get = query("get", {
 	payload: NoteId,
 	readPolicy: ({ id }, viewer) =>

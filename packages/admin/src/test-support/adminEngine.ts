@@ -1,6 +1,9 @@
 import { Effect, Layer, Option, Ref, Stream } from "effect";
+import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import * as AtomRpc from "effect/reactivity/AtomRpc";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcTest } from "effect/rpc";
+import { bind } from "@shivaedev/contract/bind.ts";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
@@ -38,6 +41,17 @@ export const adminEngine = Effect.gen(function* () {
 		roles: Access,
 	};
 	const auth = Layer.merge(permissionLayer(JobsPermission, policy), permissionLayer(UsersPermission, policy));
-	const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(Layer.mergeAll(registration.handlers, changes, auth)));
-	return { client, session };
+	const protocol = Layer.mergeAll(registration.handlers, changes, auth);
+	const client = yield* RpcTest.makeClient(registration.group).pipe(Effect.provide(protocol));
+	class Client extends AtomRpc.Service<Client>()("test/AdminLiveClient", {
+		group: registration.group,
+		makeEffect: RpcTest.makeClient(registration.group, { flatten: true }),
+		protocol,
+	}) {}
+	const registry = yield* Effect.acquireRelease(
+		Effect.sync(() => AtomRegistry.make()),
+		(value) => Effect.sync(() => value.dispose()),
+	);
+	const api = bind(Jobs.contract, Client, { registry });
+	return { client, liveFailedJobs: () => AtomRegistry.getResult(registry, api.failed.query()), session };
 });

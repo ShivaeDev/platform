@@ -25,6 +25,7 @@ export const liveNotes = Effect.fn("AppStory.liveNotes")(function* (host: Runnin
 
 export const liveNote = Effect.fn("AppStory.liveNote")(function* (host: RunningHost, cookie: string, id: number) {
 	const { client, registry } = yield* liveClient(host, cookie);
-	const updates = yield* queryUpdates(registry, client.api.get.query({ id }));
-	return { nextNote: updates.next };
+	const query = client.api.get.query({ id });
+	const updates = yield* queryUpdates(registry, query);
+	return { nextNote: updates.next, refresh: () => Effect.sync(() => registry.refresh(query)) };
 });

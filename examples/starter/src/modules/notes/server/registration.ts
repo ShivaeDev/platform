@@ -36,7 +36,7 @@ export const notesRegistration = {
 	services: (url: Redacted.Redacted<string>, max?: number, clientCacheKey?: symbol) =>
 		Layer.effect(
 			NoteReadAccess,
-			Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(Effect.orDie)),
+			Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(rpcBoundary(Get.error, boundaryOptions))),
 		).pipe(
 			Layer.provideMerge(NotesService.layer.pipe(Layer.provide(jsonPlaceholderNotes))),
 			Layer.provideMerge(Layer.unwrap(Effect.map(JobsClientFactory, (factory) => noteProducer(Redacted.value(url), factory, max, clientCacheKey)))),

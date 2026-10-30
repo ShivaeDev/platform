@@ -6,7 +6,7 @@ import type { LiveHint } from "@shivaedev/contract/live.ts";
 import { Conflict, NotFound, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
-import { Create, type Note, Notes, notes, Update } from "#modules/notes/notes.ts";
+import { Create, type Note, NoteReadAccess, Notes, notes, Update } from "#modules/notes/notes.ts";
 
 export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	const rows = [...initial];
@@ -97,7 +97,7 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	class Client extends AtomRpc.Service<Client>()("notes/Client", {
 		group: Notes,
 		makeEffect: RpcTest.makeClient(Notes, { flatten: true }),
-		protocol: handlers.pipe(Layer.provideMerge(authentication)),
+		protocol: handlers.pipe(Layer.provide(Layer.succeed(NoteReadAccess, () => Effect.succeed(true))), Layer.provideMerge(authentication)),
 	}) {}
 	const api = bind(Notes, Client);
 	function finishNote(id: number, wordCount: number) {

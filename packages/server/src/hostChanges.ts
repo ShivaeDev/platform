@@ -54,11 +54,11 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 	);
 }
 
-function authorizeSession<TSession extends SessionShape>(
+function authorizeSession<TSession extends SessionShape, E, R>(
 	sessions: SessionPolicy<TSession> | undefined,
 	tag: string,
 	viewer: Option.Option<Viewer>,
-	policy: Effect.Effect<boolean>,
+	policy: Effect.Effect<boolean, E, R>,
 ) {
 	if (sessions === undefined) {
 		return policy;

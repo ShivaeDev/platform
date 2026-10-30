@@ -22,6 +22,8 @@ export function refusal(error: unknown): string {
 			return tagged(error, `invalid ${field(error, "field")}: ${field(error, "message")}`);
 		case "Denied":
 			return tagged(error, "denied");
+		case "ServiceUnavailable":
+			return tagged(error, "service unavailable");
 		case "Unavailable":
 			return tagged(error, "unavailable");
 		case "QueryReadDenied":
