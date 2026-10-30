@@ -26,6 +26,10 @@ export const bufferedBoard = Effect.fn("FleetTest.bufferedBoard")(function* () {
 	let reading = false;
 	const buffered: FileSystem.FileSystem = {
 		...fs,
+		lstat: (file) => {
+			const found = info.get(file);
+			return found === undefined ? fs.lstat(file) : Effect.succeed(found);
+		},
 		readDirectory: (directory) => (directory === source.root ? Effect.succeed(names) : fs.readDirectory(directory)),
 		readFileString: (file, options) => {
 			const content = contents.get(file);
