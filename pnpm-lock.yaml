@@ -1664,6 +1664,9 @@ importers:
 
   packages/webhooks:
     dependencies:
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@shivaedev/github':
         specifier: workspace:*
         version: link:../github

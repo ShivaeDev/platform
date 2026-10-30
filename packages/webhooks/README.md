@@ -75,14 +75,13 @@ const Host = appHost({
 			routes: webhookRoute({ basePath: "/webhooks", jobs: Jobs, sources }).pipe(
 				Layer.provide(jobs),
 				Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
-				Layer.orDie,
 			),
 		};
 	}),
 });
 ```
 
-`databaseUrl`, `loader`, `Api`, `handlers` and `sessions` are the application's existing host inputs. The route above receives GitHub deliveries at `POST /webhooks/github`. It uses the existing `appHost.routes` option and the host's `maxBodySize`; the jobs client and SQL client must point at the same PostgreSQL database. Register workers separately with the job definitions' `handle` method, in the processes your application chooses.
+`databaseUrl`, `loader`, `Api`, `handlers` and `sessions` are the application's existing host inputs. The route above receives GitHub deliveries at `POST /webhooks/github`. It uses the existing `appHost.routes` option and the host's `maxBodySize`; the jobs client and SQL client must point at the same PostgreSQL database. Register workers separately with the job definitions' `handle` method, in the processes your application chooses. A missing signing key fails the route Layer with `ConfigError`; composing it into `Host` preserves that typed error for the application's startup to handle.
 
 ### Answers and retries
 
@@ -99,6 +98,8 @@ const Host = appHost({
 | Database or enqueue failure                | 503    | Empty              |
 
 Refused requests create no receipt and no jobs. Signatures are checked before decoding; unlisted events are verified and recorded without decoding. The signing key, signature and raw body stay out of responses, logs and spans.
+
+Database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag.
 
 The receipt insert and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
 

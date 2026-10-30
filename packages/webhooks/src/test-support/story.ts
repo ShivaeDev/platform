@@ -7,7 +7,7 @@ import { type HandledJob, type InboxState, inboxState, startHost } from "#test/h
 import { postgresLayer } from "#test/postgresLayer.ts";
 import { raceVerbs } from "#test/raceVerbs.ts";
 import { type Delivery, deliver } from "#test/requests.ts";
-import { secretsSeenIn, spanNames } from "#test/telemetry.ts";
+import { requestOutcomes, secretsSeenIn, spanNames } from "#test/telemetry.ts";
 
 interface ReceiptRow {
 	readonly "delivery_id": string;
@@ -51,7 +51,9 @@ export const inbox = storyKit({
 			story.tell(`github sends ${delivery}`);
 			return deliver(state, delivery);
 		},
+		errorLogs: () => Effect.sync(() => state.logs.filter(({ level }) => level === "Error")),
 		handledJobs: () => Effect.map(workersIdle(state), () => state.handled.map(jobName).toSorted()),
+		requestOutcomes: () => Effect.sync(() => requestOutcomes(state)),
 		secretsSeenIn: () => Effect.sync(() => secretsSeenIn(state)),
 		spanNames: () => Effect.sync(() => spanNames(state)),
 		storedReceipts: () =>

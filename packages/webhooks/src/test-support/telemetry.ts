@@ -1,3 +1,4 @@
+import { Cause, Exit } from "effect";
 import { PRIVATE_FIELD, WEBHOOK_SECRET } from "#test/fixture.ts";
 import type { InboxState } from "#test/host.ts";
 
@@ -32,4 +33,18 @@ export function secretsSeenIn(state: InboxState) {
 
 export function spanNames(state: InboxState) {
 	return state.telemetry.spans.map(({ name }) => name);
+}
+
+export function requestOutcomes(state: InboxState) {
+	return state.telemetry.spans
+		.filter(({ name }) => name === "POST")
+		.map(({ attributes, status }) => {
+			const response = attributes.get("http.response.status_code");
+			if (status._tag !== "Ended") {
+				return { outcome: "running", response };
+			}
+			return Exit.isFailure(status.exit)
+				? { failure: Cause.pretty(status.exit.cause), outcome: "failed", response }
+				: { outcome: "succeeded", response };
+		});
 }
