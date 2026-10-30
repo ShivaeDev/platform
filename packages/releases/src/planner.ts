@@ -9,9 +9,6 @@ const rank = { major: 2, minor: 1, patch: 0 };
 export function publishedDependencies(manifest: PackageManifest): readonly string[] {
 	return Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies, ...manifest.peerDependencies });
 }
-export function pinnedRange(range: string) {
-	return /^(?<prefix>(?:workspace:)?[~^]?)(?<version>\d+\.\d+\.\d+)$/u.exec(range)?.groups;
-}
 function nextVersion(name: string, version: string, bump: Bump): string {
 	const match = /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)$/u.exec(version);
 	requireThat(match !== null, `${name}: use a stable major.minor.patch version before planning a release; found ${version}.`);

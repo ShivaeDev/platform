@@ -4,7 +4,7 @@ import { collectChangelog } from "#collectChangelog.ts";
 import type { ChangesetConfig } from "#config.ts";
 import { attempt, requireThat } from "#error.ts";
 import type { ReleasePlan, WorkspacePackage } from "#model.ts";
-import { computePlan, pinnedRange } from "#planner.ts";
+import { computePlan } from "#planner.ts";
 import { readWorkspace } from "#workspace.ts";
 
 function updatedPackage(pkg: WorkspacePackage, plan: ReleasePlan, version: string) {
@@ -18,12 +18,13 @@ function updatedPackage(pkg: WorkspacePackage, plan: ReleasePlan, version: strin
 					if (target === undefined || ["workspace:*", "workspace:^", "workspace:~"].includes(range)) {
 						return [name, range];
 					}
-					const pinned = pinnedRange(range);
+					const match = /^(?<prefix>(?:workspace:)?[~^]?)\d+\.\d+\.\d+$/u.exec(range);
 					requireThat(
-						pinned !== undefined,
+						match !== null,
 						`${pkg.manifest.name}: replace ${name}'s ${range} range with an exact version, ^version, ~version or workspace:* before applying a release.`,
 					);
-					return [name, `${pinned?.prefix ?? ""}${target.to}`];
+					const prefix = match?.groups?.prefix ?? "";
+					return [name, `${prefix}${target.to}`];
 				}),
 			);
 		}

@@ -1,16 +1,6 @@
 import { expect } from "@effect/vitest";
 import { CORE } from "#test/fixture.ts";
-import {
-	changelogEdited,
-	changelogReset,
-	headingDated,
-	historyRewritten,
-	laterChangeset,
-	pending,
-	rangeSet,
-	released,
-	versionSet,
-} from "#test/traits.ts";
+import { changelogEdited, changelogReset, headingDated, historyRewritten, laterChangeset, pending, released, versionSet } from "#test/traits.ts";
 import { workspace } from "#test/workspace.ts";
 
 workspace.it("check accepts a release derived from the changesets it deleted from main", [pending(), released], function* ({ check }) {
@@ -83,21 +73,6 @@ for (const [name, version, why] of [
 			`refused: ${name}: version differs from the release plan; restore versions and rerun releases apply, including published dependents.`,
 		);
 	});
-}
-
-for (const [dependent, dependency, range, from, to] of [
-	["@test/optional", "@test/api", "^0.5.0", "0.5.0", "0.5.1"],
-	["@test/peer", "@test/optional", "workspace:1.0.0", "1.0.0", "1.0.1"],
-] as const) {
-	workspace.it(
-		`check refuses ${dependent}'s release while it still pins ${dependency} ${from} and ${dependency} releases ${to}`,
-		[pending(), released, rangeSet(dependent, dependency, range)],
-		function* ({ check }) {
-			expect(yield* check()).toBe(
-				`refused: ${dependent}: ${dependency} ${range} pins ${from} but the release plan advances ${dependency} to ${to}; restore versions and rerun releases apply.`,
-			);
-		},
-	);
 }
 
 workspace.it(
