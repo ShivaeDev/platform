@@ -1,52 +1,80 @@
-import { Effect, Option, Schema } from "effect";
-import { expect, vi } from "vitest";
+import type { Effect } from "effect";
+import { Schema } from "effect";
+import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { boss } from "#test/boss.ts";
-import { scriptedClient } from "#test/scriptedClient.ts";
-import { storedJob } from "#test/storedJob.ts";
+import type { PgBossService } from "#service.ts";
+import { clientFrom, running, runtime, storedJob } from "#test/runtime/kit.ts";
+import { scriptedClient } from "#test/runtime/scriptedClient.ts";
+import { storedJob as stored } from "#test/runtime/storedJob.ts";
 
-const Queue = defineQueue({ name: "control", schema: Schema.Struct({ id: Schema.NumberFromString }) });
+const Control = defineQueue({ name: "control", schema: Schema.Struct({ id: Schema.NumberFromString }) });
 
-boss.it("decodes lookup payloads and preserves job metadata", [], function* ({ boot }) {
-	const stored = storedJob(Queue.name, { id: "42" });
-	const findJobs = vi.fn(async () => [stored]);
-	const { jobs } = yield* boot([], { clientFactory: () => scriptedClient({ findJobs }) });
-	expect(Option.getOrThrow(yield* jobs.getJob(Queue, "job-id"))).toEqual({ ...stored, data: { id: 42 } });
-	expect(findJobs).toHaveBeenCalledWith(Queue.name, { id: "job-id" });
+runtime.it(
+	"looking a job up by id answers its decoded payload with pg-boss's metadata",
+	[storedJob(stored("control", "job-42", { id: "42" })), storedJob(stored("control", "job-43", { id: "43" })), running("app")],
+	function* ({ answered, ask }) {
+		yield* ask("app", "look up job-42", (jobs) => jobs.getJob(Control, "job-42"));
+
+		expect(yield* answered()).toEqual({ ...stored("control", "job-42", { id: "42" }), data: { id: 42 }, signal: expect.any(AbortSignal) });
+	},
+);
+
+runtime.it("looking up an unknown job id answers nothing", [running("app")], function* ({ answered, ask }) {
+	yield* ask("app", "look up a missing job", (jobs) => jobs.getJob(Control, "missing"));
+
+	expect(yield* answered()).toBe("nothing");
 });
 
-boss.it("returns None for a missing ID and a typed decode error for malformed durable data", [], function* ({ boot }) {
-	const missing = yield* boot([], { clientFactory: () => scriptedClient({ findJobs: async () => [] }) });
-	expect(Option.isNone(yield* missing.jobs.getJob(Queue, "missing"))).toBe(true);
-	const malformed = yield* boot([], { clientFactory: () => scriptedClient({ findJobs: async () => [storedJob(Queue.name, { id: null })] }) });
-	expect(yield* Effect.flip(malformed.jobs.getJob(Queue, "bad"))).toMatchObject({
-		_tag: "PgBossPayloadError",
-		direction: "decode",
-		queue: Queue.name,
-	});
-});
+runtime.it(
+	"looking up a job whose stored payload no longer decodes fails with a decode error",
+	[storedJob(stored("control", "job-bad", { id: null })), running("app")],
+	function* ({ answered, ask }) {
+		yield* ask("app", "look up job-bad", (jobs) => jobs.getJob(Control, "job-bad"));
 
-for (const state of ["active", "completed", "cancelled", "created", "missing"] as const) {
-	boss.it(`leaves a ${state} job unchanged when retry is requested`, [], function* ({ boot }) {
-		const retry = vi.fn();
-		const update = vi.fn();
-		const client = scriptedClient({ findJobs: async () => (state === "missing" ? [] : [{ ...storedJob(Queue.name, {}), state }]), retry, update });
-		const { jobs } = yield* boot([], { clientFactory: () => client });
-		yield* jobs.retry(Queue, "job-id");
-		expect(retry).not.toHaveBeenCalled();
-		expect(update).not.toHaveBeenCalled();
-	});
+		expect(yield* answered()).toBe('decode control payload failed with Expected string\n  at ["id"]');
+	},
+);
+
+for (const state of ["active", "completed", "cancelled", "created"] as const) {
+	runtime.it(
+		`retrying a ${state} job leaves it unchanged`,
+		[storedJob(stored("control", "job-1", { id: "1" }, state)), running("app")],
+		function* ({ ask, clientCalls }) {
+			yield* ask("app", "retry job-1", (jobs) => jobs.retry(Control, "job-1"));
+
+			expect(yield* clientCalls()).toEqual(["start"]);
+		},
+	);
 }
 
-boss.it("maps missing custom client capabilities to operation-specific typed failures", [], function* ({ boot }) {
-	const { jobs } = yield* boot([], { clientFactory: () => scriptedClient({}) });
-	for (const [operation, effect] of [
-		["counts", jobs.counts(Queue)],
-		["deadLetteredJobs", jobs.deadLetteredJobs(Queue, { limit: 1 })],
-		["failedJobs", jobs.failedJobs(Queue, { limit: 1 })],
-		["getJob", jobs.getJob(Queue, "id")],
-		["retry", jobs.retry(Queue, "id")],
-	] as const) {
-		expect(yield* Effect.flip(effect)).toMatchObject({ _tag: "PgBossError", operation, queue: Queue.name });
-	}
+runtime.it("retrying an unknown job id changes nothing", [running("app")], function* ({ ask, clientCalls }) {
+	yield* ask("app", "retry a missing job", (jobs) => jobs.retry(Control, "missing"));
+
+	expect(yield* clientCalls()).toEqual(["start"]);
 });
+
+const capabilityless = clientFrom(() => scriptedClient({}), "the custom pg-boss client offers no job lookup, retry, update or database access");
+
+const operations: ReadonlyArray<{
+	readonly operation: string;
+	readonly missing: string;
+	readonly call: (jobs: PgBossService) => Effect.Effect<unknown, unknown>;
+}> = [
+	{ call: (jobs) => jobs.counts(Control), missing: "getDb", operation: "counts" },
+	{ call: (jobs) => jobs.deadLetteredJobs(Control, { limit: 1 }), missing: "getDb", operation: "deadLetteredJobs" },
+	{ call: (jobs) => jobs.failedJobs(Control, { limit: 1 }), missing: "getDb", operation: "failedJobs" },
+	{ call: (jobs) => jobs.getJob(Control, "job-1"), missing: "findJobs", operation: "getJob" },
+	{ call: (jobs) => jobs.retry(Control, "job-1"), missing: "findJobs, retry and update", operation: "retry" },
+];
+
+for (const { call, missing, operation } of operations) {
+	runtime.it(
+		`on a client without ${missing}, ${operation} fails with a typed ${operation} error naming what is missing`,
+		[capabilityless, running("app")],
+		function* ({ answered, ask }) {
+			yield* ask("app", operation, call);
+
+			expect(yield* answered()).toBe(`${operation} control failed with This pg-boss client does not support ${missing}`);
+		},
+	);
+}

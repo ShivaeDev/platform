@@ -1,88 +1,97 @@
-import { Clock, DateTime, Effect, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue, defineSchedule, RetryAt } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
-import { makePgBossTesting } from "#testing.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineQueue, defineSchedule } from "#definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { deferred, enqueued, running, stoppedAfterwards } from "#test/postgres/traits.ts";
+import { type Attempt, scheduled, worker } from "#test/workers.ts";
 
-postgresIt("exhausts the default ten deferrals before spending a normal retry", [realPostgres], function* ({ boot, untilJob }) {
-	const Queue = defineQueue({
-		name: "retry-at-limit",
-		queue: { retryBackoff: false, retryDelay: 0, retryLimit: 1 },
-		schema: Schema.Struct({}),
-		worker: { batchSize: 1, pollingIntervalSeconds: 0.5 },
-	});
-	const attempts: string[] = [];
-	const { jobs } = yield* boot([
-		Queue.handle((_, job) => {
-			attempts.push(job.id);
-			return attempts.length <= 11 ? Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "still limited" })) : Effect.void;
-		}),
-	]);
-	const id = Option.getOrThrow(yield* jobs.enqueue(Queue, {}));
-	const completed = yield* untilJob(jobs, Queue, id, "completed");
-	expect(attempts).toEqual(Array.from({ length: 12 }, () => id));
-	expect(completed.retryCount).toBe(Queue.queueOptions.retryLimit);
+const DEFAULT_LIMIT = 10;
+const Limited = defineQueue({
+	name: "limited",
+	queue: { retryBackoff: false, retryDelay: 0, retryLimit: 1 },
+	schema: Schema.Struct({}),
+	worker: { batchSize: 1, pollingIntervalSeconds: 0.5 },
 });
+const deferNow: Attempt = { defers: "Still limited", until: "now" };
 
-postgresIt(
-	"keeps the per-job limit across worker restarts and falls back to a failed attempt",
-	[realPostgres],
-	function* ({ boot, until, untilJob }) {
-		const Queue = defineQueue({
-			name: "retry-at-restart",
-			queue: { maxDeferrals: 1, retryBackoff: false, retryDelay: 0, retryLimit: 1 },
-			schema: Schema.Struct({}),
-			worker: { pollingIntervalSeconds: 0.5 },
+database.it(
+	"a job defers ten times by default before a further deferral spends an ordinary retry",
+	[running("app", [worker(Limited, ...Array.from({ length: DEFAULT_LIMIT + 1 }, () => deferNow), "succeeds")])],
+	function* ({ attemptCounts, enqueue, job, untilJob }) {
+		yield* enqueue("app", Limited, {}, { as: "job" });
+		yield* untilJob("job", "completed");
+
+		yield* outcomes({
+			"attempts": [attemptCounts(Limited), { job: DEFAULT_LIMIT + 2 }],
+			"job": [job("job"), expect.objectContaining({ retryCount: 1 })],
 		});
-		const testing = makePgBossTesting();
-		const future = DateTime.makeUnsafe((yield* Clock.currentTimeMillis) + 86_400_000);
-		const first = yield* boot([Queue.handle(() => Effect.fail(new RetryAt({ at: future, reason: "quota" })))], {
-			clientFactory: testing.clientFactory,
-		});
-		const id = Option.getOrThrow(yield* first.jobs.enqueue(Queue, {}));
-		yield* until(testing.deferred(Queue), (waiting) => waiting.length === 1);
-		yield* first.stop;
-		const restarted = makePgBossTesting();
-		const attempts: string[] = [];
-		const second = yield* boot(
-			[
-				Queue.handle((_, job) => {
-					attempts.push(job.id);
-					return attempts.length === 1 ? Effect.fail(new RetryAt({ at: DateTime.makeUnsafe(0), reason: "quota" })) : Effect.void;
-				}),
-			],
-			{ clientFactory: restarted.clientFactory },
-		);
-		yield* restarted.runDeferredNow(Queue);
-		expect((yield* untilJob(second.jobs, Queue, id, "completed")).retryCount).toBe(Queue.queueOptions.retryLimit);
-		expect(attempts).toEqual([id, id]);
 	},
 );
 
-postgresIt("defers scheduled effects and treats a zero limit as an ordinary failure", [realPostgres], function* ({ boot, admin, untilJobs }) {
-	const Schedule = defineSchedule({
-		cron: "0 0 1 1 *",
-		name: "retry-at-schedule",
-		queue: { maxDeferrals: 1, retryLimit: 0 },
-		worker: { pollingIntervalSeconds: 0.5 },
-	});
-	const Disabled = defineSchedule({
-		cron: "0 0 1 1 *",
-		name: "retry-at-disabled",
-		queue: { maxDeferrals: 0, retryLimit: 0 },
-		worker: { pollingIntervalSeconds: 0.5 },
-	});
-	const at = DateTime.makeUnsafe((yield* Clock.currentTimeMillis) + 86_400_000);
-	yield* boot([
-		Schedule.run(Effect.fail(new RetryAt({ at, reason: "scheduled quota" }))),
-		Disabled.run(Effect.fail(new RetryAt({ at, reason: "disabled" }))),
-	]);
-	const client = yield* admin();
-	const id = yield* Effect.promise(() => client.send(Schedule.name, { retained: true }, { singletonKey: "schedule-key" }));
-	yield* Effect.promise(() => client.send(Disabled.name));
-	const waiting = yield* untilJobs(client, Schedule.name, (stored) => stored[0]?.state === "retry");
-	expect(waiting).toMatchObject([{ data: { retained: true }, id, retryCount: 0, singletonKey: "schedule-key", startAfter: DateTime.toDateUtc(at) }]);
-	expect(yield* untilJobs(client, Disabled.name, (stored) => stored[0]?.state === "failed")).toMatchObject([
-		{ output: { _tag: "RetryAt", reason: "disabled" }, retryCount: 0 },
-	]);
+const Restarted = defineQueue({
+	name: "restarted",
+	queue: { maxDeferrals: 1, retryBackoff: false, retryDelay: 0, retryLimit: 1 },
+	schema: Schema.Struct({}),
+	worker: { pollingIntervalSeconds: 0.5 },
 });
+const deferringAgain = worker(Restarted, { defers: "Quota", until: "tomorrow" }, deferNow, "succeeds");
+
+database.it(
+	"the deferral limit holds across a restart, so the next deferral spends an ordinary retry",
+	[
+		running("first", [deferringAgain]),
+		enqueued(Restarted, {}, { as: "job", by: "first" }),
+		deferred(Restarted, 1, "first"),
+		stoppedAfterwards("first"),
+	],
+	function* ({ attempts, job, runDeferredNow, start, untilJob }) {
+		yield* start("second", [deferringAgain]);
+		yield* runDeferredNow("second", Restarted);
+		yield* untilJob("job", "completed");
+
+		yield* outcomes({
+			"attempts": [attempts(Restarted), ["job", "job", "job"]],
+			"job": [job("job"), expect.objectContaining({ retryCount: 1 })],
+		});
+	},
+);
+
+const Monthly = defineSchedule({
+	cron: "0 0 1 1 *",
+	name: "monthly",
+	queue: { maxDeferrals: 1, retryLimit: 0 },
+	worker: { pollingIntervalSeconds: 0.5 },
+});
+const Undeferrable = defineSchedule({
+	cron: "0 0 1 1 *",
+	name: "undeferrable",
+	queue: { maxDeferrals: 0, retryLimit: 0 },
+	worker: { pollingIntervalSeconds: 0.5 },
+});
+
+database.it(
+	"a scheduled run defers without spending a retry and keeps its data and singleton key",
+	[running("app", [scheduled(Monthly, { defers: "Scheduled quota", until: "tomorrow" })])],
+	function* ({ adminSends, storedJobs, untilDeferred }) {
+		yield* adminSends("monthly", { retained: true }, { as: "monthly run", singletonKey: "schedule-key" });
+		yield* untilDeferred("app", Monthly, 1);
+
+		expect(yield* storedJobs("monthly")).toEqual([
+			expect.objectContaining({ data: { retained: true }, job: "monthly run", retryCount: 0, singletonKey: "schedule-key", state: "retry" }),
+		]);
+	},
+);
+
+database.it(
+	"a scheduled run with a deferral limit of zero fails its deferral like any other failure",
+	[running("app", [scheduled(Undeferrable, { defers: "Disabled", until: "tomorrow" })])],
+	function* ({ adminSends, storedJobs, untilSettled }) {
+		yield* adminSends("undeferrable", null, { as: "undeferrable run" });
+		yield* untilSettled(Undeferrable, 1);
+
+		expect(yield* storedJobs("undeferrable")).toEqual([
+			expect.objectContaining({ error: "RetryAt: Disabled", job: "undeferrable run", retryCount: 0, state: "failed" }),
+		]);
+	},
+);

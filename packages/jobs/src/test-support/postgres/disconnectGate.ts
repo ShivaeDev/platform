@@ -1,13 +1,18 @@
 import { createConnection, createServer, type Socket } from "node:net";
 
+export type DisconnectGate = Awaited<ReturnType<typeof disconnectGate>>;
+
 export async function disconnectGate(destination: string) {
 	const target = new URL(destination);
 	const destinationAddress = { host: target.hostname, port: Number(target.port || 5432) };
 	const sockets = new Set<Socket>();
 	const pending = new Set<Socket>();
 	let held = true;
+	let upstreams = 0;
+	const allHeld = Promise.withResolvers<void>();
 	const server = createServer({ allowHalfOpen: true }, (client) => {
 		const upstream = createConnection(destinationAddress);
+		upstreams += 1;
 		for (const socket of [client, upstream]) {
 			sockets.add(socket);
 			socket.on("close", () => sockets.delete(socket));
@@ -21,6 +26,9 @@ export async function disconnectGate(destination: string) {
 		client.on("end", () => upstream.end());
 		upstream.on("end", () => {
 			pending.add(client);
+			if (pending.size === upstreams) {
+				allHeld.resolve();
+			}
 			if (!held) {
 				client.end();
 			}
@@ -37,6 +45,7 @@ export async function disconnectGate(destination: string) {
 	target.hostname = "127.0.0.1";
 	target.port = String(address.port);
 	return {
+		allHeld: allHeld.promise,
 		async close() {
 			for (const socket of sockets) {
 				socket.destroy();

@@ -1,68 +1,94 @@
-import { Effect, Option, Schema, Tracer } from "effect";
+import { Effect, Schema, Tracer } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue, defineSchedule } from "#definition.ts";
-import { PgBossPayloadError } from "#error.ts";
-import { boss } from "#test/boss.ts";
-import { job } from "#test/fakeClient.ts";
-import { recordingTracer } from "#test/recordingTracer.ts";
+import { running, runtime } from "#test/runtime/kit.ts";
+import { scheduled, worker } from "#test/workers.ts";
 
-boss.it("parents scheduled Effect.fn steps to a job span and records scheduled failures", [], function* ({ boot, client, dispatch }) {
-	const Schedule = defineSchedule({ cron: "17 3 * * *", name: "scheduled-trace" });
-	const scheduledStep = Effect.fn("Tracing.scheduledStep")(() => Effect.fail(new Error("Scheduled failure")));
-	const { spans, tracer } = recordingTracer();
-	const runtime = yield* boot([Schedule.run(Effect.suspend(scheduledStep))]).pipe(Effect.withSpan("startup"), Effect.withTracer(tracer));
-	yield* dispatch(Schedule.name, [job(Schedule.name, null)]);
-	expect(client.failCalls[0]?.error).toEqual(new Error("Scheduled failure"));
-	yield* runtime.stop;
-	const scheduled = spans.find((span) => span.name === Schedule.name);
-	const child = spans.find((span) => span.name === "Tracing.scheduledStep");
-	expect(scheduled?.parent).toEqual(Option.none());
-	expect(scheduled?.status).toMatchObject({ _tag: "Ended", exit: { _tag: "Failure" } });
-	expect(child?.parent).toEqual(Option.some(scheduled));
-	expect(child?.traceId).toBe(scheduled?.traceId);
-});
+const Nightly = defineSchedule({ cron: "17 3 * * *", name: "nightly" });
+const Orders = defineQueue({ name: "orders", schema: Schema.Struct({ id: Schema.NumberFromString }) });
+const sender = { sampled: true, spanId: "0123456789abcdef", traceId: "0123456789abcdef0123456789abcdef" };
 
-boss.it("carries an external parent span without exposing the transport envelope to the handler", [], function* ({ boot, client, dispatch }) {
-	const Queue = defineQueue({ name: "external-trace", schema: Schema.Struct({ id: Schema.NumberFromString }) });
-	const external = Tracer.externalSpan({ sampled: false, spanId: "0123456789abcdef", traceId: "0123456789abcdef0123456789abcdef" });
-	const { spans, tracer } = recordingTracer();
-	const handled: object[] = [];
-	const runtime = yield* boot([Queue.handle((payload) => Effect.sync(() => handled.push(payload)))]).pipe(Effect.withTracer(tracer));
-	yield* runtime.jobs.enqueue(Queue, { id: 7 }).pipe(Effect.withParentSpan(external));
-	const data = client.sendCalls[0]?.data;
-	expect(data).toMatchObject({ _tag: "@shivaedev/jobs/TracedPayload", payload: { id: "7" } });
-	yield* dispatch(Queue.name, [job(Queue.name, data)]);
-	yield* runtime.stop;
-	expect(handled).toEqual([{ id: 7 }]);
-	expect(spans).toMatchObject([{ links: [{ span: { sampled: false, spanId: external.spanId, traceId: external.traceId } }], parent: Option.none() }]);
-});
+runtime.it(
+	"a scheduled run's Effect.fn step runs under the run's root job span",
+	[running("app", [scheduled(Nightly, { next: "succeeds", step: "Nightly.step" })])],
+	function* ({ deliver, spans }) {
+		yield* deliver("nightly", [{ data: null, id: "nightly-run" }]);
 
-boss.it("decodes queued envelopes with the persisted trace tag before running the handler", [], function* ({ boot, client, dispatch }) {
-	const Queue = defineQueue({ name: "persisted-trace", schema: Schema.Struct({ id: Schema.NumberFromString }) });
-	const span = { sampled: true, spanId: "0123456789abcdef", traceId: "0123456789abcdef0123456789abcdef" };
-	const { spans, tracer } = recordingTracer();
-	const handled: object[] = [];
-	const runtime = yield* boot([Queue.handle((payload) => Effect.sync(() => handled.push(payload)))]).pipe(Effect.withTracer(tracer));
-	yield* dispatch(Queue.name, [job(Queue.name, { _tag: "@shivaedev/jobs/TracedPayload", payload: { id: "7" }, span })]);
-	yield* runtime.stop;
-	expect(handled).toEqual([{ id: 7 }]);
-	expect(client.failCalls).toEqual([]);
-	expect(spans[0]?.links).toMatchObject([{ span }]);
-});
+		expect((yield* spans()).map(({ name, parent, trace }) => ({ name, parent, trace }))).toEqual([
+			{ name: "nightly", parent: "no parent", trace: "trace 1" },
+			{ name: "Nightly.step", parent: "nightly", trace: "trace 1" },
+		]);
+	},
+);
 
-boss.it("records payload decoding failures on the job span before running the handler", [], function* ({ boot, client, dispatch }) {
-	const Queue = defineQueue({ name: "invalid-trace", schema: Schema.Struct({ id: Schema.Number }) });
-	const { spans, tracer } = recordingTracer();
-	let handled = false;
-	const worker = Queue.handle(() =>
-		Effect.sync(() => {
-			handled = true;
-		}),
+runtime.it(
+	"a failed scheduled run fails its job and ends its job span with the failure",
+	[running("app", [scheduled(Nightly, { fails: "Scheduled failure" })])],
+	function* ({ deliver, settlements, spans }) {
+		yield* deliver("nightly", [{ data: null, id: "nightly-run" }]);
+
+		yield* outcomes({
+			"job span": [
+				spans().pipe(Effect.map((all) => all.map(({ name, outcome }) => ({ name, outcome })))),
+				[{ name: "nightly", outcome: "failed with Scheduled failure" }],
+			],
+			"settlements": [settlements(), ["nightly-run failed with Scheduled failure"]],
+		});
+	},
+);
+
+runtime.it("enqueueing under a span wraps the encoded payload with that span's ids", [running("app", [Orders])], function* ({ ask, sent }) {
+	yield* ask("app", "enqueue order 7 under the sender's span", (jobs) =>
+		jobs.enqueue(Orders, { id: 7 }).pipe(Effect.withParentSpan(Tracer.externalSpan(sender))),
 	);
-	const runtime = yield* boot([worker]).pipe(Effect.withTracer(tracer));
-	yield* dispatch(Queue.name, [job(Queue.name, { id: "invalid" })]);
-	expect(client.failCalls[0]?.error).toBeInstanceOf(PgBossPayloadError);
-	yield* runtime.stop;
-	expect(handled).toBe(false);
-	expect(spans).toMatchObject([{ name: Queue.name, status: { _tag: "Ended", exit: { _tag: "Failure" } } }]);
+
+	expect(yield* sent()).toEqual([
+		{ data: { _tag: "@shivaedev/jobs/TracedPayload", payload: { id: "7" }, span: sender }, name: "orders", options: undefined },
+	]);
 });
+
+runtime.it(
+	"a delivered traced payload reaches the handler unwrapped, and its root job span links to the sender's span",
+	[running("app", [worker(Orders, "succeeds")])],
+	function* ({ deliver, handled, settlements, spans }) {
+		yield* deliver("orders", [{ data: { _tag: "@shivaedev/jobs/TracedPayload", payload: { id: "7" }, span: sender }, id: "job-7" }]);
+
+		yield* outcomes({
+			"handled payloads": [handled("orders"), [{ id: 7 }]],
+			"job span": [
+				spans().pipe(Effect.map((all) => all.map(({ links, name, parent }) => ({ links, name, parent })))),
+				[{ links: [`external span ${sender.spanId} in trace ${sender.traceId}`], name: "orders", parent: "no parent" }],
+			],
+			"settlements": [settlements(), ["job-7 completed"]],
+		});
+	},
+);
+
+runtime.it(
+	"a payload that fails to decode ends its job span with the decode failure",
+	[running("app", [worker(defineQueue({ name: "typed", schema: Schema.Struct({ id: Schema.Number }) }), "succeeds")])],
+	function* ({ deliver, spans }) {
+		yield* deliver("typed", [{ data: { id: "invalid" }, id: "job-1" }]);
+
+		expect((yield* spans()).map(({ name, outcome }) => ({ name, outcome }))).toEqual([
+			{ name: "typed", outcome: 'failed with decode typed payload failed with Expected number\n  at ["id"]' },
+		]);
+	},
+);
+
+runtime.it(
+	"a job enqueued from inside a scheduled run links its own job span to the run's job span",
+	[running("app", [scheduled(Nightly, { enqueues: (jobs) => jobs.enqueue(Orders, { id: 1 }) }), worker(Orders, "succeeds")])],
+	function* ({ deliver, sent, spans }) {
+		yield* deliver("nightly", [{ data: null, id: "nightly-run" }]);
+		const [followUp] = yield* sent();
+
+		yield* deliver("orders", [{ data: followUp?.data, id: "follow-up" }]);
+
+		expect((yield* spans()).map(({ links, name }) => ({ links, name }))).toEqual([
+			{ links: [], name: "nightly" },
+			{ links: ["nightly"], name: "orders" },
+		]);
+	},
+);

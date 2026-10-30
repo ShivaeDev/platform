@@ -1,135 +1,100 @@
-import { Effect, Option, Schema } from "effect";
-import { expect, vi } from "vitest";
+import { Schema } from "effect";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
-import { earlyRetryTimers } from "#test/earlyRetryTimers.ts";
+import { database } from "#test/postgres/database.ts";
+import { reached, running, storedTogether, waiting } from "#test/postgres/traits.ts";
+import { worker, workerBy } from "#test/workers.ts";
 
-postgresIt(
-	"retries a failed attempt when its backoff ends, before the polling backstop",
-	[realPostgres, earlyRetryTimers],
-	function* ({ boot, native, seed, until }) {
-		const Queue = defineQueue({
-			name: "retry-wake",
-			queue: { retryBackoff: false, retryDelay: 1, retryLimit: 1 },
-			schema: Schema.Struct({}),
-			// A native poll must not rescue a lost retry wake within the story's timeout.
-			worker: { pollingIntervalSeconds: 60 },
+const slowPoll = { pollingIntervalSeconds: 60 };
+const Woken = defineQueue({
+	name: "woken",
+	queue: { retryBackoff: false, retryDelay: 1, retryLimit: 1 },
+	schema: Schema.Struct({}),
+	worker: slowPoll,
+});
+const waitingJob = storedTogether(Woken, [{ as: "job", data: {} }]);
+const failingOnce = worker(Woken, { fails: "Try again" }, "succeeds");
+
+database.it(
+	"a failed attempt runs again once its retry delay ends, without waiting for the worker's next poll",
+	[waitingJob],
+	function* ({ attempts, start, untilJob, wakes }) {
+		yield* start("app", [failingOnce], { schedule: false, supervise: false });
+		yield* untilJob("job", "completed");
+
+		yield* outcomes({
+			attempts: [attempts(Woken), ["job", "job"]],
+			wakes: [wakes("app"), ["idle worker"]],
 		});
-		const client = native({ schedule: false, supervise: false });
-		const wakes = vi.spyOn(client, "notifyWorker");
-		const attempts: string[] = [];
-		const [id] = yield* seed(Queue, [{ data: {} }], client);
-		yield* boot(
-			[
-				Queue.handle((_, job) =>
-					Effect.gen(function* () {
-						attempts.push(job.id);
-						if (attempts.length === 1) {
-							yield* Effect.fail(new Error("try again"));
-						}
-					}),
-				),
-			],
-			{ clientFactory: () => client },
-		);
-		yield* until(
-			Effect.sync(() => attempts.length),
-			(count) => count === 2,
-		);
-		expect(attempts).toEqual([id, id]);
-		const worker = client.getWipData().find((current) => current.name === Queue.name);
-		expect(wakes).toHaveBeenCalledWith(worker?.id);
 	},
 );
 
-postgresIt("cancels a pending retry wake when the worker Layer closes", [realPostgres], function* ({ boot, native, seed, untilJob }) {
-	const Queue = defineQueue({
-		name: "retry-wake-stop",
-		queue: { retryBackoff: false, retryDelay: 1, retryLimit: 1 },
-		schema: Schema.Struct({}),
-		worker: { pollingIntervalSeconds: 5 },
-	});
-	const client = native();
-	const wakes = vi.spyOn(client, "notifyWorker");
-	const inventory = vi.spyOn(client, "getWipData");
-	const [id] = yield* seed(Queue, [{ data: {} }], client);
-	if (id === undefined) {
-		throw new Error("The seeded job is missing");
-	}
-	const { jobs, stop } = yield* boot([Queue.handle(() => Effect.fail(new Error("try again")))], { clientFactory: () => client });
-	yield* untilJob(jobs, Queue, id, "retry");
-	yield* stop;
-	const readsAtStop = inventory.mock.calls.length;
-	yield* Effect.sleep("1200 millis");
-	expect(inventory).toHaveBeenCalledTimes(readsAtStop);
-	expect(wakes).not.toHaveBeenCalled();
+const Replaced = defineQueue({
+	name: "woken",
+	queue: { retryBackoff: false, retryDelay: 3, retryLimit: 1 },
+	schema: Schema.Struct({}),
+	worker: slowPoll,
+});
+const Replacement = defineQueue({
+	name: "woken",
+	queue: { retryBackoff: false, retryDelay: 3, retryLimit: 1 },
+	schema: Schema.Struct({}),
+	worker: { pollingIntervalSeconds: 0.5 },
 });
 
-postgresIt(
-	"wakes a retrying sibling while the first native worker remains busy",
-	[realPostgres, earlyRetryTimers],
-	function* ({ boot, native, until }) {
-		const Queue = defineQueue({
-			name: "retry-wake-sibling",
-			queue: { notify: false, retryBackoff: false, retryDelay: 1, retryLimit: 1 },
-			schema: Schema.Struct({ hold: Schema.Boolean }),
-			worker: { batchSize: 1, localConcurrency: 2, pollingIntervalSeconds: 60 },
+database.it(
+	"a runtime that has stopped never wakes its worker for a pending retry",
+	[storedTogether(Replaced, [{ as: "job", data: {} }]), running("app", [worker(Replaced, { fails: "Try again" })]), reached("job", "retry")],
+	function* ({ attempts, start, stop, untilJob, wakes }) {
+		yield* stop("app");
+		yield* start("replacement", [worker(Replacement, "succeeds")]);
+		yield* untilJob("job", "completed");
+
+		yield* outcomes({
+			"app wakes": [wakes("app"), []],
+			"attempts": [attempts(Replaced), ["job", "job"]],
 		});
-		const client = native({ schedule: false, supervise: false });
-		const release = Promise.withResolvers<void>();
-		const attempts: string[] = [];
-		let holding = false;
-		const held = Effect.sync(() => {
-			holding = true;
-		}).pipe(
-			Effect.andThen(Effect.promise(() => release.promise)),
-			Effect.ensuring(
-				Effect.sync(() => {
-					holding = false;
+	},
+);
+
+const Siblings = defineQueue({
+	name: "siblings",
+	queue: { notify: false, retryBackoff: false, retryDelay: 1, retryLimit: 1 },
+	schema: Schema.Struct({ holds: Schema.Boolean }),
+	worker: { batchSize: 1, localConcurrency: 2, ...slowPoll },
+});
+
+database.it(
+	"a retry wakes the idle sibling worker while the other worker is still busy",
+	[
+		storedTogether(Siblings, [{ as: "held job", data: { holds: true } }]),
+		running(
+			"app",
+			[
+				workerBy(Siblings, ({ holds }, attempt) => {
+					if (holds) {
+						return { waitsFor: "held" };
+					}
+					return attempt === 0 ? { fails: "Try again" } : "succeeds";
 				}),
-			),
-		);
-		const handler = Queue.handle(({ hold }, job) =>
-			hold
-				? held
-				: Effect.gen(function* () {
-						attempts.push(job.id);
-						if (attempts.length === 1) {
-							yield* Effect.fail(new Error("try again"));
-						}
-					}),
-		);
-		const { jobs } = yield* boot([handler], { clientFactory: () => client });
-		yield* Effect.addFinalizer(() => Effect.sync(() => release.resolve()));
-		const workers = yield* until(
-			Effect.sync(() => client.getWipData().filter((worker) => worker.name === Queue.name)),
-			(current) => current.length === 2 && current.every((worker) => worker.lastFetchedOn !== null && worker.count === 0),
-		);
-		const first = workers.find((worker) => worker.id === worker.workId);
-		const sibling = workers.find((worker) => worker.id !== worker.workId);
-		if (first === undefined || sibling === undefined) {
-			throw new Error("The concurrent registration is missing its native workers");
-		}
-		const heldPayloads = [{ hold: true }];
-		for (const payload of heldPayloads) {
-			yield* jobs.enqueue(Queue, payload);
-		}
-		client.notifyWorker(first.id);
-		yield* until(
-			Effect.sync(() => holding),
-			(value) => value,
-		);
-		const id = Option.getOrThrow(yield* jobs.enqueue(Queue, { hold: false }));
-		client.notifyWorker(sibling.id);
-		const wakes = vi.spyOn(client, "notifyWorker");
-		yield* until(
-			Effect.sync(() => attempts.length),
-			(count) => count === 2,
-		);
-		expect(holding).toBe(true);
-		expect(client.getWipData().find((worker) => worker.id === first.id)?.count).toBe(heldPayloads.length);
-		expect(attempts).toEqual([id, id]);
-		expect(wakes).toHaveBeenCalledWith(sibling.id);
-		release.resolve();
+			],
+			{
+				schedule: false,
+				supervise: false,
+			},
+		),
+		waiting("held", "one worker is busy with the held job"),
+	],
+	function* ({ attempts, enqueue, job, pollNow, untilJob, wakes }) {
+		yield* enqueue("app", Siblings, { holds: false }, { as: "job" });
+		yield* pollNow("app", Siblings);
+		yield* untilJob("job", "completed");
+
+		yield* outcomes({
+			"attempts": [attempts(Siblings), ["held job", "job", "job"]],
+			"held job": [job("held job"), expect.objectContaining({ state: "active" })],
+			"wakes": [wakes("app"), ["busy worker", "idle worker"]],
+		});
 	},
 );

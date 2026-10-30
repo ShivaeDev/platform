@@ -1,24 +1,29 @@
 import type { JobWithMetadata } from "pg-boss";
-import { job } from "#test/fakeClient.ts";
 
-export function storedJob(name: string, data: unknown): JobWithMetadata<unknown> {
+export function storedJob(name: string, id: string, data: unknown, state: JobWithMetadata["state"] = "failed"): JobWithMetadata<unknown> {
 	return {
-		...job(name, data),
 		blocked: false,
 		blocking: false,
 		completedOn: null,
 		createdOn: new Date(0),
+		data,
 		deadLetter: `${name}-dlq`,
 		deleteAfterSeconds: 3600,
+		expireInSeconds: 900,
 		heartbeatOn: null,
+		heartbeatSeconds: null,
+		id,
 		keepUntil: new Date(0),
+		name,
 		output: {},
 		pendingDependencies: 0,
 		policy: "standard",
 		priority: 0,
 		retryBackoff: false,
+		retryCount: 0,
 		retryDelay: 0,
 		retryLimit: 0,
+		signal: new AbortController().signal,
 		singletonKey: null,
 		singletonOn: null,
 		sourceCreatedOn: null,
@@ -29,6 +34,6 @@ export function storedJob(name: string, data: unknown): JobWithMetadata<unknown>
 		sourceRootId: null,
 		startAfter: new Date(0),
 		startedOn: new Date(0),
-		state: "failed",
+		state,
 	};
 }
