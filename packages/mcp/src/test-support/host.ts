@@ -10,6 +10,7 @@ import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { betterAuthMcp, mcpProvider } from "#adapters/betterAuth.ts";
 import { mcpRoutes } from "#routes.ts";
+import { jwksEndpoint } from "./jwksEndpoint.ts";
 import { audiences, Roles } from "./tools.ts";
 
 async function availablePort() {
@@ -52,12 +53,14 @@ const startHost = Effect.gen(function* () {
 	const mounted = yield* betterAuthMount(options, { roles: Roles });
 	const oauth = yield* betterAuthMcp({ auth: mounted.auth, origin: trustedOrigins({ allow: [baseUrl], missing: "allow" }), resource, roles: Roles });
 	const group = RpcGroup.make();
+	const jwks = jwksEndpoint(mounted.auth);
 	yield* Layer.build(
 		appHost({
 			config: { port },
 			group,
 			handlers: group.toLayer({}),
 			routes: Layer.mergeAll(
+				jwks.routes,
 				mounted.routes,
 				oauth.routes,
 				mcpRoutes({
@@ -70,9 +73,9 @@ const startHost = Effect.gen(function* () {
 				}),
 			),
 			sessions: { ...mounted.sessions, origin: () => true },
-		}),
+		}).pipe(Layer.provide(jwks.logger)),
 	);
-	return { auth: mounted.auth, baseUrl, resource };
+	return { auth: mounted.auth, baseUrl, jwks, resource };
 });
 type Host = Effect.Success<typeof startHost>;
 

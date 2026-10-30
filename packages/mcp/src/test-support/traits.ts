@@ -4,7 +4,7 @@ import { connects } from "./client.ts";
 import { type Engine, person } from "./host.ts";
 import { mcp } from "./mcp.ts";
 
-function sign(engine: Engine, payload: Record<string, string>) {
+function sign(engine: Engine, payload: Record<string, string | number>) {
 	return Effect.promise(async () => (await engine.auth.api.signJWT({ body: { payload } })).token);
 }
 
@@ -16,6 +16,7 @@ export const REFUSED_TOKENS = [
 	"for another resource, https://other.test/mcp",
 	"issued by https://other.test/api/auth",
 	"that is not a JWT",
+	"that has expired",
 	"whose claims were altered after signing",
 	"with the scope other instead of mcp",
 ] as const;
@@ -25,6 +26,7 @@ const TOKENS: Record<TokenKind, (engine: Engine, name: string) => Effect.Effect<
 	"for another resource, https://other.test/mcp": (engine, name) => sign(engine, { ...claims(engine, name), aud: "https://other.test/mcp" }),
 	"for this endpoint": (engine, name) => sign(engine, claims(engine, name)),
 	"issued by https://other.test/api/auth": (engine, name) => sign(engine, { ...claims(engine, name), iss: "https://other.test/api/auth" }),
+	"that has expired": (engine, name) => sign(engine, { ...claims(engine, name), exp: 1 }),
 	"that is not a JWT": () => Effect.succeed("not-a-jwt"),
 	"whose claims were altered after signing": (engine, name) =>
 		Effect.map(sign(engine, claims(engine, name)), (token) => {
@@ -47,6 +49,18 @@ export function holdsToken(name: string, kind: TokenKind = "for this endpoint") 
 		engine.tokens.set(name, yield* TOKENS[kind](engine, name));
 	});
 }
+
+export const jwksUnavailable = mcp.trait("tokens", "the JWKS service is unavailable", (engine) =>
+	Effect.sync(() => {
+		engine.jwks.state.failure = "unavailable";
+	}),
+);
+
+export const jwksUnreachable = mcp.trait("tokens", "the JWKS endpoint drops connections", (engine) =>
+	Effect.sync(() => {
+		engine.jwks.state.failure = "unreachable";
+	}),
+);
 
 function connected(name: string) {
 	return mcp.trait("connections", `${name}'s client is connected with that token`, function* (engine) {
