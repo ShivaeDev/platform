@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.36.0 - 2026-10-30
+
+### Added
+
+- Work Board archives settled questions and their response history outside routine scans and loads them on demand through their existing item and source links.
+
+### Fixed
+
+- Reduce filesystem calls during full folder reads by resolving ordinary paths from cached canonical parents and sharing directory boundary checks for each index read. Symlinks, logical aliases and linked-directory boundaries retain their reading behavior; subsequent reads resolve paths afresh.
+- Work Board reads draft timestamps and expiry through its form client’s runtime Clock.
+- Keep the watcher's last observed work states across daemon restarts so completion during reconnection is reported once.
+- Drain in-flight Board answer saves during shutdown before releasing their service scope.
+- Work Fleet reads answers only for open requests at their current source revision, and excludes archived questions from recurring Board passes.
+
+### Breaking
+
+- Persisted drafts require a `now: () => number` callback in core forms, `usePersistedDraft`, `useEditor` and `useCreate`. Capture `Clock.Clock` in the application’s Effect setup and pass `now: () => clock.currentTimeMillisUnsafe()` so timestamps and expiry follow that clock, including TestClock in stories.
+- Form no longer exports the identity cast helpers `holder`, `fieldOf`, `choicesOf` or `checkOf` from `shape.ts`, or `keySelector` from `paths.ts`. Use declared reference, field, check and selector types directly; get field refs and choices through the form’s typed `field` and `choices` methods.
+
 ## 0.35.0 - 2026-10-30
 
 ### Changed

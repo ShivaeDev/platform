@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1 - 2026-10-30
+
+### Fixed
+
+- Report unreadable skill copies and ownership paths as filesystem failures; only `NotFound` means missing. Preserve read and decode failures as non-enumerable causes in `SkillsError` and include their details in manifest error messages.
+
 ## 0.5.0 - 2026-10-30
 
 ### Changed
