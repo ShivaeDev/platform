@@ -1,8 +1,8 @@
-import { Cause, Context, Effect, Exit, Layer, Option, Predicate, Random } from "effect";
+import { Cause, Context, Effect, ErrorReporter, Exit, Layer, Option, Predicate, Random } from "effect";
 import { Headers } from "effect/http";
 import { KeyScope } from "@shivaedev/contract/serverMetadata.ts";
 import { redact } from "@shivaedev/errors/redact.ts";
-import { redactCause } from "@shivaedev/errors/redactCause.ts";
+import { redactCause, redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { isSensitiveKey, REDACTED, redactText, type SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 import { RequestId } from "#identity.ts";
 import { RequestTracing } from "#middleware.ts";
@@ -44,6 +44,12 @@ function logFailure(cause: Cause.Cause<unknown>, payload: unknown, sensitive: Se
 		);
 	}
 	const annotations = { "rpc.payload": redact(payload, sensitive) };
+	const mapped = Option.flatMap(Cause.findErrorOption(cause), (error) =>
+		ErrorReporter.isIgnored(error) && Predicate.hasProperty(error, "cause") && Cause.isCause(error.cause) ? Option.some(error.cause) : Option.none(),
+	);
+	if (Option.isSome(mapped)) {
+		return Effect.annotateLogs(Effect.logError("RPC defect", redactDiagnosticCause(mapped.value, sensitive)), annotations);
+	}
 	if (!Cause.hasDies(cause)) {
 		return Effect.annotateLogs(Effect.logInfo("RPC failure"), { ...annotations, "rpc.failure": failureTag(cause, sensitive) });
 	}
