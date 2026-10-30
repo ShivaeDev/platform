@@ -10,6 +10,7 @@ import { gracefulShutdown } from "#test/gracefulShutdown.ts";
 import { pgBossRuntime } from "#test/pgBossRuntime.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 import { queueRetry } from "#test/queueRetry.ts";
+import { scheduledFollowUp } from "#test/scheduledFollowUp.ts";
 import { scheduledTesting } from "#test/scheduledTesting.ts";
 import { settlementProbe } from "#test/settlementProbe.ts";
 import { testingEngine } from "#test/testingEngine.ts";
@@ -46,6 +47,7 @@ export const boss = storyKit({
 			...waitingVerbs(),
 			budgets: budgetVerbs(state.budget, runtime),
 			observeSettlement: settlementProbe,
+			scheduledFollowUp: scheduledFollowUp(runtime),
 			schedules: scheduledTesting(runtime),
 			traces: tracingVerbs(state.trace, runtime),
 			...testingVerbs(state.testingState),

@@ -46,3 +46,12 @@ postgresIt(
 		expect(stop).toHaveBeenCalledTimes(1);
 	},
 );
+
+postgresIt("a scheduled effect enqueues a follow-up that its worker delivers", [realPostgres], function* ({ scheduledFollowUp }) {
+	yield* scheduledFollowUp.start("a message from the scheduled effect");
+
+	yield* scheduledFollowUp.trigger();
+	yield* scheduledFollowUp.waitForDelivery();
+
+	expect(yield* scheduledFollowUp.deliveredMessages()).toEqual(["a message from the scheduled effect"]);
+});

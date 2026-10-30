@@ -1,6 +1,6 @@
 import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { boss } from "#test/boss.ts";
 import { job } from "#test/fakeClient.ts";
 import { Jobs } from "#test/pgBossRuntime.ts";
@@ -20,23 +20,4 @@ boss.it("provides the owning service to a worker during startup after preparing 
 	expect(prepared).toEqual([true]);
 	expect(client.sendCalls).toEqual([{ data: expect.any(Object), name: Target.name, options: undefined }]);
 	expect(client.lifecycle).toEqual(["start", "stop"]);
-});
-
-boss.it("provides the identical scoped jobs service to scheduled effects", [], function* ({ boot, client, dispatch }) {
-	const Schedule = defineSchedule({ cron: "0 * * * *", name: "scheduled" });
-	const Producer = defineQueue({ name: "producer", schema: Schema.Struct({}) });
-	let captured: unknown;
-	const runtime = yield* boot([
-		Schedule.run(
-			Effect.gen(function* () {
-				const jobs = yield* Jobs;
-				captured = jobs;
-				yield* jobs.enqueue(Producer, {});
-			}),
-		),
-		Producer,
-	]);
-	yield* dispatch(Schedule.name, [job(Schedule.name, null)]);
-	expect(captured).toBe(runtime.jobs);
-	expect(client.sendCalls).toMatchObject([{ data: { _tag: "@shivaedev/jobs/TracedPayload", payload: {} }, name: Producer.name, options: undefined }]);
 });
