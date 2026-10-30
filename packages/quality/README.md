@@ -310,7 +310,7 @@ Import names from their defining module; there is no root entry. The package's `
 | `imports/fence.ts`            | `fence`                                                                                              |
 | `imports/fences/selectors.ts` | `packages`, `folders`, `files`, `modules`, `scopes`, `anyOf`, `workspace`, `anything`, `external`    |
 | `imports/fences/model.ts`     | `Fence`, `Target`, `Selector`, `Prohibition`, `Examples`, `Chain`, `ExampleStep`, `External`         |
-| `testProjects.ts`             | `testProjects`, `TestProjectsOptions`                                                                |
+| `adapters/testProjects.ts`    | `testProjects`, `TestProjectsOptions`                                                                |
 | `appViteConfig.ts`            | `appViteConfig`                                                                                      |
 | `appTestConfig.ts`            | `appTestConfig`                                                                                      |
 | `naming/testName.ts`          | `testName`, `isTestCode`, `isTestSupport`, `ENVIRONMENTS`, `Environment`, `TestName`                 |
@@ -416,7 +416,7 @@ Use this in `vitest.config.ts`. It composes `testProjects` with browser and serv
 For Vitest, install `vitest`, and add `@shivaedev/test-story` and `happy-dom` when the repository has DOM tests, then use:
 
 ```ts
-import { testProjects } from "@shivaedev/quality/testProjects.ts";
+import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
 import { defineConfig } from "vitest/config";
 
 export default defineConfig({ test: testProjects() });
@@ -440,7 +440,7 @@ Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provi
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
 
 ```ts
-import { testProjects } from "@shivaedev/quality/testProjects.ts";
+import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
 import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({

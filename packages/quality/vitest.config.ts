@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { testProjects } from "#testProjects.ts";
+import { testProjects } from "#adapters/testProjects.ts";
 
 export default defineConfig({
 	resolve: {
