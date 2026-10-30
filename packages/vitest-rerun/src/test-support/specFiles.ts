@@ -2,6 +2,10 @@ import { fileURLToPath } from "node:url";
 
 const vitest = JSON.stringify(fileURLToPath(import.meta.resolve("vitest")));
 
+export const RAN = "ran.txt";
+export const FLAKY = "checkout > recovers only in a fresh process";
+export const BESIDE = "checkout > passes beside it";
+
 export interface SuiteConfig {
 	coverage: boolean;
 	projects: readonly string[];
@@ -19,11 +23,14 @@ export function vitestConfig(root: string, { coverage, projects }: SuiteConfig):
 	return `export default { root: ${JSON.stringify(root)}, cacheDir: '.vite', test: { ${tests}${coverageOptions} } };\n`;
 }
 
+const recordsRuns = `const ran = (name) => appendFileSync(${JSON.stringify(RAN)}, name + '\\n');`;
+
 export function failingTimes(times: number, steadyProject: string | undefined): string {
 	return `import { appendFileSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from ${vitest};
 import { covered } from './covered.ts';
 
+${recordsRuns}
 let poisoned = false;
 describe('checkout', () => {
 	it('recovers only in a fresh process', () => {
@@ -32,15 +39,15 @@ describe('checkout', () => {
 		}
 		expect(poisoned).toBe(false);
 		poisoned = true;
-		appendFileSync('attempts.txt', 'attempt\\n');
-		const attempt = readFileSync('attempts.txt', 'utf8').split('\\n').length - 1;
+		ran(${JSON.stringify(FLAKY)});
+		const attempt = readFileSync(${JSON.stringify(RAN)}, 'utf8').split('\\n').filter((line) => line === ${JSON.stringify(FLAKY)}).length;
 		if (attempt <= ${times}) {
 			throw new Error('Attempt ' + attempt + ' leaves module state behind');
 		}
 		expect(covered()).toBe(2);
 	});
 	it('passes beside it', () => {
-		appendFileSync('beside.txt', 'passed\\n');
+		ran(${JSON.stringify(BESIDE)});
 	});
 });
 `;
@@ -49,8 +56,9 @@ describe('checkout', () => {
 export const alwaysFailing = `import { appendFileSync } from 'node:fs';
 import { it } from ${vitest};
 
+${recordsRuns}
 it('stays broken', () => {
-	appendFileSync('broken.txt', 'attempt\\n');
+	ran('stays broken');
 	throw new Error('Still broken');
 });
 `;
@@ -59,8 +67,9 @@ export const passing = `import { appendFileSync } from 'node:fs';
 import { expect, it } from ${vitest};
 import { alsoCovered } from './covered.ts';
 
+${recordsRuns}
 it('passes', () => {
-	appendFileSync('passed.txt', 'passed\\n');
+	ran('passes');
 	expect(alsoCovered()).toBe(1);
 });
 `;
@@ -68,12 +77,13 @@ it('passes', () => {
 export const collectionFailingOnce = `import { appendFileSync, existsSync, writeFileSync } from 'node:fs';
 import { it } from ${vitest};
 
+${recordsRuns}
 if (!existsSync('collected.txt')) {
 	writeFileSync('collected.txt', 'failed');
 	throw new Error('Collection fails once');
 }
 it('passes once collected', () => {
-	appendFileSync('collected-passed.txt', 'passed\\n');
+	ran('passes once collected');
 });
 `;
 
@@ -83,7 +93,7 @@ it('leaves an unhandled error', async () => {
 	setTimeout(() => {
 		throw new Error('Unhandled fixture error');
 	}, 0);
-	await new Promise((resolve) => setTimeout(resolve, 25));
+	await new Promise((resolve) => setTimeout(resolve, 0));
 });
 `;
 
@@ -97,14 +107,6 @@ appendFileSync('collections.txt', 'attempt\\n');
 const attempt = readFileSync('collections.txt', 'utf8').split('\\n').length - 1;
 ${body}`;
 }
-
-export const passingThenFailing = perAttempt(`
-it('settles in the first attempt', () => {
-	if (attempt > 1) {
-		throw new Error('Later attempts fail');
-	}
-});
-`);
 
 export const failingThenSkipped = perAttempt(`
 (attempt === 1 ? it : it.skip)('is skipped by the rerun', () => {
