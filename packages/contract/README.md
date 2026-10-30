@@ -445,6 +445,8 @@ Call the release functions and dispose the registry when the application's root 
 
 Import `makeLiveServer` from `@shivaedev/contract/makeLiveServer.ts` and create it once with the server's `Reactivity` service. After application authorization, return `hints.stream([orders.item(id)])` from the native streaming RPC handler. Each subscription starts with `Resync`; invalidating its read keys produces `Changed` with those declared keys. `hints.resync` sends `Resync` to every live stream owned by that helper, including streams for otherwise unrelated keys. Independent helpers keep their resync scopes separate even when they share Reactivity. The native stream owns registration and interruption. Keep this server helper separate from the browser's `live` coordinator.
 
+Each stream queues at most 256 hints. Overflow discards the pending hints and retains one `Resync`; further hints are absorbed until that reconciliation hint is pulled. A stalled consumer can then read current query results without replaying the write backlog. This bounds the helper's queue by hint count, not by bytes: each hint's keys depend on the subscription. Transport buffers remain the transport's responsibility.
+
 ### Query policies, record keys and buckets
 
 A query declares its decoded input, result, `readPolicy` and `reads` together. `readPolicy(payload, viewer)` returns an Effect boolean. `viewer` is the session's `Option<{ id: string }>`; the browser does not send the identity. Policies may use browser-safe Effect service tags whose implementations the server supplies.

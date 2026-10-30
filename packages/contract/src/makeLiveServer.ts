@@ -1,6 +1,7 @@
 import { Effect, Queue, Stream } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts";
+import { liveHintQueue } from "#internal/liveHintQueue.ts";
 import { changedHint } from "#internal/queryHints.ts";
 import type { LiveHint } from "#live.ts";
 import type { QuerySubscription } from "#querySubscription.ts";
@@ -12,7 +13,7 @@ export const makeLiveServer = Effect.gen(function* () {
 	function open(keys: readonly Key[], context?: KeyContext, subscription?: QuerySubscription) {
 		return Stream.unwrap(
 			Effect.gen(function* () {
-				const queue = yield* Queue.unbounded<LiveHint>();
+				const { offer, queue } = yield* liveHintQueue;
 				const pending = new Map<string, Key>();
 				let scheduled = false;
 				let resync = false;
@@ -25,7 +26,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					queueMicrotask(() => {
 						scheduled = false;
 						if (active) {
-							Queue.offerUnsafe(queue, resync ? { _tag: "Resync" } : { _tag: "Changed", keys: [...pending.values()] });
+							offer(resync ? { _tag: "Resync" } : { _tag: "Changed", keys: [...pending.values()] });
 						}
 						pending.clear();
 						resync = false;
