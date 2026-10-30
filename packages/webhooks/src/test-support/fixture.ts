@@ -1,8 +1,8 @@
 import { Config, Schema } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
-import { githubSource } from "#github.ts";
-import { webhookEvent, webhookJob } from "#registration.ts";
+import { githubSource } from "#server/github.ts";
+import { webhookEvent, webhookJob } from "#server/registration.ts";
 
 export const WEBHOOK_SECRET = "webhook-story-signing-secret";
 export const PRIVATE_FIELD = "private-body-field";
