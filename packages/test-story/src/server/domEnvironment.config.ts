@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { GlobalWindow } from "happy-dom";
+import WindowBrowserContext from "happy-dom/lib/window/WindowBrowserContext.js";
 import { type Environment, populateGlobal } from "vitest/runtime";
 
 const domEnvironment: Environment = {
@@ -28,7 +29,12 @@ const domEnvironment: Environment = {
 		}
 		Object.defineProperty(global, "window", { configurable: true, value: win, writable: true });
 		Object.defineProperty(win.document, "defaultView", { configurable: true, get: () => win });
-		Object.defineProperty(global, Symbol.for("test-story.dom"), { configurable: true, value: true });
+		function freshDocument() {
+			new WindowBrowserContext(win).getBrowserContext()?.cookieContainer.clearCookies();
+			win.localStorage.clear();
+			win.sessionStorage.clear();
+		}
+		Object.defineProperty(global, Symbol.for("test-story.dom"), { configurable: true, value: freshDocument });
 		return {
 			async teardown(target) {
 				try {

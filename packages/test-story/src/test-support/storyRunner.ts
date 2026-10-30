@@ -8,6 +8,7 @@ import { LIFETIME_LOG } from "./lifetimeLog.ts";
 import { runStories, type StoriesOutcome, type StoriesRun, type StoryResult } from "./runStories.ts";
 
 export type Fixture =
+	| "carriedDocumentStories"
 	| "composedDisabledStories"
 	| "compositionStories"
 	| "disabledStories"
