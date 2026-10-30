@@ -10,9 +10,10 @@ export function redactingRpcSerialization(
 	wire: RpcSerialization.RpcSerialization["Service"],
 	sensitive: SensitiveKey,
 	maskFailure: (tag: string | undefined, reason: "Fail" | "Die") => boolean = () => false,
+	sensitiveForRpc: (tag: string | undefined) => SensitiveKey = () => sensitive,
 ): typeof wire {
 	function reason(value: unknown, tag: string | undefined): unknown {
-		const redacted = redactWire(value, sensitive);
+		const redacted = redactWire(value, sensitiveForRpc(tag));
 		if (Predicate.isObjectOrArray(redacted)) {
 			if (Predicate.isTagged(value, "Fail") && maskFailure(tag, "Fail")) {
 				return { ...redacted, _tag: "Fail", error: REDACTED };
@@ -31,7 +32,7 @@ export function redactingRpcSerialization(
 	}
 	function exit(value: unknown, tag: string | undefined): unknown {
 		if (Predicate.isTagged(value, "Failure") && Predicate.hasProperty(value, "cause")) {
-			const cause = Array.isArray(value.cause) ? value.cause.map((item) => reason(item, tag)) : redactWire(value.cause, sensitive);
+			const cause = Array.isArray(value.cause) ? value.cause.map((item) => reason(item, tag)) : redactWire(value.cause, sensitiveForRpc(tag));
 			return { ...value, cause };
 		}
 		return value;

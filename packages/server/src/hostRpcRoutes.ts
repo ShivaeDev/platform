@@ -32,7 +32,7 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 			: Layer.mergeAll(authenticatedLayer(options.sessions), maybeAuthenticatedLayer(options.sessions), requestTracingLayer({ sensitive }));
 	return HttpRouter.use((router) =>
 		Effect.gen(function* () {
-			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure);
+			const wire = redactingRpcSerialization(yield* RpcSerialization.RpcSerialization, sensitive, sensitive.maskFailure, sensitive.forRpc);
 			const httpGroup = options.group.omit(...[...options.group.requests.keys()].filter((tag) => tag.endsWith(".$changes")));
 			const handler = yield* hostRpc(httpGroup).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire));
 			const guarded = localRpcGuard(handler, trustedProxy, nativeOrigins);

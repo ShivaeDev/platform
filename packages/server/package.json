@@ -63,6 +63,7 @@
 		"@effect/sql-pg": "catalog:",
 		"@effect/vitest": "catalog:",
 		"@shivaedev/access": "workspace:*",
+		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/test": "workspace:*",

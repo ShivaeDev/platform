@@ -21,3 +21,19 @@ for (const source of ["schema", "host"] as const) {
 		},
 	);
 }
+
+host.it(
+	"a sibling RPC's sensitive tag and message do not redact a public conflict in the same batch",
+	[sensitiveFailureTag("schema")],
+	function* ({ callRpcs, wireAnswers }) {
+		yield* callRpcs([
+			{ id: "private", payload: { _tag: "private-marker" }, tag: "taggedFailure" },
+			{ id: "public", payload: null, tag: "publicConflict" },
+		]);
+
+		expect(yield* wireAnswers()).toEqual({
+			private: { failed: { _tag: "<redacted>", detail: "public detail", message: "<redacted>" } },
+			public: { failed: { _tag: "Conflict", message: "Name is taken" } },
+		});
+	},
+);
