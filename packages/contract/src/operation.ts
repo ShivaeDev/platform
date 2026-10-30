@@ -3,7 +3,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 import { type Loose, operation } from "#internal/operationDeclaration.ts";
 import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
-import type { MatchingTags, Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "./rejection.ts";
+import type { MatchingTags, Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";
 
 export type PayloadSchema<TPayload extends Schema.Top | Schema.Struct.Fields> = TPayload extends Schema.Struct.Fields
 	? Schema.Struct<TPayload>

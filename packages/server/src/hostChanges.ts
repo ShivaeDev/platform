@@ -6,7 +6,7 @@ import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
-import type { AppChanges } from "./appHost.ts";
+import type { AppChanges } from "#appHost.ts";
 
 export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 	group: RpcGroup.RpcGroup<R>,

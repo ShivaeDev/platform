@@ -1,9 +1,9 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
+import type { Engine } from "#modules/notes/test-support/applicationState.ts";
+import { listHints } from "#modules/notes/test-support/listHints.ts";
+import { liveNote, liveNotes } from "#modules/notes/test-support/live.ts";
 import type { RunningHost } from "#test-support/host.ts";
-import type { Engine } from "./applicationState.ts";
-import { listHints } from "./listHints.ts";
-import { liveNote, liveNotes } from "./live.ts";
 
 export function liveVerbs(engine: Engine, host: () => RunningHost, tell: (line: string) => void) {
 	function cookie(name: string) {

@@ -1,4 +1,4 @@
-import { Effect, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query, stream } from "@shivaedev/contract/operation.ts";
@@ -13,7 +13,6 @@ export const Watch = stream("watch", { reads: () => [jobs.list], success: Schema
 export const JobsContract = contract("admin.jobs", { commands: [Retry], queries: [Failed], streams: [Watch] });
 export const Jobs = adminPage({ contract: JobsContract, id: "jobs", permission: JobsPermission, route: { path: "/admin/jobs", title: "Jobs" } });
 export const Profile = query("profile", {
-	readPolicy: (_payload, viewer) => Effect.succeed(Option.isSome(viewer) && viewer.value.id === "auditor"),
 	reads: () => [],
 	success: Schema.String,
 });

@@ -93,6 +93,6 @@ for (const [role, answer] of [
 	});
 }
 
-adminStory.it("a page grant does not override a query's additional read restriction", [signedInAs("admin")], function* ({ profile }) {
-	expect(yield* profile()).toBe("read denied");
+adminStory.it("a page grant does not override a query's additional read restriction", [signedInAs("admin")], function* ({ restrictedProfile }) {
+	expect(yield* restrictedProfile()).toBe("read denied");
 });

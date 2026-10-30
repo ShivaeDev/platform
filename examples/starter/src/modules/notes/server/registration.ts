@@ -5,10 +5,10 @@ import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { Create, Delete, Get, Import, List, NoteReadAccess, Notes, Update } from "#modules/notes/notes.ts";
 import { jsonPlaceholderNotes } from "#modules/notes/server/adapters/jsonPlaceholder.ts";
+import { adminRegistration } from "#modules/notes/server/adminRegistration.ts";
+import { CountWords } from "#modules/notes/server/jobs.ts";
 import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
-import { adminRegistration } from "./adminRegistration.ts";
-import { CountWords } from "./jobs.ts";
 
 const boundaryOptions = { unexpected: (message: string) => new InternalServerError({ message }) };
 

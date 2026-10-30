@@ -14,8 +14,8 @@ import { query } from "#operation.ts";
 import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
+import { answered } from "#test/answers.ts";
 import { watchHints } from "#testing.ts";
-import { answered } from "./answers.ts";
 
 class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
 class Guard extends RpcMiddleware.Service<Guard>()("test/ReadPolicyGuard", { error: Schema.Union([MissingReadPolicy, QueryReadDenied]) }) {}
@@ -63,6 +63,7 @@ export const readPolicyStory = storyKit({
 		const client = yield* RpcTest.makeClient(Reads, { flatten: true }).pipe(Effect.provide(protocol));
 		return { api: bind(Reads, Client, { registry }), client, live, registry, sql };
 	},
+	inspect: ({ registry }) => ({ mountedAtoms: registry.getNodes().size, viewer: Option.getOrNull(viewer) }),
 	layer,
 	name: "fallible live read policies",
 	stages: [],
@@ -80,8 +81,9 @@ export const readPolicyStory = storyKit({
 			liveRead: () => {
 				story.tell("alice opens the live note");
 				const read = api.read.query();
+				registry.mount(read);
 				registry.refresh(read);
-				return answered(AtomRegistry.getResult(registry, read), (note) => note);
+				return answered(AtomRegistry.getResult(registry, read, { suspendOnWaiting: true }), (note) => note);
 			},
 			subscribe: () => {
 				story.tell("alice subscribes to the note's live changes");

@@ -1,11 +1,11 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
+import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
+import { jobsKeys } from "#jobs/keys.ts";
+import { deadLetteredSchema, JobsFailures, JobsHealth, jobPage, jobSchema, PageFields, QueueCounts } from "#jobs/schemas.ts";
 import { adminPage } from "#page.ts";
 import { JobsPermission } from "#permissions.ts";
-import { type JobsEntry, type JobsPayload, jobsQueue } from "./entry.ts";
-import { jobsKeys } from "./keys.ts";
-import { deadLetteredSchema, JobsFailures, JobsHealth, jobPage, jobSchema, PageFields, QueueCounts } from "./schemas.ts";
 
 export function jobsPage<const TQueues extends readonly JobsEntry[]>(...queues: TQueues) {
 	const definitions = queues.map((queue: TQueues[number]) => jobsQueue(queue));
