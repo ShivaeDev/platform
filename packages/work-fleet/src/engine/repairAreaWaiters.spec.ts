@@ -84,3 +84,16 @@ isolatedEngine.it("a new launch starts immediately when no item waits for its ar
 	expect((yield* fleet.dispatch("one")).value).toMatchObject({ step: "working" });
 	expect(fleet.providerStarts()).toMatchObject([{ prompt: "Implement one" }]);
 });
+
+isolatedEngine.it("a revised queued brief rejoins behind existing equal-priority area waiters", [], function* (fleet) {
+	fleet.setAreas("one", ["shared"]);
+	fleet.setAreas("two", ["shared"]);
+	yield* fleet.prepareWork("one");
+	fleet.advanceTime(100);
+	yield* fleet.prepareWork("two");
+	fleet.advanceTime(100);
+	fleet.reviseBrief("one", "revised-one");
+	expect(yield* fleet.attemptDispatch("one")).toMatchObject({ message: "waiting for area shared queued ahead by two" });
+	const started = yield* fleet.dispatch("two");
+	expect(started.value.step).toBe("working");
+});
