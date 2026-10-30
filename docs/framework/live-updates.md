@@ -69,11 +69,33 @@ const Mine = query("mine", {
 });
 ```
 
-A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Mark bucket fields on the stored model with `bucket` from `@shivaedev/changes/buckets.ts`, for example `userId: bucket(Schema.String)`. Repository writes derive the record and affected old and new bucket keys inside the write's transaction. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. It reruns whenever any row in that bucket changes, including a row excluded by the filter. See [commit-bound changes](./changes.md) for the automatic write path and raw SQL limits.
+A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId(id)`, names every row with that field value. Mark bucket fields on the stored model with `bucket` from `@shivaedev/changes/buckets.ts`, for example `userId: bucket(Schema.String)`. Repository writes derive the record and affected old and new bucket keys inside the write's transaction. A list may add title, state or other filters to its input and handler, but those filters never narrow its bucket. A matching bucket change triggers the query’s configured live behavior, including when the changed row is excluded by the filter. See [commit-bound changes](./changes.md) for the automatic write path and raw SQL limits.
 
 The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Without `readPolicy`, a query has no authorized live subscription: `MissingReadPolicy` tells its author to declare one. Ordinary non-live reads remain available. Reads outside a declared query acquire no automatic subscription.
 
-The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering a hint, the stream rechecks the owning query's policy without memoization. A denied session or policy recheck ends that subscription with `QueryReadDenied`; it never silently drops the hint. Automatic bound queries then rerun their authorized read, exposing its denial in the query result. Render that failure before retained data. Further changes cannot reach the ended subscription. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
+The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering a hint, the stream rechecks the owning query's policy without memoization. A denied session or policy recheck ends that subscription with `QueryReadDenied`; it never silently drops the hint. Automatic bound queries expose that denial in the query result; hinted queries rerun their authorized read to do so. Render that failure before retained data. Further changes cannot reach the ended subscription. The default hint-and-refetch path runs the same authorized query that produced its first value; hints carry no row values.
+
+## Rerun-and-compare queries
+
+Set `live: "rerun-and-compare"` on a query to receive results only when its encoded value changes:
+
+```ts
+const Mine = query("mine", {
+	live: "rerun-and-compare",
+	payload: { title: Schema.String },
+	success: Schema.Array(Schema.String),
+	readPolicy: (_input, viewer) => Effect.succeed(Option.isSome(viewer)),
+	reads: (_input, viewer) => (Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
+});
+```
+
+The host registers the subscription before running its initial authorized read as the subscribed viewer. On each matching change or Resync, it runs that same query handler through `authorizeReads`, encodes the value with the query’s JSON codec, and compares its SHA-256 hash with the last result sent on that subscription. An unchanged result sends no hint, key, hash or result for that query. A filtered-out change therefore reveals nothing through that query’s deliveries. Queries sharing a subscription retain their own delivery behavior.
+
+The contract’s `$changes` schema includes typed `Result` messages for opted-in queries, naming the query and its index in the requested references. `bind` and `makeClient` place those decoded results in the bound query without a client refetch. The initial value also comes from the subscription. Refresh, resume and unpause reopen the subscription to read current values. A denied policy check ends the stream with `QueryReadDenied`; declared query failures remain typed stream failures. Queries without this option keep hints and ordinary client refetches.
+
+A custom host calls `makeLiveServer.subscribe(subscription, keyContext, authorizedRunner)` and supplies Effect’s `Crypto` service. The runner executes the referenced query through its authorized read with the captured request identity. Missing a runner for an opted-in query fails the stream. Platform’s application host supplies both automatically.
+
+Comparison suppresses deliveries, not server reads: each matching change still incurs a policy check, query execution, encoding and hashing per subscribed query. Use deterministic read ordering when order is part of the result. Hashes belong to one connection; reconnects send a fresh initial result. The existing queue bound and reconciliation behavior apply, and this option adds no replay or durable delivery guarantee.
 
 ## Command declarations
 

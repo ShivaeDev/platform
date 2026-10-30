@@ -1,10 +1,12 @@
-import { Context, Effect, type Layer, Option, Schema } from "effect";
+import { Context, Effect, type Layer, Option, Schema, type Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
 import { contract } from "#contract.ts";
+import type { makeLiveServer } from "#makeLiveServer.ts";
 import { query } from "#operation.ts";
+import { querySubscription } from "#querySubscription.ts";
 import { authorizeReads, type QueryReadPolicy } from "#readPolicy.ts";
-import type { QueryReadDenied } from "#readPolicyErrors.ts";
+import type { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 class Database extends Context.Service<Database, boolean>()("test/PolicyDatabase") {}
 class ServiceUnavailable extends Schema.TaggedError<ServiceUnavailable>()("ServiceUnavailable", {}) {}
@@ -28,3 +30,16 @@ expectTypeOf<Rpc.ExtractRequires<ChangesRpc, "reads.$changes">>().toEqualTypeOf<
 declare const rpc: ReadRpc;
 const authorized = authorizeReads(Effect.void, { payload: undefined, rpc }, Option.none());
 expectTypeOf<Effect.Services<typeof authorized>>().toEqualTypeOf<Database>();
+
+const Pushed = contract("pushed", {
+	queries: [query("read", { live: "rerun-and-compare", readPolicy: policy, reads: () => [], rejections: { ServiceUnavailable } })],
+});
+type PushedChanges = Extract<RpcGroup.Rpcs<typeof Pushed>, { readonly _tag: "pushed.$changes" }>;
+declare const pushedRpc: PushedChanges;
+declare const live: Effect.Success<typeof makeLiveServer>;
+const pending = querySubscription(pushedRpc, [{ payload: undefined, query: "read" }], Option.none());
+declare const subscription: Effect.Success<typeof pending>;
+const pushed = live.subscribe(subscription, undefined, () => Effect.asVoid(Database));
+expectTypeOf<Stream.Services<typeof pushed>>().toEqualTypeOf<Database>();
+expectTypeOf<Stream.Error<typeof pushed>>().toEqualTypeOf<ServiceUnavailable | QueryReadDenied | MissingReadPolicy>();
+expectTypeOf<Rpc.ExtractRequires<PushedChanges, "pushed.$changes">>().toEqualTypeOf<Database>();

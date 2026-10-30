@@ -48,6 +48,7 @@ export function boundQuery(service: ErasedClient, tag: string, query: QueryShape
 				reference,
 				keys,
 				Schema.toEquivalence(query.success),
+				query.live === "rerun-and-compare" ? Schema.decodeUnknownSync(Schema.toType(query.success)) : undefined,
 			);
 			cached.set(atom, result);
 			return result;
