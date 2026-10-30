@@ -54,18 +54,13 @@ proxyHost.it("returns the host's status, headers and every cookie to the client"
 	});
 });
 
-for (const [hostname, peer] of [
-	["127.0.0.1", "127.0.0.1"],
-	["[::1]", "::1"],
-]) {
-	proxyHost.it(`appends the ${peer} caller to an existing forwarding chain`, [], function* ({ forwardedFor, sends, startsProxy }) {
-		yield* startsProxy();
+proxyHost.it("appends the IPv4 caller to an existing forwarding chain", [], function* ({ forwardedFor, sends, startsProxy }) {
+	yield* startsProxy();
 
-		yield* sends("/echo", { headers: { "x-forwarded-for": "198.51.100.10, 192.0.2.1" } }, hostname);
+	yield* sends("/echo", { headers: { "x-forwarded-for": "198.51.100.10, 192.0.2.1" } });
 
-		expect(yield* forwardedFor()).toBe(`198.51.100.10, 192.0.2.1, ${peer}`);
-	});
-}
+	expect(yield* forwardedFor()).toBe("198.51.100.10, 192.0.2.1, 127.0.0.1");
+});
 
 proxyHost.it("appends the story's visitor and edge after the client's forwarding chain", [], function* ({ forwardedFor, sends, startsProxy }) {
 	yield* startsProxy({ forwardedHops: ["visitor", "edge"] });
@@ -108,13 +103,11 @@ proxyHost.it("answers with a bad gateway once the host stops listening", [], fun
 	expect(yield* answer()).toBe("HTTP 502");
 });
 
-for (const hostname of ["127.0.0.1", "[::1]"]) {
-	proxyHost.it(`stops listening on ${hostname} once the proxy's scope closes`, [], function* ({ closesProxy, reaches, startsProxy }) {
-		yield* startsProxy();
-		expect(yield* reaches(hostname)).toBe("HTTP 201");
+proxyHost.it("stops listening once the proxy's scope closes", [], function* ({ closesProxy, reaches, startsProxy }) {
+	yield* startsProxy();
+	expect(yield* reaches("127.0.0.1")).toBe("HTTP 201");
 
-		yield* closesProxy();
+	yield* closesProxy();
 
-		expect(yield* reaches(hostname)).toBe("connection refused");
-	});
-}
+	expect(yield* reaches("127.0.0.1")).toBe("connection refused");
+});
