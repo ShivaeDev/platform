@@ -1,9 +1,11 @@
 import { randomUUID } from "node:crypto";
-import { access, readFile, rm, writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import { Schema } from "effect";
+import { NodeFileSystem } from "@effect/platform-node";
+import { Effect, Schema } from "effect";
 import ts from "typescript";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import { readOptionalText } from "#inventory/filesystem.ts";
 
 function nativeOverride(files: readonly string[], rule: string): unknown {
 	const [, tool, group = "", name = ""] = rule.split("/");
@@ -36,11 +38,17 @@ export async function withExceptionConfig<TValue>(
 	}
 	const name = `.quality-biome-${randomUUID()}.json`;
 	const path = join(root, name);
-	const config = await access(join(root, "biome.json")).then(
-		() => "biome.json",
-		() => "biome.jsonc",
+	const { config, text } = await Effect.runPromise(
+		Effect.gen(function* () {
+			for (const candidate of ["biome.json", "biome.jsonc"]) {
+				const content = yield* readOptionalText(join(root, candidate));
+				if (content !== undefined) {
+					return { config: candidate, text: content };
+				}
+			}
+			return { config: "biome.json", text: "{}" };
+		}).pipe(Effect.provide(NodeFileSystem.layer)),
 	);
-	const text = await readFile(join(root, config), "utf8");
 	const parsed = ts.parseConfigFileTextToJson(config, text);
 	if (parsed.error !== undefined) {
 		throw new Error(`Cannot load ${config}: ${ts.flattenDiagnosticMessageText(parsed.error.messageText, " ")}`);

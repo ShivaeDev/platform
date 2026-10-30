@@ -30,7 +30,7 @@ catalog:
   "@effect/sql-pg": 4.0.6
   "@effect/vitest": 4.0.6
   "@tailwindcss/vite": 4.3.3
-  "@tanstack/react-router": 1.170.45
+  "@tanstack/react-router": 1.170.46
   "@types/node": 24.19.2
   "@types/pg": 8.20.0
   "@types/react": 19.3.0
@@ -46,5 +46,5 @@ catalog:
   react-dom: 19.3.1
   tailwindcss: 4.3.3
   typescript: 7.0.2
-  vite: 8.3.4
+  vite: 8.3.5
   vitest: 5.0.5

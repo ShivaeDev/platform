@@ -17,16 +17,13 @@ const BIN = createRequire(import.meta.url).resolve("@biomejs/biome/bin/biome");
 
 export async function runBiome(root: string, args: readonly string[], exceptions: readonly ExceptionDeclaration[] = []): Promise<BiomeRun> {
 	const folders = await Effect.runPromise(shadcnFolders(root).pipe(Effect.provide(NodeFileSystem.layer)));
-	const toolOwned: readonly ExceptionDeclaration[] =
-		folders.length === 0
-			? []
-			: [
-					{
-						files: ["**", ...folders.map((folder) => `!${folder}`)],
-						reason: "components.json assigns these folders to the shadcn CLI.",
-						rules: ["biome/files/includes"],
-					},
-				];
+	const toolOwned: readonly ExceptionDeclaration[] = [
+		{
+			files: ["**", "!**/pnpm-lock.yaml", ...folders.map((folder) => `!${folder}`)],
+			reason: "pnpm writes its lockfiles; components.json assigns UI folders to the shadcn CLI.",
+			rules: ["biome/files/includes"],
+		},
+	];
 	return withExceptionConfig(
 		root,
 		[...exceptions, ...toolOwned],
