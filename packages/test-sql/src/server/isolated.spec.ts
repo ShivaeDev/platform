@@ -1,92 +1,95 @@
-import { Cause, Deferred, Effect, Exit, Fiber, Order } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { database } from "#test/database.ts";
+import { isolatedBlockOpen, itemWritten } from "#test/databaseTraits.ts";
 
 database.it(
-	"isolated databases clone prepared fixtures once, commit for real, and drop after use",
-	[],
-	function* ({
-		inClone,
-		writeSharedItem,
-		readCurrentDatabaseName,
-		readItems,
-		openCloneClient,
-		watchItemInvalidations,
-		commitItem,
-		readItemsFrom,
-		readSharedItems,
-		readPreparationCounts,
-		closeWorker,
-		readDatabases,
-	}) {
-		yield* writeSharedItem("shared");
-		const names = yield* Effect.all(
-			["a", "b"].map((value) =>
-				inClone(
-					Effect.gen(function* () {
-						const name = yield* readCurrentDatabaseName();
-						expect(yield* readItems()).toEqual([{ value: "seed" }]);
-						const other = yield* openCloneClient();
-						const readInvalidations = yield* watchItemInvalidations();
-						yield* commitItem(value);
-						expect(yield* readItemsFrom(other)).toEqual([{ value }]);
-						expect(readInvalidations()).toEqual([1]);
-						return name;
-					}),
-				),
-			),
-			{ concurrency: "unbounded" },
-		);
-		expect([...new Set(names)]).toEqual([expect.stringMatching(/^effect_test_/u), expect.stringMatching(/^effect_test_/u)]);
-		expect(yield* readSharedItems()).toEqual([{ value: "shared" }]);
-		expect(yield* readPreparationCounts()).toEqual({ fixtures: 1, migrations: 1 });
-		yield* closeWorker();
-		expect(yield* readDatabases(names)).toEqual([]);
+	"an isolated block opened after the shared database changed starts from the template's fixtures",
+	[itemWritten("shared", "the shared database"), isolatedBlockOpen()],
+	function* ({ items }) {
+		expect(yield* items("the isolated block")).toEqual(["seed"]);
 	},
 );
 
 database.it(
-	"isolated databases clean up after typed failure, defects and interruption",
-	[],
-	function* ({ inClone, readCurrentDatabaseName, writeItem, closeWorker, readDatabases }) {
-		const names: string[] = [];
-		const record = Effect.gen(function* () {
-			names.push(yield* readCurrentDatabaseName());
-			yield* writeItem("committed");
+	"a commit in an isolated block reaches another connection to its clone",
+	[isolatedBlockOpen()],
+	function* ({ itemsThroughAnotherConnection, writeItem }) {
+		expect(yield* itemsThroughAnotherConnection("the isolated block")).toEqual(["seed"]);
+
+		yield* writeItem("committed", "the isolated block");
+
+		expect(yield* itemsThroughAnotherConnection("the isolated block")).toEqual(["committed"]);
+	},
+);
+
+database.it(
+	"two isolated blocks open at the same time write to separate clones",
+	[isolatedBlockOpen("the first block"), isolatedBlockOpen("the second block")],
+	function* ({ items, writeItem }) {
+		expect(yield* items("the first block")).toEqual(["seed"]);
+
+		yield* writeItem("first", "the first block");
+
+		yield* outcomes({
+			"items in the first block": [items("the first block"), ["first"]],
+			"items in the second block": [items("the second block"), ["seed"]],
 		});
-		expect(yield* inClone(Effect.andThen(record, Effect.fail("rejected"))).pipe(Effect.flip)).toBe("rejected");
-		const defect = yield* inClone(Effect.andThen(record, Effect.die("assertion"))).pipe(Effect.exit);
-		expect(Exit.isFailure(defect) && Cause.hasDies(defect.cause)).toBe(true);
-		const entered = yield* Deferred.make<void>();
-		const fiber = yield* inClone(
-			Effect.gen(function* () {
-				yield* record;
-				yield* Deferred.succeed(entered, undefined);
-				yield* Effect.never;
-			}),
-		).pipe(Effect.forkScoped);
-		yield* Deferred.await(entered);
-		yield* Fiber.interrupt(fiber);
-		const interrupted = yield* Fiber.await(fiber);
-		expect(Exit.isFailure(interrupted) && Cause.hasInterrupts(interrupted.cause)).toBe(true);
-		expect([...new Set(names)]).toEqual([
-			expect.stringMatching(/^effect_test_/u),
-			expect.stringMatching(/^effect_test_/u),
-			expect.stringMatching(/^effect_test_/u),
-		]);
-		yield* closeWorker();
-		expect(yield* readDatabases(names)).toEqual([]);
+	},
+);
+
+database.it("opening an isolated block runs neither the migrations nor the fixtures again", [], function* ({ openIsolatedBlock, preparationRuns }) {
+	expect(yield* preparationRuns()).toEqual({ fixtures: 1, migrations: 1 });
+
+	yield* openIsolatedBlock("the isolated block");
+
+	expect(yield* preparationRuns()).toEqual({ fixtures: 1, migrations: 1 });
+});
+
+for (const [ending, outcome] of [
+	["succeeds", "succeeded"],
+	["fails with rejected", "failed with rejected"],
+	["dies with assertion failed", "died with assertion failed"],
+] as const) {
+	database.it(
+		`an isolated block that ${ending} ends ${outcome}, and its clone is dropped`,
+		[isolatedBlockOpen()],
+		function* ({ blockOutcome, cloneDatabase, end }) {
+			expect(yield* cloneDatabase("the isolated block")).toBe("exists");
+
+			yield* end("the isolated block", ending);
+
+			yield* outcomes({
+				"its clone": [cloneDatabase("the isolated block"), "dropped"],
+				"the isolated block": [blockOutcome("the isolated block"), outcome],
+			});
+		},
+	);
+}
+
+database.it(
+	"an interrupted isolated block ends interrupted, and its clone is dropped",
+	[isolatedBlockOpen()],
+	function* ({ blockOutcome, cloneDatabase, interrupt }) {
+		expect(yield* cloneDatabase("the isolated block")).toBe("exists");
+
+		yield* interrupt("the isolated block");
+
+		yield* outcomes({
+			"its clone": [cloneDatabase("the isolated block"), "dropped"],
+			"the isolated block": [blockOutcome("the isolated block"), "interrupted"],
+		});
 	},
 );
 
 database.it(
-	"closing the worker scope drops both the template and shared database",
+	"closing the worker drops its empty template, its migrated template and its shared database",
 	[],
-	function* ({ readWorkerDatabaseNames, readDatabases, closeWorker }) {
-		const names = yield* readWorkerDatabaseNames();
-		expect(names.every(Boolean)).toBe(true);
-		expect((yield* readDatabases(names)).map(({ datname }) => datname).sort(Order.String)).toEqual([...names].sort(Order.String));
+	function* ({ closeWorker, workerDatabases }) {
+		expect(yield* workerDatabases()).toEqual(["the empty template", "the migrated template", "the shared database"]);
+
 		yield* closeWorker();
-		expect(yield* readDatabases(names)).toEqual([]);
+
+		expect(yield* workerDatabases()).toEqual([]);
 	},
 );

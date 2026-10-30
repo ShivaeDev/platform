@@ -11,11 +11,21 @@ import { PostgresTestDatabase } from "#database.ts";
 import type { PostgresColumn } from "#migrationUpgrade.ts";
 import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
 import { createDatabaseEngine } from "./databaseEngine.ts";
+import { failureOf } from "./outcome.ts";
 import { adminUrl, configured } from "./postgres.ts";
 
 class NamedRow extends Model.Class<NamedRow>("NamedRow")({ id: Schema.Int, runId: Schema.String }) {}
 
-type Client = "shared" | "isolated" | "clone";
+export type SchemaChange = "dropping run_id" | "changing run_id's type" | "adding extra_field" | 'renaming run_id to "runId"';
+
+const schemaChanges: Record<SchemaChange, (sql: SqlClient.SqlClient) => Effect.Effect<unknown, unknown>> = {
+	"adding extra_field": (sql) => sql`alter table named_rows add column extra_field boolean`,
+	"changing run_id's type": (sql) => sql`alter table named_rows alter column ${sql("runId")} type varchar(8)`,
+	"dropping run_id": (sql) => sql`alter table named_rows drop column ${sql("runId")}`,
+	'renaming run_id to "runId"': (sql) => sql`alter table named_rows rename column run_id to "runId"`,
+};
+
+export type Client = "the shared database" | "an isolated block" | "an explicit clone";
 
 const readRows = Effect.gen(function* () {
 	const rows = yield* makeRepository(NamedRow, { idColumn: "id", spanPrefix: "NamedRow", tableName: "named_rows" });
@@ -26,7 +36,10 @@ const checkColumns = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	const columns = yield* sql<PostgresColumn>`select attname as name, format_type(atttypid, atttypmod) as type
 		from pg_attribute where attrelid = 'named_rows'::regclass and attnum > 0 and not attisdropped`.withoutTransform;
-	return yield* assertModelColumns(columns, NamedRow, { id: "integer", runId: "text" });
+	return yield* assertModelColumns(columns, NamedRow, { id: "integer", runId: "text" }).pipe(
+		Effect.as("matches the model"),
+		Effect.catchTag("ModelColumnMismatch", (mismatch) => Effect.succeed(failureOf(mismatch))),
+	);
 });
 
 function migrations(mapped: boolean) {
@@ -72,11 +85,10 @@ export const names = storyKit({
 	stages: ["configuration"],
 	verbs: (engine, story) => {
 		function run<A, E, R>(client: Client, effect: Effect.Effect<A, E, R>) {
-			story.tell(`use the ${client} client`);
-			if (client === "shared") {
+			if (client === "the shared database") {
 				return engine.run(effect);
 			}
-			if (client === "isolated") {
+			if (client === "an isolated block") {
 				return engine.run(withIsolatedDatabase(effect));
 			}
 			return engine.run(
@@ -90,18 +102,17 @@ export const names = storyKit({
 			);
 		}
 		return {
-			addColumn: () => engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`alter table named_rows add column extra_field boolean`)),
-			changeRunIdType: () =>
-				engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`alter table named_rows alter column ${sql("runId")} type varchar(8)`)),
-			checkColumns: (client: Client) => run(client, checkColumns),
-			dropRunId: () => engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`alter table named_rows drop column ${sql("runId")}`)),
-			readRows: (client: Client) => run(client, readRows),
-			renameRunId: () => engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`alter table named_rows rename column run_id to "runId"`)),
+			changeSchema: (change: SchemaChange) => {
+				story.tell(`the shared database's schema changes by ${change}`);
+				return engine.run(Effect.flatMap(SqlClient.SqlClient, schemaChanges[change]));
+			},
+			columnCheck: (client: Client) => run(client, checkColumns),
+			rows: (client: Client) => run(client, readRows),
 		};
 	},
 });
 
-export const unmapped = names.trait("configuration", "the app preserves SQL names", (engine) => {
+export const unmapped = names.trait("configuration", "the app preserves SQL names, so the column is named runId", (engine) => {
 	const { transformQueryNames, transformResultNames, ...options } = engine.options;
 	engine.options = clientOptions(options, { snakeCase: false });
 });

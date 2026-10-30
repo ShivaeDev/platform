@@ -1,17 +1,12 @@
-import { Exit } from "effect";
 import { expect } from "vitest";
-import { cleanup, limitedCleanupRole } from "#test/cleanup.ts";
+import { cleanup, cloneClosed, cloneOpen, dropDenied, limitedCleanupRole, runStarted } from "#test/cleanup.ts";
 
 cleanup.it(
-	"a permanent drop failure surfaces as a SQL defect when the run closes",
-	[limitedCleanupRole],
-	function* ({ openClone, denyDrop, closeClone, closeRunExit }) {
-		yield* openClone();
-		yield* denyDrop();
-		yield* closeClone();
-		const exit = yield* closeRunExit();
-		expect(Exit.isFailure(exit) && exit.cause.reasons).toMatchObject([
-			{ _tag: "Die", defect: { _tag: "SqlError", reason: { cause: { code: "42501" } } } },
-		]);
+	"closing the run dies with the SQL error of a queued drop the run's role may not perform",
+	[limitedCleanupRole, runStarted, cloneOpen, dropDenied, cloneClosed],
+	function* ({ closeRun, runClosing }) {
+		yield* closeRun();
+
+		expect(yield* runClosing()).toMatch(/^died with SQLSTATE 42501: /u);
 	},
 );
