@@ -11,7 +11,6 @@
 {"path":"packages/quality/src/biome/recognition.spec.ts","rule":"effect/boundary","count":5}
 {"path":"packages/quality/src/biome/recommendedRules.test.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/biome/report.test.ts","rule":"effect/boundary","count":2}
-{"path":"packages/quality/src/biome/run.test.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/biome/withoutEntryPointImports.ts","rule":"effect/boundary","count":8}
 {"path":"packages/quality/src/biome/worktrees.spec.ts","rule":"effect/boundary","count":4}
 {"path":"packages/quality/src/cli.test.ts","rule":"effect/boundary","count":22}
