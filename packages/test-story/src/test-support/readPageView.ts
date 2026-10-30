@@ -5,7 +5,7 @@ import { createElement, useContext, useState } from "react";
 import { LiveConnection } from "@shivaedev/contract/automaticLive.ts";
 import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { browserReads } from "#browserReads.ts";
-import { ReadPage } from "./readPageHost.ts";
+import { ReadPage } from "#test/readPageHost.ts";
 
 export function makePageClient(url: string, protocol: EffectReads["protocol"]) {
 	return makeClient(ReadPage, { protocol, url });

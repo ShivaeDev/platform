@@ -4,9 +4,9 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import type { QueryUpdate } from "@shivaedev/contract/queryUpdate.ts";
 import { forwardingProxy } from "#forwardingProxy.ts";
 import { storyKit } from "#storyKit.ts";
-import { ipv4OnlySockets } from "./ipv4OnlySockets.ts";
-import { proxyTransport } from "./proxyTransport.ts";
-import { ReadPage, readPageHost } from "./readPageHost.ts";
+import { ipv4OnlySockets } from "#test/ipv4OnlySockets.ts";
+import { proxyTransport } from "#test/proxyTransport.ts";
+import { ReadPage, readPageHost } from "#test/readPageHost.ts";
 
 export const socketProxy = storyKit({
 	around: (effect) => Effect.scoped(ipv4OnlySockets.pipe(Effect.andThen(effect))),

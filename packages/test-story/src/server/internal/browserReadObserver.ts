@@ -2,7 +2,7 @@ import { Effect, PubSub, Schema } from "effect";
 import { RpcClient, type RpcMessage } from "effect/rpc";
 import { LiveHint } from "@shivaedev/contract/live.ts";
 import type { BrowserRead, BrowserReadsOptions } from "#browserReads.ts";
-import { browserSubscriptions } from "./browserSubscriptions.ts";
+import { browserSubscriptions } from "#internal/browserSubscriptions.ts";
 
 export const browserReadObserver = Effect.fnUntraced(function* (contracts: BrowserReadsOptions["contracts"]) {
 	const queries = new Set(contracts.flatMap(({ declaration }) => declaration.queries.map(({ name }) => `${declaration.name}.${name}`)));

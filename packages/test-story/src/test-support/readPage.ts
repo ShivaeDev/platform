@@ -10,8 +10,8 @@ import { browserReads } from "#browserReads.ts";
 import { domFetch } from "#domFetch.ts";
 import { screenDriver } from "#screenDriver.ts";
 import { storyKit } from "#storyKit.ts";
-import { ReadPage, readPageHost } from "./readPageHost.ts";
-import { makePageClient, ReadPageView } from "./readPageView.ts";
+import { ReadPage, readPageHost } from "#test/readPageHost.ts";
+import { makePageClient, ReadPageView } from "#test/readPageView.ts";
 
 export const readPage = storyKit({
 	clock: "live",
