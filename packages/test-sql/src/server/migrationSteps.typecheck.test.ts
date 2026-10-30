@@ -1,4 +1,4 @@
-import { Context, Effect, Scope } from "effect";
+import { Context, Effect, Schema, Scope } from "effect";
 import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
@@ -22,7 +22,16 @@ expectTypeOf<Effect.Services<typeof steps>>().toEqualTypeOf<Dependency | Scope.S
 
 declare const controller: Effect.Success<typeof steps>;
 const partial = controller.migrateTo("1_create_contacts");
-expectTypeOf<Effect.Error<typeof partial>>().toEqualTypeOf<Migrator.MigrationError | SqlError>();
+expectTypeOf<Effect.Error<typeof partial>>().toEqualTypeOf<Migrator.MigrationError | SqlError | Schema.SchemaError>();
 expectTypeOf<Effect.Services<typeof partial>>().toEqualTypeOf<never>();
-expectTypeOf<Effect.Error<typeof controller.migrateToLatest>>().toEqualTypeOf<Migrator.MigrationError | SqlError>();
+expectTypeOf<Effect.Error<typeof controller.migrateToLatest>>().toEqualTypeOf<Migrator.MigrationError | SqlError | Schema.SchemaError>();
 expectTypeOf<Effect.Services<typeof controller.migrateToLatest>>().toEqualTypeOf<never>();
+
+class ComponentRefused extends Schema.TaggedError<ComponentRefused>()("ComponentRefused", {}) {}
+
+const failingSteps = migrationSteps({
+	...migrations,
+	components: [{ apply: Effect.fail(new ComponentRefused()), name: "storage", pending: Effect.succeed(undefined) }],
+});
+declare const failingController: Effect.Success<typeof failingSteps>;
+expectTypeOf<Extract<Effect.Error<typeof failingController.migrateToLatest>, ComponentRefused>>().toEqualTypeOf<ComponentRefused>();

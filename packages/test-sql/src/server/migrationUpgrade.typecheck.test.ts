@@ -1,4 +1,4 @@
-import { Context, Effect } from "effect";
+import { Context, Effect, type Schema } from "effect";
 import type { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
@@ -14,7 +14,7 @@ const upgrade = migrationUpgrade({
 	upTo: 1,
 });
 expectTypeOf<Effect.Success<typeof upgrade>>().toEqualTypeOf<readonly PostgresColumn[]>();
-expectTypeOf<Effect.Error<typeof upgrade>>().toEqualTypeOf<Migrator.MigrationError | SqlError>();
+expectTypeOf<Effect.Error<typeof upgrade>>().toEqualTypeOf<Migrator.MigrationError | SqlError | Schema.SchemaError>();
 expectTypeOf<Effect.Services<typeof upgrade>>().toEqualTypeOf<Dependency | SqlClient.SqlClient>();
 
 const assertion = assertModelColumns([], Item, types);

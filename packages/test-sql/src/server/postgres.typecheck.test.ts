@@ -1,5 +1,5 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Layer, Redacted, Scope } from "effect";
+import { Context, Effect, Layer, Redacted, type Schema, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
@@ -54,7 +54,7 @@ const requiredLoader = makePostgresTestLayer({
 		}),
 });
 expectTypeOf<Layer.Services<typeof requiredLoader>>().toEqualTypeOf<Missing>();
-expectTypeOf<Layer.Error<typeof requiredLoader>>().toEqualTypeOf<SqlError | "loader refused" | Migrator.MigrationError>();
+expectTypeOf<Layer.Error<typeof requiredLoader>>().toEqualTypeOf<SqlError | "loader refused" | Migrator.MigrationError | Schema.SchemaError>();
 
 const initialized = makePostgresTestLayer({ initialize: Effect.service(Missing), url: options.url });
 expectTypeOf<Layer.Services<typeof initialized>>().toEqualTypeOf<Missing>();
@@ -75,7 +75,7 @@ const initializedLoader = makePostgresTestLayer({
 });
 expectTypeOf<Layer.Services<typeof initializedLoader>>().toEqualTypeOf<Missing>();
 expectTypeOf<Layer.Error<typeof initializedLoader>>().toEqualTypeOf<
-	SqlError | Migrator.MigrationError | "initializer refused" | "fixtures refused"
+	SqlError | Migrator.MigrationError | Schema.SchemaError | "initializer refused" | "fixtures refused"
 >();
 
 // @ts-expect-error Choose an initializer or migrations, not both.

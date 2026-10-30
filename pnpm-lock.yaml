@@ -1484,6 +1484,9 @@ importers:
       '@shivaedev/changes':
         specifier: workspace:*
         version: link:../changes
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
     devDependencies:
       '@effect/platform-node':
         specifier: 'catalog:'
@@ -1497,9 +1500,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/service':
-        specifier: workspace:*
-        version: link:../service
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test

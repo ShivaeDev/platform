@@ -1,8 +1,10 @@
-import { Effect, Result } from "effect";
+import { Data, Effect, Schema } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
 import { postgres } from "#test/sqlStory.ts";
 import { hasMigrationTables } from "#test/sqlTraits.ts";
+
+class ComponentUnavailable extends Data.TaggedError("ComponentUnavailable")<{ readonly cause: Error }> {}
 
 postgres.it(
 	"applies schema components after committing the ledger, including on a repeated migration run",
@@ -14,7 +16,8 @@ postgres.it(
 		const component = {
 			apply: sql`create index concurrently if not exists ${sql(index)} on ${sql(orders)} (id)`,
 			name: "order index",
-			pending: sql<{ name: string | null }>`select to_regclass(${index})::text as name`.pipe(
+			pending: sql`select to_regclass(${index})::text as name`.pipe(
+				Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) })))),
 				Effect.map(([row]) => (row === undefined || row.name === null ? "index missing" : undefined)),
 			),
 		};
@@ -43,21 +46,23 @@ postgres.it(
 );
 
 postgres.it(
-	"retains the committed ledger when a component fails and retries the component on the next run",
+	"preserves and logs a component failure and its cause, keeps the ledger committed and retries on the next run",
 	[hasMigrationTables()],
-	function* ({ migrations, sql, migratePostgres }) {
+	function* ({ migrations, sql, migratePostgres, recordedLogs }) {
 		const { ledger, orders } = migrations();
 		const loader = Migrator.fromRecord({ "1_orders": sql`create table ${sql(orders)} (id integer primary key)` });
 		const options = { loader, lockTimeout: "5 seconds", table: ledger } as const;
+		const cause = new Error("component database unavailable");
+		const failure = new ComponentUnavailable({ cause });
 		const failed = yield* migratePostgres({
 			...options,
-			components: [{ apply: Effect.fail("unavailable"), name: "jobs", pending: Effect.succeed("missing") }],
-		}).pipe(Effect.result);
-		expect(Result.isFailure(failed) && failed.failure).toMatchObject({
-			cause: "unavailable",
-			kind: "Failed",
-			message: "Schema component jobs failed.",
-		});
+			components: [{ apply: Effect.fail(failure), name: "jobs", pending: Effect.succeed("missing") }],
+		}).pipe(Effect.flip);
+		expect(failed).toBe(failure);
+		expect(recordedLogs()).toContainEqual(
+			expect.objectContaining({ cause: expect.stringContaining("ComponentUnavailable"), level: "Error", message: ["Schema component jobs failed."] }),
+		);
+		expect(recordedLogs()).toContainEqual(expect.objectContaining({ cause: expect.stringContaining(cause.message) }));
 		expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ "migration_id": 1 }]);
 		expect(
 			yield* migratePostgres({
