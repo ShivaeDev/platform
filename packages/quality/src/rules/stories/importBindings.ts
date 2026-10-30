@@ -15,9 +15,6 @@ export function importBindings(source: ts.SourceFile): ReadonlyMap<string, Impor
 		}
 		const module = statement.moduleSpecifier.text;
 		const clause = statement.importClause;
-		if (clause?.name !== undefined) {
-			bindings.set(clause.name.text, { imported: NAMESPACE, module });
-		}
 		const named = clause?.namedBindings;
 		if (named !== undefined && ts.isNamespaceImport(named)) {
 			bindings.set(named.name.text, { imported: NAMESPACE, module });
