@@ -4,7 +4,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { ConfigProvider, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { TestOutput } from "#TestOutput.ts";
+import { TestOutput } from "#adapters/TestOutput.ts";
 import { packageRoot, seedTree } from "./tree.ts";
 
 export const testOutputStory = storyKit({

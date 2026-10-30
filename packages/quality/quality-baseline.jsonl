@@ -114,5 +114,4 @@
 {"path":"packages/quality/src/rules/suppressions/noInline.ts","rule":"effect/boundary","count":6}
 {"path":"packages/quality/src/rules/test-names/colocated.test.ts","rule":"effect/boundary","count":6}
 {"path":"packages/quality/src/rules/test-names/follow.test.ts","rule":"effect/boundary","count":8}
-{"path":"packages/quality/src/testProjects.ts","rule":"effect/boundary","count":1}
 {"path":"packages/quality/src/unitIoGuard.config.ts","rule":"effect/boundary","count":2}
