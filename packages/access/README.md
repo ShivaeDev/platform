@@ -29,7 +29,7 @@ Both checks return `true`: the member owns the first record, and the operator ho
 A permission names the domain and action, such as `users.read`, `roles.assign` or `jobs.read`. `permission(name)` declares the default strength and exposes a separate override value as `.any`. Each role receives an explicit list of grants. There are no wildcard or prefix grants. An `any` grant covers an `own` check for the same name; an `own` grant never covers an `any` check. The resolved list still contains only the explicitly declared grants.
 
 ```ts
-const AssignRoles = permission("roles.assign");
+import { AssignRoles } from "@shivaedev/access/roles.ts";
 const ReadJobs = permission("jobs.read");
 const Operator = role("operator", [ReadUsers.any, AssignRoles, ReadJobs]);
 const Guest = role("guest", []);

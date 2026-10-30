@@ -59,6 +59,7 @@
 	"devDependencies": {
 		"@effect/platform-node": "catalog:",
 		"@effect/sql-pg": "catalog:",
+		"@shivaedev/admin": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/test": "workspace:*",
