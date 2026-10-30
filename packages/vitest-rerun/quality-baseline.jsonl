@@ -1,6 +1,5 @@
 {"path":"packages/vitest-rerun/package.json","rule":"code/unused","count":1}
 {"path":"packages/vitest-rerun/src/cli.ts","rule":"effect/boundary","count":1}
-{"path":"packages/vitest-rerun/src/flakyReport.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"packages/vitest-rerun/src/internal/TimedJsonReporter.ts","rule":"code/unused","count":1}
 {"path":"packages/vitest-rerun/src/internal/TimedJsonReporter.ts","rule":"effect/boundary","count":3}
 {"path":"packages/vitest-rerun/src/internal/attempt.ts","rule":"code/unused","count":1}

@@ -6,27 +6,29 @@ import { fileURLToPath } from "node:url";
 import { Console, Effect, FileSystem } from "effect";
 import { vi } from "vitest";
 import { main } from "#internal/main.ts";
-import { type Merged, mergeAttempt } from "#internal/mergeAttempt.ts";
+import { mergeAttempt } from "#internal/mergeAttempt.ts";
 import { attemptPaths } from "#internal/reportPaths.ts";
-import { readSnapshot, type Snapshot, tests } from "#internal/snapshot.ts";
+import { readSnapshot, type Snapshot } from "#internal/snapshot.ts";
 import { type SuiteConfig, vitestConfig } from "./specFiles.ts";
 
 const CLI = fileURLToPath(new URL("../cli.ts", import.meta.url));
 export const REPORTS = "reports";
 
+export interface Run {
+	readonly exitCode: number | null;
+	readonly output: string;
+}
+
 export const createSuite = Effect.gen(function* () {
 	const fs = yield* FileSystem.FileSystem;
 	const directory = yield* fs.makeTempDirectoryScoped({ prefix: "vitest-rerun-" });
 	const config: SuiteConfig = { coverage: false, projects: [] };
-	return { config, directory };
+	const runs: Run[] = [];
+	const attempts: Snapshot[] = [];
+	return { attempts, config, directory, runs };
 });
 
 export type Suite = Effect.Success<typeof createSuite>;
-
-export interface Run {
-	readonly output: string;
-	readonly status: number | null;
-}
 
 export function writeFile(suite: Suite, path: string, contents: string): void {
 	writeFileSync(join(suite.directory, path), contents);
@@ -37,10 +39,17 @@ export function readFile(suite: Suite, path: string): string | undefined {
 	return existsSync(file) ? readFileSync(file, "utf8") : undefined;
 }
 
-export function listFiles(suite: Suite): readonly string[] {
-	return readdirSync(suite.directory, { encoding: "utf8", recursive: true })
-		.filter((path) => !path.startsWith(".vite"))
-		.sort();
+export function listFiles(suite: Suite, directory = ""): readonly string[] {
+	const root = join(suite.directory, directory);
+	return existsSync(root) ? readdirSync(root, { encoding: "utf8", recursive: true }).sort() : [];
+}
+
+export function lastRun(suite: Suite): Run {
+	const run = suite.runs.at(-1);
+	if (run === undefined) {
+		throw new Error("Run vitest-rerun before reading what it did");
+	}
+	return run;
 }
 
 function summaryPath(suite: Suite): string {
@@ -63,9 +72,27 @@ export const runProgram = Effect.fn("VitestRerunSuite.runProgram")(function* (su
 		Effect.provideService(Console.Console, captured),
 		Effect.ensuring(Effect.sync(() => vi.unstubAllEnvs())),
 	);
-	const run: Run = { output, status };
-	return run;
+	suite.runs.push({ exitCode: status, output });
 });
+
+export const recordAttempt = Effect.fn("VitestRerunSuite.recordAttempt")(function* (suite: Suite) {
+	yield* runProgram(suite, ["--reruns", "0"]);
+	suite.attempts.push(yield* readSnapshot(attemptPaths(join(suite.directory, REPORTS), 1).snapshot));
+});
+
+export function mergeRerun(suite: Suite): string {
+	const [first, rerun] = suite.attempts;
+	if (first === undefined || rerun === undefined) {
+		throw new Error("Record two attempts before merging the rerun");
+	}
+	const root = realpathSync(suite.directory);
+	try {
+		mergeAttempt(first, rerun.files, root, () => undefined);
+		return "merged";
+	} catch (error) {
+		return `rejected: ${String(error instanceof Error ? error.message : error).replaceAll(`${root}/`, "")}`;
+	}
+}
 
 export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
 	writeFile(suite, "vitest.config.mts", vitestConfig(suite.directory, suite.config));
@@ -83,34 +110,10 @@ export function spawnCli(suite: Suite, args: readonly string[]): Promise<Run> {
 	});
 	return new Promise((resolve, reject) => {
 		child.on("error", reject);
-		child.on("close", (status) => resolve({ output, status }));
+		child.on("close", (exitCode) => {
+			const run: Run = { exitCode, output };
+			suite.runs.push(run);
+			resolve(run);
+		});
 	});
-}
-
-export const recordAttempt = Effect.fn("VitestRerunSuite.recordAttempt")(function* (suite: Suite) {
-	yield* runProgram(suite, ["--reruns", "0"]);
-	return yield* readSnapshot(attemptPaths(join(suite.directory, REPORTS), 1).snapshot);
-});
-
-export interface MergedAttempt extends Merged, Snapshot {
-	readonly summary: readonly string[];
-}
-
-export function mergeAttempts(suite: Suite, previous: Snapshot, rerun: Snapshot): MergedAttempt {
-	const summary: string[] = [];
-	const merged = mergeAttempt(previous, rerun.files, realpathSync(suite.directory), (line) => summary.push(line));
-	return { ...merged, errors: rerun.errors, summary };
-}
-
-export function states(snapshot: Snapshot): Readonly<Record<string, string | undefined>> {
-	return Object.fromEntries(
-		snapshot.files.flatMap((file) => [
-			[file.name, file.result?.state],
-			...tests(file.tasks).map((test) => [`${file.name} > ${test.name}`, test.result?.state]),
-		]),
-	);
-}
-
-export function duration(snapshot: Snapshot, name: string): number | undefined {
-	return snapshot.files.flatMap((file) => tests(file.tasks)).find((test) => test.name === name)?.result?.duration;
 }
