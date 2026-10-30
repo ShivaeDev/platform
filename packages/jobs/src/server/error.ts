@@ -1,4 +1,4 @@
-import { Data, Redacted } from "effect";
+import { Data, Duration, Redacted } from "effect";
 
 export type PgBossOperation =
 	| "counts"
@@ -63,6 +63,16 @@ export class PgBossTestingError extends Data.TaggedError("PgBossTestingError")<{
 	readonly original: Redacted.Redacted<unknown>;
 	readonly queue?: string | undefined;
 }> {}
+
+export class PgBossWaitError extends Data.TaggedError("PgBossWaitError")<{
+	readonly lastSeen: string;
+	readonly waitingFor: string;
+	readonly within: Duration.Duration;
+}> {
+	override get message(): string {
+		return `Gave up after ${Duration.format(this.within)} waiting until ${this.waitingFor}; last seen: ${this.lastSeen}`;
+	}
+}
 
 export function toPgBossError(operation: PgBossOperation, error: unknown, queue?: string): PgBossError {
 	return new PgBossError({
