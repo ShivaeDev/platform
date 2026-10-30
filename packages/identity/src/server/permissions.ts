@@ -11,8 +11,9 @@ import { Identity, SessionUser } from "#identity.ts";
 import type { IdentityFailures } from "#middleware.ts";
 import { hasPermission, type permissionMiddleware } from "#permission.ts";
 import { commandChanges } from "#server/commandChanges.ts";
+import { recheckSession } from "./recheckSession.ts";
 import { revalidateStream } from "./revalidateStream.ts";
-import { resolveSession, type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
+import { type SessionPolicy, type UserSessionShape, withSessionUser } from "./session.ts";
 
 export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
 	middleware: ReturnType<ReturnType<typeof permissionMiddleware<TMiddleware>>>,
@@ -20,7 +21,7 @@ export function permissionLayer<TMiddleware, TSession extends UserSessionShape>(
 ) {
 	const permission = middleware.permission;
 	const guard: RpcMiddleware.RpcMiddleware<Identity | SessionUser, IdentityFailures, never> = (effect, { headers, rpc, payload }) => {
-		const lookup = Effect.tap(resolveSession(policy, headers, rpc._tag), (session) =>
+		const lookup = Effect.tap(recheckSession(policy, headers, rpc._tag), (session) =>
 			Option.isSome(session) && !hasPermission(session.value.user, permission) ? Effect.fail(forbidden(permission)) : Effect.void,
 		);
 		return Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(

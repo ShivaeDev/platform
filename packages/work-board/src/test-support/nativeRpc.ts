@@ -46,7 +46,7 @@ export interface EventStream {
 	readonly next: () => Effect.Effect<LiveHint, unknown>;
 }
 
-export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<RunningBoard, "url">) {
+export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<RunningBoard, "url">, indexOnly = false) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const socket = RpcClient.layerProtocolSocket().pipe(
 		Layer.provide(
@@ -57,6 +57,9 @@ export const subscribe = Effect.fn("Test.subscribe")(function* (board: Pick<Runn
 	const context = yield* Layer.buildWithScope(socket, scope);
 	const pull = yield* Effect.gen(function* () {
 		const client = yield* makeClient();
+		if (indexOnly) {
+			return yield* Stream.toPull(client("work-board.$changes", { queries: [{ payload: undefined, query: "index" }] }));
+		}
 		const library = yield* client("work-board.library", { showFleet: true });
 		const readings = yield* Effect.forEach(library.files, (file) => Effect.option(client("work-board.document", { url: file.href })));
 		const identities = readings

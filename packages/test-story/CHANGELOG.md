@@ -1,5 +1,27 @@
 # Changelog
 
+## 0.25.0 - 2026-10-30
+
+### Added
+
+- Export every engine module through the package's existing `.ts` wildcard, including modules under `internal/` in `test` and `vitest-rerun` and `server/internal/` in `test-story` and `test-sql`, so downstream kits can reuse them directly. Importing the rerun worker leaves test execution to its direct launch.
+
+### Changed
+
+- Generated applications import React test helpers from their existing `@shivaedev/test-story` development dependency.
+
+### Fixed
+
+- Every story in the DOM environment starts with no cookies, `localStorage` or `sessionStorage`, so a story no longer passes or fails because of what an earlier story in the same file stored.
+
+### Breaking
+
+- Remove the legacy engine-first `storyKit` overload. Replace `storyKit<Engine, "ready", Verbs>({ ... })` with `storyKit({ ... })`; annotate the return type of `create` when an explicit engine shape is needed. Stages, verbs and services are inferred from the definition.
+- Remove `fakeHttpService.failOnce` and `replyOnce`. Replace either `api.failOnce(route, reply, scope)` or `api.replyOnce(route, reply, scope)` with `api.scriptFault(route, { kind: "status", reply }, scope)`. The default still consumes only the next authorized matching request. The result now contains a `lift` effect, and narration uses the existing scripted-fault wording.
+- Move the React test helpers to `@shivaedev/test-story/client/react.ts`. Replace imports from `@shivaedev/react/client/testing.ts` with this path for `render`, `eventually`, `captureReactWarnings`, `expectNoReactWarnings` and their types. Add `@shivaedev/test-story` as a development dependency and install its React helpers' optional peers `react`, `react-dom` and `@effect/atom-react` when using them. React no longer brings `@shivaedev/test` into applications as a runtime dependency.
+- Kits declaring `outbound` and direct `routeOutbound(routes)` scopes now refuse unrouted external Node fetch requests and fail at scope close, even when application code catches the fetch error. Add hostnames to the outbound map, or explicitly opt into network access with `outboundPassthrough: true` on the kit or `{ passthrough: true }` as the second argument to `routeOutbound`. Loopback requests remain allowed; the DOM environment still refuses unrouted external hosts.
+- Thrown fake HTTP handlers now close the connection and fail the story at scope close with the request and a description of the thrown value. To simulate an upstream error, return an error status or script an HTTP fault instead of throwing.
+
 ## 0.24.0 - 2026-10-30
 
 ### Added

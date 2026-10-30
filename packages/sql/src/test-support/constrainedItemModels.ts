@@ -11,4 +11,5 @@ export class Item extends Model.Class<Item>("ConstrainedItem")({
 export class NameTaken extends Schema.TaggedError<NameTaken>()("NameTaken", {}) {}
 export class ParentMissing extends Schema.TaggedError<ParentMissing>()("ParentMissing", {}) {}
 export class InvalidQuantity extends Schema.TaggedError<InvalidQuantity>()("InvalidQuantity", {}) {}
+export class NameTooLong extends Schema.TaggedError<NameTooLong>()("NameTooLong", {}) {}
 export class StorageUnavailable extends Schema.TaggedError<StorageUnavailable>()("StorageUnavailable", {}) {}

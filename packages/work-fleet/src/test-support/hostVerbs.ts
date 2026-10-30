@@ -34,6 +34,7 @@ import { hostScenarioVerbs } from "#test/hostScenarioVerbs.ts";
 import { hostStoreVerbs } from "#test/hostStoreVerbs.ts";
 import { interruptedCloudVerbs } from "#test/interruptedCloud.ts";
 import { publicationReadouts } from "#test/publishedHostBranch.ts";
+import { restartCloudVerbs } from "#test/restartCloud.ts";
 import { steeringCloudVerbs } from "#test/steeringCloud.ts";
 import { watchEventVerbs } from "#test/watchEventVerbs.ts";
 import { watchReview } from "#test/watchReview.ts";
@@ -62,6 +63,7 @@ export function hostVerbs(engine: HostStoryEngine, tell: (line: string) => void)
 		...continuationCloudVerbs(engine),
 		...steeringCloudVerbs(engine),
 		...interruptedCloudVerbs(engine),
+		...restartCloudVerbs(engine),
 		...hostProviderReadouts(engine, tell),
 		...hostScenarioVerbs(engine, tell),
 		...hostAcknowledgementVerbs(engine, tell),

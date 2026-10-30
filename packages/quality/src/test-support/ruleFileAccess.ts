@@ -1,9 +1,9 @@
 import { rmSync } from "node:fs";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
 import { Deferred, Effect, Fiber, FileSystem } from "effect";
 import { systemError } from "effect/PlatformError";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { services } from "#cli/runMain.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { noIgnoreDeprecations } from "#rules/suppressions/noIgnoreDeprecations.ts";
 import { seedTree } from "./tree.ts";
@@ -32,7 +32,7 @@ export const ruleFileAccess = storyKit({
 			stopped: yield* Deferred.make<void>(),
 		};
 	},
-	layer: NodeFileSystem.layer,
+	layer: services,
 	name: "Rule file access",
 	stages: ["filesystem", "running"],
 	verbs: (engine, story) => {
