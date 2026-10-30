@@ -1,16 +1,23 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Layer, Redacted, Scope } from "effect";
+import { Effect, Layer, Redacted, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
 import type { SqlError } from "effect/sql/SqlError";
 import { expectTypeOf } from "vitest";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 import type { PostgresTestDatabase, PostgresTestServices } from "./database.ts";
 import { makePostgresTestLayer } from "./postgres.ts";
 import { withIsolatedDatabase } from "./withIsolatedDatabase.ts";
 import { withTestTransaction } from "./withTestTransaction.ts";
 
-class Missing extends Context.Service<Missing, string>()("@types/Missing") {}
+const Missing = defineService({
+	id: "@types/Missing",
+	initialize: Effect.void,
+	methods: () => ({}),
+	requires: [],
+});
+type Missing = typeof Missing.Identifier;
 
 const body = Effect.gen(function* () {
 	yield* Scope.Scope;

@@ -34,6 +34,8 @@ The final JUnit and JSON reports still describe the whole run, so CI, coverage a
 
 An unhandled error, such as an exception thrown after a test finished, cannot be fixed by running a test again, so a run with one is not rerun and fails.
 
+A rerun must collect the same tests as the attempt before it. When a rerun collects a test that attempt did not have, or no longer collects one it had, for example because a test's name changes between runs, `vitest-rerun` refuses to merge it: it prints a `vitest-rerun:` message naming the test or file, the run fails with exit code `1`, and the final reports keep the results of the attempt before it.
+
 ### Options
 
 ```sh

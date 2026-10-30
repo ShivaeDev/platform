@@ -32,6 +32,7 @@ export function* createEngine() {
 		answers,
 		app: "my-app",
 		cli: join(cliFolder, "src/cli.ts"),
+		diagnostics: "",
 		environment,
 		options,
 		packed: false,

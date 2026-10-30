@@ -24,5 +24,10 @@ storyRunner.it("fails each DOM story with its unrouted host even when applicatio
 			name: "Contained DOM Story: refuses an unrouted redirect destination",
 			state: "failed",
 		},
+		{
+			errors: [expect.stringContaining("test-story refused an outbound request to unrouted-opt-in.test")],
+			name: "Network Enabled DOM Story: refuses Node-only network passthrough",
+			state: "failed",
+		},
 	]);
 });

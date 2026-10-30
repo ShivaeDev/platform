@@ -1,6 +1,7 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Context, Effect, Layer, Schedule, type Scope } from "effect";
+import { Effect, Layer, Schedule, type Scope } from "effect";
 import { SqlClient } from "effect/sql";
+import { defineService } from "@shivaedev/service/defineService.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { PostgresTestDatabase } from "#database.ts";
@@ -50,11 +51,12 @@ export function writeItem(value: string) {
 	return Effect.flatMap(SqlClient.SqlClient, (sql) => sql`update items set value = ${value}`);
 }
 
-class Items extends Context.Service<Items, { readonly rename: (value: string) => Effect.Effect<void, unknown> }>()("@test/Items") {}
-const itemsLayer = Layer.effect(
-	Items,
-	Effect.map(SqlClient.SqlClient, (sql) => ({ rename: (value: string) => Effect.asVoid(sql`update items set value = ${value}`) })),
-);
+const Items = defineService({
+	id: "@test/Items",
+	initialize: Effect.void,
+	methods: () => ({ rename: (value: string) => Effect.asVoid(writeItem(value)) }),
+	requires: [SqlClient.SqlClient],
+});
 
 export function inPlace<A, E>(engine: DatabaseEngine, place: string, effect: Effect.Effect<A, E, Services | Scope.Scope>) {
 	if (place === "the shared database") {
@@ -92,7 +94,7 @@ export function databaseVerbs(engine: DatabaseEngine, story: Story<DatabaseEngin
 		blockOutcome: (block: string) => Effect.sync(() => engine.endings.get(block) ?? "still running"),
 		buildItemsServiceAndRename: (value: string, place: string) => {
 			story.tell(`an application Layer built in ${place} renames the item to "${value}"`);
-			return inPlace(engine, place, Effect.flatMap(Items, (service) => service.rename(value)).pipe(Effect.provide(Layer.fresh(itemsLayer))));
+			return inPlace(engine, place, Effect.flatMap(Items, (service) => service.rename(value)).pipe(Effect.provide(Layer.fresh(Items.layer))));
 		},
 		cloneDatabase: (block: string) =>
 			Effect.gen(function* () {

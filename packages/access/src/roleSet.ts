@@ -8,13 +8,38 @@ export interface User<TName extends string> {
 	readonly role: TName;
 }
 
-export function roleSet<const TName extends string>(...roles: readonly [RoleDefinition<TName>, ...RoleDefinition<TName>[]]) {
+type RoleList = readonly [RoleDefinition, ...RoleDefinition[]];
+
+type RepeatedName<TRoles extends readonly RoleDefinition[], TSeen extends string = never> = TRoles extends readonly [
+	infer THead extends RoleDefinition,
+	...infer TTail extends readonly RoleDefinition[],
+]
+	? (string extends THead["name"] ? never : THead["name"] extends TSeen ? THead["name"] : never) | RepeatedName<TTail, TSeen | THead["name"]>
+	: never;
+
+type DistinctNames<TRoles extends RoleList> = [RepeatedName<TRoles>] extends [never]
+	? unknown
+	: { readonly "each role name is declared once": RepeatedName<TRoles> };
+
+export type AccessPolicy<TName extends string> = ReturnType<typeof accessPolicy<TName>>;
+
+export function roleSet<const TRoles extends RoleList>(...roles: TRoles & DistinctNames<TRoles>): AccessPolicy<TRoles[number]["name"]> {
+	return accessPolicy<TRoles[number]["name"]>(roles);
+}
+
+function accessPolicy<TName extends string>(roles: readonly RoleDefinition<TName>[]) {
 	const Role = Schema.Literals(roles.map((role) => role.name));
+	const grantsByName = new Map<string, readonly Permission[]>();
+	for (const role of roles) {
+		if (!grantsByName.has(role.name)) {
+			grantsByName.set(role.name, role.permissions);
+		}
+	}
+	function grantsOf(name: TName): readonly Permission[] {
+		return grantsByName.get(name) ?? [];
+	}
 	function hasPermission(name: TName, permission: Permission): boolean {
-		return roles.some(
-			(role) =>
-				role.name === name && role.permissions.some((granted) => granted.name === permission.name && granted.strength === permission.strength),
-		);
+		return grantsOf(name).some((granted) => granted.name === permission.name && granted.strength === permission.strength);
 	}
 	function canAccess(user: User<TName> | null | undefined, permission: OwnPermission, ownerId: string): boolean {
 		return (
@@ -47,7 +72,7 @@ export function roleSet<const TName extends string>(...roles: readonly [RoleDefi
 	}
 	function resolve(stored: unknown) {
 		return Effect.map(Schema.decodeUnknownEffect(Role)(stored), (roleName) => ({
-			permissions: (roles.find((candidate) => candidate.name === roleName)?.permissions ?? []).map(({ name, strength }) => ({ name, strength })),
+			permissions: grantsOf(roleName).map(({ name, strength }) => ({ name, strength })),
 			role: roleName,
 		}));
 	}
@@ -61,4 +86,4 @@ export function roleSet<const TName extends string>(...roles: readonly [RoleDefi
 	};
 }
 
-export type RoleSet = Pick<ReturnType<typeof roleSet>, "resolve">;
+export type RoleSet = Pick<AccessPolicy<string>, "resolve">;

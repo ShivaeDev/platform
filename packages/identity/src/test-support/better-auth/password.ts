@@ -5,13 +5,14 @@ import { Effect, Schema } from "effect";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { SessionUserSchema } from "#identity.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
 import { passwordUser } from "#server/better-auth/testing.ts";
 import { postgres } from "./postgres.ts";
 
 const ORIGIN = "http://localhost:3000";
 const credentials = { email: "ada@password.test", password: "correct-horse-battery-staple" };
-const SessionBody = Schema.Struct({ user: Schema.Struct({ email: Schema.String, name: Schema.String }) });
+const SessionBody = Schema.Struct({ user: SessionUserSchema });
 
 export const passwordAuth = storyKit({
 	around: withIsolatedDatabase,
@@ -37,7 +38,11 @@ export const passwordAuth = storyKit({
 			Effect.promise(async () => {
 				const response = await engine.auth.handler(new Request(`${ORIGIN}/api/auth/get-session`, { headers: { cookie: engine.cookie } }));
 				const body = await response.json();
-				return body === null ? "signed out" : Schema.decodeUnknownSync(SessionBody)(body).user;
+				if (body === null) {
+					return "signed out";
+				}
+				const { email, name } = Schema.decodeUnknownSync(SessionBody)(body).user;
+				return { email, name };
 			}),
 		signIn: () =>
 			Effect.promise(async () => {

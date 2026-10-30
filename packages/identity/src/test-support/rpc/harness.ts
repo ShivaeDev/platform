@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth";
-import { type Cause, Effect, Layer, Logger, Redacted, References, Tracer } from "effect";
+import { type Cause, Context, Effect, Layer, Logger, Redacted, References, Tracer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest, HttpRouter } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, RpcClient, type RpcGroup, RpcSerialization, RpcServer } from "effect/rpc";
@@ -12,6 +12,7 @@ export interface LogRecord {
 	readonly cause: Cause.Cause<unknown>;
 	readonly level: string;
 	readonly message: unknown;
+	readonly traceId: string | undefined;
 }
 
 export function recorder() {
@@ -23,6 +24,7 @@ export function recorder() {
 			cause: options.cause,
 			level: options.logLevel,
 			message: options.message,
+			traceId: Context.getOrUndefined(options.fiber.context, Tracer.ParentSpan)?.traceId,
 		});
 	});
 	const tracer = Tracer.make({
