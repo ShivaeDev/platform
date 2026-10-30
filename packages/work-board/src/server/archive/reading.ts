@@ -24,12 +24,12 @@ export function readingFiles(files: readonly MarkdownFile[], snapshot: Snapshot)
 }
 
 export const documentPath = Effect.fn("WorkBoard.documentPath")(function* (root: string, realRoot: string, file: string, id?: string) {
-	const real = yield* markdownPath(root, realRoot, file);
-	if (real) {
-		return real;
-	}
 	const archived = yield* settledPath(root, file, id);
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
-	return archived && (yield* fs.exists(path.join(realRoot, archived))) ? path.join(realRoot, archived) : undefined;
+	const stored = archived && (yield* fs.exists(path.join(realRoot, archived))) ? path.join(realRoot, archived) : undefined;
+	if (id && stored) {
+		return stored;
+	}
+	return (yield* markdownPath(root, realRoot, file)) ?? stored;
 });

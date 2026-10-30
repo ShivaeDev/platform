@@ -1,6 +1,6 @@
 import { Effect, FileSystem, Path } from "effect";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { metadataModel } from "#server/metadata/model.ts";
+import { documentSource, metadataModel } from "#server/metadata/model.ts";
 import { readDocument } from "#server/search/readDocument.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { readCatalogue, recordPath } from "./settledCatalogue.ts";
@@ -21,6 +21,9 @@ export const loadSettled = Effect.fn("WorkBoard.loadSettled")(function* (root: s
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const records = catalogue.filter((record) => groups.has(record.item) || record.targets.some((target) => groups.has(target)));
+	if (records.length === 0) {
+		return snapshot;
+	}
 	const loaded = yield* Effect.forEach(records, (record) =>
 		Effect.gen(function* () {
 			const stored = recordPath(record);
@@ -31,9 +34,12 @@ export const loadSettled = Effect.fn("WorkBoard.loadSettled")(function* (root: s
 		}),
 	);
 	const found = loaded.filter((record) => record !== undefined);
-	const documents = [...snapshot.documents];
+	const selectedRecord = records.find((record) => record.id === selection);
+	const documents = snapshot.documents.filter(
+		(document) => !selectedRecord || document.file !== selectedRecord.file || document.parsed.fields.id === selectedRecord.id,
+	);
 	for (const { document } of found) {
-		if (!documents.some((entry) => entry.file === document.file && entry.parsed.fields.id === document.parsed.fields.id)) {
+		if (!documents.some((entry) => entry.file === document.file && documentSource(entry) === documentSource(document))) {
 			documents.push(document);
 		}
 	}

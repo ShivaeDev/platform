@@ -5,6 +5,7 @@ import { HttpRouter, HttpServer } from "effect/http";
 import { browserClient } from "@shivaedev/work-board/browserClient.ts";
 import { boardLayer } from "@shivaedev/work-board/server/board.ts";
 import { metadataParse } from "@shivaedev/work-board/server/metadata/parse.ts";
+import { storedBoardSource } from "#test/storedBoard.ts";
 
 export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: string, home?: string, maintainer?: string, fleetPort?: number) {
 	const runtime = ManagedRuntime.make(
@@ -28,7 +29,7 @@ export const boardHttp = Effect.fn("BoardStory.boardHttp")(function* (root: stri
 
 export function boardHttpFiles(root: string) {
 	function read(file: string) {
-		return readFileSync(join(root, file), "utf8");
+		return storedBoardSource(root, file);
 	}
 	function write(file: string, content: string) {
 		writeFileSync(join(root, file), content);
@@ -56,6 +57,6 @@ export const boardAskFiles = Effect.fn("BoardStory.boardAskFiles")(function* (ro
 	);
 });
 
-import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as NetAddress from "effect/net/NetAddress";

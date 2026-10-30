@@ -2,6 +2,7 @@ import { Context, Effect, FileSystem, Layer, Option, Path, Schema } from "effect
 import { defineService } from "@shivaedev/service/defineService.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { acknowledgeDecision } from "#board/acknowledgeDecision.ts";
+import { archivedSnapshot } from "#board/archivedSnapshot.ts";
 import { briefRevision } from "#board/briefRevision.ts";
 import { closeFinishedDecisions } from "#board/closeFinishedDecisions.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
@@ -30,27 +31,15 @@ const MarkdownBoard = defineService({
 		const sources = boundSnapshot(root, realRoot, fs, path);
 		const snapshot = sources.pipe(Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs)));
 		const documents = snapshot.pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
-		function decisionDocuments(item: string) {
-			return documents.pipe(
-				Effect.flatMap((active) =>
-					boardApi.loadSettled(
-						root,
-						{
-							documents: active,
-							entries: [],
-							model: boardApi.metadataModel(active),
-							modified: new Map(),
-							revision: 0,
-							unavailable: [],
-						},
-						item,
-					),
-				),
-				Effect.map((loaded) => loaded.documents.map((document) => ({ ...document, source: (document.parsed.raw ?? "") + document.parsed.body }))),
-				Effect.mapError((error) => new BoardFailure({ message: error.message })),
+		function decisionSnapshot(item: string) {
+			return snapshot.pipe(
+				Effect.flatMap((current) => archivedSnapshot(root, current, item)),
 				Effect.provideService(FileSystem.FileSystem, fs),
 				Effect.provideService(Path.Path, path),
 			);
+		}
+		function decisionDocuments(item: string) {
+			return decisionSnapshot(item).pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
 		}
 		const get = Effect.fn("FleetBoard.get")(function* (workId: string, options?: { readonly fresh?: boolean }) {
 			const current = yield* snapshot;
@@ -89,11 +78,11 @@ const MarkdownBoard = defineService({
 				Effect.mapError((error) => new BoardFailure({ message: error.message })),
 			);
 		}
-		return { decisionDocuments, documents, get, path, publish, realRoot, root, snapshot, sourceCreatedAt, sources };
+		return { decisionDocuments, decisionSnapshot, documents, get, path, publish, realRoot, root, snapshot, sourceCreatedAt, sources };
 	}),
-	methods: ({ root, realRoot, decisionDocuments, documents, get, publish, path, snapshot, sources, sourceCreatedAt }) => ({
+	methods: ({ root, realRoot, decisionDocuments, decisionSnapshot, documents, get, publish, path, snapshot, sources, sourceCreatedAt }) => ({
 		...BoardGateway.of({
-			acknowledgeDecision: acknowledgeDecision(root, realRoot, snapshot),
+			acknowledgeDecision: acknowledgeDecision(root, realRoot, snapshot, decisionSnapshot),
 			closeFinishedDecisions: closeFinishedDecisions(root, realRoot, sources),
 			complete: Effect.fn("FleetBoard.complete")(function* (workId, sourcePath, nextAction) {
 				const work = yield* get(workId);
