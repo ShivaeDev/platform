@@ -33,6 +33,16 @@ database.it(
 );
 
 database.it(
+	"when bob never queues on the lock, the race fails naming the 2 contenders it waited for and the 1 that blocked",
+	[poolLimit(3)],
+	function* ({ raceWhereBobNeverQueues, stalledRace }) {
+		yield* raceWhereBobNeverQueues();
+
+		expect(yield* stalledRace()).toBe("waited for 2 contenders to block on the lock; 1 blocked at the last read");
+	},
+);
+
+database.it(
 	"guarded writes racing for the last place let one contender claim it and turn two away as full",
 	[poolLimit(4)],
 	function* ({ race, raceTally }) {

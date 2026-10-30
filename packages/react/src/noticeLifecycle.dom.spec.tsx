@@ -83,18 +83,27 @@ notifications.it("Dismissal releases a pending Undo", [noticeScreen()], function
 	});
 });
 
-notifications.it("Expiry releases a pending Undo", [noticeScreen({ expiresIn: 500 })], function* ({ click, complete, observe, snapshot }) {
-	yield* click("Remove first");
-	yield* observe("remove starts", () => expect(snapshot().started).toEqual(["first"]));
-	yield* complete("remove", "first");
-	yield* observe("notice arrives", () => expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed first"]));
-	yield* click("Undo first");
-	yield* observe("Undo starts", () => expect(snapshot().calls).toEqual([{ expectedVersion: 8, title: "first" }]));
-	yield* observe("expiry removes the notice and interrupts Undo", () => {
-		expect(snapshot().released).toEqual(["first"]);
-		expect(snapshot().notices).toEqual([]);
-	});
-});
+notifications.it(
+	"A notice stays until its minute passes on the host's runtime clock, then expiry releases its pending Undo",
+	[noticeScreen({ expiresIn: 60_000 })],
+	function* ({ advance, click, complete, observe, snapshot }) {
+		yield* click("Remove first");
+		yield* observe("remove starts", () => expect(snapshot().started).toEqual(["first"]));
+		yield* complete("remove", "first");
+		yield* observe("notice arrives", () => expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed first"]));
+		yield* click("Undo first");
+		yield* observe("Undo starts", () => expect(snapshot().calls).toEqual([{ expectedVersion: 8, title: "first" }]));
+		yield* advance(59_999);
+		expect(snapshot().notices.map((notice) => notice.message)).toEqual(["Removed first"]);
+
+		yield* advance(1);
+
+		yield* observe("expiry removes the notice and interrupts Undo", () => {
+			expect(snapshot().released).toEqual(["first"]);
+			expect(snapshot().notices).toEqual([]);
+		});
+	},
+);
 
 notifications.it(
 	"Session replacement discards a late Undo outcome",

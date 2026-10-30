@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/test",
-	"version": "0.11.0",
+	"version": "0.12.0",
 	"description": "Generic Effect Vitest runner with file-scoped Layers and TestClock",
 	"keywords": [
 		"effect"

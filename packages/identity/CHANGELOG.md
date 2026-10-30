@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.8.0 - 2026-10-30
+
+### Added
+
+- Pass a provider-account lookup to a Better Auth mount's `admittedSessions(getSession, getProviderAccounts)` to read linked provider IDs through `SessionUserWithProviderAccounts` while enforcing admission and session revocation. Omitting the lookup preserves the base session shape.
+
 ## 0.7.0 - 2026-10-30
 
 ### Fixed
