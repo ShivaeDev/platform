@@ -23,6 +23,11 @@
 			"source": "./src/server/*.ts",
 			"types": "./dist/server/*.d.ts",
 			"default": "./dist/server/*.js"
+		},
+		"#JobFailure.ts": {
+			"source": "./src/JobFailure.ts",
+			"types": "./dist/JobFailure.d.ts",
+			"default": "./dist/JobFailure.js"
 		}
 	},
 	"exports": {
@@ -50,6 +55,7 @@
 		"typecheck": "tsc --noEmit"
 	},
 	"dependencies": {
+		"@shivaedev/errors": "workspace:*",
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {

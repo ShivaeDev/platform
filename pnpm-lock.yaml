@@ -932,6 +932,9 @@ importers:
 
   packages/jobs:
     dependencies:
+      '@shivaedev/errors':
+        specifier: workspace:*
+        version: link:../errors
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql

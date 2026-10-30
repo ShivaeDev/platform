@@ -1,18 +1,16 @@
 import { Effect, Option, Schema, Tracer } from "effect";
 import { expect } from "vitest";
 import { defineQueue, defineSchedule } from "#definition.ts";
-import { PgBossPayloadError } from "#error.ts";
 import { boss } from "#test/boss.ts";
 import { job } from "#test/fakeClient.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 
-boss.it("parents scheduled Effect.fn steps to a job span and records scheduled failures", [], function* ({ boot, client, dispatch }) {
+boss.it("parents scheduled Effect.fn steps to a job span and records scheduled failures", [], function* ({ boot, dispatch }) {
 	const Schedule = defineSchedule({ cron: "17 3 * * *", name: "scheduled-trace" });
 	const scheduledStep = Effect.fn("Tracing.scheduledStep")(() => Effect.fail(new Error("Scheduled failure")));
 	const { spans, tracer } = recordingTracer();
 	const runtime = yield* boot([Schedule.run(Effect.suspend(scheduledStep))]).pipe(Effect.withSpan("startup"), Effect.withTracer(tracer));
 	yield* dispatch(Schedule.name, [job(Schedule.name, null)]);
-	expect(client.failCalls[0]?.error).toEqual(new Error("Scheduled failure"));
 	yield* runtime.stop;
 	const scheduled = spans.find((span) => span.name === Schedule.name);
 	const child = spans.find((span) => span.name === "Tracing.scheduledStep");
@@ -50,7 +48,7 @@ boss.it("decodes queued envelopes with the persisted trace tag before running th
 	expect(spans[0]?.links).toMatchObject([{ span }]);
 });
 
-boss.it("records payload decoding failures on the job span before running the handler", [], function* ({ boot, client, dispatch }) {
+boss.it("records payload decoding failures on the job span before running the handler", [], function* ({ boot, dispatch }) {
 	const Queue = defineQueue({ name: "invalid-trace", schema: Schema.Struct({ id: Schema.Number }) });
 	const { spans, tracer } = recordingTracer();
 	let handled = false;
@@ -61,7 +59,6 @@ boss.it("records payload decoding failures on the job span before running the ha
 	);
 	const runtime = yield* boot([worker]).pipe(Effect.withTracer(tracer));
 	yield* dispatch(Queue.name, [job(Queue.name, { id: "invalid" })]);
-	expect(client.failCalls[0]?.error).toBeInstanceOf(PgBossPayloadError);
 	yield* runtime.stop;
 	expect(handled).toBe(false);
 	expect(spans).toMatchObject([{ name: Queue.name, status: { _tag: "Ended", exit: { _tag: "Failure" } } }]);

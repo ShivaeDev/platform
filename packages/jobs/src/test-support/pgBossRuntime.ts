@@ -1,4 +1,4 @@
-import { Context, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
+import { Cause, Context, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import { makeWorkerRelease, WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
@@ -13,8 +13,8 @@ export const Jobs = makePgBoss("@test/PgBossStory");
 
 export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (line: string) => void) {
 	const logger = Logger.layer([
-		Logger.make(({ logLevel, message, fiber }) => {
-			state.logs.push({ logLevel, message });
+		Logger.make(({ logLevel, message, fiber, cause }) => {
+			state.logs.push(cause.reasons.length === 0 ? { logLevel, message } : { cause: Cause.pretty(cause), logLevel, message });
 			state.workerLogs.push({
 				annotations: fiber.getRef(References.CurrentLogAnnotations),
 				message,

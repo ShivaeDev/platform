@@ -1,4 +1,5 @@
 import { Effect } from "effect";
+import { isSensitiveKey, redactText } from "@shivaedev/errors/sensitive.ts";
 import type { PgBossClient } from "#client.ts";
 
 type Listener = (error: Error) => void;
@@ -14,7 +15,7 @@ const observers: WeakMap<WeakKey, unknown> = shared instanceof WeakMap ? shared 
 Reflect.set(globalThis, key, observers);
 
 export function logClientError(error: Error): Effect.Effect<void> {
-	const message = { event: "pg_boss_error", message: error.message };
+	const message = { event: "pg_boss_error", message: redactText(error.message, isSensitiveKey) };
 	return Reflect.get(error, "code") === "57P01" ? Effect.logDebug(message) : Effect.logError(message);
 }
 
