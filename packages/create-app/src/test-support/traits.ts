@@ -138,7 +138,13 @@ export const databasesPrepared = application.trait(
 	function* (engine) {
 		const folder = join(engine.root, engine.app);
 		yield* Effect.addFinalizer(() =>
-			Effect.sync(() => spawnSync("node", ["--env-file=.env.local", "--input-type=module", "-e", DROP_DATABASES], { cwd: folder })),
+			Effect.sync(() =>
+				spawnSync(
+					"env",
+					["-u", "DATABASE_URL", "-u", "TEST_DATABASE_URL", "node", "--env-file=.env.local", "--input-type=module", "-e", DROP_DATABASES],
+					{ cwd: folder },
+				),
+			),
 		);
 		const result = appScript(folder, "db:setup");
 		if (result.status !== 0) {
