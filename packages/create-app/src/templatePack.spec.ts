@@ -89,7 +89,7 @@ for (const [described, versions] of [
 			),
 		],
 		function* ({ pack }) {
-			expect(yield* pack()).toBe("refused: CreateAppError: @shivaedev/platform: name an exact published version in published-versions.json");
+			expect(yield* pack()).toBe("refused: @shivaedev/platform: name an exact published version in published-versions.json");
 		},
 	);
 }
