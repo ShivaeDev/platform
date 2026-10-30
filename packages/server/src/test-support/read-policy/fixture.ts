@@ -57,19 +57,21 @@ export interface Check {
 	readonly key: Key;
 	readonly viewer: Option.Option<IdentityValue>;
 }
-export function policyHost(state: HostState, checks: Check[]) {
+export function policyHost(state: HostState, checks: Check[], revoked: Set<string>, rows: Map<string, string>) {
 	const sessions = {
 		origin: () => true,
 		provider: {
 			get: (headers: Readonly<Record<string, string>>) => {
 				const id = headers.authorization;
 				state.lookups.push(id ?? "");
-				return Effect.succeed(id === undefined ? Option.none() : Option.some({ user: { email: `${id}@example.test`, id, name: id } }));
+				return Effect.succeed(
+					id === undefined || revoked.has(id) ? Option.none() : Option.some({ user: { email: `${id}@example.test`, id, name: id } }),
+				);
 			},
 		},
 	};
 	function read({ owner }: { owner: string }) {
-		return Effect.map(ReadStore, (rows) => rows.get(owner) ?? "Missing");
+		return Effect.map(ReadStore, (stored) => stored.get(owner) ?? "Missing");
 	}
 	return appHost({
 		config: { port: 0 },
@@ -89,13 +91,7 @@ export function policyHost(state: HostState, checks: Check[]) {
 		),
 		services: Layer.mergeAll(
 			Layer.succeed(ReadChecks, checks),
-			Layer.succeed(
-				ReadStore,
-				new Map([
-					["alice", "Alice's document"],
-					["bob", "Bob's document"],
-				]),
-			),
+			Layer.succeed(ReadStore, rows),
 			Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer)),
 		),
 		sessions,

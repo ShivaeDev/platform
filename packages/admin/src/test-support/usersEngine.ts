@@ -1,6 +1,7 @@
-import { Effect, Layer, Logger, Option, References, Schema } from "effect";
+import { Effect, Layer, Logger, Option, References, Schema, Tracer } from "effect";
+import { FetchHttpClient, HttpRouter } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcTest } from "effect/rpc";
+import { RpcClient, RpcSerialization, RpcServer } from "effect/rpc";
 import { SqlClient } from "effect/sql";
 import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
@@ -12,10 +13,11 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { UsersPermission } from "#permissions.ts";
 import { usersHandlers } from "#server/usersHandlers.ts";
 import { usersPage } from "#users/page.ts";
+import { AppUser } from "#users/roles.ts";
 import { Access } from "./Access.ts";
 
 export const Page = usersPage(Access);
-const Profile = Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String, role: Schema.String });
+const Profile = AppUser.mapFields(({ email, id, name, role }) => ({ email, id, name, role }));
 export interface LogRecord {
 	readonly annotations: Readonly<Record<string, unknown>>;
 	readonly message: unknown;
@@ -33,9 +35,12 @@ export const usersEngine = Effect.gen(function* () {
 	});
 	const context = yield* Effect.promise(() => auth.$context);
 	yield* Effect.promise(() => context.runMigrations());
-	function register(id: string, role: typeof Access.Role.Type) {
+	function register(id: string, role: typeof Access.Role.Type, createdAt?: Date) {
 		return Effect.promise(() =>
-			context.internalAdapter.createUser({ email: `${id}@app.test`, emailVerified: true, id, name: id, role }, { method: "admin" }),
+			context.internalAdapter.createUser(
+				{ ...(createdAt === undefined ? {} : { createdAt }), email: `${id}@app.test`, emailVerified: true, id, name: id, role },
+				{ method: "admin" },
+			),
 		);
 	}
 	// The story begins with users already registered; it exercises role assignment over RPC.
@@ -47,6 +52,14 @@ export const usersEngine = Effect.gen(function* () {
 		yield* register(id, role);
 	}
 	const logs: LogRecord[] = [];
+	const spans: Tracer.NativeSpan[] = [];
+	const tracer = Tracer.make({
+		span: (options) => {
+			const span = new Tracer.NativeSpan(options);
+			spans.push(span);
+			return span;
+		},
+	});
 	const logger = Logger.layer([
 		Logger.make((options) => {
 			logs.push({ annotations: options.fiber.getRef(References.CurrentLogAnnotations), message: options.message });
@@ -57,6 +70,7 @@ export const usersEngine = Effect.gen(function* () {
 		Layer.provide(Layer.succeed(AppChanges, live)),
 		Layer.provide(Layer.succeed(SqlClient.SqlClient, sql)),
 		Layer.provide(logger),
+		Layer.provide(Reactivity.layer),
 	);
 	function currentUser(id: string) {
 		return Effect.tryPromise(() => context.internalAdapter.findUserById(id)).pipe(
@@ -67,7 +81,20 @@ export const usersEngine = Effect.gen(function* () {
 	}
 	function clientAs(id: string) {
 		const authLayer = permissionLayer(UsersPermission, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access });
-		return RpcTest.makeClient(Page.contract).pipe(Effect.provide(Layer.merge(handlers, authLayer)));
+		return Effect.gen(function* () {
+			const app = HttpRouter.toWebHandler(
+				RpcServer.layerHttp({ group: Page.contract, path: "/rpc", protocol: "http" }).pipe(
+					Layer.provide([handlers, authLayer, RpcSerialization.layerJson, Layer.succeed(Tracer.Tracer, tracer)]),
+				),
+				{ disableLogger: true },
+			);
+			yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
+			const protocol = RpcClient.layerProtocolHttp({ url: "http://localhost/rpc" }).pipe(
+				Layer.provide([FetchHttpClient.layer, RpcSerialization.layerJson]),
+				Layer.provide(Layer.succeed(FetchHttpClient.Fetch, (input, init) => app.handler(new Request(input, init)))),
+			);
+			return yield* RpcClient.make(Page.contract).pipe(Effect.provide(protocol));
+		});
 	}
-	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, register };
+	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, register, spans };
 });

@@ -1,108 +1,134 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { updates } from "#test/updates.ts";
+import { AS_RELEASED, appCommits, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
-const dashboardFiles = [
+const SHELL = "src/client/admin/Shell.tsx";
+const PAGES = "src/foundationPages.ts";
+const DASHBOARD = [
 	"src/server/checkDashboardVersion.ts",
 	"src/server/jobDashboard.ts",
 	"src/server/readOnlyDashboard.ts",
 	"src/server/readOnlyDashboardWorker.ts",
 ];
+const USERS_IMPORT = 'import { usersPage } from "@shivaedev/admin/users/page.ts"';
+const retitled = appCommits("retitles its admin shell Acme operations", { [SHELL]: (shell) => shell.replace("Your app", "Acme operations") });
+const shipsDashboard = starterAt010(
+	"still ships the old dashboard",
+	Object.fromEntries(DASHBOARD.map((path) => [path, "export const dashboard = true;\n"])),
+);
+const dropsDashboard = Object.fromEntries(DASHBOARD.map((path) => [path, null]));
 
-updates.it("adds Users to the foundation while keeping its custom admin title", [], function* (app) {
-	const path = "src/foundationPages.ts";
-	const current = app.starterFile(path);
-	const before = current
-		.replace(/^import \{ usersPage \}.*\n/gmu, "")
-		.replace(/^const UsersPage =.*\n/gmu, "")
-		.replace("adminRegistry(JobsPage, UsersPage)", "adminRegistry(JobsPage)");
-	app.setVersion("0.1.0");
-	app.revise({ [path]: before });
-	expect((yield* app.create()).status).toBe(0);
-	app.publish();
-	app.edit("src/client/admin/Shell.tsx", app.read("src/client/admin/Shell.tsx").replace("Your app", "Acme operations"));
-	app.git("add", "--all");
-	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Name statistics");
-	app.setVersion("0.2.0");
-	app.revise({ [path]: current });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.read("src/client/admin/Shell.tsx")).toContain("Acme operations");
-	expect(app.read(path)).toContain("adminRegistry(JobsPage, UsersPage)");
-	expect(app.read(path)).toContain('import { usersPage } from "@shivaedev/admin/users/page.ts"');
-});
+updates.it(
+	"update registers the 0.2.0 Users page in the foundation and keeps my-app's admin title",
+	[
+		starterAt010("registers no Users page", {
+			[PAGES]: (pages) =>
+				pages
+					.replace(/^import \{ usersPage \}.*\n/gmu, "")
+					.replace(/^const UsersPage =.*\n/gmu, "")
+					.replace("adminRegistry(JobsPage, UsersPage)", "adminRegistry(JobsPage)"),
+		}),
+		createdWith010(),
+		published010,
+		retitled,
+		starterAt020("registers the Users page", { [PAGES]: AS_RELEASED }),
+	],
+	function* ({ fileMentions, update }) {
+		yield* outcomes({
+			"admin title": [fileMentions(SHELL, "Acme operations"), true],
+			"Users import": [fileMentions(PAGES, USERS_IMPORT), false],
+			"Users registered": [fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), false],
+		});
 
-updates.it("removes the old dashboard while merging customized admin views", [], function* (app) {
-	app.setVersion("0.1.0");
-	app.revise(Object.fromEntries(dashboardFiles.map((file) => [file, "export const dashboard = true;\n"])));
-	expect((yield* app.create()).status).toBe(0);
-	const path = "src/client/admin/Shell.tsx";
-	const shell = app.read(path);
-	app.publish();
-	app.edit(path, shell.replace("Your app", "Acme operations"));
-	app.git("add", "--all");
-	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Customize app");
-	app.setVersion("0.2.0");
-	for (const file of dashboardFiles) {
-		app.removeFromStarter(file);
-	}
-	app.revise({ [path]: shell.replace("Administration</p>", "Operator tools</p>") });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.read(path)).toContain("Acme operations");
-	expect(app.read(path)).toContain("Operator tools</p>");
-	for (const file of dashboardFiles) {
-		expect(app.exists(file), file).toBe(false);
-	}
-	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.2.0");
-});
+		yield* update();
 
-updates.it("lists customized admin view conflicts while removing the old dashboard", [], function* (app) {
-	app.setVersion("0.1.0");
-	app.revise(Object.fromEntries(dashboardFiles.map((file) => [file, "export const dashboard = true;\n"])));
-	expect((yield* app.create()).status).toBe(0);
-	const path = "src/client/admin/Shell.tsx";
-	const shell = app.read(path);
-	app.publish();
-	app.edit(path, shell.replace("Your app", "Acme operations"));
-	app.git("add", "--all");
-	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Customize app");
-	app.setVersion("0.2.0");
-	for (const file of dashboardFiles) {
-		app.removeFromStarter(file);
-	}
-	app.revise({ [path]: shell.replace("Your app", "New app name") });
-	const result = yield* app.update();
-	const exitCode = result.status;
-	expect(exitCode).toBe(1);
-	expect(result.stderr).toContain(`Resolve these conflicts, then commit your changes:\n${path}`);
-	expect(app.git("diff", "--name-only", "--diff-filter=U").stdout).toBe(`${path}\n`);
-	expect(app.read(path)).toContain("<<<<<<< ours");
-	expect(app.read(path)).toContain("Acme operations");
-	expect(app.read(path)).toContain("New app name");
-	for (const file of dashboardFiles) {
-		expect(app.exists(file), file).toBe(false);
-	}
-	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.1.0");
-});
+		yield* outcomes({
+			"admin title": [fileMentions(SHELL, "Acme operations"), true],
+			"Users import": [fileMentions(PAGES, USERS_IMPORT), true],
+			"Users registered": [fileMentions(PAGES, "adminRegistry(JobsPage, UsersPage)"), true],
+		});
+	},
+);
 
-updates.it("merges permission imports and role files while preserving an app's custom grants", [], function* (app) {
-	const path = "src/AppAccess.ts";
-	const current = app.starterFile(path);
-	app.setVersion("0.1.0");
-	app.revise({
-		[path]:
-			'import { roleSet } from "@shivaedev/access/roleSet.ts";\nimport { role } from "@shivaedev/access/role.ts";\nimport { OpenAdmin } from "@shivaedev/admin/permissions.ts";\nexport const AppAccess = roleSet(role("user", []), role("admin", [OpenAdmin]));\n',
-	});
-	expect((yield* app.create()).status).toBe(0);
-	app.publish();
-	const role = "src/roles/Owner.ts";
-	app.edit(role, app.read(role).replace("[ReadUsers,", "[ReadUsers, ReadUsers.any,"));
-	app.git("add", "--all");
-	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Customize grants");
-	app.setVersion("0.2.0");
-	app.revise({ [path]: current });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.read(path)).toBe(current);
-	expect(app.read(role)).toContain("ReadUsers.any");
-});
+updates.it(
+	"update merges the starter's and my-app's edits to the admin shell, removes the old dashboard and records 0.2.0",
+	[
+		shipsDashboard,
+		createdWith010(),
+		published010,
+		retitled,
+		starterAt020("renames the shell's Administration label Operator tools and drops the old dashboard", {
+			...dropsDashboard,
+			[SHELL]: (shell) => shell.replace("Administration</p>", "Operator tools</p>"),
+		}),
+	],
+	function* ({ fileMentions, filesPresent, generationRecord, update }) {
+		expect(yield* filesPresent(DASHBOARD)).toEqual(DASHBOARD);
+
+		yield* update();
+
+		yield* outcomes({
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
+			"admin title": [fileMentions(SHELL, "Acme operations"), true],
+			"dashboard files left": [filesPresent(DASHBOARD), []],
+			"Operator tools label": [fileMentions(SHELL, "Operator tools</p>"), true],
+		});
+	},
+);
+
+updates.it(
+	"update lists an overlapping admin shell edit as a conflict, still removes the old dashboard and keeps 0.1.0 recorded",
+	[
+		shipsDashboard,
+		createdWith010(),
+		published010,
+		retitled,
+		starterAt020("retitles the shell New app name and drops the old dashboard", {
+			...dropsDashboard,
+			[SHELL]: (shell) => shell.replace("Your app", "New app name"),
+		}),
+	],
+	function* ({ answer, conflictedFiles, fileMentions, filesPresent, generationRecord, update }) {
+		expect(yield* filesPresent(DASHBOARD)).toEqual(DASHBOARD);
+
+		yield* update();
+
+		yield* outcomes({
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.1.0" }],
+			answer: [answer(), `create-app: Resolve these conflicts, then commit your changes:\n${SHELL}\nThe recorded version remains 0.1.0.`],
+			"conflict between both titles": [fileMentions(SHELL, "<<<<<<< ours"), true],
+			"conflicted files": [conflictedFiles(), [SHELL]],
+			"dashboard files left": [filesPresent(DASHBOARD), []],
+			"my-app's title kept": [fileMentions(SHELL, "Acme operations"), true],
+			"starter's title offered": [fileMentions(SHELL, "New app name"), true],
+		});
+	},
+);
+
+updates.it(
+	"update brings the 0.2.0 permission imports into AppAccess.ts and keeps my-app's own grant in its Owner role",
+	[
+		starterAt010("declares only a user and an OpenAdmin admin role in AppAccess.ts", {
+			"src/AppAccess.ts":
+				'import { roleSet } from "@shivaedev/access/roleSet.ts";\nimport { role } from "@shivaedev/access/role.ts";\nimport { OpenAdmin } from "@shivaedev/admin/permissions.ts";\nexport const AppAccess = roleSet(role("user", []), role("admin", [OpenAdmin]));\n',
+		}),
+		createdWith010(),
+		published010,
+		appCommits("grants its Owner role ReadUsers.any", {
+			"src/roles/Owner.ts": (owner) => owner.replace("[ReadUsers,", "[ReadUsers, ReadUsers.any,"),
+		}),
+		starterAt020("declares AppAccess.ts as released today", { "src/AppAccess.ts": AS_RELEASED }),
+	],
+	function* ({ file, fileMentions, starterFile, update }) {
+		const released = yield* starterFile("src/AppAccess.ts");
+		expect(yield* file("src/AppAccess.ts")).not.toBe(released);
+
+		yield* update();
+
+		yield* outcomes({
+			"Owner keeps ReadUsers.any": [fileMentions("src/roles/Owner.ts", "ReadUsers.any"), true],
+			"src/AppAccess.ts": [file("src/AppAccess.ts"), released],
+		});
+	},
+);
