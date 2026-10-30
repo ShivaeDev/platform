@@ -1,5 +1,6 @@
 {"path":"packages/identity/src/server/better-auth/bearerSessions.ts","rule":"effect/boundary","count":2}
 {"path":"packages/identity/src/server/better-auth/clientIp.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/identity/src/server/better-auth/mount.test.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/identity/src/server/better-auth/mount.ts","rule":"effect/boundary","count":4}
 {"path":"packages/identity/src/server/better-auth/mountRoutes.ts","rule":"effect/boundary","count":8}
 {"path":"packages/identity/src/server/better-auth/mountedSessions.ts","rule":"effect/boundary","count":2}
@@ -12,3 +13,4 @@
 {"path":"packages/identity/src/server/local.ts","rule":"effect/service-parameters","count":3}
 {"path":"packages/identity/src/server/permissions.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/identity/src/server/sessionProfile.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/identity/src/server/tracing.test.ts","rule":"tests/grouped-outcomes","count":1}
