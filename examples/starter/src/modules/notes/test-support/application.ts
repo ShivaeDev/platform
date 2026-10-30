@@ -1,11 +1,10 @@
-import { Effect, Layer } from "effect";
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { NotesService } from "#modules/notes/server/Service.ts";
 import { requests } from "#modules/notes/test-support/requests.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -73,17 +72,6 @@ export function rejectedNoteCommits() {
 	});
 }
 
-export function replacementNotes() {
-	return app.trait("hosting", "the notes service supplies a preview catalog", (engine) => {
-		engine.hostOptions = {
-			...engine.hostOptions,
-			replacements: Layer.mock(NotesService, {
-				list: () => Effect.succeed([{ id: 42, title: "Preview from a fake port", version: 1, wordCount: 5 }]),
-			}),
-		};
-	});
-}
-
 export function sourceNoteMissing() {
 	return app.trait("hosting", "the source API cannot find the note", (engine) =>
 		engine.sourceApi.failOnce("post", { body: { title: "This error body must not become a note" }, status: HttpStatus.fromLiteral("NotFound") }),
@@ -92,4 +80,11 @@ export function sourceNoteMissing() {
 
 export function malformedSourceNote() {
 	return app.trait("hosting", "the source API returns a malformed note", (engine) => engine.sourceApi.replyOnce("post", { body: { title: 123 } }));
+}
+
+export function constrainedTitles() {
+	return app.trait("notes", "PostgreSQL rejects the reserved title", function* () {
+		const sql = yield* SqlClient.SqlClient;
+		yield* sql`alter table notes add constraint reserved_title check (title <> 'Reserved')`;
+	});
 }

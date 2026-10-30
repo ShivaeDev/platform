@@ -50,7 +50,7 @@ app.it(
 	"does not enqueue a note when its write transaction fails at commit",
 	[signedIn(), rejectedNoteCommits()],
 	function* ({ actor, storedNotes, collector, acceptNoteCommits }) {
-		expect(yield* actor().notes.create({ title: "Not committed" }).pipe(Effect.flip)).toMatchObject({ _tag: "ServiceUnavailable" });
+		expect(yield* actor().notes.create({ title: "Not committed" }).pipe(Effect.flip)).toMatchObject({ _tag: "InternalServerError" });
 		expect(yield* storedNotes()).toEqual([]);
 		yield* acceptNoteCommits;
 		const control = yield* actor().notes.create({ title: "Committed control" });

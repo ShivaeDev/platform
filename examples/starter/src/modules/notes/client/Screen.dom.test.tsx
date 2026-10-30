@@ -22,7 +22,7 @@ screens.it(
 		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
 		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
 		yield* submit();
-		yield* eventually(() => expect(alert()).toBe("Required"));
+		yield* eventually(() => expect(alert()).toBe("Enter a title"));
 		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
 		yield* enter("reserved");
 		yield* submit();
@@ -134,3 +134,11 @@ screens.it(
 		expect(consoleErrors()).toEqual([]);
 	},
 );
+
+screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, noteCalls, draft }) {
+	yield* enter("   ");
+
+	yield* eventually(() => expect(alert()).toBe("Enter a title"));
+	expect(draft()).toBe("   ");
+	expect(noteCalls()).toEqual(["list"]);
+});

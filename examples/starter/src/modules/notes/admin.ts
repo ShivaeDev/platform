@@ -3,7 +3,7 @@ import { adminPage } from "@shivaedev/admin/page.ts";
 import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { hasPermission } from "@shivaedev/identity/permission.ts";
 import { StatisticsPermission } from "#appPermissions.ts";
@@ -16,7 +16,7 @@ export const StatisticsPage = adminPage({
 			query("statistics", {
 				readPolicy: () => Effect.map(SessionUser, (user) => hasPermission(user, StatisticsPermission.permission)),
 				reads: () => [notes.list],
-				rejections: { ServiceUnavailable },
+				rejections: { InternalServerError, ServiceUnavailable },
 				success: NoteStatistics,
 			}),
 		],

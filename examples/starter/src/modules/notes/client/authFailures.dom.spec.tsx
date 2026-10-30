@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { eventually } from "@shivaedev/react/client/testing.ts";
-import { notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
+import { malformedSession, notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"shows the protected route's typed Unauthorized failure and links to sign-in",
@@ -46,6 +46,19 @@ screens.it(
 		yield* eventually(() => expect(signOutCalls()).toEqual([undefined]));
 		yield* eventually(() => expect(alert()).toBe("Could not sign out"));
 		yield* closeScreen();
+		expect(consoleErrors()).toEqual([]);
+	},
+);
+
+screens.it(
+	"shows the session error branch for a malformed session payload",
+	[malformedSession()],
+	function* ({ alert, closeScreen, consoleErrors, form }) {
+		expect(alert()).toBe("Could not check your session.");
+		expect(form()).toBeNull();
+
+		yield* closeScreen();
+
 		expect(consoleErrors()).toEqual([]);
 	},
 );

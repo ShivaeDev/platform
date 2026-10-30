@@ -44,11 +44,11 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 	const handlers = Notes.toLayer({
 		"notes.$changes": () => Stream.concat(Stream.make({ _tag: "Resync" } as const), Stream.fromPubSub(hints)),
 		"notes.create": ({ title }) =>
-			title.trim() === "reserved"
+			title === "reserved"
 				? Create.reject.Invalid({ field: "title", message: "Choose another title" })
 				: Effect.sync(() => {
 						calls.push("create");
-						const row = { id: rows.length + 1, title: title.trim(), version: 0, wordCount: null };
+						const row = { id: rows.length + 1, title, version: 0, wordCount: null };
 						rows.unshift(row);
 						return row;
 					}),
@@ -86,14 +86,13 @@ export function notesClient(initial: readonly (typeof Note.Type)[] = []) {
 				if (row.version !== input.version) {
 					return yield* Effect.fail(conflict());
 				}
-				if (input.title.trim() === "reserved") {
+				if (input.title === "reserved") {
 					return yield* Update.reject.Invalid({ field: "title", message: "Choose another title" });
 				}
-				const saved = { ...row, title: input.title.trim(), version: row.version + 1, wordCount: null };
+				const saved = { ...row, title: input.title, version: row.version + 1, wordCount: null };
 				rows[rows.findIndex((note) => note.id === row.id)] = saved;
 				return saved;
 			}),
-		"notes.whoami": () => Effect.map(SessionUser, (user) => user),
 	});
 	class Client extends AtomRpc.Service<Client>()("notes/Client", {
 		group: Notes,
