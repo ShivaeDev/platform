@@ -32,6 +32,17 @@ postgres.it(
 );
 
 postgres.it(
+	"a constraint named past 63 bytes maps by the name PostgreSQL truncated it to",
+	[hasConstrainedItems()],
+	function* ({ constrainedItems, transact }) {
+		const { items, onSqlError } = constrainedItems();
+		const tooLong = yield* items.insert({ name: "n".repeat(41), quantity: 1 }).pipe(transact({ onSqlError }), Effect.flip);
+		expect(tooLong._tag).toBe("NameTooLong");
+		expect(yield* items.findMany()).toEqual([]);
+	},
+);
+
+postgres.it(
 	"plain Effect pipelines map SQL failures and send other constraints to the fallback",
 	[hasConstrainedItems()],
 	function* ({ constrainedItems, sql }) {
