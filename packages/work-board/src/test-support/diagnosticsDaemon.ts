@@ -1,6 +1,6 @@
 import { createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
-import { Context, Effect, Exit, Layer, Scope, Stream } from "effect";
+import { Context, Effect, Exit, Layer, Scope } from "effect";
 import { HttpRouter, HttpServer } from "effect/http";
 import * as NetAddress from "effect/net/NetAddress";
 import { RpcSerialization, RpcServer } from "effect/rpc";
@@ -18,13 +18,12 @@ export const rawDiagnosticsDaemon = Effect.fn("Test.rawDiagnosticsDaemon")(funct
 	items: (() => FleetItems) | Effect.Effect<FleetItems, ServiceUnavailable> = () => ({ completed: [], items: [] }),
 	briefProblems: (briefs: readonly Brief[]) => readonly BriefRefusal[] = () => [],
 ) {
-	const handlers = DaemonReadContract.toLayer({
-		"daemon.$changes": () => Stream.never,
+	const handlers = DaemonReadContract.application.toLayer({
 		"daemon.briefProblems": ({ briefs }) => Effect.sync(() => briefProblems(briefs)),
 		"daemon.diagnostics": () => Effect.sync(read),
 		"daemon.fleetItems": () => (typeof items === "function" ? Effect.sync(items) : items),
 	});
-	const rpc = RpcServer.layerHttp({ group: DaemonReadContract, path: DAEMON_RPC_PATH, protocol: "http" }).pipe(
+	const rpc = RpcServer.layerHttp({ group: DaemonReadContract.application, path: DAEMON_RPC_PATH, protocol: "http" }).pipe(
 		Layer.provide([handlers, RpcSerialization.layerNdjson]),
 	);
 	const scope = yield* Scope.fork(yield* Scope.Scope);

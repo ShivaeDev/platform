@@ -1,13 +1,23 @@
-import { posix } from "node:path";
+import { join, posix } from "node:path";
+import { ambientModules } from "#imports/ambient.ts";
 import { importGraph } from "#imports/graph.ts";
 import { isTooling } from "#imports/isTooling.ts";
+import { projectsFor } from "#imports/projects.ts";
 import { packageOf } from "#imports/workspace.ts";
 import { entryPointsOf, isApplication, provider } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
 import type { Findings, RuleInputs } from "#rule.ts";
+import { parse } from "#rules/parse.ts";
 
 export async function entryPointFindings(inputs: RuleInputs, findings: Findings): Promise<Findings> {
 	const graph = await importGraph(inputs);
+	const projectOf = projectsFor(inputs.root);
+	const ambient = ambientModules(
+		inputs.sources.flatMap((file) => {
+			const syntax = parse(file);
+			return syntax === undefined ? [] : [{ path: join(inputs.root, file.path), syntax }];
+		}),
+	);
 	const unusedFiles = new Set(findings.filter((finding) => finding.subject?.startsWith("files:")).map((finding) => finding.file));
 	const workspace = new Map(graph.packages.map(({ name, directory }) => [name, directory]));
 	const directories = [".", ...graph.packages.map(({ directory }) => directory)];
@@ -33,7 +43,10 @@ export async function entryPointFindings(inputs: RuleInputs, findings: Findings)
 		const directory = owner(finding.file);
 		const entries = policies.get(directory) ?? [];
 		if (kind === "unlisted") {
-			return provider(entries, name, development(directory, finding.file), true) === undefined;
+			return (
+				!ambient(name, projectOf(join(inputs.root, finding.file)).files)
+				&& provider(entries, name, development(directory, finding.file), true) === undefined
+			);
 		}
 		if (kind !== "dependencies" && kind !== "devDependencies") {
 			return true;

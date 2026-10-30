@@ -9,38 +9,38 @@ import { responseRejections } from "#rpc/rejections.ts";
 const locate = query("question", {
 	payload: { item: Schema.String, request: Schema.String },
 	readPolicy: () => Effect.succeed(true),
-	reads: () => [workspace.list, index.list],
+	reads: () => [workspace.list, index.bucket.workspace("local")],
 	rejections: responseRejections,
 	success: QuestionPreview,
 });
 const awaitResponse = query("awaitResponse", {
 	payload: { after: Schema.optional(Schema.String), question: Schema.String },
 	readPolicy: () => Effect.succeed(true),
-	reads: () => [workspace.list, index.list],
+	reads: () => [workspace.list, index.bucket.workspace("local")],
 	rejections: responseRejections,
 	success: WaitReading,
 });
 const read = query("responses", {
 	payload: { question: Schema.String },
 	readPolicy: () => Effect.succeed(true),
-	reads: () => [workspace.list, index.list],
+	reads: () => [workspace.list, index.bucket.workspace("local")],
 	rejections: responseRejections,
 	success: Reading,
 });
 const register = command("registerQuestion", {
-	invalidates: () => [workspace.list, index.list],
+	invalidates: () => [workspace.list, index.bucket.workspace("local")],
 	payload: { item: Schema.String, request: Schema.String, revision: Revision },
 	rejections: responseRejections,
 	success: Question,
 });
 const respond = command("recordResponse", {
-	invalidates: () => [workspace.list, index.list],
+	invalidates: () => [workspace.list, index.bucket.workspace("local")],
 	payload: DraftInput,
 	rejections: responseRejections,
 	success: RecordedResponse,
 });
 const answer = command("answerQuestion", {
-	invalidates: () => [workspace.list, index.list],
+	invalidates: () => [workspace.list, index.bucket.workspace("local")],
 	payload: AnswerInput,
 	rejections: responseRejections,
 	success: RecordedResponse,

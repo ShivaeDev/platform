@@ -5,9 +5,9 @@ import { Duration, Effect, FileSystem, Layer, Path, Scope } from "effect";
 import { HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { RpcSerialization, RpcServer } from "effect/rpc";
-import { workRpcs } from "#rpc/contract.ts";
+import { workApplication } from "#rpc/contract.ts";
+import type { boardRuntime } from "#server/boardRuntime.ts";
 import { RPC_PATH } from "#server/http/rpcPolicy.ts";
-import type { boardRuntime } from "./boardRuntime.ts";
 
 function socketState(path: string) {
 	return Effect.callback<"live" | "missing" | "stale", Error>((resume) => {
@@ -42,7 +42,7 @@ export const boardSocket = Effect.fn("WorkBoard.boardSocket")(function* (
 		return new Error(`Another board is already running at ${path}. Stop it before starting this board.`);
 	}
 	const context = yield* Layer.build(handlers.pipe(Layer.provideMerge(RpcSerialization.layerNdjson)));
-	const rpc = yield* RpcServer.toHttpEffect(workRpcs).pipe(Effect.provideContext(context));
+	const rpc = yield* RpcServer.toHttpEffect(workApplication).pipe(Effect.provideContext(context));
 	yield* Effect.scoped(
 		Effect.gen(function* () {
 			const lock = paths.join(root, ".board.sock.starting");

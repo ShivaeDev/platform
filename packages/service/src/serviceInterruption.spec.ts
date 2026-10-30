@@ -1,34 +1,33 @@
 import { expect } from "@effect/vitest";
-import { Cause, Exit } from "effect";
-import { declaresWaitingInitialization, serviceLifetimeStory } from "#test/serviceStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { buildWaitsInInitializer, callHoldsResource, serviceBuilt, serviceStory } from "#test/serviceStory.ts";
 
-serviceLifetimeStory.it(
-	"interrupts a method and releases its caller resources while keeping the service live",
-	[],
-	function* ({ build, close, interrupt, read, startMethod, story }) {
-		const service = yield* build();
-		const fiber = yield* startMethod(service);
-		expect(story.engine.counts.released).toBe(0);
-		const exit = yield* interrupt(fiber);
-		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		expect(story.engine.operations).toEqual(["release resource"]);
-		expect(story.engine.counts.finalized).toBe(0);
-		expect(yield* read(service)).toBe("resource");
-		yield* close();
-		expect(story.engine.operations).toEqual(["release resource", "finalize initialization"]);
+serviceStory.it(
+	"interrupting the caller's running call ends it as interrupted and releases that call's resource and not the initializer's",
+	[serviceBuilt(), callHoldsResource()],
+	function* ({ interruptCall, answers, released }) {
+		expect(yield* released()).toEqual([]);
+
+		yield* interruptCall();
+
+		yield* outcomes({
+			"released resources": [released(), ["the call's resource"]],
+			"the call": [answers(), ["interrupted"]],
+		});
 	},
 );
 
-serviceLifetimeStory.it(
-	"finalizes an interrupted Layer initialization once",
-	[declaresWaitingInitialization()],
-	function* ({ interrupt, startInitialization, story }) {
-		const fiber = yield* startInitialization();
-		expect(story.engine.counts.finalized).toBe(0);
-		const exit = yield* interrupt(fiber);
-		expect(Exit.isFailure(exit) && Cause.hasInterruptsOnly(exit.cause)).toBe(true);
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
-		yield* interrupt(fiber);
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
+serviceStory.it(
+	"interrupting the Layer's build while its initializer waits ends the build as interrupted and releases the initializer's resource",
+	[buildWaitsInInitializer()],
+	function* ({ interruptBuild, buildOutcome, released }) {
+		expect(yield* released()).toEqual([]);
+
+		yield* interruptBuild();
+
+		yield* outcomes({
+			"released resources": [released(), ["the initializer's resource"]],
+			"the build": [buildOutcome(), "interrupted"],
+		});
 	},
 );

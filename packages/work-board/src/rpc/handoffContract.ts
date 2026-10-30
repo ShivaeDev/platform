@@ -9,19 +9,19 @@ import { responseRejections } from "#rpc/rejections.ts";
 const locate = query("handoffSource", {
 	payload: { item: Schema.String },
 	readPolicy: () => Effect.succeed(true),
-	reads: () => [workspace.list, index.list],
+	reads: () => [workspace.list, index.bucket.workspace("local")],
 	rejections: responseRejections,
 	success: HandoffPreview,
 });
 const read = query("handoffs", {
 	payload: { item: Schema.String },
 	readPolicy: () => Effect.succeed(true),
-	reads: () => [workspace.list, index.list],
+	reads: () => [workspace.list, index.bucket.workspace("local")],
 	rejections: responseRejections,
 	success: HandoffReading,
 });
 const prepare = command("prepareHandoff", {
-	invalidates: () => [workspace.list, index.list],
+	invalidates: () => [workspace.list, index.bucket.workspace("local")],
 	payload: HandoffInput,
 	rejections: responseRejections,
 	success: Handoff,

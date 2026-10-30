@@ -13,7 +13,7 @@ for (const kind of ["response", "handoff"] as const) {
 	const field = kind === "response" ? '[name="body"]' : '[name="goal"]';
 	for (const failure of ["rejection", "transport"] as const) {
 		screenStory.it(
-			`classifies ${kind} ${failure} and retries its retained identity over native HTTP`,
+			`classifies ${kind} ${failure} and retries its retained identity over the shared socket`,
 			[sessionBoundary(command, silentWatch), sessionScreen(kind)],
 			function* ({ input, activate, submit, findElement, readText, setSessionOffline, editSessionFile, sessionCommands }) {
 				yield* eventually(() => expect(findElement(`#${kind}-preview`)).toHaveProperty("disabled", false));
@@ -27,7 +27,7 @@ for (const kind of ["response", "handoff"] as const) {
 				if (failure === "rejection") {
 					editSessionFile("item.md", `${EDGE_ATTENTION_SOURCE}Changed reviewed source.\n`);
 				} else {
-					setSessionOffline(true);
+					yield* Effect.promise(() => setSessionOffline(true));
 				}
 				submit(`#${kind}-form`);
 				yield* eventually(() =>
@@ -41,7 +41,7 @@ for (const kind of ["response", "handoff"] as const) {
 				}
 				expect(draft.value).toBe("Keep this direction");
 				editSessionFile("item.md", EDGE_ATTENTION_SOURCE);
-				setSessionOffline(false);
+				yield* Effect.promise(() => setSessionOffline(false));
 				yield* Effect.promise(() => activate(`#${kind}-preview`));
 				submit(`#${kind}-form`);
 				yield* eventually(() => expect(readText(`#${kind}-status`)).toContain(kind === "response" ? "Answer saved." : "Saved handoffs/"));

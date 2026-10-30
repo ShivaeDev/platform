@@ -11,8 +11,8 @@ import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import { responseContract } from "#rpc/responseContract.ts";
-import { BoardFixture } from "./BoardFixture.tsx";
-import { type BoardFixtureOptions, inMemoryBoard } from "./inMemoryBoard.ts";
+import { BoardFixture } from "#test/BoardFixture.tsx";
+import { type BoardFixtureOptions, inMemoryBoard } from "#test/inMemoryBoard.ts";
 
 function boardClient(files: Readonly<Record<string, string>>, options?: BoardFixtureOptions) {
 	class Client extends AtomRpc.Service<Reader>()("WorkBoard/RenderTest", {
@@ -21,7 +21,7 @@ function boardClient(files: Readonly<Record<string, string>>, options?: BoardFix
 		protocol: inMemoryBoard(files, options),
 	}) {}
 	const live: Atom.Type<BrowserClient["updates"]["status"]> = { connection: "live", failure: Option.none(), needsResync: false, pending: 0 };
-	const status: BrowserClient["updates"]["status"] = Atom.make(live).pipe(Atom.keepAlive);
+	const status = Atom.make(live).pipe(Atom.keepAlive);
 	return Object.assign(bind(workContract, Client, { live: false }), {
 		forms: {
 			handoffs: bind(handoffContract, Client, { live: false }),

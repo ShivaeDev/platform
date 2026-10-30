@@ -15,7 +15,7 @@ import { boundCommand, boundQuery, boundStream } from "#internal/clientOperation
 import { type RpcSource, rpcClient } from "#internal/rpcClient.ts";
 import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { MissingReadPolicy } from "#readPolicyErrors.ts";
-import type { ResumeSource } from "#resume.ts";
+import type { ResumeSource, ResumeWindow } from "#resume.ts";
 
 export type Failure<R extends Rpc.Any> =
 	R extends Rpc.Rpc<infer _Tag, infer _Payload, infer _Success, infer _Error, infer TMiddleware, infer _Requires>
@@ -74,6 +74,7 @@ interface BindOptions {
 	readonly live?: boolean;
 	readonly registry?: AtomRegistry.AtomRegistry;
 	readonly resume?: ResumeSource;
+	readonly resumeWindow?: ResumeWindow;
 }
 
 export function bind<
@@ -106,7 +107,7 @@ function bindApi(
 ) {
 	const { name, queries, commands, streams, keyScope } = contract.declaration;
 	const owner = bindingOwner(keyScope, options?.registry);
-	const automatic = automaticLive(service, name, owner, options?.resume, options?.live);
+	const automatic = automaticLive(service, name, owner, options?.resume, options?.live, options?.resumeWindow);
 	return Object.assign(
 		Object.fromEntries([
 			...queries.map((query) => [query.name, boundQuery(service, `${name}.${query.name}`, query, automatic, owner)] as const),
