@@ -2,7 +2,7 @@ import { expect } from "vitest";
 import { CLI_EXIT } from "#test/cli.ts";
 import { manifestContains, manifestIsDirectory, manifestStory } from "#test/manifestStory.ts";
 
-for (const content of ['{"name":', '{"dependencies":[]}']) {
+for (const content of ['{"name":', '{"dependencies":[]}', '{"bin":[]}']) {
 	manifestStory.it(
 		"reports one broken manifest before dependent rules run",
 		[manifestContains("packages/broken/package.json", content)],
