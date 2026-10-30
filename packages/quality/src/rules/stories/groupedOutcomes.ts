@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import ts from "typescript";
 import { defineRule } from "#rule.ts";
 import { importBindings } from "./importBindings.ts";
-import { storySpecSources } from "./specSources.ts";
+import { storySources } from "./sources.ts";
 import { memberName, syntaxFindings, unwrapped } from "./syntax.ts";
 
 const MESSAGE =
@@ -61,7 +61,7 @@ function consecutiveChecks(source: ts.SourceFile): readonly ts.Node[] {
 
 export const groupedOutcomes = defineRule({
 	check: (inputs) =>
-		Effect.runPromise(Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, consecutiveChecks, MESSAGE)))),
+		Effect.runPromise(Effect.map(storySources(inputs), (stories) => stories.flatMap((file) => syntaxFindings(file, consecutiveChecks, MESSAGE)))),
 	description: "Several outcomes after one action are rows of one outcomes call, so the story's words lead each line.",
 	id: "tests/grouped-outcomes",
 });
