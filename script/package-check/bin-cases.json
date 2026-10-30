@@ -1,4 +1,16 @@
 {
+	"browser-check": {
+		"args": ["--text", "Packed browser app"],
+		"checkVersion": true,
+		"env": {
+			"NODE_OPTIONS": "--import ./host.mjs"
+		},
+		"expectedFiles": {},
+		"files": {
+			"host.mjs": "import { createServer } from \"node:http\";\nif (process.argv.includes(\"--text\")) {\nconst server = createServer((req, res) => { res.setHeader(\"content-type\", \"text/html\"); res.end(\"<h1>Packed browser app</h1>\"); });\nawait new Promise(done => server.listen(0, \"127.0.0.1\", done));\nprocess.argv.push(\"--url\", `http://127.0.0.1:${server.address().port}`);\nserver.unref();\n}\n"
+		},
+		"output": "smoke passed"
+	},
 	"create-app": {
 		"args": ["my-app"],
 		"checkVersion": true,
