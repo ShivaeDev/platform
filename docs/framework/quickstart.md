@@ -43,9 +43,9 @@ ADMIN_EMAIL=operator@example.com ADMIN_PASSWORD='a-long-unique-password' pnpm ad
 
 Sign in with those credentials, then open `/admin/jobs`. The command uses the server's `DATABASE_URL` and `BETTER_AUTH_SECRET`; `ADMIN_NAME` defaults to `Administrator`. Existing email addresses are rejected. Every admin query and change subscription requires its declared domain permission (`jobs.read`, `users.read` or `notes.statistics.read`): signed-out requests receive `Unauthorized`, and roles without that grant receive `Forbidden`.
 
-The registry in `src/modules/notes/admin.ts` lists the authored pages; `src/modules/notes/server/adminRegistration.ts` supplies handlers on the existing `/rpc` host. Each page wraps a native contract. The default Jobs page declares no commands. Retry requires an explicit `jobsPageWithRetry` contract, `jobsHandlersWithRetry` registration and a bound retry action in the app view. React views belong to the application; the admin package adds no UI components or transport.
+Each module owns its page registry and handler registration. Notes declares its statistics page in `src/modules/notes/admin.ts` and supplies its handlers in `src/modules/notes/server/adminRegistration.ts`. The foundation declares Users and Jobs in `src/foundationPages.ts` and registers their handlers in `src/server/foundationRegistration.ts`. Browser composition in `src/modules.ts` combines the registries, and `src/server/modules.ts` combines registrations on the existing `/rpc` host. Each page wraps a native contract. The default Jobs page declares no commands. Retry requires an explicit `jobsPageWithRetry` contract, `jobsHandlersWithRetry` registration and a bound retry action in the app view. The application owns its admin shell and routes; the package supplies the built-in Users view.
 
-`--minimal` omits the notes module and its page registrations. Its foundation and reusable admin views compile independently of notes. Add page declarations, handlers and client routes with your own module when you need operator tooling.
+`--minimal` keeps the foundation Users and Jobs pages while omitting notes and its statistics page. Add page declarations, handlers and client routes in their owning module when you need operator tooling.
 
 ## Add a job
 

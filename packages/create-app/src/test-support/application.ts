@@ -108,9 +108,9 @@ export const application = storyKit({
 				story.tell("the generated app runs pnpm ready against workspace packages");
 				return readyAgainstWorkspace(target(), engine.source.starter);
 			},
-			runAdminStories: () => {
+			runAdminStories: (foundationOnly = false) => {
 				story.tell("the generated app runs its admin stories against workspace sources");
-				return runAdminStories(target());
+				return runAdminStories(target(), foundationOnly);
 			},
 			runDatabaseProbe: () => {
 				story.tell("the app runs the database probe");

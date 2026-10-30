@@ -19,8 +19,6 @@
 {"path":"examples/starter/src/modules/notes/client/RouteFailure.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"examples/starter/src/modules/notes/client/Screen.tsx","rule":"react/jsx-conditionals","count":8}
 {"path":"examples/starter/src/modules/notes/client/Table.tsx","rule":"react/jsx-conditionals","count":2}
-{"path":"examples/starter/src/modules/notes/client/adminRoutes.tsx","rule":"effect/boundary","count":1}
-{"path":"examples/starter/src/modules/notes/client/adminRoutes.tsx","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/modules/notes/client/adminViews.dom.spec.tsx","rule":"tests/wait-on-events","count":25}
 {"path":"examples/starter/src/modules/notes/client/authActions.dom.spec.ts","rule":"tests/wait-on-events","count":3}
 {"path":"examples/starter/src/modules/notes/client/authClient.dom.spec.tsx","rule":"tests/wait-on-events","count":6}

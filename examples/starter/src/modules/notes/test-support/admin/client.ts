@@ -7,9 +7,12 @@ import { adminRegistry } from "@shivaedev/admin/registry.ts";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { StatisticsPermission } from "#appPermissions.ts";
-import { Admin, JobsPage, StatisticsPage, UsersPage } from "#modules/notes/admin.ts";
+import { StatisticsPage } from "#modules/notes/admin.ts";
 import { noteQueue } from "#modules/notes/queue.ts";
+import { Admin, foundation } from "#modules.ts";
 import { adminBackend } from "./backend.ts";
+
+const { JobsPage, UsersPage } = foundation;
 
 function session<A, E, R>(effect: Effect.Effect<A, E, R>) {
 	return effect.pipe(

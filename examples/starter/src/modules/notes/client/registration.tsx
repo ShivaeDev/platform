@@ -3,6 +3,7 @@ import { Schema } from "effect";
 import type { ReactElement } from "react";
 import { queryRoute } from "@shivaedev/react/queryRoute.ts";
 import type { ClientModule, RouteContext } from "#client/Module.ts";
+import { Admin } from "#modules/notes/admin.ts";
 import { type AdminClient, makeAdminClient } from "./admin.ts";
 import { adminRoutes } from "./adminRoutes.tsx";
 import { NoteEdit } from "./Edit.tsx";
@@ -16,9 +17,13 @@ export function notesRegistration(
 	admin: AdminClient = makeAdminClient(new URL("/rpc", window.location.href).href),
 ): ClientModule<ReturnType<typeof routes>[number] | ReturnType<typeof adminRoutes>[number]> {
 	return {
+		admin: Admin,
 		api: client.api,
-		bindings: [client.api, admin.jobs, admin.statistics, admin.users],
-		routes: (context) => [...routes(client, context), ...adminRoutes(admin, context)],
+		bindings: [client.api, admin.statistics],
+		routes: (context) => [
+			...routes(client, context),
+			...adminRoutes(admin, { adminPages: context.adminPages, getParentRoute: () => context.root, session: context.session }),
+		],
 	};
 }
 

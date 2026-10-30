@@ -1,6 +1,6 @@
 import { Effect, Layer, Option, Predicate, Ref, Stream } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { adminRegistry } from "#registry.ts";
+import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import type { Access } from "./Access.ts";
 import { adminEngine } from "./adminEngine.ts";
@@ -74,7 +74,7 @@ export const registrationStory = storyKit({
 	verbs: (registry, story) => ({
 		composeWithJobs: (page: keyof typeof pagesBesideJobs) => {
 			story.tell(`compose a registry of the jobs page and ${page}`);
-			return outcome(() => adminRegistry(Jobs, pagesBesideJobs[page]), "composed");
+			return outcome(() => Reflect.apply(mergeAdminRegistries, undefined, [adminRegistry(Jobs), adminRegistry(pagesBesideJobs[page])]), "composed");
 		},
 		registerHandlersFor: (...pages: readonly HandlerPage[]) => {
 			story.tell(`register the jobs and users pages with handlers for ${pages.join(" and ")}`);

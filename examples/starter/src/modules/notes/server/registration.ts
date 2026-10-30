@@ -7,6 +7,7 @@ import { noteProducer } from "#modules/notes/server/producer.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
 import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { adminRegistration } from "./adminRegistration.ts";
+import { CountWords } from "./jobs.ts";
 
 const handlers = Notes.application.toLayer(
 	Effect.gen(function* () {
@@ -24,15 +25,17 @@ const handlers = Notes.application.toLayer(
 );
 
 export const notesRegistration = {
+	...adminRegistration,
 	group: Notes.merge(adminRegistration.group),
 	handlers: Layer.mergeAll(handlers, adminRegistration.handlers),
 	migrations: resolve(import.meta.dirname, "migrations"),
-	services: (url: Redacted.Redacted<string>, max?: number) =>
+	queues: [CountWords],
+	services: (url: Redacted.Redacted<string>, max?: number, clientCacheKey?: symbol) =>
 		Layer.effect(
 			NoteReadAccess,
 			Effect.map(NotesService, (service) => (id, userId) => service.canRead(id, userId).pipe(Effect.catch(() => Effect.succeed(false)))),
 		).pipe(
 			Layer.provideMerge(NotesService.layer.pipe(Layer.provide(jsonPlaceholderNotes))),
-			Layer.provideMerge(Layer.unwrap(Effect.map(JobsClientFactory, (factory) => noteProducer(Redacted.value(url), factory, max)))),
+			Layer.provideMerge(Layer.unwrap(Effect.map(JobsClientFactory, (factory) => noteProducer(Redacted.value(url), factory, max, clientCacheKey)))),
 		),
 };

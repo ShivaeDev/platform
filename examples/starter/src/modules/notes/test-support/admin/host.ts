@@ -4,14 +4,16 @@ import { makeClient } from "@shivaedev/contract/bind.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { Admin, UsersPage } from "#modules/notes/admin.ts";
 import { notesHttp } from "#modules/notes/test-support/http.ts";
+import { Admin, foundation } from "#modules.ts";
 import { applicationWorker } from "#server/applicationWorker.ts";
 import { developmentServer } from "#test-support/developmentServer.ts";
 import { startHost } from "#test-support/host.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { mintUser } from "#test-support/sessionPrecondition.ts";
+
+const { UsersPage } = foundation;
 
 export const adminHost = storyKit({
 	around: withIsolatedDatabase,

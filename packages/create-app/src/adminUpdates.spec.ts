@@ -8,26 +8,26 @@ const dashboardFiles = [
 	"src/server/readOnlyDashboardWorker.ts",
 ];
 
-updates.it("adds Users to an existing app while keeping its custom admin title", [], function* (app) {
-	const path = "src/modules/notes/admin.ts";
+updates.it("adds Users to the foundation while keeping its custom admin title", [], function* (app) {
+	const path = "src/foundationPages.ts";
 	const current = app.starterFile(path);
 	const before = current
 		.replace(/^import \{ usersPage \}.*\n/gmu, "")
-		.replace(/^export const UsersPage =.*\n/gmu, "")
-		.replace("adminRegistry(JobsPage, StatisticsPage, UsersPage)", "adminRegistry(JobsPage, StatisticsPage)");
+		.replace(/^const UsersPage =.*\n/gmu, "")
+		.replace("adminRegistry(JobsPage, UsersPage)", "adminRegistry(JobsPage)");
 	app.setVersion("0.1.0");
 	app.revise({ [path]: before });
 	expect((yield* app.create()).status).toBe(0);
 	app.publish();
-	app.edit(path, app.read(path).replace("Note statistics", "Acme statistics"));
+	app.edit("src/client/admin/Shell.tsx", app.read("src/client/admin/Shell.tsx").replace("Your app", "Acme operations"));
 	app.git("add", "--all");
 	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Name statistics");
 	app.setVersion("0.2.0");
 	app.revise({ [path]: current });
 	const result = yield* app.update();
 	expect(result.status, result.stderr).toBe(0);
-	expect(app.read(path)).toContain("Acme statistics");
-	expect(app.read(path)).toContain("adminRegistry(JobsPage, StatisticsPage, UsersPage)");
+	expect(app.read("src/client/admin/Shell.tsx")).toContain("Acme operations");
+	expect(app.read(path)).toContain("adminRegistry(JobsPage, UsersPage)");
 	expect(app.read(path)).toContain('import { usersPage } from "@shivaedev/admin/users/page.ts"');
 });
 

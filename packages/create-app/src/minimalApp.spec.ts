@@ -12,8 +12,14 @@ application.it("creates the same foundation without the notes module or its regi
 		expect(exists(path), path).toBe(false);
 	}
 	expect(JSON.parse(read("package.json")).dependencies).not.toHaveProperty("recharts");
-	for (const path of ["src/server/modules.ts", "src/server/workerModules.ts", "src/server/migrations.ts", "src/client/modules.ts"]) {
-		expect(read(path)).not.toMatch(/notes(?:Registration|Worker|Migrations)|#modules\/notes/u);
+	for (const path of [
+		"src/modules.ts",
+		"src/server/modules.ts",
+		"src/server/workerModules.ts",
+		"src/server/migrations.ts",
+		"src/client/modules.ts",
+	]) {
+		expect(read(path)).not.toMatch(/notes(?:Registration|Worker|Migrations)|notesModule|noteQueue|#modules\/notes/u);
 	}
 	expect(JSON.parse(read(".create-app.json"))).toMatchObject({ minimal: true });
 	expect((yield* cli(["another/my-app", "--no-git"])).status).toBe(0);
@@ -30,6 +36,7 @@ application.it("creates the same foundation without the notes module or its regi
 				".create-app.json",
 				"quality-baseline.jsonl",
 				"package.json",
+				"src/modules.ts",
 				"src/server/modules.ts",
 				"src/server/workerModules.ts",
 				"src/server/migrations.ts",
@@ -42,9 +49,9 @@ application.it("creates the same foundation without the notes module or its regi
 });
 
 application.it(
-	"the minimal app migrates and passes ready against workspace packages",
+	"the minimal app serves the foundation admin pages, migrates and passes ready against workspace packages",
 	[realSetup],
-	function* ({ cli, prepareDatabases, migrate, ready }) {
+	function* ({ cli, prepareDatabases, migrate, ready, runAdminStories }) {
 		const name = `minimal_${crypto.randomUUID().replaceAll("-", "")}`;
 		const created = yield* cli([name, "--minimal", "--no-git"]);
 		expect(created.status, created.stderr).toBe(0);
@@ -52,6 +59,8 @@ application.it(
 		expect(prepared.status, prepared.stderr).toBe(0);
 		const migrated = migrate();
 		expect(migrated.status, migrated.stderr).toBe(0);
+		const admin = runAdminStories(true);
+		expect(admin.status, admin.stdout + admin.stderr).toBe(0);
 		const checked = ready();
 		expect(checked.status, checked.stdout + checked.stderr).toBe(0);
 	},

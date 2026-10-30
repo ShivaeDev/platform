@@ -8,24 +8,29 @@ import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { JobsPermission, UsersPermission } from "#permissions.ts";
+import { adminRegistry } from "#registry.ts";
+import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Access } from "./Access.ts";
-import { Jobs, Registry, Users } from "./pages.ts";
+import { Jobs, Users } from "./pages.ts";
 
 export const adminEngine = Effect.gen(function* () {
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());
 	const failed = yield* Ref.make<readonly string[]>(["mail-42"]);
 	const live = yield* makeLiveServer.pipe(Effect.provide(Reactivity.layer));
-	const registration = registerAdmin(Registry, {
+	const jobsModule = registerAdmin(adminRegistry(Jobs), {
 		jobs: Jobs.contract.application.toLayer({
 			"admin.jobs.failed": () => Ref.get(failed),
 			"admin.jobs.retry": ({ id }) => Ref.update(failed, (ids) => ids.filter((value) => value !== id)),
 			"admin.jobs.watch": () => Stream.fromEffect(Ref.get(failed)),
 		}),
+	});
+	const usersModule = registerAdmin(adminRegistry(Users), {
 		users: Users.contract.application.toLayer({
 			"admin.users.profile": () => Effect.map(SessionUser, (user) => user.email),
 		}),
 	});
+	const registration = mergeAdminRegistrations(jobsModule, usersModule);
 	const changes = hostChanges(registration.group, AppChanges).pipe(Layer.provide(Layer.succeed(AppChanges, live)));
 	const policy = {
 		origin: () => true,
