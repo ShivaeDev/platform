@@ -1509,9 +1509,6 @@ importers:
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality
-      '@shivaedev/test':
-        specifier: workspace:*
-        version: link:../test
       '@shivaedev/test-sql':
         specifier: workspace:*
         version: link:../test-sql
