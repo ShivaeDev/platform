@@ -1,11 +1,11 @@
-import { expect, it } from "vitest";
-import { conditionalKit } from "#test/conditionalKit.ts";
+import type { Effect } from "effect";
+import { conditionalKit } from "./conditionalKit.ts";
 
-const { executed, given, kit } = conditionalKit(false);
+const { given, kit } = conditionalKit(false);
 const focused = kit.it.only;
 
-function body({ recordsBody }: { readonly recordsBody: () => undefined }) {
-	return recordsBody();
+function* body({ recordsBody }: { readonly recordsBody: () => Effect.Effect<void> }) {
+	yield* recordsBody();
 }
 
 kit.it("plain", given, body);
@@ -16,7 +16,3 @@ kit.it.runIf(true)("runIf true", given, body);
 kit.it.runIf(false)("runIf false", given, body);
 kit.it.skipIf(false)("skipIf false", given, body);
 kit.it.skipIf(true)("skipIf true", given, body);
-
-it("never acquires the layer or runs around, creation, traits or bodies", () => {
-	expect(executed).toEqual([]);
-});

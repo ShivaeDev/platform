@@ -1,28 +1,33 @@
-import { Clock, Effect } from "effect";
-import { afterAll, expect } from "vitest";
-import { lifetime, resource, scopedAttempts } from "#test/lifetime.ts";
+import { expect } from "vitest";
+import { lifetime } from "#test/lifetime.ts";
+import { storyRunner } from "#test/storyRunner.ts";
 
-lifetime.it.fails("closes resources after a failed story", [resource], function* ({ recordsBody }) {
-	recordsBody();
-	expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
-	yield* Effect.fail("intentional failure");
+const RESOURCE_LIFETIME = ["enter", "engine", "trait", "after", "body", "exit", "after closed", "trait closed", "engine closed"];
+
+for (const [ending, name] of [
+	["passes", "Lifetime Story: passes with a scoped resource"],
+	["fails", "Lifetime Story: fails with a scoped resource"],
+] as const) {
+	storyRunner.it(
+		`wraps creation, traits, after hooks and body in around and closes their resources in reverse when the story ${ending}`,
+		[],
+		function* ({ lifetime: lifetimeOf, runStory }) {
+			yield* runStory("lifetimeStories", name);
+
+			expect(yield* lifetimeOf()).toEqual(RESOURCE_LIFETIME);
+		},
+	);
+}
+
+lifetime.it("runs a live kit's story on the live clock", [], function* ({ clock }) {
+	expect(yield* clock()).toBe("the live clock");
 });
-lifetime.it("wraps creation, seeding and body and closes scoped resources", [resource], function* ({ recordsBody }) {
-	recordsBody();
-	expect(yield* Clock.currentTimeMillis).toBeGreaterThan(1_000_000);
-});
+
 lifetime.it(
-	"a story can override a live kit with TestClock",
+	"runs a live kit's story on the test clock when the story asks for it",
 	[],
-	function* () {
-		expect(yield* Clock.currentTimeMillis).toBe(0);
+	function* ({ clock }) {
+		expect(yield* clock()).toBe("the test clock at zero");
 	},
 	{ clock: "test" },
 );
-afterAll(() => {
-	const scoped = scopedAttempts();
-	expect(scoped.length).toBeGreaterThanOrEqual(2);
-	for (const attempt of scoped) {
-		expect(attempt).toEqual(["enter", "engine", "trait", "after", "body", "exit", "after closed", "trait closed", "engine closed"]);
-	}
-});

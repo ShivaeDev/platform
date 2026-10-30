@@ -1,8 +1,9 @@
 import { Effect, Exit, Layer, ManagedRuntime, Scope, Tracer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { OtlpSerialization, OtlpTracer } from "effect/observability";
-import { otlpReceiver } from "#otlpReceiver.ts";
+import { type OtlpSpan, otlpReceiver } from "#otlpReceiver.ts";
 import { storyKit } from "#storyKit.ts";
+import { bytesInWords } from "./httpClient.ts";
 
 const exportWork = Effect.gen(function* () {
 	const parent = yield* Effect.currentSpan;
@@ -29,6 +30,20 @@ const exportWork = Effect.gen(function* () {
 	return child;
 }).pipe(Effect.withSpan("parent"));
 
+interface TracedIds {
+	readonly parentSpanId: string;
+	readonly spanId: string;
+	readonly traceId: string;
+}
+
+function exported(receiver: { readonly spans: readonly OtlpSpan[] }, name: string) {
+	const span = receiver.spans.find((candidate) => candidate.name === name);
+	if (span === undefined) {
+		throw new Error(`The receiver has no span named "${name}".`);
+	}
+	return span;
+}
+
 export function otlpApp(protobuf: boolean) {
 	return storyKit({
 		clock: "live",
@@ -44,20 +59,33 @@ export function otlpApp(protobuf: boolean) {
 				}).pipe(Layer.provide(protobuf ? OtlpSerialization.layerProtobuf : OtlpSerialization.layerJson), Layer.provide(FetchHttpClient.layer)),
 			);
 			yield* Effect.addFinalizer(() => Effect.promise(() => runtime.dispose()));
-			return { receiver, runtime };
+			const traced: { ids: TracedIds | undefined } = { ids: undefined };
+			return { receiver, runtime, traced };
 		},
+		inspect: ({ receiver }) => receiver.spans.map(({ name }) => name),
 		name: protobuf ? "protobuf traces" : "JSON traces",
 		stages: ["ready"],
-		verbs: ({ receiver, runtime }, story) => ({
-			disposeRuntime: () => Effect.promise(() => runtime.dispose()),
-			failWork: () => Effect.promise(() => runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore))),
-			requests: () => receiver.requests,
-			runWork: () =>
-				Effect.promise(() => {
-					story.tell("the application runs traced work");
-					return runtime.runPromise(exportWork);
+		verbs: ({ receiver, runtime, traced }, story) => ({
+			exportedSpan: (name: string) => Effect.sync(() => exported(receiver, name)),
+			exportedSpanIds: (name: string) =>
+				Effect.sync(() => {
+					const { parentSpanId, spanId, traceId } = exported(receiver, name);
+					return { parentSpanId, spanId, traceId };
 				}),
-			spans: () => receiver.spans,
+			exportedSpanNames: () => Effect.sync(() => receiver.spans.map(({ name }) => name).sort()),
+			exportRequests: () =>
+				Effect.sync(() =>
+					receiver.requests.map(({ headers, path }) => `${path} as ${headers["content-type"]} with token "${headers["x-collector-token"]}"`),
+				),
+			exportsCarrying: (text: string) => Effect.sync(() => receiver.requests.filter(({ body }) => body.includes(Buffer.from(text))).length),
+			exportsItsWork: () =>
+				Effect.promise(async () => {
+					story.tell("the application traces work, traces a failure and shuts down its runtime");
+					traced.ids = await runtime.runPromise(exportWork);
+					await runtime.runPromise(Effect.fail("failed work").pipe(Effect.withSpan("failed"), Effect.ignore));
+					await runtime.dispose();
+				}),
+			tracedIds: () => Effect.sync(() => traced.ids),
 		}),
 	});
 }
@@ -71,19 +99,22 @@ export const lifecycle = storyKit({
 	},
 	name: "receiver scope",
 	stages: ["ready"],
-	verbs: ({ receiver, scope }) => ({
-		close: () => Scope.close(scope, Exit.void),
-		requests: () => receiver.requests,
-		send: (path: string, contentType: string, body: Buffer) =>
-			Effect.promise(async () => {
-				const response = await fetch(`${receiver.url}${path}`, {
-					body: Uint8Array.from(body),
-					headers: { "content-type": contentType },
-					method: "POST",
-				});
-				await response.arrayBuffer();
-				return response.status;
-			}),
-		url: () => receiver.url,
+	verbs: ({ receiver, scope }, story) => ({
+		closesReceiver: () => {
+			story.tell("the receiver's scope closes");
+			return Scope.close(scope, Exit.void);
+		},
+		received: () =>
+			Effect.sync(() => receiver.requests.map(({ body, headers, path }) => `${path} as ${headers["content-type"]}: ${bytesInWords(body)}`)),
+		sends: (path: string, contentType: string, body: Buffer) =>
+			Effect.promise(() =>
+				fetch(`${receiver.url}${path}`, { body: Uint8Array.from(body), headers: { "content-type": contentType }, method: "POST" }).then(
+					async (response) => {
+						await response.arrayBuffer();
+						return `HTTP ${response.status}`;
+					},
+					() => "connection refused",
+				),
+			),
 	}),
 });

@@ -1,14 +1,16 @@
-import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { assetDocument } from "#test/assetDocument.ts";
 
 assetDocument.it(
-	"loads a page without fetching or warning about disabled external assets",
+	"loads a page without fetching or warning about its disabled external assets",
 	[],
-	function* ({ heading, loadPage, loggedErrors, receivedRequests, settle }) {
-		yield* loadPage();
-		yield* settle();
-		expect(heading()).toBe("Page with external assets");
-		expect(loggedErrors()).toEqual([]);
-		expect(receivedRequests()).toEqual(["GET /page"]);
+	function* ({ loadsPage, heading, loggedErrors, receivedRequests }) {
+		yield* loadsPage();
+
+		yield* outcomes({
+			"the heading": [heading(), "Page with external assets"],
+			"the host's requests": [receivedRequests(), ["GET /page"]],
+			"the logged errors": [loggedErrors(), []],
+		});
 	},
 );

@@ -1,26 +1,21 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { publicHttpApp } from "#test/fakeHttpApp.ts";
 
-publicHttpApp.it("routes and decodes one or more trailing path segments", [], function* ({ probe, recordedRequests }) {
-	for (const path of ["a%20b", "a%20b/c%2Fd/package.json"]) {
-		const client = yield* probe(`/repos/o/r/contents/${path}`);
-		expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-		expect(yield* client.finished).toEqual({
-			bytes: Buffer.from(path === "a%20b" ? '{"owner":"o","repo":"r","path":"a b"}' : '{"owner":"o","repo":"r","path":"a b/c/d/package.json"}'),
-			kind: "complete",
-		});
-	}
-	expect(recordedRequests()).toEqual(["GET /repos/o/r/contents/a%20b 200", "GET /repos/o/r/contents/a%20b/c%2Fd/package.json 200"]);
-});
-
-publicHttpApp.it("requires a rest segment, keeps plain params singular and refuses nonfinal rest params", [], function* ({ probe }) {
-	for (const path of ["/repos/o/r/contents", "/repos/o/r/contents/", "/users/a/b", "/invalid/a/tail"]) {
-		const client = yield* probe(path);
-		expect(yield* client.headers).toMatchObject({ status: HttpStatus.fromLiteral("NotFound") });
-	}
-	const user = yield* probe("/users/a%2Fb");
-	expect(yield* user.finished).toEqual({ bytes: Buffer.from('{"id":"a/b"}'), kind: "complete" });
-	const malformed = yield* probe("/repos/o/r/contents/a/%ZZ");
-	expect(yield* malformed.headers).toMatchObject({ status: HttpStatus.fromLiteral("BadRequest") });
-});
+for (const [rule, path, answer] of [
+	["decodes a rest parameter of one segment", "/repos/o/r/contents/a%20b", 'HTTP 200 {"owner":"o","repo":"r","path":"a b"}'],
+	[
+		"decodes every segment of a longer rest parameter",
+		"/repos/o/r/contents/a%20b/c%2Fd/package.json",
+		'HTTP 200 {"owner":"o","repo":"r","path":"a b/c/d/package.json"}',
+	],
+	["keeps an encoded slash inside a plain parameter", "/users/a%2Fb", 'HTTP 200 {"id":"a/b"}'],
+	["needs a segment for a rest parameter", "/repos/o/r/contents", "HTTP 404"],
+	["needs a non-empty segment for a rest parameter", "/repos/o/r/contents/", "HTTP 404"],
+	["matches a plain parameter to one segment only", "/users/a/b", "HTTP 404"],
+	["refuses a rest parameter that is not last", "/invalid/a/tail", "HTTP 404"],
+	["rejects a malformed escape in a rest parameter", "/repos/o/r/contents/a/%ZZ", "HTTP 400"],
+] as const) {
+	publicHttpApp.it(`${rule}: ${path} answers ${answer}`, [], function* ({ asks }) {
+		expect(yield* asks(path)).toBe(answer);
+	});
+}

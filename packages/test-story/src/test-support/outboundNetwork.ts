@@ -2,14 +2,13 @@ import { Effect } from "effect";
 import { afterAll, beforeAll } from "vitest";
 import { installOutbound } from "#internal/installOutbound.ts";
 import { storyKit } from "#storyKit.ts";
-import { outboundServers } from "./outbound.ts";
+import { outbound } from "./outbound.ts";
 
-const servers = outboundServers();
 let restoreNetwork: (() => void) | undefined;
 
 // The previous dispatcher stands in for the network, so no story needs a live third party.
 beforeAll(async () => {
-	restoreNetwork = await installOutbound(servers.outbound);
+	restoreNetwork = await installOutbound(outbound);
 });
 afterAll(() => restoreNetwork?.());
 
@@ -22,12 +21,13 @@ function networkKit(passthrough: boolean) {
 		outboundPassthrough: passthrough,
 		stages: [],
 		verbs: (_engine, story) => ({
-			requestProvider: () =>
+			requestsProvider: () =>
 				Effect.promise(async () => {
-					story.tell("the application requests https://api.github.com/user");
+					story.tell("the application requests GET https://api.github.com/user");
 					try {
 						const response = await fetch("https://api.github.com/user");
-						return await response.json();
+						const { method, name, path }: { readonly method: string; readonly name: string; readonly path: string } = await response.json();
+						return `the ${name} server answered ${method} ${path}`;
 					} catch {
 						return "the application handled the fetch error";
 					}
