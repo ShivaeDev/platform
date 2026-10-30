@@ -32,7 +32,7 @@ import { Config, Effect, Layer, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { githubSource } from "@shivaedev/webhooks/server/github.ts";
 import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registration.ts";
@@ -64,11 +64,7 @@ const Host = appHost({
 	},
 	application: Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		const jobs = Jobs.layer({
-			connectionString: Redacted.value(databaseUrl),
-			jobs: [IndexIssue],
-			migrate: false,
-		});
+		const jobs = Jobs.layer({ jobs: [IndexIssue] }).pipe(Layer.provide(pgBossLayer({ connectionString: databaseUrl, migrate: false })));
 		return {
 			group: Api,
 			handlers,

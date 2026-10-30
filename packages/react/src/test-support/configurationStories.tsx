@@ -27,6 +27,7 @@ export const configurations = storyKit(
 				held: {},
 				kind: "create",
 				mapping: true,
+				now: () => 0,
 				pending: false,
 				rejected: false,
 				revision: "before",
@@ -58,8 +59,8 @@ export const configurations = storyKit(
 	),
 );
 export function configuredForm(kind: ConfigurationProps["kind"], rejected = false, pending = false) {
-	return configurations.trait("screen", `a ${kind} form`, function* ({ screen, state }) {
-		state.props = { ...state.props, kind, pending, rejected };
+	return configurations.trait("screen", `a ${kind} form`, function* ({ now, screen, state }) {
+		state.props = { ...state.props, kind, now, pending, rejected };
 		state.view = yield* screen.open(<ConfigurationView {...state.props} />);
 	});
 }

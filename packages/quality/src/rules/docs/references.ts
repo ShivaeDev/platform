@@ -74,7 +74,7 @@ const references = Effect.fn("Docs.references")(function* (inputs: RuleInputs) {
 });
 
 export const docsReferences = defineRule({
-	check: (inputs) => Effect.runPromise(references(inputs)),
+	check: references,
 	description:
 		"Links, heading anchors and documented modules and exports in Markdown resolve, so documentation cannot point at a file, a heading or an API that no longer exists.",
 	id: "docs/references",

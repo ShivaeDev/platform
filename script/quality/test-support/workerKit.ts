@@ -1,4 +1,4 @@
-import { type TestProjectsOptions, testProjects } from "@shivaedev/quality/testProjects.ts";
+import { type TestProjectsOptions, testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 
 export const workerKit = storyKit({

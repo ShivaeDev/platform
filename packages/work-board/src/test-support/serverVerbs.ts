@@ -82,6 +82,10 @@ export function serverVerbs(engine: BoardEngine, tell: (line: string) => void) {
 				yield* board.stop();
 			}
 		}),
+		watchIndex: () => {
+			tell("a native RPC client subscribes only to the Board index");
+			return subscribe(served(engine).board, true);
+		},
 		watchProject: Effect.fn("Story.watchProject")(function* () {
 			tell("a live RPC client subscribes to project changes");
 			const events = yield* subscribe(served(engine).board);

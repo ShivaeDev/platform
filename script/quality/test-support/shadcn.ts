@@ -1,12 +1,12 @@
 import { rmSync } from "node:fs";
 import { Effect } from "effect";
+import { services } from "@shivaedev/quality/cli/runMain.ts";
 import { loadConfig } from "@shivaedev/quality/config/load.ts";
 import { runRules } from "@shivaedev/quality/engine/runRules.ts";
 import type { Violation } from "@shivaedev/quality/engine/violation.ts";
 import { collectInventory, type Inventory } from "@shivaedev/quality/inventory/collect.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { type SeedFile, seedTree } from "#quality-fixtures/tree.ts";
-import { services } from "#quality-internal/cli/runMain.ts";
 
 interface Repository {
 	inventory: Inventory | undefined;

@@ -1,6 +1,6 @@
 import { expect } from "vitest";
+import { authSql } from "@shivaedev/quality/rules/stories/authSql.ts";
 import { repositoryHas, ruleKit } from "#quality/test-support/ruleKit.ts";
-import { authSql } from "#quality-internal/rules/stories/authSql.ts";
 
 ruleKit.it(
 	"app SQL cannot grant or revoke access to auth tables",

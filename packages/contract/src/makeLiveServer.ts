@@ -68,7 +68,7 @@ export const makeLiveServer = Effect.gen(function* () {
 	return {
 		resync,
 		stream: (keys: readonly Key[], context?: KeyContext) => open(keys, context),
-		subscribe: (subscription: QuerySubscription, context?: KeyContext) =>
+		subscribe: <E, R>(subscription: QuerySubscription<E, R>, context?: KeyContext) =>
 			open(subscription.keys, context).pipe(
 				Stream.mapEffect((hint) =>
 					Effect.flatMap(subscription.authorized, (allowed) =>

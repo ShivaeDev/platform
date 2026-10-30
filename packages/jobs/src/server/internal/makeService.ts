@@ -13,7 +13,7 @@ export function makeService(client: PgBossClient, names: readonly string[], sche
 		enqueue: enqueueFor(client),
 		failedJobs: failedJobsFor(client, schema),
 		getJob: getJobFor(client),
-		health: healthFor(client, names),
+		health: () => healthFor(client, names),
 		retry: retryFor(client),
 	};
 }

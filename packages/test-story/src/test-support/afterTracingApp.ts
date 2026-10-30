@@ -1,8 +1,8 @@
-import { Effect, Layer } from "effect";
+import { Effect, Layer, type Tracer } from "effect";
 import { HttpEffect, HttpServerResponse } from "effect/http";
 import { storyKit } from "#storyKit.ts";
 import { domHost } from "#test/domHost.ts";
-import { Recording, recording } from "#test/spanRecording.ts";
+import { Recording, recording, spanReadouts, tracedAsTheStory } from "#test/spanRecording.ts";
 
 const host = Effect.gen(function* () {
 	const context = yield* Effect.context<never>();
@@ -35,12 +35,7 @@ export const afterTracingApp = storyKit({
 				Effect.ensuring(Effect.void.pipe(Effect.withSpan("ready ensuring"))),
 			),
 	},
-	around: (effect) =>
-		Effect.gen(function* () {
-			const { spans, tracer } = yield* Recording;
-			spans.length = 0;
-			return yield* effect.pipe(Effect.withSpan("story"), Effect.withTracer(tracer));
-		}),
+	around: (effect) => tracedAsTheStory(effect),
 	*create() {
 		const { spans } = yield* Recording;
 		yield* Effect.void.pipe(Effect.withSpan("engine startup"));
@@ -51,12 +46,12 @@ export const afterTracingApp = storyKit({
 	name: "after tracing app",
 	stages: ["deployment", "ready"],
 	verbs: (engine, story) => ({
-		request: (headers?: HeadersInit) =>
+		...spanReadouts(engine.spans),
+		keepsSpans: (keep: (spans: readonly Tracer.NativeSpan[]) => void) => Effect.sync(() => keep(engine.spans)),
+		sendsRequest: () =>
 			Effect.promise(async () => {
 				story.tell("a caller sends a request");
-				const response = await fetch(engine.url, { headers: headers ?? {} });
-				return response.text();
+				await (await fetch(engine.url)).text();
 			}).pipe(Effect.withSpan("request verb")),
-		spans: engine.spans,
 	}),
 });

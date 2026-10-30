@@ -12,4 +12,5 @@ export interface CreateHeld {
 export interface ProbeProps {
 	readonly create: CreateEffect;
 	readonly held: CreateHeld;
+	readonly now: () => number;
 }

@@ -1,6 +1,7 @@
 import { Effect, Schema } from "effect";
-import { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import type { OwnPermission, Permission } from "#permission.ts";
+import type { Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { hasPermission as evaluateGrant, type OwnPermission, Permission } from "#permission.ts";
+import { forbidden, unauthorized } from "#refusal.ts";
 import type { Role as RoleDefinition } from "#role.ts";
 
 export interface User<TName extends string> {
@@ -39,7 +40,7 @@ function accessPolicy<TName extends string>(roles: readonly RoleDefinition<TName
 		return grantsByName.get(name) ?? [];
 	}
 	function hasPermission(name: TName, permission: Permission): boolean {
-		return grantsOf(name).some((granted) => granted.name === permission.name && granted.strength === permission.strength);
+		return evaluateGrant(grantsOf(name), permission);
 	}
 	function canAccess(user: User<TName> | null | undefined, permission: OwnPermission, ownerId: string): boolean {
 		return (
@@ -48,40 +49,28 @@ function accessPolicy<TName extends string>(roles: readonly RoleDefinition<TName
 			&& (hasPermission(user.role, permission.any) || (user.id === ownerId && hasPermission(user.role, permission)))
 		);
 	}
-	function requirePermission(user: User<TName> | null | undefined, permission: Permission): Effect.Effect<void, Forbidden | Unauthorized> {
-		if (user === null || user === undefined) {
-			return Effect.fail(new Unauthorized({ message: "Sign in to continue" }));
-		}
-		return hasPermission(user.role, permission)
-			? Effect.void
-			: Effect.fail(
-					new Forbidden({
-						message: `Permission required: ${permission.name} (${permission.strength})`,
-					}),
-				);
-	}
 	function requireAccess(
 		user: User<TName> | null | undefined,
 		permission: OwnPermission,
 		ownerId: string,
 	): Effect.Effect<void, Forbidden | Unauthorized> {
 		if (user === null || user === undefined) {
-			return Effect.fail(new Unauthorized({ message: "Sign in to continue" }));
+			return Effect.fail(unauthorized());
 		}
-		return canAccess(user, permission, ownerId) ? Effect.void : Effect.fail(new Forbidden({ message: `Access denied: ${permission.name}` }));
+		return canAccess(user, permission, ownerId) ? Effect.void : Effect.fail(forbidden(permission));
 	}
 	function resolve(stored: unknown) {
-		return Effect.map(Schema.decodeUnknownEffect(Role)(stored), (roleName) => ({
-			permissions: grantsOf(roleName).map(({ name, strength }) => ({ name, strength })),
-			role: roleName,
-		}));
+		return Effect.gen(function* () {
+			const role = yield* Schema.decodeUnknownEffect(Role)(stored);
+			const permissions = yield* Schema.decodeUnknownEffect(Schema.Array(Permission))(grantsOf(role));
+			return { permissions, role };
+		});
 	}
 	return {
 		canAccess,
 		hasPermission,
 		Role,
 		requireAccess,
-		requirePermission,
 		resolve,
 	};
 }

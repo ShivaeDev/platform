@@ -1,6 +1,6 @@
 import { expect } from "@effect/vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { draftNames, storedDraftPaddedTo, storedDraftWrittenAgo } from "#test/draftBounds.ts";
+import { draftAged, draftNames, storedDraftPaddedTo } from "#test/draftBounds.ts";
 
 const defaultMaxBytes = 256 * 1024;
 const minute = 60 * 1000;
@@ -58,8 +58,8 @@ draftNames.it(
 );
 
 draftNames.it(
-	"reopening restores a draft written a minute short of seven days ago",
-	[...localDraft, storedDraftWrittenAgo("a minute short of seven days", sevenDays - minute)],
+	"reopening restores a draft a minute short of seven days old",
+	[...localDraft, draftAged("a minute short of seven days", sevenDays - minute)],
 	function* ({ reopen, shown, storedDraft }) {
 		expect(yield* storedDraft()).toEqual({ name: "Local" });
 
@@ -67,11 +67,12 @@ draftNames.it(
 
 		expect(yield* shown("name")).toBe("Local");
 	},
+	{ clock: "test" },
 );
 
 draftNames.it(
-	"reopening drops a draft written a minute more than seven days ago",
-	[...localDraft, storedDraftWrittenAgo("a minute more than seven days", sevenDays + minute)],
+	"reopening drops a draft a minute more than seven days old",
+	[...localDraft, draftAged("a minute more than seven days", sevenDays + minute)],
 	function* ({ reopen, shown, storedDraft }) {
 		expect(yield* storedDraft()).toEqual({ name: "Local" });
 
@@ -82,4 +83,5 @@ draftNames.it(
 			"stored draft": [storedDraft(), undefined],
 		});
 	},
+	{ clock: "test" },
 );

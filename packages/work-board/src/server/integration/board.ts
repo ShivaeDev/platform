@@ -9,6 +9,7 @@ import {
 } from "#server/metadata/model.ts";
 import { type Diagnostic as InternalDiagnostic, type ParsedMetadata as InternalParsedMetadata, metadataParse } from "#server/metadata/parse.ts";
 import { type Snapshot as InternalSnapshot, searchSnapshot } from "#server/search/snapshot.ts";
+import { watchIndex } from "#server/search/watchIndex.ts";
 
 export type Changes = InternalChanges;
 export type MarkdownFile = InternalMarkdownFile;
@@ -26,13 +27,18 @@ const snapshot: (
 ) => Effect.Effect<Effect.Effect<Snapshot, PlatformError.PlatformError, FileSystem.FileSystem | Path.Path>> = searchSnapshot;
 
 export const board = {
+	archiveSettled,
 	areaDiagnostics,
 	listMarkdown,
+	loadSettled,
 	markdownPath,
 	metadataModel,
 	metadataParse,
 	searchSnapshot: snapshot,
 	watchChanges,
+	watchIndex,
 } as const;
 
 import type { Effect, FileSystem, Path, PlatformError } from "effect";
+import { loadSettled } from "#server/archive/loadSettled.ts";
+import { archiveSettled } from "#server/archive/settled.ts";

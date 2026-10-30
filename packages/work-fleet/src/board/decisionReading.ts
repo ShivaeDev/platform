@@ -31,9 +31,12 @@ function reviewedQuestion(question: Reading["question"], receipt: BoardDecision,
 	);
 }
 
-export function decisionReading(documents: Effect.Effect<readonly BoardDocument[], BoardFailure>) {
+export function decisionReading(
+	documents: Effect.Effect<readonly BoardDocument[], BoardFailure>,
+	archivedDocuments?: (item: string) => Effect.Effect<readonly BoardDocument[], BoardFailure>,
+) {
 	return Effect.fn("FleetBoard.readDecision")(function* (receipt: BoardDecision): Effect.fn.Return<BoardDecisionReading, BoardFailure> {
-		const all = yield* documents;
+		const all = yield* archivedDocuments?.(receipt.itemId) ?? documents;
 		const model = metadataModel(all);
 		const matches = model.ids.get(receipt.itemId);
 		const document = matches?.length === 1 ? all.find((entry) => entry.file === matches[0]?.file) : undefined;

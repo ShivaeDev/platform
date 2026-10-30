@@ -17,6 +17,7 @@ export function requestRework(state: EngineState) {
 		return yield* state
 			.save(stored, {
 				...record,
+				areaQueuedAt: state.policy.now(),
 				attentionOwner: undefined,
 				blocker: undefined,
 				checks: undefined,

@@ -1,6 +1,7 @@
 import { Effect } from "effect";
-import { screenDriver } from "#screenDriver.ts";
+import { type ScreenTarget, screenDriver } from "#screenDriver.ts";
 import { storyKit } from "#storyKit.ts";
+import { background } from "./attempt.ts";
 
 export const roleScreen = storyKit({
 	*create() {
@@ -33,10 +34,18 @@ export const roleScreen = storyKit({
 	inspect: ({ root }) => ({ screen: root.textContent ?? "" }),
 	name: "role screen",
 	stages: ["screen"],
-	verbs: ({ root, save }, story) => ({
-		...screenDriver({ root, tell: story.tell }),
-		saveButton: () => save,
-	}),
+	verbs: ({ root, save }, story) => {
+		const driver = screenDriver({ root, tell: story.tell });
+		const searches = background();
+		return {
+			...driver,
+			found: () => searches.finished("search"),
+			saveButton: () => save,
+			search: () => searches.progress("search", "still searching"),
+			startsLookingFor: (target: ScreenTarget) =>
+				searches.starts("search", driver.find(target), (element) => (element === save ? "found the Save button" : `found ${element.outerHTML}`)),
+		};
+	},
 });
 
 export const duplicateSave = roleScreen.trait("screen", "another visible Save button", ({ root }) => {
@@ -69,4 +78,18 @@ export function hiddenSave(style: string, ancestor: boolean) {
 		}
 		root.append(container);
 	});
+}
+
+export function refusedTarget(matches: string, ...extraCandidates: readonly string[]) {
+	return [
+		`died: The screen has ${matches}.`,
+		"help: Use a role and name for exactly one visible target.",
+		"Candidates on screen:",
+		'  - button named "Save"',
+		'  - button named ""',
+		'  - form named "Profile"',
+		'  - textbox named "Email"',
+		'  - status named "Result"',
+		...extraCandidates,
+	].join("\n");
 }

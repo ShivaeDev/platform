@@ -15,6 +15,7 @@ import { readingVerbs } from "#test/readingVerbs.ts";
 import { readVerbs } from "#test/readVerbs.ts";
 import { responseFeedVerbs } from "#test/responseFeedVerbs.ts";
 import { responseServiceVerbs } from "#test/responseServiceVerbs.ts";
+import { restartAnswerVerbs } from "#test/restartAnswerVerbs.ts";
 import { serverVerbs } from "#test/serverVerbs.ts";
 import { servingVerbs } from "#test/servingVerbs.ts";
 import { socketVerbs } from "#test/socketVerbs.ts";
@@ -35,6 +36,7 @@ export const boardStory = storyKit({
 		...readingVerbs(engine, story.tell),
 		...migrationVerbs(engine, story.tell),
 		...responseServiceVerbs(engine, story.tell),
+		...restartAnswerVerbs(engine, story.tell),
 		...responseFeedVerbs(engine, story.tell),
 		...attentionVerbs(engine, story.tell),
 		...standingQuestionVerbs(engine, story.tell),

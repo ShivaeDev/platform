@@ -12,6 +12,13 @@ const Echo = RpcGroup.make(Rpc.make("echo", { payload: { text: Schema.String }, 
 export function message(text: string, id = "1") {
 	return `${JSON.stringify({ _tag: "Request", headers: [], id, payload: { text }, tag: "echo" })}\n`;
 }
+export function largestAcceptedMessage(limit: number) {
+	const text = "é".repeat(Math.floor((limit - Buffer.byteLength(message(""))) / 2));
+	return { body: message(text), text };
+}
+export function oversizedBatch(limit: number) {
+	return message("small") + message("é".repeat(Math.ceil(limit / 2)), "2");
+}
 export const echoRpc = host.trait("configured", "RPC records accepted NDJSON bodies", (state) => {
 	state.build = () =>
 		appHost({

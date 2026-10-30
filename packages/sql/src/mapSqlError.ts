@@ -8,6 +8,7 @@ export function mapSqlError(options: {
 	readonly constraints: Readonly<Record<string, (error: SqlError) => unknown>>;
 	readonly fallback: (error: SqlError) => unknown;
 }) {
+	const handlers = new Map(Object.entries(options.constraints).map(([name, handler]) => [storedIdentifier(name), handler]));
 	return (error: SqlError) => {
 		const reason = error.reason;
 		let constraint: string | undefined;
@@ -24,8 +25,23 @@ export function mapSqlError(options: {
 		) {
 			constraint = reason.cause.constraint;
 		}
-		return constraint !== undefined && Object.hasOwn(options.constraints, constraint)
-			? (options.constraints[constraint] ?? options.fallback)(error)
-			: options.fallback(error);
+		return ((constraint === undefined ? undefined : handlers.get(constraint)) ?? options.fallback)(error);
 	};
+}
+
+const IDENTIFIER_BYTES = 63;
+const encoder = new TextEncoder();
+
+// PostgreSQL stores identifiers clipped to 63 bytes at a character boundary, and reports that clipped name.
+function storedIdentifier(name: string) {
+	let bytes = 0;
+	let stored = "";
+	for (const character of name) {
+		bytes += encoder.encode(character).length;
+		if (bytes > IDENTIFIER_BYTES) {
+			return stored;
+		}
+		stored += character;
+	}
+	return stored;
 }

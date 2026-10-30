@@ -3,7 +3,7 @@ import type { Key } from "@shivaedev/changes/keys.ts";
 import type { Bivariant } from "@shivaedev/types/Bivariant.ts";
 import { type Loose, operation } from "#internal/operationDeclaration.ts";
 import type { QueryReadPolicy, Viewer } from "#readPolicy.ts";
-import type { MatchingTags, Reject, RejectionSpecs, Rejections, RejectionUnion } from "./rejection.ts";
+import type { MatchingTags, Reject, RejectedBy, RejectionSpecs, Rejections, RejectionUnion } from "#rejection.ts";
 
 export type PayloadSchema<TPayload extends Schema.Top | Schema.Struct.Fields> = TPayload extends Schema.Struct.Fields
 	? Schema.Struct<TPayload>
@@ -22,9 +22,9 @@ export interface OperationShape {
 	readonly success: Schema.Top;
 }
 
-export interface QueryShape extends OperationShape {
+export interface QueryShape<E = unknown, R = unknown> extends OperationShape {
 	readonly kind: "query";
-	readonly readPolicy?: Bivariant<QueryReadPolicy<unknown>>;
+	readonly readPolicy?: Bivariant<QueryReadPolicy<unknown, E, R>>;
 	reads: Bivariant<(payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[]>;
 }
 
@@ -49,10 +49,10 @@ interface Operation<TName extends string, TPayload extends Schema.Top, TSuccess 
 	readonly success: TSuccess;
 }
 
-export interface Query<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs>
+export interface Query<TName extends string, TPayload extends Schema.Top, TSuccess extends Schema.Top, TSpecs extends RejectionSpecs, R = never>
 	extends Operation<TName, TPayload, TSuccess, TSpecs> {
 	readonly kind: "query";
-	readonly readPolicy?: QueryReadPolicy<TPayload["Type"]>;
+	readonly readPolicy?: QueryReadPolicy<TPayload["Type"], RejectedBy<TSpecs>, R>;
 	reads: (payload: TPayload["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
 }
 
@@ -79,18 +79,19 @@ export function query<
 	TPayload extends Schema.Top | Schema.Struct.Fields = Schema.Void,
 	TSuccess extends Schema.Top = Schema.Void,
 	const TSpecs extends RejectionSpecs = NoRejections,
+	R = never,
 >(
 	name: TName,
 	declaration: Declaration<TPayload, TSuccess, TSpecs> & {
 		readonly reads: (payload: PayloadSchema<TPayload>["Type"], viewer: Option.Option<Viewer>) => readonly Key[];
-		readonly readPolicy?: QueryReadPolicy<PayloadSchema<TPayload>["Type"]>;
+		readonly readPolicy?: QueryReadPolicy<PayloadSchema<TPayload>["Type"], NoInfer<RejectedBy<TSpecs>>, R>;
 	},
-): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs>>;
+): NoInfer<Query<TName, PayloadSchema<TPayload>, TSuccess, TSpecs, R>>;
 export function query(
 	name: string,
 	declaration: Loose & {
 		readonly reads: (payload: unknown, viewer: Option.Option<Viewer>) => readonly Key[];
-		readonly readPolicy?: QueryReadPolicy<unknown>;
+		readonly readPolicy?: QueryReadPolicy<unknown, unknown, unknown>;
 	},
 ): QueryShape {
 	return {

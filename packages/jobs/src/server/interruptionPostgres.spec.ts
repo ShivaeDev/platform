@@ -1,51 +1,48 @@
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import { database } from "#test/postgres/database.ts";
+import { interrupted, running, storedTogether } from "#test/postgres/traits.ts";
+import { workerBy } from "#test/workers.ts";
 
-postgresIt(
-	"keeps completed jobs and leaves the interrupted and remaining jobs active until expiry",
-	[realPostgres],
-	function* ({ boot, native, seed, untilJobs }) {
-		const Queue = defineQueue({ name: "interrupted", queue: { expireInSeconds: 3, retryLimit: 0 }, schema: Schema.Struct({ id: Schema.Number }) });
-		const client = native();
-		const interrupted = Promise.withResolvers<void>();
-		const handled: number[] = [];
-		let interruptedId: number | undefined;
-		const inputs = Array.from({ length: 3 }, (_, id) => ({ data: { id } }));
-		yield* seed(Queue, inputs, client);
-		yield* boot([
-			Queue.handle(({ id }) =>
-				Effect.suspend(() => {
-					handled.push(id);
-					if (handled.length === 2) {
-						interruptedId = id;
-						interrupted.resolve();
-						return Effect.interrupt;
-					}
-					return Effect.void;
-				}),
-			),
-		]);
-		yield* Effect.promise(() => interrupted.promise);
-		const read = Effect.promise(() => client.findJobs<{ id: number }>(Queue.name));
-		const active = yield* read;
-		expect(active.filter((job) => job.state === "completed")).toMatchObject([{ data: { id: handled[0] }, retryCount: 0 }]);
-		const waiting = inputs.filter(({ data }) => data.id !== handled[0]);
-		expect(
-			active
-				.filter((job) => job.state === "active")
-				.map(({ data }) => data)
-				.sort((left, right) => left.id - right.id),
-		).toEqual(waiting.map(({ data }) => data));
-		const expired = yield* untilJobs(client, Queue.name, (jobs) => jobs.filter((job) => job.state === "failed").length === 2);
-		expect(expired.filter((job) => job.state === "completed")).toMatchObject([{ data: { id: handled[0] }, retryCount: 0 }]);
-		expect(expired.filter((job) => job.state === "failed").map((job) => job.output)).toMatchObject([
-			{ message: "handler execution exceeded 3s" },
-			{ message: "handler execution exceeded 3s" },
-		]);
-		expect(handled).toEqual([active.find((job) => job.state === "completed")?.data.id, interruptedId]);
-		expect(handled[1]).not.toBe(handled[0]);
-		expect(waiting.map(({ data }) => data.id)).toContain(handled[1]);
+const Interrupted = defineQueue({ name: "interrupted", queue: { expireInSeconds: 2, retryLimit: 0 }, schema: Schema.Struct({ id: Schema.Number }) });
+
+const batch = storedTogether(
+	Interrupted,
+	[0, 1, 2].map((id) => ({ as: `job ${id}`, data: { id }, priority: 10 - id })),
+);
+const interrupting = workerBy(Interrupted, ({ id }) => (id === 1 ? "interrupts itself" : "succeeds"));
+const byPriority = { handsBatchesOver: "by priority" } as const;
+
+database.it(
+	"an attempt that interrupts itself keeps the jobs before it completed and leaves itself and the rest of its batch active",
+	[batch],
+	function* ({ attempts, start, storedStates, untilInterrupted }) {
+		expect(yield* storedStates("interrupted")).toEqual({ "job 0": "created", "job 1": "created", "job 2": "created" });
+
+		yield* start("app", [interrupting], byPriority);
+		yield* untilInterrupted(Interrupted, 1);
+
+		yield* outcomes({
+			"attempts": [attempts(Interrupted), ["job 0", "job 1"]],
+			"stored states": [storedStates("interrupted"), { "job 0": "completed", "job 1": "active", "job 2": "active" }],
+		});
+	},
+);
+
+database.it(
+	"pg-boss fails the interrupted job and the rest of its batch once they expire",
+	[batch, running("app", [interrupting], byPriority), interrupted(Interrupted, 1)],
+	function* ({ job, storedStates, untilSettled }) {
+		expect(yield* storedStates("interrupted")).toEqual({ "job 0": "completed", "job 1": "active", "job 2": "active" });
+
+		yield* untilSettled(Interrupted, 3);
+
+		yield* outcomes({
+			"job 1": [job("job 1"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
+			"job 2": [job("job 2"), expect.objectContaining({ error: "handler execution exceeded 2s", state: "failed" })],
+			"stored states": [storedStates("interrupted"), { "job 0": "completed", "job 1": "failed", "job 2": "failed" }],
+		});
 	},
 );

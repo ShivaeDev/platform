@@ -4,6 +4,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { migrate } from "@shivaedev/work-board/server/migration/migrate.ts";
 import { markdownBoard } from "#board/markdown.ts";
 import { BoardGateway } from "#policy.ts";
+import { boardAnswerVerbs } from "#test/boardAnswerVerbs.ts";
 import { boardFolder } from "#test/boardFolder.ts";
 import { boardAskFiles, boardHttp, boardHttpFiles } from "#test/boardHttp.ts";
 import { captureLogs } from "#test/captureLogs.ts";
@@ -35,6 +36,7 @@ export const boardFolderStory = storyKit({
 		}
 		const logs = captureLogs();
 		return {
+			...boardAnswerVerbs(state.root, story.tell),
 			askFiles: (maintainer?: string) => {
 				story.tell("read the Board inbox over HTTP");
 				return boardAskFiles(state.root, maintainer);

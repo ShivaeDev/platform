@@ -61,7 +61,7 @@ boardFolderStory.it(
 					reviewedRevision: receipt.revision,
 				},
 			]);
-			const closed = boardApi.metadataParse(files.read(receipt.sourcePath));
+			const closed = boardApi.metadataParse(files.read(`.board-settled/${receipt.itemId}.md`));
 			expect(closed.fields).toMatchObject({ attention: [{ state: "closed" }], status: "done" });
 			expect(closed.body).toBe(boardApi.metadataParse(source).body);
 			expect(yield* askFiles()).not.toContain(receipt.sourcePath);

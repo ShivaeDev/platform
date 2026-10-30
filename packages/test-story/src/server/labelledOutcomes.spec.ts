@@ -1,63 +1,49 @@
-import { Effect } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "#outcomes.ts";
+import { attempt } from "#test/attempt.ts";
 import { OUTCOME_STORIES } from "#test/failureReport.ts";
-import { outcomeTable, ReadoutUnavailable } from "#test/outcomeTable.ts";
+import { outcomeTable } from "#test/outcomeTable.ts";
 import { storyRunner } from "#test/storyRunner.ts";
 
-outcomeTable.it("reads matching rows in order before comparing them", [], function* ({ next, count, details }) {
+outcomeTable.it("reads each row's readout once, in the order the rows are written", [], function* ({ count, next }) {
 	yield* outcomes({
-		"first reading": [next(), 1],
-		"second reading": [next(), 2],
-		"total readings": [count(), 2],
-		"view details": [details(), expect.objectContaining({ count: 2 })],
+		"reading 1": [next(), 1],
+		"reading 2": [next(), 2],
+		"readings taken": [count(), 2],
 	});
-	expect(yield* details()).toEqual({ count: 2, status: "ready" });
+});
+
+outcomeTable.it("compares a row against an asymmetric matcher", [], function* ({ details }) {
+	yield* outcomes({ "view details": [details(), expect.objectContaining({ status: "ready" })] });
 });
 
 outcomeTable.it("keeps a failing readout in the typed error channel", [], function* ({ unavailable }) {
-	const error = yield* Effect.flip(outcomes({ "counter reading": [unavailable(), 0] }));
-	expect(error).toEqual(new ReadoutUnavailable({ message: "the counter is unavailable" }));
+	expect(yield* attempt(outcomes({ "counter reading": [unavailable(), 0] }))).toBe("failed with ReadoutUnavailable: the counter is unavailable");
 });
 
-storyRunner.it(
-	"reports each mismatched row and the outcomes call in the spec",
-	[],
-	function* ({ run }) {
-		const result = yield* run({ include: "src/test-support/outcomeStories.ts" });
-		expect(result).toEqual({
-			moduleErrors: [],
-			stories: [
-				{
-					diffs: [expect.stringContaining('"first reading"')],
-					errors: [expect.stringContaining(`at ${OUTCOME_STORIES}:5:9`)],
-					name: "Outcome Table Story: one wrong row",
-					state: "failed",
-					tags: [],
-				},
-				{
-					diffs: [expect.stringContaining('"second reading"')],
-					errors: [expect.stringContaining(`at ${OUTCOME_STORIES}:12:9`)],
-					name: "Outcome Table Story: two wrong rows",
-					state: "failed",
-					tags: [],
-				},
-				{
-					diffs: [undefined],
-					errors: [expect.stringContaining("the counter is unavailable")],
-					name: "Outcome Table Story: unavailable readout",
-					state: "failed",
-					tags: [],
-				},
-			],
-			warnings: [],
-		});
-		const changedRows = result.stories.map(({ diffs }) => diffs?.[0]?.split("\n").filter((line) => /^[-+]\s+"/u.test(line)));
-		expect(changedRows).toEqual([
-			['-   "first reading": 10,', '+   "first reading": 1,'],
-			['-   "first reading": 10,', '-   "second reading": 20,', '+   "first reading": 1,', '+   "second reading": 2,'],
-			undefined,
-		]);
-	},
-	30_000,
-);
+for (const [name, line, changedRows] of [
+	["one wrong row", 5, ['-   "first reading": 10,', '+   "first reading": 1,']],
+	["two wrong rows", 12, ['-   "first reading": 10,', '-   "second reading": 20,', '+   "first reading": 1,', '+   "second reading": 2,']],
+] as const) {
+	storyRunner.it(
+		`reports only the mismatched rows of an outcomes call with ${name} at its line in the spec`,
+		[],
+		function* ({ changedRows: changedRowsOf, failedAt, runStory }) {
+			yield* runStory("outcomeStories", `Outcome Table Story: ${name}`);
+
+			yield* outcomes({
+				"changed rows": [changedRowsOf(), [...changedRows]],
+				"failed at": [failedAt(), `at ${OUTCOME_STORIES}:${line}:9`],
+			});
+		},
+	);
+}
+
+storyRunner.it("fails an outcomes call with its readout's error and no diff", [], function* ({ changedRows, message, runStory }) {
+	yield* runStory("outcomeStories", "Outcome Table Story: unavailable readout");
+
+	yield* outcomes({
+		"changed rows": [changedRows(), []],
+		message: [message(), "the counter is unavailable"],
+	});
+});

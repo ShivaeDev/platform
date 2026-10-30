@@ -14,7 +14,7 @@ export function signInVisitor(initial: string, signedIn = false, moduleLink = fa
 	return screens.trait("screen", `a ${signedIn ? "signed-in" : "signed-out"} visitor opens ${initial}`, function* (engine) {
 		const history = createMemoryHistory({ initialEntries: [initial] });
 		engine.history = history;
-		engine.client = notesClient([{ id: 1, title: "Deep note", version: 0, wordCount: null }]);
+		engine.client = yield* notesClient([{ id: 1, title: "Deep note", version: 0, wordCount: null }]);
 		engine.client.session.signedIn = signedIn;
 		const fixture = appAuth({
 			baseUrl: "http://return.story.test",

@@ -4,12 +4,12 @@ import { testUtils } from "better-auth/plugins";
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
-import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 
 export const userReferences = storyKit({
 	around: withIsolatedDatabase,

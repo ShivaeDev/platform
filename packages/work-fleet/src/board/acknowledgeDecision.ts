@@ -13,9 +13,17 @@ const { managedRequestReceipt } = attention;
 const { metadataModel } = boardApi;
 const { publish, revisionOf } = responses;
 
-export function acknowledgeDecision(root: string, realRoot: string, snapshot: Effect.Effect<BoardSnapshot, BoardFailure>) {
+export function acknowledgeDecision(
+	root: string,
+	realRoot: string,
+	snapshot: Effect.Effect<BoardSnapshot, BoardFailure>,
+	select?: (item: string) => Effect.Effect<BoardSnapshot, BoardFailure>,
+) {
+	function read(item: string) {
+		return select?.(item) ?? snapshot;
+	}
 	return Effect.fn("FleetBoard.acknowledgeDecision")(function* (input: BoardDecisionAcknowledgement) {
-		const current = yield* snapshot;
+		const current = yield* read(input.decision.itemId);
 		const incomplete = Array.from(current.problems.values()).find((problem) => problem.code === "incomplete-observation");
 		if (incomplete !== undefined) {
 			return yield* Effect.fail(incomplete);

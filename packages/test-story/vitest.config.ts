@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
 import { defineConfig } from "vitest/config";
-import { testProjects } from "@shivaedev/quality/testProjects.ts";
+import { testProjects } from "@shivaedev/quality/adapters/testProjects.ts";
 import { genreTags } from "#genreTags.ts";
 
 const test = testProjects();

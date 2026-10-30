@@ -1,5 +1,7 @@
-import { Context, Effect, Exit, Layer, type Option, type Schema, Scope } from "effect";
+import { Context, Effect, Exit, Layer, type Option, Redacted, type Schema, Scope } from "effect";
 import type { ConstructorOptions, JobWithMetadata, SendOptions, StopOptions } from "pg-boss";
+import { defineService } from "@shivaedev/service/defineService.ts";
+import { genericMethod } from "@shivaedev/service/genericMethod.ts";
 import type { PgBossClientFactory } from "#client.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition, RegistrationRequirements } from "#definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossPayloadError, PgBossQueueOptionsError } from "#error.ts";
@@ -9,6 +11,7 @@ import { acquireClient, releaseClient } from "#internal/lifecycle.ts";
 import { makeService } from "#internal/makeService.ts";
 import { registrationName } from "#internal/register.ts";
 import { registerReleasedJobs } from "#internal/registerReleasedJobs.ts";
+import { PgBoss } from "#PgBoss.ts";
 
 export interface PgBossService {
 	readonly counts: (queue: Pick<QueueDefinition, "name">) => Effect.Effect<QueueCounts, PgBossError>;
@@ -29,85 +32,104 @@ export interface PgBossService {
 		queue: { readonly name: TName; readonly schema: TPayload },
 		id: string,
 	) => Effect.Effect<Option.Option<JobWithMetadata<TPayload["Type"]>>, PgBossError | PgBossPayloadError, TPayload["DecodingServices"]>;
-	readonly health: Effect.Effect<JobsHealth, PgBossError>;
+	readonly health: () => Effect.Effect<JobsHealth, PgBossError>;
 	readonly retry: (queue: Pick<QueueDefinition, "name">, id: string) => Effect.Effect<void, PgBossError>;
 }
 
-export type PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> = ConstructorOptions & {
+export type PgBossOptions = Omit<ConstructorOptions, "connectionString"> & {
+	readonly connectionString?: Redacted.Redacted<string>;
 	readonly clientFactory?: PgBossClientFactory;
-	// One started client is reference-counted per key, so development module reloads reuse it instead of starting another.
 	readonly clientCacheKey?: string | symbol | undefined;
-	readonly jobs: TRegistrations;
-	readonly onError?: (error: Error) => Effect.Effect<unknown, never, TErrorRequirements>;
 	readonly stop?: StopOptions;
 };
+
+export function pgBossLayer(options: PgBossOptions): Layer.Layer<PgBoss, PgBossError | PgBossClientOptionsError> {
+	const { connectionString, clientFactory, clientCacheKey, stop, ...settings } = options;
+	return Layer.effect(
+		PgBoss,
+		Effect.gen(function* () {
+			const dependencies = yield* Effect.context<never>();
+			const execute = Effect.runPromiseWith(dependencies);
+			const acquired = yield* Effect.acquireRelease(
+				acquireClient(
+					{
+						clientCacheKey,
+						clientFactory,
+						constructor: {
+							...settings,
+							...(connectionString === undefined ? {} : { connectionString: Redacted.value(connectionString) }),
+						},
+					},
+					(error) => {
+						void execute(logClientError(error));
+					},
+				),
+				(client) => releaseClient(client, stop),
+			);
+			return { ...acquired, schema: settings.schema, stop };
+		}),
+	);
+}
+
+export interface PgBossLayerOptions<TRegistrations extends readonly JobRegistration[], TErrorRequirements> {
+	readonly jobs: TRegistrations;
+	readonly onError?: (error: Error) => Effect.Effect<unknown, never, TErrorRequirements>;
+}
 
 export interface PgBossDefinition<TIdentifier extends string = string> extends Context.Service<TIdentifier, PgBossService> {
 	readonly layer: <const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
 		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
 	) => Layer.Layer<
 		TIdentifier,
-		PgBossError | PgBossQueueOptionsError | PgBossClientOptionsError,
-		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
+		PgBossError | PgBossQueueOptionsError,
+		PgBoss | Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
 	>;
 }
 
 export function makePgBoss<const TIdentifier extends string>(identifier: TIdentifier): PgBossDefinition<TIdentifier> {
-	const Service = Context.Service<TIdentifier, PgBossService>(identifier);
-
-	function layer<const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
-		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
-	): Layer.Layer<
-		TIdentifier,
-		PgBossError | PgBossQueueOptionsError | PgBossClientOptionsError,
-		Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements
-	> {
-		type Requirements = Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements;
-		const names = options.jobs.map(registrationName);
-		const { clientFactory, clientCacheKey, jobs, onError, stop, ...constructorOptions } = options;
-
-		const acquire = Effect.acquireRelease(
-			Effect.gen(function* () {
-				const dependencies = yield* Effect.context<Requirements>();
+	function definition<R>(options: PgBossLayerOptions<readonly JobRegistration[], R>, dependencies: Context.Context<R>) {
+		return defineService({
+			id: identifier,
+			initialize: Effect.gen(function* () {
+				const acquired = yield* PgBoss;
 				const execute = Effect.runPromiseWith(dependencies);
-				const acquired = yield* acquireClient({ clientCacheKey, clientFactory, constructor: constructorOptions }, (error) => {
-					void execute(logClientError(error));
-				});
 				const workerScope = yield* Scope.make();
-				const service = makeService(acquired.client, names, constructorOptions.schema);
+				const service = makeService(acquired.client, options.jobs.map(registrationName), acquired.schema);
 				const context = Context.add(dependencies, Service, service);
-				const reportError: (error: Error) => Effect.Effect<unknown, never, Requirements | TIdentifier> = onError ?? logClientError;
-				function errorListener(error: Error): void {
+				const reportError = options.onError ?? logClientError;
+				const unsubscribe = subscribeClientErrors(acquired.client, (error) => {
 					void execute(Effect.exit(Effect.provide(reportError(error), context)));
-				}
-				const unsubscribe = subscribeClientErrors(acquired.client, errorListener);
-				// Layer scopes can finalize in parallel; drain callbacks before interrupting their fibers.
-				const release = releaseClient(acquired, stop).pipe(
-					Effect.ensuring(Effect.sync(unsubscribe)),
-					Effect.ensuring(Scope.close(workerScope, Exit.void)),
-				);
-				const registration = registerReleasedJobs(
+				});
+				yield* Effect.addFinalizer(() => Scope.close(workerScope, Exit.void).pipe(Effect.ensuring(Effect.sync(unsubscribe))));
+				yield* registerReleasedJobs(
 					acquired.client,
-					jobs,
+					options.jobs,
 					context,
 					acquired.reused,
 					(effect) => execute(effect),
-					constructorOptions.schema,
-					stop?.graceful !== false,
-				).pipe(Effect.provideService(Scope.Scope, workerScope));
-				return yield* registration.pipe(
-					Effect.as({ release, service }),
-					Effect.onError(() => release),
-				);
+					acquired.schema,
+					acquired.stop?.graceful !== false,
+				).pipe(Effect.provideService(Scope.Scope, workerScope), Effect.provide(dependencies));
+				return service;
 			}),
-			(resource) => resource.release,
-		);
-
-		return Layer.effect(
-			Service,
-			Effect.map(acquire, ({ service }) => service),
-		);
+			methods: (service) => ({
+				counts: service.counts,
+				deadLetteredJobs: genericMethod(service.deadLetteredJobs),
+				enqueue: genericMethod(service.enqueue),
+				failedJobs: genericMethod(service.failedJobs),
+				getJob: genericMethod(service.getJob),
+				health: service.health,
+				retry: service.retry,
+			}),
+			requires: [PgBoss],
+		});
 	}
-
+	const Service: Context.Service<TIdentifier, PgBossService> = definition({ jobs: [] }, Context.empty());
+	function layer<const TRegistrations extends readonly JobRegistration[], TErrorRequirements = never>(
+		options: PgBossLayerOptions<TRegistrations, TErrorRequirements>,
+	) {
+		type Requirements = Exclude<RegistrationRequirements<TRegistrations>, TIdentifier> | TErrorRequirements;
+		return Layer.unwrap(Effect.map(Effect.context<Requirements>(), (dependencies) => definition(options, dependencies).layer));
+	}
 	return Object.assign(Service, { layer });
 }

@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import { Effect, FileSystem } from "effect";
-import { runBiome } from "./run.ts";
+import { runBiome } from "#adapters/biome/run.ts";
 
 const RECOMMENDED_ONLY = '{ "linter": { "rules": { "preset": "recommended" } } }\n';
 

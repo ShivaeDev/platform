@@ -1,94 +1,108 @@
-import { DateTime, Effect, Exit, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
-import { defineQueue, RetryAt } from "#definition.ts";
-import { installedTemplate, schemaIt } from "#test/schemaStories.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineQueue } from "#definition.ts";
+import { schemaKit } from "#test/schema/kit.ts";
+import { brokenSchema, enqueuedBy, installed, installedTemplate, ran, rolledBackTo, stopped } from "#test/schema/traits.ts";
+import { worker } from "#test/workers.ts";
 
-schemaIt(
-	"installs a template without workers or schedules and a clone processes deferrals without schema work",
+const TWO_VERSIONS_BEHIND = 44;
+
+const Installed = defineQueue({ name: "installed", schema: Schema.Struct({ value: Schema.Number }), worker: { pollingIntervalSeconds: 0.5 } });
+
+schemaKit.it(
+	"a runtime on a clone of the installed template runs a deferred job without migrating",
 	[installedTemplate],
-	function* ({ boot, query, untilJob }) {
-		expect(yield* query("SELECT name FROM jobs_test.queue")).toEqual([]);
-		expect(yield* query("SELECT name FROM jobs_test.schedule")).toEqual([]);
-		expect(yield* query("SELECT id FROM jobs_test.instance")).toEqual([]);
-		const queue = defineQueue({ name: "installed", schema: Schema.Struct({ value: Schema.Number }), worker: { pollingIntervalSeconds: 0.5 } });
-		const handled: number[] = [];
-		const worker = yield* boot(
-			[
-				queue.handle(({ value }) =>
-					Effect.gen(function* () {
-						handled.push(value);
-						if (handled.length === 1) {
-							yield* new RetryAt({ at: DateTime.makeUnsafe(0), reason: "next fetch" });
-						}
-					}),
-				),
-			],
-			{ migrate: false },
-		);
-		const id = Option.getOrThrow(yield* worker.jobs.enqueue(queue, { value: 42 }));
-		expect(yield* untilJob(worker.jobs, queue, id, "completed")).toMatchObject({ data: { value: 42 }, id, retryCount: 0, state: "completed" });
-		expect(handled).toEqual([42, 42]);
+	function* ({ attempts, enqueue, job, start, storedRows, untilJob }) {
+		yield* outcomes({
+			instances: [storedRows("jobs_test", "instance"), 0],
+			queues: [storedRows("jobs_test", "queue"), 0],
+			schedules: [storedRows("jobs_test", "schedule"), 0],
+		});
+
+		yield* start("app", [worker(Installed, { defers: "Next fetch", until: "now" }, "succeeds")], { migrate: false, schema: "jobs_test" });
+		yield* enqueue("app", Installed, { value: 42 }, { as: "job" });
+		yield* untilJob("job", "completed");
+
+		yield* outcomes({
+			attempts: [attempts(Installed), ["job", "job"]],
+			job: [job("job"), expect.objectContaining({ data: { value: 42 }, retryCount: 0, state: "completed" })],
+		});
 	},
 );
 
-schemaIt("cannot start a queue with migrations disabled in an empty database", [], function* ({ boot }) {
-	expect(yield* boot([], { migrate: false }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "start" });
+schemaKit.it("a runtime with migrations disabled cannot start in an empty database", [], function* ({ start, startup }) {
+	expect(yield* startup("app")).toBe("never started");
+
+	yield* start("app", [], { controller: "none", migrate: false });
+
+	expect(yield* startup("app")).toMatch(/^start failed with /u);
 });
 
-schemaIt("installs the default schema and preserves queued jobs on repeated installation", [], function* ({ boot, installSchema, untilJob }) {
-	yield* installSchema();
-	const queue = defineQueue({ name: "preserved", schema: Schema.Struct({ value: Schema.Number }) });
-	const producer = yield* boot([queue], { migrate: false, schema: "pgboss" });
-	const id = Option.getOrThrow(yield* producer.jobs.enqueue(queue, { value: 7 }));
-	yield* producer.stop;
-	yield* installSchema();
-	const handled: number[] = [];
-	const worker = yield* boot(
-		[
-			queue.handle(({ value }) =>
-				Effect.sync(() => {
-					handled.push(value);
-				}),
-			),
-		],
-		{ migrate: false, schema: "pgboss" },
-	);
-	yield* untilJob(worker.jobs, queue, id, "completed");
-	expect(handled).toEqual([7]);
-});
+const Preserved = defineQueue({ name: "preserved", schema: Schema.Struct({ value: Schema.Number }), worker: { pollingIntervalSeconds: 0.5 } });
 
-schemaIt(
-	"upgrades an older schema including its concurrent partition indexes without a worker",
-	[],
-	function* ({ boot, installSchema, query, rollbackSchema }) {
-		yield* installSchema({ schema: "jobs_test" });
-		const queue = defineQueue({ name: "partitioned", queue: { partition: true }, schema: Schema.Struct({}) });
-		const producer = yield* boot([queue], { migrate: false });
-		yield* producer.stop;
-		yield* rollbackSchema("jobs_test", 45);
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 44 }]);
-		yield* installSchema({ schema: "jobs_test" });
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 46 }]);
-		expect(
-			yield* query("SELECT tablename, indexname FROM pg_indexes WHERE schemaname = 'jobs_test' AND indexname LIKE '%i13' ORDER BY indexname"),
-		).toEqual([
-			{ indexname: expect.stringMatching(/^j[a-f0-9]+_i13$/u), tablename: expect.stringMatching(/^j[a-f0-9]+$/u) },
-			{ indexname: "job_common_i13", tablename: "job_common" },
-		]);
-		yield* boot([queue], { migrate: false });
-	},
-);
+schemaKit.it(
+	"installing the default schema again keeps the jobs already queued",
+	[
+		installed(),
+		ran("producer", [Preserved], { controller: "none", migrate: false }),
+		enqueuedBy(Preserved, { value: 7 }, "job", "producer"),
+		stopped("producer"),
+	],
+	function* ({ attempts, installSchema, job, start, untilJob }) {
+		expect(yield* job("job")).toMatchObject({ state: "created" });
 
-schemaIt(
-	"reports installation failures through the typed error channel and leaves the connection usable",
-	[],
-	function* ({ installSchema, query, checkSchema }) {
-		expect(yield* installSchema({ schema: "invalid.schema" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
-		yield* query("CREATE SCHEMA broken");
-		yield* query("CREATE TABLE broken.version (version int)");
-		yield* query("INSERT INTO broken.version VALUES (44)");
-		expect(yield* installSchema({ schema: "broken" }).pipe(Effect.flip)).toMatchObject({ _tag: "PgBossError", operation: "install" });
 		yield* installSchema();
-		expect(yield* checkSchema().pipe(Effect.exit)).toEqual(Exit.void);
+		yield* start("app", [worker(Preserved, "succeeds")], { migrate: false });
+		yield* untilJob("job", "completed");
+
+		expect(yield* attempts(Preserved)).toEqual(["job"]);
 	},
 );
+
+const Partitioned = defineQueue({ name: "partitioned", queue: { partition: true }, schema: Schema.Struct({}) });
+
+schemaKit.it(
+	"upgrading a schema two versions behind builds its concurrent partition indexes",
+	[
+		installed("jobs_test"),
+		ran("producer", [Partitioned], { controller: "none", migrate: false, schema: "jobs_test" }),
+		stopped("producer"),
+		rolledBackTo("jobs_test", TWO_VERSIONS_BEHIND),
+	],
+	function* ({ indexes, installSchema, schemaVersion }) {
+		expect(yield* schemaVersion("jobs_test")).toBe(TWO_VERSIONS_BEHIND);
+
+		yield* installSchema("jobs_test");
+
+		yield* outcomes({
+			indexes: [
+				indexes("jobs_test", "i13$"),
+				[
+					{ index: "jobs_test.job_common_i13", table: "jobs_test.job_common", valid: true },
+					{ index: "jobs_test.partition_i13", table: "jobs_test.partition", valid: true },
+				],
+			],
+			version: [schemaVersion("jobs_test"), 46],
+		});
+	},
+);
+
+for (const { broken, schema } of [
+	{ broken: [], schema: "invalid.schema" },
+	{ broken: [brokenSchema("broken")], schema: "broken" },
+]) {
+	schemaKit.it(
+		`a failed install into ${schema} answers with a typed install error and leaves the connection usable`,
+		broken,
+		function* ({ answered, checkSchema, installSchema }) {
+			yield* installSchema(schema);
+			expect(yield* answered()).toMatch(/^install failed with /u);
+
+			yield* installSchema();
+
+			yield* checkSchema();
+			expect(yield* answered()).toBe("done");
+		},
+	);
+}

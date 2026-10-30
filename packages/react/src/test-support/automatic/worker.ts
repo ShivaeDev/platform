@@ -1,7 +1,7 @@
 import process from "node:process";
 import { Effect, Layer, ManagedRuntime, Redacted, Schema } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appDatabase } from "@shivaedev/server/appHost.ts";
 import { transact } from "@shivaedev/sql/transact.ts";
 import { migrations, repository } from "./feature.ts";
@@ -14,7 +14,6 @@ const queue = defineQueue({ name: "rename-note", schema: Work, worker: { polling
 const Jobs = makePgBoss("automatic/Jobs");
 const runtime = ManagedRuntime.make(
 	Jobs.layer({
-		connectionString: config.databaseUrl,
 		jobs: [
 			queue.handle((work) =>
 				Effect.gen(function* () {
@@ -26,15 +25,16 @@ const runtime = ManagedRuntime.make(
 				}),
 			),
 		],
-		schema: config.schema,
-	}).pipe(
-		Layer.provideMerge(
-			appDatabase({
-				config: { applicationName: "automatic-worker", databaseUrl: Redacted.make(config.databaseUrl) },
-				migrations: { ...migrations, mode: "check" },
-			}),
+	})
+		.pipe(Layer.provide(pgBossLayer({ connectionString: Redacted.make(config.databaseUrl), schema: config.schema })))
+		.pipe(
+			Layer.provideMerge(
+				appDatabase({
+					config: { applicationName: "automatic-worker", databaseUrl: Redacted.make(config.databaseUrl) },
+					migrations: { ...migrations, mode: "check" },
+				}),
+			),
 		),
-	),
 );
 await runtime.runPromise(Jobs);
 process.on("message", (message) => {

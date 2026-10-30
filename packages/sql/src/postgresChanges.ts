@@ -18,8 +18,10 @@ export interface PostgresChangeClient extends SqlClient.SqlClient {
 export interface PostgresChangesOptions {
 	readonly channel: string;
 	readonly client: PostgresChangeClient;
+	readonly connectionSetting?: string;
 	readonly heartbeatInterval?: Duration.Input;
 	readonly heartbeatTimeout?: Duration.Input;
+	readonly listenerClient?: Pick<PostgresChangeClient, "listen">;
 	readonly resync: Effect.Effect<number>;
 	readonly retryDelay?: Duration.Input;
 }

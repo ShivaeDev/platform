@@ -9,6 +9,17 @@ permissionScreens.it("a permitted session opens a guarded route and reads its da
 });
 
 permissionScreens.it(
+	"a viewer with an any grant opens an own-guarded route and the server admits its query",
+	[visitor("supervisor")],
+	function* ({ route, observe }) {
+		const { host, view, router } = route();
+		yield* observe("the server's note is rendered", () => expect(view.container.querySelector("h1")?.textContent).toBe("Note first"));
+		expect(router.state.location.href).toBe("/notes/first");
+		expect(host.requests).toEqual(["POST /rpc/"]);
+	},
+);
+
+permissionScreens.it(
 	"a refused route renders the fallback at its URL without requesting its loader query",
 	[visitor("guest")],
 	function* ({ route, observe }) {
@@ -40,14 +51,18 @@ for (const [role, buttons] of [
 	[undefined, []],
 	["guest", []],
 	["reader", ["Read notes"]],
-	["supervisor", ["Read anyone's notes"]],
+	["supervisor", ["Read notes", "Read anyone's notes"]],
 ] as const) {
-	permissionScreens.it(`can shows only exact session grants for a ${role}`, [visitor(role, "/controls")], function* ({ route, observe }) {
-		const { host, view } = route();
-		yield* observe("the controls screen is rendered", () => expect(view.container.querySelector("h1")?.textContent).toBe("Controls"));
-		expect([...view.container.querySelectorAll("button")].map((button) => button.textContent)).toEqual(buttons);
-		expect(host.requests).toEqual([]);
-	});
+	permissionScreens.it(
+		`can shows the permissions covered by session grants for a ${role}`,
+		[visitor(role, "/controls")],
+		function* ({ route, observe }) {
+			const { host, view } = route();
+			yield* observe("the controls screen is rendered", () => expect(view.container.querySelector("h1")?.textContent).toBe("Controls"));
+			expect([...view.container.querySelectorAll("button")].map((button) => button.textContent)).toEqual(buttons);
+			expect(host.requests).toEqual([]);
+		},
+	);
 }
 
 permissionScreens.it(

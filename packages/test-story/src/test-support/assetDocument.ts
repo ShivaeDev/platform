@@ -31,16 +31,15 @@ export const assetDocument = storyKit({
 	name: "asset document",
 	stages: [],
 	verbs: ({ errors, requests }, story) => ({
-		heading: () => document.querySelector("h1")?.textContent,
-		loadPage: () => {
-			story.tell("navigate to the page with an external stylesheet and module script");
-			return Effect.promise(() => domNavigate("https://provider.test/page"));
+		heading: () => Effect.sync(() => document.querySelector("h1")?.textContent ?? "no heading"),
+		loadsPage: () => {
+			story.tell("navigate to the page with an external stylesheet and module script and wait for its document tasks");
+			return Effect.promise(async () => {
+				await domNavigate("https://provider.test/page");
+				await window.happyDOM.waitUntilComplete();
+			});
 		},
-		loggedErrors: () => errors.mock.calls.flat().map(String),
-		receivedRequests: () => [...requests],
-		settle: () => {
-			story.tell("wait for document tasks to finish");
-			return Effect.promise(() => window.happyDOM.waitUntilComplete());
-		},
+		loggedErrors: () => Effect.sync(() => errors.mock.calls.flat().map(String)),
+		receivedRequests: () => Effect.sync(() => [...requests]),
 	}),
 });

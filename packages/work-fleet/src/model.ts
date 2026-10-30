@@ -48,6 +48,7 @@ export const Attempt = Schema.Struct({
 });
 export type Attempt = typeof Attempt.Type;
 const cycleFields = {
+	areaQueuedAt: Schema.optional(Schema.Number),
 	areas: Schema.optional(Schema.Array(Schema.String)),
 	attempts: Schema.Array(Attempt),
 	attentionOwner: Schema.optional(AttentionOwner),

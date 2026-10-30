@@ -1,9 +1,9 @@
 import { DateTime, Effect, Option, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
+import { requirePermission } from "@shivaedev/access/requirePermission.ts";
 import type { AccessPolicy } from "@shivaedev/access/roleSet.ts";
 import { AuthUnavailable, NotFound } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { requirePermission } from "@shivaedev/identity/permission.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { AssignRoles, ReadUsers } from "#permissions.ts";
 import { AppUser, type ChangeRoleInput, LastRoleAssigner, type UserListInput } from "#users/roles.ts";
@@ -16,7 +16,7 @@ export const listUsers = Effect.fn("Admin.listUsers")(function* <TRole extends s
 	access: Pick<AccessPolicy<TRole>, "Role">,
 	input: typeof UserListInput.Type,
 ) {
-	yield* requirePermission(ReadUsers);
+	yield* requirePermission(yield* SessionUser, ReadUsers);
 	const sql = yield* SqlClient.SqlClient;
 	const read = SqlSchema.findAll({
 		execute: () => sql`select id, name, email, role, "createdAt" from "user"
@@ -34,7 +34,7 @@ export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole
 	input: ChangeRoleInput<TRole>,
 ) {
 	const actor = yield* SessionUser;
-	yield* requirePermission(AssignRoles);
+	yield* requirePermission(actor, AssignRoles);
 	const sql = yield* SqlClient.SqlClient;
 	const changed = yield* Effect.gen(function* () {
 		yield* sql`select pg_advisory_xact_lock(hashtext('platform.auth.user-roles'))`;
@@ -47,12 +47,11 @@ export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole
 		if (Option.isNone(target)) {
 			return yield* Effect.fail(new NotFound({ message: "User not found" }));
 		}
-		const next = yield* Schema.decodeUnknownEffect(access.Role)(input.role).pipe(Effect.mapError(unavailable));
-		if (target.value.role === next) {
+		if (target.value.role === input.role) {
 			return false;
 		}
 		const assigners = access.Role.literals.filter((role) => access.hasPermission(role, AssignRoles));
-		if (assigners.some((role) => role === target.value.role) && !access.hasPermission(next, AssignRoles)) {
+		if (assigners.some((role) => role === target.value.role) && !access.hasPermission(input.role, AssignRoles)) {
 			const readHolders = SqlSchema.findAll({
 				execute: () => sql`select id from "user" where role in ${sql.in(assigners)}`,
 				Request: Schema.Void,
@@ -63,7 +62,7 @@ export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole
 				return yield* Effect.fail(new LastRoleAssigner({ userId: input.userId }));
 			}
 		}
-		yield* sql`update "user" set role = ${next}, "updatedAt" = now() where id = ${input.userId}`;
+		yield* sql`update "user" set role = ${input.role}, "updatedAt" = now() where id = ${input.userId}`;
 		yield* invalidateOnCommit(["admin.users"]);
 		return true;
 	}).pipe(transact({ onSqlError: unavailable }));

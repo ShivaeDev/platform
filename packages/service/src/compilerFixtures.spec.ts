@@ -10,7 +10,7 @@ compilerStory.it(
 
 		yield* outcomes({
 			"compiler errors": [errors(), []],
-			"generic's Layer": [emitted.layer("fixture/Generic"), 'Layer.Layer<"fixture/Generic", never, never>'],
+			"generic's Layer": [emitted.layer("fixture/Generic"), 'Layer.Layer<"fixture/Generic", never, Declared>'],
 			"generic's preserve": [
 				emitted.method("fixture/Generic", "preserve"),
 				"<TSuccess, TFailure, TRequirements>(effect: Effect.Effect<TSuccess, TFailure, TRequirements>) => Effect.Effect<{ readonly value: TSuccess; }, TFailure | GenericFailure, TRequirements>",
@@ -45,11 +45,6 @@ const rejections: ReadonlyArray<readonly [definition: string, fixture: InvalidFi
 		"GenericOrStructurallyOverloadedMethodsAreUnsupported",
 	],
 	["an overloaded function marked as a generic method", "genericMarkerOverloaded", "GenericOrStructurallyOverloadedMethodsAreUnsupported"],
-	[
-		"a marked generic method on a service that declares a requirement",
-		"genericDeclaredRequirement",
-		"GenericMethodWithDeclaredRequirementsIsUnsupported",
-	],
 	["a caller reading the private state from the service", "privateState", "Property 'secret' does not exist"],
 	["a replacement Layer that leaves out the service's second method", "fake", "Property 'second' is missing"],
 ];

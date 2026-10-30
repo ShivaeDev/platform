@@ -1,40 +1,70 @@
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector, flushable } from "#test/app-host/telemetry.ts";
 
-for (const status of [HttpStatus.fromLiteral("BadRequest"), HttpStatus.fromLiteral("ServiceUnavailable"), undefined]) {
+const leakyCollector = {
+	answer: "Unsupported content type; token=hidden-collector-token",
+	env: { "OTEL_EXPORTER_OTLP_HEADERS": "authorization=hidden-exporter-secret" },
+};
+
+for (const [failure, options] of [
+	[`a ${HttpStatus.fromLiteral("BadRequest")} answer`, { status: HttpStatus.fromLiteral("BadRequest") }],
+	[`a ${HttpStatus.fromLiteral("ServiceUnavailable")} answer`, { status: HttpStatus.fromLiteral("ServiceUnavailable") }],
+	["an offline collector", { offline: true }],
+] as const) {
 	host.it(
-		`warns once on the first export failure (${status}), with the redacted collector answer when present`,
-		[
-			collector({
-				...(status === undefined ? { offline: true } : { status }),
-				answer: "Unsupported content type; token=hidden-collector-token",
-				env: { "OTEL_EXPORTER_OTLP_HEADERS": "authorization=hidden-exporter-secret" },
-			}),
-			flushable(),
-		],
-		function* ({ ping, flush, close, logs, exports }) {
-			expect(yield* ping()).toBe("pong");
-			yield* flush();
-			expect(yield* ping()).toBe("pong");
-			yield* flush();
-			yield* close();
-			const warnings = logs().filter(({ level }) => level === "Warn");
-			expect(warnings).toMatchObject([{ message: ["OTLP trace export failed"] }]);
-			if (status === undefined) {
-				expect(warnings[0]?.annotations).toMatchObject({ "otlp.failure": "TransportError" });
-			} else {
-				expect(exports().slice(0, warnings[0]?.attempt)).toMatchObject([{ path: "/v1/traces" }]);
-				expect(warnings[0]?.annotations).toMatchObject({ "otlp.response": "Unsupported content type; token=<redacted>", "otlp.status": status });
-			}
-			expect(JSON.stringify(logs())).not.toContain("hidden-");
+		`two exports failing with ${failure} warn once`,
+		[collector({ ...leakyCollector, ...options }), flushable()],
+		function* ({ exportWarnings, flushedRequest }) {
+			yield* flushedRequest();
+			yield* flushedRequest();
+
+			expect(yield* exportWarnings()).toMatchObject([{ message: "OTLP trace export failed" }]);
 		},
-		10_000,
+	);
+
+	host.it(
+		`the warning for ${failure} carries neither the exporter's header nor the collector's token`,
+		[collector({ ...leakyCollector, ...options }), flushable()],
+		function* ({ exportWarnings, flushedRequest, logMentions }) {
+			yield* flushedRequest();
+
+			yield* outcomes({
+				"leaked secrets": [logMentions("hidden-exporter-secret", "hidden-collector-token"), []],
+				"warnings": [exportWarnings(), [expect.objectContaining({ message: "OTLP trace export failed" })]],
+			});
+		},
 	);
 }
+
+for (const status of [HttpStatus.fromLiteral("BadRequest"), HttpStatus.fromLiteral("ServiceUnavailable")]) {
+	host.it(
+		`the warning for a ${status} answer names the status and the collector's redacted answer`,
+		[collector({ ...leakyCollector, status }), flushable()],
+		function* ({ exportWarnings, flushedRequest }) {
+			yield* flushedRequest();
+
+			expect(yield* exportWarnings()).toMatchObject([
+				{ annotations: { "otlp.response": "Unsupported content type; token=<redacted>", "otlp.status": status } },
+			]);
+		},
+	);
+}
+
 host.it(
-	"warns again after the collector recovers",
+	"the warning for an offline collector names a transport failure",
+	[collector({ offline: true }), flushable()],
+	function* ({ exportWarnings, flushedRequest }) {
+		yield* flushedRequest();
+
+		expect(yield* exportWarnings()).toMatchObject([{ annotations: { "otlp.failure": "TransportError" } }]);
+	},
+);
+
+host.it(
+	"export warnings return after the collector recovers",
 	[
 		collector({
 			status: (attempt) =>
@@ -46,15 +76,12 @@ host.it(
 				][attempt - 1] ?? HttpStatus.fromLiteral("OK"),
 		}),
 	],
-	function* ({ ping, collectorResponses }) {
-		expect(yield* ping()).toBe("pong");
-		expect(
-			yield* collectorResponses([
-				HttpStatus.fromLiteral("BadRequest"),
-				HttpStatus.fromLiteral("BadRequest"),
-				HttpStatus.fromLiteral("OK"),
-				HttpStatus.fromLiteral("BadRequest"),
-			]),
-		).toEqual([1, 1, 1, 2]);
+	function* ({ collectorAnswers }) {
+		expect(yield* collectorAnswers(4)).toEqual([
+			`${HttpStatus.fromLiteral("BadRequest")} warned`,
+			`${HttpStatus.fromLiteral("BadRequest")} quiet`,
+			`${HttpStatus.fromLiteral("OK")} quiet`,
+			`${HttpStatus.fromLiteral("BadRequest")} warned`,
+		]);
 	},
 );

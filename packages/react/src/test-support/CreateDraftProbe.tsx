@@ -5,12 +5,12 @@ import { useCreate } from "#client/create.ts";
 import type { ProbeProps } from "./createDraftFields.ts";
 import { DraftFields, draftInitial, draftRuntime } from "./draftFields.ts";
 
-export function CreateDraftProbe({ create, held }: ProbeProps) {
+export function CreateDraftProbe({ create, held, now }: ProbeProps) {
 	held.created = useCreate({
 		create,
 		fields: DraftFields,
 		initialValues: draftInitial,
-		persistedDraft: { key: "create-draft" },
+		persistedDraft: { key: "create-draft", now },
 		runtime: draftRuntime,
 	});
 	held.form = held.created.form;
@@ -27,8 +27,8 @@ export function CreateDraftProbe({ create, held }: ProbeProps) {
 		</form>
 	);
 }
-export function DirectDraftProbe({ create, held }: ProbeProps) {
-	const persistedDraft = usePersistedDraft({ key: "direct-draft" });
+export function DirectDraftProbe({ create, held, now }: ProbeProps) {
+	const persistedDraft = usePersistedDraft({ key: "direct-draft", now });
 	const [currentForm] = useState(() => form(DraftFields, { initialValues: draftInitial, onSubmit: create, persistedDraft, runtime: draftRuntime }));
 	held.form = currentForm;
 	const name = useField(currentForm, "name");

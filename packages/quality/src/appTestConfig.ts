@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { type TestProjectsOptions, testProjects } from "#testProjects.ts";
+import { type TestProjectsOptions, testProjects } from "#adapters/testProjects.ts";
 
 export function appTestConfig(conditions: string[] = [], options: Pick<TestProjectsOptions, "coverage"> = {}) {
 	return defineConfig({

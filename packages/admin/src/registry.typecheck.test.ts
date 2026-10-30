@@ -1,9 +1,13 @@
 import { Context, Effect, Layer, Schema, Stream } from "effect";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { expectTypeOf } from "vitest";
+import { contract } from "@shivaedev/contract/contract.ts";
+import { query } from "@shivaedev/contract/operation.ts";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
+import { adminPage } from "#page.ts";
+import { JobsPermission } from "#permissions.ts";
 import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
 import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
@@ -30,8 +34,8 @@ const users = Users.contract.application.toLayer({ "admin.users.profile": () => 
 const registration = registerAdmin(Registry, { jobs, users });
 expectTypeOf<Layer.Services<typeof registration.handlers>>().toEqualTypeOf<JobStore | Configuration>();
 expectTypeOf<Layer.Error<typeof registration.handlers>>().toEqualTypeOf<SetupFailed>();
-expectTypeOf(Jobs.contract.declaration).toEqualTypeOf(JobsContract.declaration);
-expectTypeOf(Jobs.contract.declaration.queries[0]).toEqualTypeOf(Failed);
+expectTypeOf(Jobs.contract.declaration.commands).toEqualTypeOf(JobsContract.declaration.commands);
+expectTypeOf(Jobs.contract.declaration.queries[0].payload).toEqualTypeOf(Failed.payload);
 expectTypeOf(Users.contract.declaration.commands).toEqualTypeOf<readonly []>();
 expectTypeOf<RpcGroup.Rpcs<typeof Users.contract>["_tag"]>().toEqualTypeOf<"admin.users.profile" | "admin.users.$changes">();
 
@@ -77,3 +81,16 @@ mergeAdminRegistrations(adminRegistry(Jobs), usersModule);
 
 // @ts-expect-error A module cannot bypass handler registration with an empty Layer.
 mergeAdminRegistrations({ ...adminRegistry(Jobs), handlers: Layer.empty });
+
+class PolicyStore extends Context.Service<PolicyStore, boolean>()("test/PolicyStore") {}
+const PolicyPage = adminPage({
+	contract: contract("admin.policy", { queries: [query("read", { readPolicy: () => PolicyStore, reads: () => [] })] }),
+	id: "policy",
+	permission: JobsPermission,
+	route: { path: "/admin/policy", title: "Policy" },
+});
+const policyHandlers = PolicyPage.contract.application.toLayer({ "admin.policy.read": () => Effect.void });
+expectTypeOf<Layer.Services<typeof policyHandlers>>().toEqualTypeOf<PolicyStore>();
+// @ts-expect-error The page middleware does not provide the query policy's application service.
+const missingPolicyStore: Layer.Layer<Layer.Success<typeof policyHandlers>> = policyHandlers;
+void missingPolicyStore;

@@ -8,6 +8,7 @@ const root = fileURLToPath(new URL("../..", import.meta.url));
 
 export interface StoriesRun {
 	readonly allowOnly?: boolean;
+	readonly env?: Readonly<Record<string, string>>;
 	readonly environment?: string;
 	readonly include: string;
 	readonly tags?: readonly GenreTag[];
@@ -16,7 +17,8 @@ export interface StoriesRun {
 }
 
 export interface StoryResult {
-	readonly diffs?: readonly (string | undefined)[];
+	readonly causes: readonly (string | undefined)[];
+	readonly diffs: readonly (string | undefined)[];
 	readonly errors: readonly string[];
 	readonly name: string;
 	readonly state: string;
@@ -31,6 +33,7 @@ export interface StoriesOutcome {
 
 export async function runStories({
 	allowOnly = false,
+	env = {},
 	environment,
 	include,
 	tags = [],
@@ -44,6 +47,7 @@ export async function runStories({
 		{
 			allowOnly,
 			config: false,
+			env: { ...env },
 			...(environment === undefined ? {} : { environment }),
 			include: [include],
 			reporters: [],
@@ -64,15 +68,17 @@ export async function runStories({
 				...vitest.state.getUnhandledErrors().map((error) => (error instanceof Error ? error.message : String(error))),
 			],
 			stories: testModules.flatMap((module) =>
-				[...module.children.allTests()].map((test) => ({
-					...(test.result().errors?.length
-						? { diffs: (test.result().errors ?? []).map(({ diff }) => (diff === undefined ? undefined : stripVTControlCharacters(diff))) }
-						: {}),
-					errors: (test.result().errors ?? []).map((error) => error.message),
-					name: test.name,
-					state: test.result().state,
-					tags: test.tags,
-				})),
+				[...module.children.allTests()].map((test) => {
+					const errors = test.result().errors ?? [];
+					return {
+						causes: errors.map(({ cause }) => cause?.message),
+						diffs: errors.map(({ diff }) => (diff === undefined ? undefined : stripVTControlCharacters(diff))),
+						errors: errors.map((error) => error.message),
+						name: test.name,
+						state: test.result().state,
+						tags: test.tags,
+					};
+				}),
 			),
 			warnings,
 		};

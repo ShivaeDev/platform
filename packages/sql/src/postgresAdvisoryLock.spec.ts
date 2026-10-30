@@ -1,76 +1,65 @@
-import { Cause, Effect, Exit, Fiber } from "effect";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { AdvisoryLockOutsideTransaction } from "#advisoryXactLock.ts";
-import { Rejected } from "#test/postgresTransact.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { advisoryLocks, type HolderEnding, holderHolds } from "#test/advisoryLocks.ts";
 
-postgres.it("the same bigint advisory key waits until the holding transaction commits", [], function* ({ advisoryXactLock, raceWithLock, transact }) {
-	const key = 9_223_372_036_854_775_807n;
+const KEYS = [
+	{ expression: "bigint", key: 9_223_372_036_854_775_807n, takes: "exactly that signed 64-bit value" },
+	{ expression: "hashtextextended", key: "sql-stories:hashed-advisory-key", takes: "hashtextextended of the string with seed zero" },
+] as const;
 
-	const results = yield* raceWithLock({
-		effects: [advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }))],
-		lock: advisoryXactLock(key),
-		release: "commit",
+for (const { expression, key, takes } of KEYS) {
+	advisoryLocks.it(`a ${typeof key} key takes the PostgreSQL advisory lock on ${takes}`, [holderHolds(key)], function* ({ rawSqlCallerTries }) {
+		const tried = yield* rawSqlCallerTries(expression);
+
+		expect(tried).toBe("already held");
 	});
+}
 
-	expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual([undefined]);
-});
+const ENDINGS: ReadonlyArray<readonly [HolderEnding, string]> = [
+	["commits", "committed"],
+	["rolls back", "failed with rolled back"],
+	["is interrupted", "interrupted"],
+];
 
-postgres.it(
-	"different advisory keys proceed while a holding transaction remains open",
-	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, sql, transact }) {
-		const key = crypto.randomUUID();
-		const held = yield* holdAdvisoryLock(key);
-		expect(
-			yield* sql`select pg_try_advisory_xact_lock(hashtextextended(${key}, 0)) as acquired`.pipe(transact({ onSqlError: (error) => error })),
-		).toEqual([{ acquired: false }]);
-		expect(yield* advisoryXactLock(`${key}:other`).pipe(transact({ onSqlError: (error) => error }), Effect.timeout("3 seconds"))).toBeUndefined();
-		expect(held.fiber.pollUnsafe()).toBeUndefined();
-		yield* held.commit;
-		yield* Fiber.join(held.fiber);
+for (const [how, ending] of ENDINGS) {
+	advisoryLocks.it(
+		`a contender on the same key waits until the holder's transaction ${how}, then takes the lock`,
+		[holderHolds("sql-stories:shared-advisory-key")],
+		function* ({ contenderEnding, contenderTakes, holderEnding, holderEnds }) {
+			expect(yield* contenderTakes("sql-stories:shared-advisory-key")).toBe("waiting");
+
+			yield* holderEnds(how);
+
+			yield* outcomes({
+				contender: [contenderEnding(), "acquired"],
+				holder: [holderEnding(), ending],
+			});
+		},
+	);
+}
+
+advisoryLocks.it(
+	"a contender on a different key takes its lock at once while the holder's transaction stays open",
+	[holderHolds("sql-stories:held-advisory-key")],
+	function* ({ contenderTakes, holderState }) {
+		const taken = yield* contenderTakes("sql-stories:held-advisory-key:other");
+
+		yield* outcomes({
+			contender: [contenderTakes("sql-stories:held-advisory-key:other"), "acquired"],
+			holder: [holderState(), "still holding"],
+		});
+		expect(taken).toBe("acquired");
 	},
 );
 
-postgres.it(
-	"string advisory keys use hashtextextended with seed zero and release on rollback",
-	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, sql, transact, waitingOn }) {
-		const key = crypto.randomUUID();
-		const [hashed] = yield* sql<{ key: string }>`select hashtextextended(${key}, 0)::text as key`;
-		if (hashed === undefined) {
-			return yield* Effect.die("PostgreSQL did not return a hash");
-		}
-		const held = yield* holdAdvisoryLock(BigInt(hashed.key));
-		const second = yield* advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }), Effect.forkScoped);
-		yield* eventually(waitingOn(held.pid).pipe(Effect.flatMap((waiting) => Effect.try(() => expect(waiting).toBe(true))))).pipe(
-			Effect.timeout("3 seconds"),
-		);
-		yield* held.rollback;
-		expect(yield* Fiber.join(held.fiber).pipe(Effect.flip)).toBeInstanceOf(Rejected);
-		expect(yield* Fiber.join(second).pipe(Effect.timeout("3 seconds"))).toBeUndefined();
-	},
-);
+for (const key of [1n, "job"]) {
+	advisoryLocks.it(
+		`an advisory lock on a ${typeof key} key outside a transaction fails with AdvisoryLockOutsideTransaction`,
+		[],
+		function* ({ lockOutsideTransaction }) {
+			const ending = yield* lockOutsideTransaction(key);
 
-postgres.it(
-	"interrupting the holding fiber releases its transaction advisory lock",
-	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, transact, waitingOn }) {
-		const key = crypto.randomUUID();
-		const held = yield* holdAdvisoryLock(key);
-		const second = yield* advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }), Effect.forkScoped);
-		yield* eventually(waitingOn(held.pid).pipe(Effect.flatMap((waiting) => Effect.try(() => expect(waiting).toBe(true))))).pipe(
-			Effect.timeout("3 seconds"),
-		);
-		yield* Fiber.interrupt(held.fiber);
-		const exit = yield* Fiber.await(held.fiber);
-		expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);
-		expect(yield* Fiber.join(second).pipe(Effect.timeout("3 seconds"))).toBeUndefined();
-	},
-);
-
-postgres.it("an advisory lock outside a transaction fails with a typed error", [], function* ({ advisoryXactLock }) {
-	expect(yield* advisoryXactLock(1n).pipe(Effect.flip)).toBeInstanceOf(AdvisoryLockOutsideTransaction);
-	expect(yield* advisoryXactLock("job").pipe(Effect.flip)).toMatchObject({ _tag: "AdvisoryLockOutsideTransaction" });
-});
+			expect(ending).toBe("failed with advisory lock outside transaction");
+		},
+	);
+}

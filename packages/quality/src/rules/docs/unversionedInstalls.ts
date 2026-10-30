@@ -46,7 +46,7 @@ const unversionedInstalls = Effect.fn("Docs.unversionedInstalls")(function* (inp
 });
 
 export const docsUnversionedInstalls = defineRule({
-	check: (inputs) => Effect.runPromise(unversionedInstalls(inputs)),
+	check: unversionedInstalls,
 	description:
 		"Install commands in Markdown name packages without versions, so documentation never tells a reader to install a release it has already left behind.",
 	id: "docs/unversioned-installs",

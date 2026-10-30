@@ -1,52 +1,73 @@
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { AppChanges } from "#appHost.ts";
 import { failedRoute, lifecycleServices, rpcPath } from "#test/app-host/options.ts";
 import { configuration, environment, host, sessionPolicy } from "#test/app-host/story.ts";
 
-for (const policy of [[], [sessionPolicy]]) {
-	host.it(`omitting services serves RPC with ${policy.length > 0 ? "sessions" : "loopback policy"}`, policy, function* ({ ping }) {
+for (const [policy, traits] of [
+	["the loopback policy", []],
+	["a session policy", [sessionPolicy]],
+] as const) {
+	host.it(`a host without services serves native RPC under ${policy}`, traits, function* ({ ping }) {
 		expect(yield* ping()).toBe("pong");
 	});
 }
-host.it(
-	"omitting migrations serves RPC without database configuration or SQL services",
-	[lifecycleServices],
-	function* ({ ping, health, hasService, lifecycle, close, request }) {
-		expect(yield* ping()).toBe("pong");
-		expect(yield* health()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
-		expect(yield* hasService(SqlClient.SqlClient)).toBe(false);
-		expect(yield* hasService(AppChanges)).toBe(false);
-		expect(lifecycle()).toEqual(["started"]);
-		yield* close();
-		expect(lifecycle()).toEqual(["started", "closed"]);
-		expect(yield* Effect.result(request())).toMatchObject({ _tag: "Failure" });
-	},
-);
-host.it("rpcPath serves the native client at the chosen route instead of /rpc", [sessionPolicy, rpcPath("/custom/rpc")], function* ({ ping, post }) {
-	expect(yield* ping()).toBe("pong");
-	const status = yield* post({});
-	expect(status).toBe(HttpStatus.fromLiteral("NotFound"));
+
+host.it("a host without migrations answers health as service unavailable", [lifecycleServices], function* ({ health }) {
+	expect(yield* health()).toMatchObject({ body: "", status: HttpStatus.fromLiteral("ServiceUnavailable") });
 });
-host.it(
-	"loopback policy refuses origin, Host, content type and proxy forwarding",
-	[configuration({ trustedProxy: "127.0.0.1" }), environment({ "TRUSTED_PROXY": "127.0.0.1" })],
-	function* ({ ping, post }) {
-		expect(yield* ping()).toBe("pong");
-		for (const headers of [
-			{ origin: "https://elsewhere.test" },
-			{ host: "elsewhere.test" },
-			{ "content-type": "application/json" },
-			{ host: "elsewhere.test", origin: "https://elsewhere.test", "x-forwarded-host": "elsewhere.test", "x-forwarded-proto": "https" },
-		]) {
-			const status = yield* post(headers);
-			expect(status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		}
-	},
-);
-host.it("application routes retain native typed failures at the HTTP boundary", [failedRoute], function* ({ request, ping }) {
-	expect((yield* request("/failed")).status).toBe(HttpStatus.fromLiteral("InternalServerError"));
+
+host.it("a host without migrations provides neither SQL nor app changes", [lifecycleServices], function* ({ provided }) {
+	yield* outcomes({
+		"app changes": [provided(AppChanges), "missing"],
+		"SQL client": [provided(SqlClient.SqlClient), "missing"],
+	});
+});
+
+host.it("closing the host releases the application services' scope", [lifecycleServices], function* ({ close, serviceLifecycle }) {
+	expect(yield* serviceLifecycle()).toEqual(["started"]);
+
+	yield* close();
+
+	expect(yield* serviceLifecycle()).toEqual(["started", "closed"]);
+});
+
+host.it("a closed host refuses HTTP connections", [lifecycleServices], function* ({ close, httpAnswer }) {
+	expect(yield* httpAnswer()).toBe("answers");
+
+	yield* close();
+
+	expect(yield* httpAnswer()).toBe("refuses connections");
+});
+
+host.it("rpcPath serves native RPC at the chosen route", [sessionPolicy, rpcPath("/custom/rpc")], function* ({ ping }) {
 	expect(yield* ping()).toBe("pong");
+});
+
+host.it("rpcPath leaves /rpc unrouted", [sessionPolicy, rpcPath("/custom/rpc")], function* ({ postRpc }) {
+	expect(yield* postRpc({})).toBe(HttpStatus.fromLiteral("NotFound"));
+});
+
+for (const [request, headers] of [
+	["a foreign origin", { origin: "https://elsewhere.test" }],
+	["a foreign Host header", { host: "elsewhere.test" }],
+	["a JSON content type", { "content-type": "application/json" }],
+	[
+		"forwarded host and protocol headers",
+		{ host: "elsewhere.test", origin: "https://elsewhere.test", "x-forwarded-host": "elsewhere.test", "x-forwarded-proto": "https" },
+	],
+] as const) {
+	host.it(
+		`the loopback policy forbids an RPC post with ${request} even with proxy trust configured`,
+		[configuration({ trustedProxy: "127.0.0.1" }), environment({ "TRUSTED_PROXY": "127.0.0.1" })],
+		function* ({ postRpc }) {
+			expect(yield* postRpc(headers)).toBe(HttpStatus.fromLiteral("Forbidden"));
+		},
+	);
+}
+
+host.it("an application route's typed InternalServerError answers HTTP 500", [failedRoute], function* ({ request }) {
+	expect(yield* request("/failed")).toMatchObject({ status: HttpStatus.fromLiteral("InternalServerError") });
 });

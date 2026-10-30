@@ -1,9 +1,10 @@
-import { readdirSync, renameSync } from "node:fs";
+import { renameSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { Fleet } from "#fleet.ts";
 import type { FleetConfiguration } from "#policy.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
+import { storedBoardResponses } from "#test/storedBoard.ts";
 import { answerWorker, askWorker } from "#test/workerQuestion.ts";
 import { workerReportReply } from "#test/workerReportReply.ts";
 
@@ -17,7 +18,7 @@ export function engineRecoveryVerbs(state: EngineStory, tell: (line: string) => 
 		answerWorker: (...args: Parameters<typeof answerWorker> extends [string, ...infer TRest] ? TRest : never) => answerWorker(state.root, ...args),
 		archivedSessions: () => [...fixture.archived],
 		askWorker: () => askWorker(fixture).pipe(Effect.provideService(Fleet, running(state).fleet)),
-		boardResponseFiles: () => readdirSync(join(state.root, "responses")).filter((file) => !file.startsWith("request-receipt.")),
+		boardResponseFiles: () => storedBoardResponses(state.root).filter((file) => !file.startsWith("request-receipt.")),
 		disconnectReads: () => [...(state.recovery.disconnect?.reads ?? [])],
 		disconnectSubmissions: () => [...(state.recovery.disconnect?.submissions ?? [])],
 		failTurnObservation: (turnId: string) => {

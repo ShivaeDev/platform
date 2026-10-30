@@ -19,7 +19,8 @@ export function identity(index: Effect.Success<ReturnType<typeof searchSnapshot>
 		} catch {
 			id = "";
 		}
-		const snapshot = yield* index;
+		const current = yield* index;
+		const snapshot = yield* current.archived?.(id) ?? Effect.succeed(current);
 		const matches = snapshot.model.ids.get(id) ?? [];
 		if (snapshot.unavailable.length === 0 && matches.length === 1 && matches[0]) {
 			return yield* pages(request, matches[0].file, id);

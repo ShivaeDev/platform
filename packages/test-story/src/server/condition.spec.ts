@@ -1,52 +1,65 @@
-import { expect, it } from "vitest";
+import { expect } from "vitest";
 import { genreTags } from "#genreTags.ts";
-import { runStories } from "#test/runStories.ts";
+import { outcomes } from "#outcomes.ts";
+import { storyRunner } from "#test/storyRunner.ts";
 
-it("skips every variant of a disabled kit without executing setup or body", async () => {
-	const result = await runStories({ include: "src/test-support/disabledStories.ts", tags: genreTags("bakery") });
-	expect(result).toEqual({
-		moduleErrors: [],
-		stories: [
-			...["plain", "fails", "only", "skip", "runIf true", "runIf false", "skipIf false", "skipIf true"].map((variant) => ({
-				errors: [],
-				name: `Bakery Story: ${variant}`,
-				state: "skipped",
-				tags: ["bakery-story"],
-			})),
-			{ errors: [], name: "never acquires the layer or runs around, creation, traits or bodies", state: "passed", tags: [] },
-		],
-		warnings: [],
+const BAKERY_TAGS = { tags: genreTags("bakery") };
+const VARIANTS = ["plain", "fails", "only", "skip", "runIf true", "runIf false", "skipIf false", "skipIf true"];
+
+storyRunner.it("skips every story of a disabled kit, the focused one included", [], function* ({ results, run }) {
+	yield* run("disabledStories", BAKERY_TAGS);
+
+	expect(yield* results()).toEqual(VARIANTS.map((variant) => `Bakery Story: ${variant} [bakery-story]: skipped`));
+});
+
+storyRunner.it("skips a story of a kit that extends a disabled kit without running its setup", [], function* ({ lifetime, results, run }) {
+	yield* run("composedDisabledStories", BAKERY_TAGS);
+
+	yield* outcomes({
+		results: [results(), ["Bakery Story: joins a disabled bakery [bakery-story]: skipped"]],
+		"what ran": [lifetime(), []],
 	});
 });
 
-it("runs enabled variants, inverts fails and preserves explicit skips", async () => {
-	const result = await runStories({ include: "src/test-support/enabledStories.ts", tags: genreTags("bakery") });
-	expect(result).toEqual({
-		moduleErrors: [],
-		stories: [
-			...[
-				["plain", "passed"],
-				["fails", "passed"],
-				["skip", "skipped"],
-				["runIf true", "passed"],
-				["runIf false", "skipped"],
-				["skipIf false", "passed"],
-				["skipIf true", "skipped"],
-			].map(([variant, state]) => ({ errors: [], name: `Bakery Story: ${variant}`, state, tags: ["bakery-story"] })),
-			{ errors: [], name: "runs setup and body for each enabled story", state: "passed", tags: [] },
-		],
-		warnings: [],
-	});
+storyRunner.it("never acquires a disabled kit's layer or runs its around, creation, traits or bodies", [], function* ({ lifetime, run }) {
+	yield* run("disabledStories", BAKERY_TAGS);
+
+	expect(yield* lifetime()).toEqual([]);
 });
 
-it("runs only the focused story in an enabled kit", async () => {
-	const result = await runStories({ allowOnly: true, include: "src/test-support/onlyStories.ts", tags: genreTags("bakery") });
-	expect(result).toEqual({
-		moduleErrors: [],
-		stories: [
-			{ errors: [], name: "Bakery Story: focused", state: "passed", tags: ["bakery-story"] },
-			{ errors: [], name: "Bakery Story: plain", state: "skipped", tags: ["bakery-story"] },
-		],
-		warnings: [],
+for (const [variant, outcome] of [
+	["plain", "passed"],
+	["fails", "passed"],
+	["runIf true", "passed"],
+	["skipIf false", "passed"],
+] as const) {
+	storyRunner.it(
+		`runs the setup and body of an enabled kit's ${variant} story and reports it ${outcome}`,
+		[],
+		function* ({ lifetime, outcome: outcomeOf, runStory }) {
+			yield* runStory("enabledStories", `Bakery Story: ${variant}`, BAKERY_TAGS);
+
+			yield* outcomes({
+				outcome: [outcomeOf(), outcome],
+				"what ran": [lifetime(), ["layer", "around", "create", "trait", "body"]],
+			});
+		},
+	);
+}
+
+for (const variant of ["skip", "runIf false", "skipIf true"]) {
+	storyRunner.it(`skips an enabled kit's ${variant} story without running its setup`, [], function* ({ lifetime, outcome, runStory }) {
+		yield* runStory("enabledStories", `Bakery Story: ${variant}`, BAKERY_TAGS);
+
+		yield* outcomes({
+			outcome: [outcome(), "skipped"],
+			"what ran": [lifetime(), []],
+		});
 	});
+}
+
+storyRunner.it("runs only the focused story of an enabled kit", [], function* ({ results, run }) {
+	yield* run("onlyStories", { ...BAKERY_TAGS, allowOnly: true });
+
+	expect(yield* results()).toEqual(["Bakery Story: focused [bakery-story]: passed", "Bakery Story: plain [bakery-story]: skipped"]);
 });

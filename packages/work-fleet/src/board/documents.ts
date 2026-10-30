@@ -51,9 +51,17 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 		),
 	);
 	const reads = batches.flat();
+	const moved = new Set(
+		yield* boardApi
+			.archiveSettled(
+				root,
+				reads.flatMap(({ document }) => (document ? [document] : [])),
+			)
+			.pipe(Effect.mapError((error) => new BoardFailure({ message: `Settled Board records could not be archived: ${error.message}` }))),
+	);
 	const problems = new Map(reads.flatMap(({ file, problem }) => (problem === undefined ? [] : [[file, problem] as const])));
 	return new BoardSnapshot(
-		reads.flatMap(({ document }) => (document === undefined ? [] : [document])),
+		reads.flatMap(({ document }) => (document === undefined || moved.has(document.file) ? [] : [document])),
 		problems,
 	);
 });

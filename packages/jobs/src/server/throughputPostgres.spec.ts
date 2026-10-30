@@ -1,45 +1,46 @@
-import { Effect, Schema } from "effect";
+import { Schema } from "effect";
 import type { WorkOptions } from "pg-boss";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import { database } from "#test/postgres/database.ts";
+import { storedTogether } from "#test/postgres/traits.ts";
+import { worker } from "#test/workers.ts";
 
-const cases: readonly { name: string; worker: WorkOptions; duration: number; concurrency: number }[] = [
-	{ concurrency: 1, duration: 20, name: "defaults", worker: {} },
-	{ concurrency: 5, duration: 100, name: "configured batches and local concurrency", worker: { batchSize: 2, localConcurrency: 5 } },
+const POLLING_INTERVAL_SECONDS = 10;
+const ids = Array.from({ length: 30 }, (_, id) => id);
+
+const settings: readonly { readonly concurrency: number; readonly name: string; readonly options: WorkOptions }[] = [
+	{ concurrency: 1, name: "default worker settings", options: {} },
+	{ concurrency: 5, name: "batches of two and a local concurrency of five", options: { batchSize: 2, localConcurrency: 5 } },
 ];
 
-for (const { worker, duration, concurrency, name } of cases) {
-	postgresIt(`drains 30 notification jobs with ${name} without waiting for polling`, [realPostgres], function* ({ boot, native, seed, untilJobs }) {
-		const Queue = defineQueue({
-			name: "backlog",
-			queue: { notify: true },
-			schema: Schema.Struct({ id: Schema.Number }),
-			worker: { pollingIntervalSeconds: 10, ...worker },
-		});
-		const client = native({ useListenNotify: true });
-		const handled: number[] = [];
-		let active = 0;
-		let peak = 0;
-		const handler = Queue.handle(({ id }) =>
-			Effect.gen(function* () {
-				active += 1;
-				peak = Math.max(peak, active);
-				yield* Effect.sleep(duration);
-				handled.push(id);
-				active -= 1;
-			}),
-		);
-		yield* seed(
-			Queue,
-			Array.from({ length: 30 }, (_, id) => ({ data: { id } })),
-			client,
-		);
-		const started = performance.now();
-		yield* boot([handler], { clientFactory: () => client });
-		yield* untilJobs(client, Queue.name, (jobs) => jobs.filter((job) => job.state === "completed").length === 30, 2500);
-		expect(performance.now() - started).toBeLessThan(2500);
-		expect([...handled].sort((left, right) => left - right)).toEqual(Array.from({ length: 30 }, (_, id) => id));
-		expect(peak).toBe(concurrency);
+for (const { concurrency, name, options } of settings) {
+	const Backlog = defineQueue({
+		name: "backlog",
+		queue: { notify: true },
+		schema: Schema.Struct({ id: Schema.Number }),
+		worker: { pollingIntervalSeconds: POLLING_INTERVAL_SECONDS, ...options },
 	});
+	const backlog = storedTogether(
+		Backlog,
+		ids.map((id) => ({ as: `job ${id}`, data: { id } })),
+	);
+
+	database.it(
+		`a worker with ${name} drains a backlog of thirty jobs before its next poll`,
+		[backlog],
+		function* ({ attemptCounts, drained, mostRunningAtOnce, start, untilFinished }) {
+			expect(yield* attemptCounts(Backlog)).toEqual({});
+
+			yield* start("app", [worker(Backlog, { waitsUntilRunning: concurrency })], { useListenNotify: true });
+			yield* untilFinished(Backlog, ids.length);
+
+			yield* outcomes({
+				"attempts": [attemptCounts(Backlog), Object.fromEntries(ids.map((id) => [`job ${id}`, 1]))],
+				"drained": [drained("app", Backlog), "before the worker's next poll"],
+				"most running at once": [mostRunningAtOnce(Backlog), concurrency],
+			});
+		},
+	);
 }

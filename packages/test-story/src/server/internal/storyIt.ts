@@ -4,6 +4,7 @@ import { Effect, Layer } from "effect";
 import * as TestCrypto from "effect/testing/TestCrypto";
 import { makeEffectIt } from "@shivaedev/test/makeEffectIt.ts";
 import type { EffectTest, EffectTestOptions } from "@shivaedev/test/types.ts";
+import { freshDocument, inDom } from "#internal/domDocument.ts";
 import { type Genre, genreOf } from "#internal/genre.ts";
 import { type AnyEffect, hooked } from "#internal/hooked.ts";
 import type { LooseDefinition, LooseTrait } from "#internal/seed.ts";
@@ -54,10 +55,11 @@ function declaring(definition: LooseDefinition, genre: Genre, declare: EffectTes
 
 export function storyIt(definition: LooseDefinition): LooseIt {
 	const genre = genreOf(definition.name);
-	const outbound = definition.outbound ?? (Reflect.get(globalThis, Symbol.for("test-story.dom")) ? {} : undefined);
+	const outbound = definition.outbound ?? (inDom() ? {} : undefined);
 	const { effectApp } = makeEffectIt({
 		around: (effect) =>
 			Effect.gen(function* () {
+				yield* freshDocument;
 				if (outbound !== undefined) {
 					yield* routeOutbound(outbound, { passthrough: definition.outboundPassthrough === true });
 				}

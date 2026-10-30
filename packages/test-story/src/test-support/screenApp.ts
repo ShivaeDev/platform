@@ -3,6 +3,7 @@ import { fakeHttpService } from "#fakeHttpService.ts";
 import { routeOutbound } from "#routeOutbound.ts";
 import { screenDriver } from "#screenDriver.ts";
 import { storyKit } from "#storyKit.ts";
+import { background } from "./attempt.ts";
 import { pendingScreen } from "./pendingScreen.ts";
 
 export const screenApp = storyKit({
@@ -46,15 +47,23 @@ export const screenApp = storyKit({
 	stages: ["screen"],
 	verbs: ({ app, root, repaints, service }, story) => {
 		service.narrate(story.tell);
+		const driver = screenDriver({ pending: app.pending, root, tell: story.tell });
+		const settling = background();
 		return {
-			...screenDriver({ pending: app.pending, root, tell: story.tell }),
+			...driver,
 			holdNews: () =>
 				Effect.gen(function* () {
 					const hold = yield* service.hold("news");
 					yield* Effect.addFinalizer(() => hold.release);
 					return hold;
 				}),
+			narration: () => Effect.sync(() => story.lines),
+			output: () => Effect.sync(() => driver.text("output")),
 			repaints: (count: number) => Effect.promise(() => repaints(count)),
+			screenText: () => Effect.sync(() => driver.text().replace(/\s+/gu, " ")),
+			settled: () => settling.finished("settle"),
+			settling: () => settling.progress("settle", "still settling"),
+			startsSettling: () => settling.starts("settle", driver.settle()),
 			withoutPending: screenDriver({ root, tell: story.tell }),
 		};
 	},

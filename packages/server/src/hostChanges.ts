@@ -4,9 +4,11 @@ import type { Rpc, RpcGroup } from "effect/rpc";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
+import { recheckSession } from "@shivaedev/identity/server/recheckSession.ts";
+import type { SessionPolicy, SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
-import type { AppChanges } from "./appHost.ts";
+import { revalidateSession } from "@shivaedev/identity/server/socketSession.ts";
+import type { AppChanges } from "#appHost.ts";
 
 export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 	group: RpcGroup.RpcGroup<R>,
@@ -54,16 +56,16 @@ export function hostChanges<R extends Rpc.Any, TSession extends SessionShape>(
 	);
 }
 
-function authorizeSession<TSession extends SessionShape>(
+function authorizeSession<TSession extends SessionShape, E, R>(
 	sessions: SessionPolicy<TSession> | undefined,
 	tag: string,
 	viewer: Option.Option<Viewer>,
-	policy: Effect.Effect<boolean>,
+	policy: Effect.Effect<boolean, E, R>,
 ) {
 	if (sessions === undefined) {
 		return policy;
 	}
-	return resolveSession(sessions, Headers.empty, tag).pipe(
+	return recheckSession(sessions, Headers.empty, tag).pipe(
 		Effect.map((current) => Option.isNone(viewer) || (Option.isSome(current) && current.value.user.id === viewer.value.id)),
 		Effect.catch(() => Effect.succeed(false)),
 		Effect.flatMap((allowed) => (allowed ? policy : Effect.succeed(false))),
@@ -72,10 +74,9 @@ function authorizeSession<TSession extends SessionShape>(
 
 function sessionRevoked<TSession extends SessionShape>(sessions: SessionPolicy<TSession>, tag: string, id: string) {
 	return Effect.gen(function* () {
-		yield* Effect.sleep(sessions.streamRevalidationInterval ?? "30 seconds");
-		const current = yield* resolveSession(sessions, Headers.empty, tag).pipe(Effect.catchTag("AuthUnavailable", () => Effect.succeed(undefined)));
+		const current = yield* recheckSession(sessions, Headers.empty, tag).pipe(Effect.catchTag("AuthUnavailable", () => Effect.succeed(undefined)));
 		if (current !== undefined && (Option.isNone(current) || current.value.user.id !== id)) {
 			return yield* new Unauthorized({ message: "Authentication required" });
 		}
-	}).pipe(Effect.forever);
+	}).pipe((check) => revalidateSession(check, sessions.streamRevalidationInterval ?? "30 seconds"));
 }

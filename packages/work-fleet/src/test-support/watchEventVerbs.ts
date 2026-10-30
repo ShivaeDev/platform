@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 import { type Duration, Effect, FileSystem } from "effect";
+import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import type { FleetRecord } from "#model.ts";
 import { answerQueueFailure } from "#test/answerRecordingFailure.ts";
 import { untilOutput } from "#test/follower.ts";
@@ -66,6 +67,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				return root;
 			}),
 		stalledWatchProxy: () => stalledWatchProxy(engine.running.port),
+		streamProxy: () => forwardingProxy(`http://127.0.0.1:${engine.running.port}`),
 		watchDefault: (options: FollowOptions = {}) => {
 			tell("watch Fleet with its default event selection and output");
 			return start(options);

@@ -79,7 +79,7 @@ Run focused tests with `pnpm --filter @shivaedev/<package> test <paths>`. The sh
 
 ```sh
 PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/work-fleet test src/engine/approvedBrief.spec.ts
-PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/postgres.spec.ts
+PLATFORM_SQL_TEST_DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:55432/platform_test_sql pnpm --filter @shivaedev/sql test src/repositoryCrud.spec.ts
 ```
 
 CI runs each workspace test shard through [`@shivaedev/vitest-rerun`](./packages/vitest-rerun) with Vitest retries disabled. On pull requests, pushes and in the merge queue alike, the failed tests run once more in a fresh Vitest process; the shard fails if that rerun fails, and recovered tests appear in the job summary and in `.ci/flaky-tests.json`, where flaky-test tracking picks them up. The final reports in `.ci` keep the whole shard, and the raw report of each attempt stays in the timing artifact. A recovered test does not fail `verify`: the shard timings it merges on `main` leave out a recovered file's failed first attempt.

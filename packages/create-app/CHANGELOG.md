@@ -1,5 +1,59 @@
 # Changelog
 
+## 0.26.0 - 2026-10-30
+
+### Fixed
+
+- Live reads and change subscriptions preserve policy failures instead of reporting read denial. Generated starter apps report notes database connection failures as `ServiceUnavailable` during the owner's live read.
+
+### Breaking
+
+- Query read policies declare their error and service channels with `QueryReadPolicy<Payload, E, R>`. Declare policy errors in the query's `rejections` and provide policy services when building its handler Layer. Custom subscription adapters call `querySubscription(rpc, references, viewer)` instead of resolving requests themselves. Use the native RPC type when calling `authorizeReads` or `resolveChanges` so their inferred channels include policy requirements and errors. The generated change stream includes the queries' declared rejections and service requirements; consumers handling that stream must handle those errors too.
+- Admin pages install their permission's read policy for every query, preserving additional query restrictions. Remove repeated page-grant policies from individual queries and supply the page's permission middleware with the handler Layers.
+
+## 0.25.2 - 2026-10-30
+
+### Changed
+
+- Generated apps use the latest released starter dependencies.
+
+## 0.25.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.25.0 - 2026-10-30
+
+### Added
+
+- Export generator modules through `@shivaedev/create-app/*.ts` so tooling can reuse scaffolding, template packing and starter updates. Importing `pack.ts` leaves template generation to its direct command invocation.
+- Expose the native submission `cause` on `useEditor`, `useCreate` and `SaveState` so applications can render failures that include defects.
+- Identity's `trustedOrigins` accepts an optional `sameOrigin: { trustedProxy }` policy using the transport guard's loopback and trusted-proxy authority checks. Session resolution supplies the transport peer address; RPC message headers cannot establish proxy trust.
+
+### Changed
+
+- Generated applications import React test helpers from their existing `@shivaedev/test-story` development dependency.
+- Generated notes apps derive live list and detail invalidations from repository writes, including word-count jobs, with the owner bucket declared on the stored model.
+- Generated applications keep jobs connection strings redacted and provide one app pg-boss Layer to feature registrations, producers and workers, replacing per-feature connection arguments and Symbol cache keys.
+
+### Fixed
+
+- A failed initial commit names the Git command as `git commit -m 'Initialize a generated app'`, without the fallback identity flags.
+- Ignore repeated sign-out dispatch while sign-out is pending.
+- Generated apps send an explicitly signed-out visitor to sign-in when the replacement session receives `Unauthorized` from the notes route.
+- Generated apps retain database failure causes, report constraint violations as conflicts, validate trimmed titles in their Schema, and show the session error screen for malformed session payloads.
+- Keep template preparation and rendering failures as non-enumerable causes, name the failed step and file, and include the cause in CLI error logs.
+- Generated apps accept their own forwarded HTTPS RPC requests without `PUBLIC_URL`, while refusing foreign origins. A configured `PUBLIC_URL` remains the explicit RPC origin allowlist.
+
+### Breaking
+
+- `useSignOut` stops follow-up navigation on component unmount or registry disposal. Keep the component mounted until the request completes, or let the replacement session's route policy navigate to sign-in when a session refresh unmounts it first.
+- Move the React test helpers to `@shivaedev/test-story/client/react.ts`. Replace imports from `@shivaedev/react/client/testing.ts` with this path for `render`, `eventually`, `captureReactWarnings`, `expectNoReactWarnings` and their types. Add `@shivaedev/test-story` as a development dependency and install its React helpers' optional peers `react`, `react-dom` and `@effect/atom-react` when using them. React no longer brings `@shivaedev/test` into applications as a runtime dependency.
+- Generated notes apps remove the test-only `notes.whoami` RPC. Read the viewer through identity's session API instead.
+- Notes RPC callers decode raw titles with `NoteFields` or `NoteEditFields` before submitting; title validation now happens in the Schema. Handle database constraint rejections as `Conflict` and unexpected failures as `InternalServerError`.
+- `appFile` validates `package.json` with the starter's concrete manifest schema. Use manifests from `packTemplate`, or supply the complete starter manifest shape with string-valued dependency, script, import and engine maps instead of arbitrary JSON objects.
+
 ## 0.24.0 - 2026-10-30
 
 ### Added

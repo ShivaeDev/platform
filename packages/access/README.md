@@ -26,7 +26,7 @@ Both checks return `true`: the member owns the first record, and the operator ho
 
 ### Permissions and roles
 
-A permission names the domain and action, such as `users.read`, `roles.assign` or `jobs.read`. `permission(name)` declares the default strength and exposes a separate override value as `.any`. Each role receives an explicit list of grants. There are no wildcard, prefix or implied grants: holding `users.read.any` does not add `users.read` to the role's list. The ownership check accepts either strength as appropriate for the record.
+A permission names the domain and action, such as `users.read`, `roles.assign` or `jobs.read`. `permission(name)` declares the default strength and exposes a separate override value as `.any`. Each role receives an explicit list of grants. There are no wildcard or prefix grants. An `any` grant covers an `own` check for the same name; an `own` grant never covers an `any` check. The resolved list still contains only the explicitly declared grants.
 
 ```ts
 const AssignRoles = permission("roles.assign");
@@ -53,16 +53,19 @@ const decodeUser = Schema.decodeUnknownEffect(AppUser);
 const decodeRole = Schema.decodeUnknownEffect(Access.Role);
 ```
 
-`AppRole` is `"member" | "operator" | "guest"`. An unknown stored name fails in the typed `SchemaError` channel. `yield* Access.resolve(stored)` decodes the same Schema and returns `{ role, permissions }`, with only the grants declared for that role. `@shivaedev/identity` accepts the role set as the `roles` option of its session policy and its Better Auth mount.
+`AppRole` is `"member" | "operator" | "guest"`. An unknown stored name fails in the typed `SchemaError` channel. `yield* Access.resolve(stored)` decodes the same Schema and returns `{ role, permissions }`, with only the grants declared for that role, decoded through the exported `Permission` Schema. `@shivaedev/identity` accepts the role set as the `roles` option of its session policy and its Better Auth mount.
 
 ### Check grants and enforce actions
 
-`hasPermission(role, permission)` checks the exact listed grant. `requirePermission(user, permission)` enforces that same check. A user supplies `{ id, role }`; a `null` or `undefined` user fails with `Unauthorized`, and a missing grant fails with `Forbidden`. These are the shared failures from `@shivaedev/errors/taxonomy.ts`.
+`Access.hasPermission(role, permission)` evaluates the role's grants. The standalone `hasPermission(grants, permission)` from `@shivaedev/access/permission.ts` evaluates resolved grants with the same rule. `requirePermission(user, permission)` from `@shivaedev/access/requirePermission.ts` enforces it for a signed-in user carrying `permissions`; missing grants fail with `Forbidden`. The session boundary authenticates the user before this check. `forbidden(permission)` and `unauthorized()` from `@shivaedev/access/refusal.ts` construct these shared failures from `@shivaedev/errors/taxonomy.ts`.
 
 ```ts
+import { requirePermission } from "@shivaedev/access/requirePermission.ts";
+
 const user = { id: "alice", role: "operator" } as const;
+const resolved = yield* Access.resolve(user.role);
 const showAssignment = Access.hasPermission(user.role, AssignRoles);
-const enforceAssignment = Access.requirePermission(user, AssignRoles);
+const enforceAssignment = requirePermission(resolved, AssignRoles);
 ```
 
 Use permissions in application decisions instead of comparing role names.
@@ -78,7 +81,7 @@ const canRead = Access.canAccess(user, ReadUsers, "bob");
 const enforceRead = Access.requireAccess(user, ReadUsers, "bob");
 ```
 
-Use the ownership APIs when an action targets a record; the exact grant APIs do not check an owner.
+Use the ownership APIs when an action targets a record; the grant APIs do not check an owner.
 
 ### Install
 

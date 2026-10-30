@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.1.2 - 2026-10-30
+
+### Fixed
+
+- Report failures and defects masked by `rpcBoundary` through Effect's error reporters at Error severity with diagnostic redaction before returning the rejection.
+- Log boundary-masked RPC failures once at ERROR with their redacted stack; keep declared rejections at INFO.
+
 ## 0.1.1 - 2026-10-30
 
 ### Changed

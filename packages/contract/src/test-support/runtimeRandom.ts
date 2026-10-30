@@ -22,7 +22,7 @@ export const runtimeRandom = storyKit({
 	name: "live server runtime random",
 	stages: ["server"],
 	verbs: ({ invalidated, server }, story) => ({
-		invalidatedKeys: () => [...invalidated],
+		invalidatedKeys: () => Effect.sync(() => [...invalidated]),
 		resync: () => {
 			story.tell("the server requests a resync using its runtime-generated identity");
 			return server.resync;

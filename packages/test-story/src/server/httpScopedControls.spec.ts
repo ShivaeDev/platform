@@ -1,128 +1,152 @@
-import { Effect, Fiber } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { scopedHttpApp } from "#test/scopedHttpApp.ts";
 
-scopedHttpApp.it("consumes a scoped failure only when every decoded path parameter matches", [], function* ({ scriptFault, request }) {
-	yield* scriptFault(
-		"pull",
-		{ kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } },
-		{ params: { number: "7", owner: "a/b", repo: "platform" } },
-	);
-	for (const path of ["/repos/other/platform/pulls/7", "/repos/a%2Fb/other/pulls/7", "/repos/a%2Fb/platform/pulls/8"]) {
-		const other = yield* request(path);
-		expect(yield* other.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-	}
-	const target = yield* request("/repos/a%2Fb/platform/pulls/7");
-	expect(yield* target.headers).toMatchObject({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
-	const next = yield* request("/repos/a%2Fb/platform/pulls/7");
-	expect(yield* next.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+const SCOPED_PULL = { params: { number: "7", owner: "a/b", repo: "platform" } };
+const PULL_7 = "/repos/team/platform/pulls/7";
+const PULL_8 = "/repos/team/platform/pulls/8";
+
+for (const [difference, path] of [
+	["another owner", "/repos/other/platform/pulls/7"],
+	["another repository", "/repos/a%2Fb/other/pulls/7"],
+	["another number", "/repos/a%2Fb/platform/pulls/8"],
+] as const) {
+	scopedHttpApp.it(`answers a pull with ${difference} normally while a scoped failure waits`, [], function* ({ asks, scriptFault }) {
+		yield* scriptFault("pull", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } }, SCOPED_PULL);
+
+		expect(yield* asks(path)).toMatch(/^HTTP 200 /u);
+	});
+}
+
+scopedHttpApp.it("spends a scoped failure on the pull whose decoded parameters all match", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("pull", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } }, SCOPED_PULL);
+
+	yield* outcomes({
+		"the first matching pull": [asks("/repos/a%2Fb/platform/pulls/7"), "HTTP 503"],
+		"the next matching pull": [asks("/repos/a%2Fb/platform/pulls/7"), 'HTTP 200 {"owner":"a/b","repo":"platform","number":"7"}'],
+	});
 });
 
-scopedHttpApp.it("stalls one pull while another pull on the same route finishes", [], function* ({ stall, request }) {
+scopedHttpApp.it("stalls one pull's body while another pull on the same route finishes", [], function* ({ answer, asks, progress, sends, stall }) {
 	const paused = yield* stall("pull", { params: { number: "7" } });
-	const target = yield* request("/repos/team/platform/pulls/7");
+	yield* sends("pull 7", PULL_7);
 	yield* paused.waiting;
-	const pending = yield* Effect.forkChild(target.finished);
-	const other = yield* request("/repos/team/platform/pulls/8");
-	expect(yield* other.finished).toEqual({ bytes: Buffer.from('{"owner":"team","repo":"platform","number":"8"}'), kind: "complete" });
-	expect(pending.pollUnsafe()).toBeUndefined();
+	yield* outcomes({
+		"pull 8": [asks(PULL_8), 'HTTP 200 {"owner":"team","repo":"platform","number":"8"}'],
+		"while pull 7": [progress("pull 7"), "waiting for its body"],
+	});
+
 	yield* paused.release;
-	expect(yield* Fiber.join(pending)).toMatchObject({ kind: "complete" });
+
+	expect(yield* answer("pull 7")).toBe('HTTP 200 {"owner":"team","repo":"platform","number":"7"}');
 });
 
-scopedHttpApp.it("injects an immediate fault into the selected arrived pull", [], function* ({ stall, fault, request }) {
+scopedHttpApp.it("faults only the arrived pull its scope selects", [], function* ({ answer, fault, progress, sends, stall, status }) {
 	const paused = yield* stall("pull");
-	const other = yield* request("/repos/team/platform/pulls/8");
+	yield* sends("pull 8", PULL_8);
 	yield* paused.waiting;
-	const target = yield* request("/repos/team/platform/pulls/7");
-	expect(yield* target.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+	yield* sends("pull 7", PULL_7);
+	expect(yield* status("pull 7")).toBe("HTTP 200");
+
 	yield* fault("pull", { kind: "reset" }, { params: { number: "7" } });
-	expect(yield* target.finished).toMatchObject({ code: "ECONNRESET", kind: "error" });
-	const pending = yield* Effect.forkChild(other.finished);
-	expect(pending.pollUnsafe()).toBeUndefined();
-	yield* paused.release;
-	expect(yield* Fiber.join(pending)).toMatchObject({ kind: "complete" });
+
+	yield* outcomes({
+		"pull 7": [answer("pull 7"), "HTTP 200, then connection reset"],
+		"pull 8": [progress("pull 8"), "waiting for its body"],
+	});
 });
 
-scopedHttpApp.it("repeats a scoped dropped connection three times until its narrated lift", [], function* ({ scriptFault, request, story }) {
+scopedHttpApp.it("drops every matching pull while a repeated scoped fault stays installed", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("pull", { kind: "drop" }, { params: { number: "7" }, repeat: true });
+
+	yield* outcomes({
+		"first pull 7": [asks(PULL_7), "connection reset"],
+		"pull 8": [asks(PULL_8), 'HTTP 200 {"owner":"team","repo":"platform","number":"8"}'],
+		"second pull 7": [asks(PULL_7), "connection reset"],
+		"third pull 7": [asks(PULL_7), "connection reset"],
+	});
+});
+
+scopedHttpApp.it("answers matching pulls normally once a repeated scoped fault is lifted", [], function* ({ asks, scriptFault }) {
 	const outage = yield* scriptFault("pull", { kind: "drop" }, { params: { number: "7" }, repeat: true });
-	const other = yield* request("/repos/team/platform/pulls/8");
-	expect(yield* other.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-	for (let attempt = 0; attempt < 3; attempt += 1) {
-		const client = yield* request("/repos/team/platform/pulls/7");
-		expect(yield* client.headers).toMatchObject({ code: "ECONNRESET", kind: "error" });
-	}
+	expect(yield* asks(PULL_7)).toBe("connection reset");
+
 	yield* outage.lift;
-	const recovered = yield* request("/repos/team/platform/pulls/7");
-	expect(yield* recovered.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-	expect(story.lines).toContain('fake HTTP pull matching {"number":"7"} fault drop lifted');
+
+	expect(yield* asks(PULL_7)).toBe('HTTP 200 {"owner":"team","repo":"platform","number":"7"}');
 });
 
-scopedHttpApp.it("keeps a status reply installed until lifted", [], function* ({ scriptFault, request }) {
-	const outage = yield* scriptFault(
+scopedHttpApp.it("tells the story when a scoped fault is lifted", [], function* ({ scriptFault, story }) {
+	const outage = yield* scriptFault("pull", { kind: "drop" }, { params: { number: "7" }, repeat: true });
+
+	yield* outage.lift;
+
+	expect(story.lines.at(-1)).toBe('fake HTTP pull matching {"number":"7"} fault drop lifted');
+});
+
+scopedHttpApp.it("keeps answering with a repeated status reply and its headers", [], function* ({ answer, asks, header, scriptFault, sends }) {
+	yield* scriptFault(
 		"pull",
 		{ kind: "status", reply: { headers: { "retry-after": "3" }, status: HttpStatus.fromLiteral("TooManyRequests") } },
 		{ repeat: true },
 	);
-	for (let attempt = 0; attempt < 3; attempt += 1) {
-		const client = yield* request("/repos/team/platform/pulls/7");
-		expect(yield* client.headers).toMatchObject({ headers: { "retry-after": "3" }, status: HttpStatus.fromLiteral("TooManyRequests") });
-	}
-	yield* outage.lift;
-	const recovered = yield* request("/repos/team/platform/pulls/7");
-	expect(yield* recovered.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
+	expect(yield* asks(PULL_7)).toBe("HTTP 429");
+
+	yield* sends("again", PULL_7);
+
+	yield* outcomes({
+		answer: [answer("again"), "HTTP 429"],
+		"retry-after": [header("again", "retry-after"), "3"],
+	});
 });
 
-scopedHttpApp.it("holds every matching decoded scope while other scopes keep answering", [], function* ({ hold, request, requests }) {
+scopedHttpApp.it("holds every pull matching the decoded scope while other pulls answer", [], function* ({ answer, asks, hold, requests, sends }) {
 	const paused = yield* hold("pull", { params: { number: "7", owner: "a/b" } });
-	const first = yield* request("/repos/a%2Fb/platform/pulls/7");
+	yield* sends("first", "/repos/a%2Fb/platform/pulls/7");
 	yield* paused.waiting;
-	const second = yield* request("/repos/a%2Fb/platform/pulls/7");
-	const other = yield* request("/repos/a%2Fb/platform/pulls/8");
-	expect(yield* other.finished).toMatchObject({ kind: "complete" });
-	const elsewhere = yield* request("/repos/other/platform/pulls/7");
-	expect(yield* elsewhere.finished).toMatchObject({ kind: "complete" });
-	expect(requests()).toEqual([
+	yield* sends("second", "/repos/a%2Fb/platform/pulls/7");
+	yield* asks("/repos/a%2Fb/platform/pulls/8");
+	yield* asks("/repos/other/platform/pulls/7");
+	expect(yield* requests()).toEqual([
 		"GET /repos/a%2Fb/platform/pulls/7 pending",
 		"GET /repos/a%2Fb/platform/pulls/7 pending",
 		"GET /repos/a%2Fb/platform/pulls/8 200",
 		"GET /repos/other/platform/pulls/7 200",
 	]);
+
 	yield* paused.release;
-	expect(yield* first.finished).toMatchObject({ kind: "complete" });
-	expect(yield* second.finished).toMatchObject({ kind: "complete" });
+
+	yield* outcomes({
+		first: [answer("first"), 'HTTP 200 {"owner":"a/b","repo":"platform","number":"7"}'],
+		second: [answer("second"), 'HTTP 200 {"owner":"a/b","repo":"platform","number":"7"}'],
+	});
 });
 
-scopedHttpApp.it("holds only the first matching request until release", [], function* ({ hold, request, requests }) {
+scopedHttpApp.it("holds only the first matching pull when the hold is once", [], function* ({ asks, hold, progress, sends }) {
 	const paused = yield* hold("pull", { once: true, params: { number: "7" } });
-	const other = yield* request("/repos/team/platform/pulls/8");
-	expect(yield* other.finished).toMatchObject({ kind: "complete" });
-	const first = yield* request("/repos/team/platform/pulls/7");
+	yield* sends("first", PULL_7);
 	yield* paused.waiting;
-	const second = yield* request("/repos/team/platform/pulls/7");
-	expect(yield* second.finished).toEqual({ bytes: Buffer.from('{"owner":"team","repo":"platform","number":"7"}'), kind: "complete" });
-	expect(requests()).toEqual([
-		"GET /repos/team/platform/pulls/8 200",
-		"GET /repos/team/platform/pulls/7 pending",
-		"GET /repos/team/platform/pulls/7 200",
-	]);
-	yield* paused.release;
-	expect(yield* first.finished).toMatchObject({ kind: "complete" });
+
+	yield* outcomes({
+		"the second pull 7": [asks(PULL_7), 'HTTP 200 {"owner":"team","repo":"platform","number":"7"}'],
+		"while the first": [progress("first"), "waiting for an answer"],
+	});
 });
 
-scopedHttpApp.it("releases the selected scoped hold on an authorized arrival", [], function* ({ hold, releaseOnArrival, request, requests }) {
+scopedHttpApp.it("releases only the scoped hold its arrival selects", [], function* ({ answer, asks, hold, progress, releaseOnArrival, sends }) {
 	const target = yield* hold("pull", { once: true, params: { number: "7" } });
 	const other = yield* hold("pull", { params: { number: "8" } });
 	yield* releaseOnArrival("pull", "installation", { params: { number: "7" } });
-	const first = yield* request("/repos/team/platform/pulls/7");
+	yield* sends("pull 7", PULL_7);
 	yield* target.waiting;
-	const second = yield* request("/repos/team/platform/pulls/8");
+	yield* sends("pull 8", PULL_8);
 	yield* other.waiting;
-	const trigger = yield* request("/installations/4");
-	expect(yield* trigger.finished).toMatchObject({ kind: "complete" });
-	expect(yield* first.finished).toMatchObject({ kind: "complete" });
-	expect(requests()).toContain("GET /repos/team/platform/pulls/8 pending");
-	yield* other.release;
-	expect(yield* second.finished).toMatchObject({ kind: "complete" });
+
+	yield* asks("/installations/4");
+
+	yield* outcomes({
+		"pull 7": [answer("pull 7"), 'HTTP 200 {"owner":"team","repo":"platform","number":"7"}'],
+		"pull 8": [progress("pull 8"), "waiting for an answer"],
+	});
 });

@@ -4,6 +4,7 @@ import { Effect } from "effect";
 import { engineBoardVerbs } from "#test/engineBoardVerbs.ts";
 import { type EngineStory, running } from "#test/engineState.ts";
 import { answerReport } from "#test/report.ts";
+import { storedBoardResponses } from "#test/storedBoard.ts";
 import { openFleetBoard } from "#test/withFleetBoard.ts";
 
 export function engineDecisionVerbs(state: EngineStory, tell: (line: string) => void) {
@@ -58,7 +59,9 @@ export function engineDecisionVerbs(state: EngineStory, tell: (line: string) => 
 			}),
 		publishedDocuments: () =>
 			readdirSync(root(), { encoding: "utf8", recursive: true })
-				.filter((file) => file.endsWith(".md"))
+				.filter((file) => file.endsWith(".md") && !file.startsWith(".board-settled/"))
+				.concat(storedBoardResponses(root()).map((file) => `responses/${file}`))
+				.filter((file, index, all) => all.indexOf(file) === index)
 				.map((file) => ({ file, parsed: board.readBoardPublication(file) })),
 		reassign: (id: string, decisionId: string, owner: "orchestrator" | "maintainer") => {
 			tell(`reassign ${id}'s decision to ${owner}`);

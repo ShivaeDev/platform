@@ -1,38 +1,54 @@
-import { Effect, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import { database } from "#test/postgres/database.ts";
+import { enqueued, reached, running } from "#test/postgres/traits.ts";
+import { worker } from "#test/workers.ts";
 
-for (const state of ["failed", "retry"] as const) {
-	postgresIt(`looks up and retries a ${state} job under its original ID`, [realPostgres], function* ({ boot, untilJob }) {
-		const Queue = defineQueue({
-			name: "control",
-			queue: { retryBackoff: false, retryDelay: 3600, retryLimit: state === "failed" ? 0 : 1 },
-			schema: Schema.Struct({ id: Schema.NumberFromString }),
-			worker: { pollingIntervalSeconds: 0.5 },
-		});
-		const handled: number[] = [];
-		const { jobs } = yield* boot([
-			Queue.handle(({ id: payloadId }) =>
-				Effect.suspend(() => {
-					handled.push(payloadId);
-					return handled.length === 1 ? Effect.fail(new Error("Try again")) : Effect.void;
-				}),
-			),
-		]);
-		const id = crypto.randomUUID();
-		expect(Option.isNone(yield* jobs.getJob(Queue, id))).toBe(true);
-		expect(Option.getOrThrow(yield* jobs.enqueue(Queue, { id: 42 }, { id }))).toBe(id);
-		const failed = yield* untilJob(jobs, Queue, id, state);
-		expect(failed).toMatchObject({ data: { id: 42 }, id, state });
-		expect(Option.isNone(yield* jobs.enqueue(Queue, { id: 42 }, { id }))).toBe(true);
-		expect(yield* jobs.counts(Queue)).toMatchObject({
-			activeCount: 0,
-			failedCount: state === "failed" ? 1 : 0,
-			queuedCount: state === "retry" ? 1 : 0,
-		});
-		yield* jobs.retry(Queue, id);
-		expect(yield* untilJob(jobs, Queue, id, "completed")).toMatchObject({ data: { id: 42 }, id, state: "completed" });
-		expect(handled).toEqual([42, 42]);
+const cases = [
+	{ counts: { activeCount: 0, failedCount: 1, queuedCount: 0 }, retryLimit: 0, state: "failed" },
+	{ counts: { activeCount: 0, failedCount: 0, queuedCount: 1 }, retryLimit: 1, state: "retry" },
+] as const;
+
+for (const { counts, retryLimit, state } of cases) {
+	const queue = defineQueue({
+		name: "control",
+		queue: { retryBackoff: false, retryDelay: 3600, retryLimit },
+		schema: Schema.Struct({ id: Schema.NumberFromString }),
+		worker: { pollingIntervalSeconds: 0.5 },
+	});
+	const given = [
+		running("app", [worker(queue, { fails: "Try again" }, "succeeds")]),
+		enqueued(queue, { id: 42 }, { as: "job 42" }),
+		reached("job 42", state),
+	];
+
+	database.it(
+		`retrying a ${state} job runs it again under its original id until it completes`,
+		given,
+		function* ({ attempts, job, retry, untilJob }) {
+			expect(yield* job("job 42")).toMatchObject({ state });
+
+			yield* retry("app", "job 42");
+			yield* untilJob("job 42", "completed");
+
+			yield* outcomes({
+				"attempts": [attempts(queue), ["job 42", "job 42"]],
+				"job 42": [job("job 42"), expect.objectContaining({ data: { id: 42 }, job: "job 42", state: "completed" })],
+			});
+		},
+	);
+
+	database.it(`counts report a ${state} job as ${state === "failed" ? "failed" : "queued"}`, given, function* ({ answered, ask }) {
+		yield* ask("app", "count control jobs", (jobs) => jobs.counts(queue));
+
+		expect(yield* answered()).toMatchObject(counts);
+	});
+
+	database.it(`enqueueing again under the id of a ${state} job returns nothing`, given, function* ({ answered, enqueue }) {
+		yield* enqueue("app", queue, { id: 42 }, { as: "duplicate", sameIdAs: "job 42" });
+
+		expect(yield* answered()).toBe("nothing");
 	});
 }

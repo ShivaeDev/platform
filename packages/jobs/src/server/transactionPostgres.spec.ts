@@ -1,25 +1,35 @@
-import { Effect, Option } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
-import { transactionalJobs } from "#test/transactionalJobs.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineQueue } from "#definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { running } from "#test/postgres/traits.ts";
 
-transactionalJobs.it("enqueue becomes visible only when its SQL transaction commits", [], function* ({ enqueue, transaction, job }) {
-	const pending = Effect.gen(function* () {
-		const id = Option.getOrThrow(yield* enqueue(42));
-		expect(yield* job(id)).toEqual(Option.none());
-		return id;
-	});
-	const id = yield* transaction(pending);
-	expect(yield* job(id)).toMatchObject(Option.some({ data: { id: 42 }, id, state: "created" }));
-});
+const Transactional = defineQueue({ name: "transactional", schema: Schema.Struct({ id: Schema.Number }) });
+const producing = running("app", [Transactional]);
 
-transactionalJobs.it("enqueue rolls back with its SQL transaction", [], function* ({ enqueue, transaction, storedJobs }) {
-	const failed = yield* transaction(enqueue(42).pipe(Effect.andThen(Effect.fail("rollback")))).pipe(Effect.flip);
-	expect(failed).toBe("rollback");
-	expect(yield* storedJobs()).toEqual([]);
-});
+database.it(
+	"a job enqueued inside a SQL transaction is stored only once the transaction commits",
+	[producing],
+	function* ({ enqueueInTransaction, job, seenBeforeCommit }) {
+		yield* enqueueInTransaction("app", Transactional, { id: 42 }, { as: "job 42" }, "commits");
 
-transactionalJobs.it("enqueue outside a transaction remains durable", [], function* ({ enqueue, transaction, job }) {
-	const id = Option.getOrThrow(yield* enqueue(42));
-	yield* transaction(Effect.fail("unrelated rollback")).pipe(Effect.flip);
-	expect(yield* job(id)).toMatchObject(Option.some({ data: { id: 42 }, id, state: "created" }));
-});
+		yield* outcomes({
+			"job 42": [job("job 42"), expect.objectContaining({ data: { id: 42 }, state: "created" })],
+			"job 42 before the commit": [seenBeforeCommit(), "missing"],
+		});
+	},
+);
+
+database.it(
+	"a job enqueued inside a SQL transaction that rolls back is never stored",
+	[producing],
+	function* ({ answered, enqueueInTransaction, storedJobs }) {
+		yield* enqueueInTransaction("app", Transactional, { id: 42 }, { as: "job 42" }, "rolls back");
+
+		yield* outcomes({
+			"enqueue answer": [answered(), "job 42"],
+			"stored jobs": [storedJobs("transactional"), []],
+		});
+	},
+);

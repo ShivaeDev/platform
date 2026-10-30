@@ -1,21 +1,27 @@
+import { Clock } from "effect";
 import type { Story } from "@shivaedev/test-story/server/storyKit.ts";
 import { Screen } from "./Screen.ts";
 
-export function screenKit<TState, TVerbs extends object>(name: string, create: () => TState, verbs: (state: TState, screen: Screen) => TVerbs) {
+export function screenKit<TState, TVerbs extends object>(
+	name: string,
+	create: () => TState,
+	verbs: (state: TState, screen: Screen, now: () => number) => TVerbs,
+) {
 	return {
 		clock: "live" as const,
-		create: () => {
+		*create() {
+			const clock = yield* Clock.Clock;
 			const screen = new Screen(() => undefined);
-			return { screen, state: create() };
+			return { now: () => clock.currentTimeMillisUnsafe(), screen, state: create() };
 		},
 		inspect: ({ screen }: { screen: Screen; state: TState }) => screen.inspect(),
 		name,
 		stages: ["screen"] as const,
-		verbs: ({ screen, state }: { screen: Screen; state: TState }, story: Story<{ screen: Screen; state: TState }>) => {
+		verbs: ({ now, screen, state }: { now: () => number; screen: Screen; state: TState }, story: Story<{ screen: Screen; state: TState }>) => {
 			screen.tell = story.tell;
 			return {
 				observe: (line: string, check: () => void) => screen.observe(line, check),
-				...verbs(state, screen),
+				...verbs(state, screen, now),
 			};
 		},
 	};

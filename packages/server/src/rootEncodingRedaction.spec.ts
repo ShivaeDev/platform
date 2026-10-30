@@ -1,64 +1,79 @@
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { rootDefect, rootEncoding } from "#test/app-host/rootEncoding.ts";
 import { host } from "#test/app-host/story.ts";
 
 for (const source of ["schema", "host"] as const) {
 	for (const shape of ["scalar", "record"] as const) {
-		host.it(`masks a sensitive ${source} failure encoded as a root ${shape}`, [rootEncoding(source, shape)], function* ({ postNdjson }) {
-			const contact = "private root contact";
-			const requests = [
-				{ id: "1", payload: { contact, slot: "runtimeChosenField" }, tag: "hidden" },
-				{ id: "2", payload: { detail: "public rejection" }, tag: "visibleFailure" },
-				{ id: "3", payload: { contact: "successful application value" }, tag: "succeed" },
-			];
-			const response = yield* postNdjson(
-				`${requests.map((request) => JSON.stringify({ _tag: "Request", headers: [], ...request })).join("\n")}\n`,
-				false,
-			);
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
-			expect(response.body).not.toContain(contact);
-			expect(response.body).toContain('"detail":"public rejection"');
-			expect(response.body).toContain('"_tag":"Success","value":"successful application value"');
-		});
+		host.it(
+			`a sensitive ${source} failure encoded as a root ${shape} is masked while a public failure and a success in the same batch stay intact`,
+			[rootEncoding(source, shape)],
+			function* ({ answerMentions, callRpcs, wireAnswers }) {
+				yield* callRpcs([
+					{ id: "1", payload: { contact: "private root contact", slot: "runtimeChosenField" }, tag: "hidden" },
+					{ id: "2", payload: { detail: "public rejection" }, tag: "visibleFailure" },
+					{ id: "3", payload: { contact: "successful application value" }, tag: "succeed" },
+				]);
+
+				yield* outcomes({
+					"client answers": [
+						wireAnswers(),
+						{
+							"1": { failed: "<redacted>" },
+							"2": { failed: expect.objectContaining({ detail: "public rejection" }) },
+							"3": { succeeded: "successful application value" },
+						},
+					],
+					"leaked into the answers": [answerMentions("private root contact"), []],
+				});
+			},
+		);
 	}
 }
 
-for (const interrupt of [false, true]) {
-	host.it(`masks a sensitive defect root in ${interrupt ? "an exit cause" : "a connection defect"}`, [rootDefect], function* ({ postNdjson }) {
-		const value = "private root defect";
-		const response = yield* postNdjson(
-			`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { interrupt, value }, tag: "hiddenDefect" })}\n`,
-			false,
-		);
-		expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-		expect(response.body).toContain(`"_tag":"${interrupt ? "Die" : "Defect"}","defect":"<redacted>"`);
-		expect(response.body).not.toContain(value);
-	});
+for (const [interrupt, answer] of [
+	[false, { connection: { "connection defect": "<redacted>" } }],
+	[true, { "1": [{ died: "<redacted>" }, "interrupted"] }],
+] as const) {
+	host.it(
+		`a sensitive defect root is masked in ${interrupt ? "the request's exit cause beside its interruption" : "the connection defect"}`,
+		[rootDefect],
+		function* ({ answerMentions, callRpc, wireAnswers }) {
+			yield* callRpc("hiddenDefect", { interrupt, value: "private root defect" });
+
+			yield* outcomes({
+				"client answer": [wireAnswers(), answer],
+				"leaked into the answer": [answerMentions("private root defect"), []],
+			});
+		},
+	);
 }
 
-host.it("a repeated request ID cannot replace a sensitive failure's schema policy", [rootEncoding("schema", "scalar")], function* ({ postNdjson }) {
-	const contact = "private repeated request contact";
-	const requests = [
-		{ payload: { contact, slot: "unused" }, tag: "hidden" },
-		{ payload: { detail: "public rejection" }, tag: "visibleFailure" },
-	];
-	const response = yield* postNdjson(
-		`${requests.map((request) => JSON.stringify({ _tag: "Request", headers: [], id: "1", ...request })).join("\n")}\n`,
-		false,
-	);
-	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-	expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
-	expect(response.body).not.toContain(contact);
-});
+host.it(
+	"a public failure reusing a request ID cannot replace the sensitive failure's schema policy",
+	[rootEncoding("schema", "scalar")],
+	function* ({ answerMentions, callRpcs, wireAnswers }) {
+		yield* callRpcs([
+			{ id: "1", payload: { contact: "private repeated request contact", slot: "unused" }, tag: "hidden" },
+			{ id: "1", payload: { detail: "public rejection" }, tag: "visibleFailure" },
+		]);
 
-host.it("native numeric request IDs retain their sensitive root policy", [rootEncoding("schema", "scalar")], function* ({ postNdjson }) {
-	const contact = "private numeric request contact";
-	const response = yield* postNdjson(
-		`${JSON.stringify({ _tag: "Request", headers: [], id: 1, payload: { contact, slot: "unused" }, tag: "hidden" })}\n`,
-		false,
-	);
-	expect(response.body).toContain('"_tag":"Fail","error":"<redacted>"');
-	expect(response.body).not.toContain(contact);
-});
+		yield* outcomes({
+			"client answers": [wireAnswers(), { "1": expect.arrayContaining([{ failed: "<redacted>" }]) }],
+			"leaked into the answers": [answerMentions("private repeated request contact"), []],
+		});
+	},
+);
+
+host.it(
+	"a numeric request ID keeps the sensitive root policy",
+	[rootEncoding("schema", "scalar")],
+	function* ({ answerMentions, callRpcs, wireAnswers }) {
+		yield* callRpcs([{ id: 1, payload: { contact: "private numeric request contact", slot: "unused" }, tag: "hidden" }]);
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: "<redacted>" } }],
+			"leaked into the answer": [answerMentions("private numeric request contact"), []],
+		});
+	},
+);

@@ -1,49 +1,59 @@
-import { Effect, Fiber } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { scopedHttpApp } from "#test/scopedHttpApp.ts";
 
-scopedHttpApp.it(
-	"checks both guards before a hold or scripted fault and accepts the token elsewhere",
-	[],
-	function* ({ hold, scriptFault, request }) {
-		const paused = yield* hold("installation");
+for (const [credential, caller] of [
+	["a wrong route token", { token: "wrong" }],
+	["a wrong service key", { serviceKey: "wrong" }],
+] as const) {
+	scopedHttpApp.it(`rejects ${credential} before the route's hold or scripted fault`, [], function* ({ asks, hold, scriptFault }) {
+		yield* hold("installation");
 		yield* scriptFault("installation", { kind: "drop" });
-		const rejected = yield* request("/installations/4", { token: "wrong" });
-		expect(yield* rejected.headers).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
-		const serviceRejected = yield* request("/installations/4", { serviceKey: "wrong" });
-		expect(yield* serviceRejected.headers).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
-		const elsewhere = yield* request("/repos/team/platform/pulls/7", { token: "wrong" });
-		expect(yield* elsewhere.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-		const accepted = yield* request("/installations/4");
+
+		expect(yield* asks("/installations/4", caller)).toBe("HTTP 401");
+	});
+}
+
+scopedHttpApp.it("accepts a token another route's guard would reject", [], function* ({ asks }) {
+	expect(yield* asks("/repos/team/platform/pulls/7", { token: "wrong" })).toBe('HTTP 200 {"owner":"team","repo":"platform","number":"7"}');
+});
+
+scopedHttpApp.it("lets an accepted request reach the route's hold and scripted fault", [], function* ({ answer, hold, scriptFault, sends }) {
+	const paused = yield* hold("installation");
+	yield* scriptFault("installation", { kind: "drop" });
+	yield* sends("installation request", "/installations/4");
+	yield* paused.waiting;
+
+	yield* paused.release;
+
+	expect(yield* answer("installation request")).toBe("connection reset");
+});
+
+scopedHttpApp.it("keeps a one-shot reply for the request the route's guard accepts", [], function* ({ asks, scriptFault }) {
+	yield* scriptFault("installation", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } });
+
+	yield* outcomes({
+		"a request the guard refuses": [asks("/installations/4", { token: "wrong" }), "HTTP 401"],
+		"the next accepted request": [asks("/installations/4"), "HTTP 503"],
+	});
+});
+
+scopedHttpApp.it(
+	"keeps an arrival release for the request the route's guard accepts",
+	[],
+	function* ({ answer, asks, hold, progress, releaseOnArrival, sends }) {
+		const paused = yield* hold("pull");
+		yield* releaseOnArrival("pull", "installation");
+		yield* sends("pull request", "/repos/team/platform/pulls/7");
 		yield* paused.waiting;
-		yield* paused.release;
-		expect(yield* accepted.headers).toMatchObject({ code: "ECONNRESET", kind: "error" });
-		const next = yield* request("/installations/4");
-		expect(yield* next.finished).toEqual({ bytes: Buffer.from('{"installation":"4"}'), kind: "complete" });
+		yield* outcomes({
+			"a release the guard refuses": [asks("/installations/4", { token: "wrong" }), "HTTP 401"],
+			"the pull request": [progress("pull request"), "waiting for an answer"],
+		});
+
+		yield* asks("/installations/4");
+
+		expect(yield* answer("pull request")).toBe('HTTP 200 {"owner":"team","repo":"platform","number":"7"}');
 	},
 );
-
-scopedHttpApp.it("does not consume a one-shot reply for a route's rejected token", [], function* ({ scriptFault, request }) {
-	yield* scriptFault("installation", { kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } });
-	const rejected = yield* request("/installations/4", { token: "wrong" });
-	expect(yield* rejected.headers).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
-	const accepted = yield* request("/installations/4");
-	expect(yield* accepted.headers).toMatchObject({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
-	const next = yield* request("/installations/4");
-	expect(yield* next.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-});
-
-scopedHttpApp.it("does not release an arrival script for a route's rejected token", [], function* ({ hold, releaseOnArrival, request }) {
-	const paused = yield* hold("pull");
-	yield* releaseOnArrival("pull", "installation");
-	const pull = yield* request("/repos/team/platform/pulls/7");
-	yield* paused.waiting;
-	const pending = yield* Effect.forkChild(pull.finished);
-	const rejected = yield* request("/installations/4", { token: "wrong" });
-	expect(yield* rejected.headers).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
-	expect(pending.pollUnsafe()).toBeUndefined();
-	const accepted = yield* request("/installations/4");
-	expect(yield* accepted.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
-	expect(yield* Fiber.join(pending)).toMatchObject({ kind: "complete" });
-});

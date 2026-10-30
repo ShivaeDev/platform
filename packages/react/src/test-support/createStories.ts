@@ -19,14 +19,14 @@ export const creates = storyKit(
 	screenKit(
 		"persisted create screen",
 		(): State => ({ complete: Effect.runSync(Deferred.make<void>()) }),
-		(state, screen) => ({
+		(state, screen, now) => ({
 			create: () => current(state),
 			finishSave: () => screen.act("the create responds", () => Effect.runPromise(Deferred.succeed(state.complete, undefined))),
 			*reload() {
 				screen.tell("reload the create screen with a fresh registry");
 				yield* Effect.promise(current(state).unmount);
 				const view = yield* screen.open();
-				state.view = yield* Effect.promise(() => persistedCreateView(view));
+				state.view = yield* Effect.promise(() => persistedCreateView(view, now));
 			},
 			show: (session: string) => screen.act(`show session ${session}`, () => current(state).show(session)),
 			submit: () => screen.act("submit the create form", () => current(state).save()),
@@ -35,10 +35,10 @@ export const creates = storyKit(
 	),
 );
 export function persistedCreate(held = false, direct = false) {
-	return creates.trait("screen", `a ${direct ? "direct" : "create"} persisted form`, function* ({ screen, state }) {
+	return creates.trait("screen", `a ${direct ? "direct" : "create"} persisted form`, function* ({ now, screen, state }) {
 		const view = yield* screen.open();
 		state.view = yield* Effect.promise(() =>
-			persistedCreateView(view, (values) => (held ? Deferred.await(state.complete).pipe(Effect.as(values)) : Effect.succeed(values)), direct),
+			persistedCreateView(view, now, (values) => (held ? Deferred.await(state.complete).pipe(Effect.as(values)) : Effect.succeed(values)), direct),
 		);
 	});
 }

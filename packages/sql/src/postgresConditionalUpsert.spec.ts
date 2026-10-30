@@ -1,104 +1,121 @@
-import { Effect } from "effect";
+import { DateTime } from "effect";
 import { expect } from "vitest";
-import { mapped } from "#test/clientNames.ts";
-import { PullRequest, pull, syncOptions } from "#test/pullRequests.ts";
-import { hasPullRequests } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changesWatched, pullsStored, type RevisionCondition, revisions } from "#test/revisions.ts";
 
-postgres.it("a missing pull request inserts and reports a decoded row", [hasPullRequests()], function* ({ pullRequests }) {
-	const { rows } = pullRequests();
-	const result = yield* rows.upsert(pull(12), syncOptions);
-	expect(result).toEqual({ _tag: "Inserted", inserted: true, row: pull(12) });
-	if (result._tag !== "Unchanged") {
-		expect(result.row).toBeInstanceOf(PullRequest);
-	}
-	expect(yield* rows.findById(1)).toEqual(pull(12));
+revisions.it("syncing a pull request the store lacks inserts it and reports the insert", [], function* ({ endings, pull, syncPull }) {
+	expect(yield* pull()).toBe("failed with no such row");
+
+	yield* syncPull(12);
+
+	yield* outcomes({
+		"stored pull request": [pull(), "Revision 12 at 12:00"],
+		"sync ending": [endings(), ["inserted Revision 12 at 12:00"]],
+	});
 });
 
-postgres.it("a newer incoming revision replaces the stored pull request", [hasPullRequests()], function* ({ pullRequests }) {
-	const { rows } = pullRequests();
-	yield* rows.insert(pull(12));
-	expect(yield* rows.upsert(pull(13), syncOptions)).toEqual({ _tag: "Updated", inserted: false, row: pull(13) });
-	expect(yield* rows.findById(1)).toEqual(pull(13));
-});
+revisions.it(
+	"syncing a newer revision replaces the stored pull request and reports the update",
+	[pullsStored([[12, 1]])],
+	function* ({ endings, pull, syncPull }) {
+		yield* syncPull(13);
+
+		yield* outcomes({
+			"stored pull request": [pull(), "Revision 13 at 13:00"],
+			"sync ending": [endings(), ["updated Revision 13 at 13:00"]],
+		});
+	},
+);
 
 for (const hour of [11, 12]) {
-	postgres.it(
-		`an incoming revision at ${hour}:00 leaves the stored 12:00 revision unchanged`,
-		[hasPullRequests()],
-		function* ({ pullRequests, watchChanges }) {
-			const { rows, tableName } = pullRequests();
-			yield* rows.insert(pull(12));
-			const changes = yield* watchChanges([tableName]);
-			expect(yield* rows.upsert({ ...pull(hour), title: "Stale title" }, syncOptions)).toEqual({ _tag: "Unchanged" });
-			expect(yield* rows.findById(1)).toEqual(pull(12));
-			expect(changes).toEqual([]);
+	revisions.it(
+		`syncing a revision at ${hour}:00 leaves the stored 12:00 revision, reports it unchanged and announces no change`,
+		[pullsStored([[12, 1]]), changesWatched()],
+		function* ({ announcedChanges, endings, pull, syncPull }) {
+			yield* syncPull(hour);
+
+			yield* outcomes({
+				"announced changes": [announcedChanges(), []],
+				"stored pull request": [pull(), "Revision 12 at 12:00"],
+				"sync ending": [endings(), ["unchanged"]],
+			});
 		},
 	);
 }
 
-postgres.it("a writer waiting on a newer uncommitted revision cannot overwrite it", [hasPullRequests()], function* ({ pullRequests, raceWithLock }) {
-	const { rows } = pullRequests();
-	yield* rows.insert(pull(10));
+revisions.it(
+	"a writer waiting behind the row lock of an uncommitted newer revision reports unchanged instead of overwriting it",
+	[pullsStored([[10, 1]])],
+	function* ({ endings, pull, syncPullWhileNewerRevisionLocked }) {
+		yield* syncPullWhileNewerRevisionLocked(11, 13);
 
-	const results = yield* raceWithLock({
-		effects: [rows.upsert(pull(11), syncOptions)],
-		lock: rows.upsert(pull(13), syncOptions),
-		release: "commit",
-	});
+		yield* outcomes({
+			"stored pull request": [pull(), "Revision 13 at 13:00"],
+			"waiting writer": [endings(), ["unchanged"]],
+		});
+	},
+);
 
-	expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual([{ _tag: "Unchanged" }]);
-	expect(yield* rows.findById(1)).toEqual(pull(13));
-});
+revisions.it(
+	"a synced batch reports, in input order, the updated, unchanged and inserted pull requests",
+	[
+		pullsStored([
+			[12, 1],
+			[12, 2],
+			[12, 3],
+		]),
+	],
+	function* ({ endings, pulls, syncPulls }) {
+		yield* syncPulls([
+			[13, 1],
+			[11, 2],
+			[12, 3],
+			[14, 4],
+		]);
 
-postgres.it("a conditional batch reports each inserted, updated and unchanged input in order", [hasPullRequests()], function* ({ pullRequests }) {
-	const { rows } = pullRequests();
-	yield* rows.insertMany([pull(12, 1), pull(12, 2), pull(12, 3)]);
-	expect(yield* rows.upsertMany([pull(13, 1), pull(11, 2), pull(12, 3), pull(14, 4)], syncOptions)).toEqual([
-		{ _tag: "Updated", inserted: false, row: pull(13, 1) },
-		{ _tag: "Unchanged" },
-		{ _tag: "Unchanged" },
-		{ _tag: "Inserted", inserted: true, row: pull(14, 4) },
-	]);
-	expect(yield* rows.findMany({ orderBy: { direction: "asc", field: "id" } })).toEqual([pull(13, 1), pull(12, 2), pull(12, 3), pull(14, 4)]);
-});
+		yield* outcomes({
+			"batch ending": [endings(), ["updated Revision 13 at 13:00; unchanged; unchanged; inserted Revision 14 at 14:00"]],
+			"stored pull requests": [pulls(), ["1: Revision 13 at 13:00", "2: Revision 12 at 12:00", "3: Revision 12 at 12:00", "4: Revision 14 at 14:00"]],
+		});
+	},
+);
 
-postgres.it("a failed conditional batch rolls back its earlier writes", [hasPullRequests()], function* ({ pullRequests }) {
-	const { rows } = pullRequests();
-	yield* rows.insert(pull(12));
-	expect((yield* rows.upsertMany([pull(13), pull(14, -1)], syncOptions).pipe(Effect.flip))._tag).toBe("SqlError");
-	expect(yield* rows.findMany()).toEqual([pull(12)]);
-});
+revisions.it(
+	"a synced batch whose later row breaks a check constraint fails and rolls back its earlier update",
+	[pullsStored([[12, 1]])],
+	function* ({ endings, pulls, syncPulls }) {
+		yield* syncPulls([
+			[13, 1],
+			[14, -1],
+		]);
 
-postgres.it("update conditions combine encoded literals, lists, patterns and incoming equality", [hasPullRequests()], function* ({ pullRequests }) {
-	const { rows } = pullRequests();
-	yield* rows.insert(pull(12));
-	const options = {
-		updateColumns: ["updated_at"],
-		updateWhere: {
-			id: { in: [1, 2] },
-			title: { like: "Revision%" },
-			"updated_at": { gte: pull(11).updated_at, lt: { excluded: "updated_at" } },
+		yield* outcomes({
+			"batch ending": [endings(), ["failed with a constraint violation (SQLSTATE 23514)"]],
+			"stored pull requests": [pulls(), ["1: Revision 12 at 12:00"]],
+		});
+	},
+);
+
+const elevenAm = DateTime.makeUnsafe("2026-10-25T11:00:00Z");
+
+for (const [condition, hour, updateWhere, expected] of [
+	[
+		"an id list, a title pattern and an updatedAt range bounded by the incoming value all match",
+		13,
+		{ id: { in: [1, 2] }, title: { like: "Revision%" }, updatedAt: { gte: elevenAm, lt: { excluded: "updatedAt" } } },
+		"updated Revision 12 at 13:00",
+	],
+	["the stored title must equal the incoming one", 14, { title: { excluded: "title" } }, "unchanged"],
+	["the stored title equals a literal", 14, { title: "Revision 12" }, "updated Revision 12 at 14:00"],
+	["the id is in an empty list", 15, { id: { in: [] } }, "unchanged"],
+] as const satisfies readonly (readonly [string, number, RevisionCondition, string])[]) {
+	revisions.it(
+		`an upsert that updates only where ${condition} reports ${expected}`,
+		[pullsStored([[12, 1]])],
+		function* ({ endings, syncPullWhere }) {
+			yield* syncPullWhere(hour, updateWhere);
+
+			expect(yield* endings()).toEqual([expected]);
 		},
-	} as const;
-	expect(yield* rows.upsert(pull(13), options)).toEqual({
-		_tag: "Updated",
-		inserted: false,
-		row: { ...pull(12), "updated_at": pull(13).updated_at },
-	});
-	expect(yield* rows.upsert(pull(14), { updateColumns: ["updated_at"], updateWhere: { title: { excluded: "title" } } })).toEqual({
-		_tag: "Unchanged",
-	});
-	expect(yield* rows.upsert(pull(14), { updateColumns: ["updated_at"], updateWhere: { title: "Revision 12" } })).toMatchObject({ _tag: "Updated" });
-	expect(yield* rows.upsert(pull(15), { updateColumns: ["updated_at"], updateWhere: { id: { in: [] } } })).toEqual({ _tag: "Unchanged" });
-});
-
-mapped.it("conditional upserts preserve typed outcomes with the default snake_case client", [], function* ({ rows }) {
-	const original = { createdAt: new Date("2026-10-25T12:00:00Z"), id: 1 };
-	const newer = { ...original, createdAt: new Date("2026-10-25T13:00:00Z") };
-	const options = { updateColumns: ["createdAt"], updateWhere: { createdAt: { lt: { excluded: "createdAt" } } } } as const;
-	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Inserted", inserted: true, row: original });
-	expect(yield* rows.upsert(newer, options)).toEqual({ _tag: "Updated", inserted: false, row: newer });
-	expect(yield* rows.upsert(original, options)).toEqual({ _tag: "Unchanged" });
-	expect(yield* rows.findById(1)).toEqual(newer);
-});
+	);
+}

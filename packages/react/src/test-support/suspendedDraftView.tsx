@@ -8,7 +8,7 @@ import { DraftScreen } from "./DraftScreen.tsx";
 import { DraftSuspender } from "./DraftSuspender.tsx";
 import { draftInitial, type Held, type Row } from "./draftFields.ts";
 
-export async function suspendedDraftView(view: Rendered) {
+export async function suspendedDraftView(view: Rendered, now: () => number) {
 	const query = Atom.make<AsyncResult.AsyncResult<Row>>(AsyncResult.success(draftInitial));
 	const held = new Map<string, Held>();
 	const pending = Promise.withResolvers<void>();
@@ -28,7 +28,7 @@ export async function suspendedDraftView(view: Rendered) {
 			<>
 				<DraftScreen
 					held={record}
-					persistedDraft={{ key: "transition-draft" }}
+					persistedDraft={{ key: "transition-draft", now }}
 					query={query}
 					save={(values) => Effect.succeed({ ...values, quantity: String(values.quantity) })}
 				/>

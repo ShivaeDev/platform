@@ -1,40 +1,31 @@
-import { Effect, Option } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { ready, tracingApp } from "#test/tracingApp.ts";
 
-tracingApp.it(
-	"each request starts a root trace while story traits and steps retain their span",
-	[ready],
-	function* ({ request, spans, step, story }) {
-		const storySpan = yield* Effect.currentSpan;
-		expect(storySpan.name).toBe("story");
-		expect(yield* request()).toBe("ok");
-		expect(yield* request()).toBe("ok");
-		yield* step();
+tracingApp.it("starts each request in a root span of its own", [], function* ({ sendsRequest, serverSpans }) {
+	yield* sendsRequest();
+	yield* sendsRequest();
 
-		const requests = spans.filter((span) => span.kind === "server");
-		expect(requests).toMatchObject([{ kind: "server" }, { kind: "server" }]);
-		expect(requests[0]?.traceId).not.toBe(requests[1]?.traceId);
-		for (const span of requests) {
-			expect(span.parent).toEqual(Option.none());
-			expect(span.traceId).not.toBe(storySpan.traceId);
-			expect(span.status._tag).toBe("Ended");
-			expect(spans.find((child) => child.name === "request work" && child.traceId === span.traceId)?.parent).toEqual(Option.some(span));
-		}
-		for (const name of ["story trait", "story step"]) {
-			expect(spans.find((span) => span.name === name)?.parent).toEqual(Option.some(storySpan));
-		}
-		expect((yield* Effect.currentSpan).spanId).toBe(storySpan.spanId);
-		expect(story.lines).toEqual(["the application is ready", "a caller sends a request", "a caller sends a request", "the engine takes a step"]);
-	},
-);
+	expect(yield* serverSpans()).toEqual(["a root span, ended", "a root span, ended"]);
+});
 
-tracingApp.it("a request continues only the trace context in its headers", [], function* ({ request, spans }) {
-	const traceId = "1234567890abcdef1234567890abcdef";
-	const spanId = "1234567890abcdef";
-	expect(yield* request({ traceparent: `00-${traceId}-${spanId}-01` })).toBe("ok");
-	const requestSpan = spans.find((span) => span.kind === "server");
-	expect(requestSpan?.traceId).toBe(traceId);
-	expect(Option.getOrUndefined(requestSpan?.parent ?? Option.none())).toMatchObject({ spanId, traceId });
-	expect(requestSpan?.traceId).not.toBe((yield* Effect.currentSpan).traceId);
+tracingApp.it("runs a request's work under its server span", [], function* ({ sendsRequest, spansNamed }) {
+	yield* sendsRequest();
+
+	expect(yield* spansNamed("request work")).toEqual(['under "GET", ended']);
+});
+
+tracingApp.it("runs traits and engine steps under the story's span", [ready], function* ({ spansNamed, takesOneStep }) {
+	yield* takesOneStep();
+
+	yield* outcomes({
+		"story step": [spansNamed("story step"), ['under "story", ended']],
+		"story trait": [spansNamed("story trait"), ['under "story", ended']],
+	});
+});
+
+tracingApp.it("continues the trace context a request's headers carry", [], function* ({ sendsRequest, serverSpans }) {
+	yield* sendsRequest({ traceparent: "00-1234567890abcdef1234567890abcdef-1234567890abcdef-01" });
+
+	expect(yield* serverSpans()).toEqual(["under external span 1234567890abcdef in trace 1234567890abcdef1234567890abcdef, ended"]);
 });

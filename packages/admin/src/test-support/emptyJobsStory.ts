@@ -1,8 +1,8 @@
-import { Context, Effect, Layer, Option, Redacted, Ref } from "effect";
+import { Context, Effect, Layer, Option, Ref } from "effect";
 import { RpcTest } from "effect/rpc";
 import { permissionLayer } from "@shivaedev/identity/server/permissions.ts";
 import type { UserSessionShape } from "@shivaedev/identity/server/session.ts";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -19,7 +19,7 @@ import { postgresConfigured, postgresLayer } from "./jobsEngine.ts";
 const Jobs = makePgBoss("test/EmptyAdminJobs");
 const emptyJobsEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
-	const context = yield* Layer.build(Jobs.layer({ connectionString: Redacted.value(database.url), jobs: [] }));
+	const context = yield* Layer.build(Jobs.layer({ jobs: [] }).pipe(Layer.provide(pgBossLayer({ connectionString: database.url }))));
 	const page = jobsPage();
 	const registration = registerAdmin(adminRegistry(page), { jobs: jobsHandlers(page, Jobs) });
 	const session = yield* Ref.make<Option.Option<UserSessionShape>>(Option.none());

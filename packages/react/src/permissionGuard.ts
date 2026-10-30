@@ -1,6 +1,6 @@
 import { redirect } from "@tanstack/react-router";
 import type { Permission } from "@shivaedev/access/permission.ts";
-import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
+import { forbidden } from "@shivaedev/access/refusal.ts";
 import { can, type PermissionSession } from "./permissions.ts";
 import { type SignInLocation, signInSearch } from "./signInSearch.ts";
 
@@ -32,7 +32,7 @@ export function permissionGuard({ session, signIn }: PermissionGuardOptions): (c
 		}
 		for (const permission of required) {
 			if (!can(current, permission)) {
-				throw new Forbidden({ message: `Permission required: ${permission.name} (${permission.strength})` });
+				throw forbidden(permission);
 			}
 		}
 	};

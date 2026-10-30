@@ -1,90 +1,116 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { sessionKeys } from "#test/rpc/sessionKeys.ts";
-import { type Boundary, Preferences } from "#test/rpc/sessionKeysApi.ts";
+import type { Boundary } from "#test/rpc/sessionKeysApi.ts";
 
 for (const boundary of ["account", "profile", "providers", "admin", "owner", "custom"] satisfies Boundary[]) {
 	sessionKeys.it(
-		`${boundary} isolates concurrent accounts and shares changes across the account's sessions`,
+		`through ${boundary}, alice's save notifies and updates her second session on another host`,
 		[],
-		function* ({ subscribe, save, read, published, accountId }) {
-			const alice = yield* subscribe("alice", boundary);
-			const second = yield* subscribe("second", boundary);
-			const bob = yield* subscribe("bob", boundary);
-			for (const feed of [alice, second, bob]) {
-				expect(yield* feed.next).toEqual({ _tag: "Resync" });
-			}
-			yield* Effect.all([save("alice", "blue", { boundary }), save("bob", "green", { boundary })], { concurrency: "unbounded" });
-			const changed = { _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] };
-			expect(yield* alice.next).toMatchObject(changed);
-			expect(yield* second.next).toMatchObject(changed);
-			expect(yield* bob.next).toMatchObject(changed);
-			expect(yield* read("alice", boundary)).toBe("blue");
-			expect(yield* read("second", boundary)).toBe("blue");
-			expect(yield* read("bob", boundary)).toBe("green");
-			yield* save("alice", "purple", { boundary });
-			expect(yield* second.next).toMatchObject(changed);
-			expect(yield* alice.next).toMatchObject(changed);
-			yield* save("bob", "barrier", { boundary, id: "other" });
-			expect(yield* bob.next).toMatchObject({ _tag: "Changed", keys: [Preferences.list] });
-			expect(bob.hints).toMatchObject([{ _tag: "Resync" }, changed, { _tag: "Changed", keys: [Preferences.list] }]);
-			expect(published()).toEqual([
-				invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") }),
-				invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") }),
-			]);
+		function* ({ nextHint, read, save, subscribe }) {
+			yield* subscribe("second", boundary);
+
+			yield* save("alice", "blue", { boundary });
+
+			yield* outcomes({
+				"second session's hint": [nextHint("second"), "changed theme and the list"],
+				"second session's theme": [read("second", boundary), "blue"],
+			});
 		},
 	);
+
+	sessionKeys.it(
+		`through ${boundary}, saves by alice and bob at once keep each account's theme and hints apart`,
+		[],
+		function* ({ hintsUntilOwnBarrier, read, savesAtOnce, subscribe }) {
+			yield* subscribe("alice", boundary);
+			yield* subscribe("bob", boundary);
+
+			yield* savesAtOnce(
+				[
+					["alice", "blue"],
+					["bob", "green"],
+				],
+				boundary,
+			);
+
+			yield* outcomes({
+				"alice's hints": [hintsUntilOwnBarrier("alice", boundary), ["resync", "changed theme and the list", "changed the list"]],
+				"alice's theme": [read("alice", boundary), "blue"],
+				"bob's hints": [hintsUntilOwnBarrier("bob", boundary), ["resync", "changed theme and the list", "changed the list"]],
+				"bob's theme": [read("bob", boundary), "green"],
+			});
+		},
+	);
+
+	sessionKeys.it(`through ${boundary}, alice's save publishes her theme scoped to alice for other hosts`, [], function* ({ published, save }) {
+		yield* save("alice", "blue", { boundary });
+
+		expect(yield* published()).toEqual(["preferences:theme and preferences for alice"]);
+	});
 }
 
-sessionKeys.it("a transaction publishes once and a rollback publishes nothing", [], function* ({ subscribe, save, read, published, accountId }) {
-	const second = yield* subscribe("second");
-	expect(yield* second.next).toEqual({ _tag: "Resync" });
+sessionKeys.it("a save that also announces its change inside the transaction publishes it once", [], function* ({ published, save }) {
 	yield* save("alice", "committed", { announce: true });
-	expect(yield* second.next).toMatchObject({ _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] });
-	expect(published()).toEqual([invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") })]);
-	expect(yield* save("alice", "rolled back", { announce: true, reject: true }).pipe(Effect.result)).toMatchObject({
-		_tag: "Failure",
-		failure: { _tag: "Conflict" },
-	});
-	expect(yield* read("second")).toBe("committed");
-	yield* save("alice", "barrier", { id: "other" });
-	expect(yield* second.next).toMatchObject({ _tag: "Changed", keys: [Preferences.list] });
-	expect(second.hints).toMatchObject([
-		{ _tag: "Resync" },
-		{ _tag: "Changed", keys: [Preferences.item("theme"), Preferences.list] },
-		{ _tag: "Changed", keys: [Preferences.list] },
-	]);
-	expect(published()).toEqual([
-		invalidationKeys([Preferences.item("theme")], { scope: accountId("alice") }),
-		invalidationKeys([Preferences.item("other")], { scope: accountId("alice") }),
-	]);
+
+	expect(yield* published()).toEqual(["preferences:theme and preferences for alice"]);
 });
 
-sessionKeys.it("an anonymous subscription is refused", [], function* ({ anonymous }) {
-	expect(yield* anonymous()).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+sessionKeys.it(
+	"a rejected save fails with conflict, keeps the committed theme and neither notifies nor publishes",
+	[],
+	function* ({ hintsUntilOwnBarrier, published, read, save, subscribe }) {
+		yield* save("alice", "committed", { announce: true });
+		yield* subscribe("second");
+		expect(yield* published()).toEqual(["preferences:theme and preferences for alice"]);
+
+		const answer = yield* save("alice", "rolled back", { announce: true, reject: true });
+
+		yield* outcomes({
+			"answer": [Effect.succeed(answer), "failed with conflict"],
+			"published": [published(), ["preferences:theme and preferences for alice"]],
+			"second session's hints": [hintsUntilOwnBarrier("second"), ["resync", "changed the list"]],
+			"second session's theme": [read("second"), "committed"],
+		});
+	},
+);
+
+sessionKeys.it("a subscription without a session fails with unauthorized", [], function* ({ anonymousSubscription }) {
+	expect(yield* anonymousSubscription()).toBe("failed with unauthorized");
 });
 
-sessionKeys.it("a subscription refuses physical keys and undeclared queries", [], function* ({ sendSubscription }) {
-	for (const payload of [
-		{ keys: ["preferences"] },
+for (const [refused, payload, answer] of [
+	["physical keys instead of queries", { keys: ["preferences"] }, 'died with Missing key\n  at ["queries"]'],
+	[
+		"an undeclared query",
 		{ queries: [{ payload: {}, query: "other-owner" }] },
+		'died with Expected { readonly "query": "get", ... } | { readonly "query": "list", ... }\n  at ["queries"][0]',
+	],
+	[
+		"physical keys instead of a query payload",
 		{ queries: [{ payload: { keys: ["preferences"] }, query: "get" }] },
-	]) {
-		expect(yield* sendSubscription(payload)).toContain('"Die"');
-	}
-});
+		'died with Missing key\n  at ["queries"][0]["payload"]["id"]',
+	],
+] as const) {
+	sessionKeys.it(`a subscription with ${refused} dies decoding its payload`, [], function* ({ subscriptionWithPayload }) {
+		expect(yield* subscriptionWithPayload(payload)).toBe(answer);
+	});
+}
 
-sessionKeys.it("payload scope and owner fields cannot select another account", [], function* ({ forgeScope, save }) {
-	const forged = yield* forgeScope();
-	expect(yield* forged.next).toEqual({ _tag: "Resync" });
-	yield* save("bob", "private");
-	expect(yield* forged.next.pipe(Effect.timeoutOption("100 millis"))).toMatchObject({ _tag: "None" });
-	yield* save("alice", "own");
-	expect(yield* forged.next).toMatchObject({ _tag: "Changed", keys: [Preferences.item("theme")] });
-	expect(forged.hints).toMatchObject([{ _tag: "Resync" }, { _tag: "Changed", keys: [Preferences.item("theme")] }]);
-});
+sessionKeys.it(
+	"bob's owner and scope in alice's subscription payload still deliver only alice's changes",
+	[],
+	function* ({ forgedSubscription, hintsUntil, save }) {
+		yield* forgedSubscription();
 
-sessionKeys.it("a scoped change handler without request identity has no unscoped fallback", [], function* ({ unprotected }) {
-	expect(yield* unprotected()).toMatchObject({ _tag: "Failure" });
+		yield* save("bob", "private");
+		yield* save("alice", "own");
+
+		expect(yield* hintsUntil("forged", "changed theme")).toEqual(["resync", "changed theme"]);
+	},
+);
+
+sessionKeys.it("a scoped change stream without session middleware fails with query read denied", [], function* ({ unprotectedSubscription }) {
+	expect(yield* unprotectedSubscription()).toBe("failed with query read denied");
 });
