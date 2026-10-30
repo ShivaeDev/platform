@@ -13,15 +13,19 @@ const program = Effect.gen(function* () {
 	const cli = Command.make(
 		"browser-check",
 		{
+			liveNotes: Flag.Boolean("live-notes").pipe(
+				Flag.withDefault(false),
+				Flag.withDescription("Check the starter's two-tab socket updates and sign-out using a disposable user."),
+			),
 			pages: Flag.String("page").pipe(Flag.atLeast(0), Flag.withDescription("Page path to open and screenshot; repeat for more pages.")),
 			text: Flag.String("text").pipe(Flag.atLeast(0), Flag.withDescription("Visible text required on each page; repeat for more checks.")),
 			url: Flag.String("url").pipe(Flag.withDefault("http://127.0.0.1:5173")),
 		},
-		({ url, pages, text }) =>
+		({ url, pages, text, liveNotes }) =>
 			Effect.gen(function* () {
 				const email = yield* Config.String("BROWSER_CHECK_EMAIL").pipe(Config.option);
 				const credentials = Option.isSome(email) ? { email: email.value, password: yield* Config.String("BROWSER_CHECK_PASSWORD") } : undefined;
-				yield* check({ pages: pages.length === 0 ? ["/"] : pages, text, url, ...(credentials === undefined ? {} : { credentials }) }).pipe(
+				yield* check({ liveNotes, pages: pages.length === 0 ? ["/"] : pages, text, url, ...(credentials === undefined ? {} : { credentials }) }).pipe(
 					Effect.scoped,
 				);
 			}),

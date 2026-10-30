@@ -4,6 +4,7 @@ import { Console, Effect, FileSystem } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { chromium } from "playwright";
 import { BrowserCheckError } from "#BrowserCheckError.ts";
+import { liveNotes } from "./liveNotes.ts";
 
 function attempt<A>(run: () => Promise<A>) {
 	return Effect.tryPromise({
@@ -35,6 +36,7 @@ export const playwright = Effect.gen(function* () {
 		const page = yield* attempt(() => context.newPage());
 		page.setDefaultTimeout(5000);
 		return {
+			checkLiveNotes: (url: string, folder: string) => attempt(() => liveNotes(context, page, url, folder)),
 			checkText: (text: string) =>
 				attempt(async () => {
 					await page.getByText(text, { exact: false }).first().waitFor({ state: "visible" });
