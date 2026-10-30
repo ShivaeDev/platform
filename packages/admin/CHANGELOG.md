@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.1 - 2026-10-30
+
+### Fixed
+
+- Stack UsersView users as labelled cards below 640px so role controls fit on phone screens, while retaining the desktop table.
+
 ## 0.11.0 - 2026-10-30
 
 ### Fixed
