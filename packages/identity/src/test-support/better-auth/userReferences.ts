@@ -9,7 +9,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { authDatabase } from "#server/better-auth/mount.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { userReference } from "#server/better-auth/userReference.ts";
-import { databaseUrl, postgres } from "./postgres.ts";
+import { databaseUrl, postgres } from "#test/better-auth/postgres.ts";
 
 export const userReferences = storyKit({
 	around: withIsolatedDatabase,
