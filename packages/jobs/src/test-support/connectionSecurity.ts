@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Redacted } from "effect";
 import type { clientEngine } from "#test/clientEngine.ts";
 import type { pgBossRuntime } from "#test/pgBossRuntime.ts";
 
@@ -14,13 +14,13 @@ export function connectionSecurity(state: ReturnType<typeof clientEngine>, runti
 			select s.ssl from pg_stat_activity a join pg_stat_ssl s using (pid)
 			where a.datname = current_database() and a.application_name = ${name}`,
 		connectWithMode: (mode: "require" | undefined, name: string) => {
-			const url = new URL(state.connectionString);
+			const url = new URL(Redacted.value(state.connectionString));
 			url.searchParams.delete("sslmode");
 			url.searchParams.set("application_name", name);
 			if (mode !== undefined) {
 				url.searchParams.set("sslmode", mode);
 			}
-			return runtime.boot([], { connectionString: url.toString() });
+			return runtime.boot([], { connectionString: Redacted.make(url.toString()) });
 		},
 		serverTls: () => sql()<{ ssl: string }>`show ssl`.pipe(Effect.map(([row]) => row?.ssl === "on")),
 	};

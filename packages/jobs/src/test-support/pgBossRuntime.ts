@@ -1,9 +1,9 @@
-import { Cause, Context, Effect, Exit, Layer, Logger, Option, References, Scope, Tracer } from "effect";
+import { Cause, Context, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope, Tracer } from "effect";
 import type { Job, JobInsert } from "pg-boss";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 import { makeWorkerRelease, WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
 import type { JobPayloadSchema, JobRegistration, QueueDefinition } from "#definition.ts";
-import { makePgBoss, type PgBossLayerOptions } from "#service.ts";
+import { makePgBoss, type PgBossLayerOptions, type PgBossOptions, pgBossLayer } from "#service.ts";
 import type { clientEngine } from "#test/clientEngine.ts";
 import { dispatch } from "#test/dispatch.ts";
 import { constructorOptions } from "#test/fakeClient.ts";
@@ -26,23 +26,36 @@ export function pgBossRuntime(state: ReturnType<typeof clientEngine>, tell: (lin
 		return effect.pipe(Effect.provide(logger), Effect.provideService(References.MinimumLogLevel, "Debug"));
 	}
 	function native(options?: ConstructorOptions) {
-		return new PgBoss({ ...constructorOptions, connectionString: state.connectionString, ...options });
+		return new PgBoss({ ...constructorOptions, connectionString: Redacted.value(state.connectionString), ...options });
 	}
 	function start(client: PgBoss, options?: ConstructorOptions) {
-		return logged(Layer.build(Jobs.layer({ ...constructorOptions, ...options, clientFactory: () => client, jobs: [] }))).pipe(Effect.as(client));
+		return logged(
+			Layer.build(
+				pgBossLayer({
+					...constructorOptions,
+					...options,
+					clientFactory: () => client,
+					connectionString: options?.connectionString === undefined ? state.connectionString : Redacted.make(options.connectionString),
+				}),
+			),
+		).pipe(Effect.as(client));
 	}
-	function layer<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: Partial<PgBossLayerOptions<T, R>>) {
-		return Jobs.layer({
-			...constructorOptions,
-			...(state.factory === undefined ? {} : { clientFactory: state.factory }),
-			connectionString: state.connectionString,
-			jobs,
-			...options,
-		});
+	function layer<const T extends readonly JobRegistration[], R = never>(jobs: T, options?: PgBossOptions & Partial<PgBossLayerOptions<T, R>>) {
+		const { jobs: _jobs, onError, ...settings } = options ?? {};
+		return Jobs.layer({ jobs, ...(onError === undefined ? {} : { onError }) }).pipe(
+			Layer.provide(
+				pgBossLayer({
+					...constructorOptions,
+					...(state.factory === undefined ? {} : { clientFactory: state.factory }),
+					connectionString: state.connectionString,
+					...settings,
+				}),
+			),
+		);
 	}
 	function boot<const T extends readonly JobRegistration[], R = never>(
 		jobs: T,
-		options?: Partial<PgBossLayerOptions<T, R>>,
+		options?: PgBossOptions & Partial<PgBossLayerOptions<T, R>>,
 		finalizerStrategy?: Parameters<typeof Scope.fork>[1],
 	) {
 		return Effect.gen(function* () {

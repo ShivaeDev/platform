@@ -35,7 +35,7 @@ postgresIt("reports both populated queues and their totals after the monitor ref
 		});
 	}
 	const health = yield* until(
-		jobs.health,
+		jobs.health(),
 		(value) => value.failedTotal === 3 && value.activeTotal === 3 && value.deadLetteredTotal === 3 && value.queuedTotal === 6,
 	);
 	expect(health).toEqual({

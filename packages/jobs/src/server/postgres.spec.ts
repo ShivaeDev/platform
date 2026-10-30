@@ -27,7 +27,7 @@ postgresIt("uses the default client and returns zero health counts for externall
 		await client.deleteQueue(Queue.name);
 		await client.deleteQueue(deadLetterQueueName(Queue.name));
 	});
-	expect(yield* jobs.health).toEqual({
+	expect(yield* jobs.health()).toEqual({
 		activeTotal: 0,
 		deadLetteredTotal: 0,
 		failedTotal: 0,
@@ -47,7 +47,7 @@ postgresIt("preserves the operation, queue and pg-boss error after the real data
 	});
 	for (const [operation, effect] of [
 		["enqueue", Effect.asVoid(jobs.enqueue(Queue, {}))],
-		["health", Effect.asVoid(jobs.health)],
+		["health", Effect.asVoid(jobs.health())],
 	] as const) {
 		const error = yield* Effect.flip(effect);
 		expect(error).toBeInstanceOf(PgBossError);

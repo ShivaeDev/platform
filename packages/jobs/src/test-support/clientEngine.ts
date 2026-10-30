@@ -1,12 +1,12 @@
 import { EventEmitter } from "node:events";
-import type { Tracer } from "effect";
+import { Redacted, type Tracer } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { PgBossClientFactory } from "#client.ts";
 import { FakeClient } from "#test/fakeClient.ts";
 
 export function clientEngine(): {
 	client: FakeClient;
-	connectionString: string;
+	connectionString: Redacted.Redacted<string>;
 	events: EventEmitter;
 	factory: PgBossClientFactory | undefined;
 	workerLogs: Array<{ message: unknown; span: Tracer.AnySpan | undefined; annotations: Readonly<Record<string, unknown>> }>;
@@ -17,7 +17,7 @@ export function clientEngine(): {
 	const logs: Array<{ logLevel: string; message: unknown; cause?: string }> = [];
 	return {
 		client,
-		connectionString: "postgresql://compile-only",
+		connectionString: Redacted.make("postgresql://compile-only"),
 		events: new EventEmitter(),
 		factory: () => client,
 		logs,

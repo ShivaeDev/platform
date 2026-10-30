@@ -6,7 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { defineQueue } from "#definition.ts";
-import { makePgBoss } from "#service.ts";
+import { makePgBoss, pgBossLayer } from "#service.ts";
 import { postgresLayer } from "#test/postgresLayer.ts";
 
 const Jobs = makePgBoss("@test/TransactionalJobs");
@@ -20,7 +20,9 @@ export const transactionalJobs = storyKit({
 		const sql = yield* SqlClient.SqlClient;
 		const client = new PgBoss({ connectionString: Redacted.value(url), schedule: false, supervise: false });
 		const services = yield* Layer.build(
-			Jobs.layer({ clientFactory: () => client, connectionString: Redacted.value(url), jobs: [queue], schedule: false, supervise: false }),
+			Jobs.layer({ jobs: [queue] }).pipe(
+				Layer.provide(pgBossLayer({ clientFactory: () => client, connectionString: url, schedule: false, supervise: false })),
+			),
 		);
 		return { client, jobs: Context.get(services, Jobs), sql };
 	},

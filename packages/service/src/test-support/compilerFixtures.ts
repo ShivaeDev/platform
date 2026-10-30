@@ -12,7 +12,6 @@ export type InvalidFixture =
 	| "callerRequirement"
 	| "fake"
 	| "generic"
-	| "genericDeclaredRequirement"
 	| "genericMarkerOverloaded"
 	| "initializerRequirement"
 	| "methodRequirement"

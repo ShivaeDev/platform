@@ -30,7 +30,7 @@ postgresIt(
 		);
 		expect(handled).toEqual([42]);
 		expect(yield* jobs.counts(Queue)).toEqual({ activeCount: 1, failedCount: 0, queuedCount: 0, totalCount: 1 });
-		expect((yield* jobs.health).activeTotal).toBe(0);
+		expect((yield* jobs.health()).activeTotal).toBe(0);
 		release.resolve();
 		yield* untilJob(jobs, Queue, id, "completed");
 		expect(yield* jobs.counts(Queue)).toEqual({ activeCount: 0, failedCount: 0, queuedCount: 0, totalCount: 1 });

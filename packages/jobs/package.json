@@ -55,6 +55,7 @@
 	},
 	"dependencies": {
 		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/service": "workspace:*",
 		"@shivaedev/sql": "workspace:*"
 	},
 	"devDependencies": {

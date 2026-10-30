@@ -1,8 +1,8 @@
-import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Logger, Queue, Redacted, References } from "effect";
+import { Clock, type Context, Deferred, Duration, Effect, Fiber, Layer, Logger, Queue, References } from "effect";
 import { HttpServer } from "effect/http";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "#appHost.ts";
 import type { MigrationState } from "#test/app-host/migrationStory.ts";
 import { Ping, ping, pingHandlers } from "#test/app-host/ping.ts";
@@ -33,14 +33,13 @@ export const bootMigrations = Effect.fn("MigrationStory.bootMigrations")(functio
 	const services =
 		state.migrations.components.length === 0
 			? Layer.empty
-			: makePgBoss("@test/MigrationJobs").layer({
-					connectionString: Redacted.value(state.url),
-					jobs: [],
-					migrate: false,
-					schedule: false,
-					schema: `${state.table}_jobs`,
-					supervise: false,
-				});
+			: makePgBoss("@test/MigrationJobs")
+					.layer({ jobs: [] })
+					.pipe(
+						Layer.provide(
+							pgBossLayer({ connectionString: state.url, migrate: false, schedule: false, schema: `${state.table}_jobs`, supervise: false }),
+						),
+					);
 	const host = appHost({
 		application: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;

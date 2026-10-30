@@ -9,7 +9,7 @@ boss.it("registers a producer queue with health and enqueueing but no worker", [
 	const runtime = yield* boot([Queue]);
 	expect(Option.getOrUndefined(yield* runtime.jobs.enqueue(Queue, { id: 7 }))).toBe("job-id");
 	expect(client.sendCalls).toEqual([{ data: { id: "7" }, name: "producer", options: undefined }]);
-	expect((yield* runtime.jobs.health).jobs.map(({ name }) => name)).toEqual(["producer"]);
+	expect((yield* runtime.jobs.health()).jobs.map(({ name }) => name)).toEqual(["producer"]);
 	expect(client.workers).toEqual([]);
 	expect(client.createQueueCalls).toEqual([
 		{ name: deadLetterQueueName("producer"), options: undefined },

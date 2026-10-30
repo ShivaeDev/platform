@@ -1,15 +1,20 @@
-import { Effect, Schema } from "effect";
-import type { ConstructorOptions } from "pg-boss";
+import { Effect, Redacted, Schema } from "effect";
 import { expect, vi } from "vitest";
 import { defineQueue } from "#definition.ts";
 import { PgBossClientOptionsError } from "#error.ts";
+import type { PgBossOptions } from "#service.ts";
 import { boss } from "#test/boss.ts";
 
 boss.it("shares equal settings and rejects a conflicting build without losing client ownership", [], function* ({ boot, client }) {
 	const factory = vi.fn(() => client);
 	const Queue = defineQueue({ name: "cached", schema: Schema.Struct({}) });
 	const worker = Queue.handle(() => Effect.void);
-	const options = { clientCacheKey: Symbol("cached"), clientFactory: factory, connectionString: "postgresql://shared", schema: "shared" };
+	const options = {
+		clientCacheKey: Symbol("cached"),
+		clientFactory: factory,
+		connectionString: Redacted.make("postgresql://shared"),
+		schema: "shared",
+	};
 	const first = yield* boot([worker], { ...options, ssl: { rejectUnauthorized: true } });
 	const second = yield* boot([worker], { ...options, ssl: { rejectUnauthorized: true } });
 	const error = yield* Effect.flip(boot([worker], { ...options, schema: "different", ssl: { rejectUnauthorized: true } }));
@@ -22,12 +27,12 @@ boss.it("shares equal settings and rejects a conflicting build without losing cl
 	expect(client).toMatchObject({ offWorkCalls: ["cached", "cached", "cached"], startCalls: 1, stopCalls: 1 });
 });
 
-const conflicts: readonly { name: string; first: ConstructorOptions; second: ConstructorOptions; options: readonly string[] }[] = [
+const conflicts: readonly { name: string; first: PgBossOptions; second: PgBossOptions; options: readonly string[] }[] = [
 	{
-		first: { connectionString: "postgresql://first" },
+		first: { connectionString: Redacted.make("postgresql://first") },
 		name: "a connection string changes",
 		options: ["connectionString"],
-		second: { connectionString: "postgresql://second" },
+		second: { connectionString: Redacted.make("postgresql://second") },
 	},
 	{ first: { schema: "first" }, name: "a schema changes", options: ["schema"], second: { schema: "second" } },
 	{ first: { max: 2 }, name: "the pool size changes", options: ["max"], second: { max: 3 } },

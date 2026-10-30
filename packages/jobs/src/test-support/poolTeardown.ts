@@ -5,7 +5,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { defaultClientFactory, type PgBossClientFactory } from "#client.ts";
-import { makePgBoss } from "#service.ts";
+import { makePgBoss, pgBossLayer } from "#service.ts";
 import { disconnectGate } from "#test/disconnectGate.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 import { waitingVerbs } from "#test/waitingVerbs.ts";
@@ -46,24 +46,21 @@ export const poolTeardown = storyKit({
 		open: Effect.fn("PoolTeardown.open")(function* (factory: PgBossClientFactory = defaultClientFactory) {
 			story.tell("open the jobs client through a PostgreSQL disconnect gate");
 			yield* Effect.addFinalizer(() => Effect.sync(gate.release));
-			yield* Layer.buildWithScope(
-				Jobs.layer({
-					"application_name": name,
-					clientFactory: (options) => {
-						const client = factory(options);
-						if (!(client instanceof PgBoss)) {
-							throw new Error("The transport story needs a real pg-boss client");
-						}
-						client.once("stopped", () => stopped.resolve());
-						return client;
-					},
-					connectionString: gate.url,
-					jobs: [],
-					schedule: false,
-					supervise: false,
-				}),
-				scope,
-			);
+			const clientLayer = pgBossLayer({
+				"application_name": name,
+				clientFactory: (options) => {
+					const client = factory(options);
+					if (!(client instanceof PgBoss)) {
+						throw new Error("The transport story needs a real pg-boss client");
+					}
+					client.once("stopped", () => stopped.resolve());
+					return client;
+				},
+				connectionString: Redacted.make(gate.url),
+				schedule: false,
+				supervise: false,
+			});
+			yield* Layer.buildWithScope(Jobs.layer({ jobs: [] }).pipe(Layer.provide(clientLayer)), scope);
 		}),
 		releaseDisconnects: () => Effect.sync(gate.release),
 		shutdownResult: (fiber: Fiber.Fiber<void>) => Effect.sync(() => fiber.pollUnsafe()),

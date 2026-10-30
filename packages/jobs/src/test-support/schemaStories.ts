@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Redacted } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { getRollbackPlans } from "pg-boss";
 import { assertPostgresMigrations } from "@shivaedev/sql/assertPostgresMigrations.ts";
@@ -26,7 +26,7 @@ export const schemaStories = storyKit({
 		const runtime = pgBossRuntime(
 			{
 				...clientEngine(),
-				connectionString: Redacted.value(Context.get(state.services, PostgresTestDatabase).url),
+				connectionString: Context.get(state.services, PostgresTestDatabase).url,
 				factory: undefined,
 			},
 			story.tell,

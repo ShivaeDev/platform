@@ -938,6 +938,9 @@ importers:
       '@shivaedev/errors':
         specifier: workspace:*
         version: link:../errors
+      '@shivaedev/service':
+        specifier: workspace:*
+        version: link:../service
       '@shivaedev/sql':
         specifier: workspace:*
         version: link:../sql

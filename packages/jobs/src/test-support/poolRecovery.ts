@@ -1,10 +1,10 @@
-import { Effect, Layer, Logger, Redacted, References, Schema } from "effect";
+import { Effect, Layer, Logger, References, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { defaultClientFactory, type PgBossClient } from "#client.ts";
-import { makePgBoss } from "#service.ts";
+import { makePgBoss, pgBossLayer } from "#service.ts";
 import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
 
 const Jobs = makePgBoss("PoolRecoveryJobs");
@@ -19,19 +19,21 @@ export const poolRecovery = storyKit({
 			const logs: Array<{ readonly level: string; readonly message: unknown }> = [];
 			const logger = Logger.make(({ logLevel, message }) => logs.push({ level: logLevel, message }));
 			let client: PgBossClient | undefined;
+			const clientLayer = pgBossLayer({
+				clientFactory: (options) => {
+					client = defaultClientFactory(options);
+					return client;
+				},
+				connectionString: database.url,
+				max: 1,
+				migrate: true,
+				schedule: false,
+				supervise: false,
+			});
 			yield* Layer.build(
-				Jobs.layer({
-					clientFactory: (options) => {
-						client = defaultClientFactory(options);
-						return client;
-					},
-					connectionString: Redacted.value(database.url),
-					jobs: [],
-					max: 1,
-					migrate: true,
-					schedule: false,
-					supervise: false,
-				}).pipe(Layer.provide(Logger.layer([logger])), Layer.provide(Layer.succeed(References.MinimumLogLevel, "Debug"))),
+				Jobs.layer({ jobs: [] })
+					.pipe(Layer.provide(clientLayer))
+					.pipe(Layer.provide(Logger.layer([logger])), Layer.provide(Layer.succeed(References.MinimumLogLevel, "Debug"))),
 			);
 			const db = client?.getDb?.();
 			if (db === undefined) {

@@ -38,5 +38,5 @@ boss.it("projects queue and dead-letter health concurrently", [], function* ({ b
 	client.queues.set("health", queueResult("health", { activeCount: 2, failedCount: 3, queuedCount: 7, readyCount: 5 }));
 	client.queues.set(deadLetterQueueName("health"), queueResult(deadLetterQueueName("health"), { queuedCount: 4 }));
 	const { jobs } = yield* boot([Queue.handle(() => Effect.void)]);
-	expect(yield* jobs.health).toMatchObject({ activeTotal: 2, deadLetteredTotal: 4, failedTotal: 3, queuedTotal: 7, readyTotal: 5 });
+	expect(yield* jobs.health()).toMatchObject({ activeTotal: 2, deadLetteredTotal: 4, failedTotal: 3, queuedTotal: 7, readyTotal: 5 });
 });
