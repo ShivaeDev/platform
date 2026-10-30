@@ -45,7 +45,6 @@
 {"path":"src/modules/notes/server/authClient.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"src/modules/notes/server/authClient.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/modules/notes/server/deployedNotes.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"src/modules/notes/server/migrations/0002_notes.ts","rule":"code/unused","count":1}
 {"path":"src/modules/notes/server/noteEditingHost.spec.ts","rule":"tests/grouped-outcomes","count":3}
 {"path":"src/modules/notes/server/noteJobsEditing.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"src/modules/notes/server/noteLifecycle.spec.ts","rule":"tests/grouped-outcomes","count":3}
@@ -60,5 +59,4 @@
 {"path":"src/server/authOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/databaseOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"src/server/migrations.ts","rule":"effect/service-parameters","count":1}
-{"path":"src/server/migrations/0001_auth.ts","rule":"code/unused","count":1}
 {"path":"src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}
