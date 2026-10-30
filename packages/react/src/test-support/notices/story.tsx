@@ -1,4 +1,6 @@
-import { Deferred, Effect } from "effect";
+import { Clock, Deferred, Effect, Layer } from "effect";
+import * as Atom from "effect/reactivity/Atom";
+import { TestClock } from "effect/testing";
 import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clickButton, typeInput } from "#test/Screen.ts";
@@ -7,6 +9,7 @@ import { noticeClient } from "./client.ts";
 import { type NoticeScreen, NoticeView } from "./view.tsx";
 
 interface State {
+	clock?: Clock.Clock;
 	current: NoticeScreen;
 	view?: Rendered;
 }
@@ -16,13 +19,22 @@ function view(state: State) {
 	}
 	return state.view;
 }
-export const notifications = storyKit(
-	screenKit(
+export const notifications = storyKit({
+	...screenKit(
 		"notice host",
 		(): State => ({
 			current: { client: noticeClient(), editor: false, host: true, queryFailure: false, screens: true, session: "alice", uninterruptible: false },
 		}),
 		(state, screen) => ({
+			advance: (millis: number) => {
+				const clock = state.clock;
+				if (!clock) {
+					throw new Error("The notice host has no clock");
+				}
+				return screen.act(`the host's clock advances ${millis} ms`, () =>
+					Effect.runPromise(TestClock.adjust(millis).pipe(Effect.provideService(Clock.Clock, clock))),
+				);
+			},
 			click: (label: string) => screen.act(label, () => clickButton(view(state).container, label)),
 			complete: (kind: "remove" | "restore", title: string) =>
 				screen.act(`complete ${kind} ${title}`, () => Effect.runPromise(Deferred.succeed(state.current.client.gate(kind, title), undefined))),
@@ -47,10 +59,12 @@ export const notifications = storyKit(
 			unmount: () => screen.act("unmount the host", () => view(state).unmount()),
 		}),
 	),
-);
+	clock: "test",
+});
 export function noticeScreen(options: Partial<NoticeScreen> = {}) {
 	return notifications.trait("screen", "session with application-rendered notices", function* ({ screen, state }) {
-		state.current = { ...state.current, ...options };
+		state.clock = yield* Clock.Clock;
+		state.current = { ...state.current, clock: Atom.runtime(Layer.succeed(Clock.Clock, state.clock)), ...options };
 		state.view = yield* screen.open(<NoticeView state={state.current} />);
 	});
 }

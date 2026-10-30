@@ -1,9 +1,9 @@
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import type { NoticeDescriptor } from "#notices.ts";
-import { type NoticeAction, type NoticeEntry, noticeEntry } from "./noticeEntry.ts";
+import { type NoticeAction, type NoticeClock, type NoticeEntry, noticeEntry } from "./noticeEntry.ts";
 
-export function noticeStore(registry: AtomRegistry.AtomRegistry) {
+export function noticeStore(registry: AtomRegistry.AtomRegistry, clock: NoticeClock) {
 	const entries = Atom.make<readonly NoticeEntry[]>([]);
 	let nextId = 0;
 	function remove(id: number) {
@@ -26,7 +26,7 @@ export function noticeStore(registry: AtomRegistry.AtomRegistry) {
 			if (!store.active) {
 				return;
 			}
-			const entry = noticeEntry(registry, nextId, descriptor, remove, action);
+			const entry = noticeEntry(registry, clock, nextId, descriptor, remove, action);
 			nextId += 1;
 			registry.set(entries, [...registry.get(entries), entry]);
 		},
