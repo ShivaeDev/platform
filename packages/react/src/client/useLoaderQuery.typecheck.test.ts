@@ -10,6 +10,16 @@ const atom = Atom.make(Effect.succeed(row));
 export function useLoadedScreen() {
 	const query = useLoaderQuery(atom, row);
 	expectTypeOf(query.data).toEqualTypeOf<{ title: string }>();
+	const configured = useLoaderQuery(atom, row, {
+		coalesceWindow: "100 millis",
+		keepPreviousData: true,
+		notice: ({ cause, refreshing }) => {
+			expectTypeOf(cause).toEqualTypeOf<import("effect").Cause.Cause<never>>();
+			expectTypeOf(refreshing).toEqualTypeOf<boolean>();
+			return undefined;
+		},
+	});
+	expectTypeOf(configured).toEqualTypeOf<typeof query>();
 	// @ts-expect-error The loaded accessor exposes no Initial result.
 	expectTypeOf(query.result);
 	// @ts-expect-error A route must supply its loader's success value.
