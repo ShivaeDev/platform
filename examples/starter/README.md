@@ -86,3 +86,9 @@ Add `--registry` to generate the app with the published `pnpm create @shivaedev/
 Railway needs no hand-written proxy setting. `.railway/railway.ts` uses `.railway/proxy.json` for proxy peer trust and client IP headers. `TRUSTED_PROXY` controls which peers may supply forwarded client IPs and the public HTTPS authority for RPC origin checks; `PUBLIC_URL` selects secure auth cookies. A session host listening on a non-loopback address refuses to boot without `TRUSTED_PROXY` or `config.trustedProxy`, with a typed `TrustedProxyRequired` error explaining how to set it. Local development on loopback keeps working without it.
 
 The [framework quickstart](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#deploy) describes the Railway rollout, the worker drain and the timeouts this app configures.
+
+## Look at the running app
+
+With `pnpm dev` running, use `pnpm browser-check --page / --text "Sign in"` for a local screenshot and smoke check. It installs Chromium on the first run and reuses the cached browser after that; `pnpm install` never downloads browsers. Screenshots stay in the git-ignored `.browser-check/` folder. For an existing test user, set `BROWSER_CHECK_EMAIL` and `BROWSER_CHECK_PASSWORD` in your shell, then choose the page and visible text to check. See [browser-check](https://github.com/ShivaeDev/platform/tree/main/packages/browser-check#readme) for options.
+
+End-to-end browser tests do not belong in an app's CI because they cost CI minutes on private repositories. Stories prove behavior; browser check is for looking at the app locally. It is opt-in and stays out of CI and `pnpm ready`/`ci`.
