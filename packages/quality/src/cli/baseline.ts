@@ -6,6 +6,7 @@ import { openSession, type Session } from "#engine/session.ts";
 import { applyRegistry } from "#exceptions/registry.ts";
 import { SetupFailure } from "#failure.ts";
 import { plural } from "#report/plural.ts";
+import type { RuleServices } from "#rule.ts";
 
 function save(session: Session, entries: readonly BaselineEntry[]): Effect.Effect<void, SetupFailure, FileSystem.FileSystem> {
 	return saveShards(session.config, session.baseline.files, entries);
@@ -19,7 +20,7 @@ export const writeBaseline = Effect.fn("Cli.writeBaseline")(function* (
 	cwd: string,
 	config: string | undefined,
 	rules: readonly string[],
-): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<void, SetupFailure, RuleServices> {
 	const session = yield* openSession(cwd, config);
 	const existing = session.baseline.files.size === 0 ? undefined : session.baseline.entries;
 	const adoption = adopt(existing, rules, unregistered(session), session.config);
@@ -47,7 +48,7 @@ export const shrinkBaseline = Effect.fn("Cli.shrinkBaseline")(function* <TRequir
 	cwd: string,
 	config: string | undefined,
 	scopeOf: (session: Session) => Effect.Effect<Scope, SetupFailure, TRequirements>,
-): Effect.fn.Return<void, SetupFailure, FileSystem.FileSystem | TRequirements> {
+): Effect.fn.Return<void, SetupFailure, RuleServices | TRequirements> {
 	const session = yield* openSession(cwd, config);
 	if (session.baseline.files.size === 0) {
 		return yield* Console.log(`quality: no baseline at ${session.config.baseline}; nothing to lower.`);

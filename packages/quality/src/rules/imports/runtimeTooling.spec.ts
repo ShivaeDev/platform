@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { findingsIn, linkWorkspace, scanned } from "#test/imports.ts";
+import { run } from "#test/run.ts";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
 
 afterEach(removeSeededTrees);
@@ -24,7 +25,7 @@ describe("server tooling conventions", () => {
 			throw new Error("runtime rule must configure without options");
 		}
 		const sources = inputs.sources.filter(({ path }) => path.startsWith("modules/app/"));
-		expect((await configured.check({ ...inputs, sources })).map(({ file, subject }) => ({ file, subject }))).toEqual([
+		expect((await run(configured.check({ ...inputs, sources }))).map(({ file, subject }) => ({ file, subject }))).toEqual([
 			{ file: "modules/app/src/client/app.ts", subject: "worker/api.ts" },
 			{ file: "modules/app/src/client/app.ts", subject: "../../../worker/src/cli.ts" },
 			{ file: "modules/app/src/shared.ts", subject: "worker/api.ts" },
