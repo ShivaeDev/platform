@@ -3,8 +3,12 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { scopedHttpApp } from "#test/scopedHttpApp.ts";
 
-scopedHttpApp.it("consumes a scoped failure only when every decoded path parameter matches", [], function* ({ failOnce, request }) {
-	yield* failOnce("pull", { status: HttpStatus.fromLiteral("ServiceUnavailable") }, { params: { number: "7", owner: "a/b", repo: "platform" } });
+scopedHttpApp.it("consumes a scoped failure only when every decoded path parameter matches", [], function* ({ scriptFault, request }) {
+	yield* scriptFault(
+		"pull",
+		{ kind: "status", reply: { status: HttpStatus.fromLiteral("ServiceUnavailable") } },
+		{ params: { number: "7", owner: "a/b", repo: "platform" } },
+	);
 	for (const path of ["/repos/other/platform/pulls/7", "/repos/a%2Fb/other/pulls/7", "/repos/a%2Fb/platform/pulls/8"]) {
 		const other = yield* request(path);
 		expect(yield* other.headers).toMatchObject({ status: HttpStatus.fromLiteral("OK") });

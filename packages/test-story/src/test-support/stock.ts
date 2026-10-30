@@ -38,5 +38,5 @@ export const stock = storyKit({
 export const flourInStock = stock.trait("stocked", "flour is in stock", function* (engine) {
 	yield* recordComposition("stock trait");
 	engine.stock.traitEngine = engine;
-	yield* engine.stock.service.replyOnce("stock", { body: Buffer.from(yield* StockLabel) });
+	yield* engine.stock.service.scriptFault("stock", { kind: "status", reply: { body: Buffer.from(yield* StockLabel) } });
 });

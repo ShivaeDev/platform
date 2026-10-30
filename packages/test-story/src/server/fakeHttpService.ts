@@ -82,8 +82,6 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 		}
 	}
 	return {
-		failOnce: (route: string, reply: FakeHttpReplySource, scope?: FakeHttpScope) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
 		fault: (route: string, fault: FakeHttpFault, scope?: FakeHttpScope) =>
 			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.fault(route, fault, scope))),
 		hold: (route: string, holdOptions?: FakeHttpHoldOptions) =>
@@ -96,8 +94,6 @@ export const fakeHttpService = Effect.fnUntraced(function* (options: FakeHttpSer
 				checkRoute(route);
 				checkRoute(arrival);
 			}).pipe(Effect.andThen(controls.releaseOnArrival(route, arrival, scope))),
-		replyOnce: (route: string, reply: FakeHttpReplySource, scope?: FakeHttpScope) =>
-			Effect.sync(() => checkRoute(route)).pipe(Effect.andThen(controls.queue(route, reply, scope))),
 		get requests(): readonly FakeHttpRequestRecord[] {
 			return requests.slice();
 		},

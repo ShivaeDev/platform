@@ -7,8 +7,8 @@ acquisitionHttpApp.it("narrates through the callback supplied at acquisition", [
 	expect(story.lines).toEqual(["fake HTTP received GET /users/alice", "fake HTTP answered GET /users/alice with 200"]);
 });
 
-fakeHttpApp.it("narrates rejections and one-shot reply controls", [hasCredential("Bearer story-key")], function* ({ failOnce, request, story }) {
-	yield* failOnce("user", { status: HttpStatus.fromLiteral("BadGateway") });
+fakeHttpApp.it("narrates rejections and one-shot reply controls", [hasCredential("Bearer story-key")], function* ({ scriptFault, request, story }) {
+	yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 	expect(yield* request("/users/alice", { headers: { authorization: "Bearer wrong" } })).toMatchObject({
 		status: HttpStatus.fromLiteral("Unauthorized"),
 	});
@@ -16,7 +16,7 @@ fakeHttpApp.it("narrates rejections and one-shot reply controls", [hasCredential
 	expect(yield* request("/users/alice")).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 	expect(story.lines).toEqual([
 		"the caller has an API credential",
-		"fake HTTP user will answer once with 502",
+		"fake HTTP user will fault status before reply once",
 		"fake HTTP received GET /users/alice",
 		"fake HTTP rejected GET /users/alice with 401",
 		"fake HTTP received GET /users/alice",

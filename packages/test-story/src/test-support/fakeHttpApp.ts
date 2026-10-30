@@ -58,7 +58,6 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 			}
 			return {
 				close: () => Scope.close(scope, Exit.void),
-				failOnce: service.failOnce,
 				hold: service.hold,
 				probe: (path: string) =>
 					Effect.acquireRelease(
@@ -70,6 +69,7 @@ function fakeHttpKit(guarded: boolean, acquisitionTell = false) {
 				recordedRequests: () => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
 				request,
 				requests: () => service.requests.map(({ method, path, body }) => ({ body: body.toString(), method, path })),
+				scriptFault: service.scriptFault,
 				url: () => service.url,
 			};
 		},
