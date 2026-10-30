@@ -19,7 +19,7 @@ export const admittedApp = storyKit({
 		return { cookies: new Map<string, string>(), env, github, host, signIns: new Map<string, string>() };
 	},
 	layer: postgres,
-	name: "admitted starter",
+	name: "admitted accounts",
 	stages: [],
 	verbs: (engine, story) => ({
 		allowAliceAgain: () =>

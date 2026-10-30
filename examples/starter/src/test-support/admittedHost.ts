@@ -54,7 +54,7 @@ export const admittedHost = Effect.fn("AdmittedStory.admittedHost")(function* (e
 	);
 	const server = yield* HttpServer.HttpServer.pipe(Effect.provideContext(context));
 	if (!NetAddress.isInetAddress(server.address)) {
-		return yield* Effect.die("The admitted starter host needs a TCP listener");
+		return yield* Effect.die("The admitted account host needs a TCP listener");
 	}
 	const baseUrl = `http://127.0.0.1:${server.address.port}`;
 	return {
