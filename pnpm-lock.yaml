@@ -1270,9 +1270,6 @@ importers:
       '@shivaedev/jobs':
         specifier: workspace:*
         version: link:../jobs
-      '@shivaedev/local-postgres':
-        specifier: workspace:*
-        version: link:../local-postgres
       '@shivaedev/quality':
         specifier: workspace:*
         version: link:../quality

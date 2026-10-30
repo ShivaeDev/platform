@@ -64,7 +64,6 @@
 		"@shivaedev/changes": "workspace:*",
 		"@shivaedev/identity": "workspace:*",
 		"@shivaedev/jobs": "workspace:*",
-		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/server": "workspace:*",
 		"@shivaedev/service": "workspace:*",

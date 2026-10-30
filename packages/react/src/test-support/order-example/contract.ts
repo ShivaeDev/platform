@@ -1,9 +1,9 @@
-import { Context, Effect, Schema } from "effect";
-import { RpcMiddleware } from "effect/rpc";
+import { Effect, Schema } from "effect";
 import { collection } from "@shivaedev/changes/keys.ts";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command, query } from "@shivaedev/contract/operation.ts";
 import { fieldRejection } from "@shivaedev/contract/rejection.ts";
+import { Authenticated } from "@shivaedev/identity/middleware.ts";
 
 export class Order extends Schema.Class<Order>("Order")({
 	id: Schema.Number,
@@ -11,13 +11,8 @@ export class Order extends Schema.Class<Order>("Order")({
 	quantity: Schema.Number,
 }) {}
 export const OrderDraft = Schema.Struct({ name: Order.fields.name, quantity: Order.fields.quantity });
-export class Unauthorized extends Schema.TaggedError<Unauthorized>()("Unauthorized", {}) {}
 export class OrderNotFound extends Schema.TaggedError<OrderNotFound>()("OrderNotFound", {}) {}
 export class StorageUnavailable extends Schema.TaggedError<StorageUnavailable>()("StorageUnavailable", {}) {}
-export class Principal extends Context.Service<Principal, { readonly userId: string }>()("order/Principal") {}
-export class Authentication extends RpcMiddleware.Service<Authentication, { provides: Principal }>()("order/Authentication", {
-	error: Unauthorized,
-}) {}
 
 export const orders = collection("orders", Order.fields.id);
 export const GetOrder = query("get", {
@@ -41,4 +36,4 @@ export const SaveOrder = command("save", {
 });
 export type SaveOrderInput = typeof SaveOrder.payload.Type;
 
-export const Orders = contract("orders", { commands: [SaveOrder], queries: [GetOrder, ListOrders] }).middleware(Authentication);
+export const Orders = contract("orders", { commands: [SaveOrder], queries: [GetOrder, ListOrders] }).middleware(Authenticated);

@@ -8,6 +8,7 @@ const Seed = Schema.Struct({
 	quantity: Order.fields.quantity.check(Schema.isInt(), Schema.isBetween({ maximum: 5000, minimum: 0 })),
 });
 
+// Existing orders are a precondition; the stories exercise reads and edits.
 export const seedOrder = Effect.fn("OrderSeed.seedOrder")(function* (overrides: Partial<typeof Seed.Type> = {}) {
 	const values = yield* Schema.decodeUnknownEffect(Seed)({ name: "Printer paper", ownerId: "alice", quantity: 3, ...overrides });
 	const sql = yield* SqlClient.SqlClient;

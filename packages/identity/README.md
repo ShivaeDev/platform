@@ -254,7 +254,7 @@ Here `sessions` is the application's policy from the previous example, with a Be
 
 #### Reading provider account IDs
 
-Pass Better Auth's account lookup as the second argument to `betterAuthSessions`. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
+Pass Better Auth's account lookup as the second argument to the mount's `admittedSessions` to combine provider accounts with its sign-in policy and credential selection. Without a mount, `betterAuthSessions` accepts the same two lookups. Declare `AuthenticatedUserWithProviderAccounts` on account-reading RPCs and merge `authenticatedUserWithProviderAccountsLayer(sessions)` alongside their handlers. This boundary requires a provider whose user has a `providerAccounts` Effect; a provider without the second lookup does not satisfy that type.
 
 ```ts
 import { SessionUserWithProviderAccounts } from "@shivaedev/identity/identity.ts";
@@ -264,9 +264,10 @@ import { authenticatedUserWithProviderAccountsLayer } from "@shivaedev/identity/
 
 const sessions = {
 	origin: trustedOrigins({ allow: ["https://app.example"], missing: "reject" }),
-	provider: betterAuthSessions(
-		(headers) => auth.api.getSession({ headers }),
-		(headers) => auth.api.listUserAccounts({ headers }),
+	...mounted.sessions,
+	provider: mounted.admittedSessions(
+		(headers) => mounted.auth.api.getSession({ headers }),
+		(headers) => mounted.auth.api.listUserAccounts({ headers }),
 	),
 };
 
