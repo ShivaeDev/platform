@@ -28,21 +28,7 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./package.json": "./package.json",
-		"./CreateAppError.ts": null,
-		"./appFiles.ts": null,
-		"./cli.ts": null,
-		"./createApp.ts": null,
-		"./initializeGit.ts": null,
-		"./pack.ts": null,
-		"./packTemplate.ts": null,
-		"./template.ts": null,
-		"./test-support/*": null,
-		"./generation.ts": null,
-		"./historicalTemplate.ts": null,
-		"./runProcess.ts": null,
-		"./starterPatch.ts": null,
-		"./updateApp.ts": null
+		"./package.json": "./package.json"
 	},
 	"bin": {
 		"create-app": "./dist/cli.js"
@@ -76,6 +62,19 @@
 		"esbuild": "catalog:",
 		"typescript": "catalog:",
 		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@effect/platform-node": "catalog:",
+		"@effect/platform-node-shared": "catalog:",
+		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@effect/platform-node": {
+			"optional": true
+		},
+		"@effect/platform-node-shared": {
+			"optional": true
+		}
 	},
 	"engines": {
 		"node": ">=24"
