@@ -1,6 +1,7 @@
 import { posix } from "node:path";
+import { Effect } from "effect";
 import { recommendedRules } from "#biome/recommendedRules.ts";
-import { defineRule, type Finding, type Rule, type RuleInputs } from "#rule.ts";
+import { defineRule, type Finding, type Rule, type RuleInputs, type RuleServices } from "#rule.ts";
 import { PRESET, rootConfig } from "#rules/biome.ts";
 import { decodeShipped, PRESET_DECLARATIONS } from "#rules/suppressions/biome/declarations.ts";
 import { type Json, member, parseJsonc, textOf } from "#rules/suppressions/biome/json.ts";
@@ -33,35 +34,39 @@ function problem(file: string, message: string): readonly Finding[] {
 	return [{ file, message }];
 }
 
-async function check(readText: RuleInputs["readText"], recommended: () => Promise<readonly string[]>): Promise<readonly Finding[]> {
-	const root = await rootConfig(readText);
+const check = Effect.fn("BiomeRecommended.check")(function* (readText: RuleInputs["readText"], recommended: Recommended) {
+	const root = yield* Effect.promise(() => rootConfig(readText));
 	if (!root.extendsPreset) {
 		return [];
 	}
-	const path = await resolvePackage(readText, PRESET);
+	const path = yield* Effect.promise(() => resolvePackage(readText, PRESET));
 	if (path === undefined) {
 		return problem(root.path, `Cannot resolve "${PRESET}" from node_modules. Install @shivaedev/quality at the repository root.`);
 	}
-	const text = await readText(path);
+	const text = yield* Effect.promise(() => readText(path));
 	const parsed = text === undefined ? undefined : parseJsonc(path, text);
 	if (parsed?._tag !== "Parsed") {
 		return problem(path, `Cannot read the preset "${PRESET}": ${parsed?.reason ?? "the file does not exist"}.`);
 	}
 	const declarationsPath = posix.join(posix.dirname(path), PRESET_DECLARATIONS);
-	const declarations = await decodeShipped(await readText(declarationsPath));
+	const declarationText = yield* Effect.promise(() => readText(declarationsPath));
+	const declarations = yield* Effect.promise(() => decodeShipped(declarationText));
 	if (declarations._tag === "Invalid") {
 		return problem(declarationsPath, `Cannot read the declarations shipped with "${PRESET}": ${declarations.issues.join("; ")}.`);
 	}
 	const declared = new Set(declarations.value.map((declaration) => declaration.rule));
 	const rules = member(member(parsed.json, "linter"), "rules");
-	return (await recommended())
+	const result = recommended();
+	return (yield* Effect.isEffect(result) ? result : Effect.promise(() => result))
 		.filter((rule) => !declared.has(`lint/${rule}`))
 		.map((rule) => ({ rule, setting: settingOf(rules, rule) }))
 		.filter(({ setting }) => setting.level !== "error")
 		.map(({ rule, setting }) => looseRule(path, rule, setting));
-}
+});
 
-export function biomeRecommendedFrom(recommended: () => Promise<readonly string[]>): Rule<"suppressions/biome-recommended", undefined> {
+type Recommended = () => Promise<readonly string[]> | Effect.Effect<readonly string[], unknown, RuleServices>;
+
+export function biomeRecommendedFrom(recommended: Recommended): Rule<"suppressions/biome-recommended", undefined> {
 	return defineRule({
 		check: ({ readText }) => check(readText, recommended),
 		description:

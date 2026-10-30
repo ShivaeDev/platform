@@ -1,10 +1,11 @@
-import { type Duration, Effect, Option, Stream } from "effect";
+import { type Duration, Effect, Stream } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRpc from "effect/reactivity/AtomRpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
 import { aggregateLiveStatus } from "#internal/aggregateLiveStatus.ts";
 import type { BindingOwner } from "#internal/bindingOwner.ts";
+import { queryFailure } from "#internal/queryFailure.ts";
 import { localQueryKeys, queryHint } from "#internal/queryHints.ts";
 import { queryResult } from "#internal/queryResult.ts";
 import { socketIdentity } from "#internal/rpcClient.ts";
@@ -122,11 +123,12 @@ export function automaticLive(
 						start();
 					}
 				});
-				get.subscribe(subscription.status, (value) => {
-					if (!started && Option.isSome(value.failure)) {
-						get.setSelf(AsyncResult.failure(value.failure.value));
-					}
-				});
+				const failed = queryFailure(
+					() => started,
+					(cause) => get.setSelf(AsyncResult.failure(cause)),
+					() => get.refresh(atom),
+				);
+				get.subscribe(subscription.status, failed);
 				get.addFinalizer(registry.subscribe(paused, (value) => registry.set(subscription.paused, value), { immediate: true }));
 				get.mount(subscription.connection);
 				if (get.once(ready)) {

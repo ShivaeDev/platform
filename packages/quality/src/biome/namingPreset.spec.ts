@@ -1,6 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { biomeReport } from "#biome/report.ts";
 import { expected, type Line, nameOf } from "#test/namingFindings.ts";
+import { run } from "#test/run.ts";
 import { linkPackage, removeSeededTrees, type SeedFile, seedTree } from "#test/tree.ts";
 
 const IMPORTS: Line = ['import { Effect, Layer, Schema } from "effect";'];
@@ -203,7 +204,7 @@ beforeAll(async () => {
 		Object.entries(fixtures).map(([path, lines]) => ({ content: `${lines.map(([code]) => code).join("\n")}\n`, path })),
 	);
 	linkPackage(root);
-	const report = await biomeReport(root, ["lint"]);
+	const report = await run(biomeReport(root, ["lint"]));
 	const named = report.diagnostics.flatMap((diagnostic) => {
 		const name = nameOf(diagnostic);
 		return name === undefined ? [] : [{ file: diagnostic.location.path ?? "", finding: `${diagnostic.location.start?.line ?? 0} ${name}` }];

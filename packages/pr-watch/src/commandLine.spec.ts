@@ -93,7 +93,7 @@ watch.it(
 );
 
 watch.it(
-	"SIGTERM stops a running CLI with exit code 0 after printing that it was interrupted",
+	"SIGTERM stops a running CLI with exit code 130 after printing that it was interrupted",
 	[openPr(1), conflicted(1), watching(1)],
 	function* ({ cliExit, cliPrinted, cliPrints, startCli, terminateCli }) {
 		yield* startCli();
@@ -102,7 +102,7 @@ watch.it(
 		yield* terminateCli();
 
 		yield* outcomes({
-			"exit": [cliExit(), "exit code 0"],
+			"exit": [cliExit(), "exit code 130"],
 			"last line": [cliPrinted().pipe(Effect.map((lines) => lines.at(-1))), "stopped: interrupted"],
 		});
 	},

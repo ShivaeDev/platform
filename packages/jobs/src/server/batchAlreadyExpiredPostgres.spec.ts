@@ -22,7 +22,7 @@ postgresIt("does not start or settle a fetched job whose window passed before th
 	const now = yield* Clock.currentTimeMillis;
 	yield* Effect.sleep(Math.max(0, deadline - now) + 50);
 	const jobs = fetched.map((job) => ({ ...job, signal: new AbortController().signal }));
-	const batch = yield* Effect.promise(() => batchHandler(client, name, () => Effect.sync(handled))(jobs)).pipe(
+	const batch = yield* batchHandler(client, name, () => Effect.sync(handled))(jobs).pipe(
 		Effect.onExit(() => Effect.sync(() => returned())),
 		Effect.forkChild,
 	);

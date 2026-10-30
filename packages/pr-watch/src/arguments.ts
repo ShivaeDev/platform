@@ -1,110 +1,82 @@
-import { parseArgs } from "node:util";
 import { Effect } from "effect";
 import { type EventKind, eventKinds } from "#events.ts";
 import { type Options, WatchError } from "#model.ts";
-export const help = `pr-watch --repo OWNER/REPO [--fleet | PR_NUMBER ...]
-  --state PATH       Snapshot file (default .pr-watch/OWNER-REPO.json)
-  --interval SECONDS Poll interval (default 60; slows as quota falls)
-  --heartbeat SECONDS Quiet heartbeat period (default 900; 0 disables)
-  --events KINDS     Comma-separated PR event kinds (health lines always print)
-  --once             Poll once and exit
-  --api-url URL      GitHub REST base URL (default https://api.github.com)
-  --help             Show this help
-Authentication: GH_TOKEN or GITHUB_TOKEN`;
-export function argumentsFor(args: readonly string[]) {
-	return Effect.try({
-		catch: (cause) => new WatchError({ message: cause instanceof Error ? cause.message : "Invalid arguments" }),
-		try: () => {
-			const { values, positionals } = parseArgs({
-				allowPositionals: true,
-				args: [...args],
-				options: {
-					"api-url": { type: "string" },
-					events: { type: "string" },
-					fleet: { type: "boolean" },
-					heartbeat: { type: "string" },
-					help: { type: "boolean" },
-					interval: { type: "string" },
-					once: { type: "boolean" },
-					repo: { type: "string" },
-					state: { type: "string" },
-				},
-			});
-			if (values.help) {
-				return { help: true as const };
-			}
-			const repository = values.repo ?? "";
-			if (repository.match(/^[\w.-]+\/[\w.-]+$/u) === null) {
-				throw new Error("--repo OWNER/REPO is required");
-			}
-			const selected = eventsFor(values.events);
-			const numbers = numbersFor(positionals, values.fleet ?? false);
-			const interval = intervalFor(values.interval);
-			const apiUrl = apiUrlFor(values["api-url"]);
-			return {
-				heartbeat: heartbeatFor(values.heartbeat),
-				help: false as const,
-				once: values.once ?? false,
-				options: {
-					apiUrl,
-					...(selected === undefined ? {} : { events: selected }),
-					fleet: values.fleet ?? false,
-					interval,
-					numbers,
-					repository,
-					stateFile: values.state ?? `.pr-watch/${repository.replace("/", "-")}.json`,
-				} satisfies Options,
-			};
-		},
+
+export interface Input {
+	readonly apiUrl: string;
+	readonly events?: string | undefined;
+	readonly fleet: boolean;
+	readonly heartbeat: number;
+	readonly interval: number;
+	readonly numbers: readonly number[];
+	readonly once: boolean;
+	readonly repository: string;
+	readonly stateFile?: string | undefined;
+}
+
+export const optionsFor = Effect.fnUntraced(function* (input: Input) {
+	if (!/^[\w.-]+\/[\w.-]+$/u.test(input.repository)) {
+		return yield* invalid("--repo OWNER/REPO is required");
+	}
+	if (input.numbers.some((number) => !Number.isSafeInteger(number) || number < 1)) {
+		return yield* invalid("PR numbers must be positive integers");
+	}
+	const numbers = [...new Set(input.numbers)];
+	if (input.fleet ? numbers.length > 0 : numbers.length === 0) {
+		return yield* invalid("Choose --fleet or one or more PR numbers");
+	}
+	if (!Number.isFinite(input.interval) || input.interval < 1) {
+		return yield* invalid("--interval must be at least one second");
+	}
+	if (!Number.isFinite(input.heartbeat) || input.heartbeat < 0) {
+		return yield* invalid("--heartbeat must be zero or more seconds");
+	}
+	const apiUrl = yield* apiUrlFor(input.apiUrl);
+	const events = yield* eventsFor(input.events);
+	return {
+		heartbeat: input.heartbeat * 1000,
+		once: input.once,
+		options: {
+			apiUrl,
+			...(events === undefined ? {} : { events }),
+			fleet: input.fleet,
+			interval: input.interval * 1000,
+			numbers,
+			repository: input.repository,
+			stateFile: input.stateFile ?? `.pr-watch/${input.repository.replace("/", "-")}.json`,
+		} satisfies Options,
+	};
+});
+
+function invalid(message: string) {
+	return Effect.fail(new WatchError({ message, reason: "arguments" }));
+}
+
+const apiUrlFor = Effect.fnUntraced(function* (value: string) {
+	const apiUrl = value.replace(/\/$/u, "");
+	const url = yield* Effect.try({
+		catch: (cause) => new WatchError({ message: "--api-url requires HTTPS (or loopback HTTP)", reason: "arguments" }, { cause }),
+		try: () => new URL(apiUrl),
 	});
-}
-function heartbeatFor(value: string | undefined): number {
-	const heartbeat = Number(value ?? 900) * 1000;
-	if (!Number.isFinite(heartbeat) || heartbeat < 0) {
-		throw new Error("--heartbeat must be zero or more seconds");
-	}
-	return heartbeat;
-}
-function numbersFor(positionals: readonly string[], fleet: boolean): readonly number[] {
-	if (positionals.some((value) => value.match(/^[1-9]\d*$/u) === null)) {
-		throw new Error("PR numbers must be positive integers");
-	}
-	const numbers = [...new Set(positionals.map(Number))];
-	if (numbers.some((number) => !Number.isSafeInteger(number))) {
-		throw new Error("Invalid PR number");
-	}
-	if (fleet ? numbers.length > 0 : numbers.length === 0) {
-		throw new Error("Choose --fleet or one or more PR numbers");
-	}
-	return numbers;
-}
-function intervalFor(value: string | undefined): number {
-	const interval = Number(value ?? 60) * 1000;
-	if (!Number.isFinite(interval) || interval < 1000) {
-		throw new Error("--interval must be at least one second");
-	}
-	return interval;
-}
-function apiUrlFor(value: string | undefined): string {
-	const apiUrl = (value ?? "https://api.github.com").replace(/\/$/u, "");
-	const url = new URL(apiUrl);
 	const secure = url.protocol === "https:";
 	const loopback = url.protocol === "http:" && ["localhost", "127.0.0.1", "[::1]"].includes(url.hostname);
 	if (!(secure || loopback) || url.username || url.password || url.search || url.hash) {
-		throw new Error("--api-url requires HTTPS (or loopback HTTP)");
+		return yield* invalid("--api-url requires HTTPS (or loopback HTTP)");
 	}
 	return apiUrl;
-}
+});
 
-function eventsFor(value: string | undefined): readonly EventKind[] | undefined {
-	if (value === undefined) {
-		return undefined;
-	}
-	return value.split(",").map((name) => {
-		const kind = eventKinds.find((valid) => valid === name);
-		if (kind === undefined) {
-			throw new Error(`Unknown event kind ${JSON.stringify(name)}. Valid kinds: ${eventKinds.join(", ")}`);
+const eventsFor = Effect.fnUntraced(function* (value: string | undefined) {
+	let events: EventKind[] | undefined;
+	if (value !== undefined) {
+		events = [];
+		for (const name of value.split(",")) {
+			const kind = eventKinds.find((valid) => valid === name);
+			if (kind === undefined) {
+				return yield* invalid(`Unknown event kind ${JSON.stringify(name)}. Valid kinds: ${eventKinds.join(", ")}`);
+			}
+			events.push(kind);
 		}
-		return kind;
-	});
-}
+	}
+	return events;
+});

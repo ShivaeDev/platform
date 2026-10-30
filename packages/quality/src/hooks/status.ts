@@ -35,7 +35,7 @@ export const globalHookStatus = Effect.fn("Hooks.globalHookStatus")(function* (l
 export const hookStatus = Effect.fn("Hooks.hookStatus")(function* (cwd: string) {
 	const location = yield* hookLocation(cwd);
 	const path = (yield* gitOrFail(cwd, ["rev-parse", "--path-format=absolute", "--git-path", "hooks/pre-commit"])).trim();
-	const text = yield* readOptionalText(path).pipe(Effect.mapError((error) => new SetupFailure({ message: error.message })));
+	const text = yield* readOptionalText(path).pipe(Effect.mapError((error) => new SetupFailure({ cause: error, message: error.message })));
 	if (text === undefined || !isHookShim(text) || (yield* executable(path)) === undefined) {
 		yield* Console.error(
 			`quality: the effective hooks path ${dirname(path)} does not run Quality's pre-commit hook.\nhelp: run \`quality hooks install\` to check commits.`,

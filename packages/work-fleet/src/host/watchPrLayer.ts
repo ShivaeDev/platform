@@ -4,7 +4,7 @@ import { FetchHttpClient } from "effect/http";
 import { GitHub as GitHubClient } from "@shivaedev/github/GitHub.ts";
 import { GitHub } from "@shivaedev/pr-watch/GitHub.ts";
 import { GitHubHttp } from "@shivaedev/pr-watch/GitHubHttp.ts";
-import type { WatchError } from "@shivaedev/pr-watch/model.ts";
+import { requestFailure } from "@shivaedev/pr-watch/requestFailure.ts";
 import { StateFile } from "@shivaedev/pr-watch/StateFile.ts";
 import { Watcher } from "@shivaedev/pr-watch/Watcher.ts";
 import { githubToken } from "#host/githubToken.ts";
@@ -16,16 +16,17 @@ const prGitHub = Effect.fn("FleetWatch.prGitHub")(function* (report: Report) {
 	const following = new Set<number>();
 	const retryAt = new Map<number, number>();
 	const reported = new Set<string>();
-	function isolate<A>(number: number, read: Effect.Effect<A, WatchError>, fallback: A) {
+	function isolate<A, E>(number: number, read: Effect.Effect<A, E>, fallback: A) {
 		return read.pipe(
 			Effect.catch((error) =>
 				Effect.gen(function* () {
-					if (error.retryable !== true) {
+					const failure = requestFailure(error);
+					if (!failure.retryable) {
 						retryAt.set(number, (yield* Clock.currentTimeMillis) + 5 * 60_000);
 					}
-					const key = `${number}:${error.message}`;
+					const key = `${number}:${failure.message}`;
 					if (!reported.has(key)) {
-						yield* report(number, error.message);
+						yield* report(number, failure.message);
 						reported.add(key);
 					}
 					return fallback;

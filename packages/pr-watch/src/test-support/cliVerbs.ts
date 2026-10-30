@@ -70,6 +70,7 @@ export function cliVerbs(engine: Engine, tell: (line: string) => void) {
 				}
 			}),
 		cliStderr: () => Effect.sync(() => engine.cli.stderr),
+		cliStdout: () => Effect.sync(() => engine.cli.stdout),
 		credentialsSent: () =>
 			Effect.sync(() => [
 				...new Set(engine.github.requests.filter(({ path }) => path.startsWith(REPOSITORY)).map(({ authorization }) => authorization ?? "none")),

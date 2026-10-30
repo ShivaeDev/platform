@@ -1,4 +1,4 @@
-import { Data, Effect, Layer, Schema } from "effect";
+import { Data, Effect, Layer, Option, Schema } from "effect";
 import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
@@ -20,16 +20,28 @@ interface Held {
 
 interface ProbeProps {
 	readonly denied: Unauthorized;
+	readonly dies: boolean;
 	readonly held: Held;
 }
 
-function CreateProbe({ held, denied }: ProbeProps) {
-	held.current = useCreate({ create: (_values: Name) => Effect.fail(denied), fields: Name, initialValues: { name: "" }, runtime });
+function CreateProbe({ held, denied, dies }: ProbeProps) {
+	held.current = useCreate({
+		create: (_values: Name) => (dies ? Effect.die(new Error("Save died")) : Effect.fail(denied)),
+		fields: Name,
+		initialValues: { name: "" },
+		runtime,
+	});
 	return createElement(SaveControls, { held });
 }
 
-function EditorProbe({ held, denied }: ProbeProps) {
-	held.current = useEditor({ fields: Name, query, runtime, save: (_values: Name) => Effect.fail(denied), values: (row) => row });
+function EditorProbe({ held, denied, dies }: ProbeProps) {
+	held.current = useEditor({
+		fields: Name,
+		query,
+		runtime,
+		save: (_values: Name) => (dies ? Effect.die(new Error("Save died")) : Effect.fail(denied)),
+		values: (row) => row,
+	});
 	return createElement(SaveControls, { held });
 }
 
@@ -48,10 +60,11 @@ function SaveControls({ held }: { readonly held: Held }) {
 			value: name.value,
 		}),
 		createElement("button", { onClick: current.save, type: "button" }, "Save"),
+		Option.isSome(current.cause) ? createElement("p", { role: "alert" }, "created" in current ? "Could not create" : "Could not save") : null,
 		createElement("output", null, JSON.stringify({ dirty: current.dirty, failure: current.failure, saving: current.saving })),
 	);
 }
-export async function saveSession(view: Rendered, kind: "create" | "editor") {
+export async function saveSession(view: Rendered, kind: "create" | "editor", dies = false) {
 	const denied = new Unauthorized({ message: "Session expired before saving" });
 	const rechecks: string[] = [];
 	const held: Held = {};
@@ -65,7 +78,7 @@ export async function saveSession(view: Rendered, kind: "create" | "editor") {
 							rechecks.push("expired-session");
 						},
 					},
-					createElement(kind === "create" ? CreateProbe : EditorProbe, { denied, held }),
+					createElement(kind === "create" ? CreateProbe : EditorProbe, { denied, dies, held }),
 				),
 			);
 			await Promise.resolve();

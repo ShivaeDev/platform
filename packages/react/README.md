@@ -313,7 +313,7 @@ export function InvoiceLineEditor({ id }: { readonly id: number }) {
 						}}
 					>
 						<Inputs form={editor.form} />
-						{Option.isSome(editor.failure) && <p role="alert">Could not save</p>}
+						{Option.isSome(editor.cause) && <p role="alert">Could not save</p>}
 						<button type="submit" disabled={editor.saving}>
 							Save
 						</button>
@@ -346,7 +346,7 @@ export function InvoiceLineCreate() {
 			}}
 		>
 			<Inputs form={create.form} />
-			{Option.isSome(create.failure) && <p role="alert">Could not create</p>}
+			{Option.isSome(create.cause) && <p role="alert">Could not create</p>}
 			<button type="submit" disabled={create.saving}>
 				Create
 			</button>
@@ -423,7 +423,7 @@ Use `useEditor` for a continuing editor that subscribes to a record, merges refr
 
 #### Field rejections and other failures
 
-A tagged error with string `_tag` and `message`, and a `field` naming a form field, becomes that field's message by default. Other save failures appear in `failure`. Use `rejectField` when the server uses a different shape or field name:
+A tagged error with string `_tag` and `message`, and a `field` naming a form field, becomes that field's message by default. Other typed save failures appear in `failure`. The native `cause` also exposes defects, interruptions and form validation failures; use it for a general failure alert so a save that dies is visible. Use `rejectField` when the server uses a different shape or field name:
 
 ```ts
 const TitleFields = Schema.Struct({ title: Schema.String });
@@ -770,7 +770,7 @@ function Account() {
 
 The example uses the application's Better Auth client. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
-For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
+For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
 ### 3. Every day
 
@@ -893,22 +893,21 @@ function NotesView() {
 }
 
 it.live("renders a query and refetches it after a command through a test RPC layer", function* () {
-	const view = yield* Effect.promise(() => render(createElement(NotesView)));
-	try {
-		yield* eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
-		expect(view.container.querySelector("output")?.textContent).toBe("");
-		yield* Effect.promise(() => act(async () => view.container.querySelector("button")?.click()));
-		yield* eventually(() => {
-			expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
-			expect(view.container.querySelector("button")?.disabled).toBe(false);
-		});
-	} finally {
-		yield* Effect.promise(view.unmount);
-	}
+	const view = yield* Effect.acquireRelease(
+		Effect.promise(() => render(createElement(NotesView))),
+		(view) => Effect.promise(view.unmount),
+	);
+	yield* eventually(() => expect(view.container.querySelector("button")?.disabled).toBe(false));
+	expect(view.container.querySelector("output")?.textContent).toBe("");
+	yield* Effect.promise(() => act(async () => view.container.querySelector("button")?.click()));
+	yield* eventually(() => {
+		expect(view.container.querySelector("output")?.textContent).toBe("Morning walk");
+		expect(view.container.querySelector("button")?.disabled).toBe(false);
+	});
 });
 ```
 
-`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. Always unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
+`render(node, options?)` returns the attached `container`, its fresh native `registry`, `render(nextNode)` to update the same root and registry, and `unmount()` to release the root, registry and container. The options are React's own `RootOptions`, passed to `createRoot`, including `onCaughtError`, `onUncaughtError` and `onRecoverableError`. In Effect tests, acquire the view with `Effect.acquireRelease` so its scope releases it on success, failure or interruption. In async tests, unmount in `finally`. Keep component interactions inside React's `act`. `eventually(assert)` returns an Effect: yield it directly in a story or Effect test, keeping the expectation in the spec. It retries for up to three seconds in live time, allowing pending responses to settle inside `act` between attempts without advancing the story’s TestClock. A timeout fails with an Error whose message includes the elapsed milliseconds and last assertion message, and whose `cause` is that assertion error. In an async test, use `await Effect.runPromise(eventually(assert))`. `expectNoReactWarnings()` registers a Vitest hook that fails a test if it logged to `console.error`.
 
 The RPC layer stays application-owned: replace these in-memory handlers with the service Layer your component needs.
 

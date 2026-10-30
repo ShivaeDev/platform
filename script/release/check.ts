@@ -1,6 +1,6 @@
 import { join } from "node:path";
 import process from "node:process";
-import { NodeFileSystem, NodeRuntime } from "@effect/platform-node";
+import { NodeRuntime, NodeServices } from "@effect/platform-node";
 import { Config, Console, Effect, FileSystem, Schema } from "effect";
 import { ChangesetError } from "@shivaedev/releases/error.ts";
 import type { PackageManifest } from "@shivaedev/releases/model.ts";
@@ -81,7 +81,7 @@ if (import.meta.main) {
 			yield* Console.log("Changesets and release notes are valid.");
 		}).pipe(
 			Effect.tapError((error) => Console.error(error.message)),
-			Effect.provide(NodeFileSystem.layer),
+			Effect.provide(NodeServices.layer),
 		),
 		{ disableErrorReporting: true },
 	);

@@ -24,6 +24,7 @@ export function tracingEngine() {
 					handled.push(payload);
 					yield* stepOne();
 					yield* stepTwo();
+					yield* Effect.logInfo("Handled traced job");
 					if (failFirst && handled.length === 1) {
 						return yield* Effect.fail(new Error("Retry this job"));
 					}

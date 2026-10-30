@@ -20,7 +20,8 @@
 			"source": "./src/*.ts",
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
-		}
+		},
+		"#package.json": "./package.json"
 	},
 	"exports": {
 		"./*.ts": {
@@ -50,6 +51,7 @@
 	},
 	"dependencies": {
 		"@shivaedev/github": "workspace:*",
+		"@shivaedev/http": "workspace:*",
 		"@shivaedev/service": "workspace:*"
 	},
 	"devDependencies": {
