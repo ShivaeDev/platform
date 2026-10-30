@@ -110,8 +110,6 @@
 {"path":"packages/quality/src/rules/suppressions/biomePresets.spec.ts","rule":"effect/boundary","count":25}
 {"path":"packages/quality/src/rules/suppressions/biomeRecommended.test.ts","rule":"effect/boundary","count":22}
 {"path":"packages/quality/src/rules/suppressions/noDoubleCast.test.ts","rule":"effect/boundary","count":13}
-{"path":"packages/quality/src/rules/suppressions/noIgnoreDeprecations.test.ts","rule":"effect/boundary","count":7}
-{"path":"packages/quality/src/rules/suppressions/noIgnoreDeprecations.ts","rule":"effect/boundary","count":5}
 {"path":"packages/quality/src/rules/suppressions/noInline.test.ts","rule":"effect/boundary","count":26}
 {"path":"packages/quality/src/rules/suppressions/noInline.ts","rule":"effect/boundary","count":6}
 {"path":"packages/quality/src/rules/test-names/colocated.test.ts","rule":"effect/boundary","count":6}

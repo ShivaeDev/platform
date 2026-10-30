@@ -60,8 +60,7 @@ function consecutiveChecks(source: ts.SourceFile): readonly ts.Node[] {
 }
 
 export const groupedOutcomes = defineRule({
-	check: (inputs) =>
-		Effect.runPromise(Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, consecutiveChecks, MESSAGE)))),
+	check: (inputs) => Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, consecutiveChecks, MESSAGE))),
 	description: "Several outcomes after one action are rows of one outcomes call, so the story's words lead each line.",
 	id: "tests/grouped-outcomes",
 });

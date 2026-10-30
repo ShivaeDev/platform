@@ -55,8 +55,7 @@ function timedWaits(source: ts.SourceFile): readonly ts.Node[] {
 }
 
 export const waitOnEvents = defineRule({
-	check: (inputs) =>
-		Effect.runPromise(Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, timedWaits, MESSAGE)))),
+	check: (inputs) => Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, timedWaits, MESSAGE))),
 	description: "Stories settle on the engine's own signals, never on sleeps, polling, fake timers or clock adjustments in the spec.",
 	id: "tests/wait-on-events",
 });

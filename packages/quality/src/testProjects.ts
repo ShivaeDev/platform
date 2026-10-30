@@ -1,6 +1,6 @@
 import { fileURLToPath } from "node:url";
-import { Config, ConfigProvider, Effect } from "effect";
 import { coverageConfigDefaults, defaultExclude, type TestUserConfig } from "vitest/config";
+import { testOutput } from "#adapters/testOutput.ts";
 import type { Environment } from "#naming/testName.ts";
 
 const EXTENSION = "?(c|m)[jt]s?(x)";
@@ -41,7 +41,6 @@ function workerCount({ connectionBudget = 80, connectionsPerWorker = 14, maxWork
 
 export function testProjects(options: TestProjectsOptions = {}): TestUserConfig {
 	const { coverage = false } = options;
-	const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")).parse(ConfigProvider.fromEnv()));
 	return {
 		maxWorkers: workerCount(options),
 		...(coverage === false
@@ -82,7 +81,7 @@ export function testProjects(options: TestProjectsOptions = {}): TestUserConfig 
 			},
 			{ extends: true, test: { environment: "node", exclude: excluding(), include: [named("slow")], name: "slow" } },
 		],
-		silent: ci ? false : "passed-only",
+		...testOutput(),
 		// Tests that start real servers, browsers or CLIs need seconds on a busy CI runner, and Vitest's 5s default fails them for load, not behavior.
 		testTimeout: 30_000,
 	};

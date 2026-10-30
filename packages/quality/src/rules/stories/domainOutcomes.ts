@@ -38,8 +38,7 @@ function shapeReads(source: ts.SourceFile): readonly ts.Node[] {
 }
 
 export const domainOutcomes = defineRule({
-	check: (inputs) =>
-		Effect.runPromise(Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, shapeReads, MESSAGE)))),
+	check: (inputs) => Effect.map(storySpecSources(inputs), (specs) => specs.flatMap((file) => syntaxFindings(file, shapeReads, MESSAGE))),
 	description: "Story verbs and readouts return outcomes in the domain's words, not Exit, Cause or Result shapes or _tag reads.",
 	id: "tests/domain-outcomes",
 });
