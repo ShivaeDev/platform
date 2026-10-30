@@ -1,4 +1,5 @@
 {"path":"packages/work-board/package.json","rule":"code/unused","count":4}
+{"path":"packages/work-board/package.json","rule":"manifests/exports-shape","count":1}
 {"path":"packages/work-board/src/boardStartup.dom.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/work-board/src/browserClient.ts","rule":"effect/boundary","count":13}
 {"path":"packages/work-board/src/client/clientEdges.spec.ts","rule":"effect/boundary","count":1}

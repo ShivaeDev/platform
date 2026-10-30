@@ -62,9 +62,9 @@ const preserve = Effect.fn("Generic.preserve")(
 
 export const Generic = defineService({
 	id: "fixture/Generic",
-	initialize: Effect.void,
+	initialize: Effect.asVoid(Declared),
 	methods: () => ({ preserve: genericMethod(preserve) }),
-	requires: [],
+	requires: [Declared],
 });
 
 export const genericLayer = Generic.layer;

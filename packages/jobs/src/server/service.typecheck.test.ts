@@ -1,8 +1,8 @@
-import { Context, type Duration, Effect, type Layer, Option, Schema, SchemaGetter } from "effect";
+import { Context, type Duration, Effect, Layer, Option, Redacted, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
 import { defineQueue, defineSchedule, type JobContext } from "#definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossQueueOptionsError } from "#error.ts";
-import { makePgBoss, type PgBossDefinition } from "#service.ts";
+import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#service.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
 
@@ -18,10 +18,11 @@ const Queue = defineQueue({
 // @ts-expect-error pg-boss durable payloads must encode and decode as objects.
 defineQueue({ name: "primitive", schema: Schema.String });
 const Jobs = makePgBoss("@test/TypedJobs");
-const layer = Jobs.layer({
-	connectionString: "postgresql://compile-only",
-	jobs: [Queue.handle((payload) => Effect.map(HandlerDependency, (value) => value + payload.count))],
-});
+// @ts-expect-error Connection secrets stay redacted until the pg-boss adapter.
+pgBossLayer({ connectionString: "postgresql://compile-only" });
+const layer = Jobs.layer({ jobs: [Queue.handle((payload) => Effect.map(HandlerDependency, (value) => value + payload.count))] }).pipe(
+	Layer.provide(pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") })),
+);
 
 expectTypeOf<Layer.Error<typeof layer>>().toEqualTypeOf<PgBossError | PgBossQueueOptionsError | PgBossClientOptionsError>();
 
@@ -47,10 +48,11 @@ void program;
 
 const EmailJobs = makePgBoss("@test/EmailJobs");
 const ReportJobs = makePgBoss("@test/ReportJobs");
-const options = { connectionString: "postgresql://compile-only", jobs: [] };
-const emailLayer = EmailJobs.layer(options);
-const reportLayer = ReportJobs.layer(options);
-const health = Effect.flatMap(EmailJobs, (jobs) => jobs.health);
+const options = { jobs: [] };
+const app = pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") });
+const emailLayer = EmailJobs.layer(options).pipe(Layer.provide(app));
+const reportLayer = ReportJobs.layer(options).pipe(Layer.provide(app));
+const health = Effect.flatMap(EmailJobs, (jobs) => jobs.health());
 
 expectTypeOf<Effect.Services<typeof EmailJobs>>().toEqualTypeOf<"@test/EmailJobs">();
 expectTypeOf<Effect.Services<typeof ReportJobs>>().toEqualTypeOf<"@test/ReportJobs">();
@@ -95,7 +97,6 @@ const deadLetterListing = Effect.flatMap(Jobs, (jobs) => jobs.deadLetteredJobs(R
 expectTypeOf<Effect.Services<typeof deadLetterListing>>().toEqualTypeOf<"@test/TypedJobs" | HandlerDependency>();
 
 const followUpLayer = Jobs.layer({
-	connectionString: "postgresql://compile-only",
 	jobs: [
 		Queue.handle((payload) =>
 			Effect.gen(function* () {
@@ -108,7 +109,7 @@ const followUpLayer = Jobs.layer({
 			Effect.flatMap(Jobs, (jobs) => jobs.enqueue(Queue, { count: 1, label: "scheduled" })),
 		),
 	],
-});
+}).pipe(Layer.provide(pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") })));
 expectTypeOf<Layer.Services<typeof followUpLayer>>().toEqualTypeOf<HandlerDependency>();
 const followUpBoot = Effect.asVoid(Jobs).pipe(Effect.provide(followUpLayer));
 // @ts-expect-error Self-provision leaves other handler dependencies required.
@@ -118,7 +119,7 @@ Effect.runPromise(followUpBoot.pipe(Effect.provideService(HandlerDependency, 1))
 const crossJobsLayer = Jobs.layer({
 	jobs: [Queue.handle(() => Effect.asVoid(EmailJobs))],
 });
-expectTypeOf<Layer.Services<typeof crossJobsLayer>>().toEqualTypeOf<"@test/EmailJobs">();
+expectTypeOf<Layer.Services<typeof crossJobsLayer>>().toEqualTypeOf<"@test/EmailJobs" | import("#PgBoss.ts").PgBoss>();
 
 defineQueue({ name: "batch", schema: Schema.Struct({}), worker: { batchSize: 5, localConcurrency: 3, pollingIntervalSeconds: 1 } });
 // @ts-expect-error pg-boss concurrency remains numeric.

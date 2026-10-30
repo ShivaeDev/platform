@@ -1,14 +1,14 @@
-import { Cause, Context, Effect, Exit, Layer, Logger, Option, References, Scope } from "effect";
+import { Cause, Context, Effect, Exit, Layer, Logger, Option, Redacted, References, Scope } from "effect";
 import type { ConstructorOptions } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
 import { PgBossError } from "#error.ts";
-import type { PgBossLayerOptions, PgBossService } from "#service.ts";
+import { type PgBossLayerOptions, type PgBossOptions, type PgBossService, pgBossLayer } from "#service.ts";
 import { failureOf } from "#test/failureOf.ts";
 import { FakeClient } from "#test/fakeClient.ts";
 import { recordingTracer } from "#test/recordingTracer.ts";
 import { ApplicationLog, Jobs, type Registration, registrations, type WorkLog, workLog } from "#test/workers.ts";
 
-export type Options = Partial<PgBossLayerOptions<readonly [], never>>;
+export type Options = PgBossOptions & Partial<PgBossLayerOptions<readonly [], never>>;
 
 export interface Fetched {
 	readonly data?: unknown;
@@ -87,21 +87,25 @@ export function provided<A, E, R>(engine: RuntimeEngine, effect: Effect.Effect<A
 
 export const startRuntime = Effect.fnUntraced(function* (engine: RuntimeEngine, name: string, jobs: readonly Registration[], options: Options = {}) {
 	const scope = yield* Scope.fork(yield* Scope.Scope);
-	const factory = options.clientFactory ?? engine.factory;
-	const layer = Jobs.layer({
-		connectionString: "postgresql://fake",
+	const { jobs: _jobs, onError, ...settings } = { ...engine.options, ...options };
+	const factory = settings.clientFactory ?? engine.factory;
+	const clientLayer = pgBossLayer({
+		connectionString: Redacted.make("postgresql://fake"),
 		schema: "jobs_fake",
-		...engine.options,
-		...options,
+		...settings,
 		clientFactory: (clientOptions: ConstructorOptions) => {
 			engine.clientsConstructed += 1;
 			return factory(clientOptions);
 		},
+	});
+	const layer = Jobs.layer({
 		jobs: registrations(engine.work, jobs),
+		...(onError === undefined ? {} : { onError }),
 		...(engine.reporting
 			? { onError: (error: Error) => Effect.flatMap(ApplicationLog, (note) => Effect.sync(() => note(`onError: ${error.message}`))) }
 			: {}),
-	});
+	}).pipe(Layer.provide(clientLayer));
+
 	const built = yield* provided(engine, Layer.buildWithScope(layer, scope)).pipe(Effect.exit);
 	if (Exit.isFailure(built)) {
 		const error = Option.getOrUndefined(Cause.findErrorOption(built.cause));

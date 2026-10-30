@@ -15,10 +15,6 @@ export type MethodInventory = Readonly<Record<string, unknown>>;
 
 export type RuntimeMethodInventory = Readonly<Record<string, MethodEntry>>;
 
-interface GenericMethodWithDeclaredRequirementsIsUnsupported {
-	readonly _serviceDefinitionError: "generic methods cannot subtract declared service requirements";
-}
-
 type MethodRequirements<TMethod> = TMethod extends (...arguments_: readonly never[]) => Effect.Effect<unknown, unknown, infer TRequirements>
 	? TRequirements
 	: never;
@@ -39,9 +35,7 @@ type OrdinaryMethodProof<TMethod, TRequirements extends RequirementRecord> = [
 
 type SupportedMethod<TMethod, TRequirements extends RequirementRecord> =
 	TMethod extends GenericMethodDescriptor<AnyMethod>
-		? TRequirements extends readonly []
-			? TMethod
-			: GenericMethodWithDeclaredRequirementsIsUnsupported
+		? TMethod
 		: TMethod extends AnyMethod
 			? HasDistinctCallSignatures<TMethod> extends true
 				? GenericOrStructurallyOverloadedMethodsAreUnsupported

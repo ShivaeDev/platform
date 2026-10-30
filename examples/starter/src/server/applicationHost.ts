@@ -11,6 +11,7 @@ import { StatisticsPermission } from "#appPermissions.ts";
 import { authOptions } from "#server/authOptions.ts";
 import { databaseOptions } from "#server/databaseOptions.ts";
 import { JobsClientFactory } from "./JobsClientFactory.ts";
+import { jobsLayer } from "./jobsLayer.ts";
 import { serverModules } from "./modules.ts";
 import type { PoolSizes } from "./PoolSizes.ts";
 
@@ -29,8 +30,8 @@ export function applicationHost<R = never, E = never, TRequirements = never>(con
 			const pool = yield* authDatabase(databaseUrl, { max: config?.poolSizes?.auth });
 			const database = databaseOptions(pool, databaseUrl, "check", config?.poolSizes?.sql);
 			const replacements = config?.replacements ?? Layer.empty;
-			const services = serverModules
-				.services(databaseUrl, config?.poolSizes?.jobs)
+			const services = serverModules.services
+				.pipe(Layer.provide(jobsLayer(databaseUrl, config?.poolSizes?.jobs)))
 				.pipe(Layer.provideMerge(Layer.merge(JobsClientFactory.layer, replacements)), Layer.merge(replacements));
 			return appHost({
 				...database,

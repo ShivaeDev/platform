@@ -2,11 +2,11 @@ import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { Effect } from "effect";
 import { vi } from "vitest";
+import { services } from "@shivaedev/quality/cli/runMain.ts";
+import { collectInventory } from "@shivaedev/quality/inventory/collect.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { git } from "#quality-fixtures/git.ts";
 import { seedTree } from "#quality-fixtures/tree.ts";
-import { services } from "#quality-internal/cli/runMain.ts";
-import { collectInventory } from "#quality-internal/inventory/collect.ts";
 
 export const inventoryKit = storyKit({
 	create: () =>

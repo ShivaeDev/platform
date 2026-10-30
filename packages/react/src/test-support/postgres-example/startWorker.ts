@@ -1,6 +1,6 @@
 import { Effect, Layer, ManagedRuntime, Redacted } from "effect";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appDatabase } from "@shivaedev/server/appHost.ts";
 import { Order } from "./contract.ts";
 import { OrderService } from "./OrderService.ts";
@@ -30,10 +30,10 @@ export function startWorker(
 	);
 	const runtime = ManagedRuntime.make(
 		Jobs.layer({
-			connectionString: options.databaseUrl,
 			jobs: [queue.handle((input) => OrderService.use((orders) => orders.save("alice", input)).pipe(Effect.tap(() => Effect.sync(handled))))],
-			schema: options.schema,
-		}).pipe(Layer.provideMerge(service)),
+		})
+			.pipe(Layer.provide(pgBossLayer({ connectionString: Redacted.make(options.databaseUrl), schema: options.schema })))
+			.pipe(Layer.provideMerge(service)),
 	);
 	return {
 		close: () => runtime.dispose(),

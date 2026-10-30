@@ -1,4 +1,3 @@
-import { Redacted } from "effect";
 import { SqlClient } from "effect/sql";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
@@ -19,7 +18,7 @@ export const database = storyKit({
 	clock: "live",
 	*create() {
 		const { url } = yield* PostgresTestDatabase;
-		return databaseEngine(Redacted.value(url), yield* SqlClient.SqlClient);
+		return databaseEngine(url, yield* SqlClient.SqlClient);
 	},
 	inspect: (engine) => ({ logs: engine.logs, startups: [...engine.startups], timeline: engine.timeline }),
 	layer: postgresLayer,
