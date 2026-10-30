@@ -8,11 +8,13 @@ import { SkillsError } from "./SkillsError.ts";
 
 const isPresent = Effect.fn("Skills.isPresent")(function* (file: string) {
 	const fs = yield* FileSystem.FileSystem;
-	const isLink = yield* fs.readLink(file).pipe(
+	return yield* fs.lstat(file).pipe(
 		Effect.as(true),
-		Effect.orElseSucceed(() => false),
+		Effect.catchIf(
+			(error) => error.reason._tag === "NotFound",
+			() => Effect.succeed(false),
+		),
 	);
-	return isLink || (yield* fs.exists(file));
 });
 
 const refuseUnlisted = Effect.fn("Skills.refuseUnlisted")(function* (repo: string, names: readonly string[]) {

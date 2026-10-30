@@ -5,12 +5,17 @@ import { manifestOverwritten, packageJsonReads, selected, synced } from "#test/t
 
 for (const manifest of ["{", '{"skills":[],"version":1}']) {
 	skills.it(
-		`sync refuses a manifest overwritten by hand with ${manifest} and says how to repair it`,
+		`sync refuses a manifest overwritten by hand with ${manifest}, says how to repair it and retains its decode failure privately`,
 		[selected("alpha"), synced, manifestOverwritten(manifest)],
-		function* ({ sync }) {
-			expect(yield* sync()).toBe(
-				"failed: .agents/skills/.shivaedev-skills.json is not a manifest this package wrote. Delete it and the folders it listed, then sync.",
-			);
+		function* ({ failureDetails, sync }) {
+			yield* sync();
+
+			expect(yield* failureDetails()).toEqual({
+				cause: { enumerable: false, message: expect.stringMatching(/\S/u) },
+				message: expect.stringContaining(
+					".agents/skills/.shivaedev-skills.json is not a manifest this package wrote. Delete it and the folders it listed, then sync.",
+				),
+			});
 		},
 	);
 }
@@ -28,7 +33,16 @@ skills.it(
 );
 
 for (const selection of ["{", '{"shivaedevSkills":"alpha"}', '{"shivaedevSkills":[1]}']) {
-	skills.it(`sync refuses a package.json reading ${selection} and names the field to fix`, [packageJsonReads(selection)], function* ({ sync }) {
-		expect(yield* sync()).toBe('failed: <repository>/package.json: "shivaedevSkills" must be a list of skill names.');
-	});
+	skills.it(
+		`sync refuses a package.json reading ${selection}, names the field to fix and retains its decode failure privately`,
+		[packageJsonReads(selection)],
+		function* ({ failureDetails, sync }) {
+			yield* sync();
+
+			expect(yield* failureDetails()).toEqual({
+				cause: { enumerable: false, message: expect.stringMatching(/\S/u) },
+				message: expect.stringContaining('<repository>/package.json: "shivaedevSkills" must be a list of skill names.'),
+			});
+		},
+	);
 }
