@@ -23,7 +23,9 @@ export function adminVerbs(host: AdminHost, story: { tell: (line: string) => voi
 		...adminRouteVerbs(host, story),
 		callAdminTools: Effect.fn("AuthStory.callAdminTools")(function* () {
 			story.tell("call the admin-only RPC");
-			return yield* call((client) => client.adminTools());
+			return yield* call((client) => client.adminTools()).pipe(
+				Effect.catchDefect((defect) => Effect.succeed(`defect: ${defect instanceof Error ? defect.message : String(defect)}`)),
+			);
 		}),
 		callOwnerTools: Effect.fn("AuthStory.callOwnerTools")(function* () {
 			story.tell("call the owner-only RPC");

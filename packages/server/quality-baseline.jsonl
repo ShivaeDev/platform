@@ -52,8 +52,8 @@
 {"path":"packages/server/src/redactOtlpUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingDiagnostics.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingRpcSerialization.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/domain-outcomes","count":22}
-{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/grouped-outcomes","count":13}
+{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/domain-outcomes","count":21}
+{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/grouped-outcomes","count":12}
 {"path":"packages/server/src/rpc-server/adminRoute.spec.ts","rule":"tests/grouped-outcomes","count":6}
 {"path":"packages/server/src/rpc-server/clientAbort.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/rpc-server/scopedSessions.spec.ts","rule":"tests/domain-outcomes","count":3}
