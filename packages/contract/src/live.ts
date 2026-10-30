@@ -1,4 +1,4 @@
-import { type Cause, Duration, Effect, Option, Schema, Stream } from "effect";
+import { type Cause, Duration, Effect, Option, Schedule, Schema, Stream } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import * as Reactivity from "effect/reactivity/Reactivity";
@@ -124,10 +124,9 @@ export function live<R, E, TRuntimeError>(runtime: Atom.AtomRuntime<R, TRuntimeE
 						Effect.scoped,
 						Effect.catchCause((failure) => Effect.sync(() => update({ failure: Option.some(failure) }))),
 						Effect.andThen(Effect.sync(() => update({ connection: "reconnecting", needsResync: true }))),
-						Effect.andThen(Effect.sleep(options.retryDelay ?? "1 second")),
 					);
 				});
-				yield* Effect.forever(attempt);
+				yield* Effect.repeat(attempt, Schedule.jittered(Schedule.spaced(options.retryDelay ?? "1 second")));
 			}),
 		)
 		.pipe(Atom.setIdleTTL(0));

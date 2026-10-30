@@ -1,4 +1,4 @@
-import { type Context, Effect, Layer } from "effect";
+import { type Context, Effect, Layer, Schedule } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { type Rpc, RpcClient, RpcGroup, RpcSerialization } from "effect/rpc";
@@ -40,7 +40,9 @@ const socketProtocol = Atom.family(
 		readonly identity: string | undefined;
 		readonly webSocketConstructor: ClientOptions["webSocketConstructor"];
 	}) => {
-		const protocol = RpcClient.layerProtocolSocket().pipe(
+		const protocol = RpcClient.layerProtocolSocket({
+			retryPolicy: Schedule.jittered(Schedule.min([Schedule.exponential(500, 1.5), Schedule.spaced(5000)])),
+		}).pipe(
 			Layer.provide(
 				Socket.layerWebSocket(options.url, { headers: options.headers }).pipe(
 					Layer.provide(options.webSocketConstructor ?? Socket.layerWebSocketConstructorGlobal),
