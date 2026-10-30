@@ -1,6 +1,7 @@
 {"path":"packages/contract/package.json","rule":"code/unused","count":1}
 {"path":"packages/contract/src/automaticLive.ts","rule":"effect/boundary","count":1}
 {"path":"packages/contract/src/automaticLive.ts","rule":"effect/service-parameters","count":2}
+{"path":"packages/contract/src/automaticPause.spec.ts","rule":"tests/wait-on-events","count":3}
 {"path":"packages/contract/src/bind.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/contract/src/contract.ts","rule":"effect/boundary","count":1}
 {"path":"packages/contract/src/contract.ts","rule":"effect/service-parameters","count":1}
