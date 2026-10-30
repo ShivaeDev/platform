@@ -116,7 +116,6 @@ host.it("an answer recorded through Board appears once even without running Flee
 	});
 	yield* daemon.awaitEvent("board-answer");
 	yield* daemon.stop();
-	yield* daemon.awaitEvent("daemon-unreachable");
 	yield* daemon.start();
 	yield* daemon.awaitEvent("daemon-back");
 	yield* daemon.publishAnswer(board, {

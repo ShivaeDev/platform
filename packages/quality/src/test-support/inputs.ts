@@ -1,5 +1,6 @@
 import { linesOf } from "#inventory/linesOf.ts";
 import type { Findings, Rule, RuleInputs } from "#rule.ts";
+import { run } from "#test/run.ts";
 import type { SeedFile } from "./tree.ts";
 
 export interface Seed {
@@ -23,7 +24,7 @@ export async function checkRule<TInput>(rule: Rule<string, TInput>, options: TIn
 	if (configured._tag === "Invalid") {
 		throw new Error(`invalid options: ${configured.issues.join("; ")}`);
 	}
-	return configured.check(inputsOf(seed));
+	return run(configured.check(inputsOf(seed)));
 }
 
 export async function issuesOf(rule: Rule, options: unknown): Promise<readonly string[]> {

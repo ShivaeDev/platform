@@ -1,4 +1,4 @@
-import { Clock, Effect, Option, Predicate } from "effect";
+import { Clock, DateTime, Effect, Option, Predicate } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { Access } from "./Access.ts";
@@ -54,6 +54,14 @@ export const usersStory = storyKit({
 				return answer;
 			});
 		},
+		creationTimesSeenBy: (reader: string) => {
+			story.tell(`${reader} lists every user's creation instant`);
+			return listAs(engine, reader, { limit: 100 }).pipe(
+				Effect.map((list) =>
+					Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, createdAt }) => [id, DateTime.formatIso(createdAt)])),
+				),
+			);
+		},
 		page: (reader: string, page: { readonly limit: number; readonly cursor?: string }) => {
 			story.tell(`${reader} reads a page of ${page.limit} users${page.cursor === undefined ? "" : ` after ${page.cursor}`}`);
 			return listAs(engine, reader, page).pipe(Effect.map((list) => (Predicate.isString(list) ? list : describePage(list))));
@@ -79,11 +87,15 @@ export const usersStory = storyKit({
 				Effect.map((list) => (Predicate.isString(list) ? list : Object.fromEntries(list.users.map(({ id, role }) => [id, role])))),
 			);
 		},
+		spanNames: () =>
+			Effect.sync(() => engine.spans.filter(({ name }) => name.startsWith("Admin.") || name.startsWith("Platform.")).map(({ name }) => name)),
 	}),
 });
 
-export function isRegistered(id: string, role: Role) {
-	return usersStory.trait("users", `${id} is registered with the ${role} role`, ({ register }) => register(id, role));
+export function isRegistered(id: string, role: Role, createdAt?: string) {
+	return usersStory.trait("users", `${id} is registered with the ${role} role${createdAt === undefined ? "" : ` at ${createdAt}`}`, ({ register }) =>
+		register(id, role, createdAt === undefined ? undefined : new Date(createdAt)),
+	);
 }
 
 export function alreadyAssigned(actor: string, userId: string, role: Role) {

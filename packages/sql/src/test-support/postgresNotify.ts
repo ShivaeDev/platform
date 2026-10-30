@@ -1,8 +1,9 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Clock, Effect, Exit, Fiber, Layer, Queue, Scope } from "effect";
+import { Clock, type Duration, Effect, Exit, Fiber, Layer, Logger, Queue, Scope } from "effect";
 import * as TestClock from "effect/testing/TestClock";
 import { type PostgresChangesOptions, postgresChanges } from "#postgresChanges.ts";
 import { instrumentListener } from "./instrumentListener.ts";
+import { listenerEvents } from "./listenerEvents.ts";
 import { notificationStreams } from "./notificationStreams.ts";
 export interface NotifyState {
 	channel?: string;
@@ -20,11 +21,7 @@ export const startNotifications = Effect.fnUntraced(function* (
 	stallCleanup = false,
 ) {
 	const gate = Promise.withResolvers<void>();
-	const events = {
-		closings: yield* Queue.unbounded<void>(),
-		heartbeats: yield* Queue.unbounded<Effect.Effect<void>>(),
-		listeners: yield* Queue.unbounded<void>(),
-	};
+	const events = yield* listenerEvents;
 	let closing = 0;
 	const state: NotifyState = {
 		connections: 0,
@@ -82,25 +79,52 @@ export const startNotifications = Effect.fnUntraced(function* (
 						state.resyncEvents.push("resync");
 					}),
 				),
+				Effect.tap(() => Queue.offer(events.resyncs, undefined)),
 			),
 		}),
-	).pipe(Effect.provideService(Scope.Scope, scope), Effect.forkScoped);
-	const clock = yield* Clock.Clock;
-	if ("adjust" in clock) {
-		yield* Queue.take(events.listeners);
-		// The first ping can precede LISTEN; let its retry run only after PostgreSQL is listening.
-		yield* TestClock.adjust("50 millis");
-	}
+	).pipe(Effect.provideService(Scope.Scope, scope), Effect.provideService(Logger.CurrentLoggers, events.loggers), Effect.forkScoped);
+	yield* Queue.take(events.listeners);
 	const binding = yield* Fiber.join(building);
+	yield* Queue.take(events.resyncs);
 	return {
 		binding,
 		close: Scope.close(scope, Exit.void),
+		closeAtDeadline: () =>
+			Effect.gen(function* () {
+				const closingScope = yield* Effect.forkScoped(Scope.close(scope, Exit.void));
+				yield* Queue.take(events.closings);
+				yield* TestClock.adjust(timing.heartbeatTimeout ?? "10 seconds");
+				yield* Fiber.join(closingScope);
+			}),
 		closing: () => closing,
+		currentTime: Clock.currentTimeMillis,
+		intervalPasses: (duration: Duration.Input) => TestClock.adjust(duration),
+		listenerPids: client<{ pid: number }>`select pid from pg_stat_activity where query = ${`LISTEN "${state.channel}"`}`,
+		makeUnavailable: () =>
+			Effect.sync(() => {
+				state.unreachable = true;
+			}),
 		nextCleanup: Queue.take(events.closings),
 		nextListener: Queue.take(events.listeners),
+		nextLoss: Queue.take(events.losses),
 		nextMutedHeartbeat: Queue.take(events.heartbeats),
+		nextReconnect: Queue.take(events.reconnects),
+		nextRecovery: Queue.take(events.recoveries),
+		nextResync: Queue.take(events.resyncs),
 		openStream: streams.open,
-		release: () => gate.resolve(),
+		pauseDelivery: () =>
+			Effect.sync(() => {
+				state.muted = true;
+			}),
+		restoreAvailability: () =>
+			Effect.sync(() => {
+				state.unreachable = false;
+			}),
+		resumeDelivery: () =>
+			Effect.sync(() => {
+				state.muted = false;
+			}),
 		state,
+		terminate: client`select pg_terminate_backend(pid) from pg_stat_activity where query = ${`LISTEN "${state.channel}"`}`.pipe(Effect.asVoid),
 	};
 });

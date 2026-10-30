@@ -4,23 +4,15 @@ import type * as Atom from "effect/reactivity/Atom";
 import { type AuthActionUnavailable, authAction } from "@shivaedev/react/client/authAction.ts";
 
 export const SessionAccess = Schema.Struct({
+	session: Schema.Struct({ id: Schema.String }),
 	user: Schema.Struct({
 		permissions: Schema.optionalKey(Schema.Array(Schema.Struct({ name: Schema.String, strength: Schema.Literals(["own", "any"]) }))),
 	}),
 });
 
-export interface Credentials {
-	readonly email: string;
-	readonly name: string;
-	readonly password: string;
-}
-
-export interface AuthFailure {
-	readonly code?: string | undefined;
-	readonly message?: string | undefined;
-	readonly status: number;
-	readonly statusText: string;
-}
+type AuthClient = ReturnType<typeof createAuthClient>;
+export type Credentials = Parameters<AuthClient["signUp"]["email"]>[0];
+export type AuthFailure = NonNullable<Awaited<ReturnType<AuthClient["signOut"]>>["error"]>;
 
 export interface AuthActions {
 	readonly signOut: Atom.AtomResultFn<void, unknown, AuthFailure | AuthActionUnavailable>;

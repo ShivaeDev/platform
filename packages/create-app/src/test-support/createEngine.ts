@@ -26,11 +26,18 @@ export function* createEngine() {
 		"GIT_CONFIG_VALUE_1=0",
 	];
 	const options: NonNullable<Parameters<typeof appFolder>[1]> = {};
+	const answers: string[] = [];
+	const scripts: string[] = [];
 	return {
+		answers,
+		app: "my-app",
 		cli: join(cliFolder, "src/cli.ts"),
 		environment,
 		options,
+		packed: false,
+		printed: "",
 		root: join(folder, "workspace"),
+		scripts,
 		source: templateSource(cliFolder, { realStarter: true }),
 	};
 }

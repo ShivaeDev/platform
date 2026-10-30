@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, Layer } from "effect";
+import { Cause, Effect, ErrorReporter, Exit, Layer } from "effect";
 import { RpcClient } from "effect/rpc";
 import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -11,14 +11,21 @@ import { Api, Handlers as SaveHandlers, type SaveOutcome } from "./saveFixture.t
 const Group = Profiles.merge(Api);
 const createRejections = Effect.gen(function* () {
 	const recorded = recorder();
+	const rejected: { error?: unknown } = {};
+	const reported: Array<{ message: string; severity: string; beforeReply: boolean }> = [];
+	const reporter = ErrorReporter.make(({ error, severity }) =>
+		reported.push({ beforeReply: !("error" in rejected), message: error.message, severity }),
+	);
 	const app = serve(
-		rpcHttp(Group).pipe(Layer.provide(Layer.mergeAll(SaveHandlers, RenameHandlers, requestTracingLayer())), Layer.provide(recorded.layer)),
+		rpcHttp(Group).pipe(
+			Layer.provide(Layer.mergeAll(SaveHandlers, RenameHandlers, requestTracingLayer())),
+			Layer.provide(Layer.merge(recorded.layer, ErrorReporter.layer([reporter]))),
+		),
 	);
 	yield* Effect.addFinalizer(() => Effect.promise(() => app.dispose()));
 	const client = yield* RpcClient.make(Group).pipe(Effect.provide(httpClient(app, {})));
 	const save: { outcome?: typeof SaveOutcome.Type; storageDetail: string } = { storageDetail: "" };
-	const rejected: { error?: unknown } = {};
-	return { client, rejected, save, ...recorded };
+	return { client, rejected, reported, save, ...recorded };
 });
 
 type Engine = Effect.Success<typeof createRejections>;
@@ -28,6 +35,16 @@ function rejection(engine: Engine) {
 		throw new Error("No call has been rejected");
 	}
 	return engine.rejected.error;
+}
+
+function loggedStacks(cause: Cause.Cause<unknown>) {
+	return cause.reasons.flatMap((reason) => {
+		if (Cause.isInterruptReason(reason)) {
+			return [];
+		}
+		const error = Cause.isFailReason(reason) ? reason.error : reason.defect;
+		return error instanceof Error ? [error.stack] : [];
+	});
 }
 
 export const rejections = storyKit({
@@ -47,6 +64,17 @@ export const rejections = storyKit({
 			story.tell(`an anonymous caller renames a profile over HTTP, and the handler rejects it with ${rejectWith}`);
 			return Effect.flip(engine.client.Rename({ rejectWith })).pipe(Effect.map((error) => rejectionAnswer(error, { Invalid })));
 		},
+		reportedFailures: () => Effect.sync(() => engine.reported),
+		requestLogs: () =>
+			Effect.sync(() =>
+				engine.logs
+					.filter((log) => log.annotations["rpc.method"] === "Save")
+					.map((log) => ({
+						level: log.level,
+						message: log.message,
+						stacks: loggedStacks(log.cause),
+					})),
+			),
 		save: () => {
 			const { outcome, storageDetail } = engine.save;
 			if (outcome === undefined) {
@@ -85,3 +113,9 @@ export const storageUnavailable = storage("storage reports itself unavailable", 
 export function storageError(fault: "fails" | "crashes", secret: string) {
 	return storage(`storage ${fault} with an error that mentions ${secret}`, fault === "fails" ? "storage fails" : "storage crashes", secret);
 }
+
+export const storageTextFailure = storage(
+	"storage rejects with a plain message containing a secret",
+	"storage returns text",
+	"password=private-value",
+);
