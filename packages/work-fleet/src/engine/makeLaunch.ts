@@ -22,7 +22,8 @@ export function makeLaunch(state: EngineState) {
 		role: "worker" | "repair",
 		prompt: string,
 		continuation?: {
-			readonly sessionId: string;
+			readonly sessionId?: string;
+			readonly answerTurn?: boolean;
 			readonly responses: readonly DecisionResponse[];
 			readonly observationRetries?: number;
 		},
@@ -65,6 +66,7 @@ export function makeLaunch(state: EngineState) {
 		);
 		const settings = retrySettings ?? { ...policy.launch, ...stored.value.launch };
 		const attempt: Attempt = {
+			answerTurn: continuation?.answerTurn,
 			checkFailures,
 			observationRetries: launchObservationRetries(stored.value, continuation?.observationRetries),
 			operationId: policy.operationId(),

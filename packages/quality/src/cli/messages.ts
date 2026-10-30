@@ -1,6 +1,6 @@
 export const USAGE = `Usage:
   quality lint [--config <file>]
-  quality ci
+  quality ci [--coverage]
   quality setup [--config <file>]
   quality fix [--config <file>]
   quality exceptions migrate [--config <file>] [--from <registry>]
@@ -35,6 +35,7 @@ hooks pre-commit  What the hook runs: lint, then package.json scripts typecheck 
 
 --config <file>  Config file; its directory is the repository root. Without this option, uses ./quality.config.ts when present, otherwise defaults.
 --against <ref>  The branch the work merges into, whose merge base prune follows moves from. Defaults to origin/HEAD, then origin/main, then origin/master.
+--coverage      Collect V8 coverage and JUnit from ci's single test run into coverage/, including failed tests.
 Exit codes: 0 passed, 1 failed the gate, 2 could not run.`;
 
 export const SUBCOMMANDS: Readonly<Record<string, string>> = {

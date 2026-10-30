@@ -2,127 +2,129 @@ import { inspect } from "node:util";
 import { Deferred, Effect } from "effect";
 import type * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import { vi } from "vitest";
 import { form } from "#form.ts";
-import type { Encoded, Fields, Form, Name, Path } from "#shape.ts";
+import { type Encoded, FieldFailure, type Fields, Invalid, type Name, type Path } from "#shape.ts";
+import type { draftStorage } from "./draftStorage.ts";
 import type { FormEngine } from "./formEngine.ts";
 
-export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError>(
-	state: FormEngine<TFields, A, E, R, TRuntimeError>,
-	story: { tell: (line: string) => void },
+export type FormDriver<TFields extends Fields, A, E, R, TRuntimeError, TSupport> = ReturnType<
+	typeof formDriver<TFields, A, E, R, TRuntimeError, TSupport>
+>;
+
+export function formDriver<TFields extends Fields, A, E, R, TRuntimeError, TSupport>(
+	engine: FormEngine<TFields, A, E, R, TRuntimeError, TSupport>,
+	tell: (line: string) => void,
 ) {
 	function current() {
-		if (!state.current) {
-			throw new Error("The setup stage must create the form before its verbs run");
+		if (engine.current === undefined) {
+			throw new Error("The form opens after its configuration traits, before the story acts on it");
 		}
-		return state.current;
+		return engine.current;
 	}
 	function read<T>(atom: Atom.Atom<T>): T {
-		if (!state.mounted.has(atom)) {
-			state.registry.mount(atom);
-			state.mounted.add(atom);
+		if (!engine.mounted.has(atom)) {
+			engine.registry.mount(atom);
+			engine.mounted.add(atom);
 		}
-		return state.registry.get(atom);
-	}
-	function observe(path: string, atom: Atom.Atom<string | undefined>) {
-		state.observed.set(path, atom);
-		return read(atom);
-	}
-	const currentForm: Form<TFields, A, E, TRuntimeError> = {
-		blur: (name) => {
-			story.tell(`blur ${name}`);
-			current().blur(name);
-		},
-		change: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) => {
-			story.tell(`edit ${name}: ${inspect(value)}`);
-			current().change(name, value);
-		},
-		choices: (name) => current().choices(name),
-		get dirty() {
-			return current().dirty;
-		},
-		error: (name) => {
-			const atom = current().error(name);
-			state.observed.set(name, atom);
-			return atom;
-		},
-		errorAt: (path) => {
-			const atom = current().errorAt(path);
-			state.observed.set(JSON.stringify(path), atom);
-			return atom;
-		},
-		field: (name) => current().field(name),
-		receive: (values: Encoded<TFields>) => {
-			story.tell(`receive ${inspect(values)}`);
-			current().receive(values);
-		},
-		revert: () => {
-			story.tell("revert to the server baseline");
-			current().revert();
-		},
-		get submit() {
-			return current().submit;
-		},
-		get submitting() {
-			return current().submitting;
-		},
-		get values() {
-			return current().values;
-		},
-	};
-	function submit() {
-		story.tell("submit the current input");
-		state.registry.set(current().submit, undefined);
-	}
-	function rewriteStoredDraft(line: string, change: (record: Record<string, unknown>) => Record<string, unknown>) {
-		story.tell(line);
-		const { key } = state.storage.config;
-		const raw = state.storage.saved.get(key);
-		if (raw === undefined) {
-			throw new Error(`No draft is stored under ${key}`);
-		}
-		state.storage.saved.set(key, JSON.stringify(change(JSON.parse(raw))));
+		return engine.registry.get(atom);
 	}
 	function result() {
-		return AtomRegistry.getResult(state.registry, current().submit, { suspendOnWaiting: true });
+		return AtomRegistry.getResult(engine.registry, current().submit, { suspendOnWaiting: true });
+	}
+	function open(initialValues: Encoded<TFields>) {
+		engine.current = form(engine.schema, { ...engine.config, initialValues });
+		read(engine.current.dirty);
+		engine.opened(engine.current, read);
+		return engine.current;
+	}
+	function held() {
+		if (engine.held === undefined) {
+			throw new Error("No save is held; start the story with a save in flight");
+		}
+		return engine.held;
 	}
 	return {
-		answerCheck: state.checkGate.answer,
-		checked: state.checked,
-		checkStarted: state.checkGate.started,
-		dirty: () => read(current().dirty),
-		draftState: () => ({ dirty: read(current().dirty), saved: Object.fromEntries(state.storage.saved), values: current().values.value }),
-		dropSession: () => {
-			story.tell("end the editing session");
-			state.session.drop();
+		change: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) => {
+			tell(`enter ${inspect(value)} as the ${name}`);
+			current().change(name, value);
 		},
-		errorAt: (path: Path<Name<TFields>>) => observe(JSON.stringify(path), current().errorAt(path)),
-		errors: (name: Name<TFields>) => observe(name, current().error(name)),
-		eventually: (assertion: () => void) => Effect.promise(() => vi.waitFor(assertion)),
+		current,
+		engine,
 		finishSave: () => {
-			story.tell("the server answers the save");
-			return Deferred.succeed(state.release, undefined);
+			tell("the server answers the held save");
+			return Deferred.succeed(held().release, undefined).pipe(Effect.andThen(Effect.exit(result())), Effect.asVoid);
 		},
-		form: currentForm,
+		holdNextSave: () => {
+			engine.held = { armed: true, arrived: Deferred.makeUnsafe(), release: Deferred.makeUnsafe() };
+		},
+		open,
 		read,
-		reject: () => Effect.flip(result()),
-		reload: (initialValues: Encoded<TFields>) => {
-			story.tell(`reload with server values ${JSON.stringify(initialValues)}`);
-			state.current = form(state.schema, { ...state.config, initialValues });
-			return currentForm;
-		},
 		result,
-		saved: state.storage.saved,
-		storedDraftAgesBy: (ms: number) =>
-			rewriteStoredDraft(`the stored draft ages by ${ms} ms`, (record) => ({ ...record, updatedAt: Number(record.updatedAt) - ms })),
-		storedDraftBytes: () => new TextEncoder().encode(state.storage.saved.get(state.storage.config.key) ?? "").byteLength,
-		storedDraftPaddedTo: (bytes: number) =>
-			rewriteStoredDraft(`the stored draft is padded to ${bytes} bytes`, (record) => {
-				const unpadded = JSON.stringify({ ...record, padding: "" }).length;
-				return { ...record, padding: "x".repeat(bytes - unpadded) };
+		submit: () => {
+			const holding = engine.held?.armed === true;
+			tell(holding ? "submit, and the server holds the save" : "submit");
+			engine.registry.set(current().submit, undefined);
+			return holding ? Deferred.await(held().arrived) : Effect.asVoid(Effect.exit(result()));
+		},
+	};
+}
+
+function failedOutcome(error: unknown): string {
+	if (error instanceof Invalid) {
+		return "invalid";
+	}
+	return error instanceof FieldFailure ? `rejected on ${error.path}: ${error.message}` : "failed";
+}
+
+function storedValues({ config, saved }: ReturnType<typeof draftStorage>): unknown {
+	const raw = saved.get(config.key);
+	return raw === undefined ? undefined : Reflect.get(JSON.parse(raw), "values");
+}
+
+export function formVerbs<TFields extends Fields, A, E, R, TRuntimeError, TSupport>(
+	engine: FormEngine<TFields, A, E, R, TRuntimeError, TSupport>,
+	driver: FormDriver<TFields, A, E, R, TRuntimeError, TSupport>,
+	tell: (line: string) => void,
+) {
+	const { current, read, result } = driver;
+	return {
+		choicesFor: (name: Name<TFields>) => Effect.sync(() => current().choices(name)),
+		endSession: () =>
+			Effect.sync(() => {
+				tell("end the editing session");
+				engine.session.drop();
 			}),
-		submissions: state.submissions,
-		submit,
-		waitForSave: () => Deferred.await(state.started),
+		enter: <TKey extends Name<TFields>>(name: TKey, value: Encoded<TFields>[TKey]) => Effect.sync(() => driver.change(name, value)),
+		feedbackAt: (path: Path<Name<TFields>>) => Effect.sync(() => read(current().errorAt(path))),
+		feedbackOn: (name: Name<TFields>) => Effect.sync(() => read(current().error(name))),
+		finishSave: driver.finishSave,
+		leave: (name: Name<TFields>) =>
+			Effect.sync(() => {
+				tell(`leave the ${name}`);
+				current().blur(name);
+			}),
+		refresh: (values: Encoded<TFields>) =>
+			Effect.sync(() => {
+				tell(`the server sends ${inspect(values)}`);
+				current().receive(values);
+			}),
+		reopen: (values: Encoded<TFields>) =>
+			Effect.sync(() => {
+				tell(`reopen the form while the server holds ${inspect(values)}`);
+				driver.open(values);
+			}),
+		revert: () =>
+			Effect.sync(() => {
+				tell("revert to the server's values");
+				current().revert();
+			}),
+		savedValue: result,
+		saveOutcome: () => result().pipe(Effect.match({ onFailure: failedOutcome, onSuccess: () => "saved" })),
+		serverReceived: () => Effect.sync(() => [...engine.received]),
+		shown: <TKey extends Name<TFields>>(name: TKey) => Effect.sync((): Encoded<TFields>[TKey] => current().values.value[name]),
+		shownValues: () => Effect.sync(() => current().values.value),
+		storedDraft: () => Effect.sync(() => storedValues(engine.storage)),
+		submit: driver.submit,
+		unsavedChanges: () => Effect.sync(() => read(current().dirty)),
 	};
 }

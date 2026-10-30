@@ -36,11 +36,18 @@ export function mergeWaitExpired(record: FleetRecord, now: number, mergeWaitMs: 
 
 export function holdsAreas(record: FleetRecord, now: number, mergeWaitMs: number): boolean {
 	const restarting = record.launchRetry !== undefined && record.attempts.at(-1)?.abandoned !== undefined;
+	const latest = record.attempts.at(-1);
+	const abandonedAnswer =
+		record.decision?.code === "session-turn-missing"
+		&& latest?.answerTurn === true
+		&& latest.abandoned !== undefined
+		&& (latest.observationRetries ?? 0) >= 1;
 	return (
 		!["done", "released"].includes(record.step)
 		&& record.attempts.length > 0
 		&& (record.step !== "queued" || executing(record) || restarting)
 		&& record.mergeAreasReleased !== true
+		&& !abandonedAnswer
 		&& !mergeWaitExpired(record, now, mergeWaitMs)
 	);
 }

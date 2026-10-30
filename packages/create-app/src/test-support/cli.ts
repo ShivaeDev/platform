@@ -14,6 +14,7 @@ export function appFolder(
 		installationExit = 0,
 		gitAvailable = true,
 		realSetup = false,
+		linkedPackageScripts = false,
 		installer,
 		typecheckExit,
 		destination = "absent",
@@ -21,6 +22,7 @@ export function appFolder(
 		readonly installationExit?: number;
 		readonly gitAvailable?: boolean;
 		readonly realSetup?: boolean;
+		readonly linkedPackageScripts?: boolean;
 		readonly installer?: string;
 		readonly typecheckExit?: number;
 		readonly destination?: "absent" | "empty" | "file" | "nonempty" | "environment";
@@ -34,11 +36,13 @@ export function appFolder(
 		`#!/usr/bin/env node\nrequire('node:fs').writeFileSync('installation.json', JSON.stringify(process.argv.slice(2)));\nrequire('node:fs').writeFileSync('pnpm-lock.yaml', 'lockfileVersion: 9.0\\n');\nrequire('node:fs').chmodSync('pnpm-workspace.yaml', 0o600);\nprocess.exit(${installationExit});\n`,
 		{ mode: 0o755 },
 	);
-	if (realSetup) {
+	if (realSetup || linkedPackageScripts) {
 		const pnpm = spawnSync("which", ["pnpm"], { encoding: "utf8" }).stdout.trim();
 		const modules = starterModules();
 		const quality = fileURLToPath(new URL("../../../quality/src/cli.ts", import.meta.url));
-		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, hoistedPieces(), quality, typecheckExit), { mode: 0o755 });
+		writeFileSync(join(bin, "pnpm"), setupInstaller(pnpm, modules, hoistedPieces(), quality, { scriptsOnly: linkedPackageScripts, typecheckExit }), {
+			mode: 0o755,
+		});
 	}
 	if (installer !== undefined) {
 		rmSync(join(bin, "pnpm"));

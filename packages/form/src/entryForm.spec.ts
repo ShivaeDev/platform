@@ -1,45 +1,60 @@
 import { expect } from "@effect/vitest";
-import { fromRef } from "#refs.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { expenses, initial } from "#test/expense.ts";
 
+const savedWithEditsAfterward = [
+	expenses.edited("quantity", "2"),
+	expenses.saveInFlight(),
+	expenses.edited("quantity", "3.50"),
+	expenses.edited("date", "2026-09-18"),
+	expenses.saveAnswered(),
+];
+const serverRow = { ...initial, payee: "Server payee", quantity: "2" };
+
 expenses.it(
-	"a delayed save and refresh preserve newer quantity and date edits until explicit revert",
-	[expenses.delayed()],
-	function* ({ form, submit, result, waitForSave, finishSave, dirty, read }) {
-		const date = fromRef(form.field("date"));
-		read(date);
-		const quantity = 2;
-		form.change("quantity", String(quantity));
-		submit();
-		yield* waitForSave();
-		form.change("quantity", "3.50");
-		form.change("date", "2026-09-18");
-		yield* finishSave();
-		expect((yield* result()).quantity).toBe(quantity);
-		form.receive({ ...initial, payee: "Server payee", quantity: "2" });
-		expect(form.field("payee").value).toBe("Server payee");
-		expect(form.field("quantity").value).toBe("3.50");
-		expect(form.field("date").value).toBe("2026-09-18");
-		expect(dirty()).toBe(true);
-		form.revert();
-		expect(form.field("payee").value).toBe("Server payee");
-		expect(form.field("quantity").value).toBe("2");
-		expect(form.field("date").value).toBeUndefined();
-		expect(read(date)).toBeUndefined();
-		expect(Object.hasOwn(form.values.value, "date")).toBe(false);
-		expect(dirty()).toBe(false);
+	"a refresh after a save takes the server's payee and keeps the quantity and date typed during the save",
+	savedWithEditsAfterward,
+	function* ({ refresh, shown, shownDate }) {
+		expect(yield* shown("payee")).toBe(initial.payee);
+
+		yield* refresh(serverRow);
+
+		yield* outcomes({
+			date: [shownDate(), "2026-09-18"],
+			payee: [shown("payee"), "Server payee"],
+			quantity: [shown("quantity"), "3.50"],
+		});
 	},
 );
 
 expenses.it(
-	"a refresh during an unrelated edit submits the refreshed subtotal, not the stale one",
-	[expenses.withValues({ ...initial, subtotal: "300" })],
-	function* ({ form, submit, result }) {
-		form.change("payee", "Harbor Hotel");
-		form.receive({ ...initial, subtotal: "350" });
-		expect(form.field("payee").value).toBe("Harbor Hotel");
-		expect(form.field("subtotal").value).toBe("350");
-		submit();
-		expect(yield* result()).toMatchObject({ payee: "Harbor Hotel", subtotal: 350 });
+	"reverting after that refresh restores the server's payee and quantity, removes the typed date and leaves nothing unsaved",
+	[...savedWithEditsAfterward, expenses.refreshReceived(serverRow)],
+	function* ({ entryHasDate, revert, shown, shownDate, unsavedChanges }) {
+		expect(yield* shownDate()).toBe("2026-09-18");
+
+		yield* revert();
+
+		yield* outcomes({
+			date: [shownDate(), undefined],
+			"entry has a date": [entryHasDate(), false],
+			payee: [shown("payee"), "Server payee"],
+			quantity: [shown("quantity"), "2"],
+			"unsaved changes": [unsavedChanges(), false],
+		});
+	},
+);
+
+expenses.it(
+	"a refresh during an unrelated edit saves the refreshed subtotal with the edited payee",
+	[
+		expenses.startsWith({ ...initial, subtotal: "300" }),
+		expenses.edited("payee", "Harbor Hotel"),
+		expenses.refreshReceived({ ...initial, subtotal: "350" }),
+	],
+	function* ({ savedValue, submit }) {
+		yield* submit();
+
+		expect(yield* savedValue()).toMatchObject({ payee: "Harbor Hotel", subtotal: 350 });
 	},
 );

@@ -16,6 +16,10 @@ export const realSetup = application.trait("installation", "setup installs the a
 	engine.options = { ...engine.options, realSetup: true };
 });
 
+export const linkedPackageScripts = application.trait("installation", "package scripts use linked workspace dependencies", (engine) => {
+	engine.options = { ...engine.options, linkedPackageScripts: true };
+});
+
 export const installedPackageManager = application.trait("workspace", "only the installed package manager is available", (engine) => {
 	engine.environment.push("PNPM_CONFIG_PM_ON_FAIL=error");
 });

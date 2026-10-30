@@ -5,8 +5,9 @@ import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appFolder, runCli } from "./cli.ts";
+import { commandTiming } from "./commandTiming.ts";
 import { createEngine } from "./createEngine.ts";
-import { appScript, installDatabaseProbe } from "./environment.ts";
+import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./environment.ts";
 import { runAdminStories } from "./runAdminStories.ts";
 
 export const application = storyKit({
@@ -31,10 +32,13 @@ export const application = storyKit({
 			return join(engine.root, app);
 		}
 		function run(command: string, args: readonly string[]) {
-			return spawnSync("env", ["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, command, ...args], {
+			const started = performance.now();
+			const result = spawnSync("env", ["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, command, ...args], {
 				cwd: target(),
 				encoding: "utf8",
 			});
+			commandTiming([command, ...args].join(" "), started, result.stderr);
+			return result;
 		}
 		return {
 			baseline: () => {
@@ -47,6 +51,7 @@ export const application = storyKit({
 				packed = false;
 			},
 			*cli(args: readonly string[], environment: readonly string[] = []) {
+				const started = performance.now();
 				story.tell(`create-app ${args.join(" ")}`);
 				if (!(packed || args.includes("--help") || args.includes("--version"))) {
 					yield* engine.source.pack();
@@ -55,7 +60,9 @@ export const application = storyKit({
 				if (args[0] !== undefined && !args[0].startsWith("--")) {
 					app = args[0];
 				}
-				return yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
+				const result = yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
+				commandTiming(`create-app ${args.join(" ")}`, started, result.stderr);
+				return result;
 			},
 			destinationContents: () =>
 				statSync(target()).isFile()
@@ -72,6 +79,10 @@ export const application = storyKit({
 					}),
 			git: (...args: readonly string[]) => run("git", args),
 			guidanceLink: () => readlinkSync(join(target(), "CLAUDE.md")),
+			migrate: () => {
+				story.tell("the generated app applies its registered migrations");
+				return appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=source"]);
+			},
 			navigate: (command: string) => spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
 			pack: () => {
 				story.tell("the template source is packed");
@@ -93,6 +104,10 @@ export const application = storyKit({
 			},
 			read: (path: string) => readFileSync(join(target(), path), "utf8"),
 			readPacked: (path: string) => engine.source.readPacked(path),
+			ready: () => {
+				story.tell("the generated app runs pnpm ready against workspace packages");
+				return readyAgainstWorkspace(target(), engine.source.starter);
+			},
 			runAdminStories: () => {
 				story.tell("the generated app runs its admin stories against workspace sources");
 				return runAdminStories(target());

@@ -5,6 +5,7 @@ import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { forwardingProxy } from "@shivaedev/test-story/server/forwardingProxy.ts";
 import { applicationHost } from "#server/applicationHost.ts";
+import { JobsClientFactory } from "#server/JobsClientFactory.ts";
 import { migrateDatabase } from "#server/migrateDatabase.ts";
 import { testPoolSizes } from "./poolSizes.ts";
 
@@ -13,6 +14,7 @@ export const PUBLIC_URL = "https://app.example";
 
 export interface HostOptions {
 	readonly deployed?: boolean;
+	readonly replacements?: Layer.Layer<never>;
 	readonly trustedProxy?: string | undefined;
 }
 
@@ -27,8 +29,8 @@ export const startHost = Effect.fn("AppStory.startHost")(function* (options: Hos
 	}
 	const host = applicationHost({
 		databaseUrl: database.url,
-		jobsClientFactory: jobsTesting.clientFactory,
 		poolSizes: testPoolSizes,
+		replacements: Layer.merge(Layer.succeed(JobsClientFactory, jobsTesting.clientFactory), options.replacements ?? Layer.empty),
 		secret,
 		...(deployed ? {} : { port: 0 }),
 	}).pipe(Layer.provide(ConfigProvider.layer(ConfigProvider.fromEnv({ env }))));

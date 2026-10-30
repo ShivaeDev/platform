@@ -16,6 +16,21 @@ The notes route loads an authenticated RPC query; the create command is also pro
 
 The starter uses strict application checking with `skipLibCheck: true`, matching Quality's application configuration. Better Auth's published declarations also reference runtimes this Node app does not use. Auth options live in `src/server/authOptions.ts`; the foundation migration `src/server/migrations/0001_auth.ts` calls Better Auth's [programmatic migration API](https://better-auth.com/docs/concepts/database#programmatic-migrations), so no separate auth CLI step is needed. With `PUBLIC_URL` unset, auth accepts both `127.0.0.1` and `localhost` over HTTP on any port, including `http://localhost:5173` through the development proxy. `betterAuthMount` defaults `baseURL.allowedHosts` to `["127.0.0.1:*", "localhost:*"]` and `trustedOrigins` to `["http://127.0.0.1:*", "http://localhost:*"]`. Explicit `baseURL` (including `baseURL.allowedHosts`) and `trustedOrigins` in `authOptions.ts` replace their corresponding defaults; their lists are not merged.
 
+## Coverage reports
+
+The starter's single `CI` job runs `pnpm run ci --coverage`; `pnpm ready` runs the same checks locally without the coverage flag. Quality collects V8 coverage and JUnit from the one test run, including failed tests, into the git-ignored `coverage/` folder. No application coverage dependency or configuration is needed.
+
+CI uploads a `coverage-tests` artifact for 14 days, including after test failures. Coverage services read artifacts named `coverage-*` with these files at the artifact root:
+
+```text
+lcov.info
+junit.xml
+measured-commits.txt
+job.txt
+```
+
+The text files contain the measured commit and its first parent, one SHA per line, and the job's check-run ID. The lcov report supplies line coverage; JUnit also feeds the coverage service's flaky-test and CI run-time tracking. Pull requests run on opened, synchronize, reopened and ready-for-review events, with superseded runs cancelled. Pushes run only on `main` so the service has default-branch measurements to compare with pull requests; those runs are never cancelled by concurrency. If the app uses another default branch, change the workflow's push branch filter.
+
 ## Administer the app
 
 The starter registers its Jobs and note-statistics pages through [`@shivaedev/admin`](../../packages/admin/README.md). Open `/admin` in development on port 5173 or in the built app on port 3000. Vite serves the React routes and proxies their `/rpc` requests to the same app host as notes. The Jobs page shows health, queue counts, failed and dead-lettered jobs and job detail; `/admin/notes` shows aggregate statistics across users.

@@ -2,7 +2,7 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { sessionKeys } from "#test/rpc/sessionKeys.ts";
-import { Preferences } from "#test/rpc/sessionKeysApi.ts";
+import { type Boundary, Preferences } from "#test/rpc/sessionKeysApi.ts";
 
 sessionKeys.it("one cookie-authenticated socket carries reads, commands and subscriptions across hosts", [], function* (test) {
 	yield* test.save("alice", "First");
@@ -22,14 +22,18 @@ sessionKeys.it("RPC message headers cannot replace the socket's session cookie",
 	expect(yield* test.readWithCookie()).toBe("Alice's preference");
 });
 
-sessionKeys.it("a revoked session receives no more hints from another host's committed write", [], function* (test) {
-	const listener = yield* test.subscribe("alice");
-	expect(yield* listener.next).toEqual({ _tag: "Resync" });
-	yield* test.revoke();
-	yield* test.save("second", "Private after revocation");
-	expect(yield* listener.next.pipe(Effect.timeoutOption("100 millis"))).toMatchObject({ _tag: "None" });
-	expect(yield* test.read("alice").pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "RpcClientError" } });
-});
+for (const boundary of ["account", "profile", "providers", "admin", "owner", "custom"] satisfies Boundary[]) {
+	sessionKeys.it(`a revoked ${boundary} session ends its subscription without hints from another host's committed write`, [], function* (test) {
+		const listener = yield* test.subscribe("alice", boundary);
+		expect(yield* listener.next).toEqual({ _tag: "Resync" });
+		yield* test.revoke();
+		yield* test.save("second", "Private after revocation");
+		expect(yield* listener.next.pipe(Effect.timeoutOption("100 millis"))).toMatchObject({ _tag: "None" });
+		expect(yield* listener.ended).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		expect(listener.hints).toEqual([{ _tag: "Resync" }]);
+		expect(yield* test.read("alice", boundary).pipe(Effect.result)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+	});
+}
 
 sessionKeys.it("the upgrade rejects foreign origins and accepts forwarded origins only from the trusted proxy", [], function* (test) {
 	expect(yield* test.upgrade({ origin: "https://attacker.example" })).toBe(HttpStatus.fromLiteral("Forbidden"));

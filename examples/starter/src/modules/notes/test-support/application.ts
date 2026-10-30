@@ -1,7 +1,8 @@
-import { Effect } from "effect";
+import { Effect, Layer } from "effect";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
+import { NotesService } from "#modules/notes/server/Service.ts";
 import { requests } from "#modules/notes/test-support/requests.ts";
 import { startHost } from "#test-support/host.ts";
 import { postgres } from "#test-support/postgres.ts";
@@ -59,5 +60,16 @@ export function rejectedNoteCommits() {
 		$$`;
 		yield* sql`create constraint trigger reject_note_commit after insert on notes
 			deferrable initially deferred for each row execute function reject_note_commit()`;
+	});
+}
+
+export function replacementNotes() {
+	return app.trait("hosting", "the notes service supplies a preview catalog", (engine) => {
+		engine.hostOptions = {
+			...engine.hostOptions,
+			replacements: Layer.mock(NotesService, {
+				list: () => Effect.succeed([{ id: 42, title: "Preview from a fake port", version: 1, wordCount: 5 }]),
+			}),
+		};
 	});
 }

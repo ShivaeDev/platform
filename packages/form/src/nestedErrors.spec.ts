@@ -1,61 +1,71 @@
 import { expect } from "@effect/vitest";
-import { Effect } from "effect";
-import { Invalid } from "#shape.ts";
-import { memoizedAnswers, profiles, unanswered } from "#test/nestedForms.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { answerPaths, profiles, twoUnanswered, UNANSWERED_MESSAGE } from "#test/nestedForms.ts";
 
-memoizedAnswers.it("nested error atoms are memoized by path value", [], ({ form }) => {
-	const path: readonly ["answers", number, string] = ["answers", 0, "text"];
-	const first = form.errorAt(path);
-	expect(form.errorAt(path)).toBe(first);
-	expect(form.errorAt(["answers", 0, "text"])).toBe(first);
-	expect(form.errorAt(["answers", 1, "text"])).not.toBe(first);
-	expect(form.errorAt(["answers", "0", "text"])).not.toBe(first);
-	expect(form.errorAt(["answers", 0, "selected"])).not.toBe(first);
-	expect(form.errorAt(["answers", 0])).not.toBe(first);
+answerPaths.it("an answer's text path gives the same error atom each time, even written anew", [], function* ({ sameErrorAtom }) {
+	const path = ["answers", 0, "text"] as const;
+
+	yield* outcomes({
+		"an equal path written anew": [sameErrorAtom(path, ["answers", 0, "text"]), true],
+		"the same path asked twice": [sameErrorAtom(path, path), true],
+	});
 });
 
-unanswered.it(
-	"nested Schema messages address each unanswered control and retain the top-level summary",
+answerPaths.it("another answer, a string index, a sibling part or the parent path each give their own error atom", [], function* ({ sameErrorAtom }) {
+	const path = ["answers", 0, "text"] as const;
+
+	yield* outcomes({
+		"a sibling part": [sameErrorAtom(path, ["answers", 0, "selected"]), false],
+		"a string index": [sameErrorAtom(path, ["answers", "0", "text"]), false],
+		"another answer": [sameErrorAtom(path, ["answers", 1, "text"]), false],
+		"the parent path": [sameErrorAtom(path, ["answers", 0]), false],
+	});
+});
+
+twoUnanswered.it(
+	"submitting two unanswered answers shows the message on each answer's text and on the answers summary, not on a selection",
 	[],
-	function* ({ form, read, submit, result, reject, errors, submissions }) {
-		const first = form.errorAt(["answers", 0, "text"]);
-		const second = form.errorAt(["answers", 1, "text"]);
-		const selections = form.errorAt(["answers", 0, "selected"]);
-		expect(read(first)).toBeUndefined();
-		expect(read(second)).toBeUndefined();
-		submit();
-		expect(yield* reject()).toBeInstanceOf(Invalid);
-		expect(submissions.length).toBe(0);
-		expect(read(first)).toBe("Choose or write an answer");
-		expect(form.errorAt(["answers", 0, "text"])).toBe(first);
-		expect(read(second)).toBe("Choose or write an answer");
-		expect(read(selections)).toBeUndefined();
-		expect(errors("answers")).toBe("Choose or write an answer");
-		form.change("answers", [
-			{ selected: ["option"], text: "" },
-			{ selected: [], text: "" },
-		]);
-		expect(read(first)).toBeUndefined();
-		expect(form.errorAt(["answers", 0, "text"])).toBe(first);
-		expect(read(second)).toBe("Choose or write an answer");
-		form.change("answers", [
-			{ selected: ["option"], text: "" },
-			{ selected: [], text: "Another answer" },
-		]);
-		expect(read(second)).toBeUndefined();
-		submit();
-		expect(yield* result()).toEqual(form.values.value);
-		expect(submissions).toEqual([form.values.value]);
+	function* ({ answerSelectionError, answerTextError, feedbackOn, submit }) {
+		expect(yield* answerTextError(0)).toBeUndefined();
+
+		yield* submit();
+
+		yield* outcomes({
+			"answers summary": [feedbackOn("answers"), UNANSWERED_MESSAGE],
+			"first answer's selection": [answerSelectionError(0), undefined],
+			"first answer's text": [answerTextError(0), UNANSWERED_MESSAGE],
+			"second answer's text": [answerTextError(1), UNANSWERED_MESSAGE],
+		});
 	},
 );
 
-profiles.it("blur reveals descendant Schema feedback without inventing sibling paths", [], function* ({ form, read, errorAt }) {
-	const name = form.errorAt(["profile", "name"]);
-	expect(read(name)).toBeUndefined();
-	yield* Effect.sync(() => form.blur("profile"));
-	expect(form.errorAt(["profile", "name"])).toBe(name);
-	expect(read(name)).toBe("Required");
-	expect(errorAt(["profile"])).toBe("Required");
-	expect(errorAt(["profile", "name"])).toBe("Required");
-	expect(errorAt(["profile", "other"])).toBeUndefined();
-});
+twoUnanswered.it(
+	"choosing an option for the first answer clears its message and keeps the second's",
+	[twoUnanswered.submitted()],
+	function* ({ answerTextError, chooseOption }) {
+		expect(yield* answerTextError(0)).toBe(UNANSWERED_MESSAGE);
+
+		yield* chooseOption(0, "yes");
+
+		yield* outcomes({
+			"first answer's text": [answerTextError(0), undefined],
+			"second answer's text": [answerTextError(1), UNANSWERED_MESSAGE],
+		});
+	},
+);
+
+profiles.it(
+	"leaving the profile shows Required on its empty name and on the profile, and nothing on its other field",
+	[],
+	function* ({ feedbackAt, leave }) {
+		expect(yield* feedbackAt(["profile", "name"])).toBeUndefined();
+
+		yield* leave("profile");
+
+		yield* outcomes({
+			profile: [feedbackAt(["profile"]), "Required"],
+			"profile name": [feedbackAt(["profile", "name"]), "Required"],
+			"profile's other field": [feedbackAt(["profile", "other"]), undefined],
+		});
+	},
+);

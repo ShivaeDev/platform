@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { app, legacyNote, signedIn } from "#modules/notes/test-support/application.ts";
+import { app, legacyNote, replacementNotes, signedIn } from "#modules/notes/test-support/application.ts";
 
 app.it("creates and queries a persisted note over authenticated HTTP/NDJSON", [signedIn()], function* ({ actor, storedNotes }) {
 	const { notes: client } = actor();
@@ -42,3 +42,7 @@ app.it(
 		expect(yield* returning.list()).toEqual([note]);
 	},
 );
+
+app.it("serves a replacement service's catalog over authenticated HTTP", [replacementNotes(), signedIn()], function* ({ actor }) {
+	expect(yield* actor().notes.list()).toEqual([{ id: 42, title: "Preview from a fake port", version: 1, wordCount: 5 }]);
+});

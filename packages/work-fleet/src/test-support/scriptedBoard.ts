@@ -81,7 +81,7 @@ export function scriptedBoard(options: EngineOptions, decisions: string[], getWo
 				return id;
 			}),
 	});
-	function respond(decisionId: string, action: "retry" | "release", type: "answer" | "clarify" | "not_now" = "answer") {
+	function respond(decisionId: string, action: "retry" | "release", type: "answer" | "clarify" | "not_now" = "answer", body = "Human context") {
 		const receipt = publications.get(decisionId);
 		if (receipt === undefined) {
 			throw new Error("Decision must be published before a response is recorded");
@@ -89,7 +89,7 @@ export function scriptedBoard(options: EngineOptions, decisions: string[], getWo
 		count += 1;
 		const id = `response.${count}`;
 		responses.set(receipt.questionId, {
-			body: "Human context",
+			body,
 			id,
 			response: {
 				answers: [{ prompt: "fleet-action", selected: [action], text: "" }],
