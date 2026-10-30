@@ -15,7 +15,7 @@
 {"path":"packages/test-story/src/server/internal/fakeHttpAnswer.ts","rule":"effect/boundary","count":5}
 {"path":"packages/test-story/src/server/internal/fakeHttpControls.ts","rule":"effect/boundary","count":6}
 {"path":"packages/test-story/src/server/internal/fakeHttpGates.ts","rule":"effect/boundary","count":1}
-{"path":"packages/test-story/src/server/internal/fakeHttpReceive.ts","rule":"effect/boundary","count":9}
+{"path":"packages/test-story/src/server/internal/fakeHttpReceive.ts","rule":"effect/boundary","count":8}
 {"path":"packages/test-story/src/server/internal/fakeHttpSend.ts","rule":"effect/boundary","count":14}
 {"path":"packages/test-story/src/server/internal/installDomTimers.ts","rule":"code/unused","count":1}
 {"path":"packages/test-story/src/server/internal/installOutbound.ts","rule":"effect/boundary","count":7}
