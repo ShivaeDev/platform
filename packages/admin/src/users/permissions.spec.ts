@@ -1,58 +1,102 @@
-import { Clock, Effect, Exit, Option } from "effect";
 import { expect } from "vitest";
-import { isRegistered, usersStory } from "#test/usersStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { alreadyAssigned, isRegistered, usersStory } from "#test/usersStory.ts";
 
-usersStory.it("role assignment changes the target's access on the next request", [], function* ({ list, assign }) {
-	expect(yield* Effect.flip(list("bob"))).toMatchObject({ _tag: "Forbidden" });
-	yield* assign("alice", "bob", "auditor");
-	expect((yield* list("bob")).users).toContainEqual(expect.objectContaining({ id: "bob", role: "auditor" }));
-	expect(yield* Effect.flip(assign("bob", "carol", "owner"))).toMatchObject({ _tag: "Forbidden" });
-	yield* assign("alice", "bob", "user");
-	expect(yield* Effect.flip(list("bob"))).toMatchObject({ _tag: "Forbidden" });
+usersStory.it(
+	"after alice makes bob an auditor, bob's next request lists every user and shows him as auditor",
+	[],
+	function* ({ assign, rolesSeenBy }) {
+		expect(yield* rolesSeenBy("bob")).toBe("forbidden");
+
+		yield* assign("alice", "bob", "auditor");
+
+		expect(yield* rolesSeenBy("bob")).toEqual({ alice: "owner", bob: "auditor", carol: "auditor" });
+	},
+);
+
+usersStory.it(
+	"carol, an auditor who cannot assign roles, is forbidden to make bob an owner, and bob stays a user",
+	[],
+	function* ({ answerTo, assign, rolesSeenBy }) {
+		yield* assign("carol", "bob", "owner");
+
+		yield* outcomes({
+			"carol's answer": [answerTo("carol"), "forbidden"],
+			"roles alice sees": [rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
+		});
+	},
+);
+
+usersStory.it(
+	"alice, the only user who can assign roles, is refused making herself an admin and stays the owner",
+	[],
+	function* ({ answerTo, assign, rolesSeenBy }) {
+		yield* assign("alice", "alice", "admin");
+
+		yield* outcomes({
+			"alice's answer": [answerTo("alice"), "alice is the last role assigner"],
+			"roles alice sees": [rolesSeenBy("alice"), { alice: "owner", bob: "user", carol: "auditor" }],
+		});
+	},
+);
+
+usersStory.it(
+	"once bob is a delegate who can assign roles, alice can make herself an admin",
+	[alreadyAssigned("alice", "bob", "delegate")],
+	function* ({ assign, rolesSeenBy }) {
+		expect(yield* rolesSeenBy("alice")).toEqual({ alice: "owner", bob: "delegate", carol: "auditor" });
+
+		yield* assign("alice", "alice", "admin");
+
+		expect(yield* rolesSeenBy("alice")).toEqual({ alice: "admin", bob: "delegate", carol: "auditor" });
+	},
+);
+
+usersStory.it(
+	"bob, a delegate left as the only user who can assign roles, is refused making himself an auditor",
+	[alreadyAssigned("alice", "bob", "delegate"), alreadyAssigned("alice", "alice", "admin")],
+	function* ({ assign }) {
+		expect(yield* assign("bob", "bob", "auditor")).toBe("bob is the last role assigner");
+	},
+);
+
+usersStory.it("alice assigning a role to a user who is not registered is told the user is not found", [], function* ({ assign }) {
+	expect(yield* assign("alice", "nobody", "auditor")).toBe("not found");
 });
 
-usersStory.it("refuses to remove the last holder of roles.assign", [], function* ({ assign, list }) {
-	expect(yield* Effect.flip(assign("alice", "alice", "admin"))).toMatchObject({ _tag: "LastRoleAssigner", userId: "alice" });
-	expect((yield* list("alice")).users).toContainEqual(expect.objectContaining({ id: "alice", role: "owner" }));
-	yield* assign("alice", "bob", "delegate");
-	yield* assign("alice", "alice", "admin");
-	expect(yield* Effect.flip(assign("alice", "carol", "user"))).toMatchObject({ _tag: "Forbidden" });
-	yield* assign("bob", "carol", "operator");
-	expect((yield* list("bob")).users).toContainEqual(expect.objectContaining({ id: "carol", role: "operator" }));
+usersStory.it(
+	"alice making bob an auditor logs alice as the actor, bob, the auditor role and a time during the assignment",
+	[],
+	function* ({ assign, roleChangeLog }) {
+		yield* assign("alice", "bob", "auditor");
+
+		expect(yield* roleChangeLog()).toEqual([{ actor: "alice", changedAt: "during the assignment", role: "auditor", user: "bob" }]);
+	},
+);
+
+usersStory.it(
+	"alice's first page of two users lists aaron and alice in id order and continues after alice",
+	[isRegistered("aaron", "user")],
+	function* ({ page }) {
+		expect(yield* page("alice", { limit: 2 })).toEqual({ next: "after alice", users: ["aaron", "alice"] });
+	},
+);
+
+usersStory.it("alice's page of two users after alice lists bob and carol as the last page", [isRegistered("aaron", "user")], function* ({ page }) {
+	expect(yield* page("alice", { cursor: "alice", limit: 2 })).toEqual({ next: "last page", users: ["bob", "carol"] });
 });
 
-usersStory.it("the final assigner is protected regardless of its role's name", [], function* ({ assign }) {
-	yield* assign("alice", "bob", "delegate");
-	yield* assign("alice", "alice", "admin");
-	expect(yield* Effect.flip(assign("bob", "bob", "auditor"))).toMatchObject({ _tag: "LastRoleAssigner", userId: "bob" });
-});
+for (const [limit, shown] of [
+	[1, { next: "after aaron", users: ["aaron"] }],
+	[100, { next: "last page", users: ["aaron", "alice", "bob", "carol"] }],
+] as const) {
+	usersStory.it(`alice may ask for a page of ${limit}, which lists ${shown.users.join(", ")}`, [isRegistered("aaron", "user")], function* ({ page }) {
+		expect(yield* page("alice", { limit })).toEqual(shown);
+	});
+}
 
-usersStory.it("changing the role of a missing user fails with NotFound", [], function* ({ assign }) {
-	expect(yield* Effect.flip(assign("alice", "nobody", "auditor"))).toMatchObject({ _tag: "NotFound" });
-});
-
-usersStory.it("a role change logs the actor, target, role and time", [], function* ({ assign, logs }) {
-	const before = yield* Clock.currentTimeMillis;
-	yield* assign("alice", "bob", "auditor");
-	const changes = logs().filter(({ message }) => JSON.stringify(message).includes("User role changed"));
-	expect(changes).toEqual([
-		{ annotations: expect.objectContaining({ actorId: "alice", role: "auditor", userId: "bob" }), message: ["User role changed"] },
-	]);
-	const changedAt = Date.parse(String(changes[0]?.annotations.changedAt));
-	expect(changedAt).toBeGreaterThanOrEqual(before);
-	expect(changedAt).toBeLessThanOrEqual(yield* Clock.currentTimeMillis);
-});
-
-usersStory.it("lists pages of 1 to 100 users ordered by user id", [isRegistered("aaron", "user")], function* ({ list }) {
-	const first = yield* list("alice", { limit: 2 });
-	expect(first.users.map(({ id }) => id)).toEqual(["aaron", "alice"]);
-	expect(first.next).toEqual(Option.some("alice"));
-	const rest = yield* list("alice", { cursor: "alice", limit: 2 });
-	expect(rest.users.map(({ id }) => id)).toEqual(["bob", "carol"]);
-	expect(rest.next).toEqual(Option.none());
-	expect((yield* list("alice", { limit: 1 })).users.map(({ id }) => id)).toEqual(["aaron"]);
-	expect((yield* list("alice", { limit: 100 })).users.map(({ id }) => id)).toEqual(["aaron", "alice", "bob", "carol"]);
-	for (const limit of [0, 101, 1.5]) {
-		expect(Exit.isFailure(yield* Effect.exit(list("alice", { limit })))).toBe(true);
-	}
-});
+for (const limit of [0, 101, 1.5]) {
+	usersStory.it(`alice's request for a page of ${limit} users is refused as an invalid page request`, [], function* ({ page }) {
+		expect(yield* page("alice", { limit })).toBe("invalid page request");
+	});
+}

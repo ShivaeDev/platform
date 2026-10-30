@@ -69,5 +69,5 @@ export const usersEngine = Effect.gen(function* () {
 		const authLayer = permissionLayer(UsersPermission, { origin: () => true, provider: { get: () => currentUser(id) }, roles: Access });
 		return RpcTest.makeClient(Page.contract).pipe(Effect.provide(Layer.merge(handlers, authLayer)));
 	}
-	return { clientAs, logs, register };
+	return { answers: new Map<string, string>(), assignment: { finished: 0, started: 0 }, clientAs, logs, register };
 });

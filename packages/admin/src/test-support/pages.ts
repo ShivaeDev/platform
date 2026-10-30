@@ -20,9 +20,31 @@ export const Users = adminPage({
 	route: { path: "/admin/users", title: "Users" },
 });
 export const Registry = adminRegistry(Jobs, Users);
-export const ChangesCollision = adminPage({
-	contract: contract("admin.jobs", { queries: [Profile] }),
-	id: "changes",
-	permission: JobsPermission,
-	route: { path: "/admin/changes", title: "Changes" },
-});
+
+const reports = contract("admin.reports", { queries: [Profile] });
+export const pagesBesideJobs = {
+	"a page that reuses the jobs page's id": adminPage({
+		contract: reports,
+		id: "jobs",
+		permission: UsersPermission,
+		route: { path: "/admin/reports", title: "Reports" },
+	}),
+	"a page that reuses the jobs page's path": adminPage({
+		contract: reports,
+		id: "reports",
+		permission: UsersPermission,
+		route: { path: "/admin/jobs", title: "Reports" },
+	}),
+	"a page that serves the jobs contract again": adminPage({
+		contract: JobsContract,
+		id: "jobs-again",
+		permission: JobsPermission,
+		route: { path: "/admin/jobs-again", title: "Jobs again" },
+	}),
+	"a page whose contract shares only the jobs page's generated subscription": adminPage({
+		contract: contract("admin.jobs", { queries: [Profile] }),
+		id: "changes",
+		permission: JobsPermission,
+		route: { path: "/admin/changes", title: "Changes" },
+	}),
+};

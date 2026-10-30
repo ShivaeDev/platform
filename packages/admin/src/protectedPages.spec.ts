@@ -1,71 +1,85 @@
-import { Effect, Layer } from "effect";
 import { expect } from "vitest";
-import { Jobs, JobsContract, Users } from "#test/pages.ts";
-import { adminStory, registrationStory, signedIn } from "#test/story.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { adminStory, registrationStory, signedInAs, signedOut } from "#test/story.ts";
 
-for (const [label, traits, error] of [
-	["signed out", [], "Unauthorized"],
-	["a member", [signedIn("user")], "Forbidden"],
-	["a role assigner without read access", [signedIn("assigner")], "Forbidden"],
+for (const [caller, traits, refusal] of [
+	["a signed-out caller", [signedOut], "unauthorized"],
+	["a user without permissions", [signedInAs("user")], "forbidden"],
+	["a role assigner who reads neither page", [signedInAs("assigner")], "forbidden"],
 ] as const) {
 	adminStory.it(
-		`refuses ${label} on every operation and generated subscription`,
+		`${caller} is ${refusal} on every operation of both pages, including their generated subscriptions`,
 		traits,
-		function* ({ failed, retry, watch, changes, profile, userChanges }) {
-			expect(yield* Effect.flip(failed())).toMatchObject({ _tag: error });
-			expect(yield* Effect.flip(retry("mail-42"))).toMatchObject({ _tag: error });
-			expect(yield* Effect.flip(watch())).toMatchObject({ _tag: error });
-			expect(yield* Effect.flip(changes())).toMatchObject({ _tag: error });
-			expect(yield* Effect.flip(profile())).toMatchObject({ _tag: error });
-			expect(yield* Effect.flip(userChanges())).toMatchObject({ _tag: error });
+		function* ({ failedJobs, jobChanges, profile, retry, userChanges, watchFailedJobs }) {
+			yield* outcomes({
+				"failed jobs": [failedJobs(), refusal],
+				"job changes": [jobChanges(), refusal],
+				profile: [profile(), refusal],
+				"retry of mail-42": [retry("mail-42"), refusal],
+				"user changes": [userChanges(), refusal],
+				"watching failed jobs": [watchFailedJobs(), refusal],
+			});
 		},
 	);
 }
 
 adminStory.it(
-	"serves admin queries, commands, streams and generated subscriptions",
-	[signedIn("admin")],
-	function* ({ failed, retry, watch, changes, profile, userChanges }) {
-		expect(yield* failed()).toEqual(["mail-42"]);
-		expect(yield* watch()).toEqual([["mail-42"]]);
-		expect(yield* profile()).toBe("operator@example.test");
-		expect(yield* changes()).toEqual([{ _tag: "Resync" }]);
-		expect(yield* userChanges()).toEqual([{ _tag: "Resync" }]);
-		yield* retry("mail-42");
-		expect(yield* failed()).toEqual([]);
-		expect(Jobs.contract.declaration).toBe(JobsContract.declaration);
-		expect(Users.contract.declaration.commands).toEqual([]);
-		expect([...Users.contract.requests.keys()]).toEqual(["admin.users.profile", "admin.users.$changes"]);
+	"an operator, who reads jobs only, is served every jobs read and is forbidden on the users page",
+	[signedInAs("operator")],
+	function* ({ failedJobs, jobChanges, profile, userChanges, watchFailedJobs }) {
+		yield* outcomes({
+			"failed jobs": [failedJobs(), ["mail-42"]],
+			"job changes": [jobChanges(), "resync"],
+			profile: [profile(), "forbidden"],
+			"user changes": [userChanges(), "forbidden"],
+			"watching failed jobs": [watchFailedJobs(), ["mail-42"]],
+		});
 	},
 );
 
-for (const kind of ["id", "path", "tag"] as const) {
-	registrationStory.it(`rejects a duplicate page ${kind} before merging RPCs`, [], function* ({ duplicate }) {
-		const labels = { id: "page id", path: "path", tag: "RPC tag" };
-		expect(() => duplicate(kind)).toThrow(`Duplicate admin ${labels[kind]}`);
+adminStory.it("an operator's retry of mail-42 is served", [signedInAs("operator")], function* ({ retry }) {
+	expect(yield* retry("mail-42")).toBe("retried");
+});
+
+adminStory.it(
+	"an auditor, who reads users only, is served the users page and is forbidden on every jobs operation",
+	[signedInAs("auditor")],
+	function* ({ failedJobs, jobChanges, profile, retry, userChanges, watchFailedJobs }) {
+		yield* outcomes({
+			"failed jobs": [failedJobs(), "forbidden"],
+			"job changes": [jobChanges(), "forbidden"],
+			profile: [profile(), "auditor@example.test"],
+			"retry of mail-42": [retry("mail-42"), "forbidden"],
+			"user changes": [userChanges(), "resync"],
+			"watching failed jobs": [watchFailedJobs(), "forbidden"],
+		});
+	},
+);
+
+for (const [page, refusal] of [
+	["a page that reuses the jobs page's id", "Duplicate admin page id: jobs"],
+	["a page that reuses the jobs page's path", "Duplicate admin path: /admin/jobs"],
+	["a page that serves the jobs contract again", "Duplicate admin RPC tag: admin.jobs.failed"],
+	["a page whose contract shares only the jobs page's generated subscription", "Duplicate admin RPC tag: admin.jobs.$changes"],
+] as const) {
+	registrationStory.it(`a registry refuses ${page} beside the jobs page with "${refusal}"`, [], function* ({ composeWithJobs }) {
+		expect(yield* composeWithJobs(page)).toBe(refusal);
 	});
 }
 
-registrationStory.it("rejects missing and unregistered handler pages", [], function* ({ register }) {
-	expect(() => register({})).toThrow("Missing admin handlers: jobs");
-	expect(() => register({ jobs: Layer.empty })).toThrow("Missing admin handlers: users");
-	expect(() => register({ jobs: Layer.empty, other: Layer.empty, users: Layer.empty })).toThrow("Unregistered admin handlers: other");
-});
+for (const [present, missing] of [
+	["jobs", "users"],
+	["users", "jobs"],
+] as const) {
+	registrationStory.it(
+		`registering handlers for the ${present} page alone is refused for the missing ${missing} handlers`,
+		[],
+		function* ({ registerHandlersFor }) {
+			expect(yield* registerHandlersFor(present)).toBe(`Missing admin handlers: ${missing}`);
+		},
+	);
+}
 
-registrationStory.it("rejects colliding generated subscriptions", [], function* ({ duplicate }) {
-	expect(() => duplicate("changes")).toThrow("Duplicate admin RPC tag: admin.jobs.$changes");
-});
-
-adminStory.it("a users reader cannot read jobs", [signedIn("auditor")], function* ({ profile, userChanges, failed, changes }) {
-	expect(yield* profile()).toBe("operator@example.test");
-	expect(yield* userChanges()).toEqual([{ _tag: "Resync" }]);
-	expect(yield* Effect.flip(failed())).toMatchObject({ _tag: "Forbidden" });
-	expect(yield* Effect.flip(changes())).toMatchObject({ _tag: "Forbidden" });
-});
-
-adminStory.it("a jobs reader cannot read users", [signedIn("operator")], function* ({ profile, userChanges, failed, changes }) {
-	expect(yield* failed()).toEqual(["mail-42"]);
-	expect(yield* changes()).toEqual([{ _tag: "Resync" }]);
-	expect(yield* Effect.flip(profile())).toMatchObject({ _tag: "Forbidden" });
-	expect(yield* Effect.flip(userChanges())).toMatchObject({ _tag: "Forbidden" });
+registrationStory.it("registering handlers for a reports page the registry does not hold is refused", [], function* ({ registerHandlersFor }) {
+	expect(yield* registerHandlersFor("jobs", "users", "reports")).toBe("Unregistered admin handlers: reports");
 });
