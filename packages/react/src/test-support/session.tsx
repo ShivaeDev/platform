@@ -50,7 +50,7 @@ export function shell(url: string, view: Rendered) {
 }
 export function sessions() {
 	return new Map([
-		["alice-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "alice" }],
-		["bob-token", { expiresAt: Number.POSITIVE_INFINITY, userId: "bob" }],
+		["alice-token", { user: { id: "alice" } }],
+		["bob-token", { user: { id: "bob" } }],
 	]);
 }

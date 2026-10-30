@@ -21,11 +21,7 @@
 {"path":"packages/react/src/loadQuery.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/loadQuery.ts","rule":"effect/boundary","count":7}
 {"path":"packages/react/src/loadQuery.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/react/src/orderDatabase.spec.ts","rule":"tests/domain-outcomes","count":4}
-{"path":"packages/react/src/orderExample.dom.spec.tsx","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/react/src/orderExample.dom.spec.tsx","rule":"tests/grouped-outcomes","count":2}
-{"path":"packages/react/src/orderStory.dom.spec.tsx","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/react/src/orderStory.dom.spec.tsx","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/react/src/permissionGuard.ts","rule":"effect/boundary","count":2}
 {"path":"packages/react/src/persistedDraft.dom.spec.tsx","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/react/src/postgresExample.dom.spec.tsx","rule":"tests/domain-outcomes","count":3}

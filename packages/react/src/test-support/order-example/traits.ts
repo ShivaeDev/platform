@@ -1,12 +1,12 @@
 import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
-import { app } from "./application.ts";
+import { app } from "./app.ts";
 import { openScreen, openScreens } from "./screens.ts";
 import { seedOrder } from "./seed.ts";
 
 export function aliceHasOrder(alias: string) {
 	return app.trait("orders", `Alice has the order ${alias}`, function* (engine) {
-		const order = yield* seedOrder().pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql));
+		const order = yield* seedOrder().pipe(Effect.provideService(SqlClient.SqlClient, engine.sql));
 		engine.orders.set(alias, order);
 	});
 }
@@ -23,7 +23,7 @@ export function orderEditorIsOpen(alias: string) {
 
 export function hasOrder(alias: string, values: Parameters<typeof seedOrder>[0]) {
 	return app.trait("orders", `the order ${alias} exists`, function* (engine) {
-		const order = yield* seedOrder(values).pipe(Effect.provideService(SqlClient.SqlClient, engine.database.sql));
+		const order = yield* seedOrder(values).pipe(Effect.provideService(SqlClient.SqlClient, engine.sql));
 		engine.orders.set(alias, order);
 	});
 }

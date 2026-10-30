@@ -13,7 +13,7 @@ import {
 	trackedMounted,
 } from "#test/lifecycleStories.ts";
 import { resultProbe, results } from "#test/resultStories.ts";
-import { orderSessions, sessionScreens } from "#test/sessionStories.ts";
+import { orderSessionScreens, orderSessions } from "#test/sessionStories.ts";
 
 for (const kind of ["query", "action"] as const) {
 	results.it(
@@ -36,7 +36,7 @@ for (const kind of ["query", "action"] as const) {
 		},
 	);
 }
-sessionScreens.it(
+orderSessionScreens.it(
 	"each session generation owns a fresh client and registry; switching, signing out and re-entering discard the previous one",
 	[orderSessions()],
 	function* ({ session, show, type, observe, close }) {
@@ -64,7 +64,7 @@ sessionScreens.it(
 		expect(view.registries[2]?.getNodes().size).toBe(0);
 	},
 );
-sessionScreens.it(
+orderSessionScreens.it(
 	"Unauthorized keeps the retained screen and asks the auth owner to re-check; its expiry verdict tears the session down",
 	[orderSessions()],
 	function* ({ session, show, type, refresh, observe, expire }) {
@@ -84,7 +84,7 @@ sessionScreens.it(
 		expect(view.rechecks).toEqual(["a1"]);
 	},
 );
-sessionScreens.it(
+orderSessionScreens.it(
 	"refresh retry recovers without losing the session's dirty form",
 	[orderSessions()],
 	function* ({ session, show, type, refresh, observe, expire, restore }) {

@@ -10,17 +10,26 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 			Effect.gen(function* () {
 				tell(`${token ?? "an anonymous caller"} tries to save ${alias}`);
 				const client = yield* engine.connect(token);
-				return yield* client["orders.save"]({ id: orderId(engine, alias), name: "Forbidden overwrite", quantity: 900 }).pipe(Effect.result);
+				return yield* client["orders.save"]({ id: orderId(engine, alias), name: "Forbidden overwrite", quantity: 900 }).pipe(
+					Effect.match({ onFailure: (error) => error._tag, onSuccess: () => "saved" as const }),
+				);
 			}),
 		gets: () => new Map(engine.gets),
 		orderId: (alias: string) => orderId(engine, alias),
 		readAsBob: (alias: string) => {
 			tell(`Bob requests ${alias}`);
-			return engine.bob["orders.get"]({ id: orderId(engine, alias) }).pipe(Effect.result);
+			return engine.bob["orders.get"]({ id: orderId(engine, alias) }).pipe(
+				Effect.match({ onFailure: (error) => error._tag, onSuccess: () => "saved" as const }),
+			);
 		},
 		rejectOrder: (alias: string, quantity: number) => {
 			tell(`Alice tries to save ${alias} with quantity ${quantity}`);
-			return engine.alice["orders.save"]({ id: orderId(engine, alias), name: "Rejected write", quantity }).pipe(Effect.result);
+			return engine.alice["orders.save"]({ id: orderId(engine, alias), name: "Rejected write", quantity }).pipe(
+				Effect.match({
+					onFailure: (error) => (error._tag === "OrderValidation" ? { field: error.field, message: error.message } : error._tag),
+					onSuccess: () => "saved" as const,
+				}),
+			);
 		},
 		releaseSave: () => {
 			tell("the save may finish");
@@ -41,8 +50,7 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 		},
 		storedOrder: (alias: string) => {
 			tell(`read stored ${alias}`);
-			return engine.database.observer`select name, quantity from orders where id = ${orderId(engine, alias)}`;
+			return engine.sql`select name, quantity from orders where id = ${orderId(engine, alias)}`;
 		},
-		storedOrders: () => engine.database.observer`select id, name, quantity from orders order by id`,
 	};
 }
