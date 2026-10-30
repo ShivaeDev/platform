@@ -32,6 +32,10 @@ const serve = Effect.fnUntraced(function* (commands: Queue.Queue<Command>) {
 	}
 });
 
+function endedBefore(name: string, exit: Exit.Exit<unknown, unknown>) {
+	return Effect.die(new Error(`${name} ended before it ran the step: ${outcomeOf(exit)}.`));
+}
+
 export class DatabaseEngine {
 	readonly fixture = setup();
 	options: PostgresTestOptions<unknown> = this.fixture.options;
@@ -138,7 +142,10 @@ export class DatabaseEngine {
 					Effect.as(false),
 				),
 			);
-			return yield* Deferred.await(answer);
+			return yield* Effect.raceFirst(
+				Deferred.await(answer),
+				Effect.flatMap(Fiber.await(block.fiber), (exit) => endedBefore(name, exit)),
+			);
 		});
 	}
 

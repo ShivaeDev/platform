@@ -37,12 +37,12 @@ upgrade.it("an upgrade resolves the application's loader once", [], function* ({
 });
 
 for (const [kind, statement, problem] of [
-	["missing", "alter table items drop column price", "Missing column: price"],
-	["extra", "alter table items add column surprise text", "Extra column: surprise"],
-	["wrongly typed", "alter table items alter column name type varchar(30)", "Wrong type for name: expected text, received character varying(30)"],
+	["a missing", "alter table items drop column price", "Missing column: price"],
+	["an extra", "alter table items add column surprise text", "Extra column: surprise"],
+	["a wrongly typed", "alter table items alter column name type varchar(30)", "Wrong type for name: expected text, received character varying(30)"],
 ] as const) {
 	upgrade.it(
-		`after an upgrade that leaves a ${kind} column, the model check reports it`,
+		`after an upgrade that leaves ${kind} column, the model check reports it`,
 		[columnDrift(statement)],
 		function* ({ modelCheck, runUpgrade }) {
 			yield* runUpgrade();

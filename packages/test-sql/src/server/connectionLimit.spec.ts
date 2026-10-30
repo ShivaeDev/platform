@@ -36,8 +36,8 @@ database.it(
 );
 
 database.it(
-	"when an isolated block holds the role's only connection, another client it opens fails with the connection-limit hint",
-	[roleLimit()],
+	"when an idle shared connection and an isolated block hold the role's two connections, another client the block opens fails with the connection-limit hint",
+	[roleLimit(2), sharedConnectionIdle],
 	function* ({ isolatedBlockWithoutConnections }) {
 		expect(yield* isolatedBlockWithoutConnections()).toBe(CONNECTION_LIMIT_FAILURE);
 	},

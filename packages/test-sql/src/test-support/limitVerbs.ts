@@ -55,7 +55,7 @@ export function limitVerbs(engine: DatabaseEngine, story: Story<DatabaseEngine>)
 				: attempt(engine.run(withIsolatedDatabase(divideByZero)));
 		},
 		isolatedBlockWithoutConnections: () => {
-			story.tell("an isolated block holds its clone's only connection and opens another client");
+			story.tell("an isolated block holds a connection to its clone and opens another client");
 			return attempt(
 				engine.run(
 					withIsolatedDatabase(

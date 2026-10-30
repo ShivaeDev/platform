@@ -2,13 +2,13 @@ import { expect } from "vitest";
 import { database } from "#test/database.ts";
 import { poolLimit } from "#test/databaseTraits.ts";
 
-for (const [lock, waitedOn] of [
-	["row", "the items update"],
-	["table", "the items update"],
-	["advisory", "the advisory lock"],
+for (const [lock, held, waitedOn] of [
+	["row", "a row lock", "the items update"],
+	["table", "a table lock", "the items update"],
+	["advisory", "an advisory lock", "the advisory lock"],
 ] as const) {
 	database.it(
-		`the holder of a ${lock} lock releases it only once alice, bob and charlie all wait on ${waitedOn}`,
+		`the holder of ${held} releases it only once alice, bob and charlie all wait on ${waitedOn}`,
 		[poolLimit(4)],
 		function* ({ race, waitingAtRelease }) {
 			yield* race({ lock, writes: "guarded" });
