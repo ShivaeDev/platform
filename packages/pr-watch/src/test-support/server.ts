@@ -79,7 +79,7 @@ function pullRequestNode(pull: Pull, number: number, queued: boolean, reason: st
 	};
 }
 
-function pullDetail(pull: Pull, number: number) {
+export function pullDetail(pull: Pull, number: number) {
 	return {
 		"auto_merge": pull.autoMerge ? { "merge_method": "squash" } : null,
 		head: { ref: pull.branch, sha: pull.sha },

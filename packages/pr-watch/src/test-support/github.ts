@@ -6,6 +6,7 @@ import {
 	GRAPHQL,
 	OPEN_LIST,
 	type Pull,
+	pullDetail,
 	QUEUE_REFS,
 	REPOSITORY,
 	type Reply,
@@ -47,6 +48,7 @@ export const reads = {
 };
 
 export const replies = {
+	detailOf: (number: number): Answer => ({ description: `the detail of PR ${number}`, reply: { body: pullDetail(pullNumbered(number), number) } }),
 	emptyObject: { description: "an empty object", reply: { body: {} } } satisfies Answer,
 	graphqlErrors: (data: unknown, message: string): Answer => ({
 		description: `GraphQL errors and data ${JSON.stringify(data)}`,

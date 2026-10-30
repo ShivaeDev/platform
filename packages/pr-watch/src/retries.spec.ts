@@ -42,11 +42,11 @@ watch.it(
 watch.it(
 	"a request that GitHub never answers times out after 30 seconds and the watch keeps going",
 	[openPr(1), watching(1), heartbeatsOff],
-	function* ({ errors, howItStopped, requestTimesOut, startWatch, transportStalls }) {
+	function* ({ errors, howItStopped, stalledRequestWaits, startWatch, transportStalls }) {
 		yield* transportStalls();
 		yield* startWatch();
 
-		yield* requestTimesOut();
+		yield* stalledRequestWaits("30 seconds");
 
 		yield* outcomes({
 			"errors": [errors(), ["GitHub request timed out after 30 seconds"]],

@@ -121,6 +121,21 @@ watch.it(
 	},
 );
 
+watch.it(
+	"a PR 1 detail that describes PR 2 fails the round as the wrong PR",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ answers, lastPoll, poll, printed }) {
+		yield* answers(reads.detail(1), replies.detailOf(2));
+
+		yield* poll();
+
+		yield* outcomes({
+			"poll": [lastPoll(), "failed: GitHub returned the wrong PR"],
+			"printed": [printed(), []],
+		});
+	},
+);
+
 for (const [contents, text, failure] of [
 	["unreadable JSON", "broken", "Expected a valid JSON string"],
 	[

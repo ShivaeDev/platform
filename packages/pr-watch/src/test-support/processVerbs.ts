@@ -39,19 +39,21 @@ export function processVerbs(engine: Engine, tell: (line: string) => void) {
 				yield* Fiber.interrupt(process.state.fiber);
 			}),
 		lastError: () => Effect.sync(() => healthOf(engine.lines, "error").at(-1)?.message ?? "none"),
-		requestTimesOut: () =>
-			Effect.gen(function* () {
-				tell("the stalled request reaches its 30-second timeout");
-				yield* process.until(() => engine.io.control.stalled > 0);
-				yield* TestClock.setTime(yield* process.timerStarted);
-				yield* process.until(() => engine.io.control.stalled === 0);
-				yield* settled;
-			}),
 		runOnce: (...extra: string[]) =>
 			Effect.gen(function* () {
 				tell(`the watcher runs one round with --once${withArguments(extra)}`);
 				engine.roundStart = engine.github.requests.length;
 				yield* run(["--once", ...extra]).pipe(Effect.ignore);
+			}),
+		stalledRequestWaits: (duration: Duration.Input) =>
+			Effect.gen(function* () {
+				tell(`the unanswered request waits ${String(duration)}`);
+				yield* process.until(() => engine.io.control.stalled > 0);
+				const clock = yield* Clock.Clock;
+				const target = clock.currentTimeMillisUnsafe() + Duration.toMillis(duration);
+				yield* TestClock.setTime(target);
+				yield* process.until(() => engine.io.control.stalled === 0 || Math.min(...process.state.timers) > target);
+				yield* settled;
 			}),
 		startWatch: (...extra: string[]) =>
 			Effect.gen(function* () {
