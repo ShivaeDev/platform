@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/changes",
-	"version": "0.5.0",
+	"version": "0.5.1",
 	"description": "Commit-bound change channels for Effect: publish recorded changes only after the transaction commits",
 	"keywords": [
 		"effect"

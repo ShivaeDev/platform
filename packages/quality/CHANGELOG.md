@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.45.0 - 2026-10-30
+
+### Added
+
+- `quality ci --coverage` collects V8 coverage and JUnit from the gate's single test run into `coverage/lcov.info` and `coverage/junit.xml`, including failed tests. Quality provides the V8 coverage dependency, and `appTestConfig` accepts native coverage options through its second argument.
+- `@shivaedev/quality` accepts extra host proxy paths as the third argument to `appViteConfig`, beside `/api/auth` and `/rpc`, so applications can exercise their host routes through Vite during development.
+- Quality accepts app migrations referencing the auth user id with `ON DELETE CASCADE` or `ON DELETE SET NULL`, while keeping auth reads and writes behind identity.
+- Identity exports `userReference` from `server/better-auth/userReference.ts` so app migrations share the user table and id column names.
+- Starter notes use a `user_id` foreign key with cascading deletion. A numbered migration renames the existing ownership column and adds the constraint for existing apps.
+
+### Changed
+
+- Require Effect 4.0.6 and align the Effect companion package peers and generated starter catalog to the same exact release. Install the 4.0.6 Effect stack together.
+- Recognize ambient runtime modules in their declaring TypeScript project when checking missing package dependencies, including generated JavaScript clients. Undeclared dependencies and declarations outside that project still fail.
+- The `story-testing` skill covers how a story reads: one name per actor, actions that name their change, a proven before state, domain outcomes, a separated action, a true title, `outcomes` for several checks, explained setup, one behaviour per story, stories only for plausible regressions, and settling on events. It now applies to package stories as well as app stories.
+- Generated apps record the starter's existing findings for the new story rules in their baseline.
+- Quality applies Biome’s test-title check only to `*.test.*`, `*.spec.*` and `test-support/` files, so ordinary helpers named `describe`, `it` or `test` do not receive test-title findings.
+- Quality and starter guidance explain that a `CreateSpace` component in `spaces/client/` is named `Create.tsx`, keeping the full export name without repeating a folder in the file name.
+
+### Fixed
+
+- Register hosted RPC cache-control handling through Effect 4.0.6's request-scoped pre-response API so responses keep `private, no-store`.
+- Accept native RPC's `application/x-ndjson` media type while preserving `application/ndjson` callers at the transport guard.
+- Keep subscriptions open after their HTTP request body completes; closing the socket still cancels them.
+- Leave pnpm-generated lockfiles out of Biome checks and fixes so dependency updates retain pnpm's YAML format. Hand-written YAML remains checked and formatted.
+
+### Breaking
+
+- Specs get new findings from three story rules. `tests/domain-outcomes` reports Effect `Exit`, `Cause` and `Result` uses, `_tag` reads and `"Success"` or `"Failure"` tagged literals: return the outcome in the domain's words from a kit verb or readout. `tests/grouped-outcomes` reports consecutive `expect(yield* …)` checks: write them as rows of one `outcomes` call from `@shivaedev/test-story/server/outcomes.ts`. `tests/wait-on-events` reports sleeps, timers, `eventually`, Vitest fake timers and `TestClock` adjustments: settle on the engine's own signal, and advance the clock in a kit verb named for the time that passes. Record existing findings with `quality baseline write --rule tests/domain-outcomes --rule tests/grouped-outcomes --rule tests/wait-on-events`.
+
 ## 0.44.1 - 2026-10-29
 
 ### Changed

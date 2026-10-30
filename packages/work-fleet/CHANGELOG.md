@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.23.2 - 2026-10-30
+
+### Changed
+
+- Require Effect 4.0.6 and align the Effect companion package peers and generated starter catalog to the same exact release. Install the 4.0.6 Effect stack together.
+
+### Fixed
+
+- Register hosted RPC cache-control handling through Effect 4.0.6's request-scoped pre-response API so responses keep `private, no-store`.
+- Accept native RPC's `application/x-ndjson` media type while preserving `application/ndjson` callers at the transport guard.
+- Keep subscriptions open after their HTTP request body completes; closing the socket still cancels them.
+- Restart an accepted but unobservable answer once after five minutes without thread progress, preserving its instructions and branch guidance. Release its areas and ask the orchestrator if the replacement also stays invisible. Reject an answer to an active missing-turn decision with an explicit failure instead of silently ignoring it.
+- Follow recovered turn receipts and close stale missing-turn decisions when their turns become observable.
+- Gate pull requests and CI repair only on checks required by GitHub branch protection or active rulesets, including repositories with no required checks. Tell workers and reviewers to treat optional app checks as information without waiting, repairing or asking for approval.
+- Yield between batches when rescanning Board briefs so the daemon can keep serving requests. Completed briefs, including archived briefs, no longer report delivered-id warnings; repeated warnings about reused ids are logged once per change.
+
 ## 0.23.1 - 2026-10-29
 
 ### Changed

@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.5.5 - 2026-10-30
+
+### Changed
+
+- Require Effect 4.0.6 and align the Effect companion package peers and generated starter catalog to the same exact release. Install the 4.0.6 Effect stack together.
+
+### Fixed
+
+- Register hosted RPC cache-control handling through Effect 4.0.6's request-scoped pre-response API so responses keep `private, no-store`.
+- Accept native RPC's `application/x-ndjson` media type while preserving `application/ndjson` callers at the transport guard.
+- Keep subscriptions open after their HTTP request body completes; closing the socket still cancels them.
+- Only failing checks required for the pull request mark it failing or stuck; optional app checks leave queued and auto-merge pull requests unblocked.
+
 ## 0.5.4 - 2026-10-29
 
 ### Changed

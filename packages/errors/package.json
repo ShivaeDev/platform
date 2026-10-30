@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/errors",
-	"version": "0.1.0",
+	"version": "0.1.1",
 	"description": "Typed expected failures and secret-safe failure reporting for Effect applications",
 	"keywords": [
 		"effect"
