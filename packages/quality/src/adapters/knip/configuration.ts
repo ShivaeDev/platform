@@ -2,6 +2,7 @@ import { posix } from "node:path";
 import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { exportedModule, exportTargets } from "#imports/packageExports.ts";
 import { packageOf, workspacePackages } from "#imports/workspace.ts";
+import { isMigrationFile } from "#naming/migrationFile.ts";
 import type { RuleInputs } from "#rule.ts";
 import { KNIP_ISSUES } from "./findings.ts";
 
@@ -40,9 +41,15 @@ export async function knipConfiguration(inputs: RuleInputs) {
 			(path) => bins.includes(path) || bins.includes(path.replace(/^src\//u, "dist/").replace(/\.(?<mode>[cm]?)tsx?$/u, ".$<mode>js")),
 		);
 		const publicFiles = sources.filter((path) => exportedModule(manifest.exports, path));
+		// Migration runners load these files from their directory, so no import reaches them.
+		const migrations = sources.filter((path) => isMigrationFile(posix.join(directory, path)));
 		return [
 			directory,
-			{ entry: [...ENTRIES, ...publicFiles, ...bins, ...binaries, ...scriptEntries], paths: importPaths(manifest.imports ?? {}), project: sources },
+			{
+				entry: [...ENTRIES, ...publicFiles, ...migrations, ...bins, ...binaries, ...scriptEntries],
+				paths: importPaths(manifest.imports ?? {}),
+				project: sources,
+			},
 		] as const;
 	});
 	return {
