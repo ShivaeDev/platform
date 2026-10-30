@@ -1,5 +1,5 @@
 import { layerWebSocket } from "@effect/platform-node/NodeSocket";
-import { Context, Effect, Layer, Option } from "effect";
+import { Context, Effect, Layer, Option, Predicate } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientRequest } from "effect/http";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { RpcClient, RpcSerialization } from "effect/rpc";
@@ -14,8 +14,13 @@ export const readPolicyHost = storyKit({
 	clock: "live",
 	*create() {
 		const checks: Check[] = [];
-		const state = { ...emptyHost(), checks };
-		state.build = () => policyHost(state, state.checks);
+		const revoked = new Set<string>();
+		const rows = new Map([
+			["alice", "Alice's document"],
+			["bob", "Bob's document"],
+		]);
+		const state = { ...emptyHost(), checks, revoked, rows };
+		state.build = () => policyHost(state, state.checks, revoked, rows);
 		yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
 		yield* start(state);
 		return state;
@@ -56,6 +61,15 @@ export const readPolicyHost = storyKit({
 				),
 			read: (boundary: "account.get" | "profile.get", viewer: string, owner: string) =>
 				Effect.flatMap(client(viewer), (rpc) => rpc(boundary, { owner })),
+			revokeRead: (viewer: string) => Effect.sync(() => state.rows.delete(viewer)),
+			revokeSession: (viewer: string) => Effect.sync(() => state.revoked.add(viewer)),
+			subscriptionEnd: (listener: Effect.Success<ReturnType<typeof listen>>) =>
+				listener.finished.pipe(
+					Effect.match({
+						onFailure: (error) => (Predicate.isTagged(error, "QueryReadDenied") ? "read denied" : String(error)),
+						onSuccess: () => "completed",
+					}),
+				),
 		};
 	},
 });

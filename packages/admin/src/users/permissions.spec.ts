@@ -86,6 +86,21 @@ usersStory.it("alice's page of two users after alice lists bob and carol as the 
 	expect(yield* page("alice", { cursor: "alice", limit: 2 })).toEqual({ next: "last page", users: ["bob", "carol"] });
 });
 
+usersStory.it(
+	"alice reads dana's creation instant in UTC through the users list",
+	[isRegistered("dana", "user", "2026-10-20T14:34:56.789+02:00")],
+	function* ({ creationTimesSeenBy }) {
+		expect(yield* creationTimesSeenBy("alice")).toMatchObject({ dana: "2026-10-20T12:34:56.789Z" });
+	},
+);
+
+usersStory.it("listing users and changing a role trace the admin operations", [], function* ({ assign, page, spanNames }) {
+	yield* page("alice", { limit: 2 });
+	yield* assign("alice", "bob", "auditor");
+
+	expect(yield* spanNames()).toEqual(["Admin.listUsers", "Admin.changeUserRole"]);
+});
+
 for (const [limit, shown] of [
 	[1, { next: "after aaron", users: ["aaron"] }],
 	[100, { next: "last page", users: ["aaron", "alice", "bob", "carol"] }],

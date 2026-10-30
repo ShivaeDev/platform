@@ -6,20 +6,13 @@ import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { requirePermission } from "@shivaedev/identity/permission.ts";
 import { invalidateOnCommit, transact } from "@shivaedev/sql/transact.ts";
 import { AssignRoles, ReadUsers } from "#permissions.ts";
-import { type ChangeRoleInput, LastRoleAssigner, type UserListInput } from "#users/roles.ts";
+import { AppUser, type ChangeRoleInput, LastRoleAssigner, type UserListInput } from "#users/roles.ts";
 
-const StoredUser = Schema.Struct({
-	createdAt: Schema.Date,
-	email: Schema.String,
-	id: Schema.String,
-	name: Schema.String,
-	role: Schema.String,
-});
 function unavailable() {
 	return new AuthUnavailable({ message: "Could not access app users" });
 }
 
-export const listUsers = Effect.fn("Platform.listUsers")(function* <TRole extends string>(
+export const listUsers = Effect.fn("Admin.listUsers")(function* <TRole extends string>(
 	access: Pick<AccessPolicy<TRole>, "Role">,
 	input: typeof UserListInput.Type,
 ) {
@@ -29,18 +22,14 @@ export const listUsers = Effect.fn("Platform.listUsers")(function* <TRole extend
 		execute: () => sql`select id, name, email, role, "createdAt" from "user"
 			where id > ${input.cursor ?? ""} order by id limit ${input.limit + 1}`,
 		Request: Schema.Void,
-		Result: Schema.Struct({ ...StoredUser.fields, role: access.Role }),
+		Result: Schema.Struct({ ...AppUser.fields, role: access.Role }),
 	});
 	const rows = yield* read(undefined).pipe(Effect.mapError(unavailable));
-	const users = rows.slice(0, input.limit).map(({ role, createdAt, ...user }) => ({
-		...user,
-		createdAt: DateTime.makeUnsafe(createdAt),
-		role,
-	}));
+	const users = rows.slice(0, input.limit);
 	return { next: rows.length > input.limit ? Option.fromUndefinedOr(users.at(-1)?.id) : Option.none<string>(), users };
 });
 
-export const changeUserRole = Effect.fn("Platform.changeUserRole")(function* <TRole extends string>(
+export const changeUserRole = Effect.fn("Admin.changeUserRole")(function* <TRole extends string>(
 	access: Pick<AccessPolicy<TRole>, "Role" | "hasPermission">,
 	input: ChangeRoleInput<TRole>,
 ) {
@@ -49,18 +38,27 @@ export const changeUserRole = Effect.fn("Platform.changeUserRole")(function* <TR
 	const sql = yield* SqlClient.SqlClient;
 	const changed = yield* Effect.gen(function* () {
 		yield* sql`select pg_advisory_xact_lock(hashtext('platform.auth.user-roles'))`;
-		const rows = yield* sql<{ readonly id: string; readonly role: string | null }>`select id, role from "user" where id = ${input.userId} for update`;
-		const target = rows[0];
-		if (target === undefined) {
+		const readTarget = SqlSchema.findOneOption({
+			execute: (id) => sql`select id, role from "user" where id = ${id} for update`,
+			Request: AppUser.fields.id,
+			Result: Schema.Struct({ id: AppUser.fields.id, role: Schema.NullOr(AppUser.fields.role) }),
+		});
+		const target = yield* readTarget(input.userId).pipe(Effect.mapError(unavailable));
+		if (Option.isNone(target)) {
 			return yield* Effect.fail(new NotFound({ message: "User not found" }));
 		}
 		const next = yield* Schema.decodeUnknownEffect(access.Role)(input.role).pipe(Effect.mapError(unavailable));
-		if (target.role === next) {
+		if (target.value.role === next) {
 			return false;
 		}
 		const assigners = access.Role.literals.filter((role) => access.hasPermission(role, AssignRoles));
-		if (assigners.some((role) => role === target.role) && !access.hasPermission(next, AssignRoles)) {
-			const holders = yield* sql<{ readonly id: string }>`select id from "user" where role in ${sql.in(assigners)}`;
+		if (assigners.some((role) => role === target.value.role) && !access.hasPermission(next, AssignRoles)) {
+			const readHolders = SqlSchema.findAll({
+				execute: () => sql`select id from "user" where role in ${sql.in(assigners)}`,
+				Request: Schema.Void,
+				Result: Schema.Struct({ id: AppUser.fields.id }),
+			});
+			const holders = yield* readHolders(undefined).pipe(Effect.mapError(unavailable));
 			if (holders.length === 1) {
 				return yield* Effect.fail(new LastRoleAssigner({ userId: input.userId }));
 			}

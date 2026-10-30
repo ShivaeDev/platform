@@ -16,7 +16,7 @@ for (const first of ["session refresh", "sign-out response"] as const) {
 			if (first === "session refresh") {
 				yield* becomeAnonymous();
 				yield* settle();
-				expect(text('[role="alert"]')).toBe("Sign in to view your notes.");
+				expect(text({ name: "Sign in", role: "heading" })).toBe("Sign in");
 
 				yield* releaseResponse();
 			} else {

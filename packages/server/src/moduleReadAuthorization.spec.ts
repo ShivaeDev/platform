@@ -36,3 +36,23 @@ readPolicyHost.it("the host's live streams filter hints with that request's view
 	expect(yield* test.heard(listener, [documents.item("alice")])).toBe(true);
 	expect(yield* SubscriptionRef.get(listener.hints)).toMatchObject([{ _tag: "Resync" }, { _tag: "Changed", keys: [documents.item("alice")] }]);
 });
+
+for (const revoke of ["revokeRead", "revokeSession"] as const) {
+	readPolicyHost.it(
+		`a per-hint ${revoke === "revokeRead" ? "read policy" : "session"} denial ends the open subscription as read denied without further hints`,
+		[],
+		function* (test) {
+			const listener = yield* test.listen("alice");
+			expect(yield* SubscriptionRef.get(listener.hints)).toEqual([{ _tag: "Resync" }]);
+
+			yield* test[revoke]("alice");
+			yield* test.publish();
+
+			expect(yield* test.subscriptionEnd(listener)).toBe("read denied");
+
+			yield* test.publish();
+
+			expect(yield* SubscriptionRef.get(listener.hints)).toEqual([{ _tag: "Resync" }]);
+		},
+	);
+}
