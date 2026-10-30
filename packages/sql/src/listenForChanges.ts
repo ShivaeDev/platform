@@ -1,6 +1,6 @@
 import { Clock, Deferred, type Duration, Effect, type Exit, Queue, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { decodeKeys } from "./notifyPayload.ts";
+import { decodeKeys, resyncPayload } from "./notifyPayload.ts";
 import type { PostgresChangesOptions } from "./postgresChanges.ts";
 
 function closeListener(scope: Scope.Closeable, outcome: Exit.Exit<unknown, unknown>, timeout: Duration.Input) {
@@ -38,6 +38,9 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 			function receive(payload: string) {
 				if (payload === token) {
 					return Effect.asVoid(Deferred.succeed(ack, undefined));
+				}
+				if (payload === resyncPayload) {
+					return Effect.asVoid(resync);
 				}
 				if (!payload.startsWith("[")) {
 					return Effect.void;

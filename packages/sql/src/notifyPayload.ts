@@ -2,6 +2,8 @@ import { Effect, Schema } from "effect";
 import { SqlError, UnknownError } from "effect/sql/SqlError";
 
 export const NotificationKeys = Schema.Array(Schema.Union([Schema.String, Schema.Finite]));
+// Older listeners reconcile unknown array entries instead of ignoring them.
+export const resyncPayload = JSON.stringify([{ _tag: "Resync" }]);
 export const decodeKeys = Schema.decodeUnknownEffect(Schema.fromJsonString(NotificationKeys));
 const encoder = new TextEncoder();
 
