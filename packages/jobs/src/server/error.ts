@@ -43,6 +43,15 @@ export class PgBossQueueOptionsError extends Data.TaggedError("PgBossQueueOption
 	}
 }
 
+export class PgBossQueueNamesError extends Data.TaggedError("PgBossQueueNamesError")<{
+	readonly missing: readonly string[];
+	readonly unexpected: readonly string[];
+}> {
+	override get message(): string {
+		return `Queue names differ from their declaration: missing [${this.missing.join(", ")}], unexpected [${this.unexpected.join(", ")}]`;
+	}
+}
+
 export class PgBossClientOptionsError extends Data.TaggedError("PgBossClientOptionsError")<{
 	readonly key: string | symbol;
 	readonly options: readonly string[];
