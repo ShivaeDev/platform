@@ -26,7 +26,11 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 	return {
 		...screenVerbs(engine, tell),
 		answers: () => Effect.sync(() => [...engine.answers]),
-		changes: () => Effect.sync(() => [...engine.changes]),
+		changes: () =>
+			Effect.andThen(
+				engine.changesArrived,
+				Effect.sync(() => [...engine.changes]),
+			),
 		forbiddenSave: (alias: string, token?: string) =>
 			Effect.gen(function* () {
 				tell(`${token ?? "an anonymous caller"} tries to save ${alias}`);

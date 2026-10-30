@@ -6,7 +6,7 @@ import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import type { ScreenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import type { Order } from "./contract.ts";
 import { makeClient } from "./makeClient.ts";
-import { signedInSessions, startHost } from "./startHost.ts";
+import { ORDER_CHANGES, signedInSessions, startHost } from "./startHost.ts";
 
 function client(url: string, token?: string) {
 	return makeClient({ httpClient: NodeHttpClient.layerNodeHttp, token, url }).client;
@@ -34,6 +34,16 @@ export const createApplication = Effect.gen(function* () {
 	const changes: unknown[] = [];
 	const unregister = reactivity.registerUnsafe(["orders"], () => changes.push("orders"));
 	yield* Effect.addFinalizer(() => Effect.sync(unregister));
+	let barriers = 0;
+	// The host publishes committed changes through NOTIFY in commit order, so a later notification's arrival proves earlier ones arrived.
+	const changesArrived = Effect.gen(function* () {
+		barriers += 1;
+		const key = `story-barrier-${barriers}`;
+		const arrived = yield* Deferred.make<void>();
+		const release = reactivity.registerUnsafe([key], () => Deferred.doneUnsafe(arrived, Effect.void));
+		yield* sql`select pg_notify(${ORDER_CHANGES}, ${JSON.stringify([key])})`;
+		yield* Deferred.await(arrived).pipe(Effect.ensuring(Effect.sync(release)));
+	});
 	yield* Effect.addFinalizer(() => Deferred.succeed(saves.released, undefined));
 	const alice = yield* client(server.url, "alice-session");
 	const bob = yield* client(server.url, "bob-session");
@@ -43,6 +53,7 @@ export const createApplication = Effect.gen(function* () {
 		answers,
 		bob,
 		changes,
+		changesArrived,
 		connect: (token?: string) => client(server.url, token),
 		gets,
 		orders: new Map<string, Order>(),
