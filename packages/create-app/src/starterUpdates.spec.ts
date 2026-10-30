@@ -1,103 +1,159 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { updates } from "#test/updates.ts";
+import { AS_RELEASED, appCommits, appEditsWithoutCommitting, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
-updates.it("replays a later starter release and records it without committing", [], function* (app) {
-	app.setVersion("0.1.0");
-	app.revise({ "upgrade.txt": "original\n" });
-	const created = yield* app.create();
-	expect(created.status, created.stderr).toBe(0);
-	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ name: "my-app", version: "0.1.0" });
-	app.publish();
-	app.setVersion("0.2.0");
-	app.revise({ "added.txt": "new file\n", "upgrade.txt": "new starter content\n" });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.read("upgrade.txt")).toBe("new starter content\n");
-	expect(app.read("added.txt")).toBe("new file\n");
-	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ name: "my-app", version: "0.2.0" });
-	expect(app.git("rev-list", "--count", "HEAD").stdout).toBe("1\n");
-	expect(app.git("status", "--porcelain").stdout).toContain("upgrade.txt");
-});
+const APPLIED = "Applied create-app 0.2.0. Review the changes, run pnpm install and commit when ready.";
+const shipsUpgrade = starterAt010("ships upgrade.txt reading original", { "upgrade.txt": "original\n" });
+const changesUpgrade = starterAt020("rewrites upgrade.txt as starter content", { "upgrade.txt": "starter content\n" });
 
-updates.it("leaves overlapping edits as listed Git conflicts and keeps the recorded version", [], function* (app) {
-	app.setVersion("0.1.0");
-	app.revise({ "upgrade.txt": "original\n" });
-	expect((yield* app.create()).status).toBe(0);
-	app.publish();
-	app.edit("upgrade.txt", "app content\n");
-	app.git("add", "--all");
-	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Customize app");
-	app.setVersion("0.2.0");
-	app.revise({ "upgrade.txt": "starter content\n" });
-	const result = yield* app.update();
-	const exitCode = result.status;
-	expect(exitCode).toBe(1);
-	expect(result.stderr).toContain("Resolve these conflicts, then commit your changes:\nupgrade.txt");
-	expect(app.read("upgrade.txt")).toContain("<<<<<<< ours\napp content\n=======\nstarter content\n>>>>>>> theirs");
-	expect(app.git("diff", "--name-only", "--diff-filter=U").stdout).toBe("upgrade.txt\n");
-	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.1.0");
-});
+updates.it(
+	"update applies the 0.2.0 starter's changed and added files to my-app",
+	[
+		shipsUpgrade,
+		createdWith010(),
+		published010,
+		starterAt020("rewrites upgrade.txt and adds added.txt", { "added.txt": "new file\n", "upgrade.txt": "starter content\n" }),
+	],
+	function* ({ file, update }) {
+		yield* outcomes({
+			"added.txt": [file("added.txt"), "missing"],
+			"upgrade.txt": [file("upgrade.txt"), "original\n"],
+		});
 
-updates.it("keeps files the app deleted out of a later starter release", [], function* (app) {
-	app.setVersion("0.1.0");
-	app.revise({ "upgrade.txt": "original\n" });
-	expect((yield* app.create()).status).toBe(0);
-	app.publish();
-	app.remove("upgrade.txt");
-	app.git("add", "--all");
-	app.git("-c", "user.name=App", "-c", "user.email=app@example.com", "commit", "-qm", "Remove example");
-	app.setVersion("0.2.0");
-	app.revise({ "upgrade.txt": "starter content\n" });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.git("ls-files", "upgrade.txt").stdout).toBe("");
-	expect(app.git("status", "--porcelain").stdout).not.toContain("upgrade.txt");
-});
+		yield* update();
 
-updates.it("refuses a dirty working tree before fetching or changing files", [], function* (app) {
-	app.setVersion("0.1.0");
-	expect((yield* app.create()).status).toBe(0);
-	app.edit("README.md", "app draft\n");
-	app.setVersion("0.2.0");
-	const result = yield* app.update();
-	const exitCode = result.status;
-	expect(exitCode).toBe(1);
-	expect(result.stderr).toContain("Refusing to update a dirty working tree");
-	expect(app.read("README.md")).toBe("app draft\n");
-	expect(JSON.parse(app.read(".create-app.json")).version).toBe("0.1.0");
-});
+		yield* outcomes({
+			"added.txt": [file("added.txt"), "new file\n"],
+			"upgrade.txt": [file("upgrade.txt"), "starter content\n"],
+		});
+	},
+);
 
-updates.it("keeps a minimal app free of notes when a later starter adds example files", [], function* (app) {
-	app.setVersion("0.1.0");
-	expect((yield* app.create(["--minimal"])).status).toBe(0);
-	app.publish();
-	app.setVersion("0.2.0");
-	app.revise({ "foundation.txt": "new foundation\n", "src/modules/notes/new-example.ts": "export const example = true;\n" });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.git("ls-files", "src/modules/notes").stdout).toBe("");
-	expect(JSON.parse(app.read("package.json")).dependencies).not.toHaveProperty("@tanstack/react-table");
-	expect(app.read("src/server/modules.ts")).not.toContain("notesRegistration");
-	expect(app.read("foundation.txt")).toBe("new foundation\n");
-	expect(JSON.parse(app.read(".create-app.json"))).toEqual({ minimal: true, name: "my-app", version: "0.2.0" });
-});
+updates.it(
+	"update records 0.2.0 in .create-app.json and says it applied the release",
+	[createdWith010(), published010, starterAt020("is unchanged")],
+	function* ({ answer, generationRecord, update }) {
+		expect(yield* generationRecord()).toEqual({ name: "my-app", version: "0.1.0" });
 
-updates.it("moves an app that listed pieces directly onto platform", [], function* (app) {
-	const manifest = app.starterFile("package.json");
-	const workspace = app.starterFile("pnpm-workspace.copy.yaml");
-	const listed = JSON.parse(manifest);
-	app.setVersion("0.1.0");
-	app.revise({
-		"package.json": `${JSON.stringify({ ...listed, dependencies: { ...listed.dependencies, "@shivaedev/sql": "workspace:*" } }, null, "\t")}\n`,
-		"pnpm-workspace.copy.yaml": workspace.replace(/\n#[^\n]*\npublicHoistPattern:[^\n]*\n/u, "\n"),
-	});
-	expect((yield* app.create()).status).toBe(0);
-	expect(JSON.parse(app.read("package.json")).dependencies["@shivaedev/sql"]).toBeDefined();
-	expect(app.read("pnpm-workspace.yaml")).not.toContain("publicHoistPattern");
-	app.publish();
-	app.setVersion("0.2.0");
-	app.revise({ "package.json": manifest, "pnpm-workspace.copy.yaml": workspace });
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(JSON.parse(app.read("package.json")).dependencies["@shivaedev/sql"]).toBeUndefined();
-});
+		yield* update();
+
+		yield* outcomes({
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.2.0" }],
+			answer: [answer(), APPLIED],
+		});
+	},
+);
+
+updates.it(
+	"update leaves the applied release uncommitted for review",
+	[shipsUpgrade, createdWith010(), published010, changesUpgrade],
+	function* ({ commits, uncommittedChanges, update }) {
+		expect(yield* uncommittedChanges()).toEqual([]);
+
+		yield* update();
+
+		yield* outcomes({
+			commits: [commits(), ["Create App <create-app@localhost>: Initialize a generated app"]],
+			"uncommitted changes": [uncommittedChanges(), [" M .create-app.json", "M  upgrade.txt"]],
+		});
+	},
+);
+
+updates.it(
+	"update leaves an edit that overlaps the starter's as a listed Git conflict and keeps 0.1.0 recorded",
+	[
+		shipsUpgrade,
+		createdWith010(),
+		published010,
+		appCommits("rewrites upgrade.txt as app content", { "upgrade.txt": "app content\n" }),
+		changesUpgrade,
+	],
+	function* ({ answer, conflictedFiles, file, generationRecord, update }) {
+		yield* update();
+
+		yield* outcomes({
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.1.0" }],
+			answer: [answer(), "create-app: Resolve these conflicts, then commit your changes:\nupgrade.txt\nThe recorded version remains 0.1.0."],
+			"conflicted files": [conflictedFiles(), ["upgrade.txt"]],
+			"upgrade.txt": [file("upgrade.txt"), "<<<<<<< ours\napp content\n=======\nstarter content\n>>>>>>> theirs\n"],
+		});
+	},
+);
+
+updates.it(
+	"update keeps a file my-app deleted out of the release that changes it",
+	[shipsUpgrade, createdWith010(), published010, appCommits("deletes upgrade.txt", { "upgrade.txt": null }), changesUpgrade],
+	function* ({ answer, gitState, uncommittedChanges, update }) {
+		yield* update();
+
+		yield* outcomes({
+			answer: [answer(), APPLIED],
+			"uncommitted changes": [uncommittedChanges(), [" M .create-app.json"]],
+			"upgrade.txt": [gitState("upgrade.txt"), "missing"],
+		});
+	},
+);
+
+updates.it(
+	"update refuses a dirty working tree before fetching the recorded release, which is not published",
+	[createdWith010(), appEditsWithoutCommitting("rewrites README.md as a draft", { "README.md": "app draft\n" }), starterAt020("is unchanged")],
+	function* ({ answer, file, generationRecord, update }) {
+		yield* update();
+
+		yield* outcomes({
+			".create-app.json": [generationRecord(), { name: "my-app", version: "0.1.0" }],
+			answer: [answer(), "create-app: Refusing to update a dirty working tree. Commit or stash your changes first."],
+			"README.md": [file("README.md"), "app draft\n"],
+		});
+	},
+);
+
+updates.it(
+	"update brings a minimal app the 0.2.0 foundation file but none of the notes example, and keeps it recorded as minimal",
+	[
+		createdWith010("--minimal"),
+		published010,
+		starterAt020("adds foundation.txt and src/modules/notes/new-example.ts", {
+			"foundation.txt": "new foundation\n",
+			"src/modules/notes/new-example.ts": "export const example = true;\n",
+		}),
+	],
+	function* ({ dependsOn, exists, file, fileMentions, generationRecord, update }) {
+		yield* update();
+
+		yield* outcomes({
+			".create-app.json": [generationRecord(), { minimal: true, name: "my-app", version: "0.2.0" }],
+			"depends on @tanstack/react-table": [dependsOn("@tanstack/react-table"), false],
+			"foundation.txt": [file("foundation.txt"), "new foundation\n"],
+			"src/modules/notes": [exists("src/modules/notes"), false],
+			"src/server/modules.ts names notesRegistration": [fileMentions("src/server/modules.ts", "notesRegistration"), false],
+		});
+	},
+);
+
+updates.it(
+	"update moves an app that listed @shivaedev/sql directly onto platform: it drops the dependency and hoists the pieces",
+	[
+		starterAt010("lists @shivaedev/sql directly and hoists nothing", {
+			"package.json": (manifest) => manifest.replace('"dependencies": {', '"dependencies": {\n\t\t"@shivaedev/sql": "workspace:*",'),
+			"pnpm-workspace.copy.yaml": (workspace) => workspace.replace(/\n#[^\n]*\npublicHoistPattern:[^\n]*\n/u, "\n"),
+		}),
+		createdWith010(),
+		published010,
+		starterAt020("depends on platform alone and hoists its pieces", { "package.json": AS_RELEASED, "pnpm-workspace.copy.yaml": AS_RELEASED }),
+	],
+	function* ({ dependsOn, fileMentions, update }) {
+		yield* outcomes({
+			"depends on @shivaedev/sql": [dependsOn("@shivaedev/sql"), true],
+			"pnpm-workspace.yaml hoists": [fileMentions("pnpm-workspace.yaml", "publicHoistPattern"), false],
+		});
+
+		yield* update();
+
+		yield* outcomes({
+			"depends on @shivaedev/sql": [dependsOn("@shivaedev/sql"), false],
+			"pnpm-workspace.yaml hoists": [fileMentions("pnpm-workspace.yaml", "publicHoistPattern"), true],
+		});
+	},
+);
