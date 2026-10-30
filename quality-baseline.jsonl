@@ -64,7 +64,6 @@
 {"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}
 {"path":"package.json","rule":"code/unused","count":1}
 {"path":"script/ci/TestSequencer.ts","rule":"effect/boundary","count":2}
-{"path":"script/ci/mainShardPlan.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/mainTimingRun.ts","rule":"effect/boundary","count":1}
 {"path":"script/ci/mergeTestTimings.ts","rule":"effect/boundary","count":2}
 {"path":"script/ci/shard.ts","rule":"effect/boundary","count":2}
