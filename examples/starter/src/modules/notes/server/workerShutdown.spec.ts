@@ -10,9 +10,9 @@ notesDeployment.it(
 		const migration = yield* startProcess("migrate", 0, release);
 		expect(yield* migration.child.exitCode).toBe(0);
 		const web = yield* startProcess("web");
-		yield* web.ready;
-		const session = yield* signUpAt(web.url, "shutdown");
-		const notes = yield* notesAt(web.url, session.cookie);
+		const address = yield* web.ready;
+		const session = yield* signUpAt(address, "shutdown");
+		const notes = yield* notesAt(address, session.cookie);
 		const note = yield* notes["notes.create"]({ title: "Finish before stopping" });
 		const held = yield* holdJob(note.id);
 		const worker = yield* startProcess("worker", 0, release);

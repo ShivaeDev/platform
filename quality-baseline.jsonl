@@ -59,7 +59,6 @@
 {"path":"examples/starter/src/server/adminSetup.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"examples/starter/src/server/authOptions.ts","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/server/databaseOptions.ts","rule":"effect/service-parameters","count":1}
-{"path":"examples/starter/src/server/deployReadiness.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"examples/starter/src/server/migrations.ts","rule":"effect/service-parameters","count":1}
 {"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"code/unused","count":1}
 {"path":"examples/starter/src/server/migrations/0001_auth.ts","rule":"effect/boundary","count":3}

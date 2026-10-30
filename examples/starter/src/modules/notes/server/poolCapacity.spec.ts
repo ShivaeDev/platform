@@ -15,16 +15,16 @@ notesDeployment.it(
 		expect(yield* migrate.child.exitCode).toBe(0);
 		const web = yield* startProcess("web", 0, { "AUTH_RATE_LIMIT_ENABLED": "false" });
 		const worker = yield* startProcess("worker");
-		yield* web.ready;
+		const address = yield* web.ready;
 		yield* worker.ready;
 		const activity = yield* watchBackends();
-		expect((yield* signUpAt(web.url, "alice")).status).toBe(HttpStatus.fromLiteral("OK"));
+		expect((yield* signUpAt(address, "alice")).status).toBe(HttpStatus.fromLiteral("OK"));
 		const results = yield* Effect.all(
 			Array.from({ length: 8 }, (_, index) =>
 				Effect.gen(function* () {
-					const session = yield* signInAt(web.url, "alice");
+					const session = yield* signInAt(address, "alice");
 					expect(session.status).toBe(HttpStatus.fromLiteral("OK"));
-					const client = yield* notesAt(web.url, session.cookie);
+					const client = yield* notesAt(address, session.cookie);
 					const note = yield* client["notes.create"]({ title: `Concurrent note ${index}` });
 					return { client, note };
 				}),
