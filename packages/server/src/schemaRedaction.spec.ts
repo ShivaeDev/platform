@@ -1,125 +1,145 @@
-import { Cause, Exit, Option } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { nativeTracing } from "#test/app-host/nativeTracing.ts";
 import { schemaDiagnostics } from "#test/app-host/schemaDiagnostics.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
+const VISIBLE = "ordinary prose stays visible";
+const hiddenPayload = {
+	customerRef: "hidden-customer",
+	notes: ["ordinary note", { mailingLine: "hidden-line" }],
+	privateLabels: { unusualLabel: "hidden-label" },
+	recoveryCodes: ["hidden-code"],
+	sealed: "hidden-sealed",
+	sensitiveNote: "hidden-note unmatched-private-fragment",
+	visible: VISIBLE,
+};
+const masked = { customerRef: "<redacted>", sealed: "<redacted>", sensitiveNote: "<redacted>", visible: VISIBLE };
+
 host.it(
-	"redacts the client failure while preserving application values in a native tracer",
-	[schemaDiagnostics, nativeTracing],
-	function* ({ postNdjson, close, nativeSpans }) {
-		const payload = { customerRef: "customer-123", sealed: "plain-code", sensitiveNote: "private note", visible: "public detail" };
-		const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "diagnose" })}\n`, false);
-		expect(response.body).toContain('"sealed":"<redacted>"');
-		yield* close();
-		const span = nativeSpans().find((value) => value.kind === "server" && value.name === "diagnose");
-		if (span?.status._tag !== "Ended" || !Exit.isFailure(span.status.exit)) {
-			throw new Error("Expected a failed native RPC span");
-		}
-		expect(Option.getOrThrow(Cause.findErrorOption(span.status.exit.cause))).toMatchObject({
-			customerRef: payload.customerRef,
-			sensitiveNote: payload.sensitiveNote,
+	"the client failure masks every schema-sensitive field and host key and keeps visible prose",
+	[schemaDiagnostics],
+	function* ({ answerMentions, callRpc, wireAnswers }) {
+		yield* callRpc("diagnose", hiddenPayload);
+
+		yield* outcomes({
+			"client answer": [
+				wireAnswers(),
+				{
+					"1": {
+						failed: expect.objectContaining({
+							...masked,
+							internalReference: "<redacted>",
+							notes: ["ordinary note", { mailingLine: "<redacted>" }],
+							privateLabels: "<redacted>",
+							recoveryCodes: "<redacted>",
+						}),
+					},
+				},
+			],
+			"leaked secrets": [answerMentions("hidden-", "unmatched-private-fragment"), []],
 		});
 	},
 );
 
-host.it("sensitive declarations mask fields without scanning their values in ordinary prose", [schemaDiagnostics], function* ({ postNdjson, logs }) {
-	const payload = {
-		customerRef: "customer-123",
-		sealed: "plain-code",
-		sensitiveNote: "private note",
-		visible: "The plain-code appears in ordinary prose",
-	};
-	const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "diagnose" })}\n`, false);
-	expect(response.body).toContain('"sealed":"<redacted>"');
-	expect(response.body).toContain(payload.visible);
-	const diagnostic = logs().find((log) => Array.isArray(log.message) && log.message.includes("diagnostic"));
-	expect(diagnostic?.annotations).toMatchObject({ sealed: "<redacted>", visible: payload.visible });
-});
+host.it(
+	"the diagnostic log and the reported cause mask sensitive fields and keep visible prose",
+	[schemaDiagnostics],
+	function* ({ callRpc, diagnosticLog, logMentions, reportedErrors, reportMentions }) {
+		yield* callRpc("diagnose", hiddenPayload);
+
+		yield* outcomes({
+			"diagnostic log": [diagnosticLog("diagnostic"), expect.objectContaining(masked)],
+			"leaked into logs": [logMentions("hidden-", "unmatched-private-fragment"), []],
+			"leaked into reports": [reportMentions("hidden-", "unmatched-private-fragment"), []],
+			"reported failure": [reportedErrors(), [expect.objectContaining(masked)]],
+		});
+	},
+);
 
 for (const protocol of ["http/json", "http/protobuf"]) {
 	host.it(
-		`schema fields and host keys stay hidden in logs, RPC failures and ${protocol} spans`,
+		`a ${protocol} export masks schema-sensitive span and resource attributes and keeps visible prose`,
 		[
 			collector({
 				env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol, "OTEL_RESOURCE_ATTRIBUTES": "customerRef=hidden-resource,sealed=hidden-resource-sealed" },
 			}),
 			schemaDiagnostics,
 		],
-		function* ({ postNdjson, logs, close, exportedSpans, exports, reportedCauses }) {
-			const payload = {
-				customerRef: "hidden-customer",
-				notes: ["ordinary note", { mailingLine: "hidden-line" }],
-				privateLabels: { unusualLabel: "hidden-label" },
-				recoveryCodes: ["hidden-code"],
-				sealed: "hidden-sealed",
-				sensitiveNote: "hidden-note unmatched-private-fragment",
-				visible: "ordinary prose stays visible",
-			};
-			const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "diagnose" })}\n`, false);
-			expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-			expect(response.body).toContain('"_tag":"Rejected"');
-			for (const key of ["sealed", "sensitiveNote", "customerRef", "mailingLine", "internalReference", "privateLabels", "recoveryCodes"]) {
-				expect(response.body).toContain(`"${key}":"<redacted>"`);
-			}
-			const diagnostic = logs().find((log) => Array.isArray(log.message) && log.message.includes("diagnostic"));
-			expect(diagnostic?.annotations).toMatchObject({
-				customerRef: "<redacted>",
-				sealed: "<redacted>",
-				sensitiveNote: "<redacted>",
-				visible: payload.visible,
-			});
-			expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
-			expect(reportedCauses()[0]?.reasons).toMatchObject([
-				{ error: { customerRef: "<redacted>", sealed: "<redacted>", sensitiveNote: "<redacted>" } },
-			]);
+		function* ({ callRpc, close, exportMentions, spanAttributes }) {
+			yield* callRpc("diagnose", hiddenPayload);
+
 			yield* close();
-			const spans = exportedSpans();
-			expect(spans.find((span) => span.name === "diagnose")?.attributes).toEqual(
-				expect.arrayContaining([
-					{ key: "sealed", value: { stringValue: "<redacted>" } },
-					{ key: "sensitiveNote", value: { stringValue: "<redacted>" } },
-					{ key: "customerRef", value: { stringValue: "<redacted>" } },
-					{ key: "visible", value: { stringValue: payload.visible } },
-				]),
-			);
-			for (const value of [
-				response.body,
-				JSON.stringify(logs()),
-				JSON.stringify(spans),
-				JSON.stringify(reportedCauses()),
-				exports()
-					.map((item) => item.body)
-					.join(""),
-			]) {
-				expect(value).not.toContain("hidden-");
-				expect(value).not.toContain("unmatched-private-fragment");
-				expect(value).toContain(payload.visible);
-			}
+
+			yield* outcomes({
+				"leaked secrets": [exportMentions("hidden-", "unmatched-private-fragment"), []],
+				"span attributes": [spanAttributes("diagnose"), [expect.objectContaining(masked)]],
+			});
 		},
 	);
 }
 
 host.it(
-	"host redaction hides defect fields while successful RPC results keep application data",
-	[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } }), schemaDiagnostics],
-	function* ({ postNdjson, logs, close, exportedSpans }) {
-		const payload = { customerRef: "hidden-customer", sealed: "hidden-sealed", sensitiveNote: "hidden-note", visible: "public detail" };
-		const defect = yield* postNdjson(
-			`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: { ...payload, defect: true }, tag: "diagnose" })}\n`,
-			false,
-		);
-		expect(defect.body).toContain("diagnostic defect");
-		expect(defect.body).not.toContain("hidden-");
-		const success = yield* postNdjson(
-			`${JSON.stringify({ _tag: "Request", headers: [], id: "2", payload: { ...payload, succeed: true }, tag: "diagnose" })}\n`,
-			false,
-		);
-		expect(success.body).toContain('"value":"hidden-customer"');
+	"the client answer masks the sealed field while a native tracer keeps the failure's application values",
+	[schemaDiagnostics, nativeTracing],
+	function* ({ callRpc, close, nativeSpanFailure, wireAnswers }) {
+		yield* callRpc("diagnose", { customerRef: "customer-123", sealed: "plain-code", sensitiveNote: "private note", visible: "public detail" });
+
 		yield* close();
-		expect(JSON.stringify(logs())).not.toContain("hidden-");
-		expect(JSON.stringify(exportedSpans())).not.toContain("hidden-");
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ sealed: "<redacted>" }) } }],
+			"native span failure": [nativeSpanFailure("diagnose"), expect.objectContaining({ customerRef: "customer-123", sensitiveNote: "private note" })],
+		});
 	},
 );
+
+host.it(
+	"a sensitive declaration masks its field but not the same value in ordinary prose",
+	[schemaDiagnostics],
+	function* ({ callRpc, diagnosticLog, wireAnswers }) {
+		const prose = "The plain-code appears in ordinary prose";
+
+		yield* callRpc("diagnose", { customerRef: "customer-123", sealed: "plain-code", sensitiveNote: "private note", visible: prose });
+
+		yield* outcomes({
+			"client answer": [wireAnswers(), { "1": { failed: expect.objectContaining({ sealed: "<redacted>", visible: prose }) } }],
+			"diagnostic log": [diagnosticLog("diagnostic"), expect.objectContaining({ sealed: "<redacted>", visible: prose })],
+		});
+	},
+);
+
+host.it(
+	"a defect's sensitive fields stay out of the client answer, logs and exported spans",
+	[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": "http/json" } }), schemaDiagnostics],
+	function* ({ answerMentions, callRpc, close, exportMentions, logMentions }) {
+		yield* callRpc("diagnose", {
+			customerRef: "hidden-customer",
+			defect: true,
+			sealed: "hidden-sealed",
+			sensitiveNote: "hidden-note",
+			visible: "public detail",
+		});
+
+		yield* close();
+
+		yield* outcomes({
+			"client answer": [answerMentions("diagnostic defect", "hidden-"), ["diagnostic defect"]],
+			"leaked into exports": [exportMentions("hidden-"), []],
+			"leaked into logs": [logMentions("hidden-"), []],
+		});
+	},
+);
+
+host.it("a successful RPC result keeps a value under a sensitive host key", [schemaDiagnostics], function* ({ callRpc, wireAnswers }) {
+	yield* callRpc("diagnose", {
+		customerRef: "hidden-customer",
+		sealed: "hidden-sealed",
+		sensitiveNote: "hidden-note",
+		succeed: true,
+		visible: "public detail",
+	});
+
+	expect(yield* wireAnswers()).toEqual({ "1": { succeeded: "hidden-customer" } });
+});

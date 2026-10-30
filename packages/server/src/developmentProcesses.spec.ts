@@ -1,15 +1,26 @@
+import { Effect } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { developmentApp } from "#test/developmentApp.ts";
 
+developmentApp.it("the development runner starts the server and worker under the application condition", [], function* ({ appConditions, start }) {
+	yield* start();
+
+	expect(yield* appConditions()).toEqual({ server: "application", worker: "application" });
+});
+
 developmentApp.it(
-	"starts app processes with their conditions and stops them when Vite exits",
+	"when Vite exits with status 7, the development runner exits with 7 and leaves no app process running",
 	[],
-	function* ({ start, started, finishVite, exitCode: readExitCode, remaining }) {
+	function* ({ runningAppProcesses, start, viteExits }) {
 		yield* start();
-		expect(started()).toMatchObject({ server: "application", worker: "application" });
-		yield* finishVite();
-		const exitCode = yield* readExitCode();
-		expect(exitCode).toBe(7);
-		expect(remaining()).toEqual([]);
+		expect(yield* runningAppProcesses()).toEqual(["server", "vite", "worker"]);
+
+		const exitCode = yield* viteExits();
+
+		yield* outcomes({
+			"runner exit code": [Effect.succeed(exitCode), 7],
+			"running app processes": [runningAppProcesses(), []],
+		});
 	},
 );

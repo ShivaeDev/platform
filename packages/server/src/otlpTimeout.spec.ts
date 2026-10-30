@@ -1,96 +1,96 @@
-import { HttpClientError } from "effect/http";
+import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { TestClock } from "effect/testing";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 import { timedExports } from "#test/app-host/timedExports.ts";
 
-for (const stalled of ["headers", "body"]) {
+for (const [stalled, options] of [
+	["headers", { status: () => undefined }],
+	["body", { answer: null }],
+] as const) {
 	host.it(
-		`fails an HTTP request with stalled ${stalled} in the typed error channel`,
-		[collector(stalled === "headers" ? { status: () => undefined } : { answer: null })],
-		function* ({ probeCollector, exports }) {
-			const error = yield* probeCollector(80);
-			expect(HttpClientError.isHttpClientError(error)).toBe(true);
-			expect(error.reason).toMatchObject({ _tag: "TransportError", description: "OTLP export request timed out" });
-			expect(exports()).toMatchObject([{ body: expect.stringContaining("resourceSpans"), path: "/v1/traces" }]);
+		`a collector that stalls its response ${stalled} fails the OTLP request with a typed transport timeout`,
+		[collector(options)],
+		function* ({ exportPaths, probeCollector }) {
+			const answer = yield* probeCollector(80);
+
+			yield* outcomes({
+				"collector requests": [exportPaths(), ["/v1/traces"]],
+				"export answer": [Effect.succeed(answer), "failed with transport error: OTLP export request timed out"],
+			});
 		},
 	);
 }
-const timeouts: readonly { env: Record<string, string>; timeout: number }[] = [
+
+for (const { env, timeout } of [
 	{ env: {}, timeout: 10_000 },
 	{ env: { "OTEL_EXPORTER_OTLP_TIMEOUT": "80" }, timeout: 80 },
 	{ env: { "OTEL_EXPORTER_OTLP_TIMEOUT": "240" }, timeout: 240 },
 	{ env: { "OTEL_EXPORTER_OTLP_TIMEOUT": "5000", "OTEL_EXPORTER_OTLP_TRACES_TIMEOUT": "80" }, timeout: 80 },
 	{ env: { "OTEL_EXPORTER_OTLP_TIMEOUT": "80", "OTEL_EXPORTER_OTLP_TRACES_TIMEOUT": "240" }, timeout: 240 },
-];
-for (const { env, timeout } of timeouts) {
+]) {
+	const stalledFirstExport = collector({
+		env: { ...env, "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1", "OTEL_BSP_SCHEDULE_DELAY": "60000" },
+		status: (attempt) => (attempt === 1 ? undefined : HttpStatus.fromLiteral("OK")),
+	});
+
 	host.it(
-		`times out stalled exports using ${JSON.stringify(env)} and sends a later batch`,
-		[
-			collector({
-				env: {
-					...env,
-					"OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "1",
-					"OTEL_BSP_SCHEDULE_DELAY": "60000",
-				},
-				status: (attempt) => (attempt === 1 ? undefined : HttpStatus.fromLiteral("OK")),
-			}),
-			timedExports,
-		],
-		function* ({ exportTrace, exports, exportedSpans, logs, waitForExport, waitForExports, waitForWarning, close }) {
-			yield* waitForExports(1);
-			expect(exports()).toMatchObject([{ body: expect.stringContaining("Platform.hostTransport"), path: "/v1/traces" }]);
-			yield* TestClock.adjust(timeout - 1);
-			expect(logs().filter(({ level }) => level === "Warn")).toEqual([]);
-			yield* TestClock.adjust(1);
-			yield* waitForWarning(500);
-			expect(logs().filter(({ level }) => level === "Warn")).toMatchObject([
-				{ annotations: { "otlp.failure": "TransportError" }, message: ["OTLP trace export failed"] },
-			]);
-			yield* exportTrace("later-export");
-			yield* waitForExport("later-export");
-			expect(exportedSpans().map(({ name }) => name)).toContain("later-export");
-			yield* close();
+		`a stalled export warns of a transport failure once ${timeout} ms pass with ${JSON.stringify(env)}`,
+		[stalledFirstExport, timedExports],
+		function* ({ exportDeadlineNearlyPasses, exportDeadlinePasses, exportWarnings, firstExportArrives }) {
+			yield* firstExportArrives();
+			yield* exportDeadlineNearlyPasses(timeout);
+			expect(yield* exportWarnings()).toEqual([]);
+
+			yield* exportDeadlinePasses();
+
+			expect(yield* exportWarnings()).toMatchObject([{ annotations: { "otlp.failure": "TransportError" }, message: "OTLP trace export failed" }]);
+		},
+		{ clock: "test" },
+	);
+
+	host.it(
+		`a later batch reaches the collector after a stalled export times out with ${JSON.stringify(env)}`,
+		[stalledFirstExport, timedExports],
+		function* ({ exportArrives, exportDeadlineNearlyPasses, exportDeadlinePasses, exportedSpanNames, firstExportArrives, traceRequest }) {
+			yield* firstExportArrives();
+			yield* exportDeadlineNearlyPasses(timeout);
+			yield* exportDeadlinePasses();
+
+			yield* traceRequest("later-export");
+			yield* exportArrives("later-export");
+
+			expect(yield* exportedSpanNames()).toContain("later-export");
 		},
 		{ clock: "test" },
 	);
 }
+
 host.it(
-	"exports on the configured batch schedule",
-	[
-		collector({
-			env: {
-				"OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "100",
-				"OTEL_BSP_SCHEDULE_DELAY": "40",
-			},
-		}),
-		timedExports,
-	],
-	function* ({ exportTrace, exports, waitForExports }) {
-		yield* exportTrace("scheduled-export");
-		yield* waitForExports(1);
-		expect(exports()[0]?.body).toContain("scheduled-export");
+	"spans export on the configured batch schedule",
+	[collector({ env: { "OTEL_BSP_MAX_EXPORT_BATCH_SIZE": "100", "OTEL_BSP_SCHEDULE_DELAY": "40" } }), timedExports],
+	function* ({ exportArrives, exportedSpanNames, traceRequest }) {
+		yield* traceRequest("scheduled-export");
+
+		yield* exportArrives("scheduled-export");
+
+		expect(yield* exportedSpanNames()).toContain("scheduled-export");
 	},
 );
+
 host.it(
-	"bounds shutdown with the batch export timeout",
-	[
-		collector({
-			env: {
-				"OTEL_BSP_EXPORT_TIMEOUT": "80",
-			},
-			status: () => undefined,
-		}),
-		timedExports,
-	],
-	function* ({ exportTrace, close, exports }) {
-		yield* exportTrace("shutdown-export");
-		const closing = performance.now();
-		yield* close();
-		expect(performance.now() - closing).toBeGreaterThanOrEqual(60);
-		expect(performance.now() - closing).toBeLessThan(580);
-		expect(exports()).toMatchObject([{ body: expect.stringContaining("shutdown-export"), path: "/v1/traces" }]);
+	"shutdown waits for a stalled export only until the batch export timeout passes",
+	[collector({ env: { "OTEL_BSP_EXPORT_TIMEOUT": "80" }, status: () => undefined }), timedExports],
+	function* ({ shutdownBegins, shutdownProgress, shutdownTimeoutPasses, traceRequest }) {
+		yield* traceRequest("shutdown-export");
+		yield* shutdownBegins();
+		expect(yield* shutdownProgress()).toBe("still shutting down");
+
+		yield* shutdownTimeoutPasses(80);
+
+		expect(yield* shutdownProgress()).toBe("shut down");
 	},
+	{ clock: "test" },
 );

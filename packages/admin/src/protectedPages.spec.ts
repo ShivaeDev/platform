@@ -83,3 +83,16 @@ for (const [present, missing] of [
 registrationStory.it("registering handlers for a reports page the registry does not hold is refused", [], function* ({ registerHandlersFor }) {
 	expect(yield* registerHandlersFor("jobs", "users", "reports")).toBe("Unregistered admin handlers: reports");
 });
+
+for (const [role, answer] of [
+	["user", "forbidden"],
+	["operator", ["mail-42"]],
+] as const) {
+	adminStory.it(`a ${role}'s live jobs read uses the page grant`, [signedInAs(role)], function* ({ liveFailedJobs }) {
+		expect(yield* liveFailedJobs()).toEqual(answer);
+	});
+}
+
+adminStory.it("a page grant does not override a query's additional read restriction", [signedInAs("admin")], function* ({ restrictedProfile }) {
+	expect(yield* restrictedProfile()).toBe("read denied");
+});

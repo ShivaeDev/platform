@@ -1,42 +1,54 @@
-import { inspect } from "node:util";
-import { Cause } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { nestedErrors } from "#test/app-host/nestedErrors.ts";
 import { host } from "#test/app-host/story.ts";
 import { collector } from "#test/app-host/telemetry.ts";
 
+const fields = ["message", "name"] as const;
+const kinds = ["defect", "failure"] as const;
+
+const maskedStack = expect.objectContaining({ stack: "<redacted>" });
+
+for (const field of fields) {
+	const maskedCause = expect.objectContaining({ [field]: "<redacted>", stack: "<redacted>" });
+	const maskedDiagnostic = expect.objectContaining({
+		diagnostic: expect.objectContaining({ failure: expect.objectContaining({ cause: maskedCause }), visible: "public diagnostic" }),
+	});
+	for (const kind of kinds) {
+		host.it(
+			`a nested Error's sensitive ${field} and every nested stack are masked in the diagnostic log and the ${kind} report`,
+			[nestedErrors(field)],
+			function* ({ answerMentions, callRpc, diagnosticLog, diagnosticLogMentions, reportedErrors, reportMentions }) {
+				const secret = `private-inner-${field}`;
+
+				yield* callRpc("nestedErrors", { field, kind, value: secret });
+
+				yield* outcomes({
+					"diagnostic log": [diagnosticLog("nested errors"), maskedDiagnostic],
+					"leaked into reports": [reportMentions(secret), []],
+					"leaked into the answer": [answerMentions(secret), []],
+					"leaked into the diagnostic log": [diagnosticLogMentions("nested errors", secret), []],
+					"reported error": [reportedErrors(), [expect.objectContaining({ cause: maskedCause, details: { errors: [maskedStack, maskedStack] } })]],
+				});
+			},
+		);
+	}
+}
+
 for (const protocol of ["http/json", "http/protobuf"]) {
-	for (const field of ["message", "name"] as const) {
-		for (const kind of ["defect", "failure"] as const) {
+	for (const field of fields) {
+		for (const kind of kinds) {
 			host.it(
-				`hides nested Error ${field} headers in logs, ${kind} reports and ${protocol} span attributes`,
+				`a ${protocol} export keeps the public diagnostic of a ${kind} but masks its nested Error ${field}`,
 				[collector({ env: { "OTEL_EXPORTER_OTLP_PROTOCOL": protocol } }), nestedErrors(field)],
-				function* ({ postNdjson, logs, reportedCauses, close, exportedSpans }) {
+				function* ({ callRpc, close, exportMentions }) {
 					const secret = `private-inner-${field}`;
-					const payload = { field, kind, value: secret };
-					const response = yield* postNdjson(`${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload, tag: "nestedErrors" })}\n`, false);
-					expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-					expect(response.body).not.toContain(secret);
-					const log = logs().find((entry) => Array.isArray(entry.message) && entry.message.includes("nested errors"));
-					expect(log?.annotations).toMatchObject({
-						diagnostic: { failure: { cause: { [field]: "<redacted>", stack: "<redacted>" } }, visible: "public diagnostic" },
-					});
-					expect(inspect(log, { depth: 20 })).not.toContain(secret);
-					expect(reportedCauses()).toEqual([expect.objectContaining({ reasons: expect.any(Array) })]);
-					const [reported] = reportedCauses();
-					if (reported === undefined) {
-						throw new Error("Expected a reported nested Error");
-					}
-					expect(Cause.squash(reported)).toMatchObject({ cause: { [field]: "<redacted>", stack: "<redacted>" } });
-					expect(Cause.squash(reported)).toMatchObject({ details: { errors: [{ stack: "<redacted>" }, { stack: "<redacted>" }] } });
-					expect(inspect(reported, { depth: 20 })).not.toContain(secret);
+
+					yield* callRpc("nestedErrors", { field, kind, value: secret });
+
 					yield* close();
-					const span = exportedSpans().find((value) => value.name === "nestedErrors");
-					const attribute = span?.attributes.find((value) => value.key === "diagnostic");
-					expect(JSON.stringify(attribute)).toContain("public diagnostic");
-					expect(JSON.stringify(attribute)).toContain("<redacted>");
-					expect(JSON.stringify(exportedSpans())).not.toContain(secret);
+
+					expect(yield* exportMentions("public diagnostic", "<redacted>", secret)).toEqual(["public diagnostic", "<redacted>"]);
 				},
 			);
 		}

@@ -1,4 +1,5 @@
 import { type ClientRequest, type IncomingMessage, request } from "node:http";
+import { Effect } from "effect";
 import { type NodeSubscriptionSignal, nodeSubscriptionSignal } from "#node-http/subscriptionSignal.ts";
 import { type HostState, io } from "./state.ts";
 
@@ -17,22 +18,33 @@ function connectionOf(state: HostState) {
 	}
 	return state.subscription;
 }
-export function subscriptionVerbs(state: HostState) {
+export function subscriptionVerbs(state: HostState, tell: (line: string) => void) {
 	return {
-		aborted: () => connectionOf(state).subscription?.signal.aborted,
 		abortProcedure: () => {
-			connectionOf(state).procedure.abort();
+			tell("the RPC procedure's own abort signal fires");
+			return Effect.sync(() => connectionOf(state).procedure.abort());
 		},
-		completeRequest: () =>
-			io(async () => {
+		closeListeners: () =>
+			Effect.sync(() => {
+				const connection = connectionOf(state);
+				return {
+					request: (connection.incoming?.listenerCount("close") ?? 0) - connection.baseline.request,
+					socket: (connection.incoming?.socket.listenerCount("close") ?? 0) - connection.baseline.socket,
+				};
+			}),
+		completeRequest: () => {
+			tell("the client finishes sending the request body");
+			return io(async () => {
 				const incoming = connectionOf(state).incoming;
 				if (incoming === undefined || incoming.closed) {
 					return;
 				}
 				await new Promise<void>((resolve) => incoming.once("close", resolve));
-			}),
-		disconnect: () =>
-			io(async () => {
+			});
+		},
+		disconnect: () => {
+			tell("the client's socket closes");
+			return io(async () => {
 				const connection = connectionOf(state);
 				const socket = connection.incoming?.socket;
 				const closed = new Promise<void>((resolve) => {
@@ -44,19 +56,15 @@ export function subscriptionVerbs(state: HostState) {
 				});
 				connection.outgoing?.destroy();
 				await closed;
-			}),
+			});
+		},
 		disposeSubscription: () => {
-			connectionOf(state).subscription?.dispose();
+			tell("the server disposes the subscription signal");
+			return Effect.sync(() => connectionOf(state).subscription?.dispose());
 		},
-		listenerCounts: () => {
-			const connection = connectionOf(state);
-			return {
-				request: (connection.incoming?.listenerCount("close") ?? 0) - connection.baseline.request,
-				socket: (connection.incoming?.socket.listenerCount("close") ?? 0) - connection.baseline.socket,
-			};
-		},
-		openSubscription: () =>
-			io(async () => {
+		openSubscription: () => {
+			tell(`a client opens a streaming subscription over a real HTTP/1.1 connection in ${connectionOf(state).mode} mode`);
+			return io(async () => {
 				const connection = connectionOf(state);
 				const ready = Promise.withResolvers<void>();
 				connection.ready = ready.resolve;
@@ -72,6 +80,15 @@ export function subscriptionVerbs(state: HostState) {
 					outgoing.write("partial");
 				}
 				await ready.promise;
+			});
+		},
+		subscriptionSignal: () =>
+			Effect.sync(() => {
+				const signal = connectionOf(state).subscription?.signal;
+				if (signal === undefined) {
+					return "no subscription";
+				}
+				return signal.aborted ? "aborted" : "open";
 			}),
 	};
 }

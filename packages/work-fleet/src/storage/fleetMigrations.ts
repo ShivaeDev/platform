@@ -106,5 +106,10 @@ export const fleetMigrations = Effect.fn("FleetStore.fleetMigrations")(function*
 				yield* sql`alter table ${sql(childTable(namespace, path))} add column "answerTurn" boolean`;
 			}
 		}),
+		"31_area_queue_time": Effect.gen(function* () {
+			for (const table of [`${namespace}_records`, childTable(namespace, ["history"])]) {
+				yield* sql`alter table ${sql(table)} add column "areaQueuedAt" double precision`;
+			}
+		}),
 	});
 });

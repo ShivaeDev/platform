@@ -41,34 +41,39 @@ export const developmentApp = storyKit({
 	layer: NodeServices.layer,
 	name: "development application",
 	stages: [],
-	verbs: (engine, story) => ({
-		exitCode: () => engine.child.exitCode.pipe(Effect.timeout("10 seconds")),
-		finishVite: () => {
-			story.tell("Vite exits with its own status");
-			return Effect.tryPromise(() => fetch(`${engine.ready.get("vite")?.value}/finish`).then((response) => response.text()));
-		},
-		remaining: () =>
-			[...engine.ready]
-				.filter(([, { pid }]) => {
-					try {
-						process.kill(pid, 0);
-						return true;
-					} catch {
-						return false;
-					}
-				})
-				.map(([kind]) => kind),
+	verbs: (state, story) => ({
+		appConditions: () =>
+			Effect.sync(() => ({ server: state.ready.get("server")?.value ?? "not started", worker: state.ready.get("worker")?.value ?? "not started" })),
+		runningAppProcesses: () =>
+			Effect.sync(() =>
+				[...state.ready]
+					.filter(([, { pid }]) => {
+						try {
+							process.kill(pid, 0);
+							return true;
+						} catch {
+							return false;
+						}
+					})
+					.map(([kind]) => kind)
+					.sort((left, right) => left.localeCompare(right)),
+			),
 		*start() {
-			story.tell("start the server, worker and Vite");
+			story.tell("the development runner starts the server, worker and Vite");
 			const started = yield* Deferred.make<void>();
-			yield* engine.child.stdout.pipe(
+			yield* state.child.stdout.pipe(
 				Stream.decodeText(),
 				Stream.splitLines,
-				Stream.runForEach((line) => (recordStartup(engine.ready, line) ? Deferred.succeed(started, undefined) : Effect.void)),
+				Stream.runForEach((line) => (recordStartup(state.ready, line) ? Deferred.succeed(started, undefined) : Effect.void)),
 				Effect.forkScoped,
 			);
-			yield* Deferred.await(started).pipe(Effect.timeout("20 seconds"));
+			yield* Deferred.await(started);
 		},
-		started: () => Object.fromEntries([...engine.ready].map(([kind, entry]) => [kind, entry.value])),
+		viteExits: () =>
+			Effect.gen(function* () {
+				story.tell("Vite exits with status 7");
+				yield* Effect.tryPromise(() => fetch(`${state.ready.get("vite")?.value}/finish`).then((response) => response.text()));
+				return Number(yield* state.child.exitCode);
+			}),
 	}),
 });

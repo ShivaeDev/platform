@@ -1,10 +1,12 @@
-import { Context, Schema } from "effect";
+import { Schema } from "effect";
 import { Rpc, RpcGroup, type RpcMiddleware, type RpcSchema } from "effect/rpc";
 import type { CommandShape, OperationShape, QueryShape, StreamShape } from "#operation.ts";
 import { QueryReadDenied } from "#readPolicyErrors.ts";
-import { CommandInvalidation, changesRpc, KeyScope, QueryDefinition } from "#serverMetadata.ts";
+import { changesRpc, KeyScope, operationAnnotations } from "#serverMetadata.ts";
 
 export type Tag<TContract extends string, TName extends string> = `${TContract}.${TName}`;
+
+export type QueryServices<TQuery> = TQuery extends QueryShape<unknown, infer R> ? R : never;
 
 type OperationError<TOperation extends OperationShape> = TOperation extends QueryShape
 	? Schema.Union<readonly [TOperation["error"], typeof QueryReadDenied]>
@@ -13,7 +15,14 @@ type OperationError<TOperation extends OperationShape> = TOperation extends Quer
 export type OperationRpc<TContract extends string, TOperation> = TOperation extends OperationShape
 	? TOperation extends StreamShape
 		? Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], RpcSchema.Stream<TOperation["success"], TOperation["error"]>, Schema.Never>
-		: Rpc.Rpc<Tag<TContract, TOperation["name"]>, TOperation["payload"], TOperation["success"], OperationError<TOperation>>
+		: Rpc.Rpc<
+				Tag<TContract, TOperation["name"]>,
+				TOperation["payload"],
+				TOperation["success"],
+				OperationError<TOperation>,
+				never,
+				QueryServices<TOperation>
+			>
 	: never;
 
 export interface Declared<
@@ -61,14 +70,6 @@ function assertUnique(operations: readonly OperationShape[]) {
 	if (duplicated.length > 0) {
 		throw new Error(`Operation names must be unique; duplicated: ${[...new Set(duplicated)].join(", ")}`);
 	}
-}
-
-function annotations(operation: QueryShape | CommandShape | StreamShape, keyScope: "session" | undefined) {
-	const scope = keyScope === undefined ? Context.empty() : Context.make(KeyScope, keyScope);
-	if (operation.kind === "command") {
-		return Context.add(scope, CommandInvalidation, { invalidates: operation.invalidates });
-	}
-	return operation.kind === "query" ? Context.add(scope, QueryDefinition, { definition: operation }) : scope;
 }
 
 type AnyDeclared = Declared<string, readonly QueryShape[], readonly CommandShape[], readonly StreamShape[], "session" | undefined>;
@@ -131,7 +132,7 @@ export function contract(
 			payload: operation.payload,
 			stream: operation.kind === "stream",
 			success: operation.success,
-		}).annotateMerge(annotations(operation, keyScope)),
+		}).annotateMerge(operationAnnotations(operation, keyScope)),
 	);
 	const application = RpcGroup.make(...rpcs);
 	const changes = changesRpc(name, queries);

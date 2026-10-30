@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.26.1 - 2026-10-30
+
+### Fixed
+
+- `mapSqlError` maps constraints whose declared names exceed PostgreSQL's 63-byte identifier limit. It matches the name PostgreSQL stores, clipped to 63 bytes at a character boundary, instead of sending those violations to the fallback.
+
 ## 0.26.0 - 2026-10-30
 
 ### Added

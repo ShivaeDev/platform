@@ -8,3 +8,7 @@ const handlers = publicFailureRpc.toLayer({ publicFailure: (payload) => Effect.f
 export const publicFailures = host.trait("configured", "RPC failures contain public application data", (state) => {
 	state.build = () => appHost({ config: state.config, group: publicFailureRpc, handlers, policy: "loopback", services: Layer.empty });
 });
+
+export function deeplyNested(depth: number): unknown {
+	return depth === 0 ? { value: "public leaf" } : { child: deeplyNested(depth - 1) };
+}
