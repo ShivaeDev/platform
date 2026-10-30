@@ -19,7 +19,7 @@ export default defineRailway((ctx) => {
 	});
 	const worker = service("worker", {
 		build: { buildCommand: "pnpm build", builder: "RAILPACK" },
-		deploy: { drainingSeconds: 75, restartPolicyType: "ON_FAILURE" },
+		deploy: { drainingSeconds: 75 },
 		env: {
 			"DATABASE_URL": database.env.DATABASE_URL,
 		},

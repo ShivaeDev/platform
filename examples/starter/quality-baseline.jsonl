@@ -1,4 +1,4 @@
-{"path":"package.json","rule":"code/unused","count":6}
+{"path":"package.json","rule":"code/unused","count":5}
 {"path":"src/client/Home.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"src/client/LabelledSwitch.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"src/client/LoginScreen.tsx","rule":"react/jsx-conditionals","count":6}

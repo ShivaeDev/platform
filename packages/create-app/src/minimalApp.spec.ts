@@ -7,6 +7,11 @@ application.it("creates the same foundation without the notes module or its regi
 	expect(result.status, result.stderr).toBe(0);
 	const minimal = generatedFiles();
 	expect(exists("src/modules/notes")).toBe(false);
+	expect(JSON.parse(read("package.json")).dependencies).not.toHaveProperty("@tanstack/react-table");
+	for (const path of ["src/client/ui/chart.tsx", "src/client/ui/tooltip.tsx"]) {
+		expect(exists(path), path).toBe(false);
+	}
+	expect(JSON.parse(read("package.json")).dependencies).not.toHaveProperty("recharts");
 	for (const path of ["src/server/modules.ts", "src/server/workerModules.ts", "src/server/migrations.ts", "src/client/modules.ts"]) {
 		expect(read(path)).not.toMatch(/notes(?:Registration|Worker|Migrations)|#modules\/notes/u);
 	}
@@ -24,6 +29,7 @@ application.it("creates the same foundation without the notes module or its regi
 				".env.local",
 				".create-app.json",
 				"quality-baseline.jsonl",
+				"package.json",
 				"src/server/modules.ts",
 				"src/server/workerModules.ts",
 				"src/server/migrations.ts",
