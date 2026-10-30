@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { testUtils } from "better-auth/plugins";
-import { type Duration, Effect, Fiber, Layer, Option, Queue, Result, Schema, Stream } from "effect";
+import { Context, type Duration, Effect, Fiber, Layer, Option, Queue, Result, Schema, Stream } from "effect";
 import { Rpc, RpcGroup, RpcTest } from "effect/rpc";
 import { TestClock } from "effect/testing";
 import { AuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
@@ -12,6 +12,7 @@ import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts
 import { betterAuthSessions } from "#server/adapters/betterAuthSessions.ts";
 import { signedInUser } from "#server/better-auth/testing.ts";
 import { authenticatedLayer, authenticatedUserLayer, authenticatedUserWithProviderAccountsLayer, maybeAuthenticatedLayer } from "#server/session.ts";
+import { makeSocketSession, SocketSession } from "#server/socketSession.ts";
 import { createProvider } from "./harness.ts";
 import { databaseUrl, postgres } from "./postgres.ts";
 import { signOut } from "./sessionLifecycle.ts";
@@ -50,7 +51,13 @@ export const streamSession = storyKit({
 		const input = yield* Queue.unbounded<string>();
 		const output = yield* Queue.unbounded<string>();
 		const checked = yield* Queue.unbounded<void>();
-		const state: { failures: number; interval?: Duration.Input; subscription?: Effect.Effect<string> } = { failures: 0 };
+		const state: {
+			failures: number;
+			interval?: Duration.Input;
+			shared?: SocketSession["Service"];
+			subscription?: Effect.Effect<string>;
+			subscriptions: Effect.Effect<string>[];
+		} = { failures: 0, subscriptions: [] };
 		const sessions = betterAuthSessions(provider.getSession, async () => []);
 		const policy = {
 			origin: () => true,
@@ -64,6 +71,12 @@ export const streamSession = storyKit({
 						return sessions.get(headers).pipe(Effect.ensuring(Queue.offer(checked, undefined)));
 					}),
 			},
+			get streamRevalidationInterval() {
+				return state.interval;
+			},
+		};
+		const profilePolicy = {
+			...policy,
 			get streamRevalidationInterval() {
 				return state.interval;
 			},
@@ -83,7 +96,7 @@ export const streamSession = storyKit({
 				Layer.provideMerge(
 					Layer.mergeAll(
 						authenticatedLayer(policy),
-						authenticatedUserLayer(policy),
+						authenticatedUserLayer(profilePolicy),
 						authenticatedUserWithProviderAccountsLayer(policy),
 						maybeAuthenticatedLayer(policy),
 					),
@@ -96,7 +109,7 @@ export const streamSession = storyKit({
 	layer: postgres,
 	name: "stream session",
 	runIf: databaseUrl !== undefined,
-	stages: ["policy", "subscription"],
+	stages: ["policy", "connection", "subscription"],
 	verbs: (engine, story) => {
 		function subscribed() {
 			if (engine.state.subscription === undefined) {
@@ -120,6 +133,7 @@ export const streamSession = storyKit({
 					),
 				);
 			},
+			lookupCount: () => engine.provider.lookups(),
 			revalidationIntervalPasses: () => {
 				const interval = engine.state.interval ?? DEFAULT_INTERVAL;
 				story.tell(`${interval} pass and the session is checked again`);
@@ -131,6 +145,7 @@ export const streamSession = storyKit({
 					engine.state.failures += 1;
 				}),
 			streamEnd: () => subscribed(),
+			streamEnds: () => Effect.all(engine.state.subscriptions),
 			timePasses: (duration: Duration.Input) => {
 				story.tell(`${duration} pass`);
 				return TestClock.adjust(duration);
@@ -146,10 +161,11 @@ function subscription(method: Method, line: string, signedIn: boolean) {
 				Stream.runForEach((value) => Queue.offer(engine.output, value)),
 				Effect.result,
 				Effect.map(ending),
-				Effect.provide(engine.services),
+				Effect.provide(engine.state.shared === undefined ? engine.services : Context.add(engine.services, SocketSession, engine.state.shared)),
 				Effect.forkScoped,
 			);
 			engine.state.subscription = Fiber.join(fiber);
+			engine.state.subscriptions.push(Fiber.join(fiber));
 			yield* Queue.take(engine.checked);
 		}),
 	);
@@ -170,3 +186,7 @@ export const anonymousSubscribesToOptional = subscription(
 	"an anonymous caller subscribes to Optional and the missing session is checked once",
 	false,
 );
+
+export const sharedConnection = streamSession.trait("connection", "one socket owns every stream session check", function* (engine) {
+	engine.state.shared = yield* makeSocketSession(engine.state.interval ?? DEFAULT_INTERVAL);
+});
