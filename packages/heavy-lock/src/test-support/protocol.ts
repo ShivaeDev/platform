@@ -1,9 +1,12 @@
 import { readFileSync } from "node:fs";
 import process from "node:process";
-import type { Holder } from "#holder.ts";
+import { Effect, Option } from "effect";
+import { decodeHolder, type Holder } from "#holder.ts";
 import { tryAcquire } from "#lockFile.ts";
-import { type Lock, writeLock } from "./lock.ts";
+import { type Lock, readLock, writeLock } from "./lock.ts";
 import { startTime } from "./startTime.ts";
+
+export const REFERENCE_HOLDER = "the reference holder";
 
 const reference = readFileSync(new URL("./fixtures/reference-holder.lock", import.meta.url), "utf8");
 const referenceHolder: Holder = {
@@ -15,16 +18,43 @@ const referenceHolder: Holder = {
 	startedAtMs: 1_790_409_600_123,
 };
 
-export function referenceContent(engine: Lock) {
-	const started = startTime(process.pid);
-	writeLock(engine.lock, reference.replace('"pid":4242', `"pid":${process.pid}`).replace(referenceHolder.processStartedAt, started));
+function startedAtMsFirst({ startedAtMs, ...rest }: Holder): Holder {
+	return { startedAtMs, ...rest };
 }
 
-export function protocolVerbs(engine: Lock) {
+export function writeReference(engine: Lock, owner: "the reference pid" | "this process") {
+	engine.names.set(referenceHolder.id, REFERENCE_HOLDER);
+	const { pid, processStartedAt } = thisProcess();
+	writeLock(
+		engine.lock,
+		owner === "the reference pid"
+			? reference
+			: reference.replace(`"pid":${referenceHolder.pid}`, `"pid":${pid}`).replace(referenceHolder.processStartedAt, processStartedAt),
+	);
+}
+
+function thisProcess() {
+	return { cwd: process.cwd(), pid: process.pid, processStartedAt: startTime(process.pid) };
+}
+
+export function protocolVerbs(engine: Lock, tell: (line: string) => void) {
 	return {
-		processIdentity: () => ({ cwd: process.cwd(), pid: process.pid, processStartedAt: startTime(process.pid) }),
-		publishReference: (holder: Holder = referenceHolder) => tryAcquire(engine.lock, holder),
+		publishes: ({ startedAtMs }: { readonly startedAtMs: "last" | "first" }) =>
+			Effect.gen(function* () {
+				tell(`the reference holder is published with startedAtMs as its ${startedAtMs} field`);
+				engine.names.set(referenceHolder.id, REFERENCE_HOLDER);
+				const blocker = yield* tryAcquire(engine.lock, startedAtMs === "first" ? startedAtMsFirst(referenceHolder) : referenceHolder);
+				if (Option.isSome(blocker)) {
+					return yield* Effect.die(new Error("The reference holder found the lock already held."));
+				}
+			}),
+		recordedHolder: () =>
+			Effect.sync(() => {
+				const content = readLock(engine.lock);
+				return content === undefined ? "nothing" : Option.getOrElse(decodeHolder(content), () => "an unreadable holder");
+			}),
 		reference,
 		referenceHolder,
+		thisProcess: () => Effect.sync(thisProcess),
 	};
 }
