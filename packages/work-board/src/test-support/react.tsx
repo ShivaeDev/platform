@@ -5,7 +5,7 @@ import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import type { ReactNode } from "react";
 import { bind } from "@shivaedev/contract/bind.ts";
-import { render } from "@shivaedev/react/client/testing.ts";
+import { render } from "@shivaedev/test-story/client/react.ts";
 import type { BrowserClient, Reader } from "#browserClient.ts";
 import { FormContext } from "#client/react/FormContext.ts";
 import { workContract, workRpcs } from "#rpc/contract.ts";

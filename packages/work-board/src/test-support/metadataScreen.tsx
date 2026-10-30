@@ -1,5 +1,5 @@
 import { Effect } from "effect";
-import { render } from "@shivaedev/react/client/testing.ts";
+import { render } from "@shivaedev/test-story/client/react.ts";
 import { DocumentWorkMetadata } from "#client/react/DocumentWorkMetadata.tsx";
 import { fileUrl } from "#files/url.ts";
 import { type BoardEngine, served } from "./storyEngine.ts";

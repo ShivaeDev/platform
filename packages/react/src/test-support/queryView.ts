@@ -4,8 +4,8 @@ import type * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { act, createElement } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { type QueryOptions, useQuery } from "#client/resultState.ts";
-import type { Rendered } from "#client/testing.ts";
 import { QueryFeedbackScreen } from "./QueryFeedbackScreen.tsx";
 import { clickButton, typeInput } from "./Screen.ts";
 

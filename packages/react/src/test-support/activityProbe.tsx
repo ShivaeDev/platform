@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { Activity, act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { DraftProbe } from "./sessionProbes.ts";
 export function activityProbe(view: Rendered, hoisted: boolean) {
 	const count = Atom.make(Effect.succeed(41));

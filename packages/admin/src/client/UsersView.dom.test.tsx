@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { cannotAssignRoles, onBobsPage, serverRefusesRoleChanges, usersScreen, viewOpen } from "#test/usersScreen.tsx";
 

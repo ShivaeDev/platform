@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import { act, StrictMode } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { type RegistryHolder, ReplayProbe } from "./sessionProbes.ts";
 export function replayProbe(view: Rendered) {
 	const count = Atom.make(Effect.succeed(41));
