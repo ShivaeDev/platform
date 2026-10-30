@@ -46,6 +46,7 @@ import { manifestsApplication } from "./manifestsApplication.ts";
 import { manifestsExportsShape } from "./manifestsExportsShape.ts";
 import { manifestsSorted } from "./manifestsSorted.ts";
 import { manifestsSourceFirst } from "./manifestsSourceFirst.ts";
+import { manifestsValid } from "./manifestsValid.ts";
 import { maxDepth } from "./maxDepth.ts";
 import { maxLines } from "./maxLines.ts";
 import { noBarrel } from "./noBarrel.ts";
@@ -81,6 +82,7 @@ export const builtInRules = [
 	importsManifest,
 	importsAliased,
 	noTestCode,
+	manifestsValid,
 	manifestsSorted,
 	manifestsSourceFirst,
 	manifestsExportsShape,

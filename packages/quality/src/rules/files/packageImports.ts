@@ -1,21 +1,10 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 
 export type PackageImports = (importer: string, specifier: string) => string | undefined;
 
 const MANIFEST = "package.json";
-
-function importsField(text: string | undefined): unknown {
-	if (text === undefined) {
-		return undefined;
-	}
-	try {
-		const manifest: unknown = JSON.parse(text);
-		return typeof manifest === "object" && manifest !== null ? Reflect.get(manifest, "imports") : undefined;
-	} catch {
-		return undefined;
-	}
-}
 
 function targetsIn(value: unknown): readonly string[] {
 	if (typeof value === "string") {
@@ -52,7 +41,7 @@ function matched(imports: unknown, specifier: string): readonly string[] {
 export async function packageImports({ files, readText }: Pick<RuleInputs, "files" | "readText">): Promise<PackageImports> {
 	const directories = files.filter((path) => posix.basename(path) === MANIFEST).map((path) => posix.dirname(path));
 	const manifests = await Promise.all(
-		directories.map(async (directory) => ({ directory, imports: importsField(await readText(posix.join(directory, MANIFEST))) })),
+		directories.map(async (directory) => ({ directory, imports: (await readPackageManifest(readText, posix.join(directory, MANIFEST)))?.imports })),
 	);
 	const deepestFirst = manifests.toSorted((left, right) => right.directory.length - left.directory.length);
 	const present = new Set(files);

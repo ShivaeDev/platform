@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { isTooling } from "#imports/isTooling.ts";
 import { entryPointsOf, isApplication, provider } from "#manifests/entryPoints.ts";
 import { isTestCode } from "#naming/testName.ts";
@@ -9,21 +10,10 @@ const UNDECLARED = "lint/correctness/noUndeclaredDependencies";
 
 const DEPENDENCY = /^Dependency (?<name>\S+) isn't specified in /u;
 
-function parsed(text: string | undefined): unknown {
-	if (text === undefined) {
-		return undefined;
-	}
-	try {
-		return JSON.parse(text);
-	} catch {
-		return undefined;
-	}
-}
-
 async function ownerOf(readText: RuleInputs["readText"], path: string) {
 	let directory = posix.dirname(path);
 	for (;;) {
-		const manifest = parsed(await readText(posix.join(directory, "package.json")));
+		const manifest = await readPackageManifest(readText, posix.join(directory, "package.json"));
 		if (manifest !== undefined || directory === ".") {
 			return { directory, manifest };
 		}
