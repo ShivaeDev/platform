@@ -1,6 +1,9 @@
 import { Effect, Layer } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
+import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
+import { routeOutbound } from "@shivaedev/test-story/server/routeOutbound.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { NotesService } from "#modules/notes/server/Service.ts";
 import { requests } from "#modules/notes/test-support/requests.ts";
@@ -19,7 +22,14 @@ export const app = storyKit({
 	},
 	around: withIsolatedDatabase,
 	clock: "live",
-	create: (): Engine => ({ actors: new Map(), host: undefined, hostOptions: {}, tell: () => undefined, workerQueue: workerQueue() }),
+	*create() {
+		const sourceApi = yield* fakeHttpService({
+			routes: { post: { path: "/posts/:id", reply: () => ({ body: { title: "A note from outside" } }) } },
+		});
+		yield* routeOutbound({ "jsonplaceholder.typicode.com": sourceApi.url });
+		const engine: Engine = { actors: new Map(), host: undefined, hostOptions: {}, sourceApi, tell: () => undefined, workerQueue: workerQueue() };
+		return engine;
+	},
 	inspect: (engine) => ({ accounts: [...engine.actors.keys()], baseUrl: engine.host?.baseUrl, deployed: engine.hostOptions.deployed ?? false }),
 	layer: postgres,
 	name: "app",
@@ -72,4 +82,14 @@ export function replacementNotes() {
 			}),
 		};
 	});
+}
+
+export function sourceNoteMissing() {
+	return app.trait("hosting", "the source API cannot find the note", (engine) =>
+		engine.sourceApi.failOnce("post", { body: { title: "This error body must not become a note" }, status: HttpStatus.fromLiteral("NotFound") }),
+	);
+}
+
+export function malformedSourceNote() {
+	return app.trait("hosting", "the source API returns a malformed note", (engine) => engine.sourceApi.replyOnce("post", { body: { title: 123 } }));
 }
