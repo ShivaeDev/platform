@@ -5,6 +5,7 @@ import { parseCommand, USAGE } from "#cli/args.ts";
 import { writeBaseline } from "#cli/baseline.ts";
 import { ci } from "#cli/ci.ts";
 import { fix } from "#cli/fix.ts";
+import { fixRule } from "#cli/fixRule.ts";
 import { lint } from "#cli/lint.ts";
 import { migrateBaseline } from "#cli/migrateBaseline.ts";
 import { migrateExceptions } from "#cli/migrateExceptions.ts";
@@ -38,7 +39,7 @@ export const program = Effect.fn("Cli.program")(function* (args: readonly string
 		case "Lint":
 			return yield* lint(cwd, command.config);
 		case "Fix":
-			return yield* fix(cwd, command.config);
+			return yield* command.rules.length === 0 ? fix(cwd, command.config) : fixRule(cwd, command.config, command.rules);
 		case "BaselineMerge":
 			return yield* mergeBaseline(command.base, command.ours, command.theirs);
 		case "BaselineInstallDriver":
