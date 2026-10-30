@@ -21,7 +21,7 @@
 		"quality:commit": "pnpm changelog:check && node --conditions=source packages/quality/src/cli.ts lint --config examples/starter/quality.config.ts",
 		"ready": "pnpm lint && pnpm typecheck",
 		"releases": "node --conditions=source packages/releases/src/cli.ts",
-		"setup": "pnpm install --frozen-lockfile && pnpm hooks && node --conditions=source packages/quality/src/cli.ts baseline install-driver && pnpm db:setup",
+		"setup": "pnpm install --frozen-lockfile && pnpm --filter @shivaedev/work-board-plugin build:client && pnpm hooks && node --conditions=source packages/quality/src/cli.ts baseline install-driver && pnpm db:setup",
 		"test": "node --conditions=source --env-file-if-exists=.env.local script/test.ts",
 		"test:ci": "node --conditions=source node_modules/vitest/vitest.mjs run script/ci/TestSequencer.test.ts script/ci/mainShardPlan.test.ts script/ci/mergeConsumerTimings.test.ts script/ci/mergeTestTimings.test.ts script/ci/shard.test.ts script/ci/shardCount.test.ts script/ci/testPackages.test.ts script/ci/timings.test.ts script/ci/timings.unit.test.ts script/ci/workspaceCoverage.spec.ts --configLoader native",
 		"test:focused-config": "node --conditions=source script/ci/focused-tests.ts",

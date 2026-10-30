@@ -10,13 +10,7 @@ import { workspaceSection } from "#quality/workspaceSection.ts";
 export default defineConfig({
 	exceptions: [
 		{
-			"files": [
-				"**",
-				"!**/test-support/generated",
-				"!**/test-support/*/generated",
-				"!examples/starter",
-				"!packages/work-board-plugin/src/adapters/generated",
-			],
+			"files": ["**", "!**/test-support/generated", "!**/test-support/*/generated", "!examples/starter"],
 			"reason": "Generated clients are not source. The starter has a nested Biome config and runs its own Quality gate.",
 			"rules": ["biome/files/includes"],
 		},
