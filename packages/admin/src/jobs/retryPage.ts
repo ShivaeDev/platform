@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { command } from "@shivaedev/contract/operation.ts";
+import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { adminPage } from "#page.ts";
 import { JobsPermission } from "#permissions.ts";
 import type { JobsEntry } from "./entry.ts";
@@ -28,7 +29,7 @@ export function jobsPageWithRetry<const TQueues extends readonly JobsEntry[]>(..
 							jobsKeys.job(queue).item(id),
 						],
 						payload: { id: Schema.String, queue: Schema.String },
-						rejections: { ...JobsFailures, JobsNotFailed },
+						rejections: { ...JobsFailures, Forbidden, JobsNotFailed },
 					}),
 				],
 				queries: page.contract.declaration.queries,
