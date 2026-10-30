@@ -86,7 +86,7 @@ export const queryWindowScreen = storyKit({
 			changeWindow: () => engine.screen.act("slow the detail query's window", () => clickButton(container(), "Slow detail")),
 			connections: engine.connections,
 			fakeTime: () => {
-				vi.useFakeTimers();
+				vi.useFakeTimers({ toFake: ["setTimeout", "clearTimeout"] });
 			},
 			observe: (check: () => void) => engine.screen.observe("the query values settle", check),
 			open: () =>
