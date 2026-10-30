@@ -17,6 +17,7 @@ host.it("consuming an answer settles the ask and the close command repairs previ
 		status: "done",
 	});
 	fleet.writeBoard(published.sourcePath, original);
+	yield* fleet.awaitIndexedSource(published.sourcePath, original);
 	const preview = yield* fleet.cli(["close-finished-decisions", "--dry-run"]);
 	expect(preview).toMatchObject({ code: 0 });
 	expect(preview.stdout).toContain("1 decision(s) would close.");

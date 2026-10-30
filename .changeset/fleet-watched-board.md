@@ -5,6 +5,7 @@
 ### Changed
 
 - Share Board's watched index across daemon admission, dispatch, reconciliation and responses. Board changes wake scheduling immediately, with a slow periodic safety pass and continued active-turn observation.
+- Direct filesystem edits become visible to daemon reads when Board's watched index observes them.
 
 ### Breaking
 

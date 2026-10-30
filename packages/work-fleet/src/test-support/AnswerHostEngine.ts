@@ -1,10 +1,8 @@
 import { Context, Effect } from "effect";
 import type { SqlClient } from "effect/sql";
-import { fleetHealth } from "@shivaedev/work-board/server/diagnostics/fleetHealth.ts";
 import { Fleet } from "#fleet.ts";
 import type { HostSettings } from "#host/config.ts";
-import { daemonLayer } from "#host/daemon.ts";
-import { type ApprovedPrFixture, approvedPrFixture, schedulerReady } from "#test/approvedPrDaemon.ts";
+import { type ApprovedPrFixture, approvedPrFixture } from "#test/approvedPrDaemon.ts";
 import { type HostFixture, hostFixture, task } from "#test/fleetHost.ts";
 import { mergedReviewGithub } from "#test/mergedReviewGithub.ts";
 import { readDaemonLayer } from "#test/readDaemon.ts";
@@ -16,7 +14,6 @@ export class AnswerHostEngine {
 	files: Record<string, string> = { "one.md": task("one", "approved") };
 	config: Partial<HostSettings> = {};
 	approvedPr = false;
-	scheduled = true;
 	boardOverride: HostFixture["parts"]["board"];
 	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient> = Effect.void;
 	readonly resolution = resolutionHold();
@@ -66,14 +63,8 @@ export class AnswerHostEngine {
 					return yield* Effect.die("The daemon is already running");
 				}
 				const { host } = engine.host;
-				const scheduled = engine.#pr !== undefined && engine.scheduled;
-				const previous = scheduled ? yield* fleetHealth(host.boardDir).pipe(Effect.option) : undefined;
-				const effectiveParts = engine.#parts();
-				const layer = scheduled ? daemonLayer(host, effectiveParts, 0) : readDaemonLayer(host, { parts: effectiveParts });
+				const layer = readDaemonLayer(host, { parts: engine.#parts() });
 				engine.#runtime = yield* startHostDaemon(layer);
-				if (previous !== undefined) {
-					yield* schedulerReady(host.boardDir, previous._tag === "Some" ? previous.value.lastSchedulerPass : null);
-				}
 			}),
 		);
 	}
