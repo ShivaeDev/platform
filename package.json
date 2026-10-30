@@ -36,6 +36,7 @@
 	"devDependencies": {
 		"@biomejs/biome": "catalog:",
 		"@effect/platform-node": "catalog:",
+		"@shivaedev/github": "workspace:*",
 		"@shivaedev/local-postgres": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/releases": "workspace:*",

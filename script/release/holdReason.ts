@@ -1,6 +1,6 @@
 export interface ReleaseCiRun {
 	readonly conclusion: string | null;
-	readonly "head_sha": string;
+	readonly headSha: string;
 	readonly status: string;
 }
 
@@ -17,7 +17,7 @@ export function releaseHoldReason(pull: ReleasePull | undefined, run?: ReleaseCi
 	if (pull.mergeQueueEntry !== null) {
 		return "merge queue";
 	}
-	if (run?.head_sha === pull.headRefOid) {
+	if (run?.headSha === pull.headRefOid) {
 		if (run.status === "queued" || run.status === "in_progress") {
 			return `approved CI ${run.status}`;
 		}

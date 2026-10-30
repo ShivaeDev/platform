@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect } from "vitest";
-import { expectNoReactWarnings } from "#client/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { app, realPostgres } from "#test/order-example/application.ts";
 import { localApplication } from "#test/order-example/localApplication.ts";
 import { aliceHasOrder, orderEditorIsOpen, orderListIsOpen } from "#test/order-example/traits.ts";

@@ -1,15 +1,24 @@
-import { type Context, DateTime, Effect, Option } from "effect";
+import { type Context, DateTime, Effect, Option, Schema } from "effect";
+import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import { JobFailure } from "@shivaedev/jobs/JobFailure.ts";
 import type { PgBossError, PgBossPayloadError } from "@shivaedev/jobs/server/error.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import type { jobsPage } from "#jobs/page.ts";
 import { JobsPayloadInvalid, JobsQueueUnregistered, JobsUnavailable } from "#jobs/schemas.ts";
 
-export function jobsFailures<A, R>(effect: Effect.Effect<A, PgBossError | PgBossPayloadError, R>) {
+export function jobsFailures<A, R>(effect: Effect.Effect<A, PgBossError | PgBossPayloadError | Schema.SchemaError, R>) {
 	return effect.pipe(
-		Effect.mapError((error) =>
-			error._tag === "PgBossPayloadError" ? new JobsPayloadInvalid({ queue: error.queue }) : new JobsUnavailable({ operation: error.operation }),
-		),
+		Effect.mapError((error) => {
+			switch (error._tag) {
+				case "SchemaError":
+					return new BadRequest({ message: "Invalid job page options" });
+				case "PgBossPayloadError":
+					return new JobsPayloadInvalid({ queue: error.queue });
+				case "PgBossError":
+					return new JobsUnavailable({ operation: error.operation });
+			}
+		}),
 	);
 }
 
@@ -59,19 +68,27 @@ export function jobsReadHandlers<const TQueues extends readonly JobsEntry[], TSe
 			Effect.gen(function* () {
 				const definition = yield* registered(queue);
 				const jobs = yield* service;
-				return Option.map(yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id)), (job) => ({
+				const result = yield* jobsFailures(jobs.getJob<string, JobsPayload<TQueues[number]>>(definition, id));
+				if (Option.isNone(result)) {
+					return Option.none();
+				}
+				const job = result.value;
+				const output = yield* Schema.decodeUnknownEffect(Schema.NullOr(JobFailure))(job.output).pipe(
+					Effect.mapError(() => new JobsPayloadInvalid({ queue })),
+				);
+				return Option.some({
 					attempt: job.startedOn === null ? 0 : job.retryCount + 1,
 					completedOn: Option.map(Option.fromNullishOr(job.completedOn), DateTime.makeUnsafe),
 					createdOn: DateTime.makeUnsafe(job.createdOn),
 					data: job.data,
 					id: job.id,
-					output: job.output,
+					output,
 					queue: job.name,
 					retryCount: job.retryCount,
 					retryLimit: job.retryLimit,
 					startedOn: Option.map(Option.fromNullishOr(job.startedOn), DateTime.makeUnsafe),
 					state: job.state,
-				}));
+				});
 			}),
 	};
 }

@@ -1,5 +1,6 @@
 import { isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
+import { ManifestFailure } from "#adapters/manifestInventory.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import type { Finding, RuleCheck, RuleInputs, RuleServices } from "#rule.ts";
 import type { ActiveLevel, Violation } from "./violation.ts";
@@ -51,13 +52,34 @@ function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): E
 	return Effect.suspend(() => rule.check(inputs)).pipe(
 		Effect.orDie,
 		Effect.map((findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile))),
-		Effect.catchDefect((cause) => Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause }))),
+		Effect.catchDefect((cause) =>
+			cause instanceof ManifestFailure
+				? Effect.succeed([{ file: cause.path, level: "error" as const, message: cause.message, rule: "manifests/valid" }])
+				: Effect.die(new Error(`rule ${rule.id} failed: ${messageOf(cause)}`, { cause })),
+		),
 	);
 }
 
-export function runRules(rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], never, RuleServices> {
-	return Effect.map(
-		Effect.forEach(rules, (rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"), { concurrency: "unbounded" }),
-		(results) => results.flat(),
+export const runRules = Effect.fn("Engine.runRules")(function* (rules: readonly ActiveRule[], inputs: RuleInputs) {
+	const validation = rules.find((rule) => rule.id === "manifests/valid");
+	if (validation !== undefined) {
+		const failures = yield* runRule(validation, inputs, inputs.configFile ?? "quality.config.ts");
+		if (failures.length > 0) {
+			return failures;
+		}
+	}
+	const results = yield* Effect.forEach(
+		rules.filter((rule) => rule !== validation),
+		(rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"),
+		{ concurrency: "unbounded" },
 	);
-}
+	const seen = new Set<string>();
+	return results.flat().filter((finding) => {
+		if (finding.rule !== "manifests/valid") {
+			return true;
+		}
+		const duplicate = seen.has(finding.file);
+		seen.add(finding.file);
+		return !duplicate;
+	});
+});

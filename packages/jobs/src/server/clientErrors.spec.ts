@@ -10,7 +10,10 @@ for (const phase of ["start", "stop", "failed start"] as const) {
 			Effect.exit,
 		);
 		expect(result._tag).toBe(phase === "failed start" ? "Failure" : "Success");
-		expect(logs).toContainEqual({ logLevel: "Debug", message: [{ event: "pg_boss_error", message: connectionFailure.message }] });
+		expect(logs).toContainEqual({
+			logLevel: "Debug",
+			message: [{ event: "pg_boss_error", message: "terminating connection due to administrator command: password=<redacted>" }],
+		});
 		expect(() => events.emit("error", connectionFailure)).not.toThrow();
 	});
 }
