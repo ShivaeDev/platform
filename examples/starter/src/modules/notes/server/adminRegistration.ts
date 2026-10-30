@@ -1,8 +1,10 @@
 import { Effect, Schema } from "effect";
 import { SqlClient, SqlSchema } from "effect/sql";
 import { registerAdmin } from "@shivaedev/admin/server/registerAdmin.ts";
-import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
+import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
+import { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { Admin, NoteStatistics, StatisticsPage } from "#modules/notes/admin.ts";
+import { notesSqlFailure } from "./sqlFailure.ts";
 
 const statistics = StatisticsPage.contract.application.toLayer(
 	Effect.gen(function* () {
@@ -15,7 +17,10 @@ const statistics = StatisticsPage.contract.application.toLayer(
 		});
 		return StatisticsPage.contract.application.of({
 			"admin.notes.statistics": () =>
-				read(undefined).pipe(Effect.mapError(() => new ServiceUnavailable({ message: "Could not read note statistics" }))),
+				read(undefined).pipe(
+					Effect.catchTag("SqlError", (cause) => Effect.fail(notesSqlFailure(cause))),
+					rpcBoundary(StatisticsPage.contract.declaration.queries[0].error, { unexpected: (message) => new InternalServerError({ message }) }),
+				),
 		});
 	}),
 );
