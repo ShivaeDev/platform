@@ -47,7 +47,7 @@ watch.it(
 
 for (const state of ["failure", "error"]) {
 	watch.it(
-		`a ${state} commit status on PR 1 prints checks-failed and stuck`,
+		`a required commit status of ${state} on PR 1 prints checks-failed and stuck`,
 		[openPr(1), watching(1), baselineSaved],
 		function* ({ poll, printed, statusBecomes }) {
 			yield* statusBecomes(1, state);
