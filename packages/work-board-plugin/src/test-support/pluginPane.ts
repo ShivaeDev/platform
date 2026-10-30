@@ -7,7 +7,7 @@ import { type PaneView, paneView } from "#pane.tsx";
 import { bandLine } from "#summary.ts";
 import { NOW } from "#test/admissionItems.ts";
 import { installPaneJsx, paneElements, reactPane } from "#test/paneElements.ts";
-import { agentsShown, drawingOf, goalLines, inFlightShown, legendShown, lookOf, terminalBarOf } from "#test/paneReadouts.ts";
+import { agentsShown, drawingOf, flightLinesShown, goalLines, inFlightShown, legendShown, lookOf, terminalBarOf } from "#test/paneReadouts.ts";
 import { reply, success } from "#test/rpcReplies.ts";
 import type { WorkboardBoard } from "#types/index.d.ts";
 
@@ -121,6 +121,11 @@ export const pluginPane = storyKit({
 					story.tell(`read the drawing of ${title}'s bar`);
 					return drawingOf(container, title);
 				}),
+			flightLines: () =>
+				Effect.sync(() => {
+					story.tell("read each goal and the task lines beneath it in flight");
+					return flightLinesShown(container);
+				}),
 			goals: () =>
 				Effect.sync(() => {
 					story.tell("read the Goals section");
@@ -181,3 +186,9 @@ export const onTerminal = pluginPane.trait("board", "the pane draws on a termina
 export const achievedOpen = pluginPane.trait("board", "the Achieved list is already open", (engine) => {
 	engine.pane.view.achievedOpen = true;
 });
+
+export function paneColumns(columns: number) {
+	return pluginPane.trait("board", `the pane is ${columns} columns wide`, (engine) => {
+		engine.pane.view.columns = columns;
+	});
+}

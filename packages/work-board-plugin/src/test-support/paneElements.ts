@@ -49,6 +49,8 @@ export const paneElements: Extract<Table, { Svg: unknown }> = {
 					fontWeight: weight === "semibold" ? 600 : undefined,
 					opacity: dimColor ? 0.7 : undefined,
 					overflow: wrap === "truncate-end" ? "hidden" : undefined,
+					textOverflow: wrap === "truncate-end" ? "ellipsis" : undefined,
+					whiteSpace: wrap === "truncate-end" ? "nowrap" : undefined,
 				},
 			},
 			children,
