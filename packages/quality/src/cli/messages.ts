@@ -2,7 +2,7 @@ export const USAGE = `Usage:
   quality lint [--config <file>]
   quality ci [--coverage]
   quality setup [--config <file>]
-  quality fix [--config <file>]
+  quality fix [--config <file>] [--rule <id>]...
   quality exceptions migrate [--config <file>] [--from <registry>]
   quality baseline merge <ancestor> <current> <other>
   quality baseline install-driver
@@ -20,6 +20,7 @@ setup             Install the Quality hook when the current folder owns a .git e
 lint              Run every rule. Exits 1 on an error-level violation, a file over its baseline, a stale registry entry
                   or a baseline entry for an unknown rule.
 fix               Sort every package.json, apply Biome's lint fixes, unsafe ones included, its assist actions and formatting, then format again.
+                  With --rule, apply only that rule's safe mechanical fixes and report remaining findings (exit 1), including baseline debt. Unsupported rules exit 2.
 exceptions migrate Move legacy registry entries and Biome declarations into quality.config.ts exceptions and remove matching root overrides.
 baseline merge    Merge Git baseline versions into <current>: deletions win and counts take the minimum.
 baseline install-driver Configure only the repository-local merge.quality-baseline.driver setting.

@@ -7,7 +7,7 @@ export type Command =
 	| { readonly _tag: "Setup"; readonly config: string | undefined }
 	| { readonly _tag: "Lint"; readonly config: string | undefined }
 	| { readonly _tag: "ExceptionsMigrate"; readonly config: string | undefined; readonly from: string | undefined }
-	| { readonly _tag: "Fix"; readonly config: string | undefined }
+	| { readonly _tag: "Fix"; readonly config: string | undefined; readonly rules: readonly string[] }
 	| { readonly _tag: "BaselineMerge"; readonly base: string; readonly ours: string; readonly theirs: string }
 	| { readonly _tag: "BaselineInstallDriver" }
 	| { readonly _tag: "BaselineWrite"; readonly config: string | undefined; readonly rules: readonly string[] }
@@ -57,7 +57,7 @@ const ACCEPTS: Readonly<Record<string, readonly Option[]>> = {
 	"baseline write": ["rule"],
 	ci: ["coverage"],
 	"exceptions migrate": ["from"],
-	fix: [],
+	fix: ["rule"],
 	"hooks install": ["force"],
 	"hooks pre-commit": [],
 	"hooks status": [],
@@ -88,7 +88,7 @@ function commandFor(name: string, values: Values): Parsed {
 		case "exceptions migrate":
 			return parsed({ _tag: "ExceptionsMigrate", config, from: values.from });
 		case "fix":
-			return parsed({ _tag: "Fix", config });
+			return parsed({ _tag: "Fix", config, rules: values.rule ?? [] });
 		case "baseline install-driver":
 			return parsed({ _tag: "BaselineInstallDriver" });
 		case "baseline write":
