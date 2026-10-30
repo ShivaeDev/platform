@@ -21,6 +21,7 @@ const startupEngine = Effect.gen(function* () {
 			}),
 		).pipe(
 			Effect.as("started"),
+			Effect.catchTag("PostgresListenerError", (error) => Effect.succeed({ failure: "listener unavailable", setting: error.connectionSetting })),
 			Effect.catchTag("SqlError", (error) => Effect.succeed({ failure: "SQL failure", message: error.message, reason: error.reason._tag })),
 		);
 	}

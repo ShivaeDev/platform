@@ -99,6 +99,12 @@ Set `paused` through the registry. The stream keeps consuming hints while automa
 
 An ended or failed stream enters `reconnecting` and retries after one second by default. `retryDelay` lets the consumer choose a positive native Duration for its deployment. Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
 
+## PostgreSQL listener connections
+
+LISTEN requires a direct or session-mode PostgreSQL connection. If `DATABASE_URL` uses a transaction pooler, set `LISTEN_DATABASE_URL` to a direct connection to the same database, or supply `config.listenDatabaseUrl` as an Effect `Redacted<string>` to `appHost` or `appDatabase`. The config value takes precedence over the environment. Without either setting, the listener uses the application pool and URL. Writes, migrations and heartbeat publication stay on the application pool; a separate listener reserves one additional connection.
+
+Before host startup completes, the listener must receive its own heartbeat within `config.changes.heartbeatTimeout` (10 seconds by default). A timeout fails startup with `PostgresListenerError`, naming the selected setting and requiring a direct or session-mode connection. SQL errors remain typed SQL failures. After successful startup, a lost listener still reconnects and resynchronizes live streams; a permanently broken connection after startup can therefore continue to cause repeated Resyncs until its configuration is corrected.
+
 ## Limits
 
 There is no replay cursor, event journal, offline mutation or deployment delivery guarantee. The [PostgreSQL composition](./composed-example.md) shows delivery between processes after commit.
