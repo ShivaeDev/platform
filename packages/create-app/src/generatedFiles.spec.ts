@@ -44,3 +44,19 @@ application.it("carries the coverage CI workflow and ignores its reports", [], f
 		"coverage/lcov.info\ncoverage/junit.xml\ncoverage/measured-commits.txt\ncoverage/job.txt\n",
 	);
 });
+
+application.it("gives generated apps an ignored local browser check outside their CI gate", [], function* ({ cli, read, git }) {
+	const result = yield* cli(["demo", "--no-git"]);
+
+	expect(result.status, result.stdout + result.stderr).toBe(0);
+	const manifest = JSON.parse(read("package.json"));
+	expect(manifest.scripts["browser-check"]).toBe("browser-check");
+	expect(manifest.devDependencies).toHaveProperty("@shivaedev/browser-check");
+	for (const name of ["ready", "ci", "setup"]) {
+		expect(manifest.scripts[name]).not.toMatch(/browser-check|playwright/u);
+	}
+	expect(read(".github/workflows/ci.yml")).not.toMatch(/browser-check|playwright/u);
+	expect(read("README.md")).toContain("End-to-end browser tests do not belong in an app's CI");
+	expect(git("init", "--quiet").status).toBe(0);
+	expect(git("check-ignore", ".browser-check/1.png").stdout).toBe(".browser-check/1.png\n");
+});

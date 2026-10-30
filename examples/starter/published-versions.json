@@ -1,6 +1,7 @@
 {
 	"@shivaedev/access": "0.1.1",
 	"@shivaedev/admin": "0.8.2",
+	"@shivaedev/browser-check": "0.0.0",
 	"@shivaedev/changes": "0.5.0",
 	"@shivaedev/contract": "0.20.0",
 	"@shivaedev/errors": "0.1.0",

@@ -15,7 +15,7 @@ export function templateSource(root: string, { realStarter = false, localArtifac
 		writeFileSync(join(starter, "published-versions.json"), "{}");
 	}
 	if (localArtifacts) {
-		for (const name of ["node_modules", "dist", "coverage", ".git"]) {
+		for (const name of ["node_modules", "dist", "coverage", ".browser-check", ".git"]) {
 			mkdirSync(join(starter, name));
 			writeFileSync(join(starter, name, "ignored.txt"), "ignored");
 		}

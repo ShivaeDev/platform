@@ -89,6 +89,20 @@ jobs:
           src/server/http/symlinks.spec.ts
           src/server/rpc/rootRemoval.spec.ts
 
+  browser-check:
+    name: Local browser tool
+    runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Install Chromium system libraries for the local tool stories
+        run: pnpm --filter @shivaedev/browser-check exec playwright install-deps chromium
+      - name: Prove screenshots and smoke checks against a started host
+        run: pnpm --filter @shivaedev/browser-check test src/browser.slow.spec.ts --project slow --testTimeout=120000
+
   typecheck:
     runs-on: ${{ vars.PLATFORM_CI_RUNNER || 'ubuntu-latest' }}
     timeout-minutes: 5
@@ -294,7 +308,7 @@ jobs:
 
   verify:
     if: always()
-    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke ]
+    needs: [ shard-plan, lint, build, typecheck, tests, consumers, published-starter, macos-smoke, browser-check ]
     permissions:
       contents: read
       actions: read
