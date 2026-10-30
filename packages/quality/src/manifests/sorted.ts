@@ -1,11 +1,13 @@
 import { basename, join, relative } from "node:path";
 import { Effect, FileSystem } from "effect";
 import { sortPackageJson } from "sort-package-json";
+import { manifestEntry } from "#adapters/manifestInventory.ts";
+import { manifestReader } from "#adapters/manifestReader.ts";
 import { FilesystemFailure } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";
 
-export type Sorting = { readonly _tag: "Invalid" } | { readonly _tag: "Sorted" } | { readonly _tag: "Unsorted"; readonly sorted: string };
+export type Sorting = { readonly _tag: "Sorted" } | { readonly _tag: "Unsorted"; readonly sorted: string };
 
 export function manifestsIn(root: string): Effect.Effect<readonly string[], FilesystemFailure, FileSystem.FileSystem> {
 	return Effect.map(walk(root), (paths) =>
@@ -17,11 +19,6 @@ export function manifestsIn(root: string): Effect.Effect<readonly string[], File
 }
 
 export function sortingOf(text: string): Sorting {
-	try {
-		JSON.parse(text);
-	} catch {
-		return { _tag: "Invalid" };
-	}
 	const sorted = sortPackageJson(text);
 	return sorted === text ? { _tag: "Sorted" } : { _tag: "Unsorted", sorted };
 }
@@ -31,10 +28,18 @@ export const sortManifests = Effect.fn("Manifests.sortManifests")(function* (
 ): Effect.fn.Return<number, FilesystemFailure, FileSystem.FileSystem> {
 	const fs = yield* FileSystem.FileSystem;
 	const manifests = yield* manifestsIn(root);
+	const readText = yield* manifestReader(root);
 	const written = yield* Effect.forEach(manifests, (path) =>
 		Effect.gen(function* () {
 			const absolute = join(root, path);
-			const sorting = sortingOf(yield* fs.readFileString(absolute));
+			const entry = yield* Effect.tryPromise({
+				catch: (cause) => new FilesystemFailure({ message: cause instanceof Error ? cause.message : String(cause), path }),
+				try: () => manifestEntry(readText, path),
+			});
+			if (entry === undefined) {
+				return false;
+			}
+			const sorting = sortingOf(entry.text);
 			if (sorting._tag !== "Unsorted") {
 				return false;
 			}

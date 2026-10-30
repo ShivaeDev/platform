@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { Schema } from "effect";
 import { afterEach, describe, expect, it } from "vitest";
 import { removeSeededTrees, seedTree } from "#test/tree.ts";
 import { exceptionConfig, withExceptionConfig } from "./exceptionConfig.ts";
@@ -39,13 +40,11 @@ describe("Biome exception config", () => {
 			const root = seedTree([{ content: JSON.stringify({ files: { includes: previous } }), path: "biome.json" }]);
 			await withExceptionConfig(root, declarations, (args) => {
 				const path = args[0]?.slice("--config-path=".length) ?? "";
-				expect(JSON.parse(readFileSync(path, "utf8")).files.includes).toEqual([
-					...(previous ?? ["**"]),
-					"!**/generated",
-					"!**/fixtures",
-					"!.worktrees",
-					`!${path.slice(root.length + 1)}`,
-				]);
+				expect(
+					Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Struct({ files: Schema.Struct({ includes: Schema.Array(Schema.String) }) })))(
+						readFileSync(path, "utf8"),
+					).files.includes,
+				).toEqual([...(previous ?? ["**"]), "!**/generated", "!**/fixtures", "!.worktrees", `!${path.slice(root.length + 1)}`]);
 				return Promise.resolve();
 			});
 		},
@@ -77,7 +76,7 @@ describe("Biome exception config", () => {
 		const run = withExceptionConfig(root, [{ files: ["src/parse.ts"], reason: REASON, rules: ["biome/lint/suspicious/noExplicitAny"] }], (args) => {
 			generated = args[0]?.slice("--config-path=".length) ?? "";
 			expect(generated).toContain(root);
-			expect(JSON.parse(readFileSync(generated, "utf8"))).toMatchObject({
+			expect(Schema.decodeUnknownSync(Schema.fromJsonString(Schema.Unknown))(readFileSync(generated, "utf8"))).toMatchObject({
 				...native,
 				files: { includes: expect.arrayContaining(["**"]) },
 				overrides: expect.arrayContaining(native.overrides),

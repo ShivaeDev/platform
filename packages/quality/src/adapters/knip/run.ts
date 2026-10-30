@@ -4,6 +4,7 @@ import process from "node:process";
 import { NodeServices } from "@effect/platform-node";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
 import { entryPointFindings } from "./entryPointFindings.ts";
@@ -12,7 +13,7 @@ import { sourceConfig } from "./sourceConfig.ts";
 
 const BIN = join(dirname(createRequire(import.meta.url).resolve("knip")), "..", "bin", "knip.js");
 export async function runKnip(inputs: RuleInputs) {
-	if ((await inputs.readText("package.json")) === undefined) {
+	if ((await readPackageManifest(inputs.readText, "package.json")) === undefined) {
 		return [];
 	}
 	const configuration = await knipConfiguration(inputs);

@@ -1,5 +1,6 @@
 import { isAbsolute, relative } from "node:path";
 import { Effect } from "effect";
+import { ManifestFailure } from "#adapters/manifestInventory.ts";
 import { SetupFailure } from "#failure.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import type { Finding, Findings, RuleInputs } from "#rule.ts";
@@ -51,16 +52,37 @@ function violationOf(rule: ActiveRule, root: string, finding: Finding, exception
 function runRule(rule: ActiveRule, inputs: RuleInputs, exceptionFile: string): Effect.Effect<readonly Violation[], SetupFailure> {
 	return Effect.map(
 		Effect.tryPromise({
-			catch: (cause) => new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` }),
+			catch: (cause) => (cause instanceof ManifestFailure ? cause : new SetupFailure({ message: `rule ${rule.id} failed: ${messageOf(cause)}` })),
 			try: () => rule.check(inputs),
 		}),
 		(findings) => findings.map((finding) => violationOf(rule, inputs.root, finding, exceptionFile)),
+	).pipe(
+		Effect.catchTag("ManifestFailure", (failure) =>
+			Effect.succeed([{ file: failure.path, level: "error" as const, message: failure.message, rule: "manifests/valid" }]),
+		),
 	);
 }
 
-export function runRules(rules: readonly ActiveRule[], inputs: RuleInputs): Effect.Effect<readonly Violation[], SetupFailure> {
-	return Effect.map(
-		Effect.forEach(rules, (rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"), { concurrency: "unbounded" }),
-		(results) => results.flat(),
+export const runRules = Effect.fn("Engine.runRules")(function* (rules: readonly ActiveRule[], inputs: RuleInputs) {
+	const validation = rules.find((rule) => rule.id === "manifests/valid");
+	if (validation !== undefined) {
+		const failures = yield* runRule(validation, inputs, inputs.configFile ?? "quality.config.ts");
+		if (failures.length > 0) {
+			return failures;
+		}
+	}
+	const results = yield* Effect.forEach(
+		rules.filter((rule) => rule !== validation),
+		(rule) => runRule(rule, inputs, inputs.configFile ?? "quality.config.ts"),
+		{ concurrency: "unbounded" },
 	);
-}
+	const seen = new Set<string>();
+	return results.flat().filter((finding) => {
+		if (finding.rule !== "manifests/valid") {
+			return true;
+		}
+		const duplicate = seen.has(finding.file);
+		seen.add(finding.file);
+		return !duplicate;
+	});
+});

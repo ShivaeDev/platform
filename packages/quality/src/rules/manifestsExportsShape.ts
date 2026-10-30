@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
@@ -66,11 +67,10 @@ export const manifestsExportsShape = defineRule({
 		const files = ["package.json", ...packages.map((owner) => posix.join(owner.directory, "package.json"))];
 		const findings = await Promise.all(
 			files.map(async (file) => {
-				const text = await inputs.readText(file);
-				if (file === "package.json" && text === undefined) {
+				const manifest = await readPackageManifest(inputs.readText, file);
+				if (file === "package.json" && manifest === undefined) {
 					return [];
 				}
-				const manifest: unknown = JSON.parse(text ?? "");
 				return findingsIn(file, isMap(manifest) ? manifest.exports : undefined);
 			}),
 		);
