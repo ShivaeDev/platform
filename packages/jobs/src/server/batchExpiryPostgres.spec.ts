@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { expect } from "vitest";
 import { defineSchedule } from "#definition.ts";
 import { postgresIt, realPostgres } from "#test/boss.ts";
@@ -41,10 +41,12 @@ postgresIt(
 			interrupted = true;
 		});
 		const worker = schedule.run(Effect.never.pipe(Effect.onInterrupt(() => recordInterruption)));
-		yield* boot([worker], { clientFactory: () => client });
+		const { jobs: service } = yield* boot([worker], { clientFactory: () => client });
 		yield* Effect.promise(() => client.send(schedule.name));
 		const stored = yield* untilJobs(client, schedule.name, (jobs) => jobs.length === 1 && jobs[0]?.state === "failed");
 		expect(interrupted).toBe(true);
 		expect(stored).toMatchObject([{ output: { message: "handler execution exceeded 1s" }, retryCount: 0, state: "failed" }]);
+		const listed = yield* service.failedJobs({ name: schedule.name, schema: Schema.Null }, { limit: 1 });
+		expect(listed.jobs.map((job) => job.output)).toEqual([{ _tag: "Error", message: "handler execution exceeded 1s" }]);
 	},
 );

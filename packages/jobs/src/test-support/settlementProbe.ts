@@ -3,7 +3,7 @@ import type { JobWithMetadata, PgBoss } from "pg-boss";
 import type { PgBossClient } from "#client.ts";
 
 interface ProbeOptions {
-	readonly readout?: "stale" | "stalled";
+	readonly readout?: "stale" | "stalled" | "failed";
 	readonly waitForFirstExpiry?: boolean;
 }
 
@@ -16,6 +16,9 @@ export function settlementProbe(client: PgBoss, options: ProbeOptions = {}) {
 	let snapshot: readonly JobWithMetadata<unknown>[] = [];
 	const findJobs: NonNullable<PgBossClient["findJobs"]> = (name, query) => {
 		reads.push(Effect.runSync(Clock.currentTimeMillis));
+		if (options.readout === "failed") {
+			return Promise.reject(new Error("retry lookup failed: password=wake-secret"));
+		}
 		if (options.readout === "stalled") {
 			return new Promise(() => undefined);
 		}

@@ -17,6 +17,7 @@ export const createAppIn = Effect.fn("CreateAppStory.createAppIn")(function* (en
 	}
 	const result = yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, engine.environment);
 	commandTiming(`create-app ${args.join(" ")}`, started, result.stderr);
+	engine.diagnostics = result.stderr;
 	engine.printed = result.stdout;
 	const answer = cliAnswer(result, engine.root, () => "created");
 	engine.answers.push(answer);

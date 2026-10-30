@@ -2,8 +2,8 @@ import { Effect } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
-import { redact } from "@shivaedev/errors/redact.ts";
 import { type BearerSessionsOptions, cookieSessionResponse, hasSessionCookie, sessionHeaders } from "#server/better-auth/bearerSessions.ts";
+import { providerFailure } from "#server/providerFailure.ts";
 import { clientIpHeaders } from "./clientIp.ts";
 import { sessionPermissions } from "./sessionPermissions.ts";
 
@@ -46,16 +46,16 @@ async function providerResponse(auth: MountedAuth, web: Request, options: MountR
 	}
 	return native ? response : cookieSessionResponse(response);
 }
-async function authResponse(auth: MountedAuth, web: Request, options: MountRouteOptions) {
+const authResponse = Effect.fnUntraced(function* (auth: MountedAuth, web: Request, options: MountRouteOptions) {
 	const sessionRequest = options.roles !== undefined && new URL(web.url).pathname === "/api/auth/get-session";
 	const url = new URL(web.url);
 	if (sessionRequest) {
 		url.searchParams.set("disableCookieCache", "true");
 	}
 	const request = sessionRequest ? new Request(url, web) : web;
-	const response = await providerResponse(auth, request, options);
-	return sessionRequest && response.ok && options.roles !== undefined ? sessionPermissions(response, options.roles) : response;
-}
+	const response = yield* Effect.tryPromise(() => providerResponse(auth, request, options));
+	return sessionRequest && response.ok && options.roles !== undefined ? yield* sessionPermissions(response, options.roles) : response;
+});
 export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
 	const setClientIp = clientIpHeaders(options);
 	return HttpRouter.use((router) =>
@@ -63,11 +63,7 @@ export function mountRoutes(auth: MountedAuth, options: MountRouteOptions) {
 			Effect.gen(function* () {
 				const web = yield* HttpServerRequest.toWeb(request);
 				setClientIp(request, web);
-				return HttpServerResponse.fromWeb(
-					yield* Effect.tryPromise(() => authResponse(auth, web, options)).pipe(
-						Effect.tapError((error) => Effect.logError("Authentication provider failed", redact(error.cause))),
-					),
-				);
+				return HttpServerResponse.fromWeb(yield* authResponse(auth, web, options).pipe(Effect.catch(providerFailure)));
 			}).pipe(
 				Effect.catch(() =>
 					Effect.succeed(

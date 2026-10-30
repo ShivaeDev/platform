@@ -79,12 +79,12 @@ rerunStory.it("--reruns 0 fails a failed test without rerunning it", [failsTimes
 rerunStory.it(
 	"a rerun count that is not a whole number is rejected with exit code 2 before any test runs",
 	[passes()],
-	function* ({ exitCode, optionError, run, timesRan }) {
+	function* ({ exitCode, printedError, run, timesRan }) {
 		yield* run("--reruns", "two");
 
 		yield* outcomes({
 			"exit code": [exitCode(), 2],
-			"printed error": [optionError(), '--reruns expects a whole number, got "two"'],
+			"printed error": [printedError(), '--reruns expects a whole number, got "two"'],
 			"times each test ran": [timesRan(), {}],
 		});
 	},

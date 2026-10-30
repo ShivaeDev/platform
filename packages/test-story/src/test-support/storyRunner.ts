@@ -8,6 +8,7 @@ import { LIFETIME_LOG } from "./lifetimeLog.ts";
 import { runStories, type StoriesOutcome, type StoriesRun, type StoryResult } from "./runStories.ts";
 
 export type Fixture =
+	| "brokenHttpStories"
 	| "composedDisabledStories"
 	| "compositionStories"
 	| "disabledStories"
@@ -23,7 +24,8 @@ export type Fixture =
 	| "scopedStories"
 	| "tracingStories"
 	| "unlocatedStories"
-	| "unroutedDomStories";
+	| "unroutedDomStories"
+	| "unroutedNodeStories";
 
 type RunOptions = Omit<StoriesRun, "env" | "include">;
 

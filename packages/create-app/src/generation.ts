@@ -25,7 +25,7 @@ export const renderTemplate = Effect.fn("CreateApp.renderTemplate")(function* (t
 	for (const entry of template) {
 		const path = join(target, entry.path);
 		const content = yield* Effect.try({
-			catch: (cause) => new CreateAppError({ message: String(cause) }),
+			catch: (cause) => new CreateAppError({ message: `Failed to render template file ${entry.path}` }, { cause }),
 			try: () => appFile(entry.path, Buffer.from(entry.content, "base64"), name),
 		});
 		yield* fs.makeDirectory(dirname(path), { recursive: true });

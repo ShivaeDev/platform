@@ -29,7 +29,7 @@ Put changes in one repository-root `.changeset/` directory, with a unique `.md` 
 
 The planner validates each named package's bump in each fragment before combining requests. Before 1.0, Added or Breaking entries require at least `minor`; Changed or Fixed entries alone allow `patch`. An insufficient bump fails with the fragment name, package, declared bump and required bump, even when another fragment requests a larger bump for the same package.
 
-The planner takes the highest requested bump for each package. Every published workspace dependent receives at least a patch, transitively, through dependencies, optional dependencies and peers. Private and development-only dependents do not receive an automatic release. A `major` bump on a `0.x` version fails: use `minor` for breaking changes before 1.0. Package versions must be stable `major.minor.patch` versions.
+The planner takes the highest requested bump for each package. Every published workspace dependent receives at least a patch, transitively, through dependencies, optional dependencies and peers. Private and development-only dependents do not receive an automatic release. A `major` bump on a `0.x` version fails with the fragment name: use `minor` for breaking changes before 1.0. Package versions must be stable `major.minor.patch` versions.
 
 ### Rename or remove a package
 

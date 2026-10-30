@@ -17,9 +17,6 @@ const nextVersion = Effect.fn("Changesets.nextVersion")(function* (name: string,
 	const major = Number(match.groups?.major);
 	const minor = Number(match.groups?.minor);
 	const patch = Number(match.groups?.patch);
-	if (major === 0 && bump === "major") {
-		return yield* new ChangesetError({ message: `${name}: major is not allowed on a 0.x package; use minor for breaking changes.` });
-	}
 	if (bump === "major") {
 		return `${major + 1}.0.0`;
 	}
@@ -55,6 +52,11 @@ const validateRequest = Effect.fn("Changesets.validateRequest")(function* (
 		return yield* new ChangesetError({ message: `${changeset.name}: ${name} is private; remove it from release frontmatter.` });
 	}
 	yield* nextVersion(name, pkg.manifest.version, bump);
+	if (pkg.manifest.version.startsWith("0.") && bump === "major") {
+		return yield* new ChangesetError({
+			message: `${changeset.name}: ${name} has a major bump but is a 0.x package; use minor for breaking changes before 1.0.`,
+		});
+	}
 	const needsMinor = changeset.entries.some((entry) => entry.section === "Added" || entry.section === "Breaking");
 	if (pkg.manifest.version.startsWith("0.") && needsMinor && rank[bump] < rank.minor) {
 		return yield* new ChangesetError({

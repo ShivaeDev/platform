@@ -1,5 +1,12 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { Layer, Logger, Option } from "effect";
+import { FetchHttpClient } from "effect/http";
+import * as HttpStatus from "effect/http/HttpStatus";
+import { GitHub } from "@shivaedev/github/GitHub.ts";
+import { GitHubConfig } from "@shivaedev/github/GitHubConfig.ts";
+import { GitHubToken } from "@shivaedev/github/GitHubToken.ts";
+import { fakeHttpService } from "@shivaedev/test-story/server/fakeHttpService.ts";
 import { planning } from "./planning.ts";
 
 function measuredGithub(args: string[]) {
@@ -27,14 +34,16 @@ function measuredGithub(args: string[]) {
 	return "";
 }
 
-export function measuredMain(mode: "available" | "denied" | "missing consumers" | "replaced" = "available") {
-	return planning.trait("workspace", `main timings are ${mode}`, (engine) => {
+export function measuredMain(
+	mode: "available" | "denied" | "missing consumers" | "replaced" | "invalid runs" | "invalid artifacts" | "unreadable snapshot" = "available",
+) {
+	return planning.trait("workspace", `main timings are ${mode}`, function* (engine) {
 		let identity = 0;
 		engine.github = (args) => {
-			if (mode === "denied") {
-				throw new Error("denied");
+			if (mode === "unreadable snapshot" && args[0] === "run") {
+				throw new Error("download failed");
 			}
-			if (args[0] !== "api" || !args[1]?.includes("/artifacts?")) {
+			if (!args[1]?.includes("/artifacts?")) {
 				return measuredGithub(args);
 			}
 			if (mode === "missing consumers" && args[1].includes("name=consumer-balancing")) {
@@ -46,5 +55,32 @@ export function measuredMain(mode: "available" | "denied" | "missing consumers" 
 			}
 			return measuredGithub(args);
 		};
+		const server = yield* fakeHttpService({
+			routes: {
+				api: {
+					path: "/:path*",
+					reply: (request) => {
+						if (mode === "denied") {
+							return { body: { message: "denied" }, status: HttpStatus.fromLiteral("Unauthorized") };
+						}
+						if (mode === "invalid runs" && request.path.includes("workflows/ci.yml")) {
+							return { body: { "workflow_runs": [{ id: "invalid" }] } };
+						}
+						if (mode === "invalid artifacts" && request.path.includes("/artifacts")) {
+							return { body: { artifacts: [{ id: "invalid" }] } };
+						}
+						return { body: JSON.parse(engine.github(["api", request.path])) };
+					},
+				},
+			},
+		});
+		const context = yield* Layer.build(
+			GitHub.layer.pipe(
+				Layer.provide(
+					Layer.mergeAll(FetchHttpClient.layer, Layer.succeed(GitHubToken)(Option.none()), Layer.succeed(GitHubConfig)({ apiUrl: server.url })),
+				),
+			),
+		);
+		engine.githubLayer = Layer.mergeAll(Layer.succeedContext(context), Logger.layer([Logger.make(({ message }) => engine.logs.push(message))]));
 	});
 }

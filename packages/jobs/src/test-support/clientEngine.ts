@@ -10,11 +10,11 @@ export function clientEngine(): {
 	events: EventEmitter;
 	factory: PgBossClientFactory | undefined;
 	workerLogs: Array<{ message: unknown; span: Tracer.AnySpan | undefined; annotations: Readonly<Record<string, unknown>> }>;
-	logs: Array<{ logLevel: string; message: unknown }>;
+	logs: Array<{ logLevel: string; message: unknown; cause?: string }>;
 	sql: SqlClient.SqlClient | undefined;
 } {
 	const client = new FakeClient();
-	const logs: Array<{ logLevel: string; message: unknown }> = [];
+	const logs: Array<{ logLevel: string; message: unknown; cause?: string }> = [];
 	return {
 		client,
 		connectionString: "postgresql://compile-only",

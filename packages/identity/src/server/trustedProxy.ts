@@ -1,10 +1,6 @@
 import { BlockList, isIP } from "node:net";
 import { Schema } from "effect";
-import { addProxyAddress, proxyRanges as normalizedRanges } from "./proxyRanges.ts";
-
-export function proxyRanges(value: string): string[] | undefined {
-	return normalizedRanges(value);
-}
+import { addProxyAddress, proxyRanges } from "./proxyRanges.ts";
 
 export function proxyAddresses(value: string): BlockList | undefined {
 	const addresses = new BlockList();
