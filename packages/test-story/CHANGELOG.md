@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.26.0 - 2026-10-30
+
+### Added
+
+- Browser story kits can use `browserReads` to count and inspect queries and subscription openings on a page's shared live WebSocket, inspect received change hints, and await hints with scoped `watchHints` subscriptions without polling.
+- Hold a forwarding proxy's connection with `hold()` and restore traffic with `online()`, including shared WebSocket RPC and live updates. `disconnect()` now returns a promise that resolves on the reconnected client's first WebSocket frame after `online()`.
+
+### Breaking
+
+- Replace calls to the forwarding proxy's `resume()` with `online()`. Use the returned `url` on IPv4 loopback instead of connecting to the proxy over IPv6; proxy startup no longer requires IPv6 support.
+
 ## 0.25.1 - 2026-10-30
 
 ### Changed

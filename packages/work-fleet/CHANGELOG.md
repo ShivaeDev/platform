@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.24.4 - 2026-10-30
+
+### Fixed
+
+- Admit the first eligible area waiter by priority and waiting age even when queued records lack queue timestamps, so competing launches cannot wait on each other forever.
+
 ## 0.24.3 - 2026-10-30
 
 ### Changed
