@@ -1,70 +1,89 @@
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
-import { Effect, FileSystem } from "effect";
+import { Clock, Effect, FileSystem, Schema } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { changeset, git, makeFixture, run, write } from "./fixture.ts";
-import { installCommitGuard } from "./installCommitGuard.ts";
+import { ReleasePlan } from "#model.ts";
+import { makeFixture, runCli } from "./fixture.ts";
+import { manifestOf, rangeOn } from "./manifests.ts";
+
+const WORKSPACE_FOLDERS = [".changeset", "modules", "packages"];
+const decodePlan = Schema.decodeUnknownSync(Schema.fromJsonString(ReleasePlan));
+
+function answerOf<A>(result: ReturnType<typeof runCli>, success: (stdout: string) => A): A | string {
+	if (result.status === 0) {
+		return success(result.stdout);
+	}
+	const message = result.stderr.trim();
+	return result.status === 1 && message !== "" ? `refused: ${message}` : `crashed with exit ${result.status}: ${message}`;
+}
+
+function printedLines(stdout: string): readonly string[] {
+	return stdout.trim().split("\n");
+}
+
 export const workspace = storyKit({
 	clock: "live",
 	create: makeFixture,
+	inspect: ({ answers }) => ({ answers }),
 	layer: NodeServices.layer,
 	name: "workspace release",
-	stages: ["pending", "released", "changed"],
-	verbs: ({ root }, story) => ({
-		change: (name: string, packages: Readonly<Record<string, string>>, body?: string) =>
-			write(root, `.changeset/${name}.md`, changeset(packages, body)),
-		checkpoint: (reference = "main") =>
-			Effect.sync(() => {
-				git(root, ["add", "."]);
-				git(root, ["commit", "-m", "Workspace checkpoint"]);
-				git(root, ["branch", "-f", reference, "HEAD"]);
-			}),
-		cli: (...args: readonly string[]) =>
-			Effect.sync(() => {
+	stages: ["workspace", "pending", "main", "changed"],
+	verbs: (engine, story) => {
+		const { root } = engine;
+		function releases<A>(args: readonly string[], success: (stdout: string) => A) {
+			return Effect.sync(() => {
 				story.tell(`releases ${args.join(" ")}`);
-				return run(root, args);
-			}),
-		edit: Effect.fn("ChangesetsStory.edit")(function* (file: string, change: (text: string) => string) {
-			const fs = yield* FileSystem.FileSystem;
-			yield* write(root, file, change(yield* fs.readFileString(join(root, file))));
-		}),
-		exists: Effect.fn("ChangesetsStory.exists")(function* (file: string) {
-			return yield* (yield* FileSystem.FileSystem).exists(join(root, file));
-		}),
-		files: Effect.fn("ChangesetsStory.files")(function* (directory: string) {
-			return yield* (yield* FileSystem.FileSystem).readDirectory(join(root, directory));
-		}),
-		git: Effect.fn("ChangesetsStory.git")((...args: readonly string[]) => Effect.sync(() => git(root, args))),
-		move: Effect.fn("ChangesetsStory.move")(function* (from: string, to: string) {
-			yield* (yield* FileSystem.FileSystem).rename(join(root, from), join(root, to));
-		}),
-		packageVersion: Effect.fn("ChangesetsStory.packageVersion")(function* (directory: string) {
-			const fs = yield* FileSystem.FileSystem;
-			return JSON.parse(yield* fs.readFileString(join(root, directory, "package.json"))).version;
-		}),
-		read: Effect.fn("ChangesetsStory.read")(function* (file: string) {
-			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, file));
-		}),
-		remove: Effect.fn("ChangesetsStory.remove")(function* (file: string) {
-			yield* (yield* FileSystem.FileSystem).remove(join(root, file));
-		}),
-		write: (file: string, text: string) => write(root, file, text),
-	}),
-});
-export const guardedCommits = workspace.trait("pending", "global and repository hooks reject absolute machine paths", ({ root }) =>
-	installCommitGuard(root),
-);
-export function pending(packages: Readonly<Record<string, string>> = { "@test/core": "minor" }) {
-	return workspace.trait("pending", "a changeset requests explicit bumps", ({ root }) => write(root, ".changeset/feature.md", changeset(packages)));
-}
-export const released = workspace.trait("released", "the pending release has been applied by the CLI", function* ({ root }) {
-	yield* Effect.sync(() => {
-		git(root, ["add", "."]);
-		git(root, ["commit", "-m", "Pending changes"]);
-		git(root, ["branch", "-f", "main", "HEAD"]);
-		const result = run(root, ["apply"]);
-		if (result.status !== 0) {
-			throw new Error(`Could not apply the release precondition: ${result.stderr}`);
+				const answer = answerOf(runCli(root, args), success);
+				engine.answers.push(answer);
+				return answer;
+			});
 		}
-	});
+		const readFile = Effect.fn("ReleasesStory.readFile")(function* (file: string) {
+			return yield* (yield* FileSystem.FileSystem).readFileString(join(root, file));
+		});
+		return {
+			apply: () => releases(["apply"], printedLines),
+			changelog: Effect.fn("ReleasesStory.changelog")(function* (name: string) {
+				const fs = yield* FileSystem.FileSystem;
+				const file = join(root, (yield* manifestOf(root, name)).directory, "CHANGELOG.md");
+				return (yield* fs.exists(file)) ? yield* fs.readFileString(file) : "no changelog";
+			}),
+			changesetFiles: Effect.fn("ReleasesStory.changesetFiles")(function* () {
+				return (yield* (yield* FileSystem.FileSystem).readDirectory(join(root, ".changeset"))).sort();
+			}),
+			changesetText: (file: string) => readFile(`.changeset/${file}`),
+			check: (base?: string) => releases(base === undefined ? ["check"] : ["check", base], () => "valid"),
+			dependencyRange: Effect.fn("ReleasesStory.dependencyRange")(function* (dependent: string, dependency: string) {
+				const { field, range } = rangeOn(yield* manifestOf(root, dependent), dependency);
+				return `${range} in ${field}`;
+			}),
+			hookRecord: Effect.fn("ReleasesStory.hookRecord")(function* () {
+				return printedLines(yield* readFile("hook-record.txt"));
+			}),
+			lastAnswer: () => Effect.sync(() => engine.answers.at(-1)),
+			manifestFile: Effect.fn("ReleasesStory.manifestFile")(function* (name: string) {
+				return (yield* manifestOf(root, name)).text;
+			}),
+			plan: () => releases(["plan"], printedLines),
+			planJson: () => releases(["plan", "--json"], decodePlan),
+			todayInUtc: () => Effect.map(Clock.currentTimeMillis, (millis) => new Date(millis).toISOString().slice(0, 10)),
+			version: Effect.fn("ReleasesStory.version")(function* (name: string) {
+				return (yield* manifestOf(root, name)).manifest.version;
+			}),
+			workspaceFiles: Effect.fn("ReleasesStory.workspaceFiles")(function* () {
+				const fs = yield* FileSystem.FileSystem;
+				const files: Record<string, string> = {};
+				for (const folder of WORKSPACE_FOLDERS) {
+					const entries = (yield* fs.exists(join(root, folder))) ? yield* fs.readDirectory(join(root, folder), { recursive: true }) : [];
+					for (const entry of entries.sort()) {
+						const file = join(folder, entry);
+						if ((yield* fs.stat(join(root, file))).type === "File") {
+							files[file] = yield* readFile(file);
+						}
+					}
+				}
+				return files;
+			}),
+		};
+	},
 });

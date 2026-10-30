@@ -1,13 +1,5 @@
 {"path":"packages/releases/package.json","rule":"code/unused","count":1}
-{"path":"packages/releases/src/apply.spec.ts","rule":"tests/grouped-outcomes","count":2}
-{"path":"packages/releases/src/applyFailures.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/releases/src/applyRelease.ts","rule":"effect/boundary","count":1}
-{"path":"packages/releases/src/configValidation.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/releases/src/error.ts","rule":"effect/boundary","count":1}
-{"path":"packages/releases/src/firstRelease.spec.ts","rule":"tests/grouped-outcomes","count":2}
-{"path":"packages/releases/src/history.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/releases/src/movedPackageNames.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/releases/src/pending.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/releases/src/planner.ts","rule":"effect/boundary","count":1}
-{"path":"packages/releases/src/planning.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/releases/src/readHistory.ts","rule":"effect/boundary","count":1}
