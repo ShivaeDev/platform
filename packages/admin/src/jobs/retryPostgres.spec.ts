@@ -1,77 +1,53 @@
-import { Effect, Option } from "effect";
-import * as AsyncResult from "effect/reactivity/AsyncResult";
-import type * as Atom from "effect/reactivity/Atom";
 import { expect } from "vitest";
-import { eventually } from "#test/eventually.ts";
-import { jobsRole, jobsStory } from "#test/jobsStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { type JobsView, jobsStory, mailFails, mounted, signedInAs, syncWaits } from "#test/jobsStory.ts";
 
-jobsStory.it("retries a failed original through RPC and refreshes mounted Jobs views", [jobsRole("admin")], function* (test) {
-	const id = yield* test.send(42);
-	const originalIds = [id];
-	yield* test.settle();
-	yield* test.waitForHealth((value) => value.failedTotal === originalIds.length);
-	const health = test.api.health.query(undefined);
-	const counts = test.api.counts.query({ queue: "mail" });
-	const failed = test.api.failed.query({ limit: 10, queue: "mail" });
-	const copies = test.api.deadLettered.query({ limit: 10, queue: "mail" });
-	const job = test.api.job.query({ id, queue: "mail" });
-	const views: readonly Atom.Atom<AsyncResult.AsyncResult<unknown, unknown>>[] = [health, counts, failed, copies, job];
-	for (const atom of views) {
-		test.registry.mount(atom);
-	}
-	yield* eventually(() => {
-		expect(AsyncResult.getOrElse(test.registry.get(health), () => undefined)?.failedTotal).toBe(originalIds.length);
-		expect(AsyncResult.getOrElse(test.registry.get(counts), () => undefined)?.failedCount).toBe(originalIds.length);
-		expect(AsyncResult.getOrElse(test.registry.get(failed), () => undefined)?.jobs.map((listed) => listed.id)).toEqual(originalIds);
-		expect(AsyncResult.getOrElse(test.registry.get(copies), () => undefined)?.jobs.map((copy) => copy.sourceId)).toEqual(
-			originalIds.map(Option.some),
-		);
-		expect(Option.getOrUndefined(AsyncResult.getOrElse(test.registry.get(job), () => Option.none()))?.state).toBe("failed");
-	});
-	const before = views.map((atom) => test.registry.get(atom));
-	expect(test.deliveries()).toEqual([id]);
-	yield* test.retry(id);
-	yield* test.settle();
-	expect(test.deliveries()).toEqual([id, id]);
-	expect(Option.getOrThrow(yield* test.job(id))).toMatchObject({ id, state: "completed" });
-	yield* eventually(() => {
-		for (const [index, atom] of views.entries()) {
-			const value = test.registry.get(atom);
-			expect(AsyncResult.isSuccess(value)).toBe(true);
-			expect(value).not.toBe(before[index]);
-		}
-		expect(AsyncResult.getOrElse(test.registry.get(counts), () => undefined)?.failedCount).toBe(0);
-		expect(AsyncResult.getOrElse(test.registry.get(failed), () => undefined)?.jobs).toEqual([]);
-		expect(Option.getOrUndefined(AsyncResult.getOrElse(test.registry.get(job), () => Option.none()))?.state).not.toBe("failed");
-	});
-});
+const admin = signedInAs("admin");
 
-jobsStory.it("rejects dead-letter copies, unregistered queues and jobs that are not failed", [jobsRole("admin")], function* (test) {
-	const id = yield* test.send(42);
-	yield* test.settle();
-	const copy = Option.getOrThrow(Option.fromNullishOr((yield* test.deadLettered(1)).jobs[0]));
-	const sync = yield* test.sendSync();
-	expect(yield* Effect.flip(test.retry(copy.id, copy.queue))).toMatchObject({ _tag: "JobsQueueUnregistered", queue: "mail-dlq" });
-	for (const other of [copy.id, "00000000-0000-0000-0000-000000000001", sync]) {
-		expect(yield* Effect.flip(test.retry(other))).toMatchObject({ _tag: "JobsNotFailed", id: other });
-	}
-	expect(yield* Effect.flip(test.retry(id, "private"))).toMatchObject({ _tag: "JobsQueueUnregistered", queue: "private" });
-	expect(yield* Effect.flip(test.retry(sync, "sync"))).toMatchObject({ _tag: "JobsNotFailed" });
-	yield* test.settle();
-	expect(test.deliveries()).toEqual([id]);
-	expect((yield* test.deadLettered(1)).jobs).toEqual([copy]);
-});
+jobsStory.it(
+	"an admin's retry of failed mail 42 delivers it a second time and it completes",
+	[admin, mailFails(42)],
+	function* ({ deliveries, retry, stateOf, workersFinish }) {
+		expect(yield* deliveries()).toEqual(["mail 42"]);
 
-for (const [role, traits, error] of [
-	["signed out", [], "Unauthorized"],
-	["member", [jobsRole("user")], "Forbidden"],
-	["role assigner without jobs.read", [jobsRole("assigner")], "Forbidden"],
+		yield* retry("mail 42");
+		yield* workersFinish();
+
+		yield* outcomes({
+			deliveries: [deliveries(), ["mail 42", "mail 42"]],
+			"mail 42's state": [stateOf("mail 42"), "completed"],
+		});
+	},
+);
+
+for (const [view, before, after, change] of [
+	["failed mail jobs", ["mail 42"], [], "no longer listing mail 42"],
+	["mail counts", "1 failed", "0 failed", "counting no failed mail job"],
+	["mail 42's detail", "failed", "not failed", "no longer showing mail 42 failed"],
+	["dead-lettered mail jobs", ["the dead-letter copy of mail 42"], ["the dead-letter copy of mail 42"], "still listing mail 42's dead-letter copy"],
+	["health", ["mail", "scheduled", "sync"], ["mail", "scheduled", "sync"], "still listing the page's three queues"],
+] as const satisfies readonly (readonly [JobsView, unknown, unknown, string])[]) {
+	jobsStory.it(
+		`retrying mail 42 makes the mounted ${view} view answer again, ${change}`,
+		[admin, mailFails(42), mounted(view)],
+		function* ({ nextAnswer, retry }) {
+			expect(yield* nextAnswer(view)).toEqual(before);
+
+			yield* retry("mail 42");
+
+			expect(yield* nextAnswer(view)).toEqual(after);
+		},
+	);
+}
+
+for (const [name, queue, refusal, setup] of [
+	["the dead-letter copy of mail 42", "mail-dlq", "mail-dlq is not a registered queue", []],
+	["the dead-letter copy of mail 42", "mail", "the dead-letter copy of mail 42 is not a failed mail job", []],
+	["an unknown job", "mail", "an unknown job is not a failed mail job", []],
+	["mail 42", "private", "private is not a registered queue", []],
+	["the waiting sync job", "sync", "the waiting sync job is not a failed sync job", [syncWaits]],
 ] as const) {
-	jobsStory.it(`refuses a ${role} retry of a failed job`, traits, function* (test) {
-		const id = yield* test.send(42);
-		yield* test.settle();
-		expect(yield* Effect.flip(test.retry(id))).toMatchObject({ _tag: error });
-		yield* test.settle();
-		expect(test.deliveries()).toEqual([id]);
+	jobsStory.it(`an admin's retry of ${name} in ${queue} is refused: ${refusal}`, [admin, mailFails(42), ...setup], function* ({ retry }) {
+		expect(yield* retry(name, queue)).toBe(refusal);
 	});
 }

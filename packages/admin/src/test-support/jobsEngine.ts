@@ -1,4 +1,4 @@
-import { Config, Context, Data, Effect, Exit, Layer, Option, Redacted, Schema, Scope } from "effect";
+import { Config, Context, Data, Effect, Exit, Layer, Option, Predicate, type Queue, Redacted, Schema, Scope } from "effect";
 import { Migrator } from "effect/sql";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
@@ -29,12 +29,14 @@ export const postgresLayer = makePostgresTestLayer({
 
 class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number }> {}
 const Jobs = makePgBoss("test/AdminJobs");
+const InvalidMail = defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) });
 
 export const jobsEngine = Effect.gen(function* () {
 	const database = yield* PostgresTestDatabase;
 	const scope = yield* Scope.fork(yield* Scope.Scope);
 	const testing = makePgBossTesting();
 	const deliveries: string[] = [];
+	const boss: { client?: ReturnType<typeof testing.clientFactory> } = {};
 	let readCount: () => number = function readCount() {
 		return 0;
 	};
@@ -46,6 +48,7 @@ export const jobsEngine = Effect.gen(function* () {
 				const health = vi.spyOn(client, "getQueue");
 				const job = vi.spyOn(client, "findJobs");
 				readCount = () => query.mock.calls.length + health.mock.calls.length + job.mock.calls.length;
+				boss.client = client;
 				return client;
 			},
 			connectionString: Redacted.value(database.url),
@@ -61,17 +64,16 @@ export const jobsEngine = Effect.gen(function* () {
 				Sync,
 				Private,
 			],
-			monitorIntervalSeconds: 1,
-			superviseIntervalSeconds: 1,
+			// Queue statistics change only when the story refreshes them, so health answers are deterministic.
+			supervise: false,
 		}),
 	).pipe(Effect.provideService(Scope.Scope, scope));
 	const jobs = Context.get(context, Jobs);
 	const beforeRegistration = readCount();
 	const registry = pages();
 	const page = registry.pages[0];
-	const handlers = jobsHandlersWithRetry(page, Jobs);
 	const registration = registerAdmin(registry, {
-		jobs: handlers,
+		jobs: jobsHandlersWithRetry(page, Jobs),
 		users: Users.contract.application.toLayer({ "admin.users.profile": () => Effect.map(SessionUser, (user) => user.email) }),
 	});
 	yield* Layer.build(registration.handlers.pipe(Layer.provide(Layer.succeed(Jobs, jobs))));
@@ -84,17 +86,22 @@ export const jobsEngine = Effect.gen(function* () {
 		...rpc,
 		...(yield* jobsClient(page, registry.group, rpc.protocol)),
 		deliveries,
+		ids: new Map<string, string>(),
 		jobs,
+		names: new Map<string, string>(),
 		privateQueue: Private,
-		queue: Mail,
+		// The jobs testing kit offers no statistics refresh, so the story runs pg-boss's own on-demand supervision pass.
+		refreshStatistics: Effect.promise(async () => {
+			const client: unknown = boss.client;
+			if (!(Predicate.hasProperty(client, "supervise") && Predicate.isFunction(client.supervise))) {
+				throw new Error("The pg-boss client cannot supervise its queues");
+			}
+			await client.supervise();
+		}),
 		registrationReads: () => readCount() - beforeRegistration,
-		scheduled: Scheduled,
-		sendInvalid: () =>
-			jobs
-				.enqueue(defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) }), { invalid: "payload" }, { retryLimit: 0 })
-				.pipe(Effect.map(Option.getOrThrow)),
+		sendInvalidMail: jobs.enqueue(InvalidMail, { invalid: "payload" }, { retryLimit: 0 }).pipe(Effect.map(Option.getOrThrow)),
 		stopJobs: Scope.close(scope, Exit.void),
-		sync: Sync,
 		testing,
+		views: new Map<string, Queue.Queue<unknown>>(),
 	};
 });
