@@ -17,8 +17,8 @@ fakeHttpApp.it(
 fakeHttpApp.it(
 	"rejects missing and wrong credentials before consuming a scripted failure",
 	[hasCredential("Bearer story-key")],
-	function* ({ failOnce, request }) {
-		yield* failOnce("user", { status: HttpStatus.fromLiteral("BadGateway") });
+	function* ({ scriptFault, request }) {
+		yield* scriptFault("user", { kind: "status", reply: { status: HttpStatus.fromLiteral("BadGateway") } });
 		expect(yield* request("/users/alice", { headers: {} })).toMatchObject({ status: HttpStatus.fromLiteral("Unauthorized") });
 		expect(yield* request("/users/alice", { headers: { authorization: "Bearer wrong" } })).toMatchObject({
 			status: HttpStatus.fromLiteral("Unauthorized"),
@@ -82,8 +82,11 @@ fakeHttpApp.it("walks every page and reaches the end", [hasCredential("Bearer st
 	}
 });
 
-fakeHttpApp.it("fails one route exactly once and then answers normally", [hasCredential("Bearer story-key")], function* ({ failOnce, request }) {
-	yield* failOnce("user", { body: { error: "try again" }, headers: { "retry-after": "1" }, status: HttpStatus.fromLiteral("BadGateway") });
+fakeHttpApp.it("fails one route exactly once and then answers normally", [hasCredential("Bearer story-key")], function* ({ scriptFault, request }) {
+	yield* scriptFault("user", {
+		kind: "status",
+		reply: { body: { error: "try again" }, headers: { "retry-after": "1" }, status: HttpStatus.fromLiteral("BadGateway") },
+	});
 	expect(yield* request("/items")).toMatchObject({ status: HttpStatus.fromLiteral("OK") });
 	expect(yield* request("/users/alice")).toMatchObject({
 		body: { error: "try again" },

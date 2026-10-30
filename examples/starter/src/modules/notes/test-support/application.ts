@@ -73,13 +73,18 @@ export function rejectedNoteCommits() {
 }
 
 export function sourceNoteMissing() {
-	return app.trait("hosting", "the source API cannot find the note", (engine) =>
-		engine.sourceApi.failOnce("post", { body: { title: "This error body must not become a note" }, status: HttpStatus.fromLiteral("NotFound") }),
-	);
+	return app.trait("hosting", "the source API cannot find the note", function* (engine) {
+		yield* engine.sourceApi.scriptFault("post", {
+			kind: "status",
+			reply: { body: { title: "This error body must not become a note" }, status: HttpStatus.fromLiteral("NotFound") },
+		});
+	});
 }
 
 export function malformedSourceNote() {
-	return app.trait("hosting", "the source API returns a malformed note", (engine) => engine.sourceApi.replyOnce("post", { body: { title: 123 } }));
+	return app.trait("hosting", "the source API returns a malformed note", function* (engine) {
+		yield* engine.sourceApi.scriptFault("post", { kind: "status", reply: { body: { title: 123 } } });
+	});
 }
 
 export function constrainedTitles() {

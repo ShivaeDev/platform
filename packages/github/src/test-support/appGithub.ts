@@ -182,7 +182,10 @@ export const appGithub = storyKit({
 				Effect.gen(function* () {
 					story.tell(`${readers} reads reach GitHub together with installation token 1, and GitHub answers each with 401 Bad credentials`);
 					for (let index = 0; index < readers; index += 1) {
-						yield* server.replyOnce("pull", { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") });
+						yield* server.scriptFault("pull", {
+							kind: "status",
+							reply: { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") },
+						});
 					}
 					const reached = yield* Deferred.make<void>();
 					state.arrivals = { expected: readers, reached, seen: 0 };
@@ -273,22 +276,12 @@ export const exchangeRefused = appGithub.trait(
 	"github",
 	"GitHub refuses the next token exchange with 401 and echoes the App JWT, the private key, an installation token and the webhook secret",
 	function* ({ server }) {
-		yield* server.replyOnce("token", (request) => ({
-			body: { message: `${request.headers.authorization} ${PRIVATE_KEY} ${APP_TOKEN} ${WEBHOOK_SECRET}` },
-			status: HttpStatus.fromLiteral("Unauthorized"),
-		}));
+		yield* server.scriptFault("token", {
+			kind: "status",
+			reply: (request) => ({
+				body: { message: `${request.headers.authorization} ${PRIVATE_KEY} ${APP_TOKEN} ${WEBHOOK_SECRET}` },
+				status: HttpStatus.fromLiteral("Unauthorized"),
+			}),
+		});
 	},
 );
-
-export function rejectsNext(target: "pull request 1" | "the archive", times: number) {
-	const route = target === "pull request 1" ? "pull" : "artifactRedirect";
-	return appGithub.trait(
-		"github",
-		`GitHub answers the next ${times === 1 ? "request" : `${times} requests`} for ${target} with 401 Bad credentials`,
-		function* ({ server }) {
-			for (let index = 0; index < times; index += 1) {
-				yield* server.replyOnce(route, { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") });
-			}
-		},
-	);
-}
