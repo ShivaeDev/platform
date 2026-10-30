@@ -43,6 +43,8 @@ The first line is the assertion's own message. The box under it tells a reader w
 
 ## Using it
 
+Every source module is available through its `.ts` subpath, including modules under `server/internal/`. Kit authors choose which engine pieces to depend on.
+
 Before writing or reviewing stories, follow the [story-testing skill](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md), shipped by `@shivaedev/skills`. It owns the rules for how a story reads, observable evidence, boundary-driven setup, verbs and readouts, assertions, jobs, framework gaps, faked preconditions, database isolation and focused runs. The examples below explain this package's API; framework fixtures exercise this package's responsibilities, rather than prescribe application scenarios.
 
 ### How to think about it
