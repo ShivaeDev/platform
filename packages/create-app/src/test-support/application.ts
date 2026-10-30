@@ -108,6 +108,10 @@ export const application = storyKit({
 				story.tell("the generated app runs pnpm ready against workspace packages");
 				return readyAgainstWorkspace(target(), engine.source.starter);
 			},
+			replacePacked: (path: string, content: string) => {
+				story.tell(`the packed template changes ${path}`);
+				engine.source.replacePacked(path, content);
+			},
 			runAdminStories: (foundationOnly = false) => {
 				story.tell("the generated app runs its admin stories against workspace sources");
 				return runAdminStories(target(), foundationOnly);

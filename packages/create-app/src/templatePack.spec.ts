@@ -74,7 +74,10 @@ for (const versions of [{}, { "@shivaedev/platform": "latest" }, { "@shivaedev/p
 		],
 		function* ({ pack }) {
 			const failure = yield* Effect.flip(pack());
-			expect(failure.message).toContain("@shivaedev/platform: name an exact published version");
+			expect(failure).toMatchObject({
+				cause: { message: "@shivaedev/platform: name an exact published version in published-versions.json" },
+				message: "Failed to prepare template file package.json",
+			});
 		},
 	);
 }

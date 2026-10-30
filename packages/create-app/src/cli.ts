@@ -2,7 +2,7 @@
 import { fileURLToPath } from "node:url";
 import * as NodeRuntime from "@effect/platform-node/NodeRuntime";
 import * as NodeServices from "@effect/platform-node/NodeServices";
-import { Console, Effect, FileSystem, Option, Schema } from "effect";
+import { Cause, Console, Effect, FileSystem, Option, Schema } from "effect";
 import { Argument, Command, Flag } from "effect/cli";
 import { CreateAppError } from "./CreateAppError.ts";
 import { createApp } from "./createApp.ts";
@@ -31,7 +31,7 @@ const program = Effect.gen(function* () {
 });
 
 program.pipe(
-	Effect.tapErrorTag("CreateAppError", (error) => Console.error(`create-app: ${error.message}`)),
+	Effect.tapCause((cause) => Console.error(Cause.pretty(cause))),
 	Effect.provide(NodeServices.layer),
-	NodeRuntime.runMain,
+	NodeRuntime.runMain({ disableErrorReporting: true }),
 );
