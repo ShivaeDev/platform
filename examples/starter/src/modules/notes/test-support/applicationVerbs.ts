@@ -9,7 +9,7 @@ import { authPost, credentials } from "#test-support/authHttp.ts";
 import { testPoolSizes } from "#test-support/poolSizes.ts";
 import { sessionPrecondition } from "#test-support/sessionPrecondition.ts";
 import type { Engine } from "./applicationState.ts";
-import { liveNotes } from "./live.ts";
+import { liveVerbs } from "./liveVerbs.ts";
 import { requests } from "./requests.ts";
 import { rpcProfile } from "./rpcProfile.ts";
 import { storedNotes } from "./stored.ts";
@@ -46,6 +46,7 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 		});
 	});
 	return {
+		...liveVerbs(engine, host, story.tell),
 		...storedNotes(story.tell),
 		...workerTracing(story.tell, startWorker),
 		acceptNoteCommits: Effect.gen(function* () {
@@ -72,14 +73,6 @@ export function applicationVerbs(engine: Engine, story: { tell: (line: string) =
 			yield* host().jobsTesting.failNextSend(CountWords);
 		}),
 		foreignRequest: (cookie: string) => http().foreignRequest(cookie),
-		liveNotes: (name = "alice") => {
-			story.tell(`${name} watches the live notes list`);
-			const actor = engine.actors.get(name);
-			if (actor === undefined) {
-				throw new Error(`No signed-in account ${name}`);
-			}
-			return liveNotes(host(), actor.cookie);
-		},
 		logs: () => host().logs,
 		mintSession: Effect.fn("AppStory.mintSession")(function* (name: string) {
 			story.tell(`mint a new session for ${name}'s existing account`);

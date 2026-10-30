@@ -34,37 +34,25 @@ export const List = query("list", {
 	success: Schema.Array(Note.json),
 });
 export const Create = command("create", {
-	invalidates: (_input, row, viewer = Option.none()) => [
-		notes.item(row.id),
-		...(Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
-	],
+	invalidates: () => [],
 	payload: NoteFields,
 	rejections: { Invalid: fieldRejection(NoteFields), ServiceUnavailable },
 	success: Note.json,
 });
 export const Import = command("import", {
-	invalidates: (_input, row, viewer = Option.none()) => [
-		notes.item(row.id),
-		...(Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
-	],
+	invalidates: () => [],
 	payload: NoteId,
 	rejections: { Invalid: fieldRejection(NoteFields), NotFound, ServiceUnavailable },
 	success: Note.json,
 });
 export const Update = command("update", {
-	invalidates: ({ id }, _result, viewer = Option.none()) => [
-		notes.item(id),
-		...(Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
-	],
+	invalidates: () => [],
 	payload: Schema.Struct({ ...NoteId.fields, ...NoteEditFields.fields }),
 	rejections: { Conflict, Invalid: fieldRejection(NoteEditFields), NotFound, ServiceUnavailable },
 	success: Note.json,
 });
 export const Delete = command("delete", {
-	invalidates: ({ id }, _result, viewer = Option.none()) => [
-		notes.item(id),
-		...(Option.isSome(viewer) ? [notes.bucket.userId(viewer.value.id)] : []),
-	],
+	invalidates: () => [],
 	payload: NoteVersion,
 	rejections: { Conflict, NotFound, ServiceUnavailable },
 	success: Schema.Void,
