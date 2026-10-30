@@ -14,9 +14,18 @@ export function sensitiveFailureTag(source: "schema" | "host") {
 				success: Schema.Void,
 			}),
 			Rpc.make("publicConflict", { error: Conflict, success: Schema.Void }),
+			Rpc.make("publicDefect", { defect: Schema.Unknown, success: Schema.Void }),
 		);
 		const handlers = group.toLayer({
-			publicConflict: () => Effect.fail(new Conflict({ message: "Name is taken" })),
+			publicConflict: () =>
+				Effect.gen(function* () {
+					const failure = { _tag: "Conflict", message: "Name is taken" };
+					yield* Effect.logInfo("public conflict").pipe(Effect.annotateLogs(failure));
+					yield* Effect.annotateCurrentSpan(failure);
+					yield* Effect.annotateCurrentSpan(failure).pipe(Effect.withSpan("publicConflict child"));
+					return yield* Effect.fail(new Conflict({ message: failure.message }));
+				}),
+			publicDefect: () => Effect.die({ _tag: "PublicDefect", message: "Public defect detail" }),
 			taggedFailure: ({ _tag }) => Effect.fail({ _tag, detail: "public detail", message: "private message" }),
 		});
 		state.config.sensitiveKeys = source === "host" ? ["_tag"] : [];
