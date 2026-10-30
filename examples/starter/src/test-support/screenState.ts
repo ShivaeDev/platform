@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import type { RootOptions } from "react-dom/client";
-import { type Rendered, render } from "@shivaedev/react/client/testing.ts";
+import { type Rendered, render } from "@shivaedev/test-story/client/react.ts";
 
 export interface ScreenSurface {
 	view: Rendered | undefined;

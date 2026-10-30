@@ -3,9 +3,9 @@ import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import { act, createElement } from "react";
 import { useField } from "@shivaedev/form/client/react.ts";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { type Create, useCreate } from "#client/create.ts";
 import { type Editor, useEditor } from "#client/editor.ts";
-import type { Rendered } from "#client/testing.ts";
 import { UnstableSession } from "./UnstableSession.tsx";
 
 export class Unauthorized extends Data.TaggedError("Unauthorized")<{ readonly message: string }> {}

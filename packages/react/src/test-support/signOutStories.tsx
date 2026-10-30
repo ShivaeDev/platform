@@ -2,8 +2,8 @@ import { createMemoryHistory, createRootRoute, createRoute, createRouter, Outlet
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import type { Rendered } from "#client/testing.ts";
 import { SignOutRegistryContext } from "#internal/SignOutRegistryContext.ts";
 import { clickButton } from "./Screen.ts";
 import { SignOutControls } from "./SignOutControls.tsx";

@@ -693,6 +693,16 @@ sharedLists.it("grace sees ada's addition", [signedInMembers("ada", "grace")], f
 });
 ```
 
+### Rendering React components
+
+Use `render`, `eventually`, `captureReactWarnings` and `expectNoReactWarnings` from `@shivaedev/test-story/client/react.ts` in happy-dom tests. Install the optional peers when using this module:
+
+```sh
+pnpm add --save-dev react react-dom @effect/atom-react @types/react @types/react-dom happy-dom
+```
+
+`render(node, options?)` attaches a React root with its own native atom registry. Its `render(nextNode)` keeps that registry; `unmount()` disposes the root, registry and container. Acquire it with `Effect.acquireRelease` in a story kit so the scope releases it. `captureReactWarnings` acquires a scoped readout of console warnings and caught React errors; `expectNoReactWarnings()` registers a Vitest guard instead. The [React render testing guide](https://github.com/ShivaeDev/platform/tree/main/packages/react#render-tests-in-happy-dom) shows the helpers with a native RPC component and explains the act wait and error declarations.
+
 ### Driving a screen
 
 `screenDriver(options)` supplies DOM verbs and readouts for a kit's `verbs` hook. Give it the mounted `root` (or a getter for a root that navigation replaces) and the story's `tell`. The `pending` option is needed only for `settle()`; actions, lookups and readouts work without it. Without `pending`, `settle()` fails immediately in its error channel with `MissingScreenPending`, exported from `server/screenDriver.ts`, even when the screen is idle.
