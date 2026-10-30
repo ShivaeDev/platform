@@ -4,6 +4,7 @@ import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { transact } from "#transact.ts";
 import { Rejected } from "./postgresTransact.ts";
 
+// These stories choose commit, rollback or interruption while the contender is still blocked.
 export const holdAdvisoryLock = Effect.fnUntraced(function* (key: bigint | string) {
 	const sql = yield* SqlClient.SqlClient;
 	const entered = yield* Deferred.make<number>();

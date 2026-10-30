@@ -2,6 +2,7 @@ import { Effect } from "effect";
 import { SqlClient } from "effect/sql";
 import { eventually } from "@shivaedev/test/eventually.ts";
 
+// The shutdown story sends SIGTERM and asserts the worker remains alive while its job is blocked.
 export const holdJob = Effect.fn("DeploymentStory.holdJob")(function* (noteId: number) {
 	const sql = yield* SqlClient.SqlClient;
 	const connection = yield* sql.reserve;

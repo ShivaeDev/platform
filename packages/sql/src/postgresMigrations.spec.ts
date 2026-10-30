@@ -1,9 +1,8 @@
-import { Effect, Fiber } from "effect";
+import { Effect } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
 import { postgres } from "#test/sqlStory.ts";
-import { hasHeldSeed, hasMigrationTables } from "#test/sqlTraits.ts";
+import { hasMigrationTables } from "#test/sqlTraits.ts";
 
 postgres.it(
 	"migratePostgres initializes, upgrades and reruns without repeating writes",
@@ -60,8 +59,8 @@ postgres.it(
 
 postgres.it(
 	"migratePostgres serializes upgrades on an existing ledger and applies each migration once",
-	[hasMigrationTables(), hasHeldSeed()],
-	function* ({ migrations, sql, migratePostgres, heldSeed, waitingOn }) {
+	[hasMigrationTables()],
+	function* ({ migrations, sql, migratePostgres, advisoryXactLock, raceWithLock }) {
 		const { ledger, orders } = migrations();
 		yield* migratePostgres({
 			loader: Migrator.fromRecord({
@@ -70,17 +69,18 @@ postgres.it(
 			lockTimeout: "5 seconds",
 			table: ledger,
 		});
-		const held = heldSeed();
-		const options = { loader: held.loader, lockTimeout: "5 seconds", table: ledger } as const;
-		const first = yield* migratePostgres(options).pipe(Effect.forkScoped);
-		const holder = yield* held.entered;
-		const second = yield* migratePostgres(options).pipe(Effect.forkScoped);
-		yield* eventually(waitingOn(holder).pipe(Effect.flatMap((waiting) => Effect.try(() => expect(waiting).toBe(true))))).pipe(
-			Effect.timeout("5 seconds"),
-		);
-		yield* held.release;
-		expect(yield* Fiber.join(first)).toEqual([[2, "seed_orders"]]);
-		expect(yield* Fiber.join(second)).toEqual([]);
+		const options = {
+			loader: Migrator.fromRecord({ "2_seed_orders": sql`insert into ${sql(orders)} (name) values ('Printer paper')`.pipe(Effect.asVoid) }),
+			lockTimeout: "5 seconds",
+			table: ledger,
+		} as const;
+
+		const results = yield* raceWithLock({
+			effects: [migratePostgres(options), migratePostgres(options)],
+			lock: advisoryXactLock(`effect_sql_migrations:${ledger}`),
+		});
+
+		expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual(expect.arrayContaining([[[2, "seed_orders"]], []]));
 		expect(yield* sql`select name from ${sql(orders)}`).toEqual([{ name: "Printer paper" }]);
 		expect(yield* sql`select migration_id from ${sql(ledger)} order by migration_id`).toEqual([{ "migration_id": 1 }, { "migration_id": 2 }]);
 	},

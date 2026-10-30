@@ -58,6 +58,7 @@
 		"@shivaedev/quality": "workspace:*",
 		"@shivaedev/service": "workspace:*",
 		"@shivaedev/test": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",
 		"effect": "catalog:",

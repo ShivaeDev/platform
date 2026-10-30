@@ -5,21 +5,17 @@ import { AdvisoryLockOutsideTransaction } from "#advisoryXactLock.ts";
 import { Rejected } from "#test/postgresTransact.ts";
 import { postgres } from "#test/sqlStory.ts";
 
-postgres.it(
-	"the same bigint advisory key waits until the holding transaction commits",
-	[],
-	function* ({ advisoryXactLock, holdAdvisoryLock, transact, waitingOn }) {
-		const key = 9_223_372_036_854_775_807n;
-		const held = yield* holdAdvisoryLock(key);
-		const second = yield* advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }), Effect.forkScoped);
-		yield* eventually(waitingOn(held.pid).pipe(Effect.flatMap((waiting) => Effect.try(() => expect(waiting).toBe(true))))).pipe(
-			Effect.timeout("3 seconds"),
-		);
-		yield* held.commit;
-		yield* Fiber.join(held.fiber);
-		expect(yield* Fiber.join(second).pipe(Effect.timeout("3 seconds"))).toBeUndefined();
-	},
-);
+postgres.it("the same bigint advisory key waits until the holding transaction commits", [], function* ({ advisoryXactLock, raceWithLock, transact }) {
+	const key = 9_223_372_036_854_775_807n;
+
+	const results = yield* raceWithLock({
+		effects: [advisoryXactLock(key).pipe(transact({ onSqlError: (error) => error }))],
+		lock: advisoryXactLock(key),
+		release: "commit",
+	});
+
+	expect(yield* Effect.forEach(results, Effect.fromResult)).toEqual([undefined]);
+});
 
 postgres.it(
 	"different advisory keys proceed while a holding transaction remains open",

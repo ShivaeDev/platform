@@ -1,6 +1,7 @@
 import { Effect } from "effect";
 import { dual } from "effect/Function";
 import { SqlClient } from "effect/sql";
+import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
 import { advisoryXactLock } from "#advisoryXactLock.ts";
 import { assertPostgresMigrations } from "#assertPostgresMigrations.ts";
 import { migratePostgres } from "#migrations.ts";
@@ -125,6 +126,7 @@ export function sqlVerbs(engine: Effect.Success<ReturnType<typeof sqlEngine>>) {
 		paymentFixture: engine.payments.get,
 		pendingPostgresMigrations,
 		pullRequests: engine.pullRequests.get,
+		raceWithLock,
 		readPostgresRelease,
 		recordedLogs: () => engine.logs,
 		recordSpans,
