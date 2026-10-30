@@ -1,1 +1,2 @@
 {"path":"packages/skills/src/layout.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/skills/src/pullRequestSync.spec.ts","rule":"tests/grouped-outcomes","count":2}

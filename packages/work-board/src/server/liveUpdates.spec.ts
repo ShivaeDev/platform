@@ -3,7 +3,7 @@ import * as HttpStatus from "effect/http/HttpStatus";
 import { describe, expect } from "vitest";
 import { boardHome, boardStory, projectFiles } from "#test/boardStory.ts";
 import { faultyWatch } from "#test/faults.ts";
-import { changesUntil, rpcDocument, rpcPaths, rpcWatcher } from "#test/nativeRpc.ts";
+import { changesUntil, changesUntilShown, rpcDocument, rpcPaths, rpcWatcher } from "#test/nativeRpc.ts";
 import { nestedProject } from "#test/servingTraits.ts";
 
 const liveProject = [
@@ -91,10 +91,12 @@ describe("watcher recovery", () => {
 			faults.heal();
 			expect(yield* events.watching(true)).toBe(true);
 			editFile("notes/log.md", "# Log\n\nAfter the restart.\n");
-			expect(yield* changesUntil(events, "notes/log.md")).toMatchObject({
-				_tag: "Changed",
-				keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/log.md" }]),
-			});
+			yield* changesUntilShown(
+				events,
+				"notes/log.md",
+				Effect.map(rpcDocument(board, "/notes/log.md"), (document) => document.source.includes("After the restart.")),
+			);
+			expect((yield* rpcDocument(board, "/notes/log.md")).source).toContain("After the restart.");
 			yield* events.close();
 		},
 	);

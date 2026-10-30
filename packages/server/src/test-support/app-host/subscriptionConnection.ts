@@ -1,3 +1,4 @@
+import { IncomingMessage } from "node:http";
 import { toIncomingMessage } from "@effect/platform-node/NodeHttpServerRequest";
 import { Effect, Stream } from "effect";
 import { HttpRouter, HttpServerResponse } from "effect/http";
@@ -13,7 +14,11 @@ export function subscriptionConnection(mode: SubscriptionState["mode"]) {
 				if (mode === "completed") {
 					yield* incoming.text;
 				}
-				connection.subscription = subscribe(connection, toIncomingMessage(incoming));
+				const node = toIncomingMessage(incoming);
+				if (!(node instanceof IncomingMessage)) {
+					return yield* Effect.die(new Error("The subscription fixture requires an HTTP/1.1 request"));
+				}
+				connection.subscription = subscribe(connection, node);
 				connection.ready();
 				return HttpServerResponse.stream(Stream.make(new TextEncoder().encode("ready")).pipe(Stream.concat(Stream.never)));
 			}),

@@ -1,9 +1,12 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { appRows, userReferences } from "#test/better-auth/userReferences.ts";
 
 userReferences.it("deleting an auth user cascades to its referencing app rows", [appRows("cascade")], function* ({ deleteUser, storedAppRows }) {
 	expect(yield* storedAppRows).toEqual([{ title: "Alice" }, { title: "Bob" }]);
+
 	yield* deleteUser("Alice");
+
 	expect(yield* storedAppRows).toEqual([{ title: "Bob" }]);
 });
 
@@ -12,8 +15,12 @@ userReferences.it(
 	[appRows("set null")],
 	function* ({ deleteUser, storedAppRows, storedUnownedRows }) {
 		expect(yield* storedUnownedRows).toEqual([]);
+
 		yield* deleteUser("Alice");
-		expect(yield* storedAppRows).toEqual([{ title: "Alice" }, { title: "Bob" }]);
-		expect(yield* storedUnownedRows).toEqual([{ title: "Alice" }]);
+
+		yield* outcomes({
+			"retained app rows": [storedAppRows, [{ title: "Alice" }, { title: "Bob" }]],
+			"rows without a user": [storedUnownedRows, [{ title: "Alice" }]],
+		});
 	},
 );

@@ -56,8 +56,8 @@ const routes = HttpRouter.add("POST", "/webhook", (request) =>
 );
 ```
 
-Oversized `content-length` headers are rejected before reading; chunked overflow drains the remaining body and preserves the connection for another request. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413. Consume the body once through this reader and decode the result in the application.
+Oversized `content-length` headers are rejected before reading. Native Effect owns body collection and connection cleanup after chunked overflow; connection reuse depends on its unread-body drain limit. `RequestBodyTooLarge` is a typed failure that implements Effect's `HttpServerRespondable` protocol with status 413. Consume the body once through this reader and decode the result in the application.
 
 ### Install and limits
 
-Install `@shivaedev/http` with `effect` as its peer. `server/boundedBody.ts` reads Node requests and needs the optional peer `@effect/platform-node`; the client modules work without it. The package has no root entry; import the module that defines the name.
+Install `@shivaedev/http` with `effect` as its peer. The package has no root entry; import the module that defines the name.

@@ -1,100 +1,89 @@
-import { Effect, Exit, Layer, Scope } from "effect";
-import { Caller, Declared, type ServiceEngine } from "./serviceEngine.ts";
+import { Effect, Exit, Fiber, Layer, Scope } from "effect";
+import {
+	answerOf,
+	buildOutcomeOf,
+	builtCounter,
+	builtWrapper,
+	CallerNumber,
+	type CountingMethod,
+	Greeting,
+	type ServiceEngine,
+	serviceLayer,
+} from "./serviceEngine.ts";
+
+function present<TValue>(value: TValue | undefined, missing: string) {
+	return value === undefined ? Effect.die(new Error(missing)) : Effect.succeed(value);
+}
+
+function interrupted(fiber: Fiber.Fiber<unknown, unknown>) {
+	return Effect.andThen(Fiber.interrupt(fiber), Fiber.await(fiber));
+}
 
 export function serviceVerbs(engine: ServiceEngine, tell: (line: string) => void) {
 	return {
+		answers: () => Effect.sync(() => [...engine.answers]),
 		build: () =>
 			Effect.gen(function* () {
-				tell("the declared service Layer is built");
-				const declaration = engine.declaration;
-				switch (declaration.kind) {
-					case "scoped": {
-						const context = yield* Layer.buildWithScope(declaration.service.layer, engine.scope);
-						engine.built = { kind: "scoped", read: Effect.provide(declaration.service, context) };
-						return;
-					}
-					case "required": {
-						const layer = declaration.service.layer.pipe(Layer.provide(Layer.succeed(Declared, { identity: {}, prefix: declaration.prefix })));
-						const context = yield* Layer.buildWithScope(layer, engine.scope);
-						engine.built = { kind: "required", read: Effect.provide(declaration.service, context) };
-						return;
-					}
-					case "generic": {
-						const context = yield* Layer.buildWithScope(declaration.service.layer, engine.scope);
-						engine.built = { kind: "generic", read: Effect.provide(declaration.service, context) };
-						return;
-					}
-					case "undeclared":
-						return yield* Effect.die("Declare a service before building its Layer");
-				}
+				tell("the caller builds the service's Layer");
+				engine.buildExit = yield* Effect.exit(Layer.buildWithScope(serviceLayer(engine, "hello"), engine.layerScope));
 			}),
-		close: () => {
-			tell("the service Layer's lifetime ends");
-			if (engine.built.kind === "unbuilt") {
-				return Effect.die("Build a service before closing its Layer");
-			}
-			return Scope.close(engine.scope, Exit.void);
+		buildOutcome: () => Effect.sync(() => buildOutcomeOf(engine.buildExit)),
+		call: (method: CountingMethod) =>
+			Effect.gen(function* () {
+				tell(`the caller calls ${method}`);
+				const service = yield* builtCounter(engine);
+				engine.answers.push(answerOf(yield* Effect.exit(service[method]())));
+			}),
+		closeCallerScope: () =>
+			Effect.gen(function* () {
+				tell("the caller closes its scope");
+				const scope = yield* present(engine.callerScope, "Declare callOpensResource() before closing the caller's scope");
+				yield* closeScope(scope);
+			}),
+		closeLayer: () => {
+			tell("the owner closes the Layer's scope");
+			return closeScope(engine.layerScope);
 		},
-		greet: ({ callerPrefix }: { readonly callerPrefix?: string } = {}) =>
+		greet: ({ callerProvides }: { readonly callerProvides?: string } = {}) =>
 			Effect.gen(function* () {
-				tell(callerPrefix === undefined ? "the service greets the caller" : `the caller greets with an overridden prefix ${callerPrefix}`);
-				const built = engine.built;
-				if (built.kind !== "required") {
-					return yield* Effect.die("Build a service with a requirement before greeting");
-				}
-				const service = yield* built.read;
-				const greet = service.greet();
-				return yield* callerPrefix === undefined ? greet : greet.pipe(Effect.provideService(Declared, { identity: {}, prefix: callerPrefix }));
+				tell(
+					callerProvides === undefined
+						? "the caller asks for a greeting"
+						: `the caller asks for a greeting while providing the greeting "${callerProvides}"`,
+				);
+				const service = yield* builtCounter(engine);
+				return yield* callerProvides === undefined ? service.greet() : service.greet().pipe(Effect.provideService(Greeting, callerProvides));
 			}),
-		identity: () =>
+		initializerRuns: () => Effect.sync(() => engine.initializerRuns),
+		interruptBuild: () =>
 			Effect.gen(function* () {
-				tell("a caller reads the service's private identity");
-				const built = engine.built;
-				if (built.kind !== "scoped") {
-					return yield* Effect.die("Build a scoped service before reading its identity");
-				}
-				const service = yield* built.read;
-				return yield* service.identity();
+				tell("the owner interrupts the Layer's build");
+				const build = yield* present(engine.build, "Declare buildWaitsInInitializer() before interrupting the build");
+				engine.buildExit = yield* interrupted(build);
 			}),
-		open: () =>
+		interruptCall: () =>
 			Effect.gen(function* () {
-				tell("a caller opens a resource in its own scope");
-				const built = engine.built;
-				if (built.kind !== "scoped") {
-					return yield* Effect.die("Build a scoped service before opening a resource");
-				}
-				const service = yield* built.read;
-				return yield* Effect.scoped(service.open());
+				tell("the caller interrupts its running call");
+				const call = yield* present(engine.call, "Declare callHoldsResource() before interrupting the call");
+				engine.answers.push(answerOf(yield* interrupted(call)));
 			}),
-		preserveCaller: (value: number) =>
+		interruptOwner: () =>
 			Effect.gen(function* () {
-				tell(`the generic method preserves a caller service with value ${value}`);
-				const built = engine.built;
-				if (built.kind !== "generic") {
-					return yield* Effect.die("Build a service with a generic method before preserving a caller");
-				}
-				const service = yield* built.read;
-				return yield* service.preserve(Effect.map(Caller, (caller) => caller.value)).pipe(Effect.provideService(Caller, { value }));
+				tell("the owner is interrupted");
+				const owner = yield* present(engine.owner, "Declare ownerHoldsService() before interrupting the owner");
+				yield* interrupted(owner);
 			}),
-		released: () =>
+		methodBuilds: () => Effect.sync(() => engine.methodBuilds),
+		released: () => Effect.sync(() => [...engine.released]),
+		wrapCallersNumber: (number: number) =>
 			Effect.gen(function* () {
-				tell("the service reports its released resources");
-				const built = engine.built;
-				if (built.kind !== "scoped") {
-					return yield* Effect.die("Build a scoped service before reading released resources");
-				}
-				const service = yield* built.read;
-				return yield* service.released();
-			}),
-		sameIdentity: () =>
-			Effect.gen(function* () {
-				tell("the method compares its declared requirement with the initialized identity");
-				const built = engine.built;
-				if (built.kind !== "required") {
-					return yield* Effect.die("Build a service with a requirement before comparing identities");
-				}
-				const service = yield* built.read;
-				return yield* service.sameIdentity();
+				tell(`the caller provides the number ${number} and asks the generic method to wrap an effect that reads it`);
+				const service = yield* builtWrapper(engine);
+				return yield* service.wrap(Effect.service(CallerNumber)).pipe(Effect.provideService(CallerNumber, number));
 			}),
 	};
+}
+
+function closeScope(scope: Scope.Closeable) {
+	return Scope.close(scope, Exit.void);
 }

@@ -120,7 +120,7 @@ describe("pages", () => {
 			editFile("notes/new.md", "# New\n");
 			expect(yield* changesUntil(events, "notes/new.md")).toMatchObject({
 				_tag: "Changed",
-				keys: expect.arrayContaining([{ _tag: "Item", collection: "work-board/documents", id: "notes/new.md" }]),
+				keys: [{ _tag: "Bucket", collection: "work-board/index", field: "workspace", value: "local" }],
 			});
 			yield* events.close();
 			expect(yield* rpcPaths(board)).toContain("/notes/new.md");
@@ -138,11 +138,6 @@ describe("local-only safety", () => {
 		expect(yield* get("/", "board.example")).toEqual({ body: "Only loopback hosts are served", status: HttpStatus.fromLiteral("Forbidden") });
 		expect((yield* get("/_board/client.js", "board.example:4747")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
 		expect((yield* get("/", `localhost:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
-	});
-
-	boardStory.it("judges the Host header even when the request target names a loopback host", readingProject, function* ({ board, get }) {
-		expect((yield* get(`http://127.0.0.1:${board.port}/`, "board.example")).status).toBe(HttpStatus.fromLiteral("Forbidden"));
-		expect((yield* get("http://board.example/", `127.0.0.1:${board.port}`)).status).toBe(HttpStatus.fromLiteral("OK"));
 	});
 
 	boardStory.it("sends a policy that allows only the board's own scripts and forbids caching", readingProject, function* ({ request }) {

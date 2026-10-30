@@ -1,25 +1,21 @@
-import { Effect, Layer, Stream } from "effect";
-import { FetchHttpClient } from "effect/http";
-import type * as AsyncResult from "effect/reactivity/AsyncResult";
+import { Effect } from "effect";
+import * as AsyncResult from "effect/reactivity/AsyncResult";
 import * as Atom from "effect/reactivity/Atom";
 import * as AtomRegistry from "effect/reactivity/AtomRegistry";
-import * as AtomRpc from "effect/reactivity/AtomRpc";
 import type * as Reactivity from "effect/reactivity/Reactivity";
-import { RpcClient, RpcSerialization } from "effect/rpc";
-import type { RpcClientError } from "effect/rpc/RpcClientError";
-import { type Bound, bind } from "@shivaedev/contract/bind.ts";
+import { type LiveBound, LiveConnection } from "@shivaedev/contract/automaticLive.ts";
+import { type Bound, bind, makeClient } from "@shivaedev/contract/bind.ts";
 import type { Contract } from "@shivaedev/contract/contract.ts";
-import { live } from "@shivaedev/contract/live.ts";
-import { type ResumeOptions, resumeSignal } from "@shivaedev/contract/resume.ts";
-import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
-import { Subscribe, workContract, workRpcs } from "#rpc/contract.ts";
+import type { ResumeOptions } from "@shivaedev/contract/resume.ts";
+import { workContract, workRpcs } from "#rpc/contract.ts";
 import { handoffContract } from "#rpc/handoffContract.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
 import { responseContract } from "#rpc/responseContract.ts";
 
-export interface Reader {
-	readonly reader: unique symbol;
+function connection(url: string) {
+	return makeClient(workContract, { group: workRpcs, url: `${url.replace(/\/$/u, "")}/_board/rpc` });
 }
+export type Reader = ReturnType<typeof connection>["Client"]["Identifier"];
 
 type BoundContract<TContract> =
 	TContract extends Contract<infer TName, infer TQueries, infer TCommands, infer TRpcs, infer TStreams>
@@ -35,26 +31,19 @@ export interface BrowserClient {
 	readonly responses: BoundContract<typeof responseContract>;
 	readonly run: <A, E>(effect: Effect.Effect<A, E, Reader>, signal?: AbortSignal) => Promise<A>;
 	readonly runtime: Atom.AtomRuntime<Reader>;
-	readonly updates: ReturnType<typeof live<Reader, InternalServerError | RpcClientError, never>>;
+	readonly updates: LiveBound[typeof LiveConnection];
 }
 
 export function browserClient(url: string, options: ResumeOptions = {}): BrowserClient {
-	class Client extends AtomRpc.Service<Reader>()("WorkBoard/Reader", {
-		group: workRpcs,
-		protocol: RpcClient.layerProtocolHttp({ url: `${url}/_board/rpc` }).pipe(Layer.provide([FetchHttpClient.layer, RpcSerialization.layerNdjson])),
-	}) {}
-	const api = bind(workContract, Client, { live: false });
+	const { Client } = connection(url);
+	const bindOptions = {
+		...(options.native === undefined ? {} : { resume: options.native }),
+		...(options.window === undefined ? {} : { resumeWindow: options.window }),
+	};
+	const api = bind(workContract, Client, bindOptions);
 	const registry = AtomRegistry.make({ "defaultIdleTTL": 0, timeoutResolution: 1 });
-	const indexing = Atom.make<Indexing | undefined>(undefined);
-	const updates = live(Client.runtime, {
-		resume: resumeSignal(options),
-		resyncKeys: Subscribe.reads(undefined),
-		stream: api.subscribe.run(undefined).pipe(
-			Stream.tap((item) => Effect.sync(() => registry.set(indexing, item._tag === "Indexing" ? item : undefined))),
-			Stream.filter((item) => item._tag !== "Indexing"),
-			Stream.ensuring(Effect.sync(() => registry.set(indexing, undefined))),
-		),
-	});
+	const indexing = Atom.map(api.indexing.query(), (result) => (AsyncResult.isSuccess(result) ? result.value : undefined));
+	const updates = api[LiveConnection];
 	registry.mount(updates.connection);
 	async function read<A, E>(atom: Atom.Atom<AsyncResult.AsyncResult<A, E>>, signal?: AbortSignal) {
 		try {
@@ -92,10 +81,10 @@ export function browserClient(url: string, options: ResumeOptions = {}): Browser
 		}
 		return result.success;
 	}
-	const responses = bind(responseContract, Client, { live: false });
+	const responses = bind(responseContract, Client, bindOptions);
 	return {
 		api,
-		handoffs: bind(handoffContract, Client, { live: false }),
+		handoffs: bind(handoffContract, Client, bindOptions),
 		indexing,
 		mutate,
 		read,

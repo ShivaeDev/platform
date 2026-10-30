@@ -35,7 +35,7 @@ const guard = Effect.fn("Transact.guard")(function* () {
 const invalidations = makeChannel<unknown, SqlClient.SqlClient | Reactivity.Reactivity, SqlError>({
 	name: "@shivaedev/sql/transact",
 	owner: Effect.map(SqlClient.SqlClient, (sql) => sql.transactionService),
-	publish: (keys) => Reactivity.invalidate(keys),
+	publish: (keys) => Reactivity.Reactivity.use((reactivity) => Effect.sync(() => reactivity.invalidateUnsafe(keys))),
 	unowned: guard(),
 });
 

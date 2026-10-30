@@ -352,7 +352,7 @@ try {
 }
 ```
 
-`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, `maintainer` selects the human responder label (default `maintainer`), and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests still require a loopback `Host`; a missing/non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
+`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, `maintainer` selects the human responder label (default `maintainer`), and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests require a loopback host as resolved by Effect's HTTP server; a missing or non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
 
 #### Read and wait from a Node agent
 
@@ -559,7 +559,7 @@ In Claude Code, the [Work Board plugin](https://github.com/ShivaeDev/platform/tr
 | `--port <number>`                            | Select the shared server's port; default `4747`    |
 | `--url <origin>`                             | Select an HTTP loopback origin instead of `--port` |
 
-The browser uses local NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/goals`, `/_board/work`, `/_board/library`, `/_board/system`, `/_board/handoff`, and identity links load the React shell. `GET /_board/respond` redirects an open request to its item’s answer card and `GET /_board/result` redirects to the result's item page, both with HTTP 302; an unavailable request returns an HTTP 409 page. Search and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
+The browser carries RPC and live query traffic over one WebSocket at `/_board/rpc`. Local command clients can also use NDJSON RPC at `POST /_board/rpc`. Ordinary document GETs, `/_board/start`, `/_board/goals`, `/_board/work`, `/_board/library`, `/_board/system`, `/_board/handoff`, and identity links load the React shell. `GET /_board/respond` redirects an open request to its item’s answer card and `GET /_board/result` redirects to the result's item page, both with HTTP 302; an unavailable request returns an HTTP 409 page. Search and live subscriptions use the same RPC route. There is no automatic workspace discovery or server launch in agent commands.
 
 A running `work-board <dir>` also serves that NDJSON RPC at `POST /_board/rpc` over the Unix socket `<dir>/board.sock`, using the same handlers and services as TCP. Tools can read `work-board.inbox`, `work-board.fleetItems` and `work-board.goals` from the board directory without knowing its port. Each board directory has its own socket. For example:
 

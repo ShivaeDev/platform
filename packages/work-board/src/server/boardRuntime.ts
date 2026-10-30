@@ -1,6 +1,11 @@
-import { Context, Effect, FileSystem, Layer, Path, type PlatformError, Schedule, SubscriptionRef } from "effect";
+import { Context, Effect, FileSystem, Layer, Path, type PlatformError, Schedule, Stream, SubscriptionRef } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
+import { invalidationKeys } from "@shivaedev/changes/keys.ts";
+import { makeLiveServer } from "@shivaedev/contract/makeLiveServer.ts";
+import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { DiagnosticsConfig, DiagnosticsSources } from "#diagnostics/source.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
+import { index as indexKeys } from "#rpc/keys.ts";
 import type { BoardOptions } from "#server/board.ts";
 import { boardServices } from "#server/boardServices.ts";
 import { daemonDiagnostics } from "#server/diagnostics/daemon.ts";
@@ -10,6 +15,7 @@ import { repositoryPulls } from "#server/files/repository.ts";
 import { checkBrowserAssets, mermaidRoot } from "#server/http/assets.ts";
 import { Highlighter } from "#server/render/Highlighter.ts";
 import type { HandlerOptions } from "#server/rpc/HandlerOptions.ts";
+import { publishChanges } from "#server/rpc/publishChanges.ts";
 import { type Snapshot, searchSnapshot } from "#server/search/snapshot.ts";
 import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 
@@ -18,6 +24,8 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 	const mermaid = yield* mermaidRoot();
 	yield* checkBrowserAssets();
 	const changes = yield* watchChanges(options.root);
+	const liveContext = yield* Layer.build(Layer.effect(AppChanges, makeLiveServer).pipe(Layer.provideMerge(Reactivity.layer)));
+	const live = Layer.succeedContext(liveContext);
 	const path = yield* Path.Path;
 	const fleetFolder = path.relative(path.resolve(), options.root) || ".";
 	const platform = (yield* Effect.context<Highlighter | FileSystem.FileSystem | Path.Path>()).pipe(
@@ -31,6 +39,11 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 		changes,
 		options.maintainer,
 		indexing,
+	);
+
+	yield* SubscriptionRef.changes(indexing).pipe(
+		Stream.runForEach(() => Context.get(liveContext, Reactivity.Reactivity).invalidate(invalidationKeys([indexKeys.item("progress")]))),
+		Effect.forkScoped,
 	);
 	yield* Effect.forkScoped(
 		index.pipe(
@@ -55,7 +68,7 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 					fleetPort: options.fleetPort,
 					home,
 					index: Effect.provideContext(index, platform),
-					indexing: SubscriptionRef.changes(indexing),
+					indexing: SubscriptionRef.get(indexing),
 					pullRequests,
 					root: options.root,
 					writable: options.responses === true,
@@ -70,5 +83,6 @@ export const boardRuntime = Effect.fn("WorkBoard.boardRuntime")(function* (optio
 		),
 	);
 	const context = Context.merge(platform, services);
-	return { changes, context, home, index, mermaid, rpcHandlers: Layer.succeedContext(services) };
+	yield* publishChanges.pipe(Effect.provideContext(Context.merge(liveContext, context)), Effect.forkScoped);
+	return { changes, context, home, index, live, mermaid, rpcHandlers: Layer.succeedContext(services).pipe(Layer.provideMerge(live)) };
 });

@@ -85,7 +85,8 @@ export function localRpcGuard<E, R>(
 		const request = yield* HttpServerRequest.HttpServerRequest;
 		const serialization = yield* RpcSerialization.RpcSerialization;
 		const contentType = request.headers["content-type"]?.split(";")[0]?.trim().toLowerCase();
-		return allowed(request) && contentType === serialization.contentType
+		const legacyNdjson = serialization.contentType === RpcSerialization.ndjson.contentType && contentType === "application/ndjson";
+		return allowed(request) && (contentType === serialization.contentType || legacyNdjson)
 			? yield* continueHttpTrace(effect, request)
 			: HttpServerResponse.text("Local same-origin requests only", { status: HttpStatus.fromLiteral("Forbidden") });
 	});

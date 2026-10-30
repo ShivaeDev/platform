@@ -46,7 +46,7 @@ export function nodeSubscriptionSignal(options: NodeSubscriptionSignalOptions): 
 	}
 	nodeRequest.once("close", onRequestClose);
 	socket.once("close", onSocketClose);
-	if (nodeRequest.destroyed || socket.destroyed) {
+	if ((nodeRequest.destroyed && !nodeRequest.complete) || socket.destroyed) {
 		controller.abort();
 	}
 	let disposed = false;

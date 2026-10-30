@@ -10,7 +10,7 @@ import { LiveConnection } from "#automaticLive.ts";
 import { bind } from "#bind.ts";
 import { makeLiveServer } from "#makeLiveServer.ts";
 import { type QueryReference, queryKeys } from "#serverMetadata.ts";
-import { Guard, Preferences, Save, Session } from "./sessionContract.ts";
+import { Guard, Preferences, Save, Session } from "#test/sessionContract.ts";
 
 export const sessionEngine = Effect.gen(function* () {
 	const stored = new Map([
@@ -77,10 +77,17 @@ export const sessionEngine = Effect.gen(function* () {
 				runtime,
 			}) {}
 			const api = bind(Preferences, Client, { registry });
+			const otherBinding = bind(Preferences, Client, { registry });
 			function run<A, E>(effect: Effect.Effect<A, E, Client | Reactivity.Reactivity>) {
 				return Effect.suspend(() => AtomRegistry.getResult(registry, Client.runtime.atom(effect)));
 			}
-			return { api, registry, run, withoutOwner: () => Reflect.apply(bind, undefined, [Preferences, Client]) };
+			return {
+				api,
+				pause: (paused: boolean) => registry.set(otherBinding[LiveConnection].paused, paused),
+				registry,
+				run,
+				withoutOwner: () => Reflect.apply(bind, undefined, [Preferences, Client]),
+			};
 		});
 	}
 	const alice = yield* open("alice");

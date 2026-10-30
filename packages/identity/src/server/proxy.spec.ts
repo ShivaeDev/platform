@@ -93,3 +93,7 @@ transport.it("a request forwarded over plain HTTP with an explicit port is serve
 transport.it("a forwarded request without an Origin is served", [trustedProxy("10.0.0.2")], function* ({ forwardedRequestFrom }) {
 	expect(yield* forwardedRequestFrom("10.0.0.2", {}, ["origin"])).toBe("served");
 });
+
+transport.it("a native NDJSON request from a trusted proxy is served", [trustedProxy("10.0.0.2")], function* ({ forwardedRequestFrom }) {
+	expect(yield* forwardedRequestFrom("10.0.0.2", { "content-type": "application/x-ndjson; charset=utf-8" })).toBe("served");
+});

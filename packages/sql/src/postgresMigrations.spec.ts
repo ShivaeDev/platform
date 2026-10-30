@@ -1,4 +1,4 @@
-import { Cause, Effect, Exit, Fiber } from "effect";
+import { Effect, Fiber } from "effect";
 import { Migrator } from "effect/sql";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/test/eventually.ts";
@@ -39,7 +39,7 @@ postgres.it(
 			"1_create_orders": sql`create table ${sql(orders)} (name text primary key)`.pipe(Effect.asVoid),
 		};
 		yield* migratePostgres({ loader: Migrator.fromRecord(initial), lockTimeout: "5 seconds", table: ledger });
-		const exit = yield* migratePostgres({
+		const failure = yield* migratePostgres({
 			loader: Migrator.fromRecord({
 				...initial,
 				"2_add_audit_and_seed": Effect.gen(function* () {
@@ -50,15 +50,8 @@ postgres.it(
 			}),
 			lockTimeout: "5 seconds",
 			table: ledger,
-		}).pipe(Effect.exit);
-		expect(Exit.isFailure(exit)).toBe(true);
-		if (Exit.isFailure(exit)) {
-			expect(Cause.hasDies(exit.cause)).toBe(true);
-			expect(Cause.squash(exit.cause)).toMatchObject({
-				_tag: "MigrationError",
-				kind: "Failed",
-			});
-		}
+		}).pipe(Effect.flip);
+		expect(failure).toMatchObject({ _tag: "MigrationError", kind: "Failed" });
 		expect(yield* sql`select name from ${sql(orders)}`).toEqual([]);
 		expect(yield* sql`select to_regclass(${audit}) as table_name`).toEqual([{ "table_name": null }]);
 		expect(yield* sql`select migration_id from ${sql(ledger)}`).toEqual([{ "migration_id": 1 }]);

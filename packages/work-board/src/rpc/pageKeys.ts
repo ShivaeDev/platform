@@ -1,5 +1,5 @@
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { documents, identities, index, workspace } from "./keys.ts";
+import { documents, identities, index, workspace } from "#rpc/keys.ts";
 
 export function pageKeys(url: string): readonly Key[] {
 	const path = new URL(url, "http://127.0.0.1").pathname;
@@ -8,7 +8,7 @@ export function pageKeys(url: string): readonly Key[] {
 	if (item) {
 		key = identities.item(decodeURIComponent(item));
 	} else if (path.startsWith("/_board/")) {
-		key = index.list;
+		key = index.bucket.workspace("local");
 	}
 	return [workspace.list, key];
 }

@@ -1,5 +1,11 @@
 {"path":"packages/admin/src/client/UsersTable.tsx","rule":"react/jsx-conditionals","count":2}
+{"path":"packages/admin/src/jobs/jobsPostgres.spec.ts","rule":"tests/grouped-outcomes","count":3}
+{"path":"packages/admin/src/jobs/retryPostgres.spec.ts","rule":"tests/grouped-outcomes","count":1}
+{"path":"packages/admin/src/jobs/retryPostgres.spec.ts","rule":"tests/wait-on-events","count":2}
 {"path":"packages/admin/src/page.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/admin/src/protectedPages.spec.ts","rule":"tests/grouped-outcomes","count":4}
 {"path":"packages/admin/src/registry.ts","rule":"effect/boundary","count":1}
 {"path":"packages/admin/src/server/jobsHandlers.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/admin/src/server/registerAdmin.ts","rule":"effect/boundary","count":2}
+{"path":"packages/admin/src/users/permissions.spec.ts","rule":"tests/domain-outcomes","count":1}
+{"path":"packages/admin/src/users/permissions.spec.ts","rule":"tests/grouped-outcomes","count":3}

@@ -1,4 +1,4 @@
-import { Context, Effect, FileSystem, Path, type PlatformError, type Stream } from "effect";
+import { Context, Effect, FileSystem, Path, type PlatformError } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
 import type { Document } from "#browser/document/schema.ts";
 import type { Indexing } from "#rpc/Indexing.ts";
@@ -11,7 +11,7 @@ export interface WorkspaceOptions {
 	readonly fleetPort?: number | null | undefined;
 	readonly home?: string | undefined;
 	readonly index: Effect.Effect<Snapshot, PlatformError.PlatformError>;
-	readonly indexing?: Stream.Stream<Indexing | undefined> | undefined;
+	readonly indexing?: Effect.Effect<Indexing | undefined> | undefined;
 	readonly pullRequests?: Effect.Effect<string | undefined> | undefined;
 	readonly root: string;
 	readonly writable: boolean;
