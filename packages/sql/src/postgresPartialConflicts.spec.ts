@@ -1,69 +1,109 @@
-import { Effect, Option } from "effect";
-import { SqlError } from "effect/sql/SqlError";
 import { expect } from "vitest";
-import { PartialRow } from "#test/partialConflicts.ts";
-import { hasPartialConflicts } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { type PartialWrite, partialRowsExist, partialTargets, UNMATCHED_KIND } from "#test/partialTargets.ts";
 
-postgres.it("partial-index conflict ignores keep rows outside the predicate", [hasPartialConflicts()], function* ({ partialConflicts }) {
-	const { rows, observe, statements } = partialConflicts();
-	const input = { a: "one", b: 1, kind: "X", value: 10 };
-	const original = Option.getOrThrow(yield* observe(rows.insertOrIgnore(input)));
-	expect(statements[0]?.[0]).toMatch(/on conflict .* where "kind" = \$\d+ do nothing/u);
-	expect(statements[0]?.[1].at(-1)).toBe("x");
-	expect(yield* rows.insertOrIgnore({ ...input, value: 20 })).toEqual(Option.none());
-	const outside = Option.getOrThrow(yield* rows.insertOrIgnore({ ...input, kind: "Y" }));
-	expect(outside.id).not.toBe(original.id);
-	const inserted = yield* rows.insertManyOrIgnore([input, { ...input, kind: "Y" }, { ...input, a: "two" }]);
-	expect(inserted.map(({ a, kind }) => ({ a, kind }))).toEqual([
-		{ a: "one", kind: "Y" },
-		{ a: "two", kind: "X" },
-	]);
-	expect(yield* rows.findById(original.id)).toEqual(original);
-	expect(yield* rows.findMany({ orderBy: { direction: "asc", field: "id" }, where: { a: "one" } })).toEqual([original, outside, inserted[0]]);
-});
+const oneX = { a: "one", kind: "X", value: 10 };
+const oneY = { a: "one", kind: "Y", value: 20 };
+const twoX = { a: "two", kind: "X", value: 30 };
 
-postgres.it("partial-index upserts update matches and insert rows outside the predicate", [hasPartialConflicts()], function* ({ partialConflicts }) {
-	const { rows } = partialConflicts();
-	const input = { a: "one", b: 1, kind: "X", value: 10 };
-	const original = yield* rows.upsert(input, { updateColumns: ["value"] });
-	expect(yield* rows.upsert({ ...input, value: 20 }, { updateColumns: ["value"] })).toEqual({ inserted: false, row: { ...original.row, value: 20 } });
-	const outside = yield* rows.upsert({ ...input, kind: "Y" }, { updateColumns: ["value"] });
-	expect(outside.row.id).not.toBe(original.row.id);
-	const updated = yield* rows.upsertMany(
-		[
-			{ ...input, value: 30 },
-			{ ...input, kind: "Y", value: 40 },
-		],
-		{ updateColumns: ["value"] },
-	);
-	expect(updated[0]).toEqual({ inserted: false, row: { ...original.row, value: 30 } });
-	expect(updated[1]).toMatchObject({ inserted: true, row: { ...input, kind: "Y", value: 40 } });
-	expect(updated[1]?.row.id).not.toBe(outside.row.id);
-	expect(yield* rows.findById(original.row.id)).toEqual(updated[0]?.row);
-	expect(yield* rows.findById(outside.row.id)).toEqual(outside.row);
-});
+partialTargets.it(
+	"insertOrIgnore of a taken key inside the partial target is ignored",
+	[partialRowsExist([oneX])],
+	function* ({ insertOrIgnore, returned, storedRows }) {
+		yield* insertOrIgnore({ ...oneX, value: 99 });
 
-postgres.it(
-	"an unmatched partial-index target fails in the typed SQL error channel",
-	[hasPartialConflicts()],
-	function* ({ partialConflicts, makeRepository }) {
-		const { options, rows, observe, statements } = partialConflicts();
-		const unmatched = yield* makeRepository(PartialRow, { ...options, conflictWhere: { kind: "y' or true --" } });
-		const input = { a: "one", b: 1, kind: "X", value: 10 };
-		const original = Option.getOrThrow(yield* rows.insertOrIgnore(input));
-		for (const write of [
-			unmatched.insertOrIgnore(input).pipe(Effect.asVoid),
-			unmatched.insertManyOrIgnore([input]).pipe(Effect.asVoid),
-			unmatched.upsert(input, { updateColumns: ["value"] }).pipe(Effect.asVoid),
-			unmatched.upsertMany([input], { updateColumns: ["value"] }).pipe(Effect.asVoid),
-		]) {
-			const failure = yield* observe(write).pipe(Effect.flip);
-			expect(failure).toBeInstanceOf(SqlError);
-			expect(failure).toMatchObject({ reason: { cause: { code: "42P10" } } });
-			expect(statements.at(-1)?.[0]).not.toContain("y' or true --");
-			expect(statements.at(-1)?.[1].at(-1)).toBe("y' or true --");
-		}
-		expect(yield* rows.findMany()).toEqual([original]);
+		yield* outcomes({
+			"returned value": [returned(), ["ignored"]],
+			"stored rows": [storedRows(), [oneX]],
+		});
 	},
 );
+
+partialTargets.it(
+	"insertOrIgnore of the same key outside the partial target inserts a second row",
+	[partialRowsExist([oneX])],
+	function* ({ insertOrIgnore, storedRows }) {
+		yield* insertOrIgnore(oneY);
+
+		expect(yield* storedRows()).toEqual([oneX, oneY]);
+	},
+);
+
+partialTargets.it(
+	"insertManyOrIgnore skips the taken key inside the partial target and returns, in order, the rows outside it or with new keys",
+	[partialRowsExist([oneX])],
+	function* ({ insertManyOrIgnore, returned, storedRows }) {
+		yield* insertManyOrIgnore([{ ...oneX, value: 99 }, oneY, twoX]);
+
+		yield* outcomes({
+			"returned rows": [returned(), [[oneY, twoX]]],
+			"stored rows": [storedRows(), [oneX, oneY, twoX]],
+		});
+	},
+);
+
+partialTargets.it(
+	"upsert of a taken key inside the partial target updates its value and reports an update",
+	[partialRowsExist([oneX])],
+	function* ({ returned, storedRows, upsert }) {
+		yield* upsert({ ...oneX, value: 99 });
+
+		yield* outcomes({
+			"returned value": [returned(), [{ inserted: false, row: { ...oneX, value: 99 } }]],
+			"stored rows": [storedRows(), [{ ...oneX, value: 99 }]],
+		});
+	},
+);
+
+partialTargets.it(
+	"upsert of the same key outside the partial target inserts a second row and reports an insert",
+	[partialRowsExist([oneX])],
+	function* ({ returned, storedRows, upsert }) {
+		yield* upsert(oneY);
+
+		yield* outcomes({
+			"returned value": [returned(), [{ inserted: true, row: oneY }]],
+			"stored rows": [storedRows(), [oneX, oneY]],
+		});
+	},
+);
+
+partialTargets.it(
+	"upsertMany reports, in order, an update inside the partial target and an insert outside it",
+	[partialRowsExist([oneX, oneY])],
+	function* ({ returned, storedRows, upsertMany }) {
+		yield* upsertMany([
+			{ ...oneX, value: 30 },
+			{ ...oneY, value: 40 },
+		]);
+
+		yield* outcomes({
+			"returned results": [
+				returned(),
+				[
+					[
+						{ inserted: false, row: { ...oneX, value: 30 } },
+						{ inserted: true, row: { ...oneY, value: 40 } },
+					],
+				],
+			],
+			"stored rows": [storedRows(), [{ ...oneX, value: 30 }, oneY, { ...oneY, value: 40 }]],
+		});
+	},
+);
+
+for (const write of ["insertManyOrIgnore", "insertOrIgnore", "upsert", "upsertMany"] as const satisfies readonly PartialWrite[]) {
+	partialTargets.it(
+		`${write} through a partial target no index matches fails with SQLSTATE 42P10, binds the predicate instead of inlining it, and writes nothing`,
+		[partialRowsExist([oneX])],
+		function* ({ endings, storedRows, unmatchedPredicate, writeThroughUnmatchedTarget }) {
+			yield* writeThroughUnmatchedTarget(write, twoX);
+
+			yield* outcomes({
+				"stored rows": [storedRows(), [oneX]],
+				"unmatched predicate": [unmatchedPredicate(), { bound: UNMATCHED_KIND, inlined: false }],
+				[`${write} ending`]: [endings(), ["failed with a SQL syntax error (SQLSTATE 42P10)"]],
+			});
+		},
+	);
+}
