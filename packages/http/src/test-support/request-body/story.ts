@@ -1,91 +1,14 @@
-import { Agent, type ClientRequest, createServer, request } from "node:http";
+import { Agent, createServer } from "node:http";
 import { NodeHttpServer } from "@effect/platform-node";
 import { ByteSize, Effect, Layer } from "effect";
 import { HttpIncomingMessage, HttpRouter, HttpServer, HttpServerResponse } from "effect/http";
-import * as HttpStatus from "effect/http/HttpStatus";
 import * as NetAddress from "effect/net/NetAddress";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { RequestBodyTooLarge, readBoundedBody } from "#server/boundedBody.ts";
-
-type Reply = Buffer | string;
-
-interface Exchange {
-	readonly connection: string;
-	readonly reply: Reply;
-}
-
-interface Post {
-	readonly chunks: readonly Uint8Array[];
-	readonly contentLength?: number;
-	readonly tailAfterResponse?: Uint8Array;
-}
-
-interface RouteState {
-	readonly agent: Agent;
-	readonly exchanges: Exchange[];
-	readonly failures: string[];
-	limit: number | undefined;
-	readonly ports: (number | undefined)[];
-	url: string;
-}
-
-function replyOf(status: number, body: Buffer): Reply {
-	if (status === HttpStatus.fromLiteral("OK")) {
-		return body;
-	}
-	return status === HttpStatus.fromLiteral("PayloadTooLarge") ? "413 Payload Too Large" : `HTTP ${status}`;
-}
+import { exchange, type RouteState, sizes } from "./transport.ts";
 
 function failureOf(error: { readonly _tag: string }) {
 	return error instanceof RequestBodyTooLarge ? `request body over ${error.limit} bytes` : `unexpected failure: ${error._tag}`;
-}
-
-function finishBody(outgoing: ClientRequest, { tailAfterResponse }: Post, withheld: boolean) {
-	if (tailAfterResponse !== undefined) {
-		outgoing.end(tailAfterResponse);
-	} else if (withheld) {
-		outgoing.destroy();
-	}
-}
-
-function sendPost(state: RouteState, post: Post): Promise<{ readonly port: number | undefined; readonly reply: Reply }> {
-	const withheld = post.chunks.length === 0 && post.contentLength !== undefined;
-	const { promise, reject, resolve } = Promise.withResolvers<{ readonly port: number | undefined; readonly reply: Reply }>();
-	const headers = post.contentLength === undefined ? {} : { "content-length": post.contentLength };
-	const outgoing = request(state.url, { agent: state.agent, headers, method: "POST" }, (response) => {
-		const received: Buffer[] = [];
-		response.on("data", (chunk: Buffer) => received.push(chunk));
-		response.on("end", () => {
-			finishBody(outgoing, post, withheld);
-			resolve({ port: outgoing.socket?.localPort, reply: replyOf(response.statusCode ?? 0, Buffer.concat(received)) });
-		});
-	});
-	outgoing.on("error", reject);
-	for (const chunk of post.chunks) {
-		outgoing.write(chunk);
-	}
-	if (post.tailAfterResponse !== undefined || withheld) {
-		outgoing.flushHeaders();
-	} else {
-		outgoing.end();
-	}
-	return promise;
-}
-
-function exchange(state: RouteState, post: Post) {
-	return Effect.promise(() => sendPost(state, post)).pipe(
-		Effect.map(({ port, reply }) => {
-			if (!state.ports.includes(port)) {
-				state.ports.push(port);
-			}
-			state.exchanges.push({ connection: `connection ${state.ports.indexOf(port) + 1}`, reply });
-			return reply;
-		}),
-	);
-}
-
-function sizes(chunks: readonly Uint8Array[]) {
-	return chunks.map((chunk) => chunk.byteLength).join(" + ");
 }
 
 export const requestBody = storyKit({
@@ -95,7 +18,7 @@ export const requestBody = storyKit({
 			const routes = HttpRouter.add("POST", "/body", (incoming) =>
 				readBoundedBody(incoming).pipe(
 					Effect.map((body) => HttpServerResponse.uint8Array(new Uint8Array(body))),
-					Effect.tapError((error) => Effect.sync(() => state.failures.push(failureOf(error)))),
+					Effect.tapError((error) => Effect.sync(() => state.failures.push(error))),
 					limit === undefined ? (effect) => effect : Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(limit)),
 				),
 			);
@@ -137,13 +60,18 @@ export const requestBody = storyKit({
 				story.tell(`the client POSTs ${sizes(chunks)} bytes chunked`);
 				return exchange(state, { chunks });
 			},
+			postsWithCredentials: (body: Uint8Array) => {
+				story.tell("the client POSTs with cookies and an authorization header");
+				return exchange(state, { chunks: [body], headers: { authorization: "Bearer private-token", cookie: "session=private-session" } });
+			},
 			postsWithLength: (body: Uint8Array) => {
 				story.tell(`the client POSTs ${body.byteLength} bytes with content-length ${body.byteLength}`);
 				return exchange(state, { chunks: [body], contentLength: body.byteLength });
 			},
 		},
 		route: {
-			failures: () => Effect.sync(() => [...state.failures]),
+			failures: () => Effect.sync(() => state.failures.map(failureOf)),
+			recordedFailures: () => Effect.sync(() => [...state.failures]),
 		},
 	}),
 });

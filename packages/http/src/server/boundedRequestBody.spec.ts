@@ -1,5 +1,30 @@
 import { expect } from "vitest";
+import { RequestBodyTooLarge } from "#server/boundedBody.ts";
 import { refusedChunkedBodyLeavesUnreadTail, requestBody, routeEchoesUpTo } from "#test/request-body/story.ts";
+
+requestBody.it("a route outside appHost with no body limit refuses a chunked body with 413", [], function* ({ client }) {
+	expect(yield* client.postsChunked(Buffer.alloc(9))).toBe("413 Payload Too Large");
+});
+
+requestBody.it("a route with no body limit refuses before the client sends any body", [], function* ({ client }) {
+	expect(yield* client.declaresLength(9)).toBe("413 Payload Too Large");
+});
+
+for (const limit of [undefined, 8]) {
+	requestBody.it(
+		`a refused body with limit ${limit ?? "unconfigured"} records a tagged error with a numeric limit and no request or credentials`,
+		limit === undefined ? [] : [routeEchoesUpTo(limit)],
+		function* ({ client, route }) {
+			yield* client.postsWithCredentials(Buffer.alloc(9));
+
+			const failures = yield* route.recordedFailures();
+			expect(failures).toEqual([expect.any(RequestBodyTooLarge)]);
+			expect(failures[0]).toMatchObject({ _tag: "RequestBodyTooLarge", limit: limit ?? 0 });
+			expect(failures[0]).not.toHaveProperty("request");
+			expect(JSON.stringify(failures[0])).not.toMatch(/private-token|private-session/u);
+		},
+	);
+}
 
 requestBody.it("a chunked body of 4 + 5 bytes past an 8-byte limit is answered 413 Payload Too Large", [routeEchoesUpTo(8)], function* ({ client }) {
 	expect(yield* client.postsChunked(Buffer.alloc(4), Buffer.alloc(5))).toBe("413 Payload Too Large");

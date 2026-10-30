@@ -1,12 +1,9 @@
-import { Data, Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { HttpIncomingMessage, type HttpServerRequest, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 
 export class RequestBodyTooLarge
-	extends Data.TaggedError("RequestBodyTooLarge")<{
-		readonly request: HttpServerRequest.HttpServerRequest;
-		readonly limit: bigint;
-	}>
+	extends Schema.TaggedError<RequestBodyTooLarge>()("RequestBodyTooLarge", { limit: Schema.Number })
 	implements HttpServerRespondable.Respondable
 {
 	[HttpServerRespondable.symbol]() {
@@ -15,18 +12,19 @@ export class RequestBodyTooLarge
 }
 
 export const readBoundedBody = Effect.fnUntraced(function* (request: HttpServerRequest.HttpServerRequest) {
-	const limit = yield* HttpIncomingMessage.MaxBodySize;
-	if (limit === undefined) {
-		return yield* request.arrayBuffer;
+	const maxBodySize = yield* HttpIncomingMessage.MaxBodySize;
+	if (maxBodySize === undefined) {
+		return yield* new RequestBodyTooLarge({ limit: 0 });
 	}
+	const limit = Number(maxBodySize);
 	const length = request.headers["content-length"];
-	if (length !== undefined && BigInt(length) > limit) {
-		return yield* new RequestBodyTooLarge({ limit, request });
+	if (length !== undefined && BigInt(length) > maxBodySize) {
+		return yield* new RequestBodyTooLarge({ limit });
 	}
 	return yield* request.arrayBuffer.pipe(
 		Effect.catchIf(
 			(error) => error.reason._tag === "RequestParseError" && error.reason.reason === "BodyTooLarge",
-			() => new RequestBodyTooLarge({ limit, request }),
+			() => new RequestBodyTooLarge({ limit }),
 		),
 	);
 });
