@@ -14,11 +14,10 @@ import {
 } from "#identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
 import { commandChanges } from "#server/commandChanges.ts";
-import { type OriginPolicy, originRequest } from "./origin.ts";
+import { type OriginPolicy, transportOriginRequest } from "#server/origin.ts";
 import { resolveRole } from "./resolveRole.ts";
 import { revalidateStream } from "./revalidateStream.ts";
 import { sessionProfile } from "./sessionProfile.ts";
-import { transportHeaders } from "./transportHeaders.ts";
 export interface SessionShape {
 	readonly user: {
 		readonly id: string;
@@ -43,11 +42,11 @@ export const resolveSession: <TSession extends SessionShape>(
 		headers: Headers.Headers,
 		rpc: string,
 	) {
-		const transport = yield* transportHeaders(headers);
-		if (!policy.origin(originRequest(transport, rpc))) {
+		const request = yield* transportOriginRequest(headers, rpc);
+		if (!policy.origin(request)) {
 			return yield* new Forbidden({ message: "Origin not allowed" });
 		}
-		const session = yield* policy.provider.get(transport);
+		const session = yield* policy.provider.get(request.headers);
 		if (Option.isNone(session) || policy.roles === undefined) {
 			return session;
 		}
