@@ -138,7 +138,7 @@ screens.it(
 screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, noteCalls, draft }) {
 	yield* enter("   ");
 
-	yield* eventually(() => expect(alert()).toBe("Enter a title"));
+	expect(alert()).toBe("Enter a title");
 	expect(draft()).toBe("   ");
 	expect(noteCalls()).toEqual(["list"]);
 });

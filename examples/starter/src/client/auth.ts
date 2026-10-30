@@ -10,16 +10,9 @@ export const SessionAccess = Schema.Struct({
 	}),
 });
 
-export const Credentials = Schema.Struct({ email: Schema.String, name: Schema.String, password: Schema.String });
-export type Credentials = typeof Credentials.Type;
-
-export const AuthFailure = Schema.Struct({
-	code: Schema.optional(Schema.String),
-	message: Schema.optional(Schema.String),
-	status: Schema.Number,
-	statusText: Schema.String,
-});
-export type AuthFailure = typeof AuthFailure.Type;
+type AuthClient = ReturnType<typeof createAuthClient>;
+export type Credentials = Parameters<AuthClient["signUp"]["email"]>[0];
+export type AuthFailure = NonNullable<Awaited<ReturnType<AuthClient["signOut"]>>["error"]>;
 
 export interface AuthActions {
 	readonly signOut: Atom.AtomResultFn<void, unknown, AuthFailure | AuthActionUnavailable>;
