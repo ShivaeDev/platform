@@ -69,6 +69,7 @@ export const readWaitStates = Effect.fn("FleetReader.readWaitStates")(function* 
 			mergePrs: state.predictedConflictHold?.prs,
 			pr: state.result?.pr,
 			reason: state.blocker,
+			repairing: state.step === "repairing",
 			sweepItem: state.sweepHold?.workId,
 			waiting: state.stage === "waiting",
 		})),
