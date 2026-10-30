@@ -1,9 +1,9 @@
 import { Effect, Exit, Scope } from "effect";
+import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { fakeHttpService } from "#fakeHttpService.ts";
+import { type FakeHttpRequest, fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
-import { httpProbe } from "#test/httpProbe.ts";
+import { httpClient, listensForHangUps } from "./httpClient.ts";
 
 async function* replyChunks(pieces: readonly (string | Uint8Array)[], gates: readonly { promise: Promise<void> }[]) {
 	for (const [index, piece] of pieces.entries()) {
@@ -24,6 +24,7 @@ function httpFaultKit(clock: "live" | "test") {
 					trigger: { path: "/trigger", reply: () => ({ body: { triggered: true } }) },
 				},
 			}).pipe(Effect.provideService(Scope.Scope, scope));
+			const hangUps = yield* listensForHangUps(service.url);
 			const chunkReleases: (() => void)[] = [];
 			yield* Effect.addFinalizer(() =>
 				Effect.sync(() => {
@@ -32,36 +33,40 @@ function httpFaultKit(clock: "live" | "test") {
 					}
 				}),
 			);
-			return { chunkReleases, scope, service };
+			return { chunkReleases, hangUps, scope, service };
 		},
+		inspect: ({ service }) => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
 		name: "HTTP fault controls",
 		stages: ["ready"],
-		verbs: ({ chunkReleases, scope, service }, story) => {
+		verbs: ({ chunkReleases, hangUps, scope, service }, story) => {
 			service.narrate(story.tell);
 			return {
-				advanceTime: (millis: number) => TestClock.adjust(millis),
-				close: () => Scope.close(scope, Exit.void),
+				...httpClient(
+					() => service.url,
+					story.tell,
+					() => ({}),
+					hangUps,
+				),
+				closesService: () => {
+					story.tell("the fake HTTP service's scope closes");
+					return Scope.close(scope, Exit.void);
+				},
 				fault: service.fault,
 				hold: service.hold,
 				releaseOnArrival: service.releaseOnArrival,
-				request: (path = "/data") =>
-					Effect.acquireRelease(
-						Effect.sync(() => httpProbe(`${service.url}${path}`)),
-						(client) => client.abort,
-					),
-				requestRejected: () => Effect.tryPromise(() => fetch(`${service.url}/trigger`, { headers: { authorization: "rejected" } })),
-				requests: () => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
+				requests: () => Effect.sync(() => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`)),
 				scriptFault: service.scriptFault,
-				sendChunk: () =>
+				sendsNextChunk: () =>
 					Effect.sync(() => {
 						const release = chunkReleases.shift();
 						if (!release) {
 							throw new Error("No scripted HTTP chunk remains to send.");
 						}
+						story.tell("the reply's next chunk becomes available");
 						release();
 					}),
 				stall: service.stall,
-				streamChunks: (pieces: readonly (string | Uint8Array)[]) => {
+				streamsChunks: (pieces: readonly (string | Uint8Array)[]) => {
 					const gates = pieces.map(() => Promise.withResolvers<void>());
 					chunkReleases.push(...gates.map((gate) => () => gate.resolve()));
 					return service.scriptFault("data", {
@@ -72,13 +77,10 @@ function httpFaultKit(clock: "live" | "test") {
 						},
 					});
 				},
-				waitForDisconnect: () =>
-					eventually(
-						Effect.suspend(() =>
-							service.requests.some(({ status }) => status === "unanswered") ? Effect.void : Effect.fail("No disconnect recorded"),
-						),
-						{ times: 100 },
-					),
+				timePasses: (millis: number) => {
+					story.tell(`${millis / 1000} seconds pass`);
+					return TestClock.adjust(millis);
+				},
 			};
 		},
 	});
@@ -86,3 +88,15 @@ function httpFaultKit(clock: "live" | "test") {
 
 export const httpFaultApp = httpFaultKit("live");
 export const timedHttpApp = httpFaultKit("test");
+
+export function notReadyForFault(kind: string) {
+	return `died: Fake HTTP route "data" has no request ready for a ${kind} fault.\nhelp: Wait for a hold before a status or drop fault, or for response headers before a reset fault.`;
+}
+
+export function rateLimited(incoming: FakeHttpRequest, now: number) {
+	return {
+		body: { value: incoming.query.get("value") },
+		headers: { "x-ratelimit-reset": String(now + 60_000) },
+		status: HttpStatus.fromLiteral("TooManyRequests"),
+	};
+}

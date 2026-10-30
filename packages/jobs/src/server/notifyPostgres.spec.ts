@@ -1,38 +1,44 @@
-import { Effect, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import { database } from "#test/postgres/database.ts";
+import { enqueued, enqueuedUntil, running, waiting } from "#test/postgres/traits.ts";
+import { workerBy } from "#test/workers.ts";
 
-postgresIt(
-	"wakes a waiting worker before its poll and reports a drain immediately after completion",
-	[realPostgres],
-	function* ({ boot, native, until, untilJob, untilWorker }) {
-		const Queue = defineQueue({
-			name: "notify",
-			queue: { heartbeatSeconds: 10, notify: true, partition: true, policy: "standard", warningQueueSize: 100 },
-			schema: Schema.Struct({ id: Schema.NumberFromString }),
-			worker: { pollingIntervalSeconds: 10 },
-		});
-		const client = native({ useListenNotify: true });
-		const release = Promise.withResolvers<void>();
-		const handled: number[] = [];
-		yield* Effect.addFinalizer(() => Effect.sync(() => release.resolve()));
-		const { jobs } = yield* boot(
-			[Queue.handle(({ id: payloadId }) => Effect.sync(() => handled.push(payloadId)).pipe(Effect.andThen(Effect.promise(() => release.promise))))],
-			{ clientFactory: () => client },
-		);
-		yield* untilWorker(client, Queue.name);
-		const id = Option.getOrThrow(yield* jobs.enqueue(Queue, { id: 42 }));
-		yield* until(
-			Effect.sync(() => handled.length),
-			(count) => count === 1,
-			1500,
-		);
-		expect(handled).toEqual([42]);
-		expect(yield* jobs.counts(Queue)).toEqual({ activeCount: 1, failedCount: 0, queuedCount: 0, totalCount: 1 });
-		expect((yield* jobs.health()).activeTotal).toBe(0);
-		release.resolve();
-		yield* untilJob(jobs, Queue, id, "completed");
-		expect(yield* jobs.counts(Queue)).toEqual({ activeCount: 0, failedCount: 0, queuedCount: 0, totalCount: 1 });
+const POLLING_INTERVAL_SECONDS = 10;
+
+const Notified = defineQueue({
+	name: "notified",
+	queue: { notify: true },
+	schema: Schema.Struct({ id: Schema.NumberFromString }),
+	worker: { pollingIntervalSeconds: POLLING_INTERVAL_SECONDS },
+});
+
+const listening = running("app", [workerBy(Notified, ({ id }) => (id === 42 ? { waitsFor: "release" } : "succeeds"))], { useListenNotify: true });
+const polledLast = enqueuedUntil(Notified, { id: 1 }, { as: "job 1" }, "completed");
+
+database.it(
+	"a job on a notify queue starts well before its idle worker's next poll",
+	[listening, polledLast],
+	function* ({ enqueue, secondsUntilFirstAttempt, untilWaiting }) {
+		yield* enqueue("app", Notified, { id: 42 }, { as: "job 42" });
+
+		yield* untilWaiting("release");
+		expect(yield* secondsUntilFirstAttempt("job 42")).toBeLessThan(POLLING_INTERVAL_SECONDS / 2);
+	},
+);
+
+database.it(
+	"counts report a running job as active and the same job as done once it completes",
+	[listening, enqueued(Notified, { id: 42 }, { as: "job 42" }), waiting("release")],
+	function* ({ answered, ask, open, untilJob }) {
+		yield* ask("app", "count notified jobs", (jobs) => jobs.counts(Notified));
+		expect(yield* answered()).toEqual({ activeCount: 1, failedCount: 0, queuedCount: 0, totalCount: 1 });
+
+		yield* open("release");
+		yield* untilJob("job 42", "completed");
+
+		yield* ask("app", "count notified jobs", (jobs) => jobs.counts(Notified));
+		expect(yield* answered()).toEqual({ activeCount: 0, failedCount: 0, queuedCount: 0, totalCount: 1 });
 	},
 );

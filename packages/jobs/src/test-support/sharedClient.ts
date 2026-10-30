@@ -5,7 +5,7 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { PgBossClient } from "#client.ts";
 import { defineQueue } from "#definition.ts";
 import { makePgBoss, pgBossLayer } from "#service.ts";
-import { postgresConfigured, postgresLayer } from "#test/postgresLayer.ts";
+import { postgresConfigured, postgresLayer } from "#test/postgres/layer.ts";
 import { makePgBossTesting } from "#testing.ts";
 
 const Registration = makePgBoss("@test/SharedRegistration");

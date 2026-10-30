@@ -1,18 +1,24 @@
-import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { documentApp } from "#test/documentApp.ts";
 
+documentApp.it("keeps the seeded HttpOnly session out of document.cookie", [], function* ({ seedsSession, storesPreference, documentCookies }) {
+	yield* seedsSession();
+
+	yield* storesPreference();
+
+	expect(yield* documentCookies()).toBe("theme=dark; preference=compact");
+});
+
 documentApp.it(
-	"sends a seeded HttpOnly session and cookieStore cookies to its real host",
+	"sends the seeded session and the stored preference to the real host",
 	[],
-	function* ({ seedSession, storeCookie, hostRequest, cookies }) {
-		yield* seedSession();
-		yield* storeCookie();
-		expect(cookies()).toContain("theme=dark");
-		expect(cookies()).toContain("preference=compact");
-		expect(cookies()).not.toContain("session=");
-		expect(yield* hostRequest()).toMatchObject({ cookie: "session=minted-session; theme=dark; preference=compact", method: "GET", path: "/echo" });
+	function* ({ seedsSession, storesPreference, hostSawCookies }) {
+		yield* seedsSession();
+		yield* storesPreference();
+
+		expect(yield* hostSawCookies()).toBe("session=minted-session; theme=dark; preference=compact");
 	},
 );
 
@@ -20,43 +26,38 @@ for (const [status, method, body] of [
 	[HttpStatus.fromLiteral("Found"), "GET", ""],
 	[HttpStatus.fromLiteral("TemporaryRedirect"), "POST", "story-body"],
 ] as const) {
-	documentApp.it(`a ${status} redirect sends ${method} with document cookies`, [], function* ({ post, cookies }) {
-		const response = yield* post(status, "story-body");
-		expect(response.redirected).toBe(true);
-		expect(response.url).toBe("https://provider.test/echo");
-		expect(response.headers.get("set-cookie")).toBeNull();
-		expect(yield* Effect.promise(() => response.json())).toEqual({
-			body,
-			cookie: "first=one; second=two",
-			header: "retained",
-			method,
-			path: "/echo",
-		});
-		expect(cookies()).not.toContain("first=");
-	});
+	documentApp.it(
+		`follows a ${status} redirect with ${method} and the redirect's cookies while hiding them from the page`,
+		[],
+		function* ({ postsThroughRedirect, finalUrl, echo, exposedSetCookie, redirectCookiesOnPage }) {
+			yield* postsThroughRedirect(status, "story-body");
+
+			yield* outcomes({
+				"the echoed request": [echo(), { body, cookie: "first=one; second=two", header: "retained", method, path: "/echo" }],
+				"the exposed set-cookie header": [exposedSetCookie(), "none"],
+				"the final address": [finalUrl(), "https://provider.test/echo"],
+				"the redirect cookies on the page": [redirectCookiesOnPage(), "none"],
+			});
+		},
+	);
 }
 
-documentApp.it("loads the routed page and leaves its response readable", [], function* ({ loadPage, heading, location }) {
-	const response = yield* loadPage();
-	expect(heading()).toBe("Routed document");
-	expect(location()).toBe("https://provider.test/page");
-	expect(yield* Effect.promise(() => response.text())).toContain("Routed document");
-});
+documentApp.it("navigates to the routed page and leaves its response readable", [], function* ({ loadsPage, heading, location, pageBody }) {
+	expect(yield* heading()).toBe("no heading");
 
-documentApp.it("routes XMLHttpRequest through the document transport", [], function* ({ xhr }) {
-	const text = yield* xhr();
-	expect(JSON.parse(text)).toMatchObject({ method: "GET", path: "/echo" });
-});
+	yield* loadsPage();
 
-documentApp.it("refuses synchronous document requests before they reach the network", [], ({ syncRequest }) => {
-	expect(syncRequest()).toContain("test-story refuses synchronous document requests to provider.test");
-});
-
-documentApp.it("releases its routed HTTP host when the story finishes", [], function* ({ hostUrl, loadPage }, context) {
-	const url = hostUrl();
-	const response = yield* loadPage();
-	expect(response.status).toBe(HttpStatus.fromLiteral("OK"));
-	context.onTestFinished(async () => {
-		await expect(globalThis.fetch(`${url}/page`)).rejects.toThrow();
+	yield* outcomes({
+		"the heading": [heading(), "Routed document"],
+		"the location": [location(), "https://provider.test/page"],
+		"the response body": [pageBody(), "<h1>Routed document</h1>"],
 	});
+});
+
+documentApp.it("routes XMLHttpRequest through the document transport", [], function* ({ xhrRequest }) {
+	expect(yield* xhrRequest()).toBe("GET /echo");
+});
+
+documentApp.it("refuses synchronous document requests before they reach the network", [], function* ({ requestsSynchronously }) {
+	expect(yield* requestsSynchronously()).toBe("test-story refuses synchronous document requests to provider.test; use fetch instead");
 });

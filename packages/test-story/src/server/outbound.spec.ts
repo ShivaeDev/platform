@@ -1,65 +1,45 @@
-import { Effect } from "effect";
-import { afterAll, afterEach, expect } from "vitest";
-import { storyKit } from "#storyKit.ts";
-import { outboundServers, responseFrom } from "#test/outbound.ts";
+import { expect } from "vitest";
+import { outboundKit } from "#test/outbound.ts";
+import { storyRunner } from "#test/storyRunner.ts";
 
-const servers = outboundServers();
-const failedBodies: string[] = [];
-const kit = storyKit({
-	after: {
-		*built() {
-			expect(yield* responseFrom(servers.original())).toMatchObject({ name: "fake" });
-		},
-	},
-	around: (effect) =>
-		Effect.gen(function* () {
-			expect(yield* responseFrom(servers.original())).toMatchObject({ name: "fake" });
-			return yield* effect;
-		}),
-	clock: "live",
-	*create() {
-		expect(yield* responseFrom(servers.original())).toMatchObject({ name: "fake" });
-		yield* Effect.addFinalizer(() =>
-			responseFrom(servers.original()).pipe(Effect.tap((response) => Effect.sync(() => expect(response).toMatchObject({ name: "fake" })))),
-		);
-		return {};
-	},
-	name: "outbound",
-	outbound: servers.outbound,
-	stages: ["built"],
-	verbs: () => ({}),
-});
-const routedTrait = kit.trait("built", "a third party is available", function* () {
-	expect(yield* responseFrom(servers.original())).toMatchObject({ name: "fake" });
-});
+const ROUTED_STORY = [
+	"around reached the fake server at /original",
+	"create reached the fake server at /original",
+	"trait reached the fake server at /original",
+	"after hook reached the fake server at /original",
+	"body reached the fake server at /original",
+	"create finalizer reached the fake server at /original",
+	"after the story reached the real server at /original",
+];
 
-afterEach(async () => {
-	const response = await fetch(servers.original());
-	expect(await response.json()).toMatchObject({ name: "real", path: "/original" });
-});
-
-kit.it("routes selected hostnames through native fetch and keeps the request", [routedTrait], function* () {
+outboundKit.it("routes a selected hostname to its fake server and keeps the request's method, path, header and body", [], function* ({ sends }) {
 	expect(
-		yield* responseFrom("https://github.com/login/oauth/access_token?client_id=story", {
+		yield* sends("https://github.com/login/oauth/access_token?client_id=story", {
 			body: "code=story-code",
 			headers: { "x-story": "token" },
 			method: "POST",
 		}),
 	).toEqual({ body: "code=story-code", header: "token", method: "POST", name: "fake", path: "/login/oauth/access_token?client_id=story" });
-	expect(yield* responseFrom("https://api.github.com/user")).toMatchObject({ name: "fake", path: "/user" });
-	expect(yield* responseFrom(servers.other())).toMatchObject({ name: "real", path: "/other" });
 });
 
-kit.it.fails("restores routing after a failed story", [], function* () {
-	expect(yield* responseFrom(servers.original())).toMatchObject({ name: "fake" });
-	failedBodies.push("reached fake");
-	yield* Effect.fail("intentional story failure");
+outboundKit.it("routes each selected hostname to its own target", [], function* ({ reaches }) {
+	expect(yield* reaches("https://api.github.com/user")).toBe("the fake server at /user");
 });
 
-kit.it("installs routing again for the next story", [], function* () {
-	expect(yield* responseFrom(servers.original())).toMatchObject({ name: "fake" });
+outboundKit.it("leaves a hostname the kit does not select on its real server", [], function* ({ localhost, reaches }) {
+	expect(yield* reaches(localhost("/other"))).toBe("the real server at /other");
 });
 
-afterAll(() => {
-	expect(failedBodies.length).toBeGreaterThan(0);
+for (const ending of ["passes", "fails"]) {
+	storyRunner.it(`routes every hook and finalizer of a story and restores real routing after it ${ending}`, [], function* ({ lifetime, runStory }) {
+		yield* runStory("outboundStories", `Outbound Story: ${ending} with outbound routing`);
+
+		expect(yield* lifetime()).toEqual(ROUTED_STORY);
+	});
+}
+
+storyRunner.it("routes the next story again after a failed story restored real routing", [], function* ({ lifetime, run }) {
+	yield* run("outboundStories");
+
+	expect(yield* lifetime()).toEqual([...ROUTED_STORY, ...ROUTED_STORY]);
 });

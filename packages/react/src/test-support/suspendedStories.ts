@@ -33,8 +33,8 @@ export const suspended = storyKit(
 	),
 );
 export function suspendedDraft() {
-	return suspended.trait("screen", "a draft inside Suspense and Activity", function* ({ screen, state }) {
+	return suspended.trait("screen", "a draft inside Suspense and Activity", function* ({ now, screen, state }) {
 		const view = yield* screen.open();
-		state.view = yield* Effect.promise(() => suspendedDraftView(view));
+		state.view = yield* Effect.promise(() => suspendedDraftView(view, now));
 	});
 }

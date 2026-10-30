@@ -1,6 +1,6 @@
-import { relative } from "node:path";
-import * as NodeFileSystem from "@effect/platform-node/NodeFileSystem";
+import { join, relative } from "node:path";
 import { Effect } from "effect";
+import { readRequiredText } from "#inventory/filesystem.ts";
 import { posix } from "#inventory/ignoreScope.ts";
 import { walk } from "#inventory/walk.ts";
 import { defineRule, type Finding } from "#rule.ts";
@@ -17,12 +17,15 @@ function settingIn(path: string, text: string): readonly Finding[] {
 }
 
 export const noIgnoreDeprecations = defineRule({
-	check: async ({ readText, root }) => {
-		const paths = await Effect.runPromise(walk(root).pipe(Effect.provide(NodeFileSystem.layer)));
-		const configs = paths.map((path) => posix(relative(root, path))).filter((path) => path.endsWith(".json"));
-		const texts = await Promise.all(configs.toSorted().map(async (path) => ({ path, text: (await readText(path)) ?? "" })));
-		return texts.filter(({ text }) => text.includes(OPTION)).flatMap(({ path, text }) => settingIn(path, text));
-	},
+	check: ({ root }) =>
+		Effect.gen(function* () {
+			const paths = yield* walk(root);
+			const configs = paths.map((path) => posix(relative(root, path))).filter((path) => path.endsWith(".json"));
+			const findings = yield* Effect.forEach(configs.toSorted(), (path) =>
+				Effect.map(readRequiredText(join(root, path)), (text) => (text.includes(OPTION) ? settingIn(path, text) : [])),
+			);
+			return findings.flat();
+		}),
 	description:
 		"ignoreDeprecations in a tsconfig silences TypeScript's errors for deprecated options, so the project keeps an option the next TypeScript removes. Replace the deprecated option and remove ignoreDeprecations.",
 	id: "suppressions/no-ignore-deprecations",

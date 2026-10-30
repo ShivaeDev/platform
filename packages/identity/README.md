@@ -311,7 +311,7 @@ const mounted = yield* betterAuthMount(authOptions, { roles: Access });
 const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) };
 ```
 
-For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. An undeclared stored role fails with `AuthUnavailable` instead of silently granting an empty role.
+For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. An undeclared stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
 
 Declare a native middleware service for each required permission and provide its Layer beside the handlers:
 

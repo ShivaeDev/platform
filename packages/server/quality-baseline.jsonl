@@ -1,3 +1,5 @@
+{"path":"packages/server/src/appHost.test.ts","rule":"tests/domain-outcomes","count":3}
+{"path":"packages/server/src/appHost.test.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/appHostAdmin.spec.ts","rule":"tests/domain-outcomes","count":4}
 {"path":"packages/server/src/appHostAdmin.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/appHostBodyLimit.spec.ts","rule":"tests/domain-outcomes","count":1}
@@ -28,7 +30,6 @@
 {"path":"packages/server/src/databaseAddress.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/databaseConfiguration.spec.ts","rule":"tests/domain-outcomes","count":4}
 {"path":"packages/server/src/databaseConfiguration.spec.ts","rule":"tests/grouped-outcomes","count":1}
-{"path":"packages/server/src/databaseLayer.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/errorFieldRedaction.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/errorFieldRedaction.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/server/src/idleChanges.spec.ts","rule":"tests/grouped-outcomes","count":1}
@@ -46,18 +47,20 @@
 {"path":"packages/server/src/otlpProtocol.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/otlpRoutes.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/otlpTimeout.spec.ts","rule":"tests/wait-on-events","count":2}
+{"path":"packages/server/src/otlpTracing.test.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/server/src/publicConfig.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/publicConfig.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/server/src/publicFailureData.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/server/src/redactOtlpUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingDiagnostics.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingRpcSerialization.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/domain-outcomes","count":22}
-{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/grouped-outcomes","count":13}
+{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/domain-outcomes","count":21}
+{"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/grouped-outcomes","count":12}
 {"path":"packages/server/src/rpc-server/adminRoute.spec.ts","rule":"tests/grouped-outcomes","count":6}
 {"path":"packages/server/src/rpc-server/clientAbort.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/server/src/rpc-server/scopedSessions.spec.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/server/src/rpc-server/scopedSessions.spec.ts","rule":"tests/grouped-outcomes","count":3}
+{"path":"packages/server/src/runtime/makePlatform.test.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/server/src/runtime/makePlatform.ts","rule":"effect/boundary","count":5}
 {"path":"packages/server/src/runtime/types.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/schemaRedaction.spec.ts","rule":"effect/boundary","count":1}

@@ -1,65 +1,74 @@
-import { Effect, Option, Redacted, Schema } from "effect";
-import { expect, vi } from "vitest";
+import { type Effect, Schema } from "effect";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { PgBossError } from "#error.ts";
 import { deadLetterQueueName } from "#health.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import type { PgBossService } from "#service.ts";
+import { database } from "#test/postgres/database.ts";
+import { clientStoppedUnderneath, deletedOutside, running } from "#test/postgres/traits.ts";
+import { worker } from "#test/workers.ts";
 
-postgresIt("round-trips transformed payloads and rejects malformed durable data", [realPostgres], function* ({ boot, admin, untilJob, untilJobs }) {
-	const Queue = defineQueue({ name: "round-trip", queue: { retryLimit: 0 }, schema: Schema.Struct({ id: Schema.NumberFromString }) });
-	const client = yield* admin();
-	const handled = vi.fn<(id: number) => void>();
-	const { jobs } = yield* boot([Queue.handle(({ id }) => Effect.sync(() => handled(id)))]);
-	const jobId = Option.getOrThrow(yield* jobs.enqueue(Queue, { id: 42 }));
-	yield* untilJob(jobs, Queue, jobId, "completed");
-	expect(handled).toHaveBeenCalledWith(42);
-	yield* Effect.promise(() => client.send(Queue.name, { id: null }));
-	const deadLetter = yield* untilJobs(client, deadLetterQueueName(Queue.name), (entries) => entries.length > 0);
-	expect(deadLetter[0]?.sourceName).toBe(Queue.name);
-	expect(handled).toHaveBeenCalledTimes(1);
-});
+const RoundTrip = defineQueue({ name: "round-trip", queue: { retryLimit: 0 }, schema: Schema.Struct({ id: Schema.NumberFromString }) });
 
-postgresIt("uses the default client and returns zero health counts for externally deleted queues", [realPostgres], function* ({ boot, admin }) {
-	const Queue = defineQueue({ name: "deleted-health", schema: Schema.Struct({}) });
-	const client = yield* admin();
-	const { jobs } = yield* boot([Queue.handle(() => Effect.void)]);
-	yield* Effect.promise(async () => {
-		await client.deleteQueue(Queue.name);
-		await client.deleteQueue(deadLetterQueueName(Queue.name));
-	});
-	expect(yield* jobs.health()).toEqual({
-		activeTotal: 0,
-		deadLetteredTotal: 0,
-		failedTotal: 0,
-		jobs: [{ activeCount: 0, deadLetteredCount: 0, failedCount: 0, name: Queue.name, queuedCount: 0, readyCount: 0 }],
-		queuedTotal: 0,
-		readyTotal: 0,
-	});
-});
+database.it(
+	"a payload encoded on enqueue reaches the worker decoded after its trip through PostgreSQL",
+	[running("app", [worker(RoundTrip, "succeeds")])],
+	function* ({ enqueue, handled, untilJob }) {
+		yield* enqueue("app", RoundTrip, { id: 42 }, { as: "job 42" });
+		yield* untilJob("job 42", "completed");
 
-postgresIt("preserves the operation, queue and pg-boss error after the real database client closes", [realPostgres], function* ({ boot, native }) {
-	const Queue = defineQueue({ name: "closed-database", schema: Schema.Struct({}) });
-	const client = native();
-	const { jobs } = yield* boot([Queue.handle(() => Effect.void)], { clientFactory: () => client });
-	yield* Effect.promise(async () => {
-		await client.offWork(Queue.name);
-		await client.stop();
-	});
-	for (const [operation, effect] of [
-		["enqueue", Effect.asVoid(jobs.enqueue(Queue, {}))],
-		["health", Effect.asVoid(jobs.health())],
-	] as const) {
-		const error = yield* Effect.flip(effect);
-		expect(error).toBeInstanceOf(PgBossError);
-		if (!(error instanceof PgBossError)) {
-			throw error;
-		}
-		expect(error.operation).toBe(operation);
-		expect(error.queue).toBe(Queue.name);
-		expect(Redacted.value(error.original)).toMatchObject({
-			code: "ERR_ASSERTION",
-			message: expect.stringMatching(/^Database not opened\./u),
-			name: "AssertionError",
+		expect(yield* handled(RoundTrip)).toEqual([{ id: 42 }]);
+	},
+);
+
+database.it(
+	"a stored payload that does not decode is dead-lettered without reaching the worker",
+	[running("app", [worker(RoundTrip, "succeeds")])],
+	function* ({ adminSends, deadLettered, handled, untilDeadLettered }) {
+		yield* adminSends(RoundTrip.name, { id: null }, { as: "malformed job" });
+		yield* untilDeadLettered(RoundTrip, 1);
+
+		yield* outcomes({
+			"dead-lettered": [deadLettered(RoundTrip), ["malformed job"]],
+			"handled payloads": [handled(RoundTrip), []],
 		});
-	}
-});
+	},
+);
+
+const Closed = defineQueue({ name: "closed-database", schema: Schema.Struct({}) });
+
+const operations: readonly { readonly call: (jobs: PgBossService) => Effect.Effect<unknown, unknown>; readonly operation: string }[] = [
+	{ call: (jobs) => jobs.enqueue(Closed, {}), operation: "enqueue" },
+	{ call: (jobs) => jobs.health(), operation: "health" },
+];
+
+for (const { call, operation } of operations) {
+	database.it(
+		`${operation} after the pg-boss client stopped underneath fails naming ${operation}, the queue and pg-boss's own error`,
+		[running("app", [worker(Closed, "succeeds")], { controller: "none" }), clientStoppedUnderneath("app", Closed.name)],
+		function* ({ answered, ask }) {
+			yield* ask("app", operation, call);
+
+			expect(yield* answered()).toEqual(expect.stringMatching(new RegExp(`^${operation} closed-database failed with Database not opened\\.`, "u")));
+		},
+	);
+}
+
+const Deleted = defineQueue({ name: "deleted-health", schema: Schema.Struct({}) });
+
+database.it(
+	"health counts a registered queue that was deleted outside the runtime as empty",
+	[running("app", [worker(Deleted, "succeeds")], { controller: "none" }), deletedOutside(Deleted.name, deadLetterQueueName(Deleted.name))],
+	function* ({ answered, ask }) {
+		yield* ask("app", "report health", (jobs) => jobs.health());
+
+		expect(yield* answered()).toEqual({
+			activeTotal: 0,
+			deadLetteredTotal: 0,
+			failedTotal: 0,
+			jobs: [{ activeCount: 0, deadLetteredCount: 0, failedCount: 0, name: Deleted.name, queuedCount: 0, readyCount: 0 }],
+			queuedTotal: 0,
+			readyTotal: 0,
+		});
+	},
+);

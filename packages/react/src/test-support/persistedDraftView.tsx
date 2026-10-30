@@ -11,7 +11,7 @@ import { submitForm, typeInput } from "./Screen.ts";
 
 export async function persistedDraftView(
 	view: Rendered,
-	persistedDraft: BrowserDraftConfig = { key: "order-draft" },
+	persistedDraft: BrowserDraftConfig,
 	save: Save = (values) => Effect.succeed({ ...values, quantity: String(values.quantity) }),
 ) {
 	const query = Atom.make<AsyncResult.AsyncResult<Row>>(AsyncResult.success(draftInitial));
