@@ -11,6 +11,7 @@
 "@shivaedev/http": patch
 "@shivaedev/identity": patch
 "@shivaedev/jobs": patch
+"@shivaedev/mcp": patch
 "@shivaedev/platform": patch
 "@shivaedev/pr-watch": patch
 "@shivaedev/quality": patch

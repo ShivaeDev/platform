@@ -2,7 +2,7 @@
 
 Start a new app with the [quickstart](./quickstart.md) and [copyable starter](../../examples/starter).
 
-An application depends on [`@shivaedev/platform`](../../packages/platform/README.md), which brings every runtime package below. For development it takes `@shivaedev/test-story`, which brings `test` and `test-sql`, and `@shivaedev/quality`. It imports each module from the package that owns it, by that package's name; [the application path](#the-application-path) names the owner of each job and where its boundary lies.
+An application depends on [`@shivaedev/platform`](../../packages/platform/README.md), which brings the core runtime packages below. Add `@shivaedev/mcp` separately when the application serves MCP tools. For development it takes `@shivaedev/test-story`, which brings `test` and `test-sql`, and `@shivaedev/quality`. It imports each module from the package that owns it, by that package's name; [the application path](#the-application-path) names the owner of each job and where its boundary lies.
 
 Platform gives an Effect application one path from its data schemas to services, persistence, operations and client state. Shared conventions remove repeated wiring while keeping native Effect dependencies, errors, scopes and interruption visible.
 
@@ -21,6 +21,7 @@ Schema describes data once. Services implement behavior, repositories execute SQ
 | Declare roles and their grants    | [access](../../packages/access/README.md)                                                | Declare which permissions each role grants once; identity enforces the grants on the server and react guards routes with them.                 |
 | Receive signed webhooks           | [webhooks](../../packages/webhooks/README.md)                                            | Verify raw deliveries and record receipts with queued jobs in one SQL transaction; applications register sources, schemas and workers.         |
 | Call outside HTTP APIs            | [http](../../packages/http/README.md)                                                    | Use the native HTTP client with its typed failures, pagination and bounded bodies; applications own retries and credentials.                   |
+| Serve tools to AI clients         | [mcp](../../packages/mcp/README.md)                                                      | Mount native Effect toolkits with identity and permission-based audiences; the Better Auth edge adapter connects clients through OAuth.        |
 | Host the application              | [server](../../packages/server/README.md)                                                | Compose the app host, health, tracing export, migrations and development mode; applications supply their RPC groups and routes.                |
 | Render queries and invoke actions | [react](../../packages/react/README.md)                                                  | Bind native atoms to React; session boundaries own registries and live connections.                                                            |
 | Route React screens               | [react/queryRoute.ts](../../packages/react/README.md#route-loaders-with-tanstack-router) | TanStack Router owns routing; loaders read contract query atoms in the shared registry and expose tagged failures to route error components.   |
@@ -69,6 +70,7 @@ Follow [Add a resource to the starter](./add-a-feature.md) to build a feature in
 
 The [starter quickstart](./quickstart.md) begins with a runnable app. The [PostgreSQL order feature](./composed-example.md) is the larger reference composition: Schema, migrated SQL, a declared service, authenticated native HTTP RPC, atoms, an editor and a live hint reaching a second client after commit. Use each package's README for its mental model and API.
 - [Native RPC](./native-rpc.md) explains handlers, middleware and transport, including the [one path for public client configuration](./native-rpc.md#public-client-configuration): a shared Schema, startup-loaded public fields and a react query without an application-written RPC.
+- [MCP tools](./mcp.md) shows an endpoint with separate user and administrator toolkits and identity-backed OAuth.
 - [Request context](./request-context.md) explains errors, session resolution, Origin policy and redacted request diagnostics; [BetterAuth at the RPC boundary](./auth-boundary.md) shows the session provider.
 - [Commit-bound changes](./changes.md) connects transaction bindings to application change vocabularies.
 - [Live updates](./live-updates.md) explains default query refresh and explicit hint-stream coordination.

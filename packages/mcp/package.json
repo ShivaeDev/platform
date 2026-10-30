@@ -1,0 +1,93 @@
+{
+	"name": "@shivaedev/mcp",
+	"version": "0.0.0",
+	"description": "Identity-aware Effect MCP tools mounted on the application host",
+	"keywords": [
+		"effect"
+	],
+	"homepage": "https://github.com/ShivaeDev/platform/tree/main/packages/mcp#readme",
+	"bugs": {
+		"url": "https://github.com/ShivaeDev/platform/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/ShivaeDev/platform.git",
+		"directory": "packages/mcp"
+	},
+	"license": "MIT",
+	"sideEffects": false,
+	"type": "module",
+	"imports": {
+		"#test/*": "./src/test-support/*",
+		"#*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		}
+	},
+	"exports": {
+		"./*.ts": {
+			"source": "./src/*.ts",
+			"types": "./dist/*.d.ts",
+			"default": "./dist/*.js"
+		},
+		"./package.json": "./package.json"
+	},
+	"files": [
+		"dist",
+		"src",
+		"!src/**/*.test.ts",
+		"!src/**/*.spec.ts",
+		"!src/**/test-support",
+		"README.md"
+	],
+	"scripts": {
+		"build": "node --eval \"import('node:fs').then(({ rmSync }) => rmSync('dist', { force: true, recursive: true }))\" && tsc --project tsconfig.build.json",
+		"ready": "pnpm typecheck && pnpm test && pnpm build",
+		"test": "vitest run",
+		"typecheck": "tsc --noEmit"
+	},
+	"dependencies": {
+		"@shivaedev/access": "workspace:*",
+		"@shivaedev/errors": "workspace:*",
+		"@shivaedev/identity": "workspace:*"
+	},
+	"devDependencies": {
+		"@better-auth/oauth-provider": "catalog:",
+		"@effect/platform-node": "catalog:",
+		"@effect/sql-pg": "catalog:",
+		"@shivaedev/quality": "workspace:*",
+		"@shivaedev/server": "workspace:*",
+		"@shivaedev/test-sql": "workspace:*",
+		"@shivaedev/test-story": "workspace:*",
+		"@types/node": "catalog:",
+		"better-auth": "catalog:",
+		"effect": "catalog:",
+		"pg": "catalog:",
+		"typescript": "catalog:",
+		"vitest": "catalog:"
+	},
+	"peerDependencies": {
+		"@better-auth/oauth-provider": "catalog:",
+		"better-auth": "catalog:",
+		"effect": "catalog:"
+	},
+	"peerDependenciesMeta": {
+		"@better-auth/oauth-provider": {
+			"optional": true
+		},
+		"better-auth": {
+			"optional": true
+		}
+	},
+	"engines": {
+		"node": ">=24"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
+	"quality": {
+		"runtime": "server"
+	}
+}
