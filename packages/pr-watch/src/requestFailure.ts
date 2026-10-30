@@ -1,41 +1,48 @@
-import { Cause, DateTime, Schema } from "effect";
+import { Cause, DateTime } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { GitHubRateLimited, GitHubTransportError } from "@shivaedev/github/errors.ts";
-import type { RateLimitObservation } from "@shivaedev/github/rateLimits.ts";
+import { GitHubConversationLocked, GitHubPermissionDenied, GitHubRateLimited, GitHubTransportError } from "@shivaedev/github/errors.ts";
+import {
+	RemoteGone,
+	RemoteHttpError,
+	RemoteNotFound,
+	RemoteRateLimited,
+	type RemoteStatusError,
+	RemoteUnauthorized,
+} from "@shivaedev/http/errors.ts";
 import { WatchError } from "#model.ts";
-import { quotaMessage } from "#quota.ts";
 
-const HttpFailure = Schema.Struct({
-	method: Schema.String,
-	retryAfter: Schema.optionalKey(Schema.DateTimeUtc),
-	status: Schema.Number,
-	url: Schema.String,
-});
+export function requestFailure(error: unknown): { readonly message: string; readonly retryable: boolean; readonly retryAt?: number } {
+	if (error instanceof WatchError) {
+		return { message: error.message, retryable: error.reason === "cooldown", ...(error.retryAt === undefined ? {} : { retryAt: error.retryAt }) };
+	}
+	if (error instanceof GitHubRateLimited) {
+		return { message: `GitHub rate limit (${error.resource})`, retryAt: DateTime.toEpochMillis(error.retryAt), retryable: true };
+	}
+	if (error instanceof GitHubTransportError) {
+		return { message: `GitHub network error at ${error.path}`, retryable: true };
+	}
+	if (Cause.isTimeoutError(error)) {
+		return { message: "GitHub request timed out after 30 seconds", retryable: true };
+	}
+	if (error instanceof GitHubPermissionDenied || error instanceof GitHubConversationLocked) {
+		return { message: `${error._tag} at ${error.path}`, retryable: false };
+	}
+	if (isHttpFailure(error)) {
+		return {
+			message: `GitHub HTTP ${error.status} (${error.method} ${new URL(error.url).pathname})`,
+			retryable: error.status >= HttpStatus.fromLiteral("InternalServerError") && error.status < 600,
+			...(error instanceof RemoteRateLimited && error.retryAfter !== undefined ? { retryAt: DateTime.toEpochMillis(error.retryAfter) } : {}),
+		};
+	}
+	return { message: `GitHub request failed: ${error instanceof Error ? error.message || error.name : String(error)}`, retryable: false };
+}
 
-export function requestFailure(cause: unknown, observations: readonly RateLimitObservation[] = []): WatchError {
-	if (cause instanceof WatchError) {
-		return cause;
-	}
-	if (cause instanceof GitHubRateLimited) {
-		const budget = observations.find((entry) => entry.resource === cause.resource);
-		return new WatchError({
-			message: `GitHub rate limit (${budget === undefined ? cause.resource : quotaMessage(budget)})`,
-			retryAt: DateTime.toEpochMillis(cause.retryAt),
-			retryable: true,
-		});
-	}
-	if (cause instanceof GitHubTransportError) {
-		return new WatchError({ message: `GitHub network error at ${cause.path}`, retryable: true });
-	}
-	if (Cause.isTimeoutError(cause)) {
-		return new WatchError({ message: "GitHub request timed out after 30 seconds", retryable: true });
-	}
-	if (Schema.is(HttpFailure)(cause)) {
-		return new WatchError({
-			message: `GitHub HTTP ${cause.status} (${cause.method} ${new URL(cause.url).pathname})`,
-			retryable: cause.status >= HttpStatus.fromLiteral("InternalServerError") && cause.status < 600,
-			...(cause.retryAfter === undefined ? {} : { retryAt: DateTime.toEpochMillis(cause.retryAfter) }),
-		});
-	}
-	return new WatchError({ message: `GitHub request failed: ${cause instanceof Error ? cause.message || cause.name : String(cause)}` });
+function isHttpFailure(error: unknown): error is RemoteStatusError {
+	return (
+		error instanceof RemoteHttpError
+		|| error instanceof RemoteUnauthorized
+		|| error instanceof RemoteNotFound
+		|| error instanceof RemoteGone
+		|| error instanceof RemoteRateLimited
+	);
 }

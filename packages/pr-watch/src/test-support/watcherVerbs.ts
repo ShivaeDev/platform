@@ -1,6 +1,7 @@
 import { constants } from "node:fs";
 import { Context, Deferred, Effect, Fiber, Layer, Schema } from "effect";
 import { State } from "#model.ts";
+import { requestFailure } from "#requestFailure.ts";
 import { Watcher } from "#Watcher.ts";
 import type { Engine } from "./engine.ts";
 import { type FileOperation, type Gate, makeGate, passGate } from "./io.ts";
@@ -15,9 +16,9 @@ export function emitTo(engine: Engine) {
 }
 
 export function diagnosticTo(engine: Engine) {
-	return (message: string) =>
+	return (failure: unknown) =>
 		Effect.sync(() => {
-			engine.diagnostics.push(message);
+			engine.diagnostics.push(typeof failure === "string" ? failure : requestFailure(failure).message);
 		});
 }
 
@@ -28,7 +29,12 @@ export function pollOnce(engine: Engine) {
 		yield* engine.watcher.poll(engine.options, state, emitTo(engine), diagnosticTo(engine));
 		return "polled";
 	}).pipe(
-		Effect.catch((error) => Effect.succeed(`failed: ${error.message}`)),
+		Effect.catch((error) =>
+			Effect.sync(() => {
+				engine.observation.failure = error;
+				return `failed: ${requestFailure(error).message}`;
+			}),
+		),
 		Effect.tap((outcome) =>
 			Effect.sync(() => {
 				engine.lastPoll = outcome;
@@ -40,7 +46,7 @@ export function pollOnce(engine: Engine) {
 function savedState(engine: Engine) {
 	return engine.io.fs.readFileString(engine.options.stateFile).pipe(
 		Effect.flatMap(Schema.decodeUnknownEffect(Schema.fromJsonString(State))),
-		Effect.orElseSucceed(() => undefined),
+		Effect.catchTag("PlatformError", (error) => (error.reason._tag === "NotFound" ? Effect.succeed(undefined) : Effect.fail(error))),
 	);
 }
 
@@ -78,6 +84,7 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 			),
 		dequeueReasons: () => Effect.sync(() => transitionLines(engine.lines).flatMap(({ event, reason }) => (event === "dequeued" ? [reason] : []))),
 		diagnostics: () => Effect.sync(() => [...engine.diagnostics]),
+		failureKind: () => Effect.sync(() => (engine.observation.failure instanceof Error ? engine.observation.failure.name : "none")),
 		fileOperationFails: (operation: FileOperation) =>
 			Effect.sync(() => {
 				tell(`the file system refuses every ${operation} with permission denied`);

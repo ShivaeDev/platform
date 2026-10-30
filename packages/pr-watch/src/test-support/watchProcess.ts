@@ -1,10 +1,10 @@
 import { type Clock, Deferred, Duration, Effect, Exit, type Fiber } from "effect";
-import type { WatchError } from "#model.ts";
+import type { program } from "#program.ts";
 
 export function makeWatchProcess(clock: Clock.Clock) {
 	let changed = Deferred.makeUnsafe<void>();
 	const state: {
-		fiber?: Fiber.Fiber<void, WatchError>;
+		fiber?: Fiber.Fiber<void, Effect.Error<ReturnType<typeof program>>>;
 		finished: boolean;
 		processId?: number;
 		timers: Set<number>;
