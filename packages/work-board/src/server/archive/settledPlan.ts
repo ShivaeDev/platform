@@ -1,4 +1,5 @@
-import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { revisionOf } from "#server/responses/records.ts";
 import type { SettledRecord } from "./settledCatalogue.ts";
 import { settledRecords } from "./settledRecords.ts";

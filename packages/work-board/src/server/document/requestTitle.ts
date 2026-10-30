@@ -1,4 +1,4 @@
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 
 type TitleOf = (file: string) => string | undefined;

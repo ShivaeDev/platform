@@ -1,8 +1,5 @@
-import type { MetadataDocument as PublicMetadataDocument, MetadataModel as PublicMetadataModel } from "#integration/metadata.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { metadataProblems } from "./problems.ts";
-
-export type MetadataDocument = PublicMetadataDocument;
-export type MetadataModel = PublicMetadataModel;
 
 export function documentSource(document: MetadataDocument): string {
 	return (document.parsed.raw ?? "") + document.parsed.body;

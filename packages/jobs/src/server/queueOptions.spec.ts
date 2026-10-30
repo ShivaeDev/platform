@@ -1,11 +1,12 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { deadlock } from "#test/runtime/deadlock.ts";
 import { existingQueue, queueCreationFails, runtime, stopped } from "#test/runtime/kit.ts";
 import { queueResult } from "#test/runtime/queueResult.ts";
 import { scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const Initial = defineSchedule({ cron: "0 * * * *", name: "cleanup", queue: { expireInSeconds: 15, notify: true } });
 const Changed = defineSchedule({ cron: "0 * * * *", name: "cleanup", queue: { notify: false, retryBackoff: false, retryLimit: 0 } });

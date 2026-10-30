@@ -1,10 +1,11 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { claimReadsStall, deferralWritesFail, running, runtime, settlementlessClient, storedJob } from "#test/runtime/kit.ts";
 import { storedJob as stored } from "#test/runtime/storedJob.ts";
 import { scheduled, worker, workerBy } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const Hourly = defineSchedule({ cron: "0 * * * *", name: "hourly" });
 const tenRuns = Array.from({ length: 10 }, (_, index) => ({ data: null, id: `run-${index}` }));

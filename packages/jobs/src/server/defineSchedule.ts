@@ -1,7 +1,7 @@
 import type { DefineScheduleOptions, ScheduleDefinition } from "#definition.ts";
 import { maxDeferrals, nativeQueueOptions } from "#internal/definitionOptions.ts";
 
-export function scheduleDefinition<const TName extends string>(options: DefineScheduleOptions<TName>): ScheduleDefinition<TName> {
+export function defineSchedule<const TName extends string>(options: DefineScheduleOptions<TName>): ScheduleDefinition<TName> {
 	const definition: ScheduleDefinition<TName> = {
 		_tag: "ScheduleDefinition",
 		cron: options.cron,

@@ -3,7 +3,7 @@ import remarkParse from "remark-parse";
 import { unified } from "unified";
 import type { DocumentRequest } from "#browser/document/schema.ts";
 import { reasonMarkdown } from "#browser/responses/reasonMarkdown.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { documentBody } from "./body.ts";
 import { REVIEWED_WORK_HEADING, reviewedWork } from "./reviewedWork.ts";
 

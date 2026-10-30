@@ -1,14 +1,9 @@
 import { Effect, FileSystem, Option, Path, type PlatformError } from "effect";
-import { isMarkdown as markdown } from "#path/isMarkdown.ts";
 import { readPaths } from "./readPaths.ts";
 
 export interface MarkdownFile {
 	readonly modified: number;
 	readonly path: string;
-}
-
-export function isMarkdown(path: string): boolean {
-	return markdown(path);
 }
 
 export function within(realRoot: string, separator: string, real: string): boolean {

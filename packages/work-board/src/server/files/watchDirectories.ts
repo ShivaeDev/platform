@@ -1,7 +1,8 @@
 import { Deferred, Effect, FileSystem, Option, Path, Stream } from "effect";
 import { ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { attachmentType } from "#path/attachment.ts";
-import { isMarkdown, type MarkdownFile } from "./list.ts";
+import { isMarkdown } from "#path/isMarkdown.ts";
+import type { MarkdownFile } from "./list.ts";
 import { folderEvents, rescanFolders, SETTLE, type WatchRoots, watchedScan } from "./watchedScan.ts";
 
 function changedFiles(previous: ReadonlyMap<string, number>, next: ReadonlyMap<string, number>) {

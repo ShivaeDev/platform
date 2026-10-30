@@ -1,4 +1,4 @@
-import type { MetadataDocument } from "./model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 
 export function referencesOf(document: MetadataDocument) {
 	const { fields } = document.parsed;

@@ -1,5 +1,6 @@
 import { Effect, FileSystem, Path } from "effect";
-import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { appendCatalogue, readCatalogue, recordPath, type SettledRecord } from "./settledCatalogue.ts";
 import { settledPlan } from "./settledPlan.ts";
 import { settledRecords } from "./settledRecords.ts";

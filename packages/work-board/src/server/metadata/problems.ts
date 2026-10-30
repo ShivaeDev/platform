@@ -1,6 +1,5 @@
+import type { Diagnostic, MetadataDocument } from "#integration/metadata.ts";
 import { attentionProblems } from "./attentionProblems.ts";
-import type { MetadataDocument } from "./model.ts";
-import type { Diagnostic } from "./parse.ts";
 import { referencesOf } from "./referencesOf.ts";
 
 function referenceProblem(target: string, ids: ReadonlyMap<string, readonly MetadataDocument[]>): string | undefined {

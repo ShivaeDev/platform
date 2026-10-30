@@ -493,15 +493,17 @@ The Board shell renders this data in its internal `DocumentView`, using the Boar
 
 Work Fleet uses the server entry points below and the portable metadata type entry point under `@shivaedev/work-board/integration/`. The server APIs reuse Board's document, response, attention and diagnostics implementations. They need no browser or HTTP server; filesystem Effects use the native Node services Layer, and watchers retain their native Effect scope.
 
-| Entry point                         | API object                                                                                                                   |
-| ----------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `server/integration/processes.ts`   | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision                                  |
-| `server/integration/board.ts`       | `board`: metadata parsing and model, Markdown listing, watching and the search snapshot                                      |
-| `integration/metadata.ts`           | Portable metadata types, also available through `server/integration/board.ts`                                                |
-| `server/integration/responses.ts`   | `responses`: the workspace and response services, reading, recording and publishing questions and responses                  |
-| `server/integration/attention.ts`   | `attention`: managed request receipts and the attention projection                                                           |
-| `server/integration/diagnostics.ts` | `diagnostics`: Fleet health, the daemon diagnostics contract and provider limits                                             |
-| `server/integration/publication.ts` | `publication`: `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
+| Entry point                                 | API object                                                                                                    |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| `server/processOwnership.ts`                | `processes`: scoped Board directory ownership shared by the Board CLI and Fleet supervision                   |
+| `server/integration/board.ts`               | `board`: metadata parsing and model, Markdown listing, watching and the search snapshot                       |
+| `integration/metadata.ts`                   | Portable metadata types, also available through `server/integration/board.ts`                                 |
+| `server/integration/responses.ts`           | `responses`: the workspace and response services, reading, recording and publishing questions and responses   |
+| `server/attention/managedRequestReceipt.ts` | `managedRequestReceipt`: managed request acknowledgements                                                     |
+| `attention/RequestReceipt.ts`               | `RequestReceipt`: the request acknowledgement schema                                                          |
+| `server/attention/projection.ts`            | `attentionProjection`: the attention projection                                                               |
+| `server/integration/diagnostics.ts`         | `diagnostics`: Fleet health, the daemon diagnostics contract and provider limits                              |
+| `server/responses/publicationDirectory.ts`  | `directoryPath`, `validateDirectory` for addons that publish their own records through open directory handles |
 
 ```ts
 import { NodeServices } from "@effect/platform-node";
@@ -590,3 +592,5 @@ Files/folders below the root beginning with a dot, and `node_modules`, are skipp
 Publication runs on Linux and macOS and needs a real workspace directory, hard links and directory synchronization. Linux anchors each step to open directory descriptors through `/proc/self/fd`. macOS has no such anchor in Node, so it uses canonical paths and checks the directories' device/inode identity before and after publishing; a directory or ancestor swapped between two checks is not detected, so keep write boundaries under trusted local ownership. Node's `fsync` on macOS does not issue `F_FULLFSYNC`, so a successful save is not a power-loss guarantee there. Read mode remains separate. No-replace publication and retry reconciliation protect recorded contributions; agents edit handoff receipt through ordinary files. An unrelated editor can still change source after preflight. Records retain the exact reviewed context, rather than claiming an atomic transaction with that editor. Moved directories or synchronization failures can produce an uncertain outcome.
 
 The browser workspace requires JavaScript. Tailwind and shared React primitives style its views; project Markdown remains readable in an editor independently of the browser. Image routes exclude SVG, HTML, PDF and arbitrary attachments. The board does not launch agents, verify recorded evidence or generate exported document packets.
+
+Import snapshot types from `@shivaedev/work-board/server/search/snapshot.ts` and source failures from `@shivaedev/work-board/diagnostics/source.ts`. Metadata types live in `@shivaedev/work-board/integration/metadata.ts`.

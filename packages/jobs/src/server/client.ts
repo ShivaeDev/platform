@@ -11,7 +11,6 @@ import type {
 	StopOptions,
 	WorkOptions,
 } from "pg-boss";
-import { nativeClient } from "#internal/nativeClient.ts";
 
 export interface PgBossClient {
 	readonly complete?: PgBoss["complete"];
@@ -36,5 +35,3 @@ export interface PgBossClient {
 }
 
 export type PgBossClientFactory = (options: ConstructorOptions) => PgBossClient;
-
-export const defaultClientFactory: PgBossClientFactory = nativeClient;

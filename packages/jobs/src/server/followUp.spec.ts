@@ -1,9 +1,10 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { deliveredWhileRegistering, running, runtime } from "#test/runtime/kit.ts";
 import { type Attempt, scheduled, worker } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const Source = defineQueue({ name: "source", schema: Schema.Struct({}) });
 const Target = defineQueue({ name: "target", schema: Schema.Struct({ note: Schema.String }) });

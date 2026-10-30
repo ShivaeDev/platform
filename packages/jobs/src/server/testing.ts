@@ -1,9 +1,9 @@
 import { type DateTime, Duration, Effect, Redacted } from "effect";
 import type { PgBoss } from "pg-boss";
 import type { PgBossClientFactory } from "#client.ts";
+import { defaultClientFactory } from "#defaultClientFactory.ts";
 import type { JobPayloadSchema, QueueDefinition } from "#definition.ts";
 import { PgBossTestingError } from "#error.ts";
-import { nativeClient } from "#internal/nativeClient.ts";
 import { testingClient } from "#internal/testingClient.ts";
 import { testingDeferrals } from "#internal/testingDeferrals.ts";
 import { type TestingWork, testingIdle } from "#internal/testingIdle.ts";
@@ -52,7 +52,7 @@ export function makePgBossTesting(options: PgBossTestingOptions = {}) {
 			throw new Error("A testing controller owns one jobs client; create a controller per runtime");
 		}
 		schema = clientOptions.schema ?? "pgboss";
-		current = nativeClient({ ...clientOptions, "__test__enableSpies": true });
+		current = defaultClientFactory({ ...clientOptions, "__test__enableSpies": true });
 		return testingClient(current, clientOptions.schema ?? "pgboss", controls);
 	};
 	return {

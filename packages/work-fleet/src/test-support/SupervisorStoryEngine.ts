@@ -4,7 +4,7 @@ import { join } from "node:path";
 import process from "node:process";
 import { type Duration, Effect, Fiber } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { type SupervisorState, supervisionStatus } from "#host/supervisorState.ts";
 import { launchSupervisorCli } from "#test/launchSupervisorCli.ts";
 import { supervisorInstallation } from "#test/supervisorInstallation.ts";

@@ -1,7 +1,7 @@
 import { Socket } from "node:net";
 import { type ConstructorOptions, PgBoss } from "pg-boss";
 
-export function nativeClient(options: ConstructorOptions) {
+export function defaultClientFactory(options: ConstructorOptions) {
 	const disconnected = new Set<Promise<void>>();
 	const config = {
 		...options,

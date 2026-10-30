@@ -1,7 +1,7 @@
 import { describe, expect } from "@effect/vitest";
 import { Effect } from "effect";
 import { views } from "#engine/views.ts";
-import { settled } from "#host/wait.ts";
+import { settled } from "#host/waitOutcome.ts";
 import { allAttempts } from "#model.ts";
 import { engineConfiguration } from "#test/engineConfiguration.ts";
 import { isolatedEngine } from "#test/engineStory.ts";

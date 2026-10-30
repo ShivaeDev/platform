@@ -1,9 +1,9 @@
 import { fileUrl } from "#files/url.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
 import { closedItem, deferredItem } from "#server/attention/status.ts";
 import { fleetDecisionTitle } from "#server/document/requestTitle.ts";
 import { identityUrl } from "#server/metadata/links.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { attentionEntries } from "./attentionEntries.ts";
 import type { Entry } from "./entries.ts";
 

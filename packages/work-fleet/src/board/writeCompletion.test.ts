@@ -1,6 +1,6 @@
 import { Effect } from "effect";
 import { expect, vi } from "vitest";
-import { publication } from "@shivaedev/work-board/server/integration/publication.ts";
+import * as publication from "@shivaedev/work-board/server/responses/publicationDirectory.ts";
 import { completionMarkdown } from "#board/completionMarkdown.ts";
 import { boardFileStory } from "#test/boardFileStory.ts";
 

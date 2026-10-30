@@ -1,4 +1,4 @@
-import type { MetadataModel } from "./model.ts";
+import type { MetadataModel } from "#integration/metadata.ts";
 
 export function identityUrl(id: string): string {
 	return `/_board/item/${encodeURIComponent(id)}/`;

@@ -1,7 +1,7 @@
 import { expect } from "@effect/vitest";
 import * as HttpStatus from "effect/http/HttpStatus";
-import { WAIT_EXIT } from "#host/wait.ts";
 import { approvedWork, host } from "#test/hostStory.ts";
+import { WAIT_EXIT } from "./waitOutcome.ts";
 
 host.it(
 	"worker questions appear on Board, wait exits waiting, and an answer continues the thread once across restart",

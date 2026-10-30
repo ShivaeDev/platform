@@ -1,6 +1,6 @@
+import type { MetadataModel } from "#integration/metadata.ts";
 import { fleetRecords } from "#server/attention/inbox.ts";
 import { fleetDecisionTitle } from "#server/document/requestTitle.ts";
-import type { MetadataModel } from "#server/metadata/model.ts";
 import type { Entry } from "./entries.ts";
 import { metadataEntries } from "./metadataEntries.ts";
 import type { IndexedDocument } from "./readDocument.ts";

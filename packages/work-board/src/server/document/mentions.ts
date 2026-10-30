@@ -1,7 +1,7 @@
 import { mentionTokens } from "#browser/document/mentions.ts";
 import { fileUrl } from "#files/url.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { sourceFile } from "#server/metadata/sourceLinks.ts";
 
 export interface DocumentMention {

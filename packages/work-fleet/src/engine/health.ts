@@ -1,5 +1,6 @@
 import { Clock, Context, Effect, Ref } from "effect";
-import type { CapacityRejection, FleetHealth, SourceFailure } from "@shivaedev/work-board/server/integration/diagnostics.ts";
+import type { SourceFailure } from "@shivaedev/work-board/diagnostics/source.ts";
+import type { CapacityRejection, FleetHealth } from "@shivaedev/work-board/server/integration/diagnostics.ts";
 import type { SessionObservation } from "#session/schema.ts";
 
 export interface HealthState {

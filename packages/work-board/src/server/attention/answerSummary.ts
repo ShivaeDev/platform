@@ -1,6 +1,7 @@
 import { chosenLabels } from "#browser/responses/cardContext.ts";
 import type { AnswerSummary, RecordedResponse } from "#browser/responses/schema.ts";
-import { documentSource, type MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
+import { documentSource } from "#server/metadata/model.ts";
 import { questionTemplate } from "#server/responses/template.ts";
 import type { AttentionEntry } from "./requests.ts";
 

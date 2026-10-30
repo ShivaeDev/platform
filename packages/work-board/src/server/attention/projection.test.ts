@@ -1,5 +1,4 @@
 import { expect } from "vitest";
-import { attention } from "#server/integration/attention.ts";
 import { inboxCount } from "#server/navigation/model.ts";
 import { attentionLanesFixture } from "#test/attentionLanesFixture.ts";
 import { boardStory, deferredServing } from "#test/boardStory.ts";
@@ -12,7 +11,7 @@ boardStory.it(
 	[deferredServing, anInbox()],
 	function* ({ readAttention, readInbox }) {
 		const snapshot = { ...(yield* readAttention(attentionLanesFixture("Casey"))), maintainer: "Casey" };
-		const projection = attention.projection(snapshot);
+		const projection = attentionProjection(snapshot);
 		expect(projection.you.map((item) => item.id)).toEqual(["decision.reader", "question.storage", "task.person"]);
 		expect(projection.agents.map((item) => item.id)).toEqual(["task.draft", "decision.orchestrator", "decision.automation"]);
 		expect(projection.agents.map((item) => item.responseFrom)).toEqual([["maintainer"], ["orchestrator"], ["automation"]]);

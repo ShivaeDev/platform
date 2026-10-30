@@ -1,7 +1,7 @@
 import { Effect, Path } from "effect";
+import type { Diagnostic, ParsedMetadata } from "#integration/metadata.ts";
 import { areaFolders, isDirectory, repositoryRoot } from "./areaFolders.ts";
 import { areaSuggestion } from "./areaSuggestion.ts";
-import type { Diagnostic, ParsedMetadata } from "./parse.ts";
 
 function isAreaPath(area: string) {
 	const segments = area.split("/");

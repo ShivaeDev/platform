@@ -1,7 +1,7 @@
 import process from "node:process";
 import { Clock, Effect, Fiber, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { appendSupervisorLog } from "./appendSupervisorLog.ts";
 import type { RunningCode } from "./supervisorCode.ts";
 

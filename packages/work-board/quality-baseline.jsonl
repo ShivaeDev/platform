@@ -182,6 +182,7 @@
 {"path":"packages/work-board/src/client/react/loadRemaining.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/work-board/src/client/react/longDocuments.dom.spec.tsx","rule":"tests/wait-on-events","count":11}
 {"path":"packages/work-board/src/client/react/mainLocation.dom.test.tsx","rule":"tests/wait-on-events","count":4}
+{"path":"packages/work-board/src/client/react/markdownRenderers.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/client/react/markdownUnavailable.dom.spec.tsx","rule":"tests/wait-on-events","count":2}
 {"path":"packages/work-board/src/client/react/navigation.dom.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/client/react/navigationScreen.dom.spec.ts","rule":"tests/wait-on-events","count":9}
@@ -279,6 +280,7 @@
 {"path":"packages/work-board/src/rpc/PageUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/rpc/claudePluginAgents.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/work-board/src/rpc/claudePluginContract.spec.ts","rule":"effect/boundary","count":2}
+{"path":"packages/work-board/src/rpc/rejections.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/screenLifecycle.dom.spec.tsx","rule":"tests/domain-outcomes","count":4}
 {"path":"packages/work-board/src/server/archive/archive.spec.ts","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/work-board/src/server/archive/collisions.spec.ts","rule":"tests/grouped-outcomes","count":2}
@@ -333,6 +335,8 @@
 {"path":"packages/work-board/src/server/http/viewFailures.dom.spec.tsx","rule":"tests/wait-on-events","count":2}
 {"path":"packages/work-board/src/server/inboxLatency.spec.ts","rule":"effect/boundary","count":4}
 {"path":"packages/work-board/src/server/integration/board.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-board/src/server/integration/diagnostics.ts","rule":"structure/no-barrel","count":1}
+{"path":"packages/work-board/src/server/integration/responses.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/grouped-outcomes","count":7}
 {"path":"packages/work-board/src/server/liveDelivery.spec.ts","rule":"tests/wait-on-events","count":2}

@@ -101,7 +101,8 @@ export const MailLive = Mail.layer;
 Define the feature's registrations in `jobs.ts`:
 
 ```ts
-import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
 import { Effect, Schema } from "effect";
 import { Mail } from "./services.ts";
 
@@ -493,16 +494,16 @@ A kit can also capture `revision` before reading jobs and yield `waitForChange(r
 
 Import the module that defines the name; the package has no root entry.
 
-| Module                                 | Public names                                                                                                                                                                                                                                                                                       |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `@shivaedev/jobs/server/definition.ts` | `defineQueue`, `defineSchedule`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
-| `@shivaedev/jobs/server/service.ts`    | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                                                                            |
-| `@shivaedev/jobs/server/PgBoss.ts`     | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                                                       |
-| `@shivaedev/jobs/server/schema.ts`     | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                                                       |
-| `@shivaedev/jobs/server/health.ts`     | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                                                     |
-| `@shivaedev/jobs/server/error.ts`      | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation`                                                                                                                                               |
-| `@shivaedev/jobs/server/client.ts`     | `defaultClientFactory`; `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                                      |
-| `@shivaedev/jobs/server/testing.ts`    | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                                                                                  |
+| Module                                 | Public names                                                                                                                                                                                                                                                                     |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `@shivaedev/jobs/server/definition.ts` | `defineQueue`, `jobContext`, `RetryAt`; `DefineQueueOptions`, `DefineScheduleOptions`, `JobContext`, `JobPayloadSchema`, `JobRegistration`, `QueueDefinition`, `QueueOptions`, `QueuePolicy`, `QueueWorker`, `RegistrationRequirements`, `ScheduleDefinition`, `ScheduledWorker` |
+| `@shivaedev/jobs/server/service.ts`    | `makePgBoss`, `pgBossLayer`; `PgBossDefinition`, `PgBossLayerOptions`, `PgBossOptions`, `PgBossService`                                                                                                                                                                          |
+| `@shivaedev/jobs/server/PgBoss.ts`     | `PgBoss`: the shared client Context service.                                                                                                                                                                                                                                     |
+| `@shivaedev/jobs/server/schema.ts`     | `installPgBossSchema`, `pgBossSchema`; `PgBossSchemaOptions`                                                                                                                                                                                                                     |
+| `@shivaedev/jobs/server/health.ts`     | `deadLetterQueueName`; `DeadLetteredJob`, `JobPage`, `JobPageOptions`, `JobsHealth`, `ListedJob`, `QueueCounts`, `QueueHealth`                                                                                                                                                   |
+| `@shivaedev/jobs/server/error.ts`      | `PgBossError`, `PgBossPayloadError`, `PgBossQueueOptionsError`, `PgBossClientOptionsError`, `PgBossTestingError`, `toPgBossError`; `PgBossOperation`                                                                                                                             |
+| `@shivaedev/jobs/server/client.ts`     | `PgBossClient`, `PgBossClientFactory`                                                                                                                                                                                                                                            |
+| `@shivaedev/jobs/server/testing.ts`    | `makePgBossTesting`, `testRetryPolicy`; `PgBossTesting`, `PgBossTestingOptions`, `SnapshotQueue`, `UnfinishedJob`                                                                                                                                                                |
 
 The definition options keep the pg-boss names: `queue` uses `QueueOptions` (`Queue` except `name` and `deadLetter`, with literal `QueuePolicy` values and `maxDeferrals`), `worker` uses `WorkOptions`, and a schedule's `schedule` uses `ScheduleOptions`. A queue also requires `name` and `schema`; a schedule requires `name` and `cron`.
 
@@ -525,3 +526,7 @@ The package requires Node.js 24 or later and PostgreSQL. `effect` and `pg-boss` 
 `connectionString` configures pg-boss's own `pg` Pool, separately from the application's Effect SQL pool, and pg-boss's driver decides how its `sslmode` behaves. Set the TLS mode in that URL; the [framework database connection security guide](https://github.com/ShivaeDev/platform/blob/main/docs/framework/quickstart.md#database-connection-security) compares the drivers and the application's connection paths.
 
 Provide the database connection and job registrations at the application runtime boundary. Application services own the domain work and provider calls; pg-boss owns queue execution. When `SqlClient` is provided and a SQL transaction is active, `enqueue` uses pg-boss’s per-call `db` option on that transaction’s connection. The application write and queued jobs commit or roll back together. The jobs client and SQL client must use the same PostgreSQL database. Outside a transaction, enqueueing keeps using the jobs client as usual. To keep enqueueing independent of an application transaction, move it after the transaction returns and handle its failure separately.
+
+`defineSchedule` is defined in `@shivaedev/jobs/server/defineSchedule.ts`.
+
+`defaultClientFactory` is defined in `@shivaedev/jobs/server/defaultClientFactory.ts`.

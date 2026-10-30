@@ -1,5 +1,5 @@
 import { Array as Arr, Effect, FileSystem, Path } from "effect";
-import type { MetadataDocument } from "@shivaedev/work-board/server/integration/board.ts";
+import type { MetadataDocument } from "@shivaedev/work-board/integration/metadata.ts";
 import { board as boardApi } from "@shivaedev/work-board/server/integration/board.ts";
 import { readDocument } from "#board/readDocument.ts";
 import { BoardSnapshot, readSnapshot } from "#board/readPass.ts";

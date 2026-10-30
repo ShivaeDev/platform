@@ -1,13 +1,13 @@
 import { Effect, FileSystem } from "effect";
 import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Document } from "#browser/document/schema.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { archivedReading, documentPath, readingFiles } from "#server/archive/reading.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import { briefDiagnostic } from "#server/document/briefDiagnostic.ts";
 import type { MarkdownFile } from "#server/files/list.ts";
 import { areaDiagnostics } from "#server/metadata/areaDiagnostics.ts";
 import { referenceTarget } from "#server/metadata/links.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { vocabularyMessage } from "#server/metadata/vocabulary.ts";
 import { locate } from "#server/responses/locate.ts";
 import { readingActions } from "#server/responses/readingActions.ts";

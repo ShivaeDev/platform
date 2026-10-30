@@ -110,7 +110,7 @@ For a native shell, pass its resume source when binding the API returned by `con
 
 ```ts
 import { bind } from "@shivaedev/contract/bind.ts";
-import type { ResumeSource } from "@shivaedev/react/resumeSignal.ts";
+import type { ResumeSource } from "@shivaedev/contract/resume.ts";
 import { onAppResume, onNetworkReturn } from "./native-lifecycle.ts";
 
 const resume: ResumeSource = (notify) => {
@@ -789,7 +789,7 @@ Changing the `fields` schema or `runtime` by reference replaces either hook's fo
 Keep the signal and query identities stable:
 
 ```ts
-import { resumeSignal } from "@shivaedev/react/resumeSignal.ts";
+import { resumeSignal } from "@shivaedev/contract/resume.ts";
 import { Effect } from "effect";
 import * as Atom from "effect/reactivity/Atom";
 

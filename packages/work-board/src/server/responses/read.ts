@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { BadRequest, Conflict, NotFound, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { Reading } from "#browser/responses/schema.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import type { ResponseRejection } from "#rpc/rejections.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { responseIndex } from "#server/responseIndex.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 

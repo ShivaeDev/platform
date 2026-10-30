@@ -1,8 +1,8 @@
 import { Effect } from "effect";
 import { BadRequest } from "@shivaedev/errors/taxonomy.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { responseUrl } from "#responses/url.ts";
 import { authoredQuestion } from "#server/attention/inbox.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { locate } from "./locate.ts";
 import { questionSourceMatches } from "./questionSourceMatches.ts";
 import { questionTemplate } from "./template.ts";

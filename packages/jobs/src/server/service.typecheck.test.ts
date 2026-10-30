@@ -1,8 +1,9 @@
 import { Context, type Duration, Effect, Layer, Option, Redacted, Schema, SchemaGetter } from "effect";
 import { expectTypeOf } from "vitest";
-import { defineQueue, defineSchedule, type JobContext } from "#definition.ts";
+import { defineQueue, type JobContext } from "#definition.ts";
 import type { PgBossClientOptionsError, PgBossError, PgBossQueueOptionsError } from "#error.ts";
 import { makePgBoss, type PgBossDefinition, pgBossLayer } from "#service.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 class HandlerDependency extends Context.Service<HandlerDependency, number>()("@test/HandlerDependency") {}
 

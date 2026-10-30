@@ -1,6 +1,6 @@
 import type { Question, RecordedResponse } from "#browser/responses/schema.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { currentResponses } from "#responses/current.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import { malformedResponse, questionFrom, responseFrom } from "#server/responses/records.ts";
 
 interface ResponseGroup {

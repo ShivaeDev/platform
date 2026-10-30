@@ -3,7 +3,7 @@ import { Schema } from "effect";
 import { stringify } from "yaml";
 import type { Handoff, HandoffInput, HandoffRecord } from "#browser/handoffs/schema.ts";
 import { HandoffRecord as RecordSchema } from "#browser/handoffs/schema.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 
 export function handoffFrom(document: MetadataDocument | undefined, root: string): Handoff | undefined {
 	if (!document) {

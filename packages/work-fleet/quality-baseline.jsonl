@@ -214,6 +214,7 @@
 {"path":"packages/work-fleet/src/engine/watchedPrs.ts","rule":"effect/service-parameters","count":2}
 {"path":"packages/work-fleet/src/engine/workerQuestion.spec.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/work-fleet/src/engine/workerReport.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/work-fleet/src/errors.ts","rule":"structure/no-barrel","count":1}
 {"path":"packages/work-fleet/src/exposeFailure.test.ts","rule":"tests/domain-outcomes","count":3}
 {"path":"packages/work-fleet/src/exposeFailure.test.ts","rule":"tests/grouped-outcomes","count":1}
 {"path":"packages/work-fleet/src/host/admissionFetch.spec.ts","rule":"tests/grouped-outcomes","count":2}

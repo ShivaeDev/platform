@@ -1,5 +1,6 @@
 import { Schema } from "effect";
-import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts";
+import { defineSchedule } from "@shivaedev/jobs/server/defineSchedule.ts";
+import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { adminRegistry } from "#registry.ts";
 import { Users } from "./pages.ts";

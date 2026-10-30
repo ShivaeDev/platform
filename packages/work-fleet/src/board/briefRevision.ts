@@ -1,4 +1,4 @@
-import type { ParsedMetadata } from "@shivaedev/work-board/server/integration/board.ts";
+import type { ParsedMetadata } from "@shivaedev/work-board/integration/metadata.ts";
 import { responses } from "@shivaedev/work-board/server/integration/responses.ts";
 import { fleetDeliverable } from "#board/fleetField.ts";
 

@@ -1,7 +1,7 @@
 import { constants } from "node:fs";
 import { type FileHandle, open } from "node:fs/promises";
 import { Effect } from "effect";
-import { publication } from "@shivaedev/work-board/server/integration/publication.ts";
+import { directoryPath, validateDirectory } from "@shivaedev/work-board/server/responses/publicationDirectory.ts";
 import { reportFileIo, withReportFile } from "#reportFileFailure.ts";
 
 export interface ReportDirectory {
@@ -11,7 +11,7 @@ export interface ReportDirectory {
 }
 
 export function validateReportDirectory(label: string, directory: ReportDirectory) {
-	return reportFileIo(label, () => publication.validateDirectory(directory.file, directory.folder, directory.expected));
+	return reportFileIo(label, () => validateDirectory(directory.file, directory.folder, directory.expected));
 }
 
 export function withReportDirectory<A, E, R>(
@@ -25,7 +25,7 @@ export function withReportDirectory<A, E, R>(
 		() => open(path, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW),
 		(file) =>
 			Effect.gen(function* () {
-				const directory = { expected, file, folder: publication.directoryPath(file, expected) };
+				const directory = { expected, file, folder: directoryPath(file, expected) };
 				yield* validateReportDirectory(label, directory);
 				return yield* use(directory);
 			}),

@@ -1,10 +1,7 @@
 import { LineCounter, parseDocument } from "yaml";
-import type { Diagnostic as PublicDiagnostic, ParsedMetadata as PublicParsedMetadata } from "#integration/metadata.ts";
+import type { Diagnostic, ParsedMetadata } from "#integration/metadata.ts";
 import { metadataFields } from "./fields.ts";
 import { metadataLocations } from "./locations.ts";
-
-export type Diagnostic = PublicDiagnostic;
-export type ParsedMetadata = PublicParsedMetadata;
 
 export function metadataParse(source: string): ParsedMetadata {
 	const plain: ParsedMetadata = { body: source, bodyLine: 1, diagnostics: [], fields: {}, lines: {} };

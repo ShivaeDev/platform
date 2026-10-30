@@ -2,7 +2,7 @@ import { realpathSync } from "node:fs";
 import { unlink } from "node:fs/promises";
 import process from "node:process";
 import { Clock, Console, Effect, Exit, Scope, Semaphore } from "effect";
-import { processes } from "@shivaedev/work-board/server/integration/processes.ts";
+import { processes } from "@shivaedev/work-board/server/processOwnership.ts";
 import { logSupervisor, startProcess } from "./supervisedProcess.ts";
 import { codeReader, type RunningCode } from "./supervisorCode.ts";
 import { processArguments, type UpOptions } from "./supervisorOptions.ts";

@@ -1,4 +1,4 @@
-import type { MetadataDocument } from "#server/metadata/model.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import type { Entry } from "./entries.ts";
 
 export function attentionEntries(document: MetadataDocument, href: string): readonly Entry[] {

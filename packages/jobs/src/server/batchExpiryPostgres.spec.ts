@@ -1,10 +1,11 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { defineQueue, defineSchedule } from "#definition.ts";
+import { defineQueue } from "#definition.ts";
 import { database } from "#test/postgres/database.ts";
 import { interrupted, running, storedTogether } from "#test/postgres/traits.ts";
 import { scheduled, workerBy } from "#test/workers.ts";
+import { defineSchedule } from "./defineSchedule.ts";
 
 const Expiring = defineQueue({
 	name: "batch-expiry",

@@ -12,9 +12,8 @@ import { publish } from "#server/responses/publish.ts";
 import { questionSourceMatches } from "#server/responses/questionSourceMatches.ts";
 import { readResponses } from "#server/responses/read.ts";
 import { questionFrom, questionId, questionMarkdown, responseMarkdown, revisionOf } from "#server/responses/records.ts";
-import { type WorkspaceOptions as InternalWorkspaceOptions, Workspace, WorkspaceConfig } from "#server/workspace.ts";
+import { Workspace, WorkspaceConfig } from "#server/workspace.ts";
 
-export type WorkspaceOptions = InternalWorkspaceOptions;
 export type DraftInput = typeof DraftInputSchema.Type;
 export type Question = typeof QuestionSchema.Type;
 export type Reading = typeof ReadingSchema.Type;

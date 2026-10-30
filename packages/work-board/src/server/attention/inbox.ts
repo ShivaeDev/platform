@@ -1,7 +1,7 @@
 import { fileUrl } from "#files/url.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { responseUrl } from "#responses/url.ts";
 import { identityUrl } from "#server/metadata/links.ts";
-import type { MetadataDocument, MetadataModel } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { ownerNote } from "./ownerNote.ts";
 import { answeredQuestion } from "./questionState.ts";

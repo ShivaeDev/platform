@@ -2,9 +2,8 @@ import { Schema } from "effect";
 import { RequestReceipt } from "#attention/RequestReceipt.ts";
 import { HandoffRecord } from "#browser/handoffs/schema.ts";
 import { QuestionRecord, ResponseRecord } from "#browser/responses/schema.ts";
-import { Identity as SourceIdentity } from "#path/Identity.ts";
+import { Identity } from "#path/Identity.ts";
 
-export const Identity = SourceIdentity;
 export const Reference = Schema.String.check(Schema.isPattern(/^[a-zA-Z\d][a-zA-Z\d._-]*(?:#[a-zA-Z\d][a-zA-Z\d._-]*)?$/u));
 const Text = Schema.String.check(Schema.isPattern(/\S/u));
 const SweepPath = Text.check(

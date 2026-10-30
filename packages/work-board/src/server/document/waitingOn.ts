@@ -1,9 +1,9 @@
 import { itemAsks, waitsOnYou } from "#browser/document/asks.ts";
 import type { WaitingAsk } from "#browser/document/schema.ts";
+import type { MetadataDocument } from "#integration/metadata.ts";
 import { responseUrl } from "#responses/url.ts";
 import { backlinksOf } from "#server/metadata/backlinks.ts";
 import { identityUrl } from "#server/metadata/links.ts";
-import type { MetadataDocument } from "#server/metadata/model.ts";
 import type { Snapshot } from "#server/search/snapshot.ts";
 import { itemRequests } from "./requests.ts";
 

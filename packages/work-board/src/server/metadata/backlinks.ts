@@ -1,4 +1,4 @@
-import type { MetadataDocument, MetadataModel } from "./model.ts";
+import type { MetadataDocument, MetadataModel } from "#integration/metadata.ts";
 import { referenceFile, sourceFile } from "./sourceLinks.ts";
 
 export interface Backlink {

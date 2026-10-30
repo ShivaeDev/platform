@@ -2,7 +2,6 @@ import { Clock, Duration, Effect, Schema } from "effect";
 import type { Job, policies, Queue, ScheduleOptions, WorkOptions } from "pg-boss";
 import { deadlineOf } from "#internal/deadlineOf.ts";
 import { maxDeferrals, nativeQueueOptions } from "#internal/definitionOptions.ts";
-import { scheduleDefinition } from "#internal/scheduleDefinition.ts";
 
 export class RetryAt extends Schema.TaggedError<RetryAt>()("RetryAt", {
 	at: Schema.DateTimeUtc,
@@ -122,10 +121,6 @@ export interface DefineScheduleOptions<TName extends string> {
 	readonly queue?: QueueOptions;
 	readonly schedule?: ScheduleOptions;
 	readonly worker?: WorkOptions;
-}
-
-export function defineSchedule<const TName extends string>(options: DefineScheduleOptions<TName>): ScheduleDefinition<TName> {
-	return scheduleDefinition(options);
 }
 
 export function jobContext(job: Job<unknown>): JobContext {
