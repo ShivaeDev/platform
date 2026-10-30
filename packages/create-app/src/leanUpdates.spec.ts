@@ -1,24 +1,32 @@
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { updates } from "#test/updates.ts";
+import { AS_RELEASED, createdWith010, published010, starterAt010, starterAt020 } from "#test/updateTraits.ts";
 
-updates.it("removes unused starter components and their chart dependency from an existing app", [], function* (app) {
-	const manifest = app.starterFile("package.json");
-	const previous = JSON.parse(manifest);
-	app.setVersion("0.1.0");
-	app.revise({
-		"package.json": `${JSON.stringify({ ...previous, dependencies: { ...previous.dependencies, recharts: "catalog:" } }, null, "\t")}\n`,
-		"src/client/ui/chart.tsx": "export const Chart = () => null;\n",
-		"src/client/ui/tooltip.tsx": "export const Tooltip = () => null;\n",
-	});
-	expect((yield* app.create()).status).toBe(0);
-	app.publish();
-	app.setVersion("0.2.0");
-	app.revise({ "package.json": manifest });
-	app.removeFromStarter("src/client/ui/chart.tsx");
-	app.removeFromStarter("src/client/ui/tooltip.tsx");
-	const result = yield* app.update();
-	expect(result.status, result.stderr).toBe(0);
-	expect(app.exists("src/client/ui/chart.tsx")).toBe(false);
-	expect(app.exists("src/client/ui/tooltip.tsx")).toBe(false);
-	expect(JSON.parse(app.read("package.json")).dependencies).not.toHaveProperty("recharts");
-});
+updates.it(
+	"update removes chart.tsx, tooltip.tsx and the recharts dependency that the 0.2.0 starter dropped",
+	[
+		starterAt010("ships chart.tsx, tooltip.tsx and the recharts dependency", {
+			"package.json": (manifest) => manifest.replace('"dependencies": {', '"dependencies": {\n\t\t"recharts": "catalog:",'),
+			"src/client/ui/chart.tsx": "export const Chart = () => null;\n",
+			"src/client/ui/tooltip.tsx": "export const Tooltip = () => null;\n",
+		}),
+		createdWith010(),
+		published010,
+		starterAt020("drops them", { "package.json": AS_RELEASED, "src/client/ui/chart.tsx": null, "src/client/ui/tooltip.tsx": null }),
+	],
+	function* ({ dependsOn, exists, update }) {
+		yield* outcomes({
+			"depends on recharts": [dependsOn("recharts"), true],
+			"src/client/ui/chart.tsx": [exists("src/client/ui/chart.tsx"), true],
+			"src/client/ui/tooltip.tsx": [exists("src/client/ui/tooltip.tsx"), true],
+		});
+
+		yield* update();
+
+		yield* outcomes({
+			"depends on recharts": [dependsOn("recharts"), false],
+			"src/client/ui/chart.tsx": [exists("src/client/ui/chart.tsx"), false],
+			"src/client/ui/tooltip.tsx": [exists("src/client/ui/tooltip.tsx"), false],
+		});
+	},
+);

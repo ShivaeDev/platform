@@ -6,6 +6,30 @@ import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { CreateAppError } from "#CreateAppError.ts";
 import { renderTemplate } from "#generation.ts";
 import { packTemplate } from "#packTemplate.ts";
+import { application } from "./application.ts";
+
+const malformedContent = JSON.stringify({
+	dependencies: { effect: 42 },
+	devDependencies: {},
+	engines: {},
+	imports: {},
+	name: "starter",
+	packageManager: "pnpm@12.15.0",
+	private: true,
+	scripts: {},
+	type: "module",
+	version: "0.0.0",
+});
+
+export const malformedPackedManifest = application.trait(
+	"workspace",
+	"the packed package.json has a non-string dependency version",
+	function* (engine) {
+		yield* engine.source.pack();
+		engine.source.replacePacked("package.json", malformedContent);
+		engine.packed = true;
+	},
+);
 
 export const templateFailures = storyKit({
 	*create() {
@@ -49,18 +73,6 @@ export const templateFailures = storyKit({
 
 export const malformedManifest = templateFailures.trait("template", "package.json has a non-string dependency version", function* (engine) {
 	const fs = yield* FileSystem.FileSystem;
-	const manifest = JSON.stringify({
-		dependencies: { effect: 42 },
-		devDependencies: {},
-		engines: {},
-		imports: {},
-		name: "starter",
-		packageManager: "pnpm@12.15.0",
-		private: true,
-		scripts: {},
-		type: "module",
-		version: "0.0.0",
-	});
-	engine.files = { "package.json": manifest };
-	yield* fs.writeFileString(join(engine.starter, "package.json"), manifest);
+	engine.files = { "package.json": malformedContent };
+	yield* fs.writeFileString(join(engine.starter, "package.json"), malformedContent);
 });

@@ -1,26 +1,26 @@
-import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
+import { databasesPrepared, generatedWithOwnDatabases } from "#test/traits.ts";
 
 application.it(
-	"prepares both databases and runs generated tests with the app environment on PostgreSQL",
-	[],
-	function* ({ cli, prepareDatabases, runDatabaseProbe, read }) {
-		const name = `setup_${crypto.randomUUID().replaceAll("-", "")}`;
-		expect((yield* cli([name, "--no-git"])).status).toBe(0);
-		const setup = prepareDatabases();
-		expect(setup.status, setup.stdout + setup.stderr).toBe(0);
-		const test = runDatabaseProbe();
-		expect(test.status, test.stdout + test.stderr).toBe(0);
-		expect(JSON.parse(read("database-observations.json"))).toEqual({
-			databases: {
-				"DATABASE_URL": [{ name: `${name}_dev` }],
-				"TEST_DATABASE_URL": [{ name: `${name}_test` }],
-			},
-			environment: {
-				"DATABASE_URL": `postgresql://postgres:postgres@127.0.0.1:55432/${name}_dev`,
-				"TEST_DATABASE_URL": `postgresql://postgres:postgres@127.0.0.1:55432/${name}_test`,
-			},
-			query: [{ value: 1 }],
+	"the generated app's tests read both database URLs from .env.local, reach both prepared databases and query PostgreSQL through the app's test layer",
+	[generatedWithOwnDatabases("--no-git"), databasesPrepared],
+	function* ({ databaseObservation, runDatabaseProbe }) {
+		yield* runDatabaseProbe();
+
+		yield* outcomes({
+			"databases the URLs reach": [
+				databaseObservation("databases"),
+				{ "DATABASE_URL": [{ name: "{app}_dev" }], "TEST_DATABASE_URL": [{ name: "{app}_test" }] },
+			],
+			"query through the app's test layer": [databaseObservation("query"), [{ value: 1 }]],
+			"URLs the test reads": [
+				databaseObservation("environment"),
+				{
+					"DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:55432/{app}_dev",
+					"TEST_DATABASE_URL": "postgresql://postgres:postgres@127.0.0.1:55432/{app}_test",
+				},
+			],
 		});
 	},
 );

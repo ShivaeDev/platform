@@ -1,62 +1,147 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { application } from "#test/application.ts";
+import { permissiveUmask, restrictiveUmask } from "#test/traits.ts";
+
+const APP_WORDS = ["pnpm dev", "pnpm test", "docs/framework/"];
+const STARTER_WORDS = ["starter", "check:published", "--registry", "published-versions"];
+const UPDATE_WORDS = ["pnpm dlx @shivaedev/create-app@latest update", "`.create-app.json` records the generator version"];
 
 application.it(
-	"gives a generated app its own guidance, documentation, names and normal file permissions",
+	"create-app demo writes package.json tab-indented, named demo, with the starter's fields in the starter's order",
 	[],
-	function* ({ cli, read, guidanceLink, files, generatedFiles, exists }) {
-		const result = yield* cli(["demo", "--no-git"], ["NODE_OPTIONS=--import=data:text/javascript,process.umask(0o077)"]);
-		expect(result.status, result.stdout + result.stderr).toBe(0);
-		expect(read("README.md")).toMatch(/^# demo\n/u);
-		for (const path of ["README.md", "AGENTS.md"]) {
-			expect(read(path)).not.toMatch(/starter|check:published|--registry|published-versions/iu);
-			expect(read(path)).toContain("pnpm dev");
-			expect(read(path)).toContain("pnpm test");
-			expect(read(path)).toContain("docs/framework/");
-		}
-		expect(read("README.md")).toContain("pnpm dlx @shivaedev/create-app@latest update");
-		expect(read("README.md")).toContain("`.create-app.json` records the generator version");
-		expect(guidanceLink()).toBe("AGENTS.md");
-		expect(read(".env.example")).toContain("/demo_dev\n");
-		expect(read(".env.example")).toContain("/demo_test\n");
-		expect(files()).not.toContain("published-versions.json");
-		for (const path of ["src/client/ui/chart.tsx", "src/client/ui/tooltip.tsx"]) {
-			expect(exists(path), path).toBe(false);
-		}
-		expect(JSON.parse(read("package.json")).dependencies).not.toHaveProperty("recharts");
-		for (const file of generatedFiles()) {
-			expect(file.path).not.toMatch(/starter/iu);
-			expect(file.content, file.path).not.toMatch(/starter/iu);
-			expect(file.mode, file.path).toBe(file.path === ".env.local" ? 0o600 : 0o644);
-		}
+	function* ({ createApp, fileLines, manifestFields, starterManifestFields }) {
+		const starterOrder = yield* starterManifestFields();
+
+		yield* createApp("demo", "--no-git");
+
+		yield* outcomes({
+			"field order": [manifestFields(), starterOrder],
+			"opening lines": [fileLines("package.json", 2), ["{", '\t"name": "demo",']],
+		});
 	},
 );
 
-application.it("carries the coverage CI workflow and ignores its reports", [], function* ({ cli, read, starterFile, git }) {
-	const result = yield* cli(["demo", "--no-git"]);
-	expect(result.status, result.stdout + result.stderr).toBe(0);
-	const workflow = read(".github/workflows/ci.yml");
-	expect(workflow).toBe(starterFile(".github/workflows/ci.yml"));
-	expect(workflow).toContain("run: pnpm run ci --coverage");
-	expect(workflow).toContain("name: coverage-tests");
-	expect(git("init", "--quiet").status).toBe(0);
-	expect(git("check-ignore", "coverage/lcov.info", "coverage/junit.xml", "coverage/measured-commits.txt", "coverage/job.txt").stdout).toBe(
-		"coverage/lcov.info\ncoverage/junit.xml\ncoverage/measured-commits.txt\ncoverage/job.txt\n",
-	);
+application.it("create-app demo titles README.md with the app's name", [], function* ({ createApp, fileLines }) {
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* fileLines("README.md", 1)).toEqual(["# demo"]);
 });
 
-application.it("gives generated apps an ignored local browser check outside their CI gate", [], function* ({ cli, read, git }) {
-	const result = yield* cli(["demo", "--no-git"]);
+for (const guide of ["README.md", "AGENTS.md"]) {
+	application.it(
+		`the generated ${guide} points to pnpm dev, pnpm test and docs/framework/ and names none of the starter's maintenance`,
+		[],
+		function* ({ createApp, wordsIn }) {
+			yield* createApp("demo", "--no-git");
 
-	expect(result.status, result.stdout + result.stderr).toBe(0);
-	const manifest = JSON.parse(read("package.json"));
-	expect(manifest.scripts["browser-check"]).toBe("browser-check");
-	expect(manifest.devDependencies).toHaveProperty("@shivaedev/browser-check");
-	for (const name of ["ready", "ci", "setup"]) {
-		expect(manifest.scripts[name]).not.toMatch(/browser-check|playwright/u);
-	}
-	expect(read(".github/workflows/ci.yml")).not.toMatch(/browser-check|playwright/u);
-	expect(read("README.md")).toContain("End-to-end browser tests do not belong in an app's CI");
-	expect(git("init", "--quiet").status).toBe(0);
-	expect(git("check-ignore", ".browser-check/1.png").stdout).toBe(".browser-check/1.png\n");
+			expect(yield* wordsIn(guide, [...APP_WORDS, ...STARTER_WORDS])).toEqual(APP_WORDS);
+		},
+	);
+}
+
+application.it("the generated README.md explains create-app update and the .create-app.json record", [], function* ({ createApp, wordsIn }) {
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* wordsIn("README.md", UPDATE_WORDS)).toEqual(UPDATE_WORDS);
+});
+
+application.it("CLAUDE.md links to the generated AGENTS.md", [], function* ({ createApp, guidanceLink }) {
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* guidanceLink()).toBe("AGENTS.md");
+});
+
+application.it("create-app demo names the databases in .env.example demo_dev and demo_test", [], function* ({ createApp, wordsIn }) {
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* wordsIn(".env.example", ["/demo_dev\n", "/demo_test\n", "starter_"])).toEqual(["/demo_dev\n", "/demo_test\n"]);
+});
+
+application.it(
+	"under a 077 umask every generated and installed file is readable by others at 644, except .env.local at 600",
+	[restrictiveUmask],
+	function* ({ createApp, modesOtherThan644 }) {
+		yield* createApp("demo", "--no-git");
+
+		expect(yield* modesOtherThan644()).toEqual({ ".env.local": "600" });
+	},
+);
+
+application.it(
+	"under a 022 umask create-app still writes .env.local readable only by its owner",
+	[permissiveUmask],
+	function* ({ createApp, fileMode }) {
+		yield* createApp("demo", "--no-git");
+
+		expect(yield* fileMode(".env.local")).toBe("600");
+	},
+);
+
+application.it("no generated file is named after or mentions the starter", [], function* ({ createApp, filesMentioningStarter }) {
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* filesMentioningStarter()).toEqual([]);
+});
+
+application.it("the generated CI workflow is the starter's ci.yml", [], function* ({ createApp, file, starterFile }) {
+	const workflow = yield* starterFile(".github/workflows/ci.yml");
+
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* file(".github/workflows/ci.yml")).toBe(workflow);
+});
+
+application.it("the generated CI workflow runs the tests with coverage and uploads them as coverage-tests", [], function* ({ createApp, wordsIn }) {
+	yield* createApp("demo", "--no-git");
+
+	expect(yield* wordsIn(".github/workflows/ci.yml", ["run: pnpm run ci --coverage", "name: coverage-tests"])).toEqual([
+		"run: pnpm run ci --coverage",
+		"name: coverage-tests",
+	]);
+});
+
+application.it("the generated app's Git ignores the coverage reports CI writes", [], function* ({ createApp, gitState }) {
+	yield* createApp("demo");
+
+	yield* outcomes({
+		"coverage/job.txt": [gitState("coverage/job.txt"), "ignored"],
+		"coverage/junit.xml": [gitState("coverage/junit.xml"), "ignored"],
+		"coverage/lcov.info": [gitState("coverage/lcov.info"), "ignored"],
+		"coverage/measured-commits.txt": [gitState("coverage/measured-commits.txt"), "ignored"],
+	});
+});
+
+application.it(
+	"a generated app has no chart or tooltip component and no Recharts dependency",
+	[],
+	function* ({ createApp, dependsOn, filesPresent }) {
+		yield* createApp("demo", "--no-git");
+
+		yield* outcomes({
+			"chart and tooltip components": [filesPresent(["src/client/ui/chart.tsx", "src/client/ui/tooltip.tsx"]), []],
+			"Recharts dependency": [dependsOn("recharts"), false],
+		});
+	},
+);
+
+application.it(
+	"a generated app runs browser-check only through its own script, which no other script and not the CI workflow calls",
+	[],
+	function* ({ createApp, devDependsOn, script, scriptsMentioning, wordsIn }) {
+		yield* createApp("demo", "--no-git");
+
+		yield* outcomes({
+			"browser tools the CI workflow names": [wordsIn(".github/workflows/ci.yml", ["browser-check", "playwright"]), []],
+			"browser-check devDependency": [devDependsOn("@shivaedev/browser-check"), true],
+			"browser-check script": [script("browser-check"), "browser-check"],
+			"scripts that call it": [scriptsMentioning(["browser-check", "playwright"]), ["browser-check"]],
+		});
+	},
+);
+
+application.it("the generated app's Git ignores browser-check screenshots in .browser-check/", [], function* ({ createApp, gitState }) {
+	yield* createApp("demo");
+
+	expect(yield* gitState(".browser-check/1.png")).toBe("ignored");
 });

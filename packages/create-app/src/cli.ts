@@ -31,7 +31,10 @@ const program = Effect.gen(function* () {
 });
 
 program.pipe(
-	Effect.tapCause((cause) => Console.error(Cause.pretty(cause))),
+	Effect.tapCause((cause) => {
+		const error = Cause.squash(cause);
+		return Console.error(error instanceof CreateAppError && error.cause === undefined ? `create-app: ${error.message}` : Cause.pretty(cause));
+	}),
 	Effect.provide(NodeServices.layer),
 	NodeRuntime.runMain({ disableErrorReporting: true }),
 );

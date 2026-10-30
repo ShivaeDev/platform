@@ -4,7 +4,7 @@ import { rpcBoundary } from "@shivaedev/errors/boundary.ts";
 import { Conflict, InternalServerError, ServiceUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { RequestTracing } from "#middleware.ts";
 
-export const SaveOutcome = Schema.Literals(["name taken", "storage unavailable", "storage fails", "storage crashes"]);
+export const SaveOutcome = Schema.Literals(["name taken", "storage unavailable", "storage fails", "storage crashes", "storage returns text"]);
 
 const Rejection = Schema.Union([Conflict, InternalServerError, ServiceUnavailable]);
 export const Api = RpcGroup.make(
@@ -12,7 +12,7 @@ export const Api = RpcGroup.make(
 ).middleware(RequestTracing);
 export const Handlers = Api.toLayer({
 	Save: ({ outcome, storageDetail }) =>
-		Effect.suspend(() => {
+		Effect.suspend((): Effect.Effect<never, Error | string> => {
 			if (outcome === "name taken") {
 				return Effect.fail(new Conflict({ field: "name", message: "Name is taken" }));
 			}
@@ -20,6 +20,9 @@ export const Handlers = Api.toLayer({
 				return Effect.fail(new ServiceUnavailable({ message: "Storage is unavailable" }));
 			}
 			const storageError = new Error(`Storage failed with ${storageDetail}`);
+			if (outcome === "storage returns text") {
+				return Effect.fail(storageError.message);
+			}
 			return outcome === "storage crashes" ? Effect.die(storageError) : Effect.fail(storageError);
 		}).pipe(rpcBoundary(Rejection, { unexpected: (message) => new InternalServerError({ message }) })),
 });

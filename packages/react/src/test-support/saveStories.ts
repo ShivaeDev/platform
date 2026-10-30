@@ -18,6 +18,7 @@ export const saves = storyKit(
 		"save session screen",
 		(): State => ({}),
 		(state, screen) => ({
+			alert: () => current(state).container.querySelector('[role="alert"]')?.textContent,
 			rerender: () => screen.act("rerender the same session", () => current(state).render()),
 			save: () => current(state),
 			submit: () => screen.act("submit the save", () => clickButton(current(state).container, "Save")),
@@ -29,5 +30,12 @@ export function saveProbe(kind: "create" | "editor") {
 	return saves.trait("screen", `an Unauthorized ${kind} save`, function* ({ screen, state }) {
 		const view = yield* screen.open();
 		state.view = yield* Effect.promise(() => saveSession(view, kind));
+	});
+}
+
+export function dyingSave(kind: "create" | "editor") {
+	return saves.trait("screen", `a ${kind} save that dies`, function* ({ screen, state }) {
+		const view = yield* screen.open();
+		state.view = yield* Effect.promise(() => saveSession(view, kind, true));
 	});
 }

@@ -1,20 +1,20 @@
 import { Schema } from "effect";
 import { expect } from "vitest";
 import { application } from "#test/application.ts";
-import { malformedManifest, templateFailures } from "#test/templateFailures.ts";
+import { malformedManifest, malformedPackedManifest, templateFailures } from "#test/templateFailures.ts";
 
-application.it("the CLI logs a malformed manifest's failed step, file and decode cause", [], function* ({ pack, replacePacked, cli }) {
-	const files = yield* pack();
-	replacePacked("package.json", JSON.stringify({ ...JSON.parse(files["package.json"] ?? "{}"), dependencies: { effect: 42 } }));
+application.it(
+	"the CLI logs a malformed manifest's failed step, file and decode cause",
+	[malformedPackedManifest],
+	function* ({ createApp, diagnosticLog }) {
+		yield* createApp("demo", "--no-git");
 
-	const result = yield* cli(["demo", "--no-git"]);
-
-	const exitCode = result.status;
-	expect(exitCode).toBe(1);
-	expect(result.stderr).toContain("CreateAppError: Failed to render template file package.json");
-	expect(result.stderr).toContain("SchemaError");
-	expect(result.stderr).toContain('["dependencies"]["effect"]');
-});
+		const logged = yield* diagnosticLog();
+		expect(logged).toContain("CreateAppError: Failed to render template file package.json");
+		expect(logged).toContain("SchemaError");
+		expect(logged).toContain('["dependencies"]["effect"]');
+	},
+);
 
 templateFailures.it(
 	"a failed pack names its step and file and retains the non-enumerable decode cause",

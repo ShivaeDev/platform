@@ -18,7 +18,13 @@ const copyProblems = Effect.fn("Skills.copyProblems")(function* (repo: string, m
 	const problems: string[] = [];
 	for (const [name, expected] of Object.entries(manifest.skills)) {
 		const { copy } = skillPaths(path, repo, name);
-		const actual = yield* hashSkill(copy).pipe(Effect.option);
+		const actual = yield* hashSkill(copy).pipe(
+			Effect.map(Option.some),
+			Effect.catchIf(
+				(error) => error.reason._tag === "NotFound",
+				() => Effect.succeed(Option.none()),
+			),
+		);
 		if (Option.isNone(actual)) {
 			problems.push(`${path.relative(repo, copy)} is missing.`);
 		} else if (actual.value !== expected) {

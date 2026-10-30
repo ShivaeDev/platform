@@ -1,14 +1,21 @@
 import { spawnSync } from "node:child_process";
-import { existsSync, readdirSync, readFileSync, readlinkSync, realpathSync, statSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { NodeServices } from "@effect/platform-node";
 import { Config, Effect } from "effect";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { appFolder, runCli } from "./cli.ts";
+import { CreateAppError } from "#CreateAppError.ts";
+import { scriptOutcome } from "./answers.ts";
+import { appReadouts } from "./appReadouts.ts";
+import { appFolder } from "./cli.ts";
 import { commandTiming } from "./commandTiming.ts";
 import { createEngine } from "./createEngine.ts";
 import { appScript, installDatabaseProbe, readyAgainstWorkspace } from "./environment.ts";
+import { createAppIn } from "./generate.ts";
+import { generatedReadouts } from "./generatedReadouts.ts";
 import { runAdminStories } from "./runAdminStories.ts";
+import { templateReadouts } from "./templateReadouts.ts";
+
+export type Flag = "--minimal" | "--no-git";
 
 export const application = storyKit({
 	after: {
@@ -20,114 +27,76 @@ export const application = storyKit({
 	*create() {
 		return yield* createEngine();
 	},
-	inspect: (engine) => ({ options: engine.options, root: engine.root }),
+	inspect: (engine) => ({ answers: engine.answers, app: engine.app, options: engine.options, root: engine.root }),
 	layer: NodeServices.layer,
 	name: "generated app",
-	stages: ["template", "installation", "workspace"],
+	stages: ["template", "installation", "workspace", "generated", "app"],
 	verbs: (engine, story) => {
 		const commandPath = Effect.runSync(Config.String("PATH"));
-		let app = "my-app";
-		let packed = false;
 		function target() {
-			return join(engine.root, app);
+			return join(engine.root, engine.app);
 		}
-		function run(command: string, args: readonly string[]) {
-			const started = performance.now();
-			const result = spawnSync("env", ["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, command, ...args], {
-				cwd: target(),
-				encoding: "utf8",
+		function script(line: string, run: () => Parameters<typeof scriptOutcome>[0]) {
+			return Effect.sync(() => {
+				story.tell(line);
+				const outcome = scriptOutcome(run());
+				engine.scripts.push(outcome);
+				return outcome;
 			});
-			commandTiming([command, ...args].join(" "), started, result.stderr);
-			return result;
 		}
 		return {
-			baseline: () => {
-				const path = join(target(), "quality-baseline.jsonl");
-				return existsSync(path) ? readFileSync(path, "utf8") : "";
+			...appReadouts(target),
+			...generatedReadouts(engine, target),
+			...templateReadouts(engine),
+			answer: () => Effect.sync(() => engine.answers.at(-1) ?? "create-app has not run"),
+			createApp: (folder: string, ...flags: readonly Flag[]) => {
+				story.tell(`create-app ${[folder, ...flags].join(" ")}`);
+				return createAppIn(engine, [folder, ...flags]);
 			},
-			changeTemplate: (content: string) => {
-				story.tell("the template source changes");
-				engine.source.changeApp(content);
-				packed = false;
+			diagnosticLog: () => Effect.sync(() => engine.diagnostics),
+			help: () => {
+				story.tell("create-app --help");
+				return createAppIn(engine, ["--help"]).pipe(Effect.map(() => engine.printed.split("\n").map((line) => line.trim().replaceAll(/\s+/gu, " "))));
 			},
-			*cli(args: readonly string[], environment: readonly string[] = []) {
-				const started = performance.now();
-				story.tell(`create-app ${args.join(" ")}`);
-				if (!(packed || args.includes("--help") || args.includes("--version"))) {
-					yield* engine.source.pack();
-					packed = true;
-				}
-				if (args[0] !== undefined && !args[0].startsWith("--")) {
-					app = args[0];
-				}
-				const result = yield* runCli(engine.root, engine.cli, engine.options.gitAvailable ?? true, args, [...engine.environment, ...environment]);
-				commandTiming(`create-app ${args.join(" ")}`, started, result.stderr);
-				return result;
-			},
-			destinationContents: () =>
-				statSync(target()).isFile()
-					? { ".": readFileSync(target(), "utf8") }
-					: Object.fromEntries(readdirSync(target()).map((file) => [file, readFileSync(join(target(), file), "utf8")])),
-			exists: (path: string) => existsSync(join(target(), path)),
-			files: () => readdirSync(target()),
-			generatedFiles: () =>
-				readdirSync(target(), { recursive: true, withFileTypes: true })
-					.filter((file) => !(file.isDirectory() || file.isSymbolicLink()) && file.name !== "installation.json")
-					.map((file) => {
-						const path = join(file.parentPath, file.name);
-						return { content: readFileSync(path, "utf8"), mode: statSync(path).mode & 0o777, path: path.slice(target().length + 1) };
-					}),
-			git: (...args: readonly string[]) => run("git", args),
-			guidanceLink: () => readlinkSync(join(target(), "CLAUDE.md")),
-			migrate: () => {
-				story.tell("the generated app applies its registered migrations");
-				return appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=source"]);
-			},
-			navigate: (command: string) => spawnSync("sh", ["-c", `${command}\npwd`], { cwd: engine.root, encoding: "utf8" }),
-			pack: () => {
-				story.tell("the template source is packed");
-				return engine.source.pack().pipe(
-					Effect.map((files) => {
-						packed = true;
-						return files;
-					}),
-				);
-			},
-			parentGit: (...args: readonly string[]) => spawnSync("git", args, { cwd: engine.root, encoding: "utf8" }),
-			pnpm: (...args: readonly string[]) => {
-				story.tell(`pnpm ${args.join(" ")}`);
-				return run("pnpm", args);
-			},
-			prepareDatabases: () => {
-				story.tell("the app prepares its databases");
-				return appScript(target(), "db:setup");
-			},
-			read: (path: string) => readFileSync(join(target(), path), "utf8"),
-			readPacked: (path: string) => engine.source.readPacked(path),
-			ready: () => {
-				story.tell("the generated app runs pnpm ready against workspace packages");
-				return readyAgainstWorkspace(target(), engine.source.starter);
-			},
-			replacePacked: (path: string, content: string) => {
-				story.tell(`the packed template changes ${path}`);
-				engine.source.replacePacked(path, content);
-			},
-			runAdminStories: (foundationOnly = false) => {
-				story.tell("the generated app runs its admin stories against workspace sources");
-				return runAdminStories(target(), foundationOnly);
-			},
-			runDatabaseProbe: () => {
-				story.tell("the app runs the database probe");
-				installDatabaseProbe(target());
-				return appScript(target(), "test", ["--config", "environment.config.ts"]);
-			},
-			starterFile: (path: string) => readFileSync(join(engine.source.starter, path), "utf8"),
-			workspace: realpathSync(engine.root),
-			workspaceExists: (path: string) => existsSync(join(engine.root, path)),
-			workspaceFiles: () => readdirSync(engine.root),
-			write: (path: string, content: string) => {
-				story.tell(`the app changes ${path}`);
-				writeFileSync(join(target(), path), content);
+			migrate: () =>
+				script("the app applies its registered migrations", () => appScript(target(), "migrate", [], ["NODE_OPTIONS=--conditions=source"])),
+			pack: () =>
+				Effect.suspend(() => {
+					story.tell("the template source is packed");
+					return engine.source.pack();
+				}).pipe(
+					Effect.map(() => "packed"),
+					Effect.catchTag("CreateAppError", (error) =>
+						Effect.succeed(`refused: ${error.message}${error.cause instanceof CreateAppError ? `: ${error.cause.message}` : ""}`),
+					),
+				),
+			pnpm: (...args: readonly string[]) =>
+				script(`pnpm ${args.join(" ")}`, () => {
+					const started = performance.now();
+					const result = spawnSync(
+						"env",
+						["NODE_OPTIONS=", `PATH=${join(engine.root, "bin")}:${commandPath}`, ...engine.environment, "pnpm", ...args],
+						{
+							cwd: target(),
+							encoding: "utf8",
+						},
+					);
+					commandTiming(`pnpm ${args.join(" ")}`, started, result.stderr);
+					return result;
+				}),
+			ready: () => script("the app runs pnpm ready against workspace packages", () => readyAgainstWorkspace(target(), engine.source.starter)),
+			runAdminStories: () => script("the app runs its admin stories against workspace sources", () => runAdminStories(target(), false)),
+			runDatabaseProbe: () =>
+				script("the app runs a test that records its environment and both databases", () => {
+					installDatabaseProbe(target());
+					return appScript(target(), "test", ["--config", "environment.config.ts"]);
+				}),
+			runFoundationAdminStories: () =>
+				script("the app runs its foundation admin stories against workspace sources", () => runAdminStories(target(), true)),
+			scriptResult: () => Effect.sync(() => engine.scripts.at(-1) ?? "the app ran no script"),
+			version: () => {
+				story.tell("create-app --version");
+				return createAppIn(engine, ["--version"]).pipe(Effect.map(() => engine.printed.trim()));
 			},
 		};
 	},
