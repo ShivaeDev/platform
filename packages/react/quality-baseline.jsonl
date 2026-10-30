@@ -8,8 +8,6 @@
 {"path":"packages/react/src/client/resultState.dom.test.ts","rule":"tests/domain-outcomes","count":6}
 {"path":"packages/react/src/client/sessionBoundary.dom.test.tsx","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/react/src/client/testing.dom.test.tsx","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/react/src/client/testing.dom.test.tsx","rule":"tests/wait-on-events","count":3}
 {"path":"packages/react/src/entitySettings.dom.spec.tsx","rule":"tests/domain-outcomes","count":6}
 {"path":"packages/react/src/entitySettings.dom.spec.tsx","rule":"tests/grouped-outcomes","count":4}
 {"path":"packages/react/src/internal/noticeEntry.ts","rule":"effect/service-parameters","count":1}
