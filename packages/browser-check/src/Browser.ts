@@ -3,6 +3,7 @@ import { playwright } from "#adapters/playwright.ts";
 import type { BrowserCheckError } from "#BrowserCheckError.ts";
 
 export interface BrowserSession {
+	readonly checkLiveNotes: (url: string, folder: string) => Effect.Effect<void, BrowserCheckError>;
 	readonly checkText: (text: string) => Effect.Effect<void, BrowserCheckError>;
 	readonly screenshot: (path: string) => Effect.Effect<void, BrowserCheckError>;
 	readonly signIn: (url: string, email: string, password: string) => Effect.Effect<void, BrowserCheckError>;

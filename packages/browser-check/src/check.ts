@@ -1,15 +1,22 @@
 import { join } from "node:path";
 import { Console, Effect, FileSystem } from "effect";
 import { Browser } from "#Browser.ts";
+import { BrowserCheckError } from "#BrowserCheckError.ts";
 
 export interface CheckOptions {
 	readonly credentials?: { readonly email: string; readonly password: string };
+	readonly liveNotes?: boolean;
 	readonly pages: readonly string[];
 	readonly text: readonly string[];
 	readonly url: string;
 }
 
 export const check = Effect.fn("BrowserCheck.check")(function* (options: CheckOptions) {
+	if (options.liveNotes && options.credentials === undefined) {
+		return yield* new BrowserCheckError({
+			message: "--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD for an existing disposable user.",
+		});
+	}
 	const fs = yield* FileSystem.FileSystem;
 	const browser = yield* Browser;
 	const session = yield* browser.open;
@@ -28,5 +35,9 @@ export const check = Effect.fn("BrowserCheck.check")(function* (options: CheckOp
 		yield* session.screenshot(screenshot);
 		yield* Console.log(`browser-check: screenshot ${screenshot} (${url})`);
 		yield* Console.log(`browser-check: smoke passed (${url})`);
+	}
+	if (options.liveNotes) {
+		yield* session.checkLiveNotes(options.url, folder);
+		yield* Console.log("browser-check: two-tab socket update and session sign-out passed.");
 	}
 });

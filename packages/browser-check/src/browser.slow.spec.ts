@@ -24,6 +24,7 @@ browser.it("signs in with test-user credentials and carries the session to the p
 });
 
 for (const [name, args, output] of [
+	["live notes without disposable-user credentials", ["--live-notes"], "--live-notes requires BROWSER_CHECK_EMAIL and BROWSER_CHECK_PASSWORD"],
 	["unsuccessful HTTP response", ["--page", "/missing"], "returned HTTP 404"],
 	["missing visible text", ["--text", "Text absent from the app"], "Timeout"],
 ] as const) {
