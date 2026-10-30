@@ -1,20 +1,21 @@
-import { Data, Effect } from "effect";
+import { Data } from "effect";
 
 export class ChangesetError extends Data.TaggedError("ChangesetError")<{
 	readonly message: string;
 	readonly cause?: unknown;
-}> {}
-
-export function attempt<A>(evaluate: () => A) {
-	return Effect.try({
-		catch: (cause) =>
-			cause instanceof ChangesetError ? cause : new ChangesetError({ cause, message: cause instanceof Error ? cause.message : String(cause) }),
-		try: evaluate,
-	});
+}> {
+	constructor({ cause, ...fields }: { readonly message: string; readonly cause?: unknown }) {
+		super(fields);
+		Object.defineProperty(this, "cause", { configurable: true, enumerable: false, value: cause });
+	}
 }
 
-export function requireThat(condition: boolean, message: string): void {
-	if (!condition) {
-		throw new ChangesetError({ message });
+export class GitError extends Data.TaggedError("GitError")<{
+	readonly message: string;
+	readonly cause?: unknown;
+}> {
+	constructor({ cause, ...fields }: { readonly message: string; readonly cause: unknown }) {
+		super(fields);
+		Object.defineProperty(this, "cause", { configurable: true, enumerable: false, value: cause });
 	}
 }
