@@ -13,9 +13,9 @@ describe("Biome diagnostic recognition", () => {
 		const found = report.diagnostics.map((diagnostic) => [diagnostic.location.path, diagnostic.location.start?.line, diagnostic.category]);
 		expect(found.map((finding) => JSON.stringify(finding)).toSorted()).toEqual(
 			[
-				["src/regex.ts", 2, "lint/nursery/useValidTestTitle"],
-				["src/regex.ts", 3, "lint/nursery/useValidTestTitle"],
-				["src/regex.ts", 4, "lint/nursery/useValidTestTitle"],
+				["src/regex.test.ts", 2, "lint/nursery/useValidTestTitle"],
+				["src/regex.test.ts", 3, "lint/nursery/useValidTestTitle"],
+				["src/regex.test.ts", 4, "lint/nursery/useValidTestTitle"],
 				["src/generators.test.ts", 4, "lint/style/noDoneCallback"],
 				["src/generators.test.ts", 5, "lint/style/noDoneCallback"],
 				["src/generators.test.ts", 6, "lint/style/noDoneCallback"],

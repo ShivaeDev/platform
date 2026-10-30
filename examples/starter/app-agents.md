@@ -8,6 +8,10 @@ A server module exports a registration with `migrations` (its directory path), `
 
 Tests pass a single `replacements` Layer to `applicationHost` or `applicationWorker`. Compose fake ports with `Layer.mergeAll` and `Layer.succeed`; the host merges them over the real services. Replace `JobsClientFactory` through that Layer for controlled queue clients. Add ports as Effect services instead of adding one host option per port.
 
+## File names
+
+`files/named-after-export` keeps the export’s full name while the file name omits words already supplied by any folder above it. In `spaces/client/`, a component exporting `CreateSpace` lives in `Create.tsx`: `spaces/` supplies “Space” even across the intervening `client/` folder. Keep the export named `CreateSpace`; `CreateSpace.tsx` would repeat a folder name.
+
 ## React rendering
 
 Decide what to render before the JSX. Quality reports `&&` and ternaries in JSX children, including nested decisions; conditional attributes such as `className` are accepted. Use an early return, a value computed above the return, or a small component that receives the data and returns `null`. Inside `.map`, extract an item component that makes its own decision.

@@ -7,6 +7,8 @@ const manifest = JSON.stringify({ bin: { tool: "dist/tool-cli.js" }, name: "@dem
 
 const named: Seed = {
 	sources: [
+		{ content: "export function CreateSpace() {}\n", path: "packages/app/src/spaces/client/Create.tsx" },
+		{ content: "export function CreateSpace() {}\n", path: "packages/app/src/spaces/client/CreateSpace.tsx" },
 		{ content: "export function listItems() {}\n", path: "packages/app/src/routers/items/list.ts" },
 		{ content: "export const itemList = [];\n", path: "packages/app/src/routers/items/list-copy.ts" },
 		{ content: "export class CreateItemRouter {}\n", path: "packages/app/src/routers/items/Create.ts" },
@@ -44,6 +46,7 @@ describe("files/named-after-export", () => {
 			files: [...(named.sources ?? []).map((file) => file.path), "packages/app/package.json"],
 		});
 		expect(byFile(findings)).toEqual([
+			'packages/app/src/spaces/client/CreateSpace.tsx: "CreateSpace" repeats its folder "spaces"',
 			'packages/app/src/routers/items/list-copy.ts: "list-copy" does not name its export itemList',
 			'packages/app/src/maxItems.ts: "maxItems" exports only the constant MAX_ITEMS',
 			'packages/app/src/timeout.ts: "timeout" exports only the constant timeout',
