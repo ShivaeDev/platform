@@ -671,7 +671,25 @@ socialApp.it(
 );
 ```
 
-`domFetch` uses the current window and its cookie jar; it does not isolate multiple users. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+`domFetch` defaults to the current window and its cookie jar. Run stories using that window serially, and let the application's cleanup end its sessions, restore the page location and close its host. Cookies follow hostnames, not listener ports, so a different loopback port alone does not isolate accounts.
+
+#### Several members on one host
+
+Use `memberScreens` from `@shivaedev/test-story/server/memberScreens.ts` inside a DOM kit's `create` hook. Supply `baseUrl`, `mount(member)` returning an Effect, and `verbs(member, tell)` returning that member's verbs and readouts. Each `MemberScreen` carries its `name`, `fetch`, `registry` and `root`. Mount the application into that root with that registry, and give its auth and HTTP clients the member's fetch. Cookie contexts are independent even when every member uses the same host.
+
+A trait calls `yield* members.open("ada", cookies)` with a minted session's cookies. The kit's verbs hook returns `members.verbs(story.tell)`, exposing `as("ada")` to the spec. Member narration includes the name. The calling Scope closes every cookie context, disposes every registry and removes every root. Register renderer unmounting in the mount hook with `Effect.acquireRelease` so it runs before the registry and root are released.
+
+```ts
+sharedLists.it("grace sees ada's addition", [signedInMembers("ada", "grace")], function* ({ as }) {
+	yield* as("ada").enter("input", "Bread");
+	yield* as("ada").submit();
+	yield* as("ada").settle();
+	yield* as("grace").click({ role: "button", name: "Refresh" });
+	yield* as("grace").settle();
+
+	expect(as("grace").text("output")).toBe("grace's list: ada: Bread");
+});
+```
 
 ### Driving a screen
 
@@ -691,6 +709,8 @@ verbs: ({ view, requests }, story) =>
 ```
 
 `click(selector)`, `enter(selector, value)` and `submit(selector = "form")` return Effects. Selectors identify exactly one descendant of the root; missing or ambiguous controls fail. Hidden targets and targets inside hidden ancestors refuse actions and readouts. Text entry focuses an input or textarea and dispatches input and change events. Disabled controls refuse clicks and entry, inert ancestors also prevent form submission, and read-only fields refuse entry. Actions do not wait for settlement, so a story can release a held request before calling `settle()`.
+
+`within(container)` returns the same driver scoped to that container, including nested `within` calls. Pass a selector, a role/name target or an `HTMLElement`. Selector and role containers must resolve to one rendered descendant and use the usual missing or ambiguous target diagnostics. For example, `within({ role: "region", name: "Billing" }).click({ role: "button", name: "Save" })` can address a Save button when Delivery has an identical button. Settlement keeps the original pending signal and error type.
 
 `text(selector?)` concatenates visible HTML text nodes from the selected element or the whole root, without CSS text transforms or layout line breaks. `value(selector)` returns the current input or textarea value. Both narrate what they read through `tell` and leave assertions to the spec. Entry narration omits the supplied value.
 
@@ -714,10 +734,11 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server/storyKit.ts`              | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
 | `server/outcomes.ts`              | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
-| `server/domFetch.ts`              | `domFetch(baseUrl)`                                                                                                                                                                                                                                                                                                                                                                 |
-| `server/seedCookies.ts`           | `seedCookies(cookies)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                                 |
+| `server/domFetch.ts`              | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
+| `server/seedCookies.ts`           | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
 | `server/routeOutbound.ts`         | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |
 | `server/screenDriver.ts`          | `screenDriver(options)`, `ScreenDriverOptions`, `ScreenDriver`, `ScreenTarget`, `MissingScreenPending`                                                                                                                                                                                                                                                                              |
+| `server/memberScreens.ts`         | `memberScreens(options)`, `MemberScreen`                                                                                                                                                                                                                                                                                                                                            |
 | `server/domNavigate.ts`           | `domNavigate(url?)`                                                                                                                                                                                                                                                                                                                                                                 |
 | `server/genreTags.ts`             | `genreTags(...kitNames)`, `GenreTag`                                                                                                                                                                                                                                                                                                                                                |
 | `server/domEnvironment.config.ts` | Default Vitest environment preserving Node host globals and happy-dom document transport                                                                                                                                                                                                                                                                                            |

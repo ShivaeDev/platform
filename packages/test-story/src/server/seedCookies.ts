@@ -15,18 +15,18 @@ export interface DomCookie {
 
 const sameSites = { Lax: CookieSameSiteEnum.lax, None: CookieSameSiteEnum.none, Strict: CookieSameSiteEnum.strict };
 
-export const seedCookies = Effect.fnUntraced(function* (cookies: readonly DomCookie[]) {
-	if (!(window instanceof BrowserWindow)) {
+export const seedCookies = Effect.fnUntraced(function* (cookies: readonly DomCookie[], target: Window | BrowserWindow = window) {
+	if (!(target instanceof BrowserWindow)) {
 		return yield* Effect.die("Cookie preconditions need a happy-dom window.\nhelp: Use test-story's DOM environment before seeding cookies.");
 	}
-	const context = new WindowBrowserContext(window).getBrowserContext();
+	const context = new WindowBrowserContext(target).getBrowserContext();
 	if (context === null) {
 		return yield* Effect.die("Cannot seed cookies after the document has closed.");
 	}
 	context.cookieContainer.addCookies(
 		cookies.map((cookie) => ({
 			key: cookie.name,
-			"originURL": new URL(window.location.href),
+			"originURL": new URL(target.location.href),
 			value: cookie.value,
 			...(cookie.domain === undefined ? {} : { domain: cookie.domain }),
 			...(cookie.path === undefined ? {} : { path: cookie.path }),

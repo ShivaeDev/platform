@@ -464,6 +464,8 @@ const { user, headers, cookies } = await signedInUser(testAuth, {
 
 `options` is the application's auth configuration. `signedInUser` saves the supplied user fields, creates each optional `providerAccounts` entry for that user through Better Auth's internal adapter, and mints one session through Better Auth's `testUtils`, without OAuth or password hashing. The accounts carry no tokens or password. Omitting `providerAccounts` creates only the user and session. It returns Better Auth's login result: the user, session, signed request headers, browser cookies and token. Roles require the application's role plugin, such as Better Auth's `admin()`. Send `headers` to the real host, or pass `cookies` to test-story's `seedCookies` in a DOM story after setting its host location with `domFetch`. Keep a real sign-in story for each sign-in flow; feature stories start from the minted precondition.
 
+`passwordUser(auth, { email, password, ...fields })` from the same testing module saves a user and a credential account using Better Auth's configured password hasher, and returns an Effect containing the user without minting a session. Use it for the one story that signs in through `/api/auth/sign-in/email`; keep feature stories on `signedInUser` so they avoid password hashing.
+
 Use `storedProviderAccounts(auth, userId)` to observe credential storage through Better Auth's internal adapter. It returns account and provider IDs with `hasAccessToken`, `hasRefreshToken`, `hasIdToken` and `hasPassword` booleans. It never returns token values, passwords or password hashes. A DOM story kit that exposes its test auth instance and a session readout can use both helpers:
 
 ```ts
@@ -533,7 +535,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `server/better-auth/sweepExpiredSessions.ts` | `sweepExpiredSessions`: delete expired sessions through the application's SQL client and return the number removed.                                                                                                                                                       |
 | `server/better-auth/userReference.ts`        | `userReference`: the default auth user table and id column for application foreign keys.                                                                                                                                                                                  |
 | `server/better-auth/testDatabase.ts`         | `authTestDatabase(pool)`: test-only identity/session readouts and faults for the default PostgreSQL auth schema.                                                                                                                                                          |
-| `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only minted user sessions and credential storage observations.                                                                                                                                 |
+| `server/better-auth/testing.ts`              | `signedInUser(auth, fields)`, `passwordUser(auth, fields)`, `storedProviderAccounts(auth, userId)`: test-only users, minted sessions and credential storage observations.                                                                                                 |
 
 ### Install, setup and limits
 

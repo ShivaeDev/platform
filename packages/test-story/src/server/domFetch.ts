@@ -1,7 +1,10 @@
-export function domFetch(baseUrl: string): typeof globalThis.fetch {
+export function domFetch(
+	baseUrl: string,
+	target: { readonly fetch: typeof globalThis.fetch; readonly location: { href: string } } = window,
+): typeof globalThis.fetch {
 	const base = new URL(baseUrl);
-	window.location.href = base.href;
-	const transport = window.fetch.bind(window);
+	target.location.href = base.href;
+	const transport = target.fetch.bind(target);
 	return (input, init) => {
 		if (input instanceof Request) {
 			const request = new Request(input, init);
