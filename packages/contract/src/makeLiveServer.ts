@@ -4,12 +4,13 @@ import { type Key, type KeyContext, readKeys } from "@shivaedev/changes/keys.ts"
 import { changedHint } from "#internal/queryHints.ts";
 import type { LiveHint } from "#live.ts";
 import type { QuerySubscription } from "#querySubscription.ts";
+import { QueryReadDenied } from "#readPolicyErrors.ts";
 
 export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${crypto.randomUUID()}`;
-	function open(keys: readonly Key[], context?: KeyContext, subscription?: QuerySubscription) {
+	function open(keys: readonly Key[], context?: KeyContext) {
 		return Stream.unwrap(
 			Effect.gen(function* () {
 				const queue = yield* Queue.unbounded<LiveHint>();
@@ -55,18 +56,7 @@ export const makeLiveServer = Effect.gen(function* () {
 					}),
 				);
 				yield* Queue.offer(queue, { _tag: "Resync" });
-				function authorizeHint(hint: LiveHint) {
-					return Effect.map(subscription?.authorized ?? Effect.succeed(true), (allowed) => {
-						if (!allowed) {
-							return changedHint([], subscription?.scopes);
-						}
-						return hint._tag === "Resync" ? hint : changedHint(hint.keys, subscription?.scopes);
-					});
-				}
-				return Stream.fromQueue(queue).pipe(
-					Stream.mapEffect(authorizeHint),
-					Stream.filter((hint) => hint._tag === "Resync" || hint.keys.length > 0),
-				);
+				return Stream.fromQueue(queue);
 			}),
 		);
 	}
@@ -77,6 +67,16 @@ export const makeLiveServer = Effect.gen(function* () {
 	return {
 		resync,
 		stream: (keys: readonly Key[], context?: KeyContext) => open(keys, context),
-		subscribe: (subscription: QuerySubscription, context?: KeyContext) => open(subscription.keys, context, subscription),
+		subscribe: (subscription: QuerySubscription, context?: KeyContext) =>
+			open(subscription.keys, context).pipe(
+				Stream.mapEffect((hint) =>
+					Effect.flatMap(subscription.authorized, (allowed) =>
+						allowed
+							? Effect.succeed(hint._tag === "Resync" ? hint : changedHint(hint.keys, subscription.scopes))
+							: Effect.fail(new QueryReadDenied({ message: "Read no longer allowed for subscribed queries" })),
+					),
+				),
+				Stream.filter((hint) => hint._tag === "Resync" || hint.keys.length > 0),
+			),
 	};
 });

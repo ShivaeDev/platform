@@ -73,7 +73,7 @@ A record key, `notes.item(id)`, names one record. A bucket, `notes.bucket.userId
 
 The same query policy guards running the query and subscribing to it. A subscription names query references, never arbitrary record or bucket keys. The entire subscription is refused with `QueryReadDenied` if any referenced query is denied. Without `readPolicy`, a query has no authorized live subscription: `MissingReadPolicy` tells its author to declare one. Ordinary non-live reads remain available. Reads outside a declared query acquire no automatic subscription.
 
-The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering changed keys, the stream rechecks the owning query's policy without memoization. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
+The session middleware supplies the viewer and runs `authorizeReads(effect, request, viewer)`. Custom middleware calls that function after resolving its session and declares `MissingReadPolicy` and `QueryReadDenied` in its error schema. Before delivering a hint, the stream rechecks the owning query's policy without memoization. A denied session or policy recheck ends that subscription with `QueryReadDenied`; it never silently drops the hint. Automatic bound queries then rerun their authorized read, exposing its denial in the query result. Render that failure before retained data. Further changes cannot reach the ended subscription. A client refresh runs the same authorized query that produced its first value; hints carry no row values.
 
 ## Coalescing commits
 
@@ -94,3 +94,5 @@ An ended or failed stream enters `reconnecting` and retries after one second by 
 ## Limits
 
 There is no replay cursor, event journal, offline mutation or deployment delivery guarantee. The [PostgreSQL composition](./composed-example.md) shows delivery between processes after commit.
+
+Read-policy revocation is detected on the next hint, including `Resync`. An idle policy is not polled. Hosted authenticated streams also revalidate the session every `streamRevalidationInterval` (30 seconds by default); revocation at that check ends with `Unauthorized`, allowing the React session boundary to show sign-in. Stream failures retain the normal reconnect policy; a new subscription must pass authorization again.

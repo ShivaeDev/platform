@@ -72,17 +72,19 @@ viewerStory.it(
 );
 
 viewerStory.it(
-	"a change to note 1 announced while bob owns it never reaches alice's subscription to notes 1 and 3, so once note 1 returns to her she hears only the change to note 3",
+	"losing note 1 ends alice's subscription to notes 1 and 3 with read denied and stops further hints even if access returns",
 	[listening("alice", "note 1", "note 3")],
-	function* ({ announce, changesHeard, handOver, untilChangeArrives }) {
+	function* ({ announce, changesHeard, handOver, rename, subscriptionEnd }) {
 		yield* handOver(1, "bob");
 		expect(yield* changesHeard("alice")).toEqual([]);
 
 		yield* announce("alice", 1);
 
+		expect(yield* subscriptionEnd("alice")).toBe("failed with read denied");
+
 		yield* handOver(1, "alice");
-		yield* announce("alice", 3);
-		yield* untilChangeArrives("alice", 3);
-		expect(yield* changesHeard("alice")).toEqual(["changed notes 3"]);
+		yield* rename("alice", 3, "After denial");
+
+		expect(yield* changesHeard("alice")).toEqual([]);
 	},
 );

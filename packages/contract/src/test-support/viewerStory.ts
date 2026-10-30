@@ -114,6 +114,7 @@ export const viewerStory = storyKit({
 			story.tell(`${viewer} subscribes to changes of ${queries.join(" and ")}`);
 			return answered(Stream.runHead(changes(engine, viewer, queries)), (first) => (Option.isSome(first) ? "subscribed" : "ended at once"));
 		},
+		subscriptionEnd: (viewer: Viewer) => answered(listenerOf(engine, viewer).finished, () => "completed"),
 		untilChangeArrives: (viewer: Viewer, id: number) => {
 			story.tell(`the change to note ${id} reaches ${viewer}`);
 			return signal(SubscriptionRef.changes(listenerOf(engine, viewer).hints), (hints) =>
