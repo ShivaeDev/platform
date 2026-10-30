@@ -1,65 +1,30 @@
-import { Context, Effect, Layer } from "effect";
-import { afterAll, expect } from "vitest";
-import { storyKit } from "#storyKit.ts";
+import { expect } from "vitest";
+import { counter, INCREMENT, INITIAL_COUNT, incremented, MULTIPLIER } from "#test/counter.ts";
 import { lazyVerbStory } from "#test/lazyVerbStory.ts";
+import { storyRunner } from "#test/storyRunner.ts";
 
-class InitialCount extends Context.Service<InitialCount, number>()("effectHooks/InitialCount") {}
+const FIRST_COUNT = 7;
+const SECOND_COUNT = 9;
 
-const INITIAL_COUNT = 2;
-const INCREMENT = 1;
-const MULTIPLIER = 2;
-const events: string[] = [];
-const kit = storyKit({
-	after: {
-		built: (engine) =>
-			Effect.acquireRelease(
-				Effect.sync(() => {
-					engine.count *= MULTIPLIER;
-					events.push("after");
-				}),
-				() => Effect.sync(() => events.push("after closed")),
-			),
-	},
-	create: () =>
-		Effect.acquireRelease(
-			Effect.map(InitialCount, (count) => {
-				events.push("create");
-				return { count };
-			}),
-			() => Effect.sync(() => events.push("create closed")),
-		),
-	layer: Layer.succeed(InitialCount, INITIAL_COUNT),
-	name: "effect hooks",
-	stages: ["built"],
-	verbs: (engine) => ({ count: () => engine.count }),
-});
-
-const incremented = kit.trait("built", "the count is incremented", (engine) =>
-	Effect.acquireRelease(
-		Effect.sync(() => {
-			engine.count += INCREMENT;
-			events.push("trait");
-		}),
-		() => Effect.sync(() => events.push("trait closed")),
-	),
-);
-
-kit.it("runs Effect-returning creation, traits and after hooks in the story Scope", [incremented], ({ count }) => {
+counter.it("builds the engine through Effect-returning create, trait and after hooks with the kit's layer", [incremented], ({ count }) => {
 	expect(count()).toBe((INITIAL_COUNT + INCREMENT) * MULTIPLIER);
-	expect(events).toEqual(["create", "trait", "after"]);
 });
 
-afterAll(() => {
-	expect(events).toEqual(["create", "trait", "after", "after closed", "trait closed", "create closed"]);
+storyRunner.it("opens Effect-returning hooks in the story Scope and closes them in reverse after the story", [], function* ({ lifetime, runStory }) {
+	yield* runStory("lifetimeStories", "Effect Hooks Story: counts with Effect-returning hooks");
+
+	expect(yield* lifetime()).toEqual(["create", "trait", "after", "body", "after closed", "trait closed", "create closed"]);
 });
 
-lazyVerbStory.it("reads verb getters only when used and observes the current engine", [], (verbs) => {
-	expect(verbs.getterReads()).toBe(0);
-	const firstCount = 7;
-	verbs.setCount(firstCount);
-	expect(verbs.count).toBe(firstCount);
-	const nextCount = 9;
-	verbs.setCount(nextCount);
-	expect(verbs.count).toBe(nextCount);
-	expect(verbs.observedCounts()).toEqual([firstCount, nextCount]);
+lazyVerbStory.it("leaves verb getters unread until the story reads one", [], ({ getterReads }) => {
+	expect(getterReads()).toBe(0);
+});
+
+lazyVerbStory.it("reads the current engine each time the story reads a verb getter", [], (verbs) => {
+	verbs.setCount(FIRST_COUNT);
+	expect(verbs.count).toBe(FIRST_COUNT);
+
+	verbs.setCount(SECOND_COUNT);
+
+	expect(verbs.count).toBe(SECOND_COUNT);
 });

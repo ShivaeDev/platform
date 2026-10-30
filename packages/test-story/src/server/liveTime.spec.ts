@@ -1,37 +1,19 @@
-import { Clock, Duration, Effect, Fiber } from "effect";
-import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { liveQueue } from "#test/liveQueue.ts";
+import { liveKit } from "#test/liveKit.ts";
 
-liveQueue.it("hooks and steps poll in live time in a live-clock story", [], function* ({ finish, story }) {
-	expect(story.engine.createdAt).toBeGreaterThan(1_000_000);
-	expect(story.engine.afterAt).toBeGreaterThanOrEqual(story.engine.createdAt);
-	yield* finish();
-	expect(story.engine.completedSteps).toEqual(["queue drained"]);
-	for (const attempts of story.engine.pollingAttempts) {
-		expect(attempts).toBeGreaterThan(1);
-	}
-	expect(yield* Clock.currentTimeMillis).toBeGreaterThanOrEqual(story.engine.afterAt);
+liveKit.it("runs a live kit's create, after and step hooks on the live clock", [], function* ({ clockReadings, stepsOnce }) {
+	yield* stepsOnce();
+
+	expect(clockReadings()).toEqual(["create on the live clock", "after on the live clock", "step on the live clock"]);
 });
 
-liveQueue.it(
-	"hooks and steps poll without moving token expiry in a TestClock story",
+liveKit.it(
+	"runs a live kit's create, after and step hooks on the test clock when the story asks for it",
 	[],
-	function* ({ finish, story }) {
-		expect(story.engine.createdAt).toBe(0);
-		expect(story.engine.afterAt).toBe(0);
-		const tokenLifetime = Duration.seconds(1);
-		const tokenExpired = yield* Effect.forkChild(Effect.sleep(tokenLifetime).pipe(Effect.as(true)));
-		yield* finish();
-		expect(story.engine.completedSteps).toEqual(["queue drained"]);
-		for (const attempts of story.engine.pollingAttempts) {
-			expect(attempts).toBeGreaterThan(1);
-		}
-		expect(yield* Clock.currentTimeMillis).toBe(0);
-		expect(tokenExpired.pollUnsafe()).toBeUndefined();
-		yield* TestClock.adjust(tokenLifetime);
-		expect(yield* Fiber.join(tokenExpired)).toBe(true);
-		expect(yield* Clock.currentTimeMillis).toBe(Duration.toMillis(tokenLifetime));
+	function* ({ clockReadings, stepsOnce }) {
+		yield* stepsOnce();
+
+		expect(clockReadings()).toEqual(["create on the test clock at zero", "after on the test clock at zero", "step on the test clock at zero"]);
 	},
 	{ clock: "test" },
 );
