@@ -1,9 +1,9 @@
 import { Effect, FileSystem } from "effect";
 import type { HttpServerRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { documentPath, readingFiles } from "#server/archive/reading.ts";
 import { currentDocument } from "#server/currentDocument.ts";
 import type { Changes } from "#server/files/changes.ts";
-import { markdownPath } from "#server/files/markdownPath.ts";
 import { shell } from "#server/page/shell.ts";
 import type { searchSnapshot } from "#server/search/snapshot.ts";
 import { respond } from "./respond.ts";
@@ -30,20 +30,22 @@ export function page(options: PageOptions, changes: Changes, index: Effect.Succe
 		if (!(requested || expectedIdentity)) {
 			return layout(HttpStatus.fromLiteral("OK"));
 		}
-		const file = (yield* changes.files).find((candidate) => candidate.path === requested);
+		const current = yield* index;
+		const snapshot = yield* current.archived?.(expectedIdentity ?? requested) ?? Effect.succeed(current);
+		const file = readingFiles(yield* changes.files, snapshot).find((candidate) => candidate.path === requested);
 		if (!file) {
 			return layout(HttpStatus.fromLiteral("NotFound"));
 		}
 		return yield* Effect.gen(function* () {
-			const real = yield* markdownPath(options.root, changes.realRoot, file.path);
+			const real = yield* documentPath(options.root, changes.realRoot, file.path, expectedIdentity);
 			if (!real) {
 				return layout(HttpStatus.fromLiteral("NotFound"));
 			}
 			const fs = yield* FileSystem.FileSystem;
 			const source = yield* fs.readFileString(real);
 			if (expectedIdentity) {
-				const { document, snapshot } = currentDocument(yield* index, file.path, source, options.home);
-				if (document.parsed.fields.id !== expectedIdentity || snapshot.model.ids.get(expectedIdentity)?.length !== 1) {
+				const updated = currentDocument(snapshot, file.path, source, options.home);
+				if (updated.document.parsed.fields.id !== expectedIdentity || updated.snapshot.model.ids.get(expectedIdentity)?.length !== 1) {
 					return layout(HttpStatus.fromLiteral("NotFound"));
 				}
 			}

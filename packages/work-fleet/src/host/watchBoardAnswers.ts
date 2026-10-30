@@ -9,10 +9,7 @@ export function watchBoardAnswers(root: string) {
 			const snapshot = yield* board.searchSnapshot(root, undefined, changes);
 			function read(data: Snapshot) {
 				return Effect.gen(function* () {
-					const questions = data.documents.flatMap((document) => {
-						const question = responses.questionFrom(document);
-						return question === undefined ? [] : [question];
-					});
+					const questions = responses.openQuestions(data);
 					const readings = yield* Effect.forEach(questions, (question) => responses.readResponses(Effect.succeed(data))(question.id));
 					return readings.flatMap(({ question, responses: recorded }) => {
 						const attention = board.metadataParse(question.context).fields.attention?.find((request) => request.id === question.question.request);

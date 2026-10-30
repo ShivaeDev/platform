@@ -37,9 +37,11 @@ export function boardHttpFiles(root: string) {
 		renameSync(join(root, from), join(root, to));
 	}
 	function receipts() {
-		return readdirSync(join(root, "responses"))
-			.filter((file) => file.startsWith("request-receipt."))
-			.map((file) => `responses/${file}`);
+		return ["responses", ".board-settled"].flatMap((directory) =>
+			(existsSync(join(root, directory)) ? readdirSync(join(root, directory)) : [])
+				.filter((file) => file.startsWith("request-receipt.") && file.endsWith(".md"))
+				.map((file) => `${directory}/${file}`),
+		);
 	}
 	return { move, read, receiptRecords: () => receipts().map((file) => metadataParse(read(file)).fields.requestReceipt), receipts, write };
 }
@@ -54,6 +56,6 @@ export const boardAskFiles = Effect.fn("BoardStory.boardAskFiles")(function* (ro
 	);
 });
 
-import { readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import * as NetAddress from "effect/net/NetAddress";

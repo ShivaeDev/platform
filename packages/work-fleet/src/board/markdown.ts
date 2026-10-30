@@ -30,6 +30,28 @@ const MarkdownBoard = defineService({
 		const sources = boundSnapshot(root, realRoot, fs, path);
 		const snapshot = sources.pipe(Effect.tap((current) => upgradeDecisionClosure(root, realRoot, current, fs)));
 		const documents = snapshot.pipe(Effect.map((current) => current.documents.filter((document) => !current.problems.has(document.file))));
+		function decisionDocuments(item: string) {
+			return documents.pipe(
+				Effect.flatMap((active) =>
+					boardApi.loadSettled(
+						root,
+						{
+							documents: active,
+							entries: [],
+							model: boardApi.metadataModel(active),
+							modified: new Map(),
+							revision: 0,
+							unavailable: [],
+						},
+						item,
+					),
+				),
+				Effect.map((loaded) => loaded.documents.map((document) => ({ ...document, source: (document.parsed.raw ?? "") + document.parsed.body }))),
+				Effect.mapError((error) => new BoardFailure({ message: error.message })),
+				Effect.provideService(FileSystem.FileSystem, fs),
+				Effect.provideService(Path.Path, path),
+			);
+		}
 		const get = Effect.fn("FleetBoard.get")(function* (workId: string, options?: { readonly fresh?: boolean }) {
 			const current = yield* snapshot;
 			const found = yield* options?.fresh
@@ -67,9 +89,9 @@ const MarkdownBoard = defineService({
 				Effect.mapError((error) => new BoardFailure({ message: error.message })),
 			);
 		}
-		return { documents, get, path, publish, realRoot, root, snapshot, sourceCreatedAt, sources };
+		return { decisionDocuments, documents, get, path, publish, realRoot, root, snapshot, sourceCreatedAt, sources };
 	}),
-	methods: ({ root, realRoot, documents, get, publish, path, snapshot, sources, sourceCreatedAt }) => ({
+	methods: ({ root, realRoot, decisionDocuments, documents, get, publish, path, snapshot, sources, sourceCreatedAt }) => ({
 		...BoardGateway.of({
 			acknowledgeDecision: acknowledgeDecision(root, realRoot, snapshot),
 			closeFinishedDecisions: closeFinishedDecisions(root, realRoot, sources),
@@ -112,7 +134,7 @@ const MarkdownBoard = defineService({
 				return yield* publish(work, input);
 			}),
 			get,
-			readDecision: decisionReading(documents),
+			readDecision: decisionReading(documents, decisionDocuments),
 			report: publishReport(root, realRoot, documents),
 			respond: recordDecisionResponse(root, realRoot, documents),
 			sourceCreatedAt,
