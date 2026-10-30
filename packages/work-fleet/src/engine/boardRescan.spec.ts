@@ -2,7 +2,19 @@ import { expect } from "vitest";
 import { githubPullRequest, markdownWork } from "#test/engineTraits.ts";
 import { PR, REPORT } from "#test/githubResult.ts";
 import { largeBoard } from "#test/largeBoard.ts";
+import { largeBufferedBoard } from "#test/largeBufferedBoard.ts";
 import { publicationStory as engine } from "#test/publicationStory.ts";
+
+engine.it("status answers before a rescan finishes parsing briefs whose reads are ready", [largeBufferedBoard], function* (fleet) {
+	yield* fleet.prepareWork("item.0");
+	yield* fleet.startRescanDaemon();
+	yield* fleet.startBufferedBoardRescan();
+
+	yield* fleet.rescanStatus();
+
+	expect(fleet.boardRescanInFlight()).toBe(true);
+	yield* fleet.finishBoardRescan();
+});
 
 engine.it("status answers while a large Board rescan is still reading briefs", [largeBoard], function* (fleet) {
 	yield* fleet.prepareWork("item.0");

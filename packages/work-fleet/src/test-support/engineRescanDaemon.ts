@@ -33,14 +33,14 @@ export function engineRescanDaemon(state: EngineStory, tell: (line: string) => v
 			Effect.gen(function* () {
 				tell("serve the engine's durable records through the Fleet daemon");
 				const fixture = yield* hostFixture();
-				const source = state.sourceReads;
-				if (source === undefined) {
+				const board = state.bufferedBoard?.board ?? state.sourceReads?.board;
+				if (board === undefined) {
 					return yield* Effect.die("No tracked Board is configured");
 				}
 				const host = { ...fixture.host, boardDir: state.root };
 				const parts = {
 					...fixture.parts,
-					board: Layer.merge(source.board, Layer.succeed(ReportInspection)({ check: () => Effect.void })),
+					board: Layer.merge(board, Layer.succeed(ReportInspection)({ check: () => Effect.void })),
 				};
 				const context = yield* Layer.build(readDaemonLayer(host, { parts }));
 				const address = Context.get(context, HttpServer.HttpServer).address;

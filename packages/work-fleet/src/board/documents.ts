@@ -34,6 +34,7 @@ const readDocuments = Effect.fn("FleetBoard.readDocuments")(function* (root: str
 			(error) => new BoardFailure({ code: "incomplete-observation", message: `Board sources could not be listed: ${root} (${error.message})` }),
 		),
 	);
+	// Ready reads must still leave time for daemon requests between parse batches.
 	const batches = yield* Effect.forEach(Arr.chunksOf(files, READ_CONCURRENCY), (batch) =>
 		Effect.yieldNow.pipe(
 			Effect.andThen(
