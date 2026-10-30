@@ -27,7 +27,7 @@ skills.it("the sync workflow installs dependencies from the frozen lockfile befo
 
 skills.it("the check step may fail without failing the job, and the sync step runs only when it failed", [], function* ({ workflow }) {
 	yield* outcomes({
-		"check step continues on error": [workflow.stepField(CHECK, "continue-on-error"), "true"],
+		"check step continues on error": [workflow.stepField(CHECK, "continue-on-error"), true],
 		"check step id": [workflow.stepField(CHECK, "id"), "check"],
 		"sync step condition": [workflow.stepField(SYNC, "if"), "steps.check.outcome == 'failure'"],
 	});
