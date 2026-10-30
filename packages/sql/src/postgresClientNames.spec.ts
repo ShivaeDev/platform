@@ -1,3 +1,4 @@
+import { Stream } from "effect";
 import { expect } from "vitest";
 import { createdRow, customized, mapped, preserved } from "#test/clientNames.ts";
 
@@ -28,6 +29,7 @@ mapped.it("updates snake_case columns and decodes RETURNING into camelCase field
 mapped.it("raw SQL uses the same query identifiers and result names without aliases", [], function* ({ sql, tableName }) {
 	yield* sql`insert into ${sql(tableName)} ${sql.insert({ createdAt: original, id: 1 })}`;
 	expect(yield* sql`select created_at from ${sql(tableName)} where ${sql("createdAt")} = ${original}`).toEqual([{ createdAt: original }]);
+	expect(yield* Stream.runCollect(sql`select created_at from ${sql(tableName)}`.stream)).toEqual([{ createdAt: original }]);
 });
 
 preserved.it("opting out retains quoted camelCase columns and untransformed result names", [], function* ({ rows, sql, tableName }) {

@@ -1,4 +1,3 @@
-import * as PgClient from "@effect/sql-pg/PgClient";
 import { Effect, Schema } from "effect";
 import { identity } from "effect/Function";
 import { Model } from "effect/schema";
@@ -6,6 +5,7 @@ import { Migrator, SqlClient } from "effect/sql";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { clientOptions } from "#clientOptions.ts";
 import { migratePostgres } from "#migrations.ts";
+import { postgresLayer } from "#postgresLayer.ts";
 import { makeRepository } from "#repository.ts";
 import { configured, postgresOptions } from "./postgres.ts";
 
@@ -38,7 +38,7 @@ const datedRows = Effect.fnUntraced(function* (column: string) {
 export const mapped = storyKit({
 	clock: "live",
 	create: () => datedRows("created_at"),
-	layer: PgClient.layer(clientOptions(postgresOptions)),
+	layer: postgresLayer(postgresOptions.url, clientOptions(postgresOptions)),
 	name: "snake_case SQL names",
 	runIf: configured,
 	stages: ["rows"],
@@ -48,7 +48,7 @@ export const mapped = storyKit({
 export const preserved = storyKit({
 	clock: "live",
 	create: () => datedRows("createdAt"),
-	layer: PgClient.layer(clientOptions(postgresOptions, { snakeCase: false })),
+	layer: postgresLayer(postgresOptions.url, clientOptions(postgresOptions, { snakeCase: false })),
 	name: "preserved SQL names",
 	runIf: configured,
 	stages: [],
@@ -58,7 +58,7 @@ export const preserved = storyKit({
 export const customized = storyKit({
 	clock: "live",
 	create: () => datedRows("createdAt"),
-	layer: PgClient.layer(clientOptions({ ...postgresOptions, transformQueryNames: identity, transformResultNames: identity })),
+	layer: postgresLayer(postgresOptions.url, clientOptions({ ...postgresOptions, transformQueryNames: identity, transformResultNames: identity })),
 	name: "custom SQL names",
 	runIf: configured,
 	stages: [],
