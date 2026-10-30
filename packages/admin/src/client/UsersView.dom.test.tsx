@@ -1,7 +1,7 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { cannotAssignRoles, onBobsPage, serverRefusesRoleChanges, usersScreen, viewOpen } from "#test/usersScreen.tsx";
+import { cannotAssignRoles, onBobsPage, onPhone, serverRefusesRoleChanges, usersScreen, viewOpen } from "#test/usersScreen.tsx";
 
 expectNoReactWarnings();
 
@@ -53,8 +53,8 @@ usersScreen.it("a role assigner can choose any of the seven declared roles for a
 });
 
 usersScreen.it(
-	"choosing auditor for alice sends that change, then shows her as auditor with her role control enabled again",
-	[viewOpen],
+	"at phone width, choosing auditor for alice sends that change, then shows her as auditor with her role control enabled again",
+	[onPhone, viewOpen],
 	function* ({ chooseRole, requests, roleControl, shownUsers }) {
 		expect(yield* shownUsers()).toEqual([alice]);
 
