@@ -5,7 +5,7 @@ describe("command line", () => {
 	it.each([
 		[[], { _tag: "Lint", config: undefined }],
 		[["lint", "--config", "tools/quality.config.ts"], { _tag: "Lint", config: "tools/quality.config.ts" }],
-		[["fix"], { _tag: "Fix", config: undefined }],
+		[["fix"], { _tag: "Fix", config: undefined, rules: [] }],
 		[["baseline", "write"], { _tag: "BaselineWrite", config: undefined, rules: [] }],
 		[["baseline", "write", "--rule", "a/b", "--rule", "c/d"], { _tag: "BaselineWrite", config: undefined, rules: ["a/b", "c/d"] }],
 		[["baseline", "prune"], { _tag: "BaselinePrune", against: undefined, config: undefined }],
