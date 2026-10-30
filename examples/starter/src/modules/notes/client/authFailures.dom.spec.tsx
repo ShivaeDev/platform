@@ -42,7 +42,7 @@ screens.it(
 	function* ({ closeScreen, consoleErrors, click, signOutCalls, alert }) {
 		yield* click("Sign out");
 		yield* eventually(() => expect(signOutCalls()).toEqual([undefined]));
-		yield* eventually(() => expect(alert()).toBe("Could not sign out"));
+		yield* eventually(() => expect(alert()).toBe("Could not sign out. Try again."));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},
