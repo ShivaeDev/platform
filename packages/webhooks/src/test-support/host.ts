@@ -1,8 +1,9 @@
-import { Cause, ConfigProvider, Context, Deferred, Effect, type Fiber, Layer, Logger, Redacted, References, Tracer } from "effect";
+import { Cause, ConfigProvider, Context, Deferred, Effect, type Fiber, Layer, Logger, References, Tracer } from "effect";
 import { HttpServer } from "effect/http";
 import { RpcGroup } from "effect/rpc";
 import { Migrator, SqlClient } from "effect/sql";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
+import { pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting, type PgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
@@ -85,15 +86,17 @@ export function hostLayer(state: InboxState) {
 					const sql = yield* SqlClient.SqlClient;
 					const testing = makePgBossTesting();
 					state.testing = testing;
-					const jobs = Jobs.layer({
+					const clientLayer = pgBossLayer({
 						clientFactory: testing.clientFactory,
-						connectionString: Redacted.value(url),
-						jobs: [issueQueue.handle(recordHandled(state, issueQueue.name)), auditQueue.handle(recordHandled(state, auditQueue.name))],
+						connectionString: url,
 						migrate: false,
 						schedule: false,
 						supervise: false,
 						useListenNotify: true,
 					});
+					const jobs = Jobs.layer({
+						jobs: [issueQueue.handle(recordHandled(state, issueQueue.name)), auditQueue.handle(recordHandled(state, auditQueue.name))],
+					}).pipe(Layer.provide(clientLayer));
 					return {
 						config: { maxBodySize: MAX_BODY_BYTES, port: 0 },
 						group: RpcGroup.make(),

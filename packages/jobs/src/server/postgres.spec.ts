@@ -39,7 +39,7 @@ const Closed = defineQueue({ name: "closed-database", schema: Schema.Struct({}) 
 
 const operations: readonly { readonly call: (jobs: PgBossService) => Effect.Effect<unknown, unknown>; readonly operation: string }[] = [
 	{ call: (jobs) => jobs.enqueue(Closed, {}), operation: "enqueue" },
-	{ call: (jobs) => jobs.health, operation: "health" },
+	{ call: (jobs) => jobs.health(), operation: "health" },
 ];
 
 for (const { call, operation } of operations) {
@@ -60,7 +60,7 @@ database.it(
 	"health counts a registered queue that was deleted outside the runtime as empty",
 	[running("app", [worker(Deleted, "succeeds")], { controller: "none" }), deletedOutside(Deleted.name, deadLetterQueueName(Deleted.name))],
 	function* ({ answered, ask }) {
-		yield* ask("app", "report health", (jobs) => jobs.health);
+		yield* ask("app", "report health", (jobs) => jobs.health());
 
 		expect(yield* answered()).toEqual({
 			activeTotal: 0,

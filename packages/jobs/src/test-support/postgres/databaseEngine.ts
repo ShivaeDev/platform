@@ -1,4 +1,4 @@
-import type { Context, Effect, Fiber } from "effect";
+import type { Context, Effect, Fiber, Redacted } from "effect";
 import type { SqlClient } from "effect/sql";
 import type { PgBoss } from "pg-boss";
 import type { WorkerRelease } from "@shivaedev/sql/WorkerRelease.ts";
@@ -65,12 +65,12 @@ export interface DatabaseEngine {
 	readonly stopping: Map<string, Fiber.Fiber<void>>;
 	readonly timeline: string[];
 	readonly trace: ReturnType<typeof recordingTracer>;
-	readonly url: string;
+	readonly url: Redacted.Redacted<string>;
 	readonly wakes: Map<string, string[]>;
 	readonly work: WorkLog;
 }
 
-export function databaseEngine(url: string, sql: SqlClient.SqlClient): DatabaseEngine {
+export function databaseEngine(url: Redacted.Redacted<string>, sql: SqlClient.SqlClient): DatabaseEngine {
 	const work = workLog();
 	const timeline: string[] = [];
 	const labels = new Map<string, string>();

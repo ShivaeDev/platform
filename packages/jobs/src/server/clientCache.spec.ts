@@ -1,7 +1,8 @@
-import type { ConstructorOptions } from "pg-boss";
+import { Redacted } from "effect";
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineSchedule } from "#definition.ts";
+import type { PgBossOptions } from "#service.ts";
 import { clientStartPending, clientStopFails, freshClientEachTime, running, runtime, sharedClientKey, stopped } from "#test/runtime/kit.ts";
 import { scheduled } from "#test/workers.ts";
 
@@ -32,12 +33,12 @@ runtime.it(
 	},
 );
 
-const conflicts: readonly { name: string; first: ConstructorOptions; second: ConstructorOptions; options: string }[] = [
+const conflicts: readonly { name: string; first: PgBossOptions; second: PgBossOptions; options: string }[] = [
 	{
-		first: { connectionString: "postgresql://first" },
+		first: { connectionString: Redacted.make("postgresql://first") },
 		name: "its connection string differs",
 		options: "connectionString",
-		second: { connectionString: "postgresql://second" },
+		second: { connectionString: Redacted.make("postgresql://second") },
 	},
 	{ first: { schema: "first" }, name: "its schema differs", options: "schema", second: { schema: "second" } },
 	{ first: { max: 2 }, name: "its pool size differs", options: "max", second: { max: 3 } },

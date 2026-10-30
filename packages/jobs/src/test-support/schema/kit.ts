@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Redacted } from "effect";
+import { Context, Effect, Layer } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { assertPostgresMigrations } from "@shivaedev/sql/assertPostgresMigrations.ts";
 import { migratePostgres } from "@shivaedev/sql/migrations.ts";
@@ -19,7 +19,7 @@ export interface SchemaState {
 type Tell = (line: string) => void;
 
 export function engineFor(services: SchemaState["services"]) {
-	return databaseEngine(Redacted.value(Context.get(services, PostgresTestDatabase).url), Context.get(services, SqlClient.SqlClient));
+	return databaseEngine(Context.get(services, PostgresTestDatabase).url, Context.get(services, SqlClient.SqlClient));
 }
 
 interface IndexRow {
