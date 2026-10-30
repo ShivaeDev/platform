@@ -1,70 +1,74 @@
-import { Clock, Effect } from "effect";
-import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/test/eventually.ts";
-import { withLive } from "@shivaedev/test/withLive.ts";
 import { postgres } from "#test/sqlStory.ts";
 import { listeningForChanges } from "#test/sqlTraits.ts";
 
 postgres.it(
 	"one listener outage logs its recovery after heartbeat and resync, including elapsed time and only open streams",
 	[listeningForChanges({ heartbeatInterval: "1 second", heartbeatTimeout: "1 second", retryDelay: "1 second" })],
-	function* ({ sql, notifications, recordedLogs }) {
-		const { state, openStream, nextListener, nextMutedHeartbeat } = notifications();
+	function* ({ notifications, recordedLogs }) {
+		const {
+			openStream,
+			nextListener,
+			nextMutedHeartbeat,
+			nextLoss,
+			nextReconnect,
+			nextRecovery,
+			terminate,
+			currentTime,
+			intervalPasses,
+			makeUnavailable,
+			pauseDelivery,
+			resumeDelivery,
+			restoreAvailability,
+		} = notifications();
 		const first = yield* openStream();
 		const second = yield* openStream();
 		const closed = yield* openStream();
-		yield* withLive(eventually(Effect.try(() => expect(closed.hints).toEqual([{ _tag: "Resync" }]))));
+		yield* closed.nextHint;
 		yield* closed.close;
 		expect(recordedLogs()).toEqual([]);
-		state.unreachable = true;
-		expect(yield* sql`select pg_terminate_backend(pid) as terminated from pg_stat_activity where query = ${`LISTEN "${state.channel}"`}`).toEqual([
-			{ terminated: true },
+		yield* makeUnavailable();
+		yield* terminate;
+		yield* nextLoss;
+		const lostAt = yield* currentTime;
+		expect(recordedLogs()).toMatchObject([
+			{
+				cause: expect.stringContaining("terminating connection due to administrator command"),
+				level: "Warn",
+				message: ["PostgreSQL change listener lost; resynchronizing live streams"],
+			},
 		]);
-		yield* withLive(
-			eventually(
-				Effect.try(() =>
-					expect(recordedLogs().filter((log) => log.level === "Warn")).toMatchObject([
-						{ message: ["PostgreSQL change listener lost; resynchronizing live streams"] },
-					]),
-				),
-			),
-		);
-		const lostAt = yield* Clock.currentTimeMillis;
-		expect(recordedLogs()).toMatchObject([{ cause: "", level: "Warn", message: ["PostgreSQL change listener lost; resynchronizing live streams"] }]);
 		const retryIntervals = [1000, 1000];
-		for (const [index, interval] of retryIntervals.entries()) {
-			yield* TestClock.adjust(interval);
-			yield* withLive(eventually(Effect.try(() => expect(recordedLogs().filter((log) => log.level === "Debug")).toHaveLength(index + 1))));
+		for (const interval of retryIntervals) {
+			yield* intervalPasses(interval);
+			yield* nextReconnect;
+			expect(recordedLogs().at(-1)?.cause).toContain("ECONNREFUSED");
 			expect(recordedLogs().filter((log) => log.level === "Warn")).toMatchObject([
 				{ message: ["PostgreSQL change listener lost; resynchronizing live streams"] },
 			]);
 			expect(recordedLogs().filter((log) => log.level === "Info")).toEqual([]);
 		}
-		state.unreachable = false;
-		state.muted = true;
+		yield* restoreAvailability();
+		yield* pauseDelivery();
 		const reconnectInterval = 1000;
 		const heartbeatDelay = 50;
-		yield* TestClock.adjust(reconnectInterval);
+		yield* intervalPasses(reconnectInterval);
 		yield* nextListener;
-		yield* TestClock.adjust(heartbeatDelay);
+		yield* intervalPasses(heartbeatDelay);
 		const acknowledgeHeartbeat = yield* nextMutedHeartbeat;
 		expect(recordedLogs().filter((log) => log.level === "Info")).toEqual([]);
-		state.muted = false;
+		yield* resumeDelivery();
 		yield* acknowledgeHeartbeat;
-		yield* withLive(
-			eventually(
-				Effect.try(() =>
-					expect(recordedLogs().filter((log) => log.level === "Info")).toMatchObject([
-						{ message: ["PostgreSQL change listener recovered; resynchronized live streams"] },
-					]),
-				),
-			),
-		);
-		const downtimeMs = (yield* Clock.currentTimeMillis) - lostAt;
+		yield* nextRecovery;
+		const downtimeMs = (yield* currentTime) - lostAt;
 		expect(downtimeMs).toBe(retryIntervals.reduce((total, interval) => total + interval, 0) + reconnectInterval + heartbeatDelay);
 		expect(recordedLogs().filter((log) => log.level !== "Debug")).toEqual([
-			{ annotations: {}, cause: "", level: "Warn", message: ["PostgreSQL change listener lost; resynchronizing live streams"] },
+			{
+				annotations: {},
+				cause: expect.stringContaining("terminating connection due to administrator command"),
+				level: "Warn",
+				message: ["PostgreSQL change listener lost; resynchronizing live streams"],
+			},
 			{
 				annotations: { downtimeMs, streamCount: 2 },
 				cause: "",
@@ -72,14 +76,13 @@ postgres.it(
 				message: ["PostgreSQL change listener recovered; resynchronized live streams"],
 			},
 		]);
-		yield* withLive(
-			eventually(
-				Effect.try(() => {
-					expect(first.hints).toEqual([{ _tag: "Resync" }, { _tag: "Resync" }, { _tag: "Resync" }, { _tag: "Resync" }, { _tag: "Resync" }]);
-					expect(second.hints).toEqual(first.hints);
-				}),
-			),
-		);
+		for (const stream of [first, second]) {
+			for (let hint = 0; hint < 5; hint += 1) {
+				yield* stream.nextHint;
+			}
+		}
+		expect(first.hints).toEqual(Array.from({ length: 5 }, () => ({ _tag: "Resync" })));
+		expect(second.hints).toEqual(first.hints);
 		expect(closed.hints).toEqual([{ _tag: "Resync" }]);
 	},
 	{ clock: "test" },
