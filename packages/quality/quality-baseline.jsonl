@@ -7,7 +7,7 @@
 {"path":"packages/quality/src/baseline/rewrite.test.ts","rule":"effect/boundary","count":8}
 {"path":"packages/quality/src/baseline/tighten.spec.ts","rule":"effect/boundary","count":19}
 {"path":"packages/quality/src/biome/exceptionConfig.test.ts","rule":"effect/boundary","count":7}
-{"path":"packages/quality/src/biome/exceptionConfig.ts","rule":"effect/boundary","count":10}
+{"path":"packages/quality/src/biome/exceptionConfig.ts","rule":"effect/boundary","count":8}
 {"path":"packages/quality/src/biome/namingPreset.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/quality/src/biome/recognition.spec.ts","rule":"effect/boundary","count":5}
 {"path":"packages/quality/src/biome/recommendedRules.test.ts","rule":"effect/boundary","count":2}
