@@ -30,10 +30,8 @@ const program = Effect.gen(function* () {
 	yield* Command.run(cli, { version });
 });
 
-if (import.meta.main) {
-	program.pipe(
-		Effect.tapErrorTag("CreateAppError", (error) => Console.error(`create-app: ${error.message}`)),
-		Effect.provide(NodeServices.layer),
-		NodeRuntime.runMain,
-	);
-}
+program.pipe(
+	Effect.tapErrorTag("CreateAppError", (error) => Console.error(`create-app: ${error.message}`)),
+	Effect.provide(NodeServices.layer),
+	NodeRuntime.runMain,
+);
