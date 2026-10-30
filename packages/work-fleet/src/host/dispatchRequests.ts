@@ -85,7 +85,7 @@ export const dispatchRequests = Effect.fn("FleetDaemon.dispatchRequests")(functi
 			if (options.ignoreAreas === true && options.now !== true) {
 				return yield* new BadRequest({ message: "Ignoring area claims needs a dispatch now request" });
 			}
-			const work = yield* board.get(workId);
+			const work = yield* board.get(workId, { fresh: true });
 			if (!work.approved) {
 				return yield* new Forbidden({ message: `${workId} needs "fleet: approved" in its Board frontmatter` });
 			}

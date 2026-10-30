@@ -46,3 +46,7 @@ export const approvedPullRequest = answers.trait("configuration", "a host integr
 	engine.approvedPr = true;
 	engine.config = { intervalSeconds: 3600 };
 });
+
+export const manualScheduling = answers.trait("configuration", "scheduler passes run explicitly", (engine) => {
+	engine.scheduled = false;
+});

@@ -128,7 +128,7 @@ export const admitApproved = Effect.fn("FleetHost.admitApproved")(function* (hos
 
 export const dispatchApproved = Effect.fn("FleetHost.dispatchApproved")(function* (host: FleetHost, workId: string, now?: DispatchNow) {
 	const fleet = yield* Fleet;
-	const work = yield* (yield* BoardGateway).get(workId);
+	const work = yield* (yield* BoardGateway).get(workId, { fresh: true });
 	if (!work.approved) {
 		return yield* Effect.fail(new Forbidden({ message: `${workId} needs "fleet: approved" in its Board frontmatter` }));
 	}

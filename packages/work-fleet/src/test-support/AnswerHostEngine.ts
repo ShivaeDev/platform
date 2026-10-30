@@ -16,6 +16,7 @@ export class AnswerHostEngine {
 	files: Record<string, string> = { "one.md": task("one", "approved") };
 	config: Partial<HostSettings> = {};
 	approvedPr = false;
+	scheduled = true;
 	boardOverride: HostFixture["parts"]["board"];
 	beforeStart: Effect.Effect<void, unknown, SqlClient.SqlClient> = Effect.void;
 	readonly resolution = resolutionHold();
@@ -64,17 +65,26 @@ export class AnswerHostEngine {
 				if (engine.#runtime !== undefined) {
 					return yield* Effect.die("The daemon is already running");
 				}
-				const { host, parts: originalParts } = engine.host;
-				const fixtureParts = engine.boardOverride === undefined ? originalParts : { ...originalParts, board: engine.boardOverride };
-				const parts = fixtureParts.board === undefined ? fixtureParts : { ...fixtureParts, board: engine.resolution.board(fixtureParts.board) };
-				const previous = engine.#pr === undefined ? undefined : yield* fleetHealth(host.boardDir).pipe(Effect.option);
-				const layer = engine.#pr === undefined ? readDaemonLayer(host, { parts }) : daemonLayer(host, engine.#pr.parts, 0);
+				const { host } = engine.host;
+				const scheduled = engine.#pr !== undefined && engine.scheduled;
+				const previous = scheduled ? yield* fleetHealth(host.boardDir).pipe(Effect.option) : undefined;
+				const effectiveParts = engine.#parts();
+				const layer = scheduled ? daemonLayer(host, effectiveParts, 0) : readDaemonLayer(host, { parts: effectiveParts });
 				engine.#runtime = yield* startHostDaemon(layer);
 				if (previous !== undefined) {
 					yield* schedulerReady(host.boardDir, previous._tag === "Some" ? previous.value.lastSchedulerPass : null);
 				}
 			}),
 		);
+	}
+
+	#parts() {
+		if (this.#pr !== undefined) {
+			return this.#pr.parts;
+		}
+		const original = this.host.parts;
+		const parts = this.boardOverride === undefined ? original : { ...original, board: this.boardOverride };
+		return parts.board === undefined ? parts : { ...parts, board: this.resolution.board(parts.board) };
 	}
 
 	stop() {
