@@ -29,6 +29,7 @@ export const commands = {
 	killsItselfWith: (signal: NodeJS.Signals) => shell(`kill -${signal.slice(3)} $$`),
 	nestedRunOf: (command: CommandLine): CommandLine => [process.execPath, "--conditions=source", HEAVY_LOCK_CLI, "--", ...command],
 	printsToStderr: (line: string) => shell(`echo '${line}' >&2`),
+	reportsArguments: (...args: readonly string[]): CommandLine => [...shell('printf "%s\\n" "$@"'), "check", ...args],
 	reportsHolderId: shell('printf "holder id=%s\\nlock=%s\\n" "$HEAVY_PROCESS_LOCK_ID" "$(cat "$HEAVY_PROCESS_LOCK" 2>/dev/null)"'),
 	reportsProcessGroup: shell('if [ "$(ps -o pgid= -p $$ | tr -d " ")" = "$$" ]; then echo "leads its process group"; fi'),
 	sleeps: shell(`exec sleep ${COMMAND_LIFETIME_S}`),

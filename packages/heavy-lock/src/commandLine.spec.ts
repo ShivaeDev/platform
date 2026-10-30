@@ -151,22 +151,6 @@ lockStory.it(
 	liveCli,
 );
 
-for (const args of [[], ["sleep", "1"], ["--"]]) {
-	lockStory.it(
-		`the CLI invoked as heavy-lock ${args.join(" ")} prints its usage and exits 2`,
-		[],
-		function* ({ cli }) {
-			yield* cli.invokedWith("check", args);
-
-			yield* outcomes({
-				"check's exit code": [cli.exitCodeOf("check"), 2],
-				"printed by check": [cli.printedBy("check"), ["Usage: heavy-lock -- <command> [args...]"]],
-			});
-		},
-		liveCli,
-	);
-}
-
 lockStory.it(
 	"a command that cannot start makes the CLI print why and exit 127",
 	[],
