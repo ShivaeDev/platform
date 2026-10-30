@@ -14,6 +14,7 @@ export function registerAdmin<const TPages extends readonly AdminPage[], THandle
 	handlers: THandlers & Record<Exclude<keyof THandlers, TPages[number]["id"]>, never>,
 ): {
 	readonly group: AdminRegistry<TPages>["group"];
+	readonly pages: TPages;
 	readonly handlers: Layer.Layer<
 		Layer.Success<RegisteredLayers<THandlers>>,
 		Layer.Error<RegisteredLayers<THandlers>>,
@@ -35,5 +36,5 @@ export function registerAdmin(
 			throw new Error(`Unregistered admin handlers: ${id}`);
 		}
 	}
-	return { group: registry.group, handlers: Layer.mergeAll(Layer.empty, ...Object.values(handlers)) };
+	return { group: registry.group, handlers: Layer.mergeAll(Layer.empty, ...Object.values(handlers)), pages: registry.pages };
 }

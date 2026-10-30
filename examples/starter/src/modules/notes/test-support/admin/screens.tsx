@@ -5,16 +5,20 @@ import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { AppAccess } from "#AppAccess.ts";
 import { JobsView } from "#client/admin/JobsView.tsx";
+import { foundationRegistration } from "#client/foundationRegistration.ts";
 import { connectModules } from "#client/Module.ts";
 import { SessionApp } from "#client/SessionApp.tsx";
-import { UsersPage } from "#modules/notes/admin.ts";
+import { Admin } from "#modules/notes/admin.ts";
 import { adminRoutes } from "#modules/notes/client/adminRoutes.tsx";
 import { screenAuth } from "#modules/notes/test-support/screenAuth.ts";
+import { foundation } from "#modules.ts";
 import type { ScreenSurface } from "#test-support/screenState.ts";
 import { acquireScreen, screenView } from "#test-support/screenState.ts";
 import { uiScreenVerbs } from "#test-support/uiScreenVerbs.ts";
 import { failedJob } from "./backend.ts";
 import { adminClient } from "./client.ts";
+
+const { UsersPage } = foundation;
 
 const warnings = expectNoReactWarnings();
 
@@ -78,7 +82,13 @@ export function adminScreen(path = "/admin/jobs", role: typeof AppAccess.Role.Ty
 		function connect({ id }: { readonly id: string }) {
 			const client = id === "alice" ? engine.client : other;
 			return connectModules([
-				{ api: client.jobs, bindings: [client.jobs, client.statistics, client.users], routes: (context) => adminRoutes(client, context) },
+				foundationRegistration(client),
+				{
+					admin: Admin,
+					api: client.statistics,
+					bindings: [client.jobs, client.statistics, client.users],
+					routes: (context) => adminRoutes(client, { adminPages: context.adminPages, getParentRoute: () => context.root, session: context.session }),
+				},
 			]);
 		}
 		function recheck() {

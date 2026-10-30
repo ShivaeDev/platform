@@ -4,7 +4,8 @@ import { expectTypeOf } from "vitest";
 import type { MissingReadPolicy, QueryReadDenied } from "@shivaedev/contract/readPolicyErrors.ts";
 import type { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
-import { adminRegistry } from "#registry.ts";
+import { adminRegistry, mergeAdminRegistries } from "#registry.ts";
+import { mergeAdminRegistrations } from "#server/mergeAdminRegistrations.ts";
 import { registerAdmin } from "#server/registerAdmin.ts";
 import { Failed, Jobs, JobsContract, Registry, Users } from "#test/pages.ts";
 
@@ -58,3 +59,21 @@ Jobs.contract.application.toLayer({
 
 type ProfileRpc = Extract<RpcGroup.Rpcs<typeof Users.contract>, { readonly _tag: "admin.users.profile" }>;
 expectTypeOf<Rpc.Error<ProfileRpc>>().toEqualTypeOf<AuthUnavailable | Forbidden | Unauthorized | MissingReadPolicy | QueryReadDenied>();
+
+const jobsModule = registerAdmin(adminRegistry(Jobs), { jobs });
+const usersModule = registerAdmin(adminRegistry(Users), { users });
+const combined = mergeAdminRegistrations(jobsModule, usersModule);
+expectTypeOf(combined.handlers).toEqualTypeOf(registration.handlers);
+expectTypeOf(combined.pages).toEqualTypeOf<readonly [typeof Jobs, typeof Users]>();
+expectTypeOf(combined.group).toEqualTypeOf(Registry.group);
+// @ts-expect-error Modules cannot contribute the same page id.
+mergeAdminRegistrations(jobsModule, jobsModule);
+// @ts-expect-error Browser registries reject page ids shared by modules.
+mergeAdminRegistries(jobsModule, jobsModule);
+// @ts-expect-error A registry cannot contain duplicate page ids.
+adminRegistry(Jobs, Jobs);
+// @ts-expect-error A module must register its page handlers before composition.
+mergeAdminRegistrations(adminRegistry(Jobs), usersModule);
+
+// @ts-expect-error A module cannot bypass handler registration with an empty Layer.
+mergeAdminRegistrations({ ...adminRegistry(Jobs), handlers: Layer.empty });

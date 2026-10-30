@@ -71,6 +71,20 @@ Declare application roles with `@shivaedev/access`, grant the relevant domain pe
 
 Pass `registration.group` and `handlers` to the existing application's RPC host on `/rpc`, merging them with its other groups and Layers as needed. The Platform host supplies generated change handlers; registration requires the page's application handlers. Handler Layer errors and service requirements remain inferred. Missing or extra page ids fail at registration; TypeScript also checks each Layer provides the handlers for its page.
 
+### Pages owned by modules
+
+Each module declares its own registry and calls `registerAdmin` with its own page handlers. The application host combines those registrations:
+
+```ts
+import { mergeAdminRegistrations } from "@shivaedev/admin/server/mergeAdminRegistrations.ts";
+
+const admin = mergeAdminRegistrations(foundation.admin, catalog.admin);
+```
+
+Pass `admin.group` and `admin.handlers` to the application's RPC host. The combined registration exposes `pages` for navigation and preserves the handler Layers' errors and service requirements. Duplicate page ids across modules fail at the type level; duplicate paths and RPC tags fail at composition. A module cannot register a page without its handlers.
+
+Browser composition uses `mergeAdminRegistries` from `@shivaedev/admin/registry.ts` with the modules' browser-safe registries. A client module can also contribute its registry's `pages` directly to the application's navigation. A feature module adds pages to its own registry and handlers to its own registration; the foundation does not import feature pages.
+
 ### Built-in Jobs page
 
 Share each queue's name and payload Schema with the browser declaration. The page exposes only the queues passed to `jobsPage`; a queue registered with the jobs runtime is not automatically available to operators.

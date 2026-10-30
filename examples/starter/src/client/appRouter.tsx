@@ -36,8 +36,9 @@ export function appRouter<TRoute extends AnyRoute>(
 		path: "/sign-in",
 		validateSearch: (search: Record<string, unknown>) => (search.returnTo === undefined ? {} : { returnTo: returnPath(search.returnTo) }),
 	});
+	const adminPages = client.modules.flatMap((module) => module.admin?.pages ?? []);
 	const routes = client.modules.flatMap((module) =>
-		module.routes({ auth, navigate: (to) => void router.navigate({ href: to }), registry, root, session }),
+		module.routes({ adminPages, auth, navigate: (to) => void router.navigate({ href: to }), registry, root, session }),
 	);
 	const home = createRoute({ component: (): ReactElement => <Home auth={auth} />, getParentRoute: () => root, path: "/" });
 	const router = createRouter({
@@ -48,7 +49,7 @@ export function appRouter<TRoute extends AnyRoute>(
 		parseSearch,
 		stringifySearch,
 		...(history === undefined ? {} : { history }),
-		routeTree: root.addChildren([login, ...(routes.length === 0 ? [home] : routes)]),
+		routeTree: root.addChildren([login, ...routes, ...(routes.some((route) => "path" in route.options && route.options.path === "/") ? [] : [home])]),
 	});
 	return router;
 }
