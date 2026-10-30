@@ -3,7 +3,7 @@ import { HttpRouter, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { Rpc, RpcGroup } from "effect/rpc";
 import { SqlClient } from "effect/sql";
-import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { AuthUnavailable, Forbidden, isAuthUnavailable, isForbidden, isUnauthorized, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
 import { AuthenticatedUser } from "@shivaedev/identity/middleware.ts";
 import { permissionRoute } from "@shivaedev/identity/server/permissions.ts";
@@ -71,7 +71,7 @@ export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { 
 			router.add("POST", "/admin-tools", tools),
 			router.add("GET", "/admin-failure", (request) =>
 				guarded(() => Effect.fail(new Forbidden({ message: "Handler failure" })))(request).pipe(
-					Effect.catchTag("Forbidden", (error) =>
+					Effect.catchIf(isForbidden, (error) =>
 						Effect.succeed(HttpServerResponse.text(error.message, { status: HttpStatus.fromLiteral("UnprocessableEntity") })),
 					),
 				),
@@ -80,7 +80,9 @@ export function adminRoutes(sessions: SessionPolicy<UserSessionShape>, state: { 
 				SessionUser.pipe(
 					withSessionUser(sessions, request.headers, "profile"),
 					Effect.map(HttpServerResponse.jsonUnsafe),
-					Effect.catchTags(routeErrors),
+					Effect.catchIf(isAuthUnavailable, routeErrors.AuthUnavailable),
+					Effect.catchIf(isForbidden, routeErrors.Forbidden),
+					Effect.catchIf(isUnauthorized, routeErrors.Unauthorized),
 				),
 			),
 		]),

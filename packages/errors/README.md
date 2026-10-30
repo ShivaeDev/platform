@@ -39,6 +39,8 @@ export const Rename = Rpc.make("Rename", {
 
 A handler fails with `new Conflict({ field: "name", message: "Name is taken" })`, and native RPC JSON decodes the rejection back to the error instance with its field. `rejectedField(error)` reads either that instance or its tagged JSON. Any value with a string `_tag`, `field` and `message` qualifies, including an application's own tagged error; an untagged object, a missing field or a non-string field yields `Option.none()`.
 
+Each class has an `is<Class>` guard in `taxonomy.ts`, such as `isConflict(value)`. Guards narrow actual instances, including errors decoded by the class schema; an object with the same `_tag` and fields does not qualify. Use them with `Effect.catchIf(isConflict, handler)` when matching a taxonomy failure by class.
+
 ### Mapping unexpected failures at the handler edge
 
 Use `rpcBoundary` only at the RPC handler edge, never inside services. Services keep their typed failures and defects so callers can handle them. At that edge, `rpcBoundary(schema, options)` keeps declared rejections and maps other failures and defects into one declared fallback. It leaves successful values and interruption intact:
@@ -70,13 +72,15 @@ export const Handlers = Api.toLayer({
 
 ### Masking secrets in failures
 
-`sensitive.ts` decides which names are secret. `isSensitiveKey(key)` matches credential-shaped names whatever their casing or separator, such as `sessionId`, `bearerToken`, `access_key_id` or `cardNumber`. A `SensitiveKey` is any `(key: string) => boolean`, so an application can widen the policy with its own names. `redactText(text, sensitive, maxLength?)` masks credential-shaped text and `key=value` assignments inside a string, and cuts it at 2,048 characters by default; passing `Infinity` keeps complete public text. Masked values become `REDACTED`, the string `<redacted>`.
+`sensitive.ts` decides which names are secret. `isSensitiveKey(key)` matches credential-shaped names whatever their casing or separator, such as `sessionId`, `bearerToken`, `access_key_id` or `cardNumber`, and database diagnostic keys `db.user`, `db.user.name` and `db.connection_string`. A `SensitiveKey` is any `(key: string) => boolean`, so an application can widen the policy with its own names. `redactText(text, sensitive, maxLength?, key?)` masks credential-shaped text and `key=value` assignments inside a string, URL user information, query values and fragments, and cuts it at 2,048 characters by default; passing `Infinity` keeps complete public text. The optional `key` supplies context for standalone URL components such as `url.query`. `redactUrl(value, key?)` from `sensitive.ts` applies just the URL rules, including nested JSON strings. Masked values become `REDACTED`, the string `<redacted>`.
 
-`redact.ts` applies that policy to structured values. `redact(value, sensitive?)` masks values under sensitive keys and credential text inside strings, summarises large collections and binary data, and stops cyclic payloads at a depth limit; use it for diagnostics. `redactWire(value, sensitive?)` applies the same masking without summaries or truncation; use it for failure data sent to a client.
+`redact.ts` applies that policy to structured values. `redact(value, sensitive?)` masks values under sensitive keys and credential text inside strings, summarises large collections and binary data, and stops cyclic payloads at a depth limit; use it for diagnostics. `redactRecord(values, sensitive?)` masks every top-level record entry without limiting the number of keys, while applying diagnostic limits within each value. `redactWire(value, sensitive?)` applies the same masking without summaries or truncation; use it for failure data sent to a client.
 
 `redactCause.ts` applies it to Effect causes. `redactCause(cause, sensitive?)` rebuilds a cause with masked defects and keeps its typed failures, interruptions and annotations as they are, so the failure channel keeps its type. `redactDiagnosticCause(cause, sensitive?)` masks failures, defects and annotations for diagnostics, `redactDefect(defect, sensitive?)` masks one defect, and `redactingErrorReporter(reporter, sensitive?)` wraps an Effect error reporter so it only ever receives diagnostic-masked causes.
 
-The policy matches names, not values: it does not scan prose for personal data, so keep secrets out of free text and span names.
+`schemaSensitiveKeys(group, extraKeys?)` from `schemaSensitiveKeys.ts` derives the key predicate from native RPC payload, success, error, defect and middleware error schemas. It includes nested sensitive annotations, Redacted schemas, encoded field names and additional application keys. Its `maskFailure(tag, reason)` method identifies whole error or defect roots that need masking. The host applies this predicate to logs, error reports, RPC failure data and exported traces.
+
+The policy matches names and credential or URL shapes, not arbitrary values: it does not scan prose for personal data, so keep secrets out of free text and span names.
 
 ### Install and limits
 

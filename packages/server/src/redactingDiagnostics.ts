@@ -1,11 +1,8 @@
 import { Context, Effect, ErrorReporter, Layer, Logger, References } from "effect";
-import { redact } from "@shivaedev/errors/redact.ts";
+import { redact, redactRecord } from "@shivaedev/errors/redact.ts";
 import { redactDiagnosticCause, redactingErrorReporter } from "@shivaedev/errors/redactCause.ts";
 import type { SensitiveKey } from "@shivaedev/errors/sensitive.ts";
 
-export function redactRecord(values: Readonly<Record<string, unknown>>, sensitive: SensitiveKey): Record<string, unknown> {
-	return Object.fromEntries(Object.entries(values).map(([key, value]) => [key, sensitive(key) ? "<redacted>" : redact(value, sensitive)]));
-}
 export function redactingDiagnostics(sensitive: SensitiveKey) {
 	return Layer.effectContext(
 		Effect.gen(function* () {

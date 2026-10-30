@@ -1,9 +1,9 @@
 import { Effect, type FileSystem, Layer, type Path, type PlatformError } from "effect";
 import type { HttpRouter } from "effect/http";
+import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { InternalServerError } from "@shivaedev/errors/taxonomy.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostRpcRoutes } from "@shivaedev/server/hostRpcRoutes.ts";
-import { schemaSensitiveKeys } from "@shivaedev/server/schemaSensitiveKeys.ts";
 import type { RenderFailed } from "#render/Failed.ts";
 import { workRpcs } from "#rpc/contract.ts";
 import { boardRuntime } from "#server/boardRuntime.ts";

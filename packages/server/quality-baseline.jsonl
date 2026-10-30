@@ -50,7 +50,6 @@
 {"path":"packages/server/src/publicConfig.spec.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/publicConfig.spec.ts","rule":"tests/domain-outcomes","count":1}
 {"path":"packages/server/src/publicFailureData.spec.ts","rule":"tests/domain-outcomes","count":3}
-{"path":"packages/server/src/redactOtlpUrl.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingDiagnostics.ts","rule":"effect/boundary","count":1}
 {"path":"packages/server/src/redactingRpcSerialization.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/server/src/rpc-server/admin.spec.ts","rule":"tests/domain-outcomes","count":21}

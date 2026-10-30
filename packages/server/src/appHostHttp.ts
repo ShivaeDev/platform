@@ -2,6 +2,7 @@ import * as NodeHttpServer from "@effect/platform-node/NodeHttpServer";
 import { Effect, Layer } from "effect";
 import { HttpRouter, HttpServer, HttpStaticServer } from "effect/http";
 import type { Rpc } from "effect/rpc";
+import { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { SessionShape } from "@shivaedev/identity/server/session.ts";
 import type { AppChanges, AppHttpHostOptions } from "#appHost.ts";
 import type { databaseLayer } from "#databaseLayer.ts";
@@ -16,7 +17,6 @@ import { nodeHttpServer } from "#nodeHttpServer.ts";
 import { otlpTracing } from "#otlpTracing.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
 import { redactingDiagnostics } from "#redactingDiagnostics.ts";
-import { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
 
 export function appHostHttp<
 	TRpcs extends Rpc.Any,

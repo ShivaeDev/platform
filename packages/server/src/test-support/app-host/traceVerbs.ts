@@ -1,4 +1,4 @@
-import { Context, Effect, Layer, Logger, ManagedRuntime, Option } from "effect";
+import { Cause, Context, Effect, Layer, Logger, ManagedRuntime, Option } from "effect";
 import { HttpBody, HttpClient } from "effect/http";
 import { OtlpExporter } from "effect/observability";
 import { otlpHttpClient } from "#otlpHttpClient.ts";
@@ -7,6 +7,17 @@ import { type HostState, io, runtimeOf } from "./state.ts";
 export function traceVerbs(state: HostState) {
 	return {
 		collectorResponses: (statuses: readonly number[]) => io(() => collectorResponses(state, statuses)),
+		diagnosticSinks: (name: string) =>
+			Effect.sync(() => ({
+				log: state.logs.find((log) => Array.isArray(log.message) && log.message.includes(name))?.annotations,
+				report: state.reported.map((cause) => Option.getOrUndefined(Cause.findErrorOption(cause)))[0],
+				span: Object.fromEntries(
+					(state.receiver?.spans.find((span) => span.name === name)?.attributes ?? []).map(({ key, value }) => [
+						key,
+						value.arrayValue ? value.arrayValue.values?.map((item) => item.stringValue) : value.stringValue,
+					]),
+				),
+			})),
 		exportedSpans: () => state.receiver?.spans ?? [],
 		exports: () => state.receiver?.requests ?? [],
 		flush: () =>

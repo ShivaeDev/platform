@@ -1,8 +1,8 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient, HttpClient, HttpClientError, type HttpClientRequest } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
+import { redactText } from "@shivaedev/errors/sensitive.ts";
 import { RedactionPolicy } from "#RedactionPolicy.ts";
-import { redactOtlpText } from "#safeOtlpSerialization.ts";
 
 function timeoutError(request: HttpClientRequest.HttpClientRequest) {
 	return new HttpClientError.HttpClientError({
@@ -44,7 +44,7 @@ export function otlpHttpClient(timeout = 10_000) {
 					return warnOnce(
 						response.text.pipe(
 							Effect.orElseSucceed(() => "Unable to read collector response"),
-							Effect.map((body) => ({ "otlp.response": redactOtlpText(body, "", sensitive), "otlp.status": response.status })),
+							Effect.map((body) => ({ "otlp.response": redactText(body, sensitive), "otlp.status": response.status })),
 						),
 					);
 				}),

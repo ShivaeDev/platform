@@ -3,7 +3,7 @@ import { Headers } from "effect/http";
 import type { Rpc, RpcGroup } from "effect/rpc";
 import { CurrentViewer, type Viewer } from "@shivaedev/contract/readPolicy.ts";
 import type { QueryReference } from "@shivaedev/contract/serverMetadata.ts";
-import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { isAuthUnavailable, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import { resolveSession, type SessionPolicy, type SessionShape } from "@shivaedev/identity/server/session.ts";
 import { resolveChanges } from "@shivaedev/identity/server/sessionKeys.ts";
 import type { AppChanges } from "./appHost.ts";
@@ -73,7 +73,7 @@ function authorizeSession<TSession extends SessionShape>(
 function sessionRevoked<TSession extends SessionShape>(sessions: SessionPolicy<TSession>, tag: string, id: string) {
 	return Effect.gen(function* () {
 		yield* Effect.sleep(sessions.streamRevalidationInterval ?? "30 seconds");
-		const current = yield* resolveSession(sessions, Headers.empty, tag).pipe(Effect.catchTag("AuthUnavailable", () => Effect.succeed(undefined)));
+		const current = yield* resolveSession(sessions, Headers.empty, tag).pipe(Effect.catchIf(isAuthUnavailable, () => Effect.succeed(undefined)));
 		if (current !== undefined && (Option.isNone(current) || current.value.user.id !== id)) {
 			return yield* new Unauthorized({ message: "Authentication required" });
 		}

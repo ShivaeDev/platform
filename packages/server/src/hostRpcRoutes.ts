@@ -2,6 +2,7 @@ import { ByteSize, Effect, Layer } from "effect";
 import { HttpEffect, HttpIncomingMessage, HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { type Rpc, type RpcGroup, RpcSerialization } from "effect/rpc";
+import type { schemaSensitiveKeys } from "@shivaedev/errors/schemaSensitiveKeys.ts";
 import type { Authenticated, MaybeAuthenticated, RequestTracing } from "@shivaedev/identity/middleware.ts";
 import { localRpcGuard } from "@shivaedev/identity/server/local.ts";
 import { authenticatedLayer, maybeAuthenticatedLayer, type SessionShape } from "@shivaedev/identity/server/session.ts";
@@ -13,7 +14,6 @@ import type { HostPolicy } from "#hostOptions.ts";
 import { hostRpc, rpcCacheControl } from "#hostRpc.ts";
 import type { hostTransport } from "#hostTransport.ts";
 import { redactingRpcSerialization } from "#redactingRpcSerialization.ts";
-import type { schemaSensitiveKeys } from "#schemaSensitiveKeys.ts";
 import { socketRpc } from "#socketRpc.ts";
 
 export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequirements, TSession extends SessionShape>(
