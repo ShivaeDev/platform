@@ -59,13 +59,7 @@
 		"vitest": "catalog:"
 	},
 	"peerDependencies": {
-		"@effect/platform-node": "catalog:",
 		"effect": "catalog:"
-	},
-	"peerDependenciesMeta": {
-		"@effect/platform-node": {
-			"optional": true
-		}
 	},
 	"engines": {
 		"node": ">=24"

@@ -24,11 +24,11 @@ catalog:
   "@base-ui/react": 1.9.0
   "@tanstack/react-table": 9.3.1
   railway: 3.16.0
-  "@effect/atom-react": 4.0.5
-  "@effect/platform-node": 4.0.5
-  "@effect/platform-node-shared": 4.0.5
-  "@effect/sql-pg": 4.0.5
-  "@effect/vitest": 4.0.5
+  "@effect/atom-react": 4.0.6
+  "@effect/platform-node": 4.0.6
+  "@effect/platform-node-shared": 4.0.6
+  "@effect/sql-pg": 4.0.6
+  "@effect/vitest": 4.0.6
   "@tailwindcss/vite": 4.3.3
   "@tanstack/react-router": 1.170.45
   "@types/node": 24.19.2
@@ -38,7 +38,7 @@ catalog:
   "@vitejs/plugin-react": 6.1.2
   class-variance-authority: 0.7.1
   better-auth: 1.7.12
-  effect: 4.0.5
+  effect: 4.0.6
   happy-dom: 21.0.4
   pg: 8.23.0
   pg-boss: 12.38.0

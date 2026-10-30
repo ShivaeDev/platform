@@ -49,14 +49,14 @@ export function hostRpcRoutes<TRpcs extends Rpc.Any, THandlers, TError, TRequire
 				options.rpcPath ?? "/rpc",
 				socketRpc(websocket, options, trustedProxy, nativeOrigins).pipe(Effect.provideService(RpcSerialization.RpcSerialization, wire)),
 			);
-			yield* router.add("POST", options.rpcPath ?? "/rpc", (request) => {
-				HttpEffect.appendPreResponseHandlerUnsafe(request, rpcCacheControl);
-				return guarded.pipe(
+			yield* router.add("POST", options.rpcPath ?? "/rpc", (request) =>
+				guarded.pipe(
 					Effect.provideService(HttpIncomingMessage.MaxBodySize, ByteSize.bytes(bodySize)),
 					Effect.provideService(HttpServerRequest.HttpServerRequest, boundedRpcRequest(request)),
 					Effect.provideService(RpcSerialization.RpcSerialization, wire),
-				);
-			});
+					HttpEffect.withPreResponseHandler(rpcCacheControl),
+				),
+			);
 		}),
 	).pipe(
 		Layer.provide(

@@ -352,7 +352,7 @@ try {
 }
 ```
 
-`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, `maintainer` selects the human responder label (default `maintainer`), and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests still require a loopback `Host`; a missing/non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
+`boardLayer` needs `FileSystem`, `Path` and the HTTP router services; `NodeServices` provides the filesystem/path implementation here. `root` is required, `home` is optional, `maintainer` selects the human responder label (default `maintainer`), and `responses: true` explicitly opts into publication. `HttpRouter.serve` can compose it beside application routes in a scoped Effect HTTP server. Requests require a loopback host as resolved by Effect's HTTP server; a missing or non-loopback host is refused, as is a known non-loopback remote address. The embedding host owns its trust boundary.
 
 #### Read and wait from a Node agent
 

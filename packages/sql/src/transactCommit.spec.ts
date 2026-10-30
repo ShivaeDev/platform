@@ -1,5 +1,4 @@
-import { Cause, Deferred, Effect, Exit, Fiber } from "effect";
-import * as Reactivity from "effect/reactivity/Reactivity";
+import { Cause, Deferred, Effect, Exit, Fiber, Queue } from "effect";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/test/eventually.ts";
 import { onSqlError } from "#test/postgresTransact.ts";
@@ -36,24 +35,22 @@ postgres.it(
 );
 
 postgres.it(
-	"invalidation runs after COMMIT: the sink sees the committed rows from a separate pool",
+	"committed invalidation refreshes a native query reading from a separate pool",
 	[hasTransactionTables(), hasObserverPool()],
 	function* ({ transactions, transact, invalidateOnCommit, observerPool }) {
-		const { insert, orderIds, reactivity } = transactions();
+		const { events, insert, orderIds, reactivity } = transactions();
 		const observer = observerPool();
-		const observed: Array<readonly number[]> = [];
-		const observing = Reactivity.Reactivity.of({
-			...reactivity,
-			invalidate: (keys) => Effect.andThen(Effect.orDie(Effect.map(orderIds(observer), (ids) => observed.push(ids))), reactivity.invalidate(keys)),
-		});
+		const observed = yield* reactivity.query(["orders"], orderIds(observer));
+		expect(yield* Queue.take(observed)).toEqual([]);
 		yield* Effect.gen(function* () {
 			yield* insert(1);
 			yield* invalidateOnCommit({ orders: [1] });
 			yield* insert(2);
 			yield* invalidateOnCommit({ orders: [2] });
 			expect(yield* orderIds(observer)).toEqual([]);
-		}).pipe(transact({ onSqlError }), Effect.provideService(Reactivity.Reactivity, observing));
-		expect(observed).toEqual([[1, 2]]);
+			expect(events).toEqual([]);
+		}).pipe(transact({ onSqlError }));
+		expect(yield* Queue.take(observed)).toEqual([1, 2]);
 	},
 );
 

@@ -1,5 +1,5 @@
 import process from "node:process";
-import { NodeServices } from "@effect/platform-node";
+import * as NodeServices from "@effect/platform-node/NodeServices";
 import { Stream } from "effect";
 import * as Effect from "effect/Effect";
 import { Unanswered } from "#rpc/rejections.ts";
