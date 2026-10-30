@@ -1,5 +1,4 @@
 import { Deferred, type Duration, Effect, Fiber, Layer, Redacted, Schema, Stream } from "effect";
-import { FetchHttpClient } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import * as TestClock from "effect/testing/TestClock";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
@@ -13,12 +12,14 @@ import {
 	appJwtOf,
 	INVALID_PRIVATE_KEY,
 	PRIVATE_KEY,
+	unencodableScope,
 	WEBHOOK_SECRET,
 	WORKFLOW_BODY,
 	WRONG_SECRET,
 	webhookSignature,
 } from "./appFixture.ts";
 import { appServer } from "./appServer.ts";
+import { appTransport } from "./appTransport.ts";
 import { PullRequest } from "./fixtures.ts";
 import { answered } from "./outcome.ts";
 import { telemetry } from "./telemetry.ts";
@@ -52,7 +53,8 @@ export const appGithub = storyKit({
 	*create() {
 		const { server, state } = yield* appServer;
 		const recording = telemetry();
-		const environment = Layer.mergeAll(FetchHttpClient.layer, Layer.succeed(GitHubConfig)({ apiUrl: server.url }));
+		const transport = appTransport();
+		const environment = Layer.mergeAll(transport.layer, Layer.succeed(GitHubConfig)({ apiUrl: server.url }));
 		function layer(
 			installation:
 				| { installationId: number; scope?: InstallationScope }
@@ -85,12 +87,12 @@ export const appGithub = storyKit({
 				}),
 			);
 		const failures: unknown[] = [];
-		return { contexts, decoded, delivery, failures, layer, recording, server, state };
+		return { contexts, decoded, delivery, failures, layer, recording, server, state, transportFailures: transport.failures };
 	},
 	inspect: ({ server }) => ({ requests: server.requests.map(({ method, path, status }) => `${method} ${path} ${status}`) }),
 	name: "GitHub App",
 	stages: ["github"],
-	verbs: ({ contexts, decoded, delivery: deliverySchema, failures, layer, recording, server, state }, story) => {
+	verbs: ({ contexts, decoded, delivery: deliverySchema, failures, layer, recording, server, state, transportFailures }, story) => {
 		server.narrate(story.tell);
 		const engineAnswers: { receiver: unknown } = { receiver: "nothing received" };
 		function credentialOf(authorization: string | undefined) {
@@ -118,6 +120,7 @@ export const appGithub = storyKit({
 			);
 		}
 		return {
+			appFailures: () => Effect.sync(() => [...failures]),
 			appJwts: () => Effect.sync(() => state.jwts),
 			bodiesDecoded: () => Effect.sync(() => decoded.count),
 			credentialsSeenIn: () =>
@@ -208,6 +211,11 @@ export const appGithub = storyKit({
 					"a client with an invalid private key reads pull request 1",
 					read(PULL, PullRequest).pipe(Effect.provide(layer({ installationId: 7 }, INVALID_PRIVATE_KEY))),
 				),
+			readWithUnencodableScope: () =>
+				attempt(
+					"a client with an unencodable repository scope reads pull request 1",
+					read(PULL, PullRequest).pipe(Effect.provide(layer({ installationId: 7, scope: unencodableScope }))),
+				),
 			receive: (delivery: Delivery) => {
 				const { body, secret, signature } = deliveries[delivery];
 				return attempt(
@@ -243,6 +251,7 @@ export const appGithub = storyKit({
 						.filter(({ path, status }) => path === EXCHANGE && status === HttpStatus.fromLiteral("OK"))
 						.map((_, index) => `installation token ${index + 1}`),
 				),
+			transportFailures: () => Effect.sync(() => [...transportFailures]),
 			zipRequests: () => answersTo(ZIP),
 		};
 	},

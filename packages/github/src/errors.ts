@@ -17,10 +17,17 @@ export class GitHubTransportError extends Schema.TaggedError<GitHubTransportErro
 	path: Schema.String,
 }) {}
 
-export class GitHubAppError extends Schema.TaggedError<GitHubAppError>()("GitHubAppError", {
-	stage: Schema.Literals(["sign", "exchange"]),
+const AppFailure = Schema.Struct({
+	reason: Schema.Literals(["sign", "encode", "transport", "status", "response"]),
 	status: Schema.optional(Schema.Number),
-}) {}
+});
+
+export class GitHubAppError extends Schema.TaggedError<GitHubAppError>()("GitHubAppError", AppFailure) {
+	constructor(fields: typeof AppFailure.Type, options?: ErrorOptions) {
+		super(fields);
+		Object.defineProperty(this, "cause", { value: options?.cause });
+	}
+}
 
 export class GitHubWebhookSignatureError extends Schema.TaggedError<GitHubWebhookSignatureError>()("GitHubWebhookSignatureError", {}) {}
 
