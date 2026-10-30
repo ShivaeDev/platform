@@ -44,3 +44,7 @@ export const prerequisiteFiles: readonly SeedFile[] = [
 	{ content: '{"name":"app","devDependencies":{"@shivaedev/test-story":"workspace:*"}}', path: "modules/app/package.json" },
 	{ content: '{"name":"@shivaedev/test"}', path: "modules/unrelated/package.json" },
 ];
+
+export function inStory(...lines: readonly string[]): string {
+	return ['orders.it("tells a story", [], function* () {', ...lines.map((line) => `\t${line}`), "});"].join("\n");
+}

@@ -42,7 +42,7 @@ Put the selection in the repository's `package.json`:
 
 `pr-description` is the shipped skill for writing a pull request title and body. Its instructions use Why and How, with Decisions and Callouts when needed. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/pr-description/SKILL.md) before adopting that format.
 
-`story-testing` teaches how to write and review Platform application stories, including their setups and test kits. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) for the rules.
+`story-testing` teaches how to write and review Platform stories in apps and packages, including their setups and test kits. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/story-testing/SKILL.md) for the rules.
 
 `visual-pages` is a design language for claude.ai Artifacts and other HTML pages: reports, explainers, decision pages, trackers, dashboards and replays that carry their answer in figures rather than prose. Read the [skill itself](https://github.com/ShivaeDev/platform/blob/main/packages/skills/skills/visual-pages/SKILL.md) before adopting its stance.
 

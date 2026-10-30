@@ -28,4 +28,5 @@ Make each change on its own branch in `.worktrees/<name>`, created with `git wor
 
 - For the framework design and its boundaries, read `docs/framework/README.md`.
 - For the quality rules and how the baseline moves, read `packages/quality/README.md`.
+- Before you write or review a story or its kit, read the story-testing skill in `packages/skills/skills/story-testing/SKILL.md`.
 - Before you write or reshape a package's `AGENTS.md`, README or `docs/`, use the `package-docs` skill in `.agents/skills/`.

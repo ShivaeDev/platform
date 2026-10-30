@@ -1,3 +1,4 @@
+{"path":"packages/react/src/automaticChanges.dom.spec.ts","rule":"tests/wait-on-events","count":4}
 {"path":"packages/react/src/client/QueryView.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/authAction.typecheck.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/client/editor.ts","rule":"effect/boundary","count":1}
@@ -7,6 +8,8 @@
 {"path":"packages/react/src/client/sessionBoundary.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/client/testing.dom.test.tsx","rule":"effect/boundary","count":2}
 {"path":"packages/react/src/client/testing.ts","rule":"effect/boundary","count":15}
+{"path":"packages/react/src/entitySettings.dom.spec.tsx","rule":"tests/domain-outcomes","count":6}
+{"path":"packages/react/src/entitySettings.dom.spec.tsx","rule":"tests/grouped-outcomes","count":4}
 {"path":"packages/react/src/internal/noticeEntry.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/noticeStore.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/react/src/internal/queryHandoff.ts","rule":"effect/service-parameters","count":3}
@@ -18,9 +21,23 @@
 {"path":"packages/react/src/loadQuery.test.ts","rule":"effect/boundary","count":1}
 {"path":"packages/react/src/loadQuery.ts","rule":"effect/boundary","count":7}
 {"path":"packages/react/src/loadQuery.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/react/src/orderDatabase.spec.ts","rule":"tests/domain-outcomes","count":4}
+{"path":"packages/react/src/orderExample.dom.spec.tsx","rule":"tests/domain-outcomes","count":3}
+{"path":"packages/react/src/orderExample.dom.spec.tsx","rule":"tests/grouped-outcomes","count":2}
+{"path":"packages/react/src/orderStory.dom.spec.tsx","rule":"tests/domain-outcomes","count":3}
+{"path":"packages/react/src/orderStory.dom.spec.tsx","rule":"tests/grouped-outcomes","count":2}
 {"path":"packages/react/src/permissionGuard.ts","rule":"effect/boundary","count":2}
+{"path":"packages/react/src/persistedDraft.dom.spec.tsx","rule":"tests/domain-outcomes","count":1}
+{"path":"packages/react/src/postgresExample.dom.spec.tsx","rule":"tests/domain-outcomes","count":3}
+{"path":"packages/react/src/postgresExample.dom.spec.tsx","rule":"tests/grouped-outcomes","count":1}
+{"path":"packages/react/src/postgresProcesses.spec.ts","rule":"tests/domain-outcomes","count":6}
+{"path":"packages/react/src/postgresProcesses.spec.ts","rule":"tests/grouped-outcomes","count":1}
+{"path":"packages/react/src/queryPayload.dom.spec.ts","rule":"tests/domain-outcomes","count":9}
+{"path":"packages/react/src/queryRefresh.dom.spec.ts","rule":"tests/domain-outcomes","count":7}
 {"path":"packages/react/src/queryRoute.ts","rule":"effect/boundary","count":5}
 {"path":"packages/react/src/queryRoute.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/react/src/queryView.dom.spec.tsx","rule":"tests/domain-outcomes","count":8}
+{"path":"packages/react/src/sessionScopePostgres.spec.ts","rule":"tests/domain-outcomes","count":2}
 {"path":"packages/react/src/test-support/AnswerList.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/ConfigurationView.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/DraftScreen.tsx","rule":"react/jsx-conditionals","count":1}
@@ -42,3 +59,4 @@
 {"path":"packages/react/src/test-support/settings-example/Editor.tsx","rule":"react/jsx-conditionals","count":2}
 {"path":"packages/react/src/test-support/submitViews.tsx","rule":"react/jsx-conditionals","count":1}
 {"path":"packages/react/src/test-support/suspendedDraftView.tsx","rule":"react/jsx-conditionals","count":1}
+{"path":"packages/react/src/websocketQueries.dom.spec.ts","rule":"tests/wait-on-events","count":14}

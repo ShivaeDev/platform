@@ -22,7 +22,9 @@ import { importsResolvable } from "#rules/imports/resolvable.ts";
 import { importsRuntime } from "#rules/imports/runtime.ts";
 import { jsxConditionals } from "#rules/react/jsxConditionals.ts";
 import { authSql } from "#rules/stories/authSql.ts";
+import { domainOutcomes } from "#rules/stories/domainOutcomes.ts";
 import { storyEngine } from "#rules/stories/engine.ts";
+import { groupedOutcomes } from "#rules/stories/groupedOutcomes.ts";
 import { httpStatus } from "#rules/stories/httpStatus.ts";
 import { namedValues } from "#rules/stories/namedValues.ts";
 import { noExpect } from "#rules/stories/noExpect.ts";
@@ -31,6 +33,7 @@ import { queueSql } from "#rules/stories/queueSql.ts";
 import { storySetup } from "#rules/stories/setup.ts";
 import { specHelpers } from "#rules/stories/specHelpers.ts";
 import { storySpecs } from "#rules/stories/specs.ts";
+import { waitOnEvents } from "#rules/stories/waitOnEvents.ts";
 import { biomeOverrides } from "#rules/suppressions/biomeOverrides.ts";
 import { biomeRecommended } from "#rules/suppressions/biomeRecommended.ts";
 import { noDoubleCast } from "#rules/suppressions/noDoubleCast.ts";
@@ -98,4 +101,7 @@ export const builtInRules = [
 	httpStatus,
 	namedValues,
 	noLimitImports,
+	domainOutcomes,
+	groupedOutcomes,
+	waitOnEvents,
 ] as const;

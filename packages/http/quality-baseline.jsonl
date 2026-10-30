@@ -1,1 +1,2 @@
+{"path":"packages/http/src/remoteAnswers.spec.ts","rule":"tests/wait-on-events","count":1}
 {"path":"packages/http/src/server/boundedBody.ts","rule":"effect/service-parameters","count":1}
