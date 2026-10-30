@@ -64,7 +64,6 @@
 		"@effect/vitest": "catalog:",
 		"@shivaedev/jobs": "workspace:*",
 		"@shivaedev/quality": "workspace:*",
-		"@shivaedev/test": "workspace:*",
 		"@shivaedev/test-sql": "workspace:*",
 		"@shivaedev/test-story": "workspace:*",
 		"@types/node": "catalog:",

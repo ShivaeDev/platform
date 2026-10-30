@@ -1,11 +1,11 @@
 import { Effect, Exit, Fiber, Layer, Redacted, Scope } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { databaseUrl, postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
-import { disconnectGate } from "@shivaedev/identity/test-support/disconnectGate.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { appDatabase } from "#appHost.ts";
+import { connectionGate } from "#test/connectionGate.ts";
 
 export const poolTeardown = storyKit({
 	around: withIsolatedDatabase,
@@ -13,7 +13,7 @@ export const poolTeardown = storyKit({
 	*create() {
 		const database = yield* PostgresTestDatabase;
 		const gate = yield* Effect.acquireRelease(
-			Effect.promise(() => disconnectGate(Redacted.value(database.url))),
+			Effect.promise(() => connectionGate(Redacted.value(database.url))),
 			(resource) => Effect.promise(resource.close),
 		);
 		const scope = yield* Scope.fork(yield* Scope.Scope);
@@ -31,22 +31,38 @@ export const poolTeardown = storyKit({
 	name: "database pool teardown",
 	runIf: databaseUrl !== undefined,
 	stages: [],
-	verbs: ({ gate, name, scope }, story) => ({
-		backendQueries: Effect.fn("PoolTeardown.backendQueries")(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ readonly query: string }>`select query from pg_stat_activity where application_name = ${name} order by query`;
-		}),
-		backends: Effect.fn("PoolTeardown.backends")(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			return yield* sql<{ readonly pid: number }>`select pid from pg_stat_activity where application_name = ${name}`;
-		}),
-		close: () => {
-			story.tell("close the application database while the peer holds its disconnect acknowledgement");
-			return Scope.close(scope, Exit.void).pipe(Effect.forkChild);
-		},
-		disconnecting: () => Effect.promise(() => gate.disconnecting),
-		releaseDisconnects: () => Effect.sync(gate.release),
-		shutdownResult: (fiber: Fiber.Fiber<void>) => Effect.sync(() => fiber.pollUnsafe()),
-		waitForShutdown: (fiber: Fiber.Fiber<void>) => Fiber.join(fiber),
-	}),
+	verbs: ({ gate, name, scope }, story) => {
+		let closing: Fiber.Fiber<void> | undefined;
+		return {
+			backendQueries: Effect.fn("PoolTeardown.backendQueries")(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				const rows = yield* sql<{ readonly query: string }>`select query from pg_stat_activity where application_name = ${name} order by query`;
+				return rows.map((row) => row.query);
+			}),
+			closeProgress: () =>
+				Effect.sync(() => {
+					if (closing === undefined) {
+						return "open";
+					}
+					return closing.pollUnsafe() === undefined ? "waiting for disconnects" : "closed";
+				}),
+			openConnections: () => Effect.sync(gate.openClients),
+			peerAcknowledgesDisconnects: () => {
+				story.tell("PostgreSQL's disconnect acknowledgements reach the application database");
+				return Effect.gen(function* () {
+					gate.release();
+					if (closing !== undefined) {
+						yield* Fiber.join(closing);
+					}
+				});
+			},
+			theDatabaseCloses: () => {
+				story.tell("the application database closes while PostgreSQL holds its disconnect acknowledgements");
+				return Effect.gen(function* () {
+					closing = yield* Scope.close(scope, Exit.void).pipe(Effect.forkScoped);
+					yield* Effect.promise(() => gate.disconnecting);
+				});
+			},
+		};
+	},
 });

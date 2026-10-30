@@ -1,49 +1,44 @@
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { mintedSocialSession, socialApp, tokenlessSocialApp } from "#test/better-auth/socialApp.ts";
 
+const credentialFlags = { accountId: "123", hasIdToken: false, hasPassword: false, hasRefreshToken: false, providerId: "github" };
+
 socialApp.it(
-	"a minted GitHub account reaches the authenticated provider-accounts RPC without stored credentials",
+	"Bob's minted GitHub account reaches the provider-accounts RPC",
 	[mintedSocialSession([{ accountId: "123", providerId: "github" }])],
-	function* ({ providerAccounts, session, storedProviderAccounts, story }) {
+	function* ({ providerAccounts }) {
 		expect(yield* providerAccounts()).toEqual([{ accountId: "123", providerId: "github" }]);
-		const signedIn = yield* session();
-		const stored = yield* storedProviderAccounts(signedIn.user.id);
-		expect(stored).toEqual([
-			{ accountId: "123", hasAccessToken: false, hasIdToken: false, hasPassword: false, hasRefreshToken: false, providerId: "github" },
-		]);
-		expect(JSON.stringify(stored)).not.toContain("story-token");
-		expect(story.lines.join("\n")).not.toContain("story-token");
+	},
+);
+
+socialApp.it(
+	"Bob's minted GitHub account is stored without credentials",
+	[mintedSocialSession([{ accountId: "123", providerId: "github" }])],
+	function* ({ storedProviderAccounts }) {
+		expect(yield* storedProviderAccounts()).toEqual([{ ...credentialFlags, hasAccessToken: false }]);
 	},
 );
 
 tokenlessSocialApp.it(
-	"the app's account hooks keep no provider tokens after a real GitHub sign-in",
+	"the app's account hooks keep no provider tokens after Alice's GitHub sign-in",
 	[],
-	function* ({ signInWithGitHub, followRedirect, session, storedProviderAccounts, story }) {
-		yield* signInWithGitHub();
-		yield* followRedirect();
-		const signedIn = yield* session();
-		const stored = yield* storedProviderAccounts(signedIn.user.id);
-		expect(stored).toEqual([
-			{ accountId: "123", hasAccessToken: false, hasIdToken: false, hasPassword: false, hasRefreshToken: false, providerId: "github" },
-		]);
-		expect(JSON.stringify(stored)).not.toContain("story-token");
-		expect(story.lines.join("\n")).not.toContain("story-token");
+	function* ({ aliceSignsInWithGitHub, storedProviderAccounts }) {
+		yield* aliceSignsInWithGitHub();
+
+		expect(yield* storedProviderAccounts()).toEqual([{ ...credentialFlags, hasAccessToken: false }]);
 	},
 );
 
 socialApp.it(
-	"default auth options store the GitHub access token while the readout and narration expose only its presence",
+	"default auth options store Alice's GitHub access token while the readout and narration show only its presence",
 	[],
-	function* ({ signInWithGitHub, followRedirect, session, storedProviderAccounts, story }) {
-		yield* signInWithGitHub();
-		yield* followRedirect();
-		const signedIn = yield* session();
-		const stored = yield* storedProviderAccounts(signedIn.user.id);
-		expect(stored).toEqual([
-			{ accountId: "123", hasAccessToken: true, hasIdToken: false, hasPassword: false, hasRefreshToken: false, providerId: "github" },
-		]);
-		expect(JSON.stringify(stored)).not.toContain("story-token");
-		expect(story.lines.join("\n")).not.toContain("story-token");
+	function* ({ aliceSignsInWithGitHub, narrationMentions, storedProviderAccounts }) {
+		yield* aliceSignsInWithGitHub();
+
+		yield* outcomes({
+			"narrated token": [narrationMentions("story-token"), []],
+			"stored credentials": [storedProviderAccounts(), [{ ...credentialFlags, hasAccessToken: true }]],
+		});
 	},
 );
