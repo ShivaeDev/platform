@@ -337,8 +337,7 @@
 				"useRegexpExec": "error",
 				"useStringStartsEndsWith": "error",
 				"useTailwindShorthandClasses": "error",
-				"useTailwindSortedClasses": { "fix": "safe", "level": "error" },
-				"useValidTestTitle": "error"
+				"useTailwindSortedClasses": { "fix": "safe", "level": "error" }
 			},
 			"performance": {
 				"noAccumulatingSpread": "error",
@@ -615,6 +614,16 @@
 	},
 	"markdown": { "parser": { "frontmatter": true } },
 	"overrides": [
+		{
+			"includes": ["**/*.test.*", "**/*.spec.*", "**/test-support/**"],
+			"linter": {
+				"rules": {
+					"nursery": {
+						"useValidTestTitle": "error"
+					}
+				}
+			}
+		},
 		{
 			"assist": {
 				"actions": {

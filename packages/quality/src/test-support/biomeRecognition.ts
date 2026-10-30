@@ -25,7 +25,7 @@ const PROBES: Readonly<Record<string, readonly string[]>> = {
 		"it(42, function* (harness) { yield* harness.read(); });",
 		'it("rejects outer done", (done) => { consume(function* (value) { yield value; }); done(); });',
 	],
-	"src/regex.ts": [
+	"src/regex.test.ts": [
 		'import { test } from "vitest";',
 		'const marker = "💡é"; /a/u.test(value); test(42, () => {});',
 		'(/a/u).test(value); test("", () => {});',
