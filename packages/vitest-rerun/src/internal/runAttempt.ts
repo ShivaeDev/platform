@@ -84,7 +84,7 @@ const rerunFailed = Effect.fn("VitestRerun.rerunFailed")(function* (vitest: Vite
 	}
 	yield* promise("Vitest could not rerun the failed tests", () => vitest.runTestSpecifications(specifications));
 	const lines: string[] = [];
-	const merged = mergeAttempt(previous, vitest.state.getFiles(), vitest.config.root, (line) => lines.push(line));
+	const merged = yield* mergeAttempt(previous, vitest.state.getFiles(), vitest.config.root, (line) => lines.push(line));
 	for (const file of merged.files) {
 		vitest.state.collectFiles(vitest.getProjectByName(file.projectName ?? ""), [file]);
 	}
