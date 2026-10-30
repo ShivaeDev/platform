@@ -11,7 +11,7 @@ watch.it(
 			body: { "check_runs": [] },
 			headers: quotaHeaders("graphql", 4970, 5000, 3_600_000),
 		});
-		h.reply("/commits/sha1/status", { body: { state: "success" }, headers: quotaHeaders("core", 4750, 5000, 3_600_000) });
+		h.reply("/commits/sha1/status", { body: { state: "success", statuses: [] }, headers: quotaHeaders("core", 4750, 5000, 3_600_000) });
 		yield* h.poll;
 		h.queueHas();
 		yield* h.advance(30_000);
@@ -32,7 +32,7 @@ watch.it(
 	"a half-used search budget that resets within the interval keeps normal polling",
 	[],
 	function* (h) {
-		h.reply("/commits/sha1/status", { body: { state: "success" }, headers: quotaHeaders("search", 14, 30, 30_000) });
+		h.reply("/commits/sha1/status", { body: { state: "success", statuses: [] }, headers: quotaHeaders("search", 14, 30, 30_000) });
 		yield* h.start("--interval", "60", "--events", "merged");
 		yield* h.waitForPollWait();
 		expect(h.events()).toEqual([]);
@@ -50,7 +50,7 @@ watch.it(
 	"a low core budget paces polling and names its remaining count, limit and reset",
 	[],
 	function* (h) {
-		h.reply("/commits/sha1/status", { body: { state: "success" }, headers: quotaHeaders("core", 9, 5000, 3_600_000) });
+		h.reply("/commits/sha1/status", { body: { state: "success", statuses: [] }, headers: quotaHeaders("core", 9, 5000, 3_600_000) });
 		yield* h.start("--interval", "60", "--events", "merged");
 		yield* h.waitForPollWait();
 		expect(h.events()).toEqual([

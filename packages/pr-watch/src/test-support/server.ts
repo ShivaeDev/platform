@@ -6,6 +6,7 @@ import { Clock, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { Options } from "#model.ts";
 import { type QueuePull, queueReply } from "./queue.ts";
+import { requiredChecks } from "./requiredChecks.ts";
 export interface Reply {
 	readonly body: unknown;
 	readonly headers?: Record<string, string>;
@@ -39,6 +40,7 @@ export function pull(number = 1): PullFixture {
 export async function startServer() {
 	const directory = await mkdtemp(join(tmpdir(), "pr-watch-"));
 	const routes = new Map<string, Reply>();
+	const required = requiredChecks();
 	const queueEntries = new Map<number, QueuePull>();
 	const requests: {
 		at: number;
@@ -49,9 +51,12 @@ export async function startServer() {
 		status: number;
 		authorization: string | undefined;
 	}[] = [];
-	function defaultReply(path: string, body: { query: string; variables: { number: number } } | undefined): Reply {
+	function defaultReply(path: string, body: { query: string; variables: { number: number; sha?: string; after?: string } } | undefined): Reply {
 		if (!path.endsWith("/graphql") || body === undefined) {
 			return { body: {}, status: HttpStatus.fromLiteral("NotFound") };
+		}
+		if (body.query.includes("query RequiredChecks")) {
+			return required.reply(body.variables.sha ?? "", body.variables.after ?? null);
 		}
 		return queueReply(body, queueEntries);
 	}
@@ -109,13 +114,14 @@ export async function startServer() {
 			state: pr.merged ? "MERGED" : pr.state.toUpperCase(),
 			timelineItems: { nodes: [] },
 		});
+		required.seed(pr.head.sha);
 		const checks = `/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`;
 		const status = `/commits/${pr.head.sha}/status`;
 		if (!routes.has(`/repos/acme/project${checks}`)) {
 			set(checks, { body: { "check_runs": [] } });
 		}
 		if (!routes.has(`/repos/acme/project${status}`)) {
-			set(status, { body: { state: "success" } });
+			set(status, { body: { state: "success", statuses: [] } });
 		}
 	}
 	setPull(1);
@@ -129,6 +135,7 @@ export async function startServer() {
 		},
 		options,
 		requests,
+		requirements: required.nodes,
 		set,
 		setGraphql: (reply: Reply) => routes.set("/graphql", reply),
 		setPull,
@@ -139,5 +146,6 @@ export async function startServer() {
 				state: "OPEN",
 				timelineItems: { nodes: reason === undefined ? [] : [{ reason }] },
 			}),
+		setRequiredPage: required.setPage,
 	};
 }
