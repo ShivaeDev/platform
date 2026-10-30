@@ -4,7 +4,7 @@ import type { ChangesetConfig } from "#config.ts";
 import { attempt, requireThat } from "#error.ts";
 import type { ReleasePlan, Source, Workspace, WorkspacePackage } from "#model.ts";
 import { parseChangeset } from "#parser.ts";
-import { computePlan } from "#planner.ts";
+import { computePlan, pinnedRange } from "#planner.ts";
 import { readHistory } from "#readHistory.ts";
 import { readWorkspace } from "#workspace.ts";
 
@@ -82,6 +82,19 @@ export function validateDiff(before: Workspace, after: Workspace): void {
 	validateRelease(before, after, plan);
 }
 
+function validatePins(pkg: WorkspacePackage, plan: ReleasePlan): void {
+	for (const ranges of [pkg.manifest.dependencies, pkg.manifest.optionalDependencies, pkg.manifest.peerDependencies]) {
+		for (const [name, range] of Object.entries(ranges ?? {})) {
+			const target = plan.releases.find((release) => release.name === name);
+			const pinned = pinnedRange(range)?.version;
+			requireThat(
+				target === undefined || pinned === undefined || pinned === target.to,
+				`${pkg.manifest.name}: ${name} ${range} pins ${pinned} but the release plan advances ${name} to ${target?.to}; restore versions and rerun releases apply.`,
+			);
+		}
+	}
+}
+
 function validateRelease(before: Workspace, after: Workspace, plan: ReleasePlan): void {
 	let date: string | undefined;
 	for (const pkg of after.packages) {
@@ -91,6 +104,9 @@ function validateRelease(before: Workspace, after: Workspace, plan: ReleasePlan)
 			pkg.manifest.version === (release?.to ?? old?.manifest.version ?? "0.0.0"),
 			`${pkg.manifest.name}: version differs from the release plan; restore versions and rerun releases apply, including published dependents.`,
 		);
+		if (release !== undefined) {
+			validatePins(pkg, plan);
+		}
 		const headingDate =
 			release === undefined
 				? undefined

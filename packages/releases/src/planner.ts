@@ -9,13 +9,15 @@ const rank = { major: 2, minor: 1, patch: 0 };
 export function publishedDependencies(manifest: PackageManifest): readonly string[] {
 	return Object.keys({ ...manifest.dependencies, ...manifest.optionalDependencies, ...manifest.peerDependencies });
 }
+export function pinnedRange(range: string) {
+	return /^(?<prefix>(?:workspace:)?[~^]?)(?<version>\d+\.\d+\.\d+)$/u.exec(range)?.groups;
+}
 function nextVersion(name: string, version: string, bump: Bump): string {
 	const match = /^(?<major>0|[1-9]\d*)\.(?<minor>0|[1-9]\d*)\.(?<patch>0|[1-9]\d*)$/u.exec(version);
 	requireThat(match !== null, `${name}: use a stable major.minor.patch version before planning a release; found ${version}.`);
 	const major = Number(match?.groups?.major);
 	const minor = Number(match?.groups?.minor);
 	const patch = Number(match?.groups?.patch);
-	requireThat(major !== 0 || bump !== "major", `${name}: major is not allowed on a 0.x package; use minor for breaking changes.`);
 	if (bump === "major") {
 		return `${major + 1}.0.0`;
 	}
@@ -32,6 +34,10 @@ function requestedBumps(packages: readonly WorkspacePackage[], sources: readonly
 			requireThat(!pkg?.manifest.private, `${source.name}: ${name} is private; remove it from release frontmatter.`);
 			if (pkg !== undefined) {
 				nextVersion(name, pkg.manifest.version, bump);
+				requireThat(
+					!(pkg.manifest.version.startsWith("0.") && bump === "major"),
+					`${source.name}: ${name} has a major bump but is a 0.x package; use minor for breaking changes before 1.0.`,
+				);
 				requireThat(
 					!(pkg.manifest.version.startsWith("0.") && needsMinor) || rank[bump] >= rank.minor,
 					`${source.name}: ${name} has a ${bump} bump but its sections require at least minor; use minor for Added or Breaking before 1.0.`,

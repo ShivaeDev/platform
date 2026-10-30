@@ -58,7 +58,7 @@ const directories = Effect.fn("Changesets.directories")(function* (root: string,
 	yield* attempt(() =>
 		requireThat(
 			/^(?:[\w.-]+\/)*[\w.*-]+$/u.test(pattern) && !pattern.split("/").includes("..") && (!pattern.includes("*") || pattern.endsWith("/*")),
-			`Invalid package pattern ${pattern}; use a relative directory or parent/*. `,
+			`.changeset/changesets.config.ts: package pattern ${pattern} is invalid; use a relative directory or parent/*.`,
 		),
 	);
 	if (!pattern.endsWith("/*")) {
