@@ -25,11 +25,17 @@ Authors record the packages and bumps they intend. The release tool carries that
 
 ## Use changesets
 
-Put changes in one repository-root `.changeset/` directory, with a unique `.md` filename per change. Frontmatter is a flat YAML mapping from package names to explicit `patch`, `minor` or `major` bumps; quoted and bare scalars and comments are supported. One file can name several packages. Under the frontmatter, write Markdown list entries beneath `### Added`, `### Changed`, `### Fixed` or `### Breaking`. Indented continuation lines belong to the preceding entry. `README.md` is reserved for directory instructions.
+Put changes in one repository-root `.changeset/` directory, with a unique `.md` filename per change. Frontmatter is a flat YAML mapping from package names to explicit `patch`, `minor` or `major` bumps; quoted and bare scalars and comments are supported. One file can name several packages. Under the frontmatter, write Markdown list entries beneath `### Added`, `### Changed`, `### Fixed`, `### Breaking` or `### Quality rules`. Indented continuation lines belong to the preceding entry. `README.md` is reserved for directory instructions.
 
 The planner validates each named package's bump in each fragment before combining requests. Before 1.0, Added or Breaking entries require at least `minor`; Changed or Fixed entries alone allow `patch`. An insufficient bump fails with the fragment name, package, declared bump and required bump, even when another fragment requests a larger bump for the same package.
 
 The planner takes the highest requested bump for each package. Every published workspace dependent receives at least a patch, transitively, through dependencies, optional dependencies and peers. Private and development-only dependents do not receive an automatic release. A `major` bump on a `0.x` version fails with the fragment name: use `minor` for breaking changes before 1.0. Package versions must be stable `major.minor.patch` versions.
+
+### Migration notes
+
+Write each Breaking entry as the consumer’s old API → new API and its migration steps. Declare every new or stricter quality rule under `### Quality rules`, with its rule id, what it checks, and how an app records or fixes its findings. For existing debt, name the command `quality baseline write --rule <id>`; describe the repair as well. These entries stay in package changelogs.
+
+`apply` prints one migration checklist before the version summary: all Breaking entries grouped by package, then quality rule entries once per changeset even when several packages share it. A release without either prints one line saying there are no breaking changes or new or stricter quality rules. `collectMigrationNotes(plan)` and `collectReleaseNotes(plan)` from `@shivaedev/releases/releaseNotes.ts` produce the checklist and full release notes for PR bodies and release publishing. They use the source entries without rewriting their migration instructions.
 
 ### Rename or remove a package
 
@@ -81,7 +87,7 @@ releases check origin/main
 
 `plan --json` prints the typed `ReleasePlan`: the exact changeset filenames and text, plus each release's name, directory, previous version, next version and bump. The default output is a human summary. Planning does not write files. Unknown CLI arguments are rejected with usage text.
 
-`apply` computes the current plan, bumps `package.json` versions, prepends changelog entries dated in UTC, deletes consumed files and runs hooks in order. Changelog sections use Added, Changed, Fixed, Breaking order, with changesets sorted by filename. Dependents without their own entries receive a dependency release note. Workspace wildcard dependency declarations remain intact; exact, caret and tilde references to released workspace packages advance to their next versions. Other range forms require an explicit supported declaration before applying. An empty plan writes nothing.
+`apply` computes the current plan, bumps `package.json` versions, prepends changelog entries dated in UTC, deletes consumed files and runs hooks in order. Changelog sections use Added, Changed, Fixed, Breaking, Quality rules order, with changesets sorted by filename. Dependents without their own entries receive a dependency release note. Workspace wildcard dependency declarations remain intact; exact, caret and tilde references to released workspace packages advance to their next versions. Other range forms require an explicit supported declaration before applying. An empty plan writes nothing.
 
 `check [base-ref]` checks pending files and the diff from the merge base with `HEAD`. Its default base is `origin/main`, falling back to `main` when the remote ref cannot be resolved. A resolved base without common history fails instead of checking a different base. Fetch history or pass a known base when neither exists. Validation derives the plan from the base packages and changesets deleted since the base, and compares the complete generated changelogs, including released history. It rejects changed pending inputs, retained consumed files, missing dependents, incorrect versions and changelog edits without a bump. All new release headings must use the same valid UTC `YYYY-MM-DD` date. Changesets added after the base remain pending.
 

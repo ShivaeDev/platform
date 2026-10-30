@@ -98,7 +98,11 @@ export const checkAreas = Effect.fn("Fleet.checkAreas")(function* (
 		return;
 	}
 	const index = records.findIndex((entry) => entry.workId === record.workId);
-	const contender = { ...previous, ...record, areaQueuedAt: previous?.areaQueuedAt ?? scheduling.now };
+	const contender = {
+		...previous,
+		...record,
+		areaQueuedAt: previous?.areaQueuedAt ?? (previous !== undefined && areaWaiter(previous, scheduling.now) ? 0 : scheduling.now),
+	};
 	// Queue precedence must use the same locked snapshot as area ownership; a brief revision can move a waiter during Board reads.
 	const ordered = records
 		.map((entry, position) => ({ entry, position, protectsChain: previous?.step === "queued" && blocksMergeChain(entry, records) }))

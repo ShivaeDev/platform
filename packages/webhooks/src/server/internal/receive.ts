@@ -5,9 +5,9 @@ import { SqlClient } from "effect/sql";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { enqueueWebhookJobs, type WebhookSource } from "#server/registration.ts";
 
-export const receive = Effect.fn("Webhooks.receive")(function* <R>(
+export const receive = Effect.fn("Webhooks.receive")(function* <R, E>(
 	name: string,
-	source: WebhookSource<R>,
+	source: WebhookSource<R, E>,
 	key: Redacted.Redacted<string>,
 	body: Uint8Array,
 	headers: Readonly<Record<string, string>>,

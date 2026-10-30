@@ -127,7 +127,7 @@ for (const [who, token] of [
 for (const [who, token, refusal] of [
 	["another owner", "bob-session", "rejected as OrderNotFound"],
 	["an anonymous caller", undefined, "rejected as Unauthorized"],
-	["an expired session", "expired-session", "rejected as Unauthorized"],
+	["an unknown session", "unknown-session", "rejected as Unauthorized"],
 ] as const) {
 	app.it(`${who} cannot save Alice's order`, [aliceHasOrder("paper")], function* ({ answers, forbiddenSave, storedOrder }) {
 		yield* forbiddenSave("paper", token);

@@ -1,45 +1,29 @@
 import { Deferred, Effect } from "effect";
-import { act } from "react";
-import { settleScreen } from "#test/settleScreen.ts";
 import type { Application } from "./applicationEngine.ts";
-import { getContainer, input } from "./screens.ts";
+import { getContainer } from "./screens.ts";
 
-function busy(engine: Application) {
-	return [...engine.screens.values()].some(({ container }) => {
-		const text = container.textContent ?? "";
-		return container.querySelector('[data-pending="true"]') !== null || text.includes("Loading order…") || text.includes("Saving…");
-	});
-}
-
-export function settleOrders(engine: Application, tell: (line: string) => void) {
-	return settleScreen(document.body, () => !engine.saves.holding && busy(engine), tell);
+export function settleOrders(engine: Application) {
+	return Effect.forEach(engine.screens.values(), (screen) => screen.driver.settle(), { discard: true });
 }
 
 export function screenVerbs(engine: Application, tell: (line: string) => void) {
-	function click(key: string, name: string) {
+	function driver(key: string) {
+		const screen = engine.screens.get(key);
+		if (screen === undefined) {
+			throw new Error(`The ${key} screen is not open`);
+		}
+		return screen.driver;
+	}
+	function press(key: string, name: string) {
 		tell(`${key} clicks ${name}`);
-		return Effect.promise(async () => {
-			const button = [...getContainer(engine, key).querySelectorAll("button")].find((candidate) => candidate.textContent === name);
-			if (button === undefined || button.disabled) {
-				throw new Error(`Button ${name} is missing or disabled`);
-			}
-			await act(async () => button.click());
-		}).pipe(Effect.andThen(settleOrders(engine, tell)));
+		return driver(key).click({ name, role: "button" });
+	}
+	function click(key: string, name: string) {
+		return press(key, name).pipe(Effect.andThen(settleOrders(engine)));
 	}
 	function edit(name: string, value: string, key = "editor") {
 		tell(`${key} enters ${name} ${JSON.stringify(value)}`);
-		return Effect.promise(async () => {
-			await act(() => {
-				const element = input(engine, name, key);
-				const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
-				if (setter === undefined) {
-					throw new Error("Input value setter is missing");
-				}
-				setter.call(element, value);
-				element.dispatchEvent(new Event("input", { bubbles: true }));
-				element.dispatchEvent(new Event("change", { bubbles: true }));
-			});
-		});
+		return driver(key).enter(`input[name="${name}"]`, value);
 	}
 	function read(key: string, selector: string) {
 		return Effect.sync(() => getContainer(engine, key).querySelector(selector)?.textContent ?? "none");
@@ -57,15 +41,11 @@ export function screenVerbs(engine: Application, tell: (line: string) => void) {
 		serverOrder: (key = "editor") => read(key, "output"),
 		status: (key = "editor") => read(key, '[role="status"]'),
 		submitOrder: (key = "editor") =>
-			Effect.suspend(() => {
-				if (!engine.saves.held) {
-					return click(key, "Save");
-				}
-				engine.saves.holding = true;
-				return click(key, "Save").pipe(
-					Effect.andThen(Deferred.await(engine.saves.entered)),
-					Effect.andThen(Effect.sync(() => tell("the save waits before writing"))),
-				);
-			}),
+			engine.saves.held
+				? press(key, "Save").pipe(
+						Effect.andThen(Deferred.await(engine.saves.entered)),
+						Effect.andThen(Effect.sync(() => tell("the save waits before writing"))),
+					)
+				: click(key, "Save"),
 	};
 }

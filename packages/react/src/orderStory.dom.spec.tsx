@@ -2,8 +2,6 @@ import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { app } from "#test/order-example/app.ts";
-import { databases } from "#test/order-example/databaseKit.ts";
-import { localApplication } from "#test/order-example/localApplication.ts";
 import { aliceHasOrder, orderListIsOpen } from "#test/order-example/traits.ts";
 
 expectNoReactWarnings();
@@ -46,39 +44,6 @@ app.it(
 		yield* outcomes({
 			list: [list(), ["Office chairs / 8"]],
 			stored: [storedOrder("paper"), "Office chairs / 8"],
-		});
-	},
-);
-
-app.it("a story starts from migrated, empty tables with no screen left open", [], function* ({ startingState }) {
-	expect(yield* startingState()).toEqual({ migrations: [{ "migration_id": 1 }], openScreens: 0, orders: [] });
-});
-
-localApplication.it(
-	"a rolled-back story keeps its writes and changes from other connections",
-	[],
-	function* ({ changes, insideRollback, observerOrders, rollbackStory }) {
-		yield* rollbackStory();
-
-		yield* outcomes({
-			"changes afterwards": [changes(), []],
-			inside: [insideRollback(), { changes: [], observerOrders: [], rejected: "rejected as OrderValidation on quantity", saved: "Local save / 12" }],
-			"orders afterwards": [observerOrders(), []],
-		});
-	},
-);
-
-databases.it(
-	"a failing application story still closes its screens and resets the tables",
-	[],
-	function* ({ failingStoryReport, runFailingApplicationStory }) {
-		yield* runFailingApplicationStory();
-
-		expect(yield* failingStoryReport()).toEqual({
-			"failing story": "failed",
-			"next story's first order id": 1,
-			"open screens": 0,
-			"orders afterwards": 0,
 		});
 	},
 );

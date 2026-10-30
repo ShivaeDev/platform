@@ -1,11 +1,12 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Config, Context, Effect, Layer, Option, Redacted } from "effect";
+import { Context, Effect, Layer, Redacted } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { test } from "vitest";
+import { environmentVariable } from "#adapters/environmentVariable.ts";
 import { makePostgresTestLayer } from "#postgres.ts";
 
-const url = Option.getOrUndefined(Effect.runSync(Config.option(Config.String("PLATFORM_TEST_SQL_TEST_DATABASE_URL"))));
-const ci = Effect.runSync(Config.String("CI").pipe(Config.withDefault("")));
+const url = environmentVariable("PLATFORM_TEST_SQL_TEST_DATABASE_URL");
+const ci = environmentVariable("CI") ?? "";
 if (url === undefined && ci !== "") {
 	throw new Error("CI requires PLATFORM_TEST_SQL_TEST_DATABASE_URL; skipped PostgreSQL tests prove nothing.");
 }

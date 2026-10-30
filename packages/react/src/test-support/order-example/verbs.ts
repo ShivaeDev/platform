@@ -45,9 +45,8 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 		releaseSave: () =>
 			Effect.gen(function* () {
 				tell("the held save may finish");
-				engine.saves.holding = false;
 				yield* Deferred.succeed(engine.saves.released, undefined);
-				yield* settleOrders(engine, tell);
+				yield* settleOrders(engine);
 			}),
 		revokeAlice: () =>
 			Effect.sync(() => {
@@ -60,12 +59,11 @@ export function orderVerbs(engine: Application, tell: (line: string) => void) {
 		},
 		storedOrder: (alias: string) =>
 			Effect.gen(function* () {
-				const [row] = yield* engine.database.observer<{
+				const [row] = yield* engine.sql<{
 					readonly name: string;
 					readonly quantity: number;
 				}>`select name, quantity from orders where id = ${orderId(engine, alias)}`;
 				return row ? `${row.name} / ${row.quantity}` : "missing";
 			}),
-		storedOrders: () => engine.database.observer`select id, name, quantity from orders order by id`,
 	};
 }

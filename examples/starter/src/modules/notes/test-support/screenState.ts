@@ -8,7 +8,7 @@ import type { appAuth } from "#test-support/appAuth.ts";
 
 export interface Screen {
 	auth: ReturnType<typeof appAuth> | undefined;
-	client: ReturnType<typeof notesClient>;
+	client: Effect.Success<ReturnType<typeof notesClient>>;
 	consoleErrors: () => readonly (readonly unknown[])[];
 	history: RouterHistory | undefined;
 	login: {
@@ -28,7 +28,7 @@ export const createScreen = Effect.fn("ScreenStory.createScreen")(function* () {
 	Object.assign(globalThis, { "IS_REACT_ACT_ENVIRONMENT": true });
 	const engine: Screen = {
 		auth: undefined,
-		client: notesClient(),
+		client: yield* notesClient(),
 		consoleErrors: () => [],
 		history: undefined,
 		login: { authenticated: [], calls: [], outcome: undefined, unavailable: false },

@@ -15,7 +15,11 @@ export const areaWaiters = Effect.fn("Fleet.areaWaiters")(function* (state: Engi
 	const stored = yield* state.store.list();
 	const records = stored.map(({ value }) => value);
 	const index = records.findIndex((entry) => entry.workId === record.workId);
-	const contender = { ...record, areaQueuedAt: record.areaQueuedAt ?? policy.now(), queuePriority: priority };
+	const contender = {
+		...record,
+		areaQueuedAt: record.areaQueuedAt ?? (areaWaiter(record, policy.now()) ? 0 : policy.now()),
+		queuePriority: priority,
+	};
 	const waiting = stored.filter(
 		({ value: entry }) =>
 			entry.workId !== record.workId && areaWaiter(entry, policy.now()) && overlappingArea(record.areas ?? [], entry.areas) !== undefined,

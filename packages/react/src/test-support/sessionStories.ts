@@ -1,8 +1,12 @@
 import { Effect } from "effect";
+import { SqlClient } from "effect/sql";
 import { act } from "react";
+import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { startServer } from "#test/order-example/startServer.ts";
+import { hasPostgres, orderDatabase } from "#test/order-example/postgres.ts";
+import { startHost } from "#test/order-example/startHost.ts";
 import { clickButton, type Screen, typeInput } from "./Screen.ts";
 import { screenKit } from "./screenKit.ts";
 import { type Session, sessions, shell } from "./session.tsx";
@@ -67,7 +71,7 @@ function sessionVerbs(state: State, screen: Screen) {
 		sessionIsValidAgain: (user: User) =>
 			Effect.sync(() => {
 				screen.tell(`${user}'s session is valid on the server again`);
-				state.active.set(`${user}-token`, { expiresAt: Number.POSITIVE_INFINITY, userId: user });
+				state.active.set(`${user}-token`, { user: { id: user } });
 			}),
 		sessionRegistries: () => Effect.sync(() => [...opened(state).registries.keys()]),
 		showAgain: () => {
@@ -88,15 +92,18 @@ function sessionVerbs(state: State, screen: Screen) {
 	};
 }
 
-export const sessionScreens = storyKit(
-	screenKit("order sessions over loopback HTTP", (): State => ({ active: sessions(), signIns: { alice: 0, bob: 0 } }), sessionVerbs),
-);
+export const sessionScreens = storyKit({
+	...screenKit("order sessions over loopback HTTP", (): State => ({ active: sessions(), signIns: { alice: 0, bob: 0 } }), sessionVerbs),
+	around: withIsolatedDatabase,
+	layer: orderDatabase,
+	runIf: hasPostgres,
+});
 
 function* openSessions({ screen, state }: { screen: Screen; state: State }) {
-	const server = yield* Effect.acquireRelease(
-		Effect.promise(() => startServer({ sessions: state.active })),
-		(host) => Effect.promise(host.close),
-	);
+	const database = yield* PostgresTestDatabase;
+	const sql = yield* SqlClient.SqlClient;
+	yield* sql`insert into orders ("ownerId", name, quantity) values ('alice', 'Printer paper', 300), ('bob', 'Desk lamps', 200)`;
+	const server = yield* startHost(database.url, state.active);
 	state.view = shell(server.url, yield* screen.open());
 }
 

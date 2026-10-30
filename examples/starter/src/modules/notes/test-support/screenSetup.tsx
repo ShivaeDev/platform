@@ -21,6 +21,7 @@ import { appAuth } from "#test-support/appAuth.ts";
 import { acquireScreen } from "#test-support/screenState.ts";
 import { notesClient } from "./client.ts";
 import type { Screen } from "./screenState.ts";
+import { settleQuery } from "./settleQuery.ts";
 
 export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: Screen, route: string, signedIn = true) {
 	engine.client.session.signedIn = signedIn;
@@ -49,7 +50,7 @@ export const openRoute = Effect.fn("ScreenStory.openRoute")(function* (engine: S
 	engine.router = router;
 	yield* Effect.promise(() => view.render(<RouterProvider router={router} />));
 	if (signedIn) {
-		yield* requireSetup(engine.client.calls.includes(route === "/" ? "list" : "get"), "The route did not load its query");
+		yield* settleQuery(engine, route === "/" ? "list" : "get");
 	}
 });
 
@@ -116,12 +117,12 @@ export const openNotes = Effect.fn("ScreenStory.openNotes")(function* (engine: S
 	}).settle();
 	const loaded = yield* Effect.promise(() => loadQuery(view.registry, engine.client.api.list.query(), { abortController: new AbortController() }));
 	yield* Effect.promise(() => view.render(<NotesScreen client={engine.client} loaded={loaded} {...(signOut === undefined ? {} : { signOut })} />));
-	yield* requireSetup(engine.client.calls.includes("list"), "The notes list did not load");
+	yield* settleQuery(engine, "list");
 });
 
 export const openSession = Effect.fn("ScreenStory.openSession")(function* (engine: Screen) {
 	const alice = engine.client;
-	const bob = notesClient();
+	const bob = yield* notesClient();
 	function connection({ id }: { readonly id: string }) {
 		return id === "alice" ? alice : bob;
 	}
@@ -145,7 +146,7 @@ export const openSession = Effect.fn("ScreenStory.openSession")(function* (engin
 	}
 	engine.switchSession = switchSession;
 	yield* Effect.promise(() => switchSession("alice"));
-	yield* requireSetup(engine.client.calls.includes("list"), "The notes list did not load");
+	yield* settleQuery(engine, "list");
 });
 
 export const openCodePreview = Effect.fn("ScreenStory.openCodePreview")(function* (engine: Screen, lines: readonly CodePreviewLine[]) {

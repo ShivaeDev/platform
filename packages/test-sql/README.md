@@ -249,6 +249,14 @@ With a PostgreSQL client in the current Context, the assertion compares names th
 
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
 
+### Database faults
+
+`disconnectProxy` from `@shivaedev/test-sql/server/disconnectProxy.ts` acquires a loopback TCP proxy in the current Effect scope. Give its `url` to the application database client. `disconnect()` cuts existing connections, `setReachable(false)` also refuses new connections, and `setResponsive(false)` stalls traffic until `setResponsive(true)` resumes it. Closing the scope destroys the sockets and closes the listener.
+
+For teardown stories, pass `{ holdDisconnects: true }`: `disconnecting` signals the first upstream disconnect, `allHeld` signals when every upstream has disconnected, and `release()` forwards the held acknowledgements. For LISTEN health stories, `{ dropNotifications: true }` filters PostgreSQL notifications while other SQL traffic continues; `dropped` signals a filtered notification.
+
+`@shivaedev/test-sql/server/emptyPostgres.ts` provides `databaseUrl` and `postgres`, an empty migration template selected by `PLATFORM_SQL_TEST_DATABASE_URL`. Use it with `withIsolatedDatabase` for kits that initialize their own schema. `environmentVariable(name)` from `@shivaedev/test-sql/server/adapters/environmentVariable.ts` reads an optional string through Effect Config when declaring a kit's `runIf`.
+
 ### API
 
 Import each name from the module that defines it. The package has no root entry. Every source module is available through its `.ts` subpath, including modules under `server/internal/`.

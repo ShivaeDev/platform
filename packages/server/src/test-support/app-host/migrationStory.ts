@@ -6,17 +6,17 @@ import { Cause, Config, Duration, Effect, Exit, Fiber, Layer, Option, Predicate,
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
 import { SqlClient } from "effect/sql";
 import { TestClock } from "effect/testing";
-import { environmentVariable } from "@shivaedev/identity/test-support/environmentVariable.ts";
 import type { SchemaComponent } from "@shivaedev/sql/SchemaComponent.ts";
+import { answered, causeWords, countWords, errorWords } from "@shivaedev/test/answers.ts";
+import { environmentVariable } from "@shivaedev/test-sql/server/adapters/environmentVariable.ts";
+import { disconnectProxy } from "@shivaedev/test-sql/server/disconnectProxy.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { answered, causeWords, countWords, errorWords } from "#test/answers.ts";
 import { type BootedHost, bootMigrations } from "#test/app-host/bootMigrations.ts";
 import { migrationLoader } from "#test/app-host/migrationLoader.ts";
-import { connectionGate } from "#test/connectionGate.ts";
 
 export interface MigrationState {
 	booted?: BootedHost;
-	gate?: Awaited<ReturnType<typeof connectionGate>>;
+	gate?: Effect.Success<ReturnType<typeof disconnectProxy>>;
 	hostUrl: Redacted.Redacted;
 	interruption?: Fiber.Fiber<unknown>;
 	readonly lifecycle: string[];
@@ -204,14 +204,8 @@ export const heldDisconnects = migrationHost.trait(
 	"schema",
 	"the host reaches PostgreSQL through a gate that holds disconnect acknowledgements",
 	function* (state) {
-		const gate = yield* Effect.acquireRelease(
-			Effect.promise(() => connectionGate(Redacted.value(state.url))),
-			(resource) =>
-				Effect.promise(async () => {
-					resource.release();
-					await resource.close();
-				}),
-		);
+		const gate = yield* disconnectProxy(Redacted.value(state.url), { holdDisconnects: true });
+		yield* Effect.addFinalizer(() => Effect.sync(gate.release));
 		state.gate = gate;
 		state.hostUrl = Redacted.make(gate.url);
 	},

@@ -2,6 +2,7 @@ import { DateTime, Effect, Layer, Option, Stream } from "effect";
 import * as AtomRpc from "effect/reactivity/AtomRpc";
 import { RpcTest } from "effect/rpc";
 import { act } from "react";
+import { vi } from "vitest";
 import { bind } from "@shivaedev/contract/bind.ts";
 import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
 import { Identity, SessionUser } from "@shivaedev/identity/identity.ts";
@@ -93,7 +94,7 @@ function screenOf(engine: Engine) {
 }
 
 function rowOf(engine: Engine, name: string) {
-	const row = [...screenOf(engine).querySelectorAll("tbody tr")].find((candidate) => candidate.querySelector("td")?.textContent === name);
+	const row = [...screenOf(engine).querySelectorAll("tbody tr")].find((candidate) => candidate.querySelector("td > div")?.textContent === name);
 	if (row === undefined) {
 		throw new Error(`${name} is not shown`);
 	}
@@ -128,7 +129,7 @@ export const usersScreen = storyKit({
 	create: usersScreenEngine,
 	inspect: ({ canChangeRoles, refusal, requests }) => ({ canChangeRoles, refusal, requests }),
 	name: "admin users screen",
-	stages: ["caller", "screen", "page"],
+	stages: ["caller", "viewport", "screen", "page"],
 	verbs: (engine, story) => {
 		const driver = driverFor(engine, story.tell);
 		return {
@@ -165,7 +166,7 @@ export const usersScreen = storyKit({
 			shownUsers: () =>
 				Effect.sync(() =>
 					[...screenOf(engine).querySelectorAll("tbody tr")].map((row) => {
-						const [name, email, role] = [...row.querySelectorAll("td")].map((cell) => cell.querySelector("select")?.value ?? cell.textContent);
+						const [name, email, role] = [...row.querySelectorAll("td > div")].map((cell) => cell.querySelector("select")?.value ?? cell.textContent);
 						const time = row.querySelector("time");
 						return { email, name, role, signedUp: time?.textContent, signedUpDateTime: time?.dateTime };
 					}),
@@ -173,6 +174,13 @@ export const usersScreen = storyKit({
 		};
 	},
 });
+
+export const onPhone = usersScreen.trait("viewport", "the screen is 390 pixels wide", () =>
+	Effect.acquireRelease(
+		Effect.sync(() => vi.spyOn(window, "innerWidth", "get").mockReturnValue(390)),
+		(width) => Effect.sync(() => width.mockRestore()),
+	),
+);
 
 export const cannotAssignRoles = usersScreen.trait("caller", "the caller cannot assign roles", (engine) => {
 	engine.canChangeRoles = false;

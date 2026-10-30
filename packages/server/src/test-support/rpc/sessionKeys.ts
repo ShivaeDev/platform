@@ -2,15 +2,16 @@ import { Effect, Stream } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { SqlClient } from "effect/sql";
 import { readKeys } from "@shivaedev/changes/keys.ts";
-import { createProvider, ORIGIN, signup } from "@shivaedev/identity/test-support/rpc/harness.ts";
-import { databaseUrl, postgres } from "@shivaedev/identity/test-support/rpc/postgres.ts";
+import { signedInUser } from "@shivaedev/identity/server/better-auth/testing.ts";
+import { answered } from "@shivaedev/test/answers.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { answered } from "#test/answers.ts";
 import { type Feed, followHints } from "./followHints.ts";
 import { openSessionKeysHost } from "./openSessionKeysHost.ts";
 import { postChanges } from "./postChanges.ts";
+import { createProvider, ORIGIN } from "./provider.ts";
 import { type Boundary, Preferences } from "./sessionKeysApi.ts";
 import { upgrade } from "./upgrade.ts";
 
@@ -43,32 +44,25 @@ const create = Effect.fnUntraced(function* () {
 	yield* sql`create table preferences (owner text not null, id text not null, value text not null, primary key (owner, id))`;
 	const database = yield* PostgresTestDatabase;
 	const provider = yield* createProvider(database.url);
-	const alice = yield* Effect.promise(() => signup(provider, "alice"));
-	const bob = yield* Effect.promise(() => signup(provider, "bob"));
-	const second = yield* Effect.promise(() =>
-		provider.auth.handler(
-			new Request(`${ORIGIN}/api/auth/sign-in/email`, {
-				body: JSON.stringify({ email: "alice@example.test", password: "example-password-123" }),
-				headers: { "content-type": "application/json", origin: ORIGIN },
-				method: "POST",
-			}),
-		),
-	);
-	if (second.status !== HttpStatus.fromLiteral("OK")) {
-		return yield* Effect.die("Second sign-in failed");
+	const alice = yield* Effect.promise(() => signedInUser(provider.auth, { email: "alice@example.test", name: "alice" }));
+	const bob = yield* Effect.promise(() => signedInUser(provider.auth, { email: "bob@example.test", name: "bob" }));
+	const second = yield* Effect.promise(async () => {
+		const { test } = await provider.auth.$context;
+		return test.login({ userId: alice.user.id });
+	});
+	function account(session: typeof alice) {
+		return { cookie: session.cookies.map(({ name, value }) => `${name}=${value}`).join("; "), userId: session.user.id };
 	}
-	const cookie = second.headers
-		.getSetCookie()
-		.map((value) => value.split(";")[0])
-		.join("; ");
+	const aliceAccount = account(alice);
+	const bobAccount = account(bob);
 	const writer = yield* openSessionKeysHost(provider);
 	const reader = yield* openSessionKeysHost(provider);
 	const clients = {
-		alice: yield* Effect.cached(writer.client(alice.cookie)),
-		bob: yield* Effect.cached(reader.client(bob.cookie)),
-		second: yield* Effect.cached(reader.client(cookie)),
+		alice: yield* Effect.cached(writer.client(aliceAccount.cookie)),
+		bob: yield* Effect.cached(reader.client(bobAccount.cookie)),
+		second: yield* Effect.cached(reader.client(second.cookies.map(({ name, value }) => `${name}=${value}`).join("; "))),
 	};
-	return { alice, bob, clients, feeds: new Map<string, Feed>(), provider, reader, writer };
+	return { alice: aliceAccount, bob: bobAccount, clients, feeds: new Map<string, Feed>(), provider, reader, writer };
 });
 
 export const sessionKeys = storyKit({

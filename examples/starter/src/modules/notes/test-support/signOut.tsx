@@ -20,7 +20,7 @@ export const signOut = storyKit({
 	*create() {
 		const response = Promise.withResolvers<{ readonly data: object; readonly error: null }>();
 		const requested = Promise.withResolvers<void>();
-		const client = notesClient();
+		const client = yield* notesClient();
 		const history = createMemoryHistory({ initialEntries: ["/"] });
 		const auth: AuthActions = {
 			...screenAuth(),

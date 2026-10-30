@@ -1,6 +1,6 @@
 import { Effect, Fiber, Predicate, Queue, Stream } from "effect";
 import type { LiveHint } from "@shivaedev/contract/live.ts";
-import { answered, words } from "#test/answers.ts";
+import { answered, words } from "@shivaedev/test/answers.ts";
 
 function keyWords(key: unknown) {
 	if (Predicate.hasProperty(key, "_tag") && key._tag === "List") {

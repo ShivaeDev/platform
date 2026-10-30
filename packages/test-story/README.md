@@ -750,6 +750,19 @@ For React, pass `act: async (action) => { await act(action); }` using React's `a
 
 Settlement has a live-time limit of 3 seconds, configurable with the driver's `timeoutMs` or per call with `settle({ timeoutMs })`, and fails with the current screen text and advice when that limit expires. Use the DOM environment above and scoped `routeOutbound` routing to reach `fakeHttpService`; the driver does not install another transport. The driver acts on happy-dom over loopback HTTP; it does not drive a real browser.
 
+### Counting a page's live reads
+
+Acquire `browserReads` from `server/browserReads.ts` in the browser story kit's `create` hook. Give it the page's RPC URL and contracts, then pass its `protocol` to each `makeClient` used by that page. Those clients share one native WebSocket transport. In Node stories, pass `layerWebSocketConstructorWS` from `@effect/platform-node/NodeSocket`; the default uses the global browser constructor. Optional `headers` travel on the socket handshake.
+
+```ts
+const observed = yield* browserReads({ contracts: [Notes], url });
+const client = makeClient(Notes, { protocol: observed.protocol, url });
+```
+
+Expose `observed.readCount`, `observed.reads`, `observed.hints` and `observed.watchHints` through the kit's verbs. `readCount()` counts query requests and `$changes` subscription openings; `readCount("notes.list")` selects one tag. `reads()` returns their `tag`, encoded `payload` and `kind` (`"query"` or `"subscription"`), in send order. Commands and protocol acknowledgements do not count. `hints()` returns the `LiveHint` values received for those subscriptions, including `Resync`.
+
+A story calls `const hints = yield* watchHints()` before the write, then `yield* hints.next` to await its browser delivery. Each watcher buffers its own future deliveries until the calling Scope closes. The wait uses the transport's signal with no polling budget. A hint means the browser received it; wait on the application's query or screen signal separately before asserting its rendered result or refetch count. Give another page its own readout to keep its traffic separate.
+
 ### API by module
 
 Import each module with the prefix `@shivaedev/test-story/`; there is no root entry.
@@ -758,6 +771,7 @@ Import each module with the prefix `@shivaedev/test-story/`; there is no root en
 | --------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `server/storyKit.ts`              | `storyKit`, `Trait`, `RunUntilOptions`, `Story`, `RunHooks`, `StoryKitDefinition`, `Told`, `StoryBody`, `StoryTest`, `StoryIt`, `StoryKit`                                                                                                                                                                                                                                          |
 | `server/outcomes.ts`              | `outcomes(rows)`                                                                                                                                                                                                                                                                                                                                                                    |
+| `server/browserReads.ts`          | `browserReads(options)`, `BrowserReadsOptions`, `BrowserRead`                                                                                                                                                                                                                                                                                                                       |
 | `server/domFetch.ts`              | `domFetch(baseUrl, target?)`                                                                                                                                                                                                                                                                                                                                                        |
 | `server/seedCookies.ts`           | `seedCookies(cookies, target?)`, `DomCookie`                                                                                                                                                                                                                                                                                                                                        |
 | `server/routeOutbound.ts`         | `routeOutbound(routes)`                                                                                                                                                                                                                                                                                                                                                             |
