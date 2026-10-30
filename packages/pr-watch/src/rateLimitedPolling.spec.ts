@@ -23,7 +23,7 @@ watch.it("exhausted quota defers polling until reset without making another requ
 	const now = yield* Clock.currentTimeMillis;
 	const reset = Math.ceil(now / 1000) + 3600;
 	h.reply("/commits/sha1/status", {
-		body: { state: "success" },
+		body: { state: "success", statuses: [] },
 		headers: { "x-ratelimit-limit": "5000", "x-ratelimit-remaining": "0", "x-ratelimit-reset": String(reset), "x-ratelimit-used": "5000" },
 	});
 	yield* h.once();

@@ -62,6 +62,7 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 		lines: engine.lines,
 		options: engine.options,
 		poll,
+		pollOutcome: () => poll.pipe(Effect.match({ onFailure: () => "failed" as const, onSuccess: () => "observed" as const })),
 		requests: engine.requests,
 		restart,
 		saved: () => engine.watcher.load(engine.options),

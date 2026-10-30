@@ -25,7 +25,7 @@ for (const conclusion of ["neutral", "skipped", "success", null]) {
 watch.it("checks and queue refs include later pages", [], function* (h) {
 	yield* h.poll;
 	h.pages("/commits/sha1/check-runs?per_page=100&filter=latest", { "check_runs": [] }, "/checks?page=2", {
-		body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
+		body: { "check_runs": [{ conclusion: "failure", "node_id": "check", status: "completed" }] },
 	});
 	h.pages("/git/matching-refs/heads/gh-readonly-queue/", [], "/refs?page=2", { body: [{ ref: "refs/heads/gh-readonly-queue/main/pr-1-abc" }] });
 	const state = yield* h.poll;
@@ -47,7 +47,7 @@ watch.it("a failed later checks page retains the last successful snapshot", [], 
 	yield* h.poll;
 	h.pages(
 		"/commits/sha1/check-runs?per_page=100&filter=latest",
-		{ "check_runs": [{ conclusion: "failure", status: "completed" }] },
+		{ "check_runs": [{ conclusion: "failure", "node_id": "check", status: "completed" }] },
 		"/checks?page=2",
 		{ body: {}, status: HttpStatus.fromLiteral("InternalServerError") },
 	);
@@ -58,11 +58,22 @@ watch.it("a failed later checks page retains the last successful snapshot", [], 
 watch.it("a cross-origin next page fails without sending credentials or inferring failed checks", [], function* (h) {
 	yield* h.poll;
 	h.reply("/commits/sha1/check-runs?per_page=100&filter=latest", {
-		body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
+		body: { "check_runs": [{ conclusion: "failure", "node_id": "check", status: "completed" }] },
 		headers: { link: '<https://other.example/checks?page=2>; rel="next"' },
 	});
 	expect((yield* Effect.result(h.poll))._tag).toBe("Failure");
 	expect(h.io.urls.every((url) => url.startsWith(h.options.apiUrl))).toBe(true);
 	expect(h.events()).toEqual([]);
 	expect((yield* h.saved()).prs["1"]?.failed).toBe(false);
+});
+
+watch.it("a required commit status failure on a later page still marks auto-merge stuck", [], function* (h) {
+	yield* h.poll;
+	h.pages("/commits/sha1/status", { state: "pending", statuses: [] }, "/statuses?page=2", {
+		body: { state: "failure", statuses: [{ context: "ci", state: "failure" }] },
+	});
+
+	yield* h.poll;
+
+	expect(h.eventNames()).toEqual(["checks-failed", "stuck"]);
 });
