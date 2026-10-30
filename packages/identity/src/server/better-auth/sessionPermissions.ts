@@ -1,6 +1,5 @@
 import { type Cause, Effect, Schema } from "effect";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
-import type { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import { SessionUserSchema } from "#identity.ts";
 import { resolveRole } from "#server/resolveRole.ts";
 
@@ -10,7 +9,7 @@ const SessionPayload = Schema.NullOr(Schema.StructWithRest(Schema.Struct({ user:
 export const sessionPermissions = Effect.fn("Platform.sessionPermissions")(function* (
 	response: Response,
 	roles: RoleSet,
-): Effect.fn.Return<Response, Cause.UnknownError | Schema.SchemaError | AuthUnavailable> {
+): Effect.fn.Return<Response, Cause.UnknownError | Schema.SchemaError> {
 	const payload = yield* Schema.decodeUnknownEffect(SessionPayload)(yield* Effect.tryPromise(() => response.json()));
 	if (payload === null) {
 		return Response.json(null, response);

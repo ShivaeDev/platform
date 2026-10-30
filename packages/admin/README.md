@@ -158,7 +158,7 @@ const changeRole = Client.runtime.fn(users.changeRole.run);
 
 `admin.users.changeRole` takes `{ userId, role }`; its role Schema is the application's declared role union. The handler also requires `AssignRoles` (`roles.assign`). The view shows a role select only to callers with that permission. Role writes serialize in a transaction and return `LastRoleAssigner` if replacing the final holder's role would remove `roles.assign`, regardless of the role's name. A missing user returns `NotFound`. Changes invalidate the list after commit and emit an Effect log with actor id, target id, role and timestamp.
 
-Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAccess, input)` from `@shivaedev/admin/server/users.ts` on the server. These enforce their respective domain permissions using `SessionUser`.
+Applications can call `listUsers(AppAccess, input)` and `changeUserRole(AppAccess, input)` from `@shivaedev/admin/server/users.ts` on the server. These enforce their respective domain permissions using `SessionUser`. Decode untrusted role input with `AppAccess.Role` before calling `changeUserRole` directly; native RPC performs that decode at the contract boundary. Identity resolves the caller's stored role through the session policy.
 
 Keep Better Auth cookie caching disabled so requests see current permissions. Route role writes through this operation to retain the final-assigner policy: the policy covers only `admin.users.changeRole`, so disable Better Auth's `/admin/set-role`, `/admin/update-user` and `/admin/create-user` browser endpoints, which write roles outside it. Better Auth's server-side APIs stay available for trusted code such as a bootstrap command.
 
