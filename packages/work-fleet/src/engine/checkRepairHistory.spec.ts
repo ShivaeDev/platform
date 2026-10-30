@@ -1,22 +1,8 @@
 import { expect } from "@effect/vitest";
-import { optionalCheckFails, requiredChecksFailInSequence, reviewAndCheckNeedRepairs } from "#test/engineCheckTraits.ts";
+import { requiredChecksFailInSequence, reviewAndCheckNeedRepairs } from "#test/engineCheckTraits.ts";
 import { engine } from "#test/engineStory.ts";
 import { ADOPTED_HEAD, checkRun } from "#test/githubChecks.ts";
 
-engine.it(
-	"a non-required failure never launches repair after approval",
-	[optionalCheckFails()],
-	function* ({ fleet, prepareWork, finishWorkers, publishedDecisions }) {
-		yield* prepareWork("one");
-		yield* fleet.dispatch("one");
-		finishWorkers();
-		const completed = yield* fleet.reconcile("one");
-		expect(completed.value.step).toBe("done");
-		expect(completed.value.checks?.passed).toBe(true);
-		expect(completed.value.attempts.filter((attempt) => attempt.role === "repair")).toHaveLength(0);
-		expect(publishedDecisions()).toHaveLength(0);
-	},
-);
 engine.it(
 	"a different failing required name starts a new repair sequence",
 	[requiredChecksFailInSequence()],

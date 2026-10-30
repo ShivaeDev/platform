@@ -18,6 +18,13 @@ const healthyChecks = JSON.stringify([
 		],
 	},
 ]);
+const requirements = new Map([
+	["repos/example/repository/branches/main", JSON.stringify([{ protected: false }])],
+	[
+		"repos/example/repository/rules/branches/main",
+		JSON.stringify([[{ parameters: { "required_status_checks": [{ context: "test" }] }, type: "required_status_checks" }]]),
+	],
+]);
 export function recoveryChecksCases(): readonly RecoveryCase[] {
 	return [
 		{ body: "invalid", code: "fleet-integration" as const, endpoint: "check-runs", reason: "GitHub check runs are unavailable or invalid" },
@@ -37,10 +44,7 @@ export function recoveryChecksCases(): readonly RecoveryCase[] {
 				if (!restored && endpoint.includes(fault.endpoint)) {
 					return fault.body;
 				}
-				if (endpoint.includes("/rules/branches/")) {
-					return "[[]]";
-				}
-				return endpoint.includes("check-runs") ? healthyChecks : JSON.stringify([{ sha: HEAD, statuses: [] }]);
+				return requirements.get(endpoint) ?? (endpoint.includes("check-runs") ? healthyChecks : JSON.stringify([{ sha: HEAD, statuses: [] }]));
 			}),
 		);
 		return {

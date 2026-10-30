@@ -36,6 +36,7 @@ export function reviewerPrompt(input: {
 		"",
 		"Read root and package AGENTS.md. Inspect only the exact target head, using existing repository objects or read-only repository tools. The checkout may be a different revision; never review that revision in its place.",
 		"You have no worker conversation. Judge the implementation and acceptance evidence independently.",
+		"Only checks required by GitHub branch protection or repository rulesets gate the pull request; optional app checks are information and must not trigger repair, waiting or a question.",
 		"This session is read-only. Do not edit, commit, push, merge, publish comments or reviews, or launch workers. Do not request escalation. Shell network access is enabled for read-only inspection. Use `gh pr view`, `gh pr diff` and `gh api --method GET` to read the PR and exact-head CI results; verify the PR head before using its diff. Network writes are prohibited.",
 		"When you can inspect the diff at the exact target head and its check results, always end with a verdict: approve or request changes in the format below. Never approve from the task text or a worker's claims alone.",
 		"Passing required checks at that exact head are the CI evidence. Unavailable CI job logs or artifacts (including HTTP 403 from the Cloud GitHub token) alone must not withhold a verdict. Include the passing checks and the access limitation in your evidence list, then decide from the diff and available evidence.",

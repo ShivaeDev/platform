@@ -27,12 +27,14 @@ it.effect("reads green check runs and commit statuses from every page of the ado
 	expect(fixture.requests).toEqual([
 		`repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`,
 		`repos/example/project/commits/${ADOPTED_HEAD}/status?per_page=100`,
+		"repos/example/project/branches/main",
 		"repos/example/project/rules/branches/main",
 	]);
 });
 
 it.effect("returns failing check names and log links, including legacy statuses on later pages", function* () {
 	const fixture = githubFixture();
+	fixture.required(["test", "build", "legacy", "deploy"]);
 	fixture.reply(
 		ADOPTED_HEAD,
 		[[checkRun()], [checkRun({ conclusion: "failure", name: "build" })]],
@@ -55,6 +57,7 @@ for (const status of ["queued", "in_progress", "waiting", "requested", "pending"
 
 it.effect("keeps absent checks and pending legacy statuses out of green validation", function* () {
 	const fixture = githubFixture();
+	fixture.required(["test", "legacy"]);
 	fixture.reply(ADOPTED_HEAD, [[]]);
 	expect(yield* fixture.checks(githubResult())).toMatchObject({ passed: false, pending: true });
 	fixture.reply(ADOPTED_HEAD, [[checkRun()]], [[commitStatus({ state: "pending" })]]);
@@ -87,6 +90,7 @@ it.effect("fails closed when GitHub is unavailable or returns malformed pages", 
 
 it.effect("decodes GitHub's wire field names and preserves its log URL", function* () {
 	const fixture = githubFixture();
+	fixture.required(["wire-check"]);
 	fixture.reply(ADOPTED_HEAD, [[]]);
 	fixture.responses.set(
 		`repos/example/project/commits/${ADOPTED_HEAD}/check-runs?per_page=100&filter=latest`,
@@ -124,8 +128,10 @@ it.effect("accepts neutral and legacy-only green checks and retains links when l
 	const fixture = githubFixture();
 	fixture.reply(ADOPTED_HEAD, [[checkRun({ conclusion: "neutral" })]]);
 	expect(yield* fixture.checks(githubResult())).toMatchObject({ passed: true });
+	fixture.required(["legacy"]);
 	fixture.reply(ADOPTED_HEAD, [[]], [[commitStatus()]]);
 	expect(yield* fixture.checks(githubResult())).toMatchObject({ passed: true });
+	fixture.required(["test", "legacy"]);
 	fixture.reply(ADOPTED_HEAD, [[checkRun({ conclusion: "failure", detailsUrl: null })]], [[commitStatus({ state: "failure", targetUrl: null })]]);
 	const checks = yield* fixture.checks(githubResult());
 	expect(checks.repairPrompt).toContain("https://example.invalid/check/test");
