@@ -1,11 +1,10 @@
-import { Effect } from "effect";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
-import { deployPort } from "#test-support/deployChild.ts";
 import { postgres } from "#test-support/postgres.ts";
 import { deploymentProcesses } from "./deploymentProcesses.ts";
 import { holdSchemaCreation } from "./holdSchemaCreation.ts";
 import { migrationTable } from "./migrationTable.ts";
+import { startOtherApplication } from "./startOtherApplication.ts";
 
 export const deployment = storyKit({
 	around: withIsolatedDatabase,
@@ -18,6 +17,6 @@ export const deployment = storyKit({
 		...deploymentProcesses(story.tell),
 		holdSchemaCreation,
 		migrationTable,
-		port: Effect.promise(deployPort),
+		startOtherApplication,
 	}),
 });

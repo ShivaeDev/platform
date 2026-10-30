@@ -11,9 +11,9 @@ notesDeployment.it(
 		const migration = yield* startProcess("migrate", 0, oldRelease);
 		expect(yield* migration.child.exitCode).toBe(0);
 		const web = yield* startProcess("web");
-		yield* web.ready;
-		const session = yield* signUpAt(web.url, "crash");
-		const notes = yield* notesAt(web.url, session.cookie);
+		const address = yield* web.ready;
+		const session = yield* signUpAt(address, "crash");
+		const notes = yield* notesAt(address, session.cookie);
 		const first = yield* notes["notes.create"]({ title: "Interrupted by crash" });
 		const held = yield* holdJob(first.id);
 		const oldWorker = yield* startProcess("worker", 0, oldRelease);
