@@ -21,7 +21,11 @@ export const readManifest = Effect.fn("Skills.readManifest")(function* (repo: st
 	return Option.some(
 		yield* Schema.decodeUnknownEffect(ManifestFile)(text).pipe(
 			Effect.mapError(
-				() => new SkillsError({ message: `${MANIFEST} is not a manifest this package wrote. Delete it and the folders it listed, then sync.` }),
+				(cause) =>
+					new SkillsError({
+						cause,
+						message: `${MANIFEST} is not a manifest this package wrote. Delete it and the folders it listed, then sync. ${cause.message}`,
+					}),
 			),
 		),
 	);

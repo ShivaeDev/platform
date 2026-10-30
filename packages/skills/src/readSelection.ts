@@ -8,9 +8,11 @@ export const readSelection = Effect.fn("Skills.readSelection")(function* (repo: 
 	const fs = yield* FileSystem.FileSystem;
 	const path = yield* Path.Path;
 	const file = path.join(repo, "package.json");
-	const text = yield* fs.readFileString(file).pipe(Effect.mapError(() => new SkillsError({ message: `Could not read ${file}.` })));
+	const text = yield* fs
+		.readFileString(file)
+		.pipe(Effect.mapError((cause) => new SkillsError({ cause, message: `Could not read ${file}: ${cause.message}` })));
 	const manifest = yield* Schema.decodeUnknownEffect(ConsumerManifest)(text).pipe(
-		Effect.mapError(() => new SkillsError({ message: `${file}: "${SELECTION_FIELD}" must be a list of skill names.` })),
+		Effect.mapError((cause) => new SkillsError({ cause, message: `${file}: "${SELECTION_FIELD}" must be a list of skill names. ${cause.message}` })),
 	);
 	const selected = manifest[SELECTION_FIELD];
 	if (selected === undefined) {

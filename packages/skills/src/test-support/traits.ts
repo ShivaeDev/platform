@@ -3,7 +3,8 @@ import { Effect, FileSystem, Path } from "effect";
 import { readInstalled } from "#installed.ts";
 import { syncSkills } from "#syncSkills.ts";
 import { removeFile, select, writeFile } from "./fixture.ts";
-import { MANIFEST, printedOrFailed, skills } from "./skills.ts";
+import { printedOrFailed } from "./operations.ts";
+import { MANIFEST, skills } from "./skills.ts";
 import { checkOutPullRequest } from "./workflow.ts";
 
 export const OWN_SKILL = "# The repository's own skill\n";
@@ -100,3 +101,12 @@ export const pullRequestBranch = skills.trait(
 		engine.remote = yield* checkOutPullRequest(engine.repo);
 	},
 );
+
+export function unreadable(file: string) {
+	return skills.trait("changed", `the repository cannot read ${file}`, function* ({ repo }) {
+		const fs = yield* FileSystem.FileSystem;
+		const path = (yield* Path.Path).join(repo, file);
+		const info = yield* fs.stat(path);
+		yield* Effect.acquireRelease(fs.chmod(path, 0), () => fs.chmod(path, info.mode).pipe(Effect.orDie));
+	});
+}
