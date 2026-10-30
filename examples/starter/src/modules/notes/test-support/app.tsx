@@ -74,9 +74,9 @@ export const notesApp = storyKit({
 			const notes = yield* sql<{
 				title: string;
 				version: number;
-				ownerId: string;
-			}>`select title, version, owner_id from notes order by id`;
-			return notes.map(({ title, version, ownerId }) => ({ email: users.find(({ id }) => id === ownerId)?.email ?? null, title, version }));
+				userId: string;
+			}>`select title, version, user_id from notes order by id`;
+			return notes.map(({ title, version, userId }) => ({ email: users.find(({ id }) => id === userId)?.email ?? null, title, version }));
 		}),
 		storedSessions: Effect.gen(function* () {
 			return (yield* engine.authStorage.sessions).map(({ email }) => ({ email }));

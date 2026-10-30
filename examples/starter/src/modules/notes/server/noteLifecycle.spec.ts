@@ -31,8 +31,8 @@ app.it(
 		expect(yield* bob.list()).toEqual([]);
 		expect(yield* alice.list()).toEqual([note]);
 		const user = yield* alice.whoami();
-		expect(yield* storedNoteOwners(note.title)).toEqual([{ ownerId: user.id }]);
-		expect(yield* storedNoteOwners("Legacy note")).toEqual([{ ownerId: null }]);
+		expect(yield* storedNoteOwners(note.title)).toEqual([{ userId: user.id }]);
+		expect(yield* storedNoteOwners("Legacy note")).toEqual([{ userId: null }]);
 		yield* signOut(aliceCookie);
 		const revokedCreate = yield* alice.create({ title: "Revoked note" }).pipe(Effect.flip);
 		expect(revokedCreate).toMatchObject({ _tag: "Unauthorized" });

@@ -6,7 +6,7 @@ A feature is a module under `src/modules`. Put the bookmarks module in `src/modu
 
 ## 1. Add the migration
 
-Create `src/modules/bookmarks/server/migrations/` and add the next numbered file across every registered migration folder, such as `0003_bookmarks.ts`, default-exporting its migration Effect as [`0002_notes.ts`](../../examples/starter/src/modules/notes/server/migrations/0002_notes.ts) does. Create `bookmarks` with `id serial primary key`, `title text not null` and `owner_id text not null`. All folders share the `app_migrations` ledger, so an existing app upgrades by running a new, higher-numbered migration rather than by editing one it has already run.
+Create `src/modules/bookmarks/server/migrations/` and add the next numbered file across every registered migration folder, such as `0004_bookmarks.ts`, default-exporting its migration Effect as [`0002_notes.ts`](../../examples/starter/src/modules/notes/server/migrations/0002_notes.ts) does. Create `bookmarks` with `id serial primary key`, `title text not null` and `user_id text not null`. Import `userReference` from `@shivaedev/identity/server/better-auth/userReference.ts` and reference its table and column with `ON DELETE CASCADE`, following [`0003_user_foreign_key.ts`](../../examples/starter/src/modules/notes/server/migrations/0003_user_foreign_key.ts) and [identity’s foreign-key guide](../../packages/identity/README.md#reference-users-from-app-tables). All folders share the `app_migrations` ledger, so an existing app upgrades by running a new, higher-numbered migration rather than by editing one it has already run.
 
 Declare the migration directory on the server registration as `migrations: resolve(import.meta.dirname, "migrations")`, importing `resolve` from `node:path`. [`src/server/migrations.ts`](../../examples/starter/src/server/migrations.ts) loads the directories from the registered modules. [`databaseOptions.ts`](../../examples/starter/src/server/databaseOptions.ts) passes the combined loader to the host with `mode: "check"`, so startup asserts that its migrations are recorded in the ledger. Run `pnpm migrate` to apply the new migration before starting the host, as in the [quickstart](./quickstart.md). The [migration guide](./postgres-migrations.md) explains runner ownership and locks.
 
@@ -14,17 +14,17 @@ Declare the migration directory on the server registration as `migrations: resol
 
 In `src/modules/bookmarks/bookmarks.ts`, define `Bookmark` with native `Model.Class`, following `Note` in [`notes.ts`](../../examples/starter/src/modules/notes/notes.ts). Use the same `Model.Field` variants for the generated id: it is present in JSON, selects and updates, and absent from inserts. Use `Schema.NonEmptyString` for the title and derive `BookmarkFields` with `Schema.Struct({ title: Bookmark.fields.title })` for the create payload and form.
 
-In `src/modules/bookmarks/server/makeRepository.ts`, define `StoredBookmark` with the same public fields plus `ownerId: Schema.String`. Follow `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/makeRepository.ts). Notes allows a null owner; the new bookmarks table requires one. Keep the owner in the stored model and out of the public JSON model.
+In `src/modules/bookmarks/server/makeRepository.ts`, define `StoredBookmark` with the same public fields plus `userId: Schema.String`. Follow `StoredNote` in [the notes repository](../../examples/starter/src/modules/notes/server/makeRepository.ts). Notes allows a null owner; the new bookmarks table requires one. Keep the owner in the stored model and out of the public JSON model.
 
 ## 3. Make the repository
 
 In that server module, call `makeRepository(StoredBookmark, { idColumn: "id", spanPrefix: "Bookmarks", tableName: "bookmarks" })`, imported from `@shivaedev/sql/repository.ts`. Its insert and query shapes come from the stored model; do not author a second ORM description.
 
-Use `insert({ ownerId, title })` for creation. For the list, use `findMany` with `where: { ownerId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/Service.ts) does. Selecting only public fields keeps the owner out of the response.
+Use `insert({ userId, title })` for creation. For the list, use `findMany` with `where: { userId }`, `select: ["id", "title"]` and an explicit id order, as [the notes service](../../examples/starter/src/modules/notes/server/Service.ts) does. Selecting only public fields keeps the owner out of the response.
 
 ## 4. Declare the service
 
-Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`. Follow [the notes service](../../examples/starter/src/modules/notes/server/Service.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`, and expose `list(ownerId)` and `create(input, ownerId)`.
+Create `src/modules/bookmarks/server/Service.ts` with `defineService` from `@shivaedev/service/defineService.ts`. Follow [the notes service](../../examples/starter/src/modules/notes/server/Service.ts): initialize the repository, declare `SqlClient.SqlClient` and `Reactivity.Reactivity` in `requires`, and expose `list(userId)` and `create(input, userId)`.
 
 Trim the title, reject a whitespace-only title with the command's field rejection, and map database failures to a declared `ServiceUnavailable`. Wrap the write in `transact` from `@shivaedev/sql/transact.ts`. Keep ownership explicit in both methods. The notes service also enqueues a job after its write transaction and logs queue failures; omit that part for bookmarks. This service refers to the command declaration you add next, so complete both steps before typechecking.
 

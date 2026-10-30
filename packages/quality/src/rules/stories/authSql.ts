@@ -58,6 +58,24 @@ function tableBoundary(tokens: readonly string[], index: number, statementStart:
 	};
 }
 
+function userForeignKeyAt(tokens: readonly string[], index: number, statementStart: number): boolean {
+	const statement = tokens.slice(statementStart, index).map((token) => token.toLowerCase());
+	if (tokens[index]?.toLowerCase() !== "references" || !["create", "alter"].includes(statement[0] ?? "") || !statement.includes("table")) {
+		return false;
+	}
+	let table = index + 1;
+	while (tokens[table + 1] === ".") {
+		table += 2;
+	}
+	if (tokens[table + 1] !== "(" || !["id", '"id"'].includes(tokens[table + 2]?.toLowerCase() ?? "") || tokens[table + 3] !== ")") {
+		return false;
+	}
+	const remainder = tokens.slice(table + 4);
+	const end = remainder.findIndex((token) => [",", ";", ")"].includes(token));
+	const clause = remainder.slice(0, end === -1 ? undefined : end).join(" ");
+	return /\bon delete (?:cascade|set null)\b/iu.test(clause);
+}
+
 interface SqlContext {
 	depth: number;
 	readonly expressionFromDepths: Set<number>;
@@ -97,7 +115,11 @@ function authTableIn(text: string): boolean {
 		if (boundary.starts) {
 			context.tablesAtDepth.add(context.depth);
 		}
-		return (boundary.starts || (token === "," && context.tablesAtDepth.has(context.depth))) && AUTH_TABLES.has(tableAt(tokens, index + 1));
+		return (
+			(boundary.starts || (token === "," && context.tablesAtDepth.has(context.depth)))
+			&& AUTH_TABLES.has(tableAt(tokens, index + 1))
+			&& !(tableAt(tokens, index + 1) === "user" && userForeignKeyAt(tokens, index, context.statementStart))
+		);
 	});
 }
 
@@ -109,9 +131,9 @@ export const authSql = defineRule({
 				file: query.file,
 				line: query.line,
 				message:
-					"SQL accesses a Better Auth table (user, account, session or verification). Use platform's auth API; only platform's auth implementation and its migrations, named in the repository's auth-sql owners, own those tables.",
+					"SQL accesses a Better Auth table (user, account, session or verification). Use platform's auth API (@shivaedev/identity) for account data; app migrations may only reference user(id) with ON DELETE CASCADE or ON DELETE SET NULL. Only the configured auth-sql owners manage auth storage.",
 			})),
-	description: "Apps use platform's auth API instead of querying or modifying Better Auth's tables.",
+	description: "Apps reference user IDs by foreign key and use identity for account data.",
 	id: "boundaries/auth-sql",
 	options: Schema.toStandardSchemaV1(AuthSqlOptions, { parseOptions: { errors: "all", onExcessProperty: "error" } }),
 });

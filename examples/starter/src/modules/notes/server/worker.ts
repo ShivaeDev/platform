@@ -12,7 +12,7 @@ const countWords = CountWords.handle(({ noteId }) =>
 		const rows = yield* repository.findMany({ where: { id: noteId, wordCount: null } });
 		for (const row of rows) {
 			yield* repository.update({ ...row, wordCount: row.title.split(/\s+/u).length });
-			yield* invalidateOnCommit(invalidationKeys([notes.item(row.id), ...(row.ownerId === null ? [] : [notes.bucket.userId(row.ownerId)])]));
+			yield* invalidateOnCommit(invalidationKeys([notes.item(row.id), ...(row.userId === null ? [] : [notes.bucket.userId(row.userId)])]));
 		}
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.withSpan("CountWords", { kind: "consumer" })),
 );
