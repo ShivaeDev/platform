@@ -1,7 +1,10 @@
 import { expect } from "@effect/vitest";
-import { declaresGenericMethod, serviceStory } from "#test/serviceStory.ts";
+import { serviceBuilt, serviceStory } from "#test/serviceStory.ts";
 
-serviceStory.it("preserves each generic call's caller requirement", [declaresGenericMethod()], function* ({ build, preserveCaller }) {
-	yield* build();
-	expect(yield* preserveCaller(42)).toEqual({ value: 42 });
-});
+serviceStory.it(
+	"a generic method runs its argument with the number the caller provides and returns that number wrapped",
+	[serviceBuilt()],
+	function* ({ wrapCallersNumber }) {
+		expect(yield* wrapCallersNumber(42)).toEqual({ value: 42 });
+	},
+);

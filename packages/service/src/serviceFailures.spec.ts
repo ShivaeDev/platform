@@ -1,27 +1,33 @@
 import { expect } from "@effect/vitest";
-import { Effect, Exit } from "effect";
-import { serviceFailureStory } from "#test/serviceStory.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { initializationFails, serviceBuilt, serviceStory } from "#test/serviceStory.ts";
 
-serviceFailureStory.it(
-	"fails the Layer build with the initializer error and finalizes its partial acquisition",
-	[],
-	function* ({ buildFailedInitialization, story }) {
-		expect(yield* buildFailedInitialization()).toBe(story.engine.initializationFailure);
-		expect(story.engine.operations).toEqual(["finalize initialization"]);
-		expect(story.engine.counts.factoryCalls).toBe(0);
+serviceStory.it(
+	"when initialization fails after acquiring its resource, building the Layer fails with that error, releases the resource and builds no methods",
+	[initializationFails()],
+	function* ({ build, buildOutcome, released, methodBuilds }) {
+		yield* build();
+
+		yield* outcomes({
+			"method builds": [methodBuilds(), 0],
+			"released resources": [released(), ["the initializer's resource"]],
+			"the build": [buildOutcome(), "failed with initialization failure"],
+		});
 	},
 );
 
-serviceFailureStory.it(
-	"returns a method's typed failure to the caller and serves the next call on the same instance",
-	[],
-	function* ({ buildFailedMethod, run, story }) {
-		const service = yield* buildFailedMethod();
-		expect(yield* run(service, true).pipe(Effect.flip)).toBe(story.engine.methodFailure);
-		expect(yield* run(service, false)).toBe("call 2");
-	},
-);
+for (const [method, ending] of [
+	["fail", "failed with method failure"],
+	["crash", "died with method defect"],
+] as const) {
+	serviceStory.it(
+		`a call to ${method} ends as "${ending}" for its caller after counting once, and the next count on the same private state returns 2`,
+		[serviceBuilt()],
+		function* ({ call, answers }) {
+			yield* call(method);
+			yield* call("count");
 
-serviceFailureStory.it("keeps a method defect in the defect channel", [], function* ({ crash, story }) {
-	expect(yield* crash()).toEqual(Exit.die(story.engine.defect));
-});
+			expect(yield* answers()).toEqual([ending, 2]);
+		},
+	);
+}
