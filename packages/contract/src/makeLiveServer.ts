@@ -10,7 +10,7 @@ export const makeLiveServer = Effect.gen(function* () {
 	const reactivity = yield* Reactivity.Reactivity;
 	let openStreams = 0;
 	const resyncKey = `@shivaedev/contract/resync/${crypto.randomUUID()}`;
-	function open(keys: readonly Key[], context?: KeyContext) {
+	function open(keys: readonly Key[], context?: KeyContext): Stream.Stream<LiveHint> {
 		return Stream.unwrap(
 			Effect.gen(function* () {
 				const queue = yield* Queue.unbounded<LiveHint>();
