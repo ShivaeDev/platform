@@ -1606,6 +1606,9 @@ importers:
       '@effect/sql-pg':
         specifier: 'catalog:'
         version: 4.0.6(effect@4.0.6)
+      '@shivaedev/contract':
+        specifier: workspace:*
+        version: link:../contract
       '@shivaedev/test':
         specifier: workspace:*
         version: link:../test
