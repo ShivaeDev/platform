@@ -1,7 +1,7 @@
 import { join } from "node:path";
 import process from "node:process";
-import { NodeFileSystem } from "@effect/platform-node";
 import { afterEach, expect } from "vitest";
+import { services } from "#cli/runMain.ts";
 import { collectInventory } from "#inventory/collect.ts";
 import { readOptionalText, readRequiredText } from "#inventory/filesystem.ts";
 import { walk } from "#inventory/walk.ts";
@@ -19,7 +19,7 @@ afterEach(removeInventoryRepositories);
 
 const asRoot = process.getuid?.() === 0;
 
-effectIt.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
+effectIt.layer(services)("filesystem adapter", (it) => {
 	it.effect("treats a missing optional file as absent", function* () {
 		expect(yield* readOptionalText(join(makeRoot(), ".gitignore"))).toBeUndefined();
 	});
@@ -48,12 +48,12 @@ effectIt.layer(NodeFileSystem.layer)("filesystem adapter", (it) => {
 	it.effect.skipIf(asRoot)("fails loudly when a directory cannot be listed", function* () {
 		const blocked = blockedInventoryDirectory();
 		const text = yield* failureText(walk(blocked));
-		expect(text).toContain("FilesystemFailure");
+		expect(text).toContain("SetupFailure");
 		expect(text).toContain(blocked);
 	});
 });
 
-effectIt.layer(NodeFileSystem.layer)("inventory", (it) => {
+effectIt.layer(services)("inventory", (it) => {
 	it.effect("lists every file and reads the sources with the configured extensions", function* () {
 		const inventory = yield* collectInventory(repository(), scope({}));
 		expect(inventory.files).toEqual(["docs/notes.md", "scripts/tool.ts", "src/app.ts", "src/routes/tree.gen.ts", "src/view.tsx"]);

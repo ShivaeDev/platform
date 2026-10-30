@@ -1,11 +1,11 @@
 import { mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { NodeFileSystem } from "@effect/platform-node";
 import { Effect } from "effect";
 import { vi } from "vitest";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { git } from "#quality-fixtures/git.ts";
 import { seedTree } from "#quality-fixtures/tree.ts";
+import { services } from "#quality-internal/cli/runMain.ts";
 import { collectInventory } from "#quality-internal/inventory/collect.ts";
 
 export const inventoryKit = storyKit({
@@ -32,7 +32,7 @@ export const inventoryKit = storyKit({
 	verbs: (engine, story) => ({
 		collect: () => {
 			story.tell("collect the repository inventory");
-			return collectInventory(engine.cwd, { exclude: [], extensions: [".ts"], sources: ["."] }).pipe(Effect.provide(NodeFileSystem.layer));
+			return collectInventory(engine.cwd, { exclude: [], extensions: [".ts"], sources: ["."] }).pipe(Effect.provide(services));
 		},
 	}),
 });
