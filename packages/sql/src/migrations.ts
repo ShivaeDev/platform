@@ -1,13 +1,14 @@
-import { Duration, Effect, Option } from "effect";
+import { Duration, Effect, Option, Schema } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
+import type { SqlError } from "effect/sql/SqlError";
 import { advisoryXactLock } from "./advisoryXactLock.ts";
 import { postgresRelease } from "./postgresRelease.ts";
 import { runSchemaComponent, type SchemaComponent } from "./SchemaComponent.ts";
 import { transact } from "./transact.ts";
 
-export interface PostgresMigrationOptions<R> {
-	readonly components?: readonly SchemaComponent<R>[];
+export interface PostgresMigrationOptions<R, E = never> {
+	readonly components?: readonly SchemaComponent<R, E>[];
 	readonly loader: Migrator.Loader<R>;
 	readonly lockTimeout: Duration.Input;
 	readonly release?: string;
@@ -16,13 +17,13 @@ export interface PostgresMigrationOptions<R> {
 
 const migrate = Migrator.make({});
 
-export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* <R>({
+export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* <R, E = never>({
 	loader,
 	components = [],
 	table = "effect_sql_migrations",
 	lockTimeout,
 	release,
-}: PostgresMigrationOptions<R>) {
+}: PostgresMigrationOptions<R, E>) {
 	const sql = yield* SqlClient.SqlClient;
 	const available = yield* Effect.serviceOption(Reactivity.Reactivity);
 	const reactivity = Option.isSome(available) ? available.value : yield* Reactivity.make;
@@ -37,7 +38,9 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
   name text not null
 )`;
 		const current = [...(yield* loader)].sort(([left], [right]) => left - right);
-		const applied = yield* sql<{ id: number }>`select migration_id as id from ${sql(table)}`.withoutTransform;
+		const applied = yield* sql`select migration_id as id from ${sql(table)}`.withoutTransform.pipe(
+			Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ id: Schema.Int })))),
+		);
 		const appliedIds = new Set(applied.map(({ id }) => id));
 		const latest = applied.reduce((max, { id }) => Math.max(max, id), 0);
 		const missing = current.filter(([id]) => id <= latest && !appliedIds.has(id));
@@ -51,7 +54,11 @@ export const migratePostgres = Effect.fn("EffectSql.migratePostgres")(function* 
 		}
 		return yield* migrate({ loader: Effect.succeed(current), table });
 	}).pipe(transact({ onSqlError: (error) => error }), Effect.provideService(Reactivity.Reactivity, reactivity));
-	for (const component of [...components, ...(release === undefined ? [] : [postgresRelease(release, table)])]) {
+	const schemaComponents: readonly SchemaComponent<R, E | SqlError | Schema.SchemaError>[] = [
+		...components,
+		...(release === undefined ? [] : [postgresRelease(release, table)]),
+	];
+	for (const component of schemaComponents) {
 		yield* runSchemaComponent(component.name, component.apply);
 	}
 	return appliedMigrations;

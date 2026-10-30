@@ -1,4 +1,5 @@
 import { posix } from "node:path";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import { workspacePackages } from "#imports/workspace.ts";
 import { defineRule, type Finding } from "#rule.ts";
 
@@ -52,11 +53,14 @@ function findingsIn(file: string, exports: unknown): readonly Finding[] {
 			: [finding(file, "exports", `The exports field needs exactly one non-null wildcard; found ${patterns.length}.`)];
 	return [
 		...count,
-		...entries.flatMap(([key, value]) =>
-			value === null || key === "." || exactAsset(key, value) || standardPattern(key, value)
+		...entries.flatMap(([key, value]) => {
+			if (value === null) {
+				return [finding(file, key, `Export "${key}" blocks module imports with null. Remove the null entry so callers can import each module.`)];
+			}
+			return key === "." || exactAsset(key, value) || standardPattern(key, value)
 				? []
-				: [finding(file, key, `Export "${key}" does not preserve the module's file path.`)],
-		),
+				: [finding(file, key, `Export "${key}" does not preserve the module's file path.`)];
+		}),
 	];
 }
 
@@ -66,18 +70,17 @@ export const manifestsExportsShape = defineRule({
 		const files = ["package.json", ...packages.map((owner) => posix.join(owner.directory, "package.json"))];
 		const findings = await Promise.all(
 			files.map(async (file) => {
-				const text = await inputs.readText(file);
-				if (file === "package.json" && text === undefined) {
+				const manifest = await readPackageManifest(inputs.readText, file);
+				if (file === "package.json" && manifest === undefined) {
 					return [];
 				}
-				const manifest: unknown = JSON.parse(text ?? "");
 				return findingsIn(file, isMap(manifest) ? manifest.exports : undefined);
 			}),
 		);
 		return findings.flat();
 	},
 	description:
-		"Workspace packages export modules through one file-preserving wildcard, with optional root, exact non-code assets and null blocks; a package without modules exports only exact assets.",
+		"Workspace packages export every module through one file-preserving wildcard, with optional root and exact non-code assets; null entries are rejected, and a package without modules exports only exact assets.",
 	id: "manifests/exports-shape",
 	registrable: false,
 });

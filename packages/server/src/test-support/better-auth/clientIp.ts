@@ -1,9 +1,8 @@
 import { readFile } from "node:fs/promises";
-import { request } from "node:http";
 import { Effect, Schema } from "effect";
 import { authTestDatabase } from "@shivaedev/identity/server/better-auth/testDatabase.ts";
-import { postgres } from "@shivaedev/identity/test-support/better-auth/postgres.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
+import { databaseUrl, postgres } from "@shivaedev/test-sql/server/emptyPostgres.ts";
 import { withIsolatedDatabase } from "@shivaedev/test-sql/server/withIsolatedDatabase.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { post } from "#test/app-host/fixture.ts";
@@ -28,6 +27,7 @@ export const clientIp = storyKit({
 	inspect: (engine) => ({ env: engine.env, url: engine.host?.baseUrl }),
 	layer: postgres,
 	name: "auth client IP through appHost",
+	runIf: databaseUrl !== undefined,
 	stages: ["configured"],
 	verbs: (engine, story) => {
 		const host = engine.host;
@@ -48,10 +48,6 @@ export const clientIp = storyKit({
 					}),
 				);
 			},
-			signIn: (headers: Record<string, string>, peer?: string) => {
-				story.tell(`Alice signs in over HTTP with ${JSON.stringify(headers)}`);
-				return emailRequest(baseUrl, "sign-in", headers, peer);
-			},
 			signInResponse: (headers: Record<string, string>) => {
 				story.tell("Alice signs in through Railway's proxy");
 				return emailResponse(baseUrl, "sign-in", headers);
@@ -68,16 +64,6 @@ export const clientIp = storyKit({
 	},
 });
 
-export function proxyEnvironment(env: Record<string, string>) {
-	return clientIp.trait("configured", `proxy configuration is ${JSON.stringify(env)}`, (engine) => {
-		Object.assign(engine.env, env);
-	});
-}
-
-export const noProxy = clientIp.trait("configured", "no trusted proxy is configured", (engine) => {
-	delete engine.env.TRUSTED_PROXY;
-});
-
 export const railway = clientIp.trait("configured", "the starter's Railway environment runs with a simulated Railway proxy peer", function* (engine) {
 	const text = yield* Effect.promise(() => readFile(new URL("../../../../../examples/starter/.railway/proxy.json", import.meta.url), "utf8"));
 	const proxy = yield* Schema.decodeUnknownEffect(Schema.fromJsonString(Schema.Record(Schema.String, Schema.String)))(text);
@@ -85,28 +71,18 @@ export const railway = clientIp.trait("configured", "the starter's Railway envir
 	engine.proxyPeer = "100.64.0.2";
 });
 
-function emailRequest(baseUrl: string, path: string, headers: Record<string, string>, localAddress = "127.0.0.1") {
-	return emailResponse(baseUrl, path, headers, localAddress).pipe(Effect.map((response) => response.status));
+function emailRequest(baseUrl: string, path: string, headers: Record<string, string>) {
+	return emailResponse(baseUrl, path, headers).pipe(Effect.map((response) => response.status));
 }
 
-function emailResponse(baseUrl: string, path: string, headers: Record<string, string>, localAddress = "127.0.0.1") {
-	return Effect.promise(
-		() =>
-			new Promise<{ status: number; cookies: readonly string[] }>((resolve, reject) => {
-				const outgoing = request(
-					`${baseUrl}/api/auth/${path}/email`,
-					{
-						headers: { "content-type": "application/json", origin: baseUrl, ...headers },
-						localAddress,
-						method: "POST",
-					},
-					(response) => {
-						response.resume();
-						response.on("end", () => resolve({ cookies: response.headers["set-cookie"] ?? [], status: response.statusCode ?? 0 }));
-					},
-				);
-				outgoing.on("error", reject);
-				outgoing.end(JSON.stringify({ email: "alice@example.test", name: "Alice", password: "story-password-123" }));
-			}),
-	);
+function emailResponse(baseUrl: string, path: string, headers: Record<string, string>) {
+	return Effect.promise(async () => {
+		const response = await fetch(`${baseUrl}/api/auth/${path}/email`, {
+			body: JSON.stringify({ email: "alice@example.test", name: "Alice", password: "story-password-123" }),
+			headers: { "content-type": "application/json", origin: baseUrl, ...headers },
+			method: "POST",
+		});
+		await response.text();
+		return { cookies: response.headers.getSetCookie(), status: response.status };
+	});
 }

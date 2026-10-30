@@ -2,7 +2,7 @@ import { createMemoryHistory } from "@tanstack/react-router";
 import { Effect } from "effect";
 import { act } from "react";
 import { authAction } from "@shivaedev/react/client/authAction.ts";
-import { expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenDriver } from "@shivaedev/test-story/server/screenDriver.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import type { AuthActions } from "#client/auth.ts";
@@ -20,7 +20,7 @@ export const signOut = storyKit({
 	*create() {
 		const response = Promise.withResolvers<{ readonly data: object; readonly error: null }>();
 		const requested = Promise.withResolvers<void>();
-		const client = notesClient();
+		const client = yield* notesClient();
 		const history = createMemoryHistory({ initialEntries: ["/"] });
 		const auth: AuthActions = {
 			...screenAuth(),

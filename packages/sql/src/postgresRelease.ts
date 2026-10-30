@@ -1,4 +1,4 @@
-import { Effect } from "effect";
+import { Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import type { SchemaComponent } from "./SchemaComponent.ts";
 
@@ -6,15 +6,19 @@ export const readPostgresRelease = Effect.fn("EffectSql.readPostgresRelease")(fu
 	const sql = yield* SqlClient.SqlClient;
 	const name = `${table}_release`;
 	const identifier = sql`${sql(name)}`.compile()[0];
-	const [exists] = yield* sql<{ name: string | null }>`select to_regclass(${identifier})::text as name`.withoutTransform;
+	const [exists] = yield* sql`select to_regclass(${identifier})::text as name`.withoutTransform.pipe(
+		Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ name: Schema.NullOr(Schema.String) })))),
+	);
 	if (exists === undefined || exists.name === null) {
 		return undefined;
 	}
-	const [row] = yield* sql<{ release: string; recordedAt: Date }>`select release, recorded_at as "recordedAt" from ${sql(name)}`.withoutTransform;
+	const [row] = yield* sql`select release, recorded_at as "recordedAt" from ${sql(name)}`.withoutTransform.pipe(
+		Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ recordedAt: Schema.Date, release: Schema.String })))),
+	);
 	return row;
 });
 
-export function postgresRelease(release: string, table = "effect_sql_migrations"): SchemaComponent {
+export function postgresRelease(release: string, table = "effect_sql_migrations") {
 	return {
 		apply: Effect.gen(function* () {
 			const sql = yield* SqlClient.SqlClient;
@@ -37,5 +41,5 @@ export function postgresRelease(release: string, table = "effect_sql_migrations"
 			const current = yield* readPostgresRelease(table);
 			return current?.release === release ? undefined : `Expected release ${release}; recorded ${current?.release ?? "none"}`;
 		}),
-	};
+	} satisfies SchemaComponent;
 }

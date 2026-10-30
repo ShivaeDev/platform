@@ -1,44 +1,54 @@
-import { Effect, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { defineQueue } from "#definition.ts";
-import { schemaIt } from "#test/schemaStories.ts";
+import { schemaKit } from "#test/schema/kit.ts";
+import { enqueuedBy, installed, ran, rolledBackTo, stopped } from "#test/schema/traits.ts";
+import { worker } from "#test/workers.ts";
 
-schemaIt(
-	"preserves queued work through the schema component upgrade before starting workers",
-	[],
-	function* ({ boot, migrateSchema, checkSchema, query, rollbackSchema, untilJob }) {
-		yield* migrateSchema({ schema: "jobs_test" });
-		const queue = defineQueue({ name: "upgrade", queue: { partition: true }, schema: Schema.Struct({ value: Schema.Number }) });
-		const producer = yield* boot([queue], { migrate: false });
-		const id = Option.getOrThrow(yield* producer.jobs.enqueue(queue, { value: 42 }));
-		yield* producer.stop;
-		yield* rollbackSchema("jobs_test", 46);
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 45 }]);
-		const pending = yield* checkSchema({ schema: "jobs_test" }).pipe(Effect.result);
-		expect(pending).toMatchObject({
-			_tag: "Failure",
-			failure: { kind: "BadState", message: expect.stringContaining("installed version 45, required version 46") },
+const Upgraded = defineQueue({
+	name: "upgrade",
+	queue: { partition: true },
+	schema: Schema.Struct({ value: Schema.Number }),
+	worker: { pollingIntervalSeconds: 0.5 },
+});
+
+const oneVersionBehind = [
+	installed("jobs_test"),
+	ran("producer", [Upgraded], { controller: "none", migrate: false, schema: "jobs_test" }),
+	enqueuedBy(Upgraded, { value: 42 }, "job", "producer"),
+	stopped("producer"),
+	rolledBackTo("jobs_test", 45),
+];
+
+schemaKit.it(
+	"the schema component upgrades a schema one version behind and builds valid indexes",
+	oneVersionBehind,
+	function* ({ answered, checkSchema, indexes, migrateSchema, schemaVersion }) {
+		yield* checkSchema("jobs_test");
+		expect(yield* answered()).toEqual(expect.stringContaining("installed version 45, required version 46"));
+
+		yield* migrateSchema("jobs_test");
+
+		yield* checkSchema("jobs_test");
+		yield* outcomes({
+			check: [answered(), "done"],
+			indexes: [indexes("jobs_test", "_i1[4-7]$"), Array.from({ length: 8 }, () => expect.objectContaining({ valid: true }))],
+			version: [schemaVersion("jobs_test"), 46],
 		});
-		yield* migrateSchema({ schema: "jobs_test" });
-		expect(yield* query("SELECT version FROM jobs_test.version")).toEqual([{ version: 46 }]);
-		yield* checkSchema({ schema: "jobs_test" });
-		expect(
-			yield* query(
-				"SELECT count(*)::int AS count, bool_and(indisvalid) AS valid FROM pg_index JOIN pg_class ON pg_class.oid = indexrelid JOIN pg_namespace ON pg_namespace.oid = relnamespace WHERE nspname = 'jobs_test' AND relname ~ '_i1[4-7]$'",
-			),
-		).toEqual([{ count: 8, valid: true }]);
-		const handled: number[] = [];
-		const worker = yield* boot(
-			[
-				queue.handle(({ value }) =>
-					Effect.sync(() => {
-						handled.push(value);
-					}),
-				),
-			],
-			{ migrate: false },
-		);
-		yield* untilJob(worker.jobs, queue, id, "completed");
-		expect(handled).toEqual([42]);
+	},
+);
+
+schemaKit.it(
+	"work queued before the schema component upgrade runs once a worker starts after it",
+	oneVersionBehind,
+	function* ({ attempts, migrateSchema, start, untilJob }) {
+		yield* migrateSchema("jobs_test");
+		expect(yield* attempts(Upgraded)).toEqual([]);
+
+		yield* start("app", [worker(Upgraded, "succeeds")], { migrate: false, schema: "jobs_test" });
+		yield* untilJob("job", "completed");
+
+		expect(yield* attempts(Upgraded)).toEqual(["job"]);
 	},
 );

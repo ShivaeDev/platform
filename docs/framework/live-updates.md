@@ -119,7 +119,32 @@ Set `paused` through the registry. The stream keeps consuming hints while automa
 
 `@shivaedev/react/resumeSignal.ts` delegates to the shared implementation.
 
-An ended or failed stream enters `reconnecting` and retries after one second by default. `retryDelay` lets the consumer choose a positive native Duration for its deployment. Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
+An ended or failed stream enters `reconnecting` and retries with a random delay between 80% and 120% of one second by default. `retryDelay` sets the base delay using a positive native Duration; each retry draws fresh jitter. The default shared WebSocket transport also jitters its exponential reconnect backoff, starting at a 500 ms base, growing by 1.5 and capping the base at 5 seconds. Its actual delays range from 80% to 120% of that base. After a host restart, each new subscription reconciles its mounted query through the normal authorized read. Jitter spreads recovery work but does not impose a server-wide request rate limit. Custom transports own their connection retry policy.
+
+Typed stream failures remain in `status.failure`; first successful delivery clears them. The runtime's initialization failure remains in the `connection` atom's native AsyncResult. Read failures remain in each query's AsyncResult, which retains its previous success. Connection state and query freshness are separate: `needsResync: false` means invalidation was issued, not that every query completed or the source is accepted.
+
+## PostgreSQL listener connections
+
+LISTEN requires a direct or session-mode PostgreSQL connection. If `DATABASE_URL` uses a transaction pooler, set `LISTEN_DATABASE_URL` to a direct connection to the same database, or supply `config.listenDatabaseUrl` as an Effect `Redacted<string>` to `appHost` or `appDatabase`. The config value takes precedence over the environment. Without either setting, the listener uses the application pool and URL. Writes, migrations and heartbeat publication stay on the application pool; a separate listener reserves one additional connection.
+
+Before host startup completes, the listener must receive its own heartbeat within `config.changes.heartbeatTimeout` (10 seconds by default). A timeout fails startup with `PostgresListenerError`, naming the selected setting and requiring a direct or session-mode connection. SQL errors remain typed SQL failures. After successful startup, a lost listener still reconnects and resynchronizes live streams; a permanently broken connection after startup can therefore continue to cause repeated Resyncs until its configuration is corrected.
+
+## Session revalidation and write budget
+
+A hosted WebSocket owns one session revalidation timer, shared by all its authenticated streams. Session rechecks using the same provider join a batch on the next event-loop turn and share its in-flight lookup. Once it finishes, the next batch performs a fresh lookup; there is no session TTL cache. Origin admission, role resolution and each subscription's read policy still run independently. Different sockets and different session providers do not share session results.
+
+Each interval checks every registered stream through that shared lookup. An expired or replaced session ends every affected stream with `Unauthorized`; an unavailable session provider leaves them open until a later check. A hint-time session denial ends its subscription with `QueryReadDenied`. Ordinary query reads authenticate independently and keep their typed result and authorization path. Custom RPC hosts can provide `SocketSession` from `makeSocketSession(interval)` in the connection's scope; without that service, identity middleware keeps its per-stream timer. Closing a stream removes its check, and closing the socket releases the timer.
+
+The subscriber fan-out budget for one committed write is at most S hint-time session lookups plus N authenticated read lookups, 3N read-policy checks, and N query reruns, where S sockets each watch N/S queries in one shared bucket. The hosted read currently checks the policy in both identity middleware and the host guard, in addition to the hint-time check. Policy checks and query SQL therefore still grow with query count. Separate hint batches, concurrent writes, reconnects and slow readers can add work; this is a single-write fan-out budget, not a process-wide rate limit.
+
+A loopback measurement against real PostgreSQL, with 12 signed-in viewers, one socket per viewer, native RPC query subscriptions and an authorized typed read after each hint, records:
+
+| Queries per socket | Total queries | Per-stream session lookups (comparison) | Shared session lookups | Read-policy checks | Query reruns |
+| ------------------ | ------------- | --------------------------------------- | ---------------------- | ------------------ | ------------ |
+| 1                  | 12            | 24                                      | 24                     | 36                 | 12           |
+| 8                  | 96            | 192                                     | 108                    | 288                | 96           |
+
+The write uses the repository's model-derived bucket keys and no command invalidations. Counts exclude initial connection/subscription reads and the command's own authorization and write SQL, and include the complete subscriber fan-out. These counts measure the host and identity composition, not browser rendering, provider-specific session SQL, deployment latency or a host restart. Run the PostgreSQL load story with `PLATFORM_SQL_TEST_DATABASE_URL` set: `pnpm --filter @shivaedev/server test src/liveCost.spec.ts`. It asserts delivery and the shared-session budget at both query counts. The shared idle-session story also asserts one lookup for four stream middleware variants at one interval and revocation of all four at the next interval.
 
 ## Limits
 

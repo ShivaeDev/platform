@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { ChangesetError } from "#error.ts";
 
-export const sections = ["Added", "Changed", "Fixed", "Breaking"] as const;
+export const sections = ["Added", "Changed", "Fixed", "Breaking", "Quality rules"] as const;
 export type Section = (typeof sections)[number];
 export interface Entry {
 	readonly section: Section;
@@ -15,7 +15,7 @@ export const parseBody = Effect.fn("Changesets.parseBody")(function* (name: stri
 		if (line.startsWith("### ")) {
 			section = sections.find((value) => line === `### ${value}`);
 			if (section === undefined) {
-				return yield* new ChangesetError({ message: `${name}: use ### Added, ### Changed, ### Fixed or ### Breaking.` });
+				return yield* new ChangesetError({ message: `${name}: use ### Added, ### Changed, ### Fixed, ### Breaking or ### Quality rules.` });
 			}
 		} else if (line.trim() !== "") {
 			yield* appendEntry(name, line, section, entries);

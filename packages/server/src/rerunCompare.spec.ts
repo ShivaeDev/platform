@@ -37,6 +37,18 @@ rerunStory.it("a denied rerun ends alice's subscription with read denied", [], f
 	expect(yield* subscriptionEnd()).toBe("read denied");
 });
 
+rerunStory.it(
+	"a policy outage ends alice's compared subscription with its declared failure",
+	[],
+	function* ({ failReadPolicy, rename, subscriptionEnd }) {
+		yield* failReadPolicy();
+
+		yield* rename(3n, "One more");
+
+		expect(yield* subscriptionEnd()).toBe("policy unavailable");
+	},
+);
+
 rerunStory.it("a Resync reruns the subscription without sending an unchanged result", [], function* ({ arrivals, resync, untilChanged }) {
 	const before = yield* arrivals();
 

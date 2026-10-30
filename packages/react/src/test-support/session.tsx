@@ -1,7 +1,7 @@
 import type * as AtomRegistry from "effect/reactivity/AtomRegistry";
 import { act } from "react";
+import type { Rendered } from "@shivaedev/test-story/client/react.ts";
 import { SessionBoundary } from "#client/sessionBoundary.ts";
-import type { Rendered } from "#client/testing.ts";
 import { Editor } from "#test/order-example/Editor.tsx";
 import { makeClient } from "#test/order-example/makeClient.ts";
 import { clickButton, typeInput } from "./Screen.ts";

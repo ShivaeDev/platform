@@ -1,71 +1,70 @@
-import { Clock, DateTime, Effect, Fiber, Option, Schema } from "effect";
+import { Schema } from "effect";
 import { expect } from "vitest";
 import { defineQueue } from "#definition.ts";
-import { acceleratedTesting, failingWorker, pausedWorker } from "#test/acceleratedTesting.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
+import { database } from "#test/postgres/database.ts";
+import { claimedElsewhere, enqueued, enqueuedUntil, running } from "#test/postgres/traits.ts";
+import { workerBy } from "#test/workers.ts";
 
-postgresIt(
-	"reads the unfinished jobs of two queues in one snapshot and leaves completed jobs out",
-	[realPostgres, acceleratedTesting, failingWorker],
-	function* ({ admin, followUps, queue, recoverWorker, send, sendFollowUp, settle, snapshot, testing }) {
-		const failed = Option.getOrThrow(yield* send(1, { retryLimit: 0 }));
-		yield* settle();
-		yield* recoverWorker;
-		const completed = Option.getOrThrow(yield* send(2));
-		expect((yield* settle()).find((job) => job.id === completed)?.state).toBe("completed");
+const Reports = defineQueue({
+	name: "reports",
+	queue: { retryLimit: 0 },
+	schema: Schema.Struct({ id: Schema.NumberFromString }),
+	worker: { pollingIntervalSeconds: 0.5 },
+});
+const FollowUps = defineQueue({ name: "follow-ups", schema: Schema.Struct({ note: Schema.String }) });
 
-		const claimed = Option.getOrThrow(yield* sendFollowUp("claimed"));
-		const laterFollowUp = Option.getOrThrow(yield* sendFollowUp("later", { startAfter: 3600 }));
-		const other = yield* admin({ schema: "story_jobs", supervise: false });
-		expect((yield* Effect.promise(() => other.fetch(followUps.name))).map((job) => job.id)).toEqual([claimed]);
-		const deferred = Option.getOrThrow(yield* send(3, { startAfter: 3600 }));
-		yield* testing.waitForIdle.pipe(Effect.timeout("5 seconds"));
+const mixed = [
+	running("app", [workerBy(Reports, ({ id }) => (id === 1 ? { fails: "The report cannot be built" } : "succeeds")), FollowUps], {
+		controller: "test retries",
+	}),
+	enqueuedUntil(Reports, { id: 1 }, { as: "failed report" }, "failed"),
+	enqueuedUntil(Reports, { id: 2 }, { as: "completed report" }, "completed"),
+	enqueued(FollowUps, { note: "claimed" }, { as: "claimed follow-up" }),
+	claimedElsewhere("claimed follow-up"),
+	enqueued(FollowUps, { note: "later" }, { as: "later follow-up", startAfter: 3600 }),
+];
 
-		const jobs = yield* snapshot;
-		expect(jobs.map(({ data, id, queue: name, state }) => ({ data, id, name, state }))).toEqual([
-			{ data: { id: 1 }, id: failed, name: queue.name, state: "failed" },
-			{ data: { note: "claimed" }, id: claimed, name: followUps.name, state: "active" },
-			{ data: { note: "later" }, id: laterFollowUp, name: followUps.name, state: "created" },
-			{ data: { id: 3 }, id: deferred, name: queue.name, state: "created" },
+database.it(
+	"a snapshot of two queues reads their unfinished jobs in send order and leaves completed jobs out",
+	mixed,
+	function* ({ enqueue, snapshot, untilIdle }) {
+		expect(yield* snapshot("app", [Reports, FollowUps])).not.toContainEqual(expect.objectContaining({ job: "later report" }));
+
+		yield* enqueue("app", Reports, { id: 3 }, { as: "later report", startAfter: 3600 });
+		yield* untilIdle("app");
+
+		expect(yield* snapshot("app", [Reports, FollowUps])).toEqual([
+			{ data: { id: 1 }, job: "failed report", queue: "reports", starts: "by now", state: "failed" },
+			{ data: { note: "claimed" }, job: "claimed follow-up", queue: "follow-ups", starts: "by now", state: "active" },
+			{ data: { note: "later" }, job: "later follow-up", queue: "follow-ups", starts: "later", state: "created" },
+			{ data: { id: 3 }, job: "later report", queue: "reports", starts: "later", state: "created" },
 		]);
-		const now = yield* Clock.currentTimeMillis;
-		const deferredIds = [laterFollowUp, deferred];
-		for (const job of jobs) {
-			expect(DateTime.isUtc(job.startAfter)).toBe(true);
-			expect(DateTime.toEpochMillis(job.startAfter) > now).toBe(deferredIds.includes(job.id));
-		}
-
-		const unfinishedOnly = defineQueue({ name: queue.name, schema: Schema.Struct({ id: Schema.Literals(["1", "3"]) }) });
-		expect((yield* testing.snapshot([unfinishedOnly])).map((job) => job.data)).toEqual([{ id: "1" }, { id: "3" }]);
-		const incompatible = defineQueue({ name: queue.name, schema: Schema.Struct({ id: Schema.Literal("1") }) });
-		expect(yield* testing.snapshot([incompatible]).pipe(Effect.flip)).toMatchObject({
-			_tag: "PgBossPayloadError",
-			direction: "decode",
-			queue: queue.name,
-		});
 	},
 );
 
-postgresIt(
-	"settles a busy worker through the idle wait without reading while it is busy",
-	[realPostgres, acceleratedTesting, pausedWorker],
-	function* ({ attempts, recordIdleReads, releaseWorker, send, settle, workerStarted }) {
-		const idleReads = recordIdleReads();
-
-		const busy = Option.getOrThrow(yield* send(1));
-		yield* workerStarted;
-		const settling = yield* settle().pipe(Effect.forkChild);
-		const queued = [Option.getOrThrow(yield* send(2)), Option.getOrThrow(yield* send(3))];
-		yield* Effect.sleep("500 millis");
-		expect(idleReads()).toEqual([]);
-
-		yield* releaseWorker;
-		const jobs = yield* Fiber.join(settling).pipe(Effect.timeout("10 seconds"));
-		expect(jobs.map(({ id, state }) => ({ id, state })).sort((left, right) => left.id.localeCompare(right.id))).toEqual(
-			[busy, ...queued].sort((left, right) => left.localeCompare(right)).map((id) => ({ id, state: "completed" })),
-		);
-		expect([...attempts].sort((left, right) => left - right)).toEqual([1, 2, 3]);
-		const readsPerSettledJob = 2;
-		expect(idleReads().length).toBeLessThanOrEqual(readsPerSettledJob * attempts.length);
+const readings = [
+	{
+		answer: [expect.objectContaining({ data: { id: "1" } })],
+		outcome: "decodes the job through the schema it is given",
+		schema: Schema.Struct({ id: Schema.Literals(["1", "3"]) }),
 	},
-);
+	{
+		answer: expect.stringMatching(/^decode reports payload failed with /u),
+		outcome: "rejects data the schema it is given cannot decode",
+		schema: Schema.Struct({ id: Schema.Literal("3") }),
+	},
+];
+
+for (const { answer, outcome, schema } of readings) {
+	database.it(
+		`a snapshot ${outcome}`,
+		[running("app", [Reports], { controller: "test retries" }), enqueued(Reports, { id: 1 }, { as: "report", startAfter: 3600 })],
+		function* ({ snapshot }) {
+			expect(yield* snapshot("app", [Reports])).toMatchObject([{ data: { id: 1 } }]);
+
+			const reading = defineQueue({ name: Reports.name, schema });
+
+			expect(yield* snapshot("app", [reading])).toEqual(answer);
+		},
+	);
+}

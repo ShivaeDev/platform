@@ -1,48 +1,59 @@
-import { Effect, Option, Schema } from "effect";
-import { expect, vi } from "vitest";
-import { defineQueue } from "#definition.ts";
-import { postgresIt, realPostgres } from "#test/boss.ts";
-import { Jobs } from "#test/pgBossRuntime.ts";
+import { Option, Schema } from "effect";
+import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { defineQueue, defineSchedule } from "#definition.ts";
+import { database } from "#test/postgres/database.ts";
+import { running } from "#test/postgres/traits.ts";
+import { scheduled, worker } from "#test/workers.ts";
 
-postgresIt(
-	"enqueues from both handlers onto worker and producer queues with one scoped client",
-	[realPostgres],
-	function* ({ boot, native, untilJob, untilJobs }) {
-		const Payload = Schema.Struct({ id: Schema.NumberFromString });
-		const Source = defineQueue({ name: "source", queue: { notify: true }, schema: Payload });
-		const FollowUp = defineQueue({ name: "follow-up", queue: { notify: true }, schema: Payload });
-		const Producer = defineQueue({ name: "producer", queue: { notify: true }, schema: Payload });
-		const client = native({ useListenNotify: true });
-		const factory = vi.fn(() => client);
-		const start = vi.spyOn(client, "start");
-		const stop = vi.spyOn(client, "stop");
-		const completed: number[] = [];
-		const runtime = yield* boot(
-			[
-				Source.handle(({ id: payloadId }) => Effect.flatMap(Jobs, (jobs) => jobs.enqueue(FollowUp, { id: payloadId }))),
-				FollowUp.handle(({ id: payloadId }) =>
-					Effect.gen(function* () {
-						const jobs = yield* Jobs;
-						yield* jobs.enqueue(Producer, { id: payloadId });
-						completed.push(payloadId);
-					}),
-				),
-				Producer,
-			],
-			{ clientFactory: factory },
-		);
-		const id = Option.getOrThrow(yield* runtime.jobs.enqueue(Source, { id: 42 }));
-		yield* untilJob(runtime.jobs, Source, id, "completed");
-		yield* untilJobs(client, FollowUp.name, (jobs) => jobs.some((job) => job.state === "completed"));
-		expect(completed).toEqual([42]);
-		const produced = yield* Effect.promise(() => client.findJobs(Producer.name));
-		expect(produced).toMatchObject([{ data: { _tag: "@shivaedev/jobs/TracedPayload", payload: { id: "42" } }, state: "created" }]);
-		const producedId = produced[0]?.id;
-		expect(producedId).toBeDefined();
-		expect(Option.getOrThrow(yield* runtime.jobs.getJob(Producer, producedId ?? "")).data).toEqual({ id: 42 });
-		expect(factory).toHaveBeenCalledTimes(1);
-		expect(start).toHaveBeenCalledTimes(1);
-		yield* runtime.stop;
-		expect(stop).toHaveBeenCalledTimes(1);
+const Payload = Schema.Struct({ id: Schema.NumberFromString });
+const Source = defineQueue({ name: "source", queue: { notify: true }, schema: Payload });
+const FollowUp = defineQueue({ name: "follow-up", queue: { notify: true }, schema: Payload });
+const Producer = defineQueue({ name: "producer", queue: { notify: true }, schema: Payload });
+
+const chained = running(
+	"app",
+	[
+		worker(Source, { enqueues: (jobs) => jobs.enqueue(FollowUp, { id: 42 }) }),
+		worker(FollowUp, { enqueues: (jobs) => jobs.enqueue(Producer, { id: 42 }) }),
+		Producer,
+	],
+	{ useListenNotify: true },
+);
+
+database.it(
+	"a handler's follow-up job runs on its own queue and enqueues a producer job that decodes",
+	[chained],
+	function* ({ enqueue, handled, storedPayloads, untilFinished }) {
+		expect(yield* storedPayloads(Producer)).toEqual([]);
+
+		yield* enqueue("app", Source, { id: 42 }, { as: "job 42" });
+		yield* untilFinished(FollowUp, 1);
+
+		yield* outcomes({
+			"follow-up payloads": [handled(FollowUp), [{ id: 42 }]],
+			"producer payloads": [storedPayloads(Producer), [Option.some({ id: 42 })]],
+		});
+	},
+);
+
+const Hourly = defineSchedule({ cron: "0 * * * *", name: "publish-follow-up" });
+const Message = defineQueue({ name: "scheduled-follow-up", schema: Schema.Struct({ message: Schema.String }) });
+const SCHEDULED_MESSAGE = "a message from the scheduled effect";
+
+database.it(
+	"a scheduled effect enqueues a follow-up that its worker delivers",
+	[
+		running("app", [scheduled(Hourly, { enqueues: (jobs) => jobs.enqueue(Message, { message: SCHEDULED_MESSAGE }) }), worker(Message, "succeeds")], {
+			schedule: false,
+		}),
+	],
+	function* ({ askTesting, handled, untilFinished }) {
+		expect(yield* handled(Message)).toEqual([]);
+
+		yield* askTesting("app", "trigger the hourly schedule", (testing) => testing.trigger(Hourly));
+		yield* untilFinished(Message, 1);
+
+		expect(yield* handled(Message)).toEqual([{ message: SCHEDULED_MESSAGE }]);
 	},
 );

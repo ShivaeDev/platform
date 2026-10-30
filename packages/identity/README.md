@@ -84,6 +84,8 @@ export const sessions = {
 
 `trustedOrigins({ allow, missing })` accepts an exact allowlist and supports `missing: "reject"` or `"allow"`; a custom `OriginPolicy` can decide from the RPC name or transport headers. A denied policy fails with `Forbidden` before provider lookup. The host's HTTP guard also checks Origin against the local request's Host.
 
+To also accept the transport guard's same-origin requests, pass `sameOrigin: { trustedProxy }`, with the same proxy IP addresses or CIDR ranges as the host. This admits direct loopback HTTP and the forwarded HTTP or HTTPS authority only from a matching transport peer. Session resolution supplies that peer from the HTTP request, including the WebSocket upgrade; RPC message headers cannot supply it. Missing Origins still follow `missing`. Leave `sameOrigin` absent when an explicit public-origin allowlist should be the only authority.
+
 The application's `auth` owns its storage and session configuration. A null lookup becomes a missing session. A thrown or rejected lookup is logged in redacted form and fails with the generic `AuthUnavailable` message. It remains a failure even on an RPC with optional authentication.
 
 ### Mount Better Auth
@@ -309,7 +311,7 @@ const mounted = yield* betterAuthMount(authOptions, { roles: Access });
 const sessions = { ...mounted.sessions, origin: trustedOrigins({ allow: ["https://app.example.com"], missing: "reject" }) };
 ```
 
-For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. An undeclared stored role fails with `AuthUnavailable` instead of silently granting an empty role.
+For another session provider, put `roles: Access` alongside `provider` and `origin` in the host's existing `sessions` policy. The provider must read the current stored role on every invocation. `betterAuthMount`'s returned provider and its existing `/api/auth/get-session` endpoint bypass the cookie cache. That endpoint adds `user.permissions`, an array of `{ name, strength }` grants, and the request-local `SessionUser` exposes the same decoded role and grants. An undeclared stored role fails as a defect naming that role. RPC request tracing logs it as a defect; `/api/auth/get-session` returns HTTP 500. Correct the stored role or restore its application declaration. Provider outages remain `AuthUnavailable`.
 
 Declare a native middleware service for each required permission and provide its Layer beside the handlers:
 
@@ -327,7 +329,7 @@ const handlers = Tools.toLayer({ tools: () => Effect.map(SessionUser, (user) => 
 );
 ```
 
-The middleware resolves and checks the session on every request before invoking the handler. It provides `Identity` and `SessionUser`, rejects signed-out callers with `Unauthorized`, and rejects missing grants with `Forbidden` in its declared error channel. A permission checks an exact name and strength; an `any` grant does not imply the corresponding `own` grant. Open streams recheck their required permission at the session revalidation interval and end with `Forbidden` after its removal.
+The middleware resolves and checks the session on every request before invoking the handler. It provides `Identity` and `SessionUser`, rejects signed-out callers with `Unauthorized`, and rejects missing grants with `Forbidden` in its declared error channel. Access evaluates an exact permission name: an `any` grant covers an `own` check, while an `own` grant does not cover an `any` check. Open streams recheck their required permission at the session revalidation interval and end with `Forbidden` after its removal.
 
 For HTTP routes, use `permissionRoute(sessions, UseTools)` around the handler. It uses the same transport session and Origin policy, returns 401 for missing sessions, 403 for missing grants or refused Origins, and 503 for `AuthUnavailable`. Those rejections carry `Cache-Control: private, no-store`. The handler's response and typed failures pass through unchanged.
 
@@ -344,7 +346,7 @@ const routes = HttpRouter.use((router) =>
 );
 ```
 
-An operation on one record reads that record's owner and uses the application's access policy. With a request-local user, `const { role } = yield* Access.resolve(user.role)` recovers the application's closed role type; `yield* Access.requireAccess({ id: user.id, role }, UseTools, record.ownerId)` then permits an explicit `any` grant or an `own` grant for that owner. Keep these resource decisions in the handler or domain service. Browser interfaces can use `hasPermission(user, permission)` from `@shivaedev/identity/permission.ts` over the client session's grants; the server always resolves its own grants.
+An operation on one record reads that record's owner and uses the application's access policy. With a request-local user, `const { role } = yield* Access.resolve(user.role)` recovers the application's closed role type; `yield* Access.requireAccess({ id: user.id, role }, UseTools, record.ownerId)` then permits an explicit `any` grant or an `own` grant for that owner. Keep these resource decisions in the handler or domain service. Browser interfaces can use `hasPermission(user, permission)` from `@shivaedev/identity/permission.ts` over the client session's grants; the server always resolves its own grants. To enforce a grant in a handler, import `requirePermission` from `@shivaedev/access/requirePermission.ts` and call `yield* requirePermission(yield* SessionUser, permission)`.
 
 ### Session-scoped contract keys
 
@@ -371,7 +373,7 @@ const handlers = Api.toLayer({
 });
 ```
 
-Here `changes` is the application's `makeLiveServer` service. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
+Here `changes` is the application's `makeLiveServer` service. Pass the native RPC definition to `resolveChanges` so its typed failures and required services follow the policies declared by that contract. Keep `resolveChanges` in the invocation; resolving it while building a shared Layer would lose request identity. Pass the authorized subscription and context to `changes.subscribe`; it uses the query scopes to identify affected references and rechecks the same policies before hints leave.
 
 Custom authentication middleware supplies the same boundary by validating the transport session, then wrapping scoped commands with `commandChanges` before providing `Identity`:
 
@@ -519,7 +521,7 @@ Import the module that defines the name; there is no package-root entry. Paths b
 | `identity.ts`                                | `RequestId`, `Identity`, `OptionalIdentity`, `SessionUser`, `SessionUserWithProviderAccounts`, `SessionUserSchema`: request-local services and the shared user schema.                                                                                                    |
 | `middleware.ts`                              | `RequestTracing`, `Authenticated`, `AuthenticatedUser`, `AuthenticatedUserWithProviderAccounts`, `MaybeAuthenticated`, `IdentityFailures`: native RPC middleware declarations and their shared failure schema.                                                            |
 | `server/providerFailure.ts`                  | `providerFailure(cause)`: log a redacted provider failure and fail with `AuthUnavailable`.                                                                                                                                                                                |
-| `permission.ts`                              | `permissionMiddleware`, `hasPermission`, `requirePermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                              |
+| `permission.ts`                              | `permissionMiddleware`, `hasPermission`: native permission middleware declarations and predicates over resolved grants.                                                                                                                                                   |
 | `server/permissions.ts`                      | `permissionLayer`, `permissionRoute`: permission middleware Layers and HTTP route guards.                                                                                                                                                                                 |
 | `server/session.ts`                          | `authenticatedLayer`, `maybeAuthenticatedLayer`, `authenticatedUserLayer`, `authenticatedUserWithProviderAccountsLayer`, `withSessionUser`, `resolveSession`: session middleware implementations and the identity boundary.                                               |
 | `server/adapters/betterAuthSessions.ts`      | `betterAuthSessions(getSession, getProviderAccounts?)`: a session provider from Better Auth lookups.                                                                                                                                                                      |

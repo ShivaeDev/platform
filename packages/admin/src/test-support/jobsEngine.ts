@@ -3,7 +3,7 @@ import { Migrator } from "effect/sql";
 import { vi } from "vitest";
 import { SessionUser } from "@shivaedev/identity/identity.ts";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { makePgBossTesting } from "@shivaedev/jobs/server/testing.ts";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -27,7 +27,11 @@ export const postgresLayer = makePostgresTestLayer({
 	url: Redacted.make(url ?? "postgresql://integration-tests-disabled"),
 });
 
-class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number }> {}
+class WorkerRejected extends Data.TaggedError("WorkerRejected")<{ readonly id: number }> {
+	override get message() {
+		return `the worker rejected ${this.id}: password=admin-job-secret`;
+	}
+}
 const Jobs = makePgBoss("test/AdminJobs");
 const InvalidMail = defineQueue({ name: Mail.name, schema: Schema.Struct({ invalid: Schema.String }) });
 
@@ -42,16 +46,6 @@ export const jobsEngine = Effect.gen(function* () {
 	};
 	const context = yield* Layer.build(
 		Jobs.layer({
-			clientFactory: (options) => {
-				const client = testing.clientFactory(options);
-				const query = vi.spyOn(client, "getDb");
-				const health = vi.spyOn(client, "getQueue");
-				const job = vi.spyOn(client, "findJobs");
-				readCount = () => query.mock.calls.length + health.mock.calls.length + job.mock.calls.length;
-				boss.client = client;
-				return client;
-			},
-			connectionString: Redacted.value(database.url),
 			jobs: [
 				Mail.handle(({ id }, job) =>
 					Effect.suspend(() => {
@@ -64,9 +58,23 @@ export const jobsEngine = Effect.gen(function* () {
 				Sync,
 				Private,
 			],
-			// Queue statistics change only when the story refreshes them, so health answers are deterministic.
-			supervise: false,
-		}),
+		}).pipe(
+			Layer.provide(
+				pgBossLayer({
+					clientFactory: (options) => {
+						const client = testing.clientFactory(options);
+						const query = vi.spyOn(client, "getDb");
+						const health = vi.spyOn(client, "getQueue");
+						const job = vi.spyOn(client, "findJobs");
+						readCount = () => query.mock.calls.length + health.mock.calls.length + job.mock.calls.length;
+						boss.client = client;
+						return client;
+					},
+					connectionString: database.url,
+					supervise: false,
+				}),
+			),
+		),
 	).pipe(Effect.provideService(Scope.Scope, scope));
 	const jobs = Context.get(context, Jobs);
 	const beforeRegistration = readCount();

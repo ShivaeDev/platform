@@ -1,5 +1,49 @@
 # Changelog
 
+## 0.24.3 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.2 - 2026-10-30
+
+### Fixed
+
+- Give available areas to eligible queued work and PR repairs by Fleet priority, then by time waiting. Preserve repair queue age across restarts so new launches of the same or lower priority cannot repeatedly delay conflict or CI repairs and the PRs waiting for them to merge.
+
+## 0.24.1 - 2026-10-30
+
+### Changed
+
+- Release with updated workspace dependencies.
+
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- GitHub provides `GitHubToken.fromEnvOrCli`: resolve `GH_TOKEN`, then `GITHUB_TOKEN`, then `gh auth token` through Effect's child-process service. Authentication failures carry `GitHubTokenError` with string reasons and a non-enumerable cause.
+- Work Board archives settled questions and their response history outside routine scans and loads them on demand through their existing item and source links.
+
+### Fixed
+
+- Retry failed daemon liveness probes five times in total with exponential backoff before reporting an outage after about 30–35 seconds. Watch keeps probes sequential and stays quiet through a ten-second daemon stall.
+- Log invalid Board metadata once per file content and diagnostic, and warn again after a repaired or removed file becomes invalid again.
+- Rotate the supervisor log at 5 MiB, keeping three older files and continuing to capture Fleet, Board and supervisor output.
+- Wait for PostgreSQL during daemon startup with exponential backoff and a clear log instead of exiting while the database starts. After five minutes, fail with a typed `HostFailure` naming `database.url`.
+- Keep the watcher's last observed work states across daemon restarts so completion during reconnection is reported once.
+- Drain in-flight Board answer saves during shutdown before releasing their service scope.
+- Fleet consumes the shared token provider and pr-watch's typed-failure metadata.
+- GitHub transport and artifact failure mappings retain their original non-enumerable cause. Watcher response, state and outage failures retain their causes.
+- Work Fleet reads answers only for open requests at their current source revision, and excludes archived questions from recurring Board passes.
+
+### Breaking
+
+- pr-watch preserves GitHub and HTTP errors in its failure channel. Match their original classes or tags instead of expecting every failure to be `WatchError`. Use `requestFailure` for display and retry metadata; it now returns metadata without replacing the error. `WatchError` requires a string `reason`; use `reason: "cooldown"` instead of `retryable: true` for a local cooldown.
+- Replace the removed pr-watch `githubToken` Layer with `GitHubToken.fromEnvOrCli` from `@shivaedev/github/GitHubToken.ts`.
+- The CLI uses Effect CLI and NodeRuntime. Signal interruption exits with 130 instead of 0; callers that treat interrupted watches as clean shutdowns must accept 130. Help and parse errors use Effect CLI's format. Replace `argumentsFor` and the static `help` export with `program` for CLI execution or `optionsFor` for validation of parsed settings. `program` now requires Effect CLI's standard environment services. `Watcher.poll` diagnostic callbacks now receive the original typed failure; use `requestFailure(failure).message` to render it. `confirmQueue(options, snapshot)` reads `GitHubHttp` from the Effect environment instead of a service parameter.
+- Fleet PR watch streams also preserve these typed failures. Consumers that caught only `WatchError` must match the original GitHub or HTTP failure tags, or the existing authentication `ServiceUnavailable` tag.
+
 ## 0.23.2 - 2026-10-30
 
 ### Changed

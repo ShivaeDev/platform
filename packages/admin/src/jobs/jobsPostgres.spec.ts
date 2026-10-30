@@ -45,6 +45,7 @@ jobsStory.it(
 		const entry = yield* failedEntry("mail 42");
 
 		expect(yield* detail("mail 42")).toEqual(entry);
+		expect(entry.output).toEqual({ _tag: "WorkerRejected", message: "the worker rejected 42: password=<redacted>" });
 	},
 );
 
@@ -155,15 +156,18 @@ jobsStory.it("reading the invalid mail job answers that mail holds an invalid pa
 	expect(yield* job("the invalid mail job", "mail")).toBe("mail holds an invalid payload");
 });
 
-jobsStory.it("a failed mail list asked for no jobs answers that jobs are unavailable for failedJobs", [admin], function* ({ failedJobs }) {
-	expect(yield* failedJobs("mail", { limit: 0 })).toBe("jobs unavailable for failedJobs");
+jobsStory.it("a failed mail list asked for no jobs answers bad input", [admin], function* ({ failedJobs, pgBossReadsSinceRegistration }) {
+	yield* outcomes({ "page input": [failedJobs("mail", { limit: 0 }), "bad input"], "pg-boss reads": [pgBossReadsSinceRegistration(), 0] });
 });
 
 jobsStory.it(
-	"a dead-lettered mail list given a malformed cursor answers that jobs are unavailable for deadLetteredJobs",
+	"a dead-lettered mail list given a malformed cursor answers bad input",
 	[admin],
-	function* ({ deadLettered }) {
-		expect(yield* deadLettered("mail", { cursor: "invalid cursor", limit: 1 })).toBe("jobs unavailable for deadLetteredJobs");
+	function* ({ deadLettered, pgBossReadsSinceRegistration }) {
+		yield* outcomes({
+			"page input": [deadLettered("mail", { cursor: "invalid cursor", limit: 1 }), "bad input"],
+			"pg-boss reads": [pgBossReadsSinceRegistration(), 0],
+		});
 	},
 );
 

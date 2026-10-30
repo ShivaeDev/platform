@@ -7,7 +7,7 @@ import { Ping } from "./ping.ts";
 import { host } from "./story.ts";
 
 export class AppId extends Context.Service<AppId, string>()("@test/PreflightAppId") {}
-export class PreflightFailure extends Schema.TaggedError<PreflightFailure>()("PreflightFailure", {}) {}
+class PreflightFailure extends Schema.TaggedError<PreflightFailure>()("PreflightFailure", {}) {}
 
 export function preflight(mode: "http" | "migrate" | "check" | "wait", deferred = false) {
 	return host.trait(

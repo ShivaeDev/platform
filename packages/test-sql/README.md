@@ -156,7 +156,7 @@ Inside an isolated block, `PostgresTestDatabase.url` names that clone. Use it to
 
 ### Race stories
 
-Use `raceWithLock` with a live story clock inside an isolated database, outside a wrapping transaction. Supply the native SQL Effect that takes a row, table or transaction advisory lock, and one Effect per competing call. The helper holds the lock in a separate transaction, starts the calls, and waits for PostgreSQL's blocker graph to contain every contender before releasing the holder. Keep other lock-taking work out of that database during the race, and allow at least `effects.length + 1` pool connections. Contenders keep their own transaction and service conventions.
+Use `raceWithLock` with a live story clock inside an isolated database, outside a wrapping transaction. Supply the native SQL Effect that takes a row, table or transaction advisory lock, and one Effect per competing call. The helper holds the lock in a separate transaction, starts the calls, and waits until PostgreSQL's blocker graph contains every contender before releasing the holder. Each contender's statements start with a `/* raceWithLock <holder pid>.<index> */` comment, so the helper counts only its own contenders and another session waiting on the holder does not hold up the release. When the contenders' SQL runs on other fibers, such as an HTTP server's handlers, the tag cannot reach it; set `count: "every blocked session"` to release once the holder blocks as many sessions as there are effects, and keep other waiters out of that database. Other lock-taking work in that database can still queue ahead of the contenders and change who wins, and the helper needs at least `effects.length + 1` pool connections. Contenders keep their own transaction and service conventions.
 
 ```ts
 import { raceWithLock } from "@shivaedev/test-sql/server/raceWithLock.ts";
@@ -248,6 +248,14 @@ Use `prepare: false` when preparing the test Layer, and `withIsolatedDatabase` f
 With a PostgreSQL client in the current Context, the assertion compares names through that client's query and result name transforms and reports problems in model field terms. Without a client or configured transforms it compares literal names.
 
 The assertion uses the SQL `Model`'s selected database fields, including generated ids and excluding JSON-only fields. Supply an exact PostgreSQL type for every field: schemas such as `Schema.Number` do not determine whether storage is `integer`, `numeric` or `double precision`. It fails with a typed `ModelColumnMismatch` containing all detected missing, extra and wrongly typed column problems. The type map is checked against the model both by TypeScript and at runtime. This check covers names and types; it does not check defaults, nullability, constraints or application data transformations.
+
+### Database faults
+
+`disconnectProxy` from `@shivaedev/test-sql/server/disconnectProxy.ts` acquires a loopback TCP proxy in the current Effect scope. Give its `url` to the application database client. `disconnect()` cuts existing connections, `setReachable(false)` also refuses new connections, and `setResponsive(false)` stalls traffic until `setResponsive(true)` resumes it. Closing the scope destroys the sockets and closes the listener.
+
+For teardown stories, pass `{ holdDisconnects: true }`: `disconnecting` signals the first upstream disconnect, `allHeld` signals when every upstream has disconnected, and `release()` forwards the held acknowledgements. For LISTEN health stories, `{ dropNotifications: true }` filters PostgreSQL notifications while other SQL traffic continues; `dropped` signals a filtered notification.
+
+`@shivaedev/test-sql/server/emptyPostgres.ts` provides `databaseUrl` and `postgres`, an empty migration template selected by `PLATFORM_SQL_TEST_DATABASE_URL`. Use it with `withIsolatedDatabase` for kits that initialize their own schema. `environmentVariable(name)` from `@shivaedev/test-sql/server/adapters/environmentVariable.ts` reads an optional string through Effect Config when declaring a kit's `runIf`.
 
 ### API
 

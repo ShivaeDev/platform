@@ -1,52 +1,47 @@
 import { expect } from "vitest";
+import { outcomes } from "#outcomes.ts";
 import { sharedLists, signedInMembers } from "#test/sharedListScreen.ts";
 
-sharedLists.it(
-	"ada and grace share list changes while keeping their own drafts and cookie sessions",
-	[signedInMembers("ada", "grace")],
-	function* ({ as }) {
-		expect(as("ada").text("output")).toBe("ada's list: ");
-		expect(as("grace").text("output")).toBe("grace's list: ");
-		yield* as("ada").enter("input", "Bread");
-		yield* as("grace").enter("input", "Milk");
+sharedLists.it("shows grace the item ada adds once grace refreshes", [signedInMembers("ada", "grace")], function* ({ addsItem, refreshes, list }) {
+	yield* addsItem("ada", "Bread");
+	expect(yield* list("grace")).toBe("grace's list: ");
 
-		yield* as("ada").submit();
-		yield* as("ada").settle();
-		yield* as("grace").click({ name: "Refresh", role: "button" });
-		yield* as("grace").settle();
+	yield* refreshes("grace");
 
-		expect(as("grace").text("output")).toBe("grace's list: ada: Bread");
-		expect(as("grace").value("input")).toBe("Milk");
+	expect(yield* list("grace")).toBe("grace's list: ada: Bread");
+});
 
-		yield* as("grace").submit();
-		yield* as("grace").settle();
-		yield* as("ada").click({ name: "Refresh", role: "button" });
-		yield* as("ada").settle();
+sharedLists.it("keeps ada's draft out of grace's atom registry", [signedInMembers("ada", "grace")], function* ({ typesDraft, draft }) {
+	yield* typesDraft("ada", "Bread");
 
-		expect(as("ada").text("output")).toBe("ada's list: ada: Bread, grace: Milk");
+	yield* outcomes({ "ada's draft": [draft("ada"), "Bread"], "grace's draft": [draft("grace"), ""] });
+});
 
-		yield* as("ada").click({ name: "Sign out", role: "button" });
-		yield* as("ada").settle();
-		yield* as("grace").click({ name: "Refresh", role: "button" });
-		yield* as("grace").settle();
+sharedLists.it("signs out only ada's cookie session", [signedInMembers("ada", "grace")], function* ({ signsOut, refreshes, list }) {
+	yield* outcomes({ "ada's list": [list("ada"), "ada's list: "], "grace's list": [list("grace"), "grace's list: "] });
 
-		expect(as("ada").text("output")).toBe("Signed out");
-		expect(as("grace").text("output")).toBe("grace's list: ada: Bread, grace: Milk");
-	},
-);
+	yield* signsOut("ada");
+	yield* refreshes("grace");
+
+	yield* outcomes({ "ada's list": [list("ada"), "Signed out"], "grace's list": [list("grace"), "grace's list: "] });
+});
 
 sharedLists.it(
 	"closing the members' Scope removes every root and disposes every atom registry",
 	[signedInMembers("ada", "grace")],
-	function* ({ attachedRoots, closeMembers, readDraft }) {
-		expect(attachedRoots()).toEqual(["ada", "grace"]);
-		expect(readDraft("ada")).toBe("");
-		expect(readDraft("grace")).toBe("");
+	function* ({ attachedRoots, closesMembers, draft }) {
+		yield* outcomes({
+			"ada's draft": [draft("ada"), ""],
+			"grace's draft": [draft("grace"), ""],
+			"the attached roots": [attachedRoots(), ["ada", "grace"]],
+		});
 
-		yield* closeMembers();
+		yield* closesMembers();
 
-		expect(attachedRoots()).toEqual([]);
-		expect(() => readDraft("ada")).toThrow("registry is disposed");
-		expect(() => readDraft("grace")).toThrow("registry is disposed");
+		yield* outcomes({
+			"ada's draft": [draft("ada"), "its registry is disposed"],
+			"grace's draft": [draft("grace"), "its registry is disposed"],
+			"the attached roots": [attachedRoots(), []],
+		});
 	},
 );

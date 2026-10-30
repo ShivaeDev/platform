@@ -3,6 +3,7 @@ import { basename, dirname, join, posix } from "node:path";
 import process from "node:process";
 import { Effect, FileSystem, Stream } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
+import { readPackageManifest } from "#adapters/manifestInventory.ts";
 import type { RuleInputs } from "#rule.ts";
 import { knipConfiguration } from "./configuration.ts";
 import { entryPointFindings } from "./entryPointFindings.ts";
@@ -11,7 +12,7 @@ import { sourceConfig } from "./sourceConfig.ts";
 
 const BIN = join(dirname(createRequire(import.meta.url).resolve("knip")), "..", "bin", "knip.js");
 export const runKnip = Effect.fn("Knip.runKnip")(function* (inputs: RuleInputs) {
-	if ((yield* Effect.promise(() => inputs.readText("package.json"))) === undefined) {
+	if ((yield* Effect.promise(() => readPackageManifest(inputs.readText, "package.json"))) === undefined) {
 		return [];
 	}
 	const configuration = yield* Effect.promise(() => knipConfiguration(inputs));

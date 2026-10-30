@@ -18,11 +18,11 @@ import {
 	resolveSession,
 	type SessionShape,
 } from "@shivaedev/identity/server/session.ts";
-import { ManagementPermission, TestRoles, ToolsPermission } from "@shivaedev/identity/test-support/auth/permissions.ts";
-import type { Provider } from "@shivaedev/identity/test-support/rpc/harness.ts";
 import { ChangeObserver } from "@shivaedev/sql/transact.ts";
 import { PostgresTestDatabase } from "@shivaedev/test-sql/server/database.ts";
 import { appHost } from "#appHost.ts";
+import { ManagementPermission, TestRoles, ToolsPermission } from "#test/permissions.ts";
+import type { Provider } from "./provider.ts";
 import { Api, CustomAuthenticated, handlers } from "./sessionKeysApi.ts";
 
 const Wire = RpcGroup.make(

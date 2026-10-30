@@ -1,89 +1,107 @@
 import { expect } from "vitest";
-import { postgres } from "#test/sqlStory.ts";
-import { listeningForChanges } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changeFeed, feedListens, hasTable } from "#test/changeFeed.ts";
 
-postgres.it(
-	"one listener outage logs its recovery after heartbeat and resync, including elapsed time and only open streams",
-	[listeningForChanges({ heartbeatInterval: "1 second", heartbeatTimeout: "1 second", retryDelay: "1 second" })],
-	function* ({ notifications, recordedLogs }) {
-		const {
-			openStream,
-			nextListener,
-			nextMutedHeartbeat,
-			nextLoss,
-			nextReconnect,
-			nextRecovery,
-			terminate,
-			currentTime,
-			intervalPasses,
-			makeUnavailable,
-			pauseDelivery,
-			resumeDelivery,
-			restoreAvailability,
-		} = notifications();
-		const first = yield* openStream();
-		const second = yield* openStream();
-		const closed = yield* openStream();
-		yield* closed.nextHint;
-		yield* closed.close;
-		expect(recordedLogs()).toEqual([]);
-		yield* makeUnavailable();
-		yield* terminate;
-		yield* nextLoss;
-		const lostAt = yield* currentTime;
-		expect(recordedLogs()).toMatchObject([
-			{
-				cause: expect.stringContaining("terminating connection due to administrator command"),
-				level: "Warn",
-				message: ["PostgreSQL change listener lost; resynchronizing live streams"],
-			},
-		]);
-		const retryIntervals = [1000, 1000];
-		for (const interval of retryIntervals) {
-			yield* intervalPasses(interval);
-			yield* nextReconnect;
-			expect(recordedLogs().at(-1)?.cause).toContain("ECONNREFUSED");
-			expect(recordedLogs().filter((log) => log.level === "Warn")).toMatchObject([
-				{ message: ["PostgreSQL change listener lost; resynchronizing live streams"] },
-			]);
-			expect(recordedLogs().filter((log) => log.level === "Info")).toEqual([]);
-		}
-		yield* restoreAvailability();
-		yield* pauseDelivery();
-		const reconnectInterval = 1000;
-		const heartbeatDelay = 50;
-		yield* intervalPasses(reconnectInterval);
-		yield* nextListener;
-		yield* intervalPasses(heartbeatDelay);
-		const acknowledgeHeartbeat = yield* nextMutedHeartbeat;
-		expect(recordedLogs().filter((log) => log.level === "Info")).toEqual([]);
-		yield* resumeDelivery();
-		yield* acknowledgeHeartbeat;
-		yield* nextRecovery;
-		const downtimeMs = (yield* currentTime) - lostAt;
-		expect(downtimeMs).toBe(retryIntervals.reduce((total, interval) => total + interval, 0) + reconnectInterval + heartbeatDelay);
-		expect(recordedLogs().filter((log) => log.level !== "Debug")).toEqual([
-			{
-				annotations: {},
-				cause: expect.stringContaining("terminating connection due to administrator command"),
-				level: "Warn",
-				message: ["PostgreSQL change listener lost; resynchronizing live streams"],
-			},
-			{
-				annotations: { downtimeMs, streamCount: 2 },
-				cause: "",
-				level: "Info",
-				message: ["PostgreSQL change listener recovered; resynchronized live streams"],
-			},
-		]);
-		for (const stream of [first, second]) {
-			for (let hint = 0; hint < 5; hint += 1) {
-				yield* stream.nextHint;
-			}
-		}
-		expect(first.hints).toEqual(Array.from({ length: 5 }, () => ({ _tag: "Resync" })));
-		expect(second.hints).toEqual(first.hints);
-		expect(closed.hints).toEqual([{ _tag: "Resync" }]);
+const LOST = "Warn: PostgreSQL change listener lost; resynchronizing live streams";
+const RETRYING = "Debug: PostgreSQL change listener reconnect failed; retrying";
+const RECOVERED = "Info: PostgreSQL change listener recovered; resynchronized live streams";
+const QUICK = { heartbeatInterval: "1 hour", heartbeatTimeout: "150 millis", retryDelay: "20 millis" } as const;
+const SECONDS = { heartbeatInterval: "1 second", heartbeatTimeout: "1 second", retryDelay: "1 second" } as const;
+
+changeFeed.it(
+	"a listener whose heartbeat goes unanswered logs its loss, listens again after the retry delay and delivers later commits",
+	[feedListens(QUICK), hasTable("rows")],
+	function* ({ deliveryResumes, heartbeatGoesUnanswered, insertRow, listenerHistory, listenerLog, listenerReconnects, published }) {
+		yield* heartbeatGoesUnanswered();
+		yield* deliveryResumes();
+		expect(yield* listenerHistory()).toEqual(["listen"]);
+
+		yield* listenerReconnects();
+
+		yield* insertRow(1);
+		yield* outcomes({
+			"listener history": [listenerHistory(), ["listen", "listen"]],
+			"listener log": [
+				listenerLog(),
+				[expect.stringMatching(new RegExp(`^${LOST} after .*heartbeat timed out`, "u")), expect.stringMatching(new RegExp(`^${RECOVERED}`, "u"))],
+			],
+			"published payloads": [published(), [["rows", "rows:1"]]],
+		});
 	},
-	{ clock: "test" },
+);
+
+changeFeed.it(
+	"a listener that cannot reconnect logs its loss once as a warning and each failed reconnect at debug level",
+	[feedListens(SECONDS)],
+	function* ({ databaseBecomesUnreachable, listenerConnectionIsTerminated, listenerLog, reconnectFails }) {
+		yield* databaseBecomesUnreachable();
+		yield* listenerConnectionIsTerminated();
+
+		yield* reconnectFails();
+		yield* reconnectFails();
+
+		expect(yield* listenerLog()).toEqual([
+			expect.stringMatching(new RegExp(`^${LOST} after .*terminating connection due to administrator command`, "u")),
+			expect.stringMatching(new RegExp(`^${RETRYING} after .*ECONNREFUSED`, "u")),
+			expect.stringMatching(new RegExp(`^${RETRYING} after .*ECONNREFUSED`, "u")),
+		]);
+	},
+);
+
+changeFeed.it(
+	"a recovered listener logs one recovery with its downtime up to the answered heartbeat and the number of open live streams",
+	[feedListens(SECONDS)],
+	function* ({
+		closeLiveStream,
+		databaseBecomesReachable,
+		databaseBecomesUnreachable,
+		listenerConnectionIsTerminated,
+		listenerLog,
+		listenerReconnectsAnsweringItsHeartbeatAfter,
+		openLiveStream,
+		reconnectFails,
+	}) {
+		yield* openLiveStream("orders board");
+		yield* openLiveStream("invoice list");
+		yield* openLiveStream("closed report");
+		yield* closeLiveStream("closed report");
+		yield* databaseBecomesUnreachable();
+		yield* listenerConnectionIsTerminated();
+		yield* reconnectFails();
+		yield* databaseBecomesReachable();
+
+		yield* listenerReconnectsAnsweringItsHeartbeatAfter("50 millis");
+
+		expect((yield* listenerLog()).filter((line) => !line.startsWith("Debug"))).toEqual([
+			expect.stringMatching(new RegExp(`^${LOST}`, "u")),
+			`${RECOVERED} (downtimeMs 2050, streamCount 2)`,
+		]);
+	},
+);
+
+changeFeed.it(
+	"every open live stream resyncs when the listener is lost, after each failed reconnect and on recovery, and a closed one no longer does",
+	[feedListens(SECONDS)],
+	function* ({
+		closeLiveStream,
+		databaseBecomesReachable,
+		databaseBecomesUnreachable,
+		listenerConnectionIsTerminated,
+		listenerReconnects,
+		liveStreamResyncs,
+		openLiveStream,
+		reconnectFails,
+	}) {
+		yield* openLiveStream("orders board");
+		yield* openLiveStream("closed report");
+		yield* closeLiveStream("closed report");
+		yield* databaseBecomesUnreachable();
+
+		yield* listenerConnectionIsTerminated();
+		yield* reconnectFails();
+		yield* databaseBecomesReachable();
+		yield* listenerReconnects();
+
+		expect(yield* liveStreamResyncs()).toEqual({ "closed report": 0, "orders board": 3 });
+	},
 );

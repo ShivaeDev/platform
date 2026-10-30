@@ -12,7 +12,7 @@ import { listen, until } from "./listener.ts";
 
 type Update = Rpc.SuccessChunk<Rpc.ExtractTag<RpcGroup.Rpcs<typeof Api>, "rerun.$changes">>;
 const create = Effect.gen(function* () {
-	const state = {
+	const state: RerunState & ReturnType<typeof emptyHost> = {
 		...emptyHost(),
 		barrier: 0,
 		calls: [],
@@ -22,7 +22,8 @@ const create = Effect.gen(function* () {
 			[2n, new Note({ id: 2n, owner: "bob", title: "One of bob's" })],
 			[3n, new Note({ id: 3n, owner: "alice", title: "Other" })],
 		]),
-	} satisfies RerunState;
+		policyUnavailable: false,
+	};
 	state.build = () => rerunHost(state);
 	yield* Effect.addFinalizer(() => close(state).pipe(Effect.orDie));
 	yield* start(state);
@@ -65,6 +66,10 @@ export const rerunStory = storyKit({
 			),
 		clientReads: () => Effect.sync(() => engine.state.calls.filter((tag) => tag === "rerun.compare" || tag === "rerun.hinted")),
 		denyAlice: () => Effect.sync(() => engine.state.denied.add("alice")),
+		failReadPolicy: () =>
+			Effect.sync(() => {
+				engine.state.policyUnavailable = true;
+			}),
 		mixedArrivals: () => SubscriptionRef.get(engine.mixed),
 		openHinted: () =>
 			Effect.gen(function* () {
@@ -89,7 +94,12 @@ export const rerunStory = storyKit({
 		subscriptionEnd: () =>
 			Fiber.join(engine.finished).pipe(
 				Effect.match({
-					onFailure: (error) => (Predicate.isTagged(error, "QueryReadDenied") ? "read denied" : String(error)),
+					onFailure: (error) => {
+						if (error._tag === "QueryReadDenied") {
+							return "read denied";
+						}
+						return error._tag === "PolicyUnavailable" ? "policy unavailable" : String(error);
+					},
 					onSuccess: () => "completed",
 				}),
 			),

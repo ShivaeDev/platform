@@ -1,7 +1,8 @@
-import { Clock, Deferred, type Duration, Effect, Queue, Scope } from "effect";
+import { Clock, Deferred, type Duration, Effect, Queue, Random, Scope } from "effect";
 import * as Reactivity from "effect/reactivity/Reactivity";
-import { ConnectionError, SqlError } from "effect/sql/SqlError";
+import type { SqlError } from "effect/sql/SqlError";
 import { decodeKeys, resyncPayload } from "./notifyPayload.ts";
+import { PostgresListenerError } from "./PostgresListenerError.ts";
 import type { PostgresChangesOptions } from "./postgresChanges.ts";
 
 function listenerScope(timeout: Duration.Input) {
@@ -12,7 +13,7 @@ function listenerScope(timeout: Duration.Input) {
 }
 
 export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(function* (options: PostgresChangesOptions) {
-	const ready = yield* Deferred.make<void, SqlError>();
+	const ready = yield* Deferred.make<void, SqlError | PostgresListenerError>();
 	const reactivity = yield* Reactivity.Reactivity;
 	const { client, channel, resync } = options;
 	const timeout = options.heartbeatTimeout ?? "10 seconds";
@@ -20,7 +21,7 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 		return effect.pipe(
 			Effect.timeoutOrElse({
 				duration: timeout,
-				orElse: () => Effect.fail(new SqlError({ reason: new ConnectionError({ cause: "PostgreSQL change listener heartbeat timed out" }) })),
+				orElse: () => Effect.fail(new PostgresListenerError({ connectionSetting: options.connectionSetting ?? "client" })),
 			}),
 		);
 	}
@@ -28,8 +29,8 @@ export const listenForChanges = Effect.fn("PostgresChanges.listenForChanges")(fu
 	const attempt = Effect.scoped(
 		Effect.gen(function* () {
 			const scope = yield* listenerScope(timeout);
-			const notifications = yield* client.listen(channel).pipe(Scope.provide(scope), deadline);
-			const token = JSON.stringify({ heartbeat: crypto.randomUUID() });
+			const notifications = yield* (options.listenerClient ?? client).listen(channel).pipe(Scope.provide(scope), deadline);
+			const token = JSON.stringify({ heartbeat: `${yield* Random.nextInt}:${yield* Random.nextInt}` });
 			let ack = yield* Deferred.make<void>();
 			function receive(payload: string) {
 				if (payload === token) {

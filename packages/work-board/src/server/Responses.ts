@@ -28,11 +28,13 @@ export const Responses = defineService({
 	id: "WorkBoard/Responses",
 	initialize: Effect.gen(function* () {
 		const workspace = yield* Workspace;
+		const saves = yield* FiberSet.make<RecordedResponse, ResponseRejection>();
+		yield* Effect.addFinalizer(() => FiberSet.awaitEmpty(saves));
 		return {
 			fs: yield* FileSystem.FileSystem,
 			lock: yield* Semaphore.make(1),
 			options: yield* workspace.settings(),
-			saves: yield* FiberSet.make<RecordedResponse, ResponseRejection>(),
+			saves,
 			workspace,
 		};
 	}),
@@ -88,15 +90,19 @@ export const Responses = defineService({
 			);
 		}
 		function history(preview: Parameters<typeof responseHistory>[1]) {
-			return Effect.flatMap(snapshot, (data) =>
-				Effect.try({
+			return Effect.gen(function* () {
+				const current = yield* snapshot;
+				const data = yield* (current.archived?.(preview.item) ?? Effect.succeed(current)).pipe(
+					Effect.mapError(() => new ServiceUnavailable({ message: "Archived response history could not be read." })),
+				);
+				return yield* Effect.try({
 					catch: (cause) =>
 						Schema.is(ServiceUnavailable)(cause)
 							? cause
 							: new ServiceUnavailable({ message: "Response history could not be read. Check the source diagnostics and retry." }),
 					try: () => responseHistory(data, preview),
-				}),
-			);
+				});
+			});
 		}
 		function answer({ item, request, revision, ...draft }: AnswerInput) {
 			const save = Effect.flatMap(lock.withPermit(register({ item, request, revision })), (question) => record({ ...draft, question: question.id }));

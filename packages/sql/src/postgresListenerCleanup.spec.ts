@@ -1,57 +1,48 @@
 import { expect } from "vitest";
-import { postgres } from "#test/sqlStory.ts";
-import { listeningForChanges } from "#test/sqlTraits.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import { changeFeed, feedListens, listenerCleanupStalls } from "#test/changeFeed.ts";
 
-postgres.it(
-	"stalled listener cleanup cannot delay resync, a new listener or scope release",
-	[
-		listeningForChanges(
-			{
-				heartbeatInterval: "1 hour",
-				heartbeatTimeout: "150 millis",
-				retryDelay: "20 millis",
-			},
-			true,
-		),
-	],
-	function* ({ notifications, recordedLogs }) {
-		const {
-			state,
-			closeAtDeadline,
-			nextMutedHeartbeat,
-			nextListener,
-			nextCleanup,
-			nextResync,
-			nextLoss,
-			nextRecovery,
-			intervalPasses,
-			listenerPids,
-			pauseDelivery,
-			resumeDelivery,
-		} = notifications();
-		const originalListeners = yield* listenerPids;
-		expect(originalListeners).toEqual([{ pid: expect.any(Number) }]);
-		yield* pauseDelivery();
-		yield* intervalPasses("1 hour");
-		yield* nextMutedHeartbeat;
-		yield* intervalPasses("150 millis");
-		yield* nextResync;
-		expect(state.resyncEvents).toEqual(["resync", "resync"]);
-		yield* nextCleanup;
-		expect(state.listenerOperations).toEqual(["listen", "cleanup"]);
-		yield* resumeDelivery();
-		yield* intervalPasses("150 millis");
-		yield* nextLoss;
-		expect(recordedLogs()).toMatchObject([{ cause: expect.stringContaining("heartbeat timed out"), level: "Warn" }]);
-		yield* intervalPasses("20 millis");
-		yield* nextListener;
-		yield* intervalPasses("50 millis");
-		yield* nextRecovery;
-		expect(state.resyncEvents).toEqual(["resync", "resync", "resync"]);
-		expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen"]);
-		expect(yield* listenerPids).toEqual([{ pid: expect.any(Number) }]);
-		yield* closeAtDeadline();
-		expect(state.listenerOperations).toEqual(["listen", "cleanup", "listen", "cleanup"]);
+const QUICK = { heartbeatInterval: "1 hour", heartbeatTimeout: "150 millis", retryDelay: "20 millis" } as const;
+
+changeFeed.it(
+	"a lost listener whose cleanup stalls still resyncs live streams before its cleanup finishes",
+	[listenerCleanupStalls(), feedListens(QUICK)],
+	function* ({ heartbeatGoesUnanswered, listenerHistory, liveStreamResyncs, openLiveStream }) {
+		yield* openLiveStream("orders board");
+
+		yield* heartbeatGoesUnanswered();
+
+		yield* outcomes({
+			"listener history": [listenerHistory(), ["listen", "cleanup"]],
+			"live stream resyncs": [liveStreamResyncs(), { "orders board": 1 }],
+		});
 	},
-	{ clock: "test" },
+);
+
+changeFeed.it(
+	"a lost listener whose cleanup stalls listens again once the heartbeat timeout bounds the cleanup, and its old connection is released",
+	[listenerCleanupStalls(), feedListens(QUICK)],
+	function* ({ deliveryResumes, heartbeatGoesUnanswered, listenerCleanupDeadlinePasses, listenerConnections, listenerHistory, listenerReconnects }) {
+		expect(yield* listenerConnections()).toEqual(["listening on the feed channel"]);
+		yield* heartbeatGoesUnanswered();
+		yield* deliveryResumes();
+
+		yield* listenerCleanupDeadlinePasses();
+		yield* listenerReconnects();
+
+		yield* outcomes({
+			"listener connections": [listenerConnections(), ["listening on the feed channel"]],
+			"listener history": [listenerHistory(), ["listen", "cleanup", "listen"]],
+		});
+	},
+);
+
+changeFeed.it(
+	"closing the change feed while a listener cleanup stalls finishes once the heartbeat timeout passes",
+	[listenerCleanupStalls(), feedListens(QUICK)],
+	function* ({ closeFeed }) {
+		const ending = yield* closeFeed();
+
+		expect(ending).toBe("closed");
+	},
 );

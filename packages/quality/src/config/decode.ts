@@ -34,8 +34,6 @@ const ConfigInput = Schema.Struct({
 
 export type ConfigInput = typeof ConfigInput.Type;
 
-const standard = Schema.toStandardSchemaV1(ConfigInput, { parseOptions: { errors: "all", onExcessProperty: "error" } });
-
 export function decodeConfig(value: unknown): Promise<Decoded<ConfigInput>> {
-	return decodeWith(standard, value);
+	return decodeWith(ConfigInput, value);
 }

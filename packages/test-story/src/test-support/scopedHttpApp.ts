@@ -2,25 +2,38 @@ import { Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
 import { fakeHttpService } from "#fakeHttpService.ts";
 import { storyKit } from "#storyKit.ts";
-import { httpProbe } from "#test/httpProbe.ts";
+import { httpClient, type Send } from "./httpClient.ts";
+
+interface Caller {
+	readonly body?: string;
+	readonly method?: string;
+	readonly serviceKey?: string;
+	readonly token?: string;
+}
+
+function sent(caller: Caller): Send {
+	return {
+		...(caller.body === undefined ? {} : { body: caller.body }),
+		headers: { authorization: `Bearer ${caller.token ?? "installation-key"}`, "x-service-key": caller.serviceKey ?? "story-key" },
+		...(caller.method === undefined ? {} : { method: caller.method }),
+	};
+}
 
 export const scopedHttpApp = storyKit({
 	clock: "live",
 	*create() {
-		const comments: { pull: string | undefined; text: string }[] = [];
-		return yield* fakeHttpService({
+		const comments: string[] = [];
+		const service = yield* fakeHttpService({
 			guard: ({ headers }) => headers["x-service-key"] === "story-key",
 			routes: {
 				comment: {
 					method: "POST",
 					path: "/repos/:owner/:repo/pulls/:number/comments",
 					reply: ({ body, params }) => {
-						const comment = { pull: params.number, text: body.toString() };
-						comments.push(comment);
-						return { body: comment, status: HttpStatus.fromLiteral("Created") };
+						comments.push(`pull ${params.number}: ${body.toString()}`);
+						return { body: { pull: params.number, text: body.toString() }, status: HttpStatus.fromLiteral("Created") };
 					},
 				},
-				comments: { path: "/comments", reply: () => ({ body: comments }) },
 				installation: {
 					guard: ({ headers }) => headers.authorization === "Bearer installation-key",
 					path: "/installations/:id",
@@ -29,28 +42,24 @@ export const scopedHttpApp = storyKit({
 				pull: { path: "/repos/:owner/:repo/pulls/:number", reply: ({ params }) => ({ body: params }) },
 			},
 		});
+		return { comments, service };
 	},
+	inspect: ({ comments, service }) => ({ comments, requests: service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`) }),
 	name: "scoped HTTP controls",
 	stages: ["ready"],
-	verbs: (service, story) => {
+	verbs: ({ comments, service }, story) => {
 		service.narrate(story.tell);
-		function request(path: string, options: { method?: string; token?: string; serviceKey?: string; body?: string } = {}) {
-			const headers = { authorization: `Bearer ${options.token ?? "installation-key"}`, "x-service-key": options.serviceKey ?? "story-key" };
-			return Effect.acquireRelease(
-				Effect.sync(() => httpProbe(`${service.url}${path}`, { headers, method: options.method }, options.body)),
-				(client) => client.abort,
-			);
-		}
-
+		const client = httpClient(() => service.url, story.tell);
 		return {
-			comments: () => Effect.tryPromise(async () => (await fetch(`${service.url}/comments`, { headers: { "x-service-key": "story-key" } })).json()),
-			failOnce: service.failOnce,
+			...client,
+			asks: (path: string, caller: Caller = {}) => client.asks(path, sent(caller)),
+			comments: () => Effect.sync(() => [...comments]),
 			fault: service.fault,
 			hold: service.hold,
 			releaseOnArrival: service.releaseOnArrival,
-			request,
-			requests: () => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`),
+			requests: () => Effect.sync(() => service.requests.map(({ method, path, status }) => `${method} ${path} ${status}`)),
 			scriptFault: service.scriptFault,
+			sends: (name: string, path: string, caller: Caller = {}) => client.sends(name, path, sent(caller)),
 			stall: service.stall,
 		};
 	},

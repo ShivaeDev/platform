@@ -3,7 +3,7 @@ import type { Headers } from "effect/http";
 import type { Permission } from "@shivaedev/access/permission.ts";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
 import { authorizeReads } from "@shivaedev/contract/readPolicy.ts";
-import { type AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { type AuthUnavailable, type Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
 import {
 	Identity,
 	OptionalIdentity,
@@ -15,10 +15,10 @@ import {
 } from "#identity.ts";
 import { Authenticated, AuthenticatedUser, AuthenticatedUserWithProviderAccounts, MaybeAuthenticated } from "#middleware.ts";
 import { commandChanges } from "#server/commandChanges.ts";
-import { type OriginPolicy, originRequest } from "./origin.ts";
-import { resolveRole } from "./resolveRole.ts";
+import type { OriginPolicy } from "#server/origin.ts";
+import { lookupSession, sessionRequest } from "./lookupSession.ts";
+import { recheckSession } from "./recheckSession.ts";
 import { revalidateStream } from "./revalidateStream.ts";
-import { transportHeaders } from "./transportHeaders.ts";
 export interface SessionShape {
 	readonly user: {
 		readonly id: string;
@@ -43,17 +43,8 @@ export const resolveSession: <TSession extends SessionShape>(
 		headers: Headers.Headers,
 		rpc: string,
 	) {
-		const transport = yield* transportHeaders(headers);
-		if (!policy.origin(originRequest(transport, rpc))) {
-			return yield* new Forbidden({ message: "Origin not allowed" });
-		}
-		const session = yield* policy.provider.get(transport);
-		if (Option.isNone(session) || policy.roles === undefined) {
-			return session;
-		}
-		const role: unknown = Reflect.get(session.value.user, "role");
-		const access = yield* resolveRole(policy.roles, role);
-		return Option.some({ ...session.value, user: { ...session.value.user, ...access } });
+		const request = yield* sessionRequest(policy, headers, rpc);
+		return yield* lookupSession(policy, request.headers);
 	});
 function identified(id: string) {
 	return Effect.andThen(Effect.annotateCurrentSpan("user.id", id), Effect.succeed(id));
@@ -67,7 +58,7 @@ export function authenticatedLayer<TSession extends SessionShape>(policy: Sessio
 			}
 			const id = yield* identified(session.value.user.id);
 			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
-				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
+				revalidateStream(policy, rpc, id, recheckSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.annotateLogs({ userId: id }),
 			);
@@ -83,7 +74,7 @@ export function maybeAuthenticatedLayer<TSession extends SessionShape>(policy: S
 			}
 			const id = yield* identified(session.value.user.id);
 			return yield* authorizeReads(effect, { payload, rpc }, Option.some({ id })).pipe(
-				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
+				revalidateStream(policy, rpc, id, recheckSession(policy, headers, rpc._tag)),
 				Effect.provideService(OptionalIdentity, Option.some({ id })),
 				Effect.annotateLogs({ userId: id }),
 			);
@@ -113,7 +104,7 @@ export function authenticatedUserLayer<TSession extends UserSessionShape>(policy
 	return Layer.succeed(AuthenticatedUser, (effect, { headers, rpc, payload }) =>
 		Effect.flatMap(Identity, (viewer) => authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some(viewer))).pipe(
 			(invocation) =>
-				Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)))),
+				Effect.flatMap(Identity, ({ id }) => invocation.pipe(revalidateStream(policy, rpc, id, recheckSession(policy, headers, rpc._tag)))),
 			withSessionUser(policy, headers, rpc._tag),
 		),
 	);
@@ -139,7 +130,7 @@ export function authenticatedUserWithProviderAccountsLayer<TSession extends Prov
 			const user = Schema.decodeSync(SessionUserSchema)(session.value.user);
 			yield* identified(id);
 			return yield* authorizeReads(commandChanges(effect, rpc, payload), { payload, rpc }, Option.some({ id })).pipe(
-				revalidateStream(policy, rpc, id, resolveSession(policy, headers, rpc._tag)),
+				revalidateStream(policy, rpc, id, recheckSession(policy, headers, rpc._tag)),
 				Effect.provideService(Identity, { id }),
 				Effect.provideService(SessionUser, user),
 				Effect.provideService(SessionUserWithProviderAccounts, { ...user, providerAccounts: accounts }),

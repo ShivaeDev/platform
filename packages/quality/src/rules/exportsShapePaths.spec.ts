@@ -39,15 +39,23 @@ exportsStory.it(
 	},
 );
 
-exportsStory.it(
-	"null entries block exact and wildcard paths without adding public exports",
-	[workspaceWithExports({ ...filePathExports, "./internal/*": "./src/internal/*", "./private.ts": "./src/private.ts" })],
-	function* ({ lint, writesExports }) {
-		expect((yield* lint()).stdout).toContain("manifests/exports-shape");
-		yield* writesExports({ ...filePathExports, "./internal/*": null, "./private.ts": null });
-		expect((yield* lint()).status).toBe(CLI_EXIT.passed);
-	},
-);
+for (const path of ["./private.ts", "./internal/*", ".", "./preset.json"]) {
+	exportsStory.it(
+		`a null export at ${path} asks the author to remove the block`,
+		[workspaceWithExports({ ...filePathExports, [path]: null })],
+		function* ({ lint, writesExports }) {
+			const blocked = yield* lint();
+
+			expect(blocked.status).toBe(CLI_EXIT.rejected);
+			expect(blocked.stdout).toContain("manifests/exports-shape");
+			expect(blocked.stdout).toContain(`Export "${path}" blocks module imports with null. Remove the null entry`);
+
+			yield* writesExports(filePathExports);
+
+			expect((yield* lint()).status).toBe(CLI_EXIT.passed);
+		},
+	);
+}
 
 exportsStory.it(
 	"the standard shape and an optional root replace flattened paths",

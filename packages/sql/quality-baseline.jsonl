@@ -4,6 +4,7 @@
 {"path":"packages/sql/src/compositeRepository.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/conditionalUpsert.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/conflictWrites.ts","rule":"effect/service-parameters","count":1}
+{"path":"packages/sql/src/databaseAddress.ts","rule":"effect/boundary","count":1}
 {"path":"packages/sql/src/insertFromSelect.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/latestPerGroup.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/listenForChanges.ts","rule":"effect/service-parameters","count":1}
@@ -11,8 +12,6 @@
 {"path":"packages/sql/src/makeConflictClause.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/makeQueryClauses.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/pinnedGroups.ts","rule":"effect/service-parameters","count":1}
-{"path":"packages/sql/src/postgresBatchValidation.spec.ts","rule":"effect/boundary","count":1}
-{"path":"packages/sql/src/postgresLatestPerGroup.spec.ts","rule":"effect/boundary","count":2}
 {"path":"packages/sql/src/repositoryChanges.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/repositoryFilter.ts","rule":"effect/service-parameters","count":1}
 {"path":"packages/sql/src/repositoryQueries.ts","rule":"effect/service-parameters","count":1}

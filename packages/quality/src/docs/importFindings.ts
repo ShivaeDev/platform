@@ -29,11 +29,6 @@ function problem(
 	if (module.kind === "missing") {
 		return Effect.succeed(`"${entry.specifier}" names no module of ${owner.name}. Use the path of a module its package.json "exports" maps.`);
 	}
-	if (module.kind === "private") {
-		return Effect.succeed(
-			`"${entry.specifier}" is private: the package.json "exports" of ${owner.name} blocks it. Document a module the package exports.`,
-		);
-	}
 	const name = entry.name;
 	if (name === undefined) {
 		return Effect.succeed(undefined);

@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/contract",
-	"version": "0.21.0",
+	"version": "0.23.0",
 	"description": "Typed query and command contracts over native Effect RPC and reactivity",
 	"keywords": [
 		"effect"
@@ -31,7 +31,6 @@
 			"types": "./dist/*.d.ts",
 			"default": "./dist/*.js"
 		},
-		"./internal/*": null,
 		"./package.json": "./package.json"
 	},
 	"files": [

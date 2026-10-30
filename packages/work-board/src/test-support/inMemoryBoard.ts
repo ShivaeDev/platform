@@ -1,4 +1,4 @@
-import { ByteSize, Effect, FileSystem, Layer, Option, Path, type PlatformError, PubSub, Ref } from "effect";
+import { ByteSize, Effect, FileSystem, Layer, Option, Path, PlatformError, PubSub, Ref } from "effect";
 import { stringify } from "yaml";
 import { AppChanges } from "@shivaedev/server/appHost.ts";
 import { hostChanges } from "@shivaedev/server/hostChanges.ts";
@@ -142,7 +142,11 @@ function fixtureFileSystem(memory: { readonly root: string; readonly files: () =
 		});
 	}
 	return FileSystem.layerNoop({
-		lstat: stat,
+		exists: (path) => Effect.sync(() => path.slice(memory.root.length + 1) in memory.files()),
+		lstat: (path) =>
+			path.endsWith(".md") && !(path.slice(memory.root.length + 1) in memory.files())
+				? Effect.fail(PlatformError.systemError({ _tag: "NotFound", method: "lstat", module: "FileSystem" }))
+				: stat(),
 		readFileString: (path) => Effect.succeed(memory.files()[path.slice(memory.root.length + 1)] ?? ""),
 		realPath: (path) => Effect.succeed(path),
 		stat,

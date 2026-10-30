@@ -7,7 +7,7 @@ import type { QueryRerun, QuerySubscription } from "#querySubscription.ts";
 import type { QueryResult, QueryUpdate } from "#queryUpdate.ts";
 import type { QueryRequest } from "#serverMetadata.ts";
 
-function hintsFor(hint: LiveHint, subscription: QuerySubscription): readonly LiveHint[] {
+function hintsFor(hint: LiveHint, subscription: QuerySubscription<unknown, unknown>): readonly LiveHint[] {
 	const queries = subscription.queries ?? [];
 	if (!queries.some(({ query }) => query.live === "rerun-and-compare")) {
 		if (hint._tag === "Resync") {
@@ -27,7 +27,7 @@ function hintsFor(hint: LiveHint, subscription: QuerySubscription): readonly Liv
 	return visible.length === 0 ? [] : [changedHint(visible, scopes)];
 }
 
-export function compareQueries(subscription: QuerySubscription, read?: QueryRerun) {
+export function compareQueries<E, R>(subscription: QuerySubscription<unknown, unknown>, read?: QueryRerun<E, R>) {
 	const queries = subscription.queries ?? [];
 	const hashes = new Map<number, string>();
 	const resultFor = Effect.fnUntraced(function* (request: QueryRequest, index: number) {

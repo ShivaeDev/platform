@@ -1,10 +1,12 @@
 import { Effect, Layer } from "effect";
 import { FetchHttpClient } from "effect/http";
 import { RpcClient, RpcSerialization } from "effect/rpc";
+import { causeWords } from "@shivaedev/test/answers.ts";
 import { storyKit } from "@shivaedev/test-story/server/storyKit.ts";
 import { close, start } from "#test/app-host/lifecycle.ts";
 import { requests } from "#test/app-host/requests.ts";
 import { emptyHost } from "#test/app-host/state.ts";
+import { wireAnswers } from "#test/app-host/wireAnswers.ts";
 import { configuredHost, PublicConfig } from "./fixture.ts";
 
 export const configuration = storyKit({
@@ -19,9 +21,7 @@ export const configuration = storyKit({
 	name: "public client configuration",
 	stages: ["configured", "listening"],
 	verbs: (state, story) => ({
-		bootFailure: () => state.bootFailure,
-		lookups: () => state.lookups,
-		read: () => {
+		readPublicConfiguration: () => {
 			story.tell("a native HTTP RPC client reads the public configuration without a session");
 			return RpcClient.make(PublicConfig).pipe(
 				Effect.flatMap((client) => client["platform.publicConfig.get"]()),
@@ -31,12 +31,10 @@ export const configuration = storyKit({
 				Effect.scoped,
 			);
 		},
-		response: () =>
-			requests(state, story.tell).request("/rpc", {
-				body: `${JSON.stringify({ _tag: "Request", headers: [], id: "1", payload: null, tag: "platform.publicConfig.get" })}\n`,
-				headers: { "content-type": "application/ndjson" },
-				method: "POST",
-			}),
+		requestPublicConfiguration: () => requests(state, story.tell).callRpc("platform.publicConfig.get", null),
+		sessionLookups: () => Effect.sync(() => [...state.lookups]),
+		startup: () => Effect.sync(() => (state.bootFailure === undefined ? "listening" : causeWords(state.bootFailure))),
+		wireAnswers: () => Effect.sync(() => wireAnswers(state.response?.body ?? "")),
 	}),
 });
 

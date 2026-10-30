@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { heldNotesList, notesRoute, screens } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
@@ -9,7 +9,6 @@ screens.it(
 		closeScreen,
 		consoleErrors,
 		screenText,
-		noteCalls,
 		submit,
 		alert,
 		enter,
@@ -17,13 +16,14 @@ screens.it(
 		noteLink,
 		wordCountText,
 		finishWordCount,
+		watchHints,
 		queryCount,
 	}) {
 		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
-		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
+		expect(queryCount("list")).toBe(1);
 		yield* submit();
 		yield* eventually(() => expect(alert()).toBe("Enter a title"));
-		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
+		expect(queryCount("list")).toBe(1);
 		yield* enter("reserved");
 		yield* submit();
 		yield* eventually(() => expect(alert()).toBe("Choose another title"));
@@ -33,12 +33,15 @@ screens.it(
 		yield* eventually(() => expect(noteLink()).toBe("First note"));
 		yield* eventually(() => expect(draft()).toBe(""));
 		yield* eventually(() => expect(alert()).toBeUndefined());
-		yield* eventually(() => expect(noteCalls()).toEqual(["list", "create", "list"]));
+		expect(queryCount("list")).toBe(2);
 		yield* eventually(() => expect(wordCountText()).toContain("Counting words…"));
+		const hints = yield* watchHints();
 		yield* finishWordCount(2);
+		expect(yield* hints.next).toMatchObject({ _tag: "Changed" });
 		yield* eventually(() => expect(wordCountText()).toContain("2 words"));
 		yield* eventually(() => expect(queryCount("list")).toBeGreaterThan(2));
 		yield* finishWordCount(1);
+		expect(yield* hints.next).toMatchObject({ _tag: "Changed" });
 		yield* eventually(() => expect(wordCountText()).toContain("1 word"));
 		expect(wordCountText()).not.toContain("1 words");
 		yield* closeScreen();
@@ -105,6 +108,7 @@ screens.it(
 		loadingMessage,
 		releaseNotesList,
 		finishWordCount,
+		watchHints,
 		wordCountText,
 	}) {
 		yield* eventually(() => expect(screenText()).toContain("No notes yet"));
@@ -121,7 +125,9 @@ screens.it(
 		yield* eventually(() => expect(refreshDisabled()).toBe(false));
 		yield* eventually(() => expect(wordCountText()).toContain("Counting words…"));
 		yield* holdNotesList();
+		const hints = yield* watchHints();
 		yield* finishWordCount(2);
+		expect(yield* hints.next).toMatchObject({ _tag: "Changed" });
 		yield* eventually(() => expect(queryCount("list")).toBeGreaterThan(3));
 		yield* eventually(() => expect(refreshDisabled()).toBe(true));
 		yield* eventually(() => expect(noteLink()).toBe("First note"));
@@ -135,10 +141,10 @@ screens.it(
 	},
 );
 
-screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, noteCalls, draft }) {
+screens.it("refuses a whitespace-only title in the form before submit", [notesRoute()], function* ({ enter, alert, queryCount, draft }) {
 	yield* enter("   ");
 
 	expect(alert()).toBe("Enter a title");
 	expect(draft()).toBe("   ");
-	expect(noteCalls()).toEqual(["list"]);
+	expect(queryCount("list")).toBe(1);
 });

@@ -77,9 +77,11 @@ function wrap<TSuccess, TFailure, TRequirements>(
 function wrapperService() {
 	return defineService({
 		id: "story/Wrapper",
-		initialize: Effect.void,
-		methods: () => ({ wrap: genericMethod(wrap) }),
-		requires: [],
+		initialize: Effect.service(Greeting),
+		methods: (greeting) => ({
+			wrap: genericMethod(<A, E, R>(effect: Effect.Effect<A, E, R>) => wrap(effect).pipe(Effect.map(({ value }) => ({ greeting, value })))),
+		}),
+		requires: [Greeting],
 	});
 }
 

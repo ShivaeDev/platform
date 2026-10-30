@@ -1,4 +1,4 @@
-import { Data, Effect } from "effect";
+import { Data, Effect, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { type BucketKey, type ItemKey, invalidationKeys } from "@shivaedev/changes/keys.ts";
 import { ChangeDeclarations } from "#ChangeDeclarations.ts";
@@ -10,12 +10,6 @@ export interface ChangeCoverage {
 	readonly covers: Readonly<Record<string, readonly (ItemKey | BucketKey)[]>>;
 }
 
-interface TableWrites {
-	readonly relid: number;
-	readonly relname: string;
-	readonly writes: number;
-}
-
 export const withChangeCoverage = Effect.fn("Changes.withChangeCoverage")(function* <A, E, R>(
 	body: Effect.Effect<A, E, R>,
 	options?: ChangeCoverage,
@@ -25,7 +19,9 @@ export const withChangeCoverage = Effect.fn("Changes.withChangeCoverage")(functi
 	const named = new Set<unknown>();
 	const declarations = new Map<string, { keys: Set<string>; rows: number }>();
 	const outer = yield* ChangeDeclarations;
-	const written = sql<TableWrites>`select relid, relname, (n_tup_ins + n_tup_upd + n_tup_del)::int as writes from pg_stat_xact_user_tables`;
+	const written = sql`select relid, relname, (n_tup_ins + n_tup_upd + n_tup_del)::int as writes from pg_stat_xact_user_tables`.pipe(
+		Effect.flatMap(Schema.decodeUnknownEffect(Schema.Array(Schema.Struct({ relid: Schema.Int, relname: Schema.String, writes: Schema.Int })))),
+	);
 	const checked = Effect.gen(function* () {
 		const before = new Map((yield* written).map((row) => [row.relid, row.writes]));
 		const result = yield* body;

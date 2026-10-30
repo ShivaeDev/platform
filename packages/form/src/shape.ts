@@ -71,24 +71,4 @@ export interface Form<TFields extends Fields, A, E, TRuntimeError> {
 	readonly values: AtomRef.AtomRef<Encoded<TFields>>;
 }
 
-export type Holder = AtomRef.AtomRef<Readonly<Record<string, unknown>>>;
-
-export function holder(values: object): Holder;
-export function holder(values: object): unknown {
-	return values;
-}
-
-export function fieldOf<TValue>(ref: AtomRef.AtomRef<unknown>): AtomRef.AtomRef<TValue>;
-export function fieldOf(ref: AtomRef.AtomRef<unknown>): unknown {
-	return ref;
-}
-
-export function choicesOf<TValue>(choices: readonly unknown[] | undefined): readonly TValue[] | undefined;
-export function choicesOf(choices: readonly unknown[] | undefined): unknown {
-	return choices;
-}
-
-export function checkOf<R>(check: unknown): (value: unknown) => Effect.Effect<string | undefined, never, R>;
-export function checkOf(check: unknown): unknown {
-	return check;
-}
+export type Holder = AtomRef.ReadonlyRef<Readonly<Record<string, unknown>>>;

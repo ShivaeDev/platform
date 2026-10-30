@@ -57,6 +57,14 @@ export const handlers = Effect.fn("WorkBoard.handlers")(function* (options: Hand
 				),
 			"work-board.handoff": ({ url }) => remaining.handoff(url).pipe(documentBoundary),
 			"work-board.inbox": () => Effect.suspend(() => projections.inbox()).pipe(readBoundary),
+			"work-board.index": () =>
+				Effect.map(index, (snapshot) => ({
+					diagnostics: [...snapshot.model.diagnostics].map(([file, diagnostics]) => ({ diagnostics, file })),
+					documents: snapshot.documents,
+					files: [...snapshot.modified].map(([path, modified]) => ({ modified, path })),
+					revision: snapshot.revision,
+					unavailable: snapshot.unavailable,
+				})).pipe(readBoundary),
 			"work-board.indexing": () => (indexing ?? Effect.succeed(undefined)).pipe(readBoundary),
 			"work-board.library": (input) =>
 				Effect.gen(function* () {

@@ -1,5 +1,5 @@
 import { expect } from "vitest";
-import { eventually, expectNoReactWarnings } from "@shivaedev/react/client/testing.ts";
+import { eventually, expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
 import { screenStory } from "#test/screenStory.ts";
 import { sessionScreen } from "#test/sessionScreen.ts";
 

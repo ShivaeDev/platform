@@ -1,5 +1,7 @@
 import { basename, dirname, relative } from "node:path";
-import { Effect, type FileSystem, Schema } from "effect";
+import { Effect, Schema } from "effect";
+import type { SetupFailure } from "#failure.ts";
+import type { RuleServices } from "#rule.ts";
 import { FilesystemFailure, readRequiredText } from "./filesystem.ts";
 import { posix } from "./ignoreScope.ts";
 import { shadcnAlias } from "./shadcnAlias.ts";
@@ -9,7 +11,7 @@ const Components = Schema.fromJsonString(Schema.Struct({ aliases: Schema.Struct(
 
 export const shadcnFolders = Effect.fn("Inventory.shadcnFolders")(function* (
 	root: string,
-): Effect.fn.Return<readonly string[], FilesystemFailure, FileSystem.FileSystem> {
+): Effect.fn.Return<readonly string[], FilesystemFailure | SetupFailure, RuleServices> {
 	const paths = (yield* walk(root)).filter((path) => basename(path) === "components.json");
 	return yield* Effect.forEach(paths, (path) =>
 		Effect.gen(function* () {

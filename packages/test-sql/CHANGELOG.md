@@ -1,5 +1,35 @@
 # Changelog
 
+## 0.13.0 - 2026-10-30
+
+### Added
+
+- `raceWithLock` takes `count: "every blocked session"` for contenders whose SQL runs on other fibers, such as an HTTP server's handlers. The holder then releases once it blocks as many sessions as there are effects.
+
+### Fixed
+
+- `raceWithLock` releases its holder once its own contenders wait, instead of hanging until its timeout when another session also waits on the holder. Each contender's statements now start with a `/* raceWithLock <holder pid>.<index> */` comment.
+
+## 0.12.0 - 2026-10-30
+
+### Added
+
+- Export every engine module through the package's existing `.ts` wildcard, including modules under `internal/` in `test` and `vitest-rerun` and `server/internal/` in `test-story` and `test-sql`, so downstream kits can reuse them directly. Importing the rerun worker leaves test execution to its direct launch.
+
+### Changed
+
+- Generate disposable PostgreSQL database names through Effect's Random service.
+
+### Fixed
+
+- SQL decodes migration ledger, release ownership and change-coverage rows before using them. Malformed rows fail with `SchemaError` instead of being treated as current, pending or a different owner.
+- SQL generates worker identities and change-listener heartbeat tokens through Effect's `Random` service.
+
+### Breaking
+
+- Schema component failures now reach SQL migration and readiness callers, server startup and test-sql migration helpers with their original error, tag and cause, and log the component name. Handle the component's own error instead of a wrapping `MigrationError` with kind `Failed`. When annotating migration options with fallible components, supply their error type as the second generic parameter; the default describes components that cannot fail.
+- Declare `WorkerRelease` through `defineService`. Consumers using the old class as a type must use `Context.Service.Identifier<typeof WorkerRelease>`; yielding the service and providing its value stay the same.
+
 ## 0.11.0 - 2026-10-30
 
 ### Added

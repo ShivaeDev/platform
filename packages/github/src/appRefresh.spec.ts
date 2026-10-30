@@ -1,6 +1,7 @@
 import { expect } from "vitest";
 import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
-import { appGithub, holdsInstallationToken, rejectsNext } from "#test/appGithub.ts";
+import { rejectsNext } from "#test/appFailureTraits.ts";
+import { appGithub, holdsInstallationToken } from "#test/appGithub.ts";
 
 appGithub.it(
 	"a read GitHub rejects for installation token 1 exchanges installation token 2 and retries once with it",

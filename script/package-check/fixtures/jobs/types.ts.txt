@@ -1,6 +1,6 @@
-import { Context, Effect, Schema } from "effect"
+import { Context, Effect, Layer, Redacted, Schema } from "effect"
 import { defineQueue, defineSchedule } from "@shivaedev/jobs/server/definition.ts"
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts"
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts"
 import { makePgBossTesting, testRetryPolicy } from "@shivaedev/jobs/server/testing.ts"
 
 class Mail extends Context.Service<Mail, { send(id: number): Effect.Effect<void> }>()("@consumer/Mail") {}
@@ -16,7 +16,7 @@ defineQueue({ name: "primitive", schema: Schema.String })
 const Cleanup = defineSchedule({ name: "cleanup", cron: "0 * * * *" })
 const Jobs = makePgBoss("@consumer/Jobs")
 const testing = makePgBossTesting({ retryPolicy: testRetryPolicy })
-const testingLayer = Jobs.layer({ clientFactory: testing.clientFactory, jobs: [Queue] })
+const testingLayer = Jobs.layer({ jobs: [Queue] }).pipe(Layer.provide(pgBossLayer({ clientFactory: testing.clientFactory })))
 const readout = Effect.gen(function* () {
   const jobs = yield* testing.jobs(Queue)
   for (const job of jobs) {
@@ -36,26 +36,31 @@ const readout = Effect.gen(function* () {
 void testingLayer
 void readout
 const layer = Jobs.layer({
-  connectionString: "postgresql://compile-only",
   jobs: [
     Queue.handle(({ id }) => Effect.flatMap(Mail, (mail) => mail.send(id))),
     Cleanup.run(Effect.void),
   ],
 })
 
-const boot = Effect.asVoid(Jobs).pipe(Effect.provide(layer))
+// @ts-expect-error Packed jobs connections must remain redacted.
+pgBossLayer({ connectionString: "postgresql://compile-only" })
+const app = pgBossLayer({ connectionString: Redacted.make("postgresql://compile-only") })
+// @ts-expect-error Feature services require the app client Layer.
+Effect.runPromise(Effect.asVoid(Jobs).pipe(Effect.provide(Jobs.layer({ jobs: [] }))))
+const boot = Effect.asVoid(Jobs).pipe(Effect.provide(layer), Effect.provide(app))
 // @ts-expect-error Worker dependencies remain required through the packed package.
 Effect.runPromise(boot)
 Effect.runPromise(boot.pipe(Effect.provideService(Mail, { send: () => Effect.void })))
 
 const OtherJobs = makePgBoss("@consumer/OtherJobs")
-const otherLayer = OtherJobs.layer({ connectionString: "postgresql://compile-only", jobs: [] })
+const otherLayer = OtherJobs.layer({ jobs: [] }).pipe(Layer.provide(app))
 // @ts-expect-error A different jobs Layer leaves Jobs unprovided through the packed package.
 Effect.runPromise(Effect.asVoid(Jobs).pipe(Effect.provide(otherLayer)))
 
 const program = Effect.gen(function* () {
   const jobs = yield* Jobs
   yield* jobs.enqueue(Queue, { id: 1 })
+  yield* jobs.health()
   yield* jobs.counts(Queue)
   yield* jobs.retry(Queue, "job-id")
   const job = yield* jobs.getJob(Queue, "job-id")
@@ -79,7 +84,7 @@ const followUp = Jobs.layer({
     yield* jobs.enqueue(Queue, { id })
   }))],
 })
-const followUpBoot = Effect.asVoid(Jobs).pipe(Effect.provide(followUp))
+const followUpBoot = Effect.asVoid(Jobs).pipe(Effect.provide(followUp), Effect.provide(app))
 // @ts-expect-error Follow-up handlers still require their domain services.
 Effect.runPromise(followUpBoot)
 Effect.runPromise(followUpBoot.pipe(Effect.provideService(Mail, { send: () => Effect.void })))

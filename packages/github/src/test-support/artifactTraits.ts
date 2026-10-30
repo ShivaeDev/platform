@@ -11,7 +11,10 @@ export function unavailableArtifact(state: "missing" | "expired") {
 }
 
 export const archiveRejected = github.trait("github", "GitHub answers the next archive request with 401 Bad credentials", function* ({ server }) {
-	yield* server.replyOnce("artifactRedirect", { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") });
+	yield* server.scriptFault("artifactRedirect", {
+		kind: "status",
+		reply: { body: { message: "Bad credentials" }, status: HttpStatus.fromLiteral("Unauthorized") },
+	});
 });
 
 export const storageSignatureExpired = github.trait(

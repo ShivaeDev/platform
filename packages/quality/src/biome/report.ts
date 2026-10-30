@@ -1,9 +1,10 @@
 import { relative, sep } from "node:path";
 import { Effect, Schema } from "effect";
+import { type BiomeRun, runBiome } from "#adapters/biome/run.ts";
 import type { ExceptionDeclaration } from "#exceptions/declaration.ts";
+import { SetupFailure } from "#failure.ts";
 import { ignoredTrackedPaths } from "#inventory/trackedPaths.ts";
 import { recognizeDiagnostics } from "./recognizeDiagnostics.ts";
-import { type BiomeRun, runBiome } from "./run.ts";
 
 const Position = Schema.Struct({ column: Schema.optionalKey(Schema.Int), line: Schema.Int });
 
@@ -27,8 +28,8 @@ const decodeReport = Schema.decodeUnknownOption(Schema.fromJsonString(Report));
 
 export const FAILING: ReadonlySet<string> = new Set(["error", "fatal"]);
 
-function failure(args: readonly string[], run: BiomeRun, missing: string, output: string): Error {
-	return new Error(`biome ${args.join(" ")} exited ${run.code} without ${missing}:\n${output.trim()}`);
+function failure(args: readonly string[], run: BiomeRun, missing: string, output: string): SetupFailure {
+	return new SetupFailure({ message: `biome ${args.join(" ")} exited ${run.code} without ${missing}:\n${output.trim()}` });
 }
 
 // Biome exits with an error but prints an empty report when no file was processed, so only a failing diagnostic explains a failed run.
@@ -46,10 +47,10 @@ const reportFor = Effect.fn("Biome.reportFor")(function* (
 	const run = yield* runBiome(root, command, exceptions);
 	const report = decodeReport(run.stdout.trim());
 	if (report._tag === "None") {
-		return yield* Effect.die(failure(command, run, "a report", [run.stdout, run.stderr].join("\n")));
+		return yield* Effect.fail(failure(command, run, "a report", [run.stdout, run.stderr].join("\n")));
 	}
 	if (unexplained(run, report.value)) {
-		return yield* Effect.die(failure(command, run, "a failing diagnostic", run.stderr));
+		return yield* Effect.fail(failure(command, run, "a failing diagnostic", run.stderr));
 	}
 	return report.value;
 });
@@ -59,7 +60,7 @@ export const biomeReport = Effect.fn("Biome.biomeReport")(function* (
 	args: readonly string[],
 	exceptions: readonly ExceptionDeclaration[] = [],
 ) {
-	const [report, tracked] = yield* Effect.all([reportFor(root, args, ["."], exceptions), Effect.promise(() => ignoredTrackedPaths(root))], {
+	const [report, tracked] = yield* Effect.all([reportFor(root, args, ["."], exceptions), ignoredTrackedPaths(root)], {
 		concurrency: "unbounded",
 	});
 	const paths = tracked

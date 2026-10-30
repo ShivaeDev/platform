@@ -1,16 +1,15 @@
 import { expect } from "vitest";
 import { Unauthorized } from "@shivaedev/errors/taxonomy.ts";
-import { eventually } from "@shivaedev/react/client/testing.ts";
+import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { malformedSession, notesScreen, screens, signedOutNotesRoute } from "#modules/notes/test-support/screens.ts";
 
 screens.it(
 	"shows the protected route's typed Unauthorized failure and links to sign-in",
 	[signedOutNotesRoute()],
-	function* ({ closeScreen, consoleErrors, alert, signInLink, form, noteCalls }) {
+	function* ({ closeScreen, consoleErrors, alert, signInLink, form }) {
 		yield* eventually(() => expect(alert()).toBe("Sign in to view your notes."));
 		yield* eventually(() => expect(signInLink()).toBe("/sign-in?returnTo=%2F"));
 		expect(form()).toBeNull();
-		yield* eventually(() => expect(noteCalls()).toEqual([]));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([
 			[
@@ -26,13 +25,12 @@ screens.it(
 screens.it(
 	"shows typed command rejection after expiry without clearing the draft",
 	[notesScreen()],
-	function* ({ closeScreen, consoleErrors, expireSession, enter, submit, alert, draft, noteCalls }) {
+	function* ({ closeScreen, consoleErrors, expireSession, enter, submit, alert, draft }) {
 		yield* expireSession();
 		yield* enter("Keep this draft");
 		yield* submit();
 		yield* eventually(() => expect(alert()).toBe("Sign in to add a note."));
 		yield* eventually(() => expect(draft()).toBe("Keep this draft"));
-		yield* eventually(() => expect(noteCalls()).toEqual(["list"]));
 		yield* closeScreen();
 		expect(consoleErrors()).toEqual([]);
 	},

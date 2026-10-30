@@ -1,82 +1,99 @@
-import { Effect, Schema } from "effect";
 import { expect } from "vitest";
-import { hasPostgresInvoiceLines } from "#test/repositoryTraits.ts";
-import { postgres } from "#test/sqlStory.ts";
+import { queries } from "#test/queries.ts";
 
-postgres.it("findMany breaks ties by the next field in list order", [hasPostgresInvoiceLines()], function* ({ invoiceLines }) {
-	const { lines } = invoiceLines();
-	yield* lines.insertMany([
-		{ amount: 1, name: "B", note: null },
-		{ amount: 1, name: "A", note: null },
-		{ amount: 1, name: "B", note: null },
-		{ amount: 1, name: "A", note: null },
-	]);
-	expect(
-		yield* lines.findMany({
-			orderBy: [
-				{ direction: "asc", field: "name" },
-				{ direction: "asc", field: "id" },
-			],
-			select: ["id"],
-		}),
-	).toEqual([{ id: 2 }, { id: 4 }, { id: 1 }, { id: 3 }]);
-	expect(
-		yield* lines.findMany({
-			orderBy: [
-				{ direction: "asc", field: "id" },
-				{ direction: "asc", field: "name" },
-			],
-			select: ["id"],
-		}),
-	).toEqual([{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }]);
-});
+const twoAsAndTwoBs = [
+	{ amount: 1, name: "B", note: null },
+	{ amount: 1, name: "A", note: null },
+	{ amount: 1, name: "B", note: null },
+	{ amount: 1, name: "A", note: null },
+];
 
-postgres.it("findMany applies mixed directions before limiting rows", [hasPostgresInvoiceLines()], function* ({ invoiceLines }) {
-	const { lines } = invoiceLines();
-	yield* lines.insertMany([
-		{ amount: 1, name: "B", note: null },
-		{ amount: 1, name: "A", note: null },
-		{ amount: 1, name: "B", note: null },
-		{ amount: 1, name: "A", note: null },
-	]);
-	expect(
-		yield* lines.findMany({
-			limit: 3,
-			orderBy: [
-				{ direction: "asc", field: "name" },
-				{ direction: "desc", field: "id" },
-			],
-			select: ["id"],
-		}),
-	).toEqual([{ id: 4 }, { id: 2 }, { id: 3 }]);
-});
+const listOrders = [
+	{
+		expected: [{ id: 2 }, { id: 4 }, { id: 1 }, { id: 3 }],
+		name: "name, then id breaking ties",
+		orderBy: [
+			{ direction: "asc", field: "name" },
+			{ direction: "asc", field: "id" },
+		],
+	},
+	{
+		expected: [{ id: 1 }, { id: 2 }, { id: 3 }, { id: 4 }],
+		name: "id first, leaving name nothing to break",
+		orderBy: [
+			{ direction: "asc", field: "id" },
+			{ direction: "asc", field: "name" },
+		],
+	},
+] as const;
 
-postgres.it("findMany accepts a single ordering object or a one-entry list", [hasPostgresInvoiceLines()], function* ({ invoiceLines }) {
-	const { lines } = invoiceLines();
-	yield* lines.insertMany([
-		{ amount: 1, name: "A", note: null },
-		{ amount: 1, name: "B", note: null },
-	]);
-	expect(yield* lines.findMany({ orderBy: { direction: "desc", field: "id" }, select: ["id"] })).toEqual([{ id: 2 }, { id: 1 }]);
-	expect(yield* lines.findMany({ orderBy: [{ direction: "desc", field: "id" }], select: ["id"] })).toEqual([{ id: 2 }, { id: 1 }]);
-});
+for (const { expected, name, orderBy } of listOrders) {
+	queries.it(`findMany sorts by the ordering list in list order: ${name}`, [], function* ({ findLines, saveLines }) {
+		yield* saveLines(twoAsAndTwoBs);
 
-postgres.it("findMany rejects unknown runtime fields in every ordering position", [hasPostgresInvoiceLines()], function* ({ invoiceLines }) {
-	const { lines } = invoiceLines();
-	const field: "name" = JSON.parse('"missing"');
-	for (const orderBy of [
-		{ direction: "asc", field },
-		[
-			{ direction: "asc", field },
+		const sorted = yield* findLines({ orderBy, select: ["id"] });
+
+		expect(sorted).toEqual(expected);
+	});
+}
+
+queries.it("findMany applies ascending names and descending ids before keeping the first three lines", [], function* ({ findLines, saveLines }) {
+	yield* saveLines(twoAsAndTwoBs);
+
+	const firstThree = yield* findLines({
+		limit: 3,
+		orderBy: [
+			{ direction: "asc", field: "name" },
 			{ direction: "desc", field: "id" },
 		],
-		[
-			{ direction: "asc", field: "id" },
-			{ direction: "desc", field },
-		],
-	] as const) {
-		const failure = yield* lines.findMany({ orderBy }).pipe(Effect.flip);
-		expect(failure).toBeInstanceOf(Schema.SchemaError);
-		expect(failure.message).toContain("missing");
-	}
+		select: ["id"],
+	});
+
+	expect(firstThree).toEqual([{ id: 4 }, { id: 2 }, { id: 3 }]);
 });
+
+const singleOrders = [
+	{ name: "a single ordering object", orderBy: { direction: "desc", field: "id" } },
+	{ name: "a one-entry ordering list", orderBy: [{ direction: "desc", field: "id" }] },
+] as const;
+
+for (const { name, orderBy } of singleOrders) {
+	queries.it(`findMany sorts by ${name}`, [], function* ({ findLines, saveLines }) {
+		yield* saveLines([
+			{ amount: 1, name: "A", note: null },
+			{ amount: 1, name: "B", note: null },
+		]);
+
+		const sorted = yield* findLines({ orderBy, select: ["id"] });
+
+		expect(sorted).toEqual([{ id: 2 }, { id: 1 }]);
+	});
+}
+
+const unknownField: "name" = JSON.parse('"missing"');
+
+const unknownOrders = [
+	{ name: "a single ordering object", orderBy: { direction: "asc", field: unknownField } },
+	{
+		name: "the first entry of an ordering list",
+		orderBy: [
+			{ direction: "asc", field: unknownField },
+			{ direction: "desc", field: "id" },
+		],
+	},
+	{
+		name: "a later entry of an ordering list",
+		orderBy: [
+			{ direction: "asc", field: "id" },
+			{ direction: "desc", field: unknownField },
+		],
+	},
+] as const;
+
+for (const { name, orderBy } of unknownOrders) {
+	queries.it(`findMany rejects an unknown runtime field in ${name} with a schema error`, [], function* ({ findLines }) {
+		const sorted = yield* findLines({ orderBy });
+
+		expect(sorted).toBe("failed with a schema error");
+	});
+}

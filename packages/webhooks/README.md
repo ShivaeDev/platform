@@ -19,7 +19,7 @@ const sources = {
 
 ## Using the inbox
 
-A source has a name, a verification strategy, a signing key loaded through Effect Config, and event registrations. Strategies read delivery identity and event names from headers and verify the raw bytes before JSON decoding. Event schemas describe only the fields your application needs; the mapping returns typed job requests. No worker handler runs in the route.
+A source has a name, a verification strategy, a signing key loaded through Effect Config, and event registrations. Strategies read delivery identity and event names from headers and verify the raw bytes before JSON decoding. Event schemas describe only the fields your application needs; the mapping returns typed job requests, directly or in an Effect. No worker handler runs in the route.
 
 ### Register receipts and queues
 
@@ -32,7 +32,7 @@ import { Config, Effect, Layer, Redacted, Schema } from "effect";
 import { SqlClient } from "effect/sql";
 import { defineQueue } from "@shivaedev/jobs/server/definition.ts";
 import { pgBossSchema } from "@shivaedev/jobs/server/schema.ts";
-import { makePgBoss } from "@shivaedev/jobs/server/service.ts";
+import { makePgBoss, pgBossLayer } from "@shivaedev/jobs/server/service.ts";
 import { appHost } from "@shivaedev/server/appHost.ts";
 import { githubSource } from "@shivaedev/webhooks/server/github.ts";
 import { webhookEvent, webhookJob } from "@shivaedev/webhooks/server/registration.ts";
@@ -64,11 +64,7 @@ const Host = appHost({
 	},
 	application: Effect.gen(function* () {
 		const sql = yield* SqlClient.SqlClient;
-		const jobs = Jobs.layer({
-			connectionString: Redacted.value(databaseUrl),
-			jobs: [IndexIssue],
-			migrate: false,
-		});
+		const jobs = Jobs.layer({ jobs: [IndexIssue] }).pipe(Layer.provide(pgBossLayer({ connectionString: databaseUrl, migrate: false })));
 		return {
 			group: Api,
 			handlers,
@@ -85,6 +81,23 @@ const Host = appHost({
 
 `databaseUrl`, `loader`, `Api`, `handlers` and `sessions` are the application's existing host inputs. The route above receives GitHub deliveries at `POST /webhooks/github`. It uses the existing `appHost.routes` option and the host's `maxBodySize`; the jobs client and SQL client must point at the same PostgreSQL database. Register workers separately with the job definitions' `handle` method, in the processes your application chooses. A missing signing key fails the route Layer with `ConfigError`; composing it into `Host` preserves that typed error for the application's startup to handle.
 
+### Decide with services
+
+The `webhookEvent` mapping can return an Effect to read application services and the clock before accepting a verified delivery. Return an empty array to ignore it, or fail with a typed error to refuse it. Pure mappings keep the same signature.
+
+```ts
+const issues = webhookEvent(IssueEvent, ({ issue }) =>
+	Effect.gen(function* () {
+		const preferences = yield* SenderPreferences;
+		const now = yield* Clock.currentTimeMillis;
+		if (!(yield* preferences.allows(issue.sender, now))) return [];
+		return [webhookJob(IndexIssue, { number: issue.number })];
+	}),
+);
+```
+
+`Clock` comes from `effect`; `SenderPreferences` and its `allows` method belong to the application, as does the sender field in its event schema. Supply the mapping's services to `webhookRoute` with `Layer.provide`; they remain required in the route Layer's type. `WebhookEvent<R, E>` and `WebhookSource<R, E>` preserve the mapping's service requirements and typed failures. The mapping runs after verification and schema decoding, inside the receipt transaction. An ignored delivery commits an ignored receipt with no jobs. A failed check rolls back the receipt and any transactional database changes; the sender can retry. Duplicate deliveries skip the mapping.
+
 ### Answers and retries
 
 | Request                                    | Status | Body               |
@@ -97,11 +110,11 @@ const Host = appHost({
 | Missing delivery ID or event header        | 400    | `Invalid delivery` |
 | Payload rejected by its Schema             | 400    | Empty              |
 | Body exceeds the host limit                | 413    | Empty              |
-| Database or enqueue failure                | 503    | Empty              |
+| Mapping, database or enqueue failure       | 503    | Empty              |
 
 Refused requests create no receipt and no jobs. Signatures are checked before decoding; unlisted events are verified and recorded without decoding. The signing key, signature and raw body stay out of responses, logs and spans.
 
-Database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag. Receiving a delivery runs under the `Webhooks.receive` span.
+Mapping, database and enqueue failures log their redacted cause and `errorTag` at error level before the empty 503 response. The HTTP request span records the redacted failure with its original tag. Receiving a delivery runs under the `Webhooks.receive` span.
 
 The receipt insert and every enqueue use one SQL transaction. Concurrent copies wait on the receipt's unique key: a committed first copy makes the second a duplicate; a rolled-back first copy lets the second receive the delivery itself. If any enqueue fails, earlier enqueues and the receipt roll back, and the sender's retry can succeed. Receipts for ignored events are deduplicated too.
 

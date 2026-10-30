@@ -1,15 +1,16 @@
 import { Context, Effect, Option, Schema } from "effect";
-import { Rpc } from "effect/rpc";
+import { Rpc, type RpcSchema } from "effect/rpc";
 import type { Key } from "@shivaedev/changes/keys.ts";
-import { changesSuccess, rerunErrors } from "#internal/queryUpdate.ts";
-import type { CommandShape, QueryShape } from "#operation.ts";
+import type { QueryServices } from "#contract.ts";
+import { changesSuccess } from "#internal/changesSuccess.ts";
+import type { CommandShape, QueryShape, StreamShape } from "#operation.ts";
 import type { Viewer } from "#readPolicy.ts";
 import { MissingReadPolicy, QueryReadDenied } from "#readPolicyErrors.ts";
 
 export class QueryDefinition extends Context.Service<QueryDefinition, { readonly definition: QueryShape }>()("@shivaedev/contract/QueryDefinition") {}
-export interface QueryRequest {
+export interface QueryRequest<E = unknown, R = unknown> {
 	readonly payload: unknown;
-	readonly query: QueryShape;
+	readonly query: QueryShape<E, R>;
 }
 export class ChangesQueries extends Context.Service<
 	ChangesQueries,
@@ -56,11 +57,34 @@ function referenceSchemas(queries: readonly QueryShape[]) {
 	return Schema.Array(Schema.Union(queries.map((query) => Schema.Struct({ payload: query.payload, query: Schema.Literal(query.name) }))));
 }
 
-export function changesRpc<const TName extends string, const TQueries extends readonly QueryShape[]>(name: TName, queries: TQueries) {
+type ChangesError<TQueries extends readonly QueryShape[]> = Schema.Union<
+	readonly [typeof MissingReadPolicy, typeof QueryReadDenied, ...TQueries[number]["error"][]]
+>;
+
+export function changesRpc<const TName extends string, const TQueries extends readonly QueryShape[]>(
+	name: TName,
+	queries: TQueries,
+): Rpc.Rpc<
+	`${TName}.$changes`,
+	Schema.Struct<{ queries: ReturnType<typeof referenceSchemas<TQueries>> }>,
+	RpcSchema.Stream<ReturnType<typeof changesSuccess<TQueries>>, ChangesError<TQueries>>,
+	Schema.Never,
+	never,
+	QueryServices<TQueries[number]>
+>;
+export function changesRpc(name: string, queries: readonly QueryShape[]) {
 	return Rpc.make(`${name}.$changes`, {
-		error: Schema.Union([MissingReadPolicy, QueryReadDenied, ...rerunErrors(queries)]),
+		error: Schema.Union([MissingReadPolicy, QueryReadDenied, ...queries.map((query) => query.error)]),
 		payload: { queries: referenceSchemas(queries) },
 		stream: true,
 		success: changesSuccess(queries),
 	}).annotate(ChangesQueries, { resolve: (references) => resolveQueries(queries, references) });
+}
+
+export function operationAnnotations(operation: QueryShape | CommandShape | StreamShape, keyScope: "session" | undefined) {
+	const scope = keyScope === undefined ? Context.empty() : Context.make(KeyScope, keyScope);
+	if (operation.kind === "command") {
+		return Context.add(scope, CommandInvalidation, { invalidates: operation.invalidates });
+	}
+	return operation.kind === "query" ? Context.add(scope, QueryDefinition, { definition: operation }) : scope;
 }
