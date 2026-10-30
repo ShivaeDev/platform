@@ -1,11 +1,12 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
-import { Effect, FileSystem } from "effect";
+import { type Duration, Effect, FileSystem } from "effect";
 import type { FleetRecord } from "#model.ts";
 import { answerQueueFailure } from "#test/answerRecordingFailure.ts";
 import { untilOutput } from "#test/follower.ts";
 import { type FollowOptions, followerProcess } from "#test/followerProcess.ts";
 import type { HostStoryEngine } from "#test/HostStoryEngine.ts";
+import { livenessProxy } from "#test/livenessProxy.ts";
 import { stalledWatchProxy } from "#test/stalledWatchProxy.ts";
 import { watchPrApi } from "#test/watchPrApi.ts";
 
@@ -25,8 +26,12 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 		return watch;
 	}
 	return {
-		awaitEvent: (kind: string) => untilOutput(follower(), `"kind":"${kind}"`),
+		awaitEvent: (kind: string, timeoutMs?: number) => untilOutput(follower(), `"kind":"${kind}"`, timeoutMs),
 		awaitWatchExit: () => Effect.promise(() => follower().done),
+		elapse: (duration: Duration.Input) => {
+			tell(`let ${duration} pass while the watcher runs`);
+			return Effect.sleep(duration);
+		},
 		eventErrors: () => follower().errors(),
 		eventLines: (): readonly unknown[] =>
 			follower()
@@ -37,6 +42,7 @@ export function watchEventVerbs(engine: HostStoryEngine, tell: (line: string) =>
 				.map((line) => JSON.parse(line)),
 		eventOutput: () => follower().output(),
 		failAnswerQueue: () => answerQueueFailure(engine.fixture.host).pipe(Effect.provideContext(engine.running.context)),
+		livenessProxy: () => livenessProxy(engine.running.port),
 		observeProgress: (record: FleetRecord) => {
 			const receipt = record.attempts.at(-1)?.receipt;
 			const observation = receipt && engine.observedProvider.observations.get(receipt.turnId);
