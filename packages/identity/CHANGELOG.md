@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.4.0 - 2026-10-30
+
+### Added
+
+- Scope screen-driver verbs and readouts with `within(container)`, and mount named member screens with independent cookie sessions, atom registries and scoped roots through `memberScreens`.
+- Create password-credential test users with Identity's `passwordUser` helper for real email sign-in stories.
+- Quality accepts app migrations referencing the auth user id with `ON DELETE CASCADE` or `ON DELETE SET NULL`, while keeping auth reads and writes behind identity.
+- Identity exports `userReference` from `server/better-auth/userReference.ts` so app migrations share the user table and id column names.
+- Starter notes use a `user_id` foreign key with cascading deletion. A numbered migration renames the existing ownership column and adds the constraint for existing apps.
+
+### Changed
+
+- Require Effect 4.0.6 and align the Effect companion package peers and generated starter catalog to the same exact release. Install the 4.0.6 Effect stack together.
+
+### Fixed
+
+- Register hosted RPC cache-control handling through Effect 4.0.6's request-scoped pre-response API so responses keep `private, no-store`.
+- Accept native RPC's `application/x-ndjson` media type while preserving `application/ndjson` callers at the transport guard.
+- Keep subscriptions open after their HTTP request body completes; closing the socket still cancels them.
+
 ## 0.3.2 - 2026-10-29
 
 ### Changed

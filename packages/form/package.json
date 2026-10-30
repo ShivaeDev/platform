@@ -1,6 +1,6 @@
 {
 	"name": "@shivaedev/form",
-	"version": "0.7.0",
+	"version": "0.7.1",
 	"description": "Schema-derived Effect atom forms with optional React hooks",
 	"keywords": [
 		"effect"

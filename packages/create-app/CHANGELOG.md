@@ -1,5 +1,40 @@
 # Changelog
 
+## 0.24.0 - 2026-10-30
+
+### Added
+
+- Inspect running apps locally with browser-check screenshots, test-user sign-in and smoke checks, installing Chromium only when the command runs.
+- Give generated apps an opt-in browser-check script and ignored screenshot folder, outside app CI and ready checks.
+- Generated apps report coverage and JUnit from one stable `CI` job, uploading a `coverage-tests` artifact with commit and job metadata. CI skips draft pull requests, cancels superseded pull-request runs and preserves default-branch measurements. Existing apps receive the workflow through `create-app update`.
+- Quality accepts app migrations referencing the auth user id with `ON DELETE CASCADE` or `ON DELETE SET NULL`, while keeping auth reads and writes behind identity.
+- Identity exports `userReference` from `server/better-auth/userReference.ts` so app migrations share the user table and id column names.
+- Starter notes use a `user_id` foreign key with cascading deletion. A numbered migration renames the existing ownership column and adds the constraint for existing apps.
+
+### Changed
+
+- Require Effect 4.0.6 and align the Effect companion package peers and generated starter catalog to the same exact release. Install the 4.0.6 Effect stack together.
+- `@shivaedev/create-app` omits unused chart and tooltip components and Recharts from generated apps, and removes the notes table dependency from minimal apps and their starter updates. Generated guidance explains Quality's test naming, the dev server forwards `/health`, and Railway workers use the default restart policy. Existing apps receive the removals through `create-app update`.
+- The starter's Railway deployment supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip` through its shared proxy configuration. Generated deployment docs explain the automatic Railway settings and when a host refuses to boot.
+- New apps include an outbound HTTP adapter example in the notes module, with stories covering success, error statuses and malformed bodies against a fake API.
+- The `story-testing` skill covers how a story reads: one name per actor, actions that name their change, a proven before state, domain outcomes, a separated action, a true title, `outcomes` for several checks, explained setup, one behaviour per story, stories only for plausible regressions, and settling on events. It now applies to package stories as well as app stories.
+- Generated apps record the starter's existing findings for the new story rules in their baseline.
+- Quality applies Biome’s test-title check only to `*.test.*`, `*.spec.*` and `test-support/` files, so ordinary helpers named `describe`, `it` or `test` do not receive test-title findings.
+- Quality and starter guidance explain that a `CreateSpace` component in `spaces/client/` is named `Create.tsx`, keeping the full export name without repeating a folder in the file name.
+
+### Fixed
+
+- Register hosted RPC cache-control handling through Effect 4.0.6's request-scoped pre-response API so responses keep `private, no-store`.
+- Accept native RPC's `application/x-ndjson` media type while preserving `application/ndjson` callers at the transport guard.
+- Keep subscriptions open after their HTTP request body completes; closing the socket still cancels them.
+
+### Breaking
+
+- `@shivaedev/admin`: Move page declarations and `registerAdmin` handler maps into their owning modules. Combine their registries with `mergeAdminRegistries` in browser composition and their registrations with `mergeAdminRegistrations` in the application host. Registration now exposes its pages; duplicate page ids are rejected by TypeScript as well as at runtime. Keep each module's handler Layer with its page registration.
+- `@shivaedev/create-app`: The starter foundation owns Users and Jobs, and notes registers only its statistics page. Move application pages and handlers into their owning module registrations and combine them at the host; client modules contribute navigation through their own registry. Run `create-app update` to merge the starter side, preserving application customizations through its normal merge flow. Minimal apps retain Users and Jobs when notes is removed.
+- `@shivaedev/server` refuses to start a session host bound to a non-loopback address without proxy trust, with a typed `TrustedProxyRequired` error naming the missing setting. Set `TRUSTED_PROXY` to your proxy's peer IP addresses or CIDR ranges, set `config.trustedProxy`, or deploy with the starter's Railway configuration. Local loopback hosts keep working without it.
+- Specs get new findings from three story rules. `tests/domain-outcomes` reports Effect `Exit`, `Cause` and `Result` uses, `_tag` reads and `"Success"` or `"Failure"` tagged literals: return the outcome in the domain's words from a kit verb or readout. `tests/grouped-outcomes` reports consecutive `expect(yield* …)` checks: write them as rows of one `outcomes` call from `@shivaedev/test-story/server/outcomes.ts`. `tests/wait-on-events` reports sleeps, timers, `eventually`, Vitest fake timers and `TestClock` adjustments: settle on the engine's own signal, and advance the clock in a kit verb named for the time that passes. Record existing findings with `quality baseline write --rule tests/domain-outcomes --rule tests/grouped-outcomes --rule tests/wait-on-events`.
+
 ## 0.23.0 - 2026-10-29
 
 ### Changed

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.0 - 2026-10-30
+
+### Changed
+
+- Require Effect 4.0.6 and align the Effect companion package peers and generated starter catalog to the same exact release. Install the 4.0.6 Effect stack together.
+- The starter's Railway deployment supplies `TRUSTED_PROXY=100.64.0.0/10` and `AUTH_CLIENT_IP_HEADER=x-real-ip` through its shared proxy configuration. Generated deployment docs explain the automatic Railway settings and when a host refuses to boot.
+
+### Fixed
+
+- Register hosted RPC cache-control handling through Effect 4.0.6's request-scoped pre-response API so responses keep `private, no-store`.
+- Accept native RPC's `application/x-ndjson` media type while preserving `application/ndjson` callers at the transport guard.
+- Keep subscriptions open after their HTTP request body completes; closing the socket still cancels them.
+
+### Breaking
+
+- `@shivaedev/server` refuses to start a session host bound to a non-loopback address without proxy trust, with a typed `TrustedProxyRequired` error naming the missing setting. Set `TRUSTED_PROXY` to your proxy's peer IP addresses or CIDR ranges, set `config.trustedProxy`, or deploy with the starter's Railway configuration. Local loopback hosts keep working without it.
+
 ## 0.4.0 - 2026-10-29
 
 ### Added
