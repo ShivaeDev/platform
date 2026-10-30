@@ -2,13 +2,19 @@ import { Effect, Schema } from "effect";
 import { HttpServerRequest } from "effect/http";
 import { contract } from "@shivaedev/contract/contract.ts";
 import { query } from "@shivaedev/contract/operation.ts";
-import { Forbidden } from "@shivaedev/errors/taxonomy.ts";
-import { Identity, SessionUser } from "#identity.ts";
-import { AuthenticatedUser } from "#middleware.ts";
+import { AuthUnavailable, Forbidden, Unauthorized } from "@shivaedev/errors/taxonomy.ts";
+import { Identity, SessionUser, SessionUserWithProviderAccounts } from "#identity.ts";
+import { AuthenticatedUserWithProviderAccounts } from "#middleware.ts";
 
 export const Api = contract("native", {
 	keyScope: "session",
 	queries: [
+		query("accounts", {
+			readPolicy: () => Effect.succeed(true),
+			reads: () => [],
+			rejections: { AuthUnavailable, Unauthorized },
+			success: Schema.Array(Schema.Struct({ accountId: Schema.String, providerId: Schema.String })),
+		}),
 		query("profile", {
 			payload: { owner: Schema.String },
 			readPolicy: () => Effect.succeed(true),
@@ -17,9 +23,10 @@ export const Api = contract("native", {
 			success: Schema.Struct({ email: Schema.String, id: Schema.String, name: Schema.String, role: Schema.NullOr(Schema.String) }),
 		}),
 	],
-}).middleware(AuthenticatedUser);
+}).middleware(AuthenticatedUserWithProviderAccounts);
 
 export const handlers = Api.application.toLayer({
+	"native.accounts": () => Effect.flatMap(SessionUserWithProviderAccounts, (user) => user.providerAccounts),
 	"native.profile": ({ owner }) =>
 		Effect.gen(function* () {
 			const identity = yield* Identity;

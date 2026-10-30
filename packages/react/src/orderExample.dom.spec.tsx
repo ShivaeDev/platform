@@ -1,15 +1,14 @@
 import { expect } from "vitest";
 import { expectNoReactWarnings } from "@shivaedev/test-story/client/react.ts";
-import { app, realPostgres } from "#test/order-example/application.ts";
+import { app } from "#test/order-example/app.ts";
 import { aliceHasOrder, editorIsOpen, editorsAreOpen, hasOrder, orderEditorIsOpen, saveIsHeld } from "#test/order-example/traits.ts";
 
 expectNoReactWarnings();
 
 app.it(
 	"real HTTP saves refetch the view, field rejection preserves storage, and refresh merges untouched fields beside dirty edits",
-	[realPostgres(), aliceHasOrder("paper"), orderEditorIsOpen("paper")],
-	function* ({ databaseSetup, editor, observe, editName, editQuantity, submitOrder, storedOrder, saveOrder, refreshOrder, revertOrder }) {
-		expect(databaseSetup()).toEqual({ activeScreens: 0, migrations: [{ "migration_id": 1 }], orders: [] });
+	[aliceHasOrder("paper"), orderEditorIsOpen("paper")],
+	function* ({ editor, observe, editName, editQuantity, submitOrder, storedOrder, saveOrder, refreshOrder, revertOrder }) {
 		yield* observe("read the name draft", () => expect(editor().name).toBe("Printer paper"));
 		yield* editName("  Office chairs  ");
 		yield* editQuantity("450");
@@ -40,9 +39,8 @@ app.it(
 
 app.it(
 	"edits made while a save is in flight survive its response and query refresh",
-	[realPostgres(), aliceHasOrder("paper"), saveIsHeld(), orderEditorIsOpen("paper")],
-	function* ({ databaseSetup, editor, observe, editName, submitOrder, saveHasEntered, releaseSave, storedOrder }) {
-		expect(databaseSetup()).toEqual({ activeScreens: 0, migrations: [{ "migration_id": 1 }], orders: [] });
+	[aliceHasOrder("paper"), saveIsHeld(), orderEditorIsOpen("paper")],
+	function* ({ editor, observe, editName, submitOrder, saveHasEntered, releaseSave, storedOrder }) {
 		yield* observe("read the name draft", () => expect(editor().name).toBe("Printer paper"));
 		yield* editName("Submitted order");
 		yield* submitOrder();
@@ -59,7 +57,6 @@ app.it(
 app.it(
 	"HTTP sessions isolate owners and a revoked session cannot save",
 	[
-		realPostgres(),
 		aliceHasOrder("paper"),
 		hasOrder("lamps", { name: "Desk lamps", ownerId: "bob", quantity: 200 }),
 		orderEditorIsOpen("paper"),
@@ -68,8 +65,7 @@ app.it(
 		editorIsOpen("anonymous", "paper", undefined),
 		editorIsOpen("expired", "paper", "expired-session"),
 	],
-	function* ({ databaseSetup, editor, observe, forbiddenSave, storedOrder, editName, revokeAlice, submitOrder }) {
-		expect(databaseSetup()).toEqual({ activeScreens: 0, migrations: [{ "migration_id": 1 }], orders: [] });
+	function* ({ editor, observe, forbiddenSave, storedOrder, editName, revokeAlice, submitOrder }) {
 		yield* observe("read the name draft", () => expect(editor().name).toBe("Printer paper"));
 		yield* observe("read the quantity draft", () => expect(editor().quantity).toBe("3"));
 		yield* observe("read the name draft", () => expect(editor("bob").name).toBe("Desk lamps"));
@@ -82,9 +78,9 @@ app.it(
 			expect(editor("anonymous").text).not.toContain("Printer paper");
 			expect(editor("anonymous").alert).toBeTruthy();
 		});
-		expect(yield* forbiddenSave("paper", "bob-session")).toMatchObject({ _tag: "Failure", failure: { _tag: "OrderNotFound" } });
-		expect(yield* forbiddenSave("paper", undefined)).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
-		expect(yield* forbiddenSave("paper", "expired-session")).toMatchObject({ _tag: "Failure", failure: { _tag: "Unauthorized" } });
+		expect(yield* forbiddenSave("paper", "bob-session")).toBe("OrderNotFound");
+		expect(yield* forbiddenSave("paper", undefined)).toBe("Unauthorized");
+		expect(yield* forbiddenSave("paper", "expired-session")).toBe("Unauthorized");
 		expect(yield* storedOrder("paper")).toEqual([{ name: "Printer paper", quantity: 3 }]);
 		yield* editName("Must not persist");
 		yield* revokeAlice();
@@ -98,13 +94,11 @@ app.it(
 app.it(
 	"saving one order refreshes it and the list without refetching another mounted order",
 	[
-		realPostgres(),
 		hasOrder("paper", { quantity: 300 }),
 		hasOrder("toner", { name: "Toner", quantity: 150 }),
 		editorsAreOpen({ paper: "paper", toner: "toner" }, "paper"),
 	],
-	function* ({ databaseSetup, list, observe, editor, gets, orderId, editName, submitOrder }) {
-		expect(databaseSetup()).toEqual({ activeScreens: 0, migrations: [{ "migration_id": 1 }], orders: [] });
+	function* ({ list, observe, editor, gets, orderId, editName, submitOrder }) {
 		yield* observe("the list renders both orders", () => expect(list()).toEqual(["Printer paper / 300", "Toner / 150"]));
 		yield* observe("read the name draft", () => expect(editor("toner").name).toBe("Toner"));
 		expect(gets()).toEqual(

@@ -10,6 +10,6 @@ export function connectionBoundary(browserClient: (url: string) => NonNullable<B
 		const client = browserClient(relay.url);
 		yield* Effect.addFinalizer(() => Effect.sync(() => client.registry.dispose()));
 		engine.server = { board, client };
-		engine.connectionBoundary = { disconnect: relay.disconnect, resume: relay.resume };
+		engine.connectionBoundary = { disconnect: relay.disconnect, resume: relay.online };
 	});
 }

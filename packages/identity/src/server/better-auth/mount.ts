@@ -10,6 +10,7 @@ import { revokeUnadmitted } from "#server/better-auth/revokeUnadmitted.ts";
 import { type PolicyStorage, type SignInPolicy, signInGate } from "#server/better-auth/signInGate.ts";
 import { signInPolicyOptions } from "#server/better-auth/signInPolicy.ts";
 import { admittedSessions } from "./admittedSessions.ts";
+import { closeRoleEndpoints } from "./closeRoleEndpoints.ts";
 import { mountedSessions } from "./mountedSessions.ts";
 
 export interface BetterAuthMountOptions<E = never, R = never> {
@@ -39,8 +40,9 @@ export const betterAuthMount = Effect.fn("Platform.betterAuthMount")(function* <
 	const rateLimit = options.rateLimit;
 	const customStorage =
 		rateLimit?.customStorage ?? (rateLimit?.storage === undefined || rateLimit.storage === "memory" ? yield* memoryRateLimit : undefined);
+	const configured = mount.roles === undefined ? options : closeRoleEndpoints(options);
 	const auth = betterAuth({
-		...withBearerSessions(options, mount.bearerSessions !== undefined),
+		...withBearerSessions(configured, mount.bearerSessions !== undefined),
 		advanced: {
 			useSecureCookies: Option.isSome(publicUrl) && publicUrl.value.protocol === "https:",
 			...options.advanced,

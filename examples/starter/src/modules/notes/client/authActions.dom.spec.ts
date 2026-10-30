@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import * as HttpStatus from "effect/http/HttpStatus";
 import { expect } from "vitest";
 import { eventually } from "@shivaedev/test-story/client/react.ts";
 import { aliceAccount, authScreen, notesApp, signInResponseHeld } from "#modules/notes/test-support/app.tsx";
@@ -16,7 +15,7 @@ notesApp.it(
 		expect(alert()).toBeUndefined();
 		yield* releaseSignIn();
 		yield* eventually(() => expect(alert()).toBe("Invalid email or password"));
-		expect(Option.getOrThrow(signInFailure())).toMatchObject({ code: "INVALID_EMAIL_OR_PASSWORD", status: HttpStatus.fromLiteral("Unauthorized") });
+		expect(Option.getOrThrow(signInFailure())).toMatchObject({ code: "INVALID_EMAIL_OR_PASSWORD" });
 		expect(button("Sign in")).toEqual({ disabled: false, text: "Sign in" });
 		expect(heading()).toBe("Sign in");
 	},

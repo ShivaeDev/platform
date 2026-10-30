@@ -1,6 +1,11 @@
 import { Effect, Option } from "effect";
 import { Headers as HttpHeaders } from "effect/http";
-import { betterAuthSessions, type GetSession } from "#server/adapters/betterAuthSessions.ts";
+import {
+	betterAuthSessions,
+	type GetProviderAccounts,
+	type GetSession,
+	type SessionWithProviderAccounts,
+} from "#server/adapters/betterAuthSessions.ts";
 import { providerFailure } from "#server/providerFailure.ts";
 import type { SessionProvider, SessionShape } from "#server/session.ts";
 import { type BearerSessionsOptions, sessionHeaders } from "./bearerSessions.ts";
@@ -11,8 +16,13 @@ interface SessionStorage extends PolicyStorage {
 }
 
 export function admittedSessions<E>(gate: SignInGate<E>, storage: () => Promise<SessionStorage>, bearerSessions?: BearerSessionsOptions) {
-	return <TSession extends SessionShape>(getSession: GetSession<TSession>): SessionProvider<TSession> => {
-		const provider = betterAuthSessions(getSession);
+	function admit<TSession extends SessionShape>(getSession: GetSession<TSession>): SessionProvider<TSession>;
+	function admit<TSession extends SessionShape>(
+		getSession: GetSession<TSession>,
+		getProviderAccounts: GetProviderAccounts,
+	): SessionProvider<SessionWithProviderAccounts<TSession>>;
+	function admit<TSession extends SessionShape>(getSession: GetSession<TSession>, getProviderAccounts?: GetProviderAccounts) {
+		const provider = getProviderAccounts === undefined ? betterAuthSessions(getSession) : betterAuthSessions(getSession, getProviderAccounts);
 		return {
 			get: Effect.fnUntraced(function* (headers) {
 				const auth = gate.active || bearerSessions !== undefined ? yield* fromStorage(storage) : undefined;
@@ -34,5 +44,6 @@ export function admittedSessions<E>(gate: SignInGate<E>, storage: () => Promise<
 				return Option.none();
 			}),
 		};
-	};
+	}
+	return admit;
 }

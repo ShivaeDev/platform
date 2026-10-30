@@ -128,7 +128,7 @@ const connect = () => bind(Notes, Client, { resume });
 
 #### Mount the notice host
 
-Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host.
+Mount the optional `NoticeHost` from `@shivaedev/react/notices.ts` inside `SessionBoundary`, above the screens. The host owns a native atom collection, dismissal, expiry and each notice action's native `AsyncResult`. Supply `render(notice)` to choose markup, wording for action outcomes and labels. Render `notice.action.run` as a button handler and disable that control with `notice.action.pending`; `notice.dismiss` removes the entry. No command requires a host. Expiry sleeps on the `Clock` of the optional `runtime` prop, an atom runtime such as `client.runtime`; without it, the host uses Effect's default clock. A story can pass a runtime built with `Layer.succeed(Clock.Clock, clock)` and drive expiry with `TestClock.adjust`.
 
 ```tsx
 import { Cause } from "effect";
@@ -491,7 +491,7 @@ Here `api`, `NotesClient` and `TitleFields` belong to the app. Render `notes` th
 
 Replacing the session during a command or Undo disposes the outgoing registry: late completion callbacks and outcomes do not publish, and retained notice action and dismiss handlers cannot change the new host.
 
-A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, clear expiry timers and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
+A descriptor has `message`, optional `expiresIn` as a native Duration, and optional `action: { label, run }`. Without an expiry it remains until dismissed or the host ends. Dismissal, expiry, host unmount and session replacement remove entries, interrupt their expiry sleeps and interrupt pending actions. Native uninterruptible Effects may finish, but their old notice cannot affect the new host. Notices survive screen unmount while their host remains mounted.
 
 #### Completion inside each command invocation
 
@@ -746,7 +746,16 @@ function SignInButton({ email, password }: { email: string; password: string }) 
 }
 ```
 
-The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Returned auth errors keep their fields in the typed failure channel. Rejected promises become `AuthActionUnavailable` with the original rejection in `cause`. The application chooses error text and what happens after success.
+The example uses `authAction`, `useAction`, `effect/reactivity/AsyncResult` and `effect/Option`, with an application-owned `authClient`. Actions fail with `AuthFailure` from the same module. Its `code` uses the closed `AuthFailureCode` union: supported Better Auth core codes, `RATE_LIMITED` for a code-less 429, and `UNKNOWN` for unsupported or missing codes and rejected promises. The original error is available in `cause`. Applications own the sentences, and can make their mapping exhaustive with `Record<AuthFailureCode, string>`.
+
+For a form's Effect-based `onSubmit`, use `authCall` from the same module:
+
+```ts
+const signIn = authCall((credentials: { email: string; password: string }, signal) => authClient.signIn.email(credentials, { signal }));
+const onSubmit = (credentials: { email: string; password: string }) => signIn(credentials);
+```
+
+`authCall` returns a function from input to `Effect<A, AuthFailure>`. It uses the same failure codes and successful data as `authAction`.
 
 `authQuery` from `@shivaedev/react/client/authQuery.ts` creates an input-keyed query atom family for Better Auth reads. Render it with `useQuery`, just like a contract query atom:
 
@@ -768,7 +777,7 @@ function Account() {
 }
 ```
 
-The example uses the application's Better Auth client. Reads preserve returned auth errors and use the same `AuthActionUnavailable` failure as actions for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
+The example uses the application's Better Auth client. Reads preserve returned auth errors and use `AuthActionUnavailable` for rejected promises. Releasing a pending read interrupts its Effect and aborts the supplied signal.
 
 For an explicit sign-out in a TanStack route, use `useSignOut(signOut, { signIn: "/sign-in" })` from `@shivaedev/react/client/useSignOut.ts` in place of `useAction`. It exposes the same state and a `dispatch()` handler. The hook records sign-out intent before the request and navigates to sign-in after success. Repeated clicks while pending share one request and follow-up. Unmounting the component or disposing its registry stops the follow-up navigation. If a session refresh replaces the component before the response, the replacement session’s route policy owns navigation to sign-in. `permissionGuard` and `signInSearch(location)` omit `returnTo` for that intent, including when the auth owner's session refresh reruns guards first. Use `signInSearch` for module sign-in links too; ordinary visits retain the full requested location. Applications do not need history markers or Better Auth completion timing hooks.
 
