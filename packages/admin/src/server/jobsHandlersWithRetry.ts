@@ -1,8 +1,10 @@
 import { type Context, Effect, Option } from "effect";
+import { requirePermission } from "@shivaedev/identity/permission.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { type JobsEntry, type JobsPayload, jobsQueue } from "#jobs/entry.ts";
 import { JobsNotFailed, type jobsPageWithRetry } from "#jobs/retryPage.ts";
 import { JobsQueueUnregistered } from "#jobs/schemas.ts";
+import { RetryJobs } from "#permissions.ts";
 import { jobsFailures, jobsReadHandlers } from "./jobsHandlers.ts";
 
 export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[], TService>(
@@ -13,6 +15,7 @@ export function jobsHandlersWithRetry<const TQueues extends readonly JobsEntry[]
 		...jobsReadHandlers(page, service),
 		"admin.jobs.retry": ({ queue, id }) =>
 			Effect.gen(function* () {
+				yield* requirePermission(RetryJobs);
 				const entries: readonly TQueues[number][] = page.queues;
 				const entry = entries.find((candidate) => candidate.name === queue);
 				if (entry === undefined) {

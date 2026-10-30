@@ -74,6 +74,7 @@ export function cli(engine: Lock, tell: (line: string) => void) {
 			tell(`${name} runs heavy-lock -- ${command.join(" ")}`);
 			return Effect.asVoid(Effect.flatMap(launch(name, ["--", ...command]), exits));
 		},
+		standardOutputOf: (name: string) => afterExit(name, (run) => run.stdout()),
 		starts: (name: string, command: CommandLine) =>
 			Effect.gen(function* () {
 				tell(`${name} starts heavy-lock -- ${command.join(" ")}`);

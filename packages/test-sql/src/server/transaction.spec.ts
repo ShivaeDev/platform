@@ -1,67 +1,75 @@
-import { Cause, Deferred, Effect, Exit, Result } from "effect";
 import { expect } from "vitest";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
 import { database } from "#test/database.ts";
+import { itemsInvalidated, itemWritten, rollbackTestOpen, watchingInvalidations } from "#test/databaseTraits.ts";
 
-database.it("parallel transactions write the same rows without seeing each other", [], function* ({ inRollback, writeNote, readNotes, inShared }) {
-	const a = yield* Deferred.make<void>();
-	const b = yield* Deferred.make<void>();
-	const rows = yield* Effect.all(
-		(
-			[
-				["a", a, b],
-				["b", b, a],
-			] as const
-		).map(([value, ready, other]) =>
-			inRollback(
-				Effect.gen(function* () {
-					yield* writeNote(value);
-					yield* Deferred.succeed(ready, undefined);
-					yield* Deferred.await(other);
-					return yield* readNotes();
-				}),
-			),
-		),
-		{ concurrency: "unbounded" },
-	);
-	expect(rows).toEqual([[{ id: 1, value: "a" }], [{ id: 1, value: "b" }]]);
-	expect(yield* inShared(readNotes())).toEqual([]);
-});
 database.it(
-	"nested transact uses savepoints and the outer rollback suppresses invalidations",
-	[],
-	function* ({ inShared, watchItemInvalidations, inRollback, writeItem, inSavepoint, invalidateItems, readItems, readSharedItems }) {
-		const publications = yield* inShared(watchItemInvalidations());
-		yield* inRollback(
-			Effect.gen(function* () {
-				yield* writeItem("outer");
-				yield* inSavepoint(Effect.andThen(writeItem("nested"), invalidateItems()));
-				expect(yield* readItems()).toEqual([{ value: "nested" }]);
-				const rejected = yield* inSavepoint(Effect.andThen(writeItem("rejected"), Effect.fail("rejected"))).pipe(Effect.flip);
-				expect(rejected).toBe("rejected");
-				expect(yield* readItems()).toEqual([{ value: "nested" }]);
-			}),
-		);
-		expect(yield* readSharedItems()).toEqual([{ value: "seed" }]);
-		expect(publications()).toEqual([]);
+	"a note one rollback test writes stays invisible to another rollback test running at the same time",
+	[rollbackTestOpen("the first test"), rollbackTestOpen("the second test")],
+	function* ({ notes, writeNote }) {
+		yield* writeNote("first", "the first test");
+
+		yield* outcomes({
+			"notes in the first test": [notes("the first test"), ["first"]],
+			"notes in the second test": [notes("the second test"), []],
+		});
 	},
 );
+
+for (const [ending, outcome] of [
+	["succeeds", "succeeded"],
+	["fails with rejected", "failed with rejected"],
+	["dies with assertion failed", "died with assertion failed"],
+] as const) {
+	database.it(
+		`a rollback test that ${ending} ends ${outcome} and rolls back its write`,
+		[rollbackTestOpen(), itemWritten("temporary", "the rollback test")],
+		function* ({ blockOutcome, end, items }) {
+			expect(yield* items("the rollback test")).toEqual(["temporary"]);
+
+			yield* end("the rollback test", ending);
+
+			yield* outcomes({
+				"items in the shared database": [items("the shared database"), ["seed"]],
+				"the rollback test": [blockOutcome("the rollback test"), outcome],
+			});
+		},
+	);
+}
+
 database.it(
-	"typed failures, defects and interruption roll back and preserve their exits",
-	[],
-	function* ({ inRollback, writeItem, readSharedItems, interruptWrite }) {
-		const failure = { reason: "rejected" };
-		const defect = new Error("assertion failed");
-		for (const ending of [Effect.fail(failure), Effect.die(defect)]) {
-			const exit = yield* inRollback(Effect.andThen(writeItem("temporary"), ending)).pipe(Effect.exit);
-			expect(Exit.isFailure(exit)).toBe(true);
-			if (Exit.isFailure(exit)) {
-				const reason = Cause.hasFails(exit.cause) ? Cause.findError(exit.cause) : Cause.findDefect(exit.cause);
-				expect(Result.isSuccess(reason) && reason.success).toBe(Cause.hasFails(exit.cause) ? failure : defect);
-			}
-			expect(yield* readSharedItems()).toEqual([{ value: "seed" }]);
-		}
-		const exit = yield* interruptWrite();
-		expect(Exit.isFailure(exit) && Cause.hasInterrupts(exit.cause)).toBe(true);
-		expect(yield* readSharedItems()).toEqual([{ value: "seed" }]);
+	"an interrupted rollback test ends interrupted and rolls back its write",
+	[rollbackTestOpen(), itemWritten("temporary", "the rollback test")],
+	function* ({ blockOutcome, interrupt, items }) {
+		expect(yield* items("the rollback test")).toEqual(["temporary"]);
+
+		yield* interrupt("the rollback test");
+
+		yield* outcomes({
+			"items in the shared database": [items("the shared database"), ["seed"]],
+			"the rollback test": [blockOutcome("the rollback test"), "interrupted"],
+		});
+	},
+);
+
+database.it(
+	"a nested transaction that fails rolls back to its savepoint and keeps the rollback test's earlier write",
+	[rollbackTestOpen(), itemWritten("outer", "the rollback test")],
+	function* ({ items, nestedTransactionFails }) {
+		expect(yield* items("the rollback test")).toEqual(["outer"]);
+
+		yield* nestedTransactionFails("nested", "the rollback test");
+
+		expect(yield* items("the rollback test")).toEqual(["outer"]);
+	},
+);
+
+database.it(
+	"an items invalidation inside a rollback test is never published when the test rolls back",
+	[watchingInvalidations, rollbackTestOpen(), itemsInvalidated("the rollback test")],
+	function* ({ end, publishedInvalidations }) {
+		yield* end("the rollback test", "succeeds");
+
+		expect(yield* publishedInvalidations()).toEqual([]);
 	},
 );

@@ -1,21 +1,55 @@
-import { Context, Effect, Exit, Layer, type Redacted, Result, Scope } from "effect";
+import process from "node:process";
+import { type Context, Deferred, Effect, Exit, Fiber, Layer, Queue, type Redacted, Scope } from "effect";
 import { SqlClient } from "effect/sql";
-import * as TestClock from "effect/testing/TestClock";
 import type { PostgresTestDatabase, PostgresTestServices } from "#database.ts";
 import { makePostgresTestLayer, type PostgresTestOptions } from "#postgres.ts";
-import type { databasePressure } from "./databasePressure.ts";
+import { withIsolatedDatabase } from "#withIsolatedDatabase.ts";
+import { withTestTransaction } from "#withTestTransaction.ts";
+import { outcomeOf } from "./outcome.ts";
 import { setup } from "./postgres.ts";
 
-type Services = PostgresTestServices | PostgresTestDatabase;
+export type Services = PostgresTestServices | PostgresTestDatabase;
+type Command = Effect.Effect<boolean, unknown, Services | Scope.Scope>;
+
+export interface Block {
+	readonly commands: Queue.Queue<Command>;
+	database: string;
+	readonly fiber: Fiber.Fiber<unknown, unknown>;
+}
+
+const ownDatabase = new RegExp(`^effect_test_[a-f0-9]{8}_${process.pid}_[a-f0-9]{32}$`, "u");
+
+export const currentDatabase = Effect.gen(function* () {
+	const sql = yield* SqlClient.SqlClient;
+	const [row] = yield* sql<{ name: string }>`select current_database() as name`;
+	return row?.name ?? "";
+});
+
+const serve = Effect.fnUntraced(function* (commands: Queue.Queue<Command>) {
+	let done = false;
+	while (!done) {
+		done = yield* Effect.flatten(Queue.take(commands));
+	}
+});
+
+function endedBefore(name: string, exit: Exit.Exit<unknown, unknown>) {
+	return Effect.die(new Error(`${name} ended before it ran the step: ${outcomeOf(exit)}.`));
+}
 
 export class DatabaseEngine {
 	readonly fixture = setup();
 	options: PostgresTestOptions<unknown> = this.fixture.options;
-	acquired: Result.Result<Context.Context<Services>, unknown> | undefined;
+	services: Context.Context<Services> | undefined;
+	start = "not started";
 	template = "";
-	idleClock = false;
+	shared = "";
+	ownDatabases: readonly string[] = [];
+	before: ReadonlySet<string> = new Set();
+	readonly blocks = new Map<string, Block>();
+	readonly endings = new Map<string, string>();
+	readonly published: string[] = [];
+	finalizerQuery = "not registered";
 	marker = `story_${crypto.randomUUID()}`;
-	pressure: Effect.Success<ReturnType<typeof databasePressure>> | undefined;
 
 	readonly admin: SqlClient.SqlClient;
 	readonly scope: Scope.Closeable;
@@ -24,48 +58,108 @@ export class DatabaseEngine {
 		this.scope = scope;
 	}
 
-	get services() {
-		if (this.acquired === undefined) {
-			throw new Error("The database lease did not succeed.");
-		}
-		if (Result.isFailure(this.acquired)) {
-			throw this.acquired.failure;
-		}
-		return this.acquired.success;
+	recordTemplate() {
+		return Effect.map(currentDatabase, (name) => {
+			this.template = name;
+		});
 	}
 
-	get sharedName() {
-		return Context.get(this.services, SqlClient.SqlClient)<{ name: string }>`select current_database() as name`.pipe(
-			Effect.map(([row]) => row?.name ?? ""),
-		);
+	databaseNames() {
+		return Effect.map(this.admin<{ datname: string }>`select datname from pg_database`, (rows) => rows.map(({ datname }) => datname));
+	}
+
+	recordOwnDatabases() {
+		return Effect.map(this.databaseNames(), (names) => {
+			this.ownDatabases = names.filter((name) => ownDatabase.test(name) && !this.before.has(name));
+		});
+	}
+
+	recordingTemplate(): PostgresTestOptions<unknown> {
+		const fixtures = this.options.fixtures;
+		if (fixtures === undefined) {
+			return this.options;
+		}
+		const record = this.recordTemplate();
+		return {
+			...this.options,
+			fixtures: (url: Redacted.Redacted<string>) => Effect.andThen(record, typeof fixtures === "function" ? fixtures(url) : fixtures),
+		};
 	}
 
 	lease() {
 		const engine = this;
 		return Effect.gen(function* () {
-			const fixtures = engine.options.fixtures;
-			const recordTemplate = Effect.gen(function* () {
-				const sql = yield* SqlClient.SqlClient;
-				const [row] = yield* sql<{ name: string }>`select current_database() as name`;
-				engine.template = row?.name ?? "";
-			});
-			const options = {
-				...engine.options,
-				...(fixtures === undefined
-					? {}
-					: {
-							fixtures: (url: Redacted.Redacted<string>) => Effect.andThen(recordTemplate, typeof fixtures === "function" ? fixtures(url) : fixtures),
-						}),
-			};
-			const layer = makePostgresTestLayer(options);
-			engine.acquired = yield* Layer.buildWithScope(engine.idleClock ? layer.pipe(Layer.provideMerge(TestClock.layer())) : layer, engine.scope).pipe(
-				Effect.result,
-			);
+			engine.before = new Set(yield* engine.databaseNames());
+			const exit = yield* Layer.buildWithScope(makePostgresTestLayer(engine.recordingTemplate()), engine.scope).pipe(Effect.exit);
+			engine.start = Exit.isSuccess(exit) ? "started" : outcomeOf(exit);
+			if (Exit.isSuccess(exit)) {
+				yield* engine.recordOwnDatabases();
+				engine.services = exit.value;
+				engine.shared = yield* currentDatabase.pipe(Effect.provideContext(exit.value));
+			}
 		});
 	}
 
 	run<A, E, R>(effect: Effect.Effect<A, E, R>) {
-		return Effect.suspend(() => effect.pipe(Effect.provideContext(this.services)));
+		return Effect.suspend(() => {
+			if (this.services === undefined) {
+				return Effect.die(new Error(`The worker did not start: ${this.start}.`));
+			}
+			return effect.pipe(Effect.provideContext(this.services));
+		});
+	}
+
+	open(name: string, wrapper: "rollback test" | "isolated block") {
+		const engine = this;
+		return Effect.gen(function* () {
+			const commands = yield* Queue.unbounded<Command>();
+			const served = wrapper === "rollback test" ? withTestTransaction(serve(commands)) : withIsolatedDatabase(serve(commands));
+			const fiber = yield* engine.run(served).pipe(
+				Effect.onExit((exit) => Effect.sync(() => engine.endings.set(name, outcomeOf(exit)))),
+				Effect.forkScoped,
+			);
+			const block: Block = { commands, database: "", fiber };
+			engine.blocks.set(name, block);
+			block.database = yield* engine.inBlock(name, currentDatabase);
+		});
+	}
+
+	block(name: string) {
+		const block = this.blocks.get(name);
+		return block === undefined ? Effect.die(new Error(`Open ${name} with a trait before using it.`)) : Effect.succeed(block);
+	}
+
+	inBlock<A, E>(name: string, effect: Effect.Effect<A, E, Services | Scope.Scope>) {
+		const engine = this;
+		return Effect.gen(function* () {
+			const block = yield* engine.block(name);
+			const answer = yield* Deferred.make<A, E>();
+			yield* Queue.offer(
+				block.commands,
+				effect.pipe(
+					Effect.exit,
+					Effect.flatMap((exit) => Deferred.done(answer, exit)),
+					Effect.as(false),
+				),
+			);
+			return yield* Effect.raceFirst(
+				Deferred.await(answer),
+				Effect.flatMap(Fiber.await(block.fiber), (exit) => endedBefore(name, exit)),
+			);
+		});
+	}
+
+	end(name: string, ending: Effect.Effect<void, unknown>) {
+		const engine = this;
+		return Effect.gen(function* () {
+			const block = yield* engine.block(name);
+			yield* Queue.offer(block.commands, Effect.as(ending, true));
+			yield* Fiber.await(block.fiber);
+		});
+	}
+
+	interrupt(name: string) {
+		return Effect.flatMap(this.block(name), (block) => Fiber.interrupt(block.fiber));
 	}
 
 	close() {

@@ -1,84 +1,100 @@
-import { Exit } from "effect";
 import { expect } from "vitest";
-import { cleanup, crashedRun, leftoverDatabase, limitedCleanupRole } from "#test/cleanup.ts";
+import { outcomes } from "@shivaedev/test-story/server/outcomes.ts";
+import {
+	cleanup,
+	cloneClosed,
+	cloneOpen,
+	cloneOpenUnderPausedClock,
+	crashedRun,
+	dropRefusedForLackOfConnections,
+	dropsBlocked,
+	limitedCleanupRole,
+	otherHostDatabase,
+	runStarted,
+	unownedLeftover,
+} from "#test/cleanup.ts";
 
 cleanup.it(
-	"a test scope finishes while its drop is blocked, and run end drains the drop",
-	[],
-	function* ({ openClone, holdDrops, closeClone, waitForDrop, readCloneScopeExit, readDatabase, readName, releaseDrops, closeRun }) {
-		yield* openClone();
-		yield* holdDrops();
+	"closing a clone's scope returns while its drop is blocked, and the clone's database still exists",
+	[runStarted, cloneOpen, dropsBlocked],
+	function* ({ closeClone, cloneDatabase }) {
 		yield* closeClone();
-		yield* waitForDrop();
-		expect(yield* readCloneScopeExit()).toEqual(Exit.void);
-		expect(yield* readDatabase()).toEqual([{ datname: yield* readName() }]);
-		yield* releaseDrops();
-		yield* closeRun();
-		expect(yield* readDatabase()).toEqual([]);
+
+		expect(yield* cloneDatabase()).toBe("exists");
 	},
 );
 
-cleanup.it(
-	"an exhausted drop retries after capacity returns without leaking the clone",
-	[limitedCleanupRole],
-	function* ({
-		openClone,
-		exhaustBudget,
-		closeClone,
-		waitForFailedDrop,
-		readCloneScopeExit,
-		readDatabase,
-		readName,
-		restoreBudget,
-		waitForDatabaseRemoval,
-		closeRun,
-	}) {
-		yield* openClone();
-		yield* exhaustBudget();
-		yield* closeClone();
-		expect((yield* waitForFailedDrop())[0]).toMatchObject([{ _tag: "Fail", error: { _tag: "SqlError", reason: { cause: { code: "53300" } } } }]);
-		expect(yield* readCloneScopeExit()).toEqual(Exit.void);
-		expect(yield* readDatabase()).toEqual([{ datname: yield* readName() }]);
-		yield* restoreBudget();
-		yield* waitForDatabaseRemoval();
-		expect(yield* readDatabase()).toEqual([]);
-		yield* closeRun();
-	},
-);
+for (const { opened, clock } of [
+	{ clock: "", opened: cloneOpen },
+	{ clock: " while the story's test clock stays paused", opened: cloneOpenUnderPausedClock },
+]) {
+	cleanup.it(
+		`a drop refused for lack of connections is retried and drops the clone once connections return${clock}`,
+		[limitedCleanupRole, runStarted, opened, dropRefusedForLackOfConnections],
+		function* ({ firstDropAttempt, cloneDatabase, connectionsReturn, cloneDatabaseOnceDrained }) {
+			yield* outcomes({
+				"the clone's database": [cloneDatabase(), "exists"],
+				"the first drop attempt": [firstDropAttempt(), expect.stringMatching(/^failed with SQLSTATE 53300: /u)],
+			});
 
-cleanup.it("starting a run sweeps a database left by an earlier crash", [leftoverDatabase], function* ({ readDatabase }) {
-	expect(yield* readDatabase()).toEqual([]);
-});
+			yield* connectionsReturn();
 
-cleanup.it("starting a run sweeps every database owned by a crashed worker", [crashedRun], function* ({ readLeftoverNames, readLeftoverDatabases }) {
-	expect(yield* readLeftoverNames()).toEqual([expect.stringMatching(/^effect_test_/u), expect.stringMatching(/^effect_test_/u)]);
-	expect(yield* readLeftoverDatabases()).toEqual([]);
-});
-
-cleanup.it("another run leaves a live worker's clone available", [], function* ({ openClone, startAnotherRun, readDatabase, readName }) {
-	yield* openClone();
-	yield* startAnotherRun();
-	expect(yield* readDatabase()).toEqual([{ datname: yield* readName() }]);
-});
-
-cleanup.it("queued drops can be drained before the owning layer closes", [], function* ({ openClone, closeClone, awaitCleanup, readDatabase }) {
-	yield* openClone();
-	yield* closeClone();
-	yield* awaitCleanup();
-	expect(yield* readDatabase()).toEqual([]);
-});
+			expect(yield* cloneDatabaseOnceDrained()).toBe("dropped");
+		},
+	);
+}
 
 cleanup.it(
-	"exhausted drops retry while the test clock stays paused",
-	[limitedCleanupRole],
-	function* ({ openClone, exhaustBudget, closeClone, waitForFailedDrop, restoreBudget, waitForDatabaseRemoval, readDatabase, awaitCleanup }) {
-		yield* openClone("test");
-		yield* exhaustBudget();
-		yield* closeClone();
-		expect((yield* waitForFailedDrop())[0]).toMatchObject([{ _tag: "Fail", error: { _tag: "SqlError", reason: { cause: { code: "53300" } } } }]);
-		yield* restoreBudget();
-		yield* waitForDatabaseRemoval();
-		expect(yield* readDatabase()).toEqual([]);
+	"awaiting cleanup waits for the drop that closing a clone queued",
+	[runStarted, cloneOpen, cloneClosed],
+	function* ({ awaitCleanup, cloneDatabase }) {
 		yield* awaitCleanup();
+
+		expect(yield* cloneDatabase()).toBe("dropped");
 	},
 );
+
+cleanup.it(
+	"closing the run succeeds after the drop that closing a clone queued",
+	[runStarted, cloneOpen, cloneClosed],
+	function* ({ closeRun, runClosing, cloneDatabase }) {
+		yield* closeRun();
+
+		yield* outcomes({
+			"closing the run": [runClosing(), "succeeded"],
+			"the clone's database": [cloneDatabase(), "dropped"],
+		});
+	},
+);
+
+cleanup.it("starting a run drops a database an earlier run left in the unowned naming format", [unownedLeftover], function* ({ leftover, startRun }) {
+	expect(yield* leftover()).toBe("exists");
+
+	yield* startRun();
+
+	expect(yield* leftover()).toBe("dropped");
+});
+
+cleanup.it(
+	"starting a run drops every database of a worker on this host that exited",
+	[crashedRun],
+	function* ({ crashedWorkerDatabases, startRun }) {
+		expect(yield* crashedWorkerDatabases()).toEqual(["its empty template", "its shared database"]);
+
+		yield* startRun();
+
+		expect(yield* crashedWorkerDatabases()).toEqual([]);
+	},
+);
+
+cleanup.it("starting a run keeps a database owned by a worker on another host", [otherHostDatabase], function* ({ startRun, otherHostsDatabase }) {
+	yield* startRun();
+
+	expect(yield* otherHostsDatabase()).toBe("exists");
+});
+
+cleanup.it("starting another run keeps a live worker's clone", [runStarted, cloneOpen], function* ({ startAnotherRun, cloneDatabase }) {
+	yield* startAnotherRun();
+
+	expect(yield* cloneDatabase()).toBe("exists");
+});

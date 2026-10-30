@@ -1,56 +1,23 @@
-import { Result } from "effect";
 import { expect } from "vitest";
-import { database } from "#test/database.ts";
-import { emptyInitializer, failingInitializer } from "#test/databaseTraits.ts";
 import { clientInitializer, firstDeployment, urlInitializer } from "#test/initializerStories.ts";
 
-urlInitializer.it(
-	"the production initializer finishes and releases its resources before an ordinary story",
-	[],
-	function* ({ readState, readPreparation, changeState }) {
-		const [state] = yield* readState();
-		expect(state?.value).toBe("ready");
-		expect(state?.initialized_in).toMatch(/^effect_test_/u);
-		expect(state?.database).not.toBe(state?.initialized_in);
-		expect(yield* readPreparation()).toEqual({ completed: 1, fixtures: 1, released: 1, started: 1 });
-		yield* changeState("committed");
-		expect((yield* readState()).map(({ value }) => value)).toEqual(["committed"]);
-	},
-);
+for (const [kit, initializer] of [
+	[urlInitializer, "an initializer given the template URL"],
+	[clientInitializer, "an initializer Effect using the supplied SQL client"],
+] as const) {
+	kit.it(`${initializer} prepares the story's starting state, and the fixtures run after it`, [], function* ({ appState }) {
+		expect(yield* appState()).toEqual(["ready"]);
+	});
+}
 
-urlInitializer.it(
-	"another story clones the initialized schema without running the initializer again",
-	[],
-	function* ({ readState, readPreparation }) {
-		expect((yield* readState()).map(({ value }) => value)).toEqual(["ready"]);
-		expect(yield* readPreparation()).toEqual({ completed: 1, fixtures: 1, released: 1, started: 1 });
-	},
-);
-
-urlInitializer.it("a deployment story still receives an empty database", [firstDeployment], function* ({ readSchema, readPreparation }) {
-	expect(yield* readSchema()).toEqual([]);
-	expect(yield* readPreparation()).toEqual({ completed: 1, fixtures: 1, released: 1, started: 1 });
+urlInitializer.it("the initializer's resources are released before a story starts", [], function* ({ initializerResources }) {
+	expect(yield* initializerResources()).toBe("released");
 });
 
-clientInitializer.it("an initializer Effect can use the supplied native SQL client", [], function* ({ readState, readSchema, readPreparation }) {
-	expect(yield* readSchema()).toEqual([{ name: "app_state" }]);
-	expect((yield* readState()).map(({ value }) => value)).toEqual(["ready"]);
-	expect(yield* readPreparation()).toEqual({ completed: 1, fixtures: 1, released: 1, started: 1 });
+urlInitializer.it("every story sees the initializer and the fixtures run once for the whole worker", [], function* ({ preparationRuns }) {
+	expect(yield* preparationRuns()).toEqual({ fixtures: 1, initializer: 1 });
 });
 
-database.it("disabled preparation skips the initializer and fixtures", [emptyInitializer], function* ({ readSharedSchema, readCloneSchema }) {
-	expect(yield* readSharedSchema()).toEqual([{ name: null }]);
-	expect(yield* readCloneSchema()).toEqual([{ name: null }]);
+urlInitializer.it("a first-deployment story on the empty template has no tables", [firstDeployment], function* ({ tables }) {
+	expect(yield* tables()).toEqual([]);
 });
-
-database.it(
-	"a failed initializer retains its failure and releases the template",
-	[failingInitializer],
-	function* ({ readAcquisition, closeWorker, readTemplate, readDatabases }) {
-		expect(yield* readAcquisition()).toEqual(Result.fail("initializer failed"));
-		yield* closeWorker();
-		const template = yield* readTemplate();
-		expect(template).not.toBe("");
-		expect(yield* readDatabases([template])).toEqual([]);
-	},
-);

@@ -1,7 +1,8 @@
-import { type Context, Effect, Layer, type Redacted } from "effect";
-import { HttpRouter, HttpServerResponse } from "effect/http";
+import { Cause, type Context, Effect, Layer, type Redacted } from "effect";
+import { HttpRouter, HttpServerRespondable, HttpServerResponse } from "effect/http";
 import * as HttpStatus from "effect/http/HttpStatus";
 import type { SqlClient } from "effect/sql";
+import { redactDiagnosticCause } from "@shivaedev/errors/redactCause.ts";
 import { readBoundedBody } from "@shivaedev/http/server/boundedBody.ts";
 import type { PgBossService } from "@shivaedev/jobs/server/service.ts";
 import { receive } from "#internal/receive.ts";
@@ -39,9 +40,17 @@ export function webhookRoute<TJobs, R>(options: WebhookRouteOptions<TJobs, R>) {
 					),
 					Effect.catchTag("WebhookUnauthorized", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("Unauthorized") }))),
 					Effect.catchTag("SchemaError", () => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("BadRequest") }))),
-					Effect.catch(() => Effect.succeed(HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") }))),
+					Effect.catch((error) => {
+						const response = HttpServerResponse.empty({ status: HttpStatus.fromLiteral("ServiceUnavailable") });
+						// Preserve the failure for HTTP tracing without attaching the request's credentials to a synthetic 503 error.
+						const cause = redactDiagnosticCause(Cause.fail(Object.assign(error, { [HttpServerRespondable.symbol]: () => Effect.succeed(response) })));
+						return Effect.logError("Webhook receipt failed", cause).pipe(
+							Effect.annotateLogs({ errorTag: error._tag }),
+							Effect.andThen(Effect.failCause(cause)),
+						);
+					}),
 				),
 			);
-		}).pipe(Effect.orDie),
+		}),
 	);
 }

@@ -38,7 +38,7 @@ Put the wrapper on the scripts that start heavy work:
 }
 ```
 
-`ready` holds the lock while it calls `build`; `build` joins that hold. The separator is required: `heavy-lock -- <command> [args...]` runs one executable with its arguments.
+`ready` holds the lock while it calls `build`; `build` joins that hold. Use `heavy-lock -- <command> [args...]` to run one executable and pass its arguments unchanged, including flags. A command without flags can omit the separator. `heavy-lock --help` shows usage without running a command.
 
 ### Every run: read the wait and the result
 
@@ -57,13 +57,12 @@ heavy-process lock: acquired after 2m 0s
 
 The waiting line identifies the holder's PID, command and directory. The time is local; the duration in that line is the age of the hold. The acquired line measures this caller's wait.
 
-| Exit code             | Meaning                                                                                   |
-| --------------------- | ----------------------------------------------------------------------------------------- |
-| The command's code    | The command exited on its own, including an exit chosen by its signal handler.            |
-| `128 + signal number` | The command died from a signal, or the wrapper received a supported signal while waiting. |
-| `127`                 | The executable could not start.                                                           |
-| `2`                   | Arguments did not start with `--` followed by an executable.                              |
-| `1`                   | Lock acquisition failed, including an unreadable process start time.                      |
+| Exit code             | Meaning                                                                                       |
+| --------------------- | --------------------------------------------------------------------------------------------- |
+| The command's code    | The command exited on its own, including an exit chosen by its signal handler.                |
+| `128 + signal number` | The command died from a signal, or the wrapper received a supported signal while waiting.     |
+| `127`                 | The executable could not start.                                                               |
+| `1`                   | Invalid CLI arguments or lock acquisition failed, including an unreadable process start time. |
 
 The child is the leader of its own process group. While it runs, the wrapper forwards `SIGINT`, `SIGTERM` and `SIGHUP` to it, and the child's exit decides the wrapper's exit. A signal while waiting stops the wait and leaves the current holder's file alone.
 

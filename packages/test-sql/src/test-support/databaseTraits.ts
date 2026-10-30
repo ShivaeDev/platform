@@ -1,10 +1,12 @@
 import * as PgClient from "@effect/sql-pg/PgClient";
-import { Effect, Redacted, Schedule, Scope } from "effect";
+import { Effect, Redacted, Scope } from "effect";
+import * as Reactivity from "effect/reactivity/Reactivity";
 import { Migrator, SqlClient } from "effect/sql";
+import { invalidateOnCommit } from "@shivaedev/sql/transact.ts";
 import { database } from "./database.ts";
-import { databasePressure } from "./databasePressure.ts";
+import type { DatabaseEngine } from "./databaseEngine.ts";
+import { inPlace, writeItem } from "./databaseVerbs.ts";
 import { limitedRole } from "./limitedRole.ts";
-import { migrations } from "./migrationSteps.ts";
 
 export function poolLimit(maxConnections: number) {
 	return database.trait("configuration", `pools allow ${maxConnections} connections`, (engine) => {
@@ -18,11 +20,11 @@ export function roleLimit(limit = 1) {
 	});
 }
 
-export const exhaustedRole = database.trait("configuration", "the role's only connection is occupied", function* (engine) {
+export const exhaustedRole = database.trait("configuration", "another client holds the role's only connection", function* (engine) {
 	yield* PgClient.makeClient({ url: engine.options.url }).pipe(Effect.provideService(Scope.Scope, engine.scope));
 });
 
-export const markedSessions = database.trait("configuration", "database sessions have a unique application name", (engine) => {
+export const markedSessions = database.trait("configuration", "the worker's sessions carry a unique application name", (engine) => {
 	const url = new URL(Redacted.value(engine.options.url));
 	url.searchParams.set("application_name", engine.marker);
 	engine.options = { ...engine.options, url: Redacted.make(url.toString()) };
@@ -32,7 +34,7 @@ export const withoutFixtures = database.trait("configuration", "only migrations 
 	engine.options = { migrations: engine.fixture.options.migrations, url: engine.options.url };
 });
 
-export const sequence = database.trait("configuration", "the template contains a fresh sequence", (engine) => {
+export const sequence = database.trait("configuration", "the template's only migration creates a fresh sequence", (engine) => {
 	engine.options = {
 		migrations: {
 			loader: Migrator.fromRecord({
@@ -47,53 +49,90 @@ export const sequence = database.trait("configuration", "the template contains a
 	};
 });
 
-export const failingFixtures = database.trait("configuration", "template fixtures fail after acquiring their database", (engine) => {
-	engine.options = { ...engine.options, fixtures: Effect.fail("fixtures failed") };
-});
+export type Preparation = "the initializer" | "the fixtures";
 
-export const failingInitializer = database.trait("configuration", "the production initializer fails", (engine) => {
-	engine.options = {
-		fixtures: Effect.die("fixtures must not run after initialization fails"),
-		initialize: Effect.gen(function* () {
-			const sql = yield* SqlClient.SqlClient;
-			const [row] = yield* sql<{ name: string }>`select current_database() as name`;
-			engine.template = row?.name ?? "";
-			return yield* Effect.fail("initializer failed");
-		}),
-		url: engine.options.url,
-	};
-});
-
-export const emptyInitializer = database.trait("configuration", "preparation is disabled for the production initializer", (engine) => {
-	engine.options = {
-		fixtures: Effect.die("fixtures must not run on an empty schema"),
-		initialize: Effect.die("the initializer must not run when preparation is disabled"),
-		prepare: false,
-		url: engine.options.url,
-	};
-});
-
-export const idleClock = database.trait("configuration", "pool expiry uses a controlled clock", (engine) => {
-	engine.idleClock = true;
-	engine.options = { ...engine.options, fixtures: Effect.void };
-});
-
-export const emptyPreparation = database.trait("configuration", "empty preparation must not load migrations or fixtures", (engine) => {
-	engine.options = {
-		fixtures: Effect.die("fixtures must not run on an empty schema"),
-		migrations: { ...migrations, loader: Effect.die("preparation must not load migrations") },
-		prepare: false,
-		url: engine.options.url,
-	};
-});
-
-export function databasesUnderPressure(count: number) {
-	return database.trait("activity", `${count} clones reserve more connections than their pool allows`, function* (engine) {
-		const sessions = engine.admin<{ count: number }>`select count(*)::int as count from pg_stat_activity where application_name = ${engine.marker}`;
-		// Native client finalizers send Terminate before PostgreSQL removes their sessions.
-		yield* sessions.pipe(Effect.repeat({ schedule: Schedule.spaced("10 millis"), while: ([row]) => row?.count !== 0 }), Effect.timeout("5 seconds"));
-		engine.pressure = yield* engine
-			.run(databasePressure(count, engine.options.maxConnections ?? 2))
-			.pipe(Effect.provideService(Scope.Scope, engine.scope));
+export function failingPreparation(step: Preparation) {
+	return database.trait("configuration", `${step} fail with "${step} failed" in the migrated template`, (engine) => {
+		const fails = Effect.andThen(Effect.andThen(engine.recordTemplate(), engine.recordOwnDatabases()), Effect.fail(`${step} failed`));
+		engine.options =
+			step === "the initializer"
+				? { fixtures: Effect.die("the fixtures must not run after the initializer fails"), initialize: fails, url: engine.options.url }
+				: { ...engine.options, fixtures: fails };
 	});
+}
+
+export type Strategy = "an initializer" | "migrations";
+
+export function preparationDisabled(strategy: Strategy) {
+	return database.trait("configuration", `preparation is disabled for ${strategy} and fixtures that would die if they ran`, (engine) => {
+		const fixtures = Effect.die("the fixtures must not run when preparation is disabled");
+		engine.options =
+			strategy === "an initializer"
+				? { fixtures, initialize: Effect.die("the initializer must not run when preparation is disabled"), prepare: false, url: engine.options.url }
+				: {
+						fixtures,
+						migrations: { ...engine.fixture.options.migrations, loader: Effect.die("the migrations must not load when preparation is disabled") },
+						prepare: false,
+						url: engine.options.url,
+					};
+	});
+}
+
+export function rollbackTestOpen(name = "the rollback test") {
+	return database.trait("activity", `${name} has begun on the shared database`, (engine) => engine.open(name, "rollback test"));
+}
+
+export function isolatedBlockOpen(name = "the isolated block") {
+	return database.trait("activity", `${name} has opened its clone`, (engine) => engine.open(name, "isolated block"));
+}
+
+export function itemWritten(value: string, place: string) {
+	return database.trait("activity", `${place} wrote the item "${value}"`, (engine) => inPlace(engine, place, writeItem(value)));
+}
+
+export const sharedConnectionIdle = database.trait("activity", "a query left one connection idle in the shared pool", (engine) =>
+	engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`select 1`)),
+);
+
+export const sharedDrewId = database.trait("activity", "the shared database already drew id 1 from the sequence", (engine) =>
+	engine.run(Effect.flatMap(SqlClient.SqlClient, (sql) => sql`select nextval('test_ids')`)),
+);
+
+export const watchingInvalidations = database.trait("activity", "the shared database's Reactivity records every published key", (engine) =>
+	engine.run(
+		Effect.gen(function* () {
+			const reactivity = yield* Reactivity.Reactivity;
+			const unregister = reactivity.registerUnsafe(["items"], () => engine.published.push("items"));
+			yield* Effect.addFinalizer(() => Effect.sync(unregister));
+		}),
+	),
+);
+
+export function itemsInvalidated(block: string) {
+	return database.trait("activity", `${block} invalidates the items key on commit`, (engine) => engine.inBlock(block, invalidateOnCommit(["items"])));
+}
+
+function queryClone(sql: SqlClient.SqlClient, engine: DatabaseEngine) {
+	return sql<{ answer: number }>`select 1 as answer`.pipe(
+		Effect.map(([row]) => `answered ${row?.answer}`),
+		Effect.catch((error) => Effect.succeed(`failed: ${String(error)}`)),
+		Effect.flatMap((answer) =>
+			Effect.sync(() => {
+				engine.finalizerQuery = answer;
+			}),
+		),
+	);
+}
+
+export function finalizerQueriesClone(block: string) {
+	return database.trait("activity", `${block} registers a finalizer that queries its clone`, (engine) =>
+		engine.inBlock(
+			block,
+			Effect.gen(function* () {
+				const sql = yield* SqlClient.SqlClient;
+				engine.finalizerQuery = "not run";
+				yield* Effect.addFinalizer(() => queryClone(sql, engine));
+			}),
+		),
+	);
 }

@@ -1,7 +1,8 @@
 import { Console, Effect, Option, type PlatformError, Queue } from "effect";
 import { ChildProcess, ChildProcessSpawner } from "effect/process";
-import type { CommandLine } from "./args.ts";
 import { type ForwardedSignal, signalExitCode } from "./signals.ts";
+
+export type CommandLine = readonly [string, ...string[]];
 
 const COULD_NOT_START = 127;
 const KILLED_BY = /signal: '(?<signal>SIG[A-Z0-9]+)'/u;

@@ -1,9 +1,11 @@
 import { type OAuthOptions, oauthProvider, oauthProviderAuthServerMetadata, type Scope } from "@better-auth/oauth-provider";
 import { oauthProviderResourceClient } from "@better-auth/oauth-provider/resource-client";
 import type { AuthContext, BetterAuthOptions } from "better-auth";
+import { isAPIError } from "better-auth/api";
 import { Effect, Option } from "effect";
 import { HttpRouter, HttpServerRequest, HttpServerResponse } from "effect/http";
 import type { RoleSet } from "@shivaedev/access/roleSet.ts";
+import { redact } from "@shivaedev/errors/redact.ts";
 import { AuthUnavailable } from "@shivaedev/errors/taxonomy.ts";
 import type { OriginPolicy } from "@shivaedev/identity/server/origin.ts";
 import type { SessionPolicy, UserSessionShape } from "@shivaedev/identity/server/session.ts";
@@ -21,6 +23,15 @@ interface OauthAuth {
 	readonly $context: Promise<{ readonly internalAdapter: Pick<AuthContext["internalAdapter"], "findUserById"> }>;
 	readonly api: { readonly "getOAuthServerConfig": () => Promise<{ readonly issuer: string; readonly "jwks_uri"?: string }> };
 	readonly options: BetterAuthOptions;
+}
+
+function bearerFailure(cause: unknown) {
+	if (isAPIError(cause) && (cause.status === "UNAUTHORIZED" || cause.status === "FORBIDDEN")) {
+		return Effect.succeed(Option.none());
+	}
+	return Effect.logError("MCP authentication verification failed", redact(cause)).pipe(
+		Effect.andThen(Effect.fail(new AuthUnavailable({ message: "Authentication is temporarily unavailable" }))),
+	);
 }
 
 export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: {
@@ -52,7 +63,10 @@ export const betterAuthMcp = Effect.fn("Mcp.betterAuthMcp")(function* (options: 
 							requiredScopes: ["mcp"],
 							verifyOptions: { audience: resource, issuer: config.issuer },
 						}),
-					).pipe(Effect.option);
+					).pipe(
+						Effect.map(Option.some),
+						Effect.catch(({ cause }) => bearerFailure(cause)),
+					);
 					if (Option.isNone(claims) || typeof claims.value.sub !== "string") {
 						return Option.none();
 					}

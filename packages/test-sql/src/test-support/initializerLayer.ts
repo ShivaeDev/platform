@@ -4,20 +4,20 @@ import { SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#postgres.ts";
 import { adminUrl } from "./postgres.ts";
 
-export function initializerLayer(source: "url" | "client") {
-	const preparation = { completed: 0, fixtures: 0, released: 0, started: 0 };
+export type InitializerSource = "the template URL" | "the supplied client";
+
+export function initializerLayer(source: InitializerSource) {
+	const preparation = { fixtures: 0, initializer: 0, released: 0 };
 	const initialize = Effect.gen(function* () {
-		preparation.started += 1;
 		yield* Effect.addFinalizer(() =>
 			Effect.sync(() => {
 				preparation.released += 1;
 			}),
 		);
-		yield* Effect.yieldNow;
 		const sql = yield* SqlClient.SqlClient;
-		yield* sql`create table app_state (value text not null, initialized_in text not null)`;
-		yield* sql`insert into app_state values ('initialized', current_database())`;
-		preparation.completed += 1;
+		yield* sql`create table app_state (value text not null)`;
+		yield* sql`insert into app_state values ('initialized')`;
+		preparation.initializer += 1;
 	});
 	const layer = makePostgresTestLayer({
 		fixtures: Effect.gen(function* () {
@@ -26,7 +26,7 @@ export function initializerLayer(source: "url" | "client") {
 			preparation.fixtures += 1;
 		}),
 		initialize:
-			source === "client"
+			source === "the supplied client"
 				? initialize
 				: (url) => Effect.flatMap(PgClient.makeClient({ url }), (client) => initialize.pipe(Effect.provideService(SqlClient.SqlClient, client))),
 		url: adminUrl,

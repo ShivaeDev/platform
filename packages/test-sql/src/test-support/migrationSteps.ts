@@ -1,7 +1,7 @@
 import { Effect } from "effect";
 import { Migrator, SqlClient } from "effect/sql";
 import { makePostgresTestLayer } from "#postgres.ts";
-import { adminUrl } from "#test/postgres.ts";
+import { adminUrl } from "./postgres.ts";
 
 export const migrations = {
 	loader: Migrator.fromRecord({
@@ -28,9 +28,4 @@ export const layer = makePostgresTestLayer({ migrations, prepare: false, url: ad
 export const seedContacts = Effect.gen(function* () {
 	const sql = yield* SqlClient.SqlClient;
 	yield* sql`insert into contacts (id, email) values (1, 'alice@example.test'), (2, 'bob@example.test')`;
-});
-
-export const emails = Effect.gen(function* () {
-	const sql = yield* SqlClient.SqlClient;
-	return yield* sql`select contact_id, address from emails order by contact_id`;
 });
