@@ -128,3 +128,15 @@ watch.it(
 		});
 	},
 );
+
+watch.it(
+	"a required failing commit status on the second status page prints checks-failed and stuck",
+	[openPr(1), watching(1), baselineSaved],
+	function* ({ poll, printed, statusOnSecondPage }) {
+		yield* statusOnSecondPage(1, "failure");
+
+		yield* poll();
+
+		expect(yield* printed()).toEqual(["PR 1 checks-failed", "PR 1 stuck"]);
+	},
+);

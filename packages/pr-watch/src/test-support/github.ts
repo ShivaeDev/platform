@@ -9,6 +9,7 @@ import {
 	pullDetail,
 	QUEUE_REFS,
 	REPOSITORY,
+	REQUIRED_CHECKS,
 	type Reply,
 	statusRoute,
 } from "./server.ts";
@@ -38,12 +39,15 @@ function update(number: number, changes: Partial<Pull>) {
 	};
 }
 
+const FAILED_CHECK: Check = { conclusion: "failure", status: "completed" };
+
 export const reads = {
 	checks: (number: number): Read => ({ name: `PR ${number}'s check runs`, route: (fake) => checksRoute(fake.pullOf(number).sha) }),
 	detail: (number: number): Read => ({ name: `PR ${number}'s detail`, route: () => `/pulls/${number}` }),
 	graphql: { name: "the GraphQL queue confirmation", route: () => GRAPHQL } satisfies Read,
 	openList: { name: "the open PR list", route: () => OPEN_LIST } satisfies Read,
 	queueRefs: { name: "the queue refs", route: () => QUEUE_REFS } satisfies Read,
+	requiredChecks: { name: "the GraphQL required-check flags", route: () => REQUIRED_CHECKS } satisfies Read,
 	status: (number: number): Read => ({ name: `PR ${number}'s commit status`, route: (fake) => statusRoute(fake.pullOf(number).sha) }),
 };
 
@@ -92,10 +96,14 @@ export const github = {
 		change(`PR ${number}'s check run is ${check.status} with conclusion ${check.conclusion}`, (fake) => {
 			fake.checks.set(fake.pullOf(number).sha, [check]);
 		}),
+	checksBecome: (number: number, checks: readonly Check[]) =>
+		change(`PR ${number}'s check runs are ${checks.map(describeCheck).join(", ")}`, (fake) => {
+			fake.checks.set(fake.pullOf(number).sha, checks);
+		}),
 	checksPageLinksElsewhere: (number: number) =>
 		change(`PR ${number}'s first checks page holds a failed check run and links its next page on another origin`, (fake) => {
 			fake.overrides.set(checksRoute(fake.pullOf(number).sha), {
-				body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
+				body: fake.checkRuns("elsewhere", [FAILED_CHECK]),
 				headers: { link: '<https://other.example/checks?page=2>; rel="next"' },
 			});
 		}),
@@ -117,10 +125,10 @@ export const github = {
 	failingCheckOnSecondPage: (number: number) =>
 		change(`PR ${number}'s failed check run arrives on the second of two checks pages`, (fake) => {
 			fake.overrides.set(checksRoute(fake.pullOf(number).sha), {
-				body: { "check_runs": [] },
+				body: fake.checkRuns("first", []),
 				headers: { link: `<${fake.apiUrl}${REPOSITORY}/checks?page=2>; rel="next"` },
 			});
-			fake.overrides.set("/checks?page=2", { body: { "check_runs": [{ conclusion: "failure", status: "completed" }] } });
+			fake.overrides.set("/checks?page=2", { body: fake.checkRuns("second", [FAILED_CHECK]) });
 		}),
 	leavesOpenList: (number: number) =>
 		change(`PR ${number} no longer appears in the open PR list`, (fake) => {
@@ -159,6 +167,10 @@ export const github = {
 			fake.pulls.set(number, pullNumbered(number));
 			fake.open.add(number);
 		}),
+	optionalStatusBecomes: (number: number, state: string) =>
+		change(`PR ${number}'s optional commit status becomes ${state}`, (fake) => {
+			fake.statuses.set(fake.pullOf(number).sha, { required: false, state });
+		}),
 	pushesHead: (number: number, branch: string, sha: string, title: string) =>
 		change(`PR ${number} moves to head ${sha} on branch ${branch} and is retitled ${JSON.stringify(title)}`, update(number, { branch, sha, title })),
 	queueRefOnSecondPage: (number: number) =>
@@ -182,19 +194,37 @@ export const github = {
 		change(`GitHub answers ${read.name} normally again`, (fake) => {
 			fake.overrides.delete(read.route(fake));
 		}),
+	requiredFlagsOnSecondPage: (number: number) =>
+		change(`GitHub returns the required-check flags for PR ${number}'s head on a second page`, (fake) => {
+			fake.requiredFlagsPaged.add(fake.pullOf(number).sha);
+		}),
 	secondChecksPage: (number: number, answer: Answer) =>
 		change(`PR ${number}'s first checks page holds a failed check run and GitHub answers the second page with ${answer.description}`, (fake) => {
 			fake.overrides.set(checksRoute(fake.pullOf(number).sha), {
-				body: { "check_runs": [{ conclusion: "failure", status: "completed" }] },
+				body: fake.checkRuns("first", [FAILED_CHECK]),
 				headers: { link: `<${fake.apiUrl}${REPOSITORY}/checks?page=2>; rel="next"` },
 			});
 			fake.overrides.set("/checks?page=2", answer.reply);
 		}),
 	statusBecomes: (number: number, state: string) =>
-		change(`PR ${number}'s combined commit status becomes ${state}`, (fake) => {
-			fake.statuses.set(fake.pullOf(number).sha, state);
+		change(`PR ${number}'s required commit status becomes ${state}`, (fake) => {
+			fake.statuses.set(fake.pullOf(number).sha, { required: true, state });
+		}),
+	statusOnSecondPage: (number: number, state: string) =>
+		change(`PR ${number}'s required commit status ${state} arrives on the second of two status pages`, (fake) => {
+			const sha = fake.pullOf(number).sha;
+			fake.statuses.set(sha, { required: true, state });
+			fake.overrides.set(statusRoute(sha), {
+				body: { state: "pending", statuses: [] },
+				headers: { link: `<${fake.apiUrl}${REPOSITORY}/statuses?page=2>; rel="next"` },
+			});
+			fake.overrides.set("/statuses?page=2", { body: { state, statuses: [{ context: "ci", state }] } });
 		}),
 };
+
+function describeCheck({ conclusion, name = "a check", required = true, status }: Check) {
+	return `${required ? "required" : "optional"} ${name} ${status} with conclusion ${conclusion}`;
+}
 
 function pullNumbered(number: number): Pull {
 	return {

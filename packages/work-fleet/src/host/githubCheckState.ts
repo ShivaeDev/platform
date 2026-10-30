@@ -72,14 +72,17 @@ export function githubCheckState(
 		),
 	];
 	function isRequired(name: string) {
-		return required.length === 0 || required.includes(name);
+		return required.includes(name);
 	}
 	const evidence = observations.map((check) => `${check.name}${isRequired(check.name) ? "" : " (non-required)"}: ${check.state} ${check.url}`);
+	if (required.length === 0) {
+		evidence.push("GitHub branch protection and rulesets require no status checks");
+	}
 	const gates = observations.filter((check) => isRequired(check.name));
 	const missing = required.filter((name) => !gates.some((check) => check.name === name));
 	evidence.push(...missing.map((name) => `${name}: pending (required check has not reported)`));
 	const failures = gates.filter((check) => check.state === "fail");
-	const pending = failures.length === 0 && (gates.length === 0 || missing.length > 0 || gates.some((check) => check.state === "pending"));
+	const pending = failures.length === 0 && (missing.length > 0 || gates.some((check) => check.state === "pending"));
 	return {
 		evidence,
 		failedChecks: [...new Set(failures.map((check) => check.name))].sort(Order.String),

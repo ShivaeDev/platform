@@ -21,7 +21,7 @@ const directory = await mkdtemp(join(tmpdir(), "pr-watch-consumer-"));
 let closed = false;
 const server = createServer((request, response) => {
   const path = request.url ?? "";
-  const body = path.includes("matching-refs") ? [] : path.includes("check-runs") ? { check_runs: [] } : path.endsWith("/status") ? { state: "success" } : {
+  const body = path.includes("matching-refs") ? [] : path.includes("check-runs") ? { check_runs: [] } : path.endsWith("/status") ? { state: "success", statuses: [] } : {
     number: 7, title: "Packed executable", state: closed ? "closed" : "open", merged: closed,
     mergeable: true, mergeable_state: "clean", head: { ref: "feature", sha: "abc" }, auto_merge: null,
   };

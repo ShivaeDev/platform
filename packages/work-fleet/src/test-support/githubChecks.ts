@@ -39,7 +39,14 @@ export function githubFixture(repository = "example/project", branch = "main") {
 			]),
 		);
 	}
-	required([]);
+	function branchProtection(names: readonly string[]) {
+		responses.set(
+			`repos/${repository}/branches/${encodeURIComponent(branch)}`,
+			JSON.stringify([{ protected: names.length > 0, protection: { "required_status_checks": { contexts: names } } }]),
+		);
+	}
+	branchProtection([]);
+	required(["test"]);
 	function reply(head: string, runs: readonly (readonly CheckRun[])[], statuses: readonly (readonly Status[])[] = [[]]) {
 		const commit = `repos/${repository}/commits/${head}`;
 		responses.set(
@@ -58,5 +65,5 @@ export function githubFixture(repository = "example/project", branch = "main") {
 			return response === undefined ? Effect.fail(new ServiceUnavailable({ message: "Synthetic GitHub request failed" })) : Effect.succeed(response);
 		});
 	}
-	return { checks: makeGithubChecks(read, branch), read, reply, requests, required, responses };
+	return { branchProtection, checks: makeGithubChecks(read, branch), read, reply, requests, required, responses };
 }

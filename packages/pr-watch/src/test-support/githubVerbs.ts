@@ -14,6 +14,7 @@ export function githubVerbs(engine: Engine, tell: (line: string) => void) {
 		answers: (read: Read, answer: Answer) => act(github.answers(read, answer)),
 		budgetIs: (resource: string, remaining: number, limit: number, resetAt: number) => act(github.budget(resource, remaining, limit, resetAt)),
 		checkConcludes: (number: number, check: Check) => act(github.checkConcludes(number, check)),
+		checksBecome: (number: number, checks: readonly Check[]) => act(github.checksBecome(number, checks)),
 		checksPageLinksElsewhere: (number: number) => act(github.checksPageLinksElsewhere(number)),
 		closes: (number: number) => act(github.closes(number)),
 		conflicts: (number: number) => act(github.conflicts(number)),
@@ -28,11 +29,14 @@ export function githubVerbs(engine: Engine, tell: (line: string) => void) {
 		merges: (number: number) => act(github.merges(number)),
 		mergesStillListed: (number: number) => act(github.mergesStillListed(number)),
 		opens: (number: number) => act(github.opens(number)),
+		optionalStatusBecomes: (number: number, state: string) => act(github.optionalStatusBecomes(number, state)),
 		pushesHead: (number: number, branch: string, sha: string, title: string) => act(github.pushesHead(number, branch, sha, title)),
 		queueRefOnSecondPage: (number: number) => act(github.queueRefOnSecondPage(number)),
 		queueRefVanishes: (number: number, remaining: "queue entry" | "auto-merge request") => act(github.queueRefVanishes(number, remaining)),
 		recovers: (read: Read) => act(github.recovers(read)),
+		requiredFlagsOnSecondPage: (number: number) => act(github.requiredFlagsOnSecondPage(number)),
 		secondChecksPage: (number: number, answer: Answer) => act(github.secondChecksPage(number, answer)),
 		statusBecomes: (number: number, state: string) => act(github.statusBecomes(number, state)),
+		statusOnSecondPage: (number: number, state: string) => act(github.statusOnSecondPage(number, state)),
 	};
 }

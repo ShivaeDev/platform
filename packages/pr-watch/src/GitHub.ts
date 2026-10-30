@@ -1,5 +1,6 @@
 import { Effect, Schema } from "effect";
 import { defineService } from "@shivaedev/service/defineService.ts";
+import { checkFailures } from "#checkFailures.ts";
 import { confirmQueue } from "./confirmQueue.ts";
 import { GitHubHttp } from "./GitHubHttp.ts";
 import { type Options, type Snapshot, WatchError } from "./model.ts";
@@ -16,10 +17,6 @@ const Pull = Schema.Struct({
 }).pipe(Schema.encodeKeys({ autoMerge: "auto_merge", mergeableState: "mergeable_state" }));
 const Ref = Schema.Struct({ ref: Schema.String });
 const ListedPull = Schema.Struct({ number: Schema.Int });
-const Check = Schema.Struct({ conclusion: Schema.NullOr(Schema.String), status: Schema.String });
-const Checks = Schema.Struct({ checkRuns: Schema.Array(Check) }).pipe(Schema.encodeKeys({ checkRuns: "check_runs" }));
-const Status = Schema.Struct({ state: Schema.String });
-const failures = new Set(["failure", "timed_out", "cancelled", "action_required", "startup_failure", "stale"]);
 export const GitHub = defineService({
 	id: "@shivaedev/pr-watch/GitHub",
 	initialize: GitHubHttp,
@@ -62,16 +59,7 @@ export const GitHub = defineService({
 					if (open && (pr.mergeable === null || pr.mergeableState === "unknown")) {
 						return undefined;
 					}
-					let failed = false;
-					if (open) {
-						const bodies = yield* pages(options, `/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`);
-						const checks = yield* Effect.forEach(bodies, (body) => decode(Checks, body));
-						const statusResponse = yield* http.get(`${options.apiUrl}/repos/${options.repository}/commits/${pr.head.sha}/status`);
-						const status = yield* decode(Status, statusResponse);
-						failed =
-							checks.some((page) => page.checkRuns.some((check) => check.status === "completed" && failures.has(check.conclusion ?? "")))
-							|| ["failure", "error"].includes(status.state);
-					}
+					const failed = open ? yield* checkFailures(options, number, pr.head.sha) : false;
 					return {
 						autoMerge: pr.autoMerge !== null,
 						branch: pr.head.ref,

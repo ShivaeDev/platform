@@ -67,7 +67,7 @@ export const watchPrApi = Effect.gen(function* () {
 	pull({});
 	queue(true);
 	github.reply(`${base}/commits/${pr.head.sha}/check-runs?per_page=100&filter=latest`, { "check_runs": [] });
-	github.reply(`${base}/commits/${pr.head.sha}/status`, { state: "success" });
+	github.reply(`${base}/commits/${pr.head.sha}/status`, { state: "success", statuses: [] });
 	return {
 		awaitPoll: () =>
 			until(() =>

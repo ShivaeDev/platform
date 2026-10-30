@@ -73,7 +73,7 @@ export function watcherVerbs(engine: Engine, tell: (line: string) => void) {
 		confirmations: () =>
 			Effect.sync(() =>
 				engine.github.requests
-					.filter(({ path }) => path.endsWith(GRAPHQL))
+					.filter(({ body, path }) => path.endsWith(GRAPHQL) && body?.query?.includes("query QueueEntry") === true)
 					.map(({ body, path }) => `${path} for ${body?.variables?.owner}/${body?.variables?.name} PR ${body?.variables?.number}`),
 			),
 		dequeueReasons: () => Effect.sync(() => transitionLines(engine.lines).flatMap(({ event, reason }) => (event === "dequeued" ? [reason] : []))),

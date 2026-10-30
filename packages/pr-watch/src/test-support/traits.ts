@@ -58,6 +58,9 @@ export function failingStatus(number: number, state = "failure") {
 export function failingCheck(number: number, check: Check) {
 	return given(github.checkConcludes(number, check));
 }
+export function checksAre(number: number, ...checks: Check[]) {
+	return given(github.checksBecome(number, checks));
+}
 export function githubAnswers(read: Read, answer: Answer) {
 	return given(github.answers(read, answer));
 }

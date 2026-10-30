@@ -4,7 +4,7 @@ Work Fleet's generated prompts tell each worker and reviewer how to finish a tur
 
 ## Pull request workers
 
-Cloud worker instructions include startup waiting, the configured environment script, fetching current main to start the branch, repository checks and one pull request for human review. Workers watch CI after every push, repair failures on the same branch and report once CI is green on their exact head. The merge queue re-runs CI against latest main before merging. Workers merge main only when GitHub reports a conflict or their change needs something that landed there; a conflict-free branch behind main does not require a merge, fresh review or revalidation.
+Cloud worker instructions include startup waiting, the configured environment script, fetching current main to start the branch, repository checks and one pull request for human review. Workers watch required CI checks after every push, repair required failures on the same branch and report once required CI is green on their exact head. Only checks required by GitHub branch protection or repository rulesets gate the pull request; optional app checks are information and must not trigger repair, waiting or a question. The merge queue re-runs CI against latest main before merging. Workers merge main only when GitHub reports a conflict or their change needs something that landed there; a conflict-free branch behind main does not require a merge, fresh review or revalidation.
 
 Workers state the exact head's CI result before the final `FLEET_PR: <url>` or `FLEET_PR: none` line. The parser requires exactly one marker on the final line; missing or malformed reports yield no result.
 

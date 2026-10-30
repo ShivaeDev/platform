@@ -53,9 +53,20 @@ export const GitHubHttp = defineService({
 				return result;
 			});
 		}
+		function post(url: string, body: unknown) {
+			return request(counted(state.github.write("POST", url, body)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown))));
+		}
 		return {
 			delay: (interval: number) => pacing(interval).pipe(Effect.map((result) => result.delay)),
 			get: (url: string) => request(counted(state.github.read(url)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
+			graphql: (apiUrl: string, query: string, variables: unknown) => {
+				const url = new URL(apiUrl);
+				url.pathname = url.pathname.replace(/\/api\/v3\/?$/u, "/api/graphql");
+				if (!url.pathname.endsWith("/api/graphql")) {
+					url.pathname = `${url.pathname.replace(/\/$/u, "")}/graphql`;
+				}
+				return post(url.href, { query, variables });
+			},
 			list: (url: string) =>
 				request(
 					Stream.unwrap(state.github.list(url)).pipe(
@@ -64,8 +75,7 @@ export const GitHubHttp = defineService({
 					),
 				),
 			pacing,
-			post: (url: string, body: unknown) =>
-				request(counted(state.github.write("POST", url, body)).pipe(Effect.flatMap((response) => response.decode(Schema.Unknown)))),
+			post,
 		};
 	},
 	requires: [GitHub],

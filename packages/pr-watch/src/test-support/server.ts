@@ -12,7 +12,14 @@ export interface Reply {
 
 export interface Check {
 	readonly conclusion: string | null;
+	readonly name?: string;
+	readonly required?: boolean;
 	readonly status: string;
+}
+
+export interface CommitStatus {
+	readonly required: boolean;
+	readonly state: string;
 }
 
 export interface Pull {
@@ -29,7 +36,7 @@ export interface Pull {
 export interface Received {
 	readonly at: number;
 	readonly authorization: string | undefined;
-	readonly body: { readonly variables?: Record<string, unknown> } | undefined;
+	readonly body: { readonly query?: string; readonly variables?: Record<string, unknown> } | undefined;
 	readonly method: string;
 	readonly path: string;
 	readonly status: number;
@@ -37,13 +44,15 @@ export interface Received {
 
 interface GraphqlQuery {
 	readonly query: string;
-	readonly variables: { readonly number: number };
+	readonly variables: { readonly after?: string | null; readonly number: number; readonly sha?: string };
 }
 
 export const REPOSITORY = "/repos/acme/project";
 export const OPEN_LIST = "/pulls?state=open&per_page=100";
 export const QUEUE_REFS = "/git/matching-refs/heads/gh-readonly-queue/";
 export const GRAPHQL = "/graphql";
+export const REQUIRED_CHECKS = "/graphql required checks";
+const NEXT_REQUIRED_PAGE = "next";
 
 export function checksRoute(sha: string) {
 	return `/commits/${sha}/check-runs?per_page=100&filter=latest`;
@@ -99,8 +108,10 @@ export async function startServer(now: () => number) {
 	const queueRefs = new Set<number>();
 	const queueEntries = new Set<number>();
 	const dequeueReasons = new Map<number, string>();
-	const statuses = new Map<string, string>();
+	const statuses = new Map<string, CommitStatus>();
 	const checks = new Map<string, readonly Check[]>();
+	const checkRequired = new Map<string, boolean>();
+	const requiredFlagsPaged = new Set<string>();
 	const overrides = new Map<string, Reply>();
 	const extraHeaders = new Map<string, Record<string, string>>();
 	const requests: Received[] = [];
@@ -126,6 +137,40 @@ export async function startServer(now: () => number) {
 		};
 	}
 
+	function checkRuns(prefix: string, runs: readonly Check[]) {
+		return {
+			"check_runs": runs.map(({ required = true, ...run }, index) => {
+				const id = `${prefix}-${index}`;
+				checkRequired.set(id, required);
+				return { ...run, "node_id": id };
+			}),
+		};
+	}
+
+	function requiredFlags({ variables }: GraphqlQuery): Reply {
+		const sha = variables.sha ?? "";
+		const status = statuses.get(sha);
+		const nodes = [
+			...[...checkRequired].map(([id, isRequired]) => ({ __typename: "CheckRun", id, isRequired })),
+			...(status === undefined ? [] : [{ __typename: "StatusContext", context: "ci", isRequired: status.required }]),
+		];
+		const firstOfTwo = requiredFlagsPaged.has(sha) && variables.after !== NEXT_REQUIRED_PAGE;
+		const contexts = firstOfTwo
+			? { nodes: [], pageInfo: { endCursor: NEXT_REQUIRED_PAGE, hasNextPage: true } }
+			: { nodes, pageInfo: { endCursor: null, hasNextPage: false } };
+		return { body: { data: { repository: { object: { statusCheckRollup: { contexts } } } } } };
+	}
+
+	function graphqlReply(body: GraphqlQuery | undefined): Reply {
+		if (body === undefined) {
+			return { body: {}, status: HttpStatus.fromLiteral("BadRequest") };
+		}
+		if (body.query.includes("query RequiredChecks")) {
+			return overrides.get(REQUIRED_CHECKS) ?? requiredFlags(body);
+		}
+		return overrides.get(GRAPHQL) ?? confirmation(body);
+	}
+
 	function listReply(route: string): Reply | undefined {
 		if (route === OPEN_LIST) {
 			return { body: [...open].map((number) => ({ number })) };
@@ -145,10 +190,16 @@ export async function startServer(now: () => number) {
 	function commitReply(route: string): Reply | undefined {
 		const checksSha = /^\/commits\/(?<sha>[^/]+)\/check-runs\?per_page=100&filter=latest$/u.exec(route)?.groups?.sha;
 		if (checksSha !== undefined) {
-			return { body: { "check_runs": checks.get(checksSha) ?? [] } };
+			return { body: checkRuns(checksSha, checks.get(checksSha) ?? []) };
 		}
 		const statusSha = /^\/commits\/(?<sha>[^/]+)\/status$/u.exec(route)?.groups?.sha;
-		return statusSha === undefined ? undefined : { body: { state: statuses.get(statusSha) ?? "success" } };
+		const status = statusSha === undefined ? undefined : statuses.get(statusSha);
+		if (statusSha === undefined) {
+			return undefined;
+		}
+		return {
+			body: status === undefined ? { state: "success", statuses: [] } : { state: status.state, statuses: [{ context: "ci", state: status.state }] },
+		};
 	}
 
 	function restReply(route: string): Reply {
@@ -159,7 +210,7 @@ export async function startServer(now: () => number) {
 
 	function replyTo(path: string, body: GraphqlQuery | undefined): Reply {
 		if (path === GRAPHQL || path === `/api${GRAPHQL}`) {
-			return overrides.get(GRAPHQL) ?? (body === undefined ? { body: {}, status: HttpStatus.fromLiteral("BadRequest") } : confirmation(body));
+			return graphqlReply(body);
 		}
 		const route = path.replace(/^\/api\/v3/u, "").replace(REPOSITORY, "");
 		const reply = overrides.get(route) ?? restReply(route);
@@ -192,6 +243,7 @@ export async function startServer(now: () => number) {
 	}
 	return {
 		apiUrl: `http://127.0.0.1:${address.port}`,
+		checkRuns,
 		checks,
 		close: async () => {
 			server.closeAllConnections();
@@ -208,6 +260,7 @@ export async function startServer(now: () => number) {
 		queueEntries,
 		queueRefs,
 		requests,
+		requiredFlagsPaged,
 		statuses,
 	};
 }
