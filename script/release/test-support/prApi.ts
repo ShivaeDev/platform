@@ -42,20 +42,7 @@ export function releasePrApi(branchHead: () => string) {
 		run: undefined,
 		title: "",
 	};
-	function request(endpoint: string, method: string, body?: Readonly<Record<string, unknown>>) {
-		state.requests.push({ body, endpoint, method });
-		if (endpoint === "graphql") {
-			return snapshot(state, branchHead());
-		}
-		if (method === "GET") {
-			return {
-				"workflow_runs":
-					state.run === undefined ? [] : [{ conclusion: state.run.conclusion, "head_sha": state.run.headSha, status: state.run.status }],
-			};
-		}
-		if (body === undefined) {
-			throw new Error(`Missing body for ${endpoint}`);
-		}
+	function savePull(method: string, body: Readonly<Record<string, unknown>>) {
 		if (body.state === "closed") {
 			state.open = false;
 		} else {
@@ -67,6 +54,25 @@ export function releasePrApi(branchHead: () => string) {
 			state.body = String(body.body);
 		}
 		return { number: 1 };
+	}
+	function request(endpoint: string, method: string, body?: Readonly<Record<string, unknown>>) {
+		state.requests.push({ body, endpoint, method });
+		if (endpoint === "graphql") {
+			return snapshot(state, branchHead());
+		}
+		if (endpoint.endsWith("/releases")) {
+			return { id: 1 };
+		}
+		if (method === "GET") {
+			return {
+				"workflow_runs":
+					state.run === undefined ? [] : [{ conclusion: state.run.conclusion, "head_sha": state.run.headSha, status: state.run.status }],
+			};
+		}
+		if (body === undefined) {
+			throw new Error(`Missing body for ${endpoint}`);
+		}
+		return savePull(method, body);
 	}
 	function reply(input: FakeHttpRequest) {
 		const body =
