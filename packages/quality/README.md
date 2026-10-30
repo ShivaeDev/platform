@@ -66,6 +66,8 @@ Add the daily commands to `package.json`:
 
 For pnpm applications, `quality ci` checks peer dependencies, then runs the app’s `lint`, `typecheck`, `build` and `test` scripts in that order. It stops at the first failure. Keep those scripts as the app’s native tool commands; set `ci` to `quality ci` and let `ready` call the same script.
 
+Run `quality ci --coverage` to collect V8 coverage during that single test run. It writes `coverage/lcov.info` and `coverage/junit.xml`, including when tests fail, through Vitest's `reportOnFailure`. Add `coverage/` to `.gitignore`. Quality provides the V8 provider; the application needs no coverage dependency or separate coverage configuration. Without the flag, the gate uses the test script unchanged.
+
 The optional pre-commit hook runs Quality's lint, then the `typecheck` script when it exists, then an optional `quality:commit` script for repository checks. It uses the manifest's `packageManager` (`npm`, `pnpm`, `yarn` or `bun`), defaulting to `npm` when omitted. Add `quality:commit` only when the repository has extra commit checks.
 
 Inspect the report and install the optional commit check explicitly:
@@ -340,6 +342,7 @@ Register it with `defineConfig({ local: [noLog] })`. Its check receives `root`, 
 
 ```text
 quality lint [--config <file>]
+quality ci [--coverage]
 quality fix [--config <file>]
 quality exceptions migrate [--config <file>] [--from <registry>]
 quality baseline merge <ancestor> <current> <other>
@@ -426,7 +429,7 @@ testProjects({ maxWorkers: 4 });
 
 The first configuration allows six workers, including on a two-CPU runner. `maxWorkers` takes precedence over the connection calculation. Counts and estimates must be positive safe integers. Vitest's native `--maxWorkers` CLI option can also override the returned configuration for a single run.
 
-Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Install `@vitest/coverage-v8` at the same version as Vitest. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })`. No separate coverage config is needed.
+Coverage is opt-in: `testProjects({ coverage: true })` enables Vitest's V8 provider across the selected projects. Quality supplies `@vitest/coverage-v8` at its supported Vitest version. The report includes unvisited `src/**/*.ts` and `src/**/*.tsx` files and excludes declarations, tests, specs and `test-support`. To customize it, pass native Vitest coverage options, for example `testProjects({ coverage: { reporter: ["lcov", "text-summary"] } })` or `appTestConfig([], { coverage: { include: ["src/domain/**/*.ts"] } })`. No separate coverage config is needed.
 
 Outside CI, `testProjects` sets `silent: "passed-only"` so local runs show logs only from failing tests. When `CI` is set to a nonempty value, it sets `silent: false` so CI keeps all test logs. It leaves `reporters` unset so Vitest can auto-detect its agent reporter. If a repository adds a reporter, spread `configDefaults.reporters` instead of replacing the defaults:
 

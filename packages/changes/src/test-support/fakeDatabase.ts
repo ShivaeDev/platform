@@ -1,7 +1,8 @@
 import { Cause, Context, Effect, Exit, Logger, References } from "effect";
 
 export interface FakeDatabase {
-	readonly committed: readonly string[];
+	commit: Effect.Effect<void>;
+	readonly committed: string[];
 	readonly name: string;
 	readonly transaction: <TValue, E, R>(body: Effect.Effect<TValue, E, R>) => Effect.Effect<TValue, E, R>;
 	readonly write: (row: string) => Effect.Effect<void>;
@@ -11,30 +12,38 @@ export class Current extends Context.Service<Current, FakeDatabase>()("test/Curr
 
 const Staging = Context.Reference<ReadonlyMap<FakeDatabase, string[]>>("test/Staging", { defaultValue: () => new Map() });
 
-export function makeDatabase(name: string, commit: Effect.Effect<void> = Effect.void): FakeDatabase {
-	const committed: string[] = [];
+const ended = new WeakSet<string[]>();
+
+function openStaging(staging: ReadonlyMap<FakeDatabase, string[]>, database: FakeDatabase) {
+	const staged = staging.get(database);
+	return staged === undefined || ended.has(staged) ? undefined : staged;
+}
+
+export function makeDatabase(name: string): FakeDatabase {
 	const database: FakeDatabase = {
-		committed,
+		commit: Effect.void,
+		committed: [],
 		name,
 		transaction: (body) =>
 			Effect.uninterruptibleMask((restore) =>
 				Effect.gen(function* () {
 					const staging = yield* Staging;
-					const parent = staging.get(database);
+					const parent = openStaging(staging, database);
 					const staged: string[] = [];
 					const exit = yield* Effect.exit(restore(Effect.provideService(body, Staging, new Map(staging).set(database, staged))));
+					ended.add(staged);
 					if (Exit.isSuccess(exit)) {
 						if (parent === undefined) {
-							yield* commit;
+							yield* database.commit;
 						}
-						(parent ?? committed).push(...staged);
+						(parent ?? database.committed).push(...staged);
 					}
 					return yield* exit;
 				}),
 			),
 		write: (row) =>
 			Effect.map(Effect.service(Staging), (staging) => {
-				(staging.get(database) ?? committed).push(row);
+				(openStaging(staging, database) ?? database.committed).push(row);
 			}),
 	};
 	return database;
@@ -49,27 +58,30 @@ export function change(subject: string, domain = "orders"): Change {
 	return { domain, subject };
 }
 
-export interface LogEntry {
-	readonly annotations: Readonly<Record<string, unknown>>;
+export function label({ domain, subject }: Change) {
+	return `${subject}:${domain}`;
+}
+
+export interface LoggedError {
 	readonly cause: string;
-	readonly level: string;
+	readonly changes: unknown;
+	readonly channel: unknown;
 	readonly message: unknown;
 }
 
 export function captureLogs() {
-	const entries: LogEntry[] = [];
+	const errors: LoggedError[] = [];
 	const logger = Logger.make((options) => {
-		entries.push({
-			annotations: options.fiber.getRef(References.CurrentLogAnnotations),
+		if (options.logLevel !== "Error") {
+			return;
+		}
+		const annotations = options.fiber.getRef(References.CurrentLogAnnotations);
+		errors.push({
 			cause: Cause.pretty(options.cause),
-			level: options.logLevel,
-			message: options.message,
+			changes: annotations.changes,
+			channel: annotations.channel,
+			message: Array.isArray(options.message) ? options.message.join(" ") : options.message,
 		});
 	});
-	return { entries, layer: Logger.layer([logger]) };
-}
-
-export function on(database: FakeDatabase) {
-	return <TValue, E, R>(effect: Effect.Effect<TValue, E, R>): Effect.Effect<TValue, E, Exclude<R, Current>> =>
-		Effect.provideService(effect, Current, database);
+	return { errors, layer: Logger.layer([logger]) };
 }

@@ -21,13 +21,27 @@ export const keyStory = storyKit({
 		}),
 	name: "record and bucket changes",
 	stages: [],
-	verbs: (engine) => ({
-		open: () => engine.channel.open,
-		record: (keys: readonly Key[]) => engine.channel.record(keys),
+	verbs: (engine, story) => ({
+		opensTransaction: () =>
+			Effect.map(engine.channel.open, (frame) => ({
+				commit: () =>
+					Effect.suspend(() => {
+						story.tell("the transaction commits");
+						return frame.settle("committed");
+					}),
+				record: (keys: readonly Key[]) =>
+					Effect.suspend(() => {
+						story.tell(`the transaction records ${keys.map((key) => JSON.stringify(key)).join(", ")}`);
+						return frame.provide(engine.channel.record(keys));
+					}),
+			})),
 		refreshed: () => engine.refreshed,
 		watch: (label: string, keys: readonly Key[]) =>
 			Effect.acquireRelease(
-				Effect.sync(() => engine.reactivity.registerUnsafe(readKeys(keys), () => engine.refreshed.push(label))),
+				Effect.sync(() => {
+					story.tell(`${label} watches ${keys.map((key) => JSON.stringify(key)).join(", ")}`);
+					return engine.reactivity.registerUnsafe(readKeys(keys), () => engine.refreshed.push(label));
+				}),
 				(release) => Effect.sync(release),
 			),
 	}),

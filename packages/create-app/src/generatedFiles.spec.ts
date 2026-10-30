@@ -27,3 +27,16 @@ application.it(
 		}
 	},
 );
+
+application.it("carries the coverage CI workflow and ignores its reports", [], function* ({ cli, read, starterFile, git }) {
+	const result = yield* cli(["demo", "--no-git"]);
+	expect(result.status, result.stdout + result.stderr).toBe(0);
+	const workflow = read(".github/workflows/ci.yml");
+	expect(workflow).toBe(starterFile(".github/workflows/ci.yml"));
+	expect(workflow).toContain("run: pnpm run ci --coverage");
+	expect(workflow).toContain("name: coverage-tests");
+	expect(git("init", "--quiet").status).toBe(0);
+	expect(git("check-ignore", "coverage/lcov.info", "coverage/junit.xml", "coverage/measured-commits.txt", "coverage/job.txt").stdout).toBe(
+		"coverage/lcov.info\ncoverage/junit.xml\ncoverage/measured-commits.txt\ncoverage/job.txt\n",
+	);
+});
