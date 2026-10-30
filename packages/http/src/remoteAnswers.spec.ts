@@ -1,66 +1,59 @@
-import { DateTime, Effect } from "effect";
 import * as HttpStatus from "effect/http/HttpStatus";
-import * as TestClock from "effect/testing/TestClock";
 import { expect } from "vitest";
-import { httpClient, routeAnswers } from "#test/http-client/story.ts";
-import { RemoteGone, RemoteHttpError, RemoteNotFound, RemoteRateLimited, RemoteUnauthorized } from "./errors.ts";
+import { clockReadsTenSeconds, httpClient, remoteAnswers } from "#test/http-client/story.ts";
 
-for (const [status, ErrorClass] of [
-	[HttpStatus.fromLiteral("Unauthorized"), RemoteUnauthorized],
-	[HttpStatus.fromLiteral("NotFound"), RemoteNotFound],
-	[HttpStatus.fromLiteral("Gone"), RemoteGone],
-	[HttpStatus.fromLiteral("TooManyRequests"), RemoteRateLimited],
-	[HttpStatus.fromLiteral("ImATeapot"), RemoteHttpError],
-	[HttpStatus.fromLiteral("Found"), RemoteHttpError],
-	[HttpStatus.fromLiteral("ServiceUnavailable"), RemoteHttpError],
+for (const [status, outcome] of [
+	[HttpStatus.fromLiteral("Unauthorized"), "unauthorized"],
+	[HttpStatus.fromLiteral("NotFound"), "not found"],
+	[HttpStatus.fromLiteral("Gone"), "gone"],
+	[HttpStatus.fromLiteral("TooManyRequests"), "rate limited"],
+	[HttpStatus.fromLiteral("ImATeapot"), "HTTP 418"],
+	[HttpStatus.fromLiteral("Found"), "HTTP 302"],
+	[HttpStatus.fromLiteral("ServiceUnavailable"), "HTTP 503"],
 ] as const) {
-	httpClient.it(`POST fails with ${ErrorClass.name} when the route answers ${status}`, [routeAnswers(status)], function* ({ answer, url }) {
-		const error = yield* Effect.flip(answer());
-		expect(error).toBeInstanceOf(ErrorClass);
-		expect({ ...error }).toEqual({ _tag: ErrorClass.name, method: "POST", status, url: `${url()}/answer` });
+	httpClient.it(`a POST the remote answers with HTTP ${status} fails as ${outcome}`, [remoteAnswers(status)], function* ({ post }) {
+		expect(yield* post()).toBe(outcome);
 	});
 }
 
-httpClient.it("a 2xx response passes through with its body and headers", [routeAnswers(HttpStatus.fromLiteral("Created"))], function* ({ answer }) {
-	const response = yield* answer();
-	expect({ status: response.status }).toEqual({ status: HttpStatus.fromLiteral("Created") });
-	expect(response.headers["x-secret"]).toBe("remote-header");
-	expect(yield* response.json).toEqual({ secret: "remote-body" });
-});
-
 httpClient.it(
-	"Retry-After delay-seconds use the TestClock instant",
-	[routeAnswers(HttpStatus.fromLiteral("TooManyRequests"), { "Retry-After": "120" })],
-	function* ({ answer }) {
-		yield* TestClock.adjust("10 seconds");
-		const error = yield* Effect.flip(answer());
-		expect(error).toBeInstanceOf(RemoteRateLimited);
-		if (error instanceof RemoteRateLimited) {
-			expect(error.retryAfter && DateTime.formatIso(error.retryAfter)).toBe("1970-01-01T00:02:10.000Z");
-		}
+	"a refused POST to /answer?token=private names POST /answer without the query",
+	[remoteAnswers(HttpStatus.fromLiteral("Unauthorized"))],
+	function* ({ post, refusedRequest }) {
+		yield* post();
+
+		expect(yield* refusedRequest()).toBe("POST /answer");
 	},
 );
 
 httpClient.it(
-	"a 503 with an HTTP-date Retry-After is rate limited until that UTC instant",
-	[routeAnswers(HttpStatus.fromLiteral("ServiceUnavailable"), { "Retry-After": "Sun, 25 Oct 2026 11:00:00 GMT" })],
-	function* ({ answer }) {
-		const error = yield* Effect.flip(answer());
-		expect(error).toBeInstanceOf(RemoteRateLimited);
-		if (error instanceof RemoteRateLimited) {
-			expect(error.retryAfter && DateTime.formatIso(error.retryAfter)).toBe("2026-10-25T11:00:00.000Z");
-		}
+	"a POST the remote answers with HTTP 201 returns its status, header and body",
+	[remoteAnswers(HttpStatus.fromLiteral("Created"))],
+	function* ({ post }) {
+		expect(yield* post()).toEqual({ body: { item: "paper" }, requestId: "remote-1", status: HttpStatus.fromLiteral("Created") });
 	},
 );
 
 httpClient.it(
-	"an invalid Retry-After leaves rate limiting typed without a retry instant",
-	[routeAnswers(HttpStatus.fromLiteral("TooManyRequests"), { "Retry-After": "garbage" })],
-	function* ({ answer }) {
-		const error = yield* Effect.flip(answer());
-		expect(error).toBeInstanceOf(RemoteRateLimited);
-		if (error instanceof RemoteRateLimited) {
-			expect(error.retryAfter).toBeUndefined();
-		}
+	"at 00:00:10, a 429 with Retry-After: 120 fails as rate limited until 00:02:10 on the Effect clock",
+	[clockReadsTenSeconds, remoteAnswers(HttpStatus.fromLiteral("TooManyRequests"), { "Retry-After": "120" })],
+	function* ({ post }) {
+		expect(yield* post()).toBe("rate limited until 1970-01-01 00:02:10 UTC");
+	},
+);
+
+httpClient.it(
+	"a 503 with Retry-After: Sun, 25 Oct 2026 11:00:00 GMT fails as rate limited until that UTC instant",
+	[remoteAnswers(HttpStatus.fromLiteral("ServiceUnavailable"), { "Retry-After": "Sun, 25 Oct 2026 11:00:00 GMT" })],
+	function* ({ post }) {
+		expect(yield* post()).toBe("rate limited until 2026-10-25 11:00:00 UTC");
+	},
+);
+
+httpClient.it(
+	"a 429 with Retry-After: garbage fails as rate limited without a retry instant",
+	[remoteAnswers(HttpStatus.fromLiteral("TooManyRequests"), { "Retry-After": "garbage" })],
+	function* ({ post }) {
+		expect(yield* post()).toBe("rate limited");
 	},
 );
